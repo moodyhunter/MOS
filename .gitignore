@@ -1,0 +1,8 @@
+# build directories
+build/
+
+# clangd generated files
+.cache
+
+# VSCode-specific files
+.vscode
