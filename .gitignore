@@ -1,3 +1,5 @@
+config.cmake
+
 # build directories
 build/
 

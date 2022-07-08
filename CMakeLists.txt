@@ -4,11 +4,16 @@ project(MOS LANGUAGES C ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_C_EXTENSIONS OFF)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-find_program(NASM NAMES nasm REQUIRED)
+# include config.cmake if it exists
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/config.cmake)
+    message(STATUS "Found custom configuration file 'config.cmake'")
+    include(${CMAKE_CURRENT_SOURCE_DIR}/config.cmake)
+endif()
 
-add_executable(mos_c ${CMAKE_CURRENT_SOURCE_DIR}/main.c)
+include(add_nasm_binary)
 
-target_link_options(mos_c PRIVATE -nostdlib)
+add_nasm_binary(mos_bootsector SOURCE ${CMAKE_SOURCE_DIR}/arch/x86/boot/boot_sector.asm)
 
-message("MOS is now configured.")
+message(STATUS "MOS is now configured.")

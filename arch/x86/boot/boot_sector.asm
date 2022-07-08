@@ -1,27 +1,12 @@
     bits 16                 ; 16 bit code
-    org 0x7C00              ; where the code will be located
+    [org 0x7C00]              ; where the code will be located
 
 start:
     mov si, welcome
     call print_string
     jmp $                   ; go and jump till the end of the world
 
-; print a single character from the register al, using the INT 10h call
-print_char:
-    mov ah, 0x0e
-    int 0x10                ; fire the interrupt
-    ret
-
-; print a string from the memory location given by si
-; this is a recursive function
-print_string:
-    lodsb
-    cmp al, 0x00            ; if the string is finished...
-    je .done                ; return
-    call print_char
-    call print_string
-.done:
-    ret
+%include "utils.asm"
 
 strings:
     welcome db "Welcome to the MOS!", 0x00
