@@ -14,6 +14,6 @@ endif()
 
 include(add_nasm_binary)
 
-add_nasm_binary(mos_bootsector SOURCE ${CMAKE_SOURCE_DIR}/arch/x86/boot/boot_sector.asm)
+add_nasm_binary(mos_bootsector SOURCE arch/x86/boot/boot_sector.asm)
 
 message(STATUS "MOS is now configured.")
