@@ -1,3 +1,5 @@
+; SPDX-License-Identifier: GPL-3.0-or-later
+
 ; print a single character from the register al, using the INT 10h call
 ; **WARN: it's the caller's responsibility to preserve the previous value of AX**
 print_char:

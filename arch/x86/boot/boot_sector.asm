@@ -1,3 +1,5 @@
+; SPDX-License-Identifier: GPL-3.0-or-later
+
 base:
     bits 16                 ; 16 bit code
     [org 0x7C00]            ; where the code will be located

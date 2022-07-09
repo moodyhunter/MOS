@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 find_program(NASM NAMES ${CUSTOM_NASM_PATH} nasm REQUIRED)
 message(STATUS "Found NASM at: ${NASM}")
 
