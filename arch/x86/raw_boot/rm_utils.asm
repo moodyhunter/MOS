@@ -3,16 +3,19 @@
 ; print a single character from the register al, using the INT 10h call
 ; **WARN: it's the caller's responsibility to preserve the previous value of AX**
 print_char:
+    push ax
     mov ah, 0x0e
     int 0x10                ; fire the interrupt
+    pop ax
     ret
 
 print_newline:
-    mov ah, 0x0e
+    push ax
     mov al, 0x0a
-    int 0x10                ; fire the interrupt
+    call print_char         ; fire the interrupt
     mov al, 0x0d
-    int 0x10                ; fire the interrupt
+    call print_char         ; fire the interrupt
+    pop ax
     ret
 
 ; print a null-terminated string from `SI`
@@ -41,8 +44,7 @@ print_single_hex_digit:
     add al, '0'             ; otherwise, print the low digit (0-9)
     jmp .do_print
 .print_hex_high:
-    sub al, 0x0a
-    add al, 'A'             ; otherwise, print the high digit (A-F)
+    add al, -0x0a + 'A'      ; otherwise, print the high digit (A-F)
 .do_print:
     call print_char
     pop ax
@@ -52,8 +54,7 @@ print_single_hex_digit:
 ; prints a number in the format `0x` in hexadecimal form, given the number in `DX`
 ; **WARN: it's the caller's responsibility to make sure the number is in the correct range**
 print_hex:
-    push ax
-    push cx
+    pusha
     mov al, '0'
     call print_char
     mov al, 'x'
@@ -67,6 +68,5 @@ print_hex:
     cmp cl, 0
     jns .loop
 .leave:
-    pop cx
-    pop ax
+    popa
     ret

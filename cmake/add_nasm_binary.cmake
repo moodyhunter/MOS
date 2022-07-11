@@ -42,7 +42,7 @@ macro(add_nasm_binary TARGET)
 
     message(STATUS "  ${TARGET}: ${relative_source_file} ==NASM=>> ${relative_source_dir}/${object_name}")
 
-    add_custom_target(${TARGET} ALL COMMENT "NASM assembly target" SOURCES ${ASSEMBLY_NEW_TARGET_SOURCE})
+    add_custom_target(${TARGET} COMMENT "NASM assembly target" SOURCES ${ASSEMBLY_NEW_TARGET_SOURCE})
     add_custom_command(
         COMMAND
             ${NASM}
@@ -54,6 +54,9 @@ macro(add_nasm_binary TARGET)
         VERBATIM
         COMMENT "Assembling ${TARGET} with NASM (${NASM})..."
     )
+
+    # small ninja hack
+    set_target_properties(${TARGET} PROPERTIES EchoString "Assembling ${TARGET} with NASM (${NASM})...")
 
     # make directory: BUILDDIR/path/to/
     make_directory(${CMAKE_CURRENT_BINARY_DIR}/${relative_source_dir})
