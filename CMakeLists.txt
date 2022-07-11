@@ -22,6 +22,7 @@ if(NOT MOS_BOOT_METHOD)
 endif()
 
 include(add_nasm_binary)
+include(add_kernel_binary)
 
 add_library(mos_kernel_object OBJECT
     src/kernel.c
