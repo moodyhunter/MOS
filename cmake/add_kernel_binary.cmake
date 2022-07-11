@@ -21,7 +21,7 @@ function(add_kernel_binary)
         DEPENDS ${mos_kernel_objects_input} ${KERNEL_BINARY_LINKER_SCRIPT}
         VERBATIM
         COMMAND
-            sh -c "export OBJS='${mos_kernel_objects_input}' && ld -melf_i386 -o ${MOS_KERNEL_BINARY} -T${KERNEL_BINARY_LINKER_SCRIPT} \${OBJS//;/ }"
+            bash -c "export OBJS='${mos_kernel_objects_input}' && ld -melf_i386 -o ${MOS_KERNEL_BINARY} -T${KERNEL_BINARY_LINKER_SCRIPT} \${OBJS//;/ }"
     )
     add_custom_target(mos_kernel ALL DEPENDS mos_kernel_object ${KERNEL_BINARY_LOADER_ASSEMBLY_TARGET} ${MOS_KERNEL_BINARY})
 endfunction()
