@@ -1,0 +1,28 @@
+name: Build MOS
+
+on:
+  push:
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        boot_method: [raw, multiboot]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up NASM
+        run: |
+          sudo apt update
+          sudo apt -y install nasm
+
+      - name: Configure CMake
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DMOS_BOOT_METHOD=${{matrix.boot_method}}
+
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
