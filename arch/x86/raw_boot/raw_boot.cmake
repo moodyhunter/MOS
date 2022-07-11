@@ -15,4 +15,4 @@ add_custom_command(
         cat $<TARGET_OBJECTS:mos_bootsector::binary> ${CMAKE_BINARY_DIR}/mos_kernel.bin > mos_kernel.img
 )
 
-add_custom_target(mos_kernel_image ALL  DEPENDS ${CMAKE_BINARY_DIR}/mos_kernel.img)
+add_custom_target(mos_kernel_image ALL DEPENDS ${CMAKE_BINARY_DIR}/mos_kernel.img)
