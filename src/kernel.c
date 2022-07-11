@@ -4,8 +4,10 @@
 
 void start_kernel(void)
 {
-    const char *kernel_name = "Hello from the MOS kernel!";
+    const char *kernel_name = "Hello from the MffOS kedrnel ff";
     print_string(kernel_name);
+
+    float p = 0.0033314 + 0.0033314664;
 
     while (1)
         ;

@@ -1,7 +1,7 @@
 ; SPDX-License-Identifier: GPL-3.0-or-later
 
 [bits 16]
-%include "gdt.asm"
+%include "../gdt.asm"
 switch_to_pm:
     cli
     lgdt [gdt_descriptor]

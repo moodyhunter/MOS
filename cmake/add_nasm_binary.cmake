@@ -51,6 +51,9 @@ function(add_nasm_binary TARGET)
         # to indicate that this file is an object, not a "executable binary"
         set(object_name "${object_name}.o")
         set(ASSEMBLY_NEW_TARGET_FLAGS -f elf)
+        set(target_kind object)
+    else()
+            set(target_kind binary)
     endif()
 
     # relative_source_file: ./path/to/foo.asm
@@ -61,9 +64,8 @@ function(add_nasm_binary TARGET)
 
     message(STATUS "  ${TARGET}: ${relative_source_file} ==NASM=>> ${relative_source_dir}/${object_name}")
 
-    add_custom_target(${TARGET} COMMENT "NASM assembly target" SOURCES ${ASSEMBLY_NEW_TARGET_SOURCE})
-    add_custom_command(
-        TARGET ${TARGET}
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${relative_source_dir}/${object_name}
+        DEPENDS ${ASSEMBLY_NEW_TARGET_SOURCE}
         COMMENT "Assembling ${TARGET} with NASM (${NASM})..."
         VERBATIM
         COMMAND
@@ -74,17 +76,10 @@ function(add_nasm_binary TARGET)
                 -I ${CMAKE_CURRENT_SOURCE_DIR}/${relative_source_dir}
     )
 
-    if(ASSEMBLY_NEW_TARGET_ELF_OBJECT)
-        set(target_kind object)
-    else()
-        set(target_kind binary)
-    endif()
-
+    add_custom_target(${TARGET} DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${relative_source_dir}/${object_name})
     add_library(${TARGET}::${target_kind} SHARED IMPORTED)
     set_target_properties(${TARGET}::${target_kind} PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/${relative_source_dir}/${object_name})
-
-    # small ninja hack
-    set_target_properties(${TARGET} PROPERTIES EchoString "Assembling ${TARGET} with NASM (${NASM})...")
+    add_dependencies(${TARGET}::${target_kind} ${TARGET})
 
     # make directory: BUILDDIR/path/to/
     make_directory(${CMAKE_CURRENT_BINARY_DIR}/${relative_source_dir})
