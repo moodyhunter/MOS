@@ -14,14 +14,7 @@ function(add_kernel_binary)
         message(FATAL_ERROR "No LINKER_SCRIPT specified")
     endif()
 
-    set(mos_kernel_objects_input "$<TARGET_OBJECTS:${KERNEL_BINARY_LOADER_ASSEMBLY_TARGET}>;$<TARGET_OBJECTS:mos_kernel_object>")
-    add_custom_command(
-        OUTPUT ${MOS_KERNEL_BINARY}
-        COMMENT "Linking MOS kernel object..."
-        DEPENDS ${mos_kernel_objects_input} ${KERNEL_BINARY_LINKER_SCRIPT}
-        VERBATIM
-        COMMAND
-            bash -c "export OBJS='${mos_kernel_objects_input}' && ld -melf_i386 -o ${MOS_KERNEL_BINARY} -T${KERNEL_BINARY_LINKER_SCRIPT} \${OBJS//;/ }"
-    )
-    add_custom_target(mos_kernel ALL DEPENDS mos_kernel_object ${KERNEL_BINARY_LOADER_ASSEMBLY_TARGET} ${MOS_KERNEL_BINARY})
+    add_executable(mos_kernel.bin $<TARGET_OBJECTS:${KERNEL_BINARY_LOADER_ASSEMBLY_TARGET}> $<TARGET_OBJECTS:mos_kernel_object>)
+    set_property(TARGET mos_kernel.bin PROPERTY LINK_OPTIONS -melf_i386 -T${KERNEL_BINARY_LINKER_SCRIPT})
+    add_dependencies(mos_kernel.bin mos_kernel_object ${KERNEL_BINARY_LOADER_ASSEMBLY_TARGET})
 endfunction()

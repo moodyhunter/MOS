@@ -6,6 +6,7 @@ project(MOS LANGUAGES C ASM VERSION 0.1)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_C_EXTENSIONS OFF)
+set(CMAKE_C_LINK_EXECUTABLE "ld <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 list(APPEND CMAKE_C_FLAGS "-fno-pie -m32 -ffreestanding -nostdlib -nostdinc")
@@ -42,8 +43,8 @@ generate_kconfig()
 # Configure boot loader
 include(arch/x86/boot.cmake)
 
-if(NOT TARGET mos_kernel)
-    message(FATAL_ERROR "No target mos_kernel defined, possibly invalid boot configuration")
+if(NOT TARGET mos_kernel.bin)
+    message(FATAL_ERROR "No target mos_kernel defined, possibly invalid boot configuration, did you call 'add_kernel_binary'?")
 endif()
 
 message(STATUS "MOS is now configured.")
