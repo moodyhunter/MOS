@@ -99,3 +99,18 @@ int screen_print_string_colored(const char *str, TextModeColor fg, TextModeColor
 
     return r;
 }
+
+void screen_cursur_enable(u8 cursor_start, u8 cursor_end)
+{
+    outb(0x3D4, 0x0A);
+    outb(0x3D5, (inb(0x3D5) & 0xC0) | cursor_start);
+
+    outb(0x3D4, 0x0B);
+    outb(0x3D5, (inb(0x3D5) & 0xE0) | cursor_end);
+}
+
+void screen_cursor_disable()
+{
+    outb(0x3D4, 0x0A);
+    outb(0x3D5, 0x20);
+}

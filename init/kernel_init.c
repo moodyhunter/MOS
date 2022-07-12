@@ -6,6 +6,7 @@
 void start_kernel(void)
 {
     screen_clear();
+    screen_cursor_disable();
     screen_print_string("Hello from the MOS Kernel!");
     screen_print_string_at(0, 2, "Kernel: ", Yellow, Black);
     screen_print_string_at(15, 2, KERNEL_VERSION, Cyan, Black);

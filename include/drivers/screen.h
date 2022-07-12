@@ -37,3 +37,6 @@ int screen_print_string_at(u32 x, u32 y, const char *str, TextModeColor fg, Text
 
 int screen_print_string(const char *str);
 int screen_print_string_colored(const char *str, TextModeColor fg, TextModeColor bg);
+
+void screen_cursur_enable(u8 cursor_start, u8 cursor_end);
+void screen_cursor_disable();
