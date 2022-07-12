@@ -1,3 +1,3 @@
 # MOS
 
-An educational operating system.
+Moody's Operating System
