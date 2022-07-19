@@ -8,5 +8,4 @@
 // clang-format off
 const char *KERNEL_VERSION = "@MOS_KERNEL_VERSION_STRING@";
 const char *KERNEL_REVISION = "@MOS_KERNEL_REVISION_STRING@";
-const char *KERNEL_BOOTMETHOD = "@MOS_BOOT_METHOD@";
 // clang-format on

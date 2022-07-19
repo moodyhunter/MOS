@@ -4,4 +4,3 @@
 # you can change this file according to your needs.
 
 set(CUSTOM_NASM_PATH    "/usr/bin/nasm")
-set(MOS_BOOT_METHOD     "raw")

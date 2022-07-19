@@ -4,4 +4,3 @@
 
 extern const char *KERNEL_VERSION;
 extern const char *KERNEL_REVISION;
-extern const char *KERNEL_BOOTMETHOD;

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-function(generate_kconfig)
+function(generate_kconfig TARGET)
     message(STATUS "Generating kconfig.c according to configuration...")
 
     execute_process(
@@ -19,5 +19,5 @@ function(generate_kconfig)
 
     make_directory(${CMAKE_BINARY_DIR}/include)
     configure_file(${CMAKE_SOURCE_DIR}/cmake/kconfig.c.in ${CMAKE_BINARY_DIR}/include/kconfig.c)
-    target_sources(mos_kernel_object PRIVATE ${CMAKE_BINARY_DIR}/include/kconfig.c)
+    target_sources(${TARGET} PRIVATE ${CMAKE_BINARY_DIR}/include/kconfig.c)
 endfunction()

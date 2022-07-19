@@ -16,7 +16,6 @@ if(NOT NASM)
 endif()
 
 function(add_nasm_binary TARGET)
-    message(STATUS "Adding a new NASM binary target: ${TARGET}")
     if(TARGET ${TARGET})
         message(FATAL_ERROR
             " \n"
@@ -62,7 +61,7 @@ function(add_nasm_binary TARGET)
     # relative_source_dir: ./path/to/
     get_filename_component(relative_source_dir ${relative_source_file} DIRECTORY)
 
-    message(STATUS "  ${TARGET}: ${relative_source_file} ==NASM=>> ${relative_source_dir}/${object_name}")
+    message(STATUS "NASM target: ${TARGET}: ${relative_source_file} --> ${relative_source_dir}/${object_name}")
 
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${relative_source_dir}/${object_name}
         DEPENDS ${ASSEMBLY_NEW_TARGET_SOURCE}

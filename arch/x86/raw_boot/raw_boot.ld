@@ -13,16 +13,8 @@ SECTIONS
         *(.kernel_entry_asm) /* defined in kernel_entry.asm */
         *(.text)
     }
-    .rodata :
-    {
-        *(.rodata)
-    }
-    .data :
-    {
-        *(.data)
-    }
-    .bss :
-    {
-        *(.bss)
-    }
+    .rodata : { *(.rodata) }
+    .data : { *(.data) }
+
+    .bss : { *(.bss) }
 }

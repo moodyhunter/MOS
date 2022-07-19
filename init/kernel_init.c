@@ -15,7 +15,7 @@ void start_kernel(void)
     screen_print_string_at(15, 3, KERNEL_REVISION, Cyan, Black);
 
     screen_print_string_at(0, 4, "Boot Type: ", Yellow, Black);
-    screen_print_string_at(15, 4, KERNEL_BOOTMETHOD, Cyan, Black);
+    screen_print_string_at(15, 4, "KERNEL_BOOTMETHOD", Cyan, Black);
 
     screen_print_string_at(0, 7, "Long live MOS!", Green, Black);
 }
