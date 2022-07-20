@@ -6,7 +6,6 @@ project(MOS LANGUAGES C ASM VERSION 0.1)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_C_EXTENSIONS OFF)
-set(CMAKE_C_LINK_EXECUTABLE "ld <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 list(APPEND CMAKE_C_FLAGS "-fno-pie -m32 -ffreestanding -nostdlib -nostdinc")
@@ -33,7 +32,7 @@ generate_kconfig(mos_kernel.elf)
 set(MOS_KERNEL_LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/init/kernel.ld)
 target_include_directories(mos_kernel.elf PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR}/include)
 
-target_link_options(mos_kernel.elf PRIVATE -r -melf_i386 -T${MOS_KERNEL_LINKER_SCRIPT})
+target_link_options(mos_kernel.elf PRIVATE -r -T${MOS_KERNEL_LINKER_SCRIPT})
 set_target_properties(mos_kernel.elf PROPERTIES LINK_DEPENDS ${MOS_KERNEL_LINKER_SCRIPT})
 
 # Configure boot loader

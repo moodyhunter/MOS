@@ -31,6 +31,7 @@ function(prepare_bootable_kernel_binary TARGET_NAME)
         EXCLUDE_FROM_ALL TRUE
         LINKER_LANGUAGE C
         LINK_DEPENDS "${KERNEL_BINARY_LINKER_SCRIPT}"
-        LINK_OPTIONS "$<TARGET_FILE:mos::elf_kernel>;-melf_i386;-T${KERNEL_BINARY_LINKER_SCRIPT}")
+        # Do not link with 'mos::elf_kernel' in CMake because it is not a library, nor an exported executable.
+        LINK_OPTIONS "$<TARGET_FILE:mos::elf_kernel>;-T${KERNEL_BINARY_LINKER_SCRIPT}")
     add_dependencies(${TARGET_NAME} ${LOADER_TARGET} mos::elf_kernel)
 endfunction()
