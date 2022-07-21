@@ -24,7 +24,7 @@ function(prepare_bootable_kernel_binary TARGET_NAME)
 
     add_nasm_binary(${LOADER_TARGET} SOURCE ${KERNEL_BINARY_LOADER_ASM} ELF_OBJECT)
 
-    add_executable(${TARGET_NAME})
+    add_executable(${TARGET_NAME} $<TARGET_OBJECTS:${LOADER_TARGET}::object> $<TARGET_OBJECTS:mos::elf_kernel>)
     set_target_properties(${TARGET_NAME} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/boot
         OUTPUT_NAME ${TARGET_NAME}
@@ -33,6 +33,5 @@ function(prepare_bootable_kernel_binary TARGET_NAME)
         LINK_DEPENDS "${KERNEL_BINARY_LINKER_SCRIPT}"
         # Do not link with 'mos::elf_kernel' in CMake because it is not a library, nor an exported executable.
         LINK_OPTIONS "-T${KERNEL_BINARY_LINKER_SCRIPT}")
-    target_link_libraries(${TARGET_NAME} mos::elf_kernel ${LOADER_TARGET}::object)
-    add_dependencies(${TARGET_NAME} ${LOADER_TARGET} mos::elf_kernel)
+    add_dependencies(${TARGET_NAME} ${LOADER_TARGET}::object mos::elf_kernel)
 endfunction()
