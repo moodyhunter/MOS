@@ -3,11 +3,14 @@
 #include "drivers/screen.h"
 #include "kconfig.h"
 
-void start_kernel(void)
+void start_kernel(u32 magic, u32 addr)
 {
     screen_clear();
     screen_cursor_disable();
-    screen_print_string("Hello from the MOS Kernel!");
+    if (magic == 0x2BADB002)
+    {
+        screen_print_string("Hello from the MOS Kernel!");
+    }
     screen_print_string_at(0, 2, "Kernel: ", Yellow, Black);
     screen_print_string_at(15, 2, KERNEL_VERSION, Cyan, Black);
 

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#if __WORDSIZE == 64
+#if __SIZE_WIDTH__ == 64
 #error "MOS is not supported on 64-bit systems"
 #endif
 
@@ -40,3 +40,5 @@ typedef u64 uint64_t;
 
 typedef u32 uintptr_t;
 typedef u32 uintmax_t;
+
+_Static_assert(__SIZEOF_POINTER__ == sizeof(uintptr_t), "uintptr_t is not the same size as a pointer");

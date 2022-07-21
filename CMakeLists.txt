@@ -8,7 +8,7 @@ set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_C_EXTENSIONS OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-list(APPEND CMAKE_C_FLAGS "-fno-pie -m32 -ffreestanding -nostdlib -nostdinc")
+list(APPEND CMAKE_C_FLAGS "-m32 -ffreestanding -nostdlib -nostdinc")
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
     message(STATUS "Found custom configuration file 'config.cmake'")
@@ -19,20 +19,22 @@ include(add_nasm_binary)
 include(prepare_bootable_kernel_binary)
 include(generate_kconfig)
 
-add_executable(mos_kernel.elf
+add_library(mos_kernel.elf OBJECT
     init/kernel_init.c
     drivers/screen.c
     lib/stdlib.c
 )
 
-add_executable(mos::elf_kernel ALIAS mos_kernel.elf)
+add_library(mos::elf_kernel ALIAS mos_kernel.elf)
 
 generate_kconfig(mos_kernel.elf)
 
+# Used by the raw kernel image
+target_compile_options(mos_kernel.elf PRIVATE -fno-pie -r)
+
 set(MOS_KERNEL_LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/init/kernel.ld)
 target_include_directories(mos_kernel.elf PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR}/include)
-
-target_link_options(mos_kernel.elf PRIVATE -r -T${MOS_KERNEL_LINKER_SCRIPT})
+target_link_options(mos_kernel.elf PRIVATE -T${MOS_KERNEL_LINKER_SCRIPT})
 set_target_properties(mos_kernel.elf PROPERTIES LINK_DEPENDS ${MOS_KERNEL_LINKER_SCRIPT})
 
 # Configure boot loader
