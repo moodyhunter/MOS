@@ -32,4 +32,4 @@ _start:
     jmp .hang
 .end:
 
-%include "../gdt.asm"
+%include "gdt.asm"

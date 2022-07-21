@@ -148,7 +148,7 @@ struct multiboot_info
     u32 boot_device;
 
     /* Kernel command line */
-    const char *const cmdline;
+    const char *cmdline;
 
     /* Boot-Module list */
     u32 mods_count;

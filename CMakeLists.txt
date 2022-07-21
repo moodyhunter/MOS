@@ -35,9 +35,6 @@ add_library(mos::elf_kernel ALIAS mos_kernel.elf)
 
 generate_kconfig(mos_kernel.elf)
 
-# Used by the raw kernel image
-target_compile_options(mos_kernel.elf PRIVATE -fno-pie -r)
-
 set(MOS_KERNEL_LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/init/kernel.ld)
 target_include_directories(mos_kernel.elf PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR}/include)
 target_link_options(mos_kernel.elf PRIVATE -T${MOS_KERNEL_LINKER_SCRIPT})
@@ -46,7 +43,7 @@ set_target_properties(mos_kernel.elf PROPERTIES LINK_DEPENDS ${MOS_KERNEL_LINKER
 # Configure boot loader
 set(MOS_BOOTABLE_TARGETS)
 set(MOS_BOOTABLE_TARGETS_FILE)
-include(arch/x86/boot.cmake)
+include(boot/boot.cmake)
 
 message("")
 message("MOS is now configured :) ")

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-make_directory(${CMAKE_BINARY_DIR}/boot)
+make_directory(${CMAKE_BINARY_DIR}/boot.dir)
 
 function(prepare_bootable_kernel_binary TARGET_NAME)
     set(options)
@@ -26,7 +26,7 @@ function(prepare_bootable_kernel_binary TARGET_NAME)
 
     add_executable(${TARGET_NAME} $<TARGET_OBJECTS:${LOADER_TARGET}::object> $<TARGET_OBJECTS:mos::elf_kernel>)
     set_target_properties(${TARGET_NAME} PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/boot
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/boot.dir
         OUTPUT_NAME ${TARGET_NAME}
         EXCLUDE_FROM_ALL TRUE
         LINKER_LANGUAGE C
