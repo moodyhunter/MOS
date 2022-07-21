@@ -10,15 +10,10 @@ size_t strlen(const char *str)
     return len;
 }
 
-u8 outb(u16 port, u8 value)
+s8 strcmp(const char *s1, const char *s2)
 {
-    __asm__ volatile("outb %1, %0" : : "dN"(port), "a"(value));
-    return value;
-}
-
-u8 inb(u16 port)
-{
-    u8 value;
-    __asm__ volatile("inb %1, %0" : "=a"(value) : "dN"(port));
-    return value;
+    size_t i = 0;
+    while (s1[i] && s2[i] && s1[i] == s2[i])
+        i++;
+    return s1[i] - s2[i];
 }

@@ -11,7 +11,5 @@
             panic("Assertion failed: "##cond);                                                                                                                           \
     } while (0)
 
-u8 inb(u16 port);
-u8 outb(u16 port, u8 value);
-
 size_t strlen(const char *str);
+s8 strcmp(const char *str1, const char *str2);

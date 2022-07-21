@@ -2,6 +2,7 @@
 
 #include "drivers/screen.h"
 
+#include "drivers/port.h"
 #include "stdlib.h"
 
 #define VIDEO_DEVICE_ADDRESS 0xB8000
@@ -62,7 +63,7 @@ int screen_get_height()
     return VIDEO_HEIGHT;
 }
 
-int screen_print_char_at(u32 x, u32 y, char c, TextModeColor fg, TextModeColor bg)
+int screen_print_char_at(u32 x, u32 y, char c, VGATextModeColor fg, VGATextModeColor bg)
 {
     if (x < 0 || y < 0 || x >= VIDEO_WIDTH || y >= VIDEO_HEIGHT)
         return -1;
@@ -71,7 +72,7 @@ int screen_print_char_at(u32 x, u32 y, char c, TextModeColor fg, TextModeColor b
     return 0;
 }
 
-int screen_print_string_at(u32 x, u32 y, const char *str, TextModeColor fg, TextModeColor bg)
+int screen_print_string_at(u32 x, u32 y, const char *str, VGATextModeColor fg, VGATextModeColor bg)
 {
     size_t str_len = strlen(str);
     for (u32 i = 0; i < str_len; i++)
@@ -84,19 +85,11 @@ int screen_print_string(const char *str)
     return screen_print_string_colored(str, White, Black);
 }
 
-int screen_print_string_colored(const char *str, TextModeColor fg, TextModeColor bg)
+int screen_print_string_colored(const char *str, VGATextModeColor fg, VGATextModeColor bg)
 {
     int r = 0;
-    char *video = (char *) VIDEO_DEVICE_ADDRESS;
     for (; *str; str++, r++)
-    {
-        char c = *str;
-        *video = c;
-        *(video + 1) = bg << 4 | fg;
-
-        video += 2;
-    }
-
+        screen_putchar(*str, fg, bg);
     return r;
 }
 
@@ -113,4 +106,43 @@ void screen_cursor_disable()
 {
     outb(0x3D4, 0x0A);
     outb(0x3D5, 0x20);
+}
+
+void screen_putchar(char c, VGATextModeColor fg, VGATextModeColor bg)
+{
+    if (c == '\n')
+    {
+        cursor_x = 0;
+        cursor_y++;
+    }
+    else
+    {
+        screen_print_char_at(cursor_x, cursor_y, c, fg, bg);
+        cursor_x++;
+    }
+    if (cursor_x >= VIDEO_WIDTH)
+    {
+        cursor_x = 0;
+        cursor_y++;
+    }
+    if (cursor_y >= VIDEO_HEIGHT)
+    {
+        cursor_y = 0;
+        screen_clear();
+    }
+}
+
+void screen_scroll(void)
+{
+    int i = 0;
+    char *video_ptr = (char *) VIDEO_DEVICE_ADDRESS;
+    for (i = 0; i < VIDEO_WIDTH * VIDEO_HEIGHT; i++)
+    {
+        *video_ptr = ' ';
+        video_ptr++;
+        *video_ptr = 0x07;
+        video_ptr++;
+    }
+    cursor_x = 0;
+    cursor_y = 0;
 }

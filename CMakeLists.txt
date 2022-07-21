@@ -27,6 +27,7 @@ include(generate_kconfig)
 add_library(mos_kernel.elf OBJECT
     init/kernel_init.c
     drivers/screen.c
+    drivers/port.c
     lib/stdlib.c
 )
 

@@ -22,7 +22,7 @@ typedef enum
     LightMagenta = Magenta | 0x8,
     Yellow = Brown | 0x8,
     White = LightGray | 0x8,
-} TextModeColor;
+} VGATextModeColor;
 
 int screen_init();
 int screen_clear();
@@ -32,11 +32,14 @@ int screen_move_cursor(u32 x, u32 y);
 int screen_get_cursor(u32 *x, u32 *y);
 int screen_get_size(u32 *width, u32 *height);
 
-int screen_print_char_at(u32 x, u32 y, char c, TextModeColor fg, TextModeColor bg);
-int screen_print_string_at(u32 x, u32 y, const char *str, TextModeColor fg, TextModeColor bg);
+int screen_print_char_at(u32 x, u32 y, char c, VGATextModeColor fg, VGATextModeColor bg);
+int screen_print_string_at(u32 x, u32 y, const char *str, VGATextModeColor fg, VGATextModeColor bg);
 
 int screen_print_string(const char *str);
-int screen_print_string_colored(const char *str, TextModeColor fg, TextModeColor bg);
+int screen_print_string_colored(const char *str, VGATextModeColor fg, VGATextModeColor bg);
 
 void screen_cursur_enable(u8 cursor_start, u8 cursor_end);
 void screen_cursor_disable();
+
+void screen_putchar(char c, VGATextModeColor fg, VGATextModeColor bg);
+void screen_scroll(void);
