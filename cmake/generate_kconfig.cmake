@@ -15,7 +15,6 @@ function(generate_kconfig TARGET)
     set(MOS_KERNEL_VERSION_STRING "${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}")
     message(STATUS " -- Kernel Version      ${MOS_KERNEL_VERSION_STRING}")
     message(STATUS " -- Kernel Revision     ${MOS_KERNEL_REVISION_STRING}")
-    message(STATUS " -- Kernel Boot Method  ${MOS_BOOT_METHOD}")
 
     make_directory(${CMAKE_BINARY_DIR}/include)
     configure_file(${CMAKE_SOURCE_DIR}/cmake/kconfig.c.in ${CMAKE_BINARY_DIR}/include/kconfig.c)
