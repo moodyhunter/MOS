@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 include(mos_add_bootable)
+include(add_nasm_binary)
+include(prepare_bootable_kernel_binary)
 
 set(MOS_BOOTABLE_TARGETS)
 set(MOS_BOOTABLE_TARGETS_FILE)

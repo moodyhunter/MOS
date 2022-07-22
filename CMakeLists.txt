@@ -20,8 +20,6 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
     include(${CMAKE_SOURCE_DIR}/config.cmake)
 endif()
 
-include(add_nasm_binary)
-include(prepare_bootable_kernel_binary)
 include(generate_kconfig)
 
 add_library(mos_kernel.elf OBJECT
@@ -35,10 +33,7 @@ add_library(mos::elf_kernel ALIAS mos_kernel.elf)
 
 generate_kconfig(mos_kernel.elf)
 
-set(MOS_KERNEL_LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/init/kernel.ld)
 target_include_directories(mos_kernel.elf PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR}/include)
-target_link_options(mos_kernel.elf PRIVATE -T${MOS_KERNEL_LINKER_SCRIPT})
-set_target_properties(mos_kernel.elf PROPERTIES LINK_DEPENDS ${MOS_KERNEL_LINKER_SCRIPT})
 
 # Configure boot loader
 include(boot/boot.cmake)
