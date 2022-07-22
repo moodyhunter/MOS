@@ -21,6 +21,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
 endif()
 
 include(generate_kconfig)
+include(configure_summary)
 
 add_library(mos_kernel.elf OBJECT
     init/kernel_init.c
@@ -33,6 +34,11 @@ add_library(mos::elf_kernel ALIAS mos_kernel.elf)
 
 generate_kconfig(mos_kernel.elf)
 
+mos_add_summary_section(KERNEL "MOS Kernel")
+mos_add_summary_item(KERNEL "Version" "${MOS_KERNEL_VERSION_STRING}")
+mos_add_summary_item(KERNEL "Revision" "${MOS_KERNEL_REVISION_STRING}")
+mos_add_summary_item(KERNEL "Builtin Cmdline" "${MOS_KERNEL_BUILTIN_CMDLINE_STRING}")
+
 target_include_directories(mos_kernel.elf PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR}/include)
 
 # Configure boot loader
@@ -41,15 +47,4 @@ include(boot/boot.cmake)
 message("")
 message("MOS is now configured :)")
 message("")
-message("Kernel Info:")
-message("  version          '${MOS_KERNEL_VERSION_STRING}'")
-message("  revision         '${MOS_KERNEL_REVISION_STRING}'")
-message("  builtin cmdline  '${MOS_KERNEL_BUILTIN_CMDLINE_STRING}'")
-message("")
-message("Bootable Targets")
-foreach(tgt ${MOS_BOOTABLE_TARGETS})
-    message(" - ${tgt}    ${MOS_BOOTABLE_TARGETS_FILE_${tgt}}")
-endforeach()
-message("")
-message("Bootable Info File: ${CMAKE_BINARY_DIR}/bootables.json")
-message("")
+mos_print_summary()
