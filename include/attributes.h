@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+
 #pragma once
 
-#include <stdarg.h>
-#include <stddef.h>
+#define __attr_packed __attribute__((__packed__))

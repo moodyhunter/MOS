@@ -25,6 +25,7 @@ add_library(mos_kernel.elf OBJECT
     drivers/port.c
     lib/stdlib.c
     lib/string.c
+    lib/stdio.c
 )
 
 add_library(mos::elf_kernel ALIAS mos_kernel.elf)

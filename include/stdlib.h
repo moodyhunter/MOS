@@ -10,3 +10,6 @@
         if (!(cond))                                                                                                                                                     \
             panic("Assertion failed: "##cond);                                                                                                                           \
     } while (0)
+
+bool isspace(uchar c);
+s32 atoi(const char *nptr);

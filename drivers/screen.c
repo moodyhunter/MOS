@@ -2,6 +2,7 @@
 
 #include "drivers/screen.h"
 
+#include "attributes.h"
 #include "drivers/port.h"
 #include "stdlib.h"
 #include "string.h"
@@ -14,12 +15,12 @@ typedef struct
 {
     char character;
     u8 color;
-} __attribute__((packed)) video_cell_t;
+} __attr_packed video_cell_t;
 
 typedef struct
 {
     video_cell_t cells[VIDEO_HEIGHT][VIDEO_WIDTH];
-} __attribute__((packed)) video_buffer_t;
+} __attr_packed video_buffer_t;
 
 static video_buffer_t *video_buffer = (video_buffer_t *) VIDEO_DEVICE_ADDRESS;
 static u8 cursor_x = 0;

@@ -3,6 +3,7 @@
 #include "boot/multiboot.h"
 #include "drivers/screen.h"
 #include "kconfig.h"
+#include "stdio.h"
 
 void print_hex(u32 value)
 {
@@ -29,21 +30,25 @@ void start_kernel(u32 magic, multiboot_info_t *addr)
     screen_set_cursor_pos(0, 0);
     screen_disable_cursor();
 
+    screen_print_string("Multiboot Magic: ");
     print_hex((u32) magic);
     screen_print_string("\n");
+
     print_hex((u32) addr);
     screen_print_string("\n");
+
+    screen_print_string("cmdline: ");
     screen_print_string(addr->cmdline);
 
     screen_set_color(Yellow, Black);
-    screen_print_string_at("Kernel: ", 0, 10);
-    screen_print_string_at("Revision: ", 0, 11);
-    screen_print_string_at("Builtin cmdline: ", 0, 12);
+    screen_print_string_at("Kernel: ", 0, 8);
+    screen_print_string_at("Revision: ", 0, 9);
+    screen_print_string_at("Builtin cmdline: ", 0, 10);
 
     screen_set_color(Cyan, Black);
-    screen_print_string_at(MOS_KERNEL_VERSION, 20, 10);
-    screen_print_string_at(MOS_KERNEL_REVISION, 20, 11);
-    screen_print_string_at(MOS_KERNEL_BUILTIN_CMDLINE, 20, 12);
+    screen_print_string_at(MOS_KERNEL_VERSION, 20, 8);
+    screen_print_string_at(MOS_KERNEL_REVISION, 20, 9);
+    screen_print_string_at(MOS_KERNEL_BUILTIN_CMDLINE, 20, 10);
 
     screen_set_color(Green, Black);
     screen_print_string_at("Long live MOS!", 0, 14);

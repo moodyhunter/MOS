@@ -3,12 +3,11 @@
 #pragma once
 
 #if __SIZE_WIDTH__ == 64
-#error "MOS is not supported on 64-bit systems"
+#error "MOS does not support 64-bit architectures (for now)"
 #endif
 
-#include "internal/bool.h"
-
-#define NULL ((void *) 0)
+#include <stdbool.h>
+#include <stddef.h>
 
 typedef char s8;
 typedef unsigned char u8;
@@ -22,8 +21,6 @@ typedef float f32;
 typedef double f64;
 typedef long double f80;
 
-typedef u32 size_t;
-typedef s32 ssize_t;
 typedef u32 pid_t;
 typedef u32 uid_t;
 typedef u32 gid_t;
@@ -39,6 +36,9 @@ typedef s32 int32_t;
 typedef u32 uint32_t;
 typedef s64 int64_t;
 typedef u64 uint64_t;
+
+typedef u8 uchar;
+typedef s8 schar;
 
 typedef u32 uintptr_t;
 typedef u32 uintmax_t;
