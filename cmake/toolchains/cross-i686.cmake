@@ -4,7 +4,10 @@ set(CMAKE_SYSTEM_PROCESSOR i686)
 list(APPEND CMAKE_EXE_LINKER_FLAGS "-nostdlib -lgcc")
 list(APPEND CMAKE_C_FLAGS "-ffreestanding")
 
-find_program(CC_PATH NAMES "i686-linux-gnu-gcc" "i686-elf-gcc")
+# For the C compiler, 'elf' should be in the OS field for target triplet to produce a bare metal binary.
+# Although the `linux-gnu` targeted gcc 'does' work, it's highly unsuggested.
+
+find_program(CC_PATH NAMES "i686-elf-gcc" "i686-linux-gnu-gcc")
 if(CC_PATH)
     message(STATUS "TOOLCHAIN: Found i686 gcc: ${CC_PATH}")
     set(CMAKE_C_COMPILER ${CC_PATH})
