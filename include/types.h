@@ -6,6 +6,8 @@
 #error "MOS is not supported on 64-bit systems"
 #endif
 
+#include "internal/bool.h"
+
 #define NULL ((void *) 0)
 
 typedef char s8;

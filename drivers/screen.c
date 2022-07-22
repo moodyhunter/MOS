@@ -4,6 +4,7 @@
 
 #include "drivers/port.h"
 #include "stdlib.h"
+#include "string.h"
 
 #define VIDEO_DEVICE_ADDRESS 0xB8000
 #define VIDEO_WIDTH 80
@@ -23,11 +24,15 @@ typedef struct
 static video_buffer_t *video_buffer = (video_buffer_t *) VIDEO_DEVICE_ADDRESS;
 static u8 cursor_x = 0;
 static u8 cursor_y = 0;
+static VGATextModeColor foreground_color = White;
+static VGATextModeColor background_color = Black;
 
-int screen_init()
+bool screen_init()
 {
     screen_clear();
-    return 0;
+    screen_set_cursor_pos(0, 0);
+    screen_enable_cursur(13, 15);
+    return true;
 }
 
 int screen_clear()
@@ -46,69 +51,44 @@ int screen_clear()
     return 0;
 }
 
-int screen_move_cursor(u32 x, u32 y)
+void screen_get_size(u32 *width, u32 *height)
 {
+    if (width)
+        *width = VIDEO_WIDTH;
+    if (height)
+        *height = VIDEO_HEIGHT;
+}
+
+bool screen_get_cursor_pos(u32 *x, u32 *y)
+{
+    if (!x && !y)
+        return false;
+    if (x)
+        *x = cursor_x;
+    if (y)
+        *y = cursor_y;
+    return true;
+}
+
+bool screen_set_cursor_pos(u32 x, u32 y)
+{
+    if (x >= VIDEO_WIDTH || y >= VIDEO_HEIGHT || x < 0 || y < 0)
+        return false;
+
     cursor_x = x;
     cursor_y = y;
-    return 0;
+
+    uint16_t pos = y * VIDEO_WIDTH + x;
+
+    port_outb(0x3D4, 0x0F);
+    port_outb(0x3D5, (uint8_t) (pos & 0xFF));
+    port_outb(0x3D4, 0x0E);
+    port_outb(0x3D5, (uint8_t) ((pos >> 8) & 0xFF));
+
+    return true;
 }
 
-int screen_get_width()
-{
-    return VIDEO_WIDTH;
-}
-
-int screen_get_height()
-{
-    return VIDEO_HEIGHT;
-}
-
-int screen_print_char_at(u32 x, u32 y, char c, VGATextModeColor fg, VGATextModeColor bg)
-{
-    if (x < 0 || y < 0 || x >= VIDEO_WIDTH || y >= VIDEO_HEIGHT)
-        return -1;
-    video_buffer->cells[y][x].character = c;
-    video_buffer->cells[y][x].color = bg << 4 | fg;
-    return 0;
-}
-
-int screen_print_string_at(u32 x, u32 y, const char *str, VGATextModeColor fg, VGATextModeColor bg)
-{
-    size_t str_len = strlen(str);
-    for (u32 i = 0; i < str_len; i++)
-        screen_print_char_at(x + i, y, str[i], fg, bg);
-    return 0;
-}
-
-int screen_print_string(const char *str)
-{
-    return screen_print_string_colored(str, White, Black);
-}
-
-int screen_print_string_colored(const char *str, VGATextModeColor fg, VGATextModeColor bg)
-{
-    int r = 0;
-    for (; *str; str++, r++)
-        screen_putchar(*str, fg, bg);
-    return r;
-}
-
-void screen_cursur_enable(u8 cursor_start, u8 cursor_end)
-{
-    outb(0x3D4, 0x0A);
-    outb(0x3D5, (inb(0x3D5) & 0xC0) | cursor_start);
-
-    outb(0x3D4, 0x0B);
-    outb(0x3D5, (inb(0x3D5) & 0xE0) | cursor_end);
-}
-
-void screen_cursor_disable()
-{
-    outb(0x3D4, 0x0A);
-    outb(0x3D5, 0x20);
-}
-
-void screen_putchar(char c, VGATextModeColor fg, VGATextModeColor bg)
+void screen_print_char(char c)
 {
     if (c == '\n')
     {
@@ -117,7 +97,7 @@ void screen_putchar(char c, VGATextModeColor fg, VGATextModeColor bg)
     }
     else
     {
-        screen_print_char_at(cursor_x, cursor_y, c, fg, bg);
+        screen_print_char_at(c, cursor_x, cursor_y);
         cursor_x++;
     }
     if (cursor_x >= VIDEO_WIDTH)
@@ -130,6 +110,52 @@ void screen_putchar(char c, VGATextModeColor fg, VGATextModeColor bg)
         cursor_y = 0;
         screen_clear();
     }
+}
+
+bool screen_print_char_at(char c, u32 x, u32 y)
+{
+    if (x < 0 || y < 0 || x >= VIDEO_WIDTH || y >= VIDEO_HEIGHT)
+        return false;
+    video_buffer->cells[y][x].character = c;
+    video_buffer->cells[y][x].color = background_color << 4 | foreground_color;
+    return true;
+}
+
+int screen_print_string(const char *str)
+{
+    int i = 0;
+    for (i = 0; str[i] != '\0'; i++)
+        screen_print_char(str[i]);
+    return i;
+}
+
+int screen_print_string_at(const char *str, u32 x, u32 y)
+{
+    int i = 0;
+    for (int i = 0; str[i] != '\0'; i++)
+        screen_print_char_at(str[i], x + i, y);
+    return i;
+}
+
+void screen_set_color(VGATextModeColor fg, VGATextModeColor bg)
+{
+    foreground_color = fg;
+    background_color = bg;
+}
+
+void screen_enable_cursur(u8 start_scanline, u8 end_scanline)
+{
+    port_outb(0x3D4, 0x0A);
+    port_outb(0x3D5, (port_inb(0x3D5) & 0xC0) | start_scanline);
+
+    port_outb(0x3D4, 0x0B);
+    port_outb(0x3D5, (port_inb(0x3D5) & 0xE0) | end_scanline);
+}
+
+void screen_disable_cursor()
+{
+    port_outb(0x3D4, 0x0A);
+    port_outb(0x3D5, 0x20);
 }
 
 void screen_scroll(void)

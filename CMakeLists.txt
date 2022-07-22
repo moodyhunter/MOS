@@ -1,19 +1,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-cmake_minimum_required(VERSION 3.16)
-project(MOS LANGUAGES C ASM VERSION 0.1)
+include(cmake/toolchains/cross-i686.cmake)
 
+cmake_minimum_required(VERSION 3.16)
+
+project(MOS LANGUAGES C ASM VERSION 0.1)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_C_EXTENSIONS OFF)
 
-# A side-effect of this is that `target_link_libraries` passes `-Wl,...` to the linker
-# where ld cannot recognize.
-set(CMAKE_C_LINK_EXECUTABLE "ld <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-list(APPEND CMAKE_C_FLAGS "-m32 -ffreestanding -nostdlib -nostdinc")
-list(APPEND CMAKE_EXE_LINKER_FLAGS "-melf_i386")
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
     message(STATUS "Found custom configuration file 'config.cmake'")
@@ -28,6 +24,7 @@ add_library(mos_kernel.elf OBJECT
     drivers/screen.c
     drivers/port.c
     lib/stdlib.c
+    lib/string.c
 )
 
 add_library(mos::elf_kernel ALIAS mos_kernel.elf)
