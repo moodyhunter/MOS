@@ -19,13 +19,11 @@ else()
     add_custom_target(multiboot_iso
         COMMAND ${CMAKE_COMMAND} -E echo ""
         COMMAND ${CMAKE_COMMAND} -E echo "============== WARNING WARNING WARNING WARNING =============="
-        COMMAND ${CMAKE_COMMAND} -E echo " grub-mkrescue NOT FOUND, not creating multiboot_iso"
+        COMMAND ${CMAKE_COMMAND} -E echo " grub-mkrescue NOT FOUND, not creating mos_multiboot_img.iso "
         COMMAND ${CMAKE_COMMAND} -E echo "============================================================="
         COMMAND ${CMAKE_COMMAND} -E echo ""
     )
     set(MOS_BOOTABLE_TARGETS_FILE_multiboot_iso "grub-mkrescue not found")
 endif()
-
-
 
 add_dependencies(multiboot_iso multiboot)

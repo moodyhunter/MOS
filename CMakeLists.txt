@@ -23,6 +23,7 @@ endif()
 include(add_nasm_binary)
 include(prepare_bootable_kernel_binary)
 include(generate_kconfig)
+include(output_bootables)
 
 add_library(mos_kernel.elf OBJECT
     init/kernel_init.c
@@ -47,9 +48,4 @@ include(boot/boot.cmake)
 
 message("")
 message("MOS is now configured :) ")
-message("  Bootable targets: ")
-foreach(target ${MOS_BOOTABLE_TARGETS})
-    message("    - ${target}: ${MOS_BOOTABLE_TARGETS_FILE_${target}}")
-endforeach()
-message("")
-
+output_bootables()
