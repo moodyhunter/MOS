@@ -35,13 +35,13 @@ void start_kernel(u32 magic, multiboot_info_t *addr)
     screen_print_string(addr->cmdline);
 
     screen_print_string_at(0, 10, "Kernel: ", Yellow, Black);
-    screen_print_string_at(15, 10, KERNEL_VERSION, Cyan, Black);
+    screen_print_string_at(20, 10, MOS_KERNEL_VERSION, Cyan, Black);
 
     screen_print_string_at(0, 11, "Revision: ", Yellow, Black);
-    screen_print_string_at(15, 11, KERNEL_REVISION, Cyan, Black);
+    screen_print_string_at(20, 11, MOS_KERNEL_REVISION, Cyan, Black);
 
-    screen_print_string_at(0, 12, "Boot Type: ", Yellow, Black);
-    screen_print_string_at(15, 12, "KERNEL_BOOTMETHOD", Cyan, Black);
+    screen_print_string_at(0, 12, "Builtin cmdline: ", Yellow, Black);
+    screen_print_string_at(20, 12, MOS_KERNEL_BUILTIN_CMDLINE, Cyan, Black);
 
     screen_print_string_at(0, 14, "Long live MOS!", Green, Black);
 

@@ -23,7 +23,6 @@ endif()
 include(add_nasm_binary)
 include(prepare_bootable_kernel_binary)
 include(generate_kconfig)
-include(output_bootables)
 
 add_library(mos_kernel.elf OBJECT
     init/kernel_init.c
@@ -42,10 +41,20 @@ target_link_options(mos_kernel.elf PRIVATE -T${MOS_KERNEL_LINKER_SCRIPT})
 set_target_properties(mos_kernel.elf PROPERTIES LINK_DEPENDS ${MOS_KERNEL_LINKER_SCRIPT})
 
 # Configure boot loader
-set(MOS_BOOTABLE_TARGETS)
-set(MOS_BOOTABLE_TARGETS_FILE)
 include(boot/boot.cmake)
 
 message("")
-message("MOS is now configured :) ")
-output_bootables()
+message("MOS is now configured :)")
+message("")
+message("Kernel Info:")
+message("  version          '${MOS_KERNEL_VERSION_STRING}'")
+message("  revision         '${MOS_KERNEL_REVISION_STRING}'")
+message("  builtin cmdline  '${MOS_KERNEL_BUILTIN_CMDLINE_STRING}'")
+message("")
+message("Bootable Targets")
+foreach(tgt ${MOS_BOOTABLE_TARGETS})
+    message(" - ${tgt}    ${MOS_BOOTABLE_TARGETS_FILE_${tgt}}")
+endforeach()
+message("")
+message("Bootable Info File: ${CMAKE_BINARY_DIR}/bootables.json")
+message("")

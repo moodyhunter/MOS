@@ -2,5 +2,6 @@
 
 #pragma once
 
-extern const char *KERNEL_VERSION;
-extern const char *KERNEL_REVISION;
+extern const char *MOS_KERNEL_VERSION;
+extern const char *MOS_KERNEL_REVISION;
+extern const char *MOS_KERNEL_BUILTIN_CMDLINE;

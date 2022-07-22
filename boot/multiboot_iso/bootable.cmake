@@ -5,6 +5,7 @@ set(MOS_ISODIR ${CMAKE_BINARY_DIR}/.isodir)
 find_program(GRUB_MKRESCUE grub-mkrescue NO_CACHE)
 
 if (GRUB_MKRESCUE)
+    message(STATUS "Found grub-mkrescue at: ${GRUB_MKRESCUE}")
     add_custom_target(multiboot_iso
         DEPENDS $<TARGET_FILE:multiboot>
         COMMAND ${CMAKE_COMMAND} -E rm -rf ${MOS_ISODIR}
@@ -15,7 +16,7 @@ if (GRUB_MKRESCUE)
     )
     set(MOS_BOOTABLE_TARGETS_FILE_multiboot_iso ${CMAKE_BINARY_DIR}/mos_multiboot_img.iso)
 else()
-    message(WARNING "grub-mkrescue not found, you cannot create multiboot_iso")
+    message(WARNING "grub-mkrescue is not found, you cannot create multiboot_iso")
     add_custom_target(multiboot_iso
         COMMAND ${CMAKE_COMMAND} -E echo ""
         COMMAND ${CMAKE_COMMAND} -E echo "============== WARNING WARNING WARNING WARNING =============="

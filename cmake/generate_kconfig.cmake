@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+set(MOS_KERNEL_VERSION_STRING "${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}")
+
 function(generate_kconfig TARGET)
     message(STATUS "Generating kconfig.c according to configuration...")
 
@@ -12,9 +14,11 @@ function(generate_kconfig TARGET)
         ERROR_STRIP_TRAILING_WHITESPACE
     )
 
-    set(MOS_KERNEL_VERSION_STRING "${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}")
-    message(STATUS " -- Kernel Version      ${MOS_KERNEL_VERSION_STRING}")
-    message(STATUS " -- Kernel Revision     ${MOS_KERNEL_REVISION_STRING}")
+    set(MOS_KERNEL_REVISION_STRING "${MOS_KERNEL_REVISION_STRING}" PARENT_SCOPE)
+
+    if(NOT MOS_KERNEL_BUILTIN_CMDLINE_STRING)
+        set(MOS_KERNEL_BUILTIN_CMDLINE_STRING "")
+    endif()
 
     make_directory(${CMAKE_BINARY_DIR}/include)
     configure_file(${CMAKE_SOURCE_DIR}/cmake/kconfig.c.in ${CMAKE_BINARY_DIR}/include/kconfig.c)

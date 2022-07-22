@@ -6,6 +6,7 @@
 // All changes to this file will be lost.
 
 // clang-format off
-const char *KERNEL_VERSION = "@MOS_KERNEL_VERSION_STRING@";
-const char *KERNEL_REVISION = "@MOS_KERNEL_REVISION_STRING@";
+const char *MOS_KERNEL_VERSION = "@MOS_KERNEL_VERSION_STRING@";
+const char *MOS_KERNEL_REVISION = "@MOS_KERNEL_REVISION_STRING@";
+const char *MOS_KERNEL_BUILTIN_CMDLINE = "@MOS_KERNEL_BUILTIN_CMDLINE_STRING@";
 // clang-format on
