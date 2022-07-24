@@ -17,6 +17,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
     include(${CMAKE_SOURCE_DIR}/config.cmake)
 endif()
 
+include(CTest)
 include(generate_kconfig)
 include(configure_summary)
 
@@ -43,6 +44,15 @@ target_include_directories(mos_kernel.elf PUBLIC ${CMAKE_SOURCE_DIR}/include ${C
 
 # Configure boot loader
 include(boot/boot.cmake)
+
+mos_add_summary_section(TESTS "MOS Kernel Library Tests")
+mos_add_summary_item(TESTS "Tests" "${BUILD_TESTING}")
+
+if(BUILD_TESTING)
+    # include(ExternalProject)
+    # ExternalProject_Add(mos_tests SOURCE_DIR ${CMAKE_SOURCE_DIR}/tests)
+    add_subdirectory(tests)
+endif()
 
 message("")
 message("MOS is now configured :)")

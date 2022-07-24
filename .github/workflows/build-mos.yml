@@ -3,16 +3,15 @@ name: Build MOS
 on:
   push:
 
-env:
-  BUILD_TYPE: Release
-
 jobs:
   build:
+    name: Build MOS ${{matrix.target}} (${{matrix.build_type}})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        boot_method: [multiboot, multiboot_iso]
+        target: [multiboot, multiboot_iso]
+        build_type: [Debug, Release]
 
     steps:
       - uses: actions/checkout@v3
@@ -20,22 +19,26 @@ jobs:
       - name: Install packages
         run: |
           sudo apt update
-          sudo apt -y install nasm grub2-common mtools jq gcc-i686-linux-gnu
+          sudo apt -y install nasm grub2-common mtools jq gcc-i686-linux-gnu g++-i686-linux-gnu ninja-build
 
       - name: Configure CMake
-        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        run: |
+          cmake \
+            -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+            -B ${{github.workspace}}/build \
+            -G Ninja
 
       - name: Get Bootable File
         id: get_bootable
         run: |
-          export BOOTABLE=$(jq -r .${{matrix.boot_method}} < ${{github.workspace}}/build/bootables.json)
+          export BOOTABLE=$(jq -r .${{matrix.target}} < ${{github.workspace}}/build/bootables.json)
           echo "::set-output name=bootable::$BOOTABLE"
 
       - name: Build
-        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target ${{matrix.boot_method}}
+        run: cmake --build ${{github.workspace}}/build --target ${{matrix.target}}
 
       - name: Upload Bootable Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ${{matrix.boot_method}}
-          path: ${{ steps.get_bootable.outputs.bootable }}
+          name: ${{matrix.target}}
+          path: ${{steps.get_bootable.outputs.bootable}}
