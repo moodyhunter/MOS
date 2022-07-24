@@ -73,7 +73,7 @@ bool screen_get_cursor_pos(u32 *x, u32 *y)
 
 bool screen_set_cursor_pos(u32 x, u32 y)
 {
-    if (x >= VIDEO_WIDTH || y >= VIDEO_HEIGHT || x < 0 || y < 0)
+    if (x >= VIDEO_WIDTH || y >= VIDEO_HEIGHT)
         return false;
 
     cursor_x = x;
@@ -115,7 +115,7 @@ void screen_print_char(char c)
 
 bool screen_print_char_at(char c, u32 x, u32 y)
 {
-    if (x < 0 || y < 0 || x >= VIDEO_WIDTH || y >= VIDEO_HEIGHT)
+    if (x >= VIDEO_WIDTH || y >= VIDEO_HEIGHT)
         return false;
     video_buffer->cells[y][x].character = c;
     video_buffer->cells[y][x].color = background_color << 4 | foreground_color;

@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach to qemu",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceRoot}/build/mos_multiboot.bin",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/i686-elf-gdb",
+            "miDebuggerServerAddress": "localhost:1234",
+            "preLaunchTask": "start_os",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                },
+            ],
+        },
+    ]
+}

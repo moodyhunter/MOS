@@ -2,7 +2,26 @@
 
 #include "stdlib.h"
 
+#include "drivers/screen.h"
 #include "types.h"
+
+noreturn void kpanic(const char *msg, const char *source_loc)
+{
+    screen_set_color(White, Red);
+    screen_print_string("\n");
+    screen_print_string("!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    screen_print_string("!!!!! KERNEL PANIC !!!!!\n");
+    screen_print_string("!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    screen_print_string("\n");
+    screen_set_color(Red, Black);
+    screen_print_string(msg);
+    screen_print_string("\n");
+    screen_print_string("Source: ");
+    screen_print_string(source_loc);
+
+    while (1)
+        ;
+}
 
 bool isspace(unsigned char _c)
 {

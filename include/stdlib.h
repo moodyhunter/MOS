@@ -4,12 +4,11 @@
 
 #include "types.h"
 
-#define MOS_ASSERT(cond)                                                                                                                                                 \
-    do                                                                                                                                                                   \
-    {                                                                                                                                                                    \
-        if (!(cond))                                                                                                                                                     \
-            panic("Assertion failed: "##cond);                                                                                                                           \
-    } while (0)
+#include <stdnoreturn.h>
+
+#define MOS_UNUSED(x) (void) (x)
+
+noreturn void kpanic(const char *msg, const char *source_loc);
 
 bool isspace(uchar c);
 s32 atoi(const char *nptr);

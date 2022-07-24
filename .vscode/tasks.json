@@ -1,0 +1,56 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "compile",
+            "type": "shell",
+            "command": "cmake --build ${workspaceFolder}/build --target multiboot",
+            "group": "build",
+            "presentation": {
+                "reveal": "silent",
+                // "close": true
+            }
+        },
+        {
+            "label": "stop_os",
+            "type": "shell",
+            "command": "tmux kill-session -t mos_kernel_debug || true",
+            "problemMatcher": [],
+            "group": "none",
+            "presentation": {
+                "reveal": "silent",
+                "close": true
+            }
+        },
+        {
+            "label": "start_os_unblocked",
+            "type": "shell",
+            "command": "tmux new -s mos_kernel_debug -d qemu-system-i386 -kernel ${workspaceFolder}/build/mos_multiboot.bin -s",
+            "problemMatcher": [],
+            "group": "test",
+            "dependsOn": [
+                "stop_os",
+                "compile"
+            ],
+            "presentation": {
+                "reveal": "silent",
+                "close": true
+            }
+        },
+        {
+            "label": "start_os",
+            "type": "shell",
+            "command": "tmux new -s mos_kernel_debug -d qemu-system-i386 -kernel ${workspaceFolder}/build/mos_multiboot.bin -s -S",
+            "problemMatcher": [],
+            "group": "none",
+            "dependsOn": [
+                "stop_os",
+                "compile"
+            ],
+            "presentation": {
+                "reveal": "silent",
+                "close": true
+            }
+        }
+    ]
+}

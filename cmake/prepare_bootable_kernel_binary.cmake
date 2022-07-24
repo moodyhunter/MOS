@@ -32,5 +32,6 @@ function(prepare_bootable_kernel_binary TARGET_NAME)
         LINKER_LANGUAGE C
         LINK_DEPENDS "${KERNEL_BINARY_LINKER_SCRIPT}"
         LINK_OPTIONS "-T${KERNEL_BINARY_LINKER_SCRIPT}")
+    target_link_libraries(${TARGET_NAME} PRIVATE gcc)
     add_dependencies(${TARGET_NAME} ${LOADER_TARGET}::object mos::elf_kernel)
 endfunction()

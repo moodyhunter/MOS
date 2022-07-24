@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 set(CMAKE_SYSTEM_PROCESSOR i686)
-list(APPEND CMAKE_EXE_LINKER_FLAGS "-nostdlib -lgcc")
-list(APPEND CMAKE_C_FLAGS "-ffreestanding")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -nostdlib")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffreestanding")
 
 # For the C compiler, 'elf' should be in the OS field for target triplet to produce a bare metal binary.
 # Although the `linux-gnu` targeted gcc 'does' work, it's highly unsuggested.
