@@ -8,8 +8,8 @@
 #include "string.h"
 
 #define VIDEO_DEVICE_ADDRESS 0xB8000
-#define VIDEO_WIDTH 80
-#define VIDEO_HEIGHT 25
+#define VIDEO_WIDTH          80
+#define VIDEO_HEIGHT         25
 
 typedef struct
 {
@@ -21,6 +21,8 @@ typedef struct
 {
     video_cell_t cells[VIDEO_HEIGHT][VIDEO_WIDTH];
 } __attr_packed video_buffer_t;
+
+static const size_t VIDEO_LINE_SIZE = VIDEO_WIDTH * sizeof(video_cell_t);
 
 static video_buffer_t *video_buffer = (video_buffer_t *) VIDEO_DEVICE_ADDRESS;
 static u8 cursor_x = 0;
@@ -108,9 +110,10 @@ void screen_print_char(char c)
     }
     if (cursor_y >= VIDEO_HEIGHT)
     {
-        cursor_y = 0;
-        screen_clear();
+        screen_scroll();
+        cursor_y--;
     }
+    screen_set_cursor_pos(cursor_x, cursor_y);
 }
 
 bool screen_print_char_at(char c, u32 x, u32 y)
@@ -161,15 +164,6 @@ void screen_disable_cursor()
 
 void screen_scroll(void)
 {
-    int i = 0;
-    char *video_ptr = (char *) VIDEO_DEVICE_ADDRESS;
-    for (i = 0; i < VIDEO_WIDTH * VIDEO_HEIGHT; i++)
-    {
-        *video_ptr = ' ';
-        video_ptr++;
-        *video_ptr = 0x07;
-        video_ptr++;
-    }
-    cursor_x = 0;
-    cursor_y = 0;
+    memmove(video_buffer, video_buffer->cells[1], (VIDEO_HEIGHT - 1) * VIDEO_LINE_SIZE);
+    memset((void *) (video_buffer->cells[VIDEO_HEIGHT - 1]), 0, VIDEO_LINE_SIZE);
 }

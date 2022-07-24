@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "boot/multiboot.h"
+#include "bug.h"
 #include "drivers/screen.h"
 #include "kconfig.h"
 #include "stdio.h"
@@ -43,9 +44,21 @@ int printf(const char *format, ...)
 
 void printf_test()
 {
-    printf("1:  %d\n", 1);
-    printf("0:  %d\n", 0);
+    printf(" 1: %d\n", 1);
+    printf(" 0: %d\n", 0);
     printf("-1: %d\n", -1);
+
+    printf("padded 1: '%10d'\n", 1);
+    printf("padded 0: '%10d'\n", 0);
+    printf("padded-1: '%10d'\n", -1);
+
+    printf("precise  1: '%.5d'\n", 1);
+    printf("precise  0: '%.5d'\n", 0);
+    printf("precise -1: '%.5d'\n", -1);
+
+    printf("0 padded 1: '%010d'\n", 1);
+    printf("0 padded 0: '%010d'\n", 0);
+    printf("0 padded-1: '%010d'\n", -1);
 
     printf("INT_MAX: %d\n", INT_MAX);
     printf("INT_MIN: %d\n", INT_MIN);
@@ -56,7 +69,7 @@ void printf_test()
     printf("CHAR_MIN: %c, or as integer: %d\n", CHAR_MIN, CHAR_MIN);
 
     printf("UCHAR_MAX: %c\n", UCHAR_MAX);
-    printf("UCHAR_MIN: %c\n", UCHAR_MAX + 1);
+    printf("UCHAR_MIN: %c\n", (uchar) 0);
 
     printf("LONG_MAX: %ld\n", LONG_MAX);
     printf("LONG_MIN: %ld\n", LONG_MIN);
@@ -70,7 +83,7 @@ void printf_test()
     printf("ptr: %lx\n", ptr);
     printf("ptr: %lX\n", ptr);
 
-    printf("done.\n");
+    printf("%s test done.\n", "printf");
 }
 
 void start_kernel(u32 magic, multiboot_info_t *addr)
@@ -79,28 +92,33 @@ void start_kernel(u32 magic, multiboot_info_t *addr)
     screen_set_cursor_pos(0, 0);
     screen_disable_cursor();
 
+    screen_set_color(LightGray, Black);
+    printf_test();
+
+    printf("\n");
+
     screen_print_string("Multiboot Magic: ");
     print_hex((u32) magic);
     screen_print_string("\n");
 
+    screen_print_string("cmdline = (");
     print_hex((u32) addr);
-    screen_print_string("\n");
-
-    screen_print_string("cmdline: ");
+    screen_print_string("):");
     screen_print_string(addr->cmdline);
 
     printf("\n");
     printf("\n");
-    printf_test();
-    printf("\n");
 
     screen_set_color(Yellow, Black);
+    printf("MOS starting...\n");
     printf("Kernel:          '%s'\n", MOS_KERNEL_VERSION);
     printf("Revision:        '%s'\n", MOS_KERNEL_REVISION);
     printf("Builtin cmdline: '%s'\n", MOS_KERNEL_BUILTIN_CMDLINE);
 
-    screen_set_color(White, Red);
-    screen_print_string_at("Long live MOS!", 0, 24);
+    printf("\n");
+    screen_set_color(Black, Green);
+
+    warning("V2Ray 4.45.2 started");
 
     while (1)
         ;

@@ -24,7 +24,7 @@
 #include "types.h"
 
 /* How many bytes from the start of the file we search for the header.  */
-#define MULTIBOOT_SEARCH 8192
+#define MULTIBOOT_SEARCH       8192
 #define MULTIBOOT_HEADER_ALIGN 4
 
 /* The magic field should contain this.  */
@@ -87,7 +87,7 @@
 #define MULTIBOOT_INFO_APM_TABLE 0x00000400
 
 /* Is there video information?  */
-#define MULTIBOOT_INFO_VBE_INFO 0x00000800
+#define MULTIBOOT_INFO_VBE_INFO         0x00000800
 #define MULTIBOOT_INFO_FRAMEBUFFER_INFO 0x00001000
 
 struct multiboot_header
@@ -190,8 +190,8 @@ struct multiboot_info
     u32 framebuffer_width;
     u32 framebuffer_height;
     u8 framebuffer_bpp;
-#define MULTIBOOT_FRAMEBUFFER_TYPE_INDEXED 0
-#define MULTIBOOT_FRAMEBUFFER_TYPE_RGB 1
+#define MULTIBOOT_FRAMEBUFFER_TYPE_INDEXED  0
+#define MULTIBOOT_FRAMEBUFFER_TYPE_RGB      1
 #define MULTIBOOT_FRAMEBUFFER_TYPE_EGA_TEXT 2
     u8 framebuffer_type;
     union
@@ -226,11 +226,11 @@ struct multiboot_mmap_entry
     u32 size;
     u64 addr;
     u64 len;
-#define MULTIBOOT_MEMORY_AVAILABLE 1
-#define MULTIBOOT_MEMORY_RESERVED 2
+#define MULTIBOOT_MEMORY_AVAILABLE        1
+#define MULTIBOOT_MEMORY_RESERVED         2
 #define MULTIBOOT_MEMORY_ACPI_RECLAIMABLE 3
-#define MULTIBOOT_MEMORY_NVS 4
-#define MULTIBOOT_MEMORY_BADRAM 5
+#define MULTIBOOT_MEMORY_NVS              4
+#define MULTIBOOT_MEMORY_BADRAM           5
     u32 type;
 } __attribute__((packed));
 typedef struct multiboot_mmap_entry multiboot_memory_map_t;

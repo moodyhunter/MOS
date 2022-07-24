@@ -8,7 +8,7 @@ project(MOS LANGUAGES C ASM VERSION 0.1)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_C_EXTENSIONS OFF)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wpedantic")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wpedantic -pedantic")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -27,6 +27,7 @@ add_library(mos_kernel.elf OBJECT
     lib/stdlib.c
     lib/string.c
     lib/stdio.c
+    lib/panic.c
 )
 
 add_library(mos::elf_kernel ALIAS mos_kernel.elf)

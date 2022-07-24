@@ -4,25 +4,10 @@
 
 #include "attributes.h"
 #include "bug.h"
-#include "math.h"
-#include "stdarg.h"
 #include "stdlib.h"
-#include "types.h"
+#include "string.h"
 
-typedef void putchar_t(char);
-
-char *putchar(char *buf, char c)
-{
-    *buf = c;
-    return ++buf;
-}
-
-char *putstring(char *buf, const char *str)
-{
-    while (*str)
-        buf = putchar(buf, *str), str++;
-    return buf;
-}
+#include <stdlib.h>
 
 typedef enum
 {
@@ -43,14 +28,14 @@ typedef enum
     LM_z,
     // ptrdiff_t
     LM_t,
-} printf_length_modifier_t;
+} length_modifier_t;
 
 typedef struct
 {
-    bool minus : 1; // left align
-    bool plus : 1;  // show sign
-    bool space : 1; // prepend space if positive
-    bool zero : 1;  // prepend zero
+    bool left_aligned : 1;      // -
+    bool show_sign : 1;         // +
+    bool space_if_positive : 1; // prepend space if positive
+    bool pad_with_zero : 1;     // padding with zero
 
     // For g and G types, trailing zeros are not removed.
     // For f, F, e, E, g, G types, the output always contains a decimal point.
@@ -60,125 +45,219 @@ typedef struct
     // POSIX extension '\'' not implemented
     // glibc 2.2 extension 'I' not implemented
 
-    s32 width : 24;
+    // If the converted value has fewer characters than the field width, it will be padded with spaces on the left
+    // (or right, if the left-adjustment flag has been given).
+    // A negative field width is taken as a '-' flag followed by a positive field width.
+    // In no case does a nonexistent or small field width cause truncation of a field;
+    // if the result of a conversion is wider than the field width, the field is expanded to contain the conversion result.
+    s32 minimum_width : 24;
+
+    bool has_precision : 1;
+    // `d, i, o, u, x, X` -> The minimum number of digits to appear;
+    // `a, A, e, E, f, F` -> The number of digits to appear after the radix character;
+    // `g, G`             -> The maximum number of significant digits;
+    // `s, S`             -> The maximum number of characters to be printed from a string;
     s32 precision : 16;
-    printf_length_modifier_t length : 8;
+
+    length_modifier_t length : 8;
 } __attr_packed printf_flags_t;
 
-static const char *parse_printf_flags(const char *format, printf_flags_t *pflags)
+#define WIDTH_PRECISION_READ_VAARG -1
+
+static size_t parse_printf_flags(const char *format, printf_flags_t *pflags)
 {
-    // left align
-    while (*format == '-')
-        pflags->minus = true, format++;
+    const char *start = format;
+#define goto_next_char() (format++)
+#define next_char_n(n)   (*(format + n))
+#define current          (*format)
 
-    // show sign
-    while (*format == '+')
-        pflags->plus = true, format++;
-
-    // prepend space if positive
-    while (*format == ' ')
-        pflags->space = true, format++;
-
-    // prepend zero
-    while (*format == '0')
-        pflags->zero = true, format++;
-
-    while (*format == '#')
-        pflags->hash = true, format++;
-
-    // width
-    if (*format == '*')
-        pflags->width = -1, format++;
-    else
+    while (1)
     {
-        pflags->width = 0;
-        while ('0' <= *format && *format <= '9')
-            pflags->width = pflags->width * 10 + *format - '0', format++;
+        switch (current)
+        {
+            case '-': pflags->left_aligned = true; break;
+            case '+': pflags->show_sign = true; break;
+            case ' ': pflags->space_if_positive = true; break;
+            case '#': pflags->hash = true; break;
+            // We can read multiple 0s and leave the 'width' field empty, 0-width is meaningless.
+            case '0': pflags->pad_with_zero = true; break;
+            default: goto flag_parse_done;
+        }
+        goto_next_char();
+    };
+
+flag_parse_done:
+    if (unlikely(pflags->left_aligned && pflags->pad_with_zero))
+    {
+        pflags->pad_with_zero = false;
+        warning("printf: '0' flag is ignored in left-aligned mode");
     }
 
+    // width
+    pflags->minimum_width = 0;
+    if (current == '*')
+        pflags->minimum_width = WIDTH_PRECISION_READ_VAARG, goto_next_char();
+    else
+        while ('0' <= current && current <= '9')
+            pflags->minimum_width = (pflags->minimum_width * 10 + (current - '0')), goto_next_char();
+
     // precision
-    if (*format == '.')
+    pflags->precision = 0;
+    if (current == '.')
     {
-        format++;
-        if (*format == '*')
-            pflags->precision = -1, format++;
+        pflags->has_precision = true;
+        goto_next_char();
+        if (current == '*')
+            pflags->precision = WIDTH_PRECISION_READ_VAARG, goto_next_char();
         else
-        {
-            pflags->precision = 0;
-            while ('0' <= *format && *format <= '9')
-                pflags->precision = pflags->precision * 10 + *format - '0', format++;
-        }
+            while ('0' <= current && current <= '9')
+                pflags->precision = pflags->precision * 10 + current - '0', goto_next_char();
     }
 
     // length enums
-    if (*format == 'h')
+    if (current == 'h')
     {
-        if (*(format + 1) == 'h')
-            format++, pflags->length = LM_hh;
+        goto_next_char();
+        if (next_char_n(1) == 'h')
+            pflags->length = LM_hh, goto_next_char();
         else
             pflags->length = LM_h;
     }
-    else if (*format == 'l')
+    else if (current == 'l')
     {
-        if (*(format + 1) == 'l')
-            format++, pflags->length = LM_ll;
+        goto_next_char();
+        if (next_char_n(1) == 'l')
+            pflags->length = LM_ll, goto_next_char();
         else
             pflags->length = LM_l;
     }
-    else if (*format == 'L')
+    else if (current == 'L')
     {
+        goto_next_char();
         pflags->length = LM_L;
-        format++;
     }
-    else if (*format == 'j')
+    else if (current == 'j')
     {
+        goto_next_char();
         pflags->length = LM_j;
-        format++;
     }
-    else if (*format == 'z')
+    else if (current == 'z')
     {
+        goto_next_char();
         pflags->length = LM_z;
-        format++;
     }
-    else if (*format == 't')
+    else if (current == 't')
     {
+        goto_next_char();
         pflags->length = LM_t;
-        format++;
     }
-    return format;
+
+#undef goto_next_char
+#undef next_char_n
+#undef current
+    return format - start;
 }
 
-char *_print_number(char *buf, s64 number)
+// writes a character into the buffer, and increses the buffer pointer
+void putchar(char **pbuf, char c)
 {
-    if (number < 0)
-        buf = putchar(buf, '-'), number = -number;
-
-    while (number > 0)
-        buf = putchar(buf, '0' + number % 10), number /= 10;
-
-    return buf;
+    **pbuf = c;
+    (*pbuf)++;
 }
 
-void _print_hex(char *buf, u32 value)
+void putstring(char **pbuf, const char *str)
 {
-    buf = putchar(buf, '0');
-    buf = putchar(buf, 'x');
-    u32 i = 0;
-    for (i = 0; i < 8; i++)
+    s32 len = strlen(str);
+    memcpy(*pbuf, str, len);
+    *pbuf += len;
+}
+
+// ! prints d, i, o, u, x, and X
+int _print_number_diouxX(char *pbuf, u64 number, printf_flags_t *pflags)
+{
+    MOS_ASSERT(!(pflags->left_aligned && pflags->pad_with_zero));
+    MOS_ASSERT(pflags->precision >= 0);
+    MOS_ASSERT(pflags->minimum_width >= 0);
+
+    if (unlikely(pflags->hash))
+        warning("printf: '#' flag is ignored.");
+
+    // If a precision is given with a numeric conversion (d, i, o, u, x, and X), the 0 flag is ignored.
+    if (pflags->has_precision && pflags->pad_with_zero)
+        pflags->pad_with_zero = false;
+
+    char *start = pbuf;
     {
-        u8 nibble = (value >> (28 - i * 4)) & 0xF;
-        if (nibble < 10)
-            buf = putchar(buf, '0' + nibble);
+        char numberbuf[32] = { 0 };
+        char *pnumberbuf = numberbuf;
+
+        s32 width_to_pad = pflags->minimum_width;
+        s32 precision = pflags->precision;
+
+        char sign = '\0';
+
+        bool is_negative = ((s64) number) < 0;
+        if (is_negative)
+            number = -(s64) number, sign = '-';
+        else if (pflags->show_sign)
+            sign = '+'; // 0 is positive too !!!!!
+        else if (pflags->space_if_positive)
+            sign = ' ';
+
+        if (sign)
+            width_to_pad--;
+
+        s32 digits = 0;
+        if (number == 0)
+            putchar(&pnumberbuf, '0'), digits++;
         else
-            buf = putchar(buf, 'A' + nibble - 10);
+        {
+            while (number > 0)
+            {
+                putchar(&pnumberbuf, (char) (number % 10) + '0');
+                number /= 10, digits++;
+            }
+        }
+
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+        precision = MAX(precision - digits, 0);
+        width_to_pad = MAX(width_to_pad - precision, 0);
+
+        if (pflags->left_aligned)
+        {
+            warning("printf: left-aligned mode is not implemented");
+        }
+        else
+        {
+            if (pflags->pad_with_zero)
+            {
+                if (sign)
+                    putchar(&pbuf, sign);
+                while (width_to_pad-- > 0)
+                    putchar(&pbuf, '0');
+            }
+            else
+            {
+                while (width_to_pad-- > 0)
+                    putchar(&pbuf, ' ');
+                if (sign)
+                    putchar(&pbuf, sign);
+            }
+            while (precision-- > 0)
+                putchar(&pbuf, '0');
+            while (pnumberbuf > numberbuf)
+                putchar(&pbuf, *--pnumberbuf);
+        }
     }
+    return pbuf - start;
 }
 
 int vsnprintf(char *buf, size_t size, const char *format, va_list args)
 {
     MOS_UNUSED(size);
+    char **pbuf = &buf;
 
-    u32 chars_printed = 0;
+    char *start = buf;
 
     for (; *format; format++)
     {
@@ -189,7 +268,14 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
 
             // parse flags
             printf_flags_t flags = { 0 };
-            format = parse_printf_flags(format, &flags);
+            size_t c = parse_printf_flags(format, &flags);
+            format += c;
+
+            if (flags.minimum_width == WIDTH_PRECISION_READ_VAARG)
+                flags.minimum_width = va_arg(args, s32);
+
+            if (flags.precision == WIDTH_PRECISION_READ_VAARG)
+                flags.precision = va_arg(args, s32);
 
             switch (*format)
             {
@@ -217,26 +303,8 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                     else
                         value = va_arg(args, s32);
 
-                    // print value
-                    if (flags.minus)
-                    {
-                        if (flags.plus)
-                            buf = putchar(buf, '+');
-                        if (flags.space)
-                            buf = putchar(buf, ' ');
-                        buf = _print_number(buf, value);
-                    }
-                    else
-                    {
-                        if (flags.zero)
-                            buf = putchar(buf, '0');
-                        if (flags.plus)
-                            buf = putchar(buf, '+');
-                        if (flags.space)
-                            buf = putchar(buf, ' ');
-                        buf = _print_number(buf, value);
-                    }
-                    chars_printed += 111111;
+                    int c = _print_number_diouxX(buf, value, &flags);
+                    buf += c;
                     break;
                 }
                 case 'u':
@@ -275,36 +343,20 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 }
                 case 's':
                 {
-                    // print a string
-
                     // print string
                     char *string = va_arg(args, char *);
-                    while (*string)
-                    {
-                        buf = putchar(buf, *string);
-                        string++;
-                        chars_printed++;
-                    }
-
-                    // print padding
-                    if (flags.width > 0)
-                    {
-                        while (flags.width > 0)
-                        {
-                            buf = putchar(buf, ' ');
-                            flags.width--;
-                            chars_printed++;
-                        }
-                    }
-
+                    if (string)
+                        putstring(pbuf, string);
+                    else
+                        putstring(pbuf, "(null)");
                     break;
                 }
                 case 'c':
                 {
                     // print a character
                     char value = (char) va_arg(args, s32);
-                    buf = putchar(buf, value);
-                    chars_printed++;
+                    if (value)
+                        putchar(&buf, value);
                     break;
                 }
                 case 'p':
@@ -328,18 +380,17 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 {
                     // C, S, m not implemented
                     MOS_ASSERT(*format == '%');
-                    buf = putchar(buf, '%');
-                    chars_printed++;
+                    putchar(&buf, '%');
                     break;
                 }
             }
         }
         else
         {
-            buf = putchar(buf, *format);
+            putchar(&buf, *format);
         }
     }
 
     va_end(args);
-    return 0;
+    return buf - start;
 }

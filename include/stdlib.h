@@ -4,6 +4,9 @@
 
 #include "types.h"
 
+#include <limits.h>
+#include <math.h>
+#include <stddef.h>
 #include <stdnoreturn.h>
 
 #define MOS_UNUSED(x) (void) (x)
