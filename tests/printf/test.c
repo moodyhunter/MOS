@@ -1,10 +1,11 @@
-#include "unittest.h"
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <iostream>
-#include <stdarg.h>
-#include <string.h>
+#include "../include/mos/tinytest.h"
+#include "mos/stdio.h"
 
 char buffer[2048] = { 0 };
+
+int tst_printf(char *buffer, const char *format, ...);
 
 #define PRINTF_TEST(expected, format, ...)                                                                                                      \
     {                                                                                                                                           \
@@ -12,25 +13,16 @@ char buffer[2048] = { 0 };
         TINY_CHECK_STRING(expected, buffer);                                                                                                    \
     }
 
-int tst_printf(char *buffer, const char *format, ...)
+TINY_TEST(simple_string)
 {
-    va_list args;
-    va_start(args, format);
-    int ret = vsnprintf(buffer, 0, format, args);
-    va_end(args);
-    return ret;
-}
-
-TINY_SUBTEST(simple_string)
-{
-    PRINTF_TEST("a", "a");
-    PRINTF_TEST("very long string", "very long string");
+    PRINTF_TEST("a", "a", );
+    PRINTF_TEST("very long string", "very long string", );
     PRINTF_TEST(
         "d6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880",
-        "d6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880");
+        "d6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880", );
 }
 
-TINY_SUBTEST(integer)
+TINY_TEST(integer)
 {
     PRINTF_TEST("-123", "%d", -123);
     PRINTF_TEST("0", "%d", 0);
@@ -84,31 +76,30 @@ TINY_SUBTEST(integer)
     PRINTF_TEST("-000123", "%07d", -123);
 }
 
-TINY_TEST(print_string)
+int tst_printf(char *buffer, const char *format, ...)
 {
-    TINY_RUN_SUBTEST(simple_string);
+    va_list args;
+    va_start(args, format);
+    int ret = vsnprintf(buffer, 0, format, args);
+    va_end(args);
+    return ret;
 }
 
-TINY_TEST(print_int)
-{
-    TINY_RUN_SUBTEST(integer);
-}
+// void _kwarn_impl(const char *msg, const char *func, const char *file, const char *line)
+// {
+//     TINY_LOG(TINY_YELLOW, "%s:%s:%s:%s", msg, func, file, line);
+// }
 
-extern "C"
-{
-    void _kwarn_impl(const char *msg, const char *func, const char *file, const char *line)
-    {
-        TINY_LOG(TINY_YELLOW, "%s:%s:%s:%s", msg, func, file, line);
-    }
+// void _kpanic_impl(const char *msg, const char *func, const char *file, const char *line)
+// {
+//     TINY_LOG(TINY_RED, "KERNEL PANIC: %s, in function '%s' from file %s:%s", msg, func, file, line);
+// }
 
-    void _kpanic_impl(const char *msg, const char *func, const char *file, const char *line)
-    {
-        TINY_LOG(TINY_RED, "KERNEL PANIC: %s, in function '%s' from file %s:%s", msg, func, file, line);
-        std::exit(1);
-    }
-}
-
-int main()
+int test_main()
 {
-    return TINY_TEST_RUN_ALL();
+    TestResult r = TINY_TEST_RUN_TEST(simple_string);
+    TestResult i = TINY_TEST_RUN_TEST(integer);
+    while (true)
+        ;
+    return 0;
 }

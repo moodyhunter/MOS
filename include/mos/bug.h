@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
-#include <stdnoreturn.h>
+#include "attributes.h"
 
 void _kwarn_impl(const char *msg, const char *func, const char *file, const char *line);
 noreturn void _kpanic_impl(const char *msg, const char *func, const char *file, const char *line);

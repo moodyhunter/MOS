@@ -24,7 +24,7 @@ function(prepare_bootable_kernel_binary TARGET_NAME)
 
     add_nasm_binary(${LOADER_TARGET} SOURCE ${KERNEL_BINARY_LOADER_ASM} ELF_OBJECT)
 
-    add_executable(${TARGET_NAME} $<TARGET_OBJECTS:${LOADER_TARGET}::object> $<TARGET_OBJECTS:mos::elf_kernel>)
+    add_executable(${TARGET_NAME} $<TARGET_OBJECTS:${LOADER_TARGET}::object>)
     set_target_properties(${TARGET_NAME} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/boot.dir
         OUTPUT_NAME ${TARGET_NAME}
@@ -32,6 +32,6 @@ function(prepare_bootable_kernel_binary TARGET_NAME)
         LINKER_LANGUAGE C
         LINK_DEPENDS "${KERNEL_BINARY_LINKER_SCRIPT}"
         LINK_OPTIONS "-T${KERNEL_BINARY_LINKER_SCRIPT}")
-    target_link_libraries(${TARGET_NAME} PRIVATE gcc)
-    add_dependencies(${TARGET_NAME} ${LOADER_TARGET}::object mos::elf_kernel)
+    target_link_libraries(${TARGET_NAME} PRIVATE gcc mos::elf_kernel)
+    add_dependencies(${TARGET_NAME} ${LOADER_TARGET}::object)
 endfunction()

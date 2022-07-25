@@ -2,12 +2,12 @@
 
 #include "mos/boot/multiboot.h"
 #include "mos/bug.h"
+#include "mos/drivers/port.h"
 #include "mos/drivers/screen.h"
 #include "mos/kconfig.h"
 #include "mos/stdio.h"
 #include "mos/stdlib.h"
-
-#include <limits.h>
+#include "mos/string.h"
 
 void print_hex(u32 value)
 {
@@ -82,8 +82,6 @@ void printf_test()
     // printf("ptr: %X\n", ptr);
     // printf("ptr: %lx\n", ptr);
     // printf("ptr: %lX\n", ptr);
-
-    printf("%s test done.\n", "printf");
 }
 
 void start_kernel(u32 magic, multiboot_info_t *addr)
@@ -120,6 +118,9 @@ void start_kernel(u32 magic, multiboot_info_t *addr)
 
     warning("V2Ray 4.45.2 started");
 
-    while (1)
-        ;
+    printf("%s test done.\n", "printf");
+    if (strcmp(addr->cmdline, "mos_multiboot.bin exit clean") == 0)
+        port_outw(0x604, 0x2000);
+    else
+        port_outl(0xf4, 0);
 }
