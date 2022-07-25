@@ -12,18 +12,19 @@
 extern const TestCase __start_mos_test_cases[];
 extern const TestCase __stop_mos_test_cases[];
 
+void print_hex(u32 value);
+
 static __attr_noreturn void test_engine_panic_handler(const char *msg, const char *func, const char *file, const char *line)
 {
+    screen_set_color(Red, Black);
     TINY_LOG(TINY_RED, "KERNEL PANIC: %s, in function '%s' from file %s:%s\n", msg, func, file, line);
-    test_engine_shutdown(1);
+    while (1)
+        ;
 }
 
-__attr_noreturn void test_engine_shutdown(int code)
+__attr_noreturn void test_engine_shutdown()
 {
-    if (code == 0)
-        port_outw(0x604, 0x2000);
-    else
-        port_outl(0xf4, (code << 1) - 1);
+    port_outw(0x604, 0x2000);
     while (1)
         ;
 }
@@ -40,6 +41,7 @@ void test_engine_run_tests()
         {
             screen_set_color(Green, Black);
             printf("TEST PASSED: %s (total checks: %d)\n", test->name, result.checks);
+            screen_set_color(Brown, Black);
         }
         else
         {
@@ -62,7 +64,7 @@ void test_engine_run_tests()
     {
         screen_set_color(Green, Black);
         screen_print_string("ALL TESTS PASSED\n");
-        test_engine_shutdown(0);
+        test_engine_shutdown();
     }
     kpanic_handler_remove();
 }

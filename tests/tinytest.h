@@ -213,7 +213,7 @@ int printf(const char *restrict format, ...);
 #define _TT_CONCAT_INNER(a, b) a##b
 #define _TT_CONCAT(a, b)       _TT_CONCAT_INNER(a, b)
 
-#define _TT_TINY_LOG(color, format, ...) TINY_TEST_PRINTF("[      ] " TINY_COLOR(color, "Line #%d: " format "\n"), __LINE__, __VA_ARGS__)
+#define _TT_TINY_LOG(color, format, ...) TINY_TEST_PRINTF("[   ] " TINY_COLOR(color, "Line #%d: " format "\n"), __LINE__, __VA_ARGS__)
 
 #define _TT_APPEND_TEST(test_name, test_body)                                                                                                   \
     static __attr_used void _tt_test_##test_body(TestResult *result)                                                                            \
@@ -221,9 +221,9 @@ int printf(const char *restrict format, ...);
         TINY_TEST_PRINTF("[ TEST ] " #test_name " -- " __FILE__ ":%d\n", __LINE__);                                                             \
         test_body(result);                                                                                                                      \
         if (result->passed)                                                                                                                     \
-            TINY_TEST_PRINTF("[------] " TINY_COLOR(TINY_GREEN, "Passed (%u/%u)\n"), result->checks, result->checks);                           \
+            TINY_TEST_PRINTF("[===] " TINY_COLOR(TINY_GREEN, "Passed (%u/%u)\n"), result->checks, result->checks);                              \
         else                                                                                                                                    \
-            TINY_TEST_PRINTF("[------] " TINY_COLOR(TINY_RED, "Failed (%u/%u)\n"), result->failed_checks, result->checks);                      \
+            TINY_TEST_PRINTF("[XXX] " TINY_COLOR(TINY_RED, "Failed (%u/%u)\n"), result->failed_checks, result->checks);                         \
     }
 
 typedef struct

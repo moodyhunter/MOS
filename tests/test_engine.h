@@ -3,7 +3,7 @@
 
 #include "mos/attributes.h"
 
-__attr_noreturn void test_engine_shutdown(int code);
+__attr_noreturn void test_engine_shutdown();
 void test_engine_run_tests(void);
 
 int printf(const char *format, ...);
