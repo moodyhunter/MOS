@@ -2,12 +2,15 @@
 
 include(cmake/toolchains/cross-i686.cmake)
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 
 project(MOS LANGUAGES C ASM VERSION 0.1)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_C_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wpedantic -pedantic")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -40,17 +43,15 @@ mos_add_summary_item(KERNEL "Version" "${MOS_KERNEL_VERSION_STRING}")
 mos_add_summary_item(KERNEL "Revision" "${MOS_KERNEL_REVISION_STRING}")
 mos_add_summary_item(KERNEL "Builtin Cmdline" "${MOS_KERNEL_BUILTIN_CMDLINE_STRING}")
 
-target_include_directories(mos_kernel.elf PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR}/include)
+target_include_directories(mos_kernel.elf PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR}/include)
 
 # Configure boot loader
 include(boot/boot.cmake)
 
 mos_add_summary_section(TESTS "MOS Kernel Library Tests")
-mos_add_summary_item(TESTS "Tests" "${BUILD_TESTING}")
+mos_add_summary_item(TESTS "All Tests" "${BUILD_TESTING}")
 
 if(BUILD_TESTING)
-    # include(ExternalProject)
-    # ExternalProject_Add(mos_tests SOURCE_DIR ${CMAKE_SOURCE_DIR}/tests)
     add_subdirectory(tests)
 endif()
 

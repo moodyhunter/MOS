@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "bug.h"
-#include "drivers/screen.h"
+#include "mos/bug.h"
+#include "mos/drivers/screen.h"
 
 noreturn void _kpanic_impl(const char *msg, const char *func, const char *file, const char *line)
 {

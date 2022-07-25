@@ -2,10 +2,9 @@
 
 #pragma once
 
-#include "types.h"
+#include "mos/math.h"
+#include "mos/types.h"
 
-#include <limits.h>
-#include <math.h>
 #include <stddef.h>
 #include <stdnoreturn.h>
 
@@ -13,5 +12,5 @@
 
 noreturn void kpanic(const char *msg, const char *source_loc);
 
-bool isspace(uchar c);
+int isspace(int c);
 s32 atoi(const char *nptr);

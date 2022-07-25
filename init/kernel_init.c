@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "boot/multiboot.h"
-#include "bug.h"
-#include "drivers/screen.h"
-#include "kconfig.h"
-#include "stdio.h"
-#include "stdlib.h"
+#include "mos/boot/multiboot.h"
+#include "mos/bug.h"
+#include "mos/drivers/screen.h"
+#include "mos/kconfig.h"
+#include "mos/stdio.h"
+#include "mos/stdlib.h"
 
 #include <limits.h>
 
@@ -63,7 +63,7 @@ void printf_test()
     printf("INT_MAX: %d\n", INT_MAX);
     printf("INT_MIN: %d\n", INT_MIN);
     printf("UINT_MAX: %u\n", UINT_MAX);
-    printf("UINT_MIN: %u\n", 0LU);
+    printf("UINT_MIN: %u\n", 0U);
 
     printf("CHAR_MAX: %c, or as integer: %d\n", CHAR_MAX, CHAR_MAX);
     printf("CHAR_MIN: %c, or as integer: %d\n", CHAR_MIN, CHAR_MIN);
@@ -76,12 +76,12 @@ void printf_test()
     printf("ULONG_MAX: %lu\n", ULONG_MAX);
     printf("ULONG_MIN: %lu\n", 0LU);
 
-    void *ptr = (void *) 0x12345678;
-    printf("ptr: %p\n", ptr);
-    printf("ptr: %x\n", ptr);
-    printf("ptr: %X\n", ptr);
-    printf("ptr: %lx\n", ptr);
-    printf("ptr: %lX\n", ptr);
+    // void *ptr = (void *) 0x12345678;
+    // printf("ptr: %p\n", ptr);
+    // printf("ptr: %x\n", ptr);
+    // printf("ptr: %X\n", ptr);
+    // printf("ptr: %lx\n", ptr);
+    // printf("ptr: %lX\n", ptr);
 
     printf("%s test done.\n", "printf");
 }

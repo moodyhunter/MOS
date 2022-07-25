@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "stdio.h"
+#include "mos/stdio.h"
 
-#include "attributes.h"
-#include "bug.h"
-#include "stdlib.h"
-#include "string.h"
-
-#include <stdlib.h>
+#include "mos/attributes.h"
+#include "mos/bug.h"
+#include "mos/stdlib.h"
+#include "mos/string.h"
 
 typedef enum
 {
@@ -159,13 +157,13 @@ flag_parse_done:
 }
 
 // writes a character into the buffer, and increses the buffer pointer
-void putchar(char **pbuf, char c)
+void _putchar(char **pbuf, char c)
 {
     **pbuf = c;
     (*pbuf)++;
 }
 
-void putstring(char **pbuf, const char *str)
+void _putstring(char **pbuf, const char *str)
 {
     s32 len = strlen(str);
     memcpy(*pbuf, str, len);
@@ -209,19 +207,19 @@ int _print_number_diouxX(char *pbuf, u64 number, printf_flags_t *pflags)
 
         s32 digits = 0;
         if (number == 0)
-            putchar(&pnumberbuf, '0'), digits++;
+            _putchar(&pnumberbuf, '0'), digits++;
         else
         {
             while (number > 0)
             {
-                putchar(&pnumberbuf, (char) (number % 10) + '0');
+                _putchar(&pnumberbuf, (char) (number % 10) + '0');
                 number /= 10, digits++;
             }
         }
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
         precision = MAX(precision - digits, 0);
-        width_to_pad = MAX(width_to_pad - precision, 0);
+        width_to_pad = MAX(width_to_pad - precision - digits, 0);
 
         if (pflags->left_aligned)
         {
@@ -232,21 +230,21 @@ int _print_number_diouxX(char *pbuf, u64 number, printf_flags_t *pflags)
             if (pflags->pad_with_zero)
             {
                 if (sign)
-                    putchar(&pbuf, sign);
+                    _putchar(&pbuf, sign);
                 while (width_to_pad-- > 0)
-                    putchar(&pbuf, '0');
+                    _putchar(&pbuf, '0');
             }
             else
             {
                 while (width_to_pad-- > 0)
-                    putchar(&pbuf, ' ');
+                    _putchar(&pbuf, ' ');
                 if (sign)
-                    putchar(&pbuf, sign);
+                    _putchar(&pbuf, sign);
             }
             while (precision-- > 0)
-                putchar(&pbuf, '0');
+                _putchar(&pbuf, '0');
             while (pnumberbuf > numberbuf)
-                putchar(&pbuf, *--pnumberbuf);
+                _putchar(&pbuf, *--pnumberbuf);
         }
     }
     return pbuf - start;
@@ -346,9 +344,9 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                     // print string
                     char *string = va_arg(args, char *);
                     if (string)
-                        putstring(pbuf, string);
+                        _putstring(pbuf, string);
                     else
-                        putstring(pbuf, "(null)");
+                        _putstring(pbuf, "(null)");
                     break;
                 }
                 case 'c':
@@ -356,7 +354,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                     // print a character
                     char value = (char) va_arg(args, s32);
                     if (value)
-                        putchar(&buf, value);
+                        _putchar(&buf, value);
                     break;
                 }
                 case 'p':
@@ -380,16 +378,17 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 {
                     // C, S, m not implemented
                     MOS_ASSERT(*format == '%');
-                    putchar(&buf, '%');
+                    _putchar(&buf, '%');
                     break;
                 }
             }
         }
         else
         {
-            putchar(&buf, *format);
+            _putchar(&buf, *format);
         }
     }
+    _putchar(&buf, 0);
 
     va_end(args);
     return buf - start;

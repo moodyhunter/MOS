@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "stdlib.h"
+#include "mos/stdlib.h"
 
-#include "drivers/screen.h"
-#include "types.h"
+#include "mos/drivers/screen.h"
+#include "mos/types.h"
 
-bool isspace(unsigned char _c)
+int isspace(int _c)
 {
     return ((_c > 8 && _c < 14) || (_c == 32));
 }

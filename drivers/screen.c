@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "drivers/screen.h"
+#include "mos/drivers/screen.h"
 
-#include "attributes.h"
-#include "drivers/port.h"
-#include "stdlib.h"
-#include "string.h"
+#include "mos/attributes.h"
+#include "mos/drivers/port.h"
+#include "mos/stdlib.h"
+#include "mos/string.h"
 
 #define VIDEO_DEVICE_ADDRESS 0xB8000
 #define VIDEO_WIDTH          80

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "types.h"
+#include "mos/types.h"
 
 typedef u16 port_t;
 
