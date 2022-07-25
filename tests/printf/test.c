@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../include/mos/tinytest.h"
+#include "mos/attributes.h"
 #include "mos/stdio.h"
+#include "mos/types.h"
+#include "test_engine.h"
 
 char buffer[2048] = { 0 };
 
@@ -12,6 +14,15 @@ int tst_printf(char *buffer, const char *format, ...);
         tst_printf(buffer, format __VA_OPT__(, ) __VA_ARGS__);                                                                                  \
         TINY_CHECK_STRING(expected, buffer);                                                                                                    \
     }
+
+int tst_printf(char *buffer, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    int ret = vsnprintf(buffer, 0, format, args);
+    va_end(args);
+    return ret;
+}
 
 TINY_TEST(simple_string)
 {
@@ -76,30 +87,7 @@ TINY_TEST(integer)
     PRINTF_TEST("-000123", "%07d", -123);
 }
 
-int tst_printf(char *buffer, const char *format, ...)
-{
-    va_list args;
-    va_start(args, format);
-    int ret = vsnprintf(buffer, 0, format, args);
-    va_end(args);
-    return ret;
-}
-
-// void _kwarn_impl(const char *msg, const char *func, const char *file, const char *line)
-// {
-//     TINY_LOG(TINY_YELLOW, "%s:%s:%s:%s", msg, func, file, line);
-// }
-
-// void _kpanic_impl(const char *msg, const char *func, const char *file, const char *line)
-// {
-//     TINY_LOG(TINY_RED, "KERNEL PANIC: %s, in function '%s' from file %s:%s", msg, func, file, line);
-// }
-
-int test_main()
-{
-    TestResult r = TINY_TEST_RUN_TEST(simple_string);
-    TestResult i = TINY_TEST_RUN_TEST(integer);
-    while (true)
-        ;
-    return 0;
-}
+TINY_TEST_CASES test_cases[2] = {
+    { "simple_string", simple_string },
+    { "integer", integer },
+};

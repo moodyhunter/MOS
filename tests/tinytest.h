@@ -3,38 +3,28 @@
 // License: MIT
 
 #pragma once
-//------------------------------------------------------------------------------
-//
-// TinyTest information
-//
-//------------------------------------------------------------------------------
+
+#include "mos/attributes.h"
+
+#include <stdbool.h>
 
 #define TINY_TEST_NAME    "TinyTest"
 #define TINY_TEST_VERSION "0.4.0"
 
-//------------------------------------------------------------------------------
-//
-// You can define following macros by your own to customize TinyTest:
-//   - TINY_TEST_MAX_TESTS                  - maximum number of tests
-//   - TINY_TEST_PRINTF(format, ...)        - printing function
-//
-//------------------------------------------------------------------------------
-
-#ifndef TINY_TEST_MAX_TESTS
-#define TINY_TEST_MAX_TESTS 1000
+#ifndef TINY_TEST_STRCMP
+int strcmp(const char *s1, const char *s2);
+#define TINY_TEST_STRCMP strcmp
 #endif
 
-#include <stdbool.h>
-
-int strcmp(const char *s1, const char *s2);
+#ifndef TINY_TEST_PRINTF
 int printf(const char *restrict format, ...);
-
-#define TINY_TEST_STRCMP strcmp
 #define TINY_TEST_PRINTF printf
+#endif
 
 /*
  * Set color formatting for the text.
  */
+#ifdef PRINTF_HAS_COLOR
 #define TINY_COLOR(color, text) color text "\x1b[0m"
 
 #define TINY_DEFAULT "\x1b[0m"
@@ -45,6 +35,18 @@ int printf(const char *restrict format, ...);
 #define TINY_BLUE    "\x1b[94m"
 #define TINY_MAGENTA "\x1b[95m"
 #define TINY_CYAN    "\x1b[96m"
+#else
+#define TINY_COLOR(color, text) text
+
+#define TINY_DEFAULT ""
+#define TINY_GRAY    ""
+#define TINY_RED     ""
+#define TINY_GREEN   ""
+#define TINY_YELLOW  ""
+#define TINY_BLUE    ""
+#define TINY_MAGENTA ""
+#define TINY_CYAN    ""
+#endif
 
 /*
  * Print log.
@@ -55,23 +57,6 @@ int printf(const char *restrict format, ...);
  *   - args... [opt]    - arguments
  */
 #define TINY_LOG(color, ...) _TT_TINY_LOG(color, __VA_ARGS__)
-
-/*
- * Run test.
- *
- * Arguments:
- *   - test_name        - test name
- */
-#define TINY_TEST_RUN_TEST(test_name) run_test(#test_name, _tt_test_##test_name)
-
-/*
- * Create a basic test.
- * It's automatically added to the tests queue (see: TINY_TEST_RUN_ALL). It can
- * be also run as a separate single tests (see: TINY_TEST_RUN_TEST).
- *
- * Arguments:
- *   - test_name
- */
 #define TINY_TEST(test_name)                                                                                                                    \
     static void test_name(TestResult *);                                                                                                        \
     _TT_APPEND_TEST(test_name, test_name)                                                                                                       \
@@ -231,7 +216,7 @@ int printf(const char *restrict format, ...);
 #define _TT_TINY_LOG(color, format, ...) TINY_TEST_PRINTF("[      ] " TINY_COLOR(color, "Line #%d: " format "\n"), __LINE__, __VA_ARGS__)
 
 #define _TT_APPEND_TEST(test_name, test_body)                                                                                                   \
-    static void _tt_test_##test_body(TestResult *result)                                                                                        \
+    static __attr_used void _tt_test_##test_body(TestResult *result)                                                                            \
     {                                                                                                                                           \
         TINY_TEST_PRINTF("[ TEST ] " #test_name " -- " __FILE__ ":%d\n", __LINE__);                                                             \
         test_body(result);                                                                                                                      \
@@ -246,14 +231,15 @@ typedef struct
     bool passed;
     unsigned checks;
     unsigned failed_checks;
-    const char *test_name;
 } TestResult;
+#define TINY_TESTRESULT_INIT .passed = true, .checks = 0, .failed_checks = 0
 
 typedef void (*TestBody)(TestResult *);
 
-static TestResult run_test(const char *name, TestBody body)
+typedef struct
 {
-    TestResult result = { true, 0, 0, name };
-    body(&result);
-    return result;
-}
+    char name[16];
+    TestBody body;
+} __attr_aligned(32) TestCase;
+
+#define TINY_TEST_CASES const TestCase __section(mos_test_cases)

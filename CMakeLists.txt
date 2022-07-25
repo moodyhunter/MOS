@@ -15,7 +15,11 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wpedantic -pedantic")
 # set(CMAKE_CXX_EXTENSIONS OFF)
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -pedantic")
 
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+option(MOS_KERNEL_RUN_TESTS "Run tests in the Kernel" OFF)
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
     message(STATUS "Found custom configuration file 'config.cmake'")
@@ -55,7 +59,8 @@ mos_add_summary_section(TESTS "MOS Kernel Library Tests")
 mos_add_summary_item(TESTS "All Tests" "${BUILD_TESTING}")
 
 if(BUILD_TESTING)
-    include(tests/tests.cmake)
+add_subdirectory(tests)
+# include(tests/tests.cmake)
 endif()
 
 message("")

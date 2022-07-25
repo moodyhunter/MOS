@@ -9,6 +9,10 @@
 #include "mos/stdlib.h"
 #include "mos/string.h"
 
+#ifdef MOS_KERNEL_RUN_TESTS
+extern void test_engine_run_tests();
+#endif
+
 void print_hex(u32 value)
 {
     screen_print_string("0");
@@ -18,13 +22,9 @@ void print_hex(u32 value)
     {
         u8 nibble = (value >> (28 - i * 4)) & 0xF;
         if (nibble < 10)
-        {
             screen_print_char('0' + nibble);
-        }
         else
-        {
             screen_print_char('A' + nibble - 10);
-        }
     }
 }
 
@@ -118,9 +118,9 @@ void start_kernel(u32 magic, multiboot_info_t *addr)
 
     warning("V2Ray 4.45.2 started");
 
-    printf("%s test done.\n", "printf");
-    if (strcmp(addr->cmdline, "mos_multiboot.bin exit clean") == 0)
-        port_outw(0x604, 0x2000);
-    else
-        port_outl(0xf4, 0);
+#ifdef MOS_KERNEL_RUN_TESTS
+    test_engine_run_tests();
+#endif
+    while (1)
+        ;
 }

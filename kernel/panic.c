@@ -1,10 +1,32 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/panic.h"
+
 #include "mos/bug.h"
 #include "mos/drivers/screen.h"
 
-noreturn void _kpanic_impl(const char *msg, const char *func, const char *file, const char *line)
+// kpanic_handler is called when a panic occurs.
+
+kpanic_handler_t kpanic_handler = NULL;
+
+void kpanic_handler_set(kpanic_handler_t handler)
 {
+    kpanic_handler = handler;
+}
+
+void kpanic_handler_remove()
+{
+    kpanic_handler = NULL;
+}
+
+void _kpanic_impl(const char *msg, const char *func, const char *file, const char *line)
+{
+    if (kpanic_handler)
+    {
+        kpanic_handler(msg, func, file, line);
+        MOS_UNREACHABLE();
+    }
+
     // TODO: switch to printk once it's implemented
     screen_set_color(White, Red);
     screen_print_string("!!!!!!!!!!!!!!!!!!!!!!!!\n");

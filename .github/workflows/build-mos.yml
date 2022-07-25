@@ -19,7 +19,7 @@ jobs:
       - name: Install packages
         run: |
           sudo apt update
-          sudo apt -y install nasm grub2-common mtools jq gcc-i686-linux-gnu g++-i686-linux-gnu ninja-build
+          sudo apt -y install nasm grub2-common mtools jq gcc-i686-linux-gnu g++-i686-linux-gnu ninja-build qemu-system-x86
 
       - name: Configure CMake
         run: |
@@ -45,3 +45,16 @@ jobs:
         with:
           name: MOS-${{matrix.target}}-${{matrix.build_type}}
           path: ${{steps.get_bootable.outputs.bootable}}
+
+      - name: Run Tests
+        id: run_tests
+        run: |
+          cd ${{github.workspace}}/build
+          ${{github.workspace}}/tests/run_tests.sh
+
+      - name: Upload Test Result
+        if: failure() && steps.run_tests.outcome == 'failure'
+        uses: actions/upload-artifact@v3
+        with:
+          name: MOS-${{matrix.target}}-${{matrix.build_type}}-failure.ppm
+          path: ${{github.workspace}}/build/failure.ppm

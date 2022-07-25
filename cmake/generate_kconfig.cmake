@@ -21,6 +21,9 @@ function(generate_kconfig TARGET)
     endif()
 
     make_directory(${CMAKE_BINARY_DIR}/include)
-    configure_file(${CMAKE_SOURCE_DIR}/cmake/kconfig.c.in ${CMAKE_BINARY_DIR}/include/kconfig.c)
-    target_sources(${TARGET} PRIVATE ${CMAKE_BINARY_DIR}/include/kconfig.c)
+    configure_file(${CMAKE_SOURCE_DIR}/cmake/kconfig.c.in ${CMAKE_BINARY_DIR}/kconfig.c)
+    target_sources(${TARGET} PRIVATE ${CMAKE_BINARY_DIR}/kconfig.c)
+
+    configure_file(${CMAKE_SOURCE_DIR}/cmake/kconfig.h.in ${CMAKE_BINARY_DIR}/include/mos/kconfig.h)
+    target_sources(${TARGET} PRIVATE ${CMAKE_BINARY_DIR}/include/mos/kconfig.h)
 endfunction()
