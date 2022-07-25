@@ -5,13 +5,20 @@ on:
 
 jobs:
   build:
-    name: Build MOS ${{matrix.target}} (${{matrix.build_type}})
+    name: "MOS ${{matrix.target}} (${{matrix.build_type}}, Tests: ${{matrix.run_tests}})"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         target: [multiboot, multiboot_iso]
-        build_type: [Debug, RelWithDebInfo, Release]
+        build_type: [Debug, Release]
+        run_tests: [ON, OFF]
+
+        exclude:
+          - target: multiboot_iso
+            run_tests: ON
+          - target: multiboot_iso
+            build_type: Debug
 
     steps:
       - uses: actions/checkout@v3
@@ -25,6 +32,7 @@ jobs:
         run: |
           cmake \
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+            -DMOS_KERNEL_RUN_TESTS=${{matrix.run_tests}} \
             -B ${{github.workspace}}/build \
             -G Ninja
 
@@ -41,19 +49,21 @@ jobs:
           ninja ${{matrix.target}}
 
       - name: Upload Bootable Artifact
+        if: matrix.run_tests == 'OFF'
         uses: actions/upload-artifact@v3
         with:
           name: MOS-${{matrix.target}}-${{matrix.build_type}}
           path: ${{steps.get_bootable.outputs.bootable}}
 
       - name: Run Tests
+        if: matrix.run_tests == 'ON'
         id: run_tests
         run: |
           cd ${{github.workspace}}/build
           ${{github.workspace}}/tests/run_tests.sh
 
       - name: Upload Test Result
-        if: failure() && steps.run_tests.outcome == 'failure'
+        if: matrix.run_tests == 'ON' && failure() && steps.run_tests.outcome == 'failure'
         uses: actions/upload-artifact@v3
         with:
           name: MOS-${{matrix.target}}-${{matrix.build_type}}-failure.ppm
