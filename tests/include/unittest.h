@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+// https://github.com/mateuszchudyk/tinytest
+// License: MIT
+
 #ifndef TINY_TEST_H
 #define TINY_TEST_H
 
