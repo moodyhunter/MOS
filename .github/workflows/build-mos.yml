@@ -40,13 +40,13 @@ jobs:
           ninja
           ninja ${{matrix.target}}
 
-      - name: Run Tests
-        run: |
-          cd ${{github.workspace}}/build
-          ctest --output-on-failure
-
       - name: Upload Bootable Artifact
         uses: actions/upload-artifact@v3
         with:
           name: MOS-${{matrix.target}}-${{matrix.build_type}}
           path: ${{steps.get_bootable.outputs.bootable}}
+
+      - name: Run Tests
+        run: |
+          cd ${{github.workspace}}/build
+          ctest --output-on-failure
