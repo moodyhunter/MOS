@@ -131,6 +131,18 @@ TINY_TEST(integer)
     PRINTF_TEST("+0000123", "%0+.7d", 123);
     PRINTF_TEST("+00000123", "%0+.8d", 123);
 
+    // Precision with zero padding and sign - 2
+    // ! "If a precision is given with a numeric conversion (d, i, o, u, x, and X), the 0 flag is ignored."
+    PRINTF_TEST("+123", "%+0.0d", 123);
+    PRINTF_TEST("+123", "%+0.1d", 123);
+    PRINTF_TEST("+123", "%+0.2d", 123);
+    PRINTF_TEST("+123", "%+0.3d", 123);
+    PRINTF_TEST("+0123", "%+0.4d", 123);
+    PRINTF_TEST("+00123", "%+0.5d", 123);
+    PRINTF_TEST("+000123", "%+0.6d", 123);
+    PRINTF_TEST("+0000123", "%+0.7d", 123);
+    PRINTF_TEST("+00000123", "%+0.8d", 123);
+
     // Precision with space (sign placeholder)
     PRINTF_TEST(" 123", "% .0d", 123);
     PRINTF_TEST(" 123", "% .1d", 123);
@@ -143,7 +155,6 @@ TINY_TEST(integer)
     PRINTF_TEST(" 00000123", "% .8d", 123);
 
     // Precision with width
-
     PRINTF_TEST("123", "%0.0d", 123);
     PRINTF_TEST("123", "%0.1d", 123);
     PRINTF_TEST("123", "%0.2d", 123);

@@ -5,12 +5,15 @@
 #include "mos/math.h"
 #include "mos/types.h"
 
+#include <limits.h>
 #include <stddef.h>
-#include <stdnoreturn.h>
 
 #define MOS_UNUSED(x) (void) (x)
 
-noreturn void kpanic(const char *msg, const char *source_loc);
+__attr_noreturn void kpanic(const char *msg, const char *source_loc);
 
-int isspace(int c);
+s32 abs(s32 x);
+long labs(long x);
+s64 llabs(s64 x);
+
 s32 atoi(const char *nptr);
