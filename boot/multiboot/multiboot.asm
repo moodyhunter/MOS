@@ -10,6 +10,12 @@ constants:
     MB_CHECKSUM equ -(MB_MAGIC + MB_FLAGS)                  ; checksum of above, to prove we are multiboot
 
 
+section .bss
+    align 16
+stack_bottom:
+    resb 16384 ; 16 KiB
+stack_top:
+
 section .multiboot.data
     align 4
     dd MB_MAGIC
@@ -22,6 +28,11 @@ section .multiboot.text
 global _start:function (_start.end - _start)
 
 _start:
+    mov esp, stack_top
+
+    ; Reset EFLAGS
+    ; push 0
+    ; popf
     push ebx                        ; Push multiboot2 header pointer
     push eax                        ; Push multiboot2 magic value
     lgdt [gdt_descriptor]           ; Load GDT
