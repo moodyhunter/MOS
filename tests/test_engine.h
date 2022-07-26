@@ -5,6 +5,7 @@
 #include "tinytest.h"
 
 extern bool test_engine_kwarning_seen;
+extern bool test_engine_kwarning_expected;
 
 __attr_noreturn void test_engine_shutdown();
 void test_engine_run_tests(void);

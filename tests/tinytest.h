@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "mos/attributes.h"
 #include "mos/drivers/screen.h"
 
 #include <stdbool.h>
@@ -76,9 +77,12 @@ typedef void (*mos_test_func_t)(TestResult *);
     }                                                                                                                                           \
     _MT_REGISTER_TEST_CASE(_MT_WRAP_PTEST_CALLER(_PTestName));
 
-#define MOS_TEST_EXPECT_WARNING(msg)                                                                                                            \
+#define MOS_TEST_EXPECT_WARNING(body, msg)                                                                                                      \
     do                                                                                                                                          \
     {                                                                                                                                           \
+        test_engine_kwarning_expected = true;                                                                                                   \
+        body;                                                                                                                                   \
+        test_engine_kwarning_expected = false;                                                                                                  \
         if (!test_engine_kwarning_seen)                                                                                                         \
             MOS_TEST_FAIL("%s", msg);                                                                                                           \
         test_engine_kwarning_seen = false;                                                                                                      \
@@ -129,7 +133,7 @@ typedef void (*mos_test_func_t)(TestResult *);
         ++_MT_result->checks;                                                                                                                   \
         if (MOS_TEST_STRCMP(expected, actual) != 0)                                                                                             \
         {                                                                                                                                       \
-            MOS_TEST_FAIL("values are different (expected = '%s', actual = '%s')", (expected), (actual));                                       \
+            MOS_TEST_FAIL("values are different (expected = '%s', actual = '%s'), at line %u", (expected), (actual), (__LINE__));               \
             ++_MT_result->failures;                                                                                                             \
         }                                                                                                                                       \
     } while (false)
@@ -210,20 +214,18 @@ typedef void (*mos_test_func_t)(TestResult *);
     else                                                                                                                                        \
         MOS_TEST_LOG(MOS_TEST_RED, 'X', "Failed (%u/%u)", _ResultVar->failures, _ResultVar->checks);
 
-#define _MT_FLOATABS(a)        ((a) < 0 ? -(a) : (a))
-#define _MT_CONCAT_INNER(a, b) a##b
-#define _MT_CONCAT(a, b)       _MT_CONCAT_INNER(a, b)
+#define _MT_FLOATABS(a) ((a) < 0 ? -(a) : (a))
 
 // Wrapper for the simple test
 #define _MT_WRAP_TEST_NAME(test_name) __mos_test_wrapped_test_##test_name
 
 // Wrapper for the parameterized test
 #define _MT_PTEST_ARG_FORMAT(ptest_name)  __mos_test_ptest_args_format_##ptest_name
-#define _MT_PTEST_CALLER(ptest_name)      _MT_CONCAT(__mos_test_ptest_caller_##ptest_name, __LINE__)
-#define _MT_WRAP_PTEST_CALLER(ptest_name) _MT_CONCAT(__mos_test_wrapped_ptest_caller_##ptest_name, __LINE__)
+#define _MT_PTEST_CALLER(ptest_name)      MOS_CONCAT(__mos_test_ptest_caller_##ptest_name, __LINE__)
+#define _MT_WRAP_PTEST_CALLER(ptest_name) MOS_CONCAT(__mos_test_wrapped_ptest_caller_##ptest_name, __LINE__)
 
 // ELF Section based test registration
-#define _MT_REGISTER_TEST_CASE(_TFunc)    const mos_test_func_t __section(mos_test_cases) _MT_CONCAT(test_cases_L, __LINE__) = _TFunc
+#define _MT_REGISTER_TEST_CASE(_TFunc)    const mos_test_func_t __section(mos_test_cases) MOS_CONCAT(test_cases_L, __LINE__) = _TFunc
 #define MOS_TEST_FOREACH_TEST_CASE(_FPtr) for (const mos_test_func_t *_FPtr = __start_mos_test_cases; _FPtr != __stop_mos_test_cases; _FPtr++)
 
 // Defined by the linker, do not rename.

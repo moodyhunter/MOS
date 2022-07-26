@@ -22,3 +22,13 @@
 
 #define MOS_STRINGIFY2(x) #x
 #define MOS_STRINGIFY(x)  MOS_STRINGIFY2(x)
+
+#define MOS_CONCAT_INNER(a, b) a##b
+#define MOS_CONCAT(a, b)       MOS_CONCAT_INNER(a, b)
+
+#define MOS_PRAGMA(text) _Pragma(#text)
+
+#define MOS_GCC_DO_PRAGMA(text)   MOS_PRAGMA(GCC text)
+#define MOS_WARNING_PUSH          MOS_GCC_DO_PRAGMA(diagnostic push)
+#define MOS_WARNING_POP           MOS_GCC_DO_PRAGMA(diagnostic pop)
+#define MOS_WARNING_DISABLE(text) MOS_GCC_DO_PRAGMA(diagnostic ignored text)

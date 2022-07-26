@@ -8,8 +8,10 @@
 #include "mos/drivers/screen.h"
 #include "mos/panic.h"
 #include "mos/stdlib.h"
+#include "tinytest.h"
 
 bool test_engine_kwarning_seen = false;
+bool test_engine_kwarning_expected = false;
 
 static __attr_noreturn void test_engine_panic_handler(const char *msg, const char *func, const char *file, const char *line)
 {
@@ -24,12 +26,20 @@ static __attr_noreturn void test_engine_panic_handler(const char *msg, const cha
 static void test_engine_warning_handler(const char *msg, const char *func, const char *file, const char *line)
 {
     MOS_ASSERT(!test_engine_kwarning_seen);
-    screen_set_color(White, Brown);
-    printf("WARN: %s\n", msg);
-    screen_set_color(Brown, Black);
-    printf("  function '%s'\n  file %s:%s\n", func, file, line);
-    screen_set_color(LightGray, Black);
+    MOS_ASSERT(test_engine_kwarning_expected);
     test_engine_kwarning_seen = true;
+
+    if (test_engine_kwarning_expected)
+    {
+        MOS_TEST_LOG(MOS_TEST_BLUE, '\0', "expected warning: %s", msg);
+        return;
+    }
+
+    screen_set_color(White, Brown);
+    printf("WARN: %s", msg);
+    screen_set_color(Brown, Black);
+    printf("\n  function '%s'\n  file %s:%s\n", func, file, line);
+    screen_set_color(LightGray, Black);
 }
 
 __attr_noreturn void test_engine_shutdown()

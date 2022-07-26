@@ -177,8 +177,9 @@ void _putstring(char **pbuf, const char *str)
 }
 
 // ! prints d, i, o, u, x, and X
-int _print_number_diouxX(char *pbuf, u64 number, printf_flags_t *pflags)
+int _print_number_diouxX(char *pbuf, u64 number, printf_flags_t *pflags, char conv)
 {
+    MOS_ASSERT(conv == 'd' || conv == 'i' || conv == 'o' || conv == 'u' || conv == 'x' || conv == 'X');
     MOS_ASSERT(pflags->precision >= 0);
     MOS_ASSERT(pflags->minimum_width >= 0);
 
@@ -295,6 +296,10 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
             {
                 case 'd':
                 case 'i':
+                case 'o':
+                case 'u':
+                case 'x':
+                case 'X':
                 {
                     // print a signed integer
                     s32 value;
@@ -317,13 +322,8 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                     else
                         value = va_arg(args, s32);
 
-                    int c = _print_number_diouxX(buf, value, &flags);
+                    int c = _print_number_diouxX(buf, value, &flags, *format);
                     buf += c;
-                    break;
-                }
-                case 'u':
-                {
-                    // print an unsigned integer
                     break;
                 }
                 case 'f':
@@ -342,17 +342,6 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 case 'G':
                 {
                     // print a floating point number in scientific notation
-                    break;
-                }
-                case 'x':
-                case 'X':
-                {
-                    // print an unsigned integer in hexadecimal notation
-                    break;
-                }
-                case 'o':
-                {
-                    // print an unsigned integer in octal notation
                     break;
                 }
                 case 's':
@@ -376,12 +365,14 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 case 'p':
                 {
                     // print a pointer
+                    MOS_UNIMPLEMENTED("printf: %n");
                     break;
                 }
                 case 'a':
                 case 'A':
                 {
                     // print a hexadecimal number in ASCII
+                    MOS_UNIMPLEMENTED("printf: %n");
                     break;
                 }
                 case 'n':
@@ -390,10 +381,16 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                     MOS_UNIMPLEMENTED("printf: %n");
                     break;
                 }
+                case '%':
+                {
+                    // print a '%'
+                    _putchar(&buf, '%');
+                    break;
+                }
                 default:
                 {
                     // C, S, m not implemented
-                    MOS_ASSERT(*format == '%');
+                    warning("printf: unknown format specifier");
                     _putchar(&buf, '%');
                     break;
                 }
