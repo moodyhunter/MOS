@@ -1,6 +1,8 @@
+[bits 32]
 [extern start_kernel]
 
 constants:
+    STACK_ADDR  equ  0x00f00000                             ; Stack starts at the 16MB address & grows down
     MB_MAGIC    equ  0x1BADB002                             ; 'magic number' lets bootloader find the header
     FLAG_ALIGN  equ  1 << 0                                 ; 4KB alignment for the bootloader
     FLAG_MEM    equ  1 << 1                                 ; provide memory map
@@ -8,13 +10,6 @@ constants:
 
     MB_FLAGS    equ  FLAG_ALIGN | FLAG_MEM | FLAG_VIDEO
     MB_CHECKSUM equ -(MB_MAGIC + MB_FLAGS)                  ; checksum of above, to prove we are multiboot
-
-
-section .bss
-    align 16
-stack_bottom:
-    resb 16384 ; 16 KiB
-stack_top:
 
 section .multiboot.data
     align 4
@@ -28,11 +23,11 @@ section .multiboot.text
 global _start:function (_start.end - _start)
 
 _start:
-    mov esp, stack_top
+    mov esp, STACK_ADDR
 
     ; Reset EFLAGS
-    ; push 0
-    ; popf
+    push 0
+    popf
     push ebx                        ; Push multiboot2 header pointer
     push eax                        ; Push multiboot2 magic value
     lgdt [gdt_descriptor]           ; Load GDT
