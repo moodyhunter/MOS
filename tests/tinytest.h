@@ -21,8 +21,9 @@ int printf(const char *restrict format, ...);
 typedef struct
 {
     bool passed;
-    unsigned checks;
-    unsigned failures;
+    u32 checks;
+    u32 failures;
+    u32 skips;
 } TestResult;
 typedef void (*mos_test_func_t)(TestResult *);
 
@@ -50,24 +51,37 @@ typedef void (*mos_test_func_t)(TestResult *);
 #define MOS_TEST_CYAN    Cyan
 #define MOS_TEST_DEFAULT MOS_TEST_GRAY
 
+#define MOS_TEST_CONDITIONAL(condition, message)                                                                                                \
+    for (MOS_TEST_CURRENT_TEST_SKIPPED = !(condition), (*_mt_loop_leave) = false, __extension__({                                               \
+             if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                 \
+                 MOS_TEST_LOG(MOS_TEST_BLUE, 's', "Test skipped: %s", message);                                                                 \
+         });                                                                                                                                    \
+         !(*_mt_loop_leave); (*_mt_loop_leave) = true, MOS_TEST_CURRENT_TEST_SKIPPED = false)
+
+#define MOS_TEST_SKIP()                                                                                                                         \
+    do                                                                                                                                          \
+    {                                                                                                                                           \
+        ++_MT_result->skips;                                                                                                                    \
+    } while (0)
+
 #define MOS_TEST_CASE(_TestName)                                                                                                                \
-    static void _TestName(TestResult *);                                                                                                        \
+    static void _TestName(TestResult *, bool *, bool *);                                                                                        \
     static void _MT_WRAP_TEST_NAME(_TestName)(TestResult * result)                                                                              \
     {                                                                                                                                           \
         MOS_TEST_LOG(MOS_TEST_BLUE, 'T', "Starting " #_TestName " at line %d", __LINE__);                                                       \
         _MT_RUN_TEST_AND_PRINT_RESULT(result, _TestName);                                                                                       \
     }                                                                                                                                           \
     _MT_REGISTER_TEST_CASE(_MT_WRAP_TEST_NAME(_TestName));                                                                                      \
-    static void _TestName(TestResult *_MT_result)
+    static void _TestName(TestResult *_MT_result, __attr_unused bool *_mt_test_skipped, __attr_unused bool *_mt_loop_leave)
 
 #define MOS_TEST_DECL_PTEST(_PTestName, ptest_args_printf_format, ...)                                                                          \
     static const char *_MT_PTEST_ARG_FORMAT(_PTestName) = "argument: " ptest_args_printf_format;                                                \
-    static void _PTestName(TestResult *_MT_result, __VA_ARGS__)
+    static void _PTestName(TestResult *_MT_result, __attr_unused bool *_mt_test_skipped, __attr_unused bool *_mt_loop_leave, __VA_ARGS__)
 
 #define MOS_TEST_PTEST_INSTANCE(_PTestName, ...)                                                                                                \
-    static void _MT_PTEST_CALLER(_PTestName)(TestResult * result)                                                                               \
+    static void _MT_PTEST_CALLER(_PTestName)(TestResult * result, bool *_mt_test_skipped, bool *_mt_loop_leave)                                 \
     {                                                                                                                                           \
-        _PTestName(result, __VA_ARGS__);                                                                                                        \
+        _PTestName(result, _mt_test_skipped, _mt_loop_leave, __VA_ARGS__);                                                                      \
     }                                                                                                                                           \
     static void _MT_WRAP_PTEST_CALLER(_PTestName)(TestResult * result)                                                                          \
     {                                                                                                                                           \
@@ -113,6 +127,11 @@ typedef void (*mos_test_func_t)(TestResult *);
     do                                                                                                                                          \
     {                                                                                                                                           \
         ++_MT_result->checks;                                                                                                                   \
+        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
+        {                                                                                                                                       \
+            MOS_TEST_SKIP();                                                                                                                    \
+            break;                                                                                                                              \
+        }                                                                                                                                       \
         if ((expected) != (actual))                                                                                                             \
         {                                                                                                                                       \
             MOS_TEST_FAIL("values are different (expected = %d, actual = %d)", (expected), (actual));                                           \
@@ -131,6 +150,11 @@ typedef void (*mos_test_func_t)(TestResult *);
     do                                                                                                                                          \
     {                                                                                                                                           \
         ++_MT_result->checks;                                                                                                                   \
+        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
+        {                                                                                                                                       \
+            MOS_TEST_SKIP();                                                                                                                    \
+            break;                                                                                                                              \
+        }                                                                                                                                       \
         if (MOS_TEST_STRCMP(expected, actual) != 0)                                                                                             \
         {                                                                                                                                       \
             MOS_TEST_FAIL("values are different (expected = '%s', actual = '%s'), at line %u", (expected), (actual), (__LINE__));               \
@@ -150,6 +174,11 @@ typedef void (*mos_test_func_t)(TestResult *);
     do                                                                                                                                          \
     {                                                                                                                                           \
         ++_MT_result->checks;                                                                                                                   \
+        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
+        {                                                                                                                                       \
+            MOS_TEST_SKIP();                                                                                                                    \
+            break;                                                                                                                              \
+        }                                                                                                                                       \
         if (_MT_FLOATABS((expected) - (actual)) > (epsilon))                                                                                    \
         {                                                                                                                                       \
             MOS_TEST_FAIL("values differ by more then %f (expected = %f, actual = %f)", (epsilon), (expected), (actual));                       \
@@ -170,6 +199,11 @@ typedef void (*mos_test_func_t)(TestResult *);
     do                                                                                                                                          \
     {                                                                                                                                           \
         ++_MT_result->checks;                                                                                                                   \
+        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
+        {                                                                                                                                       \
+            MOS_TEST_SKIP();                                                                                                                    \
+            break;                                                                                                                              \
+        }                                                                                                                                       \
         bool failed = false;                                                                                                                    \
         for (unsigned i = 0; i < (unsigned) (elements); ++i)                                                                                    \
             if ((expected)[i] != (actual)[i])                                                                                                   \
@@ -195,6 +229,11 @@ typedef void (*mos_test_func_t)(TestResult *);
     do                                                                                                                                          \
     {                                                                                                                                           \
         ++_MT_result->checks;                                                                                                                   \
+        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
+        {                                                                                                                                       \
+            MOS_TEST_SKIP();                                                                                                                    \
+            break;                                                                                                                              \
+        }                                                                                                                                       \
         bool failed = false;                                                                                                                    \
         for (unsigned i = 0; i < (unsigned) (elements); ++i)                                                                                    \
             if (_MT_FLOATABS((expected)[i] - (actual)[i]) > (epsilon))                                                                          \
@@ -208,13 +247,17 @@ typedef void (*mos_test_func_t)(TestResult *);
     } while (false)
 
 #define _MT_RUN_TEST_AND_PRINT_RESULT(_ResultVar, _TestFunc)                                                                                    \
-    _TestFunc(_ResultVar);                                                                                                                      \
+    bool _mt_test_skipped = false;                                                                                                              \
+    bool _mt_loop_leave = false;                                                                                                                \
+    _TestFunc(_ResultVar, &_mt_test_skipped, &_mt_loop_leave);                                                                                  \
     if (_ResultVar->passed)                                                                                                                     \
-        MOS_TEST_LOG(MOS_TEST_GREEN, '\0', "Passed (%u/%u)", _ResultVar->checks, _ResultVar->checks);                                           \
+        MOS_TEST_LOG(MOS_TEST_GREEN, '\0', "Passed (%u/%u, %u skipped)", _ResultVar->checks, _ResultVar->checks, _ResultVar->skips);            \
     else                                                                                                                                        \
-        MOS_TEST_LOG(MOS_TEST_RED, 'X', "Failed (%u/%u)", _ResultVar->failures, _ResultVar->checks);
+        MOS_TEST_LOG(MOS_TEST_RED, 'X', "Failed (%u/%u, %u skipped)", _ResultVar->failures, _ResultVar->checks, _ResultVar->skips);
 
 #define _MT_FLOATABS(a) ((a) < 0 ? -(a) : (a))
+
+#define MOS_TEST_CURRENT_TEST_SKIPPED (*_mt_test_skipped)
 
 // Wrapper for the simple test
 #define _MT_WRAP_TEST_NAME(test_name) __mos_test_wrapped_test_##test_name
