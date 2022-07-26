@@ -84,7 +84,7 @@ typedef void (*mos_test_func_t)(TestResult *);
         body;                                                                                                                                   \
         test_engine_kwarning_expected = false;                                                                                                  \
         if (!test_engine_kwarning_seen)                                                                                                         \
-            MOS_TEST_FAIL("%s", msg);                                                                                                           \
+            MOS_TEST_FAIL("expected warning not seen: %s, line %d", msg, __LINE__);                                                             \
         test_engine_kwarning_seen = false;                                                                                                      \
     } while (0)
 
