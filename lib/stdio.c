@@ -91,6 +91,12 @@ flag_parse_done:
         warning("printf: '0' flag is ignored in left-aligned mode");
     }
 
+    if (unlikely(pflags->show_sign && pflags->space_if_positive))
+    {
+        pflags->space_if_positive = false;
+        warning("printf: ' ' flag is ignored in '+' mode");
+    }
+
     // width
     pflags->minimum_width = 0;
     if (current == '*')
@@ -173,7 +179,6 @@ void _putstring(char **pbuf, const char *str)
 // ! prints d, i, o, u, x, and X
 int _print_number_diouxX(char *pbuf, u64 number, printf_flags_t *pflags)
 {
-    MOS_ASSERT(!(pflags->left_aligned && pflags->pad_with_zero));
     MOS_ASSERT(pflags->precision >= 0);
     MOS_ASSERT(pflags->minimum_width >= 0);
 
@@ -223,12 +228,22 @@ int _print_number_diouxX(char *pbuf, u64 number, printf_flags_t *pflags)
 
         if (pflags->left_aligned)
         {
-            warning("printf: left-aligned mode is not implemented");
+            if (pflags->pad_with_zero)
+                MOS_UNREACHABLE();
+            if (sign)
+                _putchar(&pbuf, sign);
+            while (precision-- > 0)
+                _putchar(&pbuf, '0');
+            while (pnumberbuf > numberbuf)
+                _putchar(&pbuf, *--pnumberbuf);
+            while (width_to_pad-- > 0)
+                _putchar(&pbuf, ' ');
         }
         else
         {
             if (pflags->pad_with_zero)
             {
+                // zero should be after the sign
                 if (sign)
                     _putchar(&pbuf, sign);
                 while (width_to_pad-- > 0)
@@ -236,6 +251,7 @@ int _print_number_diouxX(char *pbuf, u64 number, printf_flags_t *pflags)
             }
             else
             {
+                // space should be before the sign
                 while (width_to_pad-- > 0)
                     _putchar(&pbuf, ' ');
                 if (sign)

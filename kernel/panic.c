@@ -7,9 +7,10 @@
 
 // kpanic_handler is called when a panic occurs.
 
-kpanic_handler_t kpanic_handler = NULL;
+static kmsg_handler_t kpanic_handler = NULL;
+static kmsg_handler_t kwarn_handler = NULL;
 
-void kpanic_handler_set(kpanic_handler_t handler)
+void kpanic_handler_set(__attr_noreturn kmsg_handler_t handler)
 {
     kpanic_handler = handler;
 }
@@ -17,6 +18,16 @@ void kpanic_handler_set(kpanic_handler_t handler)
 void kpanic_handler_remove()
 {
     kpanic_handler = NULL;
+}
+
+void kwarn_handler_set(kmsg_handler_t handler)
+{
+    kwarn_handler = handler;
+}
+
+void kwarn_handler_remove()
+{
+    kwarn_handler = NULL;
 }
 
 void _kpanic_impl(const char *msg, const char *func, const char *file, const char *line)
@@ -51,6 +62,11 @@ void _kpanic_impl(const char *msg, const char *func, const char *file, const cha
 
 void _kwarn_impl(const char *msg, const char *func, const char *file, const char *line)
 {
+    if (kwarn_handler)
+    {
+        kwarn_handler(msg, func, file, line);
+        return;
+    }
     // TODO: switch to printk once it's implemented
     screen_print_string("\n");
     screen_set_color(White, Brown);

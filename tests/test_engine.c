@@ -3,23 +3,33 @@
 #include "test_engine.h"
 
 #include "mos/attributes.h"
+#include "mos/bug.h"
 #include "mos/drivers/port.h"
 #include "mos/drivers/screen.h"
 #include "mos/panic.h"
 #include "mos/stdlib.h"
-#include "tinytest.h"
 
-extern const TestCase __start_mos_test_cases[];
-extern const TestCase __stop_mos_test_cases[];
-
-void print_hex(u32 value);
+bool test_engine_kwarning_seen = false;
 
 static __attr_noreturn void test_engine_panic_handler(const char *msg, const char *func, const char *file, const char *line)
 {
+    screen_set_color(White, Red);
+    printf("PANIC: %s\n", msg);
     screen_set_color(Red, Black);
-    TINY_LOG(TINY_RED, "KERNEL PANIC: %s, in function '%s' from file %s:%s\n", msg, func, file, line);
+    printf("  function '%s'\n  file %s:%s\n", func, file, line);
     while (1)
         ;
+}
+
+static void test_engine_warning_handler(const char *msg, const char *func, const char *file, const char *line)
+{
+    MOS_ASSERT(!test_engine_kwarning_seen);
+    screen_set_color(White, Brown);
+    printf("WARN: %s\n", msg);
+    screen_set_color(Brown, Black);
+    printf("  function '%s'\n  file %s:%s\n", func, file, line);
+    screen_set_color(LightGray, Black);
+    test_engine_kwarning_seen = true;
 }
 
 __attr_noreturn void test_engine_shutdown()
@@ -32,33 +42,14 @@ __attr_noreturn void test_engine_shutdown()
 void test_engine_run_tests()
 {
     kpanic_handler_set(test_engine_panic_handler);
+    kwarn_handler_set(test_engine_warning_handler);
     bool success = true;
-    for (const TestCase *test = __start_mos_test_cases; test != __stop_mos_test_cases; test++)
+    MOS_TEST_FOREACH_TEST_CASE(testFunc)
     {
-        TestResult result = { TINY_TESTRESULT_INIT };
-        test->body(&result);
-        if (result.passed)
-        {
-            screen_set_color(Green, Black);
-            printf("TEST PASSED: %s (total checks: %d)\n", test->name, result.checks);
-            screen_set_color(Brown, Black);
-        }
-        else
-        {
+        TestResult result = { MOS_TEST_RESULT_INIT };
+        (*testFunc)(&result);
+        if (!result.passed)
             success = false;
-            screen_set_color(Red, Black);
-            screen_print_string("TEST FAILED: ");
-            screen_print_string(test->name);
-            screen_print_string(", ");
-            screen_set_color(White, Red);
-            print_hex(result.failed_checks);
-            screen_set_color(Red, Black);
-            screen_print_string(" out of ");
-            screen_set_color(White, Red);
-            print_hex(result.checks);
-            screen_set_color(Red, Black);
-            screen_print_string(" checks has failed.\n");
-        }
     }
     if (success)
     {
@@ -67,4 +58,5 @@ void test_engine_run_tests()
         test_engine_shutdown();
     }
     kpanic_handler_remove();
+    kwarn_handler_remove();
 }

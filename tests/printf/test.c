@@ -1,18 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/attributes.h"
 #include "mos/stdio.h"
-#include "mos/types.h"
 #include "test_engine.h"
+#include "tinytest.h"
 
-char buffer[2048] = { 0 };
+static char buffer[2048] = { 0 };
 
 int tst_printf(char *buffer, const char *format, ...);
 
 #define PRINTF_TEST(expected, format, ...)                                                                                                      \
     {                                                                                                                                           \
         tst_printf(buffer, format __VA_OPT__(, ) __VA_ARGS__);                                                                                  \
-        TINY_CHECK_STRING(expected, buffer);                                                                                                    \
+        MOS_TEST_CHECK_STRING(expected, buffer);                                                                                                \
     }
 
 int tst_printf(char *buffer, const char *format, ...)
@@ -24,7 +23,7 @@ int tst_printf(char *buffer, const char *format, ...)
     return ret;
 }
 
-TINY_TEST(simple_string)
+MOS_TEST_CASE(simple_string)
 {
     PRINTF_TEST("a", "a", );
     PRINTF_TEST("very long string", "very long string", );
@@ -33,15 +32,11 @@ TINY_TEST(simple_string)
         "d6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880", );
 }
 
-TINY_TEST(integer)
+MOS_TEST_CASE(integer_no_precision)
 {
     PRINTF_TEST("-123", "%d", -123);
     PRINTF_TEST("0", "%d", 0);
     PRINTF_TEST("123", "%d", 123);
-
-    // Extremes
-    PRINTF_TEST("-2147483648", "%d", -2147483648);
-    PRINTF_TEST("2147483647", "%d", 2147483647);
 
     // With sign and space
     // Negative numbers always have a sign.
@@ -85,7 +80,10 @@ TINY_TEST(integer)
     PRINTF_TEST("-0123", "%05d", -123);
     PRINTF_TEST("-00123", "%06d", -123);
     PRINTF_TEST("-000123", "%07d", -123);
+}
 
+MOS_TEST_CASE(integer_with_precision)
+{
     // Precision
     PRINTF_TEST("123", "%.0d", 123);
     PRINTF_TEST("123", "%.1d", 123);
@@ -204,9 +202,160 @@ TINY_TEST(integer)
     PRINTF_TEST("000123", "%4.6d", 123);
     PRINTF_TEST("0000123", "%4.7d", 123);
     PRINTF_TEST("00000123", "%4.8d", 123);
+
+    PRINTF_TEST("  123", "%5.0d", 123);
+    PRINTF_TEST("  123", "%5.1d", 123);
+    PRINTF_TEST("  123", "%5.2d", 123);
+    PRINTF_TEST("  123", "%5.3d", 123);
+    PRINTF_TEST(" 0123", "%5.4d", 123);
+    PRINTF_TEST("00123", "%5.5d", 123);
+    PRINTF_TEST("000123", "%5.6d", 123);
+    PRINTF_TEST("0000123", "%5.7d", 123);
+    PRINTF_TEST("00000123", "%5.8d", 123);
+
+    PRINTF_TEST("   123", "%6.0d", 123);
+    PRINTF_TEST("   123", "%6.1d", 123);
+    PRINTF_TEST("   123", "%6.2d", 123);
+    PRINTF_TEST("   123", "%6.3d", 123);
+    PRINTF_TEST("  0123", "%6.4d", 123);
+    PRINTF_TEST(" 00123", "%6.5d", 123);
+    PRINTF_TEST("000123", "%6.6d", 123);
+    PRINTF_TEST("0000123", "%6.7d", 123);
+    PRINTF_TEST("00000123", "%6.8d", 123);
+
+    PRINTF_TEST("    123", "%7.0d", 123);
+    PRINTF_TEST("    123", "%7.1d", 123);
+    PRINTF_TEST("    123", "%7.2d", 123);
+    PRINTF_TEST("    123", "%7.3d", 123);
+    PRINTF_TEST("   0123", "%7.4d", 123);
+    PRINTF_TEST("  00123", "%7.5d", 123);
+    PRINTF_TEST(" 000123", "%7.6d", 123);
+    PRINTF_TEST("0000123", "%7.7d", 123);
+    PRINTF_TEST("00000123", "%7.8d", 123);
 }
 
-TINY_TEST_CASES test_cases[2] = {
-    { "simple_string", simple_string },
-    { "integer", integer },
-};
+MOS_TEST_CASE(integer_left_justified)
+{
+    // Left-justified with zero padding (ignored, warning expected)
+    PRINTF_TEST("123", "%0-d", 123);
+    MOS_TEST_EXPECT_WARNING("expected a warning about zero-padding");
+
+    PRINTF_TEST("-123", "%0-d", -123);
+    MOS_TEST_EXPECT_WARNING("expected a warning about zero-padding");
+
+    // Left-justified with sign
+    PRINTF_TEST("+123", "%+-d", 123);
+
+    // Left-justified with space (sign placeholder)
+    PRINTF_TEST(" 123", "% -d", 123);
+
+    // Left-justified with width
+    PRINTF_TEST("123", "%-1d", 123);
+    PRINTF_TEST("123", "%-2d", 123);
+    PRINTF_TEST("123", "%-3d", 123);
+    PRINTF_TEST("123 ", "%-4d", 123);
+    PRINTF_TEST("123  ", "%-5d", 123);
+    PRINTF_TEST("123   ", "%-6d", 123);
+    PRINTF_TEST("123    ", "%-7d", 123);
+
+    // Left-justified with width and sign
+    PRINTF_TEST("+123", "%-+1d", 123);
+    PRINTF_TEST("+123", "%-+2d", 123);
+    PRINTF_TEST("+123", "%-+3d", 123);
+    PRINTF_TEST("+123", "%-+4d", 123);
+    PRINTF_TEST("+123 ", "%-+5d", 123);
+    PRINTF_TEST("+123  ", "%-+6d", 123);
+    PRINTF_TEST("+123   ", "%-+7d", 123);
+    PRINTF_TEST("+123    ", "%-+8d", 123);
+
+    // Left-justified with width and space (sign placeholder)
+    PRINTF_TEST(" 123", "% -1d", 123);
+    PRINTF_TEST(" 123", "% -2d", 123);
+    PRINTF_TEST(" 123", "% -3d", 123);
+    PRINTF_TEST(" 123", "% -4d", 123);
+    PRINTF_TEST(" 123 ", "% -5d", 123);
+    PRINTF_TEST(" 123  ", "% -6d", 123);
+    PRINTF_TEST(" 123   ", "% -7d", 123);
+    PRINTF_TEST(" 123    ", "% -8d", 123);
+
+    // Left-justified with precision
+    PRINTF_TEST("123", "%-.0d", 123);
+    PRINTF_TEST("123", "%-.1d", 123);
+    PRINTF_TEST("123", "%-.2d", 123);
+    PRINTF_TEST("123", "%-.3d", 123);
+    PRINTF_TEST("0123", "%-.4d", 123);
+    PRINTF_TEST("00123", "%-.5d", 123);
+    PRINTF_TEST("000123", "%-.6d", 123);
+    PRINTF_TEST("0000123", "%-.7d", 123);
+    PRINTF_TEST("00000123", "%-.8d", 123);
+
+    // Left-justified with precision and width
+    PRINTF_TEST("123", "%-1.0d", 123);
+    PRINTF_TEST("123", "%-1.1d", 123);
+    PRINTF_TEST("123", "%-1.2d", 123);
+    PRINTF_TEST("123", "%-1.3d", 123);
+    PRINTF_TEST("0123", "%-1.4d", 123);
+    PRINTF_TEST("00123", "%-1.5d", 123);
+    PRINTF_TEST("000123", "%-1.6d", 123);
+    PRINTF_TEST("0000123", "%-1.7d", 123);
+    PRINTF_TEST("00000123", "%-1.8d", 123);
+
+    PRINTF_TEST("123", "%-2.0d", 123);
+    PRINTF_TEST("123", "%-2.1d", 123);
+    PRINTF_TEST("123", "%-2.2d", 123);
+    PRINTF_TEST("123", "%-2.3d", 123);
+    PRINTF_TEST("0123", "%-2.4d", 123);
+    PRINTF_TEST("00123", "%-2.5d", 123);
+    PRINTF_TEST("000123", "%-2.6d", 123);
+    PRINTF_TEST("0000123", "%-2.7d", 123);
+    PRINTF_TEST("00000123", "%-2.8d", 123);
+
+    PRINTF_TEST("123", "%-3.0d", 123);
+    PRINTF_TEST("123", "%-3.1d", 123);
+    PRINTF_TEST("123", "%-3.2d", 123);
+    PRINTF_TEST("123", "%-3.3d", 123);
+    PRINTF_TEST("0123", "%-3.4d", 123);
+    PRINTF_TEST("00123", "%-3.5d", 123);
+    PRINTF_TEST("000123", "%-3.6d", 123);
+    PRINTF_TEST("0000123", "%-3.7d", 123);
+    PRINTF_TEST("00000123", "%-3.8d", 123);
+
+    PRINTF_TEST("123 ", "%-4.0d", 123);
+    PRINTF_TEST("123 ", "%-4.1d", 123);
+    PRINTF_TEST("123 ", "%-4.2d", 123);
+    PRINTF_TEST("123 ", "%-4.3d", 123);
+    PRINTF_TEST("0123", "%-4.4d", 123);
+    PRINTF_TEST("00123", "%-4.5d", 123);
+    PRINTF_TEST("000123", "%-4.6d", 123);
+    PRINTF_TEST("0000123", "%-4.7d", 123);
+    PRINTF_TEST("00000123", "%-4.8d", 123);
+
+    PRINTF_TEST("123  ", "%-5.0d", 123);
+    PRINTF_TEST("123  ", "%-5.1d", 123);
+    PRINTF_TEST("123  ", "%-5.2d", 123);
+    PRINTF_TEST("123  ", "%-5.3d", 123);
+    PRINTF_TEST("0123 ", "%-5.4d", 123);
+    PRINTF_TEST("00123", "%-5.5d", 123);
+    PRINTF_TEST("000123", "%-5.6d", 123);
+    PRINTF_TEST("0000123", "%-5.7d", 123);
+    PRINTF_TEST("00000123", "%-5.8d", 123);
+
+    PRINTF_TEST("123   ", "%-6.0d", 123);
+    PRINTF_TEST("123   ", "%-6.1d", 123);
+    PRINTF_TEST("123   ", "%-6.2d", 123);
+    PRINTF_TEST("123   ", "%-6.3d", 123);
+    PRINTF_TEST("0123  ", "%-6.4d", 123);
+    PRINTF_TEST("00123 ", "%-6.5d", 123);
+    PRINTF_TEST("000123", "%-6.6d", 123);
+    PRINTF_TEST("0000123", "%-6.7d", 123);
+    PRINTF_TEST("00000123", "%-6.8d", 123);
+}
+
+MOS_TEST_CASE(integer_extreme_case)
+{
+    PRINTF_TEST("2147483647", "%d", 2147483647);
+    PRINTF_TEST("-2147483648", "%d", -2147483648);
+    PRINTF_TEST("0", "%d", +0);
+    PRINTF_TEST("0", "%d", 0);
+    PRINTF_TEST("0", "%d", -0);
+}

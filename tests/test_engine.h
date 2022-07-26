@@ -2,10 +2,9 @@
 #pragma once
 
 #include "mos/attributes.h"
+#include "tinytest.h"
+
+extern bool test_engine_kwarning_seen;
 
 __attr_noreturn void test_engine_shutdown();
 void test_engine_run_tests(void);
-
-int printf(const char *format, ...);
-#define TINY_TEST_PRINTF(arg1, ...) printf(arg1, __VA_ARGS__)
-#include "tinytest.h"
