@@ -391,7 +391,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 {
                     // end of format string
                     warning("printf: incomplete format specifier");
-                    break;
+                    goto end;
                 }
                 default:
                 {
@@ -406,6 +406,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
             _putchar(&buf, *format);
         }
     }
+end:
     _putchar(&buf, 0);
 
     va_end(args);
