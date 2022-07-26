@@ -387,11 +387,16 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                     _putchar(&buf, '%');
                     break;
                 }
+                case '\0':
+                {
+                    // end of format string
+                    warning("printf: incomplete format specifier");
+                    break;
+                }
                 default:
                 {
                     // C, S, m not implemented
                     warning("printf: unknown format specifier");
-                    _putchar(&buf, '%');
                     break;
                 }
             }
