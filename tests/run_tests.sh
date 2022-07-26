@@ -12,6 +12,7 @@ ps -p $pid >/dev/null
 [ $? == 1 ] && echo "Test passed." && exit 0
 
 echo "qemu-system-i386 is still running, probably the test has failed."
-printf '%s\n' "screendump failure.ppm" "q" | nc -U /tmp/monitor.sock
-echo "Test failed, see failure.ppm for the screen dump."
+printf '%s\n' "screendump test-failure.ppm" "dump-guest-memory test-failure.dmp" "q" | nc -U /tmp/monitor.sock
+echo "Test failed."
+echo "See test-failure.ppm for the screen dump, and test-failure.dmp for the guest memory dump."
 exit 1

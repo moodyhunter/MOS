@@ -29,7 +29,7 @@ MOS_TEST_CASE(percent_sign)
     {
         PRINTF_TEST("", "", );
         PRINTF_TEST("%", "%%", );
-        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("", "%", ), "format string is empty");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("", "%s", ), "format string is empty");
         MOS_TEST_EXPECT_WARNING(PRINTF_TEST("incomplete ", "incomplete %", ), "format string is empty");
         MOS_TEST_EXPECT_WARNING(PRINTF_TEST("incomplete 100", "incomplete %d%", 100), "format string is empty");
         MOS_TEST_EXPECT_WARNING(PRINTF_TEST("incomplete 'abcde' %", "incomplete '%s' %%%", "abcde"), "format string is empty");
