@@ -2,6 +2,7 @@
 
 #include "mos/panic.h"
 
+#include "mos/attributes.h"
 #include "mos/bug.h"
 #include "mos/drivers/screen.h"
 
@@ -35,7 +36,6 @@ void _kpanic_impl(const char *msg, const char *func, const char *file, const cha
     if (kpanic_handler)
     {
         kpanic_handler(msg, func, file, line);
-        MOS_UNREACHABLE();
     }
 
     // TODO: switch to printk once it's implemented

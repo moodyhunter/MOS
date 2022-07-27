@@ -66,7 +66,6 @@ static size_t parse_printf_flags(const char *format, printf_flags_t *pflags)
 {
     const char *start = format;
 #define goto_next_char() (format++)
-#define next_char_n(n)   (*(format + n))
 #define current          (*format)
 
     while (1)
@@ -122,7 +121,7 @@ flag_parse_done:
     if (current == 'h')
     {
         goto_next_char();
-        if (next_char_n(1) == 'h')
+        if (current == 'h')
             pflags->length = LM_hh, goto_next_char();
         else
             pflags->length = LM_h;
@@ -130,7 +129,7 @@ flag_parse_done:
     else if (current == 'l')
     {
         goto_next_char();
-        if (next_char_n(1) == 'l')
+        if (current == 'l')
             pflags->length = LM_ll, goto_next_char();
         else
             pflags->length = LM_l;
@@ -157,7 +156,6 @@ flag_parse_done:
     }
 
 #undef goto_next_char
-#undef next_char_n
 #undef current
     return format - start;
 }
@@ -177,7 +175,7 @@ void _putstring(char **pbuf, const char *str)
 }
 
 // ! prints d, i, o, u, x, and X
-int _print_number_diouxX(char *pbuf, u64 number, printf_flags_t *pflags, char conv)
+static int print_number_diouxX(char *pbuf, u64 number, printf_flags_t *pflags, char conv)
 {
     MOS_ASSERT(conv == 'd' || conv == 'i' || conv == 'o' || conv == 'u' || conv == 'x' || conv == 'X');
     MOS_ASSERT(pflags->precision >= 0);
@@ -322,7 +320,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                     else
                         value = va_arg(args, s32);
 
-                    int c = _print_number_diouxX(buf, value, &flags, *format);
+                    int c = print_number_diouxX(buf, value, &flags, *format);
                     buf += c;
                     break;
                 }
@@ -397,6 +395,8 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 {
                     // C, S, m not implemented
                     warning("printf: unknown format specifier");
+                    _putchar(&buf, '%');
+                    _putchar(&buf, *format);
                     break;
                 }
             }
