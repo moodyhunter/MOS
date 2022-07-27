@@ -101,8 +101,8 @@ typedef void (*mos_test_func_t)(TestResult *);
         }                                                                                                                                       \
         test_engine_n_warning_expected = N;                                                                                                     \
         body;                                                                                                                                   \
-        if (test_engine_n_warning_expected == N)                                                                                                \
-            MOS_TEST_FAIL("expected warning not seen: %s, line %d", msg, __LINE__);                                                             \
+        if (test_engine_n_warning_expected != 0)                                                                                                \
+            MOS_TEST_FAIL("%d more expected warning not seen: %s, line %d", test_engine_n_warning_expected, msg, __LINE__);                     \
     } while (0)
 
 #define MOS_TEST_EXPECT_WARNING(body, msg) MOS_TEST_EXPECT_WARNING_N(1, body, msg)
