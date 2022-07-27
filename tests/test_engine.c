@@ -52,24 +52,32 @@ void test_engine_run_tests()
 {
     kpanic_handler_set(test_engine_panic_handler);
     kwarn_handler_set(test_engine_warning_handler);
+
     TestResult result = { MOS_TEST_RESULT_INIT };
+
     MOS_TEST_FOREACH_TEST_CASE(testFunc)
     {
-        (*testFunc)(&result);
+        TestResult r = { MOS_TEST_RESULT_INIT };
+        (*testFunc)(&r);
+        result.n_total += r.n_total;
+        result.n_failed += r.n_failed;
+        result.n_skipped += r.n_skipped;
     }
 
     kpanic_handler_remove();
     kwarn_handler_remove();
 
-    if (result.failures == 0)
+    u32 passed = result.n_total - result.n_failed - result.n_skipped;
+
+    if (result.n_failed == 0)
     {
         screen_set_color(Green, Black);
-        printf("\nALL TESTS PASSED: (%u succeed, %u failed, %u skipped)\n", result.checks - result.failures, result.failures, result.skipped);
+        printf("\nALL %u TESTS PASSED: (%u succeed, %u failed, %u skipped)\n", result.n_total, passed, result.n_failed, result.n_skipped);
         test_engine_shutdown();
     }
     else
     {
         screen_set_color(Red, White);
-        printf("\nTEST FAILED: (%u succeed, %u failed, %u skipped)\n", result.checks - result.failures, result.failures, result.skipped);
+        printf("\nTEST FAILED: (%u succeed, %u failed, %u skipped)\n", passed, result.n_failed, result.n_skipped);
     }
 }
