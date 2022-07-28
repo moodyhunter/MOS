@@ -3,9 +3,7 @@
 
 #define MOS_TEST_LOG mos_test_engine_log
 
-#include "mos/drivers/screen.h"
 #include "mos/kernel.h"
-#include "mos/mos_global.h"
 #include "mos/stdio.h"
 #include "tinytest.h"
 

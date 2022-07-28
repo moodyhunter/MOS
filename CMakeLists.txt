@@ -35,7 +35,7 @@ add_library(mos_kernel.elf STATIC
     drivers/screen.c
     drivers/port.c
     kernel/panic.c
-    kernel/kernel.c
+    kernel/printk.c
     lib/stdlib.c
     lib/string.c
     lib/stdio.c
