@@ -50,10 +50,14 @@ typedef void (*mos_test_func_t)(TestResult *);
 #define MOS_TEST_CYAN    Cyan
 #define MOS_TEST_DEFAULT MOS_TEST_GRAY
 
-#define MOS_TEST_CONDITIONAL(condition, message)                                                                                                \
-    for (MOS_TEST_CURRENT_TEST_SKIPPED = !(condition), (*_mt_loop_leave) = false, __extension__({                                               \
+#define MOS_TEST_DEFINE_CONDITION(condition, message)                                                                                           \
+    const char *_mt_test_cond_##condition##_message = message;                                                                                  \
+    static bool condition
+
+#define MOS_TEST_CONDITIONAL(cond)                                                                                                              \
+    for (MOS_TEST_CURRENT_TEST_SKIPPED = !(cond), (*_mt_loop_leave) = false, __extension__({                                                    \
              if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                 \
-                 MOS_TEST_LOG(MOS_TEST_BLUE, 's', "Test skipped: %s", message);                                                                 \
+                 MOS_TEST_LOG(MOS_TEST_BLUE, 's', "Skipped '%s': condition '%s' not met.", _mt_test_cond_##cond##_message, #cond);              \
          });                                                                                                                                    \
          !(*_mt_loop_leave); (*_mt_loop_leave) = true, MOS_TEST_CURRENT_TEST_SKIPPED = false)
 

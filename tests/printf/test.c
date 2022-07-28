@@ -7,10 +7,11 @@
 #include "tinytest.h"
 
 static char buffer[2048] = { 0 };
-static bool mos_printf_supports_posix_extension = false;
-static bool mos_printf_supports_floats = false;
-static bool mos_printf_enable_egp = false;
-static bool mos_printf_enable_oxX = true;
+
+MOS_TEST_DEFINE_CONDITION(printf_tests_enable_posix_extension, "POSIX extensions") = false;
+MOS_TEST_DEFINE_CONDITION(printf_tests_enable_floats, "floating points") = false;
+MOS_TEST_DEFINE_CONDITION(printf_tests_enable_egp, "e, g, p tests") = false;
+MOS_TEST_DEFINE_CONDITION(printf_tests_enable_oxX, "o, x, X tests") = true;
 
 int tst_printf(char *buffer, const char *format, ...) __attribute__((format(printf, 2, 3)));
 
@@ -474,13 +475,13 @@ MOS_TEST_CASE(printf_tests_github)
     MOS_TEST_EXPECT_WARNING(PRINTF_TEST("42             ", "%0-15d", 42), "0 ignored by '-'");
     MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-42            ", "%0-15d", -42), "0 ignored by '-'");
 
-    MOS_TEST_CONDITIONAL(mos_printf_supports_posix_extension, "POSIX extensions are not supported")
+    MOS_TEST_CONDITIONAL(printf_tests_enable_posix_extension)
     {
         PRINTF_TEST("Hot Pocket", "%1$s %2$s", "Hot", "Pocket");
         PRINTF_TEST("12.0 Hot Pockets", "%1$.1f %2$s %3$ss", 12.0, "Hot", "Pocket");
     }
 
-    MOS_TEST_CONDITIONAL(mos_printf_supports_floats, "printf floating point support")
+    MOS_TEST_CONDITIONAL(printf_tests_enable_floats)
     {
         PRINTF_TEST("0.33", "%.*f", 2, 0.33333333);
         PRINTF_TEST("42.90", "%.2f", 42.8952);
@@ -497,7 +498,7 @@ MOS_TEST_CASE(printf_tests_github)
         PRINTF_TEST("1", "%.0f", 0.6);
     }
 
-    MOS_TEST_CONDITIONAL(mos_printf_enable_oxX, "osX tests are disabled")
+    MOS_TEST_CONDITIONAL(printf_tests_enable_oxX)
     {
         // o, X
         PRINTF_TEST("                 777", "%*o", 20, 511);
@@ -557,7 +558,7 @@ MOS_TEST_CASE(printf_tests_github)
     MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("4294966272          ", "% 0-+*.*u", 20, 5, 4294966272U), "' ' and 0 ignored, + ignore in u");
     PRINTF_TEST("hi x\\n", "%*sx\\n", -3, "hi");
 
-    MOS_TEST_CONDITIONAL(mos_printf_enable_oxX, "osX tests are disabled")
+    MOS_TEST_CONDITIONAL(printf_tests_enable_oxX)
     {
         PRINTF_TEST("00144   ", "%#-8.5llo", 100LL);
         PRINTF_TEST("0001777777777777777777634", "%#.25llo", -100LL);
@@ -577,7 +578,7 @@ MOS_TEST_CASE(printf_tests_github)
     MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("   0018446744073709551615", "%#+25.22llu", -1LL), "#, + ignored in u");
     MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("     0000018446744073709551615", "%#+30.25llu", -1LL), "#, + ignored in u");
 
-    MOS_TEST_CONDITIONAL(mos_printf_enable_oxX, "osX tests are disabled")
+    MOS_TEST_CONDITIONAL(printf_tests_enable_oxX)
     {
         /* 121: excluded for C */
         PRINTF_TEST("0x0000000001", "%#012x", 1);
@@ -587,7 +588,7 @@ MOS_TEST_CASE(printf_tests_github)
         PRINTF_TEST("12", "%o", 10);
     }
 
-    MOS_TEST_CONDITIONAL(mos_printf_enable_egp, "oOpexXg not supported")
+    MOS_TEST_CONDITIONAL(printf_tests_enable_egp)
     {
         PRINTF_TEST("0x39", "%p", (void *) 57ULL);
         PRINTF_TEST("0x39", "%p", (void *) 57U);
@@ -612,7 +613,7 @@ MOS_TEST_CASE(printf_tests_github)
     PRINTF_TEST("%0", "%%0", );
     PRINTF_TEST("4294966272", "%u", 4294966272U);
 
-    MOS_TEST_CONDITIONAL(mos_printf_enable_oxX, "osX tests not enabled")
+    MOS_TEST_CONDITIONAL(printf_tests_enable_oxX)
     {
         PRINTF_TEST("777", "%o", 511);
         PRINTF_TEST("37777777001", "%o", 4294966785U);
