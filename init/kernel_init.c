@@ -16,16 +16,16 @@ void start_kernel(u32 magic, multiboot_info_t *addr)
     screen_set_cursor_pos(0, 0);
     screen_disable_cursor();
 
-    mos_info("Welcome to MOS!");
+    pr_info("Welcome to MOS!");
 
     if (magic != MULTIBOOT_BOOTLOADER_MAGIC)
         mos_panic("invalid magic number: %x", magic);
 
-    mos_info("MOS Information:");
-    mos_emph("cmdline: %s", addr->cmdline);
-    mos_emph("%-25s'%s'", "Kernel Version:", MOS_KERNEL_VERSION);
-    mos_emph("%-25s'%s'", "Kernel Revision:", MOS_KERNEL_REVISION);
-    mos_emph("%-25s'%s'", "Kernel builtin cmdline:", MOS_KERNEL_BUILTIN_CMDLINE);
+    pr_info("MOS Information:");
+    pr_emph("cmdline: %s", addr->cmdline);
+    pr_emph("%-25s'%s'", "Kernel Version:", MOS_KERNEL_VERSION);
+    pr_emph("%-25s'%s'", "Kernel Revision:", MOS_KERNEL_REVISION);
+    pr_emph("%-25s'%s'", "Kernel builtin cmdline:", MOS_KERNEL_BUILTIN_CMDLINE);
 
     mos_warn("V2Ray 4.45.2 started");
 

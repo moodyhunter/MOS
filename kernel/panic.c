@@ -7,30 +7,34 @@
 
 #include <stdarg.h>
 
-static kmsg_handler_t kpanic_handler = NULL;
-static kmsg_handler_t kwarn_handler = NULL;
+static kmsg_handler_t *kpanic_handler = NULL;
+static kmsg_handler_t *kwarn_handler = NULL;
 
-void kwarn_handler_set(kmsg_handler_t handler)
+void kwarn_handler_set(kmsg_handler_t *handler)
 {
-    mos_warn("installing new warning handler: %p", (void *) handler);
+    pr_warn("installing a new warning handler...");
     kwarn_handler = handler;
 }
 
-void kpanic_handler_set(__attr_noreturn kmsg_handler_t handler)
+void kpanic_handler_set(__attr_noreturn kmsg_handler_t *handler)
 {
-    mos_warn("installing new panic handler: %p", (void *) handler);
+    pr_warn("installing a new panic handler...");
     kpanic_handler = handler;
 }
 
 void kwarn_handler_remove()
 {
-    mos_warn_no_handler("removing warning handler: %p", (void *) kwarn_handler);
+    pr_warn("removing warning handler...");
+    if (!kwarn_handler)
+        mos_warn("no previous warning handler installed");
     kwarn_handler = NULL;
 }
 
 void kpanic_handler_remove()
 {
-    mos_warn_no_handler("removing panic handler: %p", (void *) kpanic_handler);
+    pr_warn("removing panic handler...");
+    if (!kpanic_handler)
+        mos_warn("no previous panic handler installed");
     kpanic_handler = NULL;
 }
 
@@ -44,7 +48,7 @@ void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
     if (kpanic_handler)
     {
         va_start(args, fmt);
-        kpanic_handler(func, line, fmt, args);
+        (*kpanic_handler)(func, line, fmt, args);
         va_end(args);
     }
 
@@ -53,11 +57,11 @@ void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
     vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
     va_end(args);
 
-    mos_emerg_no_handler("!!!!!!!!!!!!!!!!!!!!!!!!");
-    mos_emerg_no_handler("!!!!! KERNEL PANIC !!!!!");
-    mos_emerg_no_handler("!!!!!!!!!!!!!!!!!!!!!!!!");
-    mos_fatal_no_handler("%s", message);
-    mos_emerg_no_handler("  in function: %s (line %u)", func, line);
+    pr_emerg("!!!!!!!!!!!!!!!!!!!!!!!!");
+    pr_emerg("!!!!! KERNEL PANIC !!!!!");
+    pr_emerg("!!!!!!!!!!!!!!!!!!!!!!!!");
+    pr_fatal("%s", message);
+    pr_emerg("  in function: %s (line %u)", func, line);
 
     while (1)
         ;
@@ -79,6 +83,6 @@ void mos_kwarn(const char *func, u32 line, const char *fmt, ...)
     vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
     va_end(args);
 
-    mos_warn_no_handler("warning: %s", message);
-    mos_warn_no_handler("  in function: %s (line %u)", func, line);
+    pr_warn("warning: %s", message);
+    pr_warn("  in function: %s (line %u)", func, line);
 }

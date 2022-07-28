@@ -53,8 +53,8 @@ static void test_engine_warning_handler(const char *func, u32 line, const char *
     else
     {
         vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
-        mos_warn_no_handler("warning: %s", message);
-        mos_warn_no_handler("  in function: %s (line %u)", func, line);
+        pr_warn("warning: %s", message);
+        pr_warn("  in function: %s (line %u)", func, line);
         mos_panic("unexpected warning");
     }
 
@@ -90,7 +90,7 @@ void test_engine_run_tests()
     if (result.n_failed == 0)
     {
         screen_set_color(Green, Black);
-        mos_emph("\nALL %u TESTS PASSED: (%u succeed, %u failed, %u skipped)", result.n_total, passed, result.n_failed, result.n_skipped);
+        pr_emph("\nALL %u TESTS PASSED: (%u succeed, %u failed, %u skipped)", result.n_total, passed, result.n_failed, result.n_skipped);
         test_engine_shutdown();
     }
     else
