@@ -30,25 +30,18 @@ static u8 cursor_y = 0;
 static VGATextModeColor foreground_color = White;
 static VGATextModeColor background_color = Black;
 
-bool screen_init()
+void screen_init()
 {
-    screen_clear();
     screen_set_cursor_pos(0, 0);
     screen_enable_cursur(13, 15);
-    return true;
+    screen_clear();
 }
 
 int screen_clear()
 {
     int i = 0;
-    char *video_ptr = (char *) VIDEO_DEVICE_ADDRESS;
     for (i = 0; i < VIDEO_WIDTH * VIDEO_HEIGHT; i++)
-    {
-        *video_ptr = ' ';
-        video_ptr++;
-        *video_ptr = 0x07;
-        video_ptr++;
-    }
+        screen_print_char(' ');
     cursor_x = 0;
     cursor_y = 0;
     return 0;

@@ -30,12 +30,9 @@ _start:
     popf
     push ebx                        ; Push multiboot2 header pointer
     push eax                        ; Push multiboot2 magic value
-    lgdt [gdt_descriptor]           ; Load GDT
     call start_kernel               ; start the kernel
     cli
 .hang:
     hlt
     jmp .hang
 .end:
-
-%include "gdt.asm"

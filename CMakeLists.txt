@@ -20,6 +20,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 option(MOS_KERNEL_RUN_TESTS "Run tests in the Kernel" OFF)
+set(MOS_ARCH_TARGET "x86")
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
     message(STATUS "Found custom configuration file 'config.cmake'")
@@ -30,16 +31,26 @@ include(CTest)
 include(generate_kconfig)
 include(configure_summary)
 
+include_directories(
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_BINARY_DIR}/include
+    ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH_TARGET}/include
+)
+
 add_library(mos_kernel.elf STATIC
     init/kernel_init.c
-    drivers/screen.c
-    drivers/port.c
     kernel/panic.c
     kernel/printk.c
     lib/stdlib.c
     lib/string.c
     lib/stdio.c
     lib/stdio_impl.c
+
+    arch/x86/drivers/screen.c
+    arch/x86/drivers/port.c
+    arch/x86/gdt.c
+    arch/x86/gdt_flush.S
+    arch/x86/idt.c
 )
 
 add_library(mos::elf_kernel ALIAS mos_kernel.elf)
@@ -52,8 +63,6 @@ mos_add_summary_item(KERNEL "Version" "${MOS_KERNEL_VERSION_STRING}")
 mos_add_summary_item(KERNEL "Revision" "${MOS_KERNEL_REVISION_STRING}")
 mos_add_summary_item(KERNEL "Builtin Cmdline" "${MOS_KERNEL_BUILTIN_CMDLINE_STRING}")
 
-target_include_directories(mos_kernel.elf PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR}/include)
-
 # Configure boot loader
 include(boot/boot.cmake)
 
@@ -61,8 +70,7 @@ mos_add_summary_section(TESTS "MOS Kernel Library Tests")
 mos_add_summary_item(TESTS "All Tests" "${BUILD_TESTING}")
 
 if(BUILD_TESTING)
-add_subdirectory(tests)
-# include(tests/tests.cmake)
+    add_subdirectory(tests)
 endif()
 
 message("")

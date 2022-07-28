@@ -4,13 +4,14 @@
 GDT_CODE_SEG equ gdt.code - gdt
 GDT_DATA_SEG equ gdt.data - gdt
 
+; %define
+
 
 gdt:
 ; null descriptor
 .null:
     ; the GDT starts with a null 8-byte
-    dd 0x0          ; 4 byte
-    dd 0x0          ; 4 byte
+    dw 0, 0, 0, 0, 0, 0, 0, 0
 
     ; GDT for code segment. base = 0x00000000, length = 0xfffff
     ; for flags, refer to os-dev.pdf document, page 36

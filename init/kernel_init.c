@@ -2,6 +2,7 @@
 
 #include "mos/boot/multiboot.h"
 #include "mos/drivers/screen.h"
+#include "mos/gdt.h"
 #include "mos/kconfig.h"
 #include "mos/kernel.h"
 #include "mos/stdio.h"
@@ -12,14 +13,17 @@ extern void test_engine_run_tests();
 
 void start_kernel(u32 magic, multiboot_info_t *addr)
 {
+    gdt_init();
     screen_init();
-    screen_set_cursor_pos(0, 0);
     screen_disable_cursor();
 
     pr_info("Welcome to MOS!");
 
     if (magic != MULTIBOOT_BOOTLOADER_MAGIC)
         mos_panic("invalid magic number: %x", magic);
+
+    if (!(addr->flags & MULTIBOOT_INFO_MEM_MAP))
+        mos_panic("no memory map");
 
     pr_info("MOS Information:");
     pr_emph("cmdline: %s", addr->cmdline);

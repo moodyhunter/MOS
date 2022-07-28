@@ -24,7 +24,7 @@ typedef enum
     White = LightGray | 0x8,
 } VGATextModeColor;
 
-bool screen_init();
+void screen_init();
 int screen_clear();
 
 void screen_get_size(u32 *width, u32 *height);
