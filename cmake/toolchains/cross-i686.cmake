@@ -6,6 +6,10 @@ set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffreestanding")
 
 set(CMAKE_EXE_LINKER_FLAGS "-nostdlib")
+set(CMAKE_ASM_NASM_OBJECT_FORMAT elf32)
+
+# Add debug info to nasm
+set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <DEFINES> <INCLUDES> <FLAGS> -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} -F dwarf -g -o <OBJECT> <SOURCE>")
 
 # For the C compiler, 'elf' should be in the OS field for target triplet to produce a bare metal binary.
 # Although the `linux-gnu` targeted gcc 'does' work, it's highly unsuggested.

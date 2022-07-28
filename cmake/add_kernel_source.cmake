@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+macro(add_kernel_source)
+    set(OPTIONS "")
+    set(SINGLE_VALUE_OPTIONS "")
+    set(MULTI_VALUE_OPTIONS "SOURCES;RELATIVE_SOURCES")
+    cmake_parse_arguments(ARG "${OPTIONS}" "${SINGLE_VALUE_OPTIONS}" "${MULTI_VALUE_OPTIONS}" ${ARGN})
+    if (ARG_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "Unparsed arguments: ${ARG_UNPARSED_ARGUMENTS}")
+    endif()
+    target_sources(mos_kernel.elf PRIVATE ${ARG_SOURCES})
+    foreach(SOURCE ${ARG_RELATIVE_SOURCES})
+        target_sources(mos_kernel.elf PRIVATE ${CMAKE_CURRENT_LIST_DIR}/${SOURCE})
+    endforeach()
+endmacro()

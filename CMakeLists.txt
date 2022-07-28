@@ -4,7 +4,7 @@ include(cmake/toolchains/cross-i686.cmake)
 
 cmake_minimum_required(VERSION 3.22)
 
-project(MOS LANGUAGES CXX C ASM VERSION 0.1)
+project(MOS LANGUAGES CXX C ASM_NASM VERSION 0.1)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_C_EXTENSIONS ON)
@@ -27,6 +27,12 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
     include(${CMAKE_SOURCE_DIR}/config.cmake)
 endif()
 
+set(MOS_ARCH_CONFIG ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH_TARGET}/${MOS_ARCH_TARGET}.cmake)
+
+if (NOT EXISTS ${MOS_ARCH_CONFIG})
+    message(FATAL_ERROR "No configuration file for architecture '${MOS_ARCH_TARGET}'")
+endif()
+
 include(CTest)
 include(generate_kconfig)
 include(configure_summary)
@@ -38,19 +44,13 @@ include_directories(
 )
 
 add_library(mos_kernel.elf STATIC
-    init/kernel_init.c
+    kernel/init/kernel_init.c
     kernel/panic.c
     kernel/printk.c
     lib/stdlib.c
     lib/string.c
     lib/stdio.c
     lib/stdio_impl.c
-
-    arch/x86/drivers/screen.c
-    arch/x86/drivers/port.c
-    arch/x86/gdt.c
-    arch/x86/gdt_flush.S
-    arch/x86/idt.c
 )
 
 add_library(mos::elf_kernel ALIAS mos_kernel.elf)
@@ -62,13 +62,16 @@ mos_add_summary_section(KERNEL "MOS Kernel")
 mos_add_summary_item(KERNEL "Version" "${MOS_KERNEL_VERSION_STRING}")
 mos_add_summary_item(KERNEL "Revision" "${MOS_KERNEL_REVISION_STRING}")
 mos_add_summary_item(KERNEL "Builtin Cmdline" "${MOS_KERNEL_BUILTIN_CMDLINE_STRING}")
+mos_add_summary_item(KERNEL "Architecture" "${MOS_ARCH_TARGET}")
 
-# Configure boot loader
-include(boot/boot.cmake)
+# Configure architecture-specific stuff
+include(add_kernel_source)
+include(add_bootable_target)
+
+include(${MOS_ARCH_CONFIG})
 
 mos_add_summary_section(TESTS "MOS Kernel Library Tests")
 mos_add_summary_item(TESTS "All Tests" "${BUILD_TESTING}")
-
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()
@@ -76,4 +79,6 @@ endif()
 message("")
 message("MOS is now configured :)")
 message("")
+
 mos_print_summary()
+dump_bootable_targets()

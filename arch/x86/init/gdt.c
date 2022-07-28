@@ -3,7 +3,7 @@
 #include "mos/gdt.h"
 
 // stolen from https://github.com/knusbaum/kernel/blob/b596b33853c5ef88e4c6fb7d25ae9221ae192ef8/gdt.c#L66
-static void gdt_set_gate(gdt_entry_t *entry, uint32_t base, uint32_t limit, uint8_t access, uint8_t granularity)
+static void gdt_set_gate(gdt_entry_t *entry, u32 base, u32 limit, u8 access, u8 granularity)
 {
     entry->base_low = (base & 0xFFFF);
     entry->base_middle = (base >> 16) & 0xFF;
@@ -22,8 +22,8 @@ void gdt_init()
 {
     // Disable interrupts
     __asm__ volatile("cli");
-    static gdt_entry_t gdt[6];
     static gdt_ptr_t gdt_ptr;
+    static gdt_entry_t gdt[6];
 
     gdt_set_gate(&gdt[0], 0, 0, 0, 0);                // Null segment
     gdt_set_gate(&gdt[1], 0, 0xFFFFFFFF, 0x9A, 0xCF); // Code segment
@@ -33,7 +33,7 @@ void gdt_init()
 
     // ! TODO: a task segment is not implemented yet
 
-    gdt_ptr.base = (uint32_t) &gdt;
+    gdt_ptr.base = (u32) &gdt;
     gdt_ptr.limit = sizeof(gdt) - 1;
-    x86_gdt_flush((uint32_t) &gdt_ptr);
+    x86_gdt_flush((u32) &gdt_ptr);
 }

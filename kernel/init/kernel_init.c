@@ -3,6 +3,7 @@
 #include "mos/boot/multiboot.h"
 #include "mos/drivers/screen.h"
 #include "mos/gdt.h"
+#include "mos/idt.h"
 #include "mos/kconfig.h"
 #include "mos/kernel.h"
 #include "mos/stdio.h"
@@ -14,6 +15,10 @@ extern void test_engine_run_tests();
 void start_kernel(u32 magic, multiboot_info_t *addr)
 {
     gdt_init();
+
+    // !! IDT IS BROKEN AT THE MOMENT
+    // idt_init();
+
     screen_init();
     screen_disable_cursor();
 
