@@ -2,85 +2,83 @@
 
 #include "mos/panic.h"
 
-#include "mos/attributes.h"
-#include "mos/bug.h"
-#include "mos/drivers/screen.h"
+#include "mos/kernel.h"
+#include "mos/stdio.h"
 
-// kpanic_handler is called when a panic occurs.
+#include <stdarg.h>
 
 static kmsg_handler_t kpanic_handler = NULL;
 static kmsg_handler_t kwarn_handler = NULL;
 
-void kpanic_handler_set(__attr_noreturn kmsg_handler_t handler)
-{
-    kpanic_handler = handler;
-}
-
-void kpanic_handler_remove()
-{
-    kpanic_handler = NULL;
-}
-
 void kwarn_handler_set(kmsg_handler_t handler)
 {
+    mos_warn("installing new warning handler: %p", (void *) handler);
     kwarn_handler = handler;
+}
+
+void kpanic_handler_set(__attr_noreturn kmsg_handler_t handler)
+{
+    mos_warn("installing new panic handler: %p", (void *) handler);
+    kpanic_handler = handler;
 }
 
 void kwarn_handler_remove()
 {
+    mos_warn_no_handler("removing warning handler: %p", (void *) kwarn_handler);
     kwarn_handler = NULL;
 }
 
-void _kpanic_impl(const char *msg, const char *func, const char *file, const char *line)
+void kpanic_handler_remove()
 {
+    mos_warn_no_handler("removing panic handler: %p", (void *) kpanic_handler);
+    kpanic_handler = NULL;
+}
+
+// ! using the following 2 functions causes recurstion
+#undef mos_warn
+#undef mos_panic
+
+void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
+{
+    va_list args;
     if (kpanic_handler)
     {
-        kpanic_handler(msg, func, file, line);
+        va_start(args, fmt);
+        kpanic_handler(func, line, fmt, args);
+        va_end(args);
     }
 
-    // TODO: switch to printk once it's implemented
-    screen_set_color(White, Red);
-    screen_print_string("!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    screen_print_string("!!!!! KERNEL PANIC !!!!!\n");
-    screen_print_string("!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    screen_print_string("\n");
-    screen_set_color(Red, Black);
-    screen_print_string(msg);
-    screen_print_string("\n");
-    screen_print_string("  in function: ");
-    screen_print_string(func);
-    screen_print_string("\n");
-    screen_print_string("  at file: ");
-    screen_print_string(file);
-    screen_print_string(":");
-    screen_print_string(line);
-    screen_print_string("\n");
+    char message[PRINTK_BUFFER_SIZE] = { 0 };
+    va_start(args, fmt);
+    vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
+    va_end(args);
+
+    mos_emerg_no_handler("!!!!!!!!!!!!!!!!!!!!!!!!");
+    mos_emerg_no_handler("!!!!! KERNEL PANIC !!!!!");
+    mos_emerg_no_handler("!!!!!!!!!!!!!!!!!!!!!!!!");
+    mos_fatal_no_handler("%s", message);
+    mos_emerg_no_handler("  in function: %s (line %u)", func, line);
 
     while (1)
         ;
 }
 
-void _kwarn_impl(const char *msg, const char *func, const char *file, const char *line)
+void mos_kwarn(const char *func, u32 line, const char *fmt, ...)
 {
+    va_list args;
     if (kwarn_handler)
     {
-        kwarn_handler(msg, func, file, line);
+        va_start(args, fmt);
+        kwarn_handler(func, line, fmt, args);
+        va_end(args);
         return;
     }
-    // TODO: switch to printk once it's implemented
-    screen_print_string("\n");
-    screen_set_color(White, Brown);
-    screen_print_string("warning: ");
-    screen_print_string(msg);
-    screen_set_color(Brown, Black);
-    screen_print_string("\n");
-    screen_print_string("  in function: ");
-    screen_print_string(func);
-    screen_print_string("\n");
-    screen_print_string("  at file: ");
-    screen_print_string(file);
-    screen_print_string(":");
-    screen_print_string(line);
-    screen_print_string("\n");
-    screen_set_color(LightGray, Black);
+
+    char message[PRINTK_BUFFER_SIZE] = { 0 };
+    va_start(args, fmt);
+    vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
+    va_end(args);
+
+    mos_warn_no_handler("warning: %s", message);
+    mos_warn_no_handler("  in function: %s (line %u)", func, line);
 }

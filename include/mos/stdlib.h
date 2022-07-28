@@ -3,12 +3,11 @@
 #pragma once
 
 #include "mos/math.h"
+#include "mos/mos_global.h"
 #include "mos/types.h"
 
 #include <limits.h>
 #include <stddef.h>
-
-#define MOS_UNUSED(x) (void) (x)
 
 __attr_noreturn void kpanic(const char *msg, const char *source_loc);
 

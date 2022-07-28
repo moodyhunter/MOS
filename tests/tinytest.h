@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "mos/attributes.h"
 #include "mos/drivers/screen.h"
+#include "mos/mos_global.h"
 
 #include <stdbool.h>
 
@@ -13,9 +13,18 @@ int strcmp(const char *s1, const char *s2);
 #define MOS_TEST_STRCMP strcmp
 #endif
 
-#ifndef MOS_TEST_PRINTF
-int printf(const char *restrict format, ...);
-#define MOS_TEST_PRINTF printf
+#ifndef MOS_TEST_LOG
+#define MOS_TEST_LOG(color, symbol, format, ...)                                                                                                \
+    do                                                                                                                                          \
+    {                                                                                                                                           \
+        if (symbol)                                                                                                                             \
+            MOS_TEST_PRINTF("[%c] ", symbol);                                                                                                   \
+        else                                                                                                                                    \
+            MOS_TEST_PRINTF("    ");                                                                                                            \
+        screen_set_color(color, Black);                                                                                                         \
+        MOS_TEST_PRINTF(format "\n", __VA_ARGS__);                                                                                              \
+        screen_set_color(MOS_TEST_DEFAULT, Black);                                                                                              \
+    } while (0)
 #endif
 
 typedef struct
@@ -27,19 +36,6 @@ typedef struct
 typedef void (*mos_test_func_t)(TestResult *);
 
 #define MOS_TEST_RESULT_INIT .n_total = 0, .n_failed = 0, .n_skipped = 0
-
-#define MOS_TEST_LOG(color, symbol, format, ...)                                                                                                \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        if (symbol)                                                                                                                             \
-            MOS_TEST_PRINTF("[%c] ", symbol);                                                                                                   \
-        else                                                                                                                                    \
-            MOS_TEST_PRINTF("    ");                                                                                                            \
-        screen_set_color(color, Black);                                                                                                         \
-        MOS_TEST_PRINTF(format, __VA_ARGS__);                                                                                                   \
-        MOS_TEST_PRINTF("\n");                                                                                                                  \
-        screen_set_color(MOS_TEST_DEFAULT, Black);                                                                                              \
-    } while (0)
 
 #define MOS_TEST_GRAY    LightGray
 #define MOS_TEST_RED     Red

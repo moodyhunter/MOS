@@ -28,6 +28,7 @@ bool screen_init();
 int screen_clear();
 
 void screen_get_size(u32 *width, u32 *height);
+void screen_get_color(VGATextModeColor *fg, VGATextModeColor *bg);
 
 void screen_print_char(char c);
 bool screen_print_char_at(char c, u32 x, u32 y);

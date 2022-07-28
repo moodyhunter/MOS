@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "attributes.h"
-
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -22,5 +20,3 @@ typedef long double f80;
 
 typedef u8 uchar;
 typedef s8 schar;
-
-static_assert(__SIZEOF_POINTER__ == sizeof(void *), "uintptr_t is not the same size as a pointer");

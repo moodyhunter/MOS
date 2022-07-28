@@ -35,9 +35,11 @@ add_library(mos_kernel.elf STATIC
     drivers/screen.c
     drivers/port.c
     kernel/panic.c
+    kernel/kernel.c
     lib/stdlib.c
     lib/string.c
     lib/stdio.c
+    lib/stdio_impl.c
 )
 
 add_library(mos::elf_kernel ALIAS mos_kernel.elf)

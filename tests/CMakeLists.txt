@@ -13,7 +13,8 @@ macro(mos_add_test TEST_NAME TEST_DESCRIPTION)
 
     # CMake 3.24, WHOLE_ARCHIVE is used to include the whole archive into the kernel.
     # target_link_libraries(mos_test_engine PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,${TEST_TARGET}>)
-    target_link_options(mos_test_engine PUBLIC "-Wl,--whole-archive" $<TARGET_FILE:${TEST_TARGET}> "-Wl,--no-whole-archive")
+    # link with kernel for the functions where unused in the kernel, but used in the test.
+    target_link_options(mos_test_engine PUBLIC "-Wl,--whole-archive" $<TARGET_FILE:mos::elf_kernel> $<TARGET_FILE:${TEST_TARGET}> "-Wl,--no-whole-archive")
     # Currently a hack to add dependencies.
     target_link_libraries(mos_test_engine PUBLIC ${TEST_TARGET})
 

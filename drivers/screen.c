@@ -2,8 +2,8 @@
 
 #include "mos/drivers/screen.h"
 
-#include "mos/attributes.h"
 #include "mos/drivers/port.h"
+#include "mos/mos_global.h"
 #include "mos/stdlib.h"
 #include "mos/string.h"
 
@@ -60,6 +60,14 @@ void screen_get_size(u32 *width, u32 *height)
         *width = VIDEO_WIDTH;
     if (height)
         *height = VIDEO_HEIGHT;
+}
+
+void screen_get_color(VGATextModeColor *fg, VGATextModeColor *bg)
+{
+    if (fg)
+        *fg = foreground_color;
+    if (bg)
+        *bg = background_color;
 }
 
 bool screen_get_cursor_pos(u32 *x, u32 *y)
