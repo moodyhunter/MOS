@@ -48,6 +48,8 @@ void start_kernel(u32 magic, multiboot_info_t *addr)
     screen_set_cursor_pos(0, 0);
     screen_disable_cursor();
 
+    printf("'%#o'\n", 0);
+
     screen_set_color(LightGray, Black);
     printf("\n");
     screen_print_string("Multiboot Magic: ");

@@ -51,7 +51,7 @@ typedef struct
     // if the result of a conversion is wider than the field width, the field is expanded to contain the conversion result.
     s32 minimum_width : 24;
 
-    bool has_precision : 1;
+    bool has_explicit_precision : 1;
     // `d, i, o, u, x, X` -> The minimum number of digits to appear;
     // `a, A, e, E, f, F` -> The number of digits to appear after the radix character;
     // `g, G`             -> The maximum number of significant digits;
@@ -60,6 +60,13 @@ typedef struct
 
     length_modifier_t length : 8;
 } __attr_packed printf_flags_t;
+
+typedef enum
+{
+    BASE_8 = 8,
+    BASE_10 = 10,
+    BASE_16 = 16,
+} base_t;
 
 static size_t parse_printf_flags(const char *format, printf_flags_t *pflags, va_list *args)
 {
@@ -105,14 +112,14 @@ flag_parse_done:
     pflags->precision = 0;
     if (current == '.')
     {
-        pflags->has_precision = true;
+        pflags->has_explicit_precision = true;
         goto_next_char();
         if (current == '*')
         {
             pflags->precision = va_arg(*args, s32), goto_next_char();
             // A negative precision argument is taken as if the precision were omitted.
             if (pflags->precision < 0)
-                pflags->precision = 0, pflags->has_precision = false;
+                pflags->precision = 0, pflags->has_explicit_precision = false;
         }
         else
         {
@@ -165,151 +172,204 @@ flag_parse_done:
     if (unlikely(pflags->left_aligned && pflags->pad_with_zero))
     {
         pflags->pad_with_zero = false;
-        warning("printf: '0' flag is ignored in '-' mode");
+        warning("printf: '0' flag is ignored by the '-' flag");
     }
 
     if (unlikely(pflags->show_sign && pflags->space_if_positive))
     {
         pflags->space_if_positive = false;
-        warning("printf: ' ' flag is ignored in '+' mode");
+        warning("printf: ' ' flag is ignored by the '+' flag");
     }
 
     return format - start;
 }
 
 // writes a character into the buffer, and increses the buffer pointer
-void _putchar(char **pbuf, char c)
+void buf_putchar(char **pbuf, char c)
 {
     **pbuf = c;
     (*pbuf)++;
 }
 
 // ! prints d, i, o, u, x, and X
-static int printf_diouxX(char *pbuf, u64 number, printf_flags_t *pflags, char conv)
+static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char conv)
 {
     MOS_ASSERT(conv == 'd' || conv == 'i' || conv == 'o' || conv == 'u' || conv == 'x' || conv == 'X');
     MOS_ASSERT(pflags->precision >= 0);
     MOS_ASSERT(pflags->minimum_width >= 0);
 
-    if (unlikely(pflags->hash))
-        warning("'#' flag is ignored in diouxX");
-
-    if (conv == 'u')
+    if (conv == 'd' || conv == 'i' || conv == 'u')
     {
-        if (unlikely(pflags->show_sign))
+        if (unlikely(pflags->hash))
         {
-            warning("'+' flag is ignored in u mode");
-            pflags->show_sign = false;
-        }
-
-        if (unlikely(pflags->space_if_positive))
-        {
-            warning("' ' flag is ignored in u mode");
-            pflags->space_if_positive = false;
+            warning("'#' flag is ignored in d, i mode");
+            pflags->hash = false;
         }
     }
 
-    // If a precision is given with a numeric conversion (d, i, o, u, x, and X), the 0 flag is ignored.
-    if (pflags->has_precision && pflags->pad_with_zero)
-        pflags->pad_with_zero = false;
+    static char lower_hex_digits[] = "0123456789abcdef";
+    static char upper_hex_digits[] = "0123456789ABCDEF";
 
-    if (conv == 'u')
+    base_t base = BASE_10;
+    bool upper_case = false;
+    char *hex_digits = NULL;
+
+    bool is_unsigned_ouxX = conv == 'o' || conv == 'u' || conv == 'x' || conv == 'X';
+    if (is_unsigned_ouxX)
     {
+        if (unlikely(pflags->show_sign))
+        {
+            warning("'+' flag is ignored in unsigned mode");
+            pflags->show_sign = false;
+        }
+        if (unlikely(pflags->space_if_positive))
+        {
+            warning("' ' flag is ignored in unsigned mode");
+            pflags->space_if_positive = false;
+        }
+
+        base = (conv == 'o' ? BASE_8 : (conv == 'u' ? BASE_10 : BASE_16));
+        upper_case = conv == 'X';
+        hex_digits = upper_case ? upper_hex_digits : lower_hex_digits;
+
         switch (pflags->length)
         {
             case LM_hh: number = (u8) number; break;
             case LM__h: number = (u16) number; break;
+            case LM_none:
             case LM__l: number = (u32) number; break;
             case LM_ll: number = (u64) number; break;
             case LM__j: number = (uintmax_t) number; break;
             case LM__z: number = (size_t) number; break;
             case LM__t: number = (ptrdiff_t) number; break;
             case LM__L: number = (u64) number; break;
-            case LM_none: number = (u32) number; break;
             default: MOS_UNREACHABLE();
         }
     }
 
-    char *start = pbuf;
+    // If a precision is given with a numeric conversion (d, i, o, u, x, and X), the 0 flag is ignored.
+    if (pflags->has_explicit_precision && pflags->pad_with_zero)
+        pflags->pad_with_zero = false;
+
+    // The default precision is 1 for d, i, o, u, x, and X
+    if (!pflags->has_explicit_precision)
+        pflags->precision = 1;
+
+    char *start = buf;
+
     {
-        char numberbuf[32] = { 0 };
-        char *pnumberbuf = numberbuf;
+        char num_prefix_buf[5] = { 0 };
+        char num_content_buf[32] = { 0 };
 
-        s32 width_to_pad = pflags->minimum_width;
-        s32 precision = pflags->precision;
+        // Setup prefixes.
+        if (base == BASE_10 && !is_unsigned_ouxX)
+        {
+            bool is_negative = ((s64) number) < 0;
+            if (is_negative)
+                number = -(s64) number, num_prefix_buf[0] = '-';
+            else if (pflags->show_sign)
+                num_prefix_buf[0] = '+'; // 0 is positive too !!!!!
+            else if (pflags->space_if_positive)
+                num_prefix_buf[0] = ' ';
+        }
+        else if (base == BASE_16 && pflags->hash)
+        {
+            // '#' flag turns on prefix '0x' or '0X' for hexadecimal conversions.
+            // For x and X conversions, a nonzero result has the string "0x" (or "0X" for X conversions) prepended to it.
+            if (number != 0)
+            {
+                num_prefix_buf[0] = '0';
+                num_prefix_buf[1] = upper_case ? 'X' : 'x';
+            }
+        }
+        else if (base == BASE_8 && pflags->hash)
+        {
+            // ! BEGIN SPECIAL CASE for base 8 + '#' flag
+            // to be handled later, when we are printing the number
+            // ! END SPECIAL CASE
+        }
 
-        char sign = '\0';
-
-        bool is_negative = conv != 'u' && ((s64) number) < 0;
-        if (is_negative)
-            number = -(s64) number, sign = '-';
-        else if (pflags->show_sign)
-            sign = '+'; // 0 is positive too !!!!!
-        else if (pflags->space_if_positive)
-            sign = ' ';
-
-        if (sign)
-            width_to_pad--;
-
-        s32 digits = 0;
+        // Print the number.
         if (number == 0)
         {
-            if (pflags->has_precision && precision == 0)
-                ; // do nothing, "A precision of 0 means that no character is written for the value 0."
-            else
-                _putchar(&pnumberbuf, '0'), digits++;
+            // When 0 is printed with an explicit precision 0, the output is empty.
+            // so only print a '0' if the precision is **not** 0.
+            if (pflags->precision != 0)
+                num_content_buf[0] = '0';
         }
         else
         {
-            while (number > 0)
+            char *pnumberbuf = num_content_buf;
+            switch (base)
             {
-                _putchar(&pnumberbuf, (char) (number % 10) + '0');
-                number /= 10, digits++;
+                case BASE_8:
+                case BASE_10:
+                    while (number > 0)
+                        buf_putchar(&pnumberbuf, '0' + (char) (number % base)), number /= base;
+                    break;
+                case BASE_16:
+                    while (number > 0)
+                        buf_putchar(&pnumberbuf, hex_digits[number % 16]), number /= 16;
+                    break;
+                default: MOS_UNREACHABLE();
             }
         }
 
-        precision = MAX(precision - digits, 0);
-        width_to_pad = MAX(width_to_pad - precision - digits, 0);
+        s32 n_digits = strlen(num_content_buf);
 
+        // ! BEGIN SPECIAL CASE for base 8 + '#' flag
+        if (base == BASE_8 && pflags->hash)
+        {
+            // if there's no padding needed, we'll have to add the '0' prefix
+            if (pflags->precision - n_digits <= 0 && num_content_buf[0] != '0')
+                num_prefix_buf[0] = '0';
+        }
+        // ! END SPECIAL CASE
+
+        s32 precision_padding = MAX(pflags->precision - n_digits, 0);
+        s32 width_to_pad = MAX(pflags->minimum_width - strlen(num_prefix_buf) - precision_padding - n_digits, 0);
+
+        char *pnum_prefix = num_prefix_buf;
+        char *pnum_content = num_content_buf + n_digits;
         if (pflags->left_aligned)
         {
-            if (sign)
-                _putchar(&pbuf, sign);
-            while (precision-- > 0)
-                _putchar(&pbuf, '0');
-            while (pnumberbuf > numberbuf)
-                _putchar(&pbuf, *--pnumberbuf);
+            while (*pnum_prefix)
+                buf_putchar(&buf, *pnum_prefix++);
+            while (precision_padding-- > 0)
+                buf_putchar(&buf, '0');
+            while (pnum_content > num_content_buf)
+                buf_putchar(&buf, *--pnum_content);
             while (width_to_pad-- > 0)
-                _putchar(&pbuf, ' ');
+                buf_putchar(&buf, ' ');
         }
         else
         {
             if (pflags->pad_with_zero)
             {
                 // zero should be after the sign
-                if (sign)
-                    _putchar(&pbuf, sign);
+                while (*pnum_prefix)
+                    buf_putchar(&buf, *pnum_prefix++);
                 while (width_to_pad-- > 0)
-                    _putchar(&pbuf, '0');
+                    buf_putchar(&buf, '0');
             }
             else
             {
                 // space should be before the sign
                 while (width_to_pad-- > 0)
-                    _putchar(&pbuf, ' ');
-                if (sign)
-                    _putchar(&pbuf, sign);
+                    buf_putchar(&buf, ' ');
+                while (*pnum_prefix)
+                    buf_putchar(&buf, *pnum_prefix++);
             }
-            while (precision-- > 0)
-                _putchar(&pbuf, '0');
-            while (pnumberbuf > numberbuf)
-                _putchar(&pbuf, *--pnumberbuf);
+            while (precision_padding-- > 0)
+                buf_putchar(&buf, '0');
+            while (pnum_content > num_content_buf)
+                buf_putchar(&buf, *--pnum_content);
         }
     }
-    return pbuf - start;
+    return buf - start;
 }
 
-static int printf_cs(char *pbuf, char *data, printf_flags_t *pflags, char conv)
+static int printf_cs(char *buf, char *data, printf_flags_t *pflags, char conv)
 {
     MOS_ASSERT(conv == 'c' || conv == 's');
     MOS_ASSERT(pflags->precision >= 0);
@@ -339,19 +399,19 @@ static int printf_cs(char *pbuf, char *data, printf_flags_t *pflags, char conv)
         pflags->space_if_positive = false;
     }
 
-    if (unlikely(conv == 'c' && pflags->has_precision))
+    if (unlikely(conv == 'c' && pflags->has_explicit_precision))
     {
         warning("printf: precision is ignored in 'c' mode.");
-        pflags->has_precision = false;
+        pflags->has_explicit_precision = false;
         pflags->precision = 0;
     }
 
-    char *start = pbuf;
+    char *start = buf;
 
     s32 printed_len = conv == 'c' ? 1 : strlen(data);
 
     // If presition is given, the string is truncated to this length.
-    if (pflags->has_precision)
+    if (pflags->has_explicit_precision)
         printed_len = MIN(printed_len, pflags->precision);
 
     s32 width_to_pad = MAX(pflags->minimum_width - printed_len, 0);
@@ -359,19 +419,19 @@ static int printf_cs(char *pbuf, char *data, printf_flags_t *pflags, char conv)
     if (pflags->left_aligned)
     {
         while (printed_len-- > 0)
-            _putchar(&pbuf, *data++);
+            buf_putchar(&buf, *data++);
         while (width_to_pad-- > 0)
-            _putchar(&pbuf, ' ');
+            buf_putchar(&buf, ' ');
     }
     else
     {
         while (width_to_pad-- > 0)
-            _putchar(&pbuf, ' ');
+            buf_putchar(&buf, ' ');
         while (printed_len-- > 0)
-            _putchar(&pbuf, *data++);
+            buf_putchar(&buf, *data++);
     }
 
-    return pbuf - start;
+    return buf - start;
 }
 
 int vsnprintf(char *buf, size_t size, const char *format, va_list args)
@@ -402,29 +462,25 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 {
                     // print a signed integer
                     u64 value;
-                    if (flags.length == LM_hh)
-                        value = (schar) va_arg(args, s32); // must use promoted type
-                    else if (flags.length == LM__h)
-                        value = (s16) va_arg(args, s32); // must use promoted type
-                    else if (flags.length == LM__l)
-                        value = va_arg(args, s32);
-                    else if (flags.length == LM_ll)
-                        value = va_arg(args, s64);
-                    else if (flags.length == LM__L)
-                        value = va_arg(args, s64);
-                    else if (flags.length == LM__j)
-                        value = va_arg(args, s64);
-                    else if (flags.length == LM__z)
-                        value = va_arg(args, s64);
-                    else if (flags.length == LM__t)
-                        value = va_arg(args, s64);
-                    else
-                        value = va_arg(args, s32);
-
+                    switch (flags.length)
+                    {
+                        case LM_hh: value = (s8) va_arg(args, s32); break;
+                        case LM__h: value = (s16) va_arg(args, s32); break;
+                        case LM_none:
+                        case LM__l: value = va_arg(args, s32); break;
+                        case LM_ll: value = va_arg(args, s64); break;
+                        case LM__j: value = va_arg(args, intmax_t); break;
+                        case LM__z: value = va_arg(args, size_t); break;
+                        case LM__t: value = va_arg(args, ptrdiff_t); break;
+                        case LM__L: value = va_arg(args, s64); break;
+                        default: MOS_UNREACHABLE();
+                    }
                     int c = printf_diouxX(buf, value, &flags, *format);
                     buf += c;
                     break;
                 }
+
+                // default precision ; for e, E, f, g, and G it is 0.
                 case 'f':
                 case 'F':
                 {
@@ -462,7 +518,6 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 case 'p':
                 {
                     // print a pointer
-                    MOS_UNIMPLEMENTED("printf: %n");
                     break;
                 }
                 case 'a':
@@ -481,7 +536,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 case '%':
                 {
                     // print a '%'
-                    _putchar(&buf, '%');
+                    buf_putchar(&buf, '%');
                     break;
                 }
                 case '\0':
@@ -492,21 +547,20 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 }
                 default:
                 {
-                    // C, S, m not implemented
                     warning("printf: unknown format specifier");
-                    _putchar(&buf, '%');
-                    _putchar(&buf, *format);
+                    buf_putchar(&buf, '%');
+                    buf_putchar(&buf, *format);
                     break;
                 }
             }
         }
         else
         {
-            _putchar(&buf, *format);
+            buf_putchar(&buf, *format);
         }
     }
 end:
-    _putchar(&buf, 0);
+    buf_putchar(&buf, 0);
 
     va_end(args);
     return buf - start;

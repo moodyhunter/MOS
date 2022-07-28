@@ -26,7 +26,7 @@ static void test_engine_warning_handler(const char *msg, const char *func, const
 {
     if (test_engine_n_warning_expected > 0)
     {
-        MOS_TEST_LOG(MOS_TEST_BLUE, '\0', "expected warning: %s", msg);
+        // MOS_TEST_LOG(MOS_TEST_BLUE, '\0', "expected warning: %s", msg);
     }
     else
     {
