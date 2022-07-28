@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/attributes.h"
 #include "mos/stdio.h"
-#include "mos/stdlib.h"
 #include "test_engine.h"
-#include "tinytest.h"
 
 static char buffer[2048] = { 0 };
 
-MOS_TEST_DEFINE_CONDITION(printf_tests_enable_posix_extension, "POSIX extensions") = false;
+MOS_TEST_DEFINE_CONDITION(printf_tests_enable_posix, "POSIX exts") = false;
 MOS_TEST_DEFINE_CONDITION(printf_tests_enable_floats, "floating points") = false;
 MOS_TEST_DEFINE_CONDITION(printf_tests_enable_egp, "e, g, p tests") = false;
 MOS_TEST_DEFINE_CONDITION(printf_tests_enable_oxX, "o, x, X tests") = true;
@@ -457,58 +454,6 @@ MOS_TEST_CASE(printf_tests_github)
     PRINTF_TEST("foo", "%.3s", "foobar");
     PRINTF_TEST(" foo", "%*s", 4, "foo");
 
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("%w", "%w", -1), "unknown format specifier 'w'");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("%b", "%b", ), "unknown format specifier 'b'");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("%(foo", "%(foo", ), "unknown format specifier");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("%_1lld", "%_1lld", 100LL), "unknown format specifier '_'");
-
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("42", "%-0d", 42), "0 ignored by '-'");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-42", "%-0d", -42), "0 ignored by '-'");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("42   ", "%-05d", 42), "0 ignored by '-'");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-42  ", "%-05d", -42), "0 ignored by '-'");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("42             ", "%-015d", 42), "0 ignored by '-'");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-42            ", "%-015d", -42), "0 ignored by '-'");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("42", "%0-d", 42), "0 ignored by '-'");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-42", "%0-d", -42), "0 ignored by '-'");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("42   ", "%0-5d", 42), "0 ignored by '-'");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-42  ", "%0-5d", -42), "0 ignored by '-'");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("42             ", "%0-15d", 42), "0 ignored by '-'");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-42            ", "%0-15d", -42), "0 ignored by '-'");
-
-    MOS_TEST_CONDITIONAL(printf_tests_enable_posix_extension)
-    {
-        PRINTF_TEST("Hot Pocket", "%1$s %2$s", "Hot", "Pocket");
-        PRINTF_TEST("12.0 Hot Pockets", "%1$.1f %2$s %3$ss", 12.0, "Hot", "Pocket");
-    }
-
-    MOS_TEST_CONDITIONAL(printf_tests_enable_floats)
-    {
-        PRINTF_TEST("0.33", "%.*f", 2, 0.33333333);
-        PRINTF_TEST("42.90", "%.2f", 42.8952);
-        PRINTF_TEST("42.90", "%.2F", 42.8952);
-        PRINTF_TEST("42.8952000000", "%.10f", 42.8952);
-        PRINTF_TEST("42.90", "%1.2f", 42.8952);
-        PRINTF_TEST(" 42.90", "%6.2f", 42.8952);
-        PRINTF_TEST("+42.90", "%+6.2f", 42.8952);
-        PRINTF_TEST("42.8952000000", "%5.10f", 42.8952);
-        PRINTF_TEST("      3.14", "%*.*f", 10, 2, 3.14159265);
-        PRINTF_TEST("3.14      ", "%-*.*f", 10, 2, 3.14159265);
-        PRINTF_TEST("8.6000", "%2.4f", 8.6);
-        PRINTF_TEST("0.600000", "%0f", 0.6);
-        PRINTF_TEST("1", "%.0f", 0.6);
-    }
-
-    MOS_TEST_CONDITIONAL(printf_tests_enable_oxX)
-    {
-        // o, X
-        PRINTF_TEST("                 777", "%*o", 20, 511);
-        PRINTF_TEST("         37777777001", "%*o", 20, 4294966785U);
-        PRINTF_TEST("            1234abcd", "%*x", 20, 305441741);
-        PRINTF_TEST("            edcb5433", "%*x", 20, 3989525555U);
-        PRINTF_TEST("            1234ABCD", "%*X", 20, 305441741);
-        PRINTF_TEST("            EDCB5433", "%*X", 20, 3989525555U);
-    }
-
     // lld
     PRINTF_TEST("    +100", "%+8lld", 100LL);
     PRINTF_TEST("+00000100", "%+.8lld", 100LL);
@@ -534,8 +479,6 @@ MOS_TEST_CASE(printf_tests_github)
     PRINTF_TEST("  -00100", "% 8.5lld", -100LL);
     PRINTF_TEST("", "%.0lld", 0LL);
 
-    MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("+00100  ", "%#-+ 08.5lld", 100LL), "ignored 0 by -, ' ' by +, # in d");
-    MOS_TEST_EXPECT_WARNING_N(1, PRINTF_TEST("  -0000000000000000000001", "%+#25.22lld", -1LL), "# flag ignored in d");
     PRINTF_TEST("0000000000000000000000000000000000000001", "%.40lld", 1LL);
     PRINTF_TEST(" 0000000000000000000000000000000000000001", "% .40lld", 1LL);
 
@@ -549,204 +492,24 @@ MOS_TEST_CASE(printf_tests_github)
     PRINTF_TEST("          4294966272", "%*u", 20, 4294966272U);
     PRINTF_TEST("                   x", "%*c", 20, 'x');
 
-    MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("Hallo               ", "% -0+*.*s", 20, 5, "Hallo heimur"), "ignore 0 by -, ' ' by +, + by s");
-    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("+01024              ", "% -0+*.*d", 20, 5, 1024), "' ' flag and 0 flag ignored");
-    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("-01024              ", "% -0+*.*d", 20, 5, -1024), "' ' flag and 0 flag ignored");
-    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("+01024              ", "% -0+*.*i", 20, 5, 1024), "' ' flag and 0 flag ignored");
-    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("-01024              ", "% 0-+*.*i", 20, 5, -1024), "' ' flag and 0 flag ignored");
-    MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("01024               ", "% 0-+*.*u", 20, 5, 1024), "' ' and 0 ignored, + ignore in u");
-    MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("4294966272          ", "% 0-+*.*u", 20, 5, 4294966272U), "' ' and 0 ignored, + ignore in u");
     PRINTF_TEST("hi x\\n", "%*sx\\n", -3, "hi");
-
-    MOS_TEST_CONDITIONAL(printf_tests_enable_oxX)
-    {
-        PRINTF_TEST("00144   ", "%#-8.5llo", 100LL);
-        PRINTF_TEST("0001777777777777777777634", "%#.25llo", -100LL);
-        MOS_TEST_EXPECT_WARNING_N(1, PRINTF_TEST(" 01777777777777777777634", "%#+24.20llo", -100LL), "+ ignored in o");
-        MOS_TEST_EXPECT_WARNING_N(1, PRINTF_TEST("001777777777777777777634", "%#+20.24llo", -100LL), "+ ignored in o");
-        MOS_TEST_EXPECT_WARNING_N(1, PRINTF_TEST(" 0x00ffffffffffffff9c", "%#+21.18llx", -100LL), "+ ignored in x");
-        MOS_TEST_EXPECT_WARNING_N(1, PRINTF_TEST("0X00000FFFFFFFFFFFFFF9C", "%#+18.21llX", -100LL), "+ ignored in X");
-        MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("00777               ", "%+ -0*.*o", 20, 5, 511), "ignored ' ' and 0, + in o");
-        MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("37777777001         ", "%+ -0*.*o", 20, 5, 4294966785U), "ignored ' ' and 0, + in o");
-        MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("1234abcd            ", "%+ -0*.*x", 20, 5, 305441741), "ignored ' ' and 0, + in x");
-        MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("00edcb5433          ", "%+ -0*.*x", 20, 10, 3989525555U), "ignored ' ' and 0, + in x");
-        MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("1234ABCD            ", "% -+0*.*X", 20, 5, 305441741), "ignored ' ' and 0, + in X");
-        MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("00EDCB5433          ", "% -+0*.*X", 20, 10, 3989525555U), "ignored ' ' and 0, + in X");
-    }
-
-    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("   0018446744073709551615", "%#+25.22llu", -1LL), "#, + ignored in u");
-    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("   0018446744073709551615", "%#+25.22llu", -1LL), "#, + ignored in u");
-    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("     0000018446744073709551615", "%#+30.25llu", -1LL), "#, + ignored in u");
-
-    MOS_TEST_CONDITIONAL(printf_tests_enable_oxX)
-    {
-        /* 121: excluded for C */
-        PRINTF_TEST("0x0000000001", "%#012x", 1);
-        PRINTF_TEST("0x00000001", "%#04.8x", 1);
-        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("0x01    ", "%#-08.2x", 1), "0 flag ignored by '-'");
-        PRINTF_TEST("00000001", "%#08o", 1);
-        PRINTF_TEST("12", "%o", 10);
-    }
-
-    MOS_TEST_CONDITIONAL(printf_tests_enable_egp)
-    {
-        PRINTF_TEST("0x39", "%p", (void *) 57ULL);
-        PRINTF_TEST("0x39", "%p", (void *) 57U);
-        PRINTF_TEST("8.6000e+00", "%2.4e", 8.6);
-        PRINTF_TEST(" 8.6000e+00", "% 2.4e", 8.6);
-        PRINTF_TEST("-8.6000e+00", "% 2.4e", -8.6);
-        PRINTF_TEST("+8.6000e+00", "%+2.4e", 8.6);
-        PRINTF_TEST("8.6", "%2.4g", 8.6);
-        // e
-        PRINTF_TEST("+7.894561230000000e+08", "%+#22.15e", 7.89456123e8);
-        PRINTF_TEST("7.894561230000000e+08 ", "%-#22.15e", 7.89456123e8);
-        PRINTF_TEST(" 7.894561230000000e+08", "%#22.15e", 7.89456123e8);
-
-        // g
-        PRINTF_TEST("8.e+08", "%#1.1g", 7.89456123e8);
-    }
 
     PRINTF_TEST("f", "%.1s", "foo");
     PRINTF_TEST("f", "%.*s", 1, "foo");
     PRINTF_TEST("foo  ", "%*s", -5, "foo");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("%H", "%H", -1), "unknown conversion specifier");
     PRINTF_TEST("%0", "%%0", );
     PRINTF_TEST("4294966272", "%u", 4294966272U);
-
-    MOS_TEST_CONDITIONAL(printf_tests_enable_oxX)
-    {
-        PRINTF_TEST("777", "%o", 511);
-        PRINTF_TEST("37777777001", "%o", 4294966785U);
-        PRINTF_TEST("1234abcd", "%x", 305441741);
-        PRINTF_TEST("edcb5433", "%x", 3989525555U);
-        PRINTF_TEST("1234ABCD", "%X", 305441741);
-        PRINTF_TEST("EDCB5433", "%X", 3989525555U);
-        PRINTF_TEST("2345", "%hx", 74565);
-        PRINTF_TEST("61", "%hhx", 'a');
-        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("777", "%+o", 511), "+ flag ignored in o mode");
-        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("37777777001", "%+o", 4294966785U), "+ flag ignored in o mode");
-        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1234abcd", "%+x", 305441741), "+ flag ignored in x mode");
-        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("edcb5433", "%+x", 3989525555U), "+ flag ignored in x mode");
-        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1234ABCD", "%+X", 305441741), "+ flag ignored in X mode");
-        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("EDCB5433", "%+X", 3989525555U), "+ flag ignored in X mode");
-        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("777", "% o", 511), "' ' flag ignored in o mode");
-        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("37777777001", "% o", 4294966785U), "' ' flag ignored in o mode");
-        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1234abcd", "% x", 305441741), "' ' flag ignored in x mode");
-        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("edcb5433", "% x", 3989525555U), "' ' flag ignored in x mode");
-        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1234ABCD", "% X", 305441741), "' ' flag ignored in x mode");
-        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("EDCB5433", "% X", 3989525555U), "' ' flag ignored in x mode");
-        MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("777", "%+ o", 511), "+ and ' ' ignored in o mode");
-        MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("37777777001", "%+ o", 4294966785U), "+ and ' ' ignored in o mode");
-        MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("1234abcd", "%+ x", 305441741), "+ and ' ' ignored in x mode");
-        MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("edcb5433", "%+ x", 3989525555U), "+ and ' ' ignored in x mode");
-        MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("1234ABCD", "%+ X", 305441741), "+ and ' ' ignored in X mode");
-        MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("EDCB5433", "%+ X", 3989525555U), "+ and ' ' ignored in X mode");
-        PRINTF_TEST("0777", "%#o", 511);
-        PRINTF_TEST("037777777001", "%#o", 4294966785U);
-        PRINTF_TEST("0x1234abcd", "%#x", 305441741);
-        PRINTF_TEST("0xedcb5433", "%#x", 3989525555U);
-        PRINTF_TEST("0X1234ABCD", "%#X", 305441741);
-        PRINTF_TEST("0XEDCB5433", "%#X", 3989525555U);
-        PRINTF_TEST("0", "%#o", 0U);
-        PRINTF_TEST("0", "%#x", 0U);
-        PRINTF_TEST("0", "%#X", 0U);
-        PRINTF_TEST("777", "%1o", 511);
-        PRINTF_TEST("37777777001", "%1o", 4294966785U);
-        PRINTF_TEST("1234abcd", "%1x", 305441741);
-        PRINTF_TEST("edcb5433", "%1x", 3989525555U);
-        PRINTF_TEST("1234ABCD", "%1X", 305441741);
-        PRINTF_TEST("EDCB5433", "%1X", 3989525555U);
-        PRINTF_TEST("                 777", "%20o", 511);
-        PRINTF_TEST("         37777777001", "%20o", 4294966785U);
-        PRINTF_TEST("            1234abcd", "%20x", 305441741);
-        PRINTF_TEST("            edcb5433", "%20x", 3989525555U);
-        PRINTF_TEST("            1234ABCD", "%20X", 305441741);
-        PRINTF_TEST("            EDCB5433", "%20X", 3989525555U);
-        PRINTF_TEST("777                 ", "%-20o", 511);
-        PRINTF_TEST("37777777001         ", "%-20o", 4294966785U);
-        PRINTF_TEST("1234abcd            ", "%-20x", 305441741);
-        PRINTF_TEST("edcb5433            ", "%-20x", 3989525555U);
-        PRINTF_TEST("1234ABCD            ", "%-20X", 305441741);
-        PRINTF_TEST("EDCB5433            ", "%-20X", 3989525555U);
-        PRINTF_TEST("00000000000000000777", "%020o", 511);
-        PRINTF_TEST("00000000037777777001", "%020o", 4294966785U);
-        PRINTF_TEST("0000000000001234abcd", "%020x", 305441741);
-        PRINTF_TEST("000000000000edcb5433", "%020x", 3989525555U);
-        PRINTF_TEST("0000000000001234ABCD", "%020X", 305441741);
-        PRINTF_TEST("000000000000EDCB5433", "%020X", 3989525555U);
-        PRINTF_TEST("                0777", "%#20o", 511);
-        PRINTF_TEST("        037777777001", "%#20o", 4294966785U);
-        PRINTF_TEST("          0x1234abcd", "%#20x", 305441741);
-        PRINTF_TEST("          0xedcb5433", "%#20x", 3989525555U);
-        PRINTF_TEST("          0X1234ABCD", "%#20X", 305441741);
-        PRINTF_TEST("          0XEDCB5433", "%#20X", 3989525555U);
-        PRINTF_TEST("00000000000000000777", "%#020o", 511);
-        PRINTF_TEST("00000000037777777001", "%#020o", 4294966785U);
-        PRINTF_TEST("0x00000000001234abcd", "%#020x", 305441741);
-        PRINTF_TEST("0x0000000000edcb5433", "%#020x", 3989525555U);
-        PRINTF_TEST("0X00000000001234ABCD", "%#020X", 305441741);
-        PRINTF_TEST("0X0000000000EDCB5433", "%#020X", 3989525555U);
-        MOS_TEST_EXPECT_WARNING_N(1, PRINTF_TEST("777                 ", "%-020o", 511), "- flag ignored in o mode");
-        MOS_TEST_EXPECT_WARNING_N(1, PRINTF_TEST("37777777001         ", "%-020o", 4294966785U), "- flag ignored in o mode");
-        MOS_TEST_EXPECT_WARNING_N(1, PRINTF_TEST("1234abcd            ", "%-020x", 305441741), "- flag ignored in x mode");
-        MOS_TEST_EXPECT_WARNING_N(1, PRINTF_TEST("edcb5433            ", "%-020x", 3989525555U), "- flag ignored in x mode");
-        MOS_TEST_EXPECT_WARNING_N(1, PRINTF_TEST("1234ABCD            ", "%-020X", 305441741), "- flag ignored in X mode");
-        MOS_TEST_EXPECT_WARNING_N(1, PRINTF_TEST("EDCB5433            ", "%-020X", 3989525555U), "- flag ignored in X mode");
-        PRINTF_TEST("00000000000000000777", "%.20o", 511);
-        PRINTF_TEST("00000000037777777001", "%.20o", 4294966785U);
-        PRINTF_TEST("0000000000001234abcd", "%.20x", 305441741);
-        PRINTF_TEST("000000000000edcb5433", "%.20x", 3989525555U);
-        PRINTF_TEST("0000000000001234ABCD", "%.20X", 305441741);
-        PRINTF_TEST("000000000000EDCB5433", "%.20X", 3989525555U);
-        PRINTF_TEST("               00777", "%20.5o", 511);
-        PRINTF_TEST("         37777777001", "%20.5o", 4294966785U);
-        PRINTF_TEST("            1234abcd", "%20.5x", 305441741);
-        PRINTF_TEST("          00edcb5433", "%20.10x", 3989525555U);
-        PRINTF_TEST("            1234ABCD", "%20.5X", 305441741);
-        PRINTF_TEST("          00EDCB5433", "%20.10X", 3989525555U);
-        PRINTF_TEST("               00777", "%020.5o", 511);
-        PRINTF_TEST("         37777777001", "%020.5o", 4294966785U);
-        PRINTF_TEST("            1234abcd", "%020.5x", 305441741);
-        PRINTF_TEST("          00edcb5433", "%020.10x", 3989525555U);
-        PRINTF_TEST("            1234ABCD", "%020.5X", 305441741);
-        PRINTF_TEST("          00EDCB5433", "%020.10X", 3989525555U);
-        PRINTF_TEST("                 777", "%20.o", 511);
-        PRINTF_TEST("         37777777001", "%20.0o", 4294966785U);
-        PRINTF_TEST("                    ", "%20.o", 0U);
-        PRINTF_TEST("            1234abcd", "%20.x", 305441741);
-        PRINTF_TEST("            edcb5433", "%20.0x", 3989525555U);
-        PRINTF_TEST("                    ", "%20.x", 0U);
-        PRINTF_TEST("            1234ABCD", "%20.X", 305441741);
-        PRINTF_TEST("            EDCB5433", "%20.0X", 3989525555U);
-        PRINTF_TEST("                    ", "%20.X", 0U);
-    }
-
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("%H", "%H", -1), "unknown conversion specifier");
     PRINTF_TEST("x", "%c", 'x');
     PRINTF_TEST("%", "%%", );
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("Hallo heimur", "%+s", "Hallo heimur"), "+ flag ignored");
     PRINTF_TEST("+1024", "%+d", 1024);
     PRINTF_TEST("-1024", "%+d", -1024);
     PRINTF_TEST("+1024", "%+i", 1024);
     PRINTF_TEST("-1024", "%+i", -1024);
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1024", "%+u", 1024), "+ flag ignored");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("4294966272", "%+u", 4294966272U), "+ flag ignored");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("x", "%+c", 'x'), "+ flag ignored");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("Hallo heimur", "% s", "Hallo heimur"), "' ' flag ignored");
     PRINTF_TEST(" 1024", "% d", 1024);
     PRINTF_TEST("-1024", "% d", -1024);
     PRINTF_TEST(" 1024", "% i", 1024);
     PRINTF_TEST("-1024", "% i", -1024);
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1024", "% u", 1024), "' ' flag ignored");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("4294966272", "% u", 4294966272U), "' ' flag ignored");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("x", "% c", 'x'), "' ' flag ignored");
-    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("Hallo heimur", "%+ s", "Hallo heimur"), "+, ' ' flag ignored");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("+1024", "%+ d", 1024), "' ' flag ignored");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-1024", "%+ d", -1024), "' ' flag ignored");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("+1024", "%+ i", 1024), "' ' flag ignored");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-1024", "%+ i", -1024), "' ' flag ignored");
-    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("1024", "%+ u", 1024), "' ' flag ignored, + ignored");
-    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("4294966272", "%+ u", 4294966272U), "' ' flag ignored, + ignored");
-    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("x", "%+ c", 'x'), "' ' flag ignored, + ignored");
     PRINTF_TEST("Hallo heimur", "%1s", "Hallo heimur");
     PRINTF_TEST("1024", "%1d", 1024);
     PRINTF_TEST("-1024", "%1d", -1024);
@@ -777,14 +540,6 @@ MOS_TEST_CASE(printf_tests_github)
     PRINTF_TEST("-0000000000000001024", "%020i", -1024);
     PRINTF_TEST("00000000000000001024", "%020u", 1024);
     PRINTF_TEST("00000000004294966272", "%020u", 4294966272U);
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("Hallo               ", "%0-20s", "Hallo"), "0 ignored");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1024                ", "%0-20d", 1024), "0 ignored");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-1024               ", "%0-20d", -1024), "0 ignored");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1024                ", "%0-20i", 1024), "0 ignored");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-1024               ", "%0-20i", -1024), "0 ignored");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1024                ", "%0-20u", 1024), "0 ignored");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("4294966272          ", "%0-20u", 4294966272U), "0 ignored");
-    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("x                   ", "%-020c", 'x'), "0 ignored");
     PRINTF_TEST("Hallo heimur", "%.20s", "Hallo heimur");
     PRINTF_TEST("00000000000000001024", "%.20d", 1024);
     PRINTF_TEST("-00000000000000001024", "%.20d", -1024);
@@ -818,5 +573,229 @@ MOS_TEST_CASE(printf_tests_github)
     PRINTF_TEST("                1024", "%20.u", 1024);
     PRINTF_TEST("          4294966272", "%20.0u", 4294966272U);
     PRINTF_TEST("                    ", "%20.u", 0U);
+
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("%w", "%w", -1), "unknown format specifier 'w'");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("%b", "%b", ), "unknown format specifier 'b'");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("%(foo", "%(foo", ), "unknown format specifier");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("%_1lld", "%_1lld", 100LL), "unknown format specifier '_'");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("42", "%-0d", 42), "0 ignored by '-'");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-42", "%-0d", -42), "0 ignored by '-'");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("42   ", "%-05d", 42), "0 ignored by '-'");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-42  ", "%-05d", -42), "0 ignored by '-'");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("42             ", "%-015d", 42), "0 ignored by '-'");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-42            ", "%-015d", -42), "0 ignored by '-'");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("42", "%0-d", 42), "0 ignored by '-'");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-42", "%0-d", -42), "0 ignored by '-'");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("42   ", "%0-5d", 42), "0 ignored by '-'");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-42  ", "%0-5d", -42), "0 ignored by '-'");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("42             ", "%0-15d", 42), "0 ignored by '-'");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-42            ", "%0-15d", -42), "0 ignored by '-'");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("  -0000000000000000000001", "%+#25.22lld", -1LL), "# flag ignored in d");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("Hallo heimur", "%+s", "Hallo heimur"), "+ flag ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1024", "%+u", 1024), "+ flag ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("4294966272", "%+u", 4294966272U), "+ flag ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("x", "%+c", 'x'), "+ flag ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("Hallo heimur", "% s", "Hallo heimur"), "' ' flag ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1024", "% u", 1024), "' ' flag ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("4294966272", "% u", 4294966272U), "' ' flag ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("x", "% c", 'x'), "' ' flag ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("+1024", "%+ d", 1024), "' ' flag ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-1024", "%+ d", -1024), "' ' flag ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("+1024", "%+ i", 1024), "' ' flag ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-1024", "%+ i", -1024), "' ' flag ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("Hallo               ", "%0-20s", "Hallo"), "0 ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1024                ", "%0-20d", 1024), "0 ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-1024               ", "%0-20d", -1024), "0 ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1024                ", "%0-20i", 1024), "0 ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("-1024               ", "%0-20i", -1024), "0 ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1024                ", "%0-20u", 1024), "0 ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("4294966272          ", "%0-20u", 4294966272U), "0 ignored");
+    MOS_TEST_EXPECT_WARNING(PRINTF_TEST("x                   ", "%-020c", 'x'), "0 ignored");
+    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("Hallo heimur", "%+ s", "Hallo heimur"), "+, ' ' flag ignored");
+    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("1024", "%+ u", 1024), "' ' flag ignored, + ignored");
+    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("4294966272", "%+ u", 4294966272U), "' ' flag ignored, + ignored");
+    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("x", "%+ c", 'x'), "' ' flag ignored, + ignored");
+    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("+01024              ", "% -0+*.*d", 20, 5, 1024), "' ' flag and 0 flag ignored");
+    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("-01024              ", "% -0+*.*d", 20, 5, -1024), "' ' flag and 0 flag ignored");
+    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("+01024              ", "% -0+*.*i", 20, 5, 1024), "' ' flag and 0 flag ignored");
+    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("-01024              ", "% 0-+*.*i", 20, 5, -1024), "' ' flag and 0 flag ignored");
+    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("   0018446744073709551615", "%#+25.22llu", -1LL), "#, + ignored in u");
+    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("   0018446744073709551615", "%#+25.22llu", -1LL), "#, + ignored in u");
+    MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("+00100  ", "%#-+ 08.5lld", 100LL), "ignored 0 by -, ' ' by +, # in d");
+    MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("     0000018446744073709551615", "%#+30.25llu", -1LL), "#, + ignored in u");
+    MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("4294966272          ", "% 0-+*.*u", 20, 5, 4294966272U), "' ' and 0 ignored, + ignore in u");
+    MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("01024               ", "% 0-+*.*u", 20, 5, 1024), "' ' and 0 ignored, + ignore in u");
+    MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("Hallo               ", "% -0+*.*s", 20, 5, "Hallo heimur"), "ignore 0 by -, ' ' by +, + by s");
+
+    MOS_TEST_CONDITIONAL(printf_tests_enable_posix)
+    {
+        PRINTF_TEST("Hot Pocket", "%1$s %2$s", "Hot", "Pocket");
+        PRINTF_TEST("12.0 Hot Pockets", "%1$.1f %2$s %3$ss", 12.0, "Hot", "Pocket");
+    }
+
+    MOS_TEST_CONDITIONAL(printf_tests_enable_floats)
+    {
+        PRINTF_TEST("0.33", "%.*f", 2, 0.33333333);
+        PRINTF_TEST("42.90", "%.2f", 42.8952);
+        PRINTF_TEST("42.90", "%.2F", 42.8952);
+        PRINTF_TEST("42.8952000000", "%.10f", 42.8952);
+        PRINTF_TEST("42.90", "%1.2f", 42.8952);
+        PRINTF_TEST(" 42.90", "%6.2f", 42.8952);
+        PRINTF_TEST("+42.90", "%+6.2f", 42.8952);
+        PRINTF_TEST("42.8952000000", "%5.10f", 42.8952);
+        PRINTF_TEST("      3.14", "%*.*f", 10, 2, 3.14159265);
+        PRINTF_TEST("3.14      ", "%-*.*f", 10, 2, 3.14159265);
+        PRINTF_TEST("8.6000", "%2.4f", 8.6);
+        PRINTF_TEST("0.600000", "%0f", 0.6);
+        PRINTF_TEST("1", "%.0f", 0.6);
+    }
+
+    MOS_TEST_CONDITIONAL(printf_tests_enable_egp)
+    {
+        PRINTF_TEST("0x39", "%p", (void *) 57ULL);
+        PRINTF_TEST("0x39", "%p", (void *) 57U);
+        PRINTF_TEST("8.6000e+00", "%2.4e", 8.6);
+        PRINTF_TEST(" 8.6000e+00", "% 2.4e", 8.6);
+        PRINTF_TEST("-8.6000e+00", "% 2.4e", -8.6);
+        PRINTF_TEST("+8.6000e+00", "%+2.4e", 8.6);
+        PRINTF_TEST("8.6", "%2.4g", 8.6);
+        // e
+        PRINTF_TEST("+7.894561230000000e+08", "%+#22.15e", 7.89456123e8);
+        PRINTF_TEST("7.894561230000000e+08 ", "%-#22.15e", 7.89456123e8);
+        PRINTF_TEST(" 7.894561230000000e+08", "%#22.15e", 7.89456123e8);
+
+        // g
+        PRINTF_TEST("8.e+08", "%#1.1g", 7.89456123e8);
+    }
+    MOS_TEST_CONDITIONAL(printf_tests_enable_oxX)
+    {
+        PRINTF_TEST("0", "%#o", 0U);
+        PRINTF_TEST("0", "%#x", 0U);
+        PRINTF_TEST("0", "%#X", 0U);
+        PRINTF_TEST("12", "%o", 10);
+        PRINTF_TEST("61", "%hhx", 'a');
+        PRINTF_TEST("777", "%o", 511);
+        PRINTF_TEST("777", "%1o", 511);
+        PRINTF_TEST("0777", "%#o", 511);
+        PRINTF_TEST("2345", "%hx", 74565);
+        PRINTF_TEST("00000001", "%#08o", 1);
+        PRINTF_TEST("0x00000001", "%#04.8x", 1);
+        PRINTF_TEST("0x0000000001", "%#012x", 1);
+        PRINTF_TEST("1234abcd", "%x", 305441741);
+        PRINTF_TEST("1234ABCD", "%X", 305441741);
+        PRINTF_TEST("1234ABCD", "%1X", 305441741);
+        PRINTF_TEST("1234abcd", "%1x", 305441741);
+        PRINTF_TEST("edcb5433", "%x", 3989525555U);
+        PRINTF_TEST("EDCB5433", "%X", 3989525555U);
+        PRINTF_TEST("edcb5433", "%1x", 3989525555U);
+        PRINTF_TEST("EDCB5433", "%1X", 3989525555U);
+        PRINTF_TEST("00144   ", "%#-8.5llo", 100LL);
+        PRINTF_TEST("0x1234abcd", "%#x", 305441741);
+        PRINTF_TEST("0X1234ABCD", "%#X", 305441741);
+        PRINTF_TEST("0xedcb5433", "%#x", 3989525555U);
+        PRINTF_TEST("37777777001", "%o", 4294966785U);
+        PRINTF_TEST("0XEDCB5433", "%#X", 3989525555U);
+        PRINTF_TEST("37777777001", "%1o", 4294966785U);
+        PRINTF_TEST("037777777001", "%#o", 4294966785U);
+        PRINTF_TEST("                 777", "%*o", 20, 511);
+        PRINTF_TEST("         37777777001", "%*o", 20, 4294966785U);
+        PRINTF_TEST("            1234abcd", "%*x", 20, 305441741);
+        PRINTF_TEST("            edcb5433", "%*x", 20, 3989525555U);
+        PRINTF_TEST("            1234ABCD", "%*X", 20, 305441741);
+        PRINTF_TEST("            EDCB5433", "%*X", 20, 3989525555U);
+        PRINTF_TEST("                 777", "%20o", 511);
+        PRINTF_TEST("            1234abcd", "%20x", 305441741);
+        PRINTF_TEST("            1234ABCD", "%20X", 305441741);
+        PRINTF_TEST("         37777777001", "%20o", 4294966785U);
+        PRINTF_TEST("            edcb5433", "%20x", 3989525555U);
+        PRINTF_TEST("            EDCB5433", "%20X", 3989525555U);
+        PRINTF_TEST("777                 ", "%-20o", 511);
+        PRINTF_TEST("1234abcd            ", "%-20x", 305441741);
+        PRINTF_TEST("37777777001         ", "%-20o", 4294966785U);
+        PRINTF_TEST("edcb5433            ", "%-20x", 3989525555U);
+        PRINTF_TEST("1234ABCD            ", "%-20X", 305441741);
+        PRINTF_TEST("EDCB5433            ", "%-20X", 3989525555U);
+        PRINTF_TEST("00000000000000000777", "%020o", 511);
+        PRINTF_TEST("00000000037777777001", "%020o", 4294966785U);
+        PRINTF_TEST("0000000000001234abcd", "%020x", 305441741);
+        PRINTF_TEST("000000000000edcb5433", "%020x", 3989525555U);
+        PRINTF_TEST("0000000000001234ABCD", "%020X", 305441741);
+        PRINTF_TEST("000000000000EDCB5433", "%020X", 3989525555U);
+        PRINTF_TEST("                0777", "%#20o", 511);
+        PRINTF_TEST("        037777777001", "%#20o", 4294966785U);
+        PRINTF_TEST("          0x1234abcd", "%#20x", 305441741);
+        PRINTF_TEST("          0xedcb5433", "%#20x", 3989525555U);
+        PRINTF_TEST("          0X1234ABCD", "%#20X", 305441741);
+        PRINTF_TEST("          0XEDCB5433", "%#20X", 3989525555U);
+        PRINTF_TEST("00000000000000000777", "%#020o", 511);
+        PRINTF_TEST("00000000037777777001", "%#020o", 4294966785U);
+        PRINTF_TEST("0x00000000001234abcd", "%#020x", 305441741);
+        PRINTF_TEST("0x0000000000edcb5433", "%#020x", 3989525555U);
+        PRINTF_TEST("0X00000000001234ABCD", "%#020X", 305441741);
+        PRINTF_TEST("0X0000000000EDCB5433", "%#020X", 3989525555U);
+        PRINTF_TEST("00000000000000000777", "%.20o", 511);
+        PRINTF_TEST("00000000037777777001", "%.20o", 4294966785U);
+        PRINTF_TEST("0000000000001234abcd", "%.20x", 305441741);
+        PRINTF_TEST("000000000000edcb5433", "%.20x", 3989525555U);
+        PRINTF_TEST("0000000000001234ABCD", "%.20X", 305441741);
+        PRINTF_TEST("000000000000EDCB5433", "%.20X", 3989525555U);
+        PRINTF_TEST("               00777", "%20.5o", 511);
+        PRINTF_TEST("         37777777001", "%20.5o", 4294966785U);
+        PRINTF_TEST("            1234abcd", "%20.5x", 305441741);
+        PRINTF_TEST("          00edcb5433", "%20.10x", 3989525555U);
+        PRINTF_TEST("            1234ABCD", "%20.5X", 305441741);
+        PRINTF_TEST("          00EDCB5433", "%20.10X", 3989525555U);
+        PRINTF_TEST("               00777", "%020.5o", 511);
+        PRINTF_TEST("         37777777001", "%020.5o", 4294966785U);
+        PRINTF_TEST("            1234abcd", "%020.5x", 305441741);
+        PRINTF_TEST("          00edcb5433", "%020.10x", 3989525555U);
+        PRINTF_TEST("            1234ABCD", "%020.5X", 305441741);
+        PRINTF_TEST("          00EDCB5433", "%020.10X", 3989525555U);
+        PRINTF_TEST("                 777", "%20.o", 511);
+        PRINTF_TEST("                    ", "%20.o", 0U);
+        PRINTF_TEST("            1234abcd", "%20.x", 305441741);
+        PRINTF_TEST("                    ", "%20.x", 0U);
+        PRINTF_TEST("            1234ABCD", "%20.X", 305441741);
+        PRINTF_TEST("                    ", "%20.X", 0U);
+        PRINTF_TEST("         37777777001", "%20.0o", 4294966785U);
+        PRINTF_TEST("            edcb5433", "%20.0x", 3989525555U);
+        PRINTF_TEST("            EDCB5433", "%20.0X", 3989525555U);
+        PRINTF_TEST("0001777777777777777777634", "%#.25llo", -100LL);
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("0x01    ", "%#-08.2x", 1), "0 flag ignored by '-'");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST(" 01777777777777777777634", "%#+24.20llo", -100LL), "+ ignored in o");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("001777777777777777777634", "%#+20.24llo", -100LL), "+ ignored in o");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST(" 0x00ffffffffffffff9c", "%#+21.18llx", -100LL), "+ ignored in x");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("0X00000FFFFFFFFFFFFFF9C", "%#+18.21llX", -100LL), "+ ignored in X");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("777                 ", "%-020o", 511), "- flag ignored in o mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("37777777001         ", "%-020o", 4294966785U), "- flag ignored in o mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1234abcd            ", "%-020x", 305441741), "- flag ignored in x mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("edcb5433            ", "%-020x", 3989525555U), "- flag ignored in x mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1234ABCD            ", "%-020X", 305441741), "- flag ignored in X mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("EDCB5433            ", "%-020X", 3989525555U), "- flag ignored in X mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("777", "%+o", 511), "+ flag ignored in o mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("37777777001", "%+o", 4294966785U), "+ flag ignored in o mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1234abcd", "%+x", 305441741), "+ flag ignored in x mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("edcb5433", "%+x", 3989525555U), "+ flag ignored in x mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1234ABCD", "%+X", 305441741), "+ flag ignored in X mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("EDCB5433", "%+X", 3989525555U), "+ flag ignored in X mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("777", "% o", 511), "' ' flag ignored in o mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("37777777001", "% o", 4294966785U), "' ' flag ignored in o mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1234abcd", "% x", 305441741), "' ' flag ignored in x mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("edcb5433", "% x", 3989525555U), "' ' flag ignored in x mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("1234ABCD", "% X", 305441741), "' ' flag ignored in x mode");
+        MOS_TEST_EXPECT_WARNING(PRINTF_TEST("EDCB5433", "% X", 3989525555U), "' ' flag ignored in x mode");
+        MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("777", "%+ o", 511), "+ and ' ' ignored in o mode");
+        MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("37777777001", "%+ o", 4294966785U), "+ and ' ' ignored in o mode");
+        MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("1234abcd", "%+ x", 305441741), "+ and ' ' ignored in x mode");
+        MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("edcb5433", "%+ x", 3989525555U), "+ and ' ' ignored in x mode");
+        MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("1234ABCD", "%+ X", 305441741), "+ and ' ' ignored in X mode");
+        MOS_TEST_EXPECT_WARNING_N(2, PRINTF_TEST("EDCB5433", "%+ X", 3989525555U), "+ and ' ' ignored in X mode");
+        MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("00777               ", "%+ -0*.*o", 20, 5, 511), "ignored ' ' and 0, + in o");
+        MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("37777777001         ", "%+ -0*.*o", 20, 5, 4294966785U), "ignored ' ' and 0, + in o");
+        MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("1234abcd            ", "%+ -0*.*x", 20, 5, 305441741), "ignored ' ' and 0, + in x");
+        MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("00edcb5433          ", "%+ -0*.*x", 20, 10, 3989525555U), "ignored ' ' and 0, + in x");
+        MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("1234ABCD            ", "% -+0*.*X", 20, 5, 305441741), "ignored ' ' and 0, + in X");
+        MOS_TEST_EXPECT_WARNING_N(3, PRINTF_TEST("00EDCB5433          ", "% -+0*.*X", 20, 10, 3989525555U), "ignored ' ' and 0, + in X");
+    }
 }
 MOS_WARNING_POP
