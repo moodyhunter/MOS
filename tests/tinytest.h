@@ -68,7 +68,7 @@ typedef void (*mos_test_func_t)(TestResult *);
     static void _TestName(TestResult *, bool *, bool *);                                                                                        \
     static void _MT_WRAP_TEST_NAME(_TestName)(TestResult * result)                                                                              \
     {                                                                                                                                           \
-        MOS_TEST_LOG(MOS_TEST_BLUE, 'T', "Starting " #_TestName " at line %d", __LINE__);                                                       \
+        MOS_TEST_LOG(MOS_TEST_BLUE, 'T', "Starting test " #_TestName " (line %d)", __LINE__);                                                   \
         _MT_RUN_TEST_AND_PRINT_RESULT(result, _TestName);                                                                                       \
     }                                                                                                                                           \
     _MT_REGISTER_TEST_CASE(_MT_WRAP_TEST_NAME(_TestName));                                                                                      \
