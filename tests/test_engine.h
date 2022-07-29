@@ -11,5 +11,4 @@ void mos_test_engine_log(VGATextModeColor color, char symbol, char *format, ...)
 
 extern s32 test_engine_n_warning_expected;
 
-__attr_noreturn void test_engine_shutdown();
 void test_engine_run_tests(void);

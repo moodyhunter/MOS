@@ -1,39 +1,43 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/gdt.h"
+#include "mos/x86/gdt_idt_tss.h"
 
-// stolen from https://github.com/knusbaum/kernel/blob/b596b33853c5ef88e4c6fb7d25ae9221ae192ef8/gdt.c#L66
-static void gdt_set_gate(gdt_entry_t *entry, u32 base, u32 limit, u8 access, u8 granularity)
+gdt_ptr32_t gdt_ptr;
+gdt_entry32_t gdt[GDT_TABLE_SIZE] __attr_aligned(8);
+
+// Stolen from https://github.com/szhou42/osdev/blob/52c02f0d4327442493459253a5c6c83c5f378765/src/kernel/descriptor_tables/gdt.c#L33
+// Originally licensed under the GPLv3 license.
+static void gdt32_set_entry(gdt_entry32_t *entry, u32 base, u32 limit, u8 access, u8 granularity)
 {
-    entry->base_low = (base & 0xFFFF);
+    entry->base_low = base & 0xFFFF;
     entry->base_middle = (base >> 16) & 0xFF;
     entry->base_high = (base >> 24) & 0xFF;
 
-    entry->limit_low = (limit & 0xFFFF);
-    entry->granularity = (limit >> 16) & 0x0F;
+    // The limit field is in both 'limit_low' and 'granularity'
+    // WTF is this design???
+    entry->limit_low = limit & 0xFFFF;
+    entry->granularity = (limit >> 16) & 0xF;
 
-    entry->granularity |= granularity & 0xF0;
     entry->access = access;
+
+    // "Only need the high 4 bits of gran"
+    entry->granularity |= (granularity & 0xF0);
 }
 
-// defined in gdt_flush.S
-extern void x86_gdt_flush(u32 gdt_ptr);
-void gdt_init()
+void x86_gdt_init()
 {
-    // Disable interrupts
-    __asm__ volatile("cli");
-    static gdt_ptr_t gdt_ptr;
-    static gdt_entry_t gdt[6];
+    gdt32_set_entry(&gdt[0], 0, 0, 0, GDT_PAGE_GRANULARITY);
 
-    gdt_set_gate(&gdt[0], 0, 0, 0, 0);                // Null segment
-    gdt_set_gate(&gdt[1], 0, 0xFFFFFFFF, 0x9A, 0xCF); // Code segment
-    gdt_set_gate(&gdt[2], 0, 0xFFFFFFFF, 0x92, 0xCF); // Data segment
-    gdt_set_gate(&gdt[3], 0, 0xFFFFFFFF, 0xFA, 0xCF); // User mode code segment
-    gdt_set_gate(&gdt[4], 0, 0xFFFFFFFF, 0xF2, 0xCF); // User mode data segment
+    // {Kernel,User}{Code,Data} Segments
+    gdt32_set_entry(&gdt[1], 0x00000000, 0xFFFFFFFF, GDT_PRESENT | GDT_SEGMENT | GDT_CODE | GDT_RING_KERNEL, GDT_PAGE_GRANULARITY);
+    gdt32_set_entry(&gdt[2], 0x00000000, 0xFFFFFFFF, GDT_PRESENT | GDT_SEGMENT | GDT_DATA | GDT_RING_KERNEL, GDT_PAGE_GRANULARITY);
+    gdt32_set_entry(&gdt[3], 0x00000000, 0xFFFFFFFF, GDT_PRESENT | GDT_SEGMENT | GDT_CODE | GDT_RING_USER, GDT_PAGE_GRANULARITY);
+    gdt32_set_entry(&gdt[4], 0x00000000, 0xFFFFFFFF, GDT_PRESENT | GDT_SEGMENT | GDT_DATA | GDT_RING_USER, GDT_PAGE_GRANULARITY);
 
-    // ! TODO: a task segment is not implemented yet
+    // TSS segment
+    gdt32_set_entry(&gdt[5], (u32) &tss, sizeof(tss32_t) - 1, GDT_PRESENT | GDT_TSS | GDT_RING_USER, 0);
 
-    gdt_ptr.base = (u32) &gdt;
+    gdt_ptr.base = gdt;
     gdt_ptr.limit = sizeof(gdt) - 1;
-    x86_gdt_flush((u32) &gdt_ptr);
+    gdt32_flush(&gdt_ptr);
 }

@@ -34,7 +34,7 @@ void screen_print_char(char c);
 bool screen_print_char_at(char c, u32 x, u32 y);
 
 int screen_print_string(const char *str);
-int screen_print_string_at(const char *str, u32 x, u32 y);
+int screen_print_stGDT_RING_at(const char *str, u32 x, u32 y);
 
 void screen_set_color(VGATextModeColor fg, VGATextModeColor bg);
 

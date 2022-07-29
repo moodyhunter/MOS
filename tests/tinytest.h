@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "mos/drivers/screen.h"
 #include "mos/mos_global.h"
+#include "mos/x86/drivers/screen.h"
 
 #include <stdbool.h>
 

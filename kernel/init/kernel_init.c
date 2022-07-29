@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/boot/multiboot.h"
-#include "mos/drivers/screen.h"
-#include "mos/gdt.h"
-#include "mos/idt.h"
 #include "mos/kconfig.h"
 #include "mos/kernel.h"
+#include "mos/panic.h"
 #include "mos/stdio.h"
+#include "mos/x86/boot/multiboot.h"
 
 #ifdef MOS_KERNEL_RUN_TESTS
 extern void test_engine_run_tests();
@@ -14,13 +12,8 @@ extern void test_engine_run_tests();
 
 void start_kernel(u32 magic, multiboot_info_t *addr)
 {
-    gdt_init();
-
-    // !! IDT IS BROKEN AT THE MOMENT
-    // idt_init();
-
-    screen_init();
-    screen_disable_cursor();
+    mos_platform.platform_init();
+    mos_platform.enable_interrupts();
 
     pr_info("Welcome to MOS!");
 

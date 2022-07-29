@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/drivers/port.h"
+#include "mos/x86/drivers/port.h"
 
 u8 port_inb(u16 port)
 {

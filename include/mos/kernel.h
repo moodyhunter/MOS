@@ -27,9 +27,19 @@
 #define pr_emerg(fmt, ...) mos_lprintk(MOS_LOG_EMERG, fmt, ##__VA_ARGS__)
 #define pr_fatal(fmt, ...) mos_lprintk(MOS_LOG_FATAL, fmt, ##__VA_ARGS__)
 
-#define mos_warn(fmt, ...)  mos_kwarn(__func__, __LINE__, fmt, ##__VA_ARGS__)
-#define mos_panic(fmt, ...) mos_kpanic(__func__, __LINE__, fmt, ##__VA_ARGS__)
+#define mos_warn(fmt, ...)  mos_kwarn(__func__, __LINE__, fmt "", ##__VA_ARGS__)
+#define mos_panic(fmt, ...) mos_kpanic(__func__, __LINE__, fmt "", ##__VA_ARGS__)
 
 void __attr_printf(2, 3) lprintk(int loglevel, const char *format, ...);
 void __attr_printf(3, 4) mos_kwarn(const char *func, u32 line, const char *fmt, ...);
-__attr_noreturn void __attr_printf(3, 4) mos_kpanic(const char *func, u32 line, const char *fmt, ...);
+void __attr_noreturn __attr_printf(3, 4) mos_kpanic(const char *func, u32 line, const char *fmt, ...);
+
+typedef struct
+{
+    void (*platform_init)(void);
+    void __attr_noreturn (*platform_shutdown)(void);
+    void (*enable_interrupts)(void);
+    void (*disable_interrupts)(void);
+} mos_platform_t;
+
+extern mos_platform_t mos_platform;

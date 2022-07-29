@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/drivers/screen.h"
+#include "mos/x86/drivers/screen.h"
 
-#include "mos/drivers/port.h"
 #include "mos/mos_global.h"
 #include "mos/stdlib.h"
 #include "mos/string.h"
+#include "mos/x86/drivers/port.h"
 
 #define VIDEO_DEVICE_ADDRESS 0xB8000
 #define VIDEO_WIDTH          80
@@ -134,7 +134,7 @@ int screen_print_string(const char *str)
     return i;
 }
 
-int screen_print_string_at(const char *str, u32 x, u32 y)
+int screen_print_stGDT_RING_at(const char *str, u32 x, u32 y)
 {
     int i = 0;
     for (int i = 0; str[i] != '\0'; i++)

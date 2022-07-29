@@ -2,7 +2,6 @@
 
 #include "mos/stdlib.h"
 
-#include "mos/drivers/screen.h"
 #include "mos/types.h"
 
 static int isspace(int _c)

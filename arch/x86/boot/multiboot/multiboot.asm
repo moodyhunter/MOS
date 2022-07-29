@@ -17,13 +17,11 @@ section .multiboot.data
     dd MB_FLAGS
     dd MB_CHECKSUM
 
-
 section .multiboot.text
-
-global _start:function (_start.end - _start)
+    global _start:function (_start.end - _start)
 
 _start:
-    mov esp, STACK_ADDR
+    mov esp, stack_top
 
     ; Reset EFLAGS
     push 0
@@ -36,3 +34,10 @@ _start:
     hlt
     jmp .hang
 .end:
+
+section .bss
+    align 16
+stack_bottom:
+    resb 4096 ; 16 KiB
+stack_top:
+

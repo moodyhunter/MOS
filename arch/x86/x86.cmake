@@ -8,11 +8,12 @@ add_bootable_target(boot/multiboot_iso)
 
 add_kernel_source(
     RELATIVE_SOURCES
+        x86_platform.c
         init/gdt.c
-        init/gdt_flush.asm
         init/idt.c
-        init/idt.asm
+        init/tss.c
+        init/gdt_tss_idt_flush.asm
+        init/interrupt_handler.asm
         drivers/screen.c
         drivers/port.c
 )
-

@@ -2,12 +2,11 @@
 
 #include "test_engine.h"
 
-#include "mos/drivers/port.h"
-#include "mos/drivers/screen.h"
 #include "mos/kernel.h"
 #include "mos/panic.h"
 #include "mos/stdio.h"
 #include "mos/stdlib.h"
+#include "mos/x86/drivers/screen.h"
 #include "tinytest.h"
 
 s32 test_engine_n_warning_expected = 0;
@@ -61,13 +60,6 @@ static void test_engine_warning_handler(const char *func, u32 line, const char *
     test_engine_n_warning_expected--;
 }
 
-__attr_noreturn void test_engine_shutdown()
-{
-    port_outw(0x604, 0x2000);
-    while (1)
-        ;
-}
-
 void test_engine_run_tests()
 {
     kwarn_handler_set(test_engine_warning_handler);
@@ -91,7 +83,7 @@ void test_engine_run_tests()
     {
         screen_set_color(Green, Black);
         pr_emph("\nALL %u TESTS PASSED: (%u succeed, %u failed, %u skipped)", result.n_total, passed, result.n_failed, result.n_skipped);
-        test_engine_shutdown();
+        mos_platform.platform_shutdown();
     }
     else
     {

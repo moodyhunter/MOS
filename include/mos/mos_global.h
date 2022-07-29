@@ -8,14 +8,15 @@
 
 static_assert(__SIZEOF_POINTER__ == sizeof(void *), "uintptr_t is not the same size as a pointer");
 
-#define __attr_noreturn     __attribute__((__noreturn__))
-#define __attr_packed       __attribute__((__packed__))
-#define __attr_aligned(x)   __attribute__((__aligned__(x)))
-#define __attr_unused       __attribute__((__unused__))
-#define __attr_used         __attribute__((__used__))
-#define __attr_printf(a, b) __attribute__((__format__(__printf__, a, b)))
+#define __attr_noreturn      __attribute__((__noreturn__))
+#define __attr_packed        __attribute__((__packed__))
+#define __attr_aligned(x)    __attribute__((__aligned__(x)))
+#define __attr_unused        __attribute__((__unused__))
+#define __attr_used          __attribute__((__used__))
+#define __attr_printf(a, b)  __attribute__((__format__(__printf__, a, b)))
+#define __attr_always_inline __attribute__((__always_inline__))
 
-/* Simple shorthand for a section definition */
+// Simple shorthand for a section definition
 #ifndef __section
 #define __section(S) __attribute__((__section__(#S)))
 #endif

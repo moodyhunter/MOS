@@ -16,7 +16,7 @@ void kwarn_handler_set(kmsg_handler_t *handler)
     kwarn_handler = handler;
 }
 
-void kpanic_handler_set(__attr_noreturn kmsg_handler_t *handler)
+void kpanic_handler_set(kmsg_handler_t *handler)
 {
     pr_warn("installing a new panic handler...");
     kpanic_handler = handler;
@@ -44,12 +44,17 @@ void kpanic_handler_remove()
 
 void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
 {
+    mos_platform.disable_interrupts();
+
     va_list args;
     if (kpanic_handler)
     {
         va_start(args, fmt);
         (*kpanic_handler)(func, line, fmt, args);
         va_end(args);
+        pr_fatal("kpanic handler returned!");
+        while (1)
+            ;
     }
 
     char message[PRINTK_BUFFER_SIZE] = { 0 };
