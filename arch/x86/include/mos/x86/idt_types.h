@@ -2,12 +2,7 @@
 
 #pragma once
 
-#include "mos/mos_global.h"
-#include "mos/types.h"
-
-#define ISR_MAX_COUNT   32
-#define IRQ_MAX_COUNT   16
-#define IDT_ENTRY_COUNT 256
+#include "mos/x86/x86_platform.h"
 
 typedef struct
 {

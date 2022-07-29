@@ -62,10 +62,12 @@ void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
     vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
     va_end(args);
 
-    pr_emerg("!!!!!!!!!!!!!!!!!!!!!!!!");
-    pr_emerg("!!!!! KERNEL PANIC !!!!!");
-    pr_emerg("!!!!!!!!!!!!!!!!!!!!!!!!");
-    pr_fatal("%s", message);
+    pr_emerg("");
+    pr_fatal("!!!!!!!!!!!!!!!!!!!!!!!!");
+    pr_fatal("!!!!! KERNEL PANIC !!!!!");
+    pr_fatal("!!!!!!!!!!!!!!!!!!!!!!!!");
+    pr_emerg("");
+    pr_emerg("%s", message);
     pr_emerg("  in function: %s (line %u)", func, line);
 
     while (1)

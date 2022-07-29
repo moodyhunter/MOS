@@ -1,27 +1,12 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-Licence-Identifier: GPL-3.0-or-later
 
-#pragma once
-
-#include "mos/mos_global.h"
-#include "mos/types.h"
 #include "mos/x86/gdt_types.h"
 #include "mos/x86/idt_types.h"
 #include "mos/x86/tss_types.h"
 
-typedef struct
-{
-    u32 edi, esi, ebp, esp, ebx, edx, ecx, eax;
-    u32 ds, es, fs, gs;
-
-    u32 intr;
-    u32 errc;
-
-    u32 eip;
-    u32 cs;
-    u32 eflags;
-    u32 u_esp;
-    u32 u_ss;
-} __attr_packed stack_frame;
+void x86_gdt_init();
+void x86_tss_init();
+void x86_idt_init();
 
 extern gdt_ptr32_t gdt_ptr;
 extern gdt_entry32_t gdt[GDT_TABLE_SIZE];

@@ -8,7 +8,8 @@ add_bootable_target(boot/multiboot_iso)
 
 add_kernel_source(
     RELATIVE_SOURCES
-        x86_platform.c
+        platform.c
+        interrupt.c
         init/gdt.c
         init/idt.c
         init/tss.c

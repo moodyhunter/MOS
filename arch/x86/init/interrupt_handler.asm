@@ -11,27 +11,31 @@ extern x86_handle_interrupt
 global irq_stub_table
 global isr_stub_table
 
+; ! When the CPU calls the interrupt handlers, the CPU pushes these values onto the stack in this order:
+; ! EFLAGS -> CS -> EIP
+; ! If the gate type is not a trap gate, the CPU will clear the interrupt flag.
+
 ; handler for a ISR with its error code (already pushed onto the stack)
 %macro ISR_handler_ec 1
 isr_stub_%+%1:
-    nop
-    push dword %1               ; interrupt number
+    nop                         ; ! If the interrupt is an exception, the CPU will push an error code onto the stack, as a doubleword.
+    push %1               ; interrupt number
     jmp  ISR_handler_impl
 %endmacro
 
 ; handler for a ISR
 %macro ISR_handler 1
 isr_stub_%+%1:
-    push dword 0                ; error code (not used)
-    push dword %1               ; interrupt number
+    push 0                ; error code (not used)
+    push %1               ; interrupt number
     jmp  ISR_handler_impl
 %endmacro
 
 ; handler for an IRQ
 %macro IRQ_handler 1
 irq_stub_%1:
-    push dword 0                ; error code (not used)
-    push dword %1 + IRQ_BASE    ; IRQ number
+    push 0                ; error code (not used)
+    push %1 + IRQ_BASE    ; IRQ number
     jmp  ISR_handler_impl
 %endmacro
 

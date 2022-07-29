@@ -2,96 +2,7 @@
 
 #include "mos/kernel.h"
 #include "mos/x86/drivers/port.h"
-#include "mos/x86/gdt_idt_tss.h"
-
-#define IRQ_BASE 0x20
-
-#define PIC1         0x20 /* IO base address for master PIC */
-#define PIC2         0xA0 /* IO base address for slave  PIC */
-#define PIC1_COMMAND PIC1
-#define PIC1_DATA    (PIC1 + 1)
-#define PIC2_COMMAND PIC2
-#define PIC2_DATA    (PIC2 + 1)
-#define PIC_EOI      0x20 /* End-of-interrupt command code */
-
-#define PIC1_OFFSET 0x20
-#define PIC2_OFFSET 0x28
-
-__attr_aligned(16) idt_entry32_t idt[IDT_ENTRY_COUNT] = { 0 };
-idtr32_t idtr;
-
-static void idt_handle_irq(uint32_t *esp)
-{
-    stack_frame *stack = (stack_frame *) *esp;
-
-    int irq = stack->intr - IRQ_BASE;
-
-    if (irq == 7 || irq == 15)
-    {
-        pr_warn("IRQ %d: %s\n", irq, irq == 7 ? "Double fault" : "General protection fault");
-        // these irqs may be fake ones, test it
-        uint8_t pic = (irq < 8) ? PIC1 : PIC2;
-        port_outb(pic + 3, 0x03);
-        if ((port_inb(pic) & 0x80) != 0)
-        {
-            goto irq_handeled;
-        }
-    }
-
-    if (irq == 1)
-    {
-        unsigned char scan_code = port_inb(0x60);
-        pr_info("scan code: %x", scan_code);
-    }
-
-    pr_warn("handled irq: %d", irq);
-
-irq_handeled:
-    if (irq >= 8)
-        port_outb(PIC2_COMMAND, PIC_EOI);
-    port_outb(PIC1_COMMAND, PIC_EOI);
-}
-
-void x86_handle_interrupt(uint32_t esp)
-{
-    stack_frame *stack = (stack_frame *) esp;
-
-    if (stack->intr < IRQ_BASE)
-    {
-        mos_panic("Unhandled exception: %d", stack->intr);
-    }
-    // else if (stack->intr < SYSCALL)
-    // {
-    //     ;
-    // }
-    // else if (stack->intr == SYSCALL)
-    // {
-    // printk("Syscall.");
-    // }
-    else
-    {
-        idt_handle_irq(&esp);
-    }
-}
-
-void idt_set_descriptor(uint8_t vector, void *isr, uint8_t flags)
-{
-    idt_entry32_t *descriptor = &idt[vector];
-
-    descriptor->isr_low = (u32) isr & 0xFFFF;
-    descriptor->kernel_code_segment = 1 * sizeof(gdt_entry32_t); // ! GDT Kernel Code Segment
-    descriptor->flags = flags;
-    descriptor->isr_high = (u32) isr >> 16;
-    descriptor->zero = 0;
-}
-
-void PIC_sendEOI(unsigned char irq)
-{
-    if (irq >= 8)
-        port_outb(PIC2_COMMAND, PIC_EOI);
-
-    port_outb(PIC1_COMMAND, PIC_EOI);
-}
+#include "mos/x86/x86_init.h"
 
 // Reinitialize the PIC controllers.
 // Giving them specified vector offsets rather than 8h and 70h, as configured by default
@@ -108,7 +19,24 @@ void PIC_sendEOI(unsigned char irq)
 #define ICW4_BUF_MASTER 0x0C /* Buffered mode/master */
 #define ICW4_SFNM       0x10 /* Special fully nested (not) */
 
-void remap_pic(int offset_master, int offset_slave)
+#define PIC1_OFFSET 0x20
+#define PIC2_OFFSET 0x28
+
+__attr_aligned(16) idt_entry32_t idt[IDT_ENTRY_COUNT] = { 0 };
+idtr32_t idtr;
+
+static void idt_set_descriptor(uint8_t vector, void *isr, uint8_t flags)
+{
+    idt_entry32_t *descriptor = &idt[vector];
+
+    descriptor->isr_low = (u32) isr & 0xFFFF;
+    descriptor->kernel_code_segment = GDT_SEGMENT_KCODE; // ! GDT Kernel Code Segment
+    descriptor->flags = flags;
+    descriptor->isr_high = (u32) isr >> 16;
+    descriptor->zero = 0;
+}
+
+static void remap_pic(int offset_master, int offset_slave)
 {
     u8 a1, a2;
 

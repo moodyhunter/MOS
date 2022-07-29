@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/gdt_idt_tss.h"
+#include "mos/x86/x86_init.h"
 
 gdt_ptr32_t gdt_ptr;
 gdt_entry32_t gdt[GDT_TABLE_SIZE] __attr_aligned(8);

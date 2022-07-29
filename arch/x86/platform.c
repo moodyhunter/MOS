@@ -2,14 +2,15 @@
 
 #include "mos/kernel.h"
 #include "mos/mos_global.h"
-#include "mos/x86/common.h"
 #include "mos/x86/drivers/port.h"
 #include "mos/x86/drivers/screen.h"
+#include "mos/x86/x86_init.h"
 
 void x86_disable_interrupts()
 {
     __asm__ volatile("cli");
 }
+
 void x86_enable_interrupts()
 {
     __asm__ volatile("sti");

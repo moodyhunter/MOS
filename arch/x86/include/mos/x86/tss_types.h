@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "mos/mos_global.h"
-#include "mos/types.h"
+#include "mos/x86/x86_platform.h"
 
 typedef struct
 {

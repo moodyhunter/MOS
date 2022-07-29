@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "mos/mos_global.h"
-#include "mos/types.h"
+#include "mos/x86/x86_platform.h"
 
 #define GDT_NULL    0x00
 #define GDT_SEGMENT 0x10
@@ -18,16 +17,6 @@
 
 #define GDT_BYTE_GRANULARITY 0x40
 #define GDT_PAGE_GRANULARITY 0xC0
-
-// Number of gdt entries
-#define GDT_TABLE_SIZE 6
-
-#define GDT_SEGMENT_NULL     0x00
-#define GDT_SEGMENT_KCODE    0x08
-#define GDT_SEGMENT_KDATA    0x10
-#define GDT_SEGMENT_USERCODE 0x18
-#define GDT_SEGMENT_USERDATA 0x20
-#define GDT_SEGMENT_TSS      0x28
 
 typedef struct
 {
