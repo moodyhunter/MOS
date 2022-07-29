@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/stdio.h"
+#include "lib/stdio.h"
 #include "test_engine.h"
 
 static char buffer[2048] = { 0 };

@@ -2,10 +2,10 @@
 
 #include "test_engine.h"
 
+#include "lib/stdio.h"
+#include "lib/stdlib.h"
 #include "mos/kernel.h"
 #include "mos/panic.h"
-#include "mos/stdio.h"
-#include "mos/stdlib.h"
 #include "mos/x86/drivers/screen.h"
 #include "tinytest.h"
 

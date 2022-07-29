@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "lib/stdio.h"
+#include "lib/stdlib.h"
+#include "lib/string.h"
 #include "mos/kernel.h"
-#include "mos/stdio.h"
-#include "mos/stdlib.h"
-#include "mos/string.h"
 
 typedef enum
 {
@@ -482,18 +482,21 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 case 'F':
                 {
                     // print a floating point number
+                    MOS_UNIMPLEMENTED("printf: %f / %F");
                     break;
                 }
-                case 'E':
                 case 'e':
+                case 'E':
                 {
                     // print a floating point number in scientific notation
+                    MOS_UNIMPLEMENTED("printf: %e / %E");
                     break;
                 }
                 case 'g':
                 case 'G':
                 {
                     // print a floating point number in scientific notation
+                    MOS_UNIMPLEMENTED("printf: %g / %G");
                     break;
                 }
                 case 's':
@@ -521,7 +524,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 case 'A':
                 {
                     // print a hexadecimal number in ASCII
-                    MOS_UNIMPLEMENTED("printf: %n");
+                    MOS_UNIMPLEMENTED("printf: %a / %A");
                     break;
                 }
                 case 'n':

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/math.h"
+#include "lib/math.h"
 #include "mos/mos_global.h"
 #include "mos/types.h"
 

@@ -2,8 +2,8 @@
 
 #include "mos/panic.h"
 
+#include "lib/stdio.h"
 #include "mos/kernel.h"
-#include "mos/stdio.h"
 
 #include <stdarg.h>
 

@@ -3,8 +3,8 @@
 
 #define MOS_TEST_LOG mos_test_engine_log
 
+#include "lib/stdio.h"
 #include "mos/kernel.h"
-#include "mos/stdio.h"
 #include "tinytest.h"
 
 void mos_test_engine_log(VGATextModeColor color, char symbol, char *format, ...);

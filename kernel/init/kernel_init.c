@@ -3,7 +3,6 @@
 #include "mos/kconfig.h"
 #include "mos/kernel.h"
 #include "mos/panic.h"
-#include "mos/stdio.h"
 #include "mos/x86/boot/multiboot.h"
 
 #ifdef MOS_KERNEL_RUN_TESTS

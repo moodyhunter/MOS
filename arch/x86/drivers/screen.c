@@ -2,9 +2,9 @@
 
 #include "mos/x86/drivers/screen.h"
 
+#include "lib/stdlib.h"
+#include "lib/string.h"
 #include "mos/mos_global.h"
-#include "mos/stdlib.h"
-#include "mos/string.h"
 #include "mos/x86/drivers/port.h"
 
 #define VIDEO_DEVICE_ADDRESS 0xB8000

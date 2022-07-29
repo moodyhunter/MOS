@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/string.h"
+#include "lib/string.h"
 
 size_t strlen(const char *str)
 {

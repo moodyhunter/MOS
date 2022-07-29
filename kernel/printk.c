@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "lib/stdio.h"
 #include "mos/kernel.h"
 #include "mos/mos_global.h"
-#include "mos/stdio.h"
 #include "mos/x86/drivers/screen.h"
 
 #include <stdarg.h>
