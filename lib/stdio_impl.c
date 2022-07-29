@@ -539,9 +539,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 case '\0':
                 {
                     // end of format string
-                    mos_kwarn(__func__, 543,
-                              "printf: incomplete format specifier"
-                              "\n");
+                    mos_warn("printf: incomplete format specifier");
                     goto end;
                 }
                 default:
