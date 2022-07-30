@@ -50,6 +50,12 @@
 #define _ANSI_COLOR_3(fg, style, bg)      _ANSI_COLOR_STYLE_##style _ANSI_COLOR_FG_COLOR_##fg _ANSI_COLOR_BG_COLOR_##bg
 #define _ANSI_COLOR_N(_1, _2, _3, N, ...) N
 
+// USAGE:
+//
+// ANSI_COLOR(foreground)                       // a foreground color
+// ANSI_COLOR(foreground, style)                // a foreground color with style
+// ANSI_COLOR(foreground, style, background)    // a foreground color with style and a background color
+//
 // "_" is to prevent "must specify at least one argument for '...' parameter of variadic macro" warning
 #define ANSI_COLOR(...)  "\033[" _ANSI_COLOR_N(__VA_ARGS__, _ANSI_COLOR_3, _ANSI_COLOR_2, _ANSI_COLOR_1, _)(__VA_ARGS__) "m"
 #define ANSI_COLOR_RESET "\e[0m"
