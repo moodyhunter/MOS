@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
-#define MOS_TEST_LOG mos_test_engine_log
-
 #include "lib/stdio.h"
+#include "mos/device/console.h"
 #include "mos/kernel.h"
-#include "tinytest.h"
+#include "test_engine_impl.h"
 
-void mos_test_engine_log(VGATextModeColor color, char symbol, char *format, ...);
-
-extern s32 test_engine_n_warning_expected;
+void mos_test_engine_log(standard_color_t color, char symbol, char *format, ...);
 
 void test_engine_run_tests(void);

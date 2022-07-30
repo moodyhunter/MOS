@@ -4,42 +4,52 @@
 
 #include "lib/stdio.h"
 #include "lib/stdlib.h"
+#include "lib/string.h"
+#include "mos/device/console.h"
 #include "mos/kernel.h"
 #include "mos/panic.h"
-#include "mos/x86/drivers/screen.h"
-#include "tinytest.h"
 
 s32 test_engine_n_warning_expected = 0;
 
-void mos_test_engine_log(VGATextModeColor color, char symbol, char *format, ...)
+void for_each_console_print_with_color(standard_color_t fg, standard_color_t bg, const char *message, size_t length)
 {
+    extern console_t *platform_consoles;
+    list_foreach(platform_consoles, console)
+    {
+        standard_color_t prev_fg, prev_bg;
+        if (console->caps & CONSOLE_CAP_COLOR)
+        {
+            console->get_color(console, &prev_fg, &prev_bg);
+            console->set_color(console, fg, bg);
+        }
+
+        console->write(console, message, length);
+
+        if (console->caps & CONSOLE_CAP_COLOR)
+        {
+            console->set_color(console, prev_fg, prev_bg);
+        }
+    }
+}
+
+void mos_test_engine_log(standard_color_t color, char symbol, char *format, ...)
+{
+    char prefix[5];
+
+    if (symbol)
+        snprintf(prefix, 5, "[%c] ", symbol ? symbol : ' ');
+    else
+        snprintf(prefix, 5, "    ");
+
+    for_each_console_print_with_color(LightGray, Black, prefix, 5);
+
     char message[512];
     va_list args;
     va_start(args, format);
     vsprintf(message, format, args);
     va_end(args);
 
-    color = tttttt(color);
-
-    if (symbol)
-    {
-        screen_print_char('[');
-        screen_print_char(symbol);
-        screen_print_char(']');
-    }
-    else
-        screen_print_string("   ");
-    screen_print_char(' ');
-
-    VGATextModeColor prev_fg;
-    VGATextModeColor prev_bg;
-    screen_get_color(&prev_fg, &prev_bg);
-    {
-        screen_set_color(color, Black);
-        screen_print_string(message);
-        screen_print_char('\n');
-    }
-    screen_set_color(prev_fg, prev_bg);
+    for_each_console_print_with_color(color, Black, message, strlen(message));
 }
 
 static void test_engine_warning_handler(const char *func, u32 line, const char *fmt, va_list args)
@@ -81,13 +91,13 @@ void test_engine_run_tests()
 
     if (result.n_failed == 0)
     {
-        screen_set_color(Green, Black);
         pr_emph("\nALL %u TESTS PASSED: (%u succeed, %u failed, %u skipped)", result.n_total, passed, result.n_failed, result.n_skipped);
         mos_platform.platform_shutdown();
+        while (1)
+            ;
     }
     else
     {
-        screen_set_color(Red, White);
         mos_panic("\nTEST FAILED: (%u succeed, %u failed, %u skipped)", passed, result.n_failed, result.n_skipped);
     }
 }

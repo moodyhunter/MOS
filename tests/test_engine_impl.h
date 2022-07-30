@@ -3,28 +3,22 @@
 
 #pragma once
 
+#include "mos/device/console.h"
 #include "mos/mos_global.h"
-#include "mos/x86/drivers/screen.h"
+#include "mos/types.h"
 
 #include <stdbool.h>
+
+extern s32 test_engine_n_warning_expected;
+extern void mos_test_engine_log(standard_color_t color, char symbol, char *format, ...);
+
+#ifndef MOS_TEST_LOG
+#define MOS_TEST_LOG(color, symbol, format, ...) mos_test_engine_log(color, symbol, format "\n", __VA_ARGS__)
+#endif
 
 #ifndef MOS_TEST_STRCMP
 int strcmp(const char *s1, const char *s2);
 #define MOS_TEST_STRCMP strcmp
-#endif
-
-#ifndef MOS_TEST_LOG
-#define MOS_TEST_LOG(color, symbol, format, ...)                                                                                                \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        if (symbol)                                                                                                                             \
-            MOS_TEST_PRINTF("[%c] ", symbol);                                                                                                   \
-        else                                                                                                                                    \
-            MOS_TEST_PRINTF("    ");                                                                                                            \
-        screen_set_color(color, Black);                                                                                                         \
-        MOS_TEST_PRINTF(format "\n", __VA_ARGS__);                                                                                              \
-        screen_set_color(MOS_TEST_DEFAULT, Black);                                                                                              \
-    } while (0)
 #endif
 
 typedef struct

@@ -15,6 +15,6 @@ add_kernel_source(
         init/tss.c
         init/gdt_tss_idt_flush.asm
         init/interrupt_handler.asm
-        drivers/screen.c
+        drivers/text_mode_console.c
         drivers/port.c
 )

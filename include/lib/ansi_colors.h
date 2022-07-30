@@ -15,7 +15,7 @@
 #define _ANSI_COLOR_white   "7"
 
 #define _ANSI_STYLE_regular    "0"
-#define _ANSI_STYLE_bold       "1"
+#define _ANSI_STYLE_bright     "1"
 #define _ANSI_STYLE_faint      "2"
 #define _ANSI_STYLE_italic     "3"
 #define _ANSI_STYLE_underline  "4"
@@ -37,4 +37,4 @@
 //
 // "_" is to prevent the "must specify at least one argument for '...' parameter of variadic macro" warning
 #define ANSI_COLOR(...)  "\033[" _ANSI_COLOR_N(__VA_ARGS__, _ANSI_COLOR_3, _ANSI_COLOR_2, _ANSI_COLOR_1, _)(__VA_ARGS__) "m"
-#define ANSI_COLOR_RESET "\e[0m"
+#define ANSI_COLOR_RESET "\033[0m"

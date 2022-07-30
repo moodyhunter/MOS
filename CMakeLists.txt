@@ -44,13 +44,16 @@ include_directories(
 )
 
 add_library(mos_kernel.elf STATIC
-    kernel/init/kernel_init.c
+    kernel/device/console.c
+    kernel/kernel_init.c
+    kernel/kernel.c
     kernel/panic.c
     kernel/printk.c
     lib/stdlib.c
     lib/string.c
     lib/stdio.c
     lib/stdio_impl.c
+    lib/linked_list.c
 )
 
 add_library(mos::elf_kernel ALIAS mos_kernel.elf)

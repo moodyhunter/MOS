@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/device/console.h"
 #include "mos/kernel.h"
 #include "mos/mos_global.h"
 #include "mos/x86/drivers/port.h"
-#include "mos/x86/drivers/screen.h"
+#include "mos/x86/drivers/text_mode_console.h"
 #include "mos/x86/x86_init.h"
 
 void x86_disable_interrupts()
@@ -24,8 +25,7 @@ void x86_init()
     x86_idt_init();
     x86_tss_init();
 
-    screen_init();
-    screen_disable_cursor();
+    register_console(&vga_text_mode_console);
 }
 
 void __attr_noreturn x86_shutdown_vm()

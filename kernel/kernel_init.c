@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/device/console.h"
 #include "mos/kconfig.h"
 #include "mos/kernel.h"
+#include "mos/mos_global.h"
 #include "mos/panic.h"
 #include "mos/x86/boot/multiboot.h"
 
