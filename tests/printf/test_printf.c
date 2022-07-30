@@ -21,7 +21,7 @@ int tst_printf(char *buffer, const char *format, ...) __attribute__((format(prin
             break;                                                                                                                              \
         }                                                                                                                                       \
         tst_printf(buffer, format __VA_OPT__(, ) __VA_ARGS__);                                                                                  \
-        MOS_TEST_CHECK_STRING(expected, buffer);                                                                                                \
+        MOS_TEST_CHECK_STRING(buffer, expected);                                                                                                \
     } while (0)
 
 int tst_printf(char *buffer, const char *format, ...)

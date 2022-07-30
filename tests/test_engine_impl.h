@@ -111,7 +111,27 @@ typedef void (*mos_test_func_t)(TestResult *);
     do                                                                                                                                          \
     {                                                                                                                                           \
         ++_MT_result->n_failed;                                                                                                                 \
-        MOS_TEST_LOG(MOS_TEST_RED, 'X', format, __VA_ARGS__);                                                                                   \
+        MOS_TEST_LOG(MOS_TEST_RED, 'X', "line %d: " format, __LINE__, __VA_ARGS__);                                                             \
+    } while (false)
+
+/*
+ * Assertion
+ *
+ * Arguments:
+ *   - condition       - condition to test
+ *   - format           - message printf format
+ *   - args... [opt]    - arguments
+ */
+#define MOS_TEST_ASSERT(condition, format, ...)                                                                                                 \
+    do                                                                                                                                          \
+    {                                                                                                                                           \
+        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
+        {                                                                                                                                       \
+            MOS_TEST_SKIP();                                                                                                                    \
+            break;                                                                                                                              \
+        }                                                                                                                                       \
+        if (!(condition))                                                                                                                       \
+            MOS_TEST_FAIL("ASSERTION FAILED: %s, " format, #condition, ##__VA_ARGS__);                                                          \
     } while (false)
 
 /*
@@ -121,7 +141,7 @@ typedef void (*mos_test_func_t)(TestResult *);
  *   - expected         - expected value
  *   - actual           - actual value
  */
-#define MOS_TEST_CHECK(expected, actual)                                                                                                        \
+#define MOS_TEST_CHECK(actual, expected)                                                                                                        \
     do                                                                                                                                          \
     {                                                                                                                                           \
         if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
@@ -131,7 +151,7 @@ typedef void (*mos_test_func_t)(TestResult *);
         }                                                                                                                                       \
         ++_MT_result->n_total;                                                                                                                  \
         if ((expected) != (actual))                                                                                                             \
-            MOS_TEST_FAIL("values are different (expected = %d, actual = %d)", (expected), (actual));                                           \
+            MOS_TEST_FAIL("'%s' is %d, expected %d", #actual, (actual), (expected));                                                            \
     } while (false)
 
 /*
@@ -141,7 +161,7 @@ typedef void (*mos_test_func_t)(TestResult *);
  *   - expected         - expected string
  *   - actual           - actual string
  */
-#define MOS_TEST_CHECK_STRING(expected, actual)                                                                                                 \
+#define MOS_TEST_CHECK_STRING(actual, expected)                                                                                                 \
     do                                                                                                                                          \
     {                                                                                                                                           \
         if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
@@ -162,7 +182,7 @@ typedef void (*mos_test_func_t)(TestResult *);
  *   - actual           - actual value
  *   - epsilon          - maximum acceptable difference
  */
-#define MOS_TEST_CHECK_EPS(expected, actual, epsilon)                                                                                           \
+#define MOS_TEST_CHECK_EPS(actual, expected, epsilon)                                                                                           \
     do                                                                                                                                          \
     {                                                                                                                                           \
         if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
@@ -184,7 +204,7 @@ typedef void (*mos_test_func_t)(TestResult *);
  *   - actual           - actual array pointer
  *   - elements         - number of array elements
  */
-#define MOS_TEST_CHECK_ARRAY(expected, actual, elements)                                                                                        \
+#define MOS_TEST_CHECK_ARRAY(actual, expected, elements)                                                                                        \
     do                                                                                                                                          \
     {                                                                                                                                           \
         if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
@@ -213,7 +233,7 @@ typedef void (*mos_test_func_t)(TestResult *);
  *   - epsilon          - maximum acceptable difference
  *   - elements         - number of array elements
  */
-#define MOS_TEST_CHECK_ARRAY_EPS(expected, actual, elements, epsilon)                                                                           \
+#define MOS_TEST_CHECK_ARRAY_EPS(actual, expected, elements, epsilon)                                                                           \
     do                                                                                                                                          \
     {                                                                                                                                           \
         if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
@@ -242,11 +262,11 @@ typedef void (*mos_test_func_t)(TestResult *);
     u32 passed = total - failed - skipped;                                                                                                      \
     if (failed == 0)                                                                                                                            \
         if (skipped == 0)                                                                                                                       \
-            MOS_TEST_LOG(MOS_TEST_GREEN, '\0', "%s: All %u tests passed", #_TestFunc, total);                                                   \
+            MOS_TEST_LOG(MOS_TEST_GREEN, '\0', "%s: All %u test(s) passed", #_TestFunc, total);                                                 \
         else                                                                                                                                    \
-            MOS_TEST_LOG(MOS_TEST_GREEN, '\0', "%s: All %u tests passed (%u skipped)", #_TestFunc, total, skipped);                             \
+            MOS_TEST_LOG(MOS_TEST_GREEN, '\0', "%s: All %u test(s) passed (%u skipped)", #_TestFunc, total, skipped);                           \
     else                                                                                                                                        \
-        MOS_TEST_LOG(MOS_TEST_RED, 'X', "%s: %u out of %u tests failed (%u passed, %u skipped)", #_TestFunc, failed, total, passed, skipped);
+        MOS_TEST_LOG(MOS_TEST_RED, 'X', "%s: %u out of %u test(s) failed (%u passed, %u skipped)", #_TestFunc, failed, total, passed, skipped);
 
 #define _MT_FLOATABS(a) ((a) < 0 ? -(a) : (a))
 

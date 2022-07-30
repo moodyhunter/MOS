@@ -83,21 +83,14 @@ void test_engine_run_tests()
         result.n_total += r.n_total;
         result.n_failed += r.n_failed;
         result.n_skipped += r.n_skipped;
+
+        if (result.n_failed > 0)
+            mos_panic("TEST FAILED.");
     }
 
     kwarn_handler_remove();
 
     u32 passed = result.n_total - result.n_failed - result.n_skipped;
-
-    if (result.n_failed == 0)
-    {
-        pr_emph("\nALL %u TESTS PASSED: (%u succeed, %u failed, %u skipped)", result.n_total, passed, result.n_failed, result.n_skipped);
-        mos_platform.platform_shutdown();
-        while (1)
-            ;
-    }
-    else
-    {
-        mos_panic("\nTEST FAILED: (%u succeed, %u failed, %u skipped)", passed, result.n_failed, result.n_skipped);
-    }
+    pr_emph("ALL %u TESTS PASSED: (%u succeed, %u failed, %u skipped)", result.n_total, passed, result.n_failed, result.n_skipped);
+    mos_platform.platform_shutdown();
 }

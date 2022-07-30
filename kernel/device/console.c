@@ -17,7 +17,11 @@ void register_console(console_t *con)
     pr_info("Registered console %s\n", con->name);
 
     if (platform_consoles == NULL)
+    {
         platform_consoles = con;
+        platform_consoles->__list_node.next = NULL;
+        platform_consoles->__list_node.prev = NULL;
+    }
     else
-        list_append(&platform_consoles, &con);
+        list_append(platform_consoles, con);
 }
