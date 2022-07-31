@@ -3,34 +3,41 @@
 #pragma once
 
 #include "mos/mos_global.h"
-
-#include <stddef.h>
+#include "mos/types.h"
 
 #define container_of(ptr, type, member) ((type *) ((char *) (ptr) - (offsetof(type, member))))
 
-typedef struct list_node
+typedef struct list_node_t list_node_t;
+
+struct list_node_t
 {
-    struct list_node *next;
-    struct list_node *prev;
-} list_node_t;
+    list_node_t *prev;
+    list_node_t *next;
+};
 
-#define as_linked_list list_node_t __list_node
+#define as_linked_list list_node_t list_node
 
-#define list_get_node_ptr(element) (&((element)->__list_node))
+// clang-format off
+#define MOS_LIST_HEAD_INIT(container) { .prev = &(container), .next = &(container) }
+// clang-format on
 
-#define list_element(node, type) container_of(node, type, __list_node)
-#define list_next(element)       list_element(list_get_node_ptr(element)->next, __typeof(*element))
-#define list_prev(element)       list_element(list_get_node_ptr(element)->prev, __typeof(*element))
+#define MOS_LIST_NODE_INIT(container) MOS_LIST_HEAD_INIT(container.list_node)
+#define list_entry(node, type)        container_of(((list_node_t *) node), type, list_node)
+#define list_node(element)            (&((element)->list_node))
 
-#define list_foreach(head, var) for (__typeof(*head) *var = head; var != NULL; var = list_next(var))
+#define list_prepend(element, item)       list_node_prepend(list_node(element), list_node(item))
+#define list_append(element, item)        list_node_append(list_node(element), list_node(item))
+#define list_insert_before(element, item) list_node_insert_before(list_node(element), list_node(item))
+#define list_insert_after(element, item)  list_node_insert_after(list_node(element), list_node(item))
+#define list_remove(element)              list_node_remove(list_node(element))
 
-#define list_prepend(current, item)       _list_prepend(list_get_node_ptr(head), list_get_node_ptr(item))
-#define list_append(current, item)        _list_append(list_get_node_ptr(current), list_get_node_ptr(item))
-#define list_insert_after(current, item)  _list_insert_after(list_get_node_ptr(current), list_get_node_ptr(item))
-#define list_insert_before(current, item) _list_insert_before(list_get_node_ptr(current), list_get_node_ptr(item))
+#define list_foreach(t, v, h) for (t *v = list_entry((h).next, t); list_node(v) != &(h); v = list_entry(list_node(v)->next, t))
 
-void _list_append(list_node_t *head, list_node_t *node);
-void _list_prepend(list_node_t *head, list_node_t *node);
+void linked_list_init(list_node_t *head_node);
+bool list_is_empty(list_node_t *list);
+void list_node_remove(list_node_t *link);
 
-void _list_insert_after(list_node_t *element, list_node_t *node);
-void _list_insert_before(list_node_t *element, list_node_t *node);
+void list_node_prepend(list_node_t *head, list_node_t *item);
+void list_node_append(list_node_t *head, list_node_t *item);
+void list_node_insert_before(list_node_t *element, list_node_t *item);
+void list_node_insert_after(list_node_t *element, list_node_t *item);

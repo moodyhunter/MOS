@@ -13,8 +13,7 @@ s32 test_engine_n_warning_expected = 0;
 
 void for_each_console_print_with_color(standard_color_t fg, standard_color_t bg, const char *message, size_t length)
 {
-    extern console_t *platform_consoles;
-    list_foreach(platform_consoles, console)
+    list_foreach(console_t, console, consoles)
     {
         standard_color_t prev_fg, prev_bg;
         if (console->caps & CONSOLE_CAP_COLOR)

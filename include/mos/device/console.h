@@ -66,4 +66,5 @@ struct console_t
     void *data;
 };
 
+extern list_node_t consoles;
 void register_console(console_t *con);

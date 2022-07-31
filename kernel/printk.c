@@ -9,8 +9,6 @@
 
 #include <stdarg.h>
 
-extern console_t *platform_consoles;
-
 static void deduce_level_color(int loglevel, standard_color_t *fg, standard_color_t *bg)
 {
     *bg = Black;
@@ -31,7 +29,7 @@ void lprintk(int loglevel, const char *fmt, ...)
     standard_color_t fg, bg;
     deduce_level_color(loglevel, &fg, &bg);
 
-    list_foreach(platform_consoles, console)
+    list_foreach(console_t, console, consoles)
     {
         standard_color_t prev_fg, prev_bg;
         if (console->caps & CONSOLE_CAP_COLOR)

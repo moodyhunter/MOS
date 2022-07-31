@@ -65,7 +65,7 @@ typedef void (*mos_test_func_t)(TestResult *);
         MOS_TEST_LOG(MOS_TEST_BLUE, 'T', "Starting test " #_TestName " (line %d)", __LINE__);                                                   \
         _MT_RUN_TEST_AND_PRINT_RESULT(result, _TestName);                                                                                       \
     }                                                                                                                                           \
-    _MT_REGISTER_TEST_CASE(_MT_WRAP_TEST_NAME(_TestName));                                                                                      \
+    _MT_REGISTER_TEST_CASE(_TestName, _MT_WRAP_TEST_NAME(_TestName));                                                                           \
     static void _TestName(TestResult *_MT_result, __attr_unused bool *_mt_test_skipped, __attr_unused bool *_mt_loop_leave)
 
 #define MOS_TEST_DECL_PTEST(_PTestName, ptest_args_printf_format, ...)                                                                          \
@@ -83,7 +83,7 @@ typedef void (*mos_test_func_t)(TestResult *);
         MOS_TEST_LOG(MOS_TEST_BLUE, '\0', _MT_PTEST_ARG_FORMAT(_PTestName), __VA_ARGS__);                                                       \
         _MT_RUN_TEST_AND_PRINT_RESULT(result, _MT_PTEST_CALLER(_PTestName));                                                                    \
     }                                                                                                                                           \
-    _MT_REGISTER_TEST_CASE(_MT_WRAP_PTEST_CALLER(_PTestName));
+    _MT_REGISTER_TEST_CASE(_TestName, _MT_WRAP_PTEST_CALLER(_PTestName));
 
 #define MOS_TEST_EXPECT_WARNING_N(N, body, msg)                                                                                                 \
     do                                                                                                                                          \
@@ -253,20 +253,24 @@ typedef void (*mos_test_func_t)(TestResult *);
     } while (false)
 
 #define _MT_RUN_TEST_AND_PRINT_RESULT(_ResultVar, _TestFunc)                                                                                    \
-    bool _mt_test_skipped = false;                                                                                                              \
-    bool _mt_loop_leave = false;                                                                                                                \
-    _TestFunc(_ResultVar, &_mt_test_skipped, &_mt_loop_leave);                                                                                  \
-    u32 total = _ResultVar->n_total;                                                                                                            \
-    u32 failed = _ResultVar->n_failed;                                                                                                          \
-    u32 skipped = _ResultVar->n_skipped;                                                                                                        \
-    u32 passed = total - failed - skipped;                                                                                                      \
-    if (failed == 0)                                                                                                                            \
-        if (skipped == 0)                                                                                                                       \
-            MOS_TEST_LOG(MOS_TEST_GREEN, '\0', "%s: All %u test(s) passed", #_TestFunc, total);                                                 \
+    do                                                                                                                                          \
+    {                                                                                                                                           \
+        bool _mt_test_skipped = false;                                                                                                          \
+        bool _mt_loop_leave = false;                                                                                                            \
+        _TestFunc(_ResultVar, &_mt_test_skipped, &_mt_loop_leave);                                                                              \
+        u32 total = _ResultVar->n_total;                                                                                                        \
+        u32 failed = _ResultVar->n_failed;                                                                                                      \
+        u32 skipped = _ResultVar->n_skipped;                                                                                                    \
+        u32 passed = total - failed - skipped;                                                                                                  \
+        if (failed == 0)                                                                                                                        \
+            if (skipped == 0)                                                                                                                   \
+                MOS_TEST_LOG(MOS_TEST_GREEN, '\0', "%s: All %u test(s) passed", #_TestFunc, total);                                             \
+            else                                                                                                                                \
+                MOS_TEST_LOG(MOS_TEST_GREEN, '\0', "%s: All %u test(s) passed (%u skipped)", #_TestFunc, total, skipped);                       \
         else                                                                                                                                    \
-            MOS_TEST_LOG(MOS_TEST_GREEN, '\0', "%s: All %u test(s) passed (%u skipped)", #_TestFunc, total, skipped);                           \
-    else                                                                                                                                        \
-        MOS_TEST_LOG(MOS_TEST_RED, 'X', "%s: %u out of %u test(s) failed (%u passed, %u skipped)", #_TestFunc, failed, total, passed, skipped);
+            MOS_TEST_LOG(MOS_TEST_RED, 'X', "%s: %u out of %u test(s) failed (%u passed, %u skipped)", #_TestFunc, failed, total, passed,       \
+                         skipped);                                                                                                              \
+    } while (0)
 
 #define _MT_FLOATABS(a) ((a) < 0 ? -(a) : (a))
 
@@ -281,7 +285,8 @@ typedef void (*mos_test_func_t)(TestResult *);
 #define _MT_WRAP_PTEST_CALLER(ptest_name) MOS_CONCAT(__mos_test_wrapped_ptest_caller_##ptest_name, __LINE__)
 
 // ELF Section based test registration
-#define _MT_REGISTER_TEST_CASE(_TFunc)    const mos_test_func_t __section(mos_test_cases) MOS_CONCAT(test_cases_L, __LINE__) = _TFunc
+#define _MT_REGISTER_TEST_CASE(_TName, _TFunc)                                                                                                  \
+    const mos_test_func_t __section(mos_test_cases) MOS_CONCAT(test_cases_##_TName##_L, __LINE__) = _TFunc
 #define MOS_TEST_FOREACH_TEST_CASE(_FPtr) for (const mos_test_func_t *_FPtr = __start_mos_test_cases; _FPtr != __stop_mos_test_cases; _FPtr++)
 
 // Defined by the linker, do not rename.
