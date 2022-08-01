@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/printk.h"
+
 #include "lib/containers.h"
 #include "lib/stdio.h"
 #include "lib/string.h"
 #include "mos/device/console.h"
-#include "mos/kernel.h"
-#include "mos/mos_global.h"
 
 #include <stdarg.h>
 

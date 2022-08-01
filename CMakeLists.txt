@@ -46,9 +46,9 @@ include_directories(
 add_library(mos_kernel.elf STATIC
     kernel/device/console.c
     kernel/kernel_init.c
-    kernel/kernel.c
     kernel/panic.c
     kernel/printk.c
+    kernel/interrupt.c
     lib/stdlib.c
     lib/string.c
     lib/stdio.c

@@ -13,3 +13,6 @@ s32 abs(s32 x);
 long labs(long x);
 s64 llabs(s64 x);
 s32 atoi(const char *nptr);
+
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))

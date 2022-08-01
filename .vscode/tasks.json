@@ -25,7 +25,7 @@
         {
             "label": "start_os_unblocked",
             "type": "shell",
-            "command": "tmux new -s mos_kernel_debug -d qemu-system-i386 -kernel ${workspaceFolder}/build/mos_multiboot.bin -s",
+            "command": "tmux new -s mos_kernel_debug -d qemu-system-i386 -kernel ${workspaceFolder}/build/mos_multiboot.bin -s -serial stdio",
             "problemMatcher": [],
             "group": "test",
             "dependsOn": [
@@ -35,12 +35,13 @@
             "presentation": {
                 "reveal": "silent",
                 "close": true
-            }
+            },
+            "detail": "Start MOS."
         },
         {
             "label": "start_os",
             "type": "shell",
-            "command": "tmux new -s mos_kernel_debug -d qemu-system-i386 -kernel ${workspaceFolder}/build/mos_multiboot.bin -s -S",
+            "command": "tmux new -s mos_kernel_debug -d qemu-system-i386 -kernel ${workspaceFolder}/build/mos_multiboot.bin -s -S -serial stdio",
             "problemMatcher": [],
             "group": "none",
             "dependsOn": [
@@ -50,7 +51,8 @@
             "presentation": {
                 "reveal": "silent",
                 "close": true
-            }
+            },
+            "detail": "Start MOS and wait for the debugger to connect."
         }
     ]
 }

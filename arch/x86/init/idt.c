@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/kernel.h"
 #include "mos/x86/drivers/port.h"
 #include "mos/x86/x86_init.h"
+#include "mos/x86/x86_platform.h"
 
 // Reinitialize the PIC controllers.
 // Giving them specified vector offsets rather than 8h and 70h, as configured by default
@@ -65,7 +65,7 @@ void x86_idt_init()
         idt_set_descriptor(isr, isr_stub_table[isr], 0x8F);
 
     for (u8 irq_n = 0; irq_n < IRQ_MAX_COUNT; irq_n++)
-        idt_set_descriptor(irq_n + IRQ_BASE, irq_stub_table[irq_n], 0x8E);
+        idt_set_descriptor(irq_n + IRQ_BASE, irq_stub_table[irq_n], 0x8F);
 
     remap_pic(PIC1_OFFSET, PIC2_OFFSET);
 

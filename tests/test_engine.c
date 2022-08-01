@@ -6,8 +6,9 @@
 #include "lib/stdlib.h"
 #include "lib/string.h"
 #include "mos/device/console.h"
-#include "mos/kernel.h"
 #include "mos/panic.h"
+#include "mos/platform.h"
+#include "mos/printk.h"
 
 s32 test_engine_n_warning_expected = 0;
 
@@ -69,7 +70,7 @@ static void test_engine_warning_handler(const char *func, u32 line, const char *
     test_engine_n_warning_expected--;
 }
 
-void test_engine_run_tests()
+void mos_test_engine_run_tests()
 {
     kwarn_handler_set(test_engine_warning_handler);
 

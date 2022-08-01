@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "lib/string.h"
 #include "mos/device/console.h"
 #include "mos/kconfig.h"
-#include "mos/kernel.h"
-#include "mos/mos_global.h"
-#include "mos/panic.h"
+#include "mos/platform.h"
+#include "mos/printk.h"
 #include "mos/x86/boot/multiboot.h"
+#include "mos/x86/drivers/serial.h"
+#include "mos/x86/x86_platform.h"
 
 #ifdef MOS_KERNEL_RUN_TESTS
-extern void test_engine_run_tests();
+extern void mos_test_engine_run_tests();
 #endif
 
 void start_kernel(u32 magic, multiboot_info_t *addr)
@@ -33,7 +35,7 @@ void start_kernel(u32 magic, multiboot_info_t *addr)
     mos_warn("V2Ray 4.45.2 started");
 
 #ifdef MOS_KERNEL_RUN_TESTS
-    test_engine_run_tests();
+    mos_test_engine_run_tests();
 #endif
     while (1)
         ;

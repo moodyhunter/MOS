@@ -3,6 +3,7 @@
 #include "mos/x86/gdt_types.h"
 #include "mos/x86/idt_types.h"
 #include "mos/x86/tss_types.h"
+#include "mos/x86/x86_interrupt.h"
 
 void x86_gdt_init();
 void x86_tss_init();

@@ -1,13 +1,16 @@
 // SPDX-Licence-Identifier: GPL-3.0-or-later
 
-#include "mos/kernel.h"
+#include "mos/x86/x86_interrupt.h"
+
+#include "mos/interrupt.h"
+#include "mos/printk.h"
 #include "mos/x86/drivers/port.h"
 #include "mos/x86/x86_platform.h"
 
 // End-of-interrupt command code
 #define PIC_EOI 0x20
 
-const char *x86_exception_names[EXCEPTION_COUNT] = {
+static const char *x86_exception_names[EXCEPTION_COUNT] = {
     "Divide-By-Zero Error",
     "Debug",
     "Non-Maskable Interrupt",
@@ -43,6 +46,13 @@ const char *x86_exception_names[EXCEPTION_COUNT] = {
 
 static void isr_handle_irq(x86_stack_frame *frame);
 static void isr_handle_exception(x86_stack_frame *frame);
+list_node_t irq_handlers[IRQ_MAX_COUNT];
+
+void x86_irq_handler_init(void)
+{
+    for (int i = 0; i < IRQ_MAX_COUNT; i++)
+        linked_list_init(&irq_handlers[i]);
+}
 
 void x86_handle_interrupt(u32 esp)
 {
@@ -147,13 +157,45 @@ static void isr_handle_irq(x86_stack_frame *frame)
         uint8_t pic = (irq < 8) ? PIC1 : PIC2;
         port_outb(pic + 3, 0x03);
         if ((port_inb(pic) & 0x80) != 0)
-            goto irq_handeled;
+            goto irq_handled;
     }
 
-    pr_debug("IRQ: %d", irq);
+    bool irq_handled = false;
+    list_foreach(irq_handler_descriptor_t, handler, irq_handlers[irq])
+    {
+        irq_handled = true;
+        handler->handler(irq);
+    }
 
-irq_handeled:
+    if (unlikely(!irq_handled))
+        pr_warn("IRQ %d not handled!", irq);
+
+irq_handled:
     if (irq >= 8)
         port_outb(PIC2_COMMAND, PIC_EOI);
     port_outb(PIC1_COMMAND, PIC_EOI);
+}
+
+void irq_mask(x86_irq_enum_t irq)
+{
+    x86_port_t port;
+    u8 value;
+    if (irq < 8)
+        port = PIC1_DATA;
+    else
+        port = PIC2_DATA, irq -= 8;
+    value = port_inb(port) | (1 << irq);
+    port_outb(port, value);
+}
+
+void irq_unmask(x86_irq_enum_t irq)
+{
+    x86_port_t port;
+    u8 value;
+    if (irq < 8)
+        port = PIC1_DATA;
+    else
+        port = PIC2_DATA, irq -= 8;
+    value = port_inb(port) & ~(1 << irq);
+    port_outb(port, value);
 }

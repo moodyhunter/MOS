@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "mos/mos_global.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -20,3 +22,21 @@ typedef long double f80;
 
 typedef u8 uchar;
 typedef s8 schar;
+
+typedef union
+{
+    struct
+    {
+        bool b0 : 1;
+        bool b1 : 1;
+        bool b2 : 1;
+        bool b3 : 1;
+        bool b4 : 1;
+        bool b5 : 1;
+        bool b6 : 1;
+        bool msb : 1;
+    } __attr_packed bits;
+    u8 byte;
+} byte_t;
+
+static_assert(sizeof(byte_t) == sizeof(char), "byte_t is not 1 byte");

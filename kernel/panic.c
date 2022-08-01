@@ -3,7 +3,8 @@
 #include "mos/panic.h"
 
 #include "lib/stdio.h"
-#include "mos/kernel.h"
+#include "mos/platform.h"
+#include "mos/printk.h"
 
 #include <stdarg.h>
 

@@ -3,7 +3,7 @@
 #include "lib/stdio.h"
 #include "lib/stdlib.h"
 #include "lib/string.h"
-#include "mos/kernel.h"
+#include "mos/printk.h"
 
 typedef enum
 {
