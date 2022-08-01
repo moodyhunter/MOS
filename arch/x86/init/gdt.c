@@ -32,10 +32,6 @@ void x86_gdt_init()
     gdt32_set_entry(&gdt[1], 0x00000000, 0xFFFFFFFF, GDT_PRESENT | GDT_SEGMENT | GDT_CODE | GDT_RING_KERNEL, GDT_PAGE_GRANULARITY);
     gdt32_set_entry(&gdt[2], 0x00000000, 0xFFFFFFFF, GDT_PRESENT | GDT_SEGMENT | GDT_DATA | GDT_RING_KERNEL, GDT_PAGE_GRANULARITY);
     gdt32_set_entry(&gdt[3], 0x00000000, 0xFFFFFFFF, GDT_PRESENT | GDT_SEGMENT | GDT_CODE | GDT_RING_USER, GDT_PAGE_GRANULARITY);
-    gdt32_set_entry(&gdt[4], 0x00000000, 0xFFFFFFFF, GDT_PRESENT | GDT_SEGMENT | GDT_DATA | GDT_RING_USER, GDT_PAGE_GRANULARITY);
-
-    // TSS segment
-    gdt32_set_entry(&gdt[5], (u32) &tss, sizeof(tss32_t) - 1, GDT_PRESENT | GDT_TSS | GDT_RING_USER, 0);
 
     gdt_ptr.base = gdt;
     gdt_ptr.limit = sizeof(gdt) - 1;

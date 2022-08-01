@@ -12,7 +12,6 @@ add_kernel_source(
         x86_interrupt.c
         init/gdt.c
         init/idt.c
-        init/tss.c
         init/gdt_tss_idt_flush.asm
         init/interrupt_handler.asm
         drivers/text_mode_console.c

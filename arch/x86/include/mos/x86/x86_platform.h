@@ -8,14 +8,11 @@
 static_assert(sizeof(void *) == 4, "x86_64 is not supported");
 
 // Number of gdt entries
-#define GDT_TABLE_SIZE 6
+#define GDT_TABLE_SIZE 3
 
-#define GDT_SEGMENT_NULL     0x00
-#define GDT_SEGMENT_KCODE    0x08
-#define GDT_SEGMENT_KDATA    0x10
-#define GDT_SEGMENT_USERCODE 0x18
-#define GDT_SEGMENT_USERDATA 0x20
-#define GDT_SEGMENT_TSS      0x28
+#define GDT_SEGMENT_NULL  0x00
+#define GDT_SEGMENT_KCODE 0x08
+#define GDT_SEGMENT_KDATA 0x10
 
 #define PIC1         0x20 // IO base address for master PIC
 #define PIC2         0xA0 // IO base address for slave  PIC

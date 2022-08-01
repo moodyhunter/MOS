@@ -2,16 +2,13 @@
 
 #include "mos/x86/gdt_types.h"
 #include "mos/x86/idt_types.h"
-#include "mos/x86/tss_types.h"
 #include "mos/x86/x86_interrupt.h"
 
 void x86_gdt_init();
-void x86_tss_init();
 void x86_idt_init();
 
 extern gdt_ptr32_t gdt_ptr;
 extern gdt_entry32_t gdt[GDT_TABLE_SIZE];
-extern tss32_t tss;
 extern idtr32_t idtr;
 extern idt_entry32_t idt[IDT_ENTRY_COUNT];
 

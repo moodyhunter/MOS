@@ -45,7 +45,6 @@ void x86_init()
 
     x86_gdt_init();
     x86_idt_init();
-    x86_tss_init();
     x86_irq_handler_init();
 
     // prevent getting the timer interrupt
