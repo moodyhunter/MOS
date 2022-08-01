@@ -2,7 +2,6 @@
 section .text
 
 global gdt32_flush:function (gdt32_flush.end - gdt32_flush)
-global tss32_flush:function (tss32_flush.end - tss32_flush)
 global idt32_flush:function (idt32_flush.end - idt32_flush)
 
 gdt32_flush:
@@ -17,12 +16,6 @@ gdt32_flush:
     mov ss, ax
     jmp	0x08:.flush  ; Long jump to our new code segment
 .flush:
-    ret
-.end:
-
-tss32_flush:
-    mov eax, [esp + 4]
-    ltr ax
     ret
 .end:
 

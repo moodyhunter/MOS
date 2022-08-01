@@ -10,7 +10,6 @@
 #include "mos/x86/drivers/serial.h"
 #include "mos/x86/drivers/serial_console.h"
 #include "mos/x86/drivers/text_mode_console.h"
-#include "mos/x86/x86_init.h"
 #include "mos/x86/x86_interrupt.h"
 
 void x86_disable_interrupts()

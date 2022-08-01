@@ -4,6 +4,9 @@
 
 #include "mos/mos_global.h"
 #include "mos/types.h"
+#include "mos/x86/init/gdt_types.h"
+#include "mos/x86/init/idt_types.h"
+#include "mos/x86/x86_interrupt.h"
 
 static_assert(sizeof(void *) == 4, "x86_64 is not supported");
 
@@ -31,3 +34,20 @@ typedef struct
 } __attr_packed x86_stack_frame;
 
 static_assert(sizeof(x86_stack_frame) == 68, "x86_stack_frame is not 68 bytes");
+
+void x86_gdt_init();
+void x86_idt_init();
+
+extern gdt_ptr32_t gdt_ptr;
+extern gdt_entry32_t gdt[GDT_TABLE_SIZE];
+extern idtr32_t idtr;
+extern idt_entry32_t idt[IDT_ENTRY_COUNT];
+
+// The following 3 symbols are defined in the gdt_tss_idt.asm file.
+extern void gdt32_flush(gdt_ptr32_t *gdt_ptr);
+extern void tss32_flush(u32 tss_selector);
+extern void idt32_flush(idtr32_t *idtr);
+
+// The following 2 symbols are defined in the interrupt_handler.asm file.
+extern void *isr_stub_table[];
+extern void *irq_stub_table[];

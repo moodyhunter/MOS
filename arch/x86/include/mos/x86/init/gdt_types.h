@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/x86/x86_platform.h"
+#include "mos/types.h"
 
 #define GDT_NULL    0x00
 #define GDT_SEGMENT 0x10
