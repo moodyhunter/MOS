@@ -18,4 +18,5 @@ add_kernel_source(
         drivers/text_mode_console.c
         drivers/port.c
         drivers/serial.c
+        drivers/serial_console.c
 )

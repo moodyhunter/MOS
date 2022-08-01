@@ -102,8 +102,8 @@ bool serial_device_setup(serial_device_t *device)
         const char challenge = 'H';
         char response = { 0 };
         serial_set_modem_options(port, MODEM_LOOP, true);
-        serial_dev_write(device, &challenge, 1);
-        serial_dev_read(device, &response, 1);
+        serial_device_write(device, &challenge, 1);
+        serial_device_read(device, &response, 1);
         serial_set_modem_options(port, MODEM_LOOP, false);
         if (response != 'H')
             return false;
@@ -128,7 +128,7 @@ void serial_dev_wait_ready_to_write(serial_device_t *device)
         ;
 }
 
-int serial_dev_write(serial_device_t *device, const char *data, size_t length)
+int serial_device_write(serial_device_t *device, const char *data, size_t length)
 {
     serial_port_t port = device->port;
     size_t i = 0;
@@ -140,7 +140,7 @@ int serial_dev_write(serial_device_t *device, const char *data, size_t length)
     return i;
 }
 
-int serial_dev_read(serial_device_t *device, char *data, size_t length)
+int serial_device_read(serial_device_t *device, char *data, size_t length)
 {
     serial_port_t port = device->port;
     size_t i = 0;

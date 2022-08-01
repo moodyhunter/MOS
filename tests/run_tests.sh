@@ -3,7 +3,12 @@
 # get the current directory
 DIR=$(pwd)
 
-qemu-system-i386 -kernel $DIR/mos_multiboot.bin -monitor "unix:/tmp/monitor.sock,server,nowait" -nographic &
+qemu-system-i386 -kernel $DIR/mos_multiboot.bin \
+    -monitor "unix:/tmp/monitor.sock,server,nowait" \
+    -nographic \
+    -chardev stdio,id=char0,logfile=test-failure.log,signal=off \
+    -serial chardev:char0 &
+
 pid=$!
 sleep 5
 
@@ -14,5 +19,8 @@ ps -p $pid >/dev/null
 echo "qemu-system-i386 is still running, probably the test has failed."
 printf '%s\n' "screendump test-failure.ppm" "dump-guest-memory test-failure.dmp" "q" | nc -U /tmp/monitor.sock
 echo "Test failed."
-echo "See test-failure.ppm for the screen dump, and test-failure.dmp for the guest memory dump."
+echo "See:"
+echo " - test-failure.ppm   the screen dump"
+echo " - test-failure.dmp   the guest memory dump"
+echo " - test-failure.log   the serial log"
 exit 1

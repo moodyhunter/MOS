@@ -57,7 +57,7 @@ struct console_t
     bool (*get_color)(console_t *con, standard_color_t *fg, standard_color_t *bg);
     bool (*set_color)(console_t *con, standard_color_t fg, standard_color_t bg);
 
-    int (*read)(console_t *con, const char *dest, size_t size);
+    int (*read)(console_t *con, char *dest, size_t size);
     int (*write)(console_t *con, const char *data, size_t size);
 
     bool (*clear)(console_t *con);
