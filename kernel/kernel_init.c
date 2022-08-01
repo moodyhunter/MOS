@@ -22,6 +22,11 @@ void __stack_chk_fail()
         ;
 }
 
+void __stack_chk_fail_local(void)
+{
+    __stack_chk_fail();
+}
+
 void start_kernel(u32 magic, multiboot_info_t *addr)
 {
     mos_platform.platform_init();
