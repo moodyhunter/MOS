@@ -13,6 +13,15 @@
 extern void mos_test_engine_run_tests();
 #endif
 
+u64 __stack_chk_guard = 0;
+
+void __stack_chk_fail()
+{
+    mos_panic("Stack smashing detected!");
+    while (1)
+        ;
+}
+
 void start_kernel(u32 magic, multiboot_info_t *addr)
 {
     mos_platform.platform_init();
