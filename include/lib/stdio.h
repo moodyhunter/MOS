@@ -10,8 +10,8 @@
 // int vprintf(const char *restrict format, va_list ap);
 
 // defined in stdio.c
-int __attr_printf(2, 3) sprintf(char *restrict str, const char *restrict format, ...);
-int __attr_printf(3, 4) snprintf(char *restrict str, size_t size, const char *restrict format, ...);
+int __printf(2, 3) sprintf(char *restrict str, const char *restrict format, ...);
+int __printf(3, 4) snprintf(char *restrict str, size_t size, const char *restrict format, ...);
 int vsprintf(char *restrict str, const char *restrict format, va_list ap);
 
 // defined in stdio_impl.c

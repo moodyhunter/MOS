@@ -26,13 +26,13 @@ typedef struct
     u8 access;
     u8 granularity;
     u8 base_high;
-} __attr_packed gdt_entry32_t;
+} __packed gdt_entry32_t;
 
 typedef struct
 {
     u16 limit;
     gdt_entry32_t *base;
-} __attr_packed gdt_ptr32_t;
+} __packed gdt_ptr32_t;
 
 static_assert(sizeof(gdt_entry32_t) == 8, "gdt_entry_t is not 8 bytes");
 static_assert(sizeof(gdt_ptr32_t) == 6, "gdt_ptr_t is not 6 bytes");

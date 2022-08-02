@@ -23,6 +23,7 @@ static const char *x86_exception_names[EXCEPTION_COUNT] = {
     "Coprocessor Segment Overrun",
     "Invalid TSS",
     "Segment Not Present",
+    "Stack Segment Fault",
     "General Protection Fault",
     "Page Fault",
     "Reserved",
@@ -61,7 +62,6 @@ void x86_handle_interrupt(u32 esp)
     if (stack->interrupt_number < IRQ_BASE)
     {
         isr_handle_exception(stack);
-        return;
     }
     else if (stack->interrupt_number < IRQ_SYSCALL)
     {
@@ -80,12 +80,11 @@ void x86_handle_interrupt(u32 esp)
 static void isr_handle_exception(x86_stack_frame *stack)
 {
     MOS_ASSERT(stack->interrupt_number < EXCEPTION_COUNT);
-    pr_warn("x86 exception: %s", x86_exception_names[stack->interrupt_number]);
 
     // Faults: These can be corrected and the program may continue as if nothing happened.
     // Traps:  Traps are reported immediately after the execution of the trapping instruction.
     // Aborts: Some severe unrecoverable error.
-    switch ((x86_exception_enum_t) stack->err_code)
+    switch ((x86_exception_enum_t) stack->error_code)
     {
         case EXCEPTION_DIVIDE_ERROR:
         case EXCEPTION_DEBUG:
@@ -108,22 +107,22 @@ static void isr_handle_exception(x86_stack_frame *stack)
         case EXCEPTION_HYPERVISOR_EXCEPTION:
         case EXCEPTION_VMM_COMMUNICATION_EXCEPTION:
         case EXCEPTION_SECURITY_EXCEPTION:
-        {
-            mos_warn("Fault Exception %d", stack->interrupt_number);
-            break;
-        }
+            // {
+            //     mos_warn("Fault Exception %d", stack->interrupt_number);
+            //     break;
+            // }
 
-        case EXCEPTION_BREAKPOINT:
-        {
-            mos_warn("Breakpoint not handled.");
-            return;
-        }
+            // case EXCEPTION_BREAKPOINT:
+            // {
+            //     mos_warn("Breakpoint not handled.");
+            //     return;
+            // }
 
         case EXCEPTION_DOUBLE_FAULT:
         case EXCEPTION_MACHINE_CHECK:
         {
             mos_panic("Fatal x86 Exception:\n"
-                      "  %s (%d, by interrupt %d)\n"
+                      "Interrupt %d ('%s', error code %d)\n"
                       "General Purpose Registers:\n"
                       "  EAX: 0x%08x EBX: 0x%08x ECX: 0x%08x EDX: 0x%08x\n"
                       "  ESI: 0x%08x EDI: 0x%08x EBP: 0x%08x ESP: 0x%08x\n"
@@ -132,9 +131,9 @@ static void isr_handle_exception(x86_stack_frame *stack)
                       "  DS:  0x%08x ES:  0x%08x FS:  0x%08x GS:  0x%08x\n"
                       "  CS:  0x%08x\n"
                       "EFLAGS: 0x%08x",                               //
-                      x86_exception_names[stack->err_code],           //
-                      stack->err_code,                                //
                       stack->interrupt_number,                        //
+                      x86_exception_names[stack->interrupt_number],   //
+                      stack->error_code,                              //
                       stack->eax, stack->ebx, stack->ecx, stack->edx, //
                       stack->esi, stack->edi, stack->ebp, stack->esp, //
                       stack->eip,                                     //

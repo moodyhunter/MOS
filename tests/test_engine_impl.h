@@ -66,11 +66,11 @@ typedef void (*mos_test_func_t)(TestResult *);
         _MT_RUN_TEST_AND_PRINT_RESULT(result, _TestName);                                                                                       \
     }                                                                                                                                           \
     _MT_REGISTER_TEST_CASE(_TestName, _MT_WRAP_TEST_NAME(_TestName));                                                                           \
-    static void _TestName(TestResult *_MT_result, __attr_unused bool *_mt_test_skipped, __attr_unused bool *_mt_loop_leave)
+    static void _TestName(TestResult *_MT_result, __unused bool *_mt_test_skipped, __unused bool *_mt_loop_leave)
 
 #define MOS_TEST_DECL_PTEST(_PTestName, ptest_args_printf_format, ...)                                                                          \
     static const char *_MT_PTEST_ARG_FORMAT(_PTestName) = "argument: " ptest_args_printf_format;                                                \
-    static void _PTestName(TestResult *_MT_result, __attr_unused bool *_mt_test_skipped, __attr_unused bool *_mt_loop_leave, __VA_ARGS__)
+    static void _PTestName(TestResult *_MT_result, __unused bool *_mt_test_skipped, __unused bool *_mt_loop_leave, __VA_ARGS__)
 
 #define MOS_TEST_PTEST_INSTANCE(_PTestName, ...)                                                                                                \
     static void _MT_PTEST_CALLER(_PTestName)(TestResult * result, bool *_mt_test_skipped, bool *_mt_loop_leave)                                 \

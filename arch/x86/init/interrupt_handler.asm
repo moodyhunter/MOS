@@ -18,7 +18,7 @@ global isr_stub_table
 ; handler for a ISR with its error code (already pushed onto the stack)
 %macro ISR_handler_ec 1
 isr_stub_%+%1:
-    nop                         ; ! If the interrupt is an exception, the CPU will push an error code onto the stack, as a doubleword.
+    nop                   ; ! If the interrupt is an exception, the CPU will push an error code onto the stack, as a doubleword.
     push %1               ; interrupt number
     jmp  ISR_handler_impl
 %endmacro

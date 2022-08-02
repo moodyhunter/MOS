@@ -39,6 +39,6 @@
 #define mos_lprintk(level, fmt, ...) lprintk(level, fmt "\n", ##__VA_ARGS__)
 #define printk(fmt, ...)             mos_lprintk(MOS_LOG_DEFAULT, fmt, ##__VA_ARGS__)
 
-void __attr_printf(2, 3) lprintk(int loglevel, const char *format, ...);
-void __attr_printf(3, 4) mos_kwarn(const char *func, u32 line, const char *fmt, ...);
-void __attr_noreturn __attr_printf(3, 4) mos_kpanic(const char *func, u32 line, const char *fmt, ...);
+void __printf(2, 3) lprintk(int loglevel, const char *format, ...);
+void __printf(3, 4) mos_kwarn(const char *func, u32 line, const char *fmt, ...);
+void __noreturn __printf(3, 4) mos_kpanic(const char *func, u32 line, const char *fmt, ...);

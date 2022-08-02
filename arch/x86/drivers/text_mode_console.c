@@ -16,12 +16,12 @@ typedef struct
 {
     char character;
     u8 color;
-} __attr_packed video_cell_t;
+} __packed video_cell_t;
 
 typedef struct
 {
     video_cell_t cells[VIDEO_HEIGHT][VIDEO_WIDTH];
-} __attr_packed video_buffer_t;
+} __packed video_buffer_t;
 
 static const size_t VIDEO_LINE_SIZE = VIDEO_WIDTH * sizeof(video_cell_t);
 

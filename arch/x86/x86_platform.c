@@ -10,6 +10,7 @@
 #include "mos/x86/drivers/serial.h"
 #include "mos/x86/drivers/serial_console.h"
 #include "mos/x86/drivers/text_mode_console.h"
+#include "mos/x86/mm/mmu.h"
 #include "mos/x86/x86_interrupt.h"
 
 void x86_disable_interrupts()
@@ -55,9 +56,11 @@ void x86_init()
 
     register_console(&com1_console.console);
     register_console(&vga_text_mode_console);
+
+    paging_setup();
 }
 
-void __attr_noreturn x86_shutdown_vm()
+void __noreturn x86_shutdown_vm()
 {
     x86_disable_interrupts();
     port_outw(0x604, 0x2000);

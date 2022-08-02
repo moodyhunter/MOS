@@ -22,7 +22,7 @@
 #define PIC1_OFFSET 0x20
 #define PIC2_OFFSET 0x28
 
-__attr_aligned(16) idt_entry32_t idt[IDT_ENTRY_COUNT] = { 0 };
+__aligned(16) idt_entry32_t idt[IDT_ENTRY_COUNT] = { 0 };
 idtr32_t idtr;
 
 static void idt_set_descriptor(uint8_t vector, void *isr, uint8_t flags)

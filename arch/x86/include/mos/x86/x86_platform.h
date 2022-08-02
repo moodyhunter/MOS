@@ -29,9 +29,9 @@ typedef struct
     u32 edi, esi, ebp, esp, ebx, edx, ecx, eax;
     u32 ds, es, fs, gs;
     u32 interrupt_number;
-    u32 err_code;
+    u32 error_code;
     u32 eip, cs, eflags;
-} __attr_packed x86_stack_frame;
+} __packed x86_stack_frame;
 
 static_assert(sizeof(x86_stack_frame) == 68, "x86_stack_frame is not 68 bytes");
 

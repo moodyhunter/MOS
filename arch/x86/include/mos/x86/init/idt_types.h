@@ -11,13 +11,13 @@ typedef struct
     u8 zero;                 // Set to zero
     u8 flags;                // Type and attributes; see the IDT page
     u16 isr_high;            // The higher 16 bits of the ISR's address
-} __attr_packed idt_entry32_t;
+} __packed idt_entry32_t;
 
 typedef struct
 {
     u16 limit;
     idt_entry32_t *base;
-} __attr_packed idtr32_t;
+} __packed idtr32_t;
 
 static_assert(sizeof(idt_entry32_t) == 8, "idt_entry32_t is not 8 bytes");
 static_assert(sizeof(idtr32_t) == 6, "idtr32_t is not 6 bytes");

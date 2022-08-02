@@ -8,7 +8,7 @@
 typedef struct
 {
     void (*platform_init)(void);
-    void __attr_noreturn (*platform_shutdown)(void);
+    void __noreturn (*platform_shutdown)(void);
     void (*enable_interrupts)(void);
     void (*disable_interrupts)(void);
     void (*install_irq_handler)(u32 irq, irq_handler_descriptor_t *handler);

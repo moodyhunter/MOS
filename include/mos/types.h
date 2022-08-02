@@ -35,7 +35,7 @@ typedef union
         bool b5 : 1;
         bool b6 : 1;
         bool msb : 1;
-    } __attr_packed bits;
+    } __packed bits;
     u8 byte;
 } byte_t;
 

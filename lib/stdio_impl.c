@@ -56,7 +56,7 @@ typedef struct
     s32 precision : 16;
 
     length_modifier_t length : 8;
-} __attr_packed printf_flags_t;
+} __packed printf_flags_t;
 
 typedef enum
 {
@@ -518,6 +518,11 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 case 'p':
                 {
                     // print a pointer
+                    u64 value = (u64) va_arg(args, void *);
+                    buf_putchar(&buf, '0');
+                    buf_putchar(&buf, 'x');
+                    int c = printf_diouxX(buf, value, &flags, 'x');
+                    buf += c;
                     break;
                 }
                 case 'a':
