@@ -26,7 +26,7 @@ static void deduce_level_color(int loglevel, standard_color_t *fg, standard_colo
 
 void lprintk(int loglevel, const char *fmt, ...)
 {
-    standard_color_t fg, bg;
+    standard_color_t fg = White, bg = Black;
     deduce_level_color(loglevel, &fg, &bg);
 
     list_foreach(console_t, console, consoles)
