@@ -5,9 +5,9 @@
 
 #include "lib/string.h"
 #include "mos/mm/paging.h"
+#include "mos/printk.h"
 
 #ifdef LIBALLOC_DEBUG
-#include "mos/printk.h"
 unsigned int l_allocated = 0; //< The real amount of memory allocated.
 unsigned int l_inuse = 0;     //< The amount of memory in use (malloc'ed).
 #endif

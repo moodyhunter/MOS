@@ -21,7 +21,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 set(MOS_ARCH_TARGET "x86")
 option(MOS_KERNEL_RUN_TESTS "Run tests in the Kernel" OFF)
-option(MOS_MM_LIBALLOC_HAS_LOCKS "Use locks in liballoc" ON)
+option(MOS_MM_LIBALLOC_HAS_LOCKS "Use locks in liballoc" OFF)
 option(LIBALLOC_DEBUG "Enable liballoc debug" OFF)
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
