@@ -3,6 +3,7 @@
 #include "mos/x86/x86_interrupt.h"
 
 #include "mos/interrupt.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/x86/drivers/port.h"
 #include "mos/x86/x86_platform.h"
@@ -69,11 +70,12 @@ void x86_handle_interrupt(u32 esp)
     }
     else if (stack->interrupt_number == IRQ_SYSCALL)
     {
-        printk("Syscall.");
+        // ! mos_invoke_syscall(stack->eax, stack->ebx, stack->ecx, stack->edx, stack->esi, stack->edi);
+        pr_debug("Syscall.");
     }
     else
     {
-        printk("Unknown interrupt.");
+        pr_debug("Unknown interrupt.");
     }
 }
 
@@ -175,7 +177,7 @@ irq_handled:
     port_outb(PIC1_COMMAND, PIC_EOI);
 }
 
-void irq_mask(x86_irq_enum_t irq)
+void x86_irq_mask(x86_irq_enum_t irq)
 {
     x86_port_t port;
     u8 value;
@@ -187,7 +189,7 @@ void irq_mask(x86_irq_enum_t irq)
     port_outb(port, value);
 }
 
-void irq_unmask(x86_irq_enum_t irq)
+void x86_irq_unmask(x86_irq_enum_t irq)
 {
     x86_port_t port;
     u8 value;

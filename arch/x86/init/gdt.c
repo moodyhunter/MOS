@@ -3,8 +3,8 @@
 #include "mos/x86/init/gdt_types.h"
 #include "mos/x86/x86_platform.h"
 
-gdt_ptr32_t gdt_ptr;
-gdt_entry32_t gdt[GDT_TABLE_SIZE] __aligned(8);
+static gdt_ptr32_t gdt_ptr;
+static gdt_entry32_t gdt[GDT_ENTRY_COUNT] __aligned(8);
 
 // Stolen from https://github.com/szhou42/osdev/blob/52c02f0d4327442493459253a5c6c83c5f378765/src/kernel/descriptor_tables/gdt.c#L33
 // Originally licensed under the GPLv3 license.

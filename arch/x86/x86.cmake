@@ -19,6 +19,6 @@ add_kernel_source(
         drivers/serial.c
         drivers/serial_console.c
         mm/paging.c
-        mm/mmu.c
+        mm/mm.c
         mm/enable_paging.asm
 )

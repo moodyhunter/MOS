@@ -20,9 +20,6 @@ typedef float f32;
 typedef double f64;
 typedef long double f80;
 
-typedef u8 uchar;
-typedef s8 schar;
-
 typedef union
 {
     struct

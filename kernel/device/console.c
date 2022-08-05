@@ -20,9 +20,11 @@ static console_t dummy_con = {
     .write = dummy_write,
     .list_node = MOS_LIST_HEAD_INIT(consoles),
 };
+
+static bool has_console_registered = false;
 list_node_t consoles = MOS_LIST_NODE_INIT(dummy_con);
 
-void register_console(console_t *con)
+void mos_register_console(console_t *con)
 {
     if (con->caps & CONSOLE_CAP_SETUP)
         con->setup(con);
@@ -33,10 +35,10 @@ void register_console(console_t *con)
     list_node_append(&consoles, list_node(con));
     pr_info("Registered console: '%s'", con->name);
 
-    static bool has_console_registered = false;
     if (unlikely(!has_console_registered))
     {
         pr_debug("Removing dummy console: '%s'", dummy_con.name);
         list_remove(&dummy_con);
+        has_console_registered = true;
     }
 }

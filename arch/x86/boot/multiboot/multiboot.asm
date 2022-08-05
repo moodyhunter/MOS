@@ -1,5 +1,5 @@
 [bits 32]
-[extern start_kernel]
+[extern x86_start_kernel]
 
 constants:
     STACK_ADDR  equ  0x00f00000                             ; Stack starts at the 16MB address & grows down
@@ -28,7 +28,7 @@ _start:
     popf
     push ebx                        ; Push multiboot2 header pointer
     push eax                        ; Push multiboot2 magic value
-    call start_kernel               ; start the kernel
+    call x86_start_kernel           ; start the kernel
     cli
 .hang:
     hlt

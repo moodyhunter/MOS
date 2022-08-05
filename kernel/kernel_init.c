@@ -3,45 +3,28 @@
 #include "lib/string.h"
 #include "mos/device/console.h"
 #include "mos/kconfig.h"
-#include "mos/platform.h"
+#include "mos/mm/kmalloc.h"
+#include "mos/mm/paging.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
-#include "mos/x86/boot/multiboot.h"
-#include "mos/x86/drivers/serial.h"
-#include "mos/x86/x86_platform.h"
 
 #ifdef MOS_KERNEL_RUN_TESTS
 extern void mos_test_engine_run_tests();
 #endif
 
-u64 __stack_chk_guard = 0;
-
-void __stack_chk_fail()
+void mos_start_kernel(mos_init_info_t *init_info)
 {
-    mos_panic("Stack smashing detected!");
-    while (1)
-        ;
-}
+    mos_platform.interrupt_enable();
+    mos_platform.mm_setup_paging();
 
-void __stack_chk_fail_local(void)
-{
-    __stack_chk_fail();
-}
+    mm_setup();
 
-void start_kernel(u32 magic, multiboot_info_t *addr)
-{
-    mos_platform.platform_init();
-    mos_platform.enable_interrupts();
+    void *ptr = kmalloc(15);
+    MOS_UNUSED(ptr);
 
     pr_info("Welcome to MOS!");
-
-    if (magic != MULTIBOOT_BOOTLOADER_MAGIC)
-        mos_panic("invalid magic number: %x", magic);
-
-    if (!(addr->flags & MULTIBOOT_INFO_MEM_MAP))
-        mos_panic("no memory map");
-
-    pr_info("MOS Information:");
-    pr_emph("cmdline: %s", addr->cmdline);
+    pr_info("Boot Information:");
+    pr_emph("cmdline: %s", init_info->cmdline);
     pr_emph("%-25s'%s'", "Kernel Version:", MOS_KERNEL_VERSION);
     pr_emph("%-25s'%s'", "Kernel Revision:", MOS_KERNEL_REVISION);
     pr_emph("%-25s'%s'", "Kernel builtin cmdline:", MOS_KERNEL_BUILTIN_CMDLINE);

@@ -8,7 +8,7 @@ project(MOS LANGUAGES CXX C ASM_NASM VERSION 0.1)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_C_EXTENSIONS ON)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wpedantic -pedantic -fstack-protector")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wpedantic -pedantic -fstack-protector -fstack-check")
 
 # set(CMAKE_CXX_STANDARD 20)
 # set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
@@ -19,8 +19,10 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
-option(MOS_KERNEL_RUN_TESTS "Run tests in the Kernel" OFF)
 set(MOS_ARCH_TARGET "x86")
+option(MOS_KERNEL_RUN_TESTS "Run tests in the Kernel" OFF)
+option(MOS_MM_LIBALLOC_HAS_LOCKS "Use locks in liballoc" ON)
+option(LIBALLOC_DEBUG "Enable liballoc debug" OFF)
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
     message(STATUS "Found custom configuration file 'config.cmake'")
@@ -44,11 +46,16 @@ include_directories(
 )
 
 add_library(mos_kernel.elf STATIC
-    kernel/device/console.c
     kernel/kernel_init.c
     kernel/panic.c
     kernel/printk.c
     kernel/interrupt.c
+    kernel/stack_protector.c
+    kernel/device/console.c
+    kernel/mm/kmalloc.c
+    kernel/mm/liballoc.c
+    kernel/mm/paging.c
+    kernel/platform/mm.c
     lib/stdlib.c
     lib/string.c
     lib/stdio.c
@@ -66,6 +73,9 @@ mos_add_summary_item(KERNEL "Version" "${MOS_KERNEL_VERSION_STRING}")
 mos_add_summary_item(KERNEL "Revision" "${MOS_KERNEL_REVISION_STRING}")
 mos_add_summary_item(KERNEL "Builtin Cmdline" "${MOS_KERNEL_BUILTIN_CMDLINE_STRING}")
 mos_add_summary_item(KERNEL "Architecture" "${MOS_ARCH_TARGET}")
+
+mos_add_summary_section(MM "MOS Memory Management")
+mos_add_summary_item(MM "liballoc: locks" "${MOS_MM_LIBALLOC_HAS_LOCKS}")
 
 # Configure architecture-specific stuff
 include(add_kernel_source)

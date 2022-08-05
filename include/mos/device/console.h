@@ -67,4 +67,4 @@ struct console_t
 };
 
 extern list_node_t consoles;
-void register_console(console_t *con);
+void mos_register_console(console_t *con);

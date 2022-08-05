@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "mos/mos_global.h"
 #include "mos/types.h"
 
 /* How many bytes from the start of the file we search for the header.  */
@@ -116,26 +117,41 @@ struct multiboot_header
 };
 
 /* The symbol table for a.out.  */
-struct multiboot_aout_symbol_table
+typedef struct multiboot_aout_symbol_table
 {
     u32 tabsize;
     u32 strsize;
     u32 addr;
     u32 reserved;
-};
-typedef struct multiboot_aout_symbol_table multiboot_aout_symbol_table_t;
+} multiboot_aout_symbol_table_t;
 
 /* The section header table for ELF.  */
-struct multiboot_elf_section_header_table
+typedef struct
 {
     u32 num;
     u32 size;
     u32 addr;
     u32 shndx;
-};
-typedef struct multiboot_elf_section_header_table multiboot_elf_section_header_table_t;
+} multiboot_elf_section_header_table_t;
 
-struct multiboot_info
+typedef enum
+{
+    MULTIBOOT_MEMORY_AVAILABLE = 1,
+    MULTIBOOT_MEMORY_RESERVED = 2,
+    MULTIBOOT_MEMORY_ACPI_RECLAIMABLE = 3,
+    MULTIBOOT_MEMORY_NVS = 4,
+    MULTIBOOT_MEMORY_BADRAM = 5,
+} multiboot_memory_type_t;
+
+typedef struct
+{
+    u32 size;
+    u64 addr;
+    u64 len;
+    multiboot_memory_type_t type;
+} __packed multiboot_mmap_entry_t;
+
+typedef struct multiboot_info
 {
     /* Multiboot info version number */
     u32 flags;
@@ -162,7 +178,7 @@ struct multiboot_info
 
     /* Memory Mapping buffer */
     u32 mmap_length;
-    u32 mmap_addr;
+    multiboot_mmap_entry_t *mmap_addr;
 
     /* Drive Info buffer */
     u32 drives_length;
@@ -211,8 +227,7 @@ struct multiboot_info
             u8 framebuffer_blue_mask_size;
         };
     };
-};
-typedef struct multiboot_info multiboot_info_t;
+} __packed multiboot_info_t;
 
 struct multiboot_color
 {
@@ -220,20 +235,6 @@ struct multiboot_color
     u8 green;
     u8 blue;
 };
-
-struct multiboot_mmap_entry
-{
-    u32 size;
-    u64 addr;
-    u64 len;
-#define MULTIBOOT_MEMORY_AVAILABLE        1
-#define MULTIBOOT_MEMORY_RESERVED         2
-#define MULTIBOOT_MEMORY_ACPI_RECLAIMABLE 3
-#define MULTIBOOT_MEMORY_NVS              4
-#define MULTIBOOT_MEMORY_BADRAM           5
-    u32 type;
-} __attribute__((packed));
-typedef struct multiboot_mmap_entry multiboot_memory_map_t;
 
 struct multiboot_mod_list
 {

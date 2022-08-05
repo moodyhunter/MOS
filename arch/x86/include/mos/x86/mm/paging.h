@@ -40,3 +40,7 @@ typedef struct
 } __packed page_directory_entry;
 
 static_assert(sizeof(page_directory_entry) == 4, "page_directory_entry is not 4 bytes");
+
+void x86_enable_paging();
+void *x86_alloc_page(size_t n);
+bool x86_free_page(void *ptr, size_t n);

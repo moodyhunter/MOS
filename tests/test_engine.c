@@ -7,7 +7,7 @@
 #include "lib/string.h"
 #include "mos/device/console.h"
 #include "mos/panic.h"
-#include "mos/platform.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 
 s32 test_engine_n_warning_expected = 0;
@@ -92,5 +92,5 @@ void mos_test_engine_run_tests()
 
     u32 passed = result.n_total - result.n_failed - result.n_skipped;
     pr_emph("ALL %u TESTS PASSED: (%u succeed, %u failed, %u skipped)", result.n_total, passed, result.n_failed, result.n_skipped);
-    mos_platform.platform_shutdown();
+    mos_platform.shutdown();
 }

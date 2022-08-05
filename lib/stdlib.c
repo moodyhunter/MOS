@@ -2,6 +2,7 @@
 
 #include "lib/stdlib.h"
 
+#include "lib/stdio.h"
 #include "mos/types.h"
 
 static int isspace(int _c)
@@ -49,4 +50,16 @@ s32 atoi(const char *nptr)
     }
 
     return neg ? -val : val;
+}
+
+void format_size(char *buf, size_t buf_size, u64 size)
+{
+    if (size < 1024)
+        snprintf(buf, buf_size, "%llu B", size);
+    else if (size < 1024 * 1024)
+        snprintf(buf, buf_size, "%llu KiB", size / 1024);
+    else if (size < 1024 * 1024 * 1024)
+        snprintf(buf, buf_size, "%llu MiB", size / (1024 * 1024));
+    else
+        snprintf(buf, buf_size, "%llu GiB", size / (1024 * 1024 * 1024));
 }

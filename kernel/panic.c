@@ -3,7 +3,7 @@
 #include "mos/panic.h"
 
 #include "lib/stdio.h"
-#include "mos/platform.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 
 #include <stdarg.h>
@@ -43,9 +43,9 @@ void kpanic_handler_remove()
 #undef mos_warn
 #undef mos_panic
 
-void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
+void _mos_kpanic(const char *func, u32 line, const char *fmt, ...)
 {
-    mos_platform.disable_interrupts();
+    mos_platform.interrupt_disable();
 
     va_list args;
     if (kpanic_handler)
@@ -75,7 +75,7 @@ void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
         ;
 }
 
-void mos_kwarn(const char *func, u32 line, const char *fmt, ...)
+void _mos_kwarn(const char *func, u32 line, const char *fmt, ...)
 {
     va_list args;
     if (kwarn_handler)

@@ -20,10 +20,25 @@ s32 strcmp(const char *s1, const char *s2)
 
 void *memcpy(void *restrict dest, const void *restrict src, size_t n)
 {
-    u8 *d = dest;
-    const u8 *s = src;
-    for (size_t i = 0; i < n; i++)
-        d[i] = s[i];
+    typedef intmax_t largeint_t;
+    largeint_t *ldest = (largeint_t *) dest;
+    largeint_t *lsrc = (largeint_t *) src;
+
+    while (n >= sizeof(largeint_t))
+    {
+        *ldest++ = *lsrc++;
+        n -= sizeof(largeint_t);
+    }
+
+    char *cdest = (char *) ldest;
+    char *csrc = (char *) lsrc;
+
+    while (n > 0)
+    {
+        *cdest++ = *csrc++;
+        n--;
+    }
+
     return dest;
 }
 
