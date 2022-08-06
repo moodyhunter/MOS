@@ -18,12 +18,12 @@ struct list_node_t
 #define as_linked_list list_node_t list_node
 
 // clang-format off
-#define MOS_LIST_HEAD_INIT(container) { .prev = &(container), .next = &(container) }
+#define LIST_HEAD_INIT(container) { .prev = &(container), .next = &(container) }
 // clang-format on
 
-#define MOS_LIST_NODE_INIT(container) MOS_LIST_HEAD_INIT(container.list_node)
-#define list_entry(node, type)        container_of(((list_node_t *) node), type, list_node)
-#define list_node(element)            (&((element)->list_node))
+#define LIST_NODE_INIT(container) LIST_HEAD_INIT(container.list_node)
+#define list_entry(node, type)    container_of(((list_node_t *) node), type, list_node)
+#define list_node(element)        (&((element)->list_node))
 
 #define list_prepend(element, item)       list_node_prepend(list_node(element), list_node(item))
 #define list_append(element, item)        list_node_append(list_node(element), list_node(item))

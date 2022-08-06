@@ -18,11 +18,11 @@ static console_t dummy_con = {
     .name = "dummy",
     .caps = CONSOLE_CAP_NONE,
     .write = dummy_write,
-    .list_node = MOS_LIST_HEAD_INIT(consoles),
+    .list_node = LIST_HEAD_INIT(consoles),
 };
 
 static bool has_console_registered = false;
-list_node_t consoles = MOS_LIST_NODE_INIT(dummy_con);
+list_node_t consoles = LIST_NODE_INIT(dummy_con);
 
 void mos_register_console(console_t *con)
 {

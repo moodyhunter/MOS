@@ -23,7 +23,7 @@ static serial_console_t com1_console = {
 
 // !! TODO: Use kmalloc to allocate the handler_descriptor
 static irq_handler_descriptor_t com1_handler = {
-    .list_node = MOS_LIST_NODE_INIT(com1_handler),
+    .list_node = LIST_NODE_INIT(com1_handler),
     .handler = serial_irq_handler,
 };
 
