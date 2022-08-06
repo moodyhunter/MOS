@@ -38,6 +38,13 @@ typedef struct
 
 static_assert(sizeof(x86_stack_frame) == 68, "x86_stack_frame is not 68 bytes");
 
+// defined in the linker script 'multiboot.ld'
+extern const char __MOS_SECTION_KERNEL_START;
+extern const char __MOS_SECTION_KERNEL_END;
+
+extern const uintptr_t x86_kernel_start_addr;
+extern const uintptr_t x86_kernel_end_addr;
+
 void x86_gdt_init();
 void x86_idt_init();
 

@@ -12,9 +12,8 @@
 #include "mos/x86/mm/mm.h"
 #include "mos/x86/mm/paging.h"
 
-// defined in the linker script 'multiboot.ld'
-extern const char __MOS_SECTION_KERNEL_START;
-extern const char __MOS_SECTION_KERNEL_END;
+const uintptr_t x86_kernel_start_addr = (uintptr_t) &__MOS_SECTION_KERNEL_START;
+const uintptr_t x86_kernel_end_addr = (uintptr_t) &__MOS_SECTION_KERNEL_END;
 
 static serial_console_t com1_console = {
     .device = { .port = COM1, .baud_rate = 115200, .char_length = CHAR_LENGTH_8, .stop_bits = STOP_BITS_1, .parity = PARITY_EVEN },
@@ -29,6 +28,7 @@ static irq_handler_descriptor_t com1_handler = {
 
 void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
 {
+    x86_disable_interrupts();
     mos_register_console(&vga_text_mode_console);
     mos_register_console(&com1_console.console);
 
@@ -37,8 +37,6 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
 
     if (!(mb_info->flags & MULTIBOOT_INFO_MEM_MAP))
         mos_panic("no memory map");
-
-    x86_disable_interrupts();
 
     x86_gdt_init();
     x86_idt_init();
@@ -53,7 +51,7 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     x86_install_interrupt_handler(IRQ_COM1, &com1_handler);
 
     u32 count = mb_info->mmap_length / sizeof(multiboot_mmap_entry_t);
-    x86_setup_mem(mb_info->mmap_addr, count);
+    x86_setup_mm(mb_info->mmap_addr, count);
 
     mos_init_info_t init;
     init.cmdline = mb_info->cmdline;
@@ -84,9 +82,9 @@ void __noreturn x86_shutdown_vm()
         ;
 }
 
-mos_platform_t mos_platform = {
-    .kernel_start = (void *) &__MOS_SECTION_KERNEL_START,
-    .kernel_end = (void *) &__MOS_SECTION_KERNEL_END,
+const mos_platform_t mos_platform = {
+    .kernel_start = &__MOS_SECTION_KERNEL_START,
+    .kernel_end = &__MOS_SECTION_KERNEL_END,
 
     .shutdown = x86_shutdown_vm,
     .interrupt_disable = x86_disable_interrupts,
@@ -95,7 +93,7 @@ mos_platform_t mos_platform = {
 
     // memory management
     .mm_page_size = X86_PAGE_SIZE,
-    .mm_setup_paging = x86_enable_paging,
-    .mm_alloc_page = x86_alloc_page,
-    .mm_free_page = x86_free_page,
+    .mm_enable_paging = x86_mm_enable_paging,
+    .mm_alloc_page = x86_mm_alloc_page,
+    .mm_free_page = x86_mm_free_page,
 };

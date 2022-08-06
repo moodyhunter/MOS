@@ -7,6 +7,11 @@
 
 #define PRINTK_BUFFER_SIZE 1024
 
+#define B
+#define KB B * 1024
+#define MB KB * 1024
+#define GB MB * 1024
+
 #define MOS_TODO(fmt, ...)         mos_warn("TODO: " fmt, ##__VA_ARGS__)
 #define MOS_UNIMPLEMENTED(content) mos_panic("UNIMPLEMENTED: %s", content)
 #define MOS_UNREACHABLE()          mos_panic("UNREACHABLE")

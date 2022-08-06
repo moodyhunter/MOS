@@ -86,7 +86,7 @@ static void isr_handle_exception(x86_stack_frame *stack)
     // Faults: These can be corrected and the program may continue as if nothing happened.
     // Traps:  Traps are reported immediately after the execution of the trapping instruction.
     // Aborts: Some severe unrecoverable error.
-    switch ((x86_exception_enum_t) stack->error_code)
+    switch ((x86_exception_enum_t) stack->interrupt_number)
     {
         case EXCEPTION_DIVIDE_ERROR:
         case EXCEPTION_DEBUG:
@@ -100,7 +100,6 @@ static void isr_handle_exception(x86_stack_frame *stack)
         case EXCEPTION_SEGMENT_NOT_PRESENT:
         case EXCEPTION_STACK_SEGMENT_FAULT:
         case EXCEPTION_GENERAL_PROTECTION_FAULT:
-        case EXCEPTION_PAGE_FAULT:
         case EXCEPTION_FPU_ERROR:
         case EXCEPTION_ALIGNMENT_CHECK:
         case EXCEPTION_SIMD_ERROR:
@@ -109,16 +108,19 @@ static void isr_handle_exception(x86_stack_frame *stack)
         case EXCEPTION_HYPERVISOR_EXCEPTION:
         case EXCEPTION_VMM_COMMUNICATION_EXCEPTION:
         case EXCEPTION_SECURITY_EXCEPTION:
-            // {
-            //     mos_warn("Fault Exception %d", stack->interrupt_number);
-            //     break;
-            // }
+        {
+            mos_warn("Fault Exception %d", stack->interrupt_number);
+            break;
+        }
 
-            // case EXCEPTION_BREAKPOINT:
-            // {
-            //     mos_warn("Breakpoint not handled.");
-            //     return;
-            // }
+        case EXCEPTION_BREAKPOINT:
+        {
+            mos_warn("Breakpoint not handled.");
+            return;
+        }
+
+        case EXCEPTION_PAGE_FAULT:
+            // !! TODO: Handle page fault correctly before treating it as recoverable.
 
         case EXCEPTION_DOUBLE_FAULT:
         case EXCEPTION_MACHINE_CHECK:

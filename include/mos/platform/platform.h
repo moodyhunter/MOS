@@ -4,16 +4,28 @@
 
 #include "mos/interrupt.h"
 #include "mos/mos_global.h"
+#include "mos/types.h"
 
 typedef struct
 {
     const char *cmdline;
 } mos_init_info_t;
 
+typedef enum
+{
+    PAGING_ENTRY_NONE = 0,
+    PAGING_ENTRY_PRESENT = 1 << 0,
+    PAGING_ENTRY_WRITABLE = 1 << 1,
+    PAGING_ENTRY_USERMODE = 1 << 2,
+    PAGING_ENTRY_WRITE_THROUGH = 1 << 3,
+    PAGING_ENTRY_CACHE_DISABLED = 1 << 4,
+    PAGING_ENTRY_ACCESSED = 1 << 5,
+} paging_entry_flags;
+
 typedef struct
 {
-    void *kernel_start;
-    void *kernel_end;
+    const void *kernel_start;
+    const void *kernel_end;
 
     void __noreturn (*shutdown)(void);
 
@@ -25,13 +37,13 @@ typedef struct
 
     // memory management
     size_t mm_page_size;
-    void (*mm_setup_paging)(void);
+    void (*mm_enable_paging)(void);
     void *(*mm_alloc_page)(size_t n);
-    bool (*mm_free_page)(void *ptr, size_t n);
-    void (*mm_set_page_flags)(void *ptr, size_t n, u32 flags);
+    bool (*mm_free_page)(void *vaddr, size_t n);
+    void (*mm_set_page_flags)(void *vaddr, size_t n, paging_entry_flags flags);
 } mos_platform_t;
 
-extern mos_platform_t mos_platform;
+extern const mos_platform_t mos_platform;
 
 extern void mos_start_kernel(mos_init_info_t *init_info);
 extern void mos_invoke_syscall(u64 syscall_number);

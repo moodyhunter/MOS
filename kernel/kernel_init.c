@@ -15,12 +15,9 @@ extern void mos_test_engine_run_tests();
 void mos_start_kernel(mos_init_info_t *init_info)
 {
     mos_platform.interrupt_enable();
-    mos_platform.mm_setup_paging();
+    mos_platform.mm_enable_paging();
 
     mm_setup();
-
-    void *ptr = kmalloc(15);
-    MOS_UNUSED(ptr);
 
     pr_info("Welcome to MOS!");
     pr_info("Boot Information:");

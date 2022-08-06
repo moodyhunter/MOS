@@ -23,6 +23,12 @@
                     "ignoreFailures": true
                 },
             ],
+            "sourceFileMap": {
+                "${workspaceFolder}": {
+                    "editorPath": "${workspaceFolder}",
+                    "useForBreakpoints": "true"
+                }
+            },
         },
     ]
 }

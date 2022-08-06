@@ -3,14 +3,15 @@
 #include "mos/x86/mm/mm.h"
 
 #include "lib/stdlib.h"
+#include "lib/string.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/x86/boot/multiboot.h"
+#include "mos/x86/mm/paging.h"
 
-void x86_setup_mem(multiboot_mmap_entry_t *map_entry, u32 count)
+void x86_setup_mm(multiboot_mmap_entry_t *map_entry, u32 count)
 {
     pr_info("Multiboot memory map:");
-
     for (u32 i = 0; i < count; i++)
     {
         multiboot_mmap_entry_t *entry = map_entry + i;
@@ -29,8 +30,9 @@ void x86_setup_mem(multiboot_mmap_entry_t *map_entry, u32 count)
         }
         format_size(size_buf, sizeof(size_buf), entry->len);
 
-        pr_debug("  %d: 0x%.8llx (+0x%.8llx): %10s (%s)", i, entry->addr, entry->len, type_str, size_buf);
+        pr_debug("  %d: 0x%.8llx (+0x%.8llx): %-10s (%s)", i, entry->addr, entry->len, type_str, size_buf);
     }
 
     mos_mem_finish_setup();
+    x86_mm_setup_paging();
 }

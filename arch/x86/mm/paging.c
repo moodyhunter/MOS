@@ -2,182 +2,121 @@
 
 #include "mos/x86/mm/paging.h"
 
+#include "lib/containers.h"
+#include "lib/string.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/x86/boot/multiboot.h"
+#include "mos/x86/mm/mm.h"
 #include "mos/x86/x86_platform.h"
 
-#define MEM_ALIGNMENT_4K 4096
+static const void *x86_paging_area_start = &__MOS_X86_PAGING_AREA_START;
+static const void *x86_page_table_start = &__MOS_X86_PAGE_TABLE_START;
+static const void *x86_paging_area_end = &__MOS_X86_PAGING_AREA_END;
 
-static page_directory_entry page_dir[1024] __aligned(MEM_ALIGNMENT_4K) = { 0 };
-// static page_table_entry kernel_table[1024] __aligned(MEM_ALIGNMENT_4K) = { 0 };
+pgdir_entry *mm_page_dir;
+pgtable_entry *mm_page_table;
+
+list_node_t mm_free_pages;
 
 extern void x86_enable_paging_impl(void *page_dir);
 
-#define SET(block)                                                                                                                              \
-    memory_bitmap[((block) / 32)] |= (uint32_t) (1 << ((block) % 32));                                                                          \
-    s_freePages -= 1
-
-static int s_totalPages; //< The total number of pages available.
-static int s_freePages;  //< The total number of free pages.
-static int s_lastPage;   //< The last page used in the bitmap.
-
-u64 parse_memory_map(multiboot_mmap_entry_t *mboot, u32 count);
-
-void x86_enable_paging()
+void x86_mm_setup_paging()
 {
-    mos_warn("pading not implemented");
-    return;
-    pr_info("Page directory: %p", (void *) &page_dir[0]);
-    x86_enable_paging_impl(page_dir);
+    // validate if the memory region calculated from the linker script is correct.
+    s64 paging_area_size = (uintptr_t) x86_paging_area_end - (uintptr_t) x86_paging_area_start;
+    static const s64 paging_area_size_expected = 1024 * sizeof(pgdir_entry) + 1024 * 1024 * sizeof(pgtable_entry);
+    pr_debug("paging: provided size: 0x%llx, minimum required size: 0x%llx", paging_area_size, paging_area_size_expected);
+    MOS_ASSERT_X(paging_area_size >= paging_area_size_expected, "allocated paging area size is too small");
+
+    // place the global page directory at somewhere outside of the kernel
+    mm_page_dir = (pgdir_entry *) x86_paging_area_start;
+    mm_page_table = (pgtable_entry *) x86_page_table_start;
+
+    MOS_ASSERT_X((uintptr_t) mm_page_dir % 4096 == 0, "page directory is not aligned to 4096");
+    MOS_ASSERT_X((uintptr_t) mm_page_table % 4096 == 0, "page table is not aligned to 4096");
+
+    // initialize the page directory
+    memset(mm_page_dir, 0, sizeof(pgdir_entry) * 1024);
+
+    // setup identity mapping for the first 1MB of memory.
+    pr_debug("paging: setting up 1MB identity mapping... (except for NULL)");
+    x86_mm_map_page(0, 0, PAGING_ENTRY_NONE); // NULL page, don't touch nullptr.
+    for (int addr = X86_PAGE_SIZE; addr < 1 MB; addr += X86_PAGE_SIZE)
+        x86_mm_map_page(addr, addr, PAGING_ENTRY_WRITABLE);
+
+    pr_debug("paging: mapping kernel space...");
+    uintptr_t addr = (x86_kernel_start_addr / X86_PAGE_SIZE) * X86_PAGE_SIZE; // align the address to the page size
+    while (addr < x86_kernel_end_addr)
+    {
+        x86_mm_map_page(addr, addr, PAGING_ENTRY_WRITABLE);
+        addr += X86_PAGE_SIZE;
+    }
 }
 
-void *x86_alloc_page(size_t n)
+void x86_mm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags)
+{
+    // ensure the page is aligned to 4096
+    MOS_ASSERT_X(vaddr % X86_PAGE_SIZE == 0, "vaddr is not aligned to 4096");
+
+    int page_dir_index = vaddr >> 22;
+    int page_table_index = vaddr >> 12 & 0x3ff;
+
+    pgdir_entry *page_dir = mm_page_dir + page_dir_index;
+    pgtable_entry *page_table;
+
+    if (likely(page_dir->present))
+    {
+        page_table = ((pgtable_entry *) (page_dir->page_table_addr << 12)) + page_table_index;
+    }
+    else
+    {
+        page_table = mm_page_table + page_dir_index * 1024 + page_table_index;
+        page_dir->present = true;
+        page_dir->page_table_addr = (uintptr_t) page_table >> 12;
+    }
+
+    page_dir->writable |= !!(flags & PAGING_ENTRY_WRITABLE);
+    page_dir->usermode |= !!(flags & PAGING_ENTRY_USERMODE);
+
+    page_table->present = true;
+    page_table->writable = !!(flags & PAGING_ENTRY_WRITABLE);
+    page_table->usermode = !!(flags & PAGING_ENTRY_USERMODE);
+    page_table->phys_addr = (uintptr_t) paddr >> 12;
+}
+
+void x86_mm_unmap_page(uintptr_t vaddr)
+{
+    int page_dir_index = vaddr >> 22;
+    int page_table_index = vaddr >> 12 & 0x3ff;
+
+    pgdir_entry *page_dir = mm_page_dir + page_dir_index;
+    if (unlikely(!page_dir->present))
+    {
+        mos_warn("page '%zx' not mapped", vaddr);
+        return;
+    }
+
+    pgtable_entry *page_table = ((pgtable_entry *) (page_dir->page_table_addr << 12)) + page_table_index;
+    page_table->present = false;
+}
+
+void x86_mm_enable_paging()
+{
+    pr_info("Page directory is at: %p", (void *) mm_page_dir);
+    x86_enable_paging_impl(mm_page_dir);
+    pr_info("Paging enabled.");
+}
+
+void *x86_mm_alloc_page(size_t n)
 {
     MOS_UNUSED(n);
     return NULL;
 }
 
-bool x86_free_page(void *ptr, size_t n)
+bool x86_mm_free_page(void *vptr, size_t n)
 {
-    MOS_UNUSED(ptr);
+    MOS_UNUSED(vptr);
     MOS_UNUSED(n);
     return false;
 }
-
-// --------- ACTUAL PHYSICAL MEMORY BITMAP ----------------------
-// Please go ALL THE WAY DOWN for the initialization routines.
-
-// Basically 2 GB worth of pages. (2 GB / 4096 => 2^19)
-// And 2^14 uint32_t required to manage that.
-
-#define TOTAL_PAGES (2 << 19)
-#define MAXMAP      (2 << 14)
-
-static uint32_t memory_bitmap[MAXMAP];
-
-#define ISSET(block) ((memory_bitmap[((block) / 32)] & (uint32_t) (1 << ((block) % 32))) != 0)
-
-#define UNSET(block)                                                                                                                            \
-    memory_bitmap[((block) / 32)] &= ~((uint32_t) (1 << ((block) % 32)));                                                                       \
-    s_freePages += 1
-
-void *memory_multiple_alloc(int pages)
-{
-    int i, j;
-    int block = -1;
-
-    for (i = 0; i < MAXMAP; i++)
-    {
-        int pos = (i + s_lastPage) % MAXMAP;
-        if ((pos + pages) > MAXMAP)
-        {
-            i += pages - 2;
-            continue;
-        }
-        // Contiguous does not mean wrapped-around.
-
-        // Scan from the current pos up for pages amount.
-        block = pos;
-        for (j = 0; j < pages; j++)
-        {
-            if (ISSET(pos + j))
-            {
-                block = -1;
-                i = i + j; // Don't waste time.
-                break;
-            }
-        }
-
-        if (block != -1)
-            break; // Hooray. We have our range.
-    }
-
-    // Nothing was found..
-    if (block == -1)
-        return NULL;
-
-    // for (i = 0; i < pages; i++)
-    // {
-    //     SET(block + i);
-    // }
-
-    s_lastPage = block + pages;
-
-    return (void *) ((unsigned int) block * X86_PAGE_SIZE);
-}
-
-void *memory_alloc(int pages)
-{
-    void *ptr = NULL;
-    MOS_ASSERT(pages > 0);
-
-    // begin_critical_section();
-
-    // Not enough memory.
-    if (s_freePages > pages)
-    {
-        ptr = memory_multiple_alloc(pages);
-        if (ptr == NULL)
-            pr_warn("!OUT OF MEMORY. RETURNING NULL (%i,%i,%i)\n", s_totalPages, s_freePages, pages);
-    }
-
-    // end_critical_section();
-    return ptr;
-}
-
-/** Unmarks the bit in the bitmap and pushes the
- * available page back onto the stack.
- */
-void memory_free(int pages, void *position)
-{
-    int start, index;
-
-    // begin_critical_section();
-    MOS_ASSERT((((uintptr_t) position % X86_PAGE_SIZE) == 0));
-    start = ((uintptr_t) position) / X86_PAGE_SIZE;
-
-    for (index = 0; index < pages; index++)
-    {
-        int block = start + index;
-        MOS_ASSERT(ISSET(block));
-        UNSET(block);
-    }
-    // end_critical_section();
-}
-
-// s_totalPages = 0;
-// s_freePages = 0;
-// s_lastPage = 0;
-
-// parse_memory_map(map_entry, count);
-
-// pr_info("Reserving first megabyte of memory.");
-// for (int i = 0; i < 256; i++)
-// {
-//     kernel_table[i].present = true;
-// }
-
-// // pr_info("Reserving kernel memory: %x - %x", KERNEL_START, KERNEL_END);
-// // for (u32 i = (KERNEL_START / X86_PAGE_OR_DIR_SIZE); i < (KERNEL_END / X86_PAGE_OR_DIR_SIZE); i++)
-// //     SET(i);
-
-// dump_memory_map();
-
-// // Only set the writable field to true.
-// for (s32 i = 0; i < X86_PAGE_OR_DIR_SIZE; i++)
-//     page_dir[i].writable = true;
-
-// // The kernel page
-// for (s32 i = 0; i < X86_PAGE_OR_DIR_SIZE; i++)
-// {
-//     // Only set the writable field to true.
-//     kernel_table[i].present = true;
-//     kernel_table[i].writable = true;
-//     // ! should have '* MEM_ALIGNMENT_4K >> 12', but that's not necessary
-//     kernel_table[i].mem_addr = i;
-// }
-
-// page_dir[0].present = true;
-// page_dir[0].writable = true;
-// page_dir[0].table_address = (u32) kernel_table >> 12;

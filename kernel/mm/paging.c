@@ -6,6 +6,7 @@
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/types.h"
 
 void mm_setup()
 {
@@ -34,9 +35,9 @@ void *mm_page_alloc(size_t npages)
     return ptr;
 }
 
-bool mm_page_free(void *ptr, size_t npages)
+bool mm_page_free(void *vptr, size_t npages)
 {
-    if (unlikely(ptr == NULL))
+    if (unlikely(vptr == NULL))
     {
         mos_warn("freeing NULL pointer");
         return false;
@@ -48,5 +49,5 @@ bool mm_page_free(void *ptr, size_t npages)
     }
     if (unlikely(mos_platform.mm_free_page == NULL))
         mos_panic("platform configuration error: free_page is NULL");
-    return mos_platform.mm_free_page(ptr, npages);
+    return mos_platform.mm_free_page(vptr, npages);
 }

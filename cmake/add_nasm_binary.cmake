@@ -52,7 +52,7 @@ function(add_nasm_binary TARGET)
         set(ASSEMBLY_NEW_TARGET_FLAGS -f elf)
         set(target_kind object)
     else()
-            set(target_kind binary)
+        set(target_kind binary)
     endif()
 
     # relative_source_file: ./path/to/foo.asm

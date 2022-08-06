@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/platform/platform.h"
 #include "mos/types.h"
 
 typedef struct
@@ -20,10 +21,10 @@ typedef struct
     bool kernel_b1 : 1;
     bool kernel_b2 : 1;
 
-    u32 mem_addr : 20;
-} __packed page_table_entry;
+    u32 phys_addr : 20;
+} __packed pgtable_entry;
 
-static_assert(sizeof(page_table_entry) == 4, "page_table_entry is not 4 bytes");
+static_assert(sizeof(pgtable_entry) == 4, "page_table_entry is not 4 bytes");
 
 typedef struct
 {
@@ -36,11 +37,14 @@ typedef struct
     bool available_1 : 1;
     bool page_sized : 1;
     u8 available_2 : 4;
-    u32 table_address : 20;
-} __packed page_directory_entry;
+    u32 page_table_addr : 20;
+} __packed pgdir_entry;
 
-static_assert(sizeof(page_directory_entry) == 4, "page_directory_entry is not 4 bytes");
+static_assert(sizeof(pgdir_entry) == 4, "page_directory_entry is not 4 bytes");
 
-void x86_enable_paging();
-void *x86_alloc_page(size_t n);
-bool x86_free_page(void *ptr, size_t n);
+void x86_mm_setup_paging();
+void x86_mm_enable_paging();
+
+void x86_mm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags);
+void *x86_mm_alloc_page(size_t n);
+bool x86_mm_free_page(void *vaddr, size_t n);

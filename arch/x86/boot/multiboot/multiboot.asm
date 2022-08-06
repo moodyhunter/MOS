@@ -18,9 +18,9 @@ section .multiboot.data
     dd MB_CHECKSUM
 
 section .multiboot.text
-    global _start:function (_start.end - _start)
+    global _mos_x86_multiboot_start:function (_mos_x86_multiboot_start.end - _mos_x86_multiboot_start)
 
-_start:
+_mos_x86_multiboot_start:
     mov esp, stack_top
 
     ; Reset EFLAGS
