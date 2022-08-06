@@ -40,7 +40,7 @@ void x86_mm_setup_paging()
     memset(mm_page_dir, 0, sizeof(pgdir_entry) * 1024);
 
     pr_debug("paging: setting up low 1MB identity mapping... (except the NULL page)");
-    x86_mm_map_page(0, 0, PAGING_NONE); // ! NULL page, don't touch
+    x86_mm_map_page(0, 0, PAGING_PRESENT); // ! the zero page is not writable
     for (int addr = X86_PAGE_SIZE; addr < 1 MB; addr += X86_PAGE_SIZE)
         x86_mm_map_page(addr, addr, PAGING_PRESENT | PAGING_WRITABLE);
 
