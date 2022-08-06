@@ -9,12 +9,12 @@
 #include "mos/x86/boot/multiboot.h"
 #include "mos/x86/mm/paging.h"
 
-void x86_setup_mm(multiboot_mmap_entry_t *map_entry, u32 count)
+void x86_setup_mm(const multiboot_mmap_entry_t *map_entry, u32 count)
 {
     pr_info("Multiboot memory map:");
     for (u32 i = 0; i < count; i++)
     {
-        multiboot_mmap_entry_t *entry = map_entry + i;
+        const multiboot_mmap_entry_t *entry = map_entry + i;
         mos_mem_add_region(entry->addr, entry->len, entry->type == MULTIBOOT_MEMORY_AVAILABLE);
 
         char *type_str = "";

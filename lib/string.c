@@ -62,3 +62,24 @@ void *memset(void *s, int c, size_t n)
         d[i] = c;
     return s;
 }
+
+void strcpy(char *dest, const char *src)
+{
+    while (*src)
+        *dest++ = *src++;
+    *dest = 0;
+}
+
+void strncpy(char *dest, const char *src, size_t n)
+{
+    while (n > 0 && *src)
+    {
+        *dest++ = *src++;
+        n--;
+    }
+    while (n > 0)
+    {
+        *dest++ = 0;
+        n--;
+    }
+}

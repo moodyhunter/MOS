@@ -33,11 +33,11 @@ void mos_register_console(console_t *con)
         con->clear(con);
 
     list_node_append(&consoles, list_node(con));
-    pr_info("Registered console: '%s'", con->name);
+    pr_info("console: registering '%s'", con->name);
 
     if (unlikely(!has_console_registered))
     {
-        pr_debug("Removing dummy console: '%s'", dummy_con.name);
+        pr_debug("console: removing '%s'", dummy_con.name);
         list_remove(&dummy_con);
         has_console_registered = true;
     }

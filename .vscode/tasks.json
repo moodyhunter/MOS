@@ -25,7 +25,7 @@
         {
             "label": "start_os_unblocked",
             "type": "shell",
-            "command": "tmux new -s mos_kernel_debug -d qemu-system-i386 -kernel ${workspaceFolder}/build/mos_multiboot.bin -s -serial stdio",
+            "command": "tmux new -s mos_kernel_debug -d qemu-system-i386 -kernel ${workspaceFolder}/build/mos_multiboot.bin -s -serial stdio -append 'hello, world'",
             "problemMatcher": [],
             "group": "test",
             "dependsOn": [
@@ -41,7 +41,7 @@
         {
             "label": "start_os",
             "type": "shell",
-            "command": "tmux new -s mos_kernel_debug -d qemu-system-i386 -m 3355M -kernel ${workspaceFolder}/build/mos_multiboot.bin -s -S -serial stdio",
+            "command": "tmux new -s mos_kernel_debug -d qemu-system-i386 -m 3355M -kernel ${workspaceFolder}/build/mos_multiboot.bin -s -S -serial stdio -append 'hello, world'",
             "problemMatcher": [],
             "group": "none",
             "dependsOn": [

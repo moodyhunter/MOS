@@ -2,6 +2,7 @@
 
 #include "mos/x86/x86_platform.h"
 
+#include "lib/string.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/x86/boot/multiboot.h"
@@ -26,6 +27,8 @@ static irq_handler_descriptor_t com1_handler = {
     .handler = serial_irq_handler,
 };
 
+static char mos_cmdline[512];
+
 void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
 {
     x86_disable_interrupts();
@@ -37,6 +40,8 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
 
     if (!(mb_info->flags & MULTIBOOT_INFO_MEM_MAP))
         mos_panic("no memory map");
+
+    strncpy(mos_cmdline, (const char *) mb_info->cmdline, sizeof(mos_cmdline));
 
     x86_gdt_init();
     x86_idt_init();
@@ -54,7 +59,7 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     x86_setup_mm(mb_info->mmap_addr, count);
 
     mos_init_info_t init;
-    init.cmdline = mb_info->cmdline;
+    init.cmdline = mos_cmdline;
     mos_start_kernel(&init);
 }
 
