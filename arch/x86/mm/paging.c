@@ -39,17 +39,16 @@ void x86_mm_setup_paging()
     // initialize the page directory
     memset(mm_page_dir, 0, sizeof(pgdir_entry) * 1024);
 
-    // setup identity mapping for the first 1MB of memory.
-    pr_debug("paging: setting up 1MB identity mapping... (except for NULL)");
-    x86_mm_map_page(0, 0, PAGING_ENTRY_NONE); // NULL page, don't touch nullptr.
+    pr_debug("paging: setting up low 1MB identity mapping... (except the NULL page)");
+    x86_mm_map_page(0, 0, PAGING_NONE); // ! NULL page, don't touch
     for (int addr = X86_PAGE_SIZE; addr < 1 MB; addr += X86_PAGE_SIZE)
-        x86_mm_map_page(addr, addr, PAGING_ENTRY_WRITABLE);
+        x86_mm_map_page(addr, addr, PAGING_PRESENT | PAGING_WRITABLE);
 
     pr_debug("paging: mapping kernel space...");
     uintptr_t addr = (x86_kernel_start_addr / X86_PAGE_SIZE) * X86_PAGE_SIZE; // align the address to the page size
     while (addr < x86_kernel_end_addr)
     {
-        x86_mm_map_page(addr, addr, PAGING_ENTRY_WRITABLE);
+        x86_mm_map_page(addr, addr, PAGING_PRESENT | PAGING_WRITABLE);
         addr += X86_PAGE_SIZE;
     }
 }
@@ -76,12 +75,12 @@ void x86_mm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags)
         page_dir->page_table_addr = (uintptr_t) page_table >> 12;
     }
 
-    page_dir->writable |= !!(flags & PAGING_ENTRY_WRITABLE);
-    page_dir->usermode |= !!(flags & PAGING_ENTRY_USERMODE);
+    page_dir->writable |= !!(flags & PAGING_WRITABLE);
+    page_dir->usermode |= !!(flags & PAGING_USERMODE);
 
-    page_table->present = true;
-    page_table->writable = !!(flags & PAGING_ENTRY_WRITABLE);
-    page_table->usermode = !!(flags & PAGING_ENTRY_USERMODE);
+    page_table->present = !!(flags & PAGING_PRESENT);
+    page_table->writable = !!(flags & PAGING_WRITABLE);
+    page_table->usermode = !!(flags & PAGING_USERMODE);
     page_table->phys_addr = (uintptr_t) paddr >> 12;
 }
 

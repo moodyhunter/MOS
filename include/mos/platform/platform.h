@@ -13,13 +13,13 @@ typedef struct
 
 typedef enum
 {
-    PAGING_ENTRY_NONE = 0,
-    PAGING_ENTRY_PRESENT = 1 << 0,
-    PAGING_ENTRY_WRITABLE = 1 << 1,
-    PAGING_ENTRY_USERMODE = 1 << 2,
-    PAGING_ENTRY_WRITE_THROUGH = 1 << 3,
-    PAGING_ENTRY_CACHE_DISABLED = 1 << 4,
-    PAGING_ENTRY_ACCESSED = 1 << 5,
+    PAGING_NONE = 0,
+    PAGING_PRESENT = 1 << 0,
+    PAGING_WRITABLE = 1 << 1,
+    PAGING_USERMODE = 1 << 2,
+    PAGING_WRITE_THROUGH = 1 << 3,
+    PAGING_CACHE_DISABLED = 1 << 4,
+    PAGING_ACCESSED = 1 << 5,
 } paging_entry_flags;
 
 typedef struct
