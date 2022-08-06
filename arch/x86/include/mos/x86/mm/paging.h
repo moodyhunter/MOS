@@ -42,7 +42,7 @@ typedef struct
 
 static_assert(sizeof(pgdir_entry) == 4, "page_directory_entry is not 4 bytes");
 
-void x86_mm_setup_paging();
+void x86_mm_prepare_paging();
 void x86_mm_enable_paging();
 
 void x86_mm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags);

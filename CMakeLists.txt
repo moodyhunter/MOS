@@ -21,8 +21,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 set(MOS_ARCH_TARGET "x86")
 option(MOS_KERNEL_RUN_TESTS "Run tests in the Kernel" OFF)
-option(MOS_MM_LIBALLOC_HAS_LOCKS "Use locks in liballoc" OFF)
-option(LIBALLOC_DEBUG "Enable liballoc debug" OFF)
+option(MOS_MM_LIBALLOC_LOCKS "liballoc: has lock support" OFF)
+option(MOS_MM_LIBALLOC_DEBUG "liballoc: debug message enabled" ON)
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
     message(STATUS "Found custom configuration file 'config.cmake'")
@@ -38,6 +38,10 @@ endif()
 include(CTest)
 include(generate_kconfig)
 include(configure_summary)
+
+mos_add_kconfig_define(MOS_KERNEL_RUN_TESTS)
+mos_add_kconfig_define(MOS_MM_LIBALLOC_LOCKS)
+mos_add_kconfig_define(MOS_MM_LIBALLOC_DEBUG)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
@@ -55,7 +59,6 @@ add_library(mos_kernel.elf STATIC
     kernel/mm/kmalloc.c
     kernel/mm/liballoc.c
     kernel/mm/paging.c
-    kernel/platform/mm.c
     lib/stdlib.c
     lib/string.c
     lib/stdio.c
@@ -66,8 +69,6 @@ add_library(mos_kernel.elf STATIC
 add_library(mos::elf_kernel ALIAS mos_kernel.elf)
 target_link_libraries(mos_kernel.elf PUBLIC gcc)
 
-generate_kconfig(mos_kernel.elf)
-
 mos_add_summary_section(KERNEL "MOS Kernel")
 mos_add_summary_item(KERNEL "Version" "${MOS_KERNEL_VERSION_STRING}")
 mos_add_summary_item(KERNEL "Revision" "${MOS_KERNEL_REVISION_STRING}")
@@ -75,7 +76,8 @@ mos_add_summary_item(KERNEL "Builtin Cmdline" "${MOS_KERNEL_BUILTIN_CMDLINE_STRI
 mos_add_summary_item(KERNEL "Architecture" "${MOS_ARCH_TARGET}")
 
 mos_add_summary_section(MM "MOS Memory Management")
-mos_add_summary_item(MM "liballoc: locks" "${MOS_MM_LIBALLOC_HAS_LOCKS}")
+mos_add_summary_item(MM "liballoc: locks" "${MOS_MM_LIBALLOC_LOCKS}")
+mos_add_summary_item(MM "liballoc: debug" "${MOS_MM_LIBALLOC_DEBUG}")
 
 # Configure architecture-specific stuff
 include(add_kernel_source)
@@ -88,6 +90,8 @@ mos_add_summary_item(TESTS "All Tests" "${BUILD_TESTING}")
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()
+
+generate_kconfig(mos_kernel.elf)
 
 message("")
 message("MOS is now configured :)")

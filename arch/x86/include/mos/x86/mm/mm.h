@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/mm/mm_types.h"
 #include "mos/types.h"
 #include "mos/x86/boot/multiboot.h"
 
@@ -9,4 +10,9 @@ extern const char __MOS_X86_PAGING_AREA_START;
 extern const char __MOS_X86_PAGE_TABLE_START;
 extern const char __MOS_X86_PAGING_AREA_END;
 
-void x86_setup_mm(const multiboot_mmap_entry_t *map_entry, u32 count);
+#define MEM_MAX_BLOCKS 64
+extern memblock_t x86_mem_regions[MEM_MAX_BLOCKS];
+extern size_t x86_mem_regions_count;
+
+void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count);
+void x86_mem_add_region(u64 start, size_t size, bool available);

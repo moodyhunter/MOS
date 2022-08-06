@@ -19,6 +19,8 @@ void mos_start_kernel(mos_init_info_t *init_info)
 
     mm_setup();
 
+    void *heap_start = kmalloc(200);
+
     pr_info("Welcome to MOS!");
     pr_info("Boot Information:");
     pr_emph("cmdline: %s", init_info->cmdline);

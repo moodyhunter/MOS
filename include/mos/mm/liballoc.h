@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/kconfig.h" // for MOS_MM_LIBALLOC_HAS_LOCKS
+#include "mos/kconfig.h"
 #include "mos/types.h"
 
 // This is a boundary tag which is prepended to the page or section of a page which we have allocated.
@@ -21,7 +21,7 @@ struct boundary_tag
     struct boundary_tag *prev; // Linked list info.
 };
 
-#ifdef MOS_MM_LIBALLOC_HAS_LOCKS
+#if MOS_MM_LIBALLOC_LOCKS
 /** This function is supposed to lock the memory data structures. It
  * could be as simple as disabling interrupts or acquiring a spinlock.
  * It's up to you to decide.

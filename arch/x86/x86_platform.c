@@ -56,7 +56,8 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     x86_install_interrupt_handler(IRQ_COM1, &com1_handler);
 
     u32 count = mb_info->mmap_length / sizeof(multiboot_mmap_entry_t);
-    x86_setup_mm(mb_info->mmap_addr, count);
+    x86_mem_init(mb_info->mmap_addr, count);
+    x86_mm_prepare_paging();
 
     mos_init_info_t init;
     init.cmdline = mos_cmdline;

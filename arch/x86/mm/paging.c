@@ -4,24 +4,51 @@
 
 #include "lib/containers.h"
 #include "lib/string.h"
+#include "mos/kconfig.h"
+#include "mos/mm/mm_types.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/types.h"
 #include "mos/x86/boot/multiboot.h"
 #include "mos/x86/mm/mm.h"
 #include "mos/x86/x86_platform.h"
+
+extern void x86_enable_paging_impl(void *page_dir);
 
 static const void *x86_paging_area_start = &__MOS_X86_PAGING_AREA_START;
 static const void *x86_page_table_start = &__MOS_X86_PAGE_TABLE_START;
 static const void *x86_paging_area_end = &__MOS_X86_PAGING_AREA_END;
 
-pgdir_entry *mm_page_dir;
-pgtable_entry *mm_page_table;
+static pgdir_entry *mm_page_dir;
+static pgtable_entry *mm_page_table;
 
-list_node_t mm_free_pages;
+typedef struct
+{
+    as_linked_list;
+    u32 i_pgdir;
+    u32 i_pgtable;
+    size_t n_pages;
+} free_page_range_desc_t;
 
-extern void x86_enable_paging_impl(void *page_dir);
+typedef struct
+{
+    as_linked_list;
+    u32 paddr;
+    size_t n_bytes;
+} free_phymem_desc_t;
 
-void x86_mm_setup_paging()
+static list_node_t mm_free_pages = LIST_HEAD_INIT(mm_free_pages);
+static list_node_t mm_free_phymem = LIST_HEAD_INIT(mm_free_phymem);
+
+static memblock_t bootstrap_pg = {
+    .list_node = LIST_HEAD_INIT(mm_free_pages),
+    .vaddr = MOS_X86_HEAP_BASE_VADDR,
+    .size = X86_PAGE_SIZE,
+};
+
+static u64 page_map[((u64) 4 GB - MOS_X86_HEAP_BASE_VADDR) / X86_PAGE_SIZE / 64] = { 0 };
+
+void x86_mm_prepare_paging()
 {
     // validate if the memory region calculated from the linker script is correct.
     s64 paging_area_size = (uintptr_t) x86_paging_area_end - (uintptr_t) x86_paging_area_start;
@@ -46,11 +73,37 @@ void x86_mm_setup_paging()
 
     pr_debug("paging: mapping kernel space...");
     uintptr_t addr = (x86_kernel_start_addr / X86_PAGE_SIZE) * X86_PAGE_SIZE; // align the address to the page size
-    while (addr < x86_kernel_end_addr)
-    {
+    for (; addr < x86_kernel_end_addr; addr += X86_PAGE_SIZE)
         x86_mm_map_page(addr, addr, PAGING_PRESENT | PAGING_WRITABLE);
-        addr += X86_PAGE_SIZE;
+
+    // get a proper physical memory address for the kernel heap
+    u64 required_size = bootstrap_pg.size;
+    pr_debug("paging: pre-allocating %llu bytes for the bootstrap page", required_size);
+    for (size_t ri = x86_mem_regions_count - 1; ri < x86_mem_regions_count; ri--)
+    {
+        memblock_t *region = &x86_mem_regions[ri];
+        if (!region->available)
+            continue;
+        if (region->size >= required_size)
+        {
+            // found a region that is big enough, try aligning it to the page size
+            u64 phys_addr = region->paddr + X86_PAGE_SIZE - 1;
+            phys_addr = (phys_addr / X86_PAGE_SIZE) * X86_PAGE_SIZE;
+            if (phys_addr < region->paddr || phys_addr + required_size > region->paddr + region->size)
+            {
+                pr_debug("paging: not suitable physical memory address, region: 0x%llx", region->paddr);
+                continue;
+            }
+            bootstrap_pg.paddr = phys_addr;
+            break;
+        }
     }
+
+    MOS_ASSERT_X(bootstrap_pg.paddr != 0, "failed to find a suitable physical memory address for the bootstrap page");
+    pr_debug("paging: bootstrap page: 0x%llx, vaddr: 0x%llx", bootstrap_pg.paddr, bootstrap_pg.vaddr);
+
+    for (u64 v = bootstrap_pg.vaddr, p = bootstrap_pg.paddr; v < bootstrap_pg.vaddr + bootstrap_pg.size; v += X86_PAGE_SIZE, p += X86_PAGE_SIZE)
+        x86_mm_map_page(v, p, PAGING_PRESENT | PAGING_WRITABLE);
 }
 
 void x86_mm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags)
@@ -58,8 +111,9 @@ void x86_mm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags)
     // ensure the page is aligned to 4096
     MOS_ASSERT_X(vaddr % X86_PAGE_SIZE == 0, "vaddr is not aligned to 4096");
 
+    // ! todo: ensure the offsets are correct for both paddr and vaddr
     int page_dir_index = vaddr >> 22;
-    int page_table_index = vaddr >> 12 & 0x3ff;
+    int page_table_index = vaddr >> 12 & 0x3ff; // mask out the lower 12 bits
 
     pgdir_entry *page_dir = mm_page_dir + page_dir_index;
     pgtable_entry *page_table;
@@ -105,6 +159,8 @@ void x86_mm_enable_paging()
     pr_info("Page directory is at: %p", (void *) mm_page_dir);
     x86_enable_paging_impl(mm_page_dir);
     pr_info("Paging enabled.");
+
+    // setup the bootstrap page
 }
 
 void *x86_mm_alloc_page(size_t n)

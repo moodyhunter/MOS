@@ -146,7 +146,7 @@ typedef enum
 typedef struct
 {
     u32 size;
-    u64 addr;
+    u64 phys_addr;
     u64 len;
     multiboot_memory_type_t type;
 } __packed multiboot_mmap_entry_t;
