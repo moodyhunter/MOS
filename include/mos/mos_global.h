@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "mos/kconfig.h"
+
 #ifndef __cplusplus
 #define static_assert _Static_assert
 #endif

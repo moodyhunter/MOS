@@ -27,7 +27,7 @@ static bool l_initialized = 0;
 
 static struct boundary_tag *l_freePages[MAXEXP]; // Allowing for 2^MAXEXP blocks
 static int l_completePages[MAXEXP];              // Allowing for 2^MAXEXP blocks
-static const u32 l_pageCount = 4;                // Minimum number of pages to allocate.
+static const u32 l_pageCount = 16;               // Minimum number of pages to allocate.
 
 void *(*liballoc_page_alloc)(size_t n) = mm_page_alloc;
 bool (*liballoc_page_free)(void *ptr, size_t n) = mm_page_free;
@@ -63,21 +63,21 @@ static void dump_array()
 
     for (i = 0; i < MAXEXP; i++)
     {
-        pr_debug("%.2i(%i): ", i, l_completePages[i]);
+        printk("%.2i(%i): ", i, l_completePages[i]);
 
         tag = l_freePages[i];
         while (tag != NULL)
         {
             if (tag->split_left != NULL)
-                pr_debug("*");
-            pr_debug("%zu", tag->real_size);
+                printk("*");
+            printk("%zu", tag->real_size);
             if (tag->split_right != NULL)
-                pr_debug("*");
+                printk("*");
 
-            pr_debug(" ");
+            printk(" ");
             tag = tag->next;
         }
-        pr_debug("\n");
+        printk("\n");
     }
 
     pr_debug("'*' denotes a split to the left/right of a tag");

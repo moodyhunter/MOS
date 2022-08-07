@@ -25,28 +25,21 @@ static pgtable_entry *mm_page_table;
 typedef struct
 {
     as_linked_list;
-    u32 i_pgdir;
-    u32 i_pgtable;
-    size_t n_pages;
-} free_page_range_desc_t;
-
-typedef struct
-{
-    as_linked_list;
     u32 paddr;
     size_t n_bytes;
 } free_phymem_desc_t;
 
-static list_node_t mm_free_pages = LIST_HEAD_INIT(mm_free_pages);
 static list_node_t mm_free_phymem = LIST_HEAD_INIT(mm_free_phymem);
 
-static memblock_t bootstrap_pg = {
-    .list_node = LIST_HEAD_INIT(mm_free_pages),
-    .vaddr = MOS_X86_HEAP_BASE_VADDR,
-    .size = X86_PAGE_SIZE,
-};
+#define MM_PAGE_MAP_SIZE (X86_MAX_MEM_SIZE / X86_PAGE_SIZE / 8)
+static const u32 mm_page_map_size = MM_PAGE_MAP_SIZE;
+static u8 mm_page_map[MM_PAGE_MAP_SIZE] = { 0 };
 
-static u64 page_map[((u64) 4 GB - MOS_X86_HEAP_BASE_VADDR) / X86_PAGE_SIZE / 64] = { 0 };
+// static memblock_t bootstrap_pg = {
+//     .list_node = LIST_HEAD_INIT(mm_free_pages),
+//     .vaddr = MOS_X86_HEAP_BASE_VADDR,
+//     .size = X86_PAGE_SIZE,
+// };
 
 void x86_mm_prepare_paging()
 {
@@ -77,33 +70,34 @@ void x86_mm_prepare_paging()
         x86_mm_map_page(addr, addr, PAGING_PRESENT | PAGING_WRITABLE);
 
     // get a proper physical memory address for the kernel heap
-    u64 required_size = bootstrap_pg.size;
-    pr_debug("paging: pre-allocating %llu bytes for the bootstrap page", required_size);
-    for (size_t ri = x86_mem_regions_count - 1; ri < x86_mem_regions_count; ri--)
-    {
-        memblock_t *region = &x86_mem_regions[ri];
-        if (!region->available)
-            continue;
-        if (region->size >= required_size)
-        {
-            // found a region that is big enough, try aligning it to the page size
-            u64 phys_addr = region->paddr + X86_PAGE_SIZE - 1;
-            phys_addr = (phys_addr / X86_PAGE_SIZE) * X86_PAGE_SIZE;
-            if (phys_addr < region->paddr || phys_addr + required_size > region->paddr + region->size)
-            {
-                pr_debug("paging: not suitable physical memory address, region: 0x%llx", region->paddr);
-                continue;
-            }
-            bootstrap_pg.paddr = phys_addr;
-            break;
-        }
-    }
+    // u64 required_size = bootstrap_pg.size;
+    // pr_debug("paging: pre-allocating %llu bytes for the bootstrap page", required_size);
+    // for (size_t ri = x86_mem_regions_count - 1; ri < x86_mem_regions_count; ri--)
+    // {
+    //     memblock_t *region = &x86_mem_regions[ri];
+    //     if (!region->available)
+    //         continue;
+    //     if (region->size >= required_size)
+    //     {
+    //         // found a region that is big enough, try aligning it to the page size
+    //         u64 phys_addr = region->paddr + X86_PAGE_SIZE - 1;
+    //         phys_addr = (phys_addr / X86_PAGE_SIZE) * X86_PAGE_SIZE;
+    //         if (phys_addr < region->paddr || phys_addr + required_size > region->paddr + region->size)
+    //         {
+    //             pr_debug("paging: not suitable physical memory address, region: 0x%llx", region->paddr);
+    //             continue;
+    //         }
+    //         bootstrap_pg.paddr = phys_addr;
+    //         break;
+    //     }
+    // }
 
-    MOS_ASSERT_X(bootstrap_pg.paddr != 0, "failed to find a suitable physical memory address for the bootstrap page");
-    pr_debug("paging: bootstrap page: 0x%llx, vaddr: 0x%llx", bootstrap_pg.paddr, bootstrap_pg.vaddr);
+    // MOS_ASSERT_X(bootstrap_pg.paddr != 0, "failed to find a suitable physical memory address for the bootstrap page");
+    // pr_debug("paging: bootstrap page: 0x%llx, vaddr: 0x%llx", bootstrap_pg.paddr, bootstrap_pg.vaddr);
 
-    for (u64 v = bootstrap_pg.vaddr, p = bootstrap_pg.paddr; v < bootstrap_pg.vaddr + bootstrap_pg.size; v += X86_PAGE_SIZE, p += X86_PAGE_SIZE)
-        x86_mm_map_page(v, p, PAGING_PRESENT | PAGING_WRITABLE);
+    // for (u64 v = bootstrap_pg.vaddr, p = bootstrap_pg.paddr; v < bootstrap_pg.vaddr + bootstrap_pg.size; v += X86_PAGE_SIZE, p +=
+    // X86_PAGE_SIZE)
+    //     x86_mm_map_page(v, p, PAGING_PRESENT | PAGING_WRITABLE);
 }
 
 void x86_mm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags)
@@ -132,10 +126,16 @@ void x86_mm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags)
     page_dir->writable |= !!(flags & PAGING_WRITABLE);
     page_dir->usermode |= !!(flags & PAGING_USERMODE);
 
+    MOS_ASSERT_X(page_table->present == false, "page is already mapped");
+
     page_table->present = !!(flags & PAGING_PRESENT);
     page_table->writable = !!(flags & PAGING_WRITABLE);
     page_table->usermode = !!(flags & PAGING_USERMODE);
     page_table->phys_addr = (uintptr_t) paddr >> 12;
+
+    // update the mm_page_map
+    u32 pte_index = page_dir_index * 1024 + page_table_index;
+    mm_page_map[pte_index / 8] |= 1 << (pte_index % 8);
 }
 
 void x86_mm_unmap_page(uintptr_t vaddr)
@@ -152,6 +152,10 @@ void x86_mm_unmap_page(uintptr_t vaddr)
 
     pgtable_entry *page_table = ((pgtable_entry *) (page_dir->page_table_addr << 12)) + page_table_index;
     page_table->present = false;
+
+    // update the mm_page_map
+    u32 pte_index = page_dir_index * 1024 + page_table_index;
+    mm_page_map[pte_index / 8] &= ~(1 << (pte_index % 8));
 }
 
 void x86_mm_enable_paging()
@@ -159,19 +163,58 @@ void x86_mm_enable_paging()
     pr_info("Page directory is at: %p", (void *) mm_page_dir);
     x86_enable_paging_impl(mm_page_dir);
     pr_info("Paging enabled.");
-
-    // setup the bootstrap page
 }
 
-void *x86_mm_alloc_page(size_t n)
+void *x86_mm_alloc_page(size_t n_page)
 {
-    MOS_UNUSED(n);
-    return NULL;
+#define BIT_IS_SET(byte, bit) ((byte) & (1 << (bit)))
+    // simply rename the variable, we are dealing with bitmaps
+    size_t n_bits = n_page;
+    size_t n_zero_bits = 0;
+    u8 target_bit = 0;
+
+    size_t i = 0;
+    while (n_zero_bits < n_bits)
+    {
+        if (i >= mm_page_map_size)
+        {
+            mos_warn("failed to allocate %zu pages", n_page);
+            return NULL;
+        }
+        u8 current_byte = mm_page_map[i];
+        i++;
+
+        if (current_byte == 0)
+        {
+            n_zero_bits += 8;
+            continue;
+        }
+
+        for (int bit = 0; bit < 8; bit++)
+        {
+            target_bit = bit;
+            if (!BIT_IS_SET(current_byte, bit))
+                n_zero_bits++;
+            else
+                n_zero_bits = 0, target_bit = 0;
+        }
+    }
+
+    u32 page_index = i * 8 + target_bit;
+    u32 page_dir_index = page_index / 1024;
+    u32 page_table_index = page_index % 1024;
+    void *vaddr = (void *) (page_dir_index << 22 | page_table_index << 12);
+
+    // !! id map the page (for now)
+    for (size_t p = 0; p < n_page; p++)
+        x86_mm_map_page((uintptr_t) vaddr + p * X86_PAGE_SIZE, (uintptr_t) vaddr + p * X86_PAGE_SIZE, PAGING_PRESENT | PAGING_WRITABLE);
+
+    return vaddr;
 }
 
 bool x86_mm_free_page(void *vptr, size_t n)
 {
-    MOS_UNUSED(vptr);
-    MOS_UNUSED(n);
-    return false;
+    for (size_t p = 0; p < n; p++)
+        x86_mm_unmap_page((uintptr_t) vptr + p * X86_PAGE_SIZE);
+    return true;
 }

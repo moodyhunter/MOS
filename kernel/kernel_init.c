@@ -20,6 +20,9 @@ void mos_start_kernel(mos_init_info_t *init_info)
     mm_setup();
 
     void *heap_start = kmalloc(200);
+    kfree(heap_start);
+    heap_start = kmalloc(700 MB);
+    heap_start = kmalloc(10 MB);
 
     pr_info("Welcome to MOS!");
     pr_info("Boot Information:");
