@@ -1,9 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/string.h"
-#include "mos/device/console.h"
-#include "mos/kconfig.h"
-#include "mos/mm/kmalloc.h"
 #include "mos/mm/paging.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
