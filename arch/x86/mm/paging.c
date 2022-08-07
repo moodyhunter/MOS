@@ -174,7 +174,7 @@ void *x86_mm_alloc_page(size_t n_page)
     }
 
     size_t page_index = target_8page_start * 8 + target_bit;
-    pr_debug("paging: allocating %zu", page_index);
+    pr_debug("paging: allocating %zu to %zu", page_index, page_index + n_page);
     void *vaddr = (void *) (page_index * X86_PAGE_SIZE);
 
     // !! id map the page (for now)
@@ -184,11 +184,11 @@ void *x86_mm_alloc_page(size_t n_page)
     return vaddr;
 }
 
-bool x86_mm_free_page(void *vptr, size_t n)
+bool x86_mm_free_page(void *vptr, size_t n_page)
 {
     size_t page_index = (uintptr_t) vptr / X86_PAGE_SIZE;
-    pr_debug("paging: freeing %zu", page_index);
-    for (size_t p = 0; p < n; p++)
+    pr_debug("paging: freeing %zu to %zu", page_index, page_index + n_page);
+    for (size_t p = 0; p < n_page; p++)
         x86_mm_unmap_page((uintptr_t) vptr + p * X86_PAGE_SIZE);
     return true;
 }
