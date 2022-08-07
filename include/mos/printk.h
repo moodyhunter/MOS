@@ -41,8 +41,8 @@
 #define pr_fatal(fmt, ...) lprintk(MOS_LOG_FATAL, fmt "\n", ##__VA_ARGS__)
 #define printk(fmt, ...)   lprintk(MOS_LOG_DEFAULT, fmt "", ##__VA_ARGS__)
 
-#define mos_warn(fmt, ...)  _mos_kwarn(__func__, __LINE__, fmt "", ##__VA_ARGS__)
-#define mos_panic(fmt, ...) _mos_kpanic(__func__, __LINE__, fmt "", ##__VA_ARGS__)
+#define mos_warn(fmt, ...)  _mos_kwarn(__func__, __LINE__, "WARN: " fmt, ##__VA_ARGS__)
+#define mos_panic(fmt, ...) _mos_kpanic(__func__, __LINE__, "" fmt, ##__VA_ARGS__)
 
 void __printf(2, 3) lprintk(int loglevel, const char *format, ...);
 void __printf(3, 4) _mos_kwarn(const char *func, u32 line, const char *fmt, ...);

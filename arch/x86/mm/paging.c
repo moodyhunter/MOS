@@ -178,6 +178,7 @@ void *x86_mm_alloc_page(size_t n_page)
     void *vaddr = (void *) (page_index * X86_PAGE_SIZE);
 
     // !! id map the page (for now)
+    mos_warn("x86 paging is not implemented correctly, id mapping is used");
     for (size_t p = 0; p < n_page; p++)
         x86_mm_map_page((uintptr_t) vaddr + p * X86_PAGE_SIZE, (uintptr_t) vaddr + p * X86_PAGE_SIZE, PAGING_PRESENT | PAGING_WRITABLE);
 
