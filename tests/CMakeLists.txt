@@ -16,4 +16,5 @@ macro(mos_add_test TEST_NAME TEST_DESCRIPTION)
 endmacro()
 
 mos_add_test(printf "printf family")
-mos_add_test(linked_list "kernel linked list")
+mos_add_test(linked_list "linked list")
+mos_add_test(kmalloc "kmalloc stress test")

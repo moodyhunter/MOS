@@ -10,7 +10,7 @@ qemu-system-i386 -kernel $DIR/mos_multiboot.bin \
     -serial chardev:char0 &
 
 pid=$!
-sleep 5
+sleep 10
 
 ps -p $pid >/dev/null
 

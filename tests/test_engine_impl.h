@@ -130,6 +130,7 @@ typedef void (*mos_test_func_t)(TestResult *);
             MOS_TEST_SKIP();                                                                                                                    \
             break;                                                                                                                              \
         }                                                                                                                                       \
+        ++_MT_result->n_total;                                                                                                                  \
         if (!(condition))                                                                                                                       \
             MOS_TEST_FAIL("ASSERTION FAILED: %s, " format, #condition, ##__VA_ARGS__);                                                          \
     } while (false)
