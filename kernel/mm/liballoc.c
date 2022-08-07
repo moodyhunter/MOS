@@ -57,9 +57,9 @@ static void dump_array()
     int i = 0;
     struct boundary_tag *tag = NULL;
 
-    pr_debug("------ Free pages array ---------");
-    pr_debug("System memory allocated: %i", l_allocated);
-    pr_debug("Memory in used (malloc'ed): %i", l_inuse);
+    mos_debug("------ Free pages array ---------");
+    mos_debug("System memory allocated: %i", l_allocated);
+    mos_debug("Memory in used (malloc'ed): %i", l_inuse);
 
     for (i = 0; i < MAXEXP; i++)
     {
@@ -80,7 +80,7 @@ static void dump_array()
         printk("\n");
     }
 
-    pr_debug("'*' denotes a split to the left/right of a tag");
+    mos_debug("'*' denotes a split to the left/right of a tag");
 }
 #endif
 
@@ -206,9 +206,9 @@ static struct boundary_tag *allocate_new_tag(unsigned int size)
     tag->split_right = NULL;
 
 #if MOS_MM_LIBALLOC_DEBUG
-    pr_debug("Resource allocated %p of %i pages (%i bytes) for %i size.", (void *) tag, pages, pages * l_pageSize, size);
+    mos_debug("Resource allocated %p of %i pages (%i bytes) for %i size.", (void *) tag, pages, pages * l_pageSize, size);
     l_allocated += pages * l_pageSize;
-    pr_debug("Total memory usage = %i KB", (int) ((l_allocated / (1024))));
+    mos_debug("Total memory usage = %i KB", (int) ((l_allocated / (1024))));
 #endif
 
     return tag;
@@ -219,7 +219,7 @@ void liballoc_init(int page_size)
     MOS_ASSERT(!l_initialized);
     l_pageSize = page_size;
 #if MOS_MM_LIBALLOC_DEBUG
-    pr_debug("liballoc initializing.");
+    mos_debug("liballoc initializing.");
 #endif
     for (int index = 0; index < MAXEXP; index++)
     {
@@ -248,7 +248,7 @@ void *liballoc_malloc(size_t size)
         if ((tag->real_size - sizeof(struct boundary_tag)) >= (size + sizeof(struct boundary_tag)))
         {
 #if MOS_MM_LIBALLOC_DEBUG
-            pr_debug("Tag search found %zu >= %zu", (tag->real_size - sizeof(struct boundary_tag)), (size + sizeof(struct boundary_tag)));
+            mos_debug("Tag search found %zu >= %zu", (tag->real_size - sizeof(struct boundary_tag)), (size + sizeof(struct boundary_tag)));
 #endif
             break;
         }
@@ -283,8 +283,8 @@ void *liballoc_malloc(size_t size)
     // Removed... see if we can re-use the excess space.
 
 #if MOS_MM_LIBALLOC_DEBUG
-    pr_debug("Found tag with %zu bytes available (requested %zu bytes, leaving %zu), which has exponent: %i (%i bytes)",
-             tag->real_size - sizeof(struct boundary_tag), size, tag->real_size - size - sizeof(struct boundary_tag), index, 1 << index);
+    mos_debug("Found tag with %zu bytes available (requested %zu bytes, leaving %zu), which has exponent: %i (%i bytes)",
+              tag->real_size - sizeof(struct boundary_tag), size, tag->real_size - size - sizeof(struct boundary_tag), index, 1 << index);
 #endif
 
     unsigned int remainder = tag->real_size - size - sizeof(struct boundary_tag) * 2; // Support a new tag + remainder
@@ -296,12 +296,12 @@ void *liballoc_malloc(size_t size)
         if (childIndex >= 0)
         {
 #if MOS_MM_LIBALLOC_DEBUG
-            pr_debug("Seems to be splittable: %i >= 2^%i .. %i", remainder, childIndex, (1 << childIndex));
+            mos_debug("Seems to be splittable: %i >= 2^%i .. %i", remainder, childIndex, (1 << childIndex));
 #endif
             struct boundary_tag *new_tag = split_tag(tag);
             MOS_UNUSED(new_tag);
 #if MOS_MM_LIBALLOC_DEBUG
-            pr_debug("Old tag has become %zu bytes, new tag is now %zu bytes (%i exp)", tag->real_size, new_tag->real_size, new_tag->index);
+            mos_debug("Old tag has become %zu bytes, new tag is now %zu bytes (%i exp)", tag->real_size, new_tag->real_size, new_tag->index);
 #endif
         }
     }
@@ -310,7 +310,7 @@ void *liballoc_malloc(size_t size)
 
 #if MOS_MM_LIBALLOC_DEBUG
     l_inuse += size;
-    pr_debug("malloc: %p,  %i, %i", ptr, (int) l_inuse / 1024, (int) l_allocated / 1024);
+    mos_debug("malloc: %p,  %i, %i", ptr, (int) l_inuse / 1024, (int) l_allocated / 1024);
     dump_array();
 #endif
 #if MOS_MM_LIBALLOC_LOCKS
@@ -341,15 +341,15 @@ void liballoc_free(void *ptr)
 
 #if MOS_MM_LIBALLOC_DEBUG
     l_inuse -= tag->size;
-    pr_debug("free: %p, %i, %i", ptr, (int) l_inuse / 1024, (int) l_allocated / 1024);
+    mos_debug("free: %p, %i, %i", ptr, (int) l_inuse / 1024, (int) l_allocated / 1024);
 #endif
 
     // MELT LEFT...
     while ((tag->split_left != NULL) && (tag->split_left->index >= 0))
     {
 #if MOS_MM_LIBALLOC_DEBUG
-        pr_debug("Melting tag left into available memory. Left was %zu, becomes %zu (%zu)", tag->split_left->real_size,
-                 tag->split_left->real_size + tag->real_size, tag->split_left->real_size);
+        mos_debug("Melting tag left into available memory. Left was %zu, becomes %zu (%zu)", tag->split_left->real_size,
+                  tag->split_left->real_size + tag->real_size, tag->split_left->real_size);
 #endif
         tag = melt_left(tag);
         remove_tag(tag);
@@ -359,8 +359,8 @@ void liballoc_free(void *ptr)
     while ((tag->split_right != NULL) && (tag->split_right->index >= 0))
     {
 #if MOS_MM_LIBALLOC_DEBUG
-        pr_debug("Melting tag right into available memory. This was was %zu, becomes %zu (%zu)", tag->real_size,
-                 tag->split_right->real_size + tag->real_size, tag->split_right->real_size);
+        mos_debug("Melting tag right into available memory. This was was %zu, becomes %zu (%zu)", tag->real_size,
+                  tag->split_right->real_size + tag->real_size, tag->split_right->real_size);
 #endif
         tag = absorb_right(tag);
     }
@@ -388,7 +388,7 @@ void liballoc_free(void *ptr)
 
 #if MOS_MM_LIBALLOC_DEBUG
             l_allocated -= pages * l_pageSize;
-            pr_debug("Resource freeing %p of %i pages", (void *) tag, pages);
+            mos_debug("Resource freeing %p of %i pages", (void *) tag, pages);
             dump_array();
 #endif
 #if MOS_MM_LIBALLOC_LOCKS
@@ -403,7 +403,7 @@ void liballoc_free(void *ptr)
     insert_tag(tag, index);
 
 #if MOS_MM_LIBALLOC_DEBUG
-    pr_debug("Returning tag with %zu bytes (requested %zu bytes), which has exponent: %i", tag->real_size, tag->size, index);
+    mos_debug("Returning tag with %zu bytes (requested %zu bytes), which has exponent: %i", tag->real_size, tag->size, index);
     dump_array();
 #endif
 #if MOS_MM_LIBALLOC_LOCKS

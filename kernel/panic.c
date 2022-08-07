@@ -91,6 +91,6 @@ void _mos_kwarn(const char *func, u32 line, const char *fmt, ...)
     vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
     va_end(args);
 
-    pr_warn("warning: %s", message);
+    pr_warn("%s", message);
     pr_warn("  in function: %s (line %u)", func, line);
 }

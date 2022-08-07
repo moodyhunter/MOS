@@ -40,7 +40,7 @@ void x86_mm_prepare_paging()
     // validate if the memory region calculated from the linker script is correct.
     s64 paging_area_size = (uintptr_t) x86_paging_area_end - (uintptr_t) x86_paging_area_start;
     static const s64 paging_area_size_expected = 1024 * sizeof(pgdir_entry) + 1024 * 1024 * sizeof(pgtable_entry);
-    pr_debug("paging: provided size: 0x%llx, minimum required size: 0x%llx", paging_area_size, paging_area_size_expected);
+    mos_debug("paging: provided size: 0x%llx, minimum required size: 0x%llx", paging_area_size, paging_area_size_expected);
     MOS_ASSERT_X(paging_area_size >= paging_area_size_expected, "allocated paging area size is too small");
 
     // place the global page directory at somewhere outside of the kernel
@@ -53,12 +53,12 @@ void x86_mm_prepare_paging()
     // initialize the page directory
     memset(mm_page_dir, 0, sizeof(pgdir_entry) * 1024);
 
-    pr_debug("paging: setting up low 1MB identity mapping... (except the NULL page)");
+    mos_debug("paging: setting up low 1MB identity mapping... (except the NULL page)");
     x86_mm_map_page(0, 0, PAGING_PRESENT); // ! the zero page is not writable
     for (int addr = X86_PAGE_SIZE; addr < 1 MB; addr += X86_PAGE_SIZE)
         x86_mm_map_page(addr, addr, PAGING_PRESENT | PAGING_WRITABLE);
 
-    pr_debug("paging: mapping kernel space...");
+    mos_debug("paging: mapping kernel space...");
     uintptr_t addr = (x86_kernel_start_addr / X86_PAGE_SIZE) * X86_PAGE_SIZE; // align the address to the page size
     for (; addr < x86_kernel_end_addr; addr += X86_PAGE_SIZE)
         x86_mm_map_page(addr, addr, PAGING_PRESENT | PAGING_WRITABLE);
@@ -174,7 +174,7 @@ void *x86_mm_alloc_page(size_t n_page)
     }
 
     size_t page_index = target_8page_start * 8 + target_bit;
-    pr_debug("paging: allocating %zu to %zu", page_index, page_index + n_page);
+    mos_debug("paging: allocating %zu to %zu", page_index, page_index + n_page);
     void *vaddr = (void *) (page_index * X86_PAGE_SIZE);
 
     // !! id map the page (for now)
@@ -188,7 +188,7 @@ void *x86_mm_alloc_page(size_t n_page)
 bool x86_mm_free_page(void *vptr, size_t n_page)
 {
     size_t page_index = (uintptr_t) vptr / X86_PAGE_SIZE;
-    pr_debug("paging: freeing %zu to %zu", page_index, page_index + n_page);
+    mos_debug("paging: freeing %zu to %zu", page_index, page_index + n_page);
     for (size_t p = 0; p < n_page; p++)
         x86_mm_unmap_page((uintptr_t) vptr + p * X86_PAGE_SIZE);
     return true;

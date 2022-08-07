@@ -37,7 +37,7 @@ void mos_register_console(console_t *con)
 
     if (unlikely(!has_console_registered))
     {
-        pr_debug("console: removing '%s'", dummy_con.name);
+        pr_info2("console: removing '%s'", dummy_con.name);
         list_remove(&dummy_con);
         has_console_registered = true;
     }

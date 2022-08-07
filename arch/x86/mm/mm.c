@@ -37,7 +37,7 @@ void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
 
         char size_buf[32];
         format_size(size_buf, sizeof(size_buf), entry->len);
-        pr_debug("  %d: 0x%.8llx (+0x%.8llx): %-10s (%s)", i, entry->phys_addr, entry->len, type_str, size_buf);
+        pr_info2("  %d: 0x%.8llx (+0x%.8llx): %-10s (%s)", i, entry->phys_addr, entry->len, type_str, size_buf);
     }
 
 #define SIZE_BUF_LEN 8

@@ -14,7 +14,7 @@ static void deduce_level_color(int loglevel, standard_color_t *fg, standard_colo
     *bg = Black;
     switch (loglevel)
     {
-        case MOS_LOG_DEBUG: *fg = DarkGray; break;
+        case MOS_LOG_INFO2: *fg = DarkGray; break;
         case MOS_LOG_INFO: *fg = Gray; break;
         case MOS_LOG_EMPH: *fg = Cyan; break;
         case MOS_LOG_WARN: *fg = Brown; break;

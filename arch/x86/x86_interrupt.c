@@ -71,11 +71,11 @@ void x86_handle_interrupt(u32 esp)
     else if (stack->interrupt_number == IRQ_SYSCALL)
     {
         // ! mos_invoke_syscall(stack->eax, stack->ebx, stack->ecx, stack->edx, stack->esi, stack->edi);
-        pr_debug("Syscall.");
+        pr_warn("Syscall.");
     }
     else
     {
-        pr_debug("Unknown interrupt.");
+        pr_warn("Unknown interrupt.");
     }
 }
 

@@ -28,23 +28,24 @@
 #define MOS_LOG_WARN  2
 #define MOS_LOG_EMPH  3
 #define MOS_LOG_INFO  4
-#define MOS_LOG_DEBUG 5
+#define MOS_LOG_INFO2 5
 
 #define MOS_LOG_DEFAULT MOS_LOG_INFO
 
 // print a colored message without handler, print unconditionally without a handler
-#if MOS_ENABLE_DEBUG_LOG
-#define pr_debug(fmt, ...) lprintk(MOS_LOG_DEBUG, fmt "\n", ##__VA_ARGS__)
-#else
-#define pr_debug(fmt, ...) lprintk_noop(MOS_LOG_DEBUG, fmt "\n", ##__VA_ARGS__)
-#endif
 #define pr_info(fmt, ...)  lprintk(MOS_LOG_INFO, fmt "\n", ##__VA_ARGS__)
+#define pr_info2(fmt, ...) lprintk(MOS_LOG_INFO2, fmt "\n", ##__VA_ARGS__)
 #define pr_emph(fmt, ...)  lprintk(MOS_LOG_EMPH, fmt "\n", ##__VA_ARGS__)
 #define pr_warn(fmt, ...)  lprintk(MOS_LOG_WARN, fmt "\n", ##__VA_ARGS__)
 #define pr_emerg(fmt, ...) lprintk(MOS_LOG_EMERG, fmt "\n", ##__VA_ARGS__)
 #define pr_fatal(fmt, ...) lprintk(MOS_LOG_FATAL, fmt "\n", ##__VA_ARGS__)
 #define printk(fmt, ...)   lprintk(MOS_LOG_DEFAULT, fmt "", ##__VA_ARGS__)
 
+#if MOS_ENABLE_DEBUG_LOG
+#define mos_debug(fmt, ...) pr_info2("" fmt, ##__VA_ARGS__)
+#else
+#define mos_debug(fmt, ...) lprintk_noop(MOS_LOG_INFO2, fmt "\n", ##__VA_ARGS__)
+#endif
 #define mos_warn(fmt, ...)  _mos_kwarn(__func__, __LINE__, "WARN: " fmt, ##__VA_ARGS__)
 #define mos_panic(fmt, ...) _mos_kpanic(__func__, __LINE__, "" fmt, ##__VA_ARGS__)
 
