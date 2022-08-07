@@ -22,7 +22,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 set(MOS_ARCH_TARGET "x86")
 option(MOS_KERNEL_RUN_TESTS "Run tests in the Kernel" OFF)
 option(MOS_MM_LIBALLOC_LOCKS "liballoc: has lock support" OFF)
-option(MOS_MM_LIBALLOC_DEBUG "liballoc: debug message enabled" ON)
+option(MOS_MM_LIBALLOC_DEBUG "liballoc: debug message enabled" OFF)
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
     message(STATUS "Found custom configuration file 'config.cmake'")
