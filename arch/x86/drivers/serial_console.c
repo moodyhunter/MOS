@@ -4,8 +4,6 @@
 
 #include "mos/x86/drivers/serial.h"
 
-// implement console APIs:
-
 bool serial_console_setup(console_t *console)
 {
     console->write = serial_console_write;

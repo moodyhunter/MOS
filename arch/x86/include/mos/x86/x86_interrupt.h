@@ -84,4 +84,4 @@ void x86_irq_unmask(x86_irq_enum_t irq);
 
 void x86_enable_interrupts();
 void x86_disable_interrupts();
-bool x86_install_interrupt_handler(u32 irq, irq_handler_descriptor_t *handler);
+bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq));

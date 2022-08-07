@@ -35,12 +35,6 @@ static list_node_t mm_free_phymem = LIST_HEAD_INIT(mm_free_phymem);
 static const u32 mm_page_map_size = MM_PAGE_MAP_SIZE;
 static u8 mm_page_map[MM_PAGE_MAP_SIZE] = { 0 };
 
-// static memblock_t bootstrap_pg = {
-//     .list_node = LIST_HEAD_INIT(mm_free_pages),
-//     .vaddr = MOS_X86_HEAP_BASE_VADDR,
-//     .size = X86_PAGE_SIZE,
-// };
-
 void x86_mm_prepare_paging()
 {
     // validate if the memory region calculated from the linker script is correct.
@@ -68,41 +62,13 @@ void x86_mm_prepare_paging()
     uintptr_t addr = (x86_kernel_start_addr / X86_PAGE_SIZE) * X86_PAGE_SIZE; // align the address to the page size
     for (; addr < x86_kernel_end_addr; addr += X86_PAGE_SIZE)
         x86_mm_map_page(addr, addr, PAGING_PRESENT | PAGING_WRITABLE);
-
-    // get a proper physical memory address for the kernel heap
-    // u64 required_size = bootstrap_pg.size;
-    // pr_debug("paging: pre-allocating %llu bytes for the bootstrap page", required_size);
-    // for (size_t ri = x86_mem_regions_count - 1; ri < x86_mem_regions_count; ri--)
-    // {
-    //     memblock_t *region = &x86_mem_regions[ri];
-    //     if (!region->available)
-    //         continue;
-    //     if (region->size >= required_size)
-    //     {
-    //         // found a region that is big enough, try aligning it to the page size
-    //         u64 phys_addr = region->paddr + X86_PAGE_SIZE - 1;
-    //         phys_addr = (phys_addr / X86_PAGE_SIZE) * X86_PAGE_SIZE;
-    //         if (phys_addr < region->paddr || phys_addr + required_size > region->paddr + region->size)
-    //         {
-    //             pr_debug("paging: not suitable physical memory address, region: 0x%llx", region->paddr);
-    //             continue;
-    //         }
-    //         bootstrap_pg.paddr = phys_addr;
-    //         break;
-    //     }
-    // }
-
-    // MOS_ASSERT_X(bootstrap_pg.paddr != 0, "failed to find a suitable physical memory address for the bootstrap page");
-    // pr_debug("paging: bootstrap page: 0x%llx, vaddr: 0x%llx", bootstrap_pg.paddr, bootstrap_pg.vaddr);
-
-    // for (u64 v = bootstrap_pg.vaddr, p = bootstrap_pg.paddr; v < bootstrap_pg.vaddr + bootstrap_pg.size; v += X86_PAGE_SIZE, p +=
-    // X86_PAGE_SIZE)
-    //     x86_mm_map_page(v, p, PAGING_PRESENT | PAGING_WRITABLE);
 }
 
 void x86_mm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags)
 {
     // ensure the page is aligned to 4096
+    MOS_ASSERT_X(paddr < X86_MAX_MEM_SIZE, "physical address out of bounds");
+    MOS_ASSERT_X(flags < 0x100, "invalid flags");
     MOS_ASSERT_X(vaddr % X86_PAGE_SIZE == 0, "vaddr is not aligned to 4096");
 
     // ! todo: ensure the offsets are correct for both paddr and vaddr
@@ -171,10 +137,14 @@ void *x86_mm_alloc_page(size_t n_page)
     // simply rename the variable, we are dealing with bitmaps
     size_t n_bits = n_page;
     size_t n_zero_bits = 0;
+
     u8 target_bit = 0;
 
-    size_t i = 0;
-    while (n_zero_bits < n_bits)
+    // always allocate after the end of the kernel
+    size_t kernel_page_end = x86_kernel_end_addr / X86_PAGE_SIZE;
+    size_t target_8page_start = (kernel_page_end / 8) + 1;
+
+    for (size_t i = target_8page_start; n_zero_bits < n_bits; i++)
     {
         if (i >= mm_page_map_size)
         {
@@ -182,28 +152,30 @@ void *x86_mm_alloc_page(size_t n_page)
             return NULL;
         }
         u8 current_byte = mm_page_map[i];
-        i++;
 
         if (current_byte == 0)
         {
             n_zero_bits += 8;
             continue;
         }
+        if (current_byte == 0xff)
+        {
+            target_8page_start = i + 1;
+            continue;
+        }
 
         for (int bit = 0; bit < 8; bit++)
         {
-            target_bit = bit;
             if (!BIT_IS_SET(current_byte, bit))
                 n_zero_bits++;
             else
-                n_zero_bits = 0, target_bit = 0;
+                n_zero_bits = 0, target_bit = bit + 1, target_8page_start = i;
         }
     }
 
-    u32 page_index = i * 8 + target_bit;
-    u32 page_dir_index = page_index / 1024;
-    u32 page_table_index = page_index % 1024;
-    void *vaddr = (void *) (page_dir_index << 22 | page_table_index << 12);
+    size_t page_index = target_8page_start * 8 + target_bit;
+    pr_debug("paging: allocating %zu", page_index);
+    void *vaddr = (void *) (page_index * X86_PAGE_SIZE);
 
     // !! id map the page (for now)
     for (size_t p = 0; p < n_page; p++)
@@ -214,6 +186,8 @@ void *x86_mm_alloc_page(size_t n_page)
 
 bool x86_mm_free_page(void *vptr, size_t n)
 {
+    size_t page_index = (uintptr_t) vptr / X86_PAGE_SIZE;
+    pr_debug("paging: freeing %zu", page_index);
     for (size_t p = 0; p < n; p++)
         x86_mm_unmap_page((uintptr_t) vptr + p * X86_PAGE_SIZE);
     return true;

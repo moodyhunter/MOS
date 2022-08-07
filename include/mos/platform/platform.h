@@ -28,19 +28,20 @@ typedef struct
     const void *kernel_end;
 
     void __noreturn (*shutdown)(void);
+    void (*devices_setup)(mos_init_info_t *init_info);
 
     // interrupt
     void (*interrupt_enable)(void);
     void (*interrupt_disable)(void);
-    bool (*irq_install_handler)(u32 irq, irq_handler_descriptor_t *handler);
-    void (*irq_uninstall_handler)(u32 irq, irq_handler_descriptor_t *handler);
+    bool (*irq_handler_install)(u32 irq, void (*handler)(u32 irq));
+    void (*irq_handler_remove)(u32 irq, void (*handler)(u32 irq));
 
     // memory management
     size_t mm_page_size;
-    void (*mm_enable_paging)(void);
-    void *(*mm_alloc_page)(size_t n);
-    bool (*mm_free_page)(void *vaddr, size_t n);
-    void (*mm_set_page_flags)(void *vaddr, size_t n, paging_entry_flags flags);
+    void (*mm_paging_enable)(void);
+    void *(*mm_page_allocate)(size_t n);
+    bool (*mm_page_free)(void *vaddr, size_t n);
+    void (*mm_page_set_flags)(void *vaddr, size_t n, paging_entry_flags flags);
 } mos_platform_t;
 
 extern const mos_platform_t mos_platform;

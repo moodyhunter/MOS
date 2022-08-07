@@ -8,7 +8,7 @@ SECTIONS
     /* ! We don't want to load the kernel to e.g. 0x0 because there are many special */
     /* ! memory areas below the 1MB mark (for example the so-called VGA buffer at 0xb8000 */
     /* ! that we use to print OK to the screen). */
-    . = 1M; /* !! Lower Half Kernel */
+    . = 5M; /* !! Lower Half Kernel */
 
     __MOS_SECTION_MULTIBOOT_START = .;
 	.multiboot.data : { *(.multiboot.data) }

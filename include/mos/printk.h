@@ -20,7 +20,7 @@
     do                                                                                                                                          \
     {                                                                                                                                           \
         if (!(cond))                                                                                                                            \
-            mos_panic("Assertion failed: %s %s", #cond, "" msg);                                                                                \
+            mos_panic("Assertion failed: %s %s", #cond, "\n" msg);                                                                              \
     } while (0)
 
 #define MOS_LOG_FATAL 0

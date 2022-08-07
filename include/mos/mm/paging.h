@@ -4,7 +4,7 @@
 
 #include "mos/types.h"
 
-void mm_setup(void);
+void mos_mm_setup(void);
 
 void *mm_page_alloc(size_t npages);
 
