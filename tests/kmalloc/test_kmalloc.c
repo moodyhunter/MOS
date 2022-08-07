@@ -9,6 +9,7 @@ MOS_TEST_CASE(kmalloc_single)
 {
     void *p = kmalloc(1024);
     MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
+    memset(p, 0, 1024);
     kfree(p);
 }
 
@@ -20,6 +21,7 @@ MOS_TEST_CASE(kmalloc_stress)
     {
         p = kmalloc(1024);
         MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
+        memset(p, 0, 1024);
         kfree(p);
     }
 }
@@ -28,14 +30,16 @@ MOS_TEST_CASE(kmalloc_large)
 {
     void *p = kmalloc(1024 * 1024);
     MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
+    memset(p, 0, 1024 * 1024);
     kfree(p);
 
     p = kmalloc(1024 * 1024 * 1024);
     MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
+    memset(p, 0, 1024 * 1024 * 1024);
     kfree(p);
 }
 
-MOS_TEST_CASE(kmalloc_huge)
+MOS_TEST_CASE(kmalloc_a_lot)
 {
     void *pointers[100];
     for (int t = 0; t < 20; t++)
