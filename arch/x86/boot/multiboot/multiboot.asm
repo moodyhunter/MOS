@@ -38,6 +38,6 @@ _mos_x86_multiboot_start:
 section .bss
     align 16
 stack_bottom:
-    resb 4096 ; 16 KiB
+    resd 4096 ; 16 KiB
 stack_top:
 
