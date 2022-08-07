@@ -33,7 +33,11 @@
 #define MOS_LOG_DEFAULT MOS_LOG_INFO
 
 // print a colored message without handler, print unconditionally without a handler
+#if MOS_ENABLE_DEBUG_LOG
 #define pr_debug(fmt, ...) lprintk(MOS_LOG_DEBUG, fmt "\n", ##__VA_ARGS__)
+#else
+#define pr_debug(fmt, ...) lprintk_noop(MOS_LOG_DEBUG, fmt "\n", ##__VA_ARGS__)
+#endif
 #define pr_info(fmt, ...)  lprintk(MOS_LOG_INFO, fmt "\n", ##__VA_ARGS__)
 #define pr_emph(fmt, ...)  lprintk(MOS_LOG_EMPH, fmt "\n", ##__VA_ARGS__)
 #define pr_warn(fmt, ...)  lprintk(MOS_LOG_WARN, fmt "\n", ##__VA_ARGS__)
@@ -53,6 +57,13 @@
             __once = true;                                                                                                                      \
             mos_warn(__VA_ARGS__);                                                                                                              \
         }                                                                                                                                       \
+    } while (0)
+
+#define lprintk_noop(level, fmt, ...)                                                                                                           \
+    do                                                                                                                                          \
+    {                                                                                                                                           \
+        if (0)                                                                                                                                  \
+            lprintk(level, fmt "", ##__VA_ARGS__);                                                                                              \
     } while (0)
 
 void __printf(2, 3) lprintk(int loglevel, const char *format, ...);
