@@ -5,6 +5,8 @@
 #include "lib/containers.h"
 #include "mos/types.h"
 
+#define STD_COLOR_LIGHT 0x8
+
 typedef enum
 {
     Black = 0x0,
@@ -14,15 +16,15 @@ typedef enum
     Red = 0x4,
     Magenta = 0x5,
     Brown = 0x6,
-    LightGray = 0x7,
-    DarkGray = Black | 0x8,
-    LightBlue = Blue | 0x8,
-    LightGreen = Green | 0x8,
-    LightCyan = Cyan | 0x8,
-    LightRed = Red | 0x8,
-    LightMagenta = Magenta | 0x8,
-    Yellow = Brown | 0x8,
-    White = LightGray | 0x8,
+    Gray = 0x7,
+    DarkGray = Black | STD_COLOR_LIGHT,
+    LightBlue = Blue | STD_COLOR_LIGHT,
+    LightGreen = Green | STD_COLOR_LIGHT,
+    LightCyan = Cyan | STD_COLOR_LIGHT,
+    LightRed = Red | STD_COLOR_LIGHT,
+    LightMagenta = Magenta | STD_COLOR_LIGHT,
+    Yellow = Brown | STD_COLOR_LIGHT,
+    White = Gray | STD_COLOR_LIGHT,
 } standard_color_t;
 
 typedef enum

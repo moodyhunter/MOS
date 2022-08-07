@@ -2,7 +2,6 @@
 
 #include "mos/x86/drivers/serial.h"
 
-#include "mos/device/console.h"
 #include "mos/printk.h"
 #include "mos/x86/drivers/port.h"
 #include "mos/x86/x86_interrupt.h"

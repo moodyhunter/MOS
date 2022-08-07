@@ -41,7 +41,7 @@ void mos_test_engine_log(standard_color_t color, char symbol, char *format, ...)
     else
         snprintf(prefix, 5, "    ");
 
-    for_each_console_print_with_color(LightGray, Black, prefix, 5);
+    for_each_console_print_with_color(Gray, Black, prefix, 5);
 
     char message[512];
     va_list args;

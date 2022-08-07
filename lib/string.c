@@ -70,6 +70,15 @@ void strcpy(char *dest, const char *src)
     *dest = 0;
 }
 
+void strcat(char *dest, const char *src)
+{
+    while (*dest)
+        dest++;
+    while (*src)
+        *dest++ = *src++;
+    *dest = 0;
+}
+
 void strncpy(char *dest, const char *src, size_t n)
 {
     while (n > 0 && *src)
