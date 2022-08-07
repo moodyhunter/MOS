@@ -44,6 +44,17 @@
 #define mos_warn(fmt, ...)  _mos_kwarn(__func__, __LINE__, "WARN: " fmt, ##__VA_ARGS__)
 #define mos_panic(fmt, ...) _mos_kpanic(__func__, __LINE__, "" fmt, ##__VA_ARGS__)
 
+#define mos_warn_once(...)                                                                                                                      \
+    do                                                                                                                                          \
+    {                                                                                                                                           \
+        static bool __once = false;                                                                                                             \
+        if (!__once)                                                                                                                            \
+        {                                                                                                                                       \
+            __once = true;                                                                                                                      \
+            mos_warn(__VA_ARGS__);                                                                                                              \
+        }                                                                                                                                       \
+    } while (0)
+
 void __printf(2, 3) lprintk(int loglevel, const char *format, ...);
 void __printf(3, 4) _mos_kwarn(const char *func, u32 line, const char *fmt, ...);
 void __printf(3, 4) __noreturn _mos_kpanic(const char *func, u32 line, const char *fmt, ...);
