@@ -112,7 +112,7 @@ void x86_mm_unmap_page(uintptr_t vaddr)
     pgdir_entry *page_dir = mm_page_dir + page_dir_index;
     if (unlikely(!page_dir->present))
     {
-        mos_warn("page '%zx' not mapped", vaddr);
+        mos_panic("page '%zx' not mapped", vaddr);
         return;
     }
 
