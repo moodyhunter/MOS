@@ -10,7 +10,6 @@ extern void mos_test_engine_run_tests();
 
 void mos_start_kernel(mos_init_info_t *init_info)
 {
-    mos_platform.mm_paging_enable();
     mos_mm_setup();
     mos_platform.devices_setup(init_info);
     mos_platform.interrupt_enable();

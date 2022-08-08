@@ -2,15 +2,11 @@
 
 #include "mos/x86/x86_platform.h"
 
-#include "lib/containers.h"
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"
-#include "mos/mos_global.h"
-#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/x86/boot/multiboot.h"
 #include "mos/x86/drivers/port.h"
-#include "mos/x86/drivers/serial.h"
 #include "mos/x86/drivers/serial_console.h"
 #include "mos/x86/drivers/text_mode_console.h"
 #include "mos/x86/mm/mm.h"
@@ -46,6 +42,7 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     u32 count = mb_info->mmap_length / sizeof(multiboot_mmap_entry_t);
     x86_mem_init(mb_info->mmap_addr, count);
     x86_mm_prepare_paging();
+    x86_mm_enable_paging();
 
     mos_init_info_t init;
     init.cmdline = mos_cmdline;
@@ -105,7 +102,6 @@ const mos_platform_t mos_platform = {
 
     // memory management
     .mm_page_size = X86_PAGE_SIZE,
-    .mm_paging_enable = x86_mm_enable_paging,
     .mm_page_allocate = x86_mm_alloc_page,
     .mm_page_free = x86_mm_free_page,
 };

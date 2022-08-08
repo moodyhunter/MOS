@@ -6,10 +6,6 @@
 #include "mos/types.h"
 #include "mos/x86/boot/multiboot.h"
 
-extern const char __MOS_X86_PAGING_AREA_START;
-extern const char __MOS_X86_PAGE_TABLE_START;
-extern const char __MOS_X86_PAGING_AREA_END;
-
 #define MEM_MAX_BLOCKS 64
 extern memblock_t x86_mem_regions[MEM_MAX_BLOCKS];
 extern size_t x86_mem_regions_count;

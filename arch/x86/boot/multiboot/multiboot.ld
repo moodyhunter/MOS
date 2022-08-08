@@ -10,15 +10,27 @@ SECTIONS
     /* ! that we use to print OK to the screen). */
     . = 5M; /* !! Lower Half Kernel */
 
+    . =  ALIGN(0x1000);
+    __MOS_SECTION_KERNEL_START = .;
     __MOS_SECTION_MULTIBOOT_START = .;
 	.multiboot.data : { *(.multiboot.data) }
 	.multiboot.text : { *(.multiboot.text) }
     __MOS_SECTION_MULTIBOOT_END = .;
 
-    . =  ALIGN(0x1000);
-    __MOS_SECTION_KERNEL_START = .;
-    .text : { *(.text) }
-    .rodata : { *(.rodata) }
+    __MOS_KERNEL_RO_START = .;
+    .text : {
+        __MOS_KERNEL_TEXT_START = .;
+         *(.text)
+        __MOS_KERNEL_TEXT_END = .;
+    }
+
+    .rodata : {
+        __MOS_KERNEL_RODATA_START = .;
+        *(.rodata)
+        __MOS_KERNEL_RODATA_END = .;
+    }
+    __MOS_KERNEL_RO_END = .;
+
     .data : { *(.data) }
     .bss : { *(.bss) }
 

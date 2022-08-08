@@ -41,8 +41,16 @@ typedef struct
 static_assert(sizeof(x86_stack_frame) == 68, "x86_stack_frame is not 68 bytes");
 
 // defined in the linker script 'multiboot.ld'
-extern const char __MOS_SECTION_KERNEL_START;
-extern const char __MOS_SECTION_KERNEL_END;
+extern const char __MOS_SECTION_KERNEL_START;                                 // Kernel ELF {
+extern const char __MOS_SECTION_MULTIBOOT_START, __MOS_SECTION_MULTIBOOT_END; //   Multiboot Code / Data
+extern const char __MOS_KERNEL_RO_START;                                      //   Kernel read-only data {
+extern const char __MOS_KERNEL_TEXT_START, __MOS_KERNEL_TEXT_END;             //     Kernel text
+extern const char __MOS_KERNEL_RODATA_START, __MOS_KERNEL_RODATA_END;         //     Kernel rodata
+extern const char __MOS_KERNEL_RO_END;                                        //   }
+extern const char __MOS_X86_PAGING_AREA_START;                                //   Paging area {
+extern const char __MOS_X86_PAGE_TABLE_START;                                 //     Page table
+extern const char __MOS_X86_PAGING_AREA_END;                                  //   }
+extern const char __MOS_SECTION_KERNEL_END;                                   // }
 
 extern const uintptr_t x86_kernel_start_addr;
 extern const uintptr_t x86_kernel_end_addr;

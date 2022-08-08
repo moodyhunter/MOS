@@ -38,7 +38,6 @@ typedef struct
 
     // memory management
     size_t mm_page_size;
-    void (*mm_paging_enable)(void);
     void *(*mm_page_allocate)(size_t n);
     bool (*mm_page_free)(void *vaddr, size_t n);
     void (*mm_page_set_flags)(void *vaddr, size_t n, paging_entry_flags flags);
