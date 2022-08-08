@@ -46,8 +46,8 @@
 #else
 #define mos_debug(fmt, ...) lprintk_noop(MOS_LOG_INFO2, fmt "\n", ##__VA_ARGS__)
 #endif
-#define mos_warn(fmt, ...)  _mos_kwarn(__func__, __LINE__, "WARN: " fmt, ##__VA_ARGS__)
-#define mos_panic(fmt, ...) _mos_kpanic(__func__, __LINE__, "" fmt, ##__VA_ARGS__)
+#define mos_warn(fmt, ...)  mos_kwarn(__func__, __LINE__, "WARN: " fmt, ##__VA_ARGS__)
+#define mos_panic(fmt, ...) mos_kpanic(__func__, __LINE__, "" fmt, ##__VA_ARGS__)
 
 #define mos_warn_once(...)                                                                                                                      \
     do                                                                                                                                          \
@@ -68,5 +68,5 @@
     } while (0)
 
 void __printf(2, 3) lprintk(int loglevel, const char *format, ...);
-void __printf(3, 4) _mos_kwarn(const char *func, u32 line, const char *fmt, ...);
-void __printf(3, 4) __noreturn _mos_kpanic(const char *func, u32 line, const char *fmt, ...);
+void __printf(3, 4) mos_kwarn(const char *func, u32 line, const char *fmt, ...);
+void __printf(3, 4) __noreturn mos_kpanic(const char *func, u32 line, const char *fmt, ...);

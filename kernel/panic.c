@@ -43,7 +43,7 @@ void kpanic_handler_remove()
 #undef mos_warn
 #undef mos_panic
 
-void _mos_kpanic(const char *func, u32 line, const char *fmt, ...)
+void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
 {
     mos_platform.interrupt_disable();
 
@@ -75,7 +75,7 @@ void _mos_kpanic(const char *func, u32 line, const char *fmt, ...)
         ;
 }
 
-void _mos_kwarn(const char *func, u32 line, const char *fmt, ...)
+void mos_kwarn(const char *func, u32 line, const char *fmt, ...)
 {
     va_list args;
     if (kwarn_handler)
