@@ -39,10 +39,6 @@ void kpanic_handler_remove()
     kpanic_handler = NULL;
 }
 
-// ! using the following 2 functions causes recurstion
-#undef mos_warn
-#undef mos_panic
-
 void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
 {
     mos_platform.interrupt_disable();
