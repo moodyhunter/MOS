@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "mos/kconfig.h"
 #include "mos/types.h"
 
 // This is a boundary tag which is prepended to the page or section of a page which we have allocated.

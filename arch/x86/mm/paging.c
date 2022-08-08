@@ -5,12 +5,9 @@
 #include "lib/containers.h"
 #include "lib/string.h"
 #include "mos/kconfig.h"
-#include "mos/mm/mm_types.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/types.h"
-#include "mos/x86/boot/multiboot.h"
-#include "mos/x86/mm/mm.h"
 #include "mos/x86/x86_platform.h"
 
 extern void x86_enable_paging_impl(void *page_dir);

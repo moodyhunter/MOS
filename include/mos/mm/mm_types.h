@@ -5,8 +5,6 @@
 #include "lib/containers.h"
 #include "mos/types.h"
 
-#include <stddef.h>
-
 typedef struct
 {
     as_linked_list;

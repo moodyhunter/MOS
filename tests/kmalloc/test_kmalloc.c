@@ -2,7 +2,6 @@
 
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"
-#include "mos/printk.h"
 #include "test_engine.h"
 
 MOS_TEST_CASE(kmalloc_single)

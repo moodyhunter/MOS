@@ -3,9 +3,6 @@
 
 #include "mos/types.h"
 
-// Inclusion of the <string.h> header may also make visible all symbols from <stddef.h>.
-#include <stddef.h>
-
 size_t strlen(const char *str);
 s32 strcmp(const char *str1, const char *str2);
 

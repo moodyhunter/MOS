@@ -3,7 +3,6 @@
 #include "mos/x86/x86_interrupt.h"
 
 #include "mos/interrupt.h"
-#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/x86/drivers/port.h"
 #include "mos/x86/x86_platform.h"

@@ -3,15 +3,9 @@
 #include "mos/x86/mm/mm.h"
 
 #include "lib/stdlib.h"
-#include "lib/string.h"
-#include "mos/mm/mm_types.h"
-#include "mos/platform/platform.h"
 #include "mos/printk.h"
-#include "mos/x86/boot/multiboot.h"
-#include "mos/x86/mm/paging.h"
-#include "mos/x86/x86_platform.h"
 
-memblock_t x86_mem_regions[MEM_MAX_BLOCKS] = { 0 };
+memblock_t x86_mem_regions[MEM_MAX_N_REGIONS] = { 0 };
 size_t x86_mem_regions_count = 0;
 
 void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
@@ -21,7 +15,10 @@ void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
     for (u32 i = 0; i < count; i++)
     {
         const multiboot_mmap_entry_t *entry = map_entry + i;
-        x86_mem_add_region(entry->phys_addr, entry->len, entry->type == MULTIBOOT_MEMORY_AVAILABLE);
+
+        if (entry->type == MULTIBOOT_MEMORY_AVAILABLE)
+            x86_mem_add_available_region(entry->phys_addr, entry->len);
+
         mem_size_total += entry->len;
 
         char *type_str = "";
@@ -50,14 +47,14 @@ void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
     pr_info("Total Memory: %s (%s available, %s unavailable)", buf, buf_available, buf_unavailable);
 }
 
-void x86_mem_add_region(u64 phys_addr, size_t size, bool available)
+void x86_mem_add_available_region(u64 phys_addr, size_t size)
 {
-    if (x86_mem_regions_count == MEM_MAX_BLOCKS)
+    if (x86_mem_regions_count == MEM_MAX_N_REGIONS)
         mos_panic("too many memory regions added.");
 
     memblock_t *block = &x86_mem_regions[x86_mem_regions_count];
     block->paddr = phys_addr;
     block->size = size;
-    block->available = available;
+    block->available = true;
     x86_mem_regions_count++;
 }

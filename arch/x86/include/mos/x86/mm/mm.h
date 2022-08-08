@@ -6,9 +6,9 @@
 #include "mos/types.h"
 #include "mos/x86/boot/multiboot.h"
 
-#define MEM_MAX_BLOCKS 64
-extern memblock_t x86_mem_regions[MEM_MAX_BLOCKS];
+#define MEM_MAX_N_REGIONS 64
+extern memblock_t x86_mem_regions[MEM_MAX_N_REGIONS];
 extern size_t x86_mem_regions_count;
 
 void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count);
-void x86_mem_add_region(u64 start, size_t size, bool available);
+void x86_mem_add_available_region(u64 start, size_t size);

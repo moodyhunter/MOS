@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "mos/mos_global.h"
 #include "mos/types.h"
 
 #define container_of(ptr, type, member) ((type *) ((char *) (ptr) - (offsetof(type, member))))

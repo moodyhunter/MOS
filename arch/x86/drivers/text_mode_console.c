@@ -2,7 +2,6 @@
 
 #include "mos/x86/drivers/text_mode_console.h"
 
-#include "lib/stdlib.h"
 #include "lib/string.h"
 #include "mos/device/console.h"
 #include "mos/mos_global.h"

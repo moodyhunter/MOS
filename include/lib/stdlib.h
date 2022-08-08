@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "lib/math.h"
-#include "mos/mos_global.h"
 #include "mos/types.h"
 
 #include <limits.h>

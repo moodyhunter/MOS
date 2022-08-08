@@ -3,7 +3,6 @@
 #include "test_engine.h"
 
 #include "lib/stdio.h"
-#include "lib/stdlib.h"
 #include "lib/string.h"
 #include "mos/device/console.h"
 #include "mos/panic.h"

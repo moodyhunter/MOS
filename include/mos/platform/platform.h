@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "mos/interrupt.h"
 #include "mos/mos_global.h"
 #include "mos/types.h"
 
