@@ -8,10 +8,12 @@
 memblock_t x86_mem_regions[MEM_MAX_N_REGIONS] = { 0 };
 size_t x86_mem_regions_count = 0;
 
+size_t x86_mem_size_total = 0;
+size_t x86_mem_size_available = 0;
+
 void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
 {
     pr_info("Multiboot memory map:");
-    u64 mem_size_total = 0, mem_size_available = 0;
     for (u32 i = 0; i < count; i++)
     {
         const multiboot_mmap_entry_t *entry = map_entry + i;
@@ -19,12 +21,12 @@ void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
         if (entry->type == MULTIBOOT_MEMORY_AVAILABLE)
             x86_mem_add_available_region(entry->phys_addr, entry->len);
 
-        mem_size_total += entry->len;
+        x86_mem_size_total += entry->len;
 
         char *type_str = "";
         switch (entry->type)
         {
-            case MULTIBOOT_MEMORY_AVAILABLE: type_str = "Available", mem_size_available += entry->len; break;
+            case MULTIBOOT_MEMORY_AVAILABLE: type_str = "Available", x86_mem_size_available += entry->len; break;
             case MULTIBOOT_MEMORY_RESERVED: type_str = "Reserved"; break;
             case MULTIBOOT_MEMORY_ACPI_RECLAIMABLE: type_str = "ACPI Reclaimable"; break;
             case MULTIBOOT_MEMORY_NVS: type_str = "NVS"; break;
@@ -41,9 +43,9 @@ void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
     char buf[SIZE_BUF_LEN];
     char buf_available[SIZE_BUF_LEN];
     char buf_unavailable[SIZE_BUF_LEN];
-    format_size(buf, sizeof(buf), mem_size_total);
-    format_size(buf_available, sizeof(buf_available), mem_size_available);
-    format_size(buf_unavailable, sizeof(buf_unavailable), mem_size_total - mem_size_available);
+    format_size(buf, sizeof(buf), x86_mem_size_total);
+    format_size(buf_available, sizeof(buf_available), x86_mem_size_available);
+    format_size(buf_unavailable, sizeof(buf_unavailable), x86_mem_size_total - x86_mem_size_available);
     pr_info("Total Memory: %s (%s available, %s unavailable)", buf, buf_available, buf_unavailable);
 }
 
@@ -54,7 +56,7 @@ void x86_mem_add_available_region(u64 phys_addr, size_t size)
 
     memblock_t *block = &x86_mem_regions[x86_mem_regions_count];
     block->paddr = phys_addr;
-    block->size = size;
+    block->size_bytes = size;
     block->available = true;
     x86_mem_regions_count++;
 }

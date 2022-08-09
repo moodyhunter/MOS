@@ -12,15 +12,14 @@
 #define MB KB * 1024
 #define GB MB * 1024
 
-#define MOS_TODO(fmt, ...)         mos_warn("TODO: " fmt, ##__VA_ARGS__)
 #define MOS_UNIMPLEMENTED(content) mos_panic("UNIMPLEMENTED: %s", content)
 #define MOS_UNREACHABLE()          mos_panic("UNREACHABLE")
 #define MOS_ASSERT(cond)           MOS_ASSERT_X(cond, "")
-#define MOS_ASSERT_X(cond, msg)                                                                                                                 \
+#define MOS_ASSERT_X(cond, msg, ...)                                                                                                            \
     do                                                                                                                                          \
     {                                                                                                                                           \
         if (!(cond))                                                                                                                            \
-            mos_panic("Assertion failed: %s %s", #cond, "\n" msg);                                                                              \
+            mos_panic("Assertion failed: %s \n" msg, #cond, ##__VA_ARGS__);                                                                     \
     } while (0)
 
 #define MOS_LOG_FATAL 0

@@ -12,8 +12,8 @@
 #include "mos/x86/mm/mm.h"
 #include "mos/x86/mm/paging.h"
 
-const uintptr_t x86_kernel_start_addr = (uintptr_t) &__MOS_SECTION_KERNEL_START;
-const uintptr_t x86_kernel_end_addr = (uintptr_t) &__MOS_SECTION_KERNEL_END;
+const uintptr_t x86_kernel_start = (uintptr_t) &__MOS_SECTION_KERNEL_START;
+const uintptr_t x86_kernel_end = (uintptr_t) &__MOS_SECTION_KERNEL_END;
 
 static serial_console_t com1_console = {
     .device = { .port = COM1, .baud_rate = BAUD_RATE_115200, .char_length = CHAR_LENGTH_8, .stop_bits = STOP_BITS_1, .parity = PARITY_EVEN },

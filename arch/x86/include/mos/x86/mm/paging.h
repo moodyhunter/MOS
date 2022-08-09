@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/mm/mm_types.h"
 #include "mos/platform/platform.h"
 #include "mos/types.h"
 
@@ -42,9 +43,18 @@ typedef struct
 
 static_assert(sizeof(pgdir_entry) == 4, "page_directory_entry is not 4 bytes");
 
+// public APIs
 void x86_mm_prepare_paging();
 void x86_mm_enable_paging();
-
-void x86_mm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags);
 void *x86_mm_alloc_page(size_t n);
 bool x86_mm_free_page(void *vaddr, size_t n);
+
+// private APIs
+void vm_map_page_range(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, uint32_t flags);
+void vm_unmap_page_range(uintptr_t vaddr_start, size_t n_page);
+void _impl_vm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags);
+void _impl_vm_unmap_page(uintptr_t vaddr);
+
+void pmem_freelist_setup();
+size_t pmem_freelist_add_region(memblock_t *range);
+size_t pmem_freelist_remove_region(memblock_t *range);

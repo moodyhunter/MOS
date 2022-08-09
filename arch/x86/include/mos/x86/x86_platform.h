@@ -29,6 +29,9 @@ static_assert(sizeof(void *) == 4, "x86_64 is not supported");
 #define X86_MAX_MEM_SIZE   UINT32_MAX
 #define X86_MAX_KHEAP_SIZE (X86_MAX_ADDR - MOS_X86_HEAP_BASE_VADDR)
 
+#define X86_ALIGN_UP_TO_PAGE(addr)   (((addr) + X86_PAGE_SIZE - 1) & ~(X86_PAGE_SIZE - 1))
+#define X86_ALIGN_DOWN_TO_PAGE(addr) ((addr) & ~(X86_PAGE_SIZE - 1))
+
 typedef struct
 {
     u32 edi, esi, ebp, esp, ebx, edx, ecx, eax;
@@ -52,8 +55,8 @@ extern const char __MOS_X86_PAGE_TABLE_START;                                 //
 extern const char __MOS_X86_PAGING_AREA_END;                                  //   }
 extern const char __MOS_SECTION_KERNEL_END;                                   // }
 
-extern const uintptr_t x86_kernel_start_addr;
-extern const uintptr_t x86_kernel_end_addr;
+extern const uintptr_t x86_kernel_start;
+extern const uintptr_t x86_kernel_end;
 
 void x86_gdt_init();
 void x86_idt_init();

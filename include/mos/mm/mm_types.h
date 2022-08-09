@@ -10,6 +10,6 @@ typedef struct
     as_linked_list;
     u64 vaddr;
     u64 paddr;
-    size_t size;
+    size_t size_bytes;
     bool available;
 } memblock_t;
