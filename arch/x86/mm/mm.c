@@ -4,6 +4,7 @@
 
 #include "lib/stdlib.h"
 #include "mos/printk.h"
+#include "mos/x86/x86_platform.h"
 
 memblock_t x86_mem_regions[MEM_MAX_N_REGIONS] = { 0 };
 size_t x86_mem_regions_count = 0;
@@ -16,17 +17,36 @@ void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
     pr_info("Multiboot memory map:");
     for (u32 i = 0; i < count; i++)
     {
+        char size_buf[32];
         const multiboot_mmap_entry_t *entry = map_entry + i;
 
-        if (entry->type == MULTIBOOT_MEMORY_AVAILABLE)
-            x86_mem_add_available_region(entry->phys_addr, entry->len);
+        u64 region_length = entry->len;
+        u64 region_base = entry->phys_addr;
 
-        x86_mem_size_total += entry->len;
+        format_size(size_buf, sizeof(size_buf), region_length);
+
+        if (region_base > X86_MAX_MEM_SIZE)
+        {
+            pr_warn("ignoring a %s long memory region starting at 0x%llx", size_buf, region_base);
+            continue;
+        }
+
+        if (region_base + region_length > (u64) X86_MAX_MEM_SIZE + 1)
+        {
+            region_length = X86_MAX_MEM_SIZE - region_base;
+            format_size(size_buf, sizeof(size_buf), region_length);
+            pr_warn("truncating memory region at 0x%llx, it extends beyond the maximum address 0x%x", region_base, X86_MAX_MEM_SIZE);
+        }
+
+        if (entry->type == MULTIBOOT_MEMORY_AVAILABLE)
+            x86_mem_add_available_region(region_base, region_length);
+
+        x86_mem_size_total += region_length;
 
         char *type_str = "";
         switch (entry->type)
         {
-            case MULTIBOOT_MEMORY_AVAILABLE: type_str = "Available", x86_mem_size_available += entry->len; break;
+            case MULTIBOOT_MEMORY_AVAILABLE: type_str = "Available", x86_mem_size_available += region_length; break;
             case MULTIBOOT_MEMORY_RESERVED: type_str = "Reserved"; break;
             case MULTIBOOT_MEMORY_ACPI_RECLAIMABLE: type_str = "ACPI Reclaimable"; break;
             case MULTIBOOT_MEMORY_NVS: type_str = "NVS"; break;
@@ -34,9 +54,7 @@ void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
             default: mos_panic("unsupported memory map type: %x", entry->type);
         }
 
-        char size_buf[32];
-        format_size(size_buf, sizeof(size_buf), entry->len);
-        pr_info2("  %d: 0x%.8llx (+0x%.8llx): %-10s (%s)", i, entry->phys_addr, entry->len, type_str, size_buf);
+        pr_info2("  %d: 0x%.8llx - 0x%.8llx: %-10s (%s)", i, region_base, region_base + region_length - 1, type_str, size_buf);
     }
 
 #define SIZE_BUF_LEN 8
