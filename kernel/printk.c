@@ -29,21 +29,23 @@ void lprintk(int loglevel, const char *fmt, ...)
     standard_color_t fg = White, bg = Black;
     deduce_level_color(loglevel, &fg, &bg);
 
+    char message[PRINTK_BUFFER_SIZE] = { 0 };
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
+    va_end(args);
+    const size_t len = strlen(message);
+
+    standard_color_t prev_fg, prev_bg;
     list_foreach(console_t, console, consoles)
     {
-        standard_color_t prev_fg, prev_bg;
         if (console->caps & CONSOLE_CAP_COLOR)
         {
             console->get_color(console, &prev_fg, &prev_bg);
             console->set_color(console, fg, bg);
         }
 
-        char message[PRINTK_BUFFER_SIZE] = { 0 };
-        va_list args;
-        va_start(args, fmt);
-        vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
-        va_end(args);
-        console->write(console, message, strlen(message));
+        console->write(console, message, len);
 
         if (console->caps & CONSOLE_CAP_COLOR)
         {
