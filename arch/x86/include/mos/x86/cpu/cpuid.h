@@ -36,10 +36,5 @@ typedef struct
 
 static_assert(sizeof(processor_version_t) == sizeof(u32), "processor_version is not 32 bits");
 
-typedef enum
-{
-    aa
-} a;
-
 void x86_cpuid(u32 eax, cpuid_t *cpuid);
 void x86_cpuid_dump();
