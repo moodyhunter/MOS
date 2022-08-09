@@ -54,7 +54,11 @@ void vm_map_page_range(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_pa
 void vm_unmap_page_range(uintptr_t vaddr_start, size_t n_page);
 void _impl_vm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags);
 void _impl_vm_unmap_page(uintptr_t vaddr);
+uintptr_t vm_get_paddr(uintptr_t vaddr);
 
 void pmem_freelist_setup();
-size_t pmem_freelist_add_region(memblock_t *range);
-size_t pmem_freelist_remove_region(memblock_t *range);
+size_t pmem_freelist_add_region(uintptr_t start_addr, size_t size_bytes);
+void pmem_freelist_remove_region(uintptr_t start_addr, size_t size_bytes);
+uintptr_t pmem_freelist_get_page(size_t pages);
+
+void pmem_freelist_dump();

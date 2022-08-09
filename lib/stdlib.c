@@ -54,12 +54,22 @@ s32 atoi(const char *nptr)
 
 void format_size(char *buf, size_t buf_size, u64 size)
 {
-    if (size < 1024)
-        snprintf(buf, buf_size, "%llu B", size);
-    else if (size < 1024 * 1024)
-        snprintf(buf, buf_size, "%llu KiB", size / 1024);
-    else if (size < 1024 * 1024 * 1024)
-        snprintf(buf, buf_size, "%llu MiB", size / (1024 * 1024));
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+    static const char *units[] = { "B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB" };
+    size_t i = 0;
+    size_t diff = 0;
+    while (size >= 1024 && i < ARRAY_SIZE(units) - 1)
+    {
+        diff = size % 1024;
+        size /= 1024;
+        i++;
+    }
+    if (unlikely(diff == 0 || i == 0))
+    {
+        snprintf(buf, buf_size, "%llu %s", size, units[i]);
+    }
     else
-        snprintf(buf, buf_size, "%llu GiB", size / (1024 * 1024 * 1024));
+    {
+        snprintf(buf, buf_size, "%llu %s + %zu %s", size, units[i], diff, units[i - 1]);
+    }
 }

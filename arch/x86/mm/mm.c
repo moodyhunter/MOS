@@ -57,7 +57,7 @@ void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
         pr_info2("  %d: 0x%.8llx - 0x%.8llx: %-10s (%s)", i, region_base, region_base + region_length - 1, type_str, size_buf);
     }
 
-#define SIZE_BUF_LEN 8
+#define SIZE_BUF_LEN 32
     char buf[SIZE_BUF_LEN];
     char buf_available[SIZE_BUF_LEN];
     char buf_unavailable[SIZE_BUF_LEN];
