@@ -7,6 +7,7 @@
 #include "mos/panic.h"
 #include "mos/printk.h"
 #include "mos/x86/boot/multiboot.h"
+#include "mos/x86/cpu/cpuid.h"
 #include "mos/x86/drivers/port.h"
 #include "mos/x86/drivers/serial_console.h"
 #include "mos/x86/drivers/text_mode_console.h"
@@ -37,6 +38,8 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     x86_gdt_init();
     x86_idt_init();
     x86_irq_handler_init();
+
+    x86_cpuid_dump();
 
     strncpy(mos_cmdline, mb_info->cmdline, sizeof(mos_cmdline));
 

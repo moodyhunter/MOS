@@ -33,7 +33,7 @@ void mos_register_console(console_t *con)
         con->clear(con);
 
     list_node_append(&consoles, list_node(con));
-    pr_info("console: registering '%s'", con->name);
+    pr_info("console: registered '%s'", con->name);
 
     if (unlikely(!has_console_registered))
     {
