@@ -27,6 +27,8 @@ typedef struct
     const void *kernel_end;
 
     void __noreturn (*shutdown)(void);
+
+    void (*post_init)(mos_init_info_t *info);
     void (*devices_setup)(mos_init_info_t *init_info);
 
     // interrupt
@@ -46,3 +48,4 @@ extern const mos_platform_t mos_platform;
 
 extern void mos_start_kernel(mos_init_info_t *init_info);
 extern void mos_invoke_syscall(u64 syscall_number);
+extern void mos_init_kernel_mm(void);

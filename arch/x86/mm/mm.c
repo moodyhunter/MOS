@@ -4,6 +4,7 @@
 
 #include "lib/stdlib.h"
 #include "mos/printk.h"
+#include "mos/x86/mm/paging.h"
 #include "mos/x86/x86_platform.h"
 
 memblock_t x86_mem_regions[MEM_MAX_N_REGIONS] = { 0 };

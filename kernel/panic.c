@@ -2,25 +2,25 @@
 
 #include "mos/panic.h"
 
+#include "lib/containers.h"
 #include "lib/stdio.h"
+#include "mos/mm/kmalloc.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 
-#include <stdarg.h>
+typedef struct
+{
+    as_linked_list;
+    kpanic_hook_t *hook;
+} panic_hook_holder_t;
 
-static kmsg_handler_t *kpanic_handler = NULL;
+static list_node_t kpanic_hooks = LIST_HEAD_INIT(kpanic_hooks);
 static kmsg_handler_t *kwarn_handler = NULL;
 
 void kwarn_handler_set(kmsg_handler_t *handler)
 {
     pr_warn("installing a new warning handler...");
     kwarn_handler = handler;
-}
-
-void kpanic_handler_set(kmsg_handler_t *handler)
-{
-    pr_warn("installing a new panic handler...");
-    kpanic_handler = handler;
 }
 
 void kwarn_handler_remove()
@@ -31,29 +31,11 @@ void kwarn_handler_remove()
     kwarn_handler = NULL;
 }
 
-void kpanic_handler_remove()
-{
-    pr_warn("removing panic handler...");
-    if (!kpanic_handler)
-        mos_warn("no previous panic handler installed");
-    kpanic_handler = NULL;
-}
-
 void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
 {
     mos_platform.interrupt_disable();
 
     va_list args;
-    if (kpanic_handler)
-    {
-        va_start(args, fmt);
-        (*kpanic_handler)(func, line, fmt, args);
-        va_end(args);
-        pr_fatal("kpanic handler returned!");
-        while (1)
-            ;
-    }
-
     char message[PRINTK_BUFFER_SIZE] = { 0 };
     va_start(args, fmt);
     vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
@@ -66,6 +48,11 @@ void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
     pr_emerg("");
     pr_emerg("%s", message);
     pr_emerg("  in function: %s (line %u)", func, line);
+
+    list_foreach(panic_hook_holder_t, holder, kpanic_hooks)
+    {
+        holder->hook();
+    }
 
     while (1)
         ;
@@ -89,4 +76,11 @@ void mos_kwarn(const char *func, u32 line, const char *fmt, ...)
 
     pr_warn("%s", message);
     pr_warn("  in function: %s (line %u)", func, line);
+}
+
+void mos_install_kpanic_hook(kpanic_hook_t *hook)
+{
+    panic_hook_holder_t *holder = kmalloc(sizeof(panic_hook_holder_t));
+    holder->hook = hook;
+    list_node_append(&kpanic_hooks, &holder->list_node);
 }

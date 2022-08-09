@@ -10,7 +10,8 @@ extern void mos_test_engine_run_tests();
 
 void mos_start_kernel(mos_init_info_t *init_info)
 {
-    mos_mm_setup();
+    mos_init_kernel_mm();
+    mos_platform.post_init(init_info);
     mos_platform.devices_setup(init_info);
     mos_platform.interrupt_enable();
 

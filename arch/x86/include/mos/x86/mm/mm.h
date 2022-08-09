@@ -3,7 +3,6 @@
 #pragma once
 
 #include "mos/mm/mm_types.h"
-#include "mos/types.h"
 #include "mos/x86/boot/multiboot.h"
 
 #define MEM_MAX_N_REGIONS 64

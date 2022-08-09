@@ -4,6 +4,7 @@
 
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/panic.h"
 #include "mos/printk.h"
 #include "mos/x86/boot/multiboot.h"
 #include "mos/x86/drivers/port.h"
@@ -49,6 +50,17 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     mos_start_kernel(&init);
 }
 
+void x86_kpanic_hook()
+{
+    pmem_freelist_dump();
+}
+
+void x86_post_kernel_init(mos_init_info_t *info)
+{
+    MOS_UNUSED(info);
+    mos_install_kpanic_hook(x86_kpanic_hook);
+}
+
 void x86_setup_devices(mos_init_info_t *init_info)
 {
     MOS_UNUSED(init_info);
@@ -92,6 +104,7 @@ const mos_platform_t mos_platform = {
     .kernel_start = &__MOS_SECTION_KERNEL_START,
     .kernel_end = &__MOS_SECTION_KERNEL_END,
 
+    .post_init = x86_post_kernel_init,
     .devices_setup = x86_setup_devices,
 
     .shutdown = x86_shutdown_vm,

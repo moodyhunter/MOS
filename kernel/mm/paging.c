@@ -8,7 +8,7 @@
 #include "mos/printk.h"
 #include "mos/types.h"
 
-void mos_mm_setup()
+void mos_init_kernel_mm()
 {
     MOS_ASSERT(mos_platform.mm_page_size > 0);
     liballoc_init(mos_platform.mm_page_size);

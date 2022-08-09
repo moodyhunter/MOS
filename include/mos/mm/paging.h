@@ -4,8 +4,6 @@
 
 #include "mos/types.h"
 
-void mos_mm_setup(void);
-
 void *mm_page_alloc(size_t npages);
 
 // 'ptr' is the value returned from a previous mm_page_alloc call.
