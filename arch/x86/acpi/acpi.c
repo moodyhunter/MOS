@@ -2,6 +2,7 @@
 
 #include "mos/x86/acpi/acpi.h"
 
+#include "lib/containers.h"
 #include "lib/string.h"
 #include "mos/printk.h"
 
@@ -10,7 +11,10 @@
 #define BIOS_START 0x000f0000
 #define BIOS_END   0x000fffff
 
-#define ACPI_RSDP_SIGNATURE "RSD PTR "
+acpi_rsdt_t *x86_acpi_rsdt;
+acpi_madt_t *x86_acpi_madt;
+acpi_hpet_t *x86_acpi_hpet;
+acpi_fadt_t *x86_acpi_fadt;
 
 void x86_acpi_init()
 {
@@ -23,9 +27,45 @@ void x86_acpi_init()
     }
 
     // !! "MUST" USE XSDT IF FOUND !!
-    acpi_sdt_header_t *rsdt = (acpi_sdt_header_t *) rsdp->v1.rsdt_addr;
-    if (!verify_sdt_checksum(rsdt))
+
+    x86_acpi_rsdt = container_of(rsdp->v1.rsdt_addr, acpi_rsdt_t, sdt_header);
+    if (!verify_sdt_checksum(&x86_acpi_rsdt->sdt_header))
         mos_panic("RSDT checksum error");
+
+    MOS_ASSERT(strncmp(x86_acpi_rsdt->sdt_header.signature, "RSDT", 4) == 0);
+
+    const size_t count = (x86_acpi_rsdt->sdt_header.length - sizeof(acpi_sdt_header_t)) / sizeof(uint32_t);
+    for (size_t i = 0; i < count; i++)
+    {
+        acpi_sdt_header_t *addr = x86_acpi_rsdt->sdts[i];
+        pr_info2("acpi: RSDT entry %d: %.4s", i, addr->signature);
+
+        if (strncmp(addr->signature, ACPI_SIGNATURE_FADT, 4) == 0)
+        {
+            x86_acpi_fadt = container_of(addr, acpi_fadt_t, sdt_header);
+            if (!verify_sdt_checksum(&x86_acpi_fadt->sdt_header))
+                mos_panic("FADT checksum error");
+        }
+        else if (strncmp(addr->signature, ACPI_SIGNATURE_MADT, 4) == 0)
+        {
+            x86_acpi_madt = container_of(addr, acpi_madt_t, sdt_header);
+            if (!verify_sdt_checksum(&x86_acpi_madt->sdt_header))
+                mos_panic("MADT checksum error");
+        }
+        else if (strncmp(addr->signature, ACPI_SIGNATURE_HPET, 4) == 0)
+        {
+            x86_acpi_hpet = container_of(addr, acpi_hpet_t, sdt_header);
+            if (!verify_sdt_checksum((void *) &x86_acpi_hpet->sdt_header))
+                mos_panic("HPET checksum error");
+        }
+        else
+        {
+            pr_info2("acpi: unknown entry %.4s", addr->signature);
+        }
+    }
+
+    if (!x86_acpi_madt)
+        mos_panic("MADT not found");
 }
 
 bool verify_sdt_checksum(acpi_sdt_header_t *tableHeader)
@@ -38,9 +78,9 @@ bool verify_sdt_checksum(acpi_sdt_header_t *tableHeader)
 
 acpi_rsdp_t *find_acpi_rsdp(uintptr_t start, uintptr_t end)
 {
-    for (u64 addr = start; addr < end; addr += 0x10)
+    for (uintptr_t addr = start; addr < end; addr += 0x10)
     {
-        if (strncmp((const char *) addr, "RSD PTR ", 8) == 0)
+        if (strncmp((const char *) addr, ACPI_SIGNATURE_RSDP, 8) == 0)
         {
             pr_info2("ACPI: RSDP magic at %p", (void *) addr);
             acpi_rsdp_t *rsdp = (acpi_rsdp_t *) ((uintptr_t) addr - offsetof(acpi_rsdp_t, v1.signature));

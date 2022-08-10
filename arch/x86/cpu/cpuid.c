@@ -2,8 +2,12 @@
 
 #include "mos/x86/cpu/cpuid.h"
 
+#include "lib/containers.h"
 #include "mos/printk.h"
 #include "mos/types.h"
+#include "mos/x86/acpi/acpi.h"
+#include "mos/x86/acpi/acpi_types.h"
+#include "mos/x86/x86_platform.h"
 
 #include <cpuid.h>
 
@@ -41,8 +45,17 @@ void cpuid_processor_info(processor_version_t *info)
     info->extended_family = (cpuid.eax >> 20) & 0xff;
 }
 
-void x86_cpuid_dump()
+void x86_cpu_init()
 {
+    x86_cpu_info.cpu_count = 0;
+    madt_entry_foreach(entry, x86_acpi_madt)
+    {
+        if (entry->type == 0)
+            x86_cpu_info.cpu_count++;
+    }
+
+    pr_info("CPUs: %u", x86_cpu_info.cpu_count);
+
     char manufacturer[13];
     cpuid_manufacturer(manufacturer);
     processor_version_t info;

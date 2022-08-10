@@ -6,6 +6,7 @@
 #include "lib/string.h"
 #include "mos/kconfig.h"
 #include "mos/mm/mm_types.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/x86/mm/mm.h"
 #include "mos/x86/x86_platform.h"
@@ -69,12 +70,12 @@ void x86_mm_prepare_paging()
 
     pr_info("paging: setting up low 1MB identity mapping... (except for the NULL page)");
     // skip the free list setup
-    _impl_vm_map_page(0, 0, PAGING_PRESENT); // ! the zero page is not writable
+    vm_map_page_range_no_freelist(0, 0, 1, VM_PRESENT); // ! the zero page is not writable
     for (int addr = X86_PAGE_SIZE; addr < 1 MB; addr += X86_PAGE_SIZE)
-        _impl_vm_map_page(addr, addr, PAGING_PRESENT | PAGING_WRITABLE);
+        vm_map_page_range_no_freelist(addr, addr, 1, VM_PRESENT | VM_WRITABLE);
 
     pr_info("paging: setting kernel space...");
-    vm_map_page_range(x86_kernel_start, x86_kernel_start, (x86_kernel_end - x86_kernel_start) / X86_PAGE_SIZE, PAGING_PRESENT | PAGING_WRITABLE);
+    vm_map_page_range(x86_kernel_start, x86_kernel_start, (x86_kernel_end - x86_kernel_start) / X86_PAGE_SIZE, VM_PRESENT | VM_WRITABLE);
 }
 
 void x86_mm_enable_paging()
@@ -151,7 +152,7 @@ void *x86_mm_alloc_page(size_t n_page)
         return NULL;
     }
 
-    vm_map_page_range((uintptr_t) vaddr, paddr, n_page, PAGING_PRESENT | PAGING_WRITABLE);
+    vm_map_page_range((uintptr_t) vaddr, paddr, n_page, VM_PRESENT | VM_WRITABLE);
     return vaddr;
 }
 
@@ -172,7 +173,7 @@ void pmem_freelist_setup()
     uintptr_t paddr = 0;
 
     // find a free physical memory region that is large enough to map the linked list
-    for (int i = x86_mem_regions_count - 1; i >= 0; i++)
+    for (int i = x86_mem_regions_count - 1; i >= 0; i--)
     {
         memblock_t *region = &x86_mem_regions[i];
         if (!region->available)
@@ -223,7 +224,7 @@ void pmem_freelist_setup()
     // map the freelist
     uintptr_t vaddr = PMEM_FREELIST_VADDR;
     pr_info("paging: mapping freelist at physical address 0x%zx", paddr);
-    vm_map_page_range(vaddr, paddr, pmem_freelist_size / X86_PAGE_SIZE, PAGING_PRESENT | PAGING_WRITABLE);
+    vm_map_page_range(vaddr, paddr, pmem_freelist_size / X86_PAGE_SIZE, VM_PRESENT | VM_WRITABLE);
 }
 
 #define this_start (this->paddr)
@@ -456,16 +457,26 @@ void pmem_freelist_dump()
 void vm_map_page_range(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, uint32_t flags)
 {
     pmem_freelist_remove_region(paddr_start, n_page * X86_PAGE_SIZE);
-    for (size_t i = 0; i < n_page; i++)
-        _impl_vm_map_page(vaddr_start + i * X86_PAGE_SIZE, paddr_start + i * X86_PAGE_SIZE, flags);
+    vm_map_page_range_no_freelist(vaddr_start, paddr_start, n_page, flags);
 }
 
 void vm_unmap_page_range(uintptr_t vaddr_start, size_t n_page)
 {
     uintptr_t paddr = vm_get_paddr(vaddr_start);
+    vm_unmap_page_range_no_freelist(vaddr_start, n_page);
+    pmem_freelist_add_region(paddr, n_page * X86_PAGE_SIZE);
+}
+
+void vm_map_page_range_no_freelist(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, uint32_t flags)
+{
+    for (size_t i = 0; i < n_page; i++)
+        _impl_vm_map_page(vaddr_start + i * X86_PAGE_SIZE, paddr_start + i * X86_PAGE_SIZE, flags);
+}
+
+void vm_unmap_page_range_no_freelist(uintptr_t vaddr_start, size_t n_page)
+{
     for (size_t i = 0; i < n_page; i++)
         _impl_vm_unmap_page(vaddr_start + i * X86_PAGE_SIZE);
-    pmem_freelist_add_region(paddr, n_page * X86_PAGE_SIZE);
 }
 
 void _impl_vm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags)
@@ -493,14 +504,14 @@ void _impl_vm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flag
         page_dir->page_table_addr = (uintptr_t) page_table >> 12;
     }
 
-    page_dir->writable |= !!(flags & PAGING_WRITABLE);
-    page_dir->usermode |= !!(flags & PAGING_USERMODE);
+    page_dir->writable |= !!(flags & VM_WRITABLE);
+    page_dir->usermode |= !!(flags & VM_USERMODE);
 
     MOS_ASSERT_X(page_table->present == false, "page is already mapped");
 
-    page_table->present = !!(flags & PAGING_PRESENT);
-    page_table->writable = !!(flags & PAGING_WRITABLE);
-    page_table->usermode = !!(flags & PAGING_USERMODE);
+    page_table->present = !!(flags & VM_PRESENT);
+    page_table->writable = !!(flags & VM_WRITABLE);
+    page_table->usermode = !!(flags & VM_USERMODE);
     page_table->phys_addr = (uintptr_t) paddr >> 12;
 
     // update the mm_page_map

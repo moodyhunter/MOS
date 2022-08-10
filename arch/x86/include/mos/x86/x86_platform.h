@@ -58,6 +58,8 @@ extern const char __MOS_SECTION_KERNEL_END;                                   //
 extern const uintptr_t x86_kernel_start;
 extern const uintptr_t x86_kernel_end;
 
+extern mos_platform_cpu_info_t x86_cpu_info;
+
 void x86_gdt_init();
 void x86_idt_init();
 

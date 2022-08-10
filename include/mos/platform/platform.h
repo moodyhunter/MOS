@@ -12,19 +12,26 @@ typedef struct
 
 typedef enum
 {
-    PAGING_NONE = 0,
-    PAGING_PRESENT = 1 << 0,
-    PAGING_WRITABLE = 1 << 1,
-    PAGING_USERMODE = 1 << 2,
-    PAGING_WRITE_THROUGH = 1 << 3,
-    PAGING_CACHE_DISABLED = 1 << 4,
-    PAGING_ACCESSED = 1 << 5,
+    VM_NONE = 0,
+    VM_PRESENT = 1 << 0,
+    VM_WRITABLE = 1 << 1,
+    VM_USERMODE = 1 << 2,
+    VM_WRITE_THROUGH = 1 << 3,
+    VM_CACHE_DISABLED = 1 << 4,
+    VM_ACCESSED = 1 << 5,
 } paging_entry_flags;
+
+typedef struct
+{
+    u32 cpu_count;
+} mos_platform_cpu_info_t;
 
 typedef struct
 {
     const void *kernel_start;
     const void *kernel_end;
+
+    const mos_platform_cpu_info_t *cpu_info;
 
     void __noreturn (*shutdown)(void);
 

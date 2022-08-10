@@ -7,7 +7,6 @@
 #include "mos/panic.h"
 #include "mos/printk.h"
 #include "mos/x86/acpi/acpi.h"
-#include "mos/x86/boot/multiboot.h"
 #include "mos/x86/cpu/cpuid.h"
 #include "mos/x86/drivers/port.h"
 #include "mos/x86/drivers/serial_console.h"
@@ -23,14 +22,32 @@ static serial_console_t com1_console = {
     .console = { .name = "Serial Console on COM1", .caps = CONSOLE_CAP_SETUP | CONSOLE_CAP_COLOR, .setup = serial_console_setup },
 };
 
+mos_platform_cpu_info_t x86_cpu_info = { 0 };
+
 static char mos_cmdline[512];
+
+memblock_t *x86_mem_find_bios_block()
+{
+    memblock_t *bios_memblock = NULL;
+    for (u32 i = 0; i < x86_mem_regions_count; i++)
+    {
+        const uintptr_t region_start_addr = x86_mem_regions[i].paddr;
+        if (region_start_addr < (uintptr_t) x86_acpi_rsdt && region_start_addr + x86_mem_regions[i].size_bytes > (uintptr_t) x86_acpi_rsdt)
+        {
+            bios_memblock = &x86_mem_regions[i];
+            break;
+        }
+    }
+
+    if (!bios_memblock)
+        mos_panic("could not find bios memory area");
+    return bios_memblock;
+}
 
 void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
 {
     x86_disable_interrupts();
     mos_register_console(&com1_console.console);
-
-    x86_acpi_init();
 
     if (magic != MULTIBOOT_BOOTLOADER_MAGIC)
         mos_panic("invalid magic number: %x", magic);
@@ -42,17 +59,23 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     x86_idt_init();
     x86_irq_handler_init();
 
-    x86_cpuid_dump();
-
     strncpy(mos_cmdline, mb_info->cmdline, sizeof(mos_cmdline));
 
     u32 count = mb_info->mmap_length / sizeof(multiboot_mmap_entry_t);
     x86_mem_init(mb_info->mmap_addr, count);
     x86_mm_prepare_paging();
-    x86_mm_enable_paging();
+
+    x86_acpi_init();
+    x86_cpu_init();
+
+    // ! map the bios memory area, should it be done like this?
+    pr_info("mapping bios memory area...");
+    memblock_t *bios_memblock = x86_mem_find_bios_block();
+    vm_map_page_range_no_freelist(bios_memblock->paddr, bios_memblock->paddr, bios_memblock->size_bytes / X86_PAGE_SIZE, VM_PRESENT);
 
     mos_init_info_t init;
     init.cmdline = mos_cmdline;
+    x86_mm_enable_paging();
     mos_start_kernel(&init);
 }
 
@@ -109,6 +132,8 @@ void __noreturn x86_shutdown_vm()
 const mos_platform_t mos_platform = {
     .kernel_start = &__MOS_SECTION_KERNEL_START,
     .kernel_end = &__MOS_SECTION_KERNEL_END,
+
+    .cpu_info = &x86_cpu_info,
 
     .post_init = x86_post_kernel_init,
     .devices_setup = x86_setup_devices,

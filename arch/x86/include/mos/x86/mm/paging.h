@@ -52,6 +52,9 @@ bool x86_mm_free_page(void *vaddr, size_t n);
 // private APIs
 void vm_map_page_range(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, uint32_t flags);
 void vm_unmap_page_range(uintptr_t vaddr_start, size_t n_page);
+void vm_map_page_range_no_freelist(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, uint32_t flags);
+void vm_unmap_page_range_no_freelist(uintptr_t vaddr_start, size_t n_page);
+
 void _impl_vm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags);
 void _impl_vm_unmap_page(uintptr_t vaddr);
 uintptr_t vm_get_paddr(uintptr_t vaddr);
