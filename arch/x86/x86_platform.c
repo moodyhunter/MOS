@@ -6,6 +6,7 @@
 #include "mos/mm/kmalloc.h"
 #include "mos/panic.h"
 #include "mos/printk.h"
+#include "mos/x86/acpi/acpi.h"
 #include "mos/x86/boot/multiboot.h"
 #include "mos/x86/cpu/cpuid.h"
 #include "mos/x86/drivers/port.h"
@@ -28,6 +29,8 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
 {
     x86_disable_interrupts();
     mos_register_console(&com1_console.console);
+
+    x86_acpi_init();
 
     if (magic != MULTIBOOT_BOOTLOADER_MAGIC)
         mos_panic("invalid magic number: %x", magic);

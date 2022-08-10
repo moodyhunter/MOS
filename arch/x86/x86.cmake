@@ -27,6 +27,7 @@ add_kernel_source(
         drivers/port.c
         drivers/serial.c
         drivers/serial_console.c
+        acpi/acpi.c
         cpu/cpuid.c
         mm/paging.c
         mm/mm.c
