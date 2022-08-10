@@ -12,7 +12,7 @@
             }
         },
         {
-            "label": "stop_os",
+            "label": "kill_mos",
             "type": "shell",
             "command": "tmux kill-session -t mos_kernel_debug || true",
             "problemMatcher": [],
@@ -23,29 +23,30 @@
             }
         },
         {
-            "label": "start_os_unblocked",
-            "type": "shell",
-            "command": "tmux new -s mos_kernel_debug -d qemu-system-i386 -kernel ${workspaceFolder}/build/mos_multiboot.bin -s -serial stdio -append 'hello, world'",
-            "problemMatcher": [],
-            "group": "test",
-            "dependsOn": [
-                "stop_os",
-                "compile"
-            ],
-            "presentation": {
-                "reveal": "silent",
-                "close": true
-            },
-            "detail": "Start MOS."
-        },
-        {
             "label": "start_os",
-            "type": "shell",
-            "command": "tmux new -s mos_kernel_debug -d qemu-system-i386 -m 2G -kernel ${workspaceFolder}/build/mos_multiboot.bin -s -S -serial stdio -append 'hello, world'",
+            "type": "process",
+            "command": "tmux",
+            "args": [
+                "new",
+                "-s",
+                "mos_kernel_debug",
+                "-d",
+                "qemu-system-i386",
+                "-m",
+                "2G",
+                "-kernel",
+                "${workspaceFolder}/build/mos_multiboot.bin",
+                "-s",
+                "-S",
+                "-serial",
+                "stdio",
+                "-append",
+                "kernel argument contains nothing useful"
+            ],
             "problemMatcher": [],
             "group": "none",
             "dependsOn": [
-                "stop_os",
+                "kill_mos",
                 "compile"
             ],
             "presentation": {
