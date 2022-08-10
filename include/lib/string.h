@@ -5,6 +5,7 @@
 
 size_t strlen(const char *str);
 s32 strcmp(const char *str1, const char *str2);
+s32 strncmp(const char *str1, const char *str2, size_t n);
 
 // ! The memory areas must not overlap.
 void *memcpy(void *dest, const void *src, size_t n);

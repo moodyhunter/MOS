@@ -18,6 +18,21 @@ s32 strcmp(const char *s1, const char *s2)
     return s1[i] - s2[i];
 }
 
+s32 strncmp(const char *str1, const char *str2, size_t n)
+{
+    u8 c1, c2;
+    while (n-- > 0)
+    {
+        c1 = (u8) *str1++;
+        c2 = (u8) *str2++;
+        if (c1 != c2)
+            return c1 - c2;
+        if (c1 == '\0')
+            return 0;
+    }
+    return 0;
+}
+
 void *memcpy(void *restrict dest, const void *restrict src, size_t n)
 {
     typedef intmax_t largeint_t;
