@@ -177,27 +177,3 @@ irq_handled:
         port_outb(PIC2_COMMAND, PIC_EOI);
     port_outb(PIC1_COMMAND, PIC_EOI);
 }
-
-void x86_irq_mask(x86_irq_enum_t irq)
-{
-    x86_port_t port;
-    u8 value;
-    if (irq < 8)
-        port = PIC1_DATA;
-    else
-        port = PIC2_DATA, irq -= 8;
-    value = port_inb(port) | (1 << irq);
-    port_outb(port, value);
-}
-
-void x86_irq_unmask(x86_irq_enum_t irq)
-{
-    x86_port_t port;
-    u8 value;
-    if (irq < 8)
-        port = PIC1_DATA;
-    else
-        port = PIC2_DATA, irq -= 8;
-    value = port_inb(port) & ~(1 << irq);
-    port_outb(port, value);
-}

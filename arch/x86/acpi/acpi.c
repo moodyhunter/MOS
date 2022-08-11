@@ -4,6 +4,7 @@
 
 #include "lib/containers.h"
 #include "lib/string.h"
+#include "mos/mos_global.h"
 #include "mos/printk.h"
 
 #define EBDA_START 0x00080000
@@ -38,7 +39,7 @@ void x86_acpi_init()
     for (size_t i = 0; i < count; i++)
     {
         acpi_sdt_header_t *addr = x86_acpi_rsdt->sdts[i];
-        pr_info2("acpi: RSDT entry %d: %.4s", i, addr->signature);
+        pr_info2("acpi: RSDT entry %zu: %.4s", i, addr->signature);
 
         if (strncmp(addr->signature, ACPI_SIGNATURE_FADT, 4) == 0)
         {
@@ -55,8 +56,11 @@ void x86_acpi_init()
         else if (strncmp(addr->signature, ACPI_SIGNATURE_HPET, 4) == 0)
         {
             x86_acpi_hpet = container_of(addr, acpi_hpet_t, sdt_header);
-            if (!verify_sdt_checksum((void *) &x86_acpi_hpet->sdt_header))
+            MOS_WARNING_PUSH
+            MOS_WARNING_DISABLE("-Waddress-of-packed-member")
+            if (!verify_sdt_checksum(&x86_acpi_hpet->sdt_header))
                 mos_panic("HPET checksum error");
+            MOS_WARNING_POP
         }
         else
         {

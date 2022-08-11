@@ -2,13 +2,8 @@
 
 #pragma once
 
+#include "mos/compiler.h"
 #include "mos/kconfig.h"
-
-#ifndef __cplusplus
-#define static_assert _Static_assert
-#endif
-
-static_assert(__SIZEOF_POINTER__ == sizeof(void *), "uintptr_t is not the same size as a pointer");
 
 #define __packed     __attribute__((__packed__))
 #define __aligned(x) __attribute__((__aligned__(x)))
@@ -36,9 +31,6 @@ static_assert(__SIZEOF_POINTER__ == sizeof(void *), "uintptr_t is not the same s
 #define MOS_CONCAT_INNER(a, b) a##b
 #define MOS_CONCAT(a, b)       MOS_CONCAT_INNER(a, b)
 
-#define MOS_PRAGMA(text) _Pragma(#text)
-
-#define MOS_GCC_DO_PRAGMA(text)   MOS_PRAGMA(GCC text)
-#define MOS_WARNING_PUSH          MOS_GCC_DO_PRAGMA(diagnostic push)
-#define MOS_WARNING_POP           MOS_GCC_DO_PRAGMA(diagnostic pop)
-#define MOS_WARNING_DISABLE(text) MOS_GCC_DO_PRAGMA(diagnostic ignored text)
+#define MOS_WARNING_PUSH          MOS_PRAGMA(diagnostic push)
+#define MOS_WARNING_POP           MOS_PRAGMA(diagnostic pop)
+#define MOS_WARNING_DISABLE(text) MOS_PRAGMA(diagnostic ignored text)

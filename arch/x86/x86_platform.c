@@ -8,9 +8,11 @@
 #include "mos/printk.h"
 #include "mos/x86/acpi/acpi.h"
 #include "mos/x86/cpu/cpuid.h"
+#include "mos/x86/cpu/smp.h"
 #include "mos/x86/drivers/port.h"
 #include "mos/x86/drivers/serial_console.h"
 #include "mos/x86/drivers/text_mode_console.h"
+#include "mos/x86/interrupt/pic.h"
 #include "mos/x86/mm/mm.h"
 #include "mos/x86/mm/paging.h"
 
@@ -59,6 +61,13 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     x86_idt_init();
     x86_irq_handler_init();
 
+    // I don't like the timer interrupt, so disable it.
+    pic_mask_irq(IRQ_TIMER);
+    pic_unmask_irq(IRQ_KEYBOARD);
+    pic_unmask_irq(IRQ_COM1);
+    pic_unmask_irq(IRQ_COM2);
+    pic_unmask_irq(IRQ_PS2_MOUSE);
+
     strncpy(mos_cmdline, mb_info->cmdline, sizeof(mos_cmdline));
 
     u32 count = mb_info->mmap_length / sizeof(multiboot_mmap_entry_t);
@@ -66,7 +75,7 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     x86_mm_prepare_paging();
 
     x86_acpi_init();
-    x86_cpu_init();
+    x86_smp_init();
 
     // ! map the bios memory area, should it be done like this?
     pr_info("mapping bios memory area...");
@@ -94,12 +103,6 @@ void x86_setup_devices(mos_init_info_t *init_info)
 {
     MOS_UNUSED(init_info);
     mos_register_console(&vga_text_mode_console);
-    // I don't like the timer interrupt, so disable it.
-    x86_irq_mask(IRQ_TIMER);
-    x86_irq_unmask(IRQ_KEYBOARD);
-    x86_irq_unmask(IRQ_COM1);
-    x86_irq_unmask(IRQ_COM2);
-    x86_irq_unmask(IRQ_PS2_MOUSE);
     x86_install_interrupt_handler(IRQ_COM1, &serial_irq_handler);
 }
 

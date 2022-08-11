@@ -7,6 +7,16 @@
 
 #define PRINTK_BUFFER_SIZE 1024
 
+#if MOS_COMPILER_CLANG && MOS_32BIT
+#define PTR_FMT "0x%8.8x"
+#elif MOS_COMPILER_CLANG && MOS_64BIT
+#define PTR_FMT "0x%16.16llx"
+#elif MOS_COMPILER_GCC && MOS_32BIT
+#define PTR_FMT "0x%8.8lx"
+#elif MOS_COMPILER_GCC && MOS_64BIT
+#define PTR_FMT "0x%16.16llx"
+#endif
+
 #define B
 #define KB B * 1024
 #define MB KB * 1024

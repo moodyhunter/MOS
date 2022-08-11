@@ -40,6 +40,15 @@ include(CTest)
 include(generate_kconfig)
 include(configure_summary)
 
+execute_process(
+    COMMAND git describe --long --tags --all --dirty
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE MOS_KERNEL_REVISION_STRING
+    ERROR_VARIABLE _DROP_
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_STRIP_TRAILING_WHITESPACE
+)
+
 mos_add_kconfig_define(MOS_KERNEL_RUN_TESTS)
 mos_add_kconfig_define(MOS_MM_LIBALLOC_LOCKS)
 mos_add_kconfig_define(MOS_MM_LIBALLOC_DEBUG)

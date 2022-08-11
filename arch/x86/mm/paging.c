@@ -30,7 +30,7 @@ static pgtable_entry *mm_page_table;
 typedef struct pmem_range_t
 {
     struct pmem_range_t *next;
-    u32 paddr;
+    uintptr_t paddr;
     size_t n_pages;
 } pmem_range_t;
 
@@ -51,7 +51,7 @@ void x86_mm_prepare_paging()
     // validate if the memory region calculated from the linker script is correct.
     s64 paging_area_size = (uintptr_t) x86_paging_area_end - (uintptr_t) x86_paging_area_start;
     static const s64 paging_area_size_expected = 1024 * sizeof(pgdir_entry) + 1024 * 1024 * sizeof(pgtable_entry);
-    mos_debug("paging: provided size: 0x%llx, minimum required size: 0x%llx", paging_area_size, paging_area_size_expected);
+    mos_debug("paging: provided size: 0x%llu, minimum required size: 0x%llu", paging_area_size, paging_area_size_expected);
     MOS_ASSERT_X(paging_area_size >= paging_area_size_expected, "allocated paging area size is too small");
 
     // place the global page directory at somewhere outside of the kernel
@@ -91,7 +91,7 @@ void x86_mm_enable_paging()
     pmem_freelist = (pmem_range_t *) (PMEM_FREELIST_VADDR + (uintptr_t) pmem_freelist - pmem_freelist_base_paddr);
     pmem_freelist_base_paddr = PMEM_FREELIST_VADDR;
 
-    pr_info("paging: mapped freelist at virtual address 0x%zx", (uintptr_t) pmem_freelist);
+    pr_info("paging: mapped freelist at virtual address " PTR_FMT, (uintptr_t) pmem_freelist);
     pr_info("paging: page directory at: %p", (void *) mm_page_dir);
     x86_enable_paging_impl(mm_page_dir);
     pr_info("paging: Enabled");
@@ -194,7 +194,7 @@ void pmem_freelist_setup()
             continue;
         }
 
-        pr_info2("paging: found free physical memory region for freelist at 0x%zx", paddr);
+        pr_info2("paging: found free physical memory region for freelist at " PTR_FMT, paddr);
         break;
     }
 
@@ -223,7 +223,7 @@ void pmem_freelist_setup()
 
     // map the freelist
     uintptr_t vaddr = PMEM_FREELIST_VADDR;
-    pr_info("paging: mapping freelist at physical address 0x%zx", paddr);
+    pr_info("paging: mapping freelist at physical address %p", (void *) paddr);
     vm_map_page_range(vaddr, paddr, pmem_freelist_size / X86_PAGE_SIZE, VM_PRESENT | VM_WRITABLE);
 }
 
@@ -239,7 +239,7 @@ size_t pmem_freelist_add_region(uintptr_t start_addr, size_t size_bytes)
 
     const size_t pages_in_region = (aligned_end - aligned_start) / X86_PAGE_SIZE;
 
-    mos_debug("paging: adding physical memory region 0x%.8zx-0x%.8zx to freelist.", aligned_start, aligned_end);
+    mos_debug("paging: adding physical memory region " PTR_FMT "-" PTR_FMT " to freelist.", aligned_start, aligned_end);
 
     pmem_range_t *this = pmem_freelist;
     pmem_range_t *prev = NULL;
@@ -250,7 +250,8 @@ size_t pmem_freelist_add_region(uintptr_t start_addr, size_t size_bytes)
         // the new region should not overlap with the current region
         if ((this_start <= aligned_start && aligned_start < this_end) || (this_start < aligned_end && aligned_end <= this_end))
         {
-            mos_panic("added pmem 0x%.8zx-0x%.8zx overlaps with region 0x%.8zx-0x%.8zx", aligned_start, aligned_end, this_start, this_end);
+            mos_panic("added pmem " PTR_FMT "-" PTR_FMT " overlaps with region " PTR_FMT "-" PTR_FMT, aligned_start, aligned_end, this_start,
+                      this_end);
             return 0;
         }
 
@@ -259,7 +260,8 @@ size_t pmem_freelist_add_region(uintptr_t start_addr, size_t size_bytes)
         {
             this->paddr = aligned_start;
             this->n_pages += pages_in_region;
-            mos_debug("paging: enlarged 0x%.8zx-0x%.8zx: starts at 0x%.8zx", this_start, this_end, this_start + pages_in_region * X86_PAGE_SIZE);
+            mos_debug("paging: enlarged " PTR_FMT "-" PTR_FMT ": starts at " PTR_FMT, this_start, this_end,
+                      this_start + pages_in_region * X86_PAGE_SIZE);
             goto end;
         }
 
@@ -272,7 +274,8 @@ size_t pmem_freelist_add_region(uintptr_t start_addr, size_t size_bytes)
         if (prev && prev_end == aligned_start)
         {
             prev->n_pages += pages_in_region;
-            mos_debug("paging: enlarged 0x%.8zx-0x%.8zx: ends at 0x%.8zx", prev_start, prev_end, prev_end + pages_in_region * X86_PAGE_SIZE);
+            mos_debug("paging: enlarged " PTR_FMT "-" PTR_FMT ": ends at " PTR_FMT, prev_start, prev_end,
+                      prev_end + pages_in_region * X86_PAGE_SIZE);
             goto end;
         }
 
@@ -316,7 +319,7 @@ void pmem_freelist_remove_region(uintptr_t start_addr, size_t size_bytes)
     MOS_ASSERT(X86_ALIGN_UP_TO_PAGE(start_addr) == start_addr);
     MOS_ASSERT(X86_ALIGN_DOWN_TO_PAGE(end_addr) == end_addr);
 
-    mos_debug("paging: removing physical memory region 0x%.8zx-0x%.8zx from freelist.", start_addr, end_addr);
+    mos_debug("paging: removing physical memory region " PTR_FMT "-" PTR_FMT " from freelist.", start_addr, end_addr);
 
     bool needs_cleanup = false;
     bool freed = false;
@@ -343,14 +346,14 @@ void pmem_freelist_remove_region(uintptr_t start_addr, size_t size_bytes)
             if (part_1_size == 0 && part_2_size != 0)
             {
                 // part 1 is empty, which means we are removing from the front of the region
-                mos_debug("paging: shortened 0x%.8zx-0x%.8zx: starts at 0x%.8zx", this_start, this_end, this_start + part_2_size);
+                mos_debug("paging: shortened " PTR_FMT "-" PTR_FMT ": starts at " PTR_FMT, this_start, this_end, this_start + part_2_size);
                 this->paddr = end_addr;
                 this->n_pages = part_2_size / X86_PAGE_SIZE;
             }
             else if (part_1_size != 0 && part_2_size == 0)
             {
                 // part 2 is empty, which means we are removing the tail of part 1
-                mos_debug("paging: shrunk 0x%.8zx-0x%.8zx: ends at 0x%.8zx", this_start, this_end,
+                mos_debug("paging: shrunk " PTR_FMT "-" PTR_FMT ": ends at " PTR_FMT, this_start, this_end,
                           this_start + (this->n_pages - pages_in_region) * X86_PAGE_SIZE);
                 this->n_pages -= pages_in_region;
             }
@@ -365,13 +368,13 @@ void pmem_freelist_remove_region(uintptr_t start_addr, size_t size_bytes)
                 // have to do some cleanup
                 needs_cleanup = true;
                 cleanup_target_memptr = this;
-                mos_debug("paging: removed 0x%.8zx-0x%.8zx from freelist.", this_start, this_end);
+                mos_debug("paging: removed " PTR_FMT "-" PTR_FMT " from freelist.", this_start, this_end);
             }
             else
             {
                 // neither part 1 nor part 2 is empty, so we have to allocate a new entry for part 2
-                mos_debug("paging: split 0x%.8zx-0x%.8zx into 0x%.8zx-0x%.8zx and 0x%.8zx-0x%.8zx", this_start, this_end, this_start, start_addr,
-                          end_addr, end_addr + part_2_size);
+                mos_debug("paging: split " PTR_FMT "-" PTR_FMT " into " PTR_FMT "-" PTR_FMT " and " PTR_FMT "-" PTR_FMT, this_start, this_end,
+                          this_start, start_addr, end_addr, end_addr + part_2_size);
                 pmem_range_t *new = (pmem_range_t *) pmem_freelist_base_paddr + pmem_freelist_count++;
                 memset(new, 0, sizeof(pmem_range_t));
                 new->next = next;
@@ -388,7 +391,7 @@ void pmem_freelist_remove_region(uintptr_t start_addr, size_t size_bytes)
     }
 
     if (!freed)
-        mos_panic("paging: 0x%.8zx-0x%.8zx is not in the freelist.", start_addr, end_addr);
+        mos_panic("paging: " PTR_FMT "-" PTR_FMT " is not in the freelist.", start_addr, end_addr);
 
     if (needs_cleanup)
     {
@@ -429,7 +432,7 @@ uintptr_t pmem_freelist_get_page(size_t pages)
         {
             // ! do not remove the range from the freelist
             uintptr_t addr = this->paddr;
-            mos_debug("paging: allocated %zu pages from freelist, starting at 0x%.8zx.", pages, addr);
+            mos_debug("paging: allocated %zu pages from freelist, starting at " PTR_FMT, pages, addr);
             return addr;
         }
         this = this->next;
@@ -449,7 +452,7 @@ void pmem_freelist_dump()
         const uintptr_t pend = pstart + this->n_pages * X86_PAGE_SIZE;
         char sbuf[32];
         format_size(sbuf, sizeof(sbuf), this->n_pages * X86_PAGE_SIZE);
-        pr_info("  [%p] entry: 0x%.8zx-0x%.8zx (%zu page(s), %s)", (void *) this, pstart, pend, this->n_pages, sbuf);
+        pr_info("  [%p] entry: " PTR_FMT "-" PTR_FMT " (%zu page(s), %s)", (void *) this, pstart, pend, this->n_pages, sbuf);
         this = this->next;
     }
 }
@@ -527,7 +530,7 @@ void _impl_vm_unmap_page(uintptr_t vaddr)
     pgdir_entry *page_dir = mm_page_dir + page_dir_index;
     if (unlikely(!page_dir->present))
     {
-        mos_panic("page '%zx' not mapped", vaddr);
+        mos_panic("vmem '%zx' not mapped", vaddr);
         return;
     }
 
@@ -546,13 +549,13 @@ uintptr_t vm_get_paddr(uintptr_t vaddr)
     pgdir_entry *page_dir = mm_page_dir + page_dir_index;
     if (unlikely(!page_dir->present))
     {
-        mos_panic("page directory '%zx' not mapped", vaddr);
+        mos_panic("page directory for address '%zx' not mapped", vaddr);
         return 0;
     }
     pgtable_entry *page_table = mm_page_table + page_dir_index * 1024 + page_table_index;
     if (unlikely(!page_table->present))
     {
-        mos_panic("vm '%zx' not mapped", vaddr);
+        mos_panic("vmem '%zx' not mapped", vaddr);
         return 0;
     }
     return (page_table->phys_addr << 12) + (vaddr & 0xfff);

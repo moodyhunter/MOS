@@ -82,9 +82,6 @@ memblock_t *x86_mem_find_bios_block();
 void x86_irq_handler_init(void);
 void x86_handle_interrupt(u32 esp);
 
-void x86_irq_mask(x86_irq_enum_t irq);
-void x86_irq_unmask(x86_irq_enum_t irq);
-
 void x86_enable_interrupts();
 void x86_disable_interrupts();
 bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq));
