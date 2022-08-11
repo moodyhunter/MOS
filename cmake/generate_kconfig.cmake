@@ -34,7 +34,6 @@ function(generate_kconfig TARGET)
 
     set(_prev_file "")
     foreach(CONFIG ${MOS_KCONFIG_DEFINES})
-        message(STATUS "  nanana ${CONFIG}")
         set(_file "${_MOS_KCONFIG_DEFINES_${CONFIG}_file}")
         set(_val "${${CONFIG}}")
 
