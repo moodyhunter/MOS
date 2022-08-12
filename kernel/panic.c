@@ -54,6 +54,8 @@ void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
         holder->hook();
     }
 
+    mos_platform.halt_cpu();
+
     while (1)
         ;
 }

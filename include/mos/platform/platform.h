@@ -41,6 +41,7 @@ typedef struct
     // interrupt
     void (*interrupt_enable)(void);
     void (*interrupt_disable)(void);
+    void (*halt_cpu)(void);
     bool (*irq_handler_install)(u32 irq, void (*handler)(u32 irq));
     void (*irq_handler_remove)(u32 irq, void (*handler)(u32 irq));
 

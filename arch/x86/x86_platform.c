@@ -116,6 +116,11 @@ void x86_enable_interrupts()
     __asm__ volatile("sti");
 }
 
+void x86_halt_cpu()
+{
+    __asm__ volatile("hlt");
+}
+
 bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
 {
     irq_handler_descriptor_t *desc = kmalloc(sizeof(irq_handler_descriptor_t));
@@ -144,6 +149,7 @@ const mos_platform_t mos_platform = {
     .shutdown = x86_shutdown_vm,
     .interrupt_disable = x86_disable_interrupts,
     .interrupt_enable = x86_enable_interrupts,
+    .halt_cpu = x86_halt_cpu,
     .irq_handler_install = x86_install_interrupt_handler,
     .irq_handler_remove = NULL,
 
