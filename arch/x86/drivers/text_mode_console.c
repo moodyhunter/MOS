@@ -67,7 +67,7 @@ static bool screen_set_cursor_pos(console_t *console, u32 x, u32 y)
     cursor_x = x;
     cursor_y = y;
 
-    uint16_t pos = y * VIDEO_WIDTH + x;
+    u16 pos = y * VIDEO_WIDTH + x;
 
     port_outb(0x3D4, 0x0F);
     port_outb(0x3D5, (u8) (pos & 0xFF));

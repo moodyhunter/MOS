@@ -11,7 +11,7 @@
 static idt_entry32_t idt[IDT_ENTRY_COUNT] __aligned(16) = { 0 };
 static idtr32_t idtr;
 
-static void idt_set_descriptor(uint8_t vector, void *isr, uint8_t flags)
+static void idt_set_descriptor(u8 vector, void *isr, u8 flags)
 {
     idt_entry32_t *descriptor = &idt[vector];
 
@@ -33,6 +33,6 @@ void x86_idt_init()
     pic_remap_irq(PIC1_OFFSET, PIC2_OFFSET);
 
     idtr.base = &idt[0];
-    idtr.limit = (uint16_t) sizeof(idt_entry32_t) * IDT_ENTRY_COUNT - 1;
+    idtr.limit = (u16) sizeof(idt_entry32_t) * IDT_ENTRY_COUNT - 1;
     idt32_flush(&idtr);
 }

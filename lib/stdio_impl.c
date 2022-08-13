@@ -236,10 +236,10 @@ static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char con
             case LM_none:
             case LM__l: number = (u32) number; break;
             case LM_ll: number = (u64) number; break;
-            case LM__j: number = (uintmax_t) number; break;
             case LM__z: number = (size_t) number; break;
             case LM__t: number = (ptrdiff_t) number; break;
             case LM__L: number = (u64) number; break;
+            case LM__j:
             default: MOS_UNREACHABLE();
         }
     }
@@ -466,10 +466,10 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                         case LM_none:
                         case LM__l: value = va_arg(args, s32); break;
                         case LM_ll: value = va_arg(args, s64); break;
-                        case LM__j: value = va_arg(args, intmax_t); break;
                         case LM__z: value = va_arg(args, size_t); break;
                         case LM__t: value = va_arg(args, ptrdiff_t); break;
                         case LM__L: value = va_arg(args, s64); break;
+                        case LM__j:
                         default: MOS_UNREACHABLE();
                     }
                     int c = printf_diouxX(buf, value, &flags, *format);

@@ -12,16 +12,6 @@
 #define MOS_PRAGMA(text) MOS_DO_PRAGMA(GCC text)
 #endif
 
-#if __SIZEOF_POINTER__ == 4
-#define MOS_32BIT 1
-#define MOS_BITS  32
-#elif __SIZEOF_POINTER__ == 8
-#define MOS_64BIT 1
-#define MOS_BITS  64
-#else
-#error "Unknown pointer size"
-#endif
-
 #if MOS_COMPILER_GCC && __GNUC__ < 12
 #define MOS_FILE_LOCATION __FILE__ ":" MOS_STRINGIFY(__LINE__)
 #else
@@ -32,4 +22,4 @@
 #define static_assert _Static_assert
 #endif
 
-static_assert(__SIZEOF_POINTER__ == sizeof(void *), "uintptr_t is not the same size as a pointer");
+static_assert(sizeof(long) == sizeof(void *), "long is not the same size as a pointer");

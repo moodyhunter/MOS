@@ -35,7 +35,7 @@ s32 strncmp(const char *str1, const char *str2, size_t n)
 
 void *memcpy(void *restrict dest, const void *restrict src, size_t n)
 {
-    typedef intmax_t largeint_t;
+    typedef s64 largeint_t;
     largeint_t *ldest = (largeint_t *) dest;
     largeint_t *lsrc = (largeint_t *) src;
 

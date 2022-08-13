@@ -26,7 +26,7 @@ static_assert(sizeof(void *) == 4, "x86_64 is not supported");
 #define PIC2_DATA    (PIC2 + 1)
 
 #define X86_PAGE_SIZE      (4 KB)
-#define X86_MAX_MEM_SIZE   ((u32) UINT32_MAX)
+#define X86_MAX_MEM_SIZE   ((u32) 4 GB - 1)
 #define X86_MAX_KHEAP_SIZE (X86_MAX_ADDR - MOS_X86_HEAP_BASE_VADDR)
 
 #define X86_ALIGN_UP_TO_PAGE(addr)   (((addr) + X86_PAGE_SIZE - 1) & ~(X86_PAGE_SIZE - 1))

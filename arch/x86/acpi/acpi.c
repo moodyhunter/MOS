@@ -35,7 +35,7 @@ void x86_acpi_init()
 
     MOS_ASSERT(strncmp(x86_acpi_rsdt->sdt_header.signature, "RSDT", 4) == 0);
 
-    const size_t count = (x86_acpi_rsdt->sdt_header.length - sizeof(acpi_sdt_header_t)) / sizeof(uint32_t);
+    const size_t count = (x86_acpi_rsdt->sdt_header.length - sizeof(acpi_sdt_header_t)) / sizeof(u32);
     for (size_t i = 0; i < count; i++)
     {
         acpi_sdt_header_t *addr = x86_acpi_rsdt->sdts[i];

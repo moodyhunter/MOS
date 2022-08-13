@@ -156,7 +156,7 @@ static void isr_handle_irq(x86_stack_frame *frame)
     if (irq == 7 || irq == 15)
     {
         // these irqs may be fake ones, test it
-        uint8_t pic = (irq < 8) ? PIC1 : PIC2;
+        u8 pic = (irq < 8) ? PIC1 : PIC2;
         port_outb(pic + 3, 0x03);
         if ((port_inb(pic) & 0x80) != 0)
             goto irq_handled;

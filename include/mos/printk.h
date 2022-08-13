@@ -7,16 +7,6 @@
 
 #define PRINTK_BUFFER_SIZE 1024
 
-#if MOS_COMPILER_CLANG && MOS_32BIT
-#define PTR_FMT "0x%8.8x"
-#elif MOS_COMPILER_CLANG && MOS_64BIT
-#define PTR_FMT "0x%16.16llx"
-#elif MOS_COMPILER_GCC && MOS_32BIT
-#define PTR_FMT "0x%8.8lx"
-#elif MOS_COMPILER_GCC && MOS_64BIT
-#define PTR_FMT "0x%16.16llx"
-#endif
-
 #define MOS_UNIMPLEMENTED(content) mos_panic("UNIMPLEMENTED: %s", content)
 #define MOS_UNREACHABLE()          mos_panic("UNREACHABLE")
 #define MOS_ASSERT(cond)           MOS_ASSERT_X(cond, "")

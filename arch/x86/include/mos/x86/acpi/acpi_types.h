@@ -228,7 +228,7 @@ typedef struct
 typedef struct
 {
     acpi_sdt_header_t header;
-    uint8_t *definition_block;
+    u8 *definition_block;
     bool valid;
 } s_dsdt;
 

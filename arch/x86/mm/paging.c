@@ -40,7 +40,7 @@ typedef struct pmem_range_t
 #define PMEM_FREELIST_LOWMEM_RESERVED 1 MB
 
 // The list holding free memory ranges, this list terminates with [an entry with next == NULL]
-static uint32_t pmem_freelist_base_paddr;
+static u32 pmem_freelist_base_paddr;
 static pmem_range_t *pmem_freelist = NULL;
 static size_t pmem_freelist_count = 0;
 
@@ -457,7 +457,7 @@ void pmem_freelist_dump()
     }
 }
 
-void vm_map_page_range(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, uint32_t flags)
+void vm_map_page_range(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags)
 {
     pmem_freelist_remove_region(paddr_start, n_page * X86_PAGE_SIZE);
     vm_map_page_range_no_freelist(vaddr_start, paddr_start, n_page, flags);
@@ -470,7 +470,7 @@ void vm_unmap_page_range(uintptr_t vaddr_start, size_t n_page)
     pmem_freelist_add_region(paddr, n_page * X86_PAGE_SIZE);
 }
 
-void vm_map_page_range_no_freelist(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, uint32_t flags)
+void vm_map_page_range_no_freelist(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags)
 {
     for (size_t i = 0; i < n_page; i++)
         _impl_vm_map_page(vaddr_start + i * X86_PAGE_SIZE, paddr_start + i * X86_PAGE_SIZE, flags);
@@ -530,7 +530,7 @@ void _impl_vm_unmap_page(uintptr_t vaddr)
     pgdir_entry *page_dir = mm_page_dir + page_dir_index;
     if (unlikely(!page_dir->present))
     {
-        mos_panic("vmem '%zx' not mapped", vaddr);
+        mos_panic("vmem '%lx' not mapped", vaddr);
         return;
     }
 
@@ -549,13 +549,13 @@ uintptr_t vm_get_paddr(uintptr_t vaddr)
     pgdir_entry *page_dir = mm_page_dir + page_dir_index;
     if (unlikely(!page_dir->present))
     {
-        mos_panic("page directory for address '%zx' not mapped", vaddr);
+        mos_panic("page directory for address '%lx' not mapped", vaddr);
         return 0;
     }
     pgtable_entry *page_table = mm_page_table + page_dir_index * 1024 + page_table_index;
     if (unlikely(!page_table->present))
     {
-        mos_panic("vmem '%zx' not mapped", vaddr);
+        mos_panic("vmem '%lx' not mapped", vaddr);
         return 0;
     }
     return (page_table->phys_addr << 12) + (vaddr & 0xfff);
