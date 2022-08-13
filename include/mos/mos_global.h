@@ -23,6 +23,11 @@
 
 #define to_union(u) __extension__(u)
 
+#define B
+#define KB B * 1024
+#define MB KB * 1024
+#define GB MB * 1024
+
 #define MOS_STRINGIFY2(x) #x
 #define MOS_STRINGIFY(x)  MOS_STRINGIFY2(x)
 

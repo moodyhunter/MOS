@@ -22,6 +22,12 @@
 #error "Unknown pointer size"
 #endif
 
+#if MOS_COMPILER_GCC && __GNUC__ < 12
+#define MOS_FILE_LOCATION __FILE__ ":" MOS_STRINGIFY(__LINE__)
+#else
+#define MOS_FILE_LOCATION __FILE_NAME__ ":" MOS_STRINGIFY(__LINE__)
+#endif
+
 #ifndef __cplusplus
 #define static_assert _Static_assert
 #endif

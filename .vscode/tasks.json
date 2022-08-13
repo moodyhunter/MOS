@@ -26,6 +26,9 @@
             "label": "start_os",
             "type": "process",
             "command": "tmux",
+            "options": {
+                "cwd": "${workspaceFolder}/build",
+            },
             "args": [
                 "new",
                 "-s",
@@ -40,8 +43,10 @@
                 "${workspaceFolder}/build/mos_multiboot.bin",
                 "-s",
                 "-S",
+                "-chardev",
+                "stdio,id=serial_log,logfile=serial_log.log,signal=off",
                 "-serial",
-                "stdio",
+                "chardev:serial_log",
                 "-append",
                 "kernel argument contains nothing useful"
             ],

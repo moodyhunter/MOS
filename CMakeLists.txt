@@ -24,6 +24,7 @@ option(MOS_KERNEL_RUN_TESTS "Run tests in the Kernel" OFF)
 option(MOS_MM_LIBALLOC_LOCKS "liballoc: has lock support" OFF)
 option(MOS_MM_LIBALLOC_DEBUG "liballoc: debug message enabled" OFF)
 option(MOS_ENABLE_DEBUG_LOG "Enable debug log" OFF)
+option(MOS_PRINTK_HAS_FILENAME "printk: has filename" ON)
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
     message(STATUS "Found custom configuration file 'config.cmake'")
@@ -53,6 +54,7 @@ mos_add_kconfig_define(MOS_KERNEL_RUN_TESTS)
 mos_add_kconfig_define(MOS_MM_LIBALLOC_LOCKS)
 mos_add_kconfig_define(MOS_MM_LIBALLOC_DEBUG)
 mos_add_kconfig_define(MOS_ENABLE_DEBUG_LOG)
+mos_add_kconfig_define(MOS_PRINTK_HAS_FILENAME)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
@@ -89,6 +91,10 @@ mos_add_summary_item(KERNEL "Architecture" "${MOS_ARCH_TARGET}")
 mos_add_summary_section(MM "MOS Memory Management")
 mos_add_summary_item(MM "liballoc: locks" "${MOS_MM_LIBALLOC_LOCKS}")
 mos_add_summary_item(MM "liballoc: debug" "${MOS_MM_LIBALLOC_DEBUG}")
+
+mos_add_summary_section(DEBUG "MOS Debugging")
+mos_add_summary_item(DEBUG "Debug log" "${MOS_ENABLE_DEBUG_LOG}")
+mos_add_summary_item(DEBUG "printk: with filename" "${MOS_PRINTK_HAS_FILENAME}")
 
 # Configure architecture-specific stuff
 include(add_kernel_source)
