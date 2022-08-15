@@ -24,6 +24,7 @@ typedef enum
 typedef struct
 {
     u32 cpu_count;
+    u32 bsp_apic_id;
 } mos_platform_cpu_info_t;
 
 typedef struct

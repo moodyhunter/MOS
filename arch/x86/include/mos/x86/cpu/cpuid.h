@@ -31,8 +31,8 @@ typedef struct
         u8 family : 4;
         cpuid_type_t type : 2;
         u8 reserved1 : 2;
-        u8 extended_model : 4;
-        u16 extended_family : 8;
+        u8 ext_model : 4;
+        u16 ext_family : 8;
         u8 reserved2 : 4;
     } __packed eax;
 
@@ -96,7 +96,7 @@ typedef struct
         bool debugging_extensions : 1;
         bool page_size_extensions : 1;
         bool time_stamp_counter : 1;
-        bool rdmsr_supported : 1;
+        bool msr : 1;
         bool physical_address_extensions : 1;
         bool machine_check_exception : 1;
 
