@@ -99,20 +99,15 @@ static void apic_wait_sent()
 void apic_interrupt_full(u8 vec, u8 dest, apic_delivery_mode_t delivery_mode, apic_dest_mode_t dest_mode, bool level, bool trigger,
                          apic_dest_shorthand_t shorthand)
 {
-
-#undef SET_BITS
-#define SET_BITS(data, bits, width, val) data = (((data) & ~((u64) ((1 << (width)) - 1) << (bits))) | (((val) & ((1 << (width)) - 1)) << (bits)))
-
     u64 value = 0;
-    SET_BITS(value, 0, 8, vec);           // Interrupt Vector
-    SET_BITS(value, 8, 3, delivery_mode); // Delivery mode
-    SET_BITS(value, 11, 1, dest_mode);    // Logical destination mode
-    SET_BITS(value, 12, 1, 0);            // Delivery status (0)
-    SET_BITS(value, 14, 1, level);        // Level
-    SET_BITS(value, 15, 1, trigger);      // Trigger mode
-    SET_BITS(value, 18, 2, shorthand);    // Destination shorthand
-    SET_BITS(value, 56, 8, (u64) dest);
-    ; // Destination
+    value |= SET_BITS(0, 8, vec);           // Interrupt Vector
+    value |= SET_BITS(8, 3, delivery_mode); // Delivery mode
+    value |= SET_BITS(11, 1, dest_mode);    // Logical destination mode
+    value |= SET_BITS(12, 1, 0);            // Delivery status (0)
+    value |= SET_BITS(14, 1, level);        // Level
+    value |= SET_BITS(15, 1, trigger);      // Trigger mode
+    value |= SET_BITS(18, 2, shorthand);    // Destination shorthand
+    value |= SET_BITS(56, 8, (u64) dest);   // Destination
 
     apic_reg_write_offset_32(APIC_REG_ERROR_STATUS, 0);
     apic_reg_write_offset_64(APIC_INTERRUPT_COMMAND_REG_BEGIN, value);
