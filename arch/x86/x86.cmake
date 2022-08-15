@@ -18,15 +18,15 @@ add_bootable_target(boot/multiboot_iso)
 add_kernel_source(
     RELATIVE_SOURCES
         x86_platform.c
-        x86_interrupt.c
-        init/gdt.c
-        init/idt.c
-        init/descriptor_flush.asm
-        init/interrupt_handler.asm
+        x86_descriptor_flush.asm
         drivers/text_mode_console.c
         drivers/port.c
         drivers/serial.c
         drivers/serial_console.c
+        gdt/gdt.c
+        interrupt/interrupt.asm
+        interrupt/idt.c
+        interrupt/interrupt.c
         interrupt/pic.c
         interrupt/apic.c
         acpi/acpi.c

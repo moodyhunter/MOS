@@ -4,8 +4,8 @@
 
 #include "mos/mos_global.h"
 #include "mos/types.h"
-#include "mos/x86/init/gdt_types.h"
-#include "mos/x86/init/idt_types.h"
+#include "mos/x86/gdt/gdt_types.h"
+#include "mos/x86/interrupt/idt_types.h"
 #include "mos/x86/x86_interrupt.h"
 
 static_assert(sizeof(void *) == 4, "x86_64 is not supported");

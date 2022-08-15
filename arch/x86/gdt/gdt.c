@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/init/gdt_types.h"
+#include "mos/x86/gdt/gdt_types.h"
 #include "mos/x86/x86_platform.h"
 
 static gdt_ptr32_t gdt_ptr;

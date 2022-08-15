@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/x86/drivers/port.h"
-#include "mos/x86/init/idt_types.h"
+#include "mos/x86/interrupt/idt_types.h"
 #include "mos/x86/interrupt/pic.h"
 #include "mos/x86/x86_platform.h"
 
