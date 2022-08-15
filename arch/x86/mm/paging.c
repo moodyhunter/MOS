@@ -64,6 +64,7 @@ void x86_mm_prepare_paging()
 
     // initialize the page directory
     memset(mm_page_dir, 0, sizeof(pgdir_entry) * 1024);
+    memset(mm_page_table, 0, sizeof(pgtable_entry) * 1024 * 1024);
 
     pr_info("paging: setting up physical memory freelist...");
     pmem_freelist_setup();
@@ -199,6 +200,7 @@ void pmem_freelist_setup()
     }
 
     pmem_freelist = (pmem_range_t *) paddr;
+    memset(pmem_freelist, 0, pmem_freelist_size);
     pmem_freelist_base_paddr = paddr;
     MOS_ASSERT_X(pmem_freelist != NULL, "could not find a continous physical memory region, large enough to place pmem freelist");
     pmem_freelist->next = NULL;
@@ -439,6 +441,7 @@ uintptr_t pmem_freelist_get_page(size_t pages)
     }
 
     // !! OOM
+    mos_warn("paging: out of memory?");
     return 0;
 }
 
