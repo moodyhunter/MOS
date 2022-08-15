@@ -119,7 +119,10 @@ static void isr_handle_exception(x86_stack_frame *stack)
         }
 
         case EXCEPTION_PAGE_FAULT:
-            // !! TODO: Handle page fault correctly before treating it as recoverable.
+        {
+            mos_panic("I DON'T KNOW WHAT TO DO WITH THIS PAGE FAULT.");
+            return;
+        }
 
         case EXCEPTION_DOUBLE_FAULT:
         case EXCEPTION_MACHINE_CHECK:
