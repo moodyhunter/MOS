@@ -40,7 +40,7 @@
 #define pr_fatal(fmt, ...) lprintk_wrapper(MOS_LOG_FATAL, fmt "\n", ##__VA_ARGS__)
 
 #if MOS_ENABLE_DEBUG_LOG
-#define mos_debug(fmt, ...) pr_info2("" fmt, ##__VA_ARGS__)
+#define mos_debug(fmt, ...) pr_info2("%s: " fmt, __func__, ##__VA_ARGS__)
 #else
 #define lprintk_noop(level, fmt, ...)                                                                                                           \
     do                                                                                                                                          \
