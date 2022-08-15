@@ -1,4 +1,4 @@
-// SPDX-Licence-Identifier: BSD-3-Clause
+// SPDX-License-Identifier: BSD-3-Clause
 // Durand's Ridiculously Amazing Super Duper Memory functions.
 
 #include "mos/mm/liballoc.h"

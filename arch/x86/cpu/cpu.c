@@ -1,4 +1,4 @@
-// SPDX-Licence-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/x86/cpu/cpu.h"
 

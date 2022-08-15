@@ -1,10 +1,10 @@
-// SPDX-Licence-Identifier: GPL-3.0-or-later
-
-#include "mos/x86/x86_interrupt.h"
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/interrupt.h"
+
 #include "mos/printk.h"
 #include "mos/x86/drivers/port.h"
+#include "mos/x86/x86_interrupt.h"
 #include "mos/x86/x86_platform.h"
 
 // End-of-interrupt command code
