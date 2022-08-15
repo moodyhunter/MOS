@@ -28,6 +28,9 @@
 #define MB KB * 1024
 #define GB MB * 1024
 
+#define MASK_BITS(value, width)     ((value) & ((1 << (width)) - 1))
+#define SET_BITS(bit, width, value) (MASK_BITS(value, width) << (bit))
+
 #define MOS_STRINGIFY2(x) #x
 #define MOS_STRINGIFY(x)  MOS_STRINGIFY2(x)
 
