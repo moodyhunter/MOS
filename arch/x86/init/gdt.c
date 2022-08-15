@@ -38,3 +38,8 @@ void x86_gdt_init()
     gdt_ptr.limit = sizeof(gdt) - 1;
     gdt32_flush(&gdt_ptr);
 }
+
+void x86_ap_gdt_init()
+{
+    gdt32_flush_only(&gdt_ptr);
+}

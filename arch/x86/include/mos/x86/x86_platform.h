@@ -61,8 +61,10 @@ extern const uintptr_t x86_kernel_end;
 extern mos_platform_cpu_info_t x86_cpu_info;
 
 void x86_gdt_init();
+void x86_ap_gdt_init();
 void x86_idt_init();
 
 // The following 3 symbols are defined in the descriptor_flush.asm file.
 extern void gdt32_flush(gdt_ptr32_t *gdt_ptr);
 extern void idt32_flush(idtr32_t *idtr);
+extern void gdt32_flush_only(gdt_ptr32_t *gdt_ptr);
