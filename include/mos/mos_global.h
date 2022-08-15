@@ -23,10 +23,13 @@
 
 #define to_union(u) __extension__(u)
 
-#define B
-#define KB B * 1024
-#define MB KB * 1024
-#define GB MB * 1024
+// clang-format off
+#define B  * 1
+#define KB * 1024 B
+#define MB * 1024 KB
+#define GB * (u64) 1024 MB
+#define TB * (u64) 1024 GB
+// clang-format on
 
 #define MASK_BITS(value, width)     ((value) & ((1 << (width)) - 1))
 #define SET_BITS(bit, width, value) (MASK_BITS(value, width) << (bit))
