@@ -30,6 +30,7 @@ add_kernel_source(
         interrupt/pic.c
         interrupt/apic.c
         acpi/acpi.c
+        cpu/cpu.c
         cpu/cpuid.c
         cpu/smp.c
         mm/paging.c
