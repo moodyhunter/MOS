@@ -39,3 +39,16 @@ typedef union
 } byte_t;
 
 static_assert(sizeof(byte_t) == sizeof(char), "byte_t is not 1 byte");
+
+// clang-format off
+#define newtype(type, name) typedef struct { type name; } name##_t
+// clang-format on
+
+typedef u32 id_t;
+
+newtype(id_t, page_dir);
+newtype(id_t, uid);
+newtype(id_t, gid);
+
+newtype(id_t, process_id);
+newtype(id_t, thread_id);
