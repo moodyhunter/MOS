@@ -22,7 +22,7 @@ section .multiboot.text
 
 _mos_x86_multiboot_start:
     mov esp, stack_top
-
+    xor ebp, ebp
     ; Reset EFLAGS
     push 0
     popf
