@@ -1,0 +1,56 @@
+name: Generate MOS CodeBrowser
+
+on:
+  push:
+
+jobs:
+  build:
+    name: Generate CodeBrowser for MOS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install packages
+        run: |
+          sudo apt update
+          sudo apt -y install nasm gcc-i686-linux-gnu g++-i686-linux-gnu ninja-build libclang-12-dev libclang-10-dev
+
+      - name: Configure CMake
+        run: |
+          cmake \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DMOS_KERNEL_RUN_TESTS=ON \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -B ${{github.workspace}}/build \
+            -G Ninja
+
+      - name: Build
+        run: |
+          cd ${{github.workspace}}/build
+          ninja
+          ninja ${{matrix.target}}
+
+      - name: Build CodeBrowser
+        run: |
+          cd ${{github.workspace}}/build
+          git clone https://github.com/KDAB/codebrowser
+          cd codebrowser
+          mkdir build && cd build
+          cmake ..
+          make -j2
+
+      - name: Generate CodeBrowser
+        run: |
+          cd ${{github.workspace}}/build
+          ./codebrowser/build/generator/codebrowser_generator -d /mos-code-browser/data -b ./compile_commands.json -a -o ./docs -p MOS:..
+          ./codebrowser/build/indexgenerator/codebrowser_indexgenerator ./docs -d /mos-code-browser/data
+          cp -rv ./codebrowser/data ./docs/data
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          token: ${{secrets.GH_PAGES_TOKEN}}
+          folder: ${{github.workspace}}/build/docs
+          repository-name: moodyhunter/mos-code-browser
+          branch: main
+          single-commit: true
