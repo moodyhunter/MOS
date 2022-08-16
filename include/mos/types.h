@@ -20,7 +20,12 @@ typedef double f64;
 typedef long double f80;
 
 typedef unsigned long uintptr_t;
-#define PTR_FMT "0x%lx"
+
+#if MOS_BITS == 32
+#define PTR_FMT "0x%8.8lx"
+#else
+#define PTR_FMT "0x%16.16llx"
+#endif
 
 typedef union
 {

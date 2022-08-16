@@ -22,4 +22,12 @@
 #define static_assert _Static_assert
 #endif
 
+#if __SIZEOF_LONG__ == 8
+#define MOS_64BIT 1
+#define MOS_BITS  64
+#else
+#define MOS_32BIT 1
+#define MOS_BITS  32
+#endif
+
 static_assert(sizeof(long) == sizeof(void *), "long is not the same size as a pointer");

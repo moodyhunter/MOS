@@ -89,9 +89,27 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     mos_start_kernel(&init);
 }
 
+void x86_do_backtrace(u32 max)
+{
+    pr_info("Stack trace:");
+    struct frame_t
+    {
+        struct frame_t *ebp;
+        uintptr_t eip;
+    } *frame = NULL;
+
+    __asm__("movl %%ebp,%1" : "=r"(frame) : "r"(frame));
+    for (u32 i = 0; frame && i < max; i++)
+    {
+        pr_warn("  " PTR_FMT, frame->eip);
+        frame = frame->ebp;
+    }
+}
+
 void x86_kpanic_hook()
 {
     pmem_freelist_dump();
+    x86_do_backtrace(20);
 }
 
 void x86_post_kernel_init(mos_init_info_t *info)
