@@ -32,7 +32,6 @@ jobs:
         run: |
           cmake \
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
-            -DMOS_KERNEL_RUN_TESTS=${{matrix.run_tests}} \
             -B ${{github.workspace}}/build \
             -G Ninja
 

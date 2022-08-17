@@ -5,4 +5,3 @@
 
 set(CUSTOM_NASM_PATH    "/usr/bin/nasm")
 set(MOS_KERNEL_BUILTIN_CMDLINE_STRING "")
-set(MOS_KERNEL_RUN_TESTS OFF)

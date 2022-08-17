@@ -20,7 +20,6 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 set(MOS_ARCH_TARGET "x86")
-option(MOS_KERNEL_RUN_TESTS "Run tests in the Kernel" OFF)
 option(MOS_MM_LIBALLOC_LOCKS "liballoc: has lock support" OFF)
 option(MOS_MM_LIBALLOC_DEBUG "liballoc: debug message enabled" OFF)
 option(MOS_ENABLE_DEBUG_LOG "Enable debug log" OFF)
@@ -50,7 +49,6 @@ execute_process(
     ERROR_STRIP_TRAILING_WHITESPACE
 )
 
-mos_add_kconfig_define(MOS_KERNEL_RUN_TESTS)
 mos_add_kconfig_define(MOS_MM_LIBALLOC_LOCKS)
 mos_add_kconfig_define(MOS_MM_LIBALLOC_DEBUG)
 mos_add_kconfig_define(MOS_ENABLE_DEBUG_LOG)
@@ -62,6 +60,7 @@ include_directories(
 )
 
 add_library(mos_kernel.elf STATIC
+    kernel/cmdline.c
     kernel/kernel_init.c
     kernel/panic.c
     kernel/printk.c

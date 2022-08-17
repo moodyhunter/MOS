@@ -48,7 +48,7 @@
                 "-serial",
                 "chardev:serial_log",
                 "-append",
-                "kernel argument contains nothing useful"
+                "console=ttyS0,115200n8 init=/init debug mos_run_kernel_tests",
             ],
             "problemMatcher": [],
             "group": "none",
