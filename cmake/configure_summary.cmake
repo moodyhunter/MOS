@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-set(MOS_SUMMARY_NAME_LENGTH 20)
+set(MOS_SUMMARY_NAME_LENGTH 30)
 
 macro(mos_add_summary_section section name)
     if(DEFINED MOS_SUMMARY_SECTION_${section})
@@ -21,12 +21,12 @@ macro(mos_add_summary_item section name value)
         message(FATAL_ERROR "Unknown summary section '${section}'")
     endif()
     string(LENGTH ${name} NAME_LEN)
-    math(EXPR padding "${MOS_SUMMARY_NAME_LENGTH} - ${NAME_LEN}")
+    math(EXPR padding "${MOS_SUMMARY_NAME_LENGTH} - ${NAME_LEN} - 2")
     if(padding LESS 0)
         set(padding 0)
     endif()
-    string(REPEAT " " ${padding} PADDING_STRING)
-    list(APPEND MOS_SUMMARY_SECTION_CONTENT_${section} "${name}${PADDING_STRING}${value}")
+    string(REPEAT "." ${padding} PADDING_STRING)
+    list(APPEND MOS_SUMMARY_SECTION_CONTENT_${section} "${name} ${PADDING_STRING} ${value}")
 
     get_directory_property(hasParent PARENT_DIRECTORY)
     if(hasParent)
