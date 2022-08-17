@@ -59,7 +59,6 @@ mos_add_kconfig_define(MOS_PRINTK_HAS_FILENAME)
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_BINARY_DIR}/include
-    ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH_TARGET}/include
 )
 
 add_library(mos_kernel.elf STATIC

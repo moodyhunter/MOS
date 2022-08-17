@@ -16,6 +16,8 @@ add_bootable_target(boot/multiboot)
 add_bootable_target(boot/multiboot_iso)
 
 add_kernel_source(
+    INCLUDE_DIRECTORIES
+        ${CMAKE_CURRENT_LIST_DIR}/include
     RELATIVE_SOURCES
         x86_platform.c
         x86_descriptor_flush.asm
