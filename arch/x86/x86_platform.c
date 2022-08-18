@@ -84,7 +84,7 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     vm_map_page_range_no_freelist(bios_memblock->paddr, bios_memblock->paddr, bios_memblock->size_bytes / X86_PAGE_SIZE, VM_PRESENT);
 
     mos_init_info_t init;
-    init.cmdline = mos_cmdline;
+    init.cmdline_str = mos_cmdline;
     x86_mm_enable_paging();
     mos_start_kernel(&init);
 }

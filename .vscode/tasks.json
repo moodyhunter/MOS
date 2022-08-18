@@ -48,7 +48,7 @@
                 "-serial",
                 "chardev:serial_log",
                 "-append",
-                "console=ttyS0,115200n8 init=/init debug mos_tests mos_tests_skip=kmalloc_stress,kmalloc_large mos_tests_halt_on_success",
+                "console=ttyS0,115200n8 init=/init debug mos_tests mos_tests_skip_prefix=kmalloc_ mos_tests_halt_on_success",
             ],
             "problemMatcher": [],
             "group": "none",

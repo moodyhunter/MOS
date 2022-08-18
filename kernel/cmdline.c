@@ -8,18 +8,22 @@
 
 cmdline_t *mos_cmdline = NULL;
 
-#define copy_string(dst, src, len) dst = kmalloc(len + 1), strncpy(dst, src, len)
+#define copy_string(dst, src, len) (dst) = kmalloc((len) + 1), strncpy((dst), (src), (len)), (dst)[(len)] = '\0'
 
-cmdline_t *mos_cmdline_parse(const char *cmdline)
+cmdline_t *mos_cmdline_create(const char *cmdline)
 {
     cmdline_t *cmd = kmalloc(sizeof(cmdline_t));
     cmd->args_count = 0;
 
     while (*cmdline)
     {
+        if (*cmdline == ' ')
+            cmdline++;
         cmdline_arg_t *arg = kmalloc(sizeof(cmdline_arg_t));
         arg->param_count = 0;
-        cmd->arguments[cmd->args_count++] = arg;
+        cmd->args_count++;
+        cmd->arguments = krealloc(cmd->arguments, sizeof(cmdline_arg_t *) * cmd->args_count);
+        cmd->arguments[cmd->args_count - 1] = arg;
 
         // an arg name ends with an '=' (has parameters) or a space
         {
@@ -36,7 +40,9 @@ cmdline_t *mos_cmdline_parse(const char *cmdline)
         while (*cmdline && *cmdline != ' ')
         {
             cmdline_param_t *parameter = kmalloc(sizeof(cmdline_param_t));
-            arg->params[arg->param_count++] = parameter;
+            arg->param_count++;
+            arg->params = krealloc(arg->params, sizeof(cmdline_param_t *) * arg->param_count);
+            arg->params[arg->param_count - 1] = parameter;
 
             if (strncmp(cmdline, "true", 4) == 0)
             {
@@ -77,6 +83,24 @@ cmdline_t *mos_cmdline_parse(const char *cmdline)
     }
 
     return cmd;
+}
+
+void mos_cmdline_destroy(cmdline_t *cmdline)
+{
+    for (u32 i = 0; i < cmdline->args_count; i++)
+    {
+        cmdline_arg_t *arg = cmdline->arguments[i];
+        for (u32 j = 0; j < arg->param_count; j++)
+        {
+            cmdline_param_t *param = arg->params[j];
+            if (param->param_type == CMDLINE_PARAM_TYPE_STRING)
+                kfree(param->val.string);
+            kfree(param);
+        }
+        kfree(arg);
+        cmdline->arguments[i] = NULL;
+    }
+    kfree(cmdline);
 }
 
 cmdline_arg_t *mos_cmdline_get_arg(const char *option_name)

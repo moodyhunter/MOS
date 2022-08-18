@@ -78,6 +78,7 @@ void mos_test_engine_run_tests()
     TestResult result = { MOS_TEST_RESULT_INIT };
 
     cmdline_arg_t *skip_tests_option = mos_cmdline_get_arg("mos_tests_skip");
+    cmdline_arg_t *mos_tests_skip_prefix_option = mos_cmdline_get_arg("mos_tests_skip_prefix");
 
     MOS_TEST_FOREACH_TEST_CASE(test_case)
     {
@@ -88,6 +89,17 @@ void mos_test_engine_run_tests()
             if (strcmp(parameter->val.string, test_case->test_name) == 0)
             {
                 MOS_TEST_LOG(MOS_TEST_YELLOW, 'S', "Test %s skipped by kernel cmdline", test_case->test_name);
+                should_skip = true;
+                break;
+            }
+        }
+
+        for (u32 i = 0; mos_tests_skip_prefix_option && i < mos_tests_skip_prefix_option->param_count; i++)
+        {
+            cmdline_param_t *parameter = mos_tests_skip_prefix_option->params[i];
+            if (strncmp(parameter->val.string, test_case->test_name, strlen(parameter->val.string)) == 0)
+            {
+                MOS_TEST_LOG(MOS_TEST_YELLOW, 'S', "Test %s skipped by kernel cmdline (prefix %s)", test_case->test_name, parameter->val.string);
                 should_skip = true;
                 break;
             }

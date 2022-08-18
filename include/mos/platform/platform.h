@@ -7,7 +7,7 @@
 
 typedef struct
 {
-    const char *cmdline;
+    const char *cmdline_str;
 } mos_init_info_t;
 
 typedef enum

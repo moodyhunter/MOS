@@ -14,13 +14,12 @@ void mos_start_kernel(mos_init_info_t *init_info)
     mos_platform.devices_setup(init_info);
     mos_platform.interrupt_enable();
 
-    cmdline_t *cmdline = mos_cmdline_parse(init_info->cmdline);
-    mos_cmdline = cmdline;
+    mos_cmdline = mos_cmdline_create(init_info->cmdline_str);
 
-    pr_info("kernel arguments: (total of %zu options)", cmdline->args_count);
-    for (u32 i = 0; i < cmdline->args_count; i++)
+    pr_info("kernel arguments: (total of %zu options)", mos_cmdline->args_count);
+    for (u32 i = 0; i < mos_cmdline->args_count; i++)
     {
-        cmdline_arg_t *option = cmdline->arguments[i];
+        cmdline_arg_t *option = mos_cmdline->arguments[i];
         pr_info("%2d: %s", i, option->arg_name);
 
         for (u32 j = 0; j < option->param_count; j++)
@@ -30,13 +29,14 @@ void mos_start_kernel(mos_init_info_t *init_info)
             {
                 case CMDLINE_PARAM_TYPE_STRING: pr_info("%6s%s", "", parameter->val.string); break;
                 case CMDLINE_PARAM_TYPE_BOOL: pr_info("%6s%s", "", parameter->val.boolean ? "true" : "false"); break;
+                default: MOS_UNREACHABLE();
             }
         }
     }
 
     pr_info("Welcome to MOS!");
     pr_info("Boot Information:");
-    pr_emph("cmdline: %s", init_info->cmdline);
+    pr_emph("cmdline: %s", init_info->cmdline_str);
     pr_emph("%-25s'%s'", "Kernel Version:", MOS_KERNEL_VERSION);
     pr_emph("%-25s'%s'", "Kernel Revision:", MOS_KERNEL_REVISION);
     pr_emph("%-25s'%s'", "Kernel builtin cmdline:", MOS_KERNEL_BUILTIN_CMDLINE);

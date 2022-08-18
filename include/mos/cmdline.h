@@ -24,16 +24,18 @@ typedef struct
 {
     char *arg_name;
     size_t param_count;
-    cmdline_param_t *params[];
+    cmdline_param_t **params;
 } cmdline_arg_t;
 
 typedef struct
 {
     size_t args_count;
-    cmdline_arg_t *arguments[];
+    cmdline_arg_t **arguments;
 } cmdline_t;
 
 extern cmdline_t *mos_cmdline;
 
-cmdline_t *mos_cmdline_parse(const char *kcmdline);
+cmdline_t *mos_cmdline_create(const char *kcmdline);
+void mos_cmdline_destroy(cmdline_t *cmdline);
+
 cmdline_arg_t *mos_cmdline_get_arg(const char *arg);
