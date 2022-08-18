@@ -120,7 +120,9 @@ static void isr_handle_exception(x86_stack_frame *stack)
 
         case EXCEPTION_PAGE_FAULT:
         {
-            mos_panic("I DON'T KNOW WHAT TO DO WITH THIS PAGE FAULT.");
+            uintptr_t fault_address;
+            __asm__ volatile("mov %%cr2, %0" : "=r"(fault_address));
+            mos_panic("I DON'T KNOW WHAT TO DO WITH THIS PAGE FAULT AT " PTR_FMT, fault_address);
             return;
         }
 
