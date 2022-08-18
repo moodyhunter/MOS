@@ -13,7 +13,7 @@
 #define MOS_ASSERT_X(cond, msg, ...)                                                                                                            \
     do                                                                                                                                          \
     {                                                                                                                                           \
-        if (!(cond))                                                                                                                            \
+        if (unlikely(!(cond)))                                                                                                                  \
             mos_panic("Assertion failed: %s \n" msg, #cond, ##__VA_ARGS__);                                                                     \
     } while (0)
 
