@@ -14,16 +14,18 @@ cmdline_t *mos_cmdline_create(const char *cmdline)
 {
     cmdline_t *cmd = kmalloc(sizeof(cmdline_t));
     cmd->args_count = 0;
+    cmd->arguments = NULL;
 
     while (*cmdline)
     {
         if (*cmdline == ' ')
             cmdline++;
         cmdline_arg_t *arg = kmalloc(sizeof(cmdline_arg_t));
+        arg->params = NULL;
         arg->param_count = 0;
+        cmd->arguments = krealloc(cmd->arguments, sizeof(cmdline_arg_t *) * (cmd->args_count + 1));
+        cmd->arguments[cmd->args_count] = arg;
         cmd->args_count++;
-        cmd->arguments = krealloc(cmd->arguments, sizeof(cmdline_arg_t *) * cmd->args_count);
-        cmd->arguments[cmd->args_count - 1] = arg;
 
         // an arg name ends with an '=' (has parameters) or a space
         {
@@ -39,32 +41,32 @@ cmdline_t *mos_cmdline_create(const char *cmdline)
 
         while (*cmdline && *cmdline != ' ')
         {
-            cmdline_param_t *parameter = kmalloc(sizeof(cmdline_param_t));
+            cmdline_param_t *param = kmalloc(sizeof(cmdline_param_t));
+            arg->params = krealloc(arg->params, sizeof(cmdline_param_t *) * (arg->param_count + 1));
+            arg->params[arg->param_count] = param;
             arg->param_count++;
-            arg->params = krealloc(arg->params, sizeof(cmdline_param_t *) * arg->param_count);
-            arg->params[arg->param_count - 1] = parameter;
 
             if (strncmp(cmdline, "true", 4) == 0)
             {
-                parameter->param_type = CMDLINE_PARAM_TYPE_BOOL;
-                parameter->val.boolean = true;
+                param->param_type = CMDLINE_PARAM_TYPE_BOOL;
+                param->val.boolean = true;
                 cmdline += 4;
             }
             else if (strncmp(cmdline, "false", 5) == 0)
             {
-                parameter->param_type = CMDLINE_PARAM_TYPE_BOOL;
-                parameter->val.boolean = false;
+                param->param_type = CMDLINE_PARAM_TYPE_BOOL;
+                param->val.boolean = false;
                 cmdline += 5;
             }
             else
             {
+                param->param_type = CMDLINE_PARAM_TYPE_STRING;
                 // an option ends with a space or a comma
                 const char *param_start = cmdline;
                 while (*cmdline && *cmdline != ' ' && *cmdline != ',')
                     cmdline++;
 
-                copy_string(parameter->val.string, param_start, cmdline - param_start);
-                parameter->param_type = CMDLINE_PARAM_TYPE_STRING;
+                copy_string(param->val.string, param_start, cmdline - param_start);
             }
 
             MOS_ASSERT(*cmdline == ' ' || *cmdline == ',' || *cmdline == '\0');
@@ -90,6 +92,7 @@ void mos_cmdline_destroy(cmdline_t *cmdline)
     for (u32 i = 0; i < cmdline->args_count; i++)
     {
         cmdline_arg_t *arg = cmdline->arguments[i];
+        kfree(arg->arg_name);
         for (u32 j = 0; j < arg->param_count; j++)
         {
             cmdline_param_t *param = arg->params[j];
@@ -97,9 +100,11 @@ void mos_cmdline_destroy(cmdline_t *cmdline)
                 kfree(param->val.string);
             kfree(param);
         }
+        if (arg->param_count)
+            kfree(arg->params);
         kfree(arg);
-        cmdline->arguments[i] = NULL;
     }
+    kfree(cmdline->arguments);
     kfree(cmdline);
 }
 

@@ -71,12 +71,12 @@ MOS_TEST_CASE(one_arg_with_an_option)
 
 MOS_TEST_CASE(one_arg_with_multiple_options)
 {
-    const char *one_arg_with_multiple_options = "one=nana1,nana2,nana3,nana4";
+    const char *one_arg_with_multiple_options = "one=nana1,nana2,nana3,nana4,false";
     cmdline_t *cmd = mos_cmdline_create(one_arg_with_multiple_options);
     MOS_TEST_CHECK(cmd != NULL, true);
     MOS_TEST_CHECK(cmd->args_count, 1);
     MOS_TEST_CHECK_STRING(cmd->arguments[0]->arg_name, "one");
-    MOS_TEST_CHECK(cmd->arguments[0]->param_count, 4);
+    MOS_TEST_CHECK(cmd->arguments[0]->param_count, 5);
     MOS_TEST_CHECK(cmd->arguments[0]->params[0]->param_type, CMDLINE_PARAM_TYPE_STRING);
     MOS_TEST_CHECK_STRING(cmd->arguments[0]->params[0]->val.string, "nana1");
     MOS_TEST_CHECK(cmd->arguments[0]->params[1]->param_type, CMDLINE_PARAM_TYPE_STRING);
@@ -85,5 +85,55 @@ MOS_TEST_CASE(one_arg_with_multiple_options)
     MOS_TEST_CHECK_STRING(cmd->arguments[0]->params[2]->val.string, "nana3");
     MOS_TEST_CHECK(cmd->arguments[0]->params[3]->param_type, CMDLINE_PARAM_TYPE_STRING);
     MOS_TEST_CHECK_STRING(cmd->arguments[0]->params[3]->val.string, "nana4");
+    MOS_TEST_CHECK(cmd->arguments[0]->params[4]->param_type, CMDLINE_PARAM_TYPE_BOOL);
+    MOS_TEST_CHECK(cmd->arguments[0]->params[4]->val.boolean, false);
+    mos_cmdline_destroy(cmd);
+}
+
+MOS_TEST_CASE(multi_args_with_multiple_options)
+{
+    const char *cmdline = "one=nana1,nana2,nana3,nana4,false two=nana1,nana2,nana3,nana4,false three=nana1,nana2,nana3,nana4,true";
+    cmdline_t *cmd = mos_cmdline_create(cmdline);
+    MOS_TEST_CHECK(cmd != NULL, true);
+
+    MOS_TEST_CHECK(cmd->args_count, 3);
+    MOS_TEST_CHECK_STRING(cmd->arguments[0]->arg_name, "one");
+    MOS_TEST_CHECK(cmd->arguments[0]->param_count, 5);
+    MOS_TEST_CHECK(cmd->arguments[0]->params[0]->param_type, CMDLINE_PARAM_TYPE_STRING);
+    MOS_TEST_CHECK_STRING(cmd->arguments[0]->params[0]->val.string, "nana1");
+    MOS_TEST_CHECK(cmd->arguments[0]->params[1]->param_type, CMDLINE_PARAM_TYPE_STRING);
+    MOS_TEST_CHECK_STRING(cmd->arguments[0]->params[1]->val.string, "nana2");
+    MOS_TEST_CHECK(cmd->arguments[0]->params[2]->param_type, CMDLINE_PARAM_TYPE_STRING);
+    MOS_TEST_CHECK_STRING(cmd->arguments[0]->params[2]->val.string, "nana3");
+    MOS_TEST_CHECK(cmd->arguments[0]->params[3]->param_type, CMDLINE_PARAM_TYPE_STRING);
+    MOS_TEST_CHECK_STRING(cmd->arguments[0]->params[3]->val.string, "nana4");
+    MOS_TEST_CHECK(cmd->arguments[0]->params[4]->param_type, CMDLINE_PARAM_TYPE_BOOL);
+    MOS_TEST_CHECK(cmd->arguments[0]->params[4]->val.boolean, false);
+
+    MOS_TEST_CHECK_STRING(cmd->arguments[1]->arg_name, "two");
+    MOS_TEST_CHECK(cmd->arguments[1]->param_count, 5);
+    MOS_TEST_CHECK(cmd->arguments[1]->params[0]->param_type, CMDLINE_PARAM_TYPE_STRING);
+    MOS_TEST_CHECK_STRING(cmd->arguments[1]->params[0]->val.string, "nana1");
+    MOS_TEST_CHECK(cmd->arguments[1]->params[1]->param_type, CMDLINE_PARAM_TYPE_STRING);
+    MOS_TEST_CHECK_STRING(cmd->arguments[1]->params[1]->val.string, "nana2");
+    MOS_TEST_CHECK(cmd->arguments[1]->params[2]->param_type, CMDLINE_PARAM_TYPE_STRING);
+    MOS_TEST_CHECK_STRING(cmd->arguments[1]->params[2]->val.string, "nana3");
+    MOS_TEST_CHECK(cmd->arguments[1]->params[3]->param_type, CMDLINE_PARAM_TYPE_STRING);
+    MOS_TEST_CHECK_STRING(cmd->arguments[1]->params[3]->val.string, "nana4");
+    MOS_TEST_CHECK(cmd->arguments[1]->params[4]->param_type, CMDLINE_PARAM_TYPE_BOOL);
+    MOS_TEST_CHECK(cmd->arguments[1]->params[4]->val.boolean, false);
+
+    MOS_TEST_CHECK_STRING(cmd->arguments[2]->arg_name, "three");
+    MOS_TEST_CHECK(cmd->arguments[2]->param_count, 5);
+    MOS_TEST_CHECK(cmd->arguments[2]->params[0]->param_type, CMDLINE_PARAM_TYPE_STRING);
+    MOS_TEST_CHECK_STRING(cmd->arguments[2]->params[0]->val.string, "nana1");
+    MOS_TEST_CHECK(cmd->arguments[2]->params[1]->param_type, CMDLINE_PARAM_TYPE_STRING);
+    MOS_TEST_CHECK_STRING(cmd->arguments[2]->params[1]->val.string, "nana2");
+    MOS_TEST_CHECK(cmd->arguments[2]->params[2]->param_type, CMDLINE_PARAM_TYPE_STRING);
+    MOS_TEST_CHECK_STRING(cmd->arguments[2]->params[2]->val.string, "nana3");
+    MOS_TEST_CHECK(cmd->arguments[2]->params[3]->param_type, CMDLINE_PARAM_TYPE_STRING);
+    MOS_TEST_CHECK_STRING(cmd->arguments[2]->params[3]->val.string, "nana4");
+    MOS_TEST_CHECK(cmd->arguments[2]->params[4]->param_type, CMDLINE_PARAM_TYPE_BOOL);
+    MOS_TEST_CHECK(cmd->arguments[2]->params[4]->val.boolean, true);
     mos_cmdline_destroy(cmd);
 }
