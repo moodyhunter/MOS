@@ -72,8 +72,7 @@ void x86_mm_prepare_paging()
     pr_info("paging: setting up low 1MB identity mapping... (except for the NULL page)");
     // skip the free list setup
     vm_map_page_range_no_freelist(0, 0, 1, VM_PRESENT); // ! the zero page is not writable
-    for (int addr = X86_PAGE_SIZE; addr < 1 MB; addr += X86_PAGE_SIZE)
-        vm_map_page_range_no_freelist(addr, addr, 1, VM_PRESENT | VM_WRITABLE);
+    vm_map_page_range_no_freelist(X86_PAGE_SIZE, X86_PAGE_SIZE, 1 MB / X86_PAGE_SIZE, VM_PRESENT | VM_WRITABLE);
 
     pr_info("paging: setting kernel space...");
     vm_map_page_range(x86_kernel_start, x86_kernel_start, (x86_kernel_end - x86_kernel_start) / X86_PAGE_SIZE, VM_PRESENT | VM_WRITABLE);
@@ -141,9 +140,9 @@ void *x86_mm_alloc_page(size_t n_page)
         }
     }
 
-    size_t page_index = target_pagemap_start * PAGEMAP_WIDTH + target_bit;
-    mos_debug("paging: allocating %zu to %zu", page_index, page_index + n_page);
-    void *vaddr = (void *) (page_index * X86_PAGE_SIZE);
+    size_t page_i = target_pagemap_start * PAGEMAP_WIDTH + target_bit;
+    void *vaddr = (void *) (page_i * X86_PAGE_SIZE);
+    mos_debug("paging: allocating page %zu to %zu (aka starting at %p)", page_i, page_i + n_page, vaddr);
 
     uintptr_t paddr = pmem_freelist_get_page(n_page);
 
@@ -348,9 +347,9 @@ void pmem_freelist_remove_region(uintptr_t start_addr, size_t size_bytes)
             if (part_1_size == 0 && part_2_size != 0)
             {
                 // part 1 is empty, which means we are removing from the front of the region
-                mos_debug("paging: shortened " PTR_FMT "-" PTR_FMT ": starts at " PTR_FMT, this_start, this_end, this_start + part_2_size);
                 this->paddr = end_addr;
                 this->n_pages = part_2_size / X86_PAGE_SIZE;
+                mos_debug("paging: this pmem block now starts at " PTR_FMT ", with %zu pages", this_start, this->n_pages);
             }
             else if (part_1_size != 0 && part_2_size == 0)
             {
@@ -460,6 +459,57 @@ void pmem_freelist_dump()
     }
 }
 
+void page_table_dump()
+{
+    static const s32 NONE = -1;
+    pr_info("paging: dumping page table");
+
+    s32 present_begin = NONE;
+    s32 absent_begin = NONE;
+
+    for (int pgd_i = 0; pgd_i < 1024; pgd_i++)
+    {
+        pgdir_entry *pgd = mm_page_dir + pgd_i;
+        if (!pgd->present)
+        {
+            if (absent_begin == NONE)
+                absent_begin = pgd_i * 1024;
+            continue;
+        }
+
+        for (int pgt_i = 0; pgt_i < 1024; pgt_i++)
+        {
+            uintptr_t table_id = pgd_i * 1024 + pgt_i;
+            pgtable_entry *pgt = mm_page_table + table_id;
+            if (pgt->present)
+            {
+                if (present_begin == NONE)
+                    present_begin = table_id;
+                if (absent_begin != NONE)
+                {
+                    pr_info("  [" PTR_FMT "-" PTR_FMT "] not present", (uintptr_t) absent_begin * X86_PAGE_SIZE, (table_id - 1) * X86_PAGE_SIZE);
+                    absent_begin = NONE;
+                }
+            }
+            else
+            {
+                if (absent_begin == NONE)
+                    absent_begin = table_id;
+                if (present_begin != NONE)
+                {
+                    pr_info("  [" PTR_FMT "-" PTR_FMT "] present", (uintptr_t) present_begin * X86_PAGE_SIZE, (table_id - 1) * X86_PAGE_SIZE);
+                    present_begin = NONE;
+                }
+            }
+        }
+    }
+
+    if (present_begin != NONE)
+        pr_info("  [" PTR_FMT "-" PTR_FMT "] present", (uintptr_t) present_begin * X86_PAGE_SIZE, (uintptr_t) -1);
+    if (absent_begin != NONE)
+        pr_info("  [" PTR_FMT "-" PTR_FMT "] not present", (uintptr_t) absent_begin * X86_PAGE_SIZE, (uintptr_t) -1);
+}
+
 void vm_map_page_range(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags)
 {
     pmem_freelist_remove_region(paddr_start, n_page * X86_PAGE_SIZE);
@@ -475,12 +525,14 @@ void vm_unmap_page_range(uintptr_t vaddr_start, size_t n_page)
 
 void vm_map_page_range_no_freelist(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags)
 {
+    mos_debug("paging: mapping %u pages " PTR_FMT " to " PTR_FMT " at table %lu", n_page, vaddr_start, paddr_start, vaddr_start / X86_PAGE_SIZE);
     for (size_t i = 0; i < n_page; i++)
         _impl_vm_map_page(vaddr_start + i * X86_PAGE_SIZE, paddr_start + i * X86_PAGE_SIZE, flags);
 }
 
 void vm_unmap_page_range_no_freelist(uintptr_t vaddr_start, size_t n_page)
 {
+    mos_debug("paging: unmapping %u pages " PTR_FMT " at table %lu", n_page, vaddr_start, vaddr_start / X86_PAGE_SIZE);
     for (size_t i = 0; i < n_page; i++)
         _impl_vm_unmap_page(vaddr_start + i * X86_PAGE_SIZE);
 }

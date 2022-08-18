@@ -109,6 +109,7 @@ void x86_do_backtrace(u32 max)
 void x86_kpanic_hook()
 {
     pmem_freelist_dump();
+    page_table_dump();
     x86_do_backtrace(20);
 }
 

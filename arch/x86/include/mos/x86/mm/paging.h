@@ -65,3 +65,4 @@ void pmem_freelist_remove_region(uintptr_t start_addr, size_t size_bytes);
 uintptr_t pmem_freelist_get_page(size_t pages);
 
 void pmem_freelist_dump();
+void page_table_dump();
