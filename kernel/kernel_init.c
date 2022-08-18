@@ -14,17 +14,18 @@ void mos_start_kernel(mos_init_info_t *init_info)
     mos_platform.devices_setup(init_info);
     mos_platform.interrupt_enable();
 
-    cmdline_t *cmdline = parse_cmdline(init_info->cmdline);
+    cmdline_t *cmdline = mos_cmdline_parse(init_info->cmdline);
+    mos_cmdline = cmdline;
 
-    pr_info("kernel arguments: (total of %d options)", cmdline->options_count);
-    for (u32 i = 0; i < cmdline->options_count; i++)
+    pr_info("kernel arguments: (total of %zu options)", cmdline->args_count);
+    for (u32 i = 0; i < cmdline->args_count; i++)
     {
-        cmdline_option_t *option = cmdline->options[i];
-        pr_info("%2d: %s", i, option->name);
+        cmdline_arg_t *option = cmdline->arguments[i];
+        pr_info("%2d: %s", i, option->arg_name);
 
-        for (u32 j = 0; j < option->parameters_count; j++)
+        for (u32 j = 0; j < option->param_count; j++)
         {
-            cmdline_parameter_t *parameter = option->parameters[j];
+            cmdline_param_t *parameter = option->params[j];
             switch (parameter->param_type)
             {
                 case CMDLINE_PARAM_TYPE_STRING: pr_info("%6s%s", "", parameter->val.string); break;
@@ -42,7 +43,7 @@ void mos_start_kernel(mos_init_info_t *init_info)
 
     mos_warn("V2Ray 4.45.2 started");
 
-    if (cmdline_get_option(cmdline, "mos_run_kernel_tests"))
+    if (mos_cmdline_get_arg("mos_run_kernel_tests"))
     {
         mos_test_engine_run_tests();
     }

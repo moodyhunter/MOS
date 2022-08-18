@@ -6,35 +6,37 @@
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
 
+cmdline_t *mos_cmdline = NULL;
+
 #define copy_string(dst, src, len) dst = kmalloc(len + 1), strncpy(dst, src, len)
 
-cmdline_t *parse_cmdline(const char *cmdline)
+cmdline_t *mos_cmdline_parse(const char *cmdline)
 {
     cmdline_t *cmd = kmalloc(sizeof(cmdline_t));
-    cmd->options_count = 0;
+    cmd->args_count = 0;
 
     while (*cmdline)
     {
-        cmdline_option_t *option = kmalloc(sizeof(cmdline_option_t));
-        option->parameters_count = 0;
-        cmd->options[cmd->options_count++] = option;
+        cmdline_arg_t *arg = kmalloc(sizeof(cmdline_arg_t));
+        arg->param_count = 0;
+        cmd->arguments[cmd->args_count++] = arg;
 
-        // an option name ends with an '=' (has parameters) or a space
+        // an arg name ends with an '=' (has parameters) or a space
         {
             const char *start = cmdline;
             while (*cmdline && !((*cmdline) == ' ' || (*cmdline) == '='))
                 cmdline++;
-            copy_string(option->name, start, cmdline - start);
+            copy_string(arg->arg_name, start, cmdline - start);
         }
 
         // the option has parameters
-        if (*cmdline++ != '=')
+        if (*cmdline && *cmdline++ != '=')
             continue;
 
         while (*cmdline && *cmdline != ' ')
         {
-            cmdline_parameter_t *parameter = kmalloc(sizeof(cmdline_parameter_t));
-            option->parameters[option->parameters_count++] = parameter;
+            cmdline_param_t *parameter = kmalloc(sizeof(cmdline_param_t));
+            arg->params[arg->param_count++] = parameter;
 
             if (strncmp(cmdline, "true", 4) == 0)
             {
@@ -77,12 +79,13 @@ cmdline_t *parse_cmdline(const char *cmdline)
     return cmd;
 }
 
-cmdline_option_t *cmdline_get_option(cmdline_t *cmd, const char *option_name)
+cmdline_arg_t *mos_cmdline_get_arg(const char *option_name)
 {
-    for (u32 i = 0; i < cmd->options_count; i++)
+    MOS_ASSERT(mos_cmdline);
+    for (u32 i = 0; i < mos_cmdline->args_count; i++)
     {
-        if (strcmp(cmd->options[i]->name, option_name) == 0)
-            return cmd->options[i];
+        if (strcmp(mos_cmdline->arguments[i]->arg_name, option_name) == 0)
+            return mos_cmdline->arguments[i];
     }
     return NULL;
 }

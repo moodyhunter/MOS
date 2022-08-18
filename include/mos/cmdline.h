@@ -18,20 +18,22 @@ typedef struct
         char *string;
         bool boolean;
     } val;
-} cmdline_parameter_t;
+} cmdline_param_t;
 
 typedef struct
 {
-    char *name;
-    size_t parameters_count;
-    cmdline_parameter_t *parameters[];
-} cmdline_option_t;
+    char *arg_name;
+    size_t param_count;
+    cmdline_param_t *params[];
+} cmdline_arg_t;
 
 typedef struct
 {
-    size_t options_count;
-    cmdline_option_t *options[];
+    size_t args_count;
+    cmdline_arg_t *arguments[];
 } cmdline_t;
 
-cmdline_t *parse_cmdline(const char *kcmdline);
-cmdline_option_t *cmdline_get_option(cmdline_t *cmdline, const char *name);
+extern cmdline_t *mos_cmdline;
+
+cmdline_t *mos_cmdline_parse(const char *kcmdline);
+cmdline_arg_t *mos_cmdline_get_arg(const char *arg);
