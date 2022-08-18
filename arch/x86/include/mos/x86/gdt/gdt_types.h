@@ -13,10 +13,12 @@
 #define GDT_TSS  0x09 // execute / access
 
 #define GDT_RING_USER   3 << 5
+#define GDT_RING_2      2 << 5
+#define GDT_RING_1      1 << 5
 #define GDT_RING_KERNEL 0 << 5
 
-#define GDT_BYTE_GRANULARITY 0x40
-#define GDT_PAGE_GRANULARITY 0xC0
+#define GDT_GRANULARITY_BYTE 0x40
+#define GDT_GRANULARITY_PAGE 0xC0
 
 typedef struct
 {
