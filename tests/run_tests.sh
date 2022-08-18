@@ -8,7 +8,7 @@ qemu-system-i386 -kernel $DIR/mos_multiboot.bin \
     -monitor "unix:/tmp/monitor.sock,server,nowait" \
     -nographic \
     -chardev stdio,id=char0,logfile=test-failure.log,signal=off \
-    -append mos_run_kernel_tests \
+    -append "mos_tests" \
     -serial chardev:char0 &
 
 pid=$!

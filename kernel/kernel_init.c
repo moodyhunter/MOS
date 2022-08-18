@@ -43,7 +43,7 @@ void mos_start_kernel(mos_init_info_t *init_info)
 
     mos_warn("V2Ray 4.45.2 started");
 
-    if (mos_cmdline_get_arg("mos_run_kernel_tests"))
+    if (mos_cmdline_get_arg("mos_tests"))
     {
         mos_test_engine_run_tests();
     }

@@ -77,7 +77,7 @@ void mos_test_engine_run_tests()
 
     TestResult result = { MOS_TEST_RESULT_INIT };
 
-    cmdline_arg_t *skip_tests_option = mos_cmdline_get_arg("mos_skip_tests");
+    cmdline_arg_t *skip_tests_option = mos_cmdline_get_arg("mos_tests_skip");
 
     MOS_TEST_FOREACH_TEST_CASE(test_case)
     {
@@ -111,5 +111,9 @@ void mos_test_engine_run_tests()
 
     u32 passed = result.n_total - result.n_failed - result.n_skipped;
     pr_emph("ALL %u TESTS PASSED: (%u succeed, %u failed, %u skipped)", result.n_total, passed, result.n_failed, result.n_skipped);
-    mos_platform.shutdown();
+
+    if (mos_cmdline_get_arg("mos_tests_halt_on_success"))
+        mos_platform.halt_cpu();
+    else
+        mos_platform.shutdown();
 }
