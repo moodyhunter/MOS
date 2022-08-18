@@ -27,7 +27,6 @@ typedef struct
     u32 n_failed;
     u32 n_skipped;
 } TestResult;
-typedef void (*mos_test_func_t)(TestResult *);
 
 #define MOS_TEST_RESULT_INIT .n_total = 0, .n_failed = 0, .n_skipped = 0
 
@@ -285,9 +284,15 @@ typedef void (*mos_test_func_t)(TestResult *);
 #define _MT_PTEST_CALLER(ptest_name)      MOS_CONCAT(__mos_test_ptest_caller_##ptest_name, __LINE__)
 #define _MT_WRAP_PTEST_CALLER(ptest_name) MOS_CONCAT(__mos_test_wrapped_ptest_caller_##ptest_name, __LINE__)
 
+typedef struct
+{
+    void (*func)(TestResult *);
+    const char *test_name;
+} mos_test_func_t;
+
 // ELF Section based test registration
 #define _MT_REGISTER_TEST_CASE(_TName, _TFunc)                                                                                                  \
-    const mos_test_func_t __section(mos_test_cases) MOS_CONCAT(test_cases_##_TName##_L, __LINE__) = _TFunc
+    const mos_test_func_t __section(mos_test_cases) MOS_CONCAT(test_cases_##_TName##_L, __LINE__) = { _TFunc, #_TName }
 #define MOS_TEST_FOREACH_TEST_CASE(_FPtr) for (const mos_test_func_t *_FPtr = __start_mos_test_cases; _FPtr != __stop_mos_test_cases; _FPtr++)
 
 // Defined by the linker, do not rename.

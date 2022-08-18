@@ -4,10 +4,12 @@
 
 #include "lib/stdio.h"
 #include "lib/string.h"
+#include "mos/cmdline.h"
 #include "mos/device/console.h"
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "tests/test_engine_impl.h"
 
 s32 test_engine_n_warning_expected = 0;
 
@@ -75,10 +77,28 @@ void mos_test_engine_run_tests()
 
     TestResult result = { MOS_TEST_RESULT_INIT };
 
-    MOS_TEST_FOREACH_TEST_CASE(testFunc)
+    cmdline_option_t *skip_tests_option = mos_cmdline_get_option("mos_skip_tests");
+
+    MOS_TEST_FOREACH_TEST_CASE(test_case)
     {
+        bool should_skip = false;
+        for (u32 i = 0; skip_tests_option && i < skip_tests_option->parameters_count; i++)
+        {
+            cmdline_parameter_t *parameter = skip_tests_option->parameters[i];
+            if (strcmp(parameter->val.string, test_case->test_name) == 0)
+            {
+                MOS_TEST_LOG(MOS_TEST_YELLOW, 'S', "Test %s skipped by kernel cmdline", test_case->test_name);
+                should_skip = true;
+                break;
+            }
+        }
+
+        if (should_skip)
+            continue;
+
         TestResult r = { MOS_TEST_RESULT_INIT };
-        (*testFunc)(&r);
+        test_case->func(&r);
+
         result.n_total += r.n_total;
         result.n_failed += r.n_failed;
         result.n_skipped += r.n_skipped;
