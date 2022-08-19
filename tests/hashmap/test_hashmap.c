@@ -8,7 +8,7 @@
 
 MOS_TEST_CASE(hashmap_init_simple_macro)
 {
-    hashmap_t map;
+    hashmap_t map = { 0 };
     hashmap_common_type_init(&map, 64, string);
     MOS_TEST_CHECK(map.magic, HASHMAP_MAGIC);
     MOS_TEST_CHECK(map.capacity, 64);
