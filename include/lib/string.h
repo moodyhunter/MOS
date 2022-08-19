@@ -3,7 +3,7 @@
 
 #include "mos/types.h"
 
-size_t strlen(const char *str) __pure __nonnull(1);
+size_t strlen(const char *str) __pure;
 s32 strcmp(const char *str1, const char *str2);
 s32 strncmp(const char *str1, const char *str2, size_t n);
 

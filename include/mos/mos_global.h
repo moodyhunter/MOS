@@ -19,7 +19,6 @@
 #define __weak_alias(x) __attribute__((weak, alias(x)))
 #define __weakref(x)    __attribute__((weakref(x)))
 #define __pure          __attribute__((__pure__))
-#define __nonnull(...)  __attribute__((__nonnull__(__VA_ARGS__)))
 
 #define always_inline static inline __attribute__((__always_inline__)) __used
 
