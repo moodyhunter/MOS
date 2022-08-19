@@ -72,6 +72,7 @@ add_library(mos_kernel.elf STATIC
     lib/hashmap.c
     lib/hashmap_common.c
     lib/linked_list.c
+    lib/stack.c
     lib/stdio.c
     lib/stdio_impl.c
     lib/stdlib.c
