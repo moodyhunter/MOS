@@ -69,7 +69,6 @@ add_library(mos_kernel.elf STATIC
     kernel/panic.c
     kernel/printk.c
     kernel/stack_protector.c
-    kernel/tasks/process.c
     lib/linked_list.c
     lib/stdio.c
     lib/stdio_impl.c
