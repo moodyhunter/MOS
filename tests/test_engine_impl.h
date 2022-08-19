@@ -46,7 +46,7 @@ typedef struct
 #define MOS_TEST_CONDITIONAL(cond)                                                                                                              \
     for (MOS_TEST_CURRENT_TEST_SKIPPED = !(cond), (*_mt_loop_leave) = false, __extension__({                                                    \
              if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                 \
-                 MOS_TEST_LOG(MOS_TEST_BLUE, '\0', "Skipped '%s': condition '%s' not met.", _mt_test_cond_##cond##_message, #cond);             \
+                 MOS_TEST_LOG(MOS_TEST_YELLOW, '\0', "Skipped '%s': condition '%s' not met.", _mt_test_cond_##cond##_message, #cond);           \
          });                                                                                                                                    \
          !(*_mt_loop_leave); (*_mt_loop_leave) = true, MOS_TEST_CURRENT_TEST_SKIPPED = false)
 
