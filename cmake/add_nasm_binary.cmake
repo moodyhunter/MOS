@@ -26,7 +26,7 @@ function(add_nasm_binary TARGET)
             " \n")
     endif()
 
-    set(options         ELF_OBJECT)
+    set(options)
     set(single_val_arg  SOURCE)
     set(multi_val_arg)
     cmake_parse_arguments(ASSEMBLY_NEW_TARGET "${options}" "${single_val_arg}" "${multi_val_arg}" ${ARGN})
@@ -46,15 +46,6 @@ function(add_nasm_binary TARGET)
     # object_name: foo
     get_filename_component(object_name ${ASSEMBLY_NEW_TARGET_SOURCE} NAME_WLE)
 
-    if(ASSEMBLY_NEW_TARGET_ELF_OBJECT)
-        # to indicate that this file is an object, not a "executable binary"
-        set(object_name "${object_name}.o")
-        set(ASSEMBLY_NEW_TARGET_FLAGS -f elf)
-        set(target_kind object)
-    else()
-        set(target_kind binary)
-    endif()
-
     # relative_source_file: ./path/to/foo.asm
     file(RELATIVE_PATH relative_source_file ${CMAKE_SOURCE_DIR} ${ASSEMBLY_NEW_TARGET_SOURCE})
 
@@ -70,15 +61,14 @@ function(add_nasm_binary TARGET)
         COMMAND
             mos::nasm
                 ${ASSEMBLY_NEW_TARGET_SOURCE}
-                ${ASSEMBLY_NEW_TARGET_FLAGS}
                 -o ${CMAKE_CURRENT_BINARY_DIR}/${relative_source_dir}/${object_name}
                 -I ${CMAKE_CURRENT_SOURCE_DIR}/${relative_source_dir}
     )
 
     add_custom_target(${TARGET} DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${relative_source_dir}/${object_name})
-    add_library(${TARGET}::${target_kind} SHARED IMPORTED)
-    set_target_properties(${TARGET}::${target_kind} PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/${relative_source_dir}/${object_name})
-    add_dependencies(${TARGET}::${target_kind} ${TARGET})
+    add_library(${TARGET}::binary SHARED IMPORTED)
+    set_target_properties(${TARGET}::binary PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/${relative_source_dir}/${object_name})
+    add_dependencies(${TARGET}::binary ${TARGET})
 
     # make directory: BUILDDIR/path/to/
     make_directory(${CMAKE_CURRENT_BINARY_DIR}/${relative_source_dir})

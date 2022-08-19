@@ -20,11 +20,7 @@ function(prepare_bootable_kernel_binary TARGET_NAME)
         message(FATAL_ERROR "Unknown argument when calling 'prepare_bootable_kernel_binary': ${KERNEL_BINARY_UNPARSED_ARGUMENTS}")
     endif()
 
-    set(LOADER_TARGET mos_kernel_${TARGET_NAME}_loader)
-
-    add_nasm_binary(${LOADER_TARGET} SOURCE ${KERNEL_BINARY_LOADER_ASM} ELF_OBJECT)
-
-    add_executable(${TARGET_NAME} $<TARGET_OBJECTS:${LOADER_TARGET}::object>)
+    add_executable(${TARGET_NAME} ${KERNEL_BINARY_LOADER_ASM})
     set_target_properties(${TARGET_NAME} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/boot.dir
         OUTPUT_NAME ${TARGET_NAME}
@@ -33,5 +29,4 @@ function(prepare_bootable_kernel_binary TARGET_NAME)
         LINK_DEPENDS "${KERNEL_BINARY_LINKER_SCRIPT}"
         LINK_OPTIONS "-T${KERNEL_BINARY_LINKER_SCRIPT}")
     target_link_libraries(${TARGET_NAME} PRIVATE gcc mos::elf_kernel)
-    add_dependencies(${TARGET_NAME} ${LOADER_TARGET}::object)
 endfunction()

@@ -19,24 +19,25 @@ add_kernel_source(
     INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_LIST_DIR}/include
     RELATIVE_SOURCES
-        x86_platform.c
-        x86_descriptor_flush.asm
-        drivers/text_mode_console.c
-        drivers/port.c
-        drivers/serial.c
-        drivers/serial_console.c
-        gdt/gdt.c
-        interrupt/interrupt.asm
-        interrupt/idt.c
-        interrupt/interrupt.c
-        interrupt/pic.c
-        interrupt/apic.c
-        acpi/acpi.c
         cpu/ap_init.asm
+        interrupt/interrupt.asm
+        mm/enable_paging.asm
+        x86_descriptor_flush.asm
+
+        acpi/acpi.c
         cpu/cpu.c
         cpu/cpuid.c
         cpu/smp.c
-        mm/paging.c
+        drivers/port.c
+        drivers/serial.c
+        drivers/serial_console.c
+        drivers/text_mode_console.c
+        gdt/gdt.c
+        interrupt/apic.c
+        interrupt/idt.c
+        interrupt/interrupt.c
+        interrupt/pic.c
         mm/mm.c
-        mm/enable_paging.asm
+        mm/paging.c
+        x86_platform.c
 )

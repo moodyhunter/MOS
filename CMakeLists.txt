@@ -61,19 +61,20 @@ include_directories(
 
 add_library(mos_kernel.elf STATIC
     kernel/cmdline.c
-    kernel/kernel_init.c
-    kernel/panic.c
-    kernel/printk.c
-    kernel/interrupt.c
-    kernel/stack_protector.c
     kernel/device/console.c
+    kernel/interrupt.c
+    kernel/kernel_init.c
     kernel/mm/liballoc.c
     kernel/mm/paging.c
-    lib/stdlib.c
-    lib/string.c
+    kernel/panic.c
+    kernel/printk.c
+    kernel/stack_protector.c
+    kernel/tasks/process.c
+    lib/linked_list.c
     lib/stdio.c
     lib/stdio_impl.c
-    lib/linked_list.c
+    lib/stdlib.c
+    lib/string.c
 )
 
 add_library(mos::elf_kernel ALIAS mos_kernel.elf)
