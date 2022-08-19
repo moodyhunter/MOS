@@ -2,9 +2,25 @@
 
 #pragma once
 
+#include "mos/mm/liballoc.h"
 #include "mos/types.h"
 
-void *kmalloc(size_t size) __malloc;
-void *kcalloc(size_t nmemb, size_t size);
-void *krealloc(void *ptr, size_t size);
-void kfree(void *ptr);
+static inline __always_inline __malloc void *kmalloc(size_t size)
+{
+    return liballoc_malloc(size);
+}
+
+static inline __always_inline __malloc void *kcalloc(size_t nmemb, size_t size)
+{
+    return liballoc_calloc(nmemb, size);
+}
+
+static inline __always_inline void *krealloc(void *ptr, size_t size)
+{
+    return liballoc_realloc(ptr, size);
+}
+
+static inline __always_inline void kfree(void *ptr)
+{
+    liballoc_free(ptr);
+}

@@ -525,14 +525,14 @@ void vm_unmap_page_range(uintptr_t vaddr_start, size_t n_page)
 
 void vm_map_page_range_no_freelist(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags)
 {
-    mos_debug("paging: mapping %u pages " PTR_FMT " to " PTR_FMT " at table %lu", n_page, vaddr_start, paddr_start, vaddr_start / X86_PAGE_SIZE);
+    mos_debug("paging: mapping %zu pages " PTR_FMT "-" PTR_FMT " at table %lu", n_page, vaddr_start, paddr_start, vaddr_start / X86_PAGE_SIZE);
     for (size_t i = 0; i < n_page; i++)
         _impl_vm_map_page(vaddr_start + i * X86_PAGE_SIZE, paddr_start + i * X86_PAGE_SIZE, flags);
 }
 
 void vm_unmap_page_range_no_freelist(uintptr_t vaddr_start, size_t n_page)
 {
-    mos_debug("paging: unmapping %u pages " PTR_FMT " at table %lu", n_page, vaddr_start, vaddr_start / X86_PAGE_SIZE);
+    mos_debug("paging: unmapping %zu pages " PTR_FMT " at table %lu", n_page, vaddr_start, vaddr_start / X86_PAGE_SIZE);
     for (size_t i = 0; i < n_page; i++)
         _impl_vm_unmap_page(vaddr_start + i * X86_PAGE_SIZE);
 }

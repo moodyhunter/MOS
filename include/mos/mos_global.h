@@ -15,8 +15,10 @@
 #define __printf(a, b)  __attribute__((__format__(__printf__, a, b)))
 #define __malloc        __attribute__((__malloc__))
 #define __noreturn      __attribute__((__noreturn__))
-#define __always_inline __attribute__((__always_inline__))
+#define __always_inline __attribute__((__always_inline__)) __used
 #define __cold          __attribute__((__cold__))
+#define __weak_alias(x) __attribute__((weak, alias(x)))
+#define __weakref(x)    __attribute__((weakref(x)))
 
 #define likely(x)   __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)

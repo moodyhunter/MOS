@@ -67,7 +67,6 @@ add_library(mos_kernel.elf STATIC
     kernel/interrupt.c
     kernel/stack_protector.c
     kernel/device/console.c
-    kernel/mm/kmalloc.c
     kernel/mm/liballoc.c
     kernel/mm/paging.c
     lib/stdlib.c
