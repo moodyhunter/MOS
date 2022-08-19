@@ -57,4 +57,4 @@ extern const mos_platform_t mos_platform;
 
 extern void mos_start_kernel(mos_init_info_t *init_info);
 extern void mos_invoke_syscall(u64 syscall_number);
-extern void mos_init_kernel_mm(void);
+extern void mos_kernel_mm_init(void);

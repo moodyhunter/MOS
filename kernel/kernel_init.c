@@ -9,14 +9,16 @@ extern void mos_test_engine_run_tests(); // defined in tests/test_engine.c
 
 void mos_start_kernel(mos_init_info_t *init_info)
 {
-    mos_init_kernel_mm();
+    mos_kernel_mm_init();
     mos_platform.post_init(init_info);
     mos_platform.devices_setup(init_info);
     mos_platform.interrupt_enable();
 
     mos_cmdline = mos_cmdline_create(init_info->cmdline_str);
 
-    pr_info("kernel arguments: (total of %zu options)", mos_cmdline->args_count);
+    pr_info("Welcome to MOS!");
+    pr_emph("MOS %s (%s)", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION);
+    pr_emph("MOS Arguments: (total of %zu options)", mos_cmdline->args_count);
     for (u32 i = 0; i < mos_cmdline->args_count; i++)
     {
         cmdline_arg_t *option = mos_cmdline->arguments[i];
@@ -33,12 +35,6 @@ void mos_start_kernel(mos_init_info_t *init_info)
             }
         }
     }
-
-    pr_info("Welcome to MOS!");
-    pr_info("Boot Information:");
-    pr_emph("cmdline: %s", init_info->cmdline_str);
-    pr_emph("%-25s'%s'", "Kernel Version:", MOS_KERNEL_VERSION);
-    pr_emph("%-25s'%s'", "Kernel Revision:", MOS_KERNEL_REVISION);
     pr_emph("%-25s'%s'", "Kernel builtin cmdline:", MOS_KERNEL_BUILTIN_CMDLINE);
 
     mos_warn("V2Ray 4.45.2 started");
