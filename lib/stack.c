@@ -21,6 +21,19 @@ void stack_deinit(downwards_stack_t *stack)
     memset(stack, 0, sizeof(downwards_stack_t));
 }
 
+void *stack_grow(downwards_stack_t *stack, size_t size)
+{
+    // high memory | base -----> head -----> base - capacity | low memory
+    if (unlikely((uintptr_t) stack->head - ((uintptr_t) stack->base - stack->capacity) < size))
+    {
+        mos_warn("stack overflow on stack %p, attempted to push %zu bytes", (void *) stack, size);
+        return NULL;
+    }
+
+    stack->head = (void *) ((uintptr_t) stack->head - size);
+    return stack->head;
+}
+
 void stack_push(downwards_stack_t *stack, void *data, size_t size)
 {
     // high memory | base -----> head -----> base - capacity | low memory
