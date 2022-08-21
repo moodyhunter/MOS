@@ -75,10 +75,10 @@ void mos_start_kernel(mos_init_info_t *init_info)
 
     // !! FIXME
     tss_entry.esp0 = (u32) kpage_alloc(1) + mos_platform.mm_page_size;
-    pr_warn("esp0: %#0.8x", tss_entry.esp0);
-    pr_warn("entry: %#0.8x", (u32) init_entry_addr);
-    pr_warn("stack: %#0.8x", (u32) init_thread->stack.head);
-    pr_warn("stack base: %#0.8x", (u32) init_thread->stack.base);
+    pr_warn("esp0: %#.8x", tss_entry.esp0);
+    pr_warn("entry: %#.8x", (u32) init_entry_addr);
+    pr_warn("stack: %#.8x", (u32) init_thread->stack.head);
+    pr_warn("stack base: %#.8x", (u32) init_thread->stack.base);
 
     jump_to_usermain(init_entry_addr, (uintptr_t) init_thread->stack.head);
 
