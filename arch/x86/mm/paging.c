@@ -164,6 +164,24 @@ bool x86_mm_free_page(void *vptr, size_t n_page)
     return true;
 }
 
+void x86_mm_set_page_flags(void *vaddr, size_t n, paging_entry_flags flags)
+{
+    mos_debug("paging: setting flags [%x] to [" PTR_FMT "] +%zu pages", flags, (uintptr_t) vaddr, n);
+    for (size_t i = 0; i < n; i++)
+    {
+        uintptr_t vaddr_n = (uintptr_t) vaddr + i * X86_PAGE_SIZE;
+
+        size_t page_index = vaddr_n / X86_PAGE_SIZE;
+        size_t page_table_index = page_index / 1024;
+
+        mm_page_table[page_table_index].present = flags & VM_PRESENT;
+        mm_page_table[page_table_index].writable = flags & VM_WRITABLE;
+        mm_page_table[page_table_index].usermode = flags & VM_USERMODE;
+        mm_page_table[page_table_index].accessed = flags & VM_ACCESSED;
+        mm_page_table[page_table_index].cache_disabled = flags & VM_CACHE_DISABLED;
+    }
+}
+
 void pmem_freelist_setup()
 {
     size_t pmem_freelist_size = PMEM_FREELIST_SIZE_FOR(x86_mem_size_available);
@@ -539,6 +557,8 @@ void vm_unmap_page_range_no_freelist(uintptr_t vaddr_start, size_t n_page)
 
 void _impl_vm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags)
 {
+    flags |= VM_USERMODE;
+    flags |= VM_WRITABLE;
     // ensure the page is aligned to 4096
     MOS_ASSERT_X(paddr < X86_MAX_MEM_SIZE, "physical address out of bounds");
     MOS_ASSERT_X(flags < 0x100, "invalid flags");

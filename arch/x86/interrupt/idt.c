@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mos_global.h"
+#include "mos/platform/platform.h"
 #include "mos/x86/drivers/port.h"
 #include "mos/x86/interrupt/idt_types.h"
 #include "mos/x86/interrupt/pic.h"
@@ -11,24 +13,36 @@
 static idt_entry32_t idt[IDT_ENTRY_COUNT] __aligned(16) = { 0 };
 static idtr32_t idtr;
 
-static void idt_set_descriptor(u8 vector, void *isr, u8 flags)
+#define IDT_FLAG_P (1 << 7)
+
+#define STS_IG32 0xE // 32-bit Interrupt Gate
+#define STS_TG32 0xF // 32-bit Trap Gate
+
+static void idt_set_descriptor(u8 vector, void *isr, bool usermode, bool is_trap)
 {
     idt_entry32_t *descriptor = &idt[vector];
 
     descriptor->isr_low = (u32) isr & 0xFFFF;
-    descriptor->kernel_code_segment = GDT_SEGMENT_KCODE; // ! GDT Kernel Code Segment
-    descriptor->flags = flags;
     descriptor->isr_high = (u32) isr >> 16;
-    descriptor->zero = 0;
+    descriptor->segment = GDT_SEGMENT_KCODE;
+    descriptor->present = true;
+    descriptor->dpl = usermode ? 3 : 0;
+    descriptor->type = is_trap ? STS_TG32 : STS_IG32;
+    descriptor->s = 0;
+    descriptor->reserved = 0;
+    descriptor->args = 0;
 }
 
 void x86_idt_init()
 {
     for (u8 isr = 0; isr < ISR_MAX_COUNT; isr++)
-        idt_set_descriptor(isr, isr_stub_table[isr], 0x8F);
+        idt_set_descriptor(isr, isr_stub_table[isr], false, false);
 
     for (u8 irq_n = 0; irq_n < IRQ_MAX_COUNT; irq_n++)
-        idt_set_descriptor(irq_n + IRQ_BASE, irq_stub_table[irq_n], 0x8F);
+        idt_set_descriptor(irq_n + IRQ_BASE, irq_stub_table[irq_n], false, false);
+
+    // system calls
+    idt_set_descriptor(MOS_SYSCALL_INTR, isr_stub_table[MOS_SYSCALL_INTR], true, true);
 
     pic_remap_irq(PIC1_OFFSET, PIC2_OFFSET);
 

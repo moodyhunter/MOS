@@ -14,7 +14,7 @@ void mos_kernel_mm_init()
     liballoc_init(mos_platform.mm_page_size);
 }
 
-void *mm_page_alloc(size_t npages)
+void *kpage_alloc(size_t npages)
 {
     if (unlikely(npages <= 0))
     {
@@ -35,7 +35,7 @@ void *mm_page_alloc(size_t npages)
     return ptr;
 }
 
-bool mm_page_free(void *vptr, size_t npages)
+bool kpage_free(void *vptr, size_t npages)
 {
     if (unlikely(vptr == NULL))
     {

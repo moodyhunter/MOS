@@ -8,8 +8,7 @@
 #include "mos/platform/platform.h"
 #include "mos/types.h"
 
-#define IRQ_BASE    0x20
-#define IRQ_SYSCALL 0x80
+#define IRQ_BASE 0x20
 
 #define ISR_MAX_COUNT   32
 #define IRQ_MAX_COUNT   16

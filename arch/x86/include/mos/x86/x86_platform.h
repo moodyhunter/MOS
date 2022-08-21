@@ -6,18 +6,20 @@
 #include "mos/types.h"
 #include "mos/x86/gdt/gdt_types.h"
 #include "mos/x86/interrupt/idt_types.h"
+#include "mos/x86/tasks/tss_types.h"
 #include "mos/x86/x86_interrupt.h"
 
 static_assert(sizeof(void *) == 4, "x86_64 is not supported");
 
 // Number of gdt entries
-#define GDT_ENTRY_COUNT 5
+#define GDT_ENTRY_COUNT 6
 
-#define GDT_SEGMENT_NULL  (0 * sizeof(gdt_entry32_t))
-#define GDT_SEGMENT_KCODE (1 * sizeof(gdt_entry32_t))
-#define GDT_SEGMENT_KDATA (2 * sizeof(gdt_entry32_t))
-#define GDT_SEGMENT_UCODE (3 * sizeof(gdt_entry32_t))
-#define GDT_SEGMENT_UDATA (4 * sizeof(gdt_entry32_t))
+#define GDT_SEGMENT_NULL     0x00
+#define GDT_SEGMENT_KCODE    0x08
+#define GDT_SEGMENT_KDATA    0x10
+#define GDT_SEGMENT_USERCODE 0x18
+#define GDT_SEGMENT_USERDATA 0x20
+#define GDT_SEGMENT_TSS      0x28
 
 #define PIC1         0x20 // IO base address for master PIC
 #define PIC2         0xA0 // IO base address for slave  PIC
@@ -65,8 +67,11 @@ extern mos_platform_cpu_info_t x86_cpu_info;
 void x86_gdt_init();
 void x86_ap_gdt_init();
 void x86_idt_init();
+void x86_tss_init();
 
 // The following 3 symbols are defined in the descriptor_flush.asm file.
 extern void gdt32_flush(gdt_ptr32_t *gdt_ptr);
 extern void idt32_flush(idtr32_t *idtr);
+extern void tss32_flush(u32 tss_selector);
 extern void gdt32_flush_only(gdt_ptr32_t *gdt_ptr);
+extern void x86_usermode_trampoline(void *exec_addr);

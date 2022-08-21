@@ -6,11 +6,15 @@
 
 typedef struct
 {
-    u16 isr_low;             // The lower 16 bits of the ISR's address
-    u16 kernel_code_segment; // The GDT segment selector that the CPU will load into CS before calling the ISR
-    u8 zero;                 // Set to zero
-    u8 flags;                // Type and attributes; see the IDT page
-    u16 isr_high;            // The higher 16 bits of the ISR's address
+    u16 isr_low; // The lower 16 bits of the ISR's address
+    u16 segment; // The GDT segment selector that the CPU will load into CS before calling the ISR
+    u32 args : 5;
+    u32 reserved : 3;
+    u32 type : 4; // The type of interrupt
+    u32 s : 1;
+    u32 dpl : 2;
+    u32 present : 1;
+    u32 isr_high : 16; // The upper 16 bits of the ISR's address
 } __packed idt_entry32_t;
 
 typedef struct

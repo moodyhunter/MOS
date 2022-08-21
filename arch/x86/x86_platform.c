@@ -60,6 +60,7 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
 
     x86_gdt_init();
     x86_idt_init();
+    x86_tss_init();
     x86_irq_handler_init();
 
     // I don't like the timer interrupt, so disable it.
@@ -76,7 +77,7 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     x86_mm_prepare_paging();
 
     x86_acpi_init();
-    x86_smp_init();
+    // x86_smp_init();
 
     // ! map the bios memory area, should it be done like this?
     pr_info("mapping bios memory area...");
@@ -110,7 +111,7 @@ void x86_kpanic_hook()
 {
     pmem_freelist_dump();
     page_table_dump();
-    x86_do_backtrace(20);
+    // x86_do_backtrace(20);
 }
 
 void x86_post_kernel_init(mos_init_info_t *info)
@@ -158,8 +159,8 @@ const mos_platform_t mos_platform = {
 
     .cpu_info = &x86_cpu_info,
 
-    .post_init = x86_post_kernel_init,
     .devices_setup = x86_setup_devices,
+    .post_init = x86_post_kernel_init,
 
     .shutdown = x86_shutdown_vm,
     .interrupt_disable = x86_disable_interrupts,
@@ -172,4 +173,8 @@ const mos_platform_t mos_platform = {
     .mm_page_size = X86_PAGE_SIZE,
     .mm_page_allocate = x86_mm_alloc_page,
     .mm_page_free = x86_mm_free_page,
+    .mm_page_set_flags = x86_mm_set_page_flags,
+
+    // process management
+    .usermode_trampoline = x86_usermode_trampoline,
 };

@@ -5,6 +5,8 @@
 #include "mos/mos_global.h"
 #include "mos/types.h"
 
+#define MOS_SYSCALL_INTR 0x88
+
 typedef struct
 {
     const char *cmdline_str;
@@ -51,6 +53,9 @@ typedef struct
     void *(*mm_page_allocate)(size_t n);
     bool (*mm_page_free)(void *vaddr, size_t n);
     void (*mm_page_set_flags)(void *vaddr, size_t n, paging_entry_flags flags);
+
+    // process management
+    void (*usermode_trampoline)(void *exec_addr);
 } mos_platform_t;
 
 extern const mos_platform_t mos_platform;

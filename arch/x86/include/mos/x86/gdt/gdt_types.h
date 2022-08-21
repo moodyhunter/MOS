@@ -8,26 +8,26 @@
 #define GDT_SEGMENT 0x10
 #define GDT_PRESENT 0x80
 
-#define GDT_CODE 0x0A // execute / read
-#define GDT_DATA 0x02 // read / write
-#define GDT_TSS  0x09 // execute / access
-
-#define GDT_RING_USER   3 << 5
-#define GDT_RING_2      2 << 5
-#define GDT_RING_1      1 << 5
-#define GDT_RING_KERNEL 0 << 5
-
 #define GDT_GRANULARITY_BYTE 0x40
 #define GDT_GRANULARITY_PAGE 0xC0
 
 typedef struct
 {
-    u16 limit_low;
-    u16 base_low;
-    u8 base_middle;
-    u8 access;
-    u8 granularity;
-    u8 base_high;
+    u32 limit_low : 16;
+    u32 base_low : 24;
+    u32 accessed : 1;
+    u32 read_write : 1;             // readable for code, writable for data
+    u32 conforming_expand_down : 1; // conforming for code, expand down for data
+    u32 executable : 1;             // 1 for code, 0 for data
+    u32 code_data_segment : 1;      // should be 1 for everything but TSS and LDT
+    u32 dpl : 2;                    // privilege level
+    u32 present : 1;
+    u32 limit_high : 4;
+    u32 available : 1; // only used in software; has no effect on hardware
+    u32 long_mode : 1;
+    u32 pm32_segment : 1; // 32-bit opcodes for code, uint32_t stack for data
+    u32 granularity : 1;  // 1 to use 4k page addressing, 0 for byte addressing
+    u32 base_high : 8;
 } __packed gdt_entry32_t;
 
 typedef struct

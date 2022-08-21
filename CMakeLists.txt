@@ -63,12 +63,15 @@ add_library(mos_kernel.elf STATIC
     kernel/cmdline.c
     kernel/device/console.c
     kernel/interrupt.c
+    kernel/init/main.c
     kernel/kernel_init.c
     kernel/mm/liballoc.c
     kernel/mm/paging.c
     kernel/panic.c
     kernel/printk.c
     kernel/stack_protector.c
+    kernel/tasks/process.c
+    kernel/tasks/thread.c
     lib/hashmap.c
     lib/hashmap_common.c
     lib/linked_list.c

@@ -127,7 +127,7 @@ static liballoc_block_t *allocate_new_pages_for(unsigned int size)
     if (st < l_alloc_n_page_once)
         st = l_alloc_n_page_once;
 
-    liballoc_block_t *maj = (liballoc_block_t *) mm_page_alloc(st);
+    liballoc_block_t *maj = (liballoc_block_t *) kpage_alloc(st);
     if (maj == NULL)
     {
         l_warnings += 1;
@@ -547,7 +547,7 @@ void liballoc_free(void *ptr)
             maj->next->prev = maj->prev;
         l_mem_allocated -= maj->size;
 
-        mm_page_free(maj, maj->pages);
+        kpage_free(maj, maj->pages);
     }
     else
     {

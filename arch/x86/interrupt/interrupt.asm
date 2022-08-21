@@ -2,8 +2,7 @@
 
 %define GDT_SEGMENT_KDATA 0x10 ; as in x86.h
 %define IRQ_BASE          0x20 ; as in x86.h
-
-%define ISR_MAX_COUNT     32
+%define ISR_MAX_COUNT     255
 %define IRQ_MAX_COUNT     16
 
 extern x86_handle_interrupt
@@ -72,6 +71,15 @@ ISR_handler    29 ; VMM Communication Exception
 ISR_handler_ec 30 ; Security Exception
 ISR_handler    31 ; Reserved
 
+; It's not really necessary to setup all these ISRs, but
+; doing so is easier
+other_intrs:
+    %assign i 32
+    %rep ISR_MAX_COUNT
+    ISR_handler i
+    %assign i i+1
+    %endrep
+
 IRQ_handler     0 ; Programmable Interrupt Timer Interrupt
 IRQ_handler     1 ; Keyboard Interrupt
 IRQ_handler     2 ; Cascade (used internally by the two PICs. never raised)
@@ -104,38 +112,28 @@ irq_stub_table:
     %endrep
 
 ISR_handler_impl:
-    ; save all registers according to the `stack_frame` structure in x86.h
-    push gs
-    push fs
-    push es
-    push ds
-    pushad
+    push    gs                      ; save ds, es, fs, gs
+    push    fs
+    push    es
+    push    ds
+    pushad                          ; save all registers
+    cld                             ; clears the DF flag in the EFLAGS register.
+                                    ; so that string operations increment the index registers (ESI and/or EDI).
 
-    ; Clears the DF flag in the EFLAGS register.
-    ; When the DF flag is set to 0, string operations increment the index registers (ESI and/or EDI).
-    cld
+    mov ax, GDT_SEGMENT_KDATA | 0   ; set the kernel data segment (ring 0)
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
 
-    ; * Since we are using a flat memory model, we don't have to worry about segmentation.
-    ; mov ax, GDT_SEGMENT_KDATA
-    ; mov ds, ax
-    ; mov es, ax
-    ; mov fs, ax
-    ; mov gs, ax
-
-    ; x86_handle_interrupt(u32 esp)
-    mov  eax, esp
-    push eax
-    call x86_handle_interrupt
-
-    ; remove the pushed esp parameter
-    add  esp, 4
-
+    mov     eax, esp
+    push    eax
+    call    x86_handle_interrupt    ; x86_handle_interrupt(u32 esp)
+    add     esp, 4                  ; remove the pushed esp parameter
     popad
-    pop ds
-    pop es
-    pop fs
-    pop gs
-
-    ; remove the pushed error code and interrupt (or IRQ) number
-    add esp, 8
+    pop     ds
+    pop     es
+    pop     fs
+    pop     gs
+    add     esp, 4 * 2              ; remove the pushed error code and interrupt (or IRQ) number
     iret

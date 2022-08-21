@@ -1,18 +1,30 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "lib/hashmap.h"
 #include "mos/cmdline.h"
+#include "mos/mm/kmalloc.h"
 #include "mos/mm/paging.h"
+#include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/tasks/process.h"
+#include "mos/tasks/task_type.h"
+#include "mos/tasks/thread.h"
+#include "mos/types.h"
+#include "mos/x86/tasks/tss_types.h"
 
 extern void mos_test_engine_run_tests(); // defined in tests/test_engine.c
+
+void schedule();
+asmlinkage void jump_to_usermain(uintptr_t, uintptr_t);
+
+extern tss32_t tss_entry;
 
 void mos_start_kernel(mos_init_info_t *init_info)
 {
     mos_kernel_mm_init();
     mos_platform.post_init(init_info);
     mos_platform.devices_setup(init_info);
-    mos_platform.interrupt_enable();
 
     mos_cmdline = mos_cmdline_create(init_info->cmdline_str);
 
@@ -39,8 +51,57 @@ void mos_start_kernel(mos_init_info_t *init_info)
 
     mos_warn("V2Ray 4.45.2 started");
 
+    process_init();
+    thread_init();
+
     if (mos_cmdline_get_arg("mos_tests"))
     {
         mos_test_engine_run_tests();
     }
+
+    // create the init process
+    extern void main(void *arg);
+    uintptr_t init_entry_addr = (uintptr_t) &main;
+
+    MOS_ASSERT_X(mos_platform.usermode_trampoline, "platform doesn't have a usermode trampoline");
+
+    process_id_t pid1 = { 1 };
+    uid_t uid0 = { 0 };
+
+    process_id_t init_pid = create_process(pid1, uid0, mos_platform.usermode_trampoline, (void *) init_entry_addr);
+    MOS_ASSERT(init_pid.process_id == 1);
+
+    thread_t *init_thread = get_thread((thread_id_t){ 1 });
+
+    // !! FIXME
+    tss_entry.esp0 = (u32) kpage_alloc(1) + mos_platform.mm_page_size;
+    pr_warn("esp0: %#0.8x", tss_entry.esp0);
+    pr_warn("entry: %#0.8x", (u32) init_entry_addr);
+    pr_warn("stack: %#0.8x", (u32) init_thread->stack.head);
+    pr_warn("stack base: %#0.8x", (u32) init_thread->stack.base);
+
+    jump_to_usermain(init_entry_addr, (uintptr_t) init_thread->stack.head);
+
+    // schedule
+    schedule();
+}
+
+thread_t *context_switch(thread_t *cur, thread_t *next);
+
+bool threads_foreach(void *key, void *value)
+{
+    thread_id_t *tid = (thread_id_t *) key;
+    thread_t *thread = (thread_t *) value;
+    pr_info("thread %d", tid->thread_id);
+    MOS_UNUSED(thread);
+
+    // switch to the thread's context
+
+    ;
+    return false; // do not continue
+}
+
+void schedule()
+{
+    hashmap_foreach(thread_table, threads_foreach);
 }

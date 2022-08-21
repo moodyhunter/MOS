@@ -2,6 +2,7 @@
 
 #include "mos/interrupt.h"
 
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/x86/drivers/port.h"
 #include "mos/x86/x86_interrupt.h"
@@ -63,14 +64,15 @@ void x86_handle_interrupt(u32 esp)
     {
         isr_handle_exception(stack);
     }
-    else if (stack->interrupt_number < IRQ_SYSCALL)
+    else if (stack->interrupt_number < MOS_SYSCALL_INTR)
     {
         isr_handle_irq(stack);
     }
-    else if (stack->interrupt_number == IRQ_SYSCALL)
+    else if (stack->interrupt_number == MOS_SYSCALL_INTR)
     {
         // ! mos_invoke_syscall(stack->eax, stack->ebx, stack->ecx, stack->edx, stack->esi, stack->edi);
-        pr_warn("Syscall.");
+        pr_warn("Syscall: %d", stack->eax);
+        stack->eax *= 2;
     }
     else
     {
@@ -80,6 +82,7 @@ void x86_handle_interrupt(u32 esp)
 
 static void isr_handle_exception(x86_stack_frame *stack)
 {
+    x86_disable_interrupts();
     MOS_ASSERT(stack->interrupt_number < EXCEPTION_COUNT);
 
     // Faults: These can be corrected and the program may continue as if nothing happened.
@@ -108,7 +111,7 @@ static void isr_handle_exception(x86_stack_frame *stack)
         case EXCEPTION_VMM_COMMUNICATION_EXCEPTION:
         case EXCEPTION_SECURITY_EXCEPTION:
         {
-            mos_warn("Fault Exception %d", stack->interrupt_number);
+            mos_panic("Fault %d (%s), error code: %d", stack->interrupt_number, x86_exception_names[stack->interrupt_number], stack->error_code);
             break;
         }
 

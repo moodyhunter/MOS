@@ -21,6 +21,12 @@ typedef long double f80;
 
 typedef unsigned long uintptr_t;
 
+// reg_t represents a register value
+typedef unsigned long reg_t;
+typedef u16 reg16_t;
+typedef u32 reg32_t;
+typedef u64 reg64_t;
+
 #if MOS_BITS == 32
 #define PTR_FMT "0x%8.8lx"
 #else

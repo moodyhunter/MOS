@@ -48,6 +48,7 @@ void x86_mm_prepare_paging();
 void x86_mm_enable_paging();
 void *x86_mm_alloc_page(size_t n);
 bool x86_mm_free_page(void *vaddr, size_t n);
+void x86_mm_set_page_flags(void *vaddr, size_t n, paging_entry_flags flags);
 
 // private APIs
 void vm_map_page_range(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags);

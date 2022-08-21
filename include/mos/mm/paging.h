@@ -4,7 +4,7 @@
 
 #include "mos/types.h"
 
-void *mm_page_alloc(size_t npages);
+void *kpage_alloc(size_t npages);
 
 // 'ptr' is the value returned from a previous mm_page_alloc call.
-bool mm_page_free(void *ptr, size_t npages);
+bool kpage_free(void *ptr, size_t npages);
