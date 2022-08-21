@@ -28,4 +28,6 @@
 #define MOS_32BITS
 #endif
 
+#define MOS_LITTLE_ENDIAN
+
 static_assert(sizeof(long) == sizeof(void *), "long is not the same size as a pointer");

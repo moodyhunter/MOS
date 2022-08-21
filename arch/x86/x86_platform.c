@@ -77,7 +77,7 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     x86_mm_prepare_paging();
 
     x86_acpi_init();
-    // x86_smp_init();
+    x86_smp_init();
 
     // ! map the bios memory area, should it be done like this?
     pr_info("mapping bios memory area...");
