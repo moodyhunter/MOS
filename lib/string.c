@@ -59,18 +59,26 @@ void *memcpy(void *restrict dest, const void *restrict src, size_t n)
     return dest;
 }
 
-void *memmove(void *dest, const void *src, size_t length)
+void *memmove(void *dest, const void *source, size_t length)
 {
-    char *cdest = (char *) dest;
-    const char *csrc = (char *) src;
+    // https://github.com/eblot/newlib/blob/master/newlib/libc/string/memmove.c
+    char *dst = dest;
+    const char *src = source;
 
-    /* Destructive overlap...have to copy backwards */
-    csrc += length;
-    cdest += length;
-    while (length--)
+    if (src < dst && dst < src + length)
     {
-        *--cdest = *--csrc;
+        /* Have to copy backwards */
+        src += length;
+        dst += length;
+        while (length--)
+            *--dst = *--src;
     }
+    else
+    {
+        while (length--)
+            *dst++ = *src++;
+    }
+
     return dest;
 }
 
