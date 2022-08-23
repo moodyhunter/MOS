@@ -27,4 +27,4 @@ void liballoc_init(size_t page_size);
 void *liballoc_malloc(size_t size);
 void *liballoc_realloc(void *ptr, size_t size);
 void *liballoc_calloc(size_t object, size_t n_objects);
-void liballoc_free(void *ptr);
+void liballoc_free(const void *ptr);

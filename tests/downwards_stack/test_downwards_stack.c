@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/stack.h"
+#include "lib/structures/stack.h"
 #include "mos/mm/kmalloc.h"
 #include "test_engine.h"
 

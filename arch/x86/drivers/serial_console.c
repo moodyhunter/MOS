@@ -4,6 +4,7 @@
 
 #include "lib/ansi_colors.h"
 #include "lib/string.h"
+#include "lib/structures/list.h"
 #include "mos/device/console.h"
 #include "mos/x86/drivers/serial.h"
 

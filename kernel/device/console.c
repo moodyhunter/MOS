@@ -3,6 +3,7 @@
 #include "mos/device/console.h"
 
 #include "lib/containers.h"
+#include "lib/structures/list.h"
 #include "mos/printk.h"
 
 static int dummy_write(console_t *console, const char *message, size_t length)

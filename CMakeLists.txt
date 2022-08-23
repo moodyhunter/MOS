@@ -78,10 +78,11 @@ add_library(mos_kernel.elf STATIC
     kernel/stack_protector.c
     kernel/tasks/process.c
     kernel/tasks/thread.c
-    lib/hashmap.c
-    lib/hashmap_common.c
-    lib/linked_list.c
-    lib/stack.c
+    lib/structures/hashmap.c
+    lib/structures/hashmap_common.c
+    lib/structures/list.c
+    lib/structures/stack.c
+    lib/structures/tree.c
     lib/stdio.c
     lib/stdio_impl.c
     lib/stdlib.c

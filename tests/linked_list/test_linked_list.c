@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "lib/containers.h"
+#include "lib/structures/list.h"
 #include "test_engine.h"
 
 typedef struct

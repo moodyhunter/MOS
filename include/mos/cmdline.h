@@ -15,14 +15,14 @@ typedef struct
     option_value_type_t param_type;
     union
     {
-        char *string;
+        const char *string;
         bool boolean;
     } val;
 } cmdline_param_t;
 
 typedef struct
 {
-    char *arg_name;
+    const char *arg_name;
     size_t param_count;
     cmdline_param_t **params;
 } cmdline_arg_t;

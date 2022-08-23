@@ -471,7 +471,7 @@ void *liballoc_malloc(size_t req_size)
     return NULL;
 }
 
-void liballoc_free(void *ptr)
+void liballoc_free(const void *ptr)
 {
     liballoc_minor_t *min;
     liballoc_block_t *maj;

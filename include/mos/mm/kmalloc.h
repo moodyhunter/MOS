@@ -20,7 +20,7 @@ always_inline void *krealloc(void *ptr, size_t size)
     return liballoc_realloc(ptr, size);
 }
 
-always_inline void kfree(void *ptr)
+always_inline void kfree(const void *ptr)
 {
     liballoc_free(ptr);
 }

@@ -2,8 +2,8 @@
 
 #include "mos/tasks/process.h"
 
-#include "lib/hashmap.h"
 #include "lib/string.h"
+#include "lib/structures/hashmap.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
 #include "mos/tasks/task_type.h"

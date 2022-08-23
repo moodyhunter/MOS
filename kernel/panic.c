@@ -2,8 +2,8 @@
 
 #include "mos/panic.h"
 
-#include "lib/containers.h"
 #include "lib/stdio.h"
+#include "lib/structures/list.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"

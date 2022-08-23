@@ -16,14 +16,30 @@ typedef struct
     char gid[8];
     char nlink[8];
     char mtime[8];
-    char file_size[8];
+
+    char filesize[8];
     char devmajor[8];
     char devminor[8];
     char rdevmajor[8];
     char rdevminor[8];
+
     char namesize[8];
     char check[8];
 } cpio_newc_header_t;
+
+typedef struct
+{
+    size_t header_offset;
+
+    size_t name_offset;
+    size_t name_length;
+
+    size_t data_offset;
+    size_t data_length;
+
+    u32 ino;
+    u32 nlink;
+} cpio_metadata_t;
 
 static_assert(sizeof(cpio_newc_header_t) == 110, "cpio_newc_header has wrong size");
 

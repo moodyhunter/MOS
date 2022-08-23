@@ -2,7 +2,8 @@
 
 #include "mos/filesystem/mount.h"
 
-#include "lib/hashmap.h"
+#include "lib/string.h"
+#include "lib/structures/hashmap.h"
 #include "mos/filesystem/fs_fwd.h"
 #include "mos/filesystem/path.h"
 #include "mos/mm/kmalloc.h"
@@ -34,6 +35,10 @@ void kmount_add_mount(mountpoint_t *new_mp)
 
 mountpoint_t *kmount(path_t *path, filesystem_t *fs, blockdev_t *blockdev)
 {
+    MOS_ASSERT(path != NULL);
+    MOS_ASSERT(fs != NULL);
+    MOS_ASSERT(blockdev != NULL);
+
     pr_info("mount '%s' on '%s' (blockdev '%s')", fs->name, path->name, blockdev->name);
     mountpoint_t *new_mp = kcalloc(1, sizeof(mountpoint_t));
 
@@ -64,7 +69,7 @@ bool kunmount(mountpoint_t *mountpoint)
     }
     if (mountpoint->children_count > 0)
     {
-        mos_warn("mountpoint %s still has %u children", mountpoint->path->name, mountpoint->children_count);
+        mos_warn("mountpoint %s still has %zu children", mountpoint->path->name, mountpoint->children_count);
         return false;
     }
 
@@ -93,7 +98,7 @@ mountpoint_t *kmount_find(path_t *path)
 mountpoint_t *kmount_find_under(mountpoint_t *mp, path_t *path)
 {
     if (mp->children == NULL)
-        return NULL;
+        return mp;
 
     mountpoint_t *match = NULL;
     for (size_t i = 0; i < mp->children_count; i++)
@@ -101,10 +106,10 @@ mountpoint_t *kmount_find_under(mountpoint_t *mp, path_t *path)
         mountpoint_t *child = mp->children[i];
         if (child->path->name[0] == '/')
             continue;
-        if (path_compare(child->path, path) == 0)
+        if (strcmp(child->path->name, path->name) == 0)
         {
             match = child;
-            return kmount_find_under(child, path);
+            break;
         }
     }
     return match;

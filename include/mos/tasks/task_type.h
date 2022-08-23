@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "lib/stack.h"
+#include "lib/structures/stack.h"
 #include "mos/filesystem/file.h"
 #include "mos/types.h"
 
@@ -10,7 +10,7 @@ typedef void (*thread_entry_t)(void *arg);
 
 typedef struct
 {
-    file_open_mode flags;
+    file_open_flags flags;
     file_t *file;
 } file_descriptor_t;
 

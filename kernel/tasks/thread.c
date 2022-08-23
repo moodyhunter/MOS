@@ -2,9 +2,9 @@
 
 #include "mos/tasks/thread.h"
 
-#include "lib/hashmap.h"
-#include "lib/stack.h"
 #include "lib/string.h"
+#include "lib/structures/hashmap.h"
+#include "lib/structures/stack.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging.h"
 #include "mos/platform/platform.h"

@@ -2,8 +2,8 @@
 
 #include "mos/device/block.h"
 
-#include "lib/hashmap.h"
-#include "lib/hashmap_common.h"
+#include "lib/structures/hashmap.h"
+#include "lib/structures/hashmap_common.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
 #include "mos/types.h"

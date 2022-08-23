@@ -8,8 +8,6 @@
 
 cmdline_t *mos_cmdline = NULL;
 
-#define copy_string(dst, src, len) (dst) = kmalloc((len) + 1), strncpy((dst), (src), (len)), (dst)[(len)] = '\0'
-
 cmdline_t *mos_cmdline_create(const char *cmdline)
 {
     cmdline_t *cmd = kmalloc(sizeof(cmdline_t));
@@ -32,7 +30,7 @@ cmdline_t *mos_cmdline_create(const char *cmdline)
             const char *start = cmdline;
             while (*cmdline && !((*cmdline) == ' ' || (*cmdline) == '='))
                 cmdline++;
-            copy_string(arg->arg_name, start, cmdline - start);
+            arg->arg_name = alloc_string(start, cmdline - start);
         }
 
         // the option has parameters
@@ -66,7 +64,7 @@ cmdline_t *mos_cmdline_create(const char *cmdline)
                 while (*cmdline && *cmdline != ' ' && *cmdline != ',')
                     cmdline++;
 
-                copy_string(param->val.string, param_start, cmdline - param_start);
+                param->val.string = alloc_string(param_start, cmdline - param_start);
             }
 
             MOS_ASSERT(*cmdline == ' ' || *cmdline == ',' || *cmdline == '\0');

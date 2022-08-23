@@ -36,6 +36,7 @@
 #define TB * (u64) 1024 GB
 // clang-format on
 
+#define GET_BIT(x, n)               (((x) >> (n)) & 1)
 #define MASK_BITS(value, width)     ((value) & ((1 << (width)) - 1))
 #define SET_BITS(bit, width, value) (MASK_BITS(value, width) << (bit))
 

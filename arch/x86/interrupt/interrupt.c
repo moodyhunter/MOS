@@ -2,6 +2,7 @@
 
 #include "mos/interrupt.h"
 
+#include "lib/structures/list.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"

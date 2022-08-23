@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "lib/hash.h"
-#include "lib/hashmap.h"
-#include "lib/hashmap_common.h"
+#include "lib/structures/hashmap.h"
+#include "lib/structures/hashmap_common.h"
 #include "mos/mos_global.h"
 #include "test_engine.h"
 

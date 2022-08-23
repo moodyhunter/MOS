@@ -49,6 +49,8 @@
                 "chardev:serial_log",
                 "-append",
                 "console=ttyS0,115200n8 init=/init debug mos_tests_skip_prefix=kmalloc_",
+                "-initrd",
+                "/home/moody/initramfs-linux.img.uncompressed"
             ],
             "problemMatcher": [],
             "group": "none",

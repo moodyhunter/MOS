@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/hashmap.h"
+#include "lib/structures/hashmap.h"
 
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"

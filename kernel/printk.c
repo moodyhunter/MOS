@@ -2,9 +2,9 @@
 
 #include "mos/printk.h"
 
-#include "lib/containers.h"
 #include "lib/stdio.h"
 #include "lib/string.h"
+#include "lib/structures/list.h"
 #include "mos/device/console.h"
 
 #include <stdarg.h>

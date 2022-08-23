@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/hashmap.h"
+#include "lib/structures/hashmap.h"
 #include "mos/cmdline.h"
 #include "mos/device/block.h"
 #include "mos/filesystem/cpio/cpio.h"
@@ -64,8 +64,10 @@ void mos_start_kernel(const char *cmdline)
     if (!dev)
         mos_panic("no initrd found");
 
-    kmount(root_path, &fs_cpio, dev);
-    file_open("/init", FILE_OPEN_READ);
+    kmount(&root_path, &fs_cpio, dev);
+    file_t *file = file_open("/usr/bin/init", FILE_OPEN_READ);
+    if (!file)
+        mos_panic("failed to open init");
 
     while (1)
         ;
