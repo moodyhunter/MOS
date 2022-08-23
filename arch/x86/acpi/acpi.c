@@ -7,6 +7,8 @@
 #include "mos/mos_global.h"
 #include "mos/printk.h"
 #include "mos/x86/acpi/acpi_types.h"
+#include "mos/x86/drivers/port.h"
+#include "mos/x86/x86_interrupt.h"
 
 #define EBDA_START 0x00080000
 #define EBDA_END   0x0009ffff
@@ -18,6 +20,13 @@ acpi_madt_t *x86_acpi_madt;
 acpi_hpet_t *x86_acpi_hpet;
 acpi_fadt_t *x86_acpi_fadt;
 
+void __noreturn x86_shutdown_vm()
+{
+    x86_disable_interrupts();
+    port_outw(0x604, 0x2000);
+    while (1)
+        ;
+}
 void x86_acpi_init()
 {
     acpi_rsdp_t *rsdp = find_acpi_rsdp(EBDA_START, EBDA_END);

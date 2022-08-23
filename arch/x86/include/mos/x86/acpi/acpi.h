@@ -11,3 +11,4 @@ extern acpi_hpet_t *x86_acpi_hpet;
 extern acpi_fadt_t *x86_acpi_fadt;
 
 void x86_acpi_init();
+void __noreturn x86_shutdown_vm();

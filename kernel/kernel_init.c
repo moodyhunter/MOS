@@ -2,6 +2,12 @@
 
 #include "lib/hashmap.h"
 #include "mos/cmdline.h"
+#include "mos/device/block.h"
+#include "mos/filesystem/cpio/cpio.h"
+#include "mos/filesystem/file.h"
+#include "mos/filesystem/fs_fwd.h"
+#include "mos/filesystem/mount.h"
+#include "mos/filesystem/path.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging.h"
 #include "mos/mos_global.h"
@@ -10,7 +16,6 @@
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_type.h"
 #include "mos/tasks/thread.h"
-#include "mos/types.h"
 #include "mos/x86/tasks/tss_types.h"
 
 extern void mos_test_engine_run_tests(); // defined in tests/test_engine.c
@@ -20,13 +25,9 @@ asmlinkage void jump_to_usermain(uintptr_t, uintptr_t);
 
 extern tss32_t tss_entry;
 
-void mos_start_kernel(mos_init_info_t *init_info)
+void mos_start_kernel(const char *cmdline)
 {
-    mos_kernel_mm_init();
-    mos_platform.post_init(init_info);
-    mos_platform.devices_setup(init_info);
-
-    mos_cmdline = mos_cmdline_create(init_info->cmdline_str);
+    mos_cmdline = mos_cmdline_create(cmdline);
 
     pr_info("Welcome to MOS!");
     pr_emph("MOS %s (%s)", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION);
@@ -59,6 +60,16 @@ void mos_start_kernel(mos_init_info_t *init_info)
         mos_test_engine_run_tests();
     }
 
+    blockdev_t *dev = blockdev_find("initrd");
+    if (!dev)
+        mos_panic("no initrd found");
+
+    kmount(root_path, &fs_cpio, dev);
+    file_open("/init", FILE_OPEN_READ);
+
+    while (1)
+        ;
+#if 0
     // create the init process
     extern void main(void *arg);
     uintptr_t init_entry_addr = (uintptr_t) &main;
@@ -84,11 +95,12 @@ void mos_start_kernel(mos_init_info_t *init_info)
 
     // schedule
     schedule();
+#endif
 }
 
 thread_t *context_switch(thread_t *cur, thread_t *next);
 
-bool threads_foreach(void *key, void *value)
+bool threads_foreach(const void *key, void *value)
 {
     thread_id_t *tid = (thread_id_t *) key;
     thread_t *thread = (thread_t *) value;

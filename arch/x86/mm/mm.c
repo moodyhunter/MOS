@@ -12,6 +12,18 @@ size_t x86_mem_regions_count = 0;
 size_t x86_mem_size_total = 0;
 size_t x86_mem_size_available = 0;
 
+static void mem_add_region(u64 phys_addr, size_t size, bool available)
+{
+    if (x86_mem_regions_count == MEM_MAX_N_REGIONS)
+        mos_panic("too many memory regions added.");
+
+    memblock_t *block = &x86_mem_regions[x86_mem_regions_count];
+    block->paddr = phys_addr;
+    block->size_bytes = size;
+    block->available = available;
+    x86_mem_regions_count++;
+}
+
 void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
 {
     pr_info("Multiboot memory map:");
@@ -38,7 +50,7 @@ void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
             pr_warn("truncating memory region at 0x%llx, it extends beyond the maximum address 0x%x", region_base, X86_MAX_MEM_SIZE);
         }
 
-        x86_mem_add_region(region_base, region_length, entry->type == MULTIBOOT_MEMORY_AVAILABLE);
+        mem_add_region(region_base, region_length, entry->type == MULTIBOOT_MEMORY_AVAILABLE);
 
         x86_mem_size_total += region_length;
 
@@ -64,16 +76,4 @@ void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
     format_size(buf_available, sizeof(buf_available), x86_mem_size_available);
     format_size(buf_unavailable, sizeof(buf_unavailable), x86_mem_size_total - x86_mem_size_available);
     pr_info("Total Memory: %s (%s available, %s unavailable)", buf, buf_available, buf_unavailable);
-}
-
-void x86_mem_add_region(u64 phys_addr, size_t size, bool available)
-{
-    if (x86_mem_regions_count == MEM_MAX_N_REGIONS)
-        mos_panic("too many memory regions added.");
-
-    memblock_t *block = &x86_mem_regions[x86_mem_regions_count];
-    block->paddr = phys_addr;
-    block->size_bytes = size;
-    block->available = available;
-    x86_mem_regions_count++;
 }

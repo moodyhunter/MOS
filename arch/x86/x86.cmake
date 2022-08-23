@@ -29,6 +29,7 @@ add_kernel_source(
         cpu/cpu.c
         cpu/cpuid.c
         cpu/smp.c
+        devices/initrd_blockdev.c
         drivers/port.c
         drivers/serial.c
         drivers/serial_console.c

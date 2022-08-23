@@ -24,7 +24,7 @@ static console_t dummy_con = {
 static bool has_console_registered = false;
 list_node_t consoles = LIST_NODE_INIT(dummy_con);
 
-void mos_register_console(console_t *con)
+void mos_install_console(console_t *con)
 {
     if (con->caps & CONSOLE_CAP_SETUP)
         con->setup(con);

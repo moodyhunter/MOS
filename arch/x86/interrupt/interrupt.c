@@ -2,6 +2,7 @@
 
 #include "mos/interrupt.h"
 
+#include "mos/mm/kmalloc.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/x86/drivers/port.h"
@@ -54,6 +55,24 @@ void x86_irq_handler_init(void)
 {
     for (int i = 0; i < IRQ_MAX_COUNT; i++)
         linked_list_init(&irq_handlers[i]);
+}
+
+void x86_disable_interrupts()
+{
+    __asm__ volatile("cli");
+}
+
+void x86_enable_interrupts()
+{
+    __asm__ volatile("sti");
+}
+
+bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
+{
+    irq_handler_descriptor_t *desc = kmalloc(sizeof(irq_handler_descriptor_t));
+    desc->handler = handler;
+    list_node_append(&irq_handlers[irq], list_node(desc));
+    return true;
 }
 
 void x86_handle_interrupt(u32 esp)

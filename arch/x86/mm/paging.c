@@ -71,11 +71,11 @@ void x86_mm_prepare_paging()
 
     pr_info("paging: setting up low 1MB identity mapping... (except for the NULL page)");
     // skip the free list setup
-    vm_map_page_range_no_freelist(0, 0, 1, VM_PRESENT); // ! the zero page is not writable
-    vm_map_page_range_no_freelist(X86_PAGE_SIZE, X86_PAGE_SIZE, 1 MB / X86_PAGE_SIZE, VM_PRESENT | VM_WRITABLE);
+    do_vm_map_pages(0, 0, 1, VM_PRESENT); // ! the zero page is not writable
+    do_vm_map_pages(X86_PAGE_SIZE, X86_PAGE_SIZE, 1 MB / X86_PAGE_SIZE, VM_PRESENT | VM_WRITABLE);
 
     pr_info("paging: setting kernel space...");
-    vm_map_page_range(x86_kernel_start, x86_kernel_start, (x86_kernel_end - x86_kernel_start) / X86_PAGE_SIZE, VM_PRESENT | VM_WRITABLE);
+    x86_vm_map_pages(x86_kernel_start, x86_kernel_start, (x86_kernel_end - x86_kernel_start) / X86_PAGE_SIZE, VM_PRESENT | VM_WRITABLE);
 }
 
 void x86_mm_enable_paging()
@@ -98,7 +98,7 @@ void x86_mm_enable_paging()
     pmem_freelist_dump();
 }
 
-void *x86_mm_alloc_page(size_t n_page)
+void *x86_mm_alloc_pages(size_t n_page)
 {
 #define BIT_IS_SET(byte, bit) ((byte) & (1 << (bit)))
     // simply rename the variable, we are dealing with bitmaps
@@ -152,7 +152,7 @@ void *x86_mm_alloc_page(size_t n_page)
         return NULL;
     }
 
-    vm_map_page_range((uintptr_t) vaddr, paddr, n_page, VM_PRESENT | VM_WRITABLE);
+    x86_vm_map_pages((uintptr_t) vaddr, paddr, n_page, VM_PRESENT | VM_WRITABLE);
     return vaddr;
 }
 
@@ -160,7 +160,7 @@ bool x86_mm_free_page(void *vptr, size_t n_page)
 {
     size_t page_index = (uintptr_t) vptr / X86_PAGE_SIZE;
     mos_debug("paging: freeing %zu to %zu", page_index, page_index + n_page);
-    vm_unmap_page_range((uintptr_t) vptr, n_page);
+    x86_vm_unmap_pages((uintptr_t) vptr, n_page);
     return true;
 }
 
@@ -182,10 +182,14 @@ void x86_mm_set_page_flags(void *vaddr, size_t n, paging_entry_flags flags)
     }
 }
 
+size_t pmem_freelist_getsize()
+{
+    return X86_ALIGN_UP_TO_PAGE(PMEM_FREELIST_SIZE_FOR(x86_mem_size_available));
+}
+
 void pmem_freelist_setup()
 {
-    size_t pmem_freelist_size = PMEM_FREELIST_SIZE_FOR(x86_mem_size_available);
-    pmem_freelist_size = X86_ALIGN_UP_TO_PAGE(pmem_freelist_size);
+    size_t pmem_freelist_size = pmem_freelist_getsize();
     pr_info2("paging: %zu bytes (aligned) required for physical memory freelist", pmem_freelist_size);
 
     uintptr_t paddr = 0;
@@ -217,9 +221,9 @@ void pmem_freelist_setup()
     }
 
     pmem_freelist = (pmem_range_t *) paddr;
+    MOS_ASSERT_X(pmem_freelist != NULL, "could not find a continous physical memory region, large enough to place pmem freelist");
     memset(pmem_freelist, 0, pmem_freelist_size);
     pmem_freelist_base_paddr = paddr;
-    MOS_ASSERT_X(pmem_freelist != NULL, "could not find a continous physical memory region, large enough to place pmem freelist");
     pmem_freelist->next = NULL;
 
     // add current physical memory region to the freelist
@@ -231,7 +235,7 @@ void pmem_freelist_setup()
 
         if (r->paddr + r->size_bytes < PMEM_FREELIST_LOWMEM_RESERVED)
         {
-            pr_emph("paging: ignored low memory: 0x%llx - 0x%llx (0x%zu bytes)", r->paddr, r->paddr + r->size_bytes, r->size_bytes);
+            pr_emph("paging: ignored low memory: " PTR_FMT "-" PTR_FMT " (0x%zu bytes)", r->paddr, r->paddr + r->size_bytes, r->size_bytes);
             continue;
         }
 
@@ -243,7 +247,7 @@ void pmem_freelist_setup()
     // map the freelist
     uintptr_t vaddr = PMEM_FREELIST_VADDR;
     pr_info("paging: mapping freelist at physical address %p", (void *) paddr);
-    vm_map_page_range(vaddr, paddr, pmem_freelist_size / X86_PAGE_SIZE, VM_PRESENT | VM_WRITABLE);
+    x86_vm_map_pages(vaddr, paddr, pmem_freelist_size / X86_PAGE_SIZE, VM_PRESENT | VM_WRITABLE);
 }
 
 #define this_start (this->paddr)
@@ -528,34 +532,34 @@ void page_table_dump()
         pr_info("  [" PTR_FMT "-" PTR_FMT "] not present", (uintptr_t) absent_begin * X86_PAGE_SIZE, (uintptr_t) -1);
 }
 
-void vm_map_page_range(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags)
+void x86_vm_map_pages(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags)
 {
     pmem_freelist_remove_region(paddr_start, n_page * X86_PAGE_SIZE);
-    vm_map_page_range_no_freelist(vaddr_start, paddr_start, n_page, flags);
+    do_vm_map_pages(vaddr_start, paddr_start, n_page, flags);
 }
 
-void vm_unmap_page_range(uintptr_t vaddr_start, size_t n_page)
+void x86_vm_unmap_pages(uintptr_t vaddr_start, size_t n_page)
 {
     uintptr_t paddr = vm_get_paddr(vaddr_start);
-    vm_unmap_page_range_no_freelist(vaddr_start, n_page);
+    do_vm_unmap_pages(vaddr_start, n_page);
     pmem_freelist_add_region(paddr, n_page * X86_PAGE_SIZE);
 }
 
-void vm_map_page_range_no_freelist(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags)
+void do_vm_map_pages(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags)
 {
     mos_debug("paging: mapping %zu pages " PTR_FMT "-" PTR_FMT " at table %lu", n_page, vaddr_start, paddr_start, vaddr_start / X86_PAGE_SIZE);
     for (size_t i = 0; i < n_page; i++)
-        _impl_vm_map_page(vaddr_start + i * X86_PAGE_SIZE, paddr_start + i * X86_PAGE_SIZE, flags);
+        do_vm_map_page(vaddr_start + i * X86_PAGE_SIZE, paddr_start + i * X86_PAGE_SIZE, flags);
 }
 
-void vm_unmap_page_range_no_freelist(uintptr_t vaddr_start, size_t n_page)
+void do_vm_unmap_pages(uintptr_t vaddr_start, size_t n_page)
 {
     mos_debug("paging: unmapping %zu pages " PTR_FMT " at table %lu", n_page, vaddr_start, vaddr_start / X86_PAGE_SIZE);
     for (size_t i = 0; i < n_page; i++)
-        _impl_vm_unmap_page(vaddr_start + i * X86_PAGE_SIZE);
+        do_vm_unmap_page(vaddr_start + i * X86_PAGE_SIZE);
 }
 
-void _impl_vm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags)
+void do_vm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags)
 {
     flags |= VM_USERMODE;
     flags |= VM_WRITABLE;
@@ -597,7 +601,7 @@ void _impl_vm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flag
     PAGEMAP_MAP(pte_index);
 }
 
-void _impl_vm_unmap_page(uintptr_t vaddr)
+void do_vm_unmap_page(uintptr_t vaddr)
 {
     int page_dir_index = vaddr >> 22;
     int page_table_index = vaddr >> 12 & 0x3ff;

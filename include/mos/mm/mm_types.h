@@ -8,8 +8,8 @@
 typedef struct
 {
     as_linked_list;
-    u64 vaddr;
-    u64 paddr;
+    uintptr_t vaddr;
+    uintptr_t paddr;
     size_t size_bytes;
     bool available;
 } memblock_t;

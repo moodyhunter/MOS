@@ -77,7 +77,6 @@ extern list_node_t irq_handlers[IRQ_MAX_COUNT];
 extern void *isr_stub_table[];
 extern void *irq_stub_table[];
 
-memblock_t *x86_mem_find_bios_block();
 void x86_irq_handler_init(void);
 void x86_handle_interrupt(u32 esp);
 

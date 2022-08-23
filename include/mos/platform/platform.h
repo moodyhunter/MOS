@@ -7,11 +7,6 @@
 
 #define MOS_SYSCALL_INTR 0x88
 
-typedef struct
-{
-    const char *cmdline_str;
-} mos_init_info_t;
-
 typedef enum
 {
     VM_NONE = 0,
@@ -38,9 +33,6 @@ typedef struct
 
     void __noreturn (*shutdown)(void);
 
-    void (*post_init)(mos_init_info_t *info);
-    void (*devices_setup)(mos_init_info_t *init_info);
-
     // interrupt
     void (*interrupt_enable)(void);
     void (*interrupt_disable)(void);
@@ -60,6 +52,6 @@ typedef struct
 
 extern const mos_platform_t mos_platform;
 
-extern void mos_start_kernel(mos_init_info_t *init_info);
+extern void mos_start_kernel(const char *cmdline);
 extern void mos_invoke_syscall(u64 syscall_number);
 extern void mos_kernel_mm_init(void);

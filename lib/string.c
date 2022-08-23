@@ -57,16 +57,18 @@ void *memcpy(void *restrict dest, const void *restrict src, size_t n)
     return dest;
 }
 
-void *memmove(void *dest, const void *src, size_t n)
+void *memmove(void *dest, const void *src, size_t length)
 {
-    u8 *d = dest;
-    const u8 *s = src;
-    if (d < s)
-        for (size_t i = 0; i < n; i++)
-            d[i] = s[i];
-    else
-        for (size_t i = n; i > 0; i--)
-            d[i - 1] = s[i - 1];
+    char *cdest = (char *) dest;
+    const char *csrc = (char *) src;
+
+    /* Destructive overlap...have to copy backwards */
+    csrc += length;
+    cdest += length;
+    while (length--)
+    {
+        *--cdest = *--csrc;
+    }
     return dest;
 }
 

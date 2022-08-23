@@ -163,7 +163,7 @@ MOS_TEST_CASE(hashmap_remove_function)
 
 static size_t test_hashmap_foreach_count = 0;
 
-bool test_foreach_function(void *key, void *value)
+bool test_foreach_function(const void *key, void *value)
 {
     MOS_UNUSED(key);
     MOS_UNUSED(value);
@@ -171,7 +171,7 @@ bool test_foreach_function(void *key, void *value)
     return true;
 }
 
-bool test_foreach_stop_at_quux(void *key, void *value)
+bool test_foreach_stop_at_quux(const void *key, void *value)
 {
     MOS_UNUSED(value);
     test_hashmap_foreach_count++;

@@ -46,20 +46,22 @@ static_assert(sizeof(pgdir_entry) == 4, "page_directory_entry is not 4 bytes");
 // public APIs
 void x86_mm_prepare_paging();
 void x86_mm_enable_paging();
-void *x86_mm_alloc_page(size_t n);
+void *x86_mm_alloc_pages(size_t n);
 bool x86_mm_free_page(void *vaddr, size_t n);
 void x86_mm_set_page_flags(void *vaddr, size_t n, paging_entry_flags flags);
 
-// private APIs
-void vm_map_page_range(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags);
-void vm_unmap_page_range(uintptr_t vaddr_start, size_t n_page);
-void vm_map_page_range_no_freelist(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags);
-void vm_unmap_page_range_no_freelist(uintptr_t vaddr_start, size_t n_page);
+void x86_vm_map_pages(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags);
+void x86_vm_unmap_pages(uintptr_t vaddr_start, size_t n_page);
 
-void _impl_vm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags);
-void _impl_vm_unmap_page(uintptr_t vaddr);
+// private APIs
+void do_vm_map_page(uintptr_t vaddr, uintptr_t paddr, paging_entry_flags flags);
+void do_vm_map_pages(uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags);
+void do_vm_unmap_page(uintptr_t vaddr);
+void do_vm_unmap_pages(uintptr_t vaddr_start, size_t n_page);
+
 uintptr_t vm_get_paddr(uintptr_t vaddr);
 
+size_t pmem_freelist_getsize();
 void pmem_freelist_setup();
 size_t pmem_freelist_add_region(uintptr_t start_addr, size_t size_bytes);
 void pmem_freelist_remove_region(uintptr_t start_addr, size_t size_bytes);

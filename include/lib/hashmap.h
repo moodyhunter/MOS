@@ -6,7 +6,7 @@
 
 typedef hash_t (*hashmap_hash_t)(const void *key);
 typedef int (*hashmap_key_compare_t)(const void *key1, const void *key2);
-typedef bool (*hashmap_foreach_func_t)(void *key, void *value);
+typedef bool (*hashmap_foreach_func_t)(const void *key, void *value);
 
 typedef struct hashmap_entry hashmap_entry_t;
 
@@ -24,8 +24,8 @@ typedef struct hashmap
 void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, hashmap_key_compare_t compare_func);
 void hashmap_deinit(hashmap_t *map);
 
-void *hashmap_put(hashmap_t *map, void *key, void *value);
-void *hashmap_get(hashmap_t *map, void *key);
-void *hashmap_remove(hashmap_t *map, void *key);
+void *hashmap_put(hashmap_t *map, const void *key, void *value);
+void *hashmap_get(const hashmap_t *map, const void *key);
+void *hashmap_remove(hashmap_t *map, const void *key);
 
 void hashmap_foreach(hashmap_t *map, hashmap_foreach_func_t func);

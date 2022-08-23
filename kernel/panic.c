@@ -76,8 +76,8 @@ void mos_kwarn(const char *func, u32 line, const char *fmt, ...)
     vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
     va_end(args);
 
-    pr_warn("%s", message);
-    pr_warn("  in function: %s (line %u)", func, line);
+    lprintk(MOS_LOG_WARN, "%s", message);
+    lprintk(MOS_LOG_WARN, "  in function: %s (line %u)\n", func, line);
 }
 
 void mos_install_kpanic_hook(kpanic_hook_t *hook)

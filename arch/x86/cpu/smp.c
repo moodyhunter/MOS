@@ -78,7 +78,7 @@ void x86_cpu_start(int apic_id)
     pr_info2("smp: received startup from cpu %u", apic_id);
 
     // allocate stack for ap
-    ap_stack_addr = (uintptr_t) x86_mm_alloc_page(4);
+    ap_stack_addr = (uintptr_t) x86_mm_alloc_pages(4);
     pr_info2("smp: allocated stack for cpu %u at " PTR_FMT, apic_id, ap_stack_addr);
     ap_state = AP_STATUS_STACK_ALLOCATED;
     while (ap_state != AP_STATUS_STACK_INITIALIZED)

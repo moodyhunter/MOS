@@ -51,7 +51,7 @@
 #define mos_debug(fmt, ...) lprintk_noop(MOS_LOG_INFO2, fmt "\n", ##__VA_ARGS__)
 #endif
 
-#define mos_warn(fmt, ...)  mos_kwarn(__func__, __LINE__, "WARN: " fmt, ##__VA_ARGS__)
+#define mos_warn(fmt, ...)  mos_kwarn(__func__, __LINE__, "WARN: " fmt "\n", ##__VA_ARGS__)
 #define mos_panic(fmt, ...) mos_kpanic(__func__, __LINE__, "" fmt, ##__VA_ARGS__)
 
 #define mos_warn_once(...)                                                                                                                      \

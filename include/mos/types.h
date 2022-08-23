@@ -67,3 +67,5 @@ newtype(id_t, process_id);
 newtype(id_t, thread_id);
 
 newtype(size_t, hash);
+
+newtype(u64, atomic);

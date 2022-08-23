@@ -3,23 +3,15 @@
 #pragma once
 
 #include "lib/stack.h"
+#include "mos/filesystem/file.h"
 #include "mos/types.h"
 
 typedef void (*thread_entry_t)(void *arg);
 
-typedef enum
-{
-    OPEN_READ = 1,
-    OPEN_WRITE = 2,
-    OPEN_EXECUTE = 4,
-} file_open_flags_t;
-
-typedef struct file file_t;
-
 typedef struct
 {
-    file_open_flags_t flags;
-    file_t *file; // TODO: the underlying file is not implemented yet
+    file_open_mode flags;
+    file_t *file;
 } file_descriptor_t;
 
 #define MAX_FD_COUNT 512
