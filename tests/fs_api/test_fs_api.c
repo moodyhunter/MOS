@@ -29,7 +29,7 @@ MOS_TEST_CASE(test_fs_api_path_is_prefix)
     path_t bin_tools = {
         .name = "tools",
         .tree_node = {
-            .parent = tree_node(&root),
+            .parent = tree_node(&bin),
             .n_children = 0,
             .children = NULL,
         },

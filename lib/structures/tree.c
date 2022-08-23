@@ -54,6 +54,10 @@ const tree_node_t *tree_find_common_prefix(const tree_node_t *node1, const tree_
         return node1;
     if (node1->parent == NULL || node2->parent == NULL)
         return NULL;
+    if (node1->parent == node2)
+        return node2;
+    if (node2->parent == node1)
+        return node1;
     if (node1->parent == node2->parent)
         return node1->parent;
     return tree_find_common_prefix(node1->parent, node2->parent);
