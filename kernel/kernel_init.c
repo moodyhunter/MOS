@@ -65,9 +65,19 @@ void mos_start_kernel(const char *cmdline)
         mos_panic("no initrd found");
 
     kmount(&root_path, &fs_cpio, dev);
-    file_t *file = file_open("/usr/bin/init", FILE_OPEN_READ);
-    if (!file)
-        mos_panic("failed to open init");
+
+    file_stat_t stat;
+    if (!file_stat("/init", &stat))
+        mos_panic("failed to stat /init");
+
+    // print init info
+    char perm[9];
+    file_format_perm(stat.permissions, perm);
+    pr_info("init: %zu bytes", stat.size);
+    pr_info("      %s", perm);
+    pr_info("      owner: %d, group: %d", stat.uid.uid, stat.gid.gid);
+
+    void *init = kmalloc(stat.size);
 
     while (1)
         ;

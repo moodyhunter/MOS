@@ -18,21 +18,6 @@ typedef struct
     u64 modified;
 } file_stat_time_t;
 
-typedef struct _file_stat
-{
-    u64 dev;
-    u64 ino;
-    u64 mode;
-    u64 nlink;
-    u64 uid;
-    u64 gid;
-    u64 rdev;
-    u64 size;
-    u64 blksize;
-    u64 blocks;
-    file_stat_time_t time;
-} file_stat_t;
-
 typedef enum
 {
     FILE_TYPE_FILE,
@@ -49,7 +34,7 @@ typedef enum
 {
     FILE_PERM_READ = 1 << 2,
     FILE_PERM_WRITE = 1 << 1,
-    FILE_PERM_EXECUTE = 1 << 0,
+    FILE_PERM_EXEC = 1 << 0,
 } file_perm_t;
 
 typedef struct
@@ -59,7 +44,7 @@ typedef struct
     file_perm_t other;
 } __packed file_permissions_t;
 
-typedef struct _file
+typedef struct _file_stat
 {
     file_type_t type;
     file_permissions_t permissions;
@@ -68,9 +53,17 @@ typedef struct _file
     bool sticky;
     bool suid;
     bool sgid;
+    size_t size;
+} file_stat_t;
+
+typedef struct _file
+{
     void *fsdata;
 } file_t;
 
 #define get_fsdata(file, type) ((type *) file->fsdata)
 
+void file_format_perm(file_permissions_t perms, char buf[9]);
+
 file_t *file_open(const char *path, file_open_flags mode);
+bool file_stat(const char *path, file_stat_t *restrict stat);

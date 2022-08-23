@@ -29,6 +29,7 @@ typedef struct
 
 typedef struct
 {
+    cpio_newc_header_t header;
     size_t header_offset;
 
     size_t name_offset;

@@ -10,7 +10,7 @@
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
 
-bool cpio_read_file(blockdev_t *dev, const char *target, file_t *file)
+bool cpio_read_metadata(blockdev_t *dev, const char *target, cpio_metadata_t *metadata)
 {
     if (unlikely(strcmp(target, "TRAILER!!!") == 0))
         mos_panic("what the heck are you doing?");
@@ -38,51 +38,12 @@ bool cpio_read_file(blockdev_t *dev, const char *target, file_t *file)
 
         if (found)
         {
-            file->uid.uid = strntoll(header.uid, NULL, 16, sizeof(header.uid) / sizeof(char));
-            file->gid.gid = strntoll(header.gid, NULL, 16, sizeof(header.gid) / sizeof(char));
-
-            //  0000777  The lower 9 bits specify read/write/execute permissions for world, group, and user following standard POSIX conventions.
-
-            u32 modebits = strntoll(header.mode, NULL, 16, sizeof(header.mode) / sizeof(char));
-            file->permissions.other = (modebits & 0007) >> 0;
-            file->permissions.group = (modebits & 0070) >> 3;
-            file->permissions.owner = (modebits & 0700) >> 6;
-
-            // 0170000 :: This masks the file type bits.
-            // 0140000 :: File type value for sockets.
-            // 0120000 :: File type value for symbolic links.  For symbolic links, the link body is stored as file data.
-            // 0100000 :: File type value for regular files.
-            // 0060000 :: File type value for block special devices.
-            // 0040000 :: File type value for directories.
-            // 0020000 :: File type value for character special devices.
-            // 0010000 :: File type value for named pipes or FIFOs.
-            // 0004000 :: SUID bit.
-            // 0002000 :: SGID bit.
-            // 0001000 :: Sticky bit.
-
-            file->sticky = modebits & 0001000;
-            file->sgid = modebits & 0002000;
-            file->suid = modebits & 0004000;
-            switch (modebits & 0170000)
-            {
-                case 0140000: file->type = FILE_TYPE_SOCKET; break;
-                case 0120000: file->type = FILE_TYPE_SYMLINK; break;
-                case 0100000: file->type = FILE_TYPE_FILE; break;
-                case 0060000: file->type = FILE_TYPE_BLOCK_DEVICE; break;
-                case 0040000: file->type = FILE_TYPE_DIRECTORY; break;
-                case 0020000: file->type = FILE_TYPE_CHAR_DEVICE; break;
-                case 0010000: file->type = FILE_TYPE_NAMED_PIPE; break;
-                default: mos_warn("invalid cpio file mode"); return -1;
-            }
-
-            file->fsdata = kmalloc(sizeof(cpio_metadata_t));
-            cpio_metadata_t *data = get_fsdata(file, cpio_metadata_t);
-
-            data->header_offset = offset - sizeof(cpio_newc_header_t);
-            data->name_offset = offset;
-            data->name_length = filename_len;
-            data->ino = strntoll(header.ino, NULL, 16, sizeof(header.ino) / sizeof(char));
-            data->nlink = strntoll(header.nlink, NULL, 16, sizeof(header.nlink) / sizeof(char));
+            metadata->header = header;
+            metadata->header_offset = offset - sizeof(cpio_newc_header_t);
+            metadata->name_offset = offset;
+            metadata->name_length = filename_len;
+            metadata->ino = strntoll(header.ino, NULL, 16, sizeof(header.ino) / sizeof(char));
+            metadata->nlink = strntoll(header.nlink, NULL, 16, sizeof(header.nlink) / sizeof(char));
         }
 
         if (unlikely(strcmp(filename, "TRAILER!!!") == 0))
@@ -94,9 +55,8 @@ bool cpio_read_file(blockdev_t *dev, const char *target, file_t *file)
         size_t data_len = strntoll(header.filesize, NULL, 16, sizeof(header.filesize) / sizeof(char));
         if (found)
         {
-            cpio_metadata_t *data = get_fsdata(file, cpio_metadata_t);
-            data->data_offset = offset;
-            data->data_length = data_len;
+            metadata->data_offset = offset;
+            metadata->data_length = data_len;
         }
 
         offset += data_len;
@@ -141,13 +101,26 @@ bool cpio_unmount(mountpoint_t *mountpoint)
 bool cpio_open(const mountpoint_t *mp, const path_t *path, const char *strpath, file_open_flags flags, file_t *file)
 {
     MOS_UNUSED(path);
+
     pr_info("cpio_open: %s", strpath);
+    if (flags & FILE_OPEN_WRITE)
+    {
+        mos_warn("cpio_open: write not supported");
+        return false;
+    }
 
-    bool result = cpio_read_file(mp->dev, strpath, file);
+    cpio_metadata_t metadata;
+    bool result = cpio_read_metadata(mp->dev, strpath, &metadata);
 
-    // file not found
     if (!result)
         return false;
+
+    if (flags & FILE_OPEN_NO_FOLLOW)
+    {
+    }
+
+    file->fsdata = kmalloc(sizeof(cpio_metadata_t));
+    memcpy(file->fsdata, &metadata, sizeof(cpio_metadata_t));
 
     return true;
 }
@@ -164,11 +137,81 @@ bool cpio_close(file_t *file)
 
 bool cpio_stat(const mountpoint_t *m, const path_t *path, const char *strpath, file_stat_t *stat)
 {
+    MOS_UNUSED(path);
+    cpio_metadata_t metadata;
+    bool result = cpio_read_metadata(m->dev, strpath, &metadata);
+    if (!result)
+        return false;
+
+    stat->uid.uid = strntoll(metadata.header.uid, NULL, 16, sizeof(metadata.header.uid) / sizeof(char));
+    stat->gid.gid = strntoll(metadata.header.gid, NULL, 16, sizeof(metadata.header.gid) / sizeof(char));
+
+    //  0000777  The lower 9 bits specify read/write/execute permissions for world, group, and user following standard POSIX conventions.
+
+    u32 modebits = strntoll(metadata.header.mode, NULL, 16, sizeof(metadata.header.mode) / sizeof(char));
+    stat->permissions.other = (modebits & 0007) >> 0;
+    stat->permissions.group = (modebits & 0070) >> 3;
+    stat->permissions.owner = (modebits & 0700) >> 6;
+
+    // 0170000 :: This masks the file type bits.
+    // 0140000 :: File type value for sockets.
+    // 0120000 :: File type value for symbolic links.  For symbolic links, the link body is stored as file data.
+    // 0100000 :: File type value for regular files.
+    // 0060000 :: File type value for block special devices.
+    // 0040000 :: File type value for directories.
+    // 0020000 :: File type value for character special devices.
+    // 0010000 :: File type value for named pipes or FIFOs.
+    // 0004000 :: SUID bit.
+    // 0002000 :: SGID bit.
+    // 0001000 :: Sticky bit.
+
+    stat->sticky = modebits & 0001000;
+    stat->sgid = modebits & 0002000;
+    stat->suid = modebits & 0004000;
+    switch (modebits & 0170000)
+    {
+        case 0140000: stat->type = FILE_TYPE_SOCKET; break;
+        case 0120000: stat->type = FILE_TYPE_SYMLINK; break;
+        case 0100000: stat->type = FILE_TYPE_FILE; break;
+        case 0060000: stat->type = FILE_TYPE_BLOCK_DEVICE; break;
+        case 0040000: stat->type = FILE_TYPE_DIRECTORY; break;
+        case 0020000: stat->type = FILE_TYPE_CHAR_DEVICE; break;
+        case 0010000: stat->type = FILE_TYPE_NAMED_PIPE; break;
+        default: mos_warn("invalid cpio file mode"); return -1;
+    }
     return true;
 }
 
-bool cpio_readlink(const mountpoint_t *m, const path_t *path, const char *strpath, char *buf, size_t size)
+bool cpio_readlink(const mountpoint_t *m, const path_t *path, const char *strpath, char *buf, size_t bufsize)
 {
+    MOS_UNUSED(path);
+    cpio_metadata_t metadata;
+    bool result = cpio_read_metadata(m->dev, strpath, &metadata);
+    if (!result)
+        return false;
+    u32 modebits = strntoll(metadata.header.mode, NULL, 16, sizeof(metadata.header.mode) / sizeof(char));
+
+    if (!(modebits & 0120000))
+    {
+        mos_warn("cpio_readlink: not a symbolic link");
+        return false;
+    }
+
+    size_t read = 0;
+    if (metadata.data_length > bufsize)
+    {
+        mos_warn("cpio_readlink: buffer too small");
+        return false;
+    }
+
+    u32 limit = metadata.data_length < bufsize ? metadata.data_length : bufsize;
+
+    read = m->dev->read(m->dev, buf, limit, metadata.data_offset);
+    if (read != limit)
+    {
+        mos_warn("cpio_readlink: failed to read link");
+        return false;
+    }
     return true;
 }
 

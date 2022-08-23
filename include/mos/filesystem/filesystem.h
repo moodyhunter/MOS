@@ -12,7 +12,7 @@ typedef bool (*fsop_unmount_t)(mountpoint_t *mp);
 typedef bool (*fsop_open_t)(const mountpoint_t *mp, const path_t *path, const char *strpath, file_open_flags mode, file_t *file);
 typedef bool (*fsop_read_t)(file_t *file, void *buf, size_t size, size_t *size_read);
 typedef bool (*fsop_close_t)(file_t *file);
-typedef bool (*fsop_readlink_t)(const mountpoint_t *mp, const path_t *path, const char *strpath, char *buf, size_t size);
+typedef bool (*fsop_readlink_t)(const mountpoint_t *mp, const path_t *path, const char *strpath, char *buf, size_t bufsize);
 typedef bool (*fsop_stat_t)(const mountpoint_t *mp, const path_t *path, const char *strpath, file_stat_t *stat);
 
 typedef struct _filesystem

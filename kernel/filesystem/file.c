@@ -17,6 +17,20 @@ void path_increment_refcount(const tree_node_t *node)
     path->refcount.atomic++;
 }
 
+void file_format_perm(file_permissions_t perms, char buf[10])
+{
+    buf[0] = perms.owner & FILE_PERM_READ ? 'r' : '-';
+    buf[1] = perms.owner & FILE_PERM_WRITE ? 'w' : '-';
+    buf[2] = perms.owner & FILE_PERM_EXEC ? 'x' : '-';
+    buf[3] = perms.group & FILE_PERM_READ ? 'r' : '-';
+    buf[4] = perms.group & FILE_PERM_WRITE ? 'w' : '-';
+    buf[5] = perms.group & FILE_PERM_EXEC ? 'x' : '-';
+    buf[6] = perms.other & FILE_PERM_READ ? 'r' : '-';
+    buf[7] = perms.other & FILE_PERM_WRITE ? 'w' : '-';
+    buf[8] = perms.other & FILE_PERM_EXEC ? 'x' : '-';
+    buf[9] = '\0';
+}
+
 file_t *file_open(const char *path, file_open_flags mode)
 {
     path_t *p = construct_path(path);
@@ -44,4 +58,19 @@ file_t *file_open(const char *path, file_open_flags mode)
     }
     tree_trace_to_root(tree_node(p), path_increment_refcount);
     return file;
+}
+
+bool file_stat(const char *path, file_stat_t *restrict stat)
+{
+    path_t *p = construct_path(path);
+    mountpoint_t *mp = kmount_find(p);
+    if (mp == NULL)
+    {
+        mos_warn("no filesystem mounted at %s", path);
+        return -1;
+    }
+    const char *ppath = path_get_full_path_string(mp->path, p);
+    bool result = mp->fs->op_stat(mp, p, ppath, stat);
+    kfree(ppath);
+    return result;
 }
