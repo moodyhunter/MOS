@@ -2,6 +2,7 @@
 
 #include "mos/filesystem/cpio/cpio.h"
 
+#include "lib/stdlib.h"
 #include "lib/string.h"
 #include "mos/device/block.h"
 #include "mos/filesystem/mount.h"
@@ -109,7 +110,7 @@ bool cpio_unmount(mountpoint_t *mountpoint)
     return true;
 }
 
-bool cpio_open(const mountpoint_t *mp, const fsnode_t *path, file_open_flags flags, fsnode_t *file)
+bool cpio_open(const mountpoint_t *mp, const fsnode_t *path, file_open_flags flags, file_t *file)
 {
     const char *strpath = path_to_string_relative(mp->path, path);
     pr_info("cpio_open: %s", strpath);
@@ -125,20 +126,24 @@ bool cpio_open(const mountpoint_t *mp, const fsnode_t *path, file_open_flags fla
     if (!result)
         return false;
 
-    file->io.data_ptr = kmalloc(sizeof(cpio_metadata_t));
-    memcpy(file->io.data_ptr, &metadata, sizeof(cpio_metadata_t));
-
+    file->io.pdata = kmalloc(sizeof(cpio_metadata_t));
+    memcpy(file->io.pdata, &metadata, sizeof(cpio_metadata_t));
+    io_ref(&file->io);
     return true;
 }
 
-bool cpio_read(fsnode_t *file, void *buf, size_t size, size_t *bytes_read)
+size_t cpio_read(blockdev_t *dev, file_t *file, void *buf, size_t size)
 {
-    return true;
+    cpio_metadata_t *metadata = file->io.pdata;
+    size_t read = dev->read(dev, buf, MIN(size, metadata->data_length), metadata->data_offset);
+    return read;
 }
 
-bool cpio_close(fsnode_t *file)
+bool cpio_close(file_t *file)
 {
-    return true;
+    MOS_UNUSED(file);
+    io_unref(&file->io);
+    return false;
 }
 
 bool cpio_stat(const mountpoint_t *mp, const fsnode_t *path, file_stat_t *stat)

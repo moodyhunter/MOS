@@ -65,8 +65,13 @@ void mos_start_kernel(const char *cmdline)
 
     kmount(&root_path, &fs_cpio, dev);
 
-    // if (!file_read("/init", init, stat.size))
-    //     mos_panic("failed to read /init");
+    file_t *initrd_txt = vfs_open("/initrd.txt", OPEN_READ);
+    if (!initrd_txt)
+        mos_panic("no initrd.txt found");
+
+    char *initrd_txt_buf = kmalloc(500);
+    size_t r = io_read(&initrd_txt->io, initrd_txt_buf, 1024);
+    pr_info("initrd.txt: %.*s", r, initrd_txt_buf);
 
     while (1)
         ;

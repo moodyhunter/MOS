@@ -11,6 +11,8 @@
 #include "mos/x86/mm/paging.h"
 #include "mos/x86/x86_platform.h"
 
+#define x86_ap_trampoline_ADDR 0x8000
+
 volatile enum
 {
     AP_STATUS_INVALID = 0,
@@ -23,8 +25,8 @@ volatile enum
 } ap_state;
 
 volatile uintptr_t ap_stack_addr = 0;
-
 static u32 lapics[X86_MAX_CPU_COUNT] = { 0 };
+extern void x86_ap_trampoline();
 
 void print_cpu_info()
 {
@@ -45,6 +47,7 @@ void ap_begin_exec()
     cpuid_get_processor_info(&info);
 
     pr_info("smp: AP %u started", info.ebx.local_apic_id);
+    print_cpu_info();
     while (1)
         ;
 }
@@ -121,8 +124,7 @@ void x86_smp_init()
 
     pr_info("smp: platform has %u cpu(s)", x86_cpu_info.cpu_count);
 
-    extern void ap_trampoline();
-    memcpy((void *) 0x8000, (void *) &ap_trampoline, 4 KB);
+    memcpy((void *) x86_ap_trampoline_ADDR, (void *) (uintptr_t) &x86_ap_trampoline, 4 KB);
 
     for (u32 i = 0; i < x86_cpu_info.cpu_count; i++)
     {

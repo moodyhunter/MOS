@@ -123,7 +123,6 @@ void strncpy(char *dest, const char *src, size_t n)
 
 const char *duplicate_string_n(const char *src, size_t len)
 {
-    MOS_ASSERT(len >= 0);
     char *dst = kmalloc(len + 1);
     strncpy(dst, src, len);
     dst[len] = '\0';

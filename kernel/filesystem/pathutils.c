@@ -64,7 +64,7 @@ const char *path_next_segment(const char *path, size_t *segment_len)
     return next;
 }
 
-fsnode_t *path_construct(const char *path)
+fsnode_t *path_find_fsnode(const char *path)
 {
     fsnode_t *target;
     bool resolved = path_resolve(&root_path, path, &target);
@@ -96,7 +96,6 @@ bool path_resolve(fsnode_t *cwd, const char *path, fsnode_t **resolved)
 
     size_t segment_len;
     const char *next_seg = path_next_segment(path, &segment_len);
-    pr_emph("CURRENT: %.*s, REST: %s", segment_len, path, next_seg);
 
     fsnode_t *current = impl_path_get_subpath(real_cwd, path, segment_len);
     if (next_seg == NULL || *next_seg == '\0')
@@ -155,9 +154,16 @@ const char *path_to_string_relative(const fsnode_t *root, const fsnode_t *leaf)
     return result;
 }
 
+void path_treeop_decrement_refcount(const tree_node_t *node)
+{
+    fsnode_t *path = tree_entry(node, fsnode_t);
+    mos_debug("Decreasing refcount of path '%s'", path->name);
+    path->refcount.atomic--;
+}
+
 void path_treeop_increment_refcount(const tree_node_t *node)
 {
     fsnode_t *path = tree_entry(node, fsnode_t);
     mos_debug("Incrementing refcount of path '%s'", path->name);
-    path->io.refcount.atomic++;
+    path->refcount.atomic++;
 }

@@ -41,6 +41,8 @@
                 "${workspaceFolder}/build/mos_multiboot.bin",
                 "-s",
                 "-S",
+                "-smp",
+                "4",
                 "-chardev",
                 "stdio,id=serial_log,logfile=serial_log.log,signal=off",
                 "-serial",

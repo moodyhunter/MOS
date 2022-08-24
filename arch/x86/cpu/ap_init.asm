@@ -1,13 +1,13 @@
 ; SPDX-License-Identifier: GPL-3.0-or-later
 
 [bits 16]
-[global ap_trampoline]
+[global x86_ap_trampoline]
 
 [extern ap_state]
 [extern ap_stack_addr]
 [extern ap_begin_exec]
 
-AP_TRAMPOLINE_ADDR equ 0x8000
+x86_ap_trampoline_ADDR equ 0x8000
 
 AP_STATUS_BSP_STARTUP_SENT          equ 1
 AP_STATUS_AP_WAIT_FOR_STACK_ALLOC   equ 2
@@ -23,7 +23,7 @@ spin_for_status_%1:
     jne     spin_for_status_%1
 %endmacro
 
-ap_trampoline:
+x86_ap_trampoline:
     cli
     cld
     or      ax, ax              ; clear segment registers
@@ -32,11 +32,11 @@ ap_trampoline:
     mov     ss, ax
     mov     fs, ax
     mov     gs, ax
-    lgdt    [gdt_ptr - ap_trampoline + AP_TRAMPOLINE_ADDR]
+    lgdt    [gdt_ptr - x86_ap_trampoline + x86_ap_trampoline_ADDR]
     mov     eax, cr0
     or      eax, 0x1
     mov     cr0, eax
-    jmp     0x08:(pm_init - ap_trampoline + AP_TRAMPOLINE_ADDR)
+    jmp     0x08:(pm_init - x86_ap_trampoline + x86_ap_trampoline_ADDR)
 
 [bits 32]
 pm_init:
@@ -75,4 +75,4 @@ tmp_gdt:
 align   16
 gdt_ptr:
     dw      tmp_gdt.end - tmp_gdt - 1
-    dd      tmp_gdt - ap_trampoline + AP_TRAMPOLINE_ADDR
+    dd      tmp_gdt - x86_ap_trampoline + x86_ap_trampoline_ADDR

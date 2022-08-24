@@ -80,9 +80,16 @@ typedef struct _file_stat
 typedef struct _fsnode
 {
     as_tree;
-    io_t io;
+    atomic_t refcount;
     const char *name;
 } fsnode_t;
+
+typedef struct _file
+{
+    io_t io;
+    u64 offset;
+    fsnode_t *fsnode;
+} file_t;
 
 #define PATH_SEPARATOR        '/'
 #define PATH_SEPARATOR_STRING "/"
@@ -92,10 +99,12 @@ typedef struct _fsnode
 
 extern fsnode_t root_path;
 
-bool vfs_path_open(fsnode_t *path, file_open_flags flags);
+bool vfs_path_open(fsnode_t *path, file_open_flags flags, file_t *file);
 bool vfs_path_readlink(fsnode_t *path, fsnode_t **link);
 bool vfs_path_stat(fsnode_t *path, file_stat_t *restrict stat);
 
-fsnode_t *vfs_open(const char *path, file_open_flags flags);
+file_t *vfs_open(const char *path, file_open_flags flags);
 fsnode_t *vfs_readlink(const char *path);
 bool vfs_stat(const char *path, file_stat_t *restrict stat);
+size_t vfs_read(file_t *file, void *buf, size_t count);
+size_t vfs_write(file_t *file, const void *buf, size_t count);

@@ -4,11 +4,7 @@
 
 #include "mos/types.h"
 
-typedef enum
-{
-    IO_TYPE_FILE,
-    IO_TYPE_SOCKET,
-} io_type_t;
+typedef struct _io_t io_t;
 
 typedef enum
 {
@@ -17,10 +13,30 @@ typedef enum
     IO_SEEKABLE = 1 << 2,
 } io_flags_t;
 
+typedef struct
+{
+    // ref hooks
+    void (*before_ref)(io_t *io);
+    void (*after_unref)(io_t *io);
+
+    size_t (*read)(io_t *io, void *buf, size_t count);
+    size_t (*write)(io_t *io, const void *buf, size_t count);
+    void (*close)(io_t *io);
+} io_ops_t;
+
 typedef struct _io_t
 {
     atomic_t refcount;
-    io_type_t type;
     io_flags_t flags;
-    void *data_ptr;
+    size_t size;
+    void *pdata;
+    io_ops_t *ops;
 } io_t;
+
+void io_ref(io_t *io);
+void io_unref(io_t *io);
+
+size_t io_read(io_t *io, void *buf, size_t count);
+size_t io_write(io_t *io, const void *buf, size_t count);
+
+void io_close(io_t *io);
