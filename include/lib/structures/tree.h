@@ -7,7 +7,7 @@
 
 typedef struct
 {
-    void (*get_node_name)(const tree_node_t *node, size_t limit, char **name, size_t *name_len);
+    void (*get_node_name)(const tree_node_t *node, char **name, size_t *name_len);
 } tree_op_t;
 
 #define tree_entry(node, type) container_of((node), type, tree_node)

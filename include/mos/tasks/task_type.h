@@ -3,7 +3,7 @@
 #pragma once
 
 #include "lib/structures/stack.h"
-#include "mos/filesystem/file.h"
+#include "mos/filesystem/filesystem.h"
 #include "mos/types.h"
 
 typedef void (*thread_entry_t)(void *arg);
@@ -11,7 +11,7 @@ typedef void (*thread_entry_t)(void *arg);
 typedef struct
 {
     file_open_flags flags;
-    file_t *file;
+    io_t *file;
 } file_descriptor_t;
 
 #define MAX_FD_COUNT 512

@@ -3,12 +3,24 @@
 #include "mos/filesystem/cpio/cpio.h"
 
 #include "lib/string.h"
-#include "mos/filesystem/file.h"
-#include "mos/filesystem/filesystem.h"
-#include "mos/filesystem/fs_fwd.h"
+#include "mos/device/block.h"
 #include "mos/filesystem/mount.h"
+#include "mos/filesystem/pathutils.h"
+#include "mos/io/io.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
+
+#define CPIO_MODE_FILE_TYPE 0170000 // :: This masks the file type bits.
+#define CPIO_MODE_SOCKET    0140000 // :: File type value for sockets.
+#define CPIO_MODE_SYMLINK   0120000 // :: File type value for symbolic links.  For symbolic links, the link body is stored as file data.
+#define CPIO_MODE_FILE      0100000 // :: File type value for regular files.
+#define CPIO_MODE_BLOCKDEV  0060000 // :: File type value for block special devices.
+#define CPIO_MODE_DIR       0040000 // :: File type value for directories.
+#define CPIO_MODE_CHARDEV   0020000 // :: File type value for character special devices.
+#define CPIO_MODE_FIFO      0010000 // :: File type value for named pipes or FIFOs.
+#define CPIO_MODE_SUID      0004000 // :: SUID bit.
+#define CPIO_MODE_SGID      0002000 // :: SGID bit.
+#define CPIO_MODE_STICKY    0001000 // :: Sticky bit.
 
 bool cpio_read_metadata(blockdev_t *dev, const char *target, cpio_metadata_t *metadata)
 {
@@ -21,7 +33,8 @@ bool cpio_read_metadata(blockdev_t *dev, const char *target, cpio_metadata_t *me
     while (true)
     {
         dev->read(dev, &header, sizeof(cpio_newc_header_t), offset);
-        if (strncmp(header.magic, "07070", 5) != 0 && (header.magic[5] == '1' || header.magic[5] == '2'))
+
+        if (strncmp(header.magic, "07070", 5) != 0 || (header.magic[5] != '1' && header.magic[5] != '2'))
         {
             mos_warn("invalid cpio header magic, possibly corrupt archive");
             return false;
@@ -42,8 +55,6 @@ bool cpio_read_metadata(blockdev_t *dev, const char *target, cpio_metadata_t *me
             metadata->header_offset = offset - sizeof(cpio_newc_header_t);
             metadata->name_offset = offset;
             metadata->name_length = filename_len;
-            metadata->ino = strntoll(header.ino, NULL, 16, sizeof(header.ino) / sizeof(char));
-            metadata->nlink = strntoll(header.nlink, NULL, 16, sizeof(header.nlink) / sizeof(char));
         }
 
         if (unlikely(strcmp(filename, "TRAILER!!!") == 0))
@@ -69,7 +80,7 @@ bool cpio_read_metadata(blockdev_t *dev, const char *target, cpio_metadata_t *me
     MOS_UNREACHABLE();
 }
 
-bool cpio_mount(blockdev_t *dev, path_t *path)
+bool cpio_mount(blockdev_t *dev, fsnode_t *path)
 {
     MOS_UNUSED(path);
     size_t read = 0;
@@ -81,9 +92,9 @@ bool cpio_mount(blockdev_t *dev, path_t *path)
         return false;
     }
 
-    if (strncmp(header.magic, "07070", 5) != 0 && (header.magic[5] == '1' || header.magic[5] == '2'))
+    if (strncmp(header.magic, "07070", 5) != 0 || (header.magic[5] != '1' && header.magic[5] != '2'))
     {
-        mos_warn("invalid cpio archive format, only the new ASCII format is supported");
+        mos_warn("invalid cpio header magic, possibly corrupt archive");
         return false;
     }
 
@@ -98,12 +109,11 @@ bool cpio_unmount(mountpoint_t *mountpoint)
     return true;
 }
 
-bool cpio_open(const mountpoint_t *mp, const path_t *path, const char *strpath, file_open_flags flags, file_t *file)
+bool cpio_open(const mountpoint_t *mp, const fsnode_t *path, file_open_flags flags, fsnode_t *file)
 {
-    MOS_UNUSED(path);
-
+    const char *strpath = path_to_string_relative(mp->path, path);
     pr_info("cpio_open: %s", strpath);
-    if (flags & FILE_OPEN_WRITE)
+    if (flags & OPEN_WRITE)
     {
         mos_warn("cpio_open: write not supported");
         return false;
@@ -115,78 +125,64 @@ bool cpio_open(const mountpoint_t *mp, const path_t *path, const char *strpath, 
     if (!result)
         return false;
 
-    if (flags & FILE_OPEN_NO_FOLLOW)
-    {
-    }
-
-    file->fsdata = kmalloc(sizeof(cpio_metadata_t));
-    memcpy(file->fsdata, &metadata, sizeof(cpio_metadata_t));
+    file->io.data_ptr = kmalloc(sizeof(cpio_metadata_t));
+    memcpy(file->io.data_ptr, &metadata, sizeof(cpio_metadata_t));
 
     return true;
 }
 
-bool cpio_read(file_t *file, void *buf, size_t size, size_t *bytes_read)
+bool cpio_read(fsnode_t *file, void *buf, size_t size, size_t *bytes_read)
 {
     return true;
 }
 
-bool cpio_close(file_t *file)
+bool cpio_close(fsnode_t *file)
 {
     return true;
 }
 
-bool cpio_stat(const mountpoint_t *m, const path_t *path, const char *strpath, file_stat_t *stat)
+bool cpio_stat(const mountpoint_t *mp, const fsnode_t *path, file_stat_t *stat)
 {
-    MOS_UNUSED(path);
+    const char *strpath = path_to_string_relative(mp->path, path);
     cpio_metadata_t metadata;
-    bool result = cpio_read_metadata(m->dev, strpath, &metadata);
+    bool result = cpio_read_metadata(mp->dev, strpath, &metadata);
     if (!result)
         return false;
+
+    stat->size = metadata.data_length;
 
     stat->uid.uid = strntoll(metadata.header.uid, NULL, 16, sizeof(metadata.header.uid) / sizeof(char));
     stat->gid.gid = strntoll(metadata.header.gid, NULL, 16, sizeof(metadata.header.gid) / sizeof(char));
 
     //  0000777  The lower 9 bits specify read/write/execute permissions for world, group, and user following standard POSIX conventions.
-
     u32 modebits = strntoll(metadata.header.mode, NULL, 16, sizeof(metadata.header.mode) / sizeof(char));
     stat->permissions.other = (modebits & 0007) >> 0;
     stat->permissions.group = (modebits & 0070) >> 3;
     stat->permissions.owner = (modebits & 0700) >> 6;
 
-    // 0170000 :: This masks the file type bits.
-    // 0140000 :: File type value for sockets.
-    // 0120000 :: File type value for symbolic links.  For symbolic links, the link body is stored as file data.
-    // 0100000 :: File type value for regular files.
-    // 0060000 :: File type value for block special devices.
-    // 0040000 :: File type value for directories.
-    // 0020000 :: File type value for character special devices.
-    // 0010000 :: File type value for named pipes or FIFOs.
-    // 0004000 :: SUID bit.
-    // 0002000 :: SGID bit.
-    // 0001000 :: Sticky bit.
+    stat->sticky = modebits & CPIO_MODE_STICKY;
+    stat->sgid = modebits & CPIO_MODE_SGID;
+    stat->suid = modebits & CPIO_MODE_SUID;
 
-    stat->sticky = modebits & 0001000;
-    stat->sgid = modebits & 0002000;
-    stat->suid = modebits & 0004000;
-    switch (modebits & 0170000)
+    switch (modebits & CPIO_MODE_FILE_TYPE)
     {
-        case 0140000: stat->type = FILE_TYPE_SOCKET; break;
-        case 0120000: stat->type = FILE_TYPE_SYMLINK; break;
-        case 0100000: stat->type = FILE_TYPE_FILE; break;
-        case 0060000: stat->type = FILE_TYPE_BLOCK_DEVICE; break;
-        case 0040000: stat->type = FILE_TYPE_DIRECTORY; break;
-        case 0020000: stat->type = FILE_TYPE_CHAR_DEVICE; break;
-        case 0010000: stat->type = FILE_TYPE_NAMED_PIPE; break;
+        case CPIO_MODE_FILE: stat->type = FILE_TYPE_REGULAR_FILE; break;
+        case CPIO_MODE_DIR: stat->type = FILE_TYPE_DIRECTORY; break;
+        case CPIO_MODE_SYMLINK: stat->type = FILE_TYPE_SYMLINK; break;
+        case CPIO_MODE_CHARDEV: stat->type = FILE_TYPE_CHAR_DEVICE; break;
+        case CPIO_MODE_BLOCKDEV: stat->type = FILE_TYPE_BLOCK_DEVICE; break;
+        case CPIO_MODE_FIFO: stat->type = FILE_TYPE_NAMED_PIPE; break;
+        case CPIO_MODE_SOCKET: stat->type = FILE_TYPE_SOCKET; break;
         default: mos_warn("invalid cpio file mode"); return -1;
     }
     return true;
 }
 
-bool cpio_readlink(const mountpoint_t *m, const path_t *path, const char *strpath, char *buf, size_t bufsize)
+bool cpio_readlink(const mountpoint_t *mp, const fsnode_t *path, char *buf, size_t bufsize)
 {
-    MOS_UNUSED(path);
+    const char *strpath = path_to_string_relative(mp->path, path);
     cpio_metadata_t metadata;
-    bool result = cpio_read_metadata(m->dev, strpath, &metadata);
+    bool result = cpio_read_metadata(mp->dev, strpath, &metadata);
     if (!result)
         return false;
     u32 modebits = strntoll(metadata.header.mode, NULL, 16, sizeof(metadata.header.mode) / sizeof(char));
@@ -206,7 +202,7 @@ bool cpio_readlink(const mountpoint_t *m, const path_t *path, const char *strpat
 
     u32 limit = metadata.data_length < bufsize ? metadata.data_length : bufsize;
 
-    read = m->dev->read(m->dev, buf, limit, metadata.data_offset);
+    read = mp->dev->read(mp->dev, buf, limit, metadata.data_offset);
     if (read != limit)
     {
         mos_warn("cpio_readlink: failed to read link");

@@ -3,6 +3,7 @@
 #include "lib/string.h"
 
 #include "mos/mm/kmalloc.h"
+#include "mos/printk.h"
 
 size_t strlen(const char *str)
 {
@@ -120,8 +121,9 @@ void strncpy(char *dest, const char *src, size_t n)
     }
 }
 
-const char *alloc_string(const char *src, size_t len)
+const char *duplicate_string_n(const char *src, size_t len)
 {
+    MOS_ASSERT(len >= 0);
     char *dst = kmalloc(len + 1);
     strncpy(dst, src, len);
     dst[len] = '\0';
@@ -161,4 +163,15 @@ s64 strntoll(const char *str, char **endptr, int base, size_t n)
     if (endptr)
         *endptr = (char *) str;
     return negative ? -result : result;
+}
+
+char *strchr(const char *s, int c)
+{
+    while (*s)
+    {
+        if (*s == c)
+            return (char *) s;
+        s++;
+    }
+    return NULL;
 }

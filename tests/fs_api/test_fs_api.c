@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/filesystem/path.h"
+#include "lib/containers.h"
+#include "lib/structures/tree.h"
+#include "mos/filesystem/filesystem.h"
+#include "mos/filesystem/pathutils.h"
 #include "test_engine.h"
 #include "test_engine_impl.h"
 
 MOS_TEST_CASE(test_fs_api_path_is_prefix)
 {
-    path_t root = {
+    fsnode_t root = {
         .name = "/",
         .tree_node = {
             .parent = tree_node(&root),
@@ -16,7 +19,7 @@ MOS_TEST_CASE(test_fs_api_path_is_prefix)
     };
 
     // /bin
-    path_t bin = {
+    fsnode_t bin = {
         .name = "bin",
         .tree_node = {
             .parent = tree_node(&root),
@@ -26,7 +29,7 @@ MOS_TEST_CASE(test_fs_api_path_is_prefix)
     };
 
     // /bin/tools
-    path_t bin_tools = {
+    fsnode_t bin_tools = {
         .name = "tools",
         .tree_node = {
             .parent = tree_node(&bin),
@@ -36,7 +39,7 @@ MOS_TEST_CASE(test_fs_api_path_is_prefix)
     };
 
     // /temp
-    path_t temp = {
+    fsnode_t temp = {
         .name = "temp",
         .tree_node = {
             .parent = tree_node(&root),

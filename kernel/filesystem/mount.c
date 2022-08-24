@@ -3,15 +3,13 @@
 #include "mos/filesystem/mount.h"
 
 #include "lib/string.h"
-#include "lib/structures/hashmap.h"
-#include "mos/filesystem/fs_fwd.h"
-#include "mos/filesystem/path.h"
+#include "mos/device/block.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
 
 static mountpoint_t *rootmp = NULL;
 
-void kmount_add_mount(mountpoint_t *new_mp)
+void kmount_add_mp(mountpoint_t *new_mp)
 {
     if (rootmp == NULL)
     {
@@ -20,7 +18,7 @@ void kmount_add_mount(mountpoint_t *new_mp)
         return;
     }
 
-    mountpoint_t *parent = kmount_find_under(rootmp, new_mp->path);
+    mountpoint_t *parent = kmount_find_submp(rootmp, new_mp->path);
     if (parent == NULL)
     {
         mos_warn("mountpoint %s cannot be placed in tree", new_mp->path->name);
@@ -33,7 +31,7 @@ void kmount_add_mount(mountpoint_t *new_mp)
     parent->children[parent->children_count] = new_mp;
 }
 
-mountpoint_t *kmount(path_t *path, filesystem_t *fs, blockdev_t *blockdev)
+mountpoint_t *kmount(fsnode_t *path, filesystem_t *fs, blockdev_t *blockdev)
 {
     MOS_ASSERT(path != NULL);
     MOS_ASSERT(fs != NULL);
@@ -56,7 +54,7 @@ mountpoint_t *kmount(path_t *path, filesystem_t *fs, blockdev_t *blockdev)
         return NULL;
     }
 
-    kmount_add_mount(new_mp);
+    kmount_add_mp(new_mp);
     return new_mp;
 }
 
@@ -87,15 +85,15 @@ bool kunmount(mountpoint_t *mountpoint)
     return true;
 }
 
-mountpoint_t *kmount_find(path_t *path)
+mountpoint_t *kmount_find_mp(fsnode_t *path)
 {
     if (unlikely(rootmp == NULL))
         return NULL;
 
-    return kmount_find_under(rootmp, path);
+    return kmount_find_submp(rootmp, path);
 }
 
-mountpoint_t *kmount_find_under(mountpoint_t *mp, path_t *path)
+mountpoint_t *kmount_find_submp(mountpoint_t *mp, fsnode_t *path)
 {
     if (mp->children == NULL)
         return mp;

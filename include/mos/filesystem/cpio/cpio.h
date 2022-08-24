@@ -2,9 +2,7 @@
 
 #pragma once
 
-#include "mos/filesystem/file.h"
 #include "mos/filesystem/filesystem.h"
-#include "mos/filesystem/path.h"
 #include "mos/types.h"
 
 typedef struct
@@ -37,9 +35,6 @@ typedef struct
 
     size_t data_offset;
     size_t data_length;
-
-    u32 ino;
-    u32 nlink;
 } cpio_metadata_t;
 
 static_assert(sizeof(cpio_newc_header_t) == 110, "cpio_newc_header has wrong size");

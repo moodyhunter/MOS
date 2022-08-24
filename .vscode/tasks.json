@@ -36,9 +36,7 @@
                 "-d",
                 "qemu-system-i386",
                 "-m",
-                "2G",
-                "-smp",
-                "4",
+                "3G",
                 "-kernel",
                 "${workspaceFolder}/build/mos_multiboot.bin",
                 "-s",
@@ -50,7 +48,7 @@
                 "-append",
                 "console=ttyS0,115200n8 init=/init debug mos_tests_skip_prefix=kmalloc_",
                 "-initrd",
-                "/home/moody/initramfs-linux.img.uncompressed"
+                "/home/moody/Projects/MOS/build/initrd.cpio"
             ],
             "problemMatcher": [],
             "group": "none",

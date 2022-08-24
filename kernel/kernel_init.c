@@ -4,10 +4,9 @@
 #include "mos/cmdline.h"
 #include "mos/device/block.h"
 #include "mos/filesystem/cpio/cpio.h"
-#include "mos/filesystem/file.h"
-#include "mos/filesystem/fs_fwd.h"
+#include "mos/filesystem/filesystem.h"
 #include "mos/filesystem/mount.h"
-#include "mos/filesystem/path.h"
+#include "mos/filesystem/pathutils.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging.h"
 #include "mos/mos_global.h"
@@ -66,18 +65,8 @@ void mos_start_kernel(const char *cmdline)
 
     kmount(&root_path, &fs_cpio, dev);
 
-    file_stat_t stat;
-    if (!file_stat("/init", &stat))
-        mos_panic("failed to stat /init");
-
-    // print init info
-    char perm[9];
-    file_format_perm(stat.permissions, perm);
-    pr_info("init: %zu bytes", stat.size);
-    pr_info("      %s", perm);
-    pr_info("      owner: %d, group: %d", stat.uid.uid, stat.gid.gid);
-
-    void *init = kmalloc(stat.size);
+    // if (!file_read("/init", init, stat.size))
+    //     mos_panic("failed to read /init");
 
     while (1)
         ;

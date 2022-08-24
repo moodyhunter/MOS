@@ -30,7 +30,7 @@ cmdline_t *mos_cmdline_create(const char *cmdline)
             const char *start = cmdline;
             while (*cmdline && !((*cmdline) == ' ' || (*cmdline) == '='))
                 cmdline++;
-            arg->arg_name = alloc_string(start, cmdline - start);
+            arg->arg_name = duplicate_string_n(start, cmdline - start);
         }
 
         // the option has parameters
@@ -64,7 +64,7 @@ cmdline_t *mos_cmdline_create(const char *cmdline)
                 while (*cmdline && *cmdline != ' ' && *cmdline != ',')
                     cmdline++;
 
-                param->val.string = alloc_string(param_start, cmdline - param_start);
+                param->val.string = duplicate_string_n(param_start, cmdline - param_start);
             }
 
             MOS_ASSERT(*cmdline == ' ' || *cmdline == ',' || *cmdline == '\0');

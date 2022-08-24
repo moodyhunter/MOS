@@ -39,8 +39,8 @@ const tree_node_t *tree_find_child_by_name(tree_op_t *op, const tree_node_t *nod
 
         char *child_name = NULL;
         size_t child_name_len = 0;
-        op->get_node_name(child, name_len, &child_name, &child_name_len);
-        if (strncmp(child_name, name, child_name_len) == 0)
+        op->get_node_name(child, &child_name, &child_name_len);
+        if (name_len == child_name_len && strncmp(name, child_name, name_len) == 0)
             return child;
     }
     return NULL;
