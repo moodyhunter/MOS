@@ -64,7 +64,7 @@ const char *path_next_segment(const char *path, size_t *segment_len)
     return next;
 }
 
-fsnode_t *path_contruct(const char *path)
+fsnode_t *path_construct(const char *path)
 {
     fsnode_t *target;
     bool resolved = path_resolve(&root_path, path, &target);

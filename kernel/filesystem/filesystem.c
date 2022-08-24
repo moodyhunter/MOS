@@ -33,7 +33,7 @@ tree_op_t path_tree_op = {
 
 fsnode_t *vfs_open(const char *path, file_open_flags flags)
 {
-    fsnode_t *p = path_contruct(path);
+    fsnode_t *p = path_construct(path);
     bool opened = vfs_path_open(p, flags);
     if (!opened)
     {
@@ -45,7 +45,7 @@ fsnode_t *vfs_open(const char *path, file_open_flags flags)
 
 bool vfs_stat(const char *path, file_stat_t *restrict stat)
 {
-    fsnode_t *p = path_contruct(path);
+    fsnode_t *p = path_construct(path);
     bool opened = vfs_path_stat(p, stat);
     if (!opened)
     {
@@ -57,7 +57,7 @@ bool vfs_stat(const char *path, file_stat_t *restrict stat)
 
 fsnode_t *vfs_readlink(const char *path)
 {
-    fsnode_t *p = path_contruct(path);
+    fsnode_t *p = path_construct(path);
     fsnode_t *target = kmalloc(sizeof(fsnode_t));
     bool opened = vfs_path_readlink(p, &target);
     if (!opened)
