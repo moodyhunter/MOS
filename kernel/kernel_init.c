@@ -59,19 +59,28 @@ void mos_start_kernel(const char *cmdline)
         mos_test_engine_run_tests();
     }
 
+    const char *init_path = "/init";
+
+    cmdline_arg_t *arg = mos_cmdline_get_arg("init");
+    if (arg && arg->param_count > 0 && arg->params[0]->param_type == CMDLINE_PARAM_TYPE_STRING)
+        init_path = arg->params[0]->val.string;
+
     blockdev_t *dev = blockdev_find("initrd");
     if (!dev)
         mos_panic("no initrd found");
+    pr_info("found initrd block device: %s", dev->name);
 
-    kmount(&root_path, &fs_cpio, dev);
+    mountpoint_t *mount = kmount(&root_path, &fs_cpio, dev);
+    if (!mount)
+        mos_panic("failed to mount initrd");
 
-    file_t *initrd_txt = vfs_open("/initrd.txt", OPEN_READ);
-    if (!initrd_txt)
-        mos_panic("no initrd.txt found");
+    file_t *init_file = vfs_open(init_path, OPEN_READ);
+    if (!init_file)
+        mos_panic("failed to open init");
 
-    char *initrd_txt_buf = kmalloc(500);
-    size_t r = io_read(&initrd_txt->io, initrd_txt_buf, 1024);
-    pr_info("initrd.txt: %.*s", r, initrd_txt_buf);
+    char *initrd_data = kmalloc(init_file->io.size);
+    size_t r = io_read(&init_file->io, initrd_data, init_file->io.size);
+    pr_info("%s: %.*s", init_path, (int) r, initrd_data);
 
     while (1)
         ;

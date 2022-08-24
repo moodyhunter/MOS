@@ -6,29 +6,25 @@
 
 void io_ref(io_t *io)
 {
-    pr_info2("io_ref(%p)", (void *) io);
+    mos_debug("io_ref(%p)", (void *) io);
     io->refcount.atomic++;
 }
 
 void io_unref(io_t *io)
 {
-    pr_info2("io_unref(%p)", (void *) io);
-    if (--io->refcount.atomic == 0)
-    {
-        if (unlikely(!io->ops->close))
-        {
-            mos_warn("io_unref: no close function");
-            return;
-        }
-        io->ops->close(io);
-    }
+    mos_debug("io_unref(%p)", (void *) io);
+    io->refcount.atomic--;
+    if (io->refcount.atomic > 0)
+        return;
+
+    io_close(io);
 }
 
 size_t io_read(io_t *io, void *buf, size_t count)
 {
     if (unlikely(!io->ops->read))
     {
-        mos_warn("io_read: no read function");
+        mos_warn_once("io_read: no read function");
         return 0;
     }
     return io->ops->read(io, buf, count);

@@ -15,7 +15,7 @@ typedef enum
 {
     OPEN_READ = 1 << 0,
     OPEN_WRITE = 1 << 1,
-    OPEN_NO_FOLLOW = 1 << 2,
+    OPEN_SYMLINK_NO_FOLLOW = 1 << 2,
 } file_open_flags;
 
 typedef struct
@@ -87,7 +87,6 @@ typedef struct _fsnode
 typedef struct _file
 {
     io_t io;
-    u64 offset;
     fsnode_t *fsnode;
 } file_t;
 
