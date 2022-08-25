@@ -47,7 +47,7 @@ typedef struct
     void (*mm_page_set_flags)(void *vaddr, size_t n, paging_entry_flags flags);
 
     // process management
-    void (*usermode_trampoline)(void *exec_addr);
+    void (*usermode_trampoline)(uintptr_t stack, uintptr_t entry, uintptr_t arg);
 } mos_platform_t;
 
 extern const mos_platform_t mos_platform;

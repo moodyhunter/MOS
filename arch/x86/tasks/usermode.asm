@@ -2,15 +2,15 @@
 
 global x86_usermode_trampoline:function (x86_usermode_trampoline.end - x86_usermode_trampoline)
 
-global jump_to_usermain:function (jump_to_usermain.end - jump_to_usermain)
-
 extern main
 
 x86_usermode_trampoline:
-    .end:
-jump_to_usermain:
-    mov     eax, [esp + 4]
-    mov     ebx, [esp + 8]
+    cli
+    add     esp, 4          ; remove ebp from the stack
+    pop     edx             ; stack pointer
+    pop     ebx             ; entry point (eip)
+    pop     eax             ; eax = arg
+    mov     [edx + 4], eax  ; move arg to the new stack
 
     mov     cx, 0x20 | 3    ; user data segment + ring 3
     mov     ds, cx
@@ -19,10 +19,10 @@ jump_to_usermain:
     mov     gs, cx
 
     push    0x20 | 3        ; user data segment + ring 3
-    push    ebx             ; esp
+    push    edx             ; esp
     pushf                   ; eflags
     push    0x18 | 3        ; user code segment + ring 3
-    push    eax             ; eip
+    push    ebx             ; eip
     iret
 .end:
 

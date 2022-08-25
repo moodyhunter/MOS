@@ -69,9 +69,9 @@ void x86_ap_gdt_init();
 void x86_idt_init();
 void x86_tss_init();
 
-// The following 3 symbols are defined in the descriptor_flush.asm file.
+// The following 5 symbols are defined in the descriptor_flush.asm file.
 extern void gdt32_flush(gdt_ptr32_t *gdt_ptr);
 extern void idt32_flush(idtr32_t *idtr);
 extern void tss32_flush(u32 tss_selector);
 extern void gdt32_flush_only(gdt_ptr32_t *gdt_ptr);
-extern void x86_usermode_trampoline(void *exec_addr);
+extern void x86_usermode_trampoline(uintptr_t stack_pointer, uintptr_t entry_point, uintptr_t arg);

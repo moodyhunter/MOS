@@ -61,9 +61,9 @@ void mos_start_kernel(const char *cmdline)
 
     const char *init_path = "/init";
 
-    cmdline_arg_t *arg = mos_cmdline_get_arg("init");
-    if (arg && arg->param_count > 0 && arg->params[0]->param_type == CMDLINE_PARAM_TYPE_STRING)
-        init_path = arg->params[0]->val.string;
+    cmdline_arg_t *init_arg = mos_cmdline_get_arg("init");
+    if (init_arg && init_arg->param_count > 0 && init_arg->params[0]->param_type == CMDLINE_PARAM_TYPE_STRING)
+        init_path = init_arg->params[0]->val.string;
 
     blockdev_t *dev = blockdev_find("initrd");
     if (!dev)
@@ -82,19 +82,17 @@ void mos_start_kernel(const char *cmdline)
     size_t r = io_read(&init_file->io, initrd_data, init_file->io.size);
     pr_info("%s: %.*s", init_path, (int) r, initrd_data);
 
-    while (1)
-        ;
-#if 0
     // create the init process
     extern void main(void *arg);
     uintptr_t init_entry_addr = (uintptr_t) &main;
+    uintptr_t arg = 20200825;
 
     MOS_ASSERT_X(mos_platform.usermode_trampoline, "platform doesn't have a usermode trampoline");
 
     process_id_t pid1 = { 1 };
     uid_t uid0 = { 0 };
 
-    process_id_t init_pid = create_process(pid1, uid0, mos_platform.usermode_trampoline, (void *) init_entry_addr);
+    process_id_t init_pid = create_process(pid1, uid0, main, &arg);
     MOS_ASSERT(init_pid.process_id == 1);
 
     thread_t *init_thread = get_thread((thread_id_t){ 1 });
@@ -106,11 +104,10 @@ void mos_start_kernel(const char *cmdline)
     pr_warn("stack: %#.8x", (u32) init_thread->stack.head);
     pr_warn("stack base: %#.8x", (u32) init_thread->stack.base);
 
-    jump_to_usermain(init_entry_addr, (uintptr_t) init_thread->stack.head);
-
-    // schedule
-    schedule();
-#endif
+    // !! FIXME: Use scheduler to switch to the init thread
+    // !  this call won't return
+    mos_platform.usermode_trampoline((uintptr_t) init_thread->stack.head, init_entry_addr, arg);
+    MOS_UNREACHABLE();
 }
 
 thread_t *context_switch(thread_t *cur, thread_t *next);

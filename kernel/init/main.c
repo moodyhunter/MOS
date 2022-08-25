@@ -3,9 +3,9 @@
 #include "mos/syscall.h"
 #include "mos/types.h"
 
-void main()
+void main(uintptr_t arg)
 {
-    s32 x = syscall0(1313);
+    s32 x = syscall0(arg);
 
     while (x < 40)
     {
