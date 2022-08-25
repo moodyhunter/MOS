@@ -35,7 +35,7 @@ typedef struct process
     process_id_t pid;
     process_id_t parent_pid;
     uid_t effective_uid;
-    page_dir_t *page_dir;
+    paging_handle_t pagetable;
     file_descriptor_t *file_table[MAX_FD_COUNT];
     thread_id_t main_thread_id;
 } process_t;

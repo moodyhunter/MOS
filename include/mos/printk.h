@@ -2,8 +2,13 @@
 
 #pragma once
 
+#include "mos/kconfig.h"
 #include "mos/mos_global.h"
 #include "mos/types.h"
+
+#ifndef MOS_PRINTK_HAS_FILENAME
+#error "MOS_PRINTK_HAS_FILENAME must be defined"
+#endif
 
 #define PRINTK_BUFFER_SIZE 1024
 

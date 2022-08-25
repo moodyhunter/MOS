@@ -48,7 +48,7 @@
                 "-serial",
                 "chardev:serial_log",
                 "-append",
-                "init=/initrd.txt mos_tests_skip_prefix=kmalloc_",
+                "init=/init  mos_tests",
                 "-initrd",
                 "/home/moody/Projects/MOS/build/initrd.cpio"
             ],

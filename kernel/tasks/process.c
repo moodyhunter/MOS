@@ -54,7 +54,7 @@ process_id_t create_process(process_id_t parent_pid, uid_t euid, thread_entry_t 
     process->parent_pid = parent_pid;
 
     // TODO: create page directory
-    process->page_dir = NULL;
+    process->pagetable.ptr = 0;
 
     // TODO: allocate memory for the process
     process->main_thread_id = create_thread(process->pid, THREAD_FLAG_USERMODE, entry, arg);

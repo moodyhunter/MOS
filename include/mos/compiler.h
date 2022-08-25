@@ -23,9 +23,9 @@
 #endif
 
 #if __SIZEOF_LONG__ == 8
-#define MOS_64BITS
+#define MOS_64BITS 1
 #else
-#define MOS_32BITS
+#define MOS_32BITS 1
 #endif
 
 #define MOS_LITTLE_ENDIAN

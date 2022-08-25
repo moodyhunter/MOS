@@ -40,8 +40,8 @@ SECTIONS
     __MOS_X86_PAGING_AREA_START = .;
     . += 4K;
     . = ALIGN(0x1000);
-    __MOS_X86_PAGE_TABLE_START = .;
     . += 4M;
+    . += 1M;    /* !! FIXME: for the stupid page map !! */
     __MOS_X86_PAGING_AREA_END = .;
     __MOS_SECTION_KERNEL_END = .;
 }

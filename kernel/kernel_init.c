@@ -3,10 +3,12 @@
 #include "lib/structures/hashmap.h"
 #include "mos/cmdline.h"
 #include "mos/device/block.h"
+#include "mos/elf/elf.h"
 #include "mos/filesystem/cpio/cpio.h"
 #include "mos/filesystem/filesystem.h"
 #include "mos/filesystem/mount.h"
 #include "mos/filesystem/pathutils.h"
+#include "mos/kconfig.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging.h"
 #include "mos/mos_global.h"
@@ -74,39 +76,64 @@ void mos_start_kernel(const char *cmdline)
     if (!mount)
         mos_panic("failed to mount initrd");
 
+    pr_info("Loading init program '%s'", init_path);
+
     file_t *init_file = vfs_open(init_path, OPEN_READ);
     if (!init_file)
         mos_panic("failed to open init");
 
     char *initrd_data = kmalloc(init_file->io.size);
     size_t r = io_read(&init_file->io, initrd_data, init_file->io.size);
-    pr_info("%s: %.*s", init_path, (int) r, initrd_data);
+    MOS_ASSERT_X(r == init_file->io.size, "failed to read init");
+
+    elf_header_t *header = (elf_header_t *) initrd_data;
+    elf_verify_result verify_result = mos_elf_verify_header(header);
+    if (verify_result != ELF_VERIFY_OK)
+    {
+        switch (verify_result)
+        {
+            case ELF_VERIFY_INVALID_ENDIAN: pr_emerg("Invalid ELF endianness"); break;
+            case ELF_VERIFY_INVALID_MAGIC: pr_emerg("Invalid ELF magic"); break;
+            case ELF_VERIFY_INVALID_MAGIC_ELF: pr_emerg("Invalid ELF magic: 'ELF'"); break;
+            case ELF_VERIFY_INVALID_VERSION: pr_emerg("Invalid ELF version"); break;
+            case ELF_VERIFY_INVALID_BITS: pr_emerg("Invalid ELF bits"); break;
+            case ELF_VERIFY_INVALID_OSABI: pr_emerg("Invalid ELF OS ABI"); break;
+            default: MOS_UNREACHABLE();
+        }
+
+        mos_panic("failed to verify 'init' ELF header for '%s'", init_path);
+    }
+
+    if (header->object_type != ELF_OBJECT_EXECUTABLE)
+        mos_panic("'init' is not an executable");
+
+    elf_program_header_t *program_header __maybe_unused = (elf_program_header_t *) (initrd_data + header->program_header_offset);
 
     // create the init process
-    extern void main(void *arg);
-    uintptr_t init_entry_addr = (uintptr_t) &main;
-    uintptr_t arg = 20200825;
+    // extern void main(void *arg);
+    // uintptr_t init_entry_addr = (uintptr_t) &main;
+    // uintptr_t arg = 20200825;
 
     MOS_ASSERT_X(mos_platform.usermode_trampoline, "platform doesn't have a usermode trampoline");
 
-    process_id_t pid1 = { 1 };
-    uid_t uid0 = { 0 };
+    // process_id_t pid1 = { 1 };
+    // uid_t uid0 = { 0 };
 
-    process_id_t init_pid = create_process(pid1, uid0, main, &arg);
-    MOS_ASSERT(init_pid.process_id == 1);
+    // process_id_t init_pid = create_process(pid1, uid0, main, &arg);
+    // MOS_ASSERT(init_pid.process_id == 1);
 
-    thread_t *init_thread = get_thread((thread_id_t){ 1 });
+    // thread_t *init_thread = get_thread((thread_id_t){ 1 });
 
-    // !! FIXME
-    tss_entry.esp0 = (u32) kpage_alloc(1) + mos_platform.mm_page_size;
-    pr_warn("esp0: %#.8x", tss_entry.esp0);
-    pr_warn("entry: %#.8x", (u32) init_entry_addr);
-    pr_warn("stack: %#.8x", (u32) init_thread->stack.head);
-    pr_warn("stack base: %#.8x", (u32) init_thread->stack.base);
+    // // !! FIXME
+    // tss_entry.esp0 = (u32) kpage_alloc(1) + mos_platform.mm_page_size;
+    // pr_warn("esp0: %#.8x", tss_entry.esp0);
+    // pr_warn("entry: %#.8x", (u32) init_entry_addr);
+    // pr_warn("stack: %#.8x", (u32) init_thread->stack.head);
+    // pr_warn("stack base: %#.8x", (u32) init_thread->stack.base);
 
-    // !! FIXME: Use scheduler to switch to the init thread
-    // !  this call won't return
-    mos_platform.usermode_trampoline((uintptr_t) init_thread->stack.head, init_entry_addr, arg);
+    // // !! FIXME: Use scheduler to switch to the init thread
+    // // !  this call won't return
+    // mos_platform.usermode_trampoline((uintptr_t) init_thread->stack.head, init_entry_addr, arg);
     MOS_UNREACHABLE();
 }
 

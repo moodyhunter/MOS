@@ -16,7 +16,7 @@ typedef enum
     VM_WRITE_THROUGH = 1 << 3,
     VM_CACHE_DISABLED = 1 << 4,
     VM_ACCESSED = 1 << 5,
-} paging_entry_flags;
+} page_flags;
 
 typedef struct
 {
@@ -42,9 +42,13 @@ typedef struct
 
     // memory management
     size_t mm_page_size;
-    void *(*mm_page_allocate)(size_t n);
-    bool (*mm_page_free)(void *vaddr, size_t n);
-    void (*mm_page_set_flags)(void *vaddr, size_t n, paging_entry_flags flags);
+    paging_handle_t kernel_pg;
+
+    void (*mm_usermode_pgd_alloc)(paging_handle_t *table);
+    void (*mm_usermode_pgd_deinit)(paging_handle_t table);
+    void *(*mm_pg_alloc)(paging_handle_t table, size_t n);
+    bool (*mm_pg_free)(paging_handle_t table, uintptr_t vaddr, size_t n);
+    void (*mm_pg_flag)(paging_handle_t table, uintptr_t vaddr, size_t n, page_flags flags);
 
     // process management
     void (*usermode_trampoline)(uintptr_t stack, uintptr_t entry, uintptr_t arg);

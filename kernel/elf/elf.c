@@ -4,15 +4,9 @@
 
 #include "lib/string.h"
 
-#ifdef MOS_32BITS
-static_assert(sizeof(elf_header_t) == 0x34, "elf_header has wrong size");
-static_assert(sizeof(elf_program_header_t) == 0x20, "elf_program_header has wrong size");
-static_assert(sizeof(elf_section_header_t) == 0x28, "elf_section_header has wrong size");
-#else
-static_assert(sizeof(elf_header_t) == 0x40, "elf_header has wrong size");
-static_assert(sizeof(elf_program_header_t) == 0x38, "elf_program_header has wrong size");
-static_assert(sizeof(elf_section_header_t) == 0x40, "elf_section_header has wrong size");
-#endif
+static_assert(sizeof(elf_header_t) == (MOS_32BITS ? 0x34 : 0x40), "elf_header has wrong size");
+static_assert(sizeof(elf_program_header_t) == (MOS_32BITS ? 0x20 : 0x38), "elf_program_header has wrong size");
+static_assert(sizeof(elf_section_header_t) == (MOS_32BITS ? 0x28 : 0x40), "elf_section_header has wrong size");
 
 elf_verify_result mos_elf_verify_header(elf_header_t *header)
 {
@@ -31,8 +25,8 @@ elf_verify_result mos_elf_verify_header(elf_header_t *header)
     if (header->identity.version != ELF_VERSION_CURRENT)
         return ELF_VERIFY_INVALID_VERSION;
 
-    if (header->identity.osabi != ELF_OSABI_MOS)
+    if (header->identity.osabi != ELF_OSABI_NONE)
         return ELF_VERIFY_INVALID_OSABI;
 
-    return true;
+    return ELF_VERIFY_OK;
 }

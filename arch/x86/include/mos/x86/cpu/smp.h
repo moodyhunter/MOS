@@ -2,4 +2,6 @@
 
 #pragma once
 
-void x86_smp_init();
+typedef struct x86_pg_infra_t x86_pg_infra_t;
+
+void x86_smp_init(x86_pg_infra_t *pg);

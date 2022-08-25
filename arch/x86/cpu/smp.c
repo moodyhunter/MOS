@@ -8,7 +8,7 @@
 #include "mos/x86/cpu/cpuid.h"
 #include "mos/x86/interrupt/apic.h"
 #include "mos/x86/interrupt/pic.h"
-#include "mos/x86/mm/paging.h"
+#include "mos/x86/mm/paging_impl.h"
 #include "mos/x86/x86_platform.h"
 
 #define x86_ap_trampoline_ADDR 0x8000
@@ -59,7 +59,7 @@ void mdelay()
         x++;
 }
 
-void x86_cpu_start(int apic_id)
+void x86_cpu_start(int apic_id, uintptr_t stack_addr)
 {
     apic_interrupt_full(0, apic_id, APIC_DELIVER_MODE_INIT, APIC_DEST_MODE_PHYSICAL, true, true, APIC_SHORTHAND_NONE);
     mdelay();
@@ -81,8 +81,7 @@ void x86_cpu_start(int apic_id)
     pr_info2("smp: received startup from cpu %u", apic_id);
 
     // allocate stack for ap
-    ap_stack_addr = (uintptr_t) x86_mm_alloc_pages(4);
-    pr_info2("smp: allocated stack for cpu %u at " PTR_FMT, apic_id, ap_stack_addr);
+    ap_stack_addr = stack_addr;
     ap_state = AP_STATUS_STACK_ALLOCATED;
     while (ap_state != AP_STATUS_STACK_INITIALIZED)
         ;
@@ -94,7 +93,7 @@ void x86_cpu_start(int apic_id)
     ap_state = AP_STATUS_INVALID;
 }
 
-void x86_smp_init()
+void x86_smp_init(x86_pg_infra_t *pg)
 {
     pr_info("smp: initializing...");
     pr_info("smp: boot cpu:");
@@ -128,9 +127,12 @@ void x86_smp_init()
 
     for (u32 i = 0; i < x86_cpu_info.cpu_count; i++)
     {
-        if (lapics[i] == x86_cpu_info.bsp_apic_id)
+        u32 apic_id = lapics[i];
+        if (apic_id == x86_cpu_info.bsp_apic_id)
             continue;
-        pr_info("smp: starting AP %d, LAPIC %d", i, lapics[i]);
-        x86_cpu_start(lapics[i]);
+
+        uintptr_t stack = (uintptr_t) pg_page_alloc(pg, 4);
+        pr_info("smp: starting AP %d, LAPIC %d, stack " PTR_FMT, i, apic_id, stack);
+        x86_cpu_start(apic_id, stack);
     }
 }

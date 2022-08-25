@@ -63,7 +63,7 @@ thread_id_t create_thread(process_id_t owner_pid, thread_flags_t flags, thread_e
     stack_init(&thread->stack, page, THREAD_STACK_SIZE);
 
     if (flags & THREAD_FLAG_USERMODE)
-        mos_platform.mm_page_set_flags(page, thread_stack_pages, VM_PRESENT | VM_WRITABLE | VM_USERMODE);
+        mos_platform.mm_pg_flag(mos_platform.kernel_pg, (uintptr_t) page, thread_stack_pages, VM_PRESENT | VM_WRITABLE | VM_USERMODE);
 
     x86_context_t *ctx = stack_grow(&thread->stack, sizeof(x86_context_t));
     memset(ctx, 0, sizeof(x86_context_t));

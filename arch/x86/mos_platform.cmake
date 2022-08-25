@@ -41,6 +41,8 @@ add_kernel_source(
         interrupt/pic.c
         mm/mm.c
         mm/paging.c
+        mm/paging_impl.c
+        mm/pmem_freelist.c
         tasks/tss.c
         x86_platform.c
 )

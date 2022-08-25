@@ -9,6 +9,7 @@
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/types.h"
 #include "mos/x86/acpi/acpi.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/cpu/smp.h"
@@ -18,6 +19,8 @@
 #include "mos/x86/interrupt/pic.h"
 #include "mos/x86/mm/mm.h"
 #include "mos/x86/mm/paging.h"
+#include "mos/x86/mm/paging_impl.h"
+#include "mos/x86/mm/pmem_freelist.h"
 
 const uintptr_t x86_kernel_start = (uintptr_t) &__MOS_SECTION_KERNEL_START;
 const uintptr_t x86_kernel_end = (uintptr_t) &__MOS_SECTION_KERNEL_END;
@@ -71,7 +74,7 @@ void do_backtrace(u32 max)
 void x86_kpanic_hook()
 {
     pmem_freelist_dump();
-    page_table_dump();
+    x86_mm_dump_page_table(x86_get_pg_infra(mos_platform.kernel_pg));
     do_backtrace(20);
 }
 
@@ -141,19 +144,21 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     memblock_t initrd_memblock = x86_settle_initrd(mb_info);
 
     x86_mm_prepare_paging();
-    uintptr_t start_addr = X86_ALIGN_DOWN_TO_PAGE(initrd_memblock.paddr);
-    uintptr_t end_addr = X86_ALIGN_UP_TO_PAGE(initrd_memblock.size_bytes + initrd_memblock.paddr);
-    x86_vm_map_pages(start_addr, start_addr, (end_addr - start_addr) / X86_PAGE_SIZE, VM_PRESENT | VM_USERMODE);
+    x86_pg_infra_t *kpg_infra = x86_get_pg_infra(mos_platform.kernel_pg);
 
     x86_acpi_init();
-    x86_smp_init();
+    x86_smp_init(kpg_infra);
+
+    uintptr_t start_addr = X86_ALIGN_DOWN_TO_PAGE(initrd_memblock.paddr);
+    uintptr_t end_addr = X86_ALIGN_UP_TO_PAGE(initrd_memblock.size_bytes + initrd_memblock.paddr);
+    pg_map_pages(kpg_infra, start_addr, start_addr, (end_addr - start_addr) / X86_PAGE_SIZE, VM_PRESENT | VM_USERMODE);
 
     // ! map the bios memory area, should it be done like this?
     pr_info("mapping bios memory area...");
     memblock_t *bios_memblock = x86_mem_find_bios_block();
-    do_vm_map_pages(bios_memblock->paddr, bios_memblock->paddr, bios_memblock->size_bytes / X86_PAGE_SIZE, VM_PRESENT);
 
-    x86_mm_enable_paging();
+    pg_do_map_pages(kpg_infra, bios_memblock->paddr, bios_memblock->paddr, bios_memblock->size_bytes / X86_PAGE_SIZE, VM_PRESENT);
+    x86_mm_enable_paging(kpg_infra);
 
     mos_kernel_mm_init(); // since then, we can use the kernel heap (kmalloc)
 
@@ -188,9 +193,11 @@ const mos_platform_t mos_platform = {
 
     // memory management
     .mm_page_size = X86_PAGE_SIZE,
-    .mm_page_allocate = x86_mm_alloc_pages,
-    .mm_page_free = x86_mm_free_page,
-    .mm_page_set_flags = x86_mm_set_page_flags,
+    .mm_usermode_pgd_alloc = x86_um_pgd_init,
+    .mm_usermode_pgd_deinit = x86_um_pgd_deinit,
+    .mm_pg_alloc = x86_mm_pg_alloc,
+    .mm_pg_free = x86_mm_pg_free,
+    .mm_pg_flag = x86_mm_pg_flag,
 
     // process management
     .usermode_trampoline = x86_usermode_trampoline,

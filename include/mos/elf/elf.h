@@ -62,13 +62,13 @@ static_assert(sizeof(elf_identity_t) == 16, "elf_identity_t has wrong size");
 
 typedef enum
 {
-    ELF_OBJTYPE_NONE = 0,
-    ELF_OBJTYPE_RELOCATABLE = 1,
-    ELF_OBJTYPE_EXECUTABLE = 2,
-    ELF_OBJTYPE_SHARED_OBJECT = 3,
-    ELF_OBJTYPE_CORE = 4,
-    ELF_OBJTYPE_PROCESSOR_SPECIFIC_LO = 0xff00,
-    ELF_OBJTYPE_PROCESSOR_SPECIFIC_HI = 0xffff,
+    ELF_OBJECT_NONE = 0,
+    ELF_OBJECT_RELOCATABLE = 1,
+    ELF_OBJECT_EXECUTABLE = 2,
+    ELF_OBJECT_SHARED_OBJECT = 3,
+    ELF_OBJECT_CORE = 4,
+    ELF_OBJECT_PROCESSOR_SPECIFIC_LO = 0xff00,
+    ELF_OBJECT_PROCESSOR_SPECIFIC_HI = 0xffff,
 } elf_object_type;
 
 typedef enum
@@ -129,19 +129,19 @@ typedef enum
 
 typedef struct
 {
-    elf_program_header_type p_type;
+    elf_program_header_type seg_type;
 #ifdef MOS_64BITS
     u32 p_flags; // Segment independent flags (64-bit only)
 #endif
-    uintptr_t p_offset; // Offset of the segment in the file
-    uintptr_t p_vaddr;  // Virtual address of the segment
-    uintptr_t p_paddr;  // Physical address of the segment (reserved)
-    uintptr_t p_filesz; // Size of the segment in the file (may be 0)
-    uintptr_t p_memsz;  // Size of the segment in memory (may be 0)
+    uintptr_t data_offset;     // Offset of the segment in the file
+    uintptr_t seg_vaddr;       // Virtual address of the segment
+    uintptr_t _reserved;       //  reserved
+    uintptr_t segsize_in_file; // Size of the segment in the file (may be 0)
+    uintptr_t segsize_in_mem;  // Size of the segment in memory (may be 0)
 #ifdef MOS_32BITS
     u32 p_flags; // Segment independent flags (32-bit only)
 #endif
-    uintptr_t p_align;
+    uintptr_t required_alignment;
 } __packed elf_program_header_t;
 
 typedef enum

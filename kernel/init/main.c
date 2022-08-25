@@ -3,7 +3,7 @@
 #include "mos/syscall.h"
 #include "mos/types.h"
 
-void main(uintptr_t arg)
+void _start(uintptr_t arg)
 {
     s32 x = syscall0(arg);
 
