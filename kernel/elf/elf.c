@@ -10,8 +10,8 @@ static_assert(sizeof(elf_program_header_t) == 0x20, "elf_program_header has wron
 static_assert(sizeof(elf_section_header_t) == 0x28, "elf_section_header has wrong size");
 #else
 static_assert(sizeof(elf_header_t) == 0x40, "elf_header has wrong size");
-static_assert(sizeof(elf_program_header_t) == 0x30, "elf_program_header has wrong size");
-static_assert(sizeof(elf_section_header_t) == 0x38, "elf_section_header has wrong size");
+static_assert(sizeof(elf_program_header_t) == 0x38, "elf_program_header has wrong size");
+static_assert(sizeof(elf_section_header_t) == 0x40, "elf_section_header has wrong size");
 #endif
 
 elf_verify_result mos_elf_verify_header(elf_header_t *header)

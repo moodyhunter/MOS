@@ -20,6 +20,7 @@ typedef double f64;
 typedef long double f80;
 
 typedef unsigned long uintptr_t;
+static_assert(sizeof(uintptr_t) == sizeof(void *), "uintptr_t is not the same size as a pointer");
 
 // reg_t represents a register value
 typedef unsigned long reg_t;
@@ -30,7 +31,7 @@ typedef u64 reg64_t;
 #ifdef MOS_32BITS
 #define PTR_FMT "0x%8.8lx"
 #elif defined(MOS_64BITS)
-#define PTR_FMT "0x%16.16llx"
+#define PTR_FMT "0x%16.16lx"
 #else
 #error "Something is wrong with the architecture"
 #endif

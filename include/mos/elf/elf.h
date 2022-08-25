@@ -185,14 +185,18 @@ typedef struct
 {
     u32 name_index; // Section name (string table (.shstrtab) index)
     elf_section_header_type header_type;
+#ifdef MOS_64BITS
+    u64 attributes; // sizeof(long)
+#else
     elf_section_attribute attributes;
+#endif
     uintptr_t sh_addr;   // Virtual address of the section in memory, if loaded
     uintptr_t sh_offset; // Offset of the section in the file
-    uintptr_t sh_size;   // Size of the section in bytes
-    u32 sh_link : 32;
-    u32 sh_info : 32;
+    size_t sh_size;      // Size of the section in bytes
+    u32 sh_link;
+    u32 sh_info;
     uintptr_t sh_addralign;
-    uintptr_t sh_entsize;
+    size_t sh_entsize;
 } __packed elf_section_header_t;
 
 typedef enum

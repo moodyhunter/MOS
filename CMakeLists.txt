@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-include(cmake/toolchains/cross-i686.cmake)
+include(cmake/toolchains/mos_target_setup.cmake)
+mos_target_setup(x86 i686 32)
 
 cmake_minimum_required(VERSION 3.22)
 
@@ -10,16 +11,15 @@ set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_C_EXTENSIONS ON)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wpedantic -pedantic -fstack-protector-strong")
 
-# set(CMAKE_CXX_STANDARD 20)
-# set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
-# set(CMAKE_CXX_EXTENSIONS OFF)
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -pedantic")
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -pedantic")
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
-set(MOS_ARCH_TARGET "x86")
 option(MOS_MM_LIBALLOC_LOCKS "liballoc: has lock support" OFF)
 option(MOS_MM_LIBALLOC_DEBUG "liballoc: debug message enabled" OFF)
 option(MOS_ENABLE_DEBUG_LOG "Enable debug log" OFF)
@@ -30,10 +30,10 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
     include(${CMAKE_SOURCE_DIR}/config.cmake)
 endif()
 
-set(MOS_ARCH_CONFIG ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH_TARGET}/${MOS_ARCH_TARGET}.cmake)
+set(MOS_ARCH_CONFIG ${CMAKE_SOURCE_DIR}/arch/${MOS_TARGET_ARCH}/mos_platform.cmake)
 
 if (NOT EXISTS ${MOS_ARCH_CONFIG})
-    message(FATAL_ERROR "No configuration file for architecture '${MOS_ARCH_TARGET}'")
+    message(FATAL_ERROR "No configuration file for architecture '${MOS_TARGET_ARCH}'")
 endif()
 
 include(CTest)
@@ -97,7 +97,7 @@ mos_add_summary_section(KERNEL "MOS Kernel")
 mos_add_summary_item(KERNEL "Version" "${MOS_KERNEL_VERSION_STRING}")
 mos_add_summary_item(KERNEL "Revision" "${MOS_KERNEL_REVISION_STRING}")
 mos_add_summary_item(KERNEL "Builtin Cmdline" "${MOS_KERNEL_BUILTIN_CMDLINE_STRING}")
-mos_add_summary_item(KERNEL "Architecture" "${MOS_ARCH_TARGET}")
+mos_add_summary_item(KERNEL "Architecture" "${MOS_TARGET_ARCH}")
 
 mos_add_summary_section(MM "MOS Memory Management")
 mos_add_summary_item(MM "liballoc: locks" "${MOS_MM_LIBALLOC_LOCKS}")
