@@ -33,6 +33,15 @@ void kwarn_handler_remove()
 
 void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
 {
+    static bool is_panic = false;
+    if (is_panic)
+    {
+        pr_fatal("recursive panic detected, aborting...");
+        while (true)
+            ;
+    }
+    is_panic = true;
+
     mos_platform.interrupt_disable();
 
     va_list args;
