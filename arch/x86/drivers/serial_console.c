@@ -8,7 +8,7 @@
 #include "mos/device/console.h"
 #include "mos/x86/drivers/serial.h"
 
-const char *ansi_reset = "0m";
+const char *ansi_reset = ANSI_COLOR_RESET;
 
 bool serial_console_setup(console_t *console)
 {
@@ -28,7 +28,9 @@ bool serial_console_setup(console_t *console)
 int serial_console_write(console_t *console, const char *str, size_t len)
 {
     serial_console_t *serial_console = container_of(console, serial_console_t, console);
-    return serial_device_write(&serial_console->device, str, len);
+    int x = serial_device_write(&serial_console->device, str, len);
+    serial_device_write(&serial_console->device, ansi_reset, strlen(ansi_reset));
+    return x;
 }
 
 int serial_console_read(console_t *console, char *str, size_t len)
@@ -48,8 +50,8 @@ void get_ansi_color(char *buf, standard_color_t fg, standard_color_t bg)
         [Red] = "" ANSI_COLOR(red),
         [Magenta] = "" ANSI_COLOR(magenta),
         [Brown] = "" ANSI_COLOR(yellow),
-        [Gray] = "" ANSI_COLOR(white),
-        [DarkGray] = "" ANSI_COLOR(black, bright),
+        [Gray] = "" ANSI_COLOR(white, bright),
+        [DarkGray] = "" ANSI_COLOR(white),
         [LightBlue] = "" ANSI_COLOR(blue, bright),
         [LightGreen] = "" ANSI_COLOR(green, bright),
         [LightCyan] = "" ANSI_COLOR(cyan, bright),
@@ -59,7 +61,13 @@ void get_ansi_color(char *buf, standard_color_t fg, standard_color_t bg)
         [White] = "" ANSI_COLOR(white, bright),
     };
 
-    strcat(buf, g_ansi_colors[fg]);
+    const char *color = g_ansi_colors[fg];
+
+    // TODO: add support for background colors
+    if (bg == Red)
+        color = ANSI_COLOR(red, blink);
+
+    strcat(buf, color);
 }
 
 bool serial_console_set_color(console_t *device, standard_color_t fg, standard_color_t bg)
