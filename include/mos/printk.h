@@ -22,13 +22,16 @@
             mos_panic("Assertion failed: %s \n" msg, #cond, ##__VA_ARGS__);                                                                     \
     } while (0)
 
-#define MOS_LOG_FATAL   0
-#define MOS_LOG_EMERG   1
-#define MOS_LOG_WARN    2
-#define MOS_LOG_EMPH    3
-#define MOS_LOG_INFO    4
-#define MOS_LOG_INFO2   5
-#define MOS_LOG_DEFAULT MOS_LOG_INFO
+typedef enum
+{
+    MOS_LOG_FATAL = 6,
+    MOS_LOG_EMERG = 5,
+    MOS_LOG_WARN = 4,
+    MOS_LOG_EMPH = 3,
+    MOS_LOG_INFO = 2,
+    MOS_LOG_INFO2 = 1,
+    MOS_LOG_DEFAULT = MOS_LOG_INFO,
+} mos_log_level_t;
 
 #if MOS_PRINTK_HAS_FILENAME
 #define lprintk_wrapper(level, fmt, ...) lprintk(level, "%-20s | " fmt, MOS_FILE_LOCATION, ##__VA_ARGS__)
