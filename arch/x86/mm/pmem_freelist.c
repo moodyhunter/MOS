@@ -109,7 +109,7 @@ void pmem_freelist_setup(x86_pg_infra_t *kpg_infra)
 
         if (r->paddr + r->size_bytes < RESERVED_LOMEM)
         {
-            pr_emph("paging: ignored low memory: " PTR_FMT "-" PTR_FMT " (0x%zu bytes)", r->paddr, r->paddr + r->size_bytes, r->size_bytes);
+            pr_emph("paging: ignored low memory: " PTR_FMT "-" PTR_FMT " (%zu bytes)", r->paddr, r->paddr + r->size_bytes, r->size_bytes);
             continue;
         }
 
@@ -141,8 +141,8 @@ size_t pmem_freelist_add_region(uintptr_t start_addr, size_t size_bytes)
     pmem_range_t *this = pmem_freelist;
     pmem_range_t *prev = NULL;
 
-    // if "->next" is NULL, then we are at the end of the list
-    while (this->next)
+    //// if "->next" is NULL, then we are at the end of the list
+    while (this)
     {
         // the new region should not overlap with the current region
         if ((this_start <= aligned_start && aligned_start < this_end) || (this_start < aligned_end && aligned_end <= this_end))
@@ -155,10 +155,10 @@ size_t pmem_freelist_add_region(uintptr_t start_addr, size_t size_bytes)
         // prepend to 'this' region
         if (this_start == aligned_end)
         {
+            mos_debug("paging: enlarge range [" PTR_FMT "-" PTR_FMT "]: starts at " PTR_FMT, this_start, this_end,
+                      this_start + pages_in_region * X86_PAGE_SIZE);
             this->paddr = aligned_start;
             this->n_pages += pages_in_region;
-            mos_debug("paging: enlarged " PTR_FMT "-" PTR_FMT ": starts at " PTR_FMT, this_start, this_end,
-                      this_start + pages_in_region * X86_PAGE_SIZE);
             goto end;
         }
 
@@ -194,7 +194,7 @@ size_t pmem_freelist_add_region(uintptr_t start_addr, size_t size_bytes)
         this = this->next;
     }
 
-    MOS_ASSERT(this->next == NULL);
+    MOS_ASSERT(this == NULL && prev != NULL);
     pmem_range_t *new = (pmem_range_t *) pmem_freelist_base_paddr + pmem_freelist_count++;
     this->next = new;
 

@@ -55,7 +55,6 @@ extern const char __MOS_KERNEL_TEXT_START, __MOS_KERNEL_TEXT_END;             //
 extern const char __MOS_KERNEL_RODATA_START, __MOS_KERNEL_RODATA_END;         //     Kernel rodata
 extern const char __MOS_KERNEL_RO_END;                                        //   }
 extern const char __MOS_X86_PAGING_AREA_START;                                //   Paging area {
-extern const char __MOS_X86_PAGE_TABLE_START;                                 //     Page table
 extern const char __MOS_X86_PAGING_AREA_END;                                  //   }
 extern const char __MOS_SECTION_KERNEL_END;                                   // }
 

@@ -49,5 +49,5 @@ bool kpage_free(void *vptr, size_t npages)
     }
     if (unlikely(mos_platform.mm_pg_free == NULL))
         mos_panic("platform configuration error: free_page is NULL");
-    return mos_platform.mm_pg_free(mos_platform.kernel_pg, vptr, npages);
+    return mos_platform.mm_pg_free(mos_platform.kernel_pg, (uintptr_t) vptr, npages);
 }

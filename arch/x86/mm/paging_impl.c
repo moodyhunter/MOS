@@ -113,22 +113,20 @@ void pg_unmap_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, size_t n_page)
 
 void pg_do_map_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags)
 {
-    mos_debug("paging: mapping %zu pages " PTR_FMT "-" PTR_FMT " at table %lu", n_page, vaddr_start, paddr_start, vaddr_start / X86_PAGE_SIZE);
+    mos_debug("paging: mapping %zu pages (" PTR_FMT "->" PTR_FMT ") @ table %lu", n_page, vaddr_start, paddr_start, vaddr_start / X86_PAGE_SIZE);
     for (size_t i = 0; i < n_page; i++)
         pg_do_map_page(pg, vaddr_start + i * X86_PAGE_SIZE, paddr_start + i * X86_PAGE_SIZE, flags);
 }
 
 void pg_do_unmap_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, size_t n_page)
 {
-    mos_debug("paging: unmapping %zu pages " PTR_FMT " at table %lu", n_page, vaddr_start, vaddr_start / X86_PAGE_SIZE);
+    mos_debug("paging: unmapping %zu pages starting at " PTR_FMT " @ table %lu", n_page, vaddr_start, vaddr_start / X86_PAGE_SIZE);
     for (size_t i = 0; i < n_page; i++)
         pg_do_unmap_page(pg, vaddr_start + i * X86_PAGE_SIZE);
 }
 
 void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, page_flags flags)
 {
-    flags |= VM_USERMODE;
-    flags |= VM_WRITABLE;
     // ensure the page is aligned to 4096
     MOS_ASSERT_X(paddr < X86_MAX_MEM_SIZE, "physical address out of bounds");
     MOS_ASSERT_X(flags < 0x100, "invalid flags");
