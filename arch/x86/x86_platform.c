@@ -94,20 +94,20 @@ memblock_t x86_settle_initrd(multiboot_info_t *mb_info)
             initrd_region.paddr = m->mod_start;
             initrd_region.vaddr = m->mod_start;
             initrd_region.size_bytes = m->mod_end - m->mod_start;
+            size_t pmem_freelist_size = pmem_freelist_getsize();
+            // move initrd to the first available memory area
+            uintptr_t new_initrd_addr = X86_ALIGN_UP_TO_PAGE(x86_kernel_end + pmem_freelist_size);
+            pr_info2("moving initrd from " PTR_FMT " to " PTR_FMT, initrd_region.paddr, new_initrd_addr);
+            memmove((void *) new_initrd_addr, (void *) initrd_region.paddr, initrd_region.size_bytes);
+            initrd_region.paddr = new_initrd_addr;
+            initrd_region.vaddr = new_initrd_addr;
+            break;
         }
     }
     else
     {
         mos_warn("no initrd provided");
     }
-
-    size_t pmem_freelist_size = pmem_freelist_getsize();
-    // move initrd to the first available memory area
-    uintptr_t new_initrd_addr = X86_ALIGN_UP_TO_PAGE(x86_kernel_end + pmem_freelist_size);
-    pr_info2("moving initrd from " PTR_FMT " to " PTR_FMT, initrd_region.paddr, new_initrd_addr);
-    memmove((void *) new_initrd_addr, (void *) initrd_region.paddr, initrd_region.size_bytes);
-    initrd_region.paddr = new_initrd_addr;
-    initrd_region.vaddr = new_initrd_addr;
     return initrd_region;
 }
 
@@ -146,12 +146,15 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     x86_mm_prepare_paging();
     x86_pg_infra_t *kpg_infra = x86_get_pg_infra(mos_platform.kernel_pg);
 
+    if (initrd_memblock.size_bytes)
+    {
+        uintptr_t start_addr = X86_ALIGN_DOWN_TO_PAGE(initrd_memblock.paddr);
+        uintptr_t end_addr = X86_ALIGN_UP_TO_PAGE(initrd_memblock.size_bytes + initrd_memblock.paddr);
+        pg_map_pages(kpg_infra, start_addr, start_addr, (end_addr - start_addr) / X86_PAGE_SIZE, VM_USERMODE);
+    }
+
     x86_acpi_init();
     x86_smp_init(kpg_infra);
-
-    uintptr_t start_addr = X86_ALIGN_DOWN_TO_PAGE(initrd_memblock.paddr);
-    uintptr_t end_addr = X86_ALIGN_UP_TO_PAGE(initrd_memblock.size_bytes + initrd_memblock.paddr);
-    pg_map_pages(kpg_infra, start_addr, start_addr, (end_addr - start_addr) / X86_PAGE_SIZE, VM_PRESENT | VM_USERMODE);
 
     // ! map the bios memory area, should it be done like this?
     pr_info("mapping bios memory area...");
