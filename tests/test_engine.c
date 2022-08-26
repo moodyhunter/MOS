@@ -39,11 +39,11 @@ void mos_test_engine_log(standard_color_t color, char symbol, char *format, ...)
     char prefix[5];
 
     if (symbol)
-        snprintf(prefix, 5, "[%c] ", symbol ? symbol : ' ');
+        snprintf(prefix, 5, "[%c] ", symbol);
     else
         snprintf(prefix, 5, "    ");
 
-    for_each_console_print_with_color(Gray, Black, prefix, 5);
+    for_each_console_print_with_color(Gray, Black, prefix, 4);
 
     char message[512];
     va_list args;
@@ -64,8 +64,8 @@ static void test_engine_warning_handler(const char *func, u32 line, const char *
     else
     {
         vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
-        pr_warn("warning: %s", message);
-        pr_warn("  in function: %s (line %u)", func, line);
+        lprintk(MOS_LOG_WARN, "warning: %s", message);
+        lprintk(MOS_LOG_WARN, "  in function: %s (line %u)\n", func, line);
         mos_panic("unexpected warning");
     }
 
