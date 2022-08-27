@@ -51,12 +51,17 @@ void x86_mm_prepare_paging()
 
 void x86_mm_enable_paging(x86_pg_infra_t *kpg_infra)
 {
-    pr_info("paging: converting physical memory freelist to vm mode");
+    mos_debug("paging: converting physical memory freelist to vm mode");
     pmem_freelist_convert_to_vm();
 
-    pr_info("paging: page directory at: %p", (void *) kpg_infra->pgdir);
+    mos_debug("paging: page directory at: %p", (void *) kpg_infra->pgdir);
     x86_enable_paging_impl(kpg_infra->pgdir);
-    pr_info("paging: Enabled");
+    pr_info("paging: enabled");
+
+#if MOS_ENABLE_DEBUG_LOG
+    x86_mm_dump_page_table(kpg_infra);
+    pmem_freelist_dump();
+#endif
 }
 
 void page_table_dump_range(x86_pg_infra_t *kpg_infra, size_t start_page, size_t end_page)

@@ -11,19 +11,18 @@
 
 #define PAGEMAP_MAP(map, index)   map[index / PAGEMAP_WIDTH] |= 1 << (index % PAGEMAP_WIDTH)
 #define PAGEMAP_UNMAP(map, index) map[index / PAGEMAP_WIDTH] &= ~(1 << (index % PAGEMAP_WIDTH))
+#define BIT_IS_SET(byte, bit)     ((byte) & (1 << (bit)))
 
 void *pg_page_alloc(x86_pg_infra_t *pg, size_t n_page)
 {
-#define BIT_IS_SET(byte, bit) ((byte) & (1 << (bit)))
     // simply rename the variable, we are dealing with bitmaps
     size_t n_bits = n_page;
     size_t n_zero_bits = 0;
 
     u8 target_bit = 0;
 
-    // always allocate after the end of the kernel
-    size_t kernel_page_end = x86_kernel_end / X86_PAGE_SIZE;
-    size_t target_pagemap_start = (kernel_page_end / PAGEMAP_WIDTH) + 1;
+    // always allocate after the end of the kernel pages
+    size_t target_pagemap_start = (x86_kernel_end / X86_PAGE_SIZE / PAGEMAP_WIDTH) + 1;
 
     for (size_t i = target_pagemap_start; n_zero_bits < n_bits; i++)
     {
@@ -55,10 +54,10 @@ void *pg_page_alloc(x86_pg_infra_t *pg, size_t n_page)
     }
 
     size_t page_i = target_pagemap_start * PAGEMAP_WIDTH + target_bit;
-    void *vaddr = (void *) (page_i * X86_PAGE_SIZE);
-    mos_debug("paging: allocating page %zu to %zu (aka starting at %p)", page_i, page_i + n_page, vaddr);
+    uintptr_t vaddr = page_i * X86_PAGE_SIZE;
+    mos_debug("paging: allocating page %zu to %zu (aka starting at " PTR_FMT ")", page_i, page_i + n_page, vaddr);
 
-    uintptr_t paddr = pmem_freelist_get_free_pages(n_page);
+    uintptr_t paddr = pmem_freelist_find_free(n_page);
 
     if (paddr == 0)
     {
@@ -66,8 +65,8 @@ void *pg_page_alloc(x86_pg_infra_t *pg, size_t n_page)
         return NULL;
     }
 
-    pg_map_pages(pg, (uintptr_t) vaddr, paddr, n_page, VM_WRITABLE);
-    return vaddr;
+    pg_map_pages(pg, vaddr, paddr, n_page, VM_WRITABLE);
+    return (void *) vaddr;
 }
 
 bool pg_page_free(x86_pg_infra_t *pg, uintptr_t vptr, size_t n_page)

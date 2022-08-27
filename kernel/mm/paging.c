@@ -4,6 +4,7 @@
 
 #include "mos/mm/liballoc.h"
 #include "mos/mos_global.h"
+#include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/types.h"
@@ -12,6 +13,7 @@ void mos_kernel_mm_init()
 {
     MOS_ASSERT(mos_platform.mm_page_size > 0);
     liballoc_init(mos_platform.mm_page_size);
+    mos_install_kpanic_hook(liballoc_dump);
 }
 
 void *kpage_alloc(size_t npages)

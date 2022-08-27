@@ -83,8 +83,7 @@ static size_t l_warnings = 0;          // Number of warnings encountered
 static size_t l_errors = 0;            // Number of actual errors
 static size_t l_possible_overruns = 0; // Number of possible overruns
 
-#if MOS_MM_LIBALLOC_DEBUG
-static void liballoc_dump()
+void liballoc_dump()
 {
     pr_info("--------------- Memory data ---------------");
     pr_info("Total Memory Allocated: %zu bytes", l_mem_allocated);
@@ -95,21 +94,21 @@ static void liballoc_dump()
     liballoc_block_t *maj = l_memroot;
     liballoc_minor_t *min = NULL;
 
+    pr_info("Memory Blocks:");
     while (maj != NULL)
     {
-        pr_info("liballoc: %p: total = %zu, used = %zu", (void *) maj, maj->size, maj->usage);
+        pr_info("  %p: total = %zu, used = %zu", (void *) maj, maj->size, maj->usage);
 
         min = maj->first;
         while (min != NULL)
         {
-            pr_info("liballoc:    %p: %zu bytes", (void *) min, min->size);
+            pr_info("    %p: %zu bytes", (void *) min, min->size);
             min = min->next;
         }
 
         maj = maj->next;
     }
 }
-#endif
 
 static liballoc_block_t *allocate_new_pages_for(unsigned int size)
 {

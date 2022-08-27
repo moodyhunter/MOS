@@ -27,14 +27,30 @@ MOS_TEST_CASE(kmalloc_stress)
 
 MOS_TEST_CASE(kmalloc_large)
 {
-    void *p = kmalloc(1024 * 1024);
+    char *p = 0;
+    p = kmalloc(1 MB);
     MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
-    memset(p, 0, 1024 * 1024);
+    memset(p, 0, 1 MB);
     kfree(p);
 
-    p = kmalloc(1024 * 1024 * 1024);
+    p = kmalloc(100 MB);
     MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
-    memset(p, 0, 1024 * 1024 * 1024);
+    memset(p, 0, 100 MB);
+    kfree(p);
+
+    p = kmalloc(500 MB);
+    MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
+    memset(p, 0, 500 MB);
+    kfree(p);
+
+    p = kmalloc(1 GB);
+    MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
+    memset(p, 0, 1 GB);
+    kfree(p);
+
+    p = kmalloc(2 GB);
+    MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
+    memset(p, 0, 2 GB);
     kfree(p);
 }
 

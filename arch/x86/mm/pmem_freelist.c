@@ -22,8 +22,8 @@ static pmem_range_t *pmem_freelist = NULL;
 static u32 pmem_freelist_base_paddr;
 static size_t pmem_freelist_count = 0;
 
-#define PMEM_FREELIST_VADDR              0xFFA00000
 #define RESERVED_LOMEM                   1 MB
+#define PMEM_FREELIST_VADDR              0xFFA00000
 #define PMEM_FREELIST_SIZE_FOR(mem_size) ((mem_size / 2 / X86_PAGE_SIZE) * sizeof(pmem_range_t))
 
 static_assert((u64) PMEM_FREELIST_VADDR + PMEM_FREELIST_SIZE_FOR(X86_MAX_MEM_SIZE) < (u64) X86_MAX_MEM_SIZE, "no enough vspace for freelist!");
@@ -57,7 +57,7 @@ void pmem_freelist_dump()
         const uintptr_t pend = pstart + this->n_pages * X86_PAGE_SIZE;
         char sbuf[32];
         format_size(sbuf, sizeof(sbuf), this->n_pages * X86_PAGE_SIZE);
-        pr_info("  [%p] entry: " PTR_FMT "-" PTR_FMT " (%zu page(s), %s)", (void *) this, pstart, pend, this->n_pages, sbuf);
+        pr_info("  [" PTR_FMT "] entry: " PTR_FMT "-" PTR_FMT " (%zu page(s), %s)", (uintptr_t) this, pstart, pend, this->n_pages, sbuf);
         this = this->next;
     }
 }
@@ -141,7 +141,6 @@ size_t pmem_freelist_add_region(uintptr_t start_addr, size_t size_bytes)
     pmem_range_t *this = pmem_freelist;
     pmem_range_t *prev = NULL;
 
-    //// if "->next" is NULL, then we are at the end of the list
     while (this)
     {
         // the new region should not overlap with the current region
@@ -155,8 +154,8 @@ size_t pmem_freelist_add_region(uintptr_t start_addr, size_t size_bytes)
         // prepend to 'this' region
         if (this_start == aligned_end)
         {
-            mos_debug("paging: enlarge range [" PTR_FMT "-" PTR_FMT "]: starts at " PTR_FMT, this_start, this_end,
-                      this_start + pages_in_region * X86_PAGE_SIZE);
+            uintptr_t new_end = this_start + pages_in_region * X86_PAGE_SIZE;
+            mos_debug("paging: enlarge range [" PTR_FMT "-" PTR_FMT "]: starts at " PTR_FMT, this_start, this_end, new_end);
             this->paddr = aligned_start;
             this->n_pages += pages_in_region;
             goto end;
@@ -320,7 +319,7 @@ void pmem_freelist_remove_region(uintptr_t start_addr, size_t size_bytes)
 #undef this_start
 #undef this_end
 
-uintptr_t pmem_freelist_get_free_pages(size_t pages)
+uintptr_t pmem_freelist_find_free(size_t pages)
 {
     pmem_range_t *this = pmem_freelist;
     while (this)

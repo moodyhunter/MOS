@@ -21,6 +21,7 @@ section .multiboot.text
     global _mos_x86_multiboot_start:function (_mos_x86_multiboot_start.end - _mos_x86_multiboot_start)
 
 _mos_x86_multiboot_start:
+    cli
     xor ebp, ebp
     mov esp, stack_top
     ; Reset EFLAGS
@@ -29,7 +30,6 @@ _mos_x86_multiboot_start:
     push ebx                        ; Push multiboot2 header pointer
     push eax                        ; Push multiboot2 magic value
     call x86_start_kernel           ; start the kernel
-    cli
 .hang:
     hlt
     jmp .hang
