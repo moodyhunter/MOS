@@ -96,6 +96,7 @@ void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, page_flags flag
         pg->pgtable[page_table_index].accessed = flags & VM_ACCESSED;
         pg->pgtable[page_table_index].cache_disabled = flags & VM_CACHE_DISABLED;
     }
+    __asm__ volatile("invlpg (%0)" ::"r"(vaddr));
 }
 
 void pg_map_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags)
@@ -164,6 +165,7 @@ void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, page_f
     // update the mm_page_map
     u32 pte_index = page_dir_index * 1024 + page_table_index;
     PAGEMAP_MAP(pg->page_map, pte_index);
+    __asm__ volatile("invlpg (%0)" ::"r"(vaddr));
 }
 
 void pg_do_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr)
@@ -184,6 +186,7 @@ void pg_do_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr)
     // update the mm_page_map
     u32 pte_index = page_dir_index * 1024 + page_table_index;
     PAGEMAP_UNMAP(pg->page_map, pte_index);
+    __asm__ volatile("invlpg (%0)" ::"r"(vaddr));
 }
 
 uintptr_t pg_page_get_mapped_paddr(x86_pg_infra_t *pg, uintptr_t vaddr)
