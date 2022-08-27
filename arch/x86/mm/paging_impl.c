@@ -13,6 +13,11 @@
 #define PAGEMAP_UNMAP(map, index) map[index / PAGEMAP_WIDTH] &= ~(1 << (index % PAGEMAP_WIDTH))
 #define BIT_IS_SET(byte, bit)     ((byte) & (1 << (bit)))
 
+always_inline void pg_flush_tlb(uintptr_t vaddr)
+{
+    __asm__ volatile("invlpg (%0)" ::"r"(vaddr));
+}
+
 void *pg_page_alloc(x86_pg_infra_t *pg, size_t n_page)
 {
     // simply rename the variable, we are dealing with bitmaps
@@ -94,8 +99,8 @@ void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, page_flags flag
         pg->pgtable[page_table_index].usermode = flags & VM_USERMODE;
         pg->pgtable[page_table_index].accessed = flags & VM_ACCESSED;
         pg->pgtable[page_table_index].cache_disabled = flags & VM_CACHE_DISABLED;
+        pg_flush_tlb(vaddr);
     }
-    __asm__ volatile("invlpg (%0)" ::"r"(vaddr));
 }
 
 void pg_map_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags)
@@ -164,7 +169,7 @@ void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, page_f
     // update the mm_page_map
     u32 pte_index = page_dir_index * 1024 + page_table_index;
     PAGEMAP_MAP(pg->page_map, pte_index);
-    __asm__ volatile("invlpg (%0)" ::"r"(vaddr));
+    pg_flush_tlb(vaddr);
 }
 
 void pg_do_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr)
@@ -185,7 +190,7 @@ void pg_do_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr)
     // update the mm_page_map
     u32 pte_index = page_dir_index * 1024 + page_table_index;
     PAGEMAP_UNMAP(pg->page_map, pte_index);
-    __asm__ volatile("invlpg (%0)" ::"r"(vaddr));
+    pg_flush_tlb(vaddr);
 }
 
 uintptr_t pg_page_get_mapped_paddr(x86_pg_infra_t *pg, uintptr_t vaddr)
