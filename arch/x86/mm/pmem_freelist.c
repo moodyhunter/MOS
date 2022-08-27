@@ -195,7 +195,7 @@ size_t pmem_freelist_add_region(uintptr_t start_addr, size_t size_bytes)
 
     MOS_ASSERT(this == NULL && prev != NULL);
     pmem_range_t *new = (pmem_range_t *) pmem_freelist_base_paddr + pmem_freelist_count++;
-    this->next = new;
+    prev->next = new;
 
     // the freelist is in the correct order, so we can insert the new range here
     new->paddr = aligned_start;

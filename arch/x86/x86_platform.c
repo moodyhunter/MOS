@@ -74,7 +74,7 @@ void do_backtrace(u32 max)
 void x86_kpanic_hook()
 {
     pmem_freelist_dump();
-    x86_mm_dump_page_table(x86_get_pg_infra(mos_platform.kernel_pg));
+    x86_mm_dump_page_table(x86_kpg_infra);
     do_backtrace(20);
 }
 
@@ -144,24 +144,23 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     memblock_t initrd_memblock = x86_settle_initrd(mb_info);
 
     x86_mm_prepare_paging();
-    x86_pg_infra_t *kpg_infra = x86_get_pg_infra(mos_platform.kernel_pg);
 
     if (initrd_memblock.size_bytes)
     {
         uintptr_t start_addr = X86_ALIGN_DOWN_TO_PAGE(initrd_memblock.paddr);
         uintptr_t end_addr = X86_ALIGN_UP_TO_PAGE(initrd_memblock.size_bytes + initrd_memblock.paddr);
-        pg_map_pages(kpg_infra, start_addr, start_addr, (end_addr - start_addr) / X86_PAGE_SIZE, VM_USERMODE);
+        pg_map_pages(x86_kpg_infra, start_addr, start_addr, (end_addr - start_addr) / X86_PAGE_SIZE, VM_USERMODE);
     }
 
     x86_acpi_init();
-    x86_smp_init(kpg_infra);
+    x86_smp_init(x86_kpg_infra);
 
     // ! map the bios memory area, should it be done like this?
     pr_info("mapping bios memory area...");
     memblock_t *bios_memblock = x86_mem_find_bios_block();
 
-    pg_do_map_pages(kpg_infra, bios_memblock->paddr, bios_memblock->paddr, bios_memblock->size_bytes / X86_PAGE_SIZE, VM_PRESENT);
-    x86_mm_enable_paging(kpg_infra);
+    pg_do_map_pages(x86_kpg_infra, bios_memblock->paddr, bios_memblock->paddr, bios_memblock->size_bytes / X86_PAGE_SIZE, VM_PRESENT);
+    x86_mm_enable_paging(x86_kpg_infra);
 
     mos_kernel_mm_init(); // since then, we can use the kernel heap (kmalloc)
 
@@ -196,6 +195,7 @@ const mos_platform_t mos_platform = {
 
     // memory management
     .mm_page_size = X86_PAGE_SIZE,
+    .kernel_pg = { .ptr = (const uintptr_t) &__MOS_X86_PAGING_AREA_START },
     .mm_usermode_pgd_alloc = x86_um_pgd_init,
     .mm_usermode_pgd_deinit = x86_um_pgd_deinit,
     .mm_pg_alloc = x86_mm_pg_alloc,

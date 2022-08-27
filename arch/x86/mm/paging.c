@@ -17,36 +17,33 @@ extern void x86_enable_paging_impl(void *page_dir);
 
 static const void *x86_paging_area_start = &__MOS_X86_PAGING_AREA_START;
 static const void *x86_paging_area_end = &__MOS_X86_PAGING_AREA_END;
+x86_pg_infra_t *x86_kpg_infra = (void *) &__MOS_X86_PAGING_AREA_START;
 
 void x86_mm_prepare_paging()
 {
     // validate if the memory region calculated from the linker script is correct.
     size_t paging_area_size = (uintptr_t) x86_paging_area_end - (uintptr_t) x86_paging_area_start;
-    mos_debug("paging: provided size: 0x%zu, minimum required size: 0x%zu", paging_area_size, sizeof(x86_pg_infra_t));
     MOS_ASSERT_X(paging_area_size >= sizeof(x86_pg_infra_t), "allocated paging area size is too small");
+    MOS_ASSERT_X((uintptr_t) x86_kpg_infra->pgdir % (4 KB) == 0, "page directory is not aligned to 4KB");
+    MOS_ASSERT_X((uintptr_t) x86_kpg_infra->pgtable % (4 KB) == 0, "page table is not aligned to 4KB");
 
-    // place the global page directory at somewhere outside of the kernel
-    x86_pg_infra_t *kpg_infra = (x86_pg_infra_t *) x86_paging_area_start;
-    *((uintptr_t *) &mos_platform.kernel_pg.ptr) = (uintptr_t) kpg_infra;
-
-    MOS_ASSERT_X((uintptr_t) kpg_infra->pgdir % (4 KB) == 0, "page directory is not aligned to 4KB");
-    MOS_ASSERT_X((uintptr_t) kpg_infra->pgtable % (4 KB) == 0, "page table is not aligned to 4KB");
+    mos_debug("paging: provided size: 0x%zu, minimum required size: 0x%zu", paging_area_size, sizeof(x86_pg_infra_t));
 
     // initialize the page directory
-    memset(kpg_infra, 0, sizeof(x86_pg_infra_t));
+    memset(x86_kpg_infra, 0, sizeof(x86_pg_infra_t));
 
     pr_info("paging: setting up physical memory freelist...");
-    pmem_freelist_setup(kpg_infra);
+    pmem_freelist_setup(x86_kpg_infra);
 
     pr_info("paging: setting up low 1MB identity mapping... (except for the NULL page)");
     // skip the free list setup, use do_ version
-    pg_do_map_page(kpg_infra, 0, 0, VM_NONE); // ! the zero page is not writable
-    pg_do_map_pages(kpg_infra, X86_PAGE_SIZE, X86_PAGE_SIZE, 1 MB / X86_PAGE_SIZE - 1, VM_WRITABLE);
+    pg_do_map_page(x86_kpg_infra, 0, 0, VM_NONE); // ! the zero page is not writable
+    pg_do_map_pages(x86_kpg_infra, X86_PAGE_SIZE, X86_PAGE_SIZE, 1 MB / X86_PAGE_SIZE - 1, VM_WRITABLE);
 
     pr_info("paging: mapping kernel space...");
     const uintptr_t kstart_aligned = MAX(x86_kernel_start, 1 MB);
     const uintptr_t kend_aligned = X86_ALIGN_UP_TO_PAGE(x86_kernel_end);
-    pg_map_pages(kpg_infra, kstart_aligned, kstart_aligned, (kend_aligned - kstart_aligned) / X86_PAGE_SIZE, VM_WRITABLE);
+    pg_map_pages(x86_kpg_infra, kstart_aligned, kstart_aligned, (kend_aligned - kstart_aligned) / X86_PAGE_SIZE, VM_WRITABLE);
 }
 
 void x86_mm_enable_paging(x86_pg_infra_t *kpg_infra)

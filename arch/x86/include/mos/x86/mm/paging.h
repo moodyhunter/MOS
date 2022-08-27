@@ -8,6 +8,8 @@
 
 typedef struct x86_pg_infra_t x86_pg_infra_t;
 
+extern x86_pg_infra_t *x86_kpg_infra;
+
 void x86_mm_prepare_paging();
 void x86_mm_enable_paging(x86_pg_infra_t *kpg_infra);
 void x86_mm_dump_page_table(x86_pg_infra_t *pg);
