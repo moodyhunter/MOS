@@ -72,7 +72,6 @@ add_library(mos_kernel.elf STATIC
     kernel/filesystem/mount.c
     kernel/filesystem/pathutils.c
     kernel/interrupt.c
-    kernel/init/main.c
     kernel/io/io.c
     kernel/kernel_init.c
     kernel/mm/liballoc.c
