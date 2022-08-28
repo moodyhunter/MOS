@@ -30,10 +30,10 @@ add_kernel_source(
         cpu/cpuid.c
         cpu/smp.c
         devices/initrd_blockdev.c
-        drivers/port.c
-        drivers/serial.c
-        drivers/serial_console.c
-        drivers/text_mode_console.c
+        devices/port.c
+        devices/serial.c
+        devices/serial_console.c
+        devices/text_mode_console.c
         gdt/gdt.c
         interrupt/apic.c
         interrupt/idt.c
