@@ -128,7 +128,7 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     x86_irq_handler_init();
 
     // I don't like the timer interrupt, so disable it.
-    pic_mask_irq(IRQ_TIMER);
+    pic_unmask_irq(IRQ_TIMER);
     pic_unmask_irq(IRQ_KEYBOARD);
     pic_unmask_irq(IRQ_COM1);
     pic_unmask_irq(IRQ_COM2);
@@ -181,8 +181,8 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
 }
 
 const mos_platform_t mos_platform = {
-    .kernel_start = &__MOS_SECTION_KERNEL_START,
-    .kernel_end = &__MOS_SECTION_KERNEL_END,
+    .kernel_start = (uintptr_t) &__MOS_SECTION_KERNEL_START,
+    .kernel_end = (uintptr_t) &__MOS_SECTION_KERNEL_END,
 
     .cpu_info = &x86_cpu_info,
 
@@ -196,11 +196,14 @@ const mos_platform_t mos_platform = {
     // memory management
     .mm_page_size = X86_PAGE_SIZE,
     .kernel_pg = { .ptr = (const uintptr_t) &__MOS_X86_PAGING_AREA_START },
-    .mm_usermode_pgd_alloc = x86_um_pgd_init,
-    .mm_usermode_pgd_deinit = x86_um_pgd_deinit,
+    .mm_pgd_alloc = x86_um_pgd_init,
+    .mm_pgd_free = x86_um_pgd_deinit,
     .mm_pg_alloc = x86_mm_pg_alloc,
     .mm_pg_free = x86_mm_pg_free,
     .mm_pg_flag = x86_mm_pg_flag,
+
+    .mm_pg_map_to_kvaddr = x86_mm_pg_map_to_kvirt,
+    .mm_pg_unmap = x86_mm_pg_unmap,
 
     // process management
     .usermode_trampoline = x86_usermode_trampoline,

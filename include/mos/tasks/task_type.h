@@ -4,9 +4,8 @@
 
 #include "lib/structures/stack.h"
 #include "mos/filesystem/filesystem.h"
+#include "mos/platform/platform.h"
 #include "mos/types.h"
-
-typedef void (*thread_entry_t)(void *arg);
 
 typedef struct
 {
@@ -27,12 +26,13 @@ typedef enum
 
 typedef enum
 {
-    THREAD_FLAG_USERMODE = 1 << 0,
+    THREAD_FLAG_KTHREAD = 1 << 0,
+    THREAD_FLAG_USERMODE = 1 << 1,
 } thread_flags_t;
 
-typedef struct process
+typedef struct
 {
-    process_id_t pid;
+    process_id_t id;
     process_id_t parent_pid;
     uid_t effective_uid;
     paging_handle_t pagetable;
@@ -42,30 +42,12 @@ typedef struct process
 
 typedef struct
 {
-    // read by the IRET instruction, in reversed order
-    reg_t ss;     // stack segment
-    reg_t esp;    // stack pointer
-    reg_t eflags; // flags
-    reg_t cs;     // code segment
-    reg_t eip;    // instruction pointer
-
-    reg_t eax, ebx, ecx, edx; // base, count, data registers
-    reg_t esi, edi;           // source, destination registers
-    reg_t ebp;                // frame pointer
-    reg_t ds, es, fs, gs;     // segment registers
-
-    // reg_t func;
-    // reg_t errcode;
-} x86_context_t;
-
-typedef struct
-{
-    thread_id_t thread_id;
-    process_id_t owner_pid;
+    thread_id_t id;
+    process_id_t owner;
     thread_entry_t entry_point;
     task_status_t status;
     void *arg;
-    x86_context_t context;
+    mos_thread_common_context_t *context;
     downwards_stack_t stack;
     thread_flags_t flags;
 } thread_t;

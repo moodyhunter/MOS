@@ -5,6 +5,8 @@
 #include "lib/stdlib.h"
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/mm/paging.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/types.h"
 #include "mos/x86/mm/mm.h"
@@ -167,7 +169,9 @@ void x86_mm_dump_page_table(x86_pg_infra_t *pg)
 
 void x86_um_pgd_init(paging_handle_t *pgt)
 {
-    pgt->ptr = (uintptr_t) kmalloc(sizeof(x86_pg_infra_t));
+    void *addr = pg_page_alloc(x86_kpg_infra, X86_ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / X86_PAGE_SIZE);
+    memset(addr, 0, sizeof(x86_pg_infra_t));
+    pgt->ptr = (uintptr_t) addr;
 }
 
 void x86_um_pgd_deinit(paging_handle_t pgt)
@@ -191,4 +195,17 @@ void x86_mm_pg_flag(paging_handle_t pgt, uintptr_t vaddr, size_t n, page_flags f
 {
     x86_pg_infra_t *kpg_infra = x86_get_pg_infra(pgt);
     pg_page_flag(kpg_infra, vaddr, n, flags);
+}
+
+void x86_mm_pg_map_to_kvirt(paging_handle_t table, uintptr_t vaddr, uintptr_t kvaddr, size_t n, page_flags flags)
+{
+    x86_pg_infra_t *pg_infra = x86_get_pg_infra(table);
+    uintptr_t paddr = pg_page_get_mapped_paddr(x86_kpg_infra, kvaddr);
+    pg_do_map_pages(pg_infra, vaddr, paddr, n, flags);
+}
+
+void x86_mm_pg_unmap(paging_handle_t table, uintptr_t vaddr, size_t n)
+{
+    x86_pg_infra_t *pg_infra = x86_get_pg_infra(table);
+    pg_do_unmap_pages(pg_infra, vaddr, n);
 }

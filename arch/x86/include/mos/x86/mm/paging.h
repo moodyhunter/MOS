@@ -20,3 +20,6 @@ void x86_um_pgd_deinit(paging_handle_t pgt);
 void *x86_mm_pg_alloc(paging_handle_t pgt, size_t n);
 bool x86_mm_pg_free(paging_handle_t pgt, uintptr_t vaddr, size_t n);
 void x86_mm_pg_flag(paging_handle_t pgt, uintptr_t vaddr, size_t n, page_flags flags);
+
+void x86_mm_pg_map_to_kvirt(paging_handle_t table, uintptr_t vaddr, uintptr_t kvaddr, size_t n, page_flags flags);
+void x86_mm_pg_unmap(paging_handle_t table, uintptr_t vaddr, size_t n);

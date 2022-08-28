@@ -7,6 +7,8 @@
 
 #define MOS_SYSCALL_INTR 0x88
 
+typedef void (*thread_entry_t)(void *arg);
+
 typedef enum
 {
     VM_NONE = 0,
@@ -15,7 +17,6 @@ typedef enum
     VM_USERMODE = 1 << 2,
     VM_WRITE_THROUGH = 1 << 3,
     VM_CACHE_DISABLED = 1 << 4,
-    VM_ACCESSED = 1 << 5,
 } page_flags;
 
 typedef struct
@@ -26,8 +27,19 @@ typedef struct
 
 typedef struct
 {
-    const void *kernel_start;
-    const void *kernel_end;
+    // do not change the order of the following members
+    reg_t stack_ptr;
+    reg_t instruction_ptr;
+} __packed mos_thread_common_context_t;
+
+#define as_context_t              mos_thread_common_context_t __mos_common_context
+#define get_context_t(ctx, type)  container_of((ctx), type, __mos_common_context)
+#define get_common_context_t(ctx) (&(ctx)->__mos_common_context)
+
+typedef struct
+{
+    const uintptr_t kernel_start;
+    const uintptr_t kernel_end;
 
     const mos_platform_cpu_info_t *cpu_info;
 
@@ -44,11 +56,14 @@ typedef struct
     size_t mm_page_size;
     paging_handle_t kernel_pg;
 
-    void (*mm_usermode_pgd_alloc)(paging_handle_t *table);
-    void (*mm_usermode_pgd_deinit)(paging_handle_t table);
+    void (*mm_pgd_alloc)(paging_handle_t *table);
+    void (*mm_pgd_free)(paging_handle_t table);
+
     void *(*mm_pg_alloc)(paging_handle_t table, size_t n);
     bool (*mm_pg_free)(paging_handle_t table, uintptr_t vaddr, size_t n);
     void (*mm_pg_flag)(paging_handle_t table, uintptr_t vaddr, size_t n, page_flags flags);
+    void (*mm_pg_map_to_kvaddr)(paging_handle_t table, uintptr_t virt, uintptr_t kvaddr, size_t n, page_flags flags);
+    void (*mm_pg_unmap)(paging_handle_t table, uintptr_t virt, size_t n);
 
     // process management
     void (*usermode_trampoline)(uintptr_t stack, uintptr_t entry, uintptr_t arg);

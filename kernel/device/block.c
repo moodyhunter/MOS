@@ -2,6 +2,7 @@
 
 #include "mos/device/block.h"
 
+#include "lib/string.h"
 #include "lib/structures/hashmap.h"
 #include "lib/structures/hashmap_common.h"
 #include "mos/mm/kmalloc.h"
@@ -25,6 +26,7 @@ void blockdev_register(blockdev_t *dev)
     if (blockdev_map == NULL)
     {
         blockdev_map = kmalloc(sizeof(hashmap_t));
+        memset(blockdev_map, 0, sizeof(hashmap_t));
         hashmap_init(blockdev_map, 64, hashmap_blockdev_hash, hashmap_blockdev_compare);
     }
     blockdev_t *old = hashmap_put(blockdev_map, dev->name, dev);

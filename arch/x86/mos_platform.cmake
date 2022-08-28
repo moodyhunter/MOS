@@ -22,7 +22,7 @@ add_kernel_source(
         cpu/ap_init.asm
         interrupt/interrupt.asm
         mm/enable_paging.asm
-        tasks/usermode.asm
+        tasks/context_switch.asm
         x86_descriptor_flush.asm
 
         acpi/acpi.c
@@ -44,5 +44,6 @@ add_kernel_source(
         mm/paging_impl.c
         mm/pmem_freelist.c
         tasks/tss.c
+        tasks/context.c
         x86_platform.c
 )

@@ -5,6 +5,7 @@
 #include "lib/string.h"
 #include "lib/structures/hashmap.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/task_type.h"
 #include "mos/tasks/thread.h"
@@ -49,19 +50,22 @@ process_id_t create_process(process_id_t parent_pid, uid_t euid, thread_entry_t 
     process_t *process = kmalloc(sizeof(process_t));
     memset(process, 0, sizeof(process_t));
 
-    process->pid = new_process_id();
+    process->id = new_process_id();
     process->effective_uid = euid;
     process->parent_pid = parent_pid;
 
     // TODO: create page directory
     process->pagetable.ptr = 0;
+    mos_platform.mm_pgd_alloc(&process->pagetable);
+    size_t kpagerange = (mos_platform.kernel_end - mos_platform.kernel_start) / mos_platform.mm_page_size;
+    mos_platform.mm_pg_map_to_kvaddr(process->pagetable, mos_platform.kernel_start, mos_platform.kernel_start, kpagerange, VM_USERMODE);
 
     // TODO: allocate memory for the process
-    process->main_thread_id = create_thread(process->pid, THREAD_FLAG_USERMODE, entry, arg);
+    process->main_thread_id = create_thread(process->id, THREAD_FLAG_USERMODE, entry, arg);
 
-    void *old_proc = hashmap_put(process_table, &process->pid, process);
+    void *old_proc = hashmap_put(process_table, &process->id, process);
     MOS_ASSERT_X(old_proc == NULL, "process already exists, go and buy yourself a lottery :)");
-    return process->pid;
+    return process->id;
 }
 
 process_t *get_process(process_id_t pid)

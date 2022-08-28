@@ -13,7 +13,9 @@ void mos_kernel_mm_init()
 {
     MOS_ASSERT(mos_platform.mm_page_size > 0);
     liballoc_init(mos_platform.mm_page_size);
+#if MOS_MM_LIBALLOC_DEBUG
     mos_install_kpanic_hook(liballoc_dump);
+#endif
 }
 
 void *kpage_alloc(size_t npages)

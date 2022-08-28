@@ -155,10 +155,11 @@ static void isr_handle_exception(x86_stack_frame *stack)
 #else
             bool present = (stack->error_code & 0x1) != 0;
             bool is_user = (stack->error_code & 0x4) != 0;
-            mos_panic("Page Fault: the %s is trying to %s a %s address " PTR_FMT, //
-                      is_user ? "userspace" : "kernel",                           //
-                      is_write ? "write into" : "read from",                      //
-                      present ? "present" : "non-present",                        //
+            mos_panic("Page Fault: %s code at " PTR_FMT " is trying to %s a %s address " PTR_FMT, //
+                      is_user ? "Userspace" : "Kernel",                                           //
+                      (uintptr_t) stack->eip,                                                     //
+                      is_write ? "write into" : "read from",                                      //
+                      present ? "present" : "non-present",                                        //
                       fault_address);
 #endif
             return;

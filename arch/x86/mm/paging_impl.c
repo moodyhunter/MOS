@@ -85,20 +85,22 @@ bool pg_page_free(x86_pg_infra_t *pg, uintptr_t vptr, size_t n_page)
 void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, page_flags flags)
 {
     mos_debug("paging: setting flags [%x] to [" PTR_FMT "] +%zu pages", flags, vaddr, n);
+    size_t start_page = vaddr / X86_PAGE_SIZE;
     for (size_t i = 0; i < n; i++)
     {
-        uintptr_t vaddr_n = vaddr + i * X86_PAGE_SIZE;
+        size_t page_i = start_page + i;
+        size_t pgd_i = page_i / 1024;
 
-        size_t page_index = vaddr_n / X86_PAGE_SIZE;
-        size_t page_table_index = page_index / 1024;
+        MOS_ASSERT_X(pg->pgdir[pgd_i].present, "page directory not present");
+        MOS_ASSERT_X(pg->pgtable[page_i].present, "page table not present");
 
-        if (!pg->pgtable[page_table_index].present)
-            mos_panic("page table entry is not present");
+        pg->pgdir[pgd_i].writable = flags & VM_WRITABLE;
+        pg->pgdir[pgd_i].usermode = flags & VM_USERMODE;
+        pg->pgdir[pgd_i].cache_disabled = flags & VM_CACHE_DISABLED;
 
-        pg->pgtable[page_table_index].writable = flags & VM_WRITABLE;
-        pg->pgtable[page_table_index].usermode = flags & VM_USERMODE;
-        pg->pgtable[page_table_index].accessed = flags & VM_ACCESSED;
-        pg->pgtable[page_table_index].cache_disabled = flags & VM_CACHE_DISABLED;
+        pg->pgtable[page_i].writable = flags & VM_WRITABLE;
+        pg->pgtable[page_i].usermode = flags & VM_USERMODE;
+        pg->pgtable[page_i].cache_disabled = flags & VM_CACHE_DISABLED;
         pg_flush_tlb(vaddr);
     }
 }

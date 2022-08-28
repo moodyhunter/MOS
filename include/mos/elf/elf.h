@@ -129,12 +129,12 @@ typedef enum
 
 typedef struct
 {
-    elf_program_header_type seg_type;
+    elf_program_header_type header_type;
 #ifdef MOS_64BITS
     u32 p_flags; // Segment independent flags (64-bit only)
 #endif
     uintptr_t data_offset;     // Offset of the segment in the file
-    uintptr_t seg_vaddr;       // Virtual address of the segment
+    uintptr_t vaddr;           // Virtual address of the segment
     uintptr_t _reserved;       //  reserved
     uintptr_t segsize_in_file; // Size of the segment in the file (may be 0)
     uintptr_t segsize_in_mem;  // Size of the segment in memory (may be 0)

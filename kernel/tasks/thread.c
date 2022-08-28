@@ -9,6 +9,7 @@
 #include "mos/mm/paging.h"
 #include "mos/platform/platform.h"
 #include "mos/tasks/task_type.h"
+#include "mos/x86/tasks/context.h"
 
 #define THREAD_HASHTABLE_SIZE 4096
 
@@ -51,35 +52,24 @@ static thread_id_t new_thread_id()
 thread_id_t create_thread(process_id_t owner_pid, thread_flags_t flags, thread_entry_t entry, void *arg)
 {
     thread_t *thread = kmalloc(sizeof(thread_t));
-    thread->thread_id = new_thread_id();
-    thread->owner_pid = owner_pid;
+    thread->id = new_thread_id();
+    thread->owner = owner_pid;
     thread->entry_point = entry;
     thread->arg = arg;
     thread->status = TASK_STATUS_READY;
     thread->flags = flags;
 
     // allcate stack for the thread
-    void *page = kpage_alloc(thread_stack_pages);
-    stack_init(&thread->stack, page, THREAD_STACK_SIZE);
+    void *stack_page = kpage_alloc(thread_stack_pages);
+    stack_init(&thread->stack, stack_page, THREAD_STACK_SIZE);
 
     if (flags & THREAD_FLAG_USERMODE)
-        mos_platform.mm_pg_flag(mos_platform.kernel_pg, (uintptr_t) page, thread_stack_pages, VM_PRESENT | VM_WRITABLE | VM_USERMODE);
+        mos_platform.mm_pg_flag(mos_platform.kernel_pg, (uintptr_t) stack_page, thread_stack_pages, VM_WRITABLE | VM_USERMODE);
 
-    x86_context_t *ctx = stack_grow(&thread->stack, sizeof(x86_context_t));
-    memset(ctx, 0, sizeof(x86_context_t));
-    ctx->eip = (reg_t) entry;
+    // x86_thread_context_init(thread, entry, arg);
 
-    // original stack head before pushing the context
-    ctx->esp = (reg_t) thread->stack.base;
-    ctx->cs = (reg_t) 0x08; // !! kernel code segment ?
-    ctx->ds = (reg_t) 0x10; // !! kernel data segment ?
-    ctx->es = (reg_t) 0x10; // !! kernel data segment ?
-    ctx->fs = (reg_t) 0x10; // !! kernel data segment ?
-    ctx->gs = (reg_t) 0x10; // !! kernel data segment ?
-    ctx->ss = (reg_t) 0x10; // !! kernel stack ?
-
-    hashmap_put(thread_table, &thread->thread_id, thread);
-    return thread->thread_id;
+    hashmap_put(thread_table, &thread->id, thread);
+    return thread->id;
 }
 
 thread_t *get_thread(thread_id_t tid)
