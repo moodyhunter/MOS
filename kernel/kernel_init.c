@@ -51,7 +51,9 @@ void mos_start_kernel(const char *cmdline)
     }
     pr_emph("%-25s'%s'", "Kernel builtin cmdline:", MOS_KERNEL_BUILTIN_CMDLINE);
 
+#if MOS_MEME
     mos_warn("V2Ray 4.45.2 started");
+#endif
 
     process_init();
     thread_init();

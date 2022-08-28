@@ -143,9 +143,24 @@ static void isr_handle_exception(x86_stack_frame *stack)
 
         case EXCEPTION_PAGE_FAULT:
         {
+            bool is_write = (stack->error_code & 0x2) != 0;
+
             uintptr_t fault_address;
             __asm__ volatile("mov %%cr2, %0" : "=r"(fault_address));
-            mos_panic("I DON'T KNOW WHAT TO DO WITH THIS PAGE FAULT AT " PTR_FMT, fault_address);
+#if MOS_MEME
+            mos_panic("\n页面错误\n\n\"" PTR_FMT "\" 指令引用的 \"" PTR_FMT "\" 内存。该内存不能为 \"%s\"。\n"
+                      "要终止程序，请单击 \"确定\"。\n"      //
+                      "要调试程序，请单击 \"取消\"。\n\n\n", //
+                      (uintptr_t) stack->eip, fault_address, is_write ? "written" : "read");
+#else
+            bool present = (stack->error_code & 0x1) != 0;
+            bool is_user = (stack->error_code & 0x4) != 0;
+            mos_panic("Page Fault: the %s is trying to %s a %s address " PTR_FMT, //
+                      is_user ? "userspace" : "kernel",                           //
+                      is_write ? "write into" : "read from",                      //
+                      present ? "present" : "non-present",                        //
+                      fault_address);
+#endif
             return;
         }
 

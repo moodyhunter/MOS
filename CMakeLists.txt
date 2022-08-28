@@ -49,10 +49,13 @@ execute_process(
     ERROR_STRIP_TRAILING_WHITESPACE
 )
 
+option(MOS_MEME "Enable MEME" OFF)
+
 mos_add_kconfig_define(MOS_MM_LIBALLOC_LOCKS)
 mos_add_kconfig_define(MOS_MM_LIBALLOC_DEBUG)
 mos_add_kconfig_define(MOS_ENABLE_DEBUG_LOG)
 mos_add_kconfig_define(MOS_PRINTK_HAS_FILENAME)
+mos_add_kconfig_define(MOS_MEME)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
