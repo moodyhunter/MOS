@@ -118,6 +118,8 @@ include(add_bootable_target)
 
 include(${MOS_ARCH_CONFIG})
 
+add_subdirectory(userspace)
+
 mos_add_summary_section(TESTS "MOS Kernel Library Tests")
 mos_add_summary_item(TESTS "All Tests" "${BUILD_TESTING}")
 if(BUILD_TESTING)

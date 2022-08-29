@@ -14,6 +14,7 @@ extern void x86_context_switch_impl(x86_context_t *old, x86_context_t *new);
 
 void x86_thread_context_init(thread_t *t, thread_entry_t entry, void *arg)
 {
+    MOS_UNUSED(arg);
     x86_context_t *ctx = kmalloc(sizeof(x86_context_t));
     memset(ctx, 0, sizeof(x86_context_t));
     t->context = get_common_context_t(ctx);
