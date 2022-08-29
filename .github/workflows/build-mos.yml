@@ -57,12 +57,20 @@ jobs:
           name: MOS-${{matrix.target}}-${{matrix.build_type}}
           path: ${{steps.get_bootable.outputs.bootable}}
 
+      - name: Upload initrd
+        if: matrix.run_tests == 'OFF'
+        uses: actions/upload-artifact@v3
+        with:
+          name: MOS-${{matrix.target}}-${{matrix.build_type}}-initrd
+          path: ${{github.workspace}}/build/initrd.cpio
+
       - name: Run Tests
         if: matrix.run_tests == 'ON'
         id: run_tests
         run: |
           cd ${{github.workspace}}/build
           cp ${{steps.get_bootable.outputs.bootable}} test-failure.bin
+          cp initrd.cpio test-failure-initrd.cpio
           ${{github.workspace}}/scripts/run_tests.sh
 
       - name: Upload Test Result
