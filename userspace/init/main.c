@@ -6,6 +6,7 @@
 
 void _start(uintptr_t arg)
 {
+    MOS_UNUSED(arg);
     s32 x = syscall0(SYSCALL_panic);
 
     while (x < 40)

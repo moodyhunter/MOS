@@ -11,6 +11,9 @@ target_include_directories(mos_userspace_lib
         ${CMAKE_SOURCE_DIR}/arch/${MOS_TARGET_ARCH}/include
 )
 
+# build userspace programs after the kernel
+add_dependencies(mos_userspace_lib mos::elf_kernel)
+
 macro(add_userspace_program NAME)
     set(OPTIONS "")
     set(ONE_VALUE_ARGS "INSTALL_PREFIX")
