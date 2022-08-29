@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/ksyscall/ksyscall_number.h"
 #include "mos/syscall.h"
 #include "mos/types.h"
 

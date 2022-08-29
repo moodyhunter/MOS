@@ -2,8 +2,7 @@
 #include "mos/x86/x86_interrupt.h"
 
 #include "lib/structures/list.h"
-#include "mos/ksyscall.h"
-#include "mos/macro_magic.h"
+#include "mos/ksyscall/ksyscall_dispatcher.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
@@ -93,28 +92,7 @@ void x86_handle_interrupt(u32 esp)
     {
         const u32 syscall_number = stack->eax;
         pr_warn("Syscall: %d", syscall_number);
-
-#define INVOKE_SYSCALL_0(func) func()
-#define INVOKE_SYSCALL_1(func) func(0)
-#define INVOKE_SYSCALL_2(func) func(0, 0)
-#define INVOKE_SYSCALL_3(func) func(0, 0, 0)
-#define INVOKE_SYSCALL_4(func) func(0, 0, 0, 0)
-#define INVOKE_SYSCALL_5(func) func(0, 0, 0, 0, 0)
-#define INVOKE_SYSCALL_6(func) func(0, 0, 0, 0, 0, 0)
-
-#define SYSCALL_CHECK_CALL(name, ret, ...)                                                                                                      \
-    if (syscall_number == SYSCALL_##name)                                                                                                       \
-        stack->eax = CONCAT(INVOKE_SYSCALL_, NUM_OF_ARGS(__VA_ARGS__))(SYSCALL_FUNC_NAME(name, ret));
-
-        MOS_SYSCALL_FOREACH(SYSCALL_CHECK_CALL);
-
-#undef INVOKE_SYSCALL_0
-#undef INVOKE_SYSCALL_1
-#undef INVOKE_SYSCALL_2
-#undef INVOKE_SYSCALL_3
-#undef INVOKE_SYSCALL_4
-#undef INVOKE_SYSCALL_5
-#undef INVOKE_SYSCALL_6
+        dispatch_ksyscall(syscall_number, stack->ebx, stack->ecx, stack->edx, 0, 0, 0, 0, 0);
     }
     else
     {

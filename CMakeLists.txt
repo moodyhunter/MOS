@@ -39,6 +39,7 @@ endif()
 include(CTest)
 include(generate_kconfig)
 include(configure_summary)
+include(generate_syscall_headers)
 
 execute_process(
     COMMAND git describe --long --tags --all --dirty
@@ -91,6 +92,8 @@ add_library(mos_kernel.elf STATIC
     lib/stdlib.c
     lib/string.c
 )
+
+generate_syscall_headers(mos_kernel.elf ${CMAKE_SOURCE_DIR}/assets/ksyscalls.json ksyscall mos/)
 
 add_library(mos::elf_kernel ALIAS mos_kernel.elf)
 target_link_libraries(mos_kernel.elf PUBLIC gcc)

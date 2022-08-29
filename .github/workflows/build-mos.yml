@@ -62,7 +62,7 @@ jobs:
         run: |
           cd ${{github.workspace}}/build
           cp ${{steps.get_bootable.outputs.bootable}} test-failure.bin
-          ${{github.workspace}}/tests/run_tests.sh
+          ${{github.workspace}}/scripts/run_tests.sh
 
       - name: Upload Test Result
         if: matrix.run_tests == 'ON' && failure() && steps.run_tests.outcome == 'failure'
