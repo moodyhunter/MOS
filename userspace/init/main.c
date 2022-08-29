@@ -5,7 +5,7 @@
 
 void _start(uintptr_t arg)
 {
-    s32 x = syscall0(arg);
+    s32 x = syscall0(SYSCALL_panic);
 
     while (x < 40)
     {

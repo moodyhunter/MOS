@@ -3,7 +3,6 @@
 #pragma once
 
 #include "lib/containers.h"
-#include "mos/interrupt.h"
 #include "mos/mm/mm_types.h"
 #include "mos/platform/platform.h"
 #include "mos/types.h"

@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-
-#include "mos/interrupt.h"
+#include "mos/x86/x86_interrupt.h"
 
 #include "lib/structures/list.h"
+#include "mos/ksyscall.h"
+#include "mos/macro_magic.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/x86/drivers/port.h"
-#include "mos/x86/x86_interrupt.h"
 #include "mos/x86/x86_platform.h"
 
 // End-of-interrupt command code
@@ -90,9 +91,30 @@ void x86_handle_interrupt(u32 esp)
     }
     else if (stack->interrupt_number == MOS_SYSCALL_INTR)
     {
-        // ! mos_invoke_syscall(stack->eax, stack->ebx, stack->ecx, stack->edx, stack->esi, stack->edi);
-        pr_warn("Syscall: %d", stack->eax);
-        stack->eax *= 2;
+        const u32 syscall_number = stack->eax;
+        pr_warn("Syscall: %d", syscall_number);
+
+#define INVOKE_SYSCALL_0(func) func()
+#define INVOKE_SYSCALL_1(func) func(0)
+#define INVOKE_SYSCALL_2(func) func(0, 0)
+#define INVOKE_SYSCALL_3(func) func(0, 0, 0)
+#define INVOKE_SYSCALL_4(func) func(0, 0, 0, 0)
+#define INVOKE_SYSCALL_5(func) func(0, 0, 0, 0, 0)
+#define INVOKE_SYSCALL_6(func) func(0, 0, 0, 0, 0, 0)
+
+#define SYSCALL_CHECK_CALL(name, ret, ...)                                                                                                      \
+    if (syscall_number == SYSCALL_##name)                                                                                                       \
+        stack->eax = CONCAT(INVOKE_SYSCALL_, NUM_OF_ARGS(__VA_ARGS__))(SYSCALL_FUNC_NAME(name, ret));
+
+        MOS_SYSCALL_FOREACH(SYSCALL_CHECK_CALL);
+
+#undef INVOKE_SYSCALL_0
+#undef INVOKE_SYSCALL_1
+#undef INVOKE_SYSCALL_2
+#undef INVOKE_SYSCALL_3
+#undef INVOKE_SYSCALL_4
+#undef INVOKE_SYSCALL_5
+#undef INVOKE_SYSCALL_6
     }
     else
     {

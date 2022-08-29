@@ -37,7 +37,7 @@ add_kernel_source(
         gdt/gdt.c
         interrupt/apic.c
         interrupt/idt.c
-        interrupt/interrupt.c
+        interrupt/x86_interrupt.c
         interrupt/pic.c
         mm/mm.c
         mm/paging.c

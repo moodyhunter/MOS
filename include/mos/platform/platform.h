@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "lib/containers.h"
 #include "mos/mos_global.h"
 #include "mos/types.h"
 
@@ -35,6 +36,12 @@ typedef struct
 #define as_context_t              mos_thread_common_context_t __mos_common_context
 #define get_context_t(ctx, type)  container_of((ctx), type, __mos_common_context)
 #define get_common_context_t(ctx) (&(ctx)->__mos_common_context)
+
+typedef struct
+{
+    as_linked_list;
+    void (*handler)(u32 irq);
+} irq_handler_descriptor_t;
 
 typedef struct
 {

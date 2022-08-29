@@ -1,0 +1,132 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#pragma once
+
+// clang-format off
+#define FOR_EACH_N() 32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0
+#define FOR_EACH_ARG_N(_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,_17,_18,_19,_20,_21,_22,_23,_24,_25,_26,_27,_28,_29,_30,_31,_32, N, ...) N
+#define NUM_OF_ARGS(...) FOR_EACH_ARG_N(0, ##__VA_ARGS__,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0)
+// clang-format on
+
+#define ID(x) x
+
+#define EXPAND(...) __VA_ARGS__
+
+#define CONCAT(a, b)  CONCAT_(a, b)
+#define CONCAT_(a, b) a##b
+
+#define INTERNAL_EXPAND(...) __VA_ARGS__
+
+#define INTERNAL_CONCATENATE(a, b)  INTERNAL_CONCATENATE_(a, b)
+#define INTERNAL_CONCATENATE_(a, b) a##b
+
+#define INT_SEQ_1(x)  x(1)
+#define INT_SEQ_2(x)  x(2), INT_SEQ_1(x)
+#define INT_SEQ_3(x)  x(3), INT_SEQ_2(x)
+#define INT_SEQ_4(x)  x(4), INT_SEQ_3(x)
+#define INT_SEQ_5(x)  x(5), INT_SEQ_4(x)
+#define INT_SEQ_6(x)  x(6), INT_SEQ_5(x)
+#define INT_SEQ_7(x)  x(7), INT_SEQ_6(x)
+#define INT_SEQ_8(x)  x(8), INT_SEQ_7(x)
+#define INT_SEQ_9(x)  x(9), INT_SEQ_8(x)
+#define INT_SEQ_10(x) x(10), INT_SEQ_9(x)
+#define INT_SEQ_11(x) x(11), INT_SEQ_10(x)
+#define INT_SEQ_12(x) x(12), INT_SEQ_11(x)
+#define INT_SEQ_13(x) x(13), INT_SEQ_12(x)
+#define INT_SEQ_14(x) x(14), INT_SEQ_13(x)
+#define INT_SEQ_15(x) x(15), INT_SEQ_14(x)
+#define INT_SEQ_16(x) x(16), INT_SEQ_15(x)
+#define INT_SEQ_17(x) x(17), INT_SEQ_16(x)
+#define INT_SEQ_18(x) x(18), INT_SEQ_17(x)
+#define INT_SEQ_19(x) x(19), INT_SEQ_18(x)
+#define INT_SEQ_20(x) x(20), INT_SEQ_19(x)
+#define INT_SEQ_21(x) x(21), INT_SEQ_20(x)
+#define INT_SEQ_22(x) x(22), INT_SEQ_21(x)
+#define INT_SEQ_23(x) x(23), INT_SEQ_22(x)
+#define INT_SEQ_24(x) x(24), INT_SEQ_23(x)
+#define INT_SEQ_25(x) x(25), INT_SEQ_24(x)
+#define INT_SEQ_26(x) x(26), INT_SEQ_25(x)
+#define INT_SEQ_27(x) x(27), INT_SEQ_26(x)
+#define INT_SEQ_28(x) x(28), INT_SEQ_27(x)
+#define INT_SEQ_29(x) x(29), INT_SEQ_28(x)
+#define INT_SEQ_30(x) x(30), INT_SEQ_29(x)
+#define INT_SEQ_31(x) x(31), INT_SEQ_30(x)
+#define INT_SEQ_32(x) x(32), INT_SEQ_31(x)
+
+#define INT_SEQ(x, i) INTERNAL_CONCATENATE(INT_SEQ_, i)(x)
+
+#define FOR_EACH_NARG(...)  FOR_EACH_NARG_(__VA_ARGS__, FOR_EACH_N())
+#define FOR_EACH_NARG_(...) INTERNAL_EXPAND(FOR_EACH_ARG_N(__VA_ARGS__))
+
+#define FOR_EACH_1(f, x, ...)  f(x)
+#define FOR_EACH_2(f, x, ...)  f(x) INTERNAL_EXPAND(FOR_EACH_1(f, __VA_ARGS__))
+#define FOR_EACH_3(f, x, ...)  f(x) INTERNAL_EXPAND(FOR_EACH_2(f, __VA_ARGS__))
+#define FOR_EACH_4(f, x, ...)  f(x) INTERNAL_EXPAND(FOR_EACH_3(f, __VA_ARGS__))
+#define FOR_EACH_5(f, x, ...)  f(x) INTERNAL_EXPAND(FOR_EACH_4(f, __VA_ARGS__))
+#define FOR_EACH_6(f, x, ...)  f(x) INTERNAL_EXPAND(FOR_EACH_5(f, __VA_ARGS__))
+#define FOR_EACH_7(f, x, ...)  f(x) INTERNAL_EXPAND(FOR_EACH_6(f, __VA_ARGS__))
+#define FOR_EACH_8(f, x, ...)  f(x) INTERNAL_EXPAND(FOR_EACH_7(f, __VA_ARGS__))
+#define FOR_EACH_9(f, x, ...)  f(x) INTERNAL_EXPAND(FOR_EACH_8(f, __VA_ARGS__))
+#define FOR_EACH_10(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_9(f, __VA_ARGS__))
+#define FOR_EACH_11(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_10(f, __VA_ARGS__))
+#define FOR_EACH_12(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_11(f, __VA_ARGS__))
+#define FOR_EACH_13(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_12(f, __VA_ARGS__))
+#define FOR_EACH_14(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_13(f, __VA_ARGS__))
+#define FOR_EACH_15(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_14(f, __VA_ARGS__))
+#define FOR_EACH_16(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_15(f, __VA_ARGS__))
+#define FOR_EACH_17(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_16(f, __VA_ARGS__))
+#define FOR_EACH_18(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_17(f, __VA_ARGS__))
+#define FOR_EACH_19(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_18(f, __VA_ARGS__))
+#define FOR_EACH_20(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_19(f, __VA_ARGS__))
+#define FOR_EACH_21(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_20(f, __VA_ARGS__))
+#define FOR_EACH_22(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_21(f, __VA_ARGS__))
+#define FOR_EACH_23(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_22(f, __VA_ARGS__))
+#define FOR_EACH_24(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_23(f, __VA_ARGS__))
+#define FOR_EACH_25(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_24(f, __VA_ARGS__))
+#define FOR_EACH_26(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_25(f, __VA_ARGS__))
+#define FOR_EACH_27(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_26(f, __VA_ARGS__))
+#define FOR_EACH_28(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_27(f, __VA_ARGS__))
+#define FOR_EACH_29(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_28(f, __VA_ARGS__))
+#define FOR_EACH_30(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_29(f, __VA_ARGS__))
+#define FOR_EACH_31(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_30(f, __VA_ARGS__))
+#define FOR_EACH_32(f, x, ...) f(x) INTERNAL_EXPAND(FOR_EACH_31(f, __VA_ARGS__))
+
+#define FOR_EACH_(N, f, ...) INTERNAL_EXPAND(INTERNAL_CONCATENATE(FOR_EACH_, N)(f, __VA_ARGS__))
+#define FOR_EACH(f, ...)     FOR_EACH_(FOR_EACH_NARG(__VA_ARGS__), f, __VA_ARGS__)
+
+#define FOR_EACH_1ARG_0(f, arg, x)       f(arg, x)
+#define FOR_EACH_1ARG_1(f, arg, x, ...)  f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_0(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_2(f, arg, x, ...)  f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_1(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_3(f, arg, x, ...)  f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_2(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_4(f, arg, x, ...)  f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_3(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_5(f, arg, x, ...)  f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_4(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_6(f, arg, x, ...)  f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_5(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_7(f, arg, x, ...)  f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_6(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_8(f, arg, x, ...)  f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_7(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_9(f, arg, x, ...)  f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_8(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_10(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_9(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_11(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_10(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_12(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_11(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_13(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_12(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_14(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_13(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_15(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_14(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_16(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_15(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_17(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_16(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_18(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_17(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_19(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_18(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_20(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_19(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_21(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_20(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_22(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_21(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_23(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_22(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_24(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_23(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_25(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_24(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_26(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_25(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_27(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_26(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_28(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_27(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_29(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_28(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_30(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_29(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_31(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_30(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG_32(f, arg, x, ...) f(arg, x) INTERNAL_EXPAND(FOR_EACH_1ARG_31(f, arg, __VA_ARGS__))
+
+#define FOR_EACH_1ARG_(N, f, arg, ...) INTERNAL_EXPAND(INTERNAL_CONCATENATE(FOR_EACH_1ARG_, N)(f, arg, __VA_ARGS__))
+#define FOR_EACH_1ARG(f, arg, ...)     FOR_EACH_1ARG_(FOR_EACH_NARG(__VA_ARGS__), f, arg, __VA_ARGS__)
