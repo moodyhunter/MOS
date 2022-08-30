@@ -142,6 +142,7 @@ void mos_start_kernel(const char *cmdline)
 
     // the stack memory to be used if we enter the kernelmode by a trap / interrupt
     tss_entry.esp0 = (u32) kpage_alloc(1) + mos_platform.mm_page_size; // stack grows downwards from the top of the page
+    pr_emph("kernel stack at " PTR_FMT, (uintptr_t) tss_entry.esp0);
 
     uid_t root = { 0 };
     process_id_t pid1 = { 1 };

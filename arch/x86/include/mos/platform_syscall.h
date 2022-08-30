@@ -3,37 +3,37 @@
 #include "mos/mos_global.h"
 #include "mos/types.h"
 
-always_inline u32 syscall0(u32 number)
+always_inline long platform_syscall0(long number)
 {
-    u32 result = 0;
+    long result = 0;
     __asm__ volatile("int $0x88" : "=a"(result) : "a"(number));
     return result;
 }
 
-always_inline u32 syscall1(u32 number, u32 arg1)
+always_inline long platform_syscall1(long number, long arg1)
 {
-    u32 result = 0;
+    long result = 0;
     __asm__ volatile("int $0x88" : "=a"(result) : "a"(number), "b"(arg1));
     return result;
 }
 
-always_inline u32 syscall2(u32 number, u32 arg1, u32 arg2)
+always_inline long platform_syscall2(long number, long arg1, long arg2)
 {
-    u32 result = 0;
+    long result = 0;
     __asm__ volatile("int $0x88" : "=a"(result) : "a"(number), "b"(arg1), "c"(arg2));
     return result;
 }
 
-always_inline u32 syscall3(u32 number, u32 arg1, u32 arg2, u32 arg3)
+always_inline long platform_syscall3(long number, long arg1, long arg2, long arg3)
 {
-    u32 result = 0;
+    long result = 0;
     __asm__ volatile("int $0x88" : "=a"(result) : "a"(number), "b"(arg1), "c"(arg2), "d"(arg3));
     return result;
 }
 
-always_inline u32 syscall4(u32 number, u32 arg1, u32 arg2, u32 arg3, u32 arg4)
+always_inline long platform_syscall4(long number, long arg1, long arg2, long arg3, long arg4)
 {
-    u32 result = 0;
+    long result = 0;
     __asm__ volatile("int $0x88" : "=a"(result) : "a"(number), "b"(arg1), "c"(arg2), "d"(arg3), "S"(arg4));
     return result;
 }

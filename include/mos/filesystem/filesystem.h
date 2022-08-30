@@ -13,8 +13,8 @@ typedef struct _blockdev blockdev_t;
 
 typedef enum
 {
-    OPEN_READ = 1 << 0,
-    OPEN_WRITE = 1 << 1,
+    OPEN_READ = IO_READABLE,
+    OPEN_WRITE = IO_WRITABLE,
     OPEN_SYMLINK_NO_FOLLOW = 1 << 2,
 } file_open_flags;
 
@@ -87,6 +87,7 @@ typedef struct _fsnode
 typedef struct _file
 {
     io_t io;
+    void *pdata;
     fsnode_t *fsnode;
 } file_t;
 
@@ -96,14 +97,10 @@ typedef struct _file
 
 #define get_fsdata(file, type) ((type *) file->fsdata)
 
-extern fsnode_t root_path;
-
 bool vfs_path_open(fsnode_t *path, file_open_flags flags, file_t *file);
-bool vfs_path_readlink(fsnode_t *path, fsnode_t **link);
 bool vfs_path_stat(fsnode_t *path, file_stat_t *restrict stat);
+bool vfs_path_readlink(fsnode_t *path, fsnode_t **link);
 
 file_t *vfs_open(const char *path, file_open_flags flags);
-fsnode_t *vfs_readlink(const char *path);
 bool vfs_stat(const char *path, file_stat_t *restrict stat);
-size_t vfs_read(file_t *file, void *buf, size_t count);
-size_t vfs_write(file_t *file, const void *buf, size_t count);
+fsnode_t *vfs_readlink(const char *path);

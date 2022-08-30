@@ -81,6 +81,7 @@ add_library(mos_kernel.elf STATIC
     kernel/printk.c
     kernel/stack_protector.c
     kernel/tasks/process.c
+    kernel/tasks/task_io.c
     kernel/tasks/thread.c
     lib/structures/hashmap.c
     lib/structures/hashmap_common.c

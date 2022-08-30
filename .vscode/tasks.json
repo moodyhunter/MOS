@@ -4,7 +4,8 @@
         {
             "label": "compile",
             "type": "shell",
-            "command": "cmake --build ${workspaceFolder}/build --target multiboot",
+            "options": { "cwd": "${workspaceFolder}/build" },
+            "command": "cmake --build ${workspaceFolder}/build --target multiboot all && ${workspaceFolder}/scripts/gen_initrd.sh",
             "group": "build",
             "presentation": {
                 "reveal": "silent",
@@ -15,7 +16,7 @@
             "label": "kill_mos",
             "type": "shell",
             "command": "tmux kill-session -t mos_kernel_debug || true",
-            "problemMatcher": [],
+            "problemMatcher": [ ],
             "group": "none",
             "presentation": {
                 "reveal": "silent",
@@ -46,11 +47,11 @@
                 "-serial",
                 "chardev:serial_log",
                 "-append",
-                "init=/init",
+                "init=/bin/init",
                 "-initrd",
                 "/home/moody/Projects/MOS/build/initrd.cpio"
             ],
-            "problemMatcher": [],
+            "problemMatcher": [ ],
             "group": "none",
             "dependsOn": [
                 "kill_mos",

@@ -7,12 +7,6 @@
 #include "mos/platform/platform.h"
 #include "mos/types.h"
 
-typedef struct
-{
-    file_open_flags flags;
-    io_t *file;
-} file_descriptor_t;
-
 #define MAX_FD_COUNT 512
 
 typedef enum
@@ -36,7 +30,8 @@ typedef struct
     process_id_t parent_pid;
     uid_t effective_uid;
     paging_handle_t pagetable;
-    file_descriptor_t *file_table[MAX_FD_COUNT];
+    io_t *file_table[MAX_FD_COUNT];
+    size_t files_count;
     thread_id_t main_thread_id;
 } process_t;
 

@@ -126,15 +126,14 @@ bool cpio_open(const mountpoint_t *mp, const fsnode_t *path, file_open_flags fla
     if (!result)
         return false;
 
-    file->io.pdata = kmalloc(sizeof(cpio_metadata_t));
-    memcpy(file->io.pdata, &metadata, sizeof(cpio_metadata_t));
-    io_ref(&file->io);
+    file->pdata = kmalloc(sizeof(cpio_metadata_t));
+    memcpy(file->pdata, &metadata, sizeof(cpio_metadata_t));
     return true;
 }
 
 size_t cpio_read(blockdev_t *dev, file_t *file, void *buf, size_t size)
 {
-    cpio_metadata_t *metadata = file->io.pdata;
+    cpio_metadata_t *metadata = file->pdata;
     size_t read = dev->read(dev, buf, MIN(size, metadata->data_length), metadata->data_offset);
     return read;
 }
@@ -142,7 +141,6 @@ size_t cpio_read(blockdev_t *dev, file_t *file, void *buf, size_t size)
 bool cpio_close(file_t *file)
 {
     MOS_UNUSED(file);
-    io_unref(&file->io);
     return false;
 }
 

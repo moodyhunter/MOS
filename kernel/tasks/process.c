@@ -7,6 +7,7 @@
 #include "mos/mm/kmalloc.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/tasks/task_io.h"
 #include "mos/tasks/task_type.h"
 #include "mos/tasks/thread.h"
 #include "mos/types.h"
@@ -54,11 +55,11 @@ process_id_t create_process(process_id_t parent_pid, uid_t euid, thread_entry_t 
     process->effective_uid = euid;
     process->parent_pid = parent_pid;
 
-    // TODO: create page directory
-    process->pagetable.ptr = 0;
-    mos_platform.mm_pgd_alloc(&process->pagetable);
     size_t kpagerange = (mos_platform.kernel_end - mos_platform.kernel_start) / mos_platform.mm_page_size;
+    mos_platform.mm_pgd_alloc(&process->pagetable);
     mos_platform.mm_pg_map_to_kvaddr(process->pagetable, mos_platform.kernel_start, mos_platform.kernel_start, kpagerange, VM_USERMODE);
+
+    process_stdio_setup(process);
 
     // TODO: allocate memory for the process
     process->main_thread_id = create_thread(process->id, THREAD_FLAG_USERMODE, entry, arg);

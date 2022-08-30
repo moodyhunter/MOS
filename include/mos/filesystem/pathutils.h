@@ -7,6 +7,8 @@
 
 #define path_parent(path) tree_entry(tree_node(path)->parent, fsnode_t)
 
+extern fsnode_t root_path;
+
 // Path string operations
 const char *path_next_segment(const char *path, size_t *segment_len);
 const char *path_to_string_relative(const fsnode_t *root, const fsnode_t *end);

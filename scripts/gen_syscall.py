@@ -14,6 +14,9 @@ GEN_TYPE_TYPEDEF = "gen-typedef"
 GEN_TYPE_DECL = "gen-decl"
 GEN_TYPE_DISPATCHER = "gen-dispatcher"
 GEN_TYPE_NUMBER_HEADER = "gen-number"
+GEN_TYPE_USERMODE = "gen-usermode"
+
+MAX_SYSCALL_NARGS = 8
 
 outfile = None
 prefix = ""
@@ -27,7 +30,7 @@ def main():
     global outfile
     global prefix
 
-    if len(argv) != 5 or argv[2] not in [GEN_TYPE_TYPEDEF, GEN_TYPE_DECL, GEN_TYPE_DISPATCHER, GEN_TYPE_NUMBER_HEADER]:
+    if len(argv) != 5 or argv[2] not in [GEN_TYPE_TYPEDEF, GEN_TYPE_DECL, GEN_TYPE_DISPATCHER, GEN_TYPE_NUMBER_HEADER, GEN_TYPE_USERMODE]:
         print("Usage:")
         print("  gen_syscall.py <prefix> COMMAND <syscall-json> <output-file>")
         print("")
@@ -36,6 +39,7 @@ def main():
         print("    %s: generate declarations" % GEN_TYPE_DECL)
         print("    %s: generate dispatcher" % GEN_TYPE_DISPATCHER)
         print("    %s: generate syscall number header" % GEN_TYPE_NUMBER_HEADER)
+        print("    %s: generate usermode invoker" % GEN_TYPE_USERMODE)
         exit(1)
 
     prefix = argv[1]
@@ -56,6 +60,9 @@ def main():
     gen("#pragma once")
     gen("")
 
+    if gen_type == GEN_TYPE_USERMODE:
+        j["includes"] += ["mos/platform_syscall.h"]
+
     if gen_type != GEN_TYPE_NUMBER_HEADER:
         for inc in j["includes"]:
             gen("#include \"%s\"" % inc)
@@ -72,6 +79,8 @@ def main():
             gen_decl(e)
         elif gen_type == GEN_TYPE_NUMBER_HEADER:
             gen_number_header(e)
+        elif gen_type == GEN_TYPE_USERMODE:
+            gen_usermode_invoker(e)
         else:
             print("Unknown gen_type: %s" % gen_type)
             exit(1)
@@ -103,9 +112,9 @@ def gen_decl(e):
 
 
 def gen_dispatcher(j):
-    gen("should_inline long dispatch_%s(const long number, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6, long arg7, long arg8)" % prefix)
+    gen("should_inline long dispatch_%s(const long number, %s)" % (prefix, ", ".join(["long arg%d" % (i + 1) for i in range(MAX_SYSCALL_NARGS)])))
     gen("{")
-    for i in range(8):
+    for i in range(MAX_SYSCALL_NARGS):
         gen("    (void) arg%d;" % (i + 1))
     gen("")
     gen("    long ret = -1;")
@@ -123,6 +132,14 @@ def gen_dispatcher(j):
 def gen_number_header(e):
     gen("#define SYSCALL_%s %d" % (e["name"], e["number"]))
     gen("#define SYSCALL_NAME_%d %s" % (e["number"], e["name"]))
+
+
+def gen_usermode_invoker(e):
+    nargs = len(e["arguments"])
+    gen("always_inline %s invoke_%s_%s(%s)" % (e["return"], prefix, e["name"], get_syscall_argdecls(e)))
+    gen("{")
+    gen("    return platform_syscall%d(%s);" % (nargs, ", ".join([str(e["number"])] + ["(long) %s" % arg["arg"] for arg in e["arguments"]])))
+    gen("}")
 
 
 if __name__ == "__main__":

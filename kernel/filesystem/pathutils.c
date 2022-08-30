@@ -8,8 +8,25 @@
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
 
-extern tree_op_t path_tree_op; // defined in filesystem.c
+void path_node_get_name(const tree_node_t *node, char **name, size_t *name_len)
+{
+    fsnode_t *path = tree_entry(node, fsnode_t);
+    *name = (char *) path->name;
+    *name_len = strlen(path->name);
+}
 
+tree_op_t path_tree_op = {
+    .get_node_name = path_node_get_name,
+};
+
+fsnode_t root_path = {
+    .name = "/",
+    .tree_node = {
+        .parent = NULL,
+        .n_children = 0,
+        .children = NULL,
+    },
+};
 // Private functions
 
 fsnode_t *impl_path_get_subpath(fsnode_t *cwd, const char *path, size_t path_len)
