@@ -5,10 +5,6 @@
 #include "mos/io/io.h"
 #include "mos/tasks/task_type.h"
 
-extern io_op_t task_stdin_op;
-extern io_op_t task_stdout_op;
-extern io_op_t task_stderr_op;
-
 typedef enum
 {
     STDIO_TYPE_STDIN = 0,

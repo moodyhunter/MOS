@@ -2,7 +2,7 @@
 
 #include "mos/tasks/task_io.h"
 
-#include "mos/io/io.h"
+#include "lib/containers.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
 
@@ -37,9 +37,9 @@ static size_t stderr_write(io_t *io, const void *buf, size_t count)
     return 0;
 }
 
-io_op_t task_stdin_op = { .read = stdin_read };
-io_op_t task_stdout_op = { .write = stdout_write };
-io_op_t task_stderr_op = { .write = stderr_write };
+static io_op_t task_stdin_op = { .read = stdin_read };
+static io_op_t task_stdout_op = { .write = stdout_write };
+static io_op_t task_stderr_op = { .write = stderr_write };
 
 void process_stdio_setup(process_t *process)
 {

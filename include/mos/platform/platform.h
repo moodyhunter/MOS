@@ -4,11 +4,10 @@
 
 #include "lib/containers.h"
 #include "mos/mos_global.h"
+#include "mos/tasks/task_type.h"
 #include "mos/types.h"
 
 #define MOS_SYSCALL_INTR 0x88
-
-typedef void (*thread_entry_t)(void *arg);
 
 typedef enum
 {
@@ -25,17 +24,6 @@ typedef struct
     u32 cpu_count;
     u32 bsp_apic_id;
 } mos_platform_cpu_info_t;
-
-typedef struct
-{
-    // do not change the order of the following members
-    reg_t stack_ptr;
-    reg_t instruction_ptr;
-} __packed mos_thread_common_context_t;
-
-#define as_context_t              mos_thread_common_context_t __mos_common_context
-#define get_context_t(ctx, type)  container_of((ctx), type, __mos_common_context)
-#define get_common_context_t(ctx) (&(ctx)->__mos_common_context)
 
 typedef struct
 {
@@ -74,6 +62,7 @@ typedef struct
 
     // process management
     void (*usermode_trampoline)(uintptr_t stack, uintptr_t entry, uintptr_t arg);
+    void (*context_switch)(thread_t *from, thread_t *to);
 } mos_platform_t;
 
 extern const mos_platform_t mos_platform;

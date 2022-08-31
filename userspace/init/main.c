@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/ksyscall/ksyscall_decl.h"
-#include "mos/ksyscall/ksyscall_usermode.h"
+#include "mos/ksyscall/usermode.h"
 #include "mos/types.h"
 
 void _start(uintptr_t arg)

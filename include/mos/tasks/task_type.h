@@ -3,11 +3,12 @@
 #pragma once
 
 #include "lib/structures/stack.h"
-#include "mos/filesystem/filesystem.h"
-#include "mos/platform/platform.h"
+#include "mos/io/io.h"
 #include "mos/types.h"
 
 #define MAX_FD_COUNT 512
+
+typedef void (*thread_entry_t)(void *arg);
 
 typedef enum
 {
@@ -37,12 +38,23 @@ typedef struct
 
 typedef struct
 {
+    // do not change the order of the following members
+    reg_t stack_ptr;
+    reg_t instruction_ptr;
+} __packed thread_context_t;
+
+#define as_context_t              thread_context_t __mos_common_context
+#define get_context_t(ctx, type)  container_of((ctx), type, __mos_common_context)
+#define get_common_context_t(ctx) (&(ctx)->__mos_common_context)
+
+typedef struct
+{
     thread_id_t id;
     process_id_t owner;
     thread_entry_t entry_point;
     task_status_t status;
     void *arg;
-    mos_thread_common_context_t *context;
+    thread_context_t *context;
     downwards_stack_t stack;
     thread_flags_t flags;
 } thread_t;

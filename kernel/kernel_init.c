@@ -158,7 +158,9 @@ void mos_start_kernel(const char *cmdline)
     MOS_ASSERT(init_pid.process_id == 1);
     MOS_ASSERT(init_thread->id.thread_id == 1);
 
-    mos_platform.usermode_trampoline((uintptr_t) init_thread->stack.head, (uintptr_t) init_thread->entry_point, (uintptr_t) init_thread->arg);
+    // mos_platform.usermode_trampoline((uintptr_t) init_thread->stack.head, (uintptr_t) init_thread->entry_point, (uintptr_t) init_thread->arg);
+
+    mos_platform.context_switch(NULL, init_thread);
 
     MOS_UNREACHABLE();
 }

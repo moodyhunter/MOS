@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/io/io.h"
-#include "mos/ksyscall/ksyscall_decl.h"
+#include "mos/ksyscall/decl.h"
 #include "mos/mos_global.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
