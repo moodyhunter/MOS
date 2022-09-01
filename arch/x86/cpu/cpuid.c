@@ -37,8 +37,8 @@ void cpuid_get_processor_info(processor_version_t *info)
 {
     cpuid_t cpuid = { 0 };
     x86_call_cpuid(1, &cpuid);
-    *(u32 *) &info->eax = cpuid.eax;
-    *(u32 *) &info->ebx = cpuid.ebx;
-    *(u32 *) &info->ecx = cpuid.ecx;
-    *(u32 *) &info->edx = cpuid.edx;
+    info->eax.raw = cpuid.eax;
+    info->ebx.raw = cpuid.ebx;
+    info->ecx.raw = cpuid.ecx;
+    info->edx.raw = cpuid.edx;
 }

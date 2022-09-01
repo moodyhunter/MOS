@@ -54,10 +54,10 @@ void apic_assert_supported()
     processor_version_t info;
     cpuid_get_processor_info(&info);
 
-    if (!info.edx.onboard_apic)
+    if (!info.edx.edx.onboard_apic)
         mos_panic("APIC is not supported");
 
-    if (!info.edx.msr)
+    if (!info.edx.edx.msr)
         mos_panic("MSR is not present");
 }
 

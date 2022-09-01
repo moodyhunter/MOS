@@ -34,8 +34,8 @@ void print_cpu_info()
     cpuid_get_manufacturer(manufacturer);
     processor_version_t info;
     cpuid_get_processor_info(&info);
-    pr_info2("  %s, Family %u, Model %u, Stepping %u", manufacturer, info.eax.family, info.eax.model, info.eax.stepping);
-    pr_info2("  type: %s, ext family: %u, ext model: %u", cpuid_type_str[info.eax.type], info.eax.ext_family, info.eax.ext_model);
+    pr_info2("  %s, Family %u, Model %u, Stepping %u", manufacturer, info.eax.eax.family, info.eax.eax.model, info.eax.eax.stepping);
+    pr_info2("  type: %s, ext family: %u, ext model: %u", cpuid_type_str[info.eax.eax.type], info.eax.eax.ext_family, info.eax.eax.ext_model);
 }
 
 void ap_begin_exec()
@@ -46,7 +46,7 @@ void ap_begin_exec()
     processor_version_t info;
     cpuid_get_processor_info(&info);
 
-    pr_info("smp: AP %u started", info.ebx.local_apic_id);
+    pr_info("smp: AP %u started", info.ebx.ebx.local_apic_id);
     print_cpu_info();
     while (1)
         ;
@@ -108,7 +108,7 @@ void x86_smp_init(x86_pg_infra_t *pg)
     x86_cpu_info.cpu_count = 0;
     processor_version_t info;
     cpuid_get_processor_info(&info);
-    x86_cpu_info.bsp_apic_id = info.ebx.local_apic_id;
+    x86_cpu_info.bsp_apic_id = info.ebx.ebx.local_apic_id;
 
     madt_entry_foreach(entry, x86_acpi_madt)
     {
