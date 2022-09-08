@@ -11,14 +11,14 @@
 
 void mos_kernel_mm_init()
 {
-    MOS_ASSERT(mos_platform.mm_page_size > 0);
-    liballoc_init(mos_platform.mm_page_size);
+    MOS_ASSERT(mos_platform->mm_page_size > 0);
+    liballoc_init(mos_platform->mm_page_size);
 #if MOS_MM_LIBALLOC_DEBUG
     mos_install_kpanic_hook(liballoc_dump);
 #endif
 }
 
-void *kpage_alloc(size_t npages)
+void *kpage_alloc(size_t npages, pagealloc_flags type)
 {
     if (unlikely(npages <= 0))
     {
@@ -26,13 +26,13 @@ void *kpage_alloc(size_t npages)
         return NULL;
     }
 
-    if (unlikely(mos_platform.mm_page_size == 0))
+    if (unlikely(mos_platform->mm_page_size == 0))
         mos_panic("platform configuration error: page_size is 0");
 
-    if (unlikely(mos_platform.mm_pg_alloc == NULL))
+    if (unlikely(mos_platform->mm_alloc_pages == NULL))
         mos_panic("platform configuration error: alloc_page is NULL");
 
-    void *ptr = mos_platform.mm_pg_alloc(mos_platform.kernel_pg, npages);
+    void *ptr = mos_platform->mm_alloc_pages(mos_platform->kernel_pg, npages, type);
     if (unlikely(ptr == NULL))
         mos_warn("failed to allocate %zu pages", npages);
 
@@ -51,7 +51,7 @@ bool kpage_free(void *vptr, size_t npages)
         mos_warn("freeing negative or zero pages");
         return false;
     }
-    if (unlikely(mos_platform.mm_pg_free == NULL))
+    if (unlikely(mos_platform->mm_free_pages == NULL))
         mos_panic("platform configuration error: free_page is NULL");
-    return mos_platform.mm_pg_free(mos_platform.kernel_pg, (uintptr_t) vptr, npages);
+    return mos_platform->mm_free_pages(mos_platform->kernel_pg, (uintptr_t) vptr, npages);
 }

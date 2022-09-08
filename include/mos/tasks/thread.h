@@ -13,5 +13,5 @@ extern hashmap_t *thread_table;
 void thread_init();
 void thread_deinit();
 
-thread_id_t create_thread(process_id_t owner_pid, thread_flags_t mode, thread_entry_t entry, void *arg);
+thread_t *create_thread(process_t *owner, thread_flags_t mode, thread_entry_t entry, void *arg);
 thread_t *get_thread(thread_id_t id);

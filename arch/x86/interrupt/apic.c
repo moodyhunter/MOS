@@ -2,34 +2,10 @@
 
 #include "mos/x86/interrupt/apic.h"
 
-#include "mos/mos_global.h"
 #include "mos/printk.h"
 #include "mos/x86/acpi/acpi.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/cpu/cpuid.h"
-
-#define APIC_REG_LAPIC_ID            0x20
-#define APIC_REG_LAPIC_VERSION       0x30
-#define APIC_REG_PRIO_TASK           0x80
-#define APIC_REG_PRIO_ARBITRATION    0x90
-#define APIC_REG_PRIO_PROCESSOR      0xA0
-#define APIC_REG_EOI                 0xB0
-#define APIC_REG_REMOTE_READ         0xC0
-#define APIC_REG_LOGICAL_DEST        0xD0
-#define APIC_REG_DEST_FORMAT         0xE0
-#define APIC_REG_SPURIOUS_INTR_VEC   0xF0
-#define APIC_REG_ERROR_STATUS        0x280
-#define APIC_REG_TIMER_INITIAL_COUNT 0x380
-#define APIC_REG_TIMER_CURRENT_COUNT 0x390
-#define APIC_REG_TIMER_DIVIDE_CONFIG 0x3E0
-
-#define APIC_REG_LVT_CMCI_INTR      0x2F0
-#define APIC_REG_LVT_TIMER          0x320
-#define APIC_REG_LVT_THERMAL_SENSOR 0x330
-#define APIC_REG_LVT_PERF_MON_CTR   0x340
-#define APIC_REG_LVT_LINT0          0x350
-#define APIC_REG_LVT_LINT1          0x360
-#define APIC_REG_LVT_ERROR          0x370
 
 #define APIC_IN_SERVICE_REG_BEGIN 0x100
 #define APIC_IN_SERVICE_REG_END   0x170
@@ -48,19 +24,6 @@
 
 static uintptr_t lapic_paddr_base = 0;
 
-void apic_assert_supported()
-{
-    // CPUID.01h:EDX[bit 9]
-    processor_version_t info;
-    cpuid_get_processor_info(&info);
-
-    if (!info.edx.edx.onboard_apic)
-        mos_panic("APIC is not supported");
-
-    if (!info.edx.edx.msr)
-        mos_panic("MSR is not present");
-}
-
 #define IA32_APIC_BASE_MSR        0x1B
 #define IA32_APIC_BASE_MSR_ENABLE 0x800
 
@@ -71,18 +34,18 @@ void apic_set_base_addr(uintptr_t base_addr)
     cpu_set_msr(IA32_APIC_BASE_MSR, eax, edx);
 }
 
-static u32 apic_reg_read_offset_32(u32 offset)
+u32 apic_reg_read_offset_32(u32 offset)
 {
     return *(volatile u32 *) (lapic_paddr_base + offset);
 }
 
-static void apic_reg_write_offset_32(u32 offset, u32 value)
+void apic_reg_write_offset_32(u32 offset, u32 value)
 {
     mos_debug("reg: 0x%x, value: 0x%.8x", offset, value);
     *(volatile u32 *) (lapic_paddr_base + offset) = value;
 }
 
-static void apic_reg_write_offset_64(u32 offset, u64 value)
+void apic_reg_write_offset_64(u32 offset, u64 value)
 {
     mos_debug("reg: 0x%x, value: 0x%.16llx", offset, value);
     *(volatile u32 *) (lapic_paddr_base + offset + 0x10) = value >> 32;
@@ -97,7 +60,7 @@ static void apic_wait_sent()
 }
 
 void apic_interrupt_full(u8 vec, u8 dest, apic_delivery_mode_t delivery_mode, apic_dest_mode_t dest_mode, bool level, bool trigger,
-                         apic_dest_shorthand_t shorthand)
+                         apic_shorthand_t shorthand)
 {
     u64 value = 0;
     value |= SET_BITS(0, 8, vec);           // Interrupt Vector
@@ -114,14 +77,23 @@ void apic_interrupt_full(u8 vec, u8 dest, apic_delivery_mode_t delivery_mode, ap
     apic_wait_sent();
 }
 
-void apic_interrupt(u8 vec, u8 dest, apic_delivery_mode_t delivery_mode, apic_dest_mode_t dest_mode, apic_dest_shorthand_t shorthand)
+void apic_interrupt(u8 vec, u8 dest, apic_delivery_mode_t delivery_mode, apic_dest_mode_t dest_mode, apic_shorthand_t shorthand)
 {
     apic_interrupt_full(vec, dest, delivery_mode, dest_mode, true, false, shorthand);
 }
 
 void apic_enable()
 {
-    apic_assert_supported();
+    // CPUID.01h:EDX[bit 9]
+    processor_version_t info;
+    cpuid_get_processor_info(&info);
+
+    if (!info.edx.edx.onboard_apic)
+        mos_panic("APIC is not supported");
+
+    if (!info.edx.edx.msr)
+        mos_panic("MSR is not present");
+
     lapic_paddr_base = x86_acpi_madt->lapic_addr;
     pr_info("apic: mapped address: " PTR_FMT, lapic_paddr_base);
     apic_set_base_addr(lapic_paddr_base);

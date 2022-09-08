@@ -21,9 +21,7 @@
 #include "mos/x86/mm/paging.h"
 #include "mos/x86/mm/paging_impl.h"
 #include "mos/x86/mm/pmem_freelist.h"
-
-const uintptr_t x86_kernel_start = (uintptr_t) &__MOS_SECTION_KERNEL_START;
-const uintptr_t x86_kernel_end = (uintptr_t) &__MOS_SECTION_KERNEL_END;
+#include "mos/x86/tasks/context.h"
 
 static char mos_cmdline[512];
 static serial_console_t com1_console = {
@@ -31,25 +29,7 @@ static serial_console_t com1_console = {
     .console = { .name = "Serial Console on COM1", .caps = CONSOLE_CAP_SETUP | CONSOLE_CAP_COLOR, .setup = serial_console_setup },
 };
 
-mos_platform_cpu_info_t x86_cpu_info = { 0 };
-
-static memblock_t *x86_mem_find_bios_block()
-{
-    memblock_t *bios_memblock = NULL;
-    for (u32 i = 0; i < x86_mem_regions_count; i++)
-    {
-        const uintptr_t region_start_addr = x86_mem_regions[i].paddr;
-        if (region_start_addr < (uintptr_t) x86_acpi_rsdt && region_start_addr + x86_mem_regions[i].size_bytes > (uintptr_t) x86_acpi_rsdt)
-        {
-            bios_memblock = &x86_mem_regions[i];
-            break;
-        }
-    }
-
-    if (!bios_memblock)
-        mos_panic("could not find bios memory area");
-    return bios_memblock;
-}
+const uintptr_t mos_kernel_end = (uintptr_t) &__MOS_KERNEL_END;
 
 void do_backtrace(u32 max)
 {
@@ -96,7 +76,7 @@ memblock_t x86_settle_initrd(multiboot_info_t *mb_info)
             initrd_region.size_bytes = m->mod_end - m->mod_start;
             size_t pmem_freelist_size = pmem_freelist_getsize();
             // move initrd to the first available memory area
-            uintptr_t new_initrd_addr = X86_ALIGN_UP_TO_PAGE(x86_kernel_end + pmem_freelist_size);
+            uintptr_t new_initrd_addr = X86_ALIGN_UP_TO_PAGE(mos_kernel_end + pmem_freelist_size);
             pr_info2("moving initrd from " PTR_FMT " to " PTR_FMT, initrd_region.paddr, new_initrd_addr);
             memmove((void *) new_initrd_addr, (void *) initrd_region.paddr, initrd_region.size_bytes);
             initrd_region.paddr = new_initrd_addr;
@@ -144,22 +124,26 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     memblock_t initrd_memblock = x86_settle_initrd(mb_info);
 
     x86_mm_prepare_paging();
+    x86_platform.kernel_pg.ptr = (uintptr_t) x86_kpg_infra;
 
     if (initrd_memblock.size_bytes)
     {
         uintptr_t start_addr = X86_ALIGN_DOWN_TO_PAGE(initrd_memblock.paddr);
         uintptr_t end_addr = X86_ALIGN_UP_TO_PAGE(initrd_memblock.size_bytes + initrd_memblock.paddr);
-        pg_map_pages(x86_kpg_infra, start_addr, start_addr, (end_addr - start_addr) / X86_PAGE_SIZE, VM_USERMODE);
+        pg_map_pages(x86_kpg_infra, start_addr, start_addr, (end_addr - start_addr) / X86_PAGE_SIZE, VM_GLOBAL | VM_USERMODE);
     }
 
     x86_acpi_init();
+    // map the lapic to the kernel page table
+    pg_do_map_pages(x86_kpg_infra, x86_acpi_madt->lapic_addr, x86_acpi_madt->lapic_addr, 1, VM_GLOBAL);
+
     x86_smp_init(x86_kpg_infra);
 
     // ! map the bios memory area, should it be done like this?
     pr_info("mapping bios memory area...");
-    memblock_t *bios_memblock = x86_mem_find_bios_block();
+    memblock_t *bios_block = x86_mem_find_bios_block();
+    pg_do_map_pages(x86_kpg_infra, bios_block->paddr, bios_block->paddr, bios_block->size_bytes / X86_PAGE_SIZE, VM_GLOBAL);
 
-    pg_do_map_pages(x86_kpg_infra, bios_memblock->paddr, bios_memblock->paddr, bios_memblock->size_bytes / X86_PAGE_SIZE, VM_PRESENT);
     x86_mm_enable_paging(x86_kpg_infra);
 
     mos_kernel_mm_init(); // since then, we can use the kernel heap (kmalloc)
@@ -180,31 +164,37 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     mos_start_kernel(mos_cmdline);
 }
 
-const mos_platform_t mos_platform = {
-    .kernel_start = (uintptr_t) &__MOS_SECTION_KERNEL_START,
-    .kernel_end = (uintptr_t) &__MOS_SECTION_KERNEL_END,
+mos_platform_t x86_platform = {
+    .regions = {
+        .ro_start = (uintptr_t) &__MOS_KERNEL_RO_START,
+        .ro_end = (uintptr_t) &__MOS_KERNEL_RO_END,
+        .rw_start = (uintptr_t) &__MOS_KERNEL_RW_START,
+        .rw_end = (uintptr_t) &__MOS_KERNEL_RW_END,
+    },
+    .mm_page_size = X86_PAGE_SIZE,
 
-    .cpu_info = &x86_cpu_info,
+    .halt_cpu = x86_cpu_halt,
+    .current_cpu_id = x86_cpu_get_id,
 
     .shutdown = x86_shutdown_vm,
     .interrupt_disable = x86_disable_interrupts,
     .interrupt_enable = x86_enable_interrupts,
-    .halt_cpu = x86_cpu_halt,
     .irq_handler_install = x86_install_interrupt_handler,
     .irq_handler_remove = NULL,
 
     // memory management
-    .mm_page_size = X86_PAGE_SIZE,
-    .kernel_pg = { .ptr = (const uintptr_t) &__MOS_X86_PAGING_AREA_START },
-    .mm_pgd_alloc = x86_um_pgd_init,
-    .mm_pgd_free = x86_um_pgd_deinit,
-    .mm_pg_alloc = x86_mm_pg_alloc,
-    .mm_pg_free = x86_mm_pg_free,
-    .mm_pg_flag = x86_mm_pg_flag,
-
-    .mm_pg_map_to_kvaddr = x86_mm_pg_map_to_kvirt,
-    .mm_pg_unmap = x86_mm_pg_unmap,
+    .mm_create_pagetable = x86_um_pgd_create,
+    .mm_destroy_pagetable = x86_um_pgd_destroy,
+    .mm_alloc_pages = x86_mm_pg_alloc,
+    .mm_free_pages = x86_mm_pg_free,
+    .mm_flag_pages = x86_mm_pg_flag,
+    .mm_map_kvaddr = x86_mm_pg_map_to_kvirt,
+    .mm_unmap = x86_mm_pg_unmap,
 
     // process management
-    .usermode_trampoline = x86_usermode_trampoline,
+    .context_setup = x86_setup_thread_context,
+    .switch_to_thread = x86_context_switch,
+    .switch_to_scheduler = x86_context_switch_to_scheduler,
 };
+
+mos_platform_t *const mos_platform = &x86_platform;

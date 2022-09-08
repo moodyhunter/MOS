@@ -20,7 +20,7 @@ acpi_madt_t *x86_acpi_madt;
 acpi_hpet_t *x86_acpi_hpet;
 acpi_fadt_t *x86_acpi_fadt;
 
-void __noreturn x86_shutdown_vm()
+void noreturn x86_shutdown_vm()
 {
     x86_disable_interrupts();
     port_outw(0x604, 0x2000);

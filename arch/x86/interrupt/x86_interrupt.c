@@ -6,10 +6,8 @@
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
 #include "mos/x86/drivers/port.h"
+#include "mos/x86/interrupt/pic.h"
 #include "mos/x86/x86_platform.h"
-
-// End-of-interrupt command code
-#define PIC_EOI 0x20
 
 static const char *x86_exception_names[EXCEPTION_COUNT] = {
     "Divide-By-Zero Error",
@@ -46,6 +44,12 @@ static const char *x86_exception_names[EXCEPTION_COUNT] = {
     "Reserved",
 };
 
+typedef struct
+{
+    as_linked_list;
+    void (*handler)(u32 irq);
+} x86_irq_handler_t;
+
 static void isr_handle_irq(x86_stack_frame *frame);
 static void isr_handle_exception(x86_stack_frame *frame);
 list_node_t irq_handlers[IRQ_MAX_COUNT];
@@ -68,7 +72,7 @@ void x86_enable_interrupts()
 
 bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
 {
-    irq_handler_descriptor_t *desc = kmalloc(sizeof(irq_handler_descriptor_t));
+    x86_irq_handler_t *desc = kmalloc(sizeof(x86_irq_handler_t));
     desc->handler = handler;
     list_node_append(&irq_handlers[irq], list_node(desc));
     return true;
@@ -103,6 +107,9 @@ static void isr_handle_exception(x86_stack_frame *stack)
     x86_disable_interrupts();
     MOS_ASSERT(stack->interrupt_number < EXCEPTION_COUNT);
 
+    const char *name = x86_exception_names[stack->interrupt_number];
+    const char *intr_type = "";
+
     // Faults: These can be corrected and the program may continue as if nothing happened.
     // Traps:  Traps are reported immediately after the execution of the trapping instruction.
     // Aborts: Some severe unrecoverable error.
@@ -129,7 +136,7 @@ static void isr_handle_exception(x86_stack_frame *stack)
         case EXCEPTION_VMM_COMMUNICATION_EXCEPTION:
         case EXCEPTION_SECURITY_EXCEPTION:
         {
-            mos_panic("Fault %d (%s), error code: %d", stack->interrupt_number, x86_exception_names[stack->interrupt_number], stack->error_code);
+            intr_type = "fault";
             break;
         }
 
@@ -141,6 +148,7 @@ static void isr_handle_exception(x86_stack_frame *stack)
 
         case EXCEPTION_PAGE_FAULT:
         {
+            intr_type = "page fault";
             bool is_write = (stack->error_code & 0x2) != 0;
 
             uintptr_t fault_address;
@@ -155,40 +163,51 @@ static void isr_handle_exception(x86_stack_frame *stack)
             bool is_user = (stack->error_code & 0x4) != 0;
             mos_panic("Page Fault: %s code at " PTR_FMT " is trying to %s a %s address " PTR_FMT, //
                       is_user ? "Userspace" : "Kernel",                                           //
-                      (uintptr_t) stack->eip,                                                     //
+                      (uintptr_t) stack->intrrupt.eip,                                            //
                       is_write ? "write into" : "read from",                                      //
                       present ? "present" : "non-present",                                        //
                       fault_address);
 #endif
-            return;
+            break;
         }
 
         case EXCEPTION_DOUBLE_FAULT:
         case EXCEPTION_MACHINE_CHECK:
         {
-            mos_panic("Fatal x86 Exception:\n"
-                      "Interrupt %d ('%s', error code %d)\n"
-                      "General Purpose Registers:\n"
-                      "  EAX: 0x%08x EBX: 0x%08x ECX: 0x%08x EDX: 0x%08x\n"
-                      "  ESI: 0x%08x EDI: 0x%08x EBP: 0x%08x ESP: 0x%08x\n"
-                      "  EIP: 0x%08x\n"
-                      "Segment Registers:\n"
-                      "  DS:  0x%08x ES:  0x%08x FS:  0x%08x GS:  0x%08x\n"
-                      "  CS:  0x%08x\n"
-                      "EFLAGS: 0x%08x",                               //
-                      stack->interrupt_number,                        //
-                      x86_exception_names[stack->interrupt_number],   //
-                      stack->error_code,                              //
-                      stack->eax, stack->ebx, stack->ecx, stack->edx, //
-                      stack->esi, stack->edi, stack->ebp, stack->esp, //
-                      stack->eip,                                     //
-                      stack->ds, stack->es, stack->fs, stack->gs,     //
-                      stack->cs,                                      //
-                      stack->eflags                                   //
-            );
+            intr_type = "abort";
+            break;
         }
-        default: mos_panic("Unknown exception.");
+        default:
+        {
+            name = "unknown";
+            intr_type = "unknown";
+        }
     }
+
+    mos_panic("x86 %s:\n"
+              "Interrupt #%d ('%s', error code %d)\n"
+              "General Purpose Registers:\n"
+              "  EAX: 0x%08x EBX: 0x%08x ECX: 0x%08x EDX: 0x%08x\n"
+              "  ESI: 0x%08x EDI: 0x%08x EBP: 0x%08x ESP: 0x%08x\n"
+              "  EIP: 0x%08x\n"
+              "Segment Registers:\n"
+              "  DS:  0x%08x ES:  0x%08x FS:  0x%08x GS:  0x%08x\n"
+              "Context:\n"
+              "  EFLAGS:       0x%08x\n"
+              "  Instruction:  0x%x:%08x\n"
+              "  Stack:        0x%x:%08x",
+              intr_type,                                      //
+              stack->interrupt_number,                        //
+              name,                                           //
+              stack->error_code,                              //
+              stack->eax, stack->ebx, stack->ecx, stack->edx, //
+              stack->esi, stack->edi, stack->ebp, stack->esp, //
+              stack->intrrupt.eip,                            //
+              stack->ds, stack->es, stack->fs, stack->gs,     //
+              stack->intrrupt.eflags,                         //
+              stack->intrrupt.cs, stack->intrrupt.eip,        //
+              stack->intrrupt.ss, stack->intrrupt.esp         //
+    );
 }
 
 static void isr_handle_irq(x86_stack_frame *frame)
@@ -205,7 +224,7 @@ static void isr_handle_irq(x86_stack_frame *frame)
     }
 
     bool irq_handled = false;
-    list_foreach(irq_handler_descriptor_t, handler, irq_handlers[irq])
+    list_foreach(x86_irq_handler_t, handler, irq_handlers[irq])
     {
         irq_handled = true;
         handler->handler(irq);

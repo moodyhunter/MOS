@@ -22,12 +22,20 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 option(MOS_MM_LIBALLOC_LOCKS "liballoc: has lock support" OFF)
 option(MOS_MM_LIBALLOC_DEBUG "liballoc: debug message enabled" OFF)
-option(MOS_ENABLE_DEBUG_LOG "Enable debug log" OFF)
+option(MOS_DEBUG "Enable debug log" OFF)
 option(MOS_PRINTK_HAS_FILENAME "printk: has filename" ON)
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
     message(STATUS "Found custom configuration file 'config.cmake'")
     include(${CMAKE_SOURCE_DIR}/config.cmake)
+endif()
+
+if(NOT DEFINED MOS_MAX_CPU_COUNT)
+    set(MOS_MAX_CPU_COUNT 16)
+endif()
+
+if(NOT DEFINED NOS_MAX_OPEN_FILES)
+    set(NOS_MAX_OPEN_FILES 256)
 endif()
 
 set(MOS_ARCH_CONFIG ${CMAKE_SOURCE_DIR}/arch/${MOS_TARGET_ARCH}/mos_platform.cmake)
@@ -54,8 +62,10 @@ option(MOS_MEME "Enable MEME" OFF)
 
 mos_add_kconfig_define(MOS_MM_LIBALLOC_LOCKS)
 mos_add_kconfig_define(MOS_MM_LIBALLOC_DEBUG)
-mos_add_kconfig_define(MOS_ENABLE_DEBUG_LOG)
+mos_add_kconfig_define(MOS_DEBUG)
 mos_add_kconfig_define(MOS_PRINTK_HAS_FILENAME)
+mos_add_kconfig_define(MOS_MAX_CPU_COUNT)
+mos_add_kconfig_define(NOS_MAX_OPEN_FILES)
 mos_add_kconfig_define(MOS_MEME)
 
 include_directories(
@@ -83,6 +93,7 @@ add_library(mos_kernel.elf STATIC
     kernel/tasks/process.c
     kernel/tasks/task_io.c
     kernel/tasks/thread.c
+    kernel/tasks/schedule.c
     lib/structures/hashmap.c
     lib/structures/hashmap_common.c
     lib/structures/list.c
@@ -110,7 +121,7 @@ mos_add_summary_item(MM "liballoc: locks" "${MOS_MM_LIBALLOC_LOCKS}")
 mos_add_summary_item(MM "liballoc: debug" "${MOS_MM_LIBALLOC_DEBUG}")
 
 mos_add_summary_section(DEBUG "MOS Debugging")
-mos_add_summary_item(DEBUG "Debug log" "${MOS_ENABLE_DEBUG_LOG}")
+mos_add_summary_item(DEBUG "Debug log" "${MOS_DEBUG}")
 mos_add_summary_item(DEBUG "printk: with filename" "${MOS_PRINTK_HAS_FILENAME}")
 
 # Configure architecture-specific stuff

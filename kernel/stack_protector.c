@@ -5,7 +5,7 @@
 
 u64 __stack_chk_guard = 0;
 
-void __noreturn __stack_chk_fail(void)
+void noreturn __stack_chk_fail(void)
 {
     mos_panic("Stack smashing detected!");
 }

@@ -45,7 +45,7 @@ void process_deinit(void)
     kfree(process_table);
 }
 
-process_id_t create_process(process_id_t parent_pid, uid_t euid, thread_entry_t entry, void *arg)
+process_t *create_process(process_id_t parent_pid, uid_t euid, thread_entry_t entry, void *arg)
 {
     mos_debug("create_process(parent: %d, euid: %d, arg: %p)", parent_pid.process_id, euid.uid, arg);
     process_t *process = kmalloc(sizeof(process_t));
@@ -55,18 +55,15 @@ process_id_t create_process(process_id_t parent_pid, uid_t euid, thread_entry_t 
     process->effective_uid = euid;
     process->parent_pid = parent_pid;
 
-    size_t kpagerange = (mos_platform.kernel_end - mos_platform.kernel_start) / mos_platform.mm_page_size;
-    mos_platform.mm_pgd_alloc(&process->pagetable);
-    mos_platform.mm_pg_map_to_kvaddr(process->pagetable, mos_platform.kernel_start, mos_platform.kernel_start, kpagerange, VM_USERMODE);
+    process->pagetable = mos_platform->mm_create_pagetable();
 
     process_stdio_setup(process);
-
-    // TODO: allocate memory for the process
-    process->main_thread_id = create_thread(process->id, THREAD_FLAG_USERMODE, entry, arg);
+    thread_t *main_thread = create_thread(process, THREAD_FLAG_USERMODE, entry, arg);
+    process->main_thread_id = main_thread->id;
 
     void *old_proc = hashmap_put(process_table, &process->id, process);
     MOS_ASSERT_X(old_proc == NULL, "process already exists, go and buy yourself a lottery :)");
-    return process->id;
+    return process;
 }
 
 process_t *get_process(process_id_t pid)

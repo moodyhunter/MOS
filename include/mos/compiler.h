@@ -24,8 +24,10 @@
 
 #if __SIZEOF_LONG__ == 8
 #define MOS_64BITS 1
-#else
+#elif __SIZEOF_LONG__ == 4
 #define MOS_32BITS 1
+#else
+#error "unknown size of long"
 #endif
 
 #define MOS_LITTLE_ENDIAN

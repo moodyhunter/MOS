@@ -126,7 +126,7 @@ void mos_test_engine_run_tests()
     pr_emph("ALL %u TESTS PASSED: (%u succeed, %u failed, %u skipped)", result.n_total, passed, result.n_failed, result.n_skipped);
 
     if (mos_cmdline_get_arg("mos_tests_halt_on_success"))
-        mos_platform.halt_cpu();
+        mos_platform->halt_cpu();
     else
-        mos_platform.shutdown();
+        mos_platform->shutdown();
 }

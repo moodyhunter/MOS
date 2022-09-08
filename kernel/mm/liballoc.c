@@ -4,6 +4,7 @@
 
 #include "lib/string.h"
 #include "mos/mm/paging.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 
 #define VERSION "1.1"
@@ -50,26 +51,26 @@
 #define LIBALLOC_DEAD  0xdeaddead
 
 // A structure found at the top of all system allocated memory blocks. It details the usage of the memory block.
-typedef struct liballoc_major_struct
+typedef struct liballoc_block
 {
-    struct liballoc_major_struct *prev;  // Linked list information.
-    struct liballoc_major_struct *next;  // Linked list information.
-    size_t pages;                        // The number of pages in the block.
-    size_t size;                         // bytes in the block.
-    size_t usage;                        // bytes used in the block.
-    struct liballoc_minor_struct *first; // A pointer to the first allocated memory in the block.
+    struct liballoc_block *prev; // Linked list information.
+    struct liballoc_block *next; // Linked list information.
+    size_t pages;                // The number of pages in the block.
+    size_t size;                 // bytes in the block.
+    size_t usage;                // bytes used in the block.
+    struct liballoc_part *first; // A pointer to the first allocated memory in the block.
 } liballoc_block_t;
 
 // This is a structure found at the beginning of all sections in a major block which were allocated by a malloc, calloc, realloc call.
-typedef struct liballoc_minor_struct
+typedef struct liballoc_part
 {
-    struct liballoc_minor_struct *prev;  // Linked list information.
-    struct liballoc_minor_struct *next;  // Linked list information.
-    struct liballoc_major_struct *block; // The owning block. A pointer to the major structure.
-    u32 magic;                           // A magic number to idenfity correctness.
-    size_t size;                         // The size of the memory allocated. Could be 1 byte or more.
-    size_t req_size;                     // The size of memory requested.
-} liballoc_minor_t;
+    struct liballoc_part *prev;   // Linked list information.
+    struct liballoc_part *next;   // Linked list information.
+    struct liballoc_block *block; // The owning block. A pointer to the major structure.
+    u32 magic;                    // A magic number to idenfity correctness.
+    size_t size;                  // The size of the memory allocated. Could be 1 byte or more.
+    size_t req_size;              // The size of memory requested.
+} liballoc_part_t;
 
 static liballoc_block_t *l_memroot = NULL; // The root memory block acquired from the system.
 static liballoc_block_t *l_bestbet = NULL; // The major with the most free memory.
@@ -83,6 +84,7 @@ static size_t l_warnings = 0;          // Number of warnings encountered
 static size_t l_errors = 0;            // Number of actual errors
 static size_t l_possible_overruns = 0; // Number of possible overruns
 
+#if MOS_MM_LIBALLOC_DEBUG
 void liballoc_dump()
 {
     pr_info("--------------- Memory data ---------------");
@@ -109,11 +111,12 @@ void liballoc_dump()
         maj = maj->next;
     }
 }
+#endif
 
 static liballoc_block_t *allocate_new_pages_for(unsigned int size)
 {
     // This is how much space is required.
-    u32 st = size + sizeof(liballoc_block_t) + sizeof(liballoc_minor_t);
+    u32 st = size + sizeof(liballoc_block_t) + sizeof(liballoc_part_t);
 
     // Perfect amount of space?
     if ((st % l_page_size) == 0)
@@ -126,7 +129,7 @@ static liballoc_block_t *allocate_new_pages_for(unsigned int size)
     if (st < l_alloc_n_page_once)
         st = l_alloc_n_page_once;
 
-    liballoc_block_t *maj = (liballoc_block_t *) kpage_alloc(st);
+    liballoc_block_t *maj = (liballoc_block_t *) kpage_alloc(st, PGALLOC_KHEAP);
     if (maj == NULL)
     {
         l_warnings += 1;
@@ -218,7 +221,7 @@ void *liballoc_malloc(size_t req_size)
     {
         bestSize = l_bestbet->size - l_bestbet->usage;
 
-        if (bestSize > (size + sizeof(liballoc_minor_t)))
+        if (bestSize > (size + sizeof(liballoc_part_t)))
         {
             block = l_bestbet;
             startedBet = 1;
@@ -239,7 +242,7 @@ void *liballoc_malloc(size_t req_size)
 
 #ifdef USE_CASE1
         // CASE 1:  There is not enough space in this major block.
-        if (diff < (size + sizeof(liballoc_minor_t)))
+        if (diff < (size + sizeof(liballoc_part_t)))
         {
 #if MOS_MM_LIBALLOC_DEBUG
             pr_info("CASE 1: Insufficient space in block %p", (void *) block);
@@ -274,7 +277,7 @@ void *liballoc_malloc(size_t req_size)
         // CASE 2: It's a brand new block.
         if (block->first == NULL)
         {
-            block->first = (liballoc_minor_t *) ((uintptr_t) block + sizeof(liballoc_block_t));
+            block->first = (liballoc_part_t *) ((uintptr_t) block + sizeof(liballoc_block_t));
 
             block->first->magic = LIBALLOC_MAGIC;
             block->first->prev = NULL;
@@ -282,11 +285,11 @@ void *liballoc_malloc(size_t req_size)
             block->first->block = block;
             block->first->size = size;
             block->first->req_size = req_size;
-            block->usage += size + sizeof(liballoc_minor_t);
+            block->usage += size + sizeof(liballoc_part_t);
 
             l_mem_inuse += size;
 
-            void *p = (void *) ((uintptr_t) (block->first) + sizeof(liballoc_minor_t));
+            void *p = (void *) ((uintptr_t) (block->first) + sizeof(liballoc_part_t));
 
             LIBALLOC_ALIGN_PTR(p);
 
@@ -308,10 +311,10 @@ void *liballoc_malloc(size_t req_size)
             s64 diff = (uintptr_t) block->first - (uintptr_t) block;
             diff -= sizeof(liballoc_block_t);
 
-            if (diff >= (size + sizeof(liballoc_minor_t)))
+            if (diff >= (size + sizeof(liballoc_part_t)))
             {
                 // Yes, space in front. Squeeze in.
-                block->first->prev = (liballoc_minor_t *) ((uintptr_t) block + sizeof(liballoc_block_t));
+                block->first->prev = (liballoc_part_t *) ((uintptr_t) block + sizeof(liballoc_block_t));
                 block->first->prev->next = block->first;
                 block->first = block->first->prev;
 
@@ -320,11 +323,11 @@ void *liballoc_malloc(size_t req_size)
                 block->first->block = block;
                 block->first->size = size;
                 block->first->req_size = req_size;
-                block->usage += size + sizeof(liballoc_minor_t);
+                block->usage += size + sizeof(liballoc_part_t);
 
                 l_mem_inuse += size;
 
-                void *p = (void *) ((uintptr_t) (block->first) + sizeof(liballoc_minor_t));
+                void *p = (void *) ((uintptr_t) (block->first) + sizeof(liballoc_part_t));
                 LIBALLOC_ALIGN_PTR(p);
 
 #if MOS_MM_LIBALLOC_LOCKS
@@ -340,7 +343,7 @@ void *liballoc_malloc(size_t req_size)
 
 #ifdef USE_CASE4
         // CASE 4: There is enough space in this block. But is it contiguous?
-        liballoc_minor_t *section = block->first;
+        liballoc_part_t *section = block->first;
 
         // Looping within the block now...
         while (section != NULL)
@@ -349,15 +352,15 @@ void *liballoc_malloc(size_t req_size)
             if (section->next == NULL)
             {
                 // the rest of this block is free...  is it big enough?
-                size_t size_left = block->size;                        // size of the block
-                size_left -= (uintptr_t) section - (uintptr_t) block;  // minus the area before this section
-                size_left -= sizeof(liballoc_minor_t) + section->size; // minus this section
+                size_t size_left = block->size;                       // size of the block
+                size_left -= (uintptr_t) section - (uintptr_t) block; // minus the area before this section
+                size_left -= sizeof(liballoc_part_t) + section->size; // minus this section
 
                 // if there's still enough space
-                if (size_left >= sizeof(liballoc_minor_t) + size)
+                if (size_left >= sizeof(liballoc_part_t) + size)
                 {
                     // yay....
-                    section->next = (liballoc_minor_t *) ((uintptr_t) section + sizeof(liballoc_minor_t) + section->size);
+                    section->next = (liballoc_part_t *) ((uintptr_t) section + sizeof(liballoc_part_t) + section->size);
                     section->next->prev = section;
 
                     // go to the next section
@@ -368,11 +371,11 @@ void *liballoc_malloc(size_t req_size)
                     section->size = size;
                     section->req_size = req_size;
 
-                    block->usage += size + sizeof(liballoc_minor_t);
+                    block->usage += size + sizeof(liballoc_part_t);
 
                     l_mem_inuse += size;
 
-                    void *p = (void *) ((uintptr_t) section + sizeof(liballoc_minor_t));
+                    void *p = (void *) ((uintptr_t) section + sizeof(liballoc_part_t));
                     LIBALLOC_ALIGN_PTR(p);
 
 #if MOS_MM_LIBALLOC_LOCKS
@@ -391,14 +394,14 @@ void *liballoc_malloc(size_t req_size)
                 // is the difference between here and next big enough?
                 s64 diff = (uintptr_t) (section->next);
                 diff -= (uintptr_t) section;
-                diff -= sizeof(liballoc_minor_t);
+                diff -= sizeof(liballoc_part_t);
                 diff -= section->size;
                 // minus our existing usage.
 
-                if (diff >= (size + sizeof(liballoc_minor_t)))
+                if (diff >= (size + sizeof(liballoc_part_t)))
                 {
                     // yay......
-                    liballoc_minor_t *new_min = (liballoc_minor_t *) ((uintptr_t) section + sizeof(liballoc_minor_t) + section->size);
+                    liballoc_part_t *new_min = (liballoc_part_t *) ((uintptr_t) section + sizeof(liballoc_part_t) + section->size);
 
                     new_min->magic = LIBALLOC_MAGIC;
                     new_min->next = section->next;
@@ -408,11 +411,11 @@ void *liballoc_malloc(size_t req_size)
                     new_min->block = block;
                     section->next->prev = new_min;
                     section->next = new_min;
-                    block->usage += size + sizeof(liballoc_minor_t);
+                    block->usage += size + sizeof(liballoc_part_t);
 
                     l_mem_inuse += size;
 
-                    void *p = (void *) ((uintptr_t) new_min + sizeof(liballoc_minor_t));
+                    void *p = (void *) ((uintptr_t) new_min + sizeof(liballoc_part_t));
                     LIBALLOC_ALIGN_PTR(p);
 
 #if MOS_MM_LIBALLOC_LOCKS
@@ -472,7 +475,7 @@ void *liballoc_malloc(size_t req_size)
 
 void liballoc_free(const void *ptr)
 {
-    liballoc_minor_t *min;
+    liballoc_part_t *min;
     liballoc_block_t *maj;
 
     if (ptr == NULL)
@@ -488,7 +491,7 @@ void liballoc_free(const void *ptr)
     liballoc_lock(); // lockit
 #endif
 
-    min = (liballoc_minor_t *) ((uintptr_t) ptr - sizeof(liballoc_minor_t));
+    min = (liballoc_part_t *) ((uintptr_t) ptr - sizeof(liballoc_part_t));
 
     if (min->magic != LIBALLOC_MAGIC)
     {
@@ -519,7 +522,7 @@ void liballoc_free(const void *ptr)
 
     maj = min->block;
     l_mem_inuse -= min->size;
-    maj->usage -= (min->size + sizeof(liballoc_minor_t));
+    maj->usage -= (min->size + sizeof(liballoc_part_t));
     min->magic = LIBALLOC_DEAD; // No mojo.
 
     if (min->next != NULL)
@@ -567,7 +570,8 @@ void liballoc_free(const void *ptr)
 
 void *liballoc_calloc(size_t nobj, size_t size)
 {
-    int real_size = nobj * size;
+    MOS_ASSERT_X(nobj > 0, "You Fool! You can't allocate 0 objects!");
+    size_t real_size = nobj * size;
     void *p = liballoc_malloc(real_size);
     memset(p, 0, real_size);
     return p;
@@ -596,7 +600,7 @@ void *liballoc_realloc(void *p, size_t size)
     liballoc_lock(); // lockit
 #endif
 
-    liballoc_minor_t *min = (liballoc_minor_t *) ((uintptr_t) ptr - sizeof(liballoc_minor_t));
+    liballoc_part_t *min = (liballoc_part_t *) ((uintptr_t) ptr - sizeof(liballoc_part_t));
 
     // Ensure it is a valid structure.
     if (min->magic != LIBALLOC_MAGIC)

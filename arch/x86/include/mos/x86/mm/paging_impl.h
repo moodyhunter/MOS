@@ -39,7 +39,7 @@ typedef struct
     bool available_1 : 1;
     bool page_sized : 1;
     u8 available_2 : 4;
-    u32 page_table_addr : 20;
+    u32 page_table_paddr : 20;
 } __packed x86_pgdir_entry;
 
 static_assert(sizeof(x86_pgdir_entry) == 4, "page_directory_entry is not 4 bytes");
@@ -52,6 +52,7 @@ typedef u32 pagemap_line_t;
 // !! FIXME: This is HUGE for a process, consider allocate it on demand
 // !! FIXME: This is HUGE for a process, consider allocate it on demand
 // !! FIXME: This is HUGE for a process, consider allocate it on demand
+// ! Not all of these memory is used, consider shrinking it up to 0xD0000000
 typedef struct x86_pg_infra_t
 {
     x86_pgdir_entry pgdir[1024];
@@ -64,16 +65,16 @@ always_inline x86_pg_infra_t *x86_get_pg_infra(paging_handle_t table)
     return (x86_pg_infra_t *) table.ptr;
 }
 
-void *pg_page_alloc(x86_pg_infra_t *pg, size_t n);
+void *pg_page_alloc(x86_pg_infra_t *pg, size_t n, pagealloc_flags flags);
 bool pg_page_free(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n);
 
-void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, page_flags flags);
+void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags);
 
 uintptr_t pg_page_get_mapped_paddr(x86_pg_infra_t *pg, uintptr_t vaddr);
-void pg_map_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags);
+void pg_map_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, vm_flags flags);
 void pg_unmap_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, size_t n_page);
 
-void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, page_flags flags);
-void pg_do_map_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags);
+void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_flags flags);
+void pg_do_map_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, vm_flags flags);
 void pg_do_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr);
 void pg_do_unmap_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, size_t n_page);

@@ -5,8 +5,11 @@
 %define ISR_MAX_COUNT     255
 %define IRQ_MAX_COUNT     16
 
+%define REG_SIZE          4
+
 extern x86_handle_interrupt
 
+global x86_process_init_impl:function (x86_process_init_impl.end - x86_process_init_impl)
 global irq_stub_table
 global isr_stub_table
 
@@ -19,7 +22,7 @@ global isr_stub_table
 isr_stub_%+%1:
     nop                   ; ! If the interrupt is an exception, the CPU will push an error code onto the stack, as a doubleword.
     push %1               ; interrupt number
-    jmp  ISR_handler_impl
+    jmp  do_interrupt
 %endmacro
 
 ; handler for a ISR
@@ -27,7 +30,7 @@ isr_stub_%+%1:
 isr_stub_%+%1:
     push 0                ; error code (not used)
     push %1               ; interrupt number
-    jmp  ISR_handler_impl
+    jmp  do_interrupt
 %endmacro
 
 ; handler for an IRQ
@@ -35,7 +38,7 @@ isr_stub_%+%1:
 irq_stub_%1:
     push 0                ; error code (not used)
     push %1 + IRQ_BASE    ; IRQ number
-    jmp  ISR_handler_impl
+    jmp  do_interrupt
 %endmacro
 
 ISR_handler     0 ; Divide-by-zero Error
@@ -111,12 +114,12 @@ irq_stub_table:
     %assign i i+1
     %endrep
 
-ISR_handler_impl:
+do_interrupt:
+    pushad                          ; save all registers
     push    gs                      ; save ds, es, fs, gs
     push    fs
     push    es
     push    ds
-    pushad                          ; save all registers
     cld                             ; clears the DF flag in the EFLAGS register.
                                     ; so that string operations increment the index registers (ESI and/or EDI).
 
@@ -127,13 +130,16 @@ ISR_handler_impl:
     mov gs, ax
 
     mov     eax, esp
-    push    eax
+    push    eax                     ; the argument (stack *)
     call    x86_handle_interrupt    ; x86_handle_interrupt(u32 esp)
     add     esp, 4                  ; remove the pushed esp parameter
-    popad
+
+.intrrupt_return:
     pop     ds
     pop     es
     pop     fs
     pop     gs
-    add     esp, 4 * 2              ; remove the pushed error code and interrupt (or IRQ) number
+    popad                           ; esp, eax, ecx, edx, ebx, ebp, esi, edi
+    add     esp, REG_SIZE * 2       ; remove the pushed error code and interrupt (or IRQ) number
     iret
+.end:

@@ -79,7 +79,7 @@ void pmem_freelist_setup(x86_pg_infra_t *kpg_infra)
             continue;
 
         // the location should not be lower than the kernel end
-        paddr = MAX(region->paddr, x86_kernel_end);
+        paddr = MAX(region->paddr, mos_kernel_end);
         paddr = X86_ALIGN_UP_TO_PAGE(paddr);
 
         // compare end address of freelist and the end address of the region
@@ -121,7 +121,7 @@ void pmem_freelist_setup(x86_pg_infra_t *kpg_infra)
     // map the freelist
     uintptr_t vaddr = PMEM_FREELIST_VADDR;
     pr_info("paging: mapping freelist at physical address %p", (void *) paddr);
-    pg_map_pages(kpg_infra, vaddr, paddr, pmem_freelist_size / X86_PAGE_SIZE, VM_WRITABLE);
+    pg_map_pages(kpg_infra, vaddr, paddr, pmem_freelist_size / X86_PAGE_SIZE, VM_GLOBAL | VM_WRITABLE);
 }
 
 #define this_start (this->paddr)

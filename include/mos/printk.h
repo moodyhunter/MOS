@@ -13,7 +13,7 @@
 #define PRINTK_BUFFER_SIZE 1024
 
 #define MOS_UNIMPLEMENTED(content) mos_panic("UNIMPLEMENTED: %s", content)
-#define MOS_UNREACHABLE()          mos_panic("UNREACHABLE")
+#define MOS_UNREACHABLE()          mos_panic("UNREACHABLE line %d reached in file: %s", __LINE__, __FILE__)
 #define MOS_ASSERT(cond)           MOS_ASSERT_X(cond, "")
 #define MOS_ASSERT_X(cond, msg, ...)                                                                                                            \
     do                                                                                                                                          \
@@ -47,7 +47,7 @@ typedef enum
 #define pr_emerg(fmt, ...) lprintk_wrapper(MOS_LOG_EMERG, fmt "\n", ##__VA_ARGS__)
 #define pr_fatal(fmt, ...) lprintk_wrapper(MOS_LOG_FATAL, fmt "\n", ##__VA_ARGS__)
 
-#if MOS_ENABLE_DEBUG_LOG
+#if MOS_DEBUG
 #define mos_debug(fmt, ...) pr_info2("%s: " fmt, __func__, ##__VA_ARGS__)
 #else
 #define lprintk_noop(level, fmt, ...)                                                                                                           \
@@ -76,4 +76,4 @@ typedef enum
 void __printf(1, 2) printk(const char *format, ...);
 void __printf(2, 3) lprintk(int loglevel, const char *format, ...);
 void __printf(3, 4) mos_kwarn(const char *func, u32 line, const char *fmt, ...);
-void __printf(3, 4) __noreturn mos_kpanic(const char *func, u32 line, const char *fmt, ...);
+void __printf(3, 4) noreturn mos_kpanic(const char *func, u32 line, const char *fmt, ...);

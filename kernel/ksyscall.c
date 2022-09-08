@@ -3,15 +3,16 @@
 #include "mos/io/io.h"
 #include "mos/ksyscall/decl.h"
 #include "mos/mos_global.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_type.h"
 #include "mos/tasks/thread.h"
 
-thread_t *get_current(void)
-{
-    return NULL;
-}
+void x(){};
+void y(){};
+
+#define syscall_barrier() for (x();; y())
 
 fd_t define_ksyscall(file_open)(const char *path, file_open_flags flags)
 {
@@ -38,10 +39,8 @@ size_t define_ksyscall(io_read)(fd_t fd, void *buf, size_t count, size_t offset)
 
 size_t define_ksyscall(io_write)(fd_t fd, const void *buf, size_t count, size_t offset)
 {
-    // TODO: get_current()
-    thread_t *t = get_thread((thread_id_t){ .thread_id = 1 });
-    process_t *p = get_process(t->owner);
-    return io_write(p->file_table[fd], buf, count);
+    thread_t *p = current_thread;
+    return io_write(p->owner->file_table[fd], buf, count);
     MOS_UNUSED(offset);
     return 0;
 }

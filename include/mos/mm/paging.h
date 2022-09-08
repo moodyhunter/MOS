@@ -2,9 +2,8 @@
 
 #pragma once
 
+#include "mos/platform/platform.h"
 #include "mos/types.h"
 
-void *kpage_alloc(size_t npages);
-
-// 'ptr' is the value returned from a previous mm_page_alloc call.
+void *kpage_alloc(size_t npages, pagealloc_flags type);
 bool kpage_free(void *ptr, size_t npages);

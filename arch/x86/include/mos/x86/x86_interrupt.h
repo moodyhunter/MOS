@@ -3,8 +3,7 @@
 #pragma once
 
 #include "lib/containers.h"
-#include "mos/mm/mm_types.h"
-#include "mos/platform/platform.h"
+#include "mos/mos_global.h"
 #include "mos/types.h"
 
 #define IRQ_BASE 0x20
@@ -71,7 +70,7 @@ typedef enum
 
 static_assert(IRQ_MAX_COUNT == IRQ_MAX, "IRQ_MAX_COUNT is not equal to IRQ_MAX");
 
-// The following 2 symbols are defined in the interrupt_handler.asm file.
+// The following `extern` symbols are defined in the interrupt_handler.asm file.
 extern list_node_t irq_handlers[IRQ_MAX_COUNT];
 extern void *isr_stub_table[];
 extern void *irq_stub_table[];

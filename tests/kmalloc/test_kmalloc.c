@@ -43,15 +43,16 @@ MOS_TEST_CASE(kmalloc_large)
     memset(p, 0, 500 MB);
     kfree(p);
 
-    p = kmalloc(1 GB);
-    MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
-    memset(p, 0, 1 GB);
-    kfree(p);
+    // kmalloc cannot allocate more than 768 MB, because the kernel heap starts at virtual address 0xd0000000
+    // p = kmalloc(1 GB);
+    // MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
+    // memset(p, 0, 1 GB);
+    // kfree(p);
 
-    p = kmalloc(2 GB);
-    MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
-    memset(p, 0, 2 GB);
-    kfree(p);
+    // p = kmalloc(2 GB);
+    // MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
+    // memset(p, 0, 2 GB);
+    // kfree(p);
 }
 
 MOS_TEST_CASE(kmalloc_a_lot)

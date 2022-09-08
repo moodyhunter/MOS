@@ -8,8 +8,8 @@
 
 typedef struct
 {
-    void *const base;
-    void *head;
+    const uintptr_t base;
+    uintptr_t head;
     size_t capacity;
 } downwards_stack_t;
 
@@ -20,4 +20,4 @@ void *stack_grow(downwards_stack_t *stack, size_t size);
 void stack_push(downwards_stack_t *stack, void *data, size_t size);
 
 // ! WARN: Caller must ensure the data is at least size bytes long
-void stack_pop(downwards_stack_t *stack, void *data, size_t size);
+void stack_pop(downwards_stack_t *stack, size_t size, void *data);

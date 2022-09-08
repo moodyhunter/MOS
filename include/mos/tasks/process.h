@@ -8,5 +8,5 @@
 void process_init();
 void process_deinit();
 
-process_id_t create_process(process_id_t parent_pid, uid_t effective_uid, thread_entry_t entry, void *arg);
+process_t *create_process(process_id_t parent_pid, uid_t effective_uid, thread_entry_t entry, void *arg);
 process_t *get_process(process_id_t pid);

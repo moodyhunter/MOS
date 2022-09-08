@@ -3,6 +3,7 @@
 #include "mos/x86/mm/paging_impl.h"
 
 #include "mos/mos_global.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/types.h"
 #include "mos/x86/mm/paging.h"
@@ -18,18 +19,30 @@ always_inline void pg_flush_tlb(uintptr_t vaddr)
     __asm__ volatile("invlpg (%0)" ::"r"(vaddr));
 }
 
-void *pg_page_alloc(x86_pg_infra_t *pg, size_t n_page)
+void *pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pagealloc_flags flags)
 {
+    vm_flags pflags = VM_WRITABLE;
+    // always allocate after the end of the kernel pages
+    uintptr_t vaddr_begin;
+
+    if (flags & PGALLOC_KHEAP)
+    {
+        // ...so that we can use the kernel heap everywhere?
+        pflags |= VM_GLOBAL;
+        vaddr_begin = MOS_X86_HEAP_BASE_VADDR;
+    }
+    else
+    {
+        vaddr_begin = mos_kernel_end;
+    }
+
     // simply rename the variable, we are dealing with bitmaps
     size_t n_bits = n_page;
     size_t n_zero_bits = 0;
 
     u8 target_bit = 0;
-
-    // always allocate after the end of the kernel pages
-    size_t target_pagemap_start = (x86_kernel_end / X86_PAGE_SIZE / PAGEMAP_WIDTH) + 1;
-
-    for (size_t i = target_pagemap_start; n_zero_bits < n_bits; i++)
+    uintptr_t vaddr_map_bit_begin = vaddr_begin / X86_PAGE_SIZE / PAGEMAP_WIDTH + 1;
+    for (size_t i = vaddr_map_bit_begin; n_zero_bits < n_bits; i++)
     {
         if (i >= MM_PAGE_MAP_SIZE)
         {
@@ -45,7 +58,7 @@ void *pg_page_alloc(x86_pg_infra_t *pg, size_t n_page)
         }
         if (current_byte == (pagemap_line_t) ~0)
         {
-            target_pagemap_start = i + 1;
+            vaddr_map_bit_begin = i + 1;
             continue;
         }
 
@@ -54,11 +67,11 @@ void *pg_page_alloc(x86_pg_infra_t *pg, size_t n_page)
             if (!BIT_IS_SET(current_byte, bit))
                 n_zero_bits++;
             else
-                n_zero_bits = 0, target_bit = bit + 1, target_pagemap_start = i;
+                n_zero_bits = 0, target_bit = bit + 1, vaddr_map_bit_begin = i;
         }
     }
 
-    size_t page_i = target_pagemap_start * PAGEMAP_WIDTH + target_bit;
+    size_t page_i = vaddr_map_bit_begin * PAGEMAP_WIDTH + target_bit;
     uintptr_t vaddr = page_i * X86_PAGE_SIZE;
     mos_debug("paging: allocating page %zu to %zu (aka starting at " PTR_FMT ")", page_i, page_i + n_page, vaddr);
 
@@ -70,7 +83,7 @@ void *pg_page_alloc(x86_pg_infra_t *pg, size_t n_page)
         return NULL;
     }
 
-    pg_map_pages(pg, vaddr, paddr, n_page, VM_WRITABLE);
+    pg_map_pages(pg, vaddr, paddr, n_page, pflags);
     return (void *) vaddr;
 }
 
@@ -82,7 +95,7 @@ bool pg_page_free(x86_pg_infra_t *pg, uintptr_t vptr, size_t n_page)
     return true;
 }
 
-void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, page_flags flags)
+void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags)
 {
     mos_debug("paging: setting flags [%x] to [" PTR_FMT "] +%zu pages", flags, vaddr, n);
     size_t start_page = vaddr / X86_PAGE_SIZE;
@@ -95,17 +108,20 @@ void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, page_flags flag
         MOS_ASSERT_X(pg->pgtable[page_i].present, "page table not present");
 
         pg->pgdir[pgd_i].writable = flags & VM_WRITABLE;
-        pg->pgdir[pgd_i].usermode = flags & VM_USERMODE;
-        pg->pgdir[pgd_i].cache_disabled = flags & VM_CACHE_DISABLED;
-
         pg->pgtable[page_i].writable = flags & VM_WRITABLE;
+
+        pg->pgdir[pgd_i].usermode = flags & VM_USERMODE;
         pg->pgtable[page_i].usermode = flags & VM_USERMODE;
+
+        pg->pgdir[pgd_i].cache_disabled = flags & VM_CACHE_DISABLED;
         pg->pgtable[page_i].cache_disabled = flags & VM_CACHE_DISABLED;
+
+        pg->pgtable[page_i].global = flags & VM_GLOBAL;
         pg_flush_tlb(vaddr);
     }
 }
 
-void pg_map_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags)
+void pg_map_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, vm_flags flags)
 {
     pmem_freelist_remove_region(paddr_start, n_page * X86_PAGE_SIZE);
     pg_do_map_pages(pg, vaddr_start, paddr_start, n_page, flags);
@@ -118,7 +134,7 @@ void pg_unmap_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, size_t n_page)
     pmem_freelist_add_region(paddr, n_page * X86_PAGE_SIZE);
 }
 
-void pg_do_map_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, u32 flags)
+void pg_do_map_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, vm_flags flags)
 {
     mos_debug("paging: mapping %zu pages (" PTR_FMT "->" PTR_FMT ") @ table %lu", n_page, vaddr_start, paddr_start, vaddr_start / X86_PAGE_SIZE);
     for (size_t i = 0; i < n_page; i++)
@@ -132,7 +148,7 @@ void pg_do_unmap_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, size_t n_page)
         pg_do_unmap_page(pg, vaddr_start + i * X86_PAGE_SIZE);
 }
 
-void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, page_flags flags)
+void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_flags flags)
 {
     // ensure the page is aligned to 4096
     MOS_ASSERT_X(paddr < X86_MAX_MEM_SIZE, "physical address out of bounds");
@@ -143,33 +159,38 @@ void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, page_f
     int page_dir_index = vaddr >> 22;
     int page_table_index = vaddr >> 12 & 0x3ff; // mask out the lower 12 bits
 
-    x86_pgdir_entry *page_dir = &pg->pgdir[page_dir_index];
-    x86_pgtable_entry *page_table;
+    u32 pte_index = page_dir_index * 1024 + page_table_index;
 
-    if (likely(page_dir->present))
+    x86_pgdir_entry *this_dir = &pg->pgdir[page_dir_index];
+    x86_pgtable_entry *this_table = &pg->pgtable[pte_index];
+    MOS_ASSERT_X(this_table->present == false, "page is already mapped");
+
+    // TODO: dynamically allocate a page table if it doesn't exist
+
+    if (unlikely(!this_dir->present))
     {
-        page_table = ((x86_pgtable_entry *) (page_dir->page_table_addr << 12)) + page_table_index;
-    }
-    else
-    {
-        // mm_kernel_pgt???
-        page_table = &pg->pgtable[page_dir_index * 1024 + page_table_index];
-        page_dir->present = true;
-        page_dir->page_table_addr = (uintptr_t) page_table >> 12;
+        this_dir->present = true;
+
+        // kernel page tables are identity mapped
+        uintptr_t table_paddr = pg == x86_kpg_infra ? (uintptr_t) this_table : pg_page_get_mapped_paddr(x86_kpg_infra, (uintptr_t) this_table);
+        this_dir->page_table_paddr = table_paddr >> 12;
     }
 
-    page_dir->writable |= !!(flags & VM_WRITABLE);
-    page_dir->usermode |= !!(flags & VM_USERMODE);
+    this_table->present = true;
+    this_table->phys_addr = (uintptr_t) paddr >> 12;
 
-    MOS_ASSERT_X(page_table->present == false, "page is already mapped");
+    this_dir->writable = flags & VM_WRITABLE;
+    this_table->writable = flags & VM_WRITABLE;
 
-    page_table->present = true;
-    page_table->writable = !!(flags & VM_WRITABLE);
-    page_table->usermode = !!(flags & VM_USERMODE);
-    page_table->phys_addr = (uintptr_t) paddr >> 12;
+    this_dir->usermode = flags & VM_USERMODE;
+    this_table->usermode = flags & VM_USERMODE;
+
+    this_dir->cache_disabled = flags & VM_CACHE_DISABLED;
+    this_table->cache_disabled = flags & VM_CACHE_DISABLED;
+
+    this_table->global = flags & VM_GLOBAL;
 
     // update the mm_page_map
-    u32 pte_index = page_dir_index * 1024 + page_table_index;
     PAGEMAP_MAP(pg->page_map, pte_index);
     pg_flush_tlb(vaddr);
 }
@@ -186,10 +207,10 @@ void pg_do_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr)
         return;
     }
 
-    x86_pgtable_entry *page_table = ((x86_pgtable_entry *) (page_dir->page_table_addr << 12)) + page_table_index;
+    x86_pgtable_entry *page_table = &pg->pgtable[page_dir_index * 1024 + page_table_index];
     page_table->present = false;
 
-    // update the mm_page_map
+    // update the mm page map
     u32 pte_index = page_dir_index * 1024 + page_table_index;
     PAGEMAP_UNMAP(pg->page_map, pte_index);
     pg_flush_tlb(vaddr);

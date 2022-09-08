@@ -7,7 +7,7 @@
 [extern ap_stack_addr]
 [extern ap_begin_exec]
 
-x86_ap_trampoline_ADDR equ 0x8000
+X86_AP_TRAMPOLINE_ADDR equ 0x8000
 
 AP_STATUS_BSP_STARTUP_SENT          equ 1
 AP_STATUS_AP_WAIT_FOR_STACK_ALLOC   equ 2
@@ -23,6 +23,7 @@ spin_for_status_%1:
     jne     spin_for_status_%1
 %endmacro
 
+begin:
 x86_ap_trampoline:
     cli
     cld
@@ -32,11 +33,11 @@ x86_ap_trampoline:
     mov     ss, ax
     mov     fs, ax
     mov     gs, ax
-    lgdt    [gdt_ptr - x86_ap_trampoline + x86_ap_trampoline_ADDR]
+    lgdt    [gdt_ptr - begin + X86_AP_TRAMPOLINE_ADDR]
     mov     eax, cr0
     or      eax, 0x1
     mov     cr0, eax
-    jmp     0x08:(pm_init - x86_ap_trampoline + x86_ap_trampoline_ADDR)
+    jmp     0x08:(pm_init - begin + X86_AP_TRAMPOLINE_ADDR)
 
 [bits 32]
 pm_init:
@@ -50,6 +51,7 @@ pm_init:
     ap_wait AP_STATUS_BSP_STARTUP_SENT
     mov     dword [ap_state], AP_STATUS_AP_WAIT_FOR_STACK_ALLOC
 
+    ; TODO: paging
     ap_wait AP_STATUS_STACK_ALLOCATED
     mov     esp, dword [ap_stack_addr]
     mov     ebp, 0
@@ -75,4 +77,4 @@ tmp_gdt:
 align   16
 gdt_ptr:
     dw      tmp_gdt.end - tmp_gdt - 1
-    dd      tmp_gdt - x86_ap_trampoline + x86_ap_trampoline_ADDR
+    dd      tmp_gdt - begin + X86_AP_TRAMPOLINE_ADDR

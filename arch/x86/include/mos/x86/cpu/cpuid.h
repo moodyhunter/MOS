@@ -10,7 +10,7 @@ typedef struct
     u32 ebx;
     u32 ecx;
     u32 edx;
-} cpuid_t;
+} x86_cpuid_info_t;
 
 typedef enum
 {
@@ -155,6 +155,6 @@ typedef struct
     u32 reserved3;
 } __packed processor_brand_t;
 
-void x86_call_cpuid(u32 eax, cpuid_t *cpuid);
+void x86_call_cpuid(u32 eax, x86_cpuid_info_t *cpuid);
 void cpuid_get_manufacturer(char *manufacturer);
 void cpuid_get_processor_info(processor_version_t *info);

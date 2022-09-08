@@ -2,15 +2,18 @@
 global x86_enable_paging_impl
 
 x86_enable_paging_impl:
-    push ebp
-    mov ebp, esp
+    mov eax, [esp + 4]
 
-    mov eax, [esp + 8]
+    ; page directory
     mov cr3, eax
-    mov eax, cr0
-    or eax, 0x80010000      ; enable paging
-    mov cr0, eax
-	mov	esp, ebp
-	pop	ebp
-	ret
 
+    ; enable paging
+    mov eax, cr0
+    or  eax, 0x80010000
+    mov cr0, eax
+
+    ; enable PGE
+    mov eax, cr4
+    or  eax, 0x00000080
+    mov cr4, eax
+	ret

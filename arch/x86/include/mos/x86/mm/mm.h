@@ -12,3 +12,4 @@ extern size_t x86_mem_size_total;
 extern size_t x86_mem_size_available;
 
 void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count);
+memblock_t *x86_mem_find_bios_block();

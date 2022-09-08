@@ -33,16 +33,15 @@ void kwarn_handler_remove()
 
 void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
 {
-    static bool is_panic = false;
-    if (is_panic)
+    static bool in_panic = false;
+    if (in_panic)
     {
         pr_fatal("recursive panic detected, aborting...");
         while (true)
             ;
     }
-    is_panic = true;
-
-    mos_platform.interrupt_disable();
+    in_panic = true;
+    mos_platform->interrupt_disable();
 
     va_list args;
     char message[PRINTK_BUFFER_SIZE] = { 0 };
@@ -63,7 +62,7 @@ void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
         holder->hook();
     }
 
-    mos_platform.halt_cpu();
+    mos_platform->halt_cpu();
 
     while (1)
         ;

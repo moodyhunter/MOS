@@ -3,11 +3,11 @@
 #pragma once
 
 #include "mos/compiler.h"
+#include "mos/kconfig.h"
 
 #define __aligned(x)    __attribute__((__aligned__(x)))
 #define __cold          __attribute__((__cold__))
 #define __malloc        __attribute__((__malloc__))
-#define __noreturn      __attribute__((__noreturn__))
 #define __packed        __attribute__((__packed__))
 #define __printf(a, b)  __attribute__((__format__(__printf__, a, b)))
 #define __pure          __attribute__((__pure__))
@@ -17,6 +17,7 @@
 #define __weak_alias(x) __attribute__((weak, alias(x)))
 #define __weakref(x)    __attribute__((weakref(x)))
 
+#define noreturn      __attribute__((__noreturn__))
 #define asmlinkage    __attribute__((regparm(0)))
 #define should_inline __maybe_unused static inline
 #define always_inline should_inline __attribute__((__always_inline__))

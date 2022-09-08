@@ -16,7 +16,7 @@
 // TODO: make this configurable
 #define THREAD_STACK_SIZE 1 MB
 
-static u32 thread_stack_pages = 0;
+static u32 thread_stack_npages = 0;
 hashmap_t *thread_table;
 
 static hash_t hashmap_thread_hash(const void *key)
@@ -34,7 +34,7 @@ void thread_init()
     thread_table = kmalloc(sizeof(hashmap_t));
     memset(thread_table, 0, sizeof(hashmap_t));
     hashmap_init(thread_table, THREAD_HASHTABLE_SIZE, hashmap_thread_hash, hashmap_thread_equal);
-    thread_stack_pages = THREAD_STACK_SIZE / mos_platform.mm_page_size;
+    thread_stack_npages = THREAD_STACK_SIZE / mos_platform->mm_page_size;
 }
 
 void thread_deinit()
@@ -49,27 +49,27 @@ static thread_id_t new_thread_id()
     return (thread_id_t){ next.thread_id++ };
 }
 
-thread_id_t create_thread(process_id_t owner_pid, thread_flags_t flags, thread_entry_t entry, void *arg)
+thread_t *create_thread(process_t *owner, thread_flags_t flags, thread_entry_t entry, void *arg)
 {
     thread_t *thread = kmalloc(sizeof(thread_t));
     thread->id = new_thread_id();
-    thread->owner = owner_pid;
-    thread->entry_point = entry;
-    thread->arg = arg;
+    thread->owner = owner;
     thread->status = TASK_STATUS_READY;
     thread->flags = flags;
 
     // allcate stack for the thread
-    void *stack_page = kpage_alloc(thread_stack_pages);
+    void *stack_page = kpage_alloc(thread_stack_npages, PGALLOC_NONE);
     stack_init(&thread->stack, stack_page, THREAD_STACK_SIZE);
 
+    vm_flags stack_flags = VM_WRITABLE;
     if (flags & THREAD_FLAG_USERMODE)
-        mos_platform.mm_pg_flag(mos_platform.kernel_pg, (uintptr_t) stack_page, thread_stack_pages, VM_WRITABLE | VM_USERMODE);
+        stack_flags |= VM_USERMODE;
 
-    // x86_thread_context_init(thread, entry, arg);
+    mos_platform->mm_map_kvaddr(owner->pagetable, (uintptr_t) stack_page, (uintptr_t) stack_page, thread_stack_npages, stack_flags);
+    mos_platform->context_setup(thread, entry, arg);
 
     hashmap_put(thread_table, &thread->id, thread);
-    return thread->id;
+    return thread;
 }
 
 thread_t *get_thread(thread_id_t tid)

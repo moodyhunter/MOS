@@ -11,13 +11,12 @@ SECTIONS
     . = 5M; /* !! Lower Half Kernel */
 
     . =  ALIGN(0x1000);
-    __MOS_SECTION_KERNEL_START = .;
+    __MOS_KERNEL_RO_START = .;
     __MOS_SECTION_MULTIBOOT_START = .;
 	.multiboot.data : { *(.multiboot.data) }
 	.multiboot.text : { *(.multiboot.text) }
     __MOS_SECTION_MULTIBOOT_END = .;
 
-    __MOS_KERNEL_RO_START = .;
     .text : {
         __MOS_KERNEL_TEXT_START = .;
          *(.text)
@@ -29,8 +28,9 @@ SECTIONS
         *(.rodata)
         __MOS_KERNEL_RODATA_END = .;
     }
+    . = ALIGN(0x1000);
     __MOS_KERNEL_RO_END = .;
-
+    __MOS_KERNEL_RW_START = .;
     .data : { *(.data) }
     .bss : { *(.bss) }
 
@@ -43,5 +43,7 @@ SECTIONS
     . += 4M;
     . += 1M;    /* !! FIXME: for the stupid page map !! */
     __MOS_X86_PAGING_AREA_END = .;
-    __MOS_SECTION_KERNEL_END = .;
+    __MOS_KERNEL_RW_END = .;
+
+    __MOS_KERNEL_END = .;
 }

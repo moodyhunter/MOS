@@ -37,7 +37,7 @@
                 "-d",
                 "qemu-system-i386",
                 "-m",
-                "3G",
+                "4G",
                 "-kernel",
                 "${workspaceFolder}/build/mos_multiboot.bin",
                 "-s",

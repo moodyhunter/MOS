@@ -52,7 +52,7 @@ typedef union
     u8 byte;
 } byte_t;
 
-static_assert(sizeof(byte_t) == sizeof(char), "byte_t is not 1 byte");
+static_assert(sizeof(byte_t) == 1, "byte_t is not 1 byte");
 
 // clang-format off
 #define new_named_type(base, name, type) typedef struct { base name; } __packed type

@@ -4,6 +4,7 @@
 #include "mos/mos_global.h"
 #include "mos/printk.h"
 #include "mos/x86/gdt/gdt_types.h"
+#include "mos/x86/tasks/tss_types.h"
 #include "mos/x86/x86_platform.h"
 
 static gdt_ptr32_t gdt_ptr;

@@ -7,66 +7,86 @@
 #include "mos/tasks/task_type.h"
 #include "mos/types.h"
 
-#define MOS_SYSCALL_INTR 0x88
+#define MOS_SYSCALL_INTR            0x88
+#define PER_CPU_DECLARE(type, name) type name[MOS_MAX_CPU_COUNT]
+#define per_cpu(var)                (&var[mos_platform->current_cpu_id()])
+
+typedef void (*irq_handler)(u32 irq);
 
 typedef enum
 {
     VM_NONE = 0,
-    VM_PRESENT = 1 << 0,
+    // VM_PRESENT = 1 << 0,
     VM_WRITABLE = 1 << 1,
     VM_USERMODE = 1 << 2,
     VM_WRITE_THROUGH = 1 << 3,
     VM_CACHE_DISABLED = 1 << 4,
-} page_flags;
+    VM_GLOBAL = 1 << 5,
+} vm_flags;
+
+// indicates which type of page we are allocating
+typedef enum
+{
+    PGALLOC_NONE = 0 << 0,
+    PGALLOC_KHEAP = 1 << 0,
+} pagealloc_flags;
 
 typedef struct
 {
-    u32 cpu_count;
-    u32 bsp_apic_id;
-} mos_platform_cpu_info_t;
+    u32 id;
+    thread_t *thread;
+    uintptr_t scheduler_stack;
+} cpu_t;
 
 typedef struct
 {
-    as_linked_list;
-    void (*handler)(u32 irq);
-} irq_handler_descriptor_t;
+    struct
+    {
+        const uintptr_t ro_start;
+        const uintptr_t ro_end;
+        const uintptr_t rw_start;
+        const uintptr_t rw_end;
+    } regions;
 
-typedef struct
-{
-    const uintptr_t kernel_start;
-    const uintptr_t kernel_end;
+    u32 num_cpus;
+    u32 boot_cpu_id;
+    PER_CPU_DECLARE(cpu_t, cpu);
 
-    const mos_platform_cpu_info_t *cpu_info;
-
-    void __noreturn (*shutdown)(void);
-
-    // interrupt
-    void (*interrupt_enable)(void);
-    void (*interrupt_disable)(void);
-    void (*halt_cpu)(void);
-    bool (*irq_handler_install)(u32 irq, void (*handler)(u32 irq));
-    void (*irq_handler_remove)(u32 irq, void (*handler)(u32 irq));
-
-    // memory management
-    size_t mm_page_size;
+    const size_t mm_page_size;
     paging_handle_t kernel_pg;
 
-    void (*mm_pgd_alloc)(paging_handle_t *table);
-    void (*mm_pgd_free)(paging_handle_t table);
+    void noreturn (*const shutdown)(void);
 
-    void *(*mm_pg_alloc)(paging_handle_t table, size_t n);
-    bool (*mm_pg_free)(paging_handle_t table, uintptr_t vaddr, size_t n);
-    void (*mm_pg_flag)(paging_handle_t table, uintptr_t vaddr, size_t n, page_flags flags);
-    void (*mm_pg_map_to_kvaddr)(paging_handle_t table, uintptr_t virt, uintptr_t kvaddr, size_t n, page_flags flags);
-    void (*mm_pg_unmap)(paging_handle_t table, uintptr_t virt, size_t n);
+    // cpu
+    void (*const halt_cpu)(void);
+    u32 (*const current_cpu_id)(void);
+
+    // interrupt
+    void (*const interrupt_enable)(void);
+    void (*const interrupt_disable)(void);
+    bool (*const irq_handler_install)(u32 irq, irq_handler handler);
+    void (*const irq_handler_remove)(u32 irq, irq_handler handler);
+
+    // memory management
+    paging_handle_t (*const mm_create_pagetable)();
+    void (*const mm_destroy_pagetable)(paging_handle_t table);
+
+    void *(*const mm_alloc_pages)(paging_handle_t table, size_t n, pagealloc_flags flags);
+    bool (*const mm_free_pages)(paging_handle_t table, uintptr_t vaddr, size_t n);
+    void (*const mm_flag_pages)(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
+    void (*const mm_map_kvaddr)(paging_handle_t table, uintptr_t virt, uintptr_t kvaddr, size_t n, vm_flags flags);
+    void (*const mm_unmap)(paging_handle_t table, uintptr_t virt, size_t n);
 
     // process management
-    void (*usermode_trampoline)(uintptr_t stack, uintptr_t entry, uintptr_t arg);
-    void (*context_switch)(thread_t *from, thread_t *to);
+    void (*const context_setup)(thread_t *thread, thread_entry_t entry, void *arg);
+    void (*const switch_to_scheduler)(uintptr_t *old_stack, uintptr_t new_stack);
+    void (*const switch_to_thread)(uintptr_t *old_stack, thread_t *new_thread);
 } mos_platform_t;
 
-extern const mos_platform_t mos_platform;
+extern mos_platform_t *const mos_platform;
+
+#define current_cpu    per_cpu(mos_platform->cpu)
+#define current_thread current_cpu->thread
 
 extern void mos_start_kernel(const char *cmdline);
-extern void mos_invoke_syscall(u64 syscall_number);
 extern void mos_kernel_mm_init(void);

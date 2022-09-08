@@ -4,6 +4,7 @@
 
 #include "lib/stdlib.h"
 #include "mos/printk.h"
+#include "mos/x86/acpi/acpi.h"
 #include "mos/x86/x86_platform.h"
 
 memblock_t x86_mem_regions[MEM_MAX_N_REGIONS] = { 0 };
@@ -76,4 +77,24 @@ void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
     format_size(buf_available, sizeof(buf_available), x86_mem_size_available);
     format_size(buf_unavailable, sizeof(buf_unavailable), x86_mem_size_total - x86_mem_size_available);
     pr_info("Total Memory: %s (%s available, %s unavailable)", buf, buf_available, buf_unavailable);
+}
+
+memblock_t *x86_mem_find_bios_block()
+{
+    static memblock_t *bios_memblock = NULL;
+    if (bios_memblock)
+        return bios_memblock;
+    for (u32 i = 0; i < x86_mem_regions_count; i++)
+    {
+        const uintptr_t region_start_addr = x86_mem_regions[i].paddr;
+        if (region_start_addr < (uintptr_t) x86_acpi_rsdt && region_start_addr + x86_mem_regions[i].size_bytes > (uintptr_t) x86_acpi_rsdt)
+        {
+            bios_memblock = &x86_mem_regions[i];
+            break;
+        }
+    }
+
+    if (!bios_memblock)
+        mos_panic("could not find bios memory area");
+    return bios_memblock;
 }

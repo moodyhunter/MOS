@@ -2,14 +2,7 @@
 
 #include "mos/x86/cpu/cpuid.h"
 
-#include "lib/containers.h"
 #include "mos/printk.h"
-#include "mos/types.h"
-#include "mos/x86/acpi/acpi.h"
-#include "mos/x86/acpi/acpi_types.h"
-#include "mos/x86/x86_platform.h"
-
-#include <cpuid.h>
 
 const char *cpuid_type_str[] = {
     [CPUID_T_OEM] = "OEM",
@@ -18,14 +11,15 @@ const char *cpuid_type_str[] = {
     [CPUID_T_Reserved] = "Reserved",
 };
 
-void x86_call_cpuid(u32 eax, cpuid_t *cpuid)
+void x86_call_cpuid(u32 eax, x86_cpuid_info_t *cpuid)
 {
     __asm__("cpuid" : "=a"(cpuid->eax), "=b"(cpuid->ebx), "=c"(cpuid->ecx), "=d"(cpuid->edx) : "0"(eax));
 }
 
 void cpuid_get_manufacturer(char *manufacturer)
 {
-    cpuid_t cpuid = { 0 };
+    MOS_ASSERT(manufacturer != NULL);
+    x86_cpuid_info_t cpuid = { 0 };
     x86_call_cpuid(0, &cpuid);
     *(u32 *) &manufacturer[0] = cpuid.ebx;
     *(u32 *) &manufacturer[4] = cpuid.edx;
@@ -35,7 +29,7 @@ void cpuid_get_manufacturer(char *manufacturer)
 
 void cpuid_get_processor_info(processor_version_t *info)
 {
-    cpuid_t cpuid = { 0 };
+    x86_cpuid_info_t cpuid = { 0 };
     x86_call_cpuid(1, &cpuid);
     info->eax.raw = cpuid.eax;
     info->ebx.raw = cpuid.ebx;

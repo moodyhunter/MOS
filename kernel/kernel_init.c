@@ -25,9 +25,8 @@
 
 extern void mos_test_engine_run_tests(); // defined in tests/test_engine.c
 
-void schedule();
-extern void platform_context_switch(thread_t *old_thread, thread_t *new_thread);
-asmlinkage void jump_to_usermain(uintptr_t, uintptr_t);
+void cpu_do_schedule();
+extern asmlinkage void platform_context_switch(thread_t *old_thread, thread_t *new_thread);
 
 extern tss32_t tss_entry;
 
@@ -89,9 +88,9 @@ void mos_start_kernel(const char *cmdline)
     if (!init_file)
         mos_panic("failed to open init");
 
-    size_t npage_required = init_file->io.size / mos_platform.mm_page_size + 1;
+    size_t npage_required = init_file->io.size / mos_platform->mm_page_size + 1;
 
-    char *initrd_data = kpage_alloc(npage_required);
+    char *initrd_data = kpage_alloc(npage_required, PGALLOC_NONE);
     size_t r = io_read(&init_file->io, initrd_data, init_file->io.size);
     MOS_ASSERT_X(r == init_file->io.size, "failed to read init");
 
@@ -116,69 +115,27 @@ void mos_start_kernel(const char *cmdline)
     if (header->object_type != ELF_OBJECT_EXECUTABLE)
         mos_panic("'init' is not an executable");
 
-    elf_program_header_t *program_header __maybe_unused = (elf_program_header_t *) (initrd_data + header->program_header_offset);
-    elf_section_header_t *section_header __maybe_unused = (elf_section_header_t *) (initrd_data + header->section_header_offset);
+    elf_program_header_t *init_ph = (elf_program_header_t *) (initrd_data + header->program_header_offset);
+    elf_section_header_t *init_sh = (elf_section_header_t *) (initrd_data + header->section_header_offset);
 
-    int x = 1;
-    while (program_header->header_type != ELF_PH_T_LOAD && x < header->program_header.count)
-        program_header++, x++;
+    int i_program = 1, i_section = 1;
+    while (init_ph->header_type != ELF_PH_T_LOAD && i_program < header->program_header.count)
+        init_ph++, i_program++;
+    while (init_sh->header_type != ELF_SH_T_PROGBITS && i_section < header->section_header.count)
+        init_sh++, i_section++;
 
-    x = 1;
-    while (section_header->header_type != ELF_SH_T_PROGBITS && x < header->section_header.count)
-        section_header++, x++;
-
-    MOS_ASSERT_X(section_header->header_type == ELF_SH_T_PROGBITS, "no code section found");
-    MOS_ASSERT_X(program_header->header_type == ELF_PH_T_LOAD, "no loadable segment found");
-
-    // !! TODO: Implement this:
-    // paging_handle_t init_pgd = { 0 };
-    // mos_platform.mm_pgd_alloc(&init_pgd);
-    // mos_platform.mm_pg_map_to_kvirt(init_pgd, program_header->seg_vaddr, (uintptr_t) initrd_data, pages, VM_NONE);
-
-    // size_t pages = init_file->io.size / mos_platform.mm_page_size;
-    // mos_platform.mm_pg_map_to_kvaddr(mos_platform.kernel_pg, program_header->seg_vaddr, 0, pages, VM_NONE);
-
-    MOS_ASSERT_X(mos_platform.usermode_trampoline, "platform doesn't have a usermode trampoline");
+    MOS_ASSERT_X(init_sh->header_type == ELF_SH_T_PROGBITS, "no code section found");
+    MOS_ASSERT_X(init_ph->header_type == ELF_PH_T_LOAD, "no loadable segment found");
 
     // the stack memory to be used if we enter the kernelmode by a trap / interrupt
-    tss_entry.esp0 = (u32) kpage_alloc(1) + mos_platform.mm_page_size; // stack grows downwards from the top of the page
+    // TODO: Per-process stack
+    tss_entry.esp0 = (u32) kpage_alloc(1, PGALLOC_NONE) + mos_platform->mm_page_size; // stack grows downwards from the top of the page
     pr_emph("kernel stack at " PTR_FMT, (uintptr_t) tss_entry.esp0);
 
-    uid_t root = { 0 };
-    process_id_t pid1 = { 1 };
-    thread_id_t tid1 = { 1 };
+    process_t *pinit = create_process((process_id_t){ 1 }, (uid_t){ 0 }, (thread_entry_t) header->entry_point, (void *) 114514);
 
-    process_id_t init_pid = create_process(pid1, root, (thread_entry_t) header->entry_point, (void *) 114514);
-    thread_t *init_thread = get_thread(tid1);
+    mos_platform->mm_map_kvaddr(pinit->pagetable, init_ph->vaddr, (uintptr_t) header + init_ph->data_offset, 1, VM_USERMODE);
 
-    uintptr_t a = (uintptr_t) header + program_header->data_offset;
-
-    mos_platform.mm_pg_map_to_kvaddr(mos_platform.kernel_pg, program_header->vaddr, a, 1, VM_USERMODE);
-
-    MOS_ASSERT(init_pid.process_id == 1);
-    MOS_ASSERT(init_thread->id.thread_id == 1);
-
-    // mos_platform.usermode_trampoline((uintptr_t) init_thread->stack.head, (uintptr_t) init_thread->entry_point, (uintptr_t) init_thread->arg);
-
-    mos_platform.context_switch(NULL, init_thread);
-
+    cpu_do_schedule();
     MOS_UNREACHABLE();
-}
-
-bool threads_foreach(const void *key, void *value)
-{
-    thread_id_t *tid = (thread_id_t *) key;
-    thread_t *thread = (thread_t *) value;
-    pr_info("thread %d", tid->thread_id);
-    MOS_UNUSED(thread);
-
-    // switch to the thread's context
-
-    ;
-    return false; // do not continue
-}
-
-void schedule()
-{
-    hashmap_foreach(thread_table, threads_foreach);
 }

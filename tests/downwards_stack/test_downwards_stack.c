@@ -43,7 +43,7 @@ MOS_TEST_CASE(stack_push_pop_stack)
     MOS_TEST_CHECK(stack.capacity, 4096);
 
     int tmp[10] = { 0 };
-    stack_pop(&stack, tmp, sizeof(tmp));
+    stack_pop(&stack, sizeof(tmp), tmp);
     MOS_TEST_CHECK(stack.base, (void *) stack_bottom);
     MOS_TEST_CHECK(stack.head, (void *) (stack_bottom - sizeof(pushed_1)));
     MOS_TEST_CHECK(stack.capacity, 4096);
@@ -58,7 +58,7 @@ MOS_TEST_CASE(stack_push_pop_stack)
     MOS_TEST_CHECK(tmp[8], pushed_2[8]);
     MOS_TEST_CHECK(tmp[9], pushed_2[9]);
 
-    stack_pop(&stack, tmp, sizeof(tmp));
+    stack_pop(&stack, sizeof(tmp), tmp);
     MOS_TEST_CHECK(stack.base, (void *) stack_bottom);
     MOS_TEST_CHECK(stack.head, (void *) stack_bottom);
     MOS_TEST_CHECK(stack.capacity, 4096);
