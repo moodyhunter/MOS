@@ -94,7 +94,7 @@ void liballoc_dump()
     pr_info("emitted %zu warning(s) and %zu error(s)", l_warnings, l_errors);
 
     liballoc_block_t *maj = l_memroot;
-    liballoc_minor_t *min = NULL;
+    liballoc_part_t *min = NULL;
 
     pr_info("Memory Blocks:");
     while (maj != NULL)
