@@ -117,12 +117,15 @@ def gen_dispatcher(j):
     for i in range(MAX_SYSCALL_NARGS):
         gen("    (void) arg%d;" % (i + 1))
     gen("")
-    gen("    long ret = -1;")
+    gen("    long ret = 0;")
     for e in j["syscalls"]:
         nargs = len(e["arguments"])
         gen("    extern %s %s_%s(%s);" % (e["return"], prefix, e["name"], get_syscall_argdecls(e)))
         gen("    if (number == %d)" % e["number"])
-        gen("        ret = (long) %s_%s(%s);" % (prefix, e["name"], ", ".join(["(%s) arg%d" % (e["arguments"][i]["type"], i + 1) for i in range(nargs)])))
+        if e["return"] == "void":
+            gen("        %s_%s(%s);" % (prefix, e["name"], ", ".join(["(%s) arg%d" % (e["arguments"][i]["type"], i + 1) for i in range(nargs)])))
+        else:
+            gen("        ret = (long) %s_%s(%s);" % (prefix, e["name"], ", ".join(["(%s) arg%d" % (e["arguments"][i]["type"], i + 1) for i in range(nargs)])))
         gen("")
 
     gen("    return ret;")
@@ -138,7 +141,7 @@ def gen_usermode_invoker(e):
     nargs = len(e["arguments"])
     gen("always_inline %s invoke_%s_%s(%s)" % (e["return"], prefix, e["name"], get_syscall_argdecls(e)))
     gen("{")
-    gen("    return platform_syscall%d(%s);" % (nargs, ", ".join([str(e["number"])] + ["(long) %s" % arg["arg"] for arg in e["arguments"]])))
+    gen("    %splatform_syscall%d(%s);" % ("return " if e["return"] != "void" else "", nargs, ", ".join([str(e["number"])] + ["(long) %s" % arg["arg"] for arg in e["arguments"]])))
     gen("}")
 
 

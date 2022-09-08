@@ -31,5 +31,5 @@
             "required": [ "number", "return", "name", "arguments" ]
         }
     },
-    "required": [ "includes", "prefix", "syscalls" ]
+    "required": [ "includes", "syscalls" ]
 }
