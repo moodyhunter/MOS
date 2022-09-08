@@ -9,11 +9,6 @@
 #include "mos/tasks/task_type.h"
 #include "mos/tasks/thread.h"
 
-void x(){};
-void y(){};
-
-#define syscall_barrier() for (x();; y())
-
 fd_t define_ksyscall(file_open)(const char *path, file_open_flags flags)
 {
     MOS_UNUSED(path);
