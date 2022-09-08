@@ -5,3 +5,4 @@
 #include "mos/mos_global.h"
 
 noreturn void cpu_do_schedule(void);
+void do_schedule(void);

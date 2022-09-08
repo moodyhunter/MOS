@@ -92,9 +92,7 @@ void x86_handle_interrupt(u32 esp)
     }
     else if (stack->interrupt_number == MOS_SYSCALL_INTR)
     {
-        const u32 syscall_number = stack->eax;
-        pr_warn("Syscall: %d", syscall_number);
-        dispatch_ksyscall(syscall_number, stack->ebx, stack->ecx, stack->edx, 0, 0, 0, 0, 0);
+        dispatch_ksyscall(stack->eax, stack->ebx, stack->ecx, stack->edx, 0, 0, 0, 0, 0);
     }
     else
     {

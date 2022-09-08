@@ -47,6 +47,12 @@
             "name": "exit",
             "return": "u32",
             "arguments": [ { "type": "u32", "arg": "exit_code" } ]
+        },
+        {
+            "number": 7,
+            "name": "yield_cpu",
+            "return": "void",
+            "arguments": [ ]
         }
     ]
 }

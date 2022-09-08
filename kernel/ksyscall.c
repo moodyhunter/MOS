@@ -6,6 +6,7 @@
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
+#include "mos/tasks/schedule.h"
 #include "mos/tasks/task_type.h"
 #include "mos/tasks/thread.h"
 
@@ -56,4 +57,9 @@ u32 define_ksyscall(exit)(u32 exit_code)
 {
     pr_info("Kernel syscall exit called with code %d", exit_code);
     return 0;
+}
+
+void define_ksyscall(yield_cpu)(void)
+{
+    do_schedule();
 }
