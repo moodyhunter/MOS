@@ -5,7 +5,7 @@ include(prepare_bootable_kernel_binary)
 
 mos_add_summary_section(ARCH_X86 "x86 Architecture Specifics")
 
-if (NOT MOS_X86_HEAP_BASE_VADDR)
+if(NOT MOS_X86_HEAP_BASE_VADDR)
     set(MOS_X86_HEAP_BASE_VADDR 0xD0000000)
 endif()
 

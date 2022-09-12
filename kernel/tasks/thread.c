@@ -61,7 +61,7 @@ thread_t *create_thread(process_t *owner, thread_flags_t flags, thread_entry_t e
     void *stack_page = kpage_alloc(thread_stack_npages, PGALLOC_NONE);
     stack_init(&thread->stack, stack_page, THREAD_STACK_SIZE);
 
-    vm_flags stack_flags = VM_WRITABLE;
+    vm_flags stack_flags = VM_WRITE;
     if (flags & THREAD_FLAG_USERMODE)
         stack_flags |= VM_USERMODE;
 

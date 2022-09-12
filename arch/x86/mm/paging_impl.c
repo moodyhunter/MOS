@@ -21,7 +21,7 @@ always_inline void pg_flush_tlb(uintptr_t vaddr)
 
 void *pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pagealloc_flags flags)
 {
-    vm_flags pflags = VM_WRITABLE;
+    vm_flags pflags = VM_WRITE;
     // always allocate after the end of the kernel pages
     uintptr_t vaddr_begin;
 
@@ -107,8 +107,8 @@ void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags)
         MOS_ASSERT_X(pg->pgdir[pgd_i].present, "page directory not present");
         MOS_ASSERT_X(pg->pgtable[page_i].present, "page table not present");
 
-        pg->pgdir[pgd_i].writable = flags & VM_WRITABLE;
-        pg->pgtable[page_i].writable = flags & VM_WRITABLE;
+        pg->pgdir[pgd_i].writable = flags & VM_WRITE;
+        pg->pgtable[page_i].writable = flags & VM_WRITE;
 
         pg->pgdir[pgd_i].usermode = flags & VM_USERMODE;
         pg->pgtable[page_i].usermode = flags & VM_USERMODE;
@@ -179,8 +179,8 @@ void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_fla
     this_table->present = true;
     this_table->phys_addr = (uintptr_t) paddr >> 12;
 
-    this_dir->writable = flags & VM_WRITABLE;
-    this_table->writable = flags & VM_WRITABLE;
+    this_dir->writable = flags & VM_WRITE;
+    this_table->writable = flags & VM_WRITE;
 
     this_dir->usermode = flags & VM_USERMODE;
     this_table->usermode = flags & VM_USERMODE;

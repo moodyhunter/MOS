@@ -17,11 +17,12 @@ typedef enum
 {
     VM_NONE = 0,
     // VM_PRESENT = 1 << 0,
-    VM_WRITABLE = 1 << 1,
+    VM_WRITE = 1 << 1,
     VM_USERMODE = 1 << 2,
     VM_WRITE_THROUGH = 1 << 3,
     VM_CACHE_DISABLED = 1 << 4,
     VM_GLOBAL = 1 << 5,
+    VM_EXECUTABLE = 1 << 6,
 } vm_flags;
 
 // indicates which type of page we are allocating
