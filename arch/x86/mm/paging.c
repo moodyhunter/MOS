@@ -43,7 +43,7 @@ void x86_mm_prepare_paging()
     pr_info("paging: setting up low 1MB identity mapping... (except for the NULL page)");
     // skip the free list setup, use do_ version
     pg_do_map_page(x86_kpg_infra, 0, 0, VM_NONE); // ! the zero page is not writable
-    pg_do_map_pages(x86_kpg_infra, X86_PAGE_SIZE, X86_PAGE_SIZE, 1 MB / X86_PAGE_SIZE - 1, VM_GLOBAL | VM_WRITABLE);
+    pg_do_map_pages(x86_kpg_infra, X86_PAGE_SIZE, X86_PAGE_SIZE, 1 MB / X86_PAGE_SIZE - 1, VM_GLOBAL | VM_WRITE);
 
     pr_info("paging: mapping kernel space...");
     const uintptr_t k_rostart = (uintptr_t) &__MOS_KERNEL_RO_START;
@@ -52,7 +52,7 @@ void x86_mm_prepare_paging()
 
     const uintptr_t k_rwstart = (uintptr_t) &__MOS_KERNEL_RW_START;
     const uintptr_t k_rwend = (uintptr_t) &__MOS_KERNEL_RW_END;
-    pg_map_pages(x86_kpg_infra, k_rwstart, k_rwstart, (k_rwend - k_rwstart) / X86_PAGE_SIZE, VM_GLOBAL | VM_WRITABLE);
+    pg_map_pages(x86_kpg_infra, k_rwstart, k_rwstart, (k_rwend - k_rwstart) / X86_PAGE_SIZE, VM_GLOBAL | VM_WRITE);
 }
 
 void x86_mm_enable_paging(x86_pg_infra_t *kpg_infra)
@@ -193,9 +193,9 @@ paging_handle_t x86_um_pgd_create()
     const size_t k_rw_prange = (mos_platform->regions.rw_end - mos_platform->regions.rw_start) / X86_PAGE_SIZE;
 
     // pg_do_map_pages(infra, 0, 0, 1, VM_NONE); // ! the zero page is not writable, nor readable by user
-    pg_do_map_pages(infra, X86_PAGE_SIZE, X86_PAGE_SIZE, 1 MB / X86_PAGE_SIZE - 1, VM_GLOBAL | VM_WRITABLE);
+    pg_do_map_pages(infra, X86_PAGE_SIZE, X86_PAGE_SIZE, 1 MB / X86_PAGE_SIZE - 1, VM_GLOBAL | VM_WRITE);
     pg_do_map_pages(infra, mos_platform->regions.ro_start, mos_platform->regions.ro_start, k_ro_prange, VM_GLOBAL);
-    pg_do_map_pages(infra, mos_platform->regions.rw_start, mos_platform->regions.rw_start, k_rw_prange, VM_GLOBAL | VM_WRITABLE);
+    pg_do_map_pages(infra, mos_platform->regions.rw_start, mos_platform->regions.rw_start, k_rw_prange, VM_GLOBAL | VM_WRITE);
 
     memblock_t *bios_block = x86_mem_find_bios_block();
     pg_do_map_pages(infra, bios_block->paddr, bios_block->paddr, bios_block->size_bytes / X86_PAGE_SIZE, VM_GLOBAL);
