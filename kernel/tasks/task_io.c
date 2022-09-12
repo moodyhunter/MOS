@@ -18,22 +18,21 @@ static size_t stdin_read(io_t *io, void *buf, size_t count)
 
 static size_t stdout_write(io_t *io, const void *buf, size_t count)
 {
+    if (!buf)
+        return 0;
     stdio_t *stdio = container_of(io, stdio_t, io);
     MOS_ASSERT(stdio->type == STDIO_TYPE_STDOUT);
     pr_warn("%.*s", (int) count, (const char *) buf);
-    MOS_UNUSED(io);
-    MOS_UNUSED(buf);
-    MOS_UNUSED(count);
     return 0;
 }
 
 static size_t stderr_write(io_t *io, const void *buf, size_t count)
 {
+    if (!buf)
+        return 0;
     stdio_t *stdio = container_of(io, stdio_t, io);
     MOS_ASSERT(stdio->type == STDIO_TYPE_STDERR);
-    MOS_UNUSED(io);
-    MOS_UNUSED(buf);
-    MOS_UNUSED(count);
+    pr_warn("stderr: %.*s", (int) count, (const char *) buf);
     return 0;
 }
 

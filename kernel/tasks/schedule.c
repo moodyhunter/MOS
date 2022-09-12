@@ -8,7 +8,7 @@
 #include "mos/tasks/task_type.h"
 #include "mos/tasks/thread.h"
 
-bool threads_foreach(const void *key, void *value)
+bool threads_do_switch(const void *key, void *value)
 {
     thread_id_t *tid = (thread_id_t *) key;
     thread_t *thread = (thread_t *) value;
@@ -22,8 +22,8 @@ noreturn void cpu_do_schedule(void)
 {
     while (1)
     {
-        hashmap_foreach(thread_table, threads_foreach);
-        pr_info("no more threads to schedule, starting over");
+        hashmap_foreach(thread_table, threads_do_switch);
+        pr_info2("no more threads to schedule, starting over");
     }
 }
 

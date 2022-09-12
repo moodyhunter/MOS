@@ -18,6 +18,7 @@ int strlen(const char *str)
 void print(const char *str)
 {
     invoke_ksyscall_io_write(stdout, str, strlen(str), 0);
+    invoke_ksyscall_io_write(stderr, str, strlen(str), 0);
 }
 
 void _start(void)
