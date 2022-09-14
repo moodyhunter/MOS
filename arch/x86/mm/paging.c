@@ -29,9 +29,6 @@ void x86_mm_prepare_paging()
     // validate if the memory region calculated from the linker script is correct.
     size_t paging_area_size = (uintptr_t) x86_paging_area_end - (uintptr_t) x86_paging_area_start;
     MOS_ASSERT_X(paging_area_size >= sizeof(x86_pg_infra_t), "allocated paging area size is too small");
-    MOS_ASSERT_X((uintptr_t) x86_kpg_infra->pgdir % (4 KB) == 0, "page directory is not aligned to 4KB");
-    MOS_ASSERT_X((uintptr_t) x86_kpg_infra->pgtable % (4 KB) == 0, "page table is not aligned to 4KB");
-
     mos_debug("paging: provided size: 0x%zu, minimum required size: 0x%zu", paging_area_size, sizeof(x86_pg_infra_t));
 
     // initialize the page directory

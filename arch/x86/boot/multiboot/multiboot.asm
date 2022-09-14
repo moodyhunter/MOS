@@ -22,37 +22,26 @@ section .multiboot.text
 
 extern x86_startup_setup
 extern x86_start_kernel
-extern __MOS_STARTUP_STACK
+extern __MOS_STARTUP_STACK_TOP
+
 global mos_x86_multiboot_start:function (mos_x86_multiboot_start.end - mos_x86_multiboot_start)
 
 mos_x86_multiboot_start:
-    mov     esp, __MOS_STARTUP_STACK
+    mov     esp, __MOS_STARTUP_STACK_TOP
     push    0
     mov     ebp, esp
-    push    0
+    push    0                           ; Reset EFLAGS
     popf
     push    ebx                         ; Push multiboot2 header pointer
     push    eax                         ; Push multiboot2 magic value[extern x86_start_kernel]
-
-    mov     eax, 'P'
-    mov     ebx, 'm'
-    call    startup_print_debug_info
-
-    ; Reset EFLAGS
     call    x86_startup_setup           ; start the kernel
+
     ; ! TOOD Jump to higher half
     ; ! paging has been enabled, higher half kernel
     ; ! are mapped to 0xC0000000
+    call    x86_start_kernel
 
 .hang:
     hlt
     jmp .hang
 .end:
-
-; print 2 chars onto the screen, first with magenta, from eax, second is white, from ebx
-startup_print_debug_info:
-    mov     dword [VIDEO_MEM + 0], eax
-    mov     dword [VIDEO_MEM + 1], 13       ; LightMagenta
-    mov     dword [VIDEO_MEM + 2], ebx
-    mov     dword [VIDEO_MEM + 3], 15       ; White
-    ret

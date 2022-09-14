@@ -48,8 +48,8 @@
                 "chardev:serial_log",
                 "-append",
                 "init=/bin/init",
-                "-initrd",
-                "/home/moody/Projects/MOS/build/initrd.cpio"
+                // "-initrd",
+                // "/home/moody/Projects/MOS/build/initrd.cpio"
             ],
             "problemMatcher": [ ],
             "group": "none",
