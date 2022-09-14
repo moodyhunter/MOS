@@ -24,6 +24,10 @@ extern x86_startup_setup
 extern x86_start_kernel
 extern __MOS_STARTUP_STACK_TOP
 
+extern kernel_higher_stack
+extern kernel_higher_initrd_addr
+extern kernel_higher_initrd_size
+
 global mos_x86_multiboot_start:function (mos_x86_multiboot_start.end - mos_x86_multiboot_start)
 
 mos_x86_multiboot_start:
@@ -36,9 +40,10 @@ mos_x86_multiboot_start:
     push    eax                         ; Push multiboot2 magic value[extern x86_start_kernel]
     call    x86_startup_setup           ; start the kernel
 
-    ; ! TOOD Jump to higher half
-    ; ! paging has been enabled, higher half kernel
-    ; ! are mapped to 0xC0000000
+    ; ! TODO: Switch to higher half stack
+    ; ! TOOD: Jump to higher half
+    ; ! TODO: Give higher half of the kernel its initrd
+
     call    x86_start_kernel
 
 .hang:

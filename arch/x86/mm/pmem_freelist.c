@@ -24,7 +24,9 @@ static size_t pmem_freelist_count = 0;
 
 #define RESERVED_LOMEM                   1 MB
 #define PMEM_FREELIST_VADDR              0xFFA00000
-#define PMEM_FREELIST_SIZE_FOR(mem_size) ((mem_size / 2 / X86_PAGE_SIZE) * sizeof(pmem_range_t))
+#define PMEM_FREELIST_SIZE_FOR(mem_size) (((mem_size) / 2 / X86_PAGE_SIZE) * sizeof(pmem_range_t))
+
+#define PMEM_FREELIST_MAX_MEMSIZE_WORST_CASE (32 GB)
 
 static_assert((u64) PMEM_FREELIST_VADDR + PMEM_FREELIST_SIZE_FOR(X86_MAX_MEM_SIZE) < (u64) X86_MAX_MEM_SIZE, "no enough vspace for freelist!");
 
