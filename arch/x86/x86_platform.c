@@ -3,9 +3,7 @@
 #include "mos/x86/x86_platform.h"
 
 #include "lib/string.h"
-#include "mos/device/block.h"
 #include "mos/mm/kmalloc.h"
-#include "mos/mm/mm_types.h"
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"

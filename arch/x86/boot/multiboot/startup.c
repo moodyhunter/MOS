@@ -24,7 +24,7 @@ extern const char __MOS_KERNEL_RW_END;
 extern const char __MOS_KERNEL_END;
 
 extern const char __MOS_STARTUP_PGD;
-extern const char __MOS_STARTUP_PGTABLE_0;
+extern const char __MOS_STARTUP_PGTABLE;
 
 __startup_data static const uintptr_t startup_start = (uintptr_t) &__MOS_STARTUP_START;
 __startup_data static const uintptr_t startup_end = (uintptr_t) &__MOS_STARTUP_END;
@@ -37,7 +37,11 @@ __startup_data static const uintptr_t kernel_rw_vstart = (uintptr_t) &__MOS_KERN
 __startup_data static const uintptr_t kernel_rw_vend = (uintptr_t) &__MOS_KERNEL_RW_END;
 
 __startup_data static x86_pgdir_entry *const startup_pgd = (x86_pgdir_entry *) &__MOS_STARTUP_PGD;
-__startup_data static x86_pgtable_entry *const pages = (x86_pgtable_entry *) &__MOS_STARTUP_PGTABLE_0;
+__startup_data static x86_pgtable_entry *const pages = (x86_pgtable_entry *) &__MOS_STARTUP_PGTABLE;
+
+__startup_rwdata uintptr_t kernel_higher_stack = 0;
+__startup_rwdata uintptr_t kernel_higher_initrd_addr = 0;
+__startup_rwdata size_t kernel_higher_initrd_size = 0;
 
 __startup void memzero(void *start, size_t size)
 {
@@ -86,6 +90,13 @@ __startup void startup_map_pages(x86_pgtable_entry *pgt, uintptr_t vaddr, uintpt
         startup_map_page(pgt + i, vaddr + i * X86_PAGE_SIZE, paddr + i * X86_PAGE_SIZE, f);
 }
 
+// x86_startup_setup does the following:
+// * 1. Identity map the first 1MB of memory // ! TODO: remove this, only map the VGA buffer to kvirt address space
+// 2. Identity map the code section '.mos.startup.*'
+// 3. Map the kernel code, rodata, data, bss and kpage tables
+// * 4. Find the initrd and map it
+// * 5. Find a possible location for the kernel stack and map it
+// 4. Enable paging, (+global pages enabled)
 __startup void x86_startup_setup()
 {
     char step = '1';
@@ -94,8 +105,7 @@ __startup void x86_startup_setup()
 
     size_t pgindex = 0;
 
-    // skip the free list setup, use do_ version
-    startup_map_page(&pages[pgindex], 0, 0, VM_NONE); // ! the zero page is not writable
+    startup_map_page(&pages[pgindex], 0, 0, VM_GLOBAL); // ! the zero page is not writable
     pgindex++;
 
     startup_map_pages(&pages[pgindex], X86_PAGE_SIZE, X86_PAGE_SIZE, 1 MB / X86_PAGE_SIZE - 1, VM_GLOBAL | VM_WRITE);
@@ -103,25 +113,28 @@ __startup void x86_startup_setup()
 
     const uintptr_t startup_code_size = X86_ALIGN_UP_TO_PAGE(startup_end - startup_start);
     const uintptr_t startup_pgsize = startup_code_size / X86_PAGE_SIZE;
+
+    // ! we do not separate the startup code and data to simplify the setup.
+    // ! this page directory will be removed as soon as the kernel is loaded, it shouldn't be a problem.
     startup_map_pages(&pages[pgindex], startup_start, startup_start, startup_pgsize, VM_WRITE | VM_EXECUTE);
     pgindex += startup_pgsize;
 
     const uintptr_t kernel_code_size = X86_ALIGN_UP_TO_PAGE(kernel_code_vend - kernel_code_vstart);
     const uintptr_t vaddr_code = MOS_KERNEL_START_VADDR;
     const size_t kernel_code_pgsize = kernel_code_size / X86_PAGE_SIZE;
-    startup_map_pages(&pages[pgindex], vaddr_code, kernel_code_vstart - 0xc0000000, kernel_code_pgsize, VM_GLOBAL | VM_EXECUTE);
+    startup_map_pages(&pages[pgindex], vaddr_code, kernel_code_vstart - MOS_KERNEL_START_VADDR, kernel_code_pgsize, VM_GLOBAL | VM_EXECUTE);
     pgindex += kernel_code_pgsize;
 
     const uintptr_t kernel_ro_size = X86_ALIGN_UP_TO_PAGE(kernel_ro_vend - kernel_ro_vstart);
     const uintptr_t vaddr_rodata = X86_ALIGN_UP_TO_PAGE(vaddr_code + kernel_code_size);
     const size_t kernel_ro_pgsize = kernel_ro_size / X86_PAGE_SIZE;
-    startup_map_pages(&pages[pgindex], vaddr_rodata, kernel_ro_vstart - 0xc0000000, kernel_ro_pgsize, VM_GLOBAL);
+    startup_map_pages(&pages[pgindex], vaddr_rodata, kernel_ro_vstart - MOS_KERNEL_START_VADDR, kernel_ro_pgsize, VM_GLOBAL);
     pgindex += kernel_ro_pgsize;
 
     const uintptr_t kernel_rw_size = X86_ALIGN_UP_TO_PAGE(kernel_rw_vend - kernel_rw_vstart);
     const uintptr_t vaddr_rw = X86_ALIGN_UP_TO_PAGE(vaddr_rodata + kernel_ro_size);
     const size_t kernel_rw_pgsize = kernel_rw_size / X86_PAGE_SIZE;
-    startup_map_pages(&pages[pgindex], vaddr_rw, kernel_rw_vstart - 0xc0000000, kernel_rw_pgsize, VM_GLOBAL | VM_WRITE);
+    startup_map_pages(&pages[pgindex], vaddr_rw, kernel_rw_vstart - MOS_KERNEL_START_VADDR, kernel_rw_pgsize, VM_GLOBAL | VM_WRITE);
     pgindex += kernel_rw_pgsize;
 
     // load the page directory
@@ -137,20 +150,4 @@ __startup void x86_startup_setup()
     __asm__ volatile("mov %%cr4, %%eax; or $0x00000080, %%eax; mov %%eax, %%cr4" ::: "eax");
 
     debug_print();
-}
-
-__startup void map_pages(paging_handle_t handle, uintptr_t virt, uintptr_t phys, size_t size, vm_flags flags)
-{
-    MOS_UNUSED(handle);
-    MOS_UNUSED(virt);
-    MOS_UNUSED(phys);
-    MOS_UNUSED(size);
-    MOS_UNUSED(flags);
-}
-
-__startup void unmap_pages(paging_handle_t handle, uintptr_t virt, size_t size)
-{
-    MOS_UNUSED(handle);
-    MOS_UNUSED(virt);
-    MOS_UNUSED(size);
 }
