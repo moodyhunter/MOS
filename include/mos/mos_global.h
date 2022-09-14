@@ -50,3 +50,9 @@
 #define MOS_WARNING_PUSH          MOS_PRAGMA(diagnostic push)
 #define MOS_WARNING_POP           MOS_PRAGMA(diagnostic pop)
 #define MOS_WARNING_DISABLE(text) MOS_PRAGMA(diagnostic ignored text)
+
+#if MOS_32BITS
+#define MOS_KERNEL_START_VADDR 0xC0000000
+#else
+#define MOS_KERNEL_START_VADDR 0xFFFFFFFF80000000
+#endif

@@ -79,13 +79,16 @@ void pmem_freelist_setup(x86_pg_infra_t *kpg_infra)
             continue;
 
         // the location should not be lower than the kernel end
-        paddr = MAX(region->paddr, mos_kernel_end);
+        // TODO: above kernel physical area?
+        paddr = MAX(region->paddr, mos_kernel_end - MOS_KERNEL_START_VADDR);
+        // paddr = region->paddr;
+
         paddr = X86_ALIGN_UP_TO_PAGE(paddr);
 
         // compare end address of freelist and the end address of the region
         if (paddr + pmem_freelist_size > region->paddr + region->size_bytes)
         {
-            mos_warn("weird: found a free physical memory region, but realised that it's too small after alignment");
+            pr_warn("skipping a region that is too small: " PTR_FMT "-" PTR_FMT, region->paddr, region->paddr + region->size_bytes - 1);
             paddr = 0;
             continue;
         }

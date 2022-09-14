@@ -38,7 +38,7 @@ typedef struct
     x86_iret_params_t intrrupt;
 } __packed x86_stack_frame;
 
-static_assert(sizeof(x86_stack_frame) == 76, "x86_stack_frame is not 68 bytes");
+static_assert(sizeof(x86_stack_frame) == 76, "x86_stack_frame is not 76 bytes");
 
 // defined in the linker script 'multiboot.ld'
 extern const char __MOS_KERNEL_RO_START;                              // Kernel read-only data {

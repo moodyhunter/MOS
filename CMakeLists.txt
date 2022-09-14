@@ -74,7 +74,6 @@ include_directories(
 )
 
 add_library(mos_kernel.elf STATIC
-    kernel/boot/startup.c
     kernel/cmdline.c
     kernel/device/console.c
     kernel/device/block.c

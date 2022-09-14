@@ -292,9 +292,9 @@ typedef struct
 
 // ELF Section based test registration
 #define _MT_REGISTER_TEST_CASE(_TName, _TFunc)                                                                                                  \
-    const mos_test_func_t __section(mos_test_cases) MOS_CONCAT(test_cases_##_TName##_L, __LINE__) = { _TFunc, #_TName }
-#define MOS_TEST_FOREACH_TEST_CASE(_FPtr) for (const mos_test_func_t *_FPtr = __start_mos_test_cases; _FPtr != __stop_mos_test_cases; _FPtr++)
+    const mos_test_func_t __section(.mos.test_cases) MOS_CONCAT(test_cases_##_TName##_L, __LINE__) = { _TFunc, #_TName }
+#define MOS_TEST_FOREACH_TEST_CASE(_FPtr) for (const mos_test_func_t *_FPtr = __MOS_TEST_CASES_START; _FPtr != __MOS_TEST_CASES_END; _FPtr++)
 
 // Defined by the linker, do not rename.
-extern const mos_test_func_t __start_mos_test_cases[];
-extern const mos_test_func_t __stop_mos_test_cases[];
+extern const mos_test_func_t __MOS_TEST_CASES_START[];
+extern const mos_test_func_t __MOS_TEST_CASES_END[];
