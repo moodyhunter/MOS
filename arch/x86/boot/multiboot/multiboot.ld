@@ -15,15 +15,17 @@ SECTIONS
         *(.multiboot.data); /* ! Multiboot header */
         *(.multiboot.text);
         *(.mos.startup.text);
+        *(.mos.startup.rodata);
+    }
+
+    .startup.rw ALIGN(4K) :
+    {
         *(.mos.startup.data);
-        *(.mos.startup.rwdata);
         . = ALIGN(4K);
         __MOS_STARTUP_PGD = .;
         . += 4K;
         __MOS_STARTUP_PGTABLE = .;
-
-        /* pagetable area for the kernel & initrd */
-        . += 256K; /* ! "256 KiB / (4 B / 'page') * (4 KiB / 'page') to MiB = 256 MiB" */
+        . += 256K;  /* ! 256 KiB paging area (aka 256MiB memory) */
         /* stack bottom */
         . += 16K;
         __MOS_STARTUP_STACK_TOP = .;
@@ -32,7 +34,7 @@ SECTIONS
 
     . += 0xC0000000;
 
-    /* !  AT (ADDR(.text) - 0xC0000000) places the code themselves at a low address, but memory refs at the higher half */
+    /* ! AT (ADDR(.text) - 0xC0000000) places the code themselves at a low address, but memory refs at the higher half */
 
     .text ALIGN(4K) : AT (ADDR(.text) - 0xC0000000)
     {
@@ -55,17 +57,20 @@ SECTIONS
     {
         __MOS_KERNEL_RW_START = .;
         *(.data);
-    }
-    .bss ALIGN(4K) : AT (ADDR(.bss) - 0xC0000000) { *(.bss) }
 
-    /* ! Without PAE, a maximum of 4G memory would take (1024 * 1024 * sizeof(PTE) + 1024 * sizeof(PDE)) */
-    /* ! So that's a "TINY" 4KB larger than 4M */
-    . = ALIGN(4K);
-    __MOS_X86_PAGING_AREA_START = .;
-    . += 4K;
-    . += 4M;
-    . += 1M;    /* ! for the stupid page map !! */
-    __MOS_X86_PAGING_AREA_END = .;
+        /* ! Without PAE, a maximum of 4G memory would take (1024 * 1024 * sizeof(PTE) + 1024 * sizeof(PDE)) */
+        . = ALIGN(4K);
+        __MOS_X86_PAGING_AREA_START = .;
+        . += 4K;
+        . += 4M;
+        . += 1M;    /* ! for the stupid page map */
+        __MOS_X86_PAGING_AREA_END = .;
+    }
+
+    .bss ALIGN(4K) : AT (ADDR(.bss) - 0xC0000000)
+    {
+        *(.bss);
+    }
     __MOS_KERNEL_RW_END = .;
     __MOS_KERNEL_END = .;
 }

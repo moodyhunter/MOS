@@ -148,7 +148,7 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
 
     mos_install_kpanic_hook(x86_kpanic_hook);
     mos_install_console(&vga_text_mode_console);
-    x86_install_interrupt_handler(IRQ_COM1, &serial_irq_handler);
+    x86_install_interrupt_handler(IRQ_COM1, serial_irq_handler);
 
     if (initrd_memblock.size_bytes > 0)
     {

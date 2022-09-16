@@ -7,21 +7,20 @@
 #include "mos/device/block.h"
 #include "mos/filesystem/mount.h"
 #include "mos/filesystem/pathutils.h"
-#include "mos/io/io.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
 
-#define CPIO_MODE_FILE_TYPE 0170000 // :: This masks the file type bits.
-#define CPIO_MODE_SOCKET    0140000 // :: File type value for sockets.
-#define CPIO_MODE_SYMLINK   0120000 // :: File type value for symbolic links.  For symbolic links, the link body is stored as file data.
-#define CPIO_MODE_FILE      0100000 // :: File type value for regular files.
-#define CPIO_MODE_BLOCKDEV  0060000 // :: File type value for block special devices.
-#define CPIO_MODE_DIR       0040000 // :: File type value for directories.
-#define CPIO_MODE_CHARDEV   0020000 // :: File type value for character special devices.
-#define CPIO_MODE_FIFO      0010000 // :: File type value for named pipes or FIFOs.
-#define CPIO_MODE_SUID      0004000 // :: SUID bit.
-#define CPIO_MODE_SGID      0002000 // :: SGID bit.
-#define CPIO_MODE_STICKY    0001000 // :: Sticky bit.
+#define CPIO_MODE_FILE_TYPE 0170000 // This masks the file type bits.
+#define CPIO_MODE_SOCKET    0140000 // File type value for sockets.
+#define CPIO_MODE_SYMLINK   0120000 // File type value for symbolic links.  For symbolic links, the link body is stored as file data.
+#define CPIO_MODE_FILE      0100000 // File type value for regular files.
+#define CPIO_MODE_BLOCKDEV  0060000 // File type value for block special devices.
+#define CPIO_MODE_DIR       0040000 // File type value for directories.
+#define CPIO_MODE_CHARDEV   0020000 // File type value for character special devices.
+#define CPIO_MODE_FIFO      0010000 // File type value for named pipes or FIFOs.
+#define CPIO_MODE_SUID      0004000 // SUID bit.
+#define CPIO_MODE_SGID      0002000 // SGID bit.
+#define CPIO_MODE_STICKY    0001000 // Sticky bit.
 
 bool cpio_read_metadata(blockdev_t *dev, const char *target, cpio_metadata_t *metadata)
 {
