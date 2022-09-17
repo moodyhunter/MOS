@@ -42,7 +42,6 @@ __startup_rodata static const uintptr_t kernel_rw_vend = (uintptr_t) &__MOS_KERN
 __startup_rodata static x86_pgdir_entry *const startup_pgd = (x86_pgdir_entry *) &__MOS_STARTUP_PGD;
 __startup_rodata static x86_pgtable_entry *const pages = (x86_pgtable_entry *) &__MOS_STARTUP_PGTABLE;
 
-__startup_rwdata volatile uintptr_t kernel_higher_stack_top = 0;
 __startup_rwdata volatile uintptr_t kernel_higher_initrd_addr = 0;
 __startup_rwdata volatile size_t kernel_higher_initrd_size = 0;
 
@@ -141,7 +140,7 @@ __startup_code static inline void startup_map_pages(uintptr_t vaddr, uintptr_t p
 // 3. Map the kernel code, rodata, data, bss and kpage tables
 // * 4. Find the initrd and map it
 // * 5. Find a possible location for the kernel stack and map it
-// 4. Enable paging, (+global pages enabled)
+// 4. Enable paging
 __startup_code asmlinkage void x86_startup(u32 magic, multiboot_info_t *mb_info)
 {
     char step = '0';
@@ -173,6 +172,17 @@ __startup_code asmlinkage void x86_startup(u32 magic, multiboot_info_t *mb_info)
     const size_t kernel_rw_pgsize = X86_ALIGN_UP_TO_PAGE(kernel_rw_vend - kernel_rw_vstart) / X86_PAGE_SIZE;
     startup_map_pages(kernel_rw_vstart, kernel_rw_vstart - MOS_KERNEL_START_VADDR, kernel_rw_pgsize, VM_WRITE);
     debug_print_step();
+
+    if (mb_info->flags & MULTIBOOT_INFO_MODS && mb_info->mods_count != 0)
+    {
+        multiboot_module_t *mod = (multiboot_module_t *) mb_info->mods_addr;
+        const size_t initrd_pgsize = X86_ALIGN_UP_TO_PAGE(mod->mod_end - mod->mod_start) / X86_PAGE_SIZE;
+        const uintptr_t initrd_vaddr = X86_ALIGN_UP_TO_PAGE(kernel_rw_vend);
+        kernel_higher_initrd_addr = initrd_vaddr;
+        kernel_higher_initrd_size = mod->mod_end - mod->mod_start;
+        startup_map_pages(initrd_vaddr, mod->mod_start, initrd_pgsize, VM_NONE);
+        debug_print_step();
+    }
 
     // load the page directory
     __asm__ volatile("mov %0, %%cr3" ::"r"(startup_pgd));

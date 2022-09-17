@@ -19,8 +19,8 @@ section .multiboot.text
 extern x86_startup
 extern x86_start_kernel
 extern __MOS_STARTUP_STACK_TOP
+extern __MOS_KERNEL_HIGHER_STACK_TOP
 
-extern kernel_higher_stack_top
 extern kernel_higher_initrd_addr
 extern kernel_higher_initrd_size
 
@@ -35,13 +35,13 @@ mos_x86_multiboot_start:
     push    ebx                         ; Push multiboot2 header pointer
     push    eax                         ; Push multiboot2 magic value[extern x86_start_kernel]
     call    x86_startup                 ; start the kernel
-
-    ; ! TODO: Switch to higher half stack
-    ; ! TOOD: Jump to higher half
-    ; ! TODO: Give higher half of the kernel its initrd
-
-    mov     esp, kernel_higher_stack_top
-
+    pop     eax
+    pop     ebx
+    mov     esp, __MOS_KERNEL_HIGHER_STACK_TOP
+    push    0
+    mov     ebp, esp
+    push    ebx                        ; Push multiboot2 header pointer
+    push    eax                        ; Push multiboot2 magic value
     call    x86_start_kernel
 
 .hang:

@@ -25,9 +25,8 @@ SECTIONS
         __MOS_STARTUP_PGD = .;
         . += 4K;
         __MOS_STARTUP_PGTABLE = .;
-        . += 256K;  /* ! 256 KiB paging area (aka 256MiB memory) */
-        /* stack bottom */
-        . += 16K;
+        . += 512K;  /* ! 512 KiB paging area (aka 512MiB memory) */
+        . += 4K;
         __MOS_STARTUP_STACK_TOP = .;
     }
     __MOS_STARTUP_END = .;
@@ -70,6 +69,8 @@ SECTIONS
     .bss ALIGN(4K) : AT (ADDR(.bss) - 0xC0000000)
     {
         *(.bss);
+        . += 16K;  /* ! stack */
+        __MOS_KERNEL_HIGHER_STACK_TOP = .;
     }
     __MOS_KERNEL_RW_END = .;
     __MOS_KERNEL_END = .;
