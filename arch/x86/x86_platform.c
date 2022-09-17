@@ -94,16 +94,16 @@ void x86_start_kernel(u32 magic, multiboot_info_t *mb_info)
     x86_disable_interrupts();
     mos_install_console(&com1_console.console);
 
+    x86_gdt_init();
+    x86_idt_init();
+    x86_tss_init();
+    x86_irq_handler_init();
+
     if (magic != MULTIBOOT_BOOTLOADER_MAGIC)
         mos_panic("invalid magic number: %x", magic);
 
     if (!(mb_info->flags & MULTIBOOT_INFO_MEM_MAP))
         mos_panic("no memory map");
-
-    x86_gdt_init();
-    x86_idt_init();
-    x86_tss_init();
-    x86_irq_handler_init();
 
     // I don't like the timer interrupt, so disable it.
     pic_unmask_irq(IRQ_TIMER);
