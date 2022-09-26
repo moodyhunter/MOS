@@ -23,8 +23,9 @@ static int hashmap_blockdev_compare(const void *key1, const void *key2)
 
 void blockdev_register(blockdev_t *dev)
 {
-    if (blockdev_map == NULL)
+    if (unlikely(blockdev_map == NULL))
     {
+        MOS_ASSERT_ONCE();
         blockdev_map = kmalloc(sizeof(hashmap_t));
         memset(blockdev_map, 0, sizeof(hashmap_t));
         hashmap_init(blockdev_map, 64, hashmap_blockdev_hash, hashmap_blockdev_compare);

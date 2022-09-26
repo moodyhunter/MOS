@@ -20,8 +20,16 @@ static_assert(sizeof(void *) == 4, "x86_64 is not supported");
 #define X86_PAGE_SIZE    (4 KB)
 #define X86_MAX_MEM_SIZE ((u32) (4 GB - 1))
 
-#define X86_ALIGN_UP_TO_PAGE(addr)   (((addr) + X86_PAGE_SIZE - 1) & ~(X86_PAGE_SIZE - 1))
-#define X86_ALIGN_DOWN_TO_PAGE(addr) ((addr) & ~(X86_PAGE_SIZE - 1))
+#define X86_ALIGN_UP_TO_PAGE(addr)   ALIGN_UP(addr, X86_PAGE_SIZE)
+#define X86_ALIGN_DOWN_TO_PAGE(addr) ALIGN_DOWN(addr, X86_PAGE_SIZE)
+
+#define X86_BIOS_VADDR_MASK 0xE0000000
+
+#define X86_BIOS_MEMREGION_PADDR 0xf0000
+#define BIOS_MEMREGION_SIZE      0x10000
+
+#define X86_EBDA_MEMREGION_PADDR 0x80000
+#define EBDA_MEMREGION_SIZE      0x20000
 
 typedef struct
 {
@@ -64,3 +72,5 @@ extern asmlinkage void gdt32_flush(gdt_ptr32_t *gdt_ptr);
 extern asmlinkage void idt32_flush(idtr32_t *idtr);
 extern asmlinkage void tss32_flush(u32 tss_selector);
 extern asmlinkage void gdt32_flush_only(gdt_ptr32_t *gdt_ptr);
+
+#define X86_BIOS_VADDR(paddr) (X86_BIOS_VADDR_MASK | ((paddr) & ~0xF0000000))

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/drivers/serial.h"
+#include "mos/x86/devices/serial.h"
 
 #include "mos/printk.h"
-#include "mos/x86/drivers/port.h"
+#include "mos/x86/devices/port.h"
 #include "mos/x86/x86_interrupt.h"
 
 void serial_irq_handler(u32 irq)

@@ -59,6 +59,8 @@ SECTIONS
 
         /* ! Without PAE, a maximum of 4G memory would take (1024 * 1024 * sizeof(PTE) + 1024 * sizeof(PDE)) */
         . = ALIGN(4K);
+        __MOS_X86_PMEM_FREE_LIST = .;
+        . += 6M;    /* ! for pmem_freelist */
         __MOS_X86_PAGING_AREA_START = .;
         . += 4K;
         . += 4M;
@@ -69,6 +71,7 @@ SECTIONS
     .bss ALIGN(4K) : AT (ADDR(.bss) - 0xC0000000)
     {
         *(.bss);
+        . = ALIGN(4K);
         . += 16K;  /* ! stack */
         __MOS_KERNEL_HIGHER_STACK_TOP = .;
     }

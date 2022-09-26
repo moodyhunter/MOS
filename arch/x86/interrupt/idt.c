@@ -2,7 +2,7 @@
 
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
-#include "mos/x86/drivers/port.h"
+#include "mos/x86/devices/port.h"
 #include "mos/x86/interrupt/idt_types.h"
 #include "mos/x86/interrupt/pic.h"
 #include "mos/x86/x86_platform.h"

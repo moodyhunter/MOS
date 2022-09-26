@@ -9,8 +9,14 @@ if(NOT MOS_X86_HEAP_BASE_VADDR)
     set(MOS_X86_HEAP_BASE_VADDR 0xD0000000)
 endif()
 
+if(NOT MOS_X86_INITRD_VADDR)
+    set(MOS_X86_INITRD_VADDR 0xC8000000)
+endif()
+
 mos_add_summary_item(ARCH_X86 "x86 Heap Address" "${MOS_X86_HEAP_BASE_VADDR}")
 mos_add_kconfig_define(MOS_X86_HEAP_BASE_VADDR)
+mos_add_summary_item(ARCH_X86 "x86 Initrd Virtual Address" "${MOS_X86_INITRD_VADDR}")
+mos_add_kconfig_define(MOS_X86_INITRD_VADDR)
 
 add_bootable_target(boot/multiboot)
 add_bootable_target(boot/multiboot_iso)
@@ -30,7 +36,6 @@ add_kernel_source(
         cpu/cpuid.c
         cpu/smp.c
         devices/initrd_blockdev.c
-        devices/port.c
         devices/serial.c
         devices/serial_console.c
         devices/text_mode_console.c

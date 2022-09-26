@@ -7,13 +7,10 @@
 #include "mos/mos_global.h"
 #include "mos/printk.h"
 #include "mos/x86/acpi/acpi_types.h"
-#include "mos/x86/drivers/port.h"
+#include "mos/x86/cpu/cpu.h"
+#include "mos/x86/devices/port.h"
 #include "mos/x86/x86_interrupt.h"
-
-#define EBDA_START 0x00080000
-#define EBDA_END   0x0009ffff
-#define BIOS_START 0x000f0000
-#define BIOS_END   0x000fffff
+#include "mos/x86/x86_platform.h"
 
 acpi_rsdt_t *x86_acpi_rsdt;
 acpi_madt_t *x86_acpi_madt;
@@ -24,22 +21,31 @@ void noreturn x86_shutdown_vm()
 {
     x86_disable_interrupts();
     port_outw(0x604, 0x2000);
+    x86_cpu_halt();
     while (1)
         ;
 }
+
+should_inline bool verify_sdt_checksum(acpi_sdt_header_t *tableHeader)
+{
+    u8 sum = 0;
+    for (u32 i = 0; i < tableHeader->length; i++)
+        sum += ((char *) tableHeader)[i];
+    return sum == 0;
+}
+
 void x86_acpi_init()
 {
-    acpi_rsdp_t *rsdp = find_acpi_rsdp(EBDA_START, EBDA_END);
+    acpi_rsdp_t *rsdp = find_acpi_rsdp(X86_EBDA_MEMREGION_PADDR | X86_BIOS_VADDR_MASK, EBDA_MEMREGION_SIZE);
     if (!rsdp)
     {
-        rsdp = find_acpi_rsdp(BIOS_START, BIOS_END);
+        rsdp = find_acpi_rsdp(X86_BIOS_MEMREGION_PADDR | X86_BIOS_VADDR_MASK, BIOS_MEMREGION_SIZE);
         if (!rsdp)
             mos_panic("RSDP not found");
     }
 
     // !! "MUST" USE XSDT IF FOUND !!
-
-    x86_acpi_rsdt = container_of(rsdp->v1.rsdt_addr, acpi_rsdt_t, sdt_header);
+    x86_acpi_rsdt = container_of(X86_BIOS_VADDR(rsdp->v1.rsdt_addr), acpi_rsdt_t, sdt_header);
     if (!verify_sdt_checksum(&x86_acpi_rsdt->sdt_header))
         mos_panic("RSDT checksum error");
 
@@ -48,7 +54,7 @@ void x86_acpi_init()
     const size_t count = (x86_acpi_rsdt->sdt_header.length - sizeof(acpi_sdt_header_t)) / sizeof(u32);
     for (size_t i = 0; i < count; i++)
     {
-        acpi_sdt_header_t *addr = x86_acpi_rsdt->sdts[i];
+        acpi_sdt_header_t *addr = (acpi_sdt_header_t *) X86_BIOS_VADDR((uintptr_t) x86_acpi_rsdt->sdts[i]);
         pr_info2("acpi: RSDT entry %zu: %.4s", i, addr->signature);
 
         if (strncmp(addr->signature, ACPI_SIGNATURE_FADT, 4) == 0)
@@ -131,22 +137,14 @@ void x86_acpi_init()
     }
 }
 
-bool verify_sdt_checksum(acpi_sdt_header_t *tableHeader)
+acpi_rsdp_t *find_acpi_rsdp(uintptr_t start, size_t size)
 {
-    u8 sum = 0;
-    for (u32 i = 0; i < tableHeader->length; i++)
-        sum += ((char *) tableHeader)[i];
-    return sum == 0;
-}
-
-acpi_rsdp_t *find_acpi_rsdp(uintptr_t start, uintptr_t end)
-{
-    for (uintptr_t addr = start; addr < end; addr += 0x10)
+    for (uintptr_t addr = start; addr < start + size; addr += 0x10)
     {
         if (strncmp((const char *) addr, ACPI_SIGNATURE_RSDP, 8) == 0)
         {
             pr_info2("ACPI: RSDP magic at %p", (void *) addr);
-            acpi_rsdp_t *rsdp = (acpi_rsdp_t *) ((uintptr_t) addr - offsetof(acpi_rsdp_t, v1.signature));
+            acpi_rsdp_t *rsdp = (acpi_rsdp_t *) addr;
 
             // check the checksum
             u8 sum = 0;

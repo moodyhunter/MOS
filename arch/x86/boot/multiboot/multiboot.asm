@@ -21,15 +21,11 @@ extern x86_start_kernel
 extern __MOS_STARTUP_STACK_TOP
 extern __MOS_KERNEL_HIGHER_STACK_TOP
 
-extern kernel_higher_initrd_addr
-extern kernel_higher_initrd_size
+extern initrd_size
 
 global mos_x86_multiboot_start:function (mos_x86_multiboot_start.end - mos_x86_multiboot_start)
-
 mos_x86_multiboot_start:
     mov     esp, __MOS_STARTUP_STACK_TOP
-    push    0
-    mov     ebp, esp
     push    0                           ; Reset EFLAGS
     popf
     push    ebx                         ; Push multiboot2 header pointer
@@ -38,13 +34,10 @@ mos_x86_multiboot_start:
     pop     eax
     pop     ebx
     mov     esp, __MOS_KERNEL_HIGHER_STACK_TOP
-    push    0
-    mov     ebp, esp
     push    ebx                        ; Push multiboot2 header pointer
-    push    eax                        ; Push multiboot2 magic value
+    push    dword [initrd_size]
     call    x86_start_kernel
-
 .hang:
     hlt
-    jmp .hang
+    jmp     .hang
 .end:

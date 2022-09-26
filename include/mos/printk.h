@@ -14,6 +14,7 @@
 
 #define MOS_UNIMPLEMENTED(content) mos_panic("UNIMPLEMENTED: %s", content)
 #define MOS_UNREACHABLE()          mos_panic("UNREACHABLE line %d reached in file: %s", __LINE__, __FILE__)
+#define MOS_ASSERT_ONCE(...)       MOS_ASSERT_X(once(), __VA_ARGS__)
 #define MOS_ASSERT(cond)           MOS_ASSERT_X(cond, "")
 #define MOS_ASSERT_X(cond, msg, ...)                                                                                                            \
     do                                                                                                                                          \
@@ -65,15 +66,11 @@ typedef enum
 #define mos_warn_once(...)                                                                                                                      \
     do                                                                                                                                          \
     {                                                                                                                                           \
-        static bool __once = false;                                                                                                             \
-        if (!__once)                                                                                                                            \
-        {                                                                                                                                       \
-            __once = true;                                                                                                                      \
+        if (once())                                                                                                                             \
             mos_warn(__VA_ARGS__);                                                                                                              \
-        }                                                                                                                                       \
     } while (0)
 
-void __printf(1, 2) printk(const char *format, ...);
-void __printf(2, 3) lprintk(int loglevel, const char *format, ...);
-void __printf(3, 4) mos_kwarn(const char *func, u32 line, const char *fmt, ...);
-void __printf(3, 4) noreturn mos_kpanic(const char *func, u32 line, const char *fmt, ...);
+__printf(1, 2) void printk(const char *format, ...);
+__printf(2, 3) void lprintk(int loglevel, const char *format, ...);
+__printf(3, 4) void mos_kwarn(const char *func, u32 line, const char *fmt, ...);
+noreturn __printf(3, 4) void mos_kpanic(const char *func, u32 line, const char *fmt, ...);

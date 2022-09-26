@@ -3,6 +3,7 @@
 #pragma once
 
 #include "mos/compiler.h"
+#include "mos/constants.h"
 #include "mos/kconfig.h"
 
 #define __aligned(x)    __attribute__((__aligned__(x)))
@@ -27,14 +28,6 @@
 
 #define to_union(u) __extension__(u)
 
-// clang-format off
-#define B  * 1
-#define KB * 1024 B
-#define MB * 1024 KB
-#define GB * (u64) 1024 MB
-#define TB * (u64) 1024 GB
-// clang-format on
-
 #define GET_BIT(x, n)               (((x) >> (n)) & 1)
 #define MASK_BITS(value, width)     ((value) & ((1 << (width)) - 1))
 #define SET_BITS(bit, width, value) (MASK_BITS(value, width) << (bit))
@@ -51,8 +44,14 @@
 #define MOS_WARNING_POP           MOS_PRAGMA(diagnostic pop)
 #define MOS_WARNING_DISABLE(text) MOS_PRAGMA(diagnostic ignored text)
 
-#if MOS_32BITS
-#define MOS_KERNEL_START_VADDR 0xC0000000
-#else
-#define MOS_KERNEL_START_VADDR 0xFFFFFFFF80000000
-#endif
+#define ALIGN_UP(addr, size)   (((addr) + size - 1) & ~(size - 1))
+#define ALIGN_DOWN(addr, size) ((addr) & ~(size - 1))
+
+#define once()                                                                                                                                  \
+    __extension__({                                                                                                                             \
+        static bool __once = false;                                                                                                             \
+        if (__once)                                                                                                                             \
+            false;                                                                                                                              \
+        __once = true;                                                                                                                          \
+        __once;                                                                                                                                 \
+    })

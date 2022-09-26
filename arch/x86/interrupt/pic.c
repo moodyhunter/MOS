@@ -3,7 +3,7 @@
 #include "mos/x86/interrupt/pic.h"
 
 #include "mos/types.h"
-#include "mos/x86/drivers/port.h"
+#include "mos/x86/devices/port.h"
 #include "mos/x86/x86_platform.h"
 
 // Reinitialize the PIC controllers.
