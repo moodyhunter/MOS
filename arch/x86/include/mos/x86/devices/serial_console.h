@@ -3,7 +3,7 @@
 #pragma once
 
 #include "mos/device/console.h"
-#include "mos/x86/drivers/serial.h"
+#include "mos/x86/devices/serial.h"
 
 typedef struct
 {

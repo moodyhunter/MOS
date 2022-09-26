@@ -24,35 +24,38 @@
 #include "mos/mos_global.h"
 #include "mos/types.h"
 
-/* How many bytes from the start of the file we search for the header.  */
+// How many bytes from the start of the file we search for the header.
 #define MULTIBOOT_SEARCH       8192
 #define MULTIBOOT_HEADER_ALIGN 4
 
-#define MULTIBOOT_HEADER_MAGIC     0x1BADB002 /* The magic field should contain this.  */
-#define MULTIBOOT_BOOTLOADER_MAGIC 0x2BADB002 /* This should be in %eax.  */
-#define MULTIBOOT_MOD_ALIGN        0x00001000 /* Alignment of multiboot modules.  */
-#define MULTIBOOT_INFO_ALIGN       0x00000004 /* Alignment of the multiboot info structure.  */
+#define MULTIBOOT_HEADER_MAGIC     0x1BADB002 // The magic field should contain this.
+#define MULTIBOOT_BOOTLOADER_MAGIC 0x2BADB002 // This should be in %eax.
+#define MULTIBOOT_MOD_ALIGN        0x00001000 // Alignment of multiboot modules.
+#define MULTIBOOT_INFO_ALIGN       0x00000004 // Alignment of the multiboot info structure.
 
-/* Flags set in the 'flags' member of the multiboot header.  */
-#define MULTIBOOT_PAGE_ALIGN  0x00000001 /* Align all boot modules on i386 page (4KB) boundaries.  */
-#define MULTIBOOT_MEMORY_INFO 0x00000002 /* Must pass memory information to OS.  */
-#define MULTIBOOT_VIDEO_MODE  0x00000004 /* Must pass video information to OS.  */
-#define MULTIBOOT_AOUT_KLUDGE 0x00010000 /* This flag indicates the use of the address fields in the header.  */
+// Flags set in the 'flags' member of the multiboot header.
+#define MULTIBOOT_PAGE_ALIGN  0x00000001 // Align all boot modules on i386 page (4KB) boundaries.
+#define MULTIBOOT_MEMORY_INFO 0x00000002 // Must pass memory information to OS.
+#define MULTIBOOT_VIDEO_MODE  0x00000004 // Must pass video information to OS.
+#define MULTIBOOT_AOUT_KLUDGE 0x00010000 // This flag indicates the use of the address fields in the header.
 
-/* Flags to be set in the 'flags' member of the multiboot info structure.  */
-#define MULTIBOOT_INFO_MEMORY           0x00000001 /* is there basic lower/upper memory information? */
-#define MULTIBOOT_INFO_BOOTDEV          0x00000002
-#define MULTIBOOT_INFO_CMDLINE          0x00000004
-#define MULTIBOOT_INFO_MODS             0x00000008
-#define MULTIBOOT_INFO_AOUT_SYMS        0x00000010 /* mutually exclusive */
-#define MULTIBOOT_INFO_ELF_SHDR         0X00000020 /* mutually exclusive */
-#define MULTIBOOT_INFO_MEM_MAP          0x00000040
-#define MULTIBOOT_INFO_DRIVE_INFO       0x00000080
-#define MULTIBOOT_INFO_CONFIG_TABLE     0x00000100
-#define MULTIBOOT_INFO_BOOT_LOADER_NAME 0x00000200
-#define MULTIBOOT_INFO_APM_TABLE        0x00000400
-#define MULTIBOOT_INFO_VBE_INFO         0x00000800
-#define MULTIBOOT_INFO_FRAMEBUFFER_INFO 0x00001000
+// Flags to be set in the 'flags' member of the multiboot info structure.
+typedef enum
+{
+    MULTIBOOT_INFO_MEMORY = 0x00000001, // is there basic lower/upper memory information?
+    MULTIBOOT_INFO_BOOTDEV = 0x00000002,
+    MULTIBOOT_INFO_CMDLINE = 0x00000004,
+    MULTIBOOT_INFO_MODS = 0x00000008,
+    MULTIBOOT_INFO_AOUT_SYMS = 0x00000010, // mutually exclusive
+    MULTIBOOT_INFO_ELF_SHDR = 0X00000020,  // mutually exclusive
+    MULTIBOOT_INFO_MEM_MAP = 0x00000040,
+    MULTIBOOT_INFO_DRIVE_INFO = 0x00000080,
+    MULTIBOOT_INFO_CONFIG_TABLE = 0x00000100,
+    MULTIBOOT_INFO_BOOT_LOADER_NAME = 0x00000200,
+    MULTIBOOT_INFO_APM_TABLE = 0x00000400,
+    MULTIBOOT_INFO_VBE_INFO = 0x00000800,
+    MULTIBOOT_INFO_FRAMEBUFFER_INFO = 0x00001000,
+} multiboot_info_flags_t;
 
 struct multiboot_header
 {
@@ -117,7 +120,7 @@ typedef struct
 typedef struct
 {
     /* Multiboot info version number */
-    u32 flags;
+    multiboot_info_flags_t flags;
 
     /* Available memory from BIOS */
     u32 mem_lower;

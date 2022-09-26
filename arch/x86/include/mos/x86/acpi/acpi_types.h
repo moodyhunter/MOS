@@ -12,6 +12,7 @@ typedef struct
     u8 revision;
     u32 rsdt_addr;
 } __packed acpi_rsdp_v1_t;
+
 static_assert(sizeof(acpi_rsdp_v1_t) == 20, "acpi_rsdp_v1_t is not 20 bytes");
 
 typedef struct
@@ -44,6 +45,7 @@ typedef struct
     acpi_sdt_header_t sdt_header;
     acpi_sdt_header_t *sdts[];
 } acpi_rsdt_t;
+
 #define ACPI_SIGNATURE_RSDT "RSDT" // Root System Description Table
 
 typedef struct
@@ -122,6 +124,7 @@ typedef struct
     generic_addr_t X_GPE0Block;
     generic_addr_t X_GPE1Block;
 } acpi_fadt_t;
+
 #define ACPI_SIGNATURE_FADT "FACP" // Fixed ACPI Description Table
 
 typedef struct
@@ -202,6 +205,7 @@ typedef struct
     u32 lapic_addr;
     u32 flags;
 } acpi_madt_t;
+
 #define ACPI_SIGNATURE_MADT "APIC" // Multiple APIC Description Table
 
 #define madt_is_valid_entry_type(type) ((type >= 0 && type <= 5) || type == 9)
@@ -223,6 +227,7 @@ typedef struct
     u16 minimum_tick;
     u8 page_protection;
 } __packed acpi_hpet_t;
+
 #define ACPI_SIGNATURE_HPET "HPET" // High Precision Event Timer Description Table
 
 typedef struct
@@ -232,5 +237,4 @@ typedef struct
     bool valid;
 } s_dsdt;
 
-acpi_rsdp_t *find_acpi_rsdp(uintptr_t start, uintptr_t end);
-bool verify_sdt_checksum(acpi_sdt_header_t *tableHeader);
+acpi_rsdp_t *find_acpi_rsdp(uintptr_t start, size_t size);

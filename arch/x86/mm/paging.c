@@ -4,6 +4,7 @@
 
 #include "lib/stdlib.h"
 #include "lib/string.h"
+#include "mos/constants.h"
 #include "mos/kconfig.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/mm_types.h"
@@ -43,19 +44,19 @@ void x86_mm_prepare_paging()
     pg_do_map_pages(x86_kpg_infra, X86_PAGE_SIZE, X86_PAGE_SIZE, 1 MB / X86_PAGE_SIZE - 1, VM_GLOBAL | VM_WRITE);
 
     pr_info("paging: mapping kernel space...");
-    const uintptr_t k_rostart = (uintptr_t) &__MOS_KERNEL_RO_START;
-    const uintptr_t k_roend = (uintptr_t) &__MOS_KERNEL_RO_END;
+    const uintptr_t k_rostart = (uintptr_t) &__MOS_KERNEL_RO_START - MOS_KERNEL_START_VADDR;
+    const uintptr_t k_roend = (uintptr_t) &__MOS_KERNEL_RO_END - MOS_KERNEL_START_VADDR;
     pg_map_pages(x86_kpg_infra, k_rostart, k_rostart, (k_roend - k_rostart) / X86_PAGE_SIZE, VM_GLOBAL);
 
-    const uintptr_t k_rwstart = (uintptr_t) &__MOS_KERNEL_RW_START;
-    const uintptr_t k_rwend = (uintptr_t) &__MOS_KERNEL_RW_END;
+    const uintptr_t k_rwstart = (uintptr_t) &__MOS_KERNEL_RW_START - MOS_KERNEL_START_VADDR;
+    const uintptr_t k_rwend = (uintptr_t) &__MOS_KERNEL_RW_END - MOS_KERNEL_START_VADDR;
     pg_map_pages(x86_kpg_infra, k_rwstart, k_rwstart, (k_rwend - k_rwstart) / X86_PAGE_SIZE, VM_GLOBAL | VM_WRITE);
 }
 
 void x86_mm_enable_paging(x86_pg_infra_t *kpg_infra)
 {
-    mos_debug("paging: converting physical memory freelist to vm mode");
-    pmem_freelist_convert_to_vm();
+    // mos_debug("paging: converting physical memory freelist to vm mode");
+    // pmem_freelist_convert_to_vm();
 
     mos_debug("paging: page directory at: %p", (void *) kpg_infra->pgdir);
     x86_enable_paging_impl(kpg_infra->pgdir);

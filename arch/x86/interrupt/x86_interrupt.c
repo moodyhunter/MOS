@@ -5,7 +5,7 @@
 #include "mos/ksyscall/dispatcher.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
-#include "mos/x86/drivers/port.h"
+#include "mos/x86/devices/port.h"
 #include "mos/x86/interrupt/pic.h"
 #include "mos/x86/x86_platform.h"
 

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/drivers/serial_console.h"
+#include "mos/x86/devices/serial_console.h"
 
 #include "lib/ansi_colors.h"
 #include "lib/string.h"
 #include "lib/structures/list.h"
 #include "mos/device/console.h"
-#include "mos/x86/drivers/serial.h"
+#include "mos/x86/devices/serial.h"
 
 const char *ansi_reset = ANSI_COLOR_RESET;
 

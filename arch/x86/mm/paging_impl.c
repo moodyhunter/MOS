@@ -134,6 +134,16 @@ void pg_unmap_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, size_t n_page)
     pmem_freelist_add_region(paddr, n_page * X86_PAGE_SIZE);
 }
 
+void pg_copy_page(x86_pg_infra_t *from_pg, x86_pg_infra_t *to_pg, uintptr_t start_vaddr, size_t n_page)
+{
+    for (size_t i = 0; i < n_page; i++)
+    {
+        uintptr_t vaddr = start_vaddr + i * X86_PAGE_SIZE;
+        uintptr_t paddr = pg_page_get_mapped_paddr(from_pg, vaddr);
+        pg_map_pages(to_pg, vaddr, paddr, 1, VM_WRITE); // !! TODO: copy flags
+    }
+}
+
 void pg_do_map_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, vm_flags flags)
 {
     mos_debug("paging: mapping %zu pages (" PTR_FMT "->" PTR_FMT ") @ table %lu", n_page, vaddr_start, paddr_start, vaddr_start / X86_PAGE_SIZE);
@@ -216,6 +226,7 @@ void pg_do_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr)
     pg_flush_tlb(vaddr);
 }
 
+// !! TODO: read real address instead of assuming memory layout = x86_pg_infra_t
 uintptr_t pg_page_get_mapped_paddr(x86_pg_infra_t *pg, uintptr_t vaddr)
 {
     int page_dir_index = vaddr >> 22;

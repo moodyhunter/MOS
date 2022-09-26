@@ -12,7 +12,7 @@ macro(mos_target_setup ISA_FAMILY ISA BITS)
     set(CMAKE_SYSTEM_PROCESSOR ${ISA})
     set(CMAKE_ASM_NASM_OBJECT_FORMAT elf${BITS})
     # Add debug info to nasm
-    set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <DEFINES> <INCLUDES> <FLAGS> -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} -F dwarf -g -o <OBJECT> <SOURCE>")
+    set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <FLAGS> -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} -gdwarf -o <OBJECT> <SOURCE>")
 
     # For the C compiler, 'elf' should be in the OS field for target triplet to produce a bare metal binary.
     # Although the `linux-gnu` targeted gcc 'does' work, it's highly unsuggested.

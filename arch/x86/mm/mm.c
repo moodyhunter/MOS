@@ -11,7 +11,7 @@ memblock_t x86_mem_regions[MEM_MAX_N_REGIONS] = { 0 };
 size_t x86_mem_regions_count = 0;
 
 size_t x86_mem_size_total = 0;
-size_t x86_mem_size_available = 0;
+size_t x86_mem_available = 0;
 
 static void mem_add_region(u64 phys_addr, size_t size, bool available)
 {
@@ -58,7 +58,7 @@ void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
         char *type_str = "";
         switch (entry->type)
         {
-            case MULTIBOOT_MEMORY_AVAILABLE: type_str = "Available", x86_mem_size_available += region_length; break;
+            case MULTIBOOT_MEMORY_AVAILABLE: type_str = "Available", x86_mem_available += region_length; break;
             case MULTIBOOT_MEMORY_RESERVED: type_str = "Reserved"; break;
             case MULTIBOOT_MEMORY_ACPI_RECLAIMABLE: type_str = "ACPI Reclaimable"; break;
             case MULTIBOOT_MEMORY_NVS: type_str = "NVS"; break;
@@ -74,8 +74,8 @@ void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
     char buf_available[SIZE_BUF_LEN];
     char buf_unavailable[SIZE_BUF_LEN];
     format_size(buf, sizeof(buf), x86_mem_size_total);
-    format_size(buf_available, sizeof(buf_available), x86_mem_size_available);
-    format_size(buf_unavailable, sizeof(buf_unavailable), x86_mem_size_total - x86_mem_size_available);
+    format_size(buf_available, sizeof(buf_available), x86_mem_available);
+    format_size(buf_unavailable, sizeof(buf_unavailable), x86_mem_size_total - x86_mem_available);
     pr_info("Total Memory: %s (%s available, %s unavailable)", buf, buf_available, buf_unavailable);
 }
 

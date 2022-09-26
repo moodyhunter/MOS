@@ -31,7 +31,7 @@ void kwarn_handler_remove()
     kwarn_handler = NULL;
 }
 
-void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
+noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
 {
     static bool in_panic = false;
     if (in_panic)

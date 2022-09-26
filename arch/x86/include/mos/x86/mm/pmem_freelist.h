@@ -6,11 +6,11 @@
 
 typedef struct x86_pg_infra_t x86_pg_infra_t;
 
-size_t pmem_freelist_getsize();
+size_t pmem_freelist_size();
 void pmem_freelist_convert_to_vm();
 void pmem_freelist_dump();
 
-void pmem_freelist_setup(x86_pg_infra_t *kpg_infra);
+void pmem_freelist_setup();
 uintptr_t pmem_freelist_find_free(size_t pages);
 
 size_t pmem_freelist_add_region(uintptr_t start_addr, size_t size_bytes);
