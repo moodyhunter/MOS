@@ -5,7 +5,7 @@
 #include "lib/containers.h"
 #include "mos/types.h"
 
-typedef struct
+typedef const struct
 {
     void (*get_node_name)(const tree_node_t *node, char **name, size_t *name_len);
 } tree_op_t;

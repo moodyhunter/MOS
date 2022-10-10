@@ -47,15 +47,15 @@ static_assert(sizeof(x86_pgdir_entry) == 4, "page_directory_entry is not 4 bytes
 typedef u32 pagemap_line_t;
 
 #define PAGEMAP_WIDTH    (sizeof(pagemap_line_t) * 8)
-#define MM_PAGE_MAP_SIZE (X86_MAX_MEM_SIZE / X86_PAGE_SIZE / PAGEMAP_WIDTH)
+#define MM_PAGE_MAP_SIZE (X86_MAX_MEM_SIZE / MOS_PAGE_SIZE / PAGEMAP_WIDTH)
 
 // !! FIXME: This is HUGE for a process, consider allocate it on demand
 // !! FIXME: This is HUGE for a process, consider allocate it on demand
 // !! FIXME: This is HUGE for a process, consider allocate it on demand
 typedef struct x86_pg_infra_t
 {
-    x86_pgdir_entry pgdir[768]; // up to 0xC0000000
-    x86_pgtable_entry pgtable[1024 * 768];
+    x86_pgdir_entry pgdir[1024];
+    x86_pgtable_entry pgtable[1024 * 1024];
     pagemap_line_t page_map[MM_PAGE_MAP_SIZE];
 } x86_pg_infra_t;
 

@@ -18,24 +18,31 @@ section .multiboot.text
 
 extern x86_startup
 extern x86_start_kernel
-extern __MOS_STARTUP_STACK_TOP
+extern _mos_startup_stack
 extern __MOS_KERNEL_HIGHER_STACK_TOP
-
-extern initrd_size
 
 global mos_x86_multiboot_start:function (mos_x86_multiboot_start.end - mos_x86_multiboot_start)
 mos_x86_multiboot_start:
-    mov     esp, __MOS_STARTUP_STACK_TOP
+    mov     esp, _mos_startup_stack
     push    0                           ; Reset EFLAGS
     popf
+
+    ; on-stack struct x86_startup_info
+    push    0                           ; bios_region_start
+    push    0                     ; Push initrd size
     push    ebx                         ; Push multiboot2 header pointer
     push    eax                         ; Push multiboot2 magic value[extern x86_start_kernel]
-    call    x86_startup                 ; start the kernel
+
+    push    esp
+    call    x86_startup                 ; prepare for a higher half kernel
     pop     eax
-    pop     ebx
-    mov     esp, __MOS_KERNEL_HIGHER_STACK_TOP
-    push    ebx                        ; Push multiboot2 header pointer
-    push    dword [initrd_size]
+
+    mov     esp, __MOS_KERNEL_HIGHER_STACK_TOP ; paging has been enabled, switch to higher stack
+    push    dword [eax + 12]
+    push    dword [eax + 8]
+    push    dword [eax + 4]
+    push    dword [eax]
+    push    esp
     call    x86_start_kernel
 .hang:
     hlt

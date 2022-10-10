@@ -23,7 +23,7 @@ typedef struct
 typedef struct
 {
     const char *arg_name;
-    size_t param_count;
+    size_t params_count;
     cmdline_param_t **params;
 } cmdline_arg_t;
 

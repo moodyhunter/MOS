@@ -8,7 +8,7 @@
 #include "mos/tasks/task_type.h"
 #include "mos/tasks/thread.h"
 
-bool threads_do_switch(const void *key, void *value)
+bool schedule_to_thread(const void *key, void *value)
 {
     thread_id_t *tid = (thread_id_t *) key;
     thread_t *thread = (thread_t *) value;
@@ -18,16 +18,16 @@ bool threads_do_switch(const void *key, void *value)
     return true;
 }
 
-noreturn void cpu_do_schedule(void)
+noreturn void scheduler(void)
 {
     while (1)
     {
-        hashmap_foreach(thread_table, threads_do_switch);
+        hashmap_foreach(thread_table, schedule_to_thread);
         pr_info2("no more threads to schedule, starting over");
     }
 }
 
-void do_schedule(void)
+void jump_to_scheduler(void)
 {
     mos_platform->switch_to_scheduler(&current_thread->stack.head, current_cpu->scheduler_stack);
 }

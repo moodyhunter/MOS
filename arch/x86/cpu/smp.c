@@ -3,7 +3,9 @@
 #include "mos/x86/cpu/smp.h"
 
 #include "lib/string.h"
+#include "mos/boot/startup.h"
 #include "mos/kconfig.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/x86/acpi/acpi.h"
 #include "mos/x86/cpu/cpuid.h"
@@ -124,6 +126,7 @@ void x86_smp_init(x86_pg_infra_t *pg)
     pr_info("smp: platform has %u cpu(s)", num_cpus);
     x86_platform.num_cpus = num_cpus;
 
+    mos_startup_map_pages(X86_AP_TRAMPOLINE_ADDR, X86_AP_TRAMPOLINE_ADDR, 4 KB / MOS_PAGE_SIZE, VM_WRITE);
     memcpy((void *) X86_AP_TRAMPOLINE_ADDR, (void *) (uintptr_t) &x86_ap_trampoline, 4 KB);
 
     for (u32 i = 0; i < num_cpus; i++)

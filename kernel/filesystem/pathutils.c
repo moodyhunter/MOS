@@ -15,7 +15,7 @@ void path_node_get_name(const tree_node_t *node, char **name, size_t *name_len)
     *name_len = strlen(path->name);
 }
 
-tree_op_t path_tree_op = {
+static tree_op_t path_tree_op = {
     .get_node_name = path_node_get_name,
 };
 

@@ -115,7 +115,7 @@ typedef struct
     u64 phys_addr;
     u64 len;
     multiboot_memory_type_t type;
-} __packed multiboot_mmap_entry_t;
+} __packed multiboot_memory_map_t;
 
 typedef struct
 {
@@ -144,7 +144,7 @@ typedef struct
 
     /* Memory Mapping buffer */
     u32 mmap_length;
-    multiboot_mmap_entry_t *mmap_addr;
+    multiboot_memory_map_t *mmap_addr;
 
     /* Drive Info buffer */
     u32 drives_length;

@@ -9,7 +9,7 @@ SECTIONS
     /* ! (for example the so-called VGA buffer at 0xb8000. */
     . = 1M; /* !! Lower Half */
 
-    __MOS_STARTUP_START = .;
+    _mos_startup_START = .;
     .startup ALIGN(4K) :
     {
         *(.multiboot.data); /* ! Multiboot header */
@@ -22,14 +22,14 @@ SECTIONS
     {
         *(.mos.startup.data);
         . = ALIGN(4K);
-        __MOS_STARTUP_PGD = .;
+        _mos_startup_PGD = .;
         . += 4K;
-        __MOS_STARTUP_PGTABLE = .;
+        _mos_startup_PGTABLE = .;
         . += 512K;  /* ! 512 KiB paging area (aka 512MiB memory) */
         . += 4K;
-        __MOS_STARTUP_STACK_TOP = .;
+        _mos_startup_stack = .;
     }
-    __MOS_STARTUP_END = .;
+    _mos_startup_END = .;
 
     . += 0xC0000000;
 
@@ -39,17 +39,20 @@ SECTIONS
     {
         __MOS_KERNEL_CODE_START = .;
         *(.text);
+        . = ALIGN(4K);
         __MOS_TEST_CASES_START = .;
         *(.mos.test_cases);
         __MOS_TEST_CASES_END = .;
         __MOS_KERNEL_CODE_END = .;
     }
 
+    . = DATA_SEGMENT_ALIGN (CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE));
+
     .rodata ALIGN(4K) : AT (ADDR(.rodata) - 0xC0000000)
     {
-        __MOS_KERNEL_RO_START = .;
+        __MOS_KERNEL_RODATA_START = .;
         *(.rodata);
-        __MOS_KERNEL_RO_END = .;
+        __MOS_KERNEL_RODATA_END = .;
     }
 
     .data ALIGN(4K) : AT (ADDR(.data) - 0xC0000000)

@@ -20,7 +20,7 @@ cmdline_t *mos_cmdline_create(const char *cmdline)
             cmdline++;
         cmdline_arg_t *arg = kmalloc(sizeof(cmdline_arg_t));
         arg->params = NULL;
-        arg->param_count = 0;
+        arg->params_count = 0;
         cmd->arguments = krealloc(cmd->arguments, sizeof(cmdline_arg_t *) * (cmd->args_count + 1));
         cmd->arguments[cmd->args_count] = arg;
         cmd->args_count++;
@@ -40,9 +40,9 @@ cmdline_t *mos_cmdline_create(const char *cmdline)
         while (*cmdline && *cmdline != ' ')
         {
             cmdline_param_t *param = kmalloc(sizeof(cmdline_param_t));
-            arg->params = krealloc(arg->params, sizeof(cmdline_param_t *) * (arg->param_count + 1));
-            arg->params[arg->param_count] = param;
-            arg->param_count++;
+            arg->params = krealloc(arg->params, sizeof(cmdline_param_t *) * (arg->params_count + 1));
+            arg->params[arg->params_count] = param;
+            arg->params_count++;
 
             if (strncmp(cmdline, "true", 4) == 0)
             {
@@ -91,14 +91,14 @@ void mos_cmdline_destroy(cmdline_t *cmdline)
     {
         cmdline_arg_t *arg = cmdline->arguments[i];
         kfree(arg->arg_name);
-        for (u32 j = 0; j < arg->param_count; j++)
+        for (u32 j = 0; j < arg->params_count; j++)
         {
             cmdline_param_t *param = arg->params[j];
             if (param->param_type == CMDLINE_PARAM_TYPE_STRING)
                 kfree(param->val.string);
             kfree(param);
         }
-        if (arg->param_count)
+        if (arg->params_count)
             kfree(arg->params);
         kfree(arg);
     }

@@ -44,8 +44,10 @@
 #define MOS_WARNING_POP           MOS_PRAGMA(diagnostic pop)
 #define MOS_WARNING_DISABLE(text) MOS_PRAGMA(diagnostic ignored text)
 
-#define ALIGN_UP(addr, size)   (((addr) + size - 1) & ~(size - 1))
-#define ALIGN_DOWN(addr, size) ((addr) & ~(size - 1))
+#define ALIGN_UP(addr, size)     (((addr) + size - 1) & ~(size - 1))
+#define ALIGN_DOWN(addr, size)   ((addr) & ~(size - 1))
+#define ALIGN_UP_TO_PAGE(addr)   ALIGN_UP(addr, MOS_PAGE_SIZE)
+#define ALIGN_DOWN_TO_PAGE(addr) ALIGN_DOWN(addr, MOS_PAGE_SIZE)
 
 #define once()                                                                                                                                  \
     __extension__({                                                                                                                             \

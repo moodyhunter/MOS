@@ -61,5 +61,5 @@ u32 define_ksyscall(exit)(u32 exit_code)
 
 void define_ksyscall(yield_cpu)(void)
 {
-    do_schedule();
+    jump_to_scheduler();
 }

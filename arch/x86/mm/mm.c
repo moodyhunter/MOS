@@ -3,19 +3,22 @@
 #include "mos/x86/mm/mm.h"
 
 #include "lib/stdlib.h"
+#include "mos/mm/mm_types.h"
 #include "mos/printk.h"
 #include "mos/x86/acpi/acpi.h"
 #include "mos/x86/x86_platform.h"
 
-memblock_t x86_mem_regions[MEM_MAX_N_REGIONS] = { 0 };
+memblock_t x86_mem_regions[X86_MEM_MAX_N_REGIONS] = { 0 };
 size_t x86_mem_regions_count = 0;
 
 size_t x86_mem_size_total = 0;
 size_t x86_mem_available = 0;
 
+memblock_t *x86_bios_region = NULL;
+
 static void mem_add_region(u64 phys_addr, size_t size, bool available)
 {
-    if (x86_mem_regions_count == MEM_MAX_N_REGIONS)
+    if (x86_mem_regions_count >= X86_MEM_MAX_N_REGIONS)
         mos_panic("too many memory regions added.");
 
     memblock_t *block = &x86_mem_regions[x86_mem_regions_count];
@@ -25,13 +28,13 @@ static void mem_add_region(u64 phys_addr, size_t size, bool available)
     x86_mem_regions_count++;
 }
 
-void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
+void x86_mem_init(const multiboot_memory_map_t *map_entry, u32 count)
 {
     pr_info("Multiboot memory map:");
     for (u32 i = 0; i < count; i++)
     {
         char size_buf[32];
-        const multiboot_mmap_entry_t *entry = map_entry + i;
+        const multiboot_memory_map_t *entry = map_entry + i;
 
         u64 region_length = entry->len;
         u64 region_base = entry->phys_addr;
@@ -77,24 +80,4 @@ void x86_mem_init(const multiboot_mmap_entry_t *map_entry, u32 count)
     format_size(buf_available, sizeof(buf_available), x86_mem_available);
     format_size(buf_unavailable, sizeof(buf_unavailable), x86_mem_size_total - x86_mem_available);
     pr_info("Total Memory: %s (%s available, %s unavailable)", buf, buf_available, buf_unavailable);
-}
-
-memblock_t *x86_mem_find_bios_block()
-{
-    static memblock_t *bios_memblock = NULL;
-    if (bios_memblock)
-        return bios_memblock;
-    for (u32 i = 0; i < x86_mem_regions_count; i++)
-    {
-        const uintptr_t region_start_addr = x86_mem_regions[i].paddr;
-        if (region_start_addr < (uintptr_t) x86_acpi_rsdt && region_start_addr + x86_mem_regions[i].size_bytes > (uintptr_t) x86_acpi_rsdt)
-        {
-            bios_memblock = &x86_mem_regions[i];
-            break;
-        }
-    }
-
-    if (!bios_memblock)
-        mos_panic("could not find bios memory area");
-    return bios_memblock;
 }

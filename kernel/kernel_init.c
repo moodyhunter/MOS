@@ -1,40 +1,54 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/structures/hashmap.h"
-#include "lib/structures/stack.h"
 #include "mos/cmdline.h"
 #include "mos/device/block.h"
 #include "mos/elf/elf.h"
 #include "mos/filesystem/cpio/cpio.h"
-#include "mos/filesystem/filesystem.h"
 #include "mos/filesystem/mount.h"
 #include "mos/filesystem/pathutils.h"
-#include "mos/kconfig.h"
-#include "mos/mm/kmalloc.h"
 #include "mos/mm/paging.h"
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
+#include "mos/tasks/schedule.h"
 #include "mos/tasks/task_type.h"
 #include "mos/tasks/thread.h"
-#include "mos/types.h"
-#include "mos/x86/tasks/context.h"
 #include "mos/x86/tasks/tss_types.h"
-#include "mos/x86/x86_platform.h"
 
 extern void mos_test_engine_run_tests(); // defined in tests/test_engine.c
 
-void cpu_do_schedule();
-extern asmlinkage void platform_context_switch(thread_t *old_thread, thread_t *new_thread);
-
-extern tss32_t tss_entry;
-
-void mos_start_kernel(const char *cmdline)
+bool mount_initrd(void)
 {
-    mos_cmdline = mos_cmdline_create(cmdline);
+    blockdev_t *dev = blockdev_find("initrd");
+    if (!dev)
+        return false;
+    pr_info("found initrd block device: %s", dev->name);
 
-    pr_info("Welcome to MOS!");
+    mountpoint_t *mount = kmount(&root_path, &fs_cpio, dev);
+    if (!mount)
+        return false;
+
+    pr_info("mounted initrd to rootfs");
+    return true;
+}
+
+const char *get_init_path(void)
+{
+    cmdline_arg_t *init_arg = mos_cmdline_get_arg("init");
+    if (init_arg && init_arg->params_count > 0)
+    {
+        cmdline_param_t *init_param = init_arg->params[0];
+        if (init_param->param_type == CMDLINE_PARAM_TYPE_STRING)
+            return init_param->val.string;
+
+        pr_warn("init path is not a string, using default '/init'");
+    }
+    return "/init";
+}
+
+void dump_cmdline(void)
+{
     pr_emph("MOS %s (%s)", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION);
     pr_emph("MOS Arguments: (total of %zu options)", mos_cmdline->args_count);
     for (u32 i = 0; i < mos_cmdline->args_count; i++)
@@ -42,7 +56,7 @@ void mos_start_kernel(const char *cmdline)
         cmdline_arg_t *option = mos_cmdline->arguments[i];
         pr_info("%2d: %s", i, option->arg_name);
 
-        for (u32 j = 0; j < option->param_count; j++)
+        for (u32 j = 0; j < option->params_count; j++)
         {
             cmdline_param_t *parameter = option->params[j];
             switch (parameter->param_type)
@@ -54,42 +68,34 @@ void mos_start_kernel(const char *cmdline)
         }
     }
     pr_emph("%-25s'%s'", "Kernel builtin cmdline:", MOS_KERNEL_BUILTIN_CMDLINE);
+}
+
+void mos_start_kernel(const char *cmdline)
+{
+    mos_cmdline = mos_cmdline_create(cmdline);
+
+    pr_info("Welcome to MOS!");
+    dump_cmdline();
 
 #if MOS_MEME
     mos_warn("V2Ray 4.45.2 started");
 #endif
 
+    if (mos_cmdline_get_arg("mos_tests"))
+        mos_test_engine_run_tests();
+
     process_init();
     thread_init();
 
-    if (mos_cmdline_get_arg("mos_tests"))
-    {
-        mos_test_engine_run_tests();
-    }
-
-    const char *init_path = "/init";
-
-    cmdline_arg_t *init_arg = mos_cmdline_get_arg("init");
-    if (init_arg && init_arg->param_count > 0 && init_arg->params[0]->param_type == CMDLINE_PARAM_TYPE_STRING)
-        init_path = init_arg->params[0]->val.string;
-
-    blockdev_t *dev = blockdev_find("initrd");
-    if (!dev)
-        mos_panic("no initrd found");
-    pr_info("found initrd block device: %s", dev->name);
-
-    mountpoint_t *mount = kmount(&root_path, &fs_cpio, dev);
-    if (!mount)
+    if (unlikely(!mount_initrd()))
         mos_panic("failed to mount initrd");
 
-    pr_info("Loading init program '%s'", init_path);
-
+    const char *init_path = get_init_path();
     file_t *init_file = vfs_open(init_path, OPEN_READ);
     if (!init_file)
         mos_panic("failed to open init");
 
-    size_t npage_required = init_file->io.size / mos_platform->mm_page_size + 1;
-
+    size_t npage_required = init_file->io.size / MOS_PAGE_SIZE + 1;
     char *initrd_data = kpage_alloc(npage_required, PGALLOC_NONE);
     size_t r = io_read(&init_file->io, initrd_data, init_file->io.size);
     MOS_ASSERT_X(r == init_file->io.size, "failed to read init");
@@ -129,13 +135,14 @@ void mos_start_kernel(const char *cmdline)
 
     // the stack memory to be used if we enter the kernelmode by a trap / interrupt
     // TODO: Per-process stack
-    tss_entry.esp0 = (u32) kpage_alloc(1, PGALLOC_NONE) + mos_platform->mm_page_size; // stack grows downwards from the top of the page
+    extern tss32_t tss_entry;
+    tss_entry.esp0 = (u32) kpage_alloc(1, PGALLOC_NONE) + MOS_PAGE_SIZE; // stack grows downwards from the top of the page
     pr_emph("kernel stack at " PTR_FMT, (uintptr_t) tss_entry.esp0);
 
     process_t *pinit = create_process((process_id_t){ 1 }, (uid_t){ 0 }, (thread_entry_t) header->entry_point, (void *) 114514);
 
     mos_platform->mm_map_kvaddr(pinit->pagetable, init_ph->vaddr, (uintptr_t) header + init_ph->data_offset, 1, VM_USERMODE);
 
-    cpu_do_schedule();
+    scheduler();
     MOS_UNREACHABLE();
 }
