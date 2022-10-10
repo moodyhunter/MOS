@@ -13,10 +13,14 @@ if(NOT MOS_X86_INITRD_VADDR)
     set(MOS_X86_INITRD_VADDR 0xC8000000)
 endif()
 
+set(MOS_PAGE_SIZE 4096)
+
 mos_add_summary_item(ARCH_X86 "x86 Heap Address" "${MOS_X86_HEAP_BASE_VADDR}")
 mos_add_kconfig_define(MOS_X86_HEAP_BASE_VADDR)
 mos_add_summary_item(ARCH_X86 "x86 Initrd Virtual Address" "${MOS_X86_INITRD_VADDR}")
 mos_add_kconfig_define(MOS_X86_INITRD_VADDR)
+mos_add_summary_item(ARCH_X86 "x86 Page Size" "${MOS_PAGE_SIZE}")
+mos_add_kconfig_define(MOS_PAGE_SIZE)
 
 add_bootable_target(boot/multiboot)
 add_bootable_target(boot/multiboot_iso)

@@ -84,7 +84,7 @@ void mos_test_engine_run_tests()
     MOS_TEST_FOREACH_TEST_CASE(test_case)
     {
         bool should_skip = false;
-        for (u32 i = 0; skip_tests_option && i < skip_tests_option->param_count; i++)
+        for (u32 i = 0; skip_tests_option && i < skip_tests_option->params_count; i++)
         {
             cmdline_param_t *parameter = skip_tests_option->params[i];
             if (strcmp(parameter->val.string, test_case->test_name) == 0)
@@ -95,7 +95,7 @@ void mos_test_engine_run_tests()
             }
         }
 
-        for (u32 i = 0; mos_tests_skip_prefix_option && i < mos_tests_skip_prefix_option->param_count; i++)
+        for (u32 i = 0; mos_tests_skip_prefix_option && i < mos_tests_skip_prefix_option->params_count; i++)
         {
             cmdline_param_t *parameter = mos_tests_skip_prefix_option->params[i];
             if (strncmp(parameter->val.string, test_case->test_name, strlen(parameter->val.string)) == 0)

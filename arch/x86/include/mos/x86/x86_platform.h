@@ -3,6 +3,7 @@
 #pragma once
 
 #include "mos/platform/platform.h"
+#include "mos/x86/boot/multiboot.h"
 #include "mos/x86/gdt/gdt_types.h"
 #include "mos/x86/interrupt/idt_types.h"
 
@@ -14,22 +15,17 @@ static_assert(sizeof(void *) == 4, "x86_64 is not supported");
 #define GDT_SEGMENT_USERCODE 0x18
 #define GDT_SEGMENT_USERDATA 0x20
 #define GDT_SEGMENT_TSS      0x28
+#define GDT_ENTRY_COUNT      6
 
-#define GDT_ENTRY_COUNT 6 // Number of gdt entries
-
-#define X86_PAGE_SIZE    (4 KB)
 #define X86_MAX_MEM_SIZE ((u32) (4 GB - 1))
-
-#define X86_ALIGN_UP_TO_PAGE(addr)   ALIGN_UP(addr, X86_PAGE_SIZE)
-#define X86_ALIGN_DOWN_TO_PAGE(addr) ALIGN_DOWN(addr, X86_PAGE_SIZE)
-
-#define X86_BIOS_VADDR_MASK 0xE0000000
 
 #define X86_BIOS_MEMREGION_PADDR 0xf0000
 #define BIOS_MEMREGION_SIZE      0x10000
 
 #define X86_EBDA_MEMREGION_PADDR 0x80000
 #define EBDA_MEMREGION_SIZE      0x20000
+
+#define X86_VIDEO_DEVICE_PADDR 0xb8000
 
 typedef struct
 {
@@ -48,11 +44,17 @@ typedef struct
 
 static_assert(sizeof(x86_stack_frame) == 76, "x86_stack_frame is not 76 bytes");
 
+typedef struct
+{
+    u32 mb_magic;
+    multiboot_info_t *mb_info;
+    size_t initrd_size;
+    uintptr_t bios_region_start;
+} __packed x86_startup_info;
+
 // defined in the linker script 'multiboot.ld'
-extern const char __MOS_KERNEL_RO_START;                              // Kernel read-only data {
-extern const char __MOS_KERNEL_TEXT_START, __MOS_KERNEL_TEXT_END;     //     Kernel text
-extern const char __MOS_KERNEL_RODATA_START, __MOS_KERNEL_RODATA_END; //     Kernel rodata
-extern const char __MOS_KERNEL_RO_END;                                // }
+extern const char __MOS_KERNEL_CODE_START, __MOS_KERNEL_CODE_END;     // Kernel text
+extern const char __MOS_KERNEL_RODATA_START, __MOS_KERNEL_RODATA_END; // Kernel rodata
 extern const char __MOS_KERNEL_RW_START;                              // Kernel read-write data {
 extern const char __MOS_X86_PAGING_AREA_START;                        //     Paging area {
 extern const char __MOS_X86_PAGING_AREA_END;                          //     }
@@ -72,5 +74,3 @@ extern asmlinkage void gdt32_flush(gdt_ptr32_t *gdt_ptr);
 extern asmlinkage void idt32_flush(idtr32_t *idtr);
 extern asmlinkage void tss32_flush(u32 tss_selector);
 extern asmlinkage void gdt32_flush_only(gdt_ptr32_t *gdt_ptr);
-
-#define X86_BIOS_VADDR(paddr) (X86_BIOS_VADDR_MASK | ((paddr) & ~0xF0000000))

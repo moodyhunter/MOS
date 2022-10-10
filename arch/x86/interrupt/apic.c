@@ -2,6 +2,9 @@
 
 #include "mos/x86/interrupt/apic.h"
 
+#include "mos/boot/startup.h"
+#include "mos/constants.h"
+#include "mos/mos_global.h"
 #include "mos/printk.h"
 #include "mos/x86/acpi/acpi.h"
 #include "mos/x86/cpu/cpu.h"
@@ -96,6 +99,10 @@ void apic_enable()
 
     lapic_paddr_base = x86_acpi_madt->lapic_addr;
     pr_info("apic: mapped address: " PTR_FMT, lapic_paddr_base);
+
+    mos_startup_map_bios(lapic_paddr_base, 1024, VM_WRITE);
+    lapic_paddr_base = BIOS_VADDR(lapic_paddr_base);
+
     apic_set_base_addr(lapic_paddr_base);
 
 #define APIC_SOFTWARE_ENABLE 1 << 8

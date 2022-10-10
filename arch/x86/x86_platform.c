@@ -12,6 +12,7 @@
 #include "mos/printk.h"
 #include "mos/types.h"
 #include "mos/x86/acpi/acpi.h"
+#include "mos/x86/boot/multiboot.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/cpu/smp.h"
 #include "mos/x86/devices/initrd_blockdev.h"
@@ -59,8 +60,10 @@ void x86_kpanic_hook()
     do_backtrace(20);
 }
 
-void x86_start_kernel(size_t initrd_size, multiboot_info_t *mb_info)
+void x86_start_kernel(x86_startup_info *info)
 {
+    multiboot_info_t *mb_info = info->mb_info;
+    uintptr_t initrd_size = info->initrd_size;
     x86_disable_interrupts();
     mos_install_console(&com1_console.console);
 
@@ -68,9 +71,6 @@ void x86_start_kernel(size_t initrd_size, multiboot_info_t *mb_info)
     x86_idt_init();
     x86_tss_init();
     x86_irq_handler_init();
-
-    if (!(mb_info->flags & MULTIBOOT_INFO_MEM_MAP))
-        mos_panic("no memory map");
 
     // I don't like the timer interrupt, so disable it.
     pic_unmask_irq(IRQ_TIMER);
@@ -81,7 +81,7 @@ void x86_start_kernel(size_t initrd_size, multiboot_info_t *mb_info)
     if (mb_info->flags & MULTIBOOT_INFO_CMDLINE)
         strncpy(mos_cmdline, mb_info->cmdline, sizeof(mos_cmdline));
 
-    u32 count = mb_info->mmap_length / sizeof(multiboot_mmap_entry_t);
+    u32 count = mb_info->mmap_length / sizeof(multiboot_memory_map_t);
     x86_mem_init(mb_info->mmap_addr, count);
 
     x86_mm_prepare_paging();
@@ -89,27 +89,36 @@ void x86_start_kernel(size_t initrd_size, multiboot_info_t *mb_info)
 
     if (initrd_size)
     {
-        reg_t cr3;
-        __asm__("movl %%cr3, %0" : "=r"(cr3));
-
-        x86_pgdir_entry *dir = (x86_pgdir_entry *) cr3;
-        x86_pgtable_entry *table = (x86_pgtable_entry *) (dir[MOS_X86_INITRD_VADDR >> 22].page_table_paddr << 12);
-        uintptr_t initrd_paddr = table->phys_addr << 12;
-        pg_do_map_pages(x86_kpg_infra, MOS_X86_INITRD_VADDR, initrd_paddr, X86_ALIGN_UP_TO_PAGE(initrd_size) / X86_PAGE_SIZE, VM_GLOBAL);
+        reg_t cr3 = x86_get_cr3();
+        const uintptr_t initrd_vaddr = MOS_X86_INITRD_VADDR;
+        x86_pgtable_entry *table = (x86_pgtable_entry *) (((x86_pgdir_entry *) cr3)[initrd_vaddr >> 22].page_table_paddr << 12);
+        const uintptr_t initrd_paddr = table->phys_addr << 12;
+        const size_t initrd_n_pages = ALIGN_UP_TO_PAGE(initrd_size) / MOS_PAGE_SIZE;
+        pg_do_map_pages(x86_kpg_infra, initrd_vaddr, initrd_paddr, initrd_n_pages, VM_GLOBAL);
     }
 
     x86_acpi_init();
-    // map the lapic to the kernel page table
-    pg_do_map_pages(x86_kpg_infra, x86_acpi_madt->lapic_addr, x86_acpi_madt->lapic_addr, 1, VM_GLOBAL);
 
-    // x86_smp_init(x86_kpg_infra);
+    // map the lapic to the kernel page table
+    pg_do_map_pages(x86_kpg_infra, BIOS_VADDR(x86_acpi_madt->lapic_addr), x86_acpi_madt->lapic_addr, 1, VM_GLOBAL);
+
+    x86_smp_init(x86_kpg_infra);
 
     // ! map the bios memory area, should it be done like this?
     pr_info("mapping bios memory area...");
-    // memblock_t *bios_block = x86_mem_find_bios_block();
-    // pg_do_map_pages(x86_kpg_infra, bios_block->paddr, bios_block->paddr, bios_block->size_bytes / X86_PAGE_SIZE, VM_GLOBAL);
+    for (u32 i = 0; i < x86_mem_regions_count; i++)
+        if (x86_mem_regions[i].paddr == info->bios_region_start)
+            x86_bios_region = &x86_mem_regions[i];
 
-    x86_mm_enable_paging((x86_pg_infra_t *) ((uintptr_t) x86_kpg_infra - MOS_KERNEL_START_VADDR));
+    memblock_t *bios_block = x86_bios_region;
+    pg_do_map_pages(x86_kpg_infra, bios_block->paddr, bios_block->paddr, bios_block->size_bytes / MOS_PAGE_SIZE, VM_GLOBAL);
+
+#if MOS_DEBUG
+    x86_mm_dump_page_table(x86_kpg_infra);
+    pmem_freelist_dump();
+#endif
+
+    x86_mm_enable_paging(x86_kpg_infra);
 
     mos_kernel_mm_init(); // since then, we can use the kernel heap (kmalloc)
 
@@ -131,12 +140,13 @@ void x86_start_kernel(size_t initrd_size, multiboot_info_t *mb_info)
 
 mos_platform_t x86_platform = {
     .regions = {
-        .ro_start = (uintptr_t) &__MOS_KERNEL_RO_START,
-        .ro_end = (uintptr_t) &__MOS_KERNEL_RO_END,
+        .code_start = (uintptr_t) &__MOS_KERNEL_CODE_START,
+        .code_end = (uintptr_t) &__MOS_KERNEL_CODE_END,
+        .rodata_start = (uintptr_t) &__MOS_KERNEL_RODATA_START,
+        .rodata_end = (uintptr_t) &__MOS_KERNEL_RODATA_END,
         .rw_start = (uintptr_t) &__MOS_KERNEL_RW_START,
         .rw_end = (uintptr_t) &__MOS_KERNEL_RW_END,
     },
-    .mm_page_size = X86_PAGE_SIZE,
 
     .halt_cpu = x86_cpu_halt,
     .current_cpu_id = x86_cpu_get_id,

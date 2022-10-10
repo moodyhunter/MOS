@@ -8,9 +8,8 @@
 #include "mos/x86/devices/port.h"
 #include "mos/x86/x86_platform.h"
 
-#define X86_VIDEO_DEVICE 0xb8000
-#define VIDEO_WIDTH      80
-#define VIDEO_HEIGHT     25
+#define VIDEO_WIDTH  80
+#define VIDEO_HEIGHT 25
 
 typedef struct
 {
@@ -25,7 +24,7 @@ typedef struct
 
 static const size_t VIDEO_LINE_SIZE = VIDEO_WIDTH * sizeof(video_cell_t);
 
-static video_buffer_t *video_buffer = (video_buffer_t *) (X86_VIDEO_DEVICE | X86_BIOS_VADDR_MASK);
+static video_buffer_t *video_buffer = (video_buffer_t *) BIOS_VADDR(X86_VIDEO_DEVICE_PADDR);
 static u8 cursor_x = 0;
 static u8 cursor_y = 0;
 static standard_color_t foreground_color = White;

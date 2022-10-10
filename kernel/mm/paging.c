@@ -11,8 +11,7 @@
 
 void mos_kernel_mm_init()
 {
-    MOS_ASSERT(mos_platform->mm_page_size > 0);
-    liballoc_init(mos_platform->mm_page_size);
+    liballoc_init(MOS_PAGE_SIZE);
 #if MOS_MM_LIBALLOC_DEBUG
     mos_install_kpanic_hook(liballoc_dump);
 #endif
@@ -25,9 +24,6 @@ void *kpage_alloc(size_t npages, pagealloc_flags type)
         mos_warn("allocating negative or zero pages");
         return NULL;
     }
-
-    if (unlikely(mos_platform->mm_page_size == 0))
-        mos_panic("platform configuration error: page_size is 0");
 
     if (unlikely(mos_platform->mm_alloc_pages == NULL))
         mos_panic("platform configuration error: alloc_page is NULL");

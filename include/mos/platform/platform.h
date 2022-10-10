@@ -3,13 +3,18 @@
 #pragma once
 
 #include "lib/containers.h"
+#include "mos/kconfig.h"
 #include "mos/mos_global.h"
 #include "mos/tasks/task_type.h"
 #include "mos/types.h"
 
-#define MOS_SYSCALL_INTR            0x88
-#define PER_CPU_DECLARE(type, name) type name[MOS_MAX_CPU_COUNT]
-#define per_cpu(var)                (&var[mos_platform->current_cpu_id()])
+#define PER_CPU_DECLARE(type, name)                                                                                                             \
+    struct                                                                                                                                      \
+    {                                                                                                                                           \
+        type percpu_value[MOS_MAX_CPU_COUNT];                                                                                                   \
+    } name
+
+#define per_cpu(var) (&(var.percpu_value[mos_platform->current_cpu_id()]))
 
 typedef void (*irq_handler)(u32 irq);
 
@@ -17,6 +22,7 @@ typedef enum
 {
     VM_NONE = 0,
     // VM_PRESENT = 1 << 0,
+    VM_READ = 1 << 0,
     VM_WRITE = 1 << 1,
     VM_USERMODE = 1 << 2,
     VM_WRITE_THROUGH = 1 << 3,
@@ -43,8 +49,10 @@ typedef struct
 {
     struct
     {
-        const uintptr_t ro_start;
-        const uintptr_t ro_end;
+        const uintptr_t code_start;
+        const uintptr_t code_end;
+        const uintptr_t rodata_start;
+        const uintptr_t rodata_end;
         const uintptr_t rw_start;
         const uintptr_t rw_end;
     } regions;
@@ -53,7 +61,6 @@ typedef struct
     u32 boot_cpu_id;
     PER_CPU_DECLARE(cpu_t, cpu);
 
-    const size_t mm_page_size;
     paging_handle_t kernel_pg;
 
     void noreturn (*const shutdown)(void);

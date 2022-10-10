@@ -7,7 +7,6 @@
 typedef struct x86_pg_infra_t x86_pg_infra_t;
 
 size_t pmem_freelist_size();
-void pmem_freelist_convert_to_vm();
 void pmem_freelist_dump();
 
 void pmem_freelist_setup();

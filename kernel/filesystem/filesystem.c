@@ -2,12 +2,10 @@
 
 #include "mos/filesystem/filesystem.h"
 
-#include "lib/string.h"
 #include "lib/structures/tree.h"
 #include "mos/device/block.h"
 #include "mos/filesystem/mount.h"
 #include "mos/filesystem/pathutils.h"
-#include "mos/io/io.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
 

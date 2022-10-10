@@ -5,6 +5,7 @@
 #include "lib/string.h"
 #include "lib/structures/hashmap.h"
 #include "lib/structures/stack.h"
+#include "mos/kconfig.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging.h"
 #include "mos/platform/platform.h"
@@ -34,7 +35,7 @@ void thread_init()
     thread_table = kmalloc(sizeof(hashmap_t));
     memset(thread_table, 0, sizeof(hashmap_t));
     hashmap_init(thread_table, THREAD_HASHTABLE_SIZE, hashmap_thread_hash, hashmap_thread_equal);
-    thread_stack_npages = THREAD_STACK_SIZE / mos_platform->mm_page_size;
+    thread_stack_npages = THREAD_STACK_SIZE / MOS_PAGE_SIZE;
 }
 
 void thread_deinit()
