@@ -26,7 +26,7 @@ jobs:
       - name: Install packages
         run: |
           sudo apt update
-          sudo apt -y install nasm grub2-common mtools jq gcc-i686-linux-gnu g++-i686-linux-gnu ninja-build qemu-system-x86 cpio
+          sudo apt -y install nasm grub2-common mtools jq ninja-build qemu-system-x86 cpio
 
       - name: Build Cross Compiler
         run: |
