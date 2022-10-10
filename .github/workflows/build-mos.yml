@@ -28,6 +28,13 @@ jobs:
           sudo apt update
           sudo apt -y install nasm grub2-common mtools jq gcc-i686-linux-gnu g++-i686-linux-gnu ninja-build qemu-system-x86 cpio
 
+      - name: Build Cross Compiler
+        run: |
+          cd /tmp
+          git clone https://github.com/StjepanBM1/i686-elf-build
+          cd ./i686-elf-build
+          ./i686-elf-build.sh
+
       - name: Configure CMake
         run: |
           cmake \
