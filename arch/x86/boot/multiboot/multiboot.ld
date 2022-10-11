@@ -7,7 +7,7 @@ SECTIONS
     /* !! Source: https://os.phil-opp.com/multiboot-kernel/#Linker%201M */
     /* ! We don't want to load the kernel to e.g. 0 because there are many special memory areas below the 1MB mark */
     /* ! (for example the so-called VGA buffer at 0xb8000. */
-    . = 1M; /* !! Lower Half */
+    . = 5M; /* !! Lower Half */
 
     _mos_startup_START = .;
     .startup ALIGN(4K) :
