@@ -26,14 +26,13 @@ jobs:
       - name: Install packages
         run: |
           sudo apt update
-          sudo apt -y install nasm grub2-common mtools jq ninja-build qemu-system-x86 cpio
+          sudo apt -y install nasm grub2-common mtools jq ninja-build qemu-system-x86 cpio libgmp-dev libmpfr-dev libmpc-dev
 
       - name: Build Cross Compiler
         run: |
-          cd /tmp
-          git clone https://github.com/StjepanBM1/i686-elf-build
-          cd ./i686-elf-build
+          cd $GITHUB_WORKSPACE/scripts
           ./i686-elf-build.sh
+          echo "PATH=$PATH:$GITHUB_WORKSPACE/scripts/toolchains/i686-elf/bin" >> $GITHUB_ENV
 
       - name: Configure CMake
         run: |
