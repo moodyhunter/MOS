@@ -2,6 +2,7 @@ name: Generate MOS CodeBrowser
 
 on:
   push:
+    branches: [ "main" ]
 
 jobs:
   build:
