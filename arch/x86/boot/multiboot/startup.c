@@ -28,8 +28,8 @@ extern const char __MOS_KERNEL_RW_END;
 
 extern const char __MOS_KERNEL_END;
 
-extern const char _mos_startup_PGD;
-extern const char _mos_startup_PGTABLE;
+extern const void _mos_startup_PGD;
+extern const void _mos_startup_PGTABLE;
 
 __startup_rodata static const uintptr_t startup_start = (uintptr_t) &_mos_startup_START;
 __startup_rodata static const uintptr_t startup_end = (uintptr_t) &_mos_startup_END;
@@ -61,12 +61,12 @@ __startup_rwdata uintptr_t video_device_address = X86_VIDEO_DEVICE;
 
 __startup_code should_inline void print_debug_info(char a, char b)
 {
-    *((char *) video_device_address + 0) = a;
-    *((char *) video_device_address + 1) = LightMagenta;
-    *((char *) video_device_address + 2) = b;
-    *((char *) video_device_address + 3) = Gray;
-    *((char *) video_device_address + 4) = '\0';
-    *((char *) video_device_address + 5) = White;
+    *((volatile char *) video_device_address + 0) = a;
+    *((volatile char *) video_device_address + 1) = LightMagenta;
+    *((volatile char *) video_device_address + 2) = b;
+    *((volatile char *) video_device_address + 3) = Gray;
+    *((volatile char *) video_device_address + 4) = '\0';
+    *((volatile char *) video_device_address + 5) = White;
 }
 
 __startup_code should_inline void startup_setup_pgd(int pgdid, x86_pgtable_entry *pgtable)
@@ -148,12 +148,12 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
     mos_startup_map_bios(X86_VIDEO_DEVICE, VIDEO_WIDTH * VIDEO_HEIGHT * 2, VM_WRITE);
 
     // map the bios memory regions
-    mos_startup_map_bios(X86_BIOS_MEMREGION_PADDR, BIOS_MEMREGION_SIZE, VM_NONE);
-    mos_startup_map_bios(X86_EBDA_MEMREGION_PADDR, EBDA_MEMREGION_SIZE, VM_NONE);
+    mos_startup_map_bios(X86_BIOS_MEMREGION_PADDR, BIOS_MEMREGION_SIZE, VM_READ);
+    mos_startup_map_bios(X86_EBDA_MEMREGION_PADDR, EBDA_MEMREGION_SIZE, VM_READ);
 
     // ! we do not separate the startup code and data to simplify the setup.
     // ! this page directory will be removed as soon as the kernel is loaded, it shouldn't be a problem.
-    mos_startup_map_identity(startup_start, startup_end - startup_start, VM_WRITE | VM_EXECUTE);
+    mos_startup_map_identity(startup_start, startup_end - startup_start, VM_READ | VM_WRITE | VM_EXECUTE);
 
     debug_print_step();
     const size_t kernel_code_pgsize = ALIGN_UP_TO_PAGE(kernel_code_vend - kernel_code_vstart) / MOS_PAGE_SIZE;
@@ -181,11 +181,6 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
     video_device_address = BIOS_VADDR(X86_VIDEO_DEVICE);
     debug_print_step();
 
-    // enable global pages
-    __asm__ volatile("mov %%cr4, %%eax; or $0x80, %%eax; mov %%eax, %%cr4" ::: "eax");
-    debug_print_step();
-
-    // find the acpi rsdp after paging is enabled
     acpi_rsdp_t *rsdp = find_acpi_rsdp(BIOS_VADDR(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
     if (!rsdp)
         rsdp = find_acpi_rsdp(BIOS_VADDR(X86_BIOS_MEMREGION_PADDR), BIOS_MEMREGION_SIZE);

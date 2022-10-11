@@ -52,6 +52,7 @@ SECTIONS
     {
         __MOS_KERNEL_RODATA_START = .;
         *(.rodata);
+        *(.rodata.*);
         __MOS_KERNEL_RODATA_END = .;
     }
 
