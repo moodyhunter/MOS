@@ -20,7 +20,7 @@ typedef struct pmem_range_t
     size_t n_pages;
 } pmem_range_t;
 
-extern const char __MOS_X86_PMEM_FREE_LIST;
+extern const void __MOS_X86_PMEM_FREE_LIST;
 static pmem_range_t *const pmem_freelist_storage = (pmem_range_t *) &__MOS_X86_PMEM_FREE_LIST;
 static pmem_range_t *pmem_freelist = (pmem_range_t *) &__MOS_X86_PMEM_FREE_LIST;
 static size_t pmem_freelist_count = 0;

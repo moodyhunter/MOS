@@ -31,7 +31,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
 endif()
 
 if(NOT DEFINED MOS_MAX_CPU_COUNT)
-    set(MOS_MAX_CPU_COUNT 16)
+    set(MOS_MAX_CPU_COUNT 16) # Also modify the linker script
 endif()
 
 if(NOT DEFINED NOS_MAX_OPEN_FILES)

@@ -5,23 +5,15 @@
 
 [extern ap_state]
 [extern ap_stack_addr]
+[extern ap_pgd_addr]
 [extern ap_begin_exec]
 
-X86_AP_TRAMPOLINE_ADDR equ 0x8000
+X86_AP_TRAMPOLINE_ADDR  equ 0x8000
+X86_KERNEL_VADDR        equ 0xc0000000
 
 AP_STATUS_BSP_STARTUP_SENT          equ 1
-AP_STATUS_AP_WAIT_FOR_STACK_ALLOC   equ 2
-AP_STATUS_STACK_ALLOCATED           equ 3
-AP_STATUS_STACK_INITIALIZED         equ 4
-AP_STATUS_START                     equ 5
-AP_STATUS_STARTED                   equ 6
-
-%macro ap_wait 1
-spin_for_status_%1:
-    pause
-    cmp     dword [ap_state], %1
-    jne     spin_for_status_%1
-%endmacro
+AP_STATUS_START_REQUEST             equ 2
+AP_STATUS_START                     equ 3
 
 begin:
 x86_ap_trampoline:
@@ -45,21 +37,46 @@ pm_init:
     mov     ds, bx
     mov     es, bx
     mov     ss, bx
-    push    0x0                 ; reset EFLAGS
-    popfd
+    mov     fs, bx
+    mov     gs, bx
 
-    ap_wait AP_STATUS_BSP_STARTUP_SENT
-    mov     dword [ap_state], AP_STATUS_AP_WAIT_FOR_STACK_ALLOC
+spin_wait_for_bsp_startup:
+    pause
+    cmp     dword [ap_state - X86_KERNEL_VADDR], AP_STATUS_BSP_STARTUP_SENT
+    jne     spin_wait_for_bsp_startup
+spin_wait_for_bsp_startup.end:
 
-    ; TODO: paging
-    ap_wait AP_STATUS_STACK_ALLOCATED
+    ; enable paging and global pages
+    mov     eax, dword [ap_pgd_addr - X86_KERNEL_VADDR]
+    mov     cr3, eax
+
+    ; enable paging
+    mov     eax, cr0
+    or      eax, 0x80010000
+    mov     cr0, eax
+
+    ; enable cache
+    mov     eax, cr0
+    and     eax, 0xfffeffff
+    mov     cr0, eax
+
+    ; enable PGE
+    mov     eax, cr4
+    or      eax, 0x00000080
+    mov     cr4, eax
+
     mov     esp, dword [ap_stack_addr]
     mov     ebp, 0
-    mov     dword [ap_state], AP_STATUS_STACK_INITIALIZED
 
-    ap_wait AP_STATUS_START
-    mov     dword [ap_state], AP_STATUS_STARTED
+    mov     dword [ap_state], AP_STATUS_START_REQUEST
+spin_wait_for_start:
+    pause
+    cmp     dword [ap_state], AP_STATUS_START
+    jne     spin_wait_for_start
+spin_wait_for_start.end:
+
     call    0x08:ap_begin_exec
+    cli
     hlt
 
 

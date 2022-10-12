@@ -36,3 +36,24 @@ void cpuid_get_processor_info(processor_version_t *info)
     info->ecx.raw = cpuid.ecx;
     info->edx.raw = cpuid.edx;
 }
+
+void cpuid_get_brand_string(char *brand_string)
+{
+    x86_cpuid_info_t cpuid = { 0 };
+    x86_call_cpuid(0x80000002, &cpuid);
+    *(u32 *) &brand_string[0] = cpuid.eax;
+    *(u32 *) &brand_string[4] = cpuid.ebx;
+    *(u32 *) &brand_string[8] = cpuid.ecx;
+    *(u32 *) &brand_string[12] = cpuid.edx;
+    x86_call_cpuid(0x80000003, &cpuid);
+    *(u32 *) &brand_string[16] = cpuid.eax;
+    *(u32 *) &brand_string[20] = cpuid.ebx;
+    *(u32 *) &brand_string[24] = cpuid.ecx;
+    *(u32 *) &brand_string[28] = cpuid.edx;
+    x86_call_cpuid(0x80000004, &cpuid);
+    *(u32 *) &brand_string[32] = cpuid.eax;
+    *(u32 *) &brand_string[36] = cpuid.ebx;
+    *(u32 *) &brand_string[40] = cpuid.ecx;
+    *(u32 *) &brand_string[44] = cpuid.edx;
+    brand_string[48] = 0;
+}

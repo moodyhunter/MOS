@@ -4,31 +4,29 @@
 
 #include "lib/string.h"
 #include "mos/boot/startup.h"
-#include "mos/kconfig.h"
-#include "mos/platform/platform.h"
+#include "mos/mos_global.h"
 #include "mos/printk.h"
+#include "mos/types.h"
 #include "mos/x86/acpi/acpi.h"
+#include "mos/x86/acpi/acpi_types.h"
 #include "mos/x86/cpu/cpuid.h"
 #include "mos/x86/delays.h"
 #include "mos/x86/interrupt/apic.h"
 #include "mos/x86/interrupt/pic.h"
+#include "mos/x86/mm/paging.h"
 #include "mos/x86/mm/paging_impl.h"
 #include "mos/x86/x86_platform.h"
-
-#define X86_AP_TRAMPOLINE_ADDR 0x8000
 
 volatile enum
 {
     AP_STATUS_INVALID = 0,
     AP_STATUS_BSP_STARTUP_SENT = 1,
-    AP_STATUS_AP_WAIT_FOR_STACK_ALLOC = 2,
-    AP_STATUS_STACK_ALLOCATED = 3,
-    AP_STATUS_STACK_INITIALIZED = 4,
-    AP_STATUS_START = 5,
-    AP_STATUS_STARTED = 6,
+    AP_STATUS_START_REQUEST = 2,
+    AP_STATUS_START = 3,
 } ap_state;
 
 volatile uintptr_t ap_stack_addr = 0;
+volatile uintptr_t ap_pgd_addr = 0;
 static u32 lapics[MOS_MAX_CPU_COUNT] = { 0 };
 extern void x86_ap_trampoline();
 
@@ -38,14 +36,18 @@ void print_cpu_info()
     cpuid_get_manufacturer(manufacturer);
     processor_version_t info;
     cpuid_get_processor_info(&info);
-    pr_info2("  %s, Family %u, Model %u, Stepping %u", manufacturer, info.eax.eax.family, info.eax.eax.model, info.eax.eax.stepping);
-    pr_info2("  type: %s, ext family: %u, ext model: %u", cpuid_type_str[info.eax.eax.type], info.eax.eax.ext_family, info.eax.eax.ext_model);
+    char brand_string[49];
+    cpuid_get_brand_string(brand_string);
+    pr_info2("CPU: %s (%s)", brand_string, manufacturer);
+    pr_info2("  Family %u, Model %u, Stepping %u", info.eax.eax.family, info.eax.eax.model, info.eax.eax.stepping);
+    pr_info2("  Type: %s, Ext family: %u, Ext model: %u", cpuid_type_str[info.eax.eax.type], info.eax.eax.ext_family, info.eax.eax.ext_model);
 }
 
 void ap_begin_exec()
 {
     x86_ap_gdt_init();
     x86_idt_init();
+    x86_mm_enable_paging(x86_kpg_infra);
 
     processor_version_t info;
     cpuid_get_processor_info(&info);
@@ -55,9 +57,8 @@ void ap_begin_exec()
 
     per_cpu(x86_platform.cpu)->id = info.ebx.ebx.local_apic_id;
 
-    // TODO: enable paging
     while (1)
-        ;
+        __asm__ volatile("cli; hlt");
 }
 
 // clang-format off
@@ -67,6 +68,9 @@ void ap_begin_exec()
 void x86_cpu_start(int apic_id, uintptr_t stack_addr)
 {
     ap_state = AP_STATUS_INVALID;
+    ap_pgd_addr = (uintptr_t) x86_kpg_infra->pgdir - MOS_KERNEL_START_VADDR;
+    ap_stack_addr = stack_addr;
+
     apic_interrupt_full(0, apic_id, APIC_DELIVER_MODE_INIT, APIC_DEST_MODE_PHYSICAL, true, true, APIC_SHORTHAND_NONE);
     mdelay(100);
     apic_interrupt_full(0, apic_id, APIC_DELIVER_MODE_INIT_DEASSERT, APIC_DEST_MODE_PHYSICAL, false, true, APIC_SHORTHAND_NONE);
@@ -79,23 +83,16 @@ void x86_cpu_start(int apic_id, uintptr_t stack_addr)
     mdelay(100);
     apic_interrupt(X86_AP_TRAMPOLINE_ADDR >> 12, apic_id, APIC_DELIVER_MODE_STARTUP, APIC_DEST_MODE_PHYSICAL, APIC_SHORTHAND_NONE);
 
-    wait_for(AP_STATUS_AP_WAIT_FOR_STACK_ALLOC);
-    pr_info2("smp: received startup from cpu %u", apic_id);
-
-    // allocate stack for ap
-    ap_stack_addr = stack_addr;
-    ap_state = AP_STATUS_STACK_ALLOCATED;
-    wait_for(AP_STATUS_STACK_INITIALIZED);
-    pr_info2("smp: initialized stack for cpu %u", apic_id);
+    wait_for(AP_STATUS_START_REQUEST);
+    pr_info2("smp: cpu %u received start request", apic_id);
 
     ap_state = AP_STATUS_START;
-    wait_for(AP_STATUS_STARTED);
     pr_info2("smp: started cpu %u", apic_id);
 }
 
 #undef wait_for
 
-void x86_smp_init(x86_pg_infra_t *pg)
+void x86_smp_init()
 {
     pr_info("smp: boot cpu:");
     print_cpu_info();
@@ -126,7 +123,7 @@ void x86_smp_init(x86_pg_infra_t *pg)
     pr_info("smp: platform has %u cpu(s)", num_cpus);
     x86_platform.num_cpus = num_cpus;
 
-    mos_startup_map_pages(X86_AP_TRAMPOLINE_ADDR, X86_AP_TRAMPOLINE_ADDR, 4 KB / MOS_PAGE_SIZE, VM_WRITE);
+    mos_startup_map_bytes(X86_AP_TRAMPOLINE_ADDR, X86_AP_TRAMPOLINE_ADDR, 4 KB, VM_WRITE);
     memcpy((void *) X86_AP_TRAMPOLINE_ADDR, (void *) (uintptr_t) &x86_ap_trampoline, 4 KB);
 
     for (u32 i = 0; i < num_cpus; i++)
@@ -135,7 +132,8 @@ void x86_smp_init(x86_pg_infra_t *pg)
         if (apic_id == x86_platform.boot_cpu_id)
             continue;
 
-        uintptr_t stack = (uintptr_t) pg_page_alloc(pg, 4, PGALLOC_NONE);
+        extern const void __MOS_KERNEL_HIGHER_STACK_TOP;
+        const uintptr_t stack = (uintptr_t) &__MOS_KERNEL_HIGHER_STACK_TOP - (i * 1 MB);
         pr_info("smp: starting AP %d, LAPIC %d, stack " PTR_FMT, i, apic_id, stack);
         x86_cpu_start(apic_id, stack);
     }

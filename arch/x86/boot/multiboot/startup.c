@@ -114,6 +114,8 @@ __startup_code void mos_startup_map_single_page(uintptr_t vaddr, uintptr_t paddr
     this_table->phys_addr = (uintptr_t) paddr >> 12;
     this_table->writable = flags & VM_WRITE;
     this_table->global = flags & VM_GLOBAL;
+    this_table->cache_disabled = flags & VM_CACHE_DISABLED;
+    this_table->write_through = flags & VM_WRITE_THROUGH;
 
     __asm__ volatile("invlpg (%0)" ::"r"(vaddr) : "memory");
 }

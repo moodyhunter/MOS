@@ -98,11 +98,7 @@ void x86_start_kernel(x86_startup_info *info)
     }
 
     x86_acpi_init();
-
-    // map the lapic to the kernel page table
-    pg_do_map_pages(x86_kpg_infra, BIOS_VADDR(x86_acpi_madt->lapic_addr), x86_acpi_madt->lapic_addr, 1, VM_GLOBAL);
-
-    x86_smp_init(x86_kpg_infra);
+    x86_smp_init();
 
     // ! map the bios memory area, should it be done like this?
     pr_info("mapping bios memory area...");

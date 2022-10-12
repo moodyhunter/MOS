@@ -51,5 +51,5 @@ __startup_code always_inline void mos_startup_map_identity(uintptr_t paddr, size
 __startup_code always_inline void mos_startup_map_bios(uintptr_t paddr, size_t nbytes, vm_flags flags)
 {
     paddr = ALIGN_DOWN_TO_PAGE(paddr);
-    mos_startup_map_bytes(BIOS_VADDR(paddr), paddr, nbytes, flags);
+    mos_startup_map_bytes(BIOS_VADDR(paddr), paddr, nbytes, flags | VM_CACHE_DISABLED);
 }

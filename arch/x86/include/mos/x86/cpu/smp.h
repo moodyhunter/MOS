@@ -2,6 +2,6 @@
 
 #pragma once
 
-typedef struct x86_pg_infra_t x86_pg_infra_t;
+#define X86_AP_TRAMPOLINE_ADDR 0x8000
 
-void x86_smp_init(x86_pg_infra_t *pg);
+void x86_smp_init(void);

@@ -5,10 +5,13 @@
 #include "mos/boot/startup.h"
 #include "mos/constants.h"
 #include "mos/mos_global.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/x86/acpi/acpi.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/cpu/cpuid.h"
+#include "mos/x86/mm/paging.h"
+#include "mos/x86/mm/paging_impl.h"
 
 #define APIC_IN_SERVICE_REG_BEGIN 0x100
 #define APIC_IN_SERVICE_REG_END   0x170
@@ -39,6 +42,8 @@ void apic_set_base_addr(uintptr_t base_addr)
 
 u32 apic_reg_read_offset_32(u32 offset)
 {
+    mos_debug("apic_reg_read_offset_32: offset: %x", offset);
+#warning "TODO: this didn't work"
     return *(volatile u32 *) (lapic_paddr_base + offset);
 }
 
@@ -100,12 +105,14 @@ void apic_enable()
     lapic_paddr_base = x86_acpi_madt->lapic_addr;
     pr_info("apic: mapped address: " PTR_FMT, lapic_paddr_base);
 
-    mos_startup_map_bios(lapic_paddr_base, 1024, VM_WRITE);
-    lapic_paddr_base = BIOS_VADDR(lapic_paddr_base);
-
     apic_set_base_addr(lapic_paddr_base);
 
-#define APIC_SOFTWARE_ENABLE 1 << 8
+    // map both the current pagedir and x86_kpg_infra
+    mos_startup_map_bios(lapic_paddr_base, 1 KB, VM_GLOBAL | VM_WRITE | VM_CACHE_DISABLED);
+    pg_do_map_pages(x86_kpg_infra, BIOS_VADDR(lapic_paddr_base), lapic_paddr_base, 1, VM_GLOBAL | VM_WRITE | VM_CACHE_DISABLED);
+    lapic_paddr_base = BIOS_VADDR(lapic_paddr_base);
+
+#define APIC_SOFTWARE_ENABLE (1 << 8)
     // set the Spurious Interrupt Vector Register
     // To enable the APIC, set bit 8 (or 0x100) of this register.
     // All the other bits are currently reserved.

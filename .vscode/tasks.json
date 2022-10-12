@@ -38,6 +38,8 @@
                 "qemu-system-i386",
                 "-m",
                 "4G",
+                "-smp",
+                "2",
                 "-display",
                 "gtk,show-tabs=on",
                 "-kernel",
@@ -49,7 +51,7 @@
                 "-serial",
                 "chardev:serial_log",
                 "-append",
-                "init=/bin/init mos_tests",
+                "init=/bin/init mos_tests mos_tests_halt_on_success",
                 "-initrd",
                 "/home/moody/Projects/MOS/build/initrd.cpio"
             ],

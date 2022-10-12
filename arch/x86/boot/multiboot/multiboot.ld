@@ -76,7 +76,7 @@ SECTIONS
     {
         *(.bss);
         . = ALIGN(4K);
-        . += 16K;  /* ! stack */
+        . += 16M;  /* ! stack */
         __MOS_KERNEL_HIGHER_STACK_TOP = .;
     }
     __MOS_KERNEL_RW_END = .;
