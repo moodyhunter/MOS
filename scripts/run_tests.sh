@@ -5,6 +5,7 @@ DIR=$(pwd)
 
 qemu-system-i386 -kernel $DIR/mos_multiboot.bin \
     -m 4G \
+    -smp 2 \
     -monitor "unix:/tmp/monitor.sock,server,nowait" \
     -nographic \
     -chardev stdio,id=char0,logfile=test-failure.log,signal=off \

@@ -9,6 +9,7 @@
 #include "mos/types.h"
 #include "mos/x86/acpi/acpi.h"
 #include "mos/x86/acpi/acpi_types.h"
+#include "mos/x86/cpu/cpu.h"
 #include "mos/x86/cpu/cpuid.h"
 #include "mos/x86/delays.h"
 #include "mos/x86/interrupt/apic.h"
@@ -57,6 +58,12 @@ void ap_begin_exec()
 
     per_cpu(x86_platform.cpu)->id = info.ebx.ebx.local_apic_id;
 
+    unsigned int x = apic_reg_read_offset_32(APIC_REG_LAPIC_ID);
+    if (x != info.ebx.ebx.local_apic_id)
+    {
+        mos_warn("smp: AP %u: LAPIC ID mismatch: %u != %u", info.ebx.ebx.local_apic_id, x, info.ebx.ebx.local_apic_id);
+    }
+
     while (1)
         __asm__ volatile("cli; hlt");
 }
@@ -68,7 +75,7 @@ void ap_begin_exec()
 void x86_cpu_start(int apic_id, uintptr_t stack_addr)
 {
     ap_state = AP_STATUS_INVALID;
-    ap_pgd_addr = (uintptr_t) x86_kpg_infra->pgdir - MOS_KERNEL_START_VADDR;
+    ap_pgd_addr = x86_get_cr3();
     ap_stack_addr = stack_addr;
 
     apic_interrupt_full(0, apic_id, APIC_DELIVER_MODE_INIT, APIC_DEST_MODE_PHYSICAL, true, true, APIC_SHORTHAND_NONE);
