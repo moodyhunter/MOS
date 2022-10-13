@@ -14,14 +14,12 @@ macro(mos_target_setup ISA_FAMILY ISA BITS)
     # Add debug info to nasm
     set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <FLAGS> -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} -gdwarf -o <OBJECT> <SOURCE>")
 
-    # For the C compiler, 'elf' should be in the OS field for target triplet to produce a bare metal binary.
-    # Although the `linux-gnu` targeted gcc 'does' work, it's highly unsuggested.
-    find_program(CC_PATH NAMES "${ISA}-elf-gcc" "${ISA}-linux-gnu-gcc" NO_CACHE)
+    find_program(CC_PATH NAMES "${ISA}-elf-gcc" NO_CACHE)
     if(NOT CC_PATH)
         message(FATAL_ERROR "TOOLCHAIN: Could not find a C compiler for ${ISA}")
     endif()
 
-    find_program(CXX_PATH NAMES "${ISA}-elf-g++" "${ISA}-linux-gnu-g++" NO_CACHE)
+    find_program(CXX_PATH NAMES "${ISA}-elf-g++" NO_CACHE)
     if(NOT CXX_PATH)
         message(FATAL_ERROR "TOOLCHAIN: Could not find a C++ compiler for ${ISA}")
     endif()
