@@ -48,7 +48,7 @@ jobs:
         id: get_bootable
         run: |
           export BOOTABLE=$(jq -r .${{matrix.target}} < ${{github.workspace}}/build/bootables.json)
-          echo "::set-output name=bootable::$BOOTABLE"
+          echo "BOOTABLE=$BOOTABLE" >> $GITHUB_ENV
 
       - name: Build
         run: |
@@ -62,7 +62,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: MOS-${{matrix.target}}-${{matrix.build_type}}
-          path: ${{steps.get_bootable.outputs.bootable}}
+          path: ${{env.BOOTABLE}}
 
       - name: Upload initrd
         if: matrix.run_tests == 'OFF'
@@ -76,7 +76,7 @@ jobs:
         id: run_tests
         run: |
           cd ${{github.workspace}}/build
-          cp ${{steps.get_bootable.outputs.bootable}} test-failure.bin
+          cp ${{env.BOOTABLE}} test-failure.bin
           cp initrd.cpio test-failure-initrd.cpio
           ${{github.workspace}}/scripts/run_tests.sh
 
