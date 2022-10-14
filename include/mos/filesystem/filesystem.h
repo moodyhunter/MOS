@@ -13,9 +13,9 @@ typedef struct _blockdev blockdev_t;
 
 typedef enum
 {
-    OPEN_READ = IO_READABLE,
-    OPEN_WRITE = IO_WRITABLE,
-    OPEN_SYMLINK_NO_FOLLOW = 1 << 2,
+    FILE_OPEN_READ = IO_READABLE,
+    FILE_OPEN_WRITE = IO_WRITABLE,
+    FILE_OPEN_SYMLINK_NO_FOLLOW = 1 << 2,
 } file_open_flags;
 
 typedef struct

@@ -45,7 +45,7 @@ void process_deinit(void)
     kfree(process_table);
 }
 
-process_t *create_process(process_id_t parent_pid, uid_t euid, thread_entry_t entry, void *arg)
+process_t *allocate_process(process_id_t parent_pid, uid_t euid, thread_entry_t entry, void *arg)
 {
     mos_debug("create_process(parent: %d, euid: %d, arg: %p)", parent_pid.process_id, euid.uid, arg);
     process_t *process = kmalloc(sizeof(process_t));

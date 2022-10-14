@@ -10,9 +10,9 @@ typedef enum
     ELF_BITS_32 = 1,
     ELF_BITS_64 = 2,
 #ifdef MOS_32BITS
-    ELF_BITS_DEFAULT = ELF_BITS_32,
+    ELF_BITS_MOS_DEFAULT = ELF_BITS_32,
 #else
-    ELF_BITS_DEFAULT = ELF_BITS_64,
+    ELF_BITS_MOS_DEFAULT = ELF_BITS_64,
 #endif
 } elf_bits;
 
@@ -22,9 +22,9 @@ typedef enum
     ELF_ENDIANNESS_LSB = 1,
     ELF_ENDIANNESS_MSB = 2,
 #ifdef MOS_LITTLE_ENDIAN
-    ELF_ENDIANNESS_DEFAULT = ELF_ENDIANNESS_LSB,
+    ELF_ENDIANNESS_MOS_DEFAULT = ELF_ENDIANNESS_LSB,
 #else
-    ELF_ENDIANNESS_DEFAULT = ELF_ENDIANNESS_MSB,
+    ELF_ENDIANNESS_MOS_DEFAULT = ELF_ENDIANNESS_MSB,
 #endif
 } elf_endianness;
 
@@ -62,13 +62,13 @@ static_assert(sizeof(elf_identity_t) == 16, "elf_identity_t has wrong size");
 
 typedef enum
 {
-    ELF_OBJECT_NONE = 0,
-    ELF_OBJECT_RELOCATABLE = 1,
-    ELF_OBJECT_EXECUTABLE = 2,
-    ELF_OBJECT_SHARED_OBJECT = 3,
-    ELF_OBJECT_CORE = 4,
-    ELF_OBJECT_PROCESSOR_SPECIFIC_LO = 0xff00,
-    ELF_OBJECT_PROCESSOR_SPECIFIC_HI = 0xffff,
+    ELF_OBJTYPE_NONE = 0,
+    ELF_OBJTYPE_RELOCATABLE = 1,
+    ELF_OBJTYPE_EXECUTABLE = 2,
+    ELF_OBJTYPE_SHARED_OBJECT = 3,
+    ELF_OBJTYPE_CORE = 4,
+    ELF_OBJTYPE_PROCESSOR_SPECIFIC_LO = 0xff00,
+    ELF_OBJTYPE_PROCESSOR_SPECIFIC_HI = 0xffff,
 } elf_object_type;
 
 typedef enum
@@ -91,8 +91,8 @@ typedef struct
     u32 version;
 
     uintptr_t entry_point;
-    uintptr_t program_header_offset;
-    uintptr_t section_header_offset;
+    size_t ph_offset;
+    size_t sh_offset;
 
     u32 flags;
     u16 header_size;
@@ -100,14 +100,14 @@ typedef struct
     struct
     {
         u16 entry_size, count;
-    } __packed program_header;
+    } __packed ph;
 
     struct
     {
         u16 entry_size, count;
-    } __packed section_header;
+    } __packed sh;
 
-    u16 sh_string_table_index;
+    u16 sh_strtab_index;
 } __packed elf_header_t;
 
 typedef enum
@@ -127,6 +127,13 @@ typedef enum
     ELF_PH_T_PROCESSOR_HI = 0x7fffffff, // reserved
 } elf_program_header_type;
 
+typedef enum
+{
+    ELF_PH_F_X = 1 << 0, // Executable
+    ELF_PH_F_W = 1 << 1, // Writable
+    ELF_PH_F_R = 1 << 2, // Readable
+} elf_program_header_flags;
+
 typedef struct
 {
     elf_program_header_type header_type;
@@ -142,7 +149,7 @@ typedef struct
     u32 p_flags; // Segment independent flags (32-bit only)
 #endif
     uintptr_t required_alignment;
-} __packed elf_program_header_t;
+} __packed elf_program_hdr_t;
 
 typedef enum
 {
@@ -197,7 +204,7 @@ typedef struct
     u32 sh_info;
     uintptr_t sh_addralign;
     size_t sh_entsize;
-} __packed elf_section_header_t;
+} __packed elf_section_hdr_t;
 
 typedef enum
 {
@@ -210,4 +217,4 @@ typedef enum
     ELF_VERIFY_INVALID_OSABI,
 } elf_verify_result;
 
-elf_verify_result mos_elf_verify_header(elf_header_t *header);
+elf_verify_result elf_verify_header(elf_header_t *header);

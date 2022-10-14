@@ -51,7 +51,7 @@
                 "-serial",
                 "chardev:serial_log",
                 "-append",
-                "init=/bin/init mos_tests mos_tests_halt_on_success",
+                "init=/bin/init",
                 "-initrd",
                 "/home/moody/Projects/MOS/build/initrd.cpio"
             ],

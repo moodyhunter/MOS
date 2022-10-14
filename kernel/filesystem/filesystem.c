@@ -120,7 +120,7 @@ bool vfs_path_open(fsnode_t *path, file_open_flags flags, file_t *file)
 
     if (stat.type == FILE_TYPE_SYMLINK)
     {
-        if (flags & OPEN_SYMLINK_NO_FOLLOW)
+        if (flags & FILE_OPEN_SYMLINK_NO_FOLLOW)
             goto _continue;
 
         // TODO: follow symlinks
@@ -135,7 +135,7 @@ _continue:;
     }
 
     tree_trace_to_root(tree_node(path), path_treeop_increment_refcount);
-    io_init(&file->io, (flags & OPEN_READ) | (flags & OPEN_WRITE), stat.size, &fs_io_ops);
+    io_init(&file->io, (flags & FILE_OPEN_READ) | (flags & FILE_OPEN_WRITE), stat.size, &fs_io_ops);
     io_ref(&file->io);
     return true;
 }

@@ -10,11 +10,11 @@ typedef void (*thread_entry_t)(void *arg);
 
 typedef enum
 {
-    TASK_STATUS_READY,
-    TASK_STATUS_RUNNING,
-    TASK_STATUS_WAITING,
-    TASK_STATUS_DYING,
-    TASK_STATUS_DEAD,
+    THREAD_STATUS_READY,
+    THREAD_STATUS_RUNNING,
+    THREAD_STATUS_WAITING,
+    THREAD_STATUS_DYING,
+    THREAD_STATUS_DEAD,
 } thread_status_t;
 
 typedef enum

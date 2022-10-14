@@ -50,8 +50,8 @@ typedef struct
     void (*handler)(u32 irq);
 } x86_irq_handler_t;
 
-static void isr_handle_irq(x86_stack_frame *frame);
-static void isr_handle_exception(x86_stack_frame *frame);
+static void x86_handle_irq(x86_stack_frame *frame);
+static void x86_handle_exception(x86_stack_frame *frame);
 list_node_t irq_handlers[IRQ_MAX_COUNT];
 
 void x86_irq_handler_init(void)
@@ -80,27 +80,23 @@ bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
 
 void x86_handle_interrupt(u32 esp)
 {
-    x86_stack_frame *stack = (x86_stack_frame *) esp;
+    x86_stack_frame *frame = (x86_stack_frame *) esp;
 
-    if (stack->interrupt_number < IRQ_BASE)
+    if (frame->interrupt_number < IRQ_BASE)
+        x86_handle_exception(frame);
+    else if (frame->interrupt_number < MOS_SYSCALL_INTR)
+        x86_handle_irq(frame);
+    else if (frame->interrupt_number == MOS_SYSCALL_INTR)
+#pragma message "TODO: Implement syscall handling for other arguments"
     {
-        isr_handle_exception(stack);
-    }
-    else if (stack->interrupt_number < MOS_SYSCALL_INTR)
-    {
-        isr_handle_irq(stack);
-    }
-    else if (stack->interrupt_number == MOS_SYSCALL_INTR)
-    {
-        dispatch_ksyscall(stack->eax, stack->ebx, stack->ecx, stack->edx, 0, 0, 0, 0, 0);
+        int result = dispatch_ksyscall(frame->eax, frame->ebx, frame->ecx, frame->edx, 0, 0, 0, 0, 0);
+        frame->eax = result;
     }
     else
-    {
-        pr_warn("Unknown interrupt.");
-    }
+        pr_warn("Unknown interrupt number: %d", frame->interrupt_number);
 }
 
-static void isr_handle_exception(x86_stack_frame *stack)
+static void x86_handle_exception(x86_stack_frame *stack)
 {
     x86_disable_interrupts();
     MOS_ASSERT(stack->interrupt_number < EXCEPTION_COUNT);
@@ -208,7 +204,7 @@ static void isr_handle_exception(x86_stack_frame *stack)
     );
 }
 
-static void isr_handle_irq(x86_stack_frame *frame)
+static void x86_handle_irq(x86_stack_frame *frame)
 {
     int irq = frame->interrupt_number - IRQ_BASE;
 

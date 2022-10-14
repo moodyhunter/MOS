@@ -55,7 +55,7 @@ thread_t *create_thread(process_t *owner, thread_flags_t flags, thread_entry_t e
     thread_t *thread = kmalloc(sizeof(thread_t));
     thread->id = new_thread_id();
     thread->owner = owner;
-    thread->status = TASK_STATUS_READY;
+    thread->status = THREAD_STATUS_READY;
     thread->flags = flags;
 
     // allcate stack for the thread

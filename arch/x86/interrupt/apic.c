@@ -43,7 +43,7 @@ void apic_set_base_addr(uintptr_t base_addr)
 u32 apic_reg_read_offset_32(u32 offset)
 {
     mos_debug("apic_reg_read_offset_32: offset: %x", offset);
-#warning "TODO: this didn't work"
+#pragma message "TODO: this didn't work"
     return *(volatile u32 *) (lapic_paddr_base + offset);
 }
 

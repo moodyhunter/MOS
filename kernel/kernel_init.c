@@ -29,11 +29,11 @@ bool mount_initrd(void)
     if (!mount)
         return false;
 
-    pr_info("mounted initrd to rootfs");
+    pr_info("mounted initrd as rootfs");
     return true;
 }
 
-const char *get_init_path(void)
+const char *cmdline_get_init_path(void)
 {
     cmdline_arg_t *init_arg = mos_cmdline_get_arg("init");
     if (init_arg && init_arg->params_count > 0)
@@ -70,6 +70,89 @@ void dump_cmdline(void)
     pr_emph("%-25s'%s'", "Kernel builtin cmdline:", MOS_KERNEL_BUILTIN_CMDLINE);
 }
 
+elf_header_t *open_elf_executable(const char *path)
+{
+    file_t *f = vfs_open(path, FILE_OPEN_READ);
+    if (!f)
+    {
+        pr_emerg("failed to open '%s'", path);
+        goto bail_out;
+    }
+
+    size_t npage_required = f->io.size / MOS_PAGE_SIZE + 1;
+    char *header_buf = kpage_alloc(npage_required, PGALLOC_NONE);
+
+    size_t size = io_read(&f->io, header_buf, f->io.size);
+    MOS_ASSERT_X(size == f->io.size, "failed to read init");
+
+    elf_header_t *elf_header = (elf_header_t *) header_buf;
+    if (elf_header->object_type != ELF_OBJTYPE_EXECUTABLE)
+    {
+        pr_emerg("'%s' is not an executable", path);
+        goto bail_out;
+    }
+
+    elf_verify_result verify_result = elf_verify_header(elf_header);
+    if (verify_result != ELF_VERIFY_OK)
+    {
+        pr_emerg("failed to verify ELF header for '%s', result: %d", path, (int) verify_result);
+        goto bail_out;
+    }
+
+    return elf_header;
+
+bail_out:
+    if (f)
+        io_close(&f->io);
+    return NULL;
+}
+
+process_t *create_elf_process(elf_header_t *elf)
+{
+    const char *buf = (const char *) elf;
+
+    process_t *proc = allocate_process((process_id_t){ 1 }, (uid_t){ 0 }, (thread_entry_t) elf->entry_point, NULL);
+
+    for (int i = 0; i < elf->ph.count; i++)
+    {
+        elf_program_hdr_t *ph = (elf_program_hdr_t *) (buf + elf->ph_offset + i * elf->ph.entry_size);
+        pr_info("program header %d: %c%c%c%s at " PTR_FMT, i,
+                (elf_program_header_flags) ph->p_flags & ELF_PH_F_R ? 'r' : '-', //
+                (elf_program_header_flags) ph->p_flags & ELF_PH_F_W ? 'w' : '-', //
+                (elf_program_header_flags) ph->p_flags & ELF_PH_F_X ? 'x' : '-', //
+                ph->header_type == ELF_PH_T_LOAD ? " (load)" : "",               //
+                ph->vaddr                                                        //
+        );
+
+        if (!(ph->header_type & ELF_PH_T_LOAD))
+            continue;
+
+        vm_flags map_flags = (                            //
+            (ph->p_flags & ELF_PH_F_R ? VM_READ : 0) |    //
+            (ph->p_flags & ELF_PH_F_W ? VM_WRITE : 0) |   //
+            (ph->p_flags & ELF_PH_F_X ? VM_EXECUTE : 0) | //
+            VM_USERMODE                                   //
+        );
+
+        mos_platform->mm_map_kvaddr(                              //
+            proc->pagetable,                                      //
+            ALIGN_DOWN_TO_PAGE(ph->vaddr),                        //
+            (uintptr_t) buf + ph->data_offset,                    //
+            ALIGN_UP_TO_PAGE(ph->segsize_in_mem) / MOS_PAGE_SIZE, //
+            map_flags                                             //
+        );
+    }
+
+    const char *const strtab = buf + ((elf_section_hdr_t *) (buf + elf->sh_offset + elf->sh_strtab_index * elf->sh.entry_size))->sh_offset;
+    for (int i = 0; i < elf->sh.count; i++)
+    {
+        elf_section_hdr_t *sh = (elf_section_hdr_t *) (buf + elf->sh_offset + i * elf->sh.entry_size);
+        pr_info2("section %2d: %s", i, strtab + sh->name_index);
+    }
+
+    return proc;
+}
+
 void mos_start_kernel(const char *cmdline)
 {
     mos_cmdline = mos_cmdline_create(cmdline);
@@ -90,58 +173,19 @@ void mos_start_kernel(const char *cmdline)
     if (unlikely(!mount_initrd()))
         mos_panic("failed to mount initrd");
 
-    const char *init_path = get_init_path();
-    file_t *init_file = vfs_open(init_path, OPEN_READ);
-    if (!init_file)
+    const char *init_path = cmdline_get_init_path();
+
+    elf_header_t *init_header = open_elf_executable(init_path);
+    if (!init_header)
         mos_panic("failed to open init");
-
-    size_t npage_required = init_file->io.size / MOS_PAGE_SIZE + 1;
-    char *initrd_data = kpage_alloc(npage_required, PGALLOC_NONE);
-    size_t r = io_read(&init_file->io, initrd_data, init_file->io.size);
-    MOS_ASSERT_X(r == init_file->io.size, "failed to read init");
-
-    elf_header_t *header = (elf_header_t *) initrd_data;
-    elf_verify_result verify_result = mos_elf_verify_header(header);
-    if (verify_result != ELF_VERIFY_OK)
-    {
-        switch (verify_result)
-        {
-            case ELF_VERIFY_INVALID_ENDIAN: pr_emerg("Invalid ELF endianness"); break;
-            case ELF_VERIFY_INVALID_MAGIC: pr_emerg("Invalid ELF magic"); break;
-            case ELF_VERIFY_INVALID_MAGIC_ELF: pr_emerg("Invalid ELF magic: 'ELF'"); break;
-            case ELF_VERIFY_INVALID_VERSION: pr_emerg("Invalid ELF version"); break;
-            case ELF_VERIFY_INVALID_BITS: pr_emerg("Invalid ELF bits"); break;
-            case ELF_VERIFY_INVALID_OSABI: pr_emerg("Invalid ELF OS ABI"); break;
-            default: MOS_UNREACHABLE();
-        }
-
-        mos_panic("failed to verify 'init' ELF header for '%s'", init_path);
-    }
-
-    if (header->object_type != ELF_OBJECT_EXECUTABLE)
-        mos_panic("'init' is not an executable");
-
-    elf_program_header_t *init_ph = (elf_program_header_t *) (initrd_data + header->program_header_offset);
-    elf_section_header_t *init_sh = (elf_section_header_t *) (initrd_data + header->section_header_offset);
-
-    int i_program = 1, i_section = 1;
-    while (init_ph->header_type != ELF_PH_T_LOAD && i_program < header->program_header.count)
-        init_ph++, i_program++;
-    while (init_sh->header_type != ELF_SH_T_PROGBITS && i_section < header->section_header.count)
-        init_sh++, i_section++;
-
-    MOS_ASSERT_X(init_sh->header_type == ELF_SH_T_PROGBITS, "no code section found");
-    MOS_ASSERT_X(init_ph->header_type == ELF_PH_T_LOAD, "no loadable segment found");
+    process_t *init = create_elf_process(init_header);
+    MOS_UNUSED(init);
 
     // the stack memory to be used if we enter the kernelmode by a trap / interrupt
     // TODO: Per-process stack
     extern tss32_t tss_entry;
-    tss_entry.esp0 = (u32) kpage_alloc(1, PGALLOC_NONE) + MOS_PAGE_SIZE; // stack grows downwards from the top of the page
+    tss_entry.esp0 = (u32) kpage_alloc(1, PGALLOC_NONE) + 1 * MOS_PAGE_SIZE; // stack grows downwards from the top of the page
     pr_emph("kernel stack at " PTR_FMT, (uintptr_t) tss_entry.esp0);
-
-    process_t *pinit = create_process((process_id_t){ 1 }, (uid_t){ 0 }, (thread_entry_t) header->entry_point, (void *) 114514);
-
-    mos_platform->mm_map_kvaddr(pinit->pagetable, init_ph->vaddr, (uintptr_t) header + init_ph->data_offset, 1, VM_USERMODE);
 
     scheduler();
     MOS_UNREACHABLE();
