@@ -2,14 +2,13 @@
 
 #pragma once
 
-#include "mos/io/io.h"
 #include "mos/tasks/task_type.h"
 
 typedef enum
 {
-    STDIO_TYPE_STDIN = 0,
-    STDIO_TYPE_STDOUT = 1,
-    STDIO_TYPE_STDERR = 2,
+    STDIO_TYPE_STDIN,
+    STDIO_TYPE_STDOUT,
+    STDIO_TYPE_STDERR,
 } stdio_type;
 
 typedef struct

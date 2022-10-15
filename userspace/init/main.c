@@ -13,7 +13,7 @@ u64 __stack_chk_guard = 0;
 
 void noreturn __stack_chk_fail(void)
 {
-    _ksyscall_panic();
+    invoke_ksyscall_panic();
     while (1)
         ;
 }
@@ -33,7 +33,12 @@ int strlen(const char *str)
 
 void print(const char *str)
 {
-    _ksyscall_io_write(stdout, str, strlen(str), 0);
+    invoke_ksyscall_io_write(stdout, str, strlen(str), 0);
+}
+
+void print_err(const char *str)
+{
+    invoke_ksyscall_io_write(stderr, str, strlen(str), 0);
 }
 
 volatile char buf[256];
@@ -43,11 +48,18 @@ const char *x = "Hello, world! MOS userspace 'init': " __FILE__ "\n";
 void _start(void)
 {
     print(x);
-    int fd = _ksyscall_file_open("/msg.txt", FILE_OPEN_READ);
-    char buf[512] = { 0 };
-    _ksyscall_io_read(fd, buf, 512, 0);
-    print(buf);
-    _ksyscall_io_close(fd);
+    int fd = invoke_ksyscall_file_open("/assets/msg.txt", FILE_OPEN_READ);
+    if (fd < 0)
+    {
+        print_err("Failed to open /assets/msg.txt");
+    }
+    else
+    {
+        char buf[512] = { 0 };
+        invoke_ksyscall_io_read(fd, buf, 512, 0);
+        print(buf);
+        invoke_ksyscall_io_close(fd);
+    }
     while (1)
-        _ksyscall_yield_cpu();
+        invoke_ksyscall_yield_cpu();
 }

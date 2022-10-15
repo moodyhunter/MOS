@@ -53,6 +53,10 @@ static thread_id_t new_thread_id()
 thread_t *create_thread(process_t *owner, thread_flags_t flags, thread_entry_t entry, void *arg)
 {
     thread_t *thread = kmalloc(sizeof(thread_t));
+    thread->magic[0] = 'T';
+    thread->magic[1] = 'H';
+    thread->magic[2] = 'R';
+    thread->magic[3] = 'D';
     thread->id = new_thread_id();
     thread->owner = owner;
     thread->status = THREAD_STATUS_READY;
@@ -66,6 +70,7 @@ thread_t *create_thread(process_t *owner, thread_flags_t flags, thread_entry_t e
     if (flags & THREAD_FLAG_USERMODE)
         stack_flags |= VM_USERMODE;
 
+    // thread stack
     mos_platform->mm_map_kvaddr(owner->pagetable, (uintptr_t) stack_page, (uintptr_t) stack_page, thread_stack_npages, stack_flags);
     mos_platform->context_setup(thread, entry, arg);
 

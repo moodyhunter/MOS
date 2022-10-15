@@ -40,9 +40,9 @@ const char *cmdline_get_init_path(void)
         if (init_param->param_type == CMDLINE_PARAM_TYPE_STRING)
             return init_param->val.string;
 
-        pr_warn("init path is not a string, using default '/init'");
+        pr_warn("init path is not a string, using default '/programs/init'");
     }
-    return "/init";
+    return "/programs/init";
 }
 
 void dump_cmdline(void)
@@ -79,8 +79,10 @@ void mos_start_kernel(const char *cmdline)
     mos_warn("V2Ray 4.45.2 started");
 #endif
 
+#if BUILD_TESTING
     if (mos_cmdline_get_arg("mos_tests"))
         mos_test_engine_run_tests();
+#endif
 
     process_init();
     thread_init();
@@ -92,7 +94,7 @@ void mos_start_kernel(const char *cmdline)
 
     uid_t root_uid = { .uid = 0 };
     process_t *init = create_elf_process(init_path, root_uid);
-    MOS_UNUSED(init);
+    pr_info("created init process: %s", init->name);
 
     // the stack memory to be used if we enter the kernelmode by a trap / interrupt
     // TODO: Per-process stack

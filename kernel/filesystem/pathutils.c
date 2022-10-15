@@ -152,8 +152,8 @@ const char *path_to_string_relative(const fsnode_t *root, const fsnode_t *leaf)
         return duplicate_string_n(root->name, strlen(root->name));
 
     const fsnode_t *current = leaf;
-    char *pool = kmalloc(PATH_MAX_LENGTH);
-    char *begin = pool + PATH_MAX_LENGTH;
+    char *pool = kmalloc(MOS_PATH_MAX_LENGTH);
+    char *begin = pool + MOS_PATH_MAX_LENGTH;
 
     do
     {
@@ -166,7 +166,7 @@ const char *path_to_string_relative(const fsnode_t *root, const fsnode_t *leaf)
 
     begin++; // remove leading '/'
 
-    const char *result = duplicate_string_n(begin, pool + PATH_MAX_LENGTH - begin);
+    const char *result = duplicate_string_n(begin, pool + MOS_PATH_MAX_LENGTH - begin);
     kfree(pool);
     return result;
 }

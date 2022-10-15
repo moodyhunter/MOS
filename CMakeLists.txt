@@ -49,6 +49,7 @@ mos_add_kconfig_define(MOS_PRINTK_HAS_FILENAME)
 mos_add_kconfig_define(MOS_MAX_CPU_COUNT)
 mos_add_kconfig_define(MOS_PROCESS_MAX_OPEN_FILES)
 mos_add_kconfig_define(MOS_MEME)
+mos_add_kconfig_define(MOS_PATH_MAX_LENGTH)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
@@ -114,8 +115,13 @@ include(${MOS_ARCH_CONFIG})
 
 add_subdirectory(userspace)
 
+if(NOT DEFINED BUILD_TESTING)
+    set(BUILD_TESTING OFF)
+endif()
+
 mos_add_summary_section(TESTS "MOS Kernel Library Tests")
 mos_add_summary_item(TESTS "All Tests" "${BUILD_TESTING}")
+mos_add_kconfig_define(BUILD_TESTING)
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()

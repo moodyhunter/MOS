@@ -4,7 +4,7 @@
 
 #include "mos/printk.h"
 
-void io_init(io_t *io, io_flags_t flags, size_t size, io_op_t *ops)
+void io_init(io_t *io, io_flags_t flags, size_t size, const io_op_t *ops)
 {
     io->flags = flags;
     io->size = size;

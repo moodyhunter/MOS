@@ -65,7 +65,7 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
         goto bail_out;
     }
 
-    process_t *proc = allocate_process(NULL, effective_uid, (thread_entry_t) elf->entry_point, NULL);
+    process_t *proc = allocate_process(NULL, effective_uid, f->fsnode->name, (thread_entry_t) elf->entry_point, NULL);
 
     for (int i = 0; i < elf->ph.count; i++)
     {

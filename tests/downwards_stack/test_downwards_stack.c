@@ -8,12 +8,12 @@ MOS_TEST_CASE(stack_init_deinit)
 {
     downwards_stack_t stack;
     stack_init(&stack, (void *) 12345, 6789);
-    MOS_TEST_CHECK(stack.base, 12345 + 6789);
+    MOS_TEST_CHECK(stack.top, 12345 + 6789);
     MOS_TEST_CHECK(stack.head, 12345 + 6789);
     MOS_TEST_CHECK(stack.capacity, 6789);
     stack_deinit(&stack);
 
-    MOS_TEST_CHECK(stack.base, (uintptr_t) NULL);
+    MOS_TEST_CHECK(stack.top, (uintptr_t) NULL);
     MOS_TEST_CHECK(stack.head, (uintptr_t) NULL);
     MOS_TEST_CHECK(stack.capacity, 0);
 }
@@ -27,24 +27,24 @@ MOS_TEST_CASE(stack_push_pop_stack)
     uintptr_t stack_bottom = (uintptr_t) addr + 4096;
     MOS_TEST_CHECK(stack.capacity, 4096);
     MOS_TEST_CHECK(stack.head, stack_bottom);
-    MOS_TEST_CHECK(stack.base, stack_bottom);
+    MOS_TEST_CHECK(stack.top, stack_bottom);
 
     int pushed_1[10] = { 12345, 54321, 67890, 98765, 43210, 56789, 1234, 54321, 67890, 98765 };
 
     stack_push(&stack, pushed_1, sizeof(pushed_1));
-    MOS_TEST_CHECK(stack.base, stack_bottom);
+    MOS_TEST_CHECK(stack.top, stack_bottom);
     MOS_TEST_CHECK(stack.head, stack_bottom - sizeof(pushed_1));
     MOS_TEST_CHECK(stack.capacity, 4096);
 
     int pushed_2[10] = { 4444, 5555, 6666, 7777, 8888, 9999, 10101, 11011, 12012, 13013 };
     stack_push(&stack, pushed_2, sizeof(pushed_2));
-    MOS_TEST_CHECK(stack.base, stack_bottom);
+    MOS_TEST_CHECK(stack.top, stack_bottom);
     MOS_TEST_CHECK(stack.head, stack_bottom - sizeof(pushed_1) - sizeof(pushed_2));
     MOS_TEST_CHECK(stack.capacity, 4096);
 
     int tmp[10] = { 0 };
     stack_pop(&stack, sizeof(tmp), tmp);
-    MOS_TEST_CHECK(stack.base, stack_bottom);
+    MOS_TEST_CHECK(stack.top, stack_bottom);
     MOS_TEST_CHECK(stack.head, stack_bottom - sizeof(pushed_1));
     MOS_TEST_CHECK(stack.capacity, 4096);
     MOS_TEST_CHECK(tmp[0], pushed_2[0]);
@@ -59,7 +59,7 @@ MOS_TEST_CASE(stack_push_pop_stack)
     MOS_TEST_CHECK(tmp[9], pushed_2[9]);
 
     stack_pop(&stack, sizeof(tmp), tmp);
-    MOS_TEST_CHECK(stack.base, stack_bottom);
+    MOS_TEST_CHECK(stack.top, stack_bottom);
     MOS_TEST_CHECK(stack.head, stack_bottom);
     MOS_TEST_CHECK(stack.capacity, 4096);
     MOS_TEST_CHECK(tmp[0], pushed_1[0]);

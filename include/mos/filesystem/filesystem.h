@@ -88,7 +88,6 @@ typedef struct _file
 
 #define PATH_SEPARATOR        '/'
 #define PATH_SEPARATOR_STRING "/"
-#define PATH_MAX_LENGTH       256
 
 #define get_fsdata(file, type) ((type *) file->fsdata)
 

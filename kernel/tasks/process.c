@@ -46,9 +46,8 @@ void process_deinit(void)
     kfree(process_table);
 }
 
-process_t *allocate_process(process_t *parent, uid_t euid, thread_entry_t entry, void *arg)
+process_t *allocate_process(process_t *parent, uid_t euid, const char *name, thread_entry_t entry, void *arg)
 {
-    mos_debug("create_process(parent: %d, euid: %d, arg: %p)", (parent ? parent->id.process_id : 0), euid.uid, arg);
     process_t *proc = kmalloc(sizeof(process_t));
     memzero(proc, sizeof(process_t));
 
@@ -58,9 +57,30 @@ process_t *allocate_process(process_t *parent, uid_t euid, thread_entry_t entry,
     proc->magic[3] = 'C';
 
     proc->id = new_process_id();
-    proc->effective_uid = euid;
-    proc->parent_pid = (parent ? parent->id : proc->id);
 
+    if (proc->id.process_id == 1)
+    {
+        proc->parent_pid = proc->id;
+    }
+    else
+    {
+        if (!parent)
+        {
+            pr_emerg("process %d has no parent", proc->id.process_id);
+            kfree(proc);
+            return NULL;
+        }
+        proc->parent_pid = parent->id;
+    }
+
+    proc->name = "<unknown>";
+    if (name)
+    {
+        proc->name = kmalloc(strlen(name) + 1);
+        strcpy((char *) proc->name, name);
+    }
+
+    proc->effective_uid = euid;
     proc->pagetable = mos_platform->mm_create_pagetable();
 
     process_stdio_setup(proc);

@@ -26,6 +26,7 @@ typedef enum
 typedef struct
 {
     char magic[4];
+    const char *name;
     process_id_t id;
     process_id_t parent_pid;
     uid_t effective_uid;
@@ -37,6 +38,7 @@ typedef struct
 
 typedef struct _thread
 {
+    char magic[4];
     thread_id_t id;
     process_t *owner;
     thread_status_t status;
