@@ -14,6 +14,9 @@ target_include_directories(mos_userspace_lib
 # build userspace programs after the kernel
 add_dependencies(mos_userspace_lib mos::elf_kernel)
 
+# create a gdbinit file for debugging
+write_file(${CMAKE_BINARY_DIR}/gdbinit "# GDB init file for MOS")
+
 macro(add_userspace_program NAME)
     set(OPTIONS "")
     set(ONE_VALUE_ARGS "INSTALL_PREFIX")
@@ -27,6 +30,8 @@ macro(add_userspace_program NAME)
     set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${ARG_INSTALL_PREFIX}")
     target_link_libraries(${NAME} PUBLIC mos::userspace)
     mos_add_summary_item(USERSPACE ${NAME} ${ARG_INSTALL_PREFIX}/${NAME})
+    write_file(${CMAKE_BINARY_DIR}/gdbinit "" APPEND)
+    write_file(${CMAKE_BINARY_DIR}/gdbinit "add-symbol-file ${CMAKE_BINARY_DIR}/${ARG_INSTALL_PREFIX}/${NAME}" APPEND)
 endmacro()
 
 add_userspace_program(init SOURCES init/main.c INSTALL_PREFIX /initrd/bin)

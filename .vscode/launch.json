@@ -22,6 +22,11 @@
                     "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
                 },
+                {
+                    // load gdbinit
+                    "description": "Load gdbinit",
+                    "text": "source ${workspaceFolder}/build/gdbinit",
+                },
             ],
             "sourceFileMap": {
                 "${workspaceFolder}": {

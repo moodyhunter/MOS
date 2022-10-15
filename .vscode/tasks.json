@@ -53,7 +53,7 @@
                 "-append",
                 "init=/bin/init",
                 "-initrd",
-                "/home/moody/Projects/MOS/build/initrd.cpio"
+                "${workspaceFolder}/build/initrd.cpio"
             ],
             "problemMatcher": [ ],
             "group": "none",
