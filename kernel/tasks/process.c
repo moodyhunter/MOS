@@ -4,6 +4,7 @@
 
 #include "lib/string.h"
 #include "lib/structures/hashmap.h"
+#include "mos/io/io.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
@@ -49,7 +50,12 @@ process_t *allocate_process(process_id_t parent_pid, uid_t euid, thread_entry_t 
 {
     mos_debug("create_process(parent: %d, euid: %d, arg: %p)", parent_pid.process_id, euid.uid, arg);
     process_t *process = kmalloc(sizeof(process_t));
-    memset(process, 0, sizeof(process_t));
+    memzero(process, sizeof(process_t));
+
+    process->magic[0] = 'P';
+    process->magic[1] = 'R';
+    process->magic[2] = 'O';
+    process->magic[3] = 'C';
 
     process->id = new_process_id();
     process->effective_uid = euid;
@@ -72,4 +78,28 @@ process_t *get_process(process_id_t pid)
     if (p == NULL)
         mos_warn("process %d not found", pid.process_id);
     return p;
+}
+
+fd_t process_add_fd(process_t *process, io_t *file)
+{
+    MOS_ASSERT(process_is_valid(process));
+    int fd = process->files_count++;
+    if (fd >= MOS_PROCESS_MAX_OPEN_FILES)
+    {
+        mos_warn("process %d has too many open files", process->id.process_id);
+        return -1;
+    }
+
+    process->files[fd] = file;
+    return fd;
+}
+
+bool process_remove_fd(process_t *process, fd_t fd)
+{
+    MOS_ASSERT(process_is_valid(process));
+    if (fd < 0 || fd >= process->files_count)
+        return false;
+    io_close(process->files[fd]);
+    process->files[fd] = NULL;
+    return true;
 }

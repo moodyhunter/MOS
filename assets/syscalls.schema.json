@@ -13,7 +13,7 @@
                 "type": "object",
                 "properties": {
                     "number": { "type": "integer", "description": "The number of the syscall" },
-                    "return": { "type": "string", "description": "The return type of the syscall" },
+                    "return": { "type": [ "string", "null" ], "description": "The return type of the syscall" },
                     "name": { "type": "string", "description": "The name of the syscall" },
                     "arguments": {
                         "type": "array",

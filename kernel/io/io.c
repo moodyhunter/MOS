@@ -62,17 +62,19 @@ void io_close(io_t *io)
 {
     if (unlikely(io->closed))
     {
-        mos_warn("io_close: %p is already closed\n", (void *) io);
+        mos_warn("io_close: %p is already closed", (void *) io);
         return;
     }
+
     if (unlikely(!io->ops->close))
     {
         mos_warn("io_close: no close function");
         return;
     }
+
     io->refcount.atomic--;
     if (io->refcount.atomic != 0)
-        mos_warn("io_close: %p still has %llu references\n", (void *) io, io->refcount.atomic);
+        mos_warn("io_close: %p still has %llu references", (void *) io, io->refcount.atomic);
 
     io->closed = true;
     io->ops->close(io);

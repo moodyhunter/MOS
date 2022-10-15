@@ -91,6 +91,26 @@ void *memset(void *s, int c, size_t n)
     return s;
 }
 
+void memzero(void *s, size_t n)
+{
+    typedef u64 largeint_t;
+    largeint_t *lsrc = (largeint_t *) s;
+
+    while (n >= sizeof(largeint_t))
+    {
+        *lsrc++ = 0;
+        n -= sizeof(largeint_t);
+    }
+
+    char *csrc = (char *) lsrc;
+
+    while (n > 0)
+    {
+        *csrc++ = 0;
+        n--;
+    }
+}
+
 void strcpy(char *dest, const char *src)
 {
     while (*src)

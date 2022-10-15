@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/tasks/task_type.h"
 #include "mos/types.h"
 
 typedef enum
@@ -218,3 +219,4 @@ typedef enum
 } elf_verify_result;
 
 elf_verify_result elf_verify_header(elf_header_t *header);
+process_t *create_elf_process(const char *path);

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/device/block.h"
 #include "mos/filesystem/filesystem.h"
 #include "mos/types.h"
 

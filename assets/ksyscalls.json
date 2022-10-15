@@ -9,7 +9,7 @@
         {
             "number": 0,
             "name": "panic",
-            "return": "u32",
+            "return": null,
             "arguments": [ ]
         },
         {
@@ -45,7 +45,7 @@
         {
             "number": 6,
             "name": "exit",
-            "return": "u32",
+            "return": null,
             "arguments": [ { "type": "u32", "arg": "exit_code" } ]
         },
         {

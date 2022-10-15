@@ -25,12 +25,13 @@ typedef enum
 
 typedef struct
 {
+    char magic[4];
     process_id_t id;
     process_id_t parent_pid;
     uid_t effective_uid;
     paging_handle_t pagetable;
-    io_t *file_table[NOS_MAX_OPEN_FILES];
-    size_t files_count;
+    io_t *files[MOS_PROCESS_MAX_OPEN_FILES];
+    ssize_t files_count;
     thread_id_t main_thread_id;
 } process_t;
 

@@ -5,6 +5,10 @@ mos_target_setup(x86 i686 32)
 
 cmake_minimum_required(VERSION 3.22)
 
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
+    message(FATAL_ERROR "In-source builds are not allowed. Please create a separate build directory and run CMake from there.")
+endif()
+
 project(MOS LANGUAGES CXX C ASM_NASM VERSION 0.1)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
@@ -34,8 +38,8 @@ if(NOT DEFINED MOS_MAX_CPU_COUNT)
     set(MOS_MAX_CPU_COUNT 16) # Also modify the linker script
 endif()
 
-if(NOT DEFINED NOS_MAX_OPEN_FILES)
-    set(NOS_MAX_OPEN_FILES 256)
+if(NOT DEFINED MOS_PROCESS_MAX_OPEN_FILES)
+    set(MOS_PROCESS_MAX_OPEN_FILES 256)
 endif()
 
 set(MOS_ARCH_CONFIG ${CMAKE_SOURCE_DIR}/arch/${MOS_TARGET_ARCH}/mos_platform.cmake)
@@ -65,7 +69,7 @@ mos_add_kconfig_define(MOS_MM_LIBALLOC_DEBUG)
 mos_add_kconfig_define(MOS_DEBUG)
 mos_add_kconfig_define(MOS_PRINTK_HAS_FILENAME)
 mos_add_kconfig_define(MOS_MAX_CPU_COUNT)
-mos_add_kconfig_define(NOS_MAX_OPEN_FILES)
+mos_add_kconfig_define(MOS_PROCESS_MAX_OPEN_FILES)
 mos_add_kconfig_define(MOS_MEME)
 
 include_directories(

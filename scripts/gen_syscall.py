@@ -6,11 +6,11 @@
 """
 
 
+import io
 import json
 import os
 from sys import argv
 
-GEN_TYPE_TYPEDEF = "gen-typedef"
 GEN_TYPE_DECL = "gen-decl"
 GEN_TYPE_DISPATCHER = "gen-dispatcher"
 GEN_TYPE_NUMBER_HEADER = "gen-number"
@@ -18,31 +18,44 @@ GEN_TYPE_USERMODE = "gen-usermode"
 
 MAX_SYSCALL_NARGS = 8
 
-outfile = None
-prefix = ""
+outfile: io.TextIOBase = None
+syscall_prefix = ""
+
+scope = 0
+
+
+def enter_scope():
+    global scope
+    scope += 1
+
+
+def leave_scope():
+    global scope
+    scope -= 1
 
 
 def gen(str):
+    for _ in range(scope):
+        outfile.write("    ")
     outfile.write(str + "\n")
 
 
 def main():
     global outfile
-    global prefix
+    global syscall_prefix
 
-    if len(argv) != 5 or argv[2] not in [GEN_TYPE_TYPEDEF, GEN_TYPE_DECL, GEN_TYPE_DISPATCHER, GEN_TYPE_NUMBER_HEADER, GEN_TYPE_USERMODE]:
+    if len(argv) != 5 or argv[2] not in [GEN_TYPE_DECL, GEN_TYPE_DISPATCHER, GEN_TYPE_NUMBER_HEADER, GEN_TYPE_USERMODE]:
         print("Usage:")
         print("  gen_syscall.py <prefix> COMMAND <syscall-json> <output-file>")
         print("")
         print("  COMMAND:")
-        print("    %s: generate typedefs" % GEN_TYPE_TYPEDEF)
         print("    %s: generate declarations" % GEN_TYPE_DECL)
         print("    %s: generate dispatcher" % GEN_TYPE_DISPATCHER)
         print("    %s: generate syscall number header" % GEN_TYPE_NUMBER_HEADER)
         print("    %s: generate usermode invoker" % GEN_TYPE_USERMODE)
         exit(1)
 
-    prefix = argv[1]
+    syscall_prefix = argv[1]
     gen_type = argv[2]
     input_json = argv[3]
     output = argv[4]
@@ -73,9 +86,7 @@ def main():
         exit(0)
 
     for e in j["syscalls"]:
-        if gen_type == GEN_TYPE_TYPEDEF:
-            gen_typedef(e)
-        elif gen_type == GEN_TYPE_DECL:
+        if gen_type == GEN_TYPE_DECL:
             gen_decl(e)
         elif gen_type == GEN_TYPE_NUMBER_HEADER:
             gen_number_header(e)
@@ -87,10 +98,10 @@ def main():
         gen("")
 
     if gen_type == GEN_TYPE_DECL:
-        gen("#define define_%s(name) %s_##name" % (prefix, prefix))
+        gen("#define define_%s(name) %s_##name" % (syscall_prefix, syscall_prefix))
 
 
-def get_syscall_argdecls(e):
+def syscall_args(e):
     s = []
     # fd_t fd, void *buffer, size_t size, size_t offset
     for a in e["arguments"]:
@@ -101,47 +112,68 @@ def get_syscall_argdecls(e):
     return ", ".join(s)
 
 
-def gen_typedef(e):
-    gen("// syscall%d #%d: %s" % (len(e["arguments"]), e["number"], e["name"]))
-    gen("typedef %s (*%s_%s_t)(%s)" % (prefix, e["return"], e["name"], get_syscall_argdecls(e)))
+def syscall_is_noreturn(e):
+    return e["return"] is None
+
+
+def syscall_return(e) -> str:
+    return "void" if syscall_is_noreturn(e) else e["return"]
+
+
+def syscall_has_return(e):
+    return (not syscall_is_noreturn(e)) and (syscall_return(e) != "void")
+
+
+def syscall_attr(e):
+    return "noreturn " if syscall_is_noreturn(e) else ""
+
+
+def syscall_name(e):
+    return "%s_%s" % (syscall_prefix, e["name"])
 
 
 def gen_decl(e):
-    gen("// %s%d #%d: %s" % (prefix, len(e["arguments"]), e["number"], e["name"]))
-    gen("%s %s_%s(%s);" % (e["return"], prefix, e["name"], get_syscall_argdecls(e)))
+    gen("%s%s %s(%s);" % (syscall_attr(e), syscall_return(e), syscall_name(e), syscall_args(e)))
 
 
 def gen_dispatcher(j):
-    gen("should_inline long dispatch_%s(const long number, %s)" % (prefix, ", ".join(["long arg%d" % (i + 1) for i in range(MAX_SYSCALL_NARGS)])))
+    gen("should_inline long dispatch_%s(const long number, %s)" % (syscall_prefix, ", ".join(["long arg%d" % (i + 1) for i in range(MAX_SYSCALL_NARGS)])))
     gen("{")
+    enter_scope()
     for i in range(MAX_SYSCALL_NARGS):
-        gen("    (void) arg%d;" % (i + 1))
+        gen("(void) arg%d;" % (i + 1))
     gen("")
-    gen("    long ret = 0;")
+    gen("long ret = 0;")
     for e in j["syscalls"]:
         nargs = len(e["arguments"])
-        gen("    extern %s %s_%s(%s);" % (e["return"], prefix, e["name"], get_syscall_argdecls(e)))
-        gen("    if (number == %d)" % e["number"])
-        if e["return"] == "void":
-            gen("        %s_%s(%s);" % (prefix, e["name"], ", ".join(["(%s) arg%d" % (e["arguments"][i]["type"], i + 1) for i in range(nargs)])))
-        else:
-            gen("        ret = (long) %s_%s(%s);" % (prefix, e["name"], ", ".join(["(%s) arg%d" % (e["arguments"][i]["type"], i + 1) for i in range(nargs)])))
+        syscall_arg_casted = ", ".join(["(%s) arg%d" % (e["arguments"][i]["type"], i + 1) for i in range(nargs)])
+
+        gen("extern %s%s %s(%s);" % (syscall_attr(e), syscall_return(e), syscall_name(e), syscall_args(e)))
+        gen("if (number == %d)" % e["number"])
+        enter_scope()
+        gen("%s%s(%s);" % ("ret = (long) " if syscall_has_return(e) else "", syscall_name(e), syscall_arg_casted))
+        leave_scope()
         gen("")
 
-    gen("    return ret;")
+    gen("return ret;")
+    leave_scope()
     gen("}")
 
 
 def gen_number_header(e):
-    gen("#define SYSCALL_%s %d" % (e["name"], e["number"]))
-    gen("#define SYSCALL_NAME_%d %s" % (e["number"], e["name"]))
+    gen("#define %s_SYSCALL_%s %d" % (syscall_prefix.capitalize(), e["name"], e["number"]))
+    gen("#define %s_SYSCALL_NAME_%d %s" % (syscall_prefix.capitalize(), e["number"], e["name"]))
 
 
 def gen_usermode_invoker(e):
-    nargs = len(e["arguments"])
-    gen("always_inline %s invoke_%s_%s(%s)" % (e["return"], prefix, e["name"], get_syscall_argdecls(e)))
+    syscall_nargs = len(e["arguments"])
+    syscall_conv_arg_to_long = ", ".join([str(e["number"])] + ["(long) %s" % arg["arg"] for arg in e["arguments"]])
+
+    gen("always_inline %s %s(%s)" % (syscall_return(e), "_" + syscall_name(e), syscall_args(e)))
     gen("{")
-    gen("    %splatform_syscall%d(%s);" % ("return " if e["return"] != "void" else "", nargs, ", ".join([str(e["number"])] + ["(long) %s" % arg["arg"] for arg in e["arguments"]])))
+    enter_scope()
+    gen("%splatform_syscall%d(%s);" % ("return " if syscall_has_return(e) else "", syscall_nargs, syscall_conv_arg_to_long))
+    leave_scope()
     gen("}")
 
 

@@ -6,11 +6,6 @@
 #include "mos/io/io.h"
 #include "mos/types.h"
 
-typedef struct _filesystem filesystem_t;
-typedef struct _fsnode fsnode_t;
-typedef struct _file_stat file_stat_t;
-typedef struct _blockdev blockdev_t;
-
 typedef enum
 {
     FILE_OPEN_READ = IO_READABLE,
@@ -65,7 +60,7 @@ always_inline void file_format_perm(file_permissions_t perms, char buf[10])
     buf[9] = '\0';
 }
 
-typedef struct _file_stat
+typedef struct
 {
     file_type_t type;
     file_permissions_t permissions;

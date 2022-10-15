@@ -62,7 +62,10 @@ static_assert(sizeof(byte_t) == 1, "byte_t is not 1 byte");
 #define newptrtype(name)    new_named_type(uintptr_t, ptr, name)
 
 typedef u32 id_t;
-typedef u32 fd_t;
+typedef s32 fd_t;
+
+typedef u32 size_t;
+typedef s32 ssize_t;
 
 newptrtype(paging_handle_t);
 

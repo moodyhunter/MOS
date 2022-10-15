@@ -5,6 +5,7 @@
 #include "lib/containers.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
+#include "mos/tasks/process.h"
 
 static size_t stdin_read(io_t *io, void *buf, size_t count)
 {
@@ -54,8 +55,7 @@ void process_stdio_setup(process_t *process)
     io_init(&stdout->io, IO_WRITABLE, -1, &task_stdout_op);
     io_init(&stderr->io, IO_WRITABLE, -1, &task_stderr_op);
 
-    process->file_table[0] = &stdin->io;
-    process->file_table[1] = &stdout->io;
-    process->file_table[2] = &stderr->io;
-    process->files_count = 3;
+    process_add_fd(process, &stdin->io);
+    process_add_fd(process, &stdout->io);
+    process_add_fd(process, &stderr->io);
 }

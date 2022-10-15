@@ -3,6 +3,7 @@
 #pragma once
 
 #include "mos/filesystem/filesystem.h"
+#include "mos/filesystem/mount.h"
 #include "mos/types.h"
 
 typedef struct
