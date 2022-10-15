@@ -53,9 +53,9 @@ jobs:
       - name: Build
         run: |
           cd ${{github.workspace}}/build
-          ninja
           ninja ${{matrix.target}}
-          ../scripts/gen_initrd.sh
+          ninja mos_userspace_programs
+          ninja mos_initrd
 
       - name: Upload Bootable Artifact
         if: matrix.run_tests == 'OFF'

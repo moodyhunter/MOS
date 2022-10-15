@@ -5,7 +5,7 @@
             "label": "compile",
             "type": "shell",
             "options": { "cwd": "${workspaceFolder}/build" },
-            "command": "cmake --build ${workspaceFolder}/build --target multiboot all && ${workspaceFolder}/scripts/gen_initrd.sh",
+            "command": "cmake --build ${workspaceFolder}/build --target multiboot all mos_initrd",
             "group": "build",
             "presentation": {
                 "reveal": "silent",
@@ -50,8 +50,6 @@
                 "stdio,id=serial_log,logfile=serial_log.log,signal=off",
                 "-serial",
                 "chardev:serial_log",
-                "-append",
-                "init=/bin/init",
                 "-initrd",
                 "${workspaceFolder}/build/initrd.cpio"
             ],

@@ -10,6 +10,7 @@ add_custom_command(TARGET multiboot
     POST_BUILD
     COMMAND
         ${CMAKE_COMMAND} -E copy $<TARGET_FILE:multiboot> ${CMAKE_BINARY_DIR}/mos_multiboot.bin
+    BYPRODUCTS ${CMAKE_BINARY_DIR}/mos_multiboot.bin
 )
 
 set(MOS_BOOTABLE_TARGETS_FILE_multiboot ${CMAKE_BINARY_DIR}/mos_multiboot.bin)
