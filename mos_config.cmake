@@ -24,3 +24,8 @@ option(MOS_PRINTK_HAS_FILENAME "printk: has filename" ON)
 # x86 specific options
 set(MOS_X86_HEAP_BASE_VADDR 0xD0000000) # Also modify the linker script
 set(MOS_X86_INITRD_VADDR 0xC8000000)
+
+if(EXISTS "config.cmake")
+    message(STATUS "Loading config.cmake")
+    include(config.cmake)
+endif()
