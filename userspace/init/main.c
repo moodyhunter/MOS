@@ -41,23 +41,18 @@ void print_err(const char *str)
     invoke_ksyscall_io_write(stderr, str, strlen(str), 0);
 }
 
-volatile char buf[256];
-volatile char buf2[256] = "Hello, World!\n";
-const char *x = "Hello, world! MOS userspace 'init': " __FILE__ "\n";
+char buf[2 KB] = { 0 };
 
 void _start(void)
 {
-    print(x);
     int fd = invoke_ksyscall_file_open("/assets/msg.txt", FILE_OPEN_READ);
     if (fd < 0)
-    {
         print_err("Failed to open /assets/msg.txt");
-    }
     else
     {
-        char buf[512] = { 0 };
-        invoke_ksyscall_io_read(fd, buf, 512, 0);
-        print(buf);
+        size_t read = invoke_ksyscall_io_read(fd, buf, 512, 0);
+        print("\n");
+        invoke_ksyscall_io_write(stdout, buf, read, 0);
         invoke_ksyscall_io_close(fd);
     }
     while (1)
