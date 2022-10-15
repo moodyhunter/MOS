@@ -11,6 +11,7 @@
 #include "mos/tasks/process.h"
 #include "mos/tasks/schedule.h"
 #include "mos/tasks/thread.h"
+#include "mos/types.h"
 #include "mos/x86/tasks/tss_types.h"
 
 extern void mos_test_engine_run_tests(); // defined in tests/test_engine.c
@@ -89,7 +90,8 @@ void mos_start_kernel(const char *cmdline)
 
     const char *init_path = cmdline_get_init_path();
 
-    process_t *init = create_elf_process(init_path);
+    uid_t root_uid = { .uid = 0 };
+    process_t *init = create_elf_process(init_path, root_uid);
     MOS_UNUSED(init);
 
     // the stack memory to be used if we enter the kernelmode by a trap / interrupt

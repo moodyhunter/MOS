@@ -7,6 +7,7 @@
 #include "mos/mm/paging.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
+#include "mos/types.h"
 
 static_assert(sizeof(elf_header_t) == (MOS_32BITS ? 0x34 : 0x40), "elf_header has wrong size");
 static_assert(sizeof(elf_program_hdr_t) == (MOS_32BITS ? 0x20 : 0x38), "elf_program_header has wrong size");
@@ -35,7 +36,7 @@ elf_verify_result elf_verify_header(elf_header_t *header)
     return ELF_VERIFY_OK;
 }
 
-process_t *create_elf_process(const char *path)
+process_t *create_elf_process(const char *path, uid_t effective_uid)
 {
     file_t *f = vfs_open(path, FILE_OPEN_READ);
     if (!f)
@@ -64,21 +65,21 @@ process_t *create_elf_process(const char *path)
         goto bail_out;
     }
 
-    process_t *proc = allocate_process((process_id_t){ 1 }, (uid_t){ 0 }, (thread_entry_t) elf->entry_point, NULL);
+    process_t *proc = allocate_process(NULL, effective_uid, (thread_entry_t) elf->entry_point, NULL);
 
     for (int i = 0; i < elf->ph.count; i++)
     {
         elf_program_hdr_t *ph = (elf_program_hdr_t *) (buf + elf->ph_offset + i * elf->ph.entry_size);
-        pr_info("program header %d: %c%c%c%s at " PTR_FMT, i,
-                (elf_program_header_flags) ph->p_flags & ELF_PH_F_R ? 'r' : '-', //
-                (elf_program_header_flags) ph->p_flags & ELF_PH_F_W ? 'w' : '-', //
-                (elf_program_header_flags) ph->p_flags & ELF_PH_F_X ? 'x' : '-', //
-                ph->header_type == ELF_PH_T_LOAD ? " (load)" : "",               //
-                ph->vaddr                                                        //
+        mos_debug("program header %d: %c%c%c%s at " PTR_FMT, i,
+                  (elf_program_header_flags) ph->p_flags & ELF_PH_F_R ? 'r' : '-', //
+                  (elf_program_header_flags) ph->p_flags & ELF_PH_F_W ? 'w' : '-', //
+                  (elf_program_header_flags) ph->p_flags & ELF_PH_F_X ? 'x' : '-', //
+                  ph->header_type == ELF_PH_T_LOAD ? " (load)" : "",               //
+                  ph->vaddr                                                        //
         );
 
         if (!(ph->header_type & ELF_PH_T_LOAD))
-            continue;
+            continue; // skip non-loadable segments
 
         vm_flags map_flags = (                            //
             (ph->p_flags & ELF_PH_F_R ? VM_READ : 0) |    //
@@ -96,12 +97,14 @@ process_t *create_elf_process(const char *path)
         );
     }
 
+#if MOS_DEBUG
     const char *const strtab = buf + ((elf_section_hdr_t *) (buf + elf->sh_offset + elf->sh_strtab_index * elf->sh.entry_size))->sh_offset;
     for (int i = 0; i < elf->sh.count; i++)
     {
         elf_section_hdr_t *sh = (elf_section_hdr_t *) (buf + elf->sh_offset + i * elf->sh.entry_size);
         pr_info2("section %2d: %s", i, strtab + sh->name_index);
     }
+#endif
 
     process_add_fd(proc, &f->io);
 

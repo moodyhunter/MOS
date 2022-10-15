@@ -23,7 +23,7 @@ noreturn void scheduler(void)
     while (1)
     {
         hashmap_foreach(thread_table, schedule_to_thread);
-        pr_info2("no more threads to schedule, starting over");
+        mos_debug("no more threads to schedule, starting over");
     }
 }
 

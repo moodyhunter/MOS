@@ -64,8 +64,7 @@ static_assert(sizeof(byte_t) == 1, "byte_t is not 1 byte");
 typedef u32 id_t;
 typedef s32 fd_t;
 
-typedef u32 size_t;
-typedef s32 ssize_t;
+typedef signed long ssize_t;
 
 newptrtype(paging_handle_t);
 

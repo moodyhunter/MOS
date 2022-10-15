@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-find_program(NASM NAMES ${CUSTOM_NASM_PATH} nasm REQUIRED)
+find_program(NASM NAMES nasm REQUIRED)
 add_executable(mos::nasm IMPORTED)
 set_target_properties(mos::nasm PROPERTIES IMPORTED_LOCATION ${NASM})
 message(STATUS "Found NASM at: ${NASM}")

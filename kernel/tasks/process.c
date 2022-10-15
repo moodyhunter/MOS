@@ -46,30 +46,30 @@ void process_deinit(void)
     kfree(process_table);
 }
 
-process_t *allocate_process(process_id_t parent_pid, uid_t euid, thread_entry_t entry, void *arg)
+process_t *allocate_process(process_t *parent, uid_t euid, thread_entry_t entry, void *arg)
 {
-    mos_debug("create_process(parent: %d, euid: %d, arg: %p)", parent_pid.process_id, euid.uid, arg);
-    process_t *process = kmalloc(sizeof(process_t));
-    memzero(process, sizeof(process_t));
+    mos_debug("create_process(parent: %d, euid: %d, arg: %p)", (parent ? parent->id.process_id : 0), euid.uid, arg);
+    process_t *proc = kmalloc(sizeof(process_t));
+    memzero(proc, sizeof(process_t));
 
-    process->magic[0] = 'P';
-    process->magic[1] = 'R';
-    process->magic[2] = 'O';
-    process->magic[3] = 'C';
+    proc->magic[0] = 'P';
+    proc->magic[1] = 'R';
+    proc->magic[2] = 'O';
+    proc->magic[3] = 'C';
 
-    process->id = new_process_id();
-    process->effective_uid = euid;
-    process->parent_pid = parent_pid;
+    proc->id = new_process_id();
+    proc->effective_uid = euid;
+    proc->parent_pid = (parent ? parent->id : proc->id);
 
-    process->pagetable = mos_platform->mm_create_pagetable();
+    proc->pagetable = mos_platform->mm_create_pagetable();
 
-    process_stdio_setup(process);
-    thread_t *main_thread = create_thread(process, THREAD_FLAG_USERMODE, entry, arg);
-    process->main_thread_id = main_thread->id;
+    process_stdio_setup(proc);
+    thread_t *main_thread = create_thread(proc, THREAD_FLAG_USERMODE, entry, arg);
+    proc->main_thread_id = main_thread->id;
 
-    void *old_proc = hashmap_put(process_table, &process->id, process);
+    void *old_proc = hashmap_put(process_table, &proc->id, proc);
     MOS_ASSERT_X(old_proc == NULL, "process already exists, go and buy yourself a lottery :)");
-    return process;
+    return proc;
 }
 
 process_t *get_process(process_id_t pid)

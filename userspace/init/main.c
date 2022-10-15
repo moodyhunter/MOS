@@ -34,12 +34,11 @@ int strlen(const char *str)
 void print(const char *str)
 {
     _ksyscall_io_write(stdout, str, strlen(str), 0);
-    _ksyscall_io_write(stderr, str, strlen(str), 0);
 }
 
 volatile char buf[256];
-volatile char buf2[256] = "Hello, World!";
-const char *x = "Hello, world! MOS userspace 'init': " __FILE__;
+volatile char buf2[256] = "Hello, World!\n";
+const char *x = "Hello, world! MOS userspace 'init': " __FILE__ "\n";
 
 void _start(void)
 {
@@ -49,5 +48,6 @@ void _start(void)
     _ksyscall_io_read(fd, buf, 512, 0);
     print(buf);
     _ksyscall_io_close(fd);
-    _ksyscall_exit(0);
+    while (1)
+        _ksyscall_yield_cpu();
 }

@@ -18,7 +18,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          sed -i 's/-elf-g/-linux-gnu-g/g' cmake/toolchains/mos_target_setup.cmake
+          sed -i 's/-elf-g/-linux-gnu-g/g' cmake/mos_target_setup.cmake
           cmake \
             -DCMAKE_BUILD_TYPE=Debug \
             -DMOS_KERNEL_RUN_TESTS=ON \

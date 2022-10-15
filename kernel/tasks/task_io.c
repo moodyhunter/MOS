@@ -23,7 +23,7 @@ static size_t stdout_write(io_t *io, const void *buf, size_t count)
         return 0;
     stdio_t *stdio = container_of(io, stdio_t, io);
     MOS_ASSERT(stdio->type == STDIO_TYPE_STDOUT);
-    pr_warn("%.*s", (int) count, (const char *) buf);
+    lprintk(0, "%.*s", (int) count, (const char *) buf);
     return 0;
 }
 
@@ -33,7 +33,7 @@ static size_t stderr_write(io_t *io, const void *buf, size_t count)
         return 0;
     stdio_t *stdio = container_of(io, stdio_t, io);
     MOS_ASSERT(stdio->type == STDIO_TYPE_STDERR);
-    pr_warn("stderr: %.*s", (int) count, (const char *) buf);
+    lprintk(0, "stderr: %.*s", (int) count, (const char *) buf);
     return 0;
 }
 

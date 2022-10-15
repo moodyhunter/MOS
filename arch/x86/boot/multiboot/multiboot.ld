@@ -9,9 +9,9 @@ SECTIONS
     /* ! (for example the so-called VGA buffer at 0xb8000. */
     . = 5M; /* !! Lower Half */
 
-    _mos_startup_START = .;
     .startup ALIGN(4K) :
     {
+        _mos_startup_START = .;
         *(.multiboot.data); /* ! Multiboot header */
         *(.multiboot.text);
         *(.mos.startup.text);
@@ -28,8 +28,8 @@ SECTIONS
         . += 512K;  /* ! 512 KiB paging area (aka 512MiB memory) */
         . += 4K;
         _mos_startup_stack = .;
+        _mos_startup_END = .;
     }
-    _mos_startup_END = .;
 
     . += 0xC0000000;
 
@@ -78,7 +78,7 @@ SECTIONS
         . = ALIGN(4K);
         . += 16M;  /* ! stack */
         __MOS_KERNEL_HIGHER_STACK_TOP = .;
+        __MOS_KERNEL_RW_END = .;
+        __MOS_KERNEL_END = .;
     }
-    __MOS_KERNEL_RW_END = .;
-    __MOS_KERNEL_END = .;
 }

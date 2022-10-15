@@ -8,7 +8,7 @@ target_include_directories(mos_userspace_lib
     INTERFACE
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_BINARY_DIR}/include
-        ${CMAKE_SOURCE_DIR}/arch/${MOS_TARGET_ARCH}/include
+        ${CMAKE_SOURCE_DIR}/arch/${MOS_ISA_FAMILY}/include
 )
 
 # build userspace programs after the kernel
