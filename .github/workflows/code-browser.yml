@@ -21,7 +21,7 @@ jobs:
           sed -i 's/-elf-g/-linux-gnu-g/g' cmake/mos_target_setup.cmake
           cmake \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DMOS_KERNEL_RUN_TESTS=ON \
+            -DBUILD_TESTING=ON \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -B ${{github.workspace}}/build \
             -G Ninja
