@@ -87,8 +87,8 @@ void x86_handle_interrupt(u32 esp)
     else if (frame->interrupt_number < MOS_SYSCALL_INTR)
         x86_handle_irq(frame);
     else if (frame->interrupt_number == MOS_SYSCALL_INTR)
-#pragma message "TODO: Implement syscall handling for other arguments"
     {
+#pragma message "TODO: Implement syscall handling for other arguments"
         int result = dispatch_ksyscall(frame->eax, frame->ebx, frame->ecx, frame->edx, 0, 0, 0, 0, 0);
         frame->eax = result;
     }
