@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-find_program(PYTHON "python3" NAMES "python3.10 python3.9 python3.8 python3.7 python3.6 python3.5 python3.4 python3.3 python3.2 python3.1 python3.0 python python3" REQUIRED)
+find_program(PYTHON "python3" NAMES "python3.10 python3.9 python3.8 python3.7 python3.6 python python3" REQUIRED)
 
 function(generate_syscall_headers TARGET SYSCALL_JSON PREFIX PREFIX_DIR)
     make_directory("${CMAKE_BINARY_DIR}/include/${PREFIX_DIR}/${PREFIX}/")
