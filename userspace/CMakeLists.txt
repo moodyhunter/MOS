@@ -53,7 +53,7 @@ add_custom_target(mos_initrd
     BYPRODUCTS ${CMAKE_BINARY_DIR}/initrd.cpio
 )
 
-macro(add_initrd_item ITEM_TYPE SOURCE_NAME PATH)
+macro(add_initrd_item ITEM_TYPE PATH SOURCE_NAME)
     set(INITRD_DIR "${CMAKE_BINARY_DIR}/initrd")
     set(OUTPUT_DIR "${INITRD_DIR}${PATH}")
 
@@ -66,7 +66,6 @@ macro(add_initrd_item ITEM_TYPE SOURCE_NAME PATH)
             COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${SOURCE_NAME}> ${OUTPUT_DIR}/${SOURCE_NAME}
             COMMENT "Copying ${SOURCE_NAME} to initrd"
             BYPRODUCTS ${OUTPUT_DIR}/${SOURCE_NAME}
-            BYPRODUCTS ${OUTPUT_DIR}
         )
     elseif("${ITEM_TYPE}" STREQUAL "FILE")
         set(SOURCE_NAME ${CMAKE_CURRENT_LIST_DIR}/${SOURCE_NAME})
@@ -79,7 +78,6 @@ macro(add_initrd_item ITEM_TYPE SOURCE_NAME PATH)
             COMMENT "Copying ${SOURCE_NAME} to initrd"
             DEPENDS ${SOURCE_NAME}
             BYPRODUCTS ${OUTPUT_DIR}/${FILE_NAME}
-            BYPRODUCTS ${OUTPUT_DIR}
         )
         add_dependencies(mos_initrd ${TARGET_NAME}_initrd)
     else()
@@ -89,5 +87,6 @@ endmacro()
 
 add_userspace_program(init SOURCES init/main.c)
 
-add_initrd_item(TARGET init /programs)
-add_initrd_item(FILE assets/msg.txt /assets)
+add_initrd_item(TARGET /programs init)
+
+add_initrd_item(FILE /assets assets/msg.txt)
