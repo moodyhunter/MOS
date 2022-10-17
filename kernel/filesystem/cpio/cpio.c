@@ -153,8 +153,8 @@ bool cpio_stat(const mountpoint_t *mp, const fsnode_t *path, file_stat_t *stat)
 
     stat->size = metadata.data_length;
 
-    stat->uid.uid = strntoll(metadata.header.uid, NULL, 16, sizeof(metadata.header.uid) / sizeof(char));
-    stat->gid.gid = strntoll(metadata.header.gid, NULL, 16, sizeof(metadata.header.gid) / sizeof(char));
+    stat->uid = strntoll(metadata.header.uid, NULL, 16, sizeof(metadata.header.uid) / sizeof(char));
+    stat->gid = strntoll(metadata.header.gid, NULL, 16, sizeof(metadata.header.gid) / sizeof(char));
 
     //  0000777  The lower 9 bits specify read/write/execute permissions for world, group, and user following standard POSIX conventions.
     u32 modebits = strntoll(metadata.header.mode, NULL, 16, sizeof(metadata.header.mode) / sizeof(char));

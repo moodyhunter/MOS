@@ -27,19 +27,19 @@ typedef struct
 {
     char magic[4];
     const char *name;
-    process_id_t id;
-    process_id_t parent_pid;
+    pid_t pid;
+    pid_t parent_pid;
     uid_t effective_uid;
     paging_handle_t pagetable;
     io_t *files[MOS_PROCESS_MAX_OPEN_FILES];
     ssize_t files_count;
-    thread_id_t main_thread_id;
+    tid_t main_thread_id;
 } process_t;
 
 typedef struct _thread
 {
     char magic[4];
-    thread_id_t id;
+    tid_t tid;
     process_t *owner;
     thread_status_t status;
     downwards_stack_t stack;

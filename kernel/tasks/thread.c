@@ -22,12 +22,12 @@ hashmap_t *thread_table;
 
 static hash_t hashmap_thread_hash(const void *key)
 {
-    return (hash_t){ .hash = ((thread_id_t *) key)->thread_id };
+    return (hash_t){ .hash = *(tid_t *) key };
 }
 
 static int hashmap_thread_equal(const void *key1, const void *key2)
 {
-    return ((thread_id_t *) key1)->thread_id == ((thread_id_t *) key2)->thread_id;
+    return *(tid_t *) key1 == *(tid_t *) key2;
 }
 
 void thread_init()
@@ -44,10 +44,10 @@ void thread_deinit()
     kfree(thread_table);
 }
 
-static thread_id_t new_thread_id()
+static tid_t new_thread_id()
 {
-    static thread_id_t next = { 1 };
-    return (thread_id_t){ next.thread_id++ };
+    static tid_t next = 1;
+    return (tid_t){ next++ };
 }
 
 thread_t *create_thread(process_t *owner, thread_flags_t flags, thread_entry_t entry, void *arg)
@@ -57,7 +57,7 @@ thread_t *create_thread(process_t *owner, thread_flags_t flags, thread_entry_t e
     thread->magic[1] = 'H';
     thread->magic[2] = 'R';
     thread->magic[3] = 'D';
-    thread->id = new_thread_id();
+    thread->tid = new_thread_id();
     thread->owner = owner;
     thread->status = THREAD_STATUS_READY;
     thread->flags = flags;
@@ -74,11 +74,11 @@ thread_t *create_thread(process_t *owner, thread_flags_t flags, thread_entry_t e
     mos_platform->mm_map_kvaddr(owner->pagetable, (uintptr_t) stack_page, (uintptr_t) stack_page, thread_stack_npages, stack_flags);
     mos_platform->context_setup(thread, entry, arg);
 
-    hashmap_put(thread_table, &thread->id, thread);
+    hashmap_put(thread_table, &thread->tid, thread);
     return thread;
 }
 
-thread_t *get_thread(thread_id_t tid)
+thread_t *get_thread(tid_t tid)
 {
     return hashmap_get(thread_table, &tid);
 }

@@ -19,18 +19,18 @@ hashmap_t *process_table;
 
 static hash_t process_hash(const void *key)
 {
-    return (hash_t){ .hash = ((process_id_t *) key)->process_id };
+    return (hash_t){ .hash = *(pid_t *) key };
 }
 
 static int process_equal(const void *key1, const void *key2)
 {
-    return ((process_id_t *) key1)->process_id == ((process_id_t *) key2)->process_id;
+    return *(pid_t *) key1 == *(pid_t *) key2;
 }
 
-static process_id_t new_process_id(void)
+static pid_t new_process_id(void)
 {
-    static process_id_t next = { 1 };
-    return (process_id_t){ next.process_id++ };
+    static pid_t next = 1;
+    return (pid_t){ next++ };
 }
 
 void process_init(void)
@@ -56,21 +56,21 @@ process_t *allocate_process(process_t *parent, uid_t euid, const char *name, thr
     proc->magic[2] = 'O';
     proc->magic[3] = 'C';
 
-    proc->id = new_process_id();
+    proc->pid = new_process_id();
 
-    if (proc->id.process_id == 1)
+    if (proc->pid == 1)
     {
-        proc->parent_pid = proc->id;
+        proc->parent_pid = proc->pid;
     }
     else
     {
         if (!parent)
         {
-            pr_emerg("process %d has no parent", proc->id.process_id);
+            pr_emerg("process %d has no parent", proc->pid);
             kfree(proc);
             return NULL;
         }
-        proc->parent_pid = parent->id;
+        proc->parent_pid = parent->pid;
     }
 
     proc->name = "<unknown>";
@@ -85,18 +85,18 @@ process_t *allocate_process(process_t *parent, uid_t euid, const char *name, thr
 
     process_stdio_setup(proc);
     thread_t *main_thread = create_thread(proc, THREAD_FLAG_USERMODE, entry, arg);
-    proc->main_thread_id = main_thread->id;
+    proc->main_thread_id = main_thread->tid;
 
-    void *old_proc = hashmap_put(process_table, &proc->id, proc);
+    void *old_proc = hashmap_put(process_table, &proc->pid, proc);
     MOS_ASSERT_X(old_proc == NULL, "process already exists, go and buy yourself a lottery :)");
     return proc;
 }
 
-process_t *get_process(process_id_t pid)
+process_t *get_process(pid_t pid)
 {
     process_t *p = hashmap_get(process_table, &pid);
     if (p == NULL)
-        mos_warn("process %d not found", pid.process_id);
+        mos_warn("process %d not found", pid);
     return p;
 }
 
@@ -106,7 +106,7 @@ fd_t process_add_fd(process_t *process, io_t *file)
     int fd = process->files_count++;
     if (fd >= MOS_PROCESS_MAX_OPEN_FILES)
     {
-        mos_warn("process %d has too many open files", process->id.process_id);
+        mos_warn("process %d has too many open files", process->pid);
         return -1;
     }
 

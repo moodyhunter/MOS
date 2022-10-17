@@ -49,7 +49,7 @@ noreturn void define_ksyscall(panic)(void)
 
 noreturn void define_ksyscall(exit)(u32 exit_code)
 {
-    int pid = current_thread->owner->id.process_id;
+    int pid = current_thread->owner->pid;
     if (unlikely(pid == 1))
         mos_panic("init process exited with code %d", exit_code);
 

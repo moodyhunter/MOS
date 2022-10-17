@@ -54,24 +54,23 @@ typedef union
 
 static_assert(sizeof(byte_t) == 1, "byte_t is not 1 byte");
 
-// clang-format off
-#define new_named_type(base, name, type) typedef struct { base name; } __packed type
-// clang-format on
-
-#define newtype(type, name) new_named_type(type, name, name##_t)
-#define newptrtype(name)    new_named_type(uintptr_t, ptr, name)
-
 typedef u32 id_t;
 typedef s32 fd_t;
 
 typedef signed long ssize_t;
 
-newptrtype(paging_handle_t);
+typedef id_t uid_t;
+typedef id_t gid_t;
+typedef id_t pid_t;
+typedef id_t tid_t;
 
-newtype(id_t, uid);
-newtype(id_t, gid);
-newtype(id_t, process_id);
-newtype(id_t, thread_id);
+// clang-format off
+#define new_named_type(base, name, type) typedef struct { base name; } __packed type
+// clang-format on
 
-newtype(u64, atomic);
-newtype(size_t, hash);
+#define new_opaque_type(type, name) new_named_type(type, name, name##_t)
+#define new_ptr_type(name)          new_named_type(uintptr_t, ptr, name)
+
+new_ptr_type(paging_handle_t);
+new_opaque_type(u64, atomic);
+new_opaque_type(size_t, hash);

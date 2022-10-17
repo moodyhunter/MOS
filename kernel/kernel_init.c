@@ -92,7 +92,7 @@ void mos_start_kernel(const char *cmdline)
 
     const char *init_path = cmdline_get_init_path();
 
-    uid_t root_uid = { .uid = 0 };
+    uid_t root_uid = 0;
     process_t *init = create_elf_process(init_path, root_uid);
     pr_info("created init process: %s", init->name);
 
