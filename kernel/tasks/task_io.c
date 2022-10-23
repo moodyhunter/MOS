@@ -46,15 +46,15 @@ void process_stdio_setup(process_t *process)
     stdio_t *stdin = kcalloc(1, sizeof(stdio_t));
     stdin->type = STDIO_TYPE_STDIN;
     io_init(&stdin->io, IO_READABLE, -1, &task_stdin_op);
-    process_add_fd(process, &stdin->io);
+    process_attach_fd(process, &stdin->io);
 
     stdio_t *stdout = kcalloc(1, sizeof(stdio_t));
     stdout->type = STDIO_TYPE_STDOUT;
     io_init(&stdout->io, IO_WRITABLE, -1, &task_stdout_op);
-    process_add_fd(process, &stdout->io);
+    process_attach_fd(process, &stdout->io);
 
     stdio_t *stderr = kcalloc(1, sizeof(stdio_t));
     stderr->type = STDIO_TYPE_STDERR;
     io_init(&stderr->io, IO_WRITABLE, -1, &task_stderr_op);
-    process_add_fd(process, &stderr->io);
+    process_attach_fd(process, &stderr->io);
 }

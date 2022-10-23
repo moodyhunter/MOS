@@ -14,7 +14,7 @@ fd_t define_ksyscall(file_open)(const char *path, file_open_flags flags)
     file_t *f = vfs_open(path, flags);
     if (!f)
         return -1;
-    return process_add_fd(current_thread->owner, &f->io);
+    return process_attach_fd(current_thread->owner, &f->io);
 }
 
 bool define_ksyscall(file_stat)(const char *path, file_stat_t *stat)
@@ -38,7 +38,7 @@ size_t define_ksyscall(io_write)(fd_t fd, const void *buf, size_t count, size_t 
 
 bool define_ksyscall(io_close)(fd_t fd)
 {
-    process_remove_fd(current_thread->owner, fd);
+    process_detach_fd(current_thread->owner, fd);
     return true;
 }
 
@@ -54,7 +54,7 @@ noreturn void define_ksyscall(exit)(u32 exit_code)
         mos_panic("init process exited with code %d", exit_code);
 
     pr_info("Kernel syscall exit called with code %d from pid %d", exit_code, pid);
-    current_thread->status = THREAD_STATUS_DEAD;
+    process_handle_exit(current_thread->owner, exit_code);
     jump_to_scheduler();
     MOS_UNREACHABLE();
 }
@@ -62,4 +62,18 @@ noreturn void define_ksyscall(exit)(u32 exit_code)
 void define_ksyscall(yield_cpu)(void)
 {
     jump_to_scheduler();
+}
+
+pid_t define_ksyscall(fork)(void)
+{
+    process_t *new_process = process_handle_fork(current_thread->owner);
+    if (new_process == NULL)
+        return -1;
+    return new_process->pid;
+}
+
+pid_t define_ksyscall(exec)(const char *path, const char *const argv[])
+{
+    // TODO
+    return -1;
 }

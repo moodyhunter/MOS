@@ -106,7 +106,7 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
     }
 #endif
 
-    process_add_fd(proc, &f->io);
+    process_attach_fd(proc, &f->io);
 
     return proc;
 

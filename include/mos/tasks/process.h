@@ -17,5 +17,8 @@ should_inline bool process_is_valid(process_t *process)
 
 process_t *allocate_process(process_t *parent, uid_t effective_uid, const char *name, thread_entry_t entry, void *arg);
 process_t *get_process(pid_t pid);
-fd_t process_add_fd(process_t *process, io_t *file);
-bool process_remove_fd(process_t *process, fd_t fd);
+fd_t process_attach_fd(process_t *process, io_t *file);
+bool process_detach_fd(process_t *process, fd_t fd);
+
+void process_handle_exit(process_t *process, int exit_code);
+process_t *process_handle_fork(process_t *process);

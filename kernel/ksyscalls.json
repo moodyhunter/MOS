@@ -53,6 +53,18 @@
             "name": "yield_cpu",
             "return": "void",
             "arguments": [ ]
+        },
+        {
+            "number": 8,
+            "name": "fork",
+            "return": "pid_t",
+            "arguments": [ ]
+        },
+        {
+            "number": 9,
+            "name": "exec",
+            "return": "pid_t",
+            "arguments": [ { "type": "const char *", "arg": "file_path" }, { "type": "const char *const *", "arg": "argv" } ]
         }
     ]
 }

@@ -100,7 +100,7 @@ process_t *get_process(pid_t pid)
     return p;
 }
 
-fd_t process_add_fd(process_t *process, io_t *file)
+fd_t process_attach_fd(process_t *process, io_t *file)
 {
     MOS_ASSERT(process_is_valid(process));
     int fd = process->files_count++;
@@ -114,7 +114,7 @@ fd_t process_add_fd(process_t *process, io_t *file)
     return fd;
 }
 
-bool process_remove_fd(process_t *process, fd_t fd)
+bool process_detach_fd(process_t *process, fd_t fd)
 {
     MOS_ASSERT(process_is_valid(process));
     if (fd < 0 || fd >= process->files_count)
@@ -122,4 +122,25 @@ bool process_remove_fd(process_t *process, fd_t fd)
     io_close(process->files[fd]);
     process->files[fd] = NULL;
     return true;
+}
+
+void process_handle_exit(process_t *process, int exit_code)
+{
+    MOS_ASSERT(process_is_valid(process));
+    pr_info("process %d exited with code %d", process->pid, exit_code);
+
+    // TODO
+    // for all threads in process
+    //   kill thread
+
+    current_thread->status = THREAD_STATUS_DEAD;
+}
+
+process_t *process_handle_fork(process_t *process)
+{
+    MOS_ASSERT(process_is_valid(process));
+    pr_info("process %d forked", process->pid);
+
+    // TODO
+    return NULL;
 }

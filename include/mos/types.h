@@ -65,12 +65,16 @@ typedef id_t pid_t;
 typedef id_t tid_t;
 
 // clang-format off
-#define new_named_type(base, name, type) typedef struct { base name; } __packed type
+#define _named_opaque_type(base, name, type) typedef struct { base name; } __packed type
 // clang-format on
 
-#define new_opaque_type(type, name) new_named_type(type, name, name##_t)
-#define new_ptr_type(name)          new_named_type(uintptr_t, ptr, name)
+#define new_opaque_type(type, name) _named_opaque_type(type, name, name##_t)
+#define new_opaque_ptr_type(name)   _named_opaque_type(uintptr_t, ptr, name)
 
-new_ptr_type(paging_handle_t);
+new_opaque_ptr_type(paging_handle_t);
 new_opaque_type(u64, atomic);
 new_opaque_type(size_t, hash);
+
+#undef _named_opaque_type
+#undef new_opaque_type
+#undef new_opaque_ptr_type
