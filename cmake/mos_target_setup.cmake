@@ -31,6 +31,8 @@ macro(mos_target_setup ISA_FAMILY ISA BITS)
         OUTPUT_VARIABLE MOS_CRTEND
         OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+    set(CMAKE_C_COMPILER_WORKS 1)
+    set(CMAKE_CXX_COMPILER_WORKS 1)
     message(STATUS "${ISA}: C compiler: ${CC_PATH}")
     message(STATUS "${ISA}: C++ compiler: ${CXX_PATH}")
     message(STATUS "${ISA}: CRTBEGIN: ${MOS_CRTBEGIN}, CRTEND: ${MOS_CRTEND}")
@@ -41,5 +43,4 @@ macro(mos_target_setup ISA_FAMILY ISA BITS)
 
     add_library(mos::crtend IMPORTED STATIC GLOBAL)
     set_target_properties(mos::crtend PROPERTIES IMPORTED_LOCATION ${MOS_CRTEND})
-
 endmacro()
