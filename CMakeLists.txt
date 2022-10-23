@@ -92,6 +92,7 @@ generate_syscall_headers(mos_kernel.elf ${CMAKE_SOURCE_DIR}/kernel/ksyscalls.jso
 
 add_library(mos::elf_kernel ALIAS mos_kernel.elf)
 target_link_libraries(mos_kernel.elf PUBLIC gcc)
+target_compile_options(mos_kernel.elf PUBLIC "-ffreestanding")
 
 mos_add_summary_section(KERNEL "MOS Kernel")
 mos_add_summary_item(KERNEL "Version" "${MOS_KERNEL_VERSION_STRING}")

@@ -43,7 +43,7 @@ void print_err(const char *str)
 
 char buf[2 KB] = { 0 };
 
-void _start(void)
+int main(void)
 {
     int fd = invoke_ksyscall_file_open("/assets/msg.txt", FILE_OPEN_READ);
     if (fd < 0)
@@ -55,6 +55,9 @@ void _start(void)
         invoke_ksyscall_io_write(stdout, buf, read, 0);
         invoke_ksyscall_io_close(fd);
     }
+
     while (1)
         invoke_ksyscall_yield_cpu();
+
+    return 0;
 }
