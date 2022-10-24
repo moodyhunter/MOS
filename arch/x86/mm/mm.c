@@ -3,7 +3,6 @@
 #include "mos/x86/mm/mm.h"
 
 #include "lib/stdlib.h"
-#include "mos/mm/mm_types.h"
 #include "mos/printk.h"
 #include "mos/x86/acpi/acpi.h"
 #include "mos/x86/x86_platform.h"

@@ -47,6 +47,21 @@ typedef struct
 
 typedef struct
 {
+    as_linked_list;
+    uintptr_t vaddr;
+    uintptr_t paddr;
+    size_t size_bytes;
+    bool available;
+} memblock_t;
+
+typedef struct
+{
+    memblock_t block;
+    vm_flags flags;
+} vm_block_t;
+
+typedef struct
+{
     struct
     {
         const uintptr_t code_start;
@@ -79,10 +94,10 @@ typedef struct
     paging_handle_t (*const mm_create_pagetable)();
     void (*const mm_destroy_pagetable)(paging_handle_t table);
 
-    void *(*const mm_alloc_pages)(paging_handle_t table, size_t n, pagealloc_flags flags);
+    vm_block_t (*const mm_alloc_pages)(paging_handle_t table, size_t n, pagealloc_flags flags);
     bool (*const mm_free_pages)(paging_handle_t table, uintptr_t vaddr, size_t n);
-    void (*const mm_flag_pages)(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
-    void (*const mm_map_kvaddr)(paging_handle_t table, uintptr_t virt, uintptr_t kvaddr, size_t n, vm_flags flags);
+    // void (*const mm_flag_pages)(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
+    vm_block_t (*const mm_map_kvaddr)(paging_handle_t table, uintptr_t virt, uintptr_t kvaddr, size_t n, vm_flags flags);
     void (*const mm_unmap)(paging_handle_t table, uintptr_t virt, size_t n);
 
     // process management

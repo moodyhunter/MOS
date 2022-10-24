@@ -20,7 +20,7 @@ always_inline void pg_flush_tlb(uintptr_t vaddr)
     __asm__ volatile("invlpg (%0)" ::"r"(vaddr));
 }
 
-void *pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pagealloc_flags flags)
+vm_block_t pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pagealloc_flags flags)
 {
     vm_flags pflags = VM_WRITE;
     // always allocate after the end of the kernel pages
@@ -48,7 +48,7 @@ void *pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pagealloc_flags flags)
         if (i >= MM_PAGE_MAP_SIZE)
         {
             mos_warn("failed to allocate %zu pages", n_page);
-            return NULL;
+            return (vm_block_t){ .block.available = false };
         }
         pagemap_line_t current_byte = pg->page_map[i];
 
@@ -81,11 +81,18 @@ void *pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pagealloc_flags flags)
     if (paddr == 0)
     {
         mos_panic("OOM");
-        return NULL;
+        return (vm_block_t){ .block.available = false };
     }
 
     pg_map_pages(pg, vaddr, paddr, n_page, pflags);
-    return (void *) vaddr;
+    vm_block_t block = {
+        .block.available = true,
+        .block.vaddr = vaddr,
+        .block.paddr = paddr,
+        .block.size_bytes = n_page * MOS_PAGE_SIZE,
+        .flags = pflags,
+    };
+    return block;
 }
 
 bool pg_page_free(x86_pg_infra_t *pg, uintptr_t vptr, size_t n_page)

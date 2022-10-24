@@ -6,7 +6,6 @@
 #include "mos/constants.h"
 #include "mos/kconfig.h"
 #include "mos/mm/kmalloc.h"
-#include "mos/mm/mm_types.h"
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
@@ -158,7 +157,7 @@ mos_platform_t x86_platform = {
     .mm_destroy_pagetable = x86_um_pgd_destroy,
     .mm_alloc_pages = x86_mm_pg_alloc,
     .mm_free_pages = x86_mm_pg_free,
-    .mm_flag_pages = x86_mm_pg_flag,
+    // .mm_flag_pages = x86_mm_pg_flag,
     .mm_map_kvaddr = x86_mm_pg_map_to_kvirt,
     .mm_unmap = x86_mm_pg_unmap,
 

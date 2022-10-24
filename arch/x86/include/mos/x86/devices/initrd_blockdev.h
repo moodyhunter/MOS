@@ -3,7 +3,7 @@
 #pragma once
 
 #include "mos/device/block.h"
-#include "mos/mm/mm_types.h"
+#include "mos/platform/platform.h"
 #include "mos/types.h"
 
 typedef struct

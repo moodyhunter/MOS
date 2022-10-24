@@ -28,11 +28,11 @@ void *kpage_alloc(size_t npages, pagealloc_flags type)
     if (unlikely(mos_platform->mm_alloc_pages == NULL))
         mos_panic("platform configuration error: alloc_page is NULL");
 
-    void *ptr = mos_platform->mm_alloc_pages(mos_platform->kernel_pg, npages, type);
-    if (unlikely(ptr == NULL))
+    vm_block_t block = mos_platform->mm_alloc_pages(mos_platform->kernel_pg, npages, type);
+    if (unlikely(!block.block.available || block.block.size_bytes < npages * MOS_PAGE_SIZE))
         mos_warn("failed to allocate %zu pages", npages);
 
-    return ptr;
+    return (void *) block.block.vaddr;
 }
 
 bool kpage_free(void *vptr, size_t npages)

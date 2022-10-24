@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/mm/mm_types.h"
+#include "mos/platform/platform.h"
 #include "mos/x86/boot/multiboot.h"
 
 #define X86_MEM_MAX_N_REGIONS 32
