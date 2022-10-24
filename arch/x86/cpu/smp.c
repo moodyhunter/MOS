@@ -40,8 +40,8 @@ void print_cpu_info()
     char brand_string[49];
     cpuid_get_brand_string(brand_string);
     pr_info2("CPU: %s (%s)", brand_string, manufacturer);
-    pr_info2("  Family %u, Model %u, Stepping %u", info.eax.eax.family, info.eax.eax.model, info.eax.eax.stepping);
-    pr_info2("  Type: %s, Ext family: %u, Ext model: %u", cpuid_type_str[info.eax.eax.type], info.eax.eax.ext_family, info.eax.eax.ext_model);
+    pr_info2("  Family %u, Model %u, Stepping %u", info.eax.family, info.eax.model, info.eax.stepping);
+    pr_info2("  Type: %s, Ext family: %u, Ext model: %u", cpuid_type_str[info.eax.type], info.eax.ext_family, info.eax.ext_model);
 }
 
 void ap_begin_exec()
@@ -53,15 +53,15 @@ void ap_begin_exec()
     processor_version_t info;
     cpuid_get_processor_info(&info);
 
-    pr_info("smp: AP %u started", info.ebx.ebx.local_apic_id);
+    pr_info("smp: AP %u started", info.ebx.local_apic_id);
     print_cpu_info();
 
-    per_cpu(x86_platform.cpu)->id = info.ebx.ebx.local_apic_id;
+    per_cpu(x86_platform.cpu)->id = info.ebx.local_apic_id;
 
     unsigned int x = apic_reg_read_offset_32(APIC_REG_LAPIC_ID);
-    if (x != info.ebx.ebx.local_apic_id)
+    if (x != info.ebx.local_apic_id)
     {
-        mos_warn("smp: AP %u: LAPIC ID mismatch: %u != %u", info.ebx.ebx.local_apic_id, x, info.ebx.ebx.local_apic_id);
+        mos_warn("smp: AP %u: LAPIC ID mismatch: %u != %u", info.ebx.local_apic_id, x, info.ebx.local_apic_id);
     }
 
     while (1)
@@ -113,7 +113,7 @@ void x86_smp_init()
     u32 num_cpus = 0;
     processor_version_t info;
     cpuid_get_processor_info(&info);
-    x86_platform.boot_cpu_id = info.ebx.ebx.local_apic_id;
+    x86_platform.boot_cpu_id = info.ebx.local_apic_id;
     per_cpu(x86_platform.cpu)->id = x86_platform.boot_cpu_id;
 
     madt_entry_foreach(entry, x86_acpi_madt)

@@ -36,7 +36,7 @@ typedef struct
             u8 ext_model : 4;
             u16 ext_family : 8;
             u8 reserved2 : 4;
-        } __packed eax;
+        } __packed;
         reg32_t raw;
     } eax;
 
@@ -54,7 +54,7 @@ typedef struct
              * 4 processor with Hyper-Threading Technology.[10] */
             u8 logical_processors_per_package : 8;
             u8 local_apic_id : 8;
-        } __packed ebx;
+        } __packed;
         reg32_t raw;
     } ebx;
 
@@ -97,7 +97,7 @@ typedef struct
             bool f16c : 1;
             bool rdrand : 1;
             bool hypervisor : 1;
-        } __packed ecx;
+        } __packed;
         reg32_t raw;
     } ecx;
 
@@ -140,7 +140,7 @@ typedef struct
             bool thermal_monitor_temp_limits : 1;
             bool ia64_emulating_x86 : 1;
             bool pending_break_enable : 1;
-        } __packed edx;
+        } __packed;
         reg32_t raw;
     } edx;
 } __packed processor_version_t;

@@ -96,10 +96,10 @@ void apic_enable()
     processor_version_t info;
     cpuid_get_processor_info(&info);
 
-    if (!info.edx.edx.onboard_apic)
+    if (!info.edx.onboard_apic)
         mos_panic("APIC is not supported");
 
-    if (!info.edx.edx.msr)
+    if (!info.edx.msr)
         mos_panic("MSR is not present");
 
     lapic_paddr_base = x86_acpi_madt->lapic_addr;
