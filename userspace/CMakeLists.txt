@@ -2,13 +2,14 @@
 
 mos_add_summary_section(USERSPACE "Userspace Programs")
 
-add_library(mos_libuserspace OBJECT crt0.c)
+add_library(mos_libuserspace OBJECT libuserspace.c)
 add_library(mos::libuserspace ALIAS mos_libuserspace)
 target_include_directories(mos_libuserspace
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_BINARY_DIR}/include
         ${CMAKE_SOURCE_DIR}/arch/${MOS_ISA_FAMILY}/include
+        ${CMAKE_CURRENT_LIST_DIR}/include
 )
 
 # TODO: Remove this once we have a proper userspace libc
