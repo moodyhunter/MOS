@@ -49,7 +49,7 @@ void x86_mm_prepare_paging()
     const uintptr_t k_v_code_start = ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_CODE_START);
     const uintptr_t k_v_code_end = ALIGN_UP_TO_PAGE((uintptr_t) &__MOS_KERNEL_CODE_END);
     const uintptr_t k_p_code_start = ALIGN_DOWN_TO_PAGE(k_v_code_start - MOS_KERNEL_START_VADDR);
-    pg_map_pages(x86_kpg_infra, k_v_code_start, k_p_code_start, (k_v_code_end - k_v_code_start) / MOS_PAGE_SIZE, VM_GLOBAL | VM_EXECUTE);
+    pg_map_pages(x86_kpg_infra, k_v_code_start, k_p_code_start, (k_v_code_end - k_v_code_start) / MOS_PAGE_SIZE, VM_GLOBAL | VM_EXEC);
 
     mos_debug("mapping kernel rodata...");
     const uintptr_t k_v_rodata_start = ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_RODATA_START);

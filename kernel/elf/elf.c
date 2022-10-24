@@ -81,11 +81,11 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
         if (!(ph->header_type & ELF_PH_T_LOAD))
             continue; // skip non-loadable segments
 
-        vm_flags map_flags = (                            //
-            (ph->p_flags & ELF_PH_F_R ? VM_READ : 0) |    //
-            (ph->p_flags & ELF_PH_F_W ? VM_WRITE : 0) |   //
-            (ph->p_flags & ELF_PH_F_X ? VM_EXECUTE : 0) | //
-            VM_USERMODE                                   //
+        vm_flags map_flags = (                          //
+            (ph->p_flags & ELF_PH_F_R ? VM_READ : 0) |  //
+            (ph->p_flags & ELF_PH_F_W ? VM_WRITE : 0) | //
+            (ph->p_flags & ELF_PH_F_X ? VM_EXEC : 0) |  //
+            VM_USERMODE                                 //
         );
 
         mos_platform->mm_map_kvaddr(                              //

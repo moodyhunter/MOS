@@ -28,7 +28,7 @@ typedef enum
     VM_WRITE_THROUGH = 1 << 3,
     VM_CACHE_DISABLED = 1 << 4,
     VM_GLOBAL = 1 << 5,
-    VM_EXECUTE = 1 << 6,
+    VM_EXEC = 1 << 6,
 } vm_flags;
 
 // indicates which type of page we are allocating
