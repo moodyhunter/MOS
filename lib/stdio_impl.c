@@ -433,6 +433,7 @@ static int printf_cs(char *buf, char *data, printf_flags_t *pflags, char conv)
 
 int vsnprintf(char *buf, size_t size, const char *format, va_list args)
 {
+#pragma message "TODO: Check for buffer overflow."
     MOS_UNUSED(size);
     char *start = buf;
 
