@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/mos_global.h"
 #include "mos/tasks/task_type.h"
 #include "mos/types.h"
 
@@ -9,6 +10,11 @@ typedef struct hashmap hashmap_t;
 typedef void (*thread_entry_t)(void *arg); // also defined in task_type.h
 
 extern hashmap_t *thread_table;
+
+should_inline bool thread_is_valid(thread_t *thread)
+{
+    return thread && thread->magic[0] == 'T' && thread->magic[1] == 'H' && thread->magic[2] == 'R' && thread->magic[3] == 'D';
+}
 
 void thread_init();
 void thread_deinit();

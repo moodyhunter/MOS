@@ -48,6 +48,7 @@ mos_add_kconfig_define(MOS_DEBUG)
 mos_add_kconfig_define(MOS_PRINTK_HAS_FILENAME)
 mos_add_kconfig_define(MOS_MAX_CPU_COUNT)
 mos_add_kconfig_define(MOS_PROCESS_MAX_OPEN_FILES)
+mos_add_kconfig_define(MOS_PROCESS_MAX_THREADS)
 mos_add_kconfig_define(MOS_MEME)
 mos_add_kconfig_define(MOS_PATH_MAX_LENGTH)
 

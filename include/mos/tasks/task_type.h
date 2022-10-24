@@ -4,9 +4,9 @@
 
 #include "lib/structures/stack.h"
 #include "mos/io/io.h"
+#include "mos/kconfig.h"
+#include "mos/platform/platform.h"
 #include "mos/types.h"
-
-typedef void (*thread_entry_t)(void *arg);
 
 typedef enum
 {
@@ -23,6 +23,8 @@ typedef enum
     THREAD_FLAG_USERMODE = 1 << 0,
 } thread_flags_t;
 
+typedef struct _thread thread_t;
+
 typedef struct
 {
     char magic[4];
@@ -31,9 +33,17 @@ typedef struct
     pid_t parent_pid;
     uid_t effective_uid;
     paging_handle_t pagetable;
-    io_t *files[MOS_PROCESS_MAX_OPEN_FILES];
+
     ssize_t files_count;
-    tid_t main_thread_id;
+    io_t *files[MOS_PROCESS_MAX_OPEN_FILES];
+
+    thread_t *main_thread;
+
+    ssize_t threads_count;
+    thread_t *threads[MOS_PROCESS_MAX_THREADS];
+
+    ssize_t mmaps_count;
+    vm_block_t *mmaps;
 } process_t;
 
 typedef struct _thread

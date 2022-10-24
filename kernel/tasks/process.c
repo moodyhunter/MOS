@@ -4,6 +4,7 @@
 
 #include "lib/string.h"
 #include "lib/structures/hashmap.h"
+#include "mos/filesystem/filesystem.h"
 #include "mos/io/io.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/platform/platform.h"
@@ -46,7 +47,7 @@ void process_deinit(void)
     kfree(process_table);
 }
 
-process_t *allocate_process(process_t *parent, uid_t euid, const char *name, thread_entry_t entry, void *arg)
+process_t *process_new(process_t *parent, uid_t euid, const char *name, thread_entry_t entry, void *arg)
 {
     process_t *proc = kmalloc(sizeof(process_t));
     memzero(proc, sizeof(process_t));
@@ -59,18 +60,13 @@ process_t *allocate_process(process_t *parent, uid_t euid, const char *name, thr
     proc->pid = new_process_id();
 
     if (proc->pid == 1)
-    {
         proc->parent_pid = proc->pid;
-    }
-    else
+    else if (!parent)
     {
-        if (!parent)
-        {
-            pr_emerg("process %d has no parent", proc->pid);
-            kfree(proc);
-            return NULL;
-        }
         proc->parent_pid = parent->pid;
+        pr_emerg("process %d has no parent", proc->pid);
+        kfree(proc);
+        return NULL;
     }
 
     proc->name = "<unknown>";
@@ -84,15 +80,14 @@ process_t *allocate_process(process_t *parent, uid_t euid, const char *name, thr
     proc->pagetable = mos_platform->mm_create_pagetable();
 
     process_stdio_setup(proc);
-    thread_t *main_thread = create_thread(proc, THREAD_FLAG_USERMODE, entry, arg);
-    proc->main_thread_id = main_thread->tid;
+    proc->main_thread = create_thread(proc, THREAD_FLAG_USERMODE, entry, arg);
 
     void *old_proc = hashmap_put(process_table, &proc->pid, proc);
     MOS_ASSERT_X(old_proc == NULL, "process already exists, go and buy yourself a lottery :)");
     return proc;
 }
 
-process_t *get_process(pid_t pid)
+process_t *process_get(pid_t pid)
 {
     process_t *p = hashmap_get(process_table, &pid);
     if (p == NULL)
@@ -124,16 +119,37 @@ bool process_detach_fd(process_t *process, fd_t fd)
     return true;
 }
 
+void process_attach_thread(process_t *process, thread_t *thread)
+{
+    MOS_ASSERT(process_is_valid(process));
+    MOS_ASSERT(thread_is_valid(thread));
+    pr_info("process %d attached thread %d", process->pid, thread->tid);
+    process->threads[process->threads_count++] = thread;
+}
+
+void process_attach_mmap(process_t *process, vm_block_t block)
+{
+    MOS_ASSERT(process_is_valid(process));
+    process->mmaps = krealloc(process->mmaps, sizeof(vm_block_t) * (process->mmaps_count + 1));
+    process->mmaps[process->mmaps_count++] = block;
+}
+
 void process_handle_exit(process_t *process, int exit_code)
 {
     MOS_ASSERT(process_is_valid(process));
     pr_info("process %d exited with code %d", process->pid, exit_code);
 
-    // TODO
-    // for all threads in process
-    //   kill thread
-
-    current_thread->status = THREAD_STATUS_DEAD;
+    mos_debug("terminating all %lu threads owned by %d", process->threads_count, process->pid);
+    for (int i = 0; i < process->threads_count; i++)
+    {
+        thread_t *thread = process->threads[i];
+        if (thread->status == THREAD_STATUS_DEAD)
+        {
+            mos_warn("thread %d is already dead", thread->tid);
+            continue;
+        }
+        thread->status = THREAD_STATUS_DEAD;
+    }
 }
 
 process_t *process_handle_fork(process_t *process)
@@ -141,6 +157,28 @@ process_t *process_handle_fork(process_t *process)
     MOS_ASSERT(process_is_valid(process));
     pr_info("process %d forked", process->pid);
 
-    // TODO
+    process_t *child = process_new(process, process->effective_uid, process->name, NULL, NULL);
+
     return NULL;
+}
+
+void process_dump_mmaps(process_t *process)
+{
+    for (int i = 0; i < process->mmaps_count; i++)
+    {
+        vm_block_t block = process->mmaps[i];
+        pr_info("block %d: " VPTR_FMT " -> " PPTR_FMT ", %zd bytes, perm: %s%s%s%s%s%s%s",
+                i,                                           //
+                block.block.vaddr,                           //
+                block.block.paddr,                           //
+                block.block.size_bytes,                      //
+                block.flags & VM_READ ? "r" : "-",           //
+                block.flags & VM_WRITE ? "w" : "-",          //
+                block.flags & VM_EXEC ? "x" : "-",           //
+                block.flags & VM_WRITE_THROUGH ? "t" : "-",  //
+                block.flags & VM_CACHE_DISABLED ? "d" : "-", //
+                block.flags & VM_GLOBAL ? "g" : "-",         //
+                block.flags & VM_USERMODE ? "u" : "-"        //
+        );
+    }
 }

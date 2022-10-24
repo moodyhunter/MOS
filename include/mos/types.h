@@ -29,12 +29,16 @@ typedef u32 reg32_t;
 typedef u64 reg64_t;
 
 #ifdef MOS_32BITS
-#define PTR_FMT "0x%8.8lx"
+#define _PTR_FMT "%8.8lx"
 #elif defined(MOS_64BITS)
-#define PTR_FMT "0x%16.16lx"
+#define _PTR_FMT "%16.16lx"
 #else
 #error "Something is wrong with the architecture"
 #endif
+
+#define PTR_FMT  "0x" _PTR_FMT
+#define VPTR_FMT "0v" _PTR_FMT
+#define PPTR_FMT "0p" _PTR_FMT
 
 typedef union
 {

@@ -9,6 +9,7 @@
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging.h"
 #include "mos/platform/platform.h"
+#include "mos/tasks/process.h"
 #include "mos/tasks/task_type.h"
 #include "mos/x86/tasks/context.h"
 
@@ -52,19 +53,19 @@ static tid_t new_thread_id()
 
 thread_t *create_thread(process_t *owner, thread_flags_t flags, thread_entry_t entry, void *arg)
 {
-    thread_t *thread = kmalloc(sizeof(thread_t));
-    thread->magic[0] = 'T';
-    thread->magic[1] = 'H';
-    thread->magic[2] = 'R';
-    thread->magic[3] = 'D';
-    thread->tid = new_thread_id();
-    thread->owner = owner;
-    thread->status = THREAD_STATUS_READY;
-    thread->flags = flags;
+    thread_t *t = kmalloc(sizeof(thread_t));
+    t->magic[0] = 'T';
+    t->magic[1] = 'H';
+    t->magic[2] = 'R';
+    t->magic[3] = 'D';
+    t->tid = new_thread_id();
+    t->owner = owner;
+    t->status = THREAD_STATUS_READY;
+    t->flags = flags;
 
     // allcate stack for the thread
     void *stack_page = kpage_alloc(thread_stack_npages, PGALLOC_NONE);
-    stack_init(&thread->stack, stack_page, THREAD_STACK_SIZE);
+    stack_init(&t->stack, stack_page, THREAD_STACK_SIZE);
 
     vm_flags stack_flags = VM_WRITE;
     if (flags & THREAD_FLAG_USERMODE)
@@ -72,10 +73,11 @@ thread_t *create_thread(process_t *owner, thread_flags_t flags, thread_entry_t e
 
     // thread stack
     mos_platform->mm_map_kvaddr(owner->pagetable, (uintptr_t) stack_page, (uintptr_t) stack_page, thread_stack_npages, stack_flags);
-    mos_platform->context_setup(thread, entry, arg);
+    mos_platform->context_setup(t, entry, arg);
 
-    hashmap_put(thread_table, &thread->tid, thread);
-    return thread;
+    hashmap_put(thread_table, &t->tid, t);
+    process_attach_thread(owner, t);
+    return t;
 }
 
 thread_t *get_thread(tid_t tid)

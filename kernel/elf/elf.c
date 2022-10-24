@@ -5,6 +5,7 @@
 #include "lib/string.h"
 #include "mos/filesystem/filesystem.h"
 #include "mos/mm/paging.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/types.h"
@@ -65,7 +66,7 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
         goto bail_out;
     }
 
-    process_t *proc = allocate_process(NULL, effective_uid, f->fsnode->name, (thread_entry_t) elf->entry_point, NULL);
+    process_t *proc = process_new(NULL, effective_uid, f->fsnode->name, (thread_entry_t) elf->entry_point, NULL);
 
     for (int i = 0; i < elf->ph.count; i++)
     {
@@ -88,16 +89,18 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
             VM_USERMODE                                 //
         );
 
-        mos_platform->mm_map_kvaddr(                              //
+        vm_block_t block = mos_platform->mm_map_kvaddr(           //
             proc->pagetable,                                      //
             ALIGN_DOWN_TO_PAGE(ph->vaddr),                        //
             (uintptr_t) buf + ph->data_offset,                    //
             ALIGN_UP_TO_PAGE(ph->segsize_in_mem) / MOS_PAGE_SIZE, //
             map_flags                                             //
         );
+        process_attach_mmap(proc, block);
     }
 
 #if MOS_DEBUG
+    process_dump_mmaps(proc);
     const char *const strtab = buf + ((elf_section_hdr_t *) (buf + elf->sh_offset + elf->sh_strtab_index * elf->sh.entry_size))->sh_offset;
     for (int i = 0; i < elf->sh.count; i++)
     {
@@ -111,6 +114,8 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
     return proc;
 
 bail_out:
+    if (buf)
+        kpage_free(buf, npage_required);
     if (f)
         io_close(&f->io);
     return NULL;

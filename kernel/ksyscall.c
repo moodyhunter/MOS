@@ -74,6 +74,14 @@ pid_t define_ksyscall(fork)(void)
 
 pid_t define_ksyscall(exec)(const char *path, const char *const argv[])
 {
+    MOS_UNUSED(path);
+    MOS_UNUSED(argv);
+
     // TODO
     return -1;
+}
+
+pid_t define_ksyscall(get_pid)()
+{
+    return 0;
 }

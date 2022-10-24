@@ -21,10 +21,7 @@ bool schedule_to_thread(const void *key, void *value)
 noreturn void scheduler(void)
 {
     while (1)
-    {
         hashmap_foreach(thread_table, schedule_to_thread);
-        mos_debug("no more threads to schedule, starting over");
-    }
 }
 
 void jump_to_scheduler(void)

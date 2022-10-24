@@ -65,6 +65,12 @@
             "name": "exec",
             "return": "pid_t",
             "arguments": [ { "type": "const char *", "arg": "file_path" }, { "type": "const char *const *", "arg": "argv" } ]
+        },
+        {
+            "number": 10,
+            "name": "get_pid",
+            "return": "pid_t",
+            "arguments": [ ]
         }
     ]
 }

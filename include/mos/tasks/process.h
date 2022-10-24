@@ -15,10 +15,16 @@ should_inline bool process_is_valid(process_t *process)
     return process != NULL && process->magic[0] == 'P' && process->magic[1] == 'R' && process->magic[2] == 'O' && process->magic[3] == 'C';
 }
 
-process_t *allocate_process(process_t *parent, uid_t effective_uid, const char *name, thread_entry_t entry, void *arg);
-process_t *get_process(pid_t pid);
+process_t *process_new(process_t *parent, uid_t effective_uid, const char *name, thread_entry_t entry, void *arg);
+process_t *process_get(pid_t pid);
+
 fd_t process_attach_fd(process_t *process, io_t *file);
 bool process_detach_fd(process_t *process, fd_t fd);
 
+void process_attach_thread(process_t *process, thread_t *thread);
+void process_attach_mmap(process_t *process, vm_block_t block);
+
 void process_handle_exit(process_t *process, int exit_code);
 process_t *process_handle_fork(process_t *process);
+
+void process_dump_mmaps(process_t *process);

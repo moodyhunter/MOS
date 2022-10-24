@@ -2,10 +2,8 @@
 
 #pragma once
 
-#include "lib/containers.h"
 #include "mos/kconfig.h"
 #include "mos/mos_global.h"
-#include "mos/tasks/task_type.h"
 #include "mos/types.h"
 
 #define PER_CPU_DECLARE(type, name)                                                                                                             \
@@ -17,6 +15,9 @@
 #define per_cpu(var) (&(var.percpu_value[mos_platform->current_cpu_id()]))
 
 typedef void (*irq_handler)(u32 irq);
+typedef void (*thread_entry_t)(void *arg);
+
+typedef struct _thread thread_t;
 
 typedef enum
 {
@@ -47,7 +48,6 @@ typedef struct
 
 typedef struct
 {
-    as_linked_list;
     uintptr_t vaddr;
     uintptr_t paddr;
     size_t size_bytes;
