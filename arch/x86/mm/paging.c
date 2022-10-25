@@ -199,6 +199,9 @@ paging_handle_t x86_um_pgd_create()
     // pg_do_map_pages(infra, 0, 0, 1, VM_NONE); // ! the zero page is not writable, nor readable by user
     pg_do_map_pages(infra, MOS_PAGE_SIZE, MOS_PAGE_SIZE, 1 MB / MOS_PAGE_SIZE - 1, VM_GLOBAL | VM_WRITE);
 
+    // physical address of kernel page table
+    const uintptr_t kpgtable_paddr = pg_page_get_mapped_paddr(x86_kpg_infra, (uintptr_t) x86_kpg_infra->pgtable);
+
     // this is a bit of a hack, but it's the easiest way that I can think of ...
     const int kernel_page_start = MOS_KERNEL_START_VADDR / (1024 * MOS_PAGE_SIZE);
     for (int i = kernel_page_start; i < 1024; i++)
@@ -208,7 +211,8 @@ paging_handle_t x86_um_pgd_create()
         pgd->writable = true;
         pgd->usermode = false;
         // redirect it to the kernel page table
-        pgd->page_table_paddr = (uintptr_t) x86_kpg_infra->pgdir[i].page_table_paddr;
+        // use pre-allocated (pre-calculated) physical address, otherwise some newly mapped pgdirs won't be applied correctly
+        pgd->page_table_paddr = (kpgtable_paddr + i * 1024 * sizeof(x86_pgtable_entry)) >> 12;
     }
     return handle;
 }
