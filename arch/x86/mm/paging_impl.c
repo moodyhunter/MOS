@@ -20,23 +20,16 @@ always_inline void pg_flush_tlb(uintptr_t vaddr)
     __asm__ volatile("invlpg (%0)" ::"r"(vaddr));
 }
 
-vmblock_t pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pgalloc_flags flags)
+vmblock_t pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pgalloc_hints flags, vm_flags vm_flag)
 {
-    vm_flags pflags = VM_WRITE;
-    // always allocate after the end of the kernel pages
     uintptr_t vaddr_begin;
 
-    if (flags & PGALLOC_KHEAP)
-    {
-        // ...so that we can use the kernel heap everywhere?
-        pflags |= VM_GLOBAL;
+    if (flags & PGALLOC_HINT_KHEAP)
         vaddr_begin = MOS_X86_HEAP_BASE_VADDR;
-    }
+    else if (flags & PGALLOC_HINT_USERSPACE)
+        vaddr_begin = MOS_USERSPACE_PGALLOC_START;
     else
-    {
-#pragma message "TODO: Why?"
         vaddr_begin = mos_kernel_end;
-    }
 
     // simply rename the variable, we are dealing with bitmaps
     size_t n_bits = n_page;
@@ -49,7 +42,7 @@ vmblock_t pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pgalloc_flags flags)
         if (i >= MM_PAGE_MAP_SIZE)
         {
             mos_warn("failed to allocate %zu pages", n_page);
-            return (vmblock_t){ .mem.available = false };
+            return (vmblock_t){ 0, .pages = 0 };
         }
         pagemap_line_t current_byte = pg->page_map[i];
 
@@ -75,23 +68,25 @@ vmblock_t pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pgalloc_flags flags)
 
     size_t page_i = vaddr_map_bit_begin * PAGEMAP_WIDTH + target_bit;
     uintptr_t vaddr = page_i * MOS_PAGE_SIZE;
-    mos_debug("paging: allocating page %zu to %zu (aka starting at " PTR_FMT ")", page_i, page_i + n_page, vaddr);
+    return pg_page_alloc_at(pg, vaddr, n_page, vm_flag);
+}
 
+vmblock_t pg_page_alloc_at(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n_page, vm_flags vm_flag)
+{
     uintptr_t paddr = pmem_freelist_find_free(n_page);
 
     if (paddr == 0)
     {
         mos_panic("OOM");
-        return (vmblock_t){ .mem.available = false };
+        return (vmblock_t){ 0, .pages = 0 };
     }
 
-    pg_map_pages(pg, vaddr, paddr, n_page, pflags);
+    pg_map_pages(pg, vaddr, paddr, n_page, vm_flag);
     vmblock_t block = {
-        .mem.available = true,
-        .mem.vaddr = vaddr,
-        .mem.paddr = paddr,
-        .mem.size_bytes = n_page * MOS_PAGE_SIZE,
-        .flags = pflags,
+        .vaddr = vaddr,
+        .paddr = paddr,
+        .pages = n_page,
+        .flags = vm_flag,
     };
     return block;
 }
@@ -119,8 +114,8 @@ void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags)
         pg->pgdir[pgd_i].writable = flags & VM_WRITE;
         pg->pgtable[page_i].writable = flags & VM_WRITE;
 
-        pg->pgdir[pgd_i].usermode = flags & VM_USERMODE;
-        pg->pgtable[page_i].usermode = flags & VM_USERMODE;
+        pg->pgdir[pgd_i].usermode = flags & VM_USER;
+        pg->pgtable[page_i].usermode = flags & VM_USER;
 
         pg->pgdir[pgd_i].cache_disabled = flags & VM_CACHE_DISABLED;
         pg->pgtable[page_i].cache_disabled = flags & VM_CACHE_DISABLED;
@@ -181,11 +176,8 @@ void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_fla
     u32 pte_index = page_dir_index * 1024 + page_table_index;
 
     x86_pgdir_entry *this_dir = &pg->pgdir[page_dir_index];
+
     x86_pgtable_entry *this_table = &pg->pgtable[pte_index];
-    MOS_ASSERT_X(this_table->present == false, "page is already mapped");
-
-    // TODO: dynamically allocate a page table if it doesn't exist
-
     if (unlikely(!this_dir->present))
     {
         this_dir->present = true;
@@ -199,14 +191,19 @@ void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_fla
         this_dir->page_table_paddr = table_paddr >> 12;
     }
 
+    if (pg != x86_kpg_infra && page_dir_index >= 768)
+        MOS_ASSERT_X(this_dir->present, "page directory not present for kernel addresses, when mapping user pages");
+
+    MOS_ASSERT_X(this_table->present == false, "page is already mapped");
+
     this_table->present = true;
     this_table->phys_addr = (uintptr_t) paddr >> 12;
 
     this_dir->writable = flags & VM_WRITE;
     this_table->writable = flags & VM_WRITE;
 
-    this_dir->usermode = flags & VM_USERMODE;
-    this_table->usermode = flags & VM_USERMODE;
+    this_dir->usermode = flags & VM_USER;
+    this_table->usermode = flags & VM_USER;
 
     this_dir->cache_disabled = flags & VM_CACHE_DISABLED;
     this_table->cache_disabled = flags & VM_CACHE_DISABLED;

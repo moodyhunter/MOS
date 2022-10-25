@@ -131,7 +131,7 @@ void process_attach_thread(process_t *process, thread_t *thread)
 void process_attach_mmap(process_t *process, vmblock_t block, vm_type type)
 {
     MOS_ASSERT(process_is_valid(process));
-    process->mmaps = krealloc(process->mmaps, sizeof(vmblock_t) * (process->mmaps_count + 1));
+    process->mmaps = krealloc(process->mmaps, sizeof(proc_vmblock_t) * (process->mmaps_count + 1));
     process->mmaps[process->mmaps_count++] = (proc_vmblock_t){ .vm = block, .type = type };
 }
 
@@ -158,6 +158,8 @@ process_t *process_handle_fork(process_t *process)
     MOS_ASSERT(process_is_valid(process));
     pr_info("process %d forked", process->pid);
 
+    process_dump_mmaps(process);
+
     // TODO: get the returned address (replace NULL)
     process_t *child = process_new(process, process->effective_uid, process->name, NULL, NULL);
 
@@ -167,6 +169,9 @@ process_t *process_handle_fork(process_t *process)
     for (int i = 0; i < process->mmaps_count; i++)
     {
         proc_vmblock_t block = process->mmaps[i];
+        pr_info("copying block %d", i);
+        vmblock_t m = mos_platform->mm_alloc_pages_at(child->pagetable, block.vm.vaddr, block.vm.pages, block.vm.flags);
+        process_attach_mmap(child, m, block.type);
     }
 
     return NULL;
@@ -187,18 +192,18 @@ void process_dump_mmaps(process_t *process)
             default: MOS_UNREACHABLE();
         };
 
-        pr_info("block %d: " VPTR_FMT " -> " PPTR_FMT ", %zd bytes, perm: %s%s%s%s%s%s%s -> %s",
+        pr_info("block %d: " PTR_FMT " -> " PTR_FMT ", %zd page(s), perm: %s%s%s%s%s%s%s -> %s",
                 i,                                              //
-                block.vm.mem.vaddr,                             //
-                block.vm.mem.paddr,                             //
-                block.vm.mem.size_bytes,                        //
+                block.vm.vaddr,                                 //
+                block.vm.paddr,                                 //
+                block.vm.pages,                                 //
                 block.vm.flags & VM_READ ? "r" : "-",           //
                 block.vm.flags & VM_WRITE ? "w" : "-",          //
                 block.vm.flags & VM_EXEC ? "x" : "-",           //
                 block.vm.flags & VM_WRITE_THROUGH ? "W" : "-",  //
                 block.vm.flags & VM_CACHE_DISABLED ? "-" : "c", //
                 block.vm.flags & VM_GLOBAL ? "g" : "-",         //
-                block.vm.flags & VM_USERMODE ? "u" : "-",       //
+                block.vm.flags & VM_USER ? "u" : "-",           //
                 type                                            //
         );
     }

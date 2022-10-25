@@ -129,7 +129,7 @@ static liballoc_block_t *allocate_new_pages_for(unsigned int size)
     if (st < l_alloc_n_page_once)
         st = l_alloc_n_page_once;
 
-    liballoc_block_t *maj = (liballoc_block_t *) kpage_alloc(st, PGALLOC_KHEAP);
+    liballoc_block_t *maj = (liballoc_block_t *) kpage_alloc(st, PGALLOC_HINT_KHEAP, VM_READ | VM_WRITE);
     if (maj == NULL)
     {
         l_warnings += 1;

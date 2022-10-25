@@ -22,10 +22,9 @@ typedef struct _thread thread_t;
 typedef enum
 {
     VM_NONE = 0,
-    // VM_PRESENT = 1 << 0,
     VM_READ = 1 << 0,
     VM_WRITE = 1 << 1,
-    VM_USERMODE = 1 << 2,
+    VM_USER = 1 << 2,
     VM_WRITE_THROUGH = 1 << 3,
     VM_CACHE_DISABLED = 1 << 4,
     VM_GLOBAL = 1 << 5,
@@ -35,9 +34,10 @@ typedef enum
 // indicates which type of page we are allocating
 typedef enum
 {
-    PGALLOC_NONE = 0 << 0,
-    PGALLOC_KHEAP = 1 << 0,
-} pgalloc_flags;
+    PGALLOC_HINT_DEFAULT = 0 << 0,
+    PGALLOC_HINT_KHEAP = 1 << 0,
+    PGALLOC_HINT_USERSPACE = 1 << 1,
+} pgalloc_hints;
 
 typedef enum
 {
@@ -64,7 +64,9 @@ typedef struct
 
 typedef struct
 {
-    memblock_t mem;
+    uintptr_t vaddr;
+    uintptr_t paddr; // probably non-contiguous
+    size_t pages;
     vm_flags flags;
 } vmblock_t;
 
@@ -108,7 +110,8 @@ typedef struct
     paging_handle_t (*const mm_create_pagetable)();
     void (*const mm_destroy_pagetable)(paging_handle_t table);
 
-    vmblock_t (*const mm_alloc_pages)(paging_handle_t table, size_t n, pgalloc_flags flags);
+    vmblock_t (*const mm_alloc_pages)(paging_handle_t table, size_t n, pgalloc_hints pg_flags, vm_flags vm_flags);
+    vmblock_t (*const mm_alloc_pages_at)(paging_handle_t table, uintptr_t addr, size_t n, vm_flags vflags);
     bool (*const mm_free_pages)(paging_handle_t table, uintptr_t vaddr, size_t n);
     // void (*const mm_flag_pages)(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
     vmblock_t (*const mm_map_kvaddr)(paging_handle_t table, uintptr_t virt, uintptr_t kvaddr, size_t n, vm_flags flags);
@@ -122,8 +125,9 @@ typedef struct
 
 extern mos_platform_t *const mos_platform;
 
-#define current_cpu    per_cpu(mos_platform->cpu)
-#define current_thread current_cpu->thread
+#define current_cpu     per_cpu(mos_platform->cpu)
+#define current_thread  (current_cpu->thread)
+#define current_process (current_thread->owner)
 
 extern void mos_start_kernel(const char *cmdline);
 extern void mos_kernel_mm_init(void);

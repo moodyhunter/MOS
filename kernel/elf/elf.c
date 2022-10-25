@@ -48,7 +48,7 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
     }
 
     size_t npage_required = f->io.size / MOS_PAGE_SIZE + 1;
-    char *const buf = kpage_alloc(npage_required, PGALLOC_NONE);
+    char *const buf = kpage_alloc(npage_required, PGALLOC_HINT_DEFAULT, VM_READ | VM_WRITE);
 
     size_t size = io_read(&f->io, buf, f->io.size);
     MOS_ASSERT_X(size == f->io.size, "failed to read init");
@@ -87,7 +87,7 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
             (ph->p_flags & ELF_PH_F_R ? VM_READ : 0) |  //
             (ph->p_flags & ELF_PH_F_W ? VM_WRITE : 0) | //
             (ph->p_flags & ELF_PH_F_X ? VM_EXEC : 0) |  //
-            VM_USERMODE                                 //
+            VM_USER                                     //
         );
 
         vmblock_t block = mos_platform->mm_map_kvaddr(            //

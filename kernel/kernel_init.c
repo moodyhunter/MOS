@@ -99,7 +99,9 @@ void mos_start_kernel(const char *cmdline)
     // the stack memory to be used if we enter the kernelmode by a trap / interrupt
     // TODO: Per-process stack
     extern tss32_t tss_entry;
-    tss_entry.esp0 = (u32) kpage_alloc(1, PGALLOC_NONE) + 1 * MOS_PAGE_SIZE; // stack grows downwards from the top of the page
+// stack grows downwards from the top of the page
+#define KSTACK_PAGES 1
+    tss_entry.esp0 = (u32) kpage_alloc(KSTACK_PAGES, PGALLOC_HINT_DEFAULT, VM_READ | VM_WRITE) + KSTACK_PAGES * MOS_PAGE_SIZE;
     pr_emph("kernel stack at " PTR_FMT, (uintptr_t) tss_entry.esp0);
 
     scheduler();

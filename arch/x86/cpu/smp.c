@@ -48,7 +48,7 @@ void ap_begin_exec()
 {
     x86_ap_gdt_init();
     x86_idt_init();
-    x86_mm_enable_paging(x86_kpg_infra);
+    x86_mm_enable_paging();
 
     processor_version_t info;
     cpuid_get_processor_info(&info);

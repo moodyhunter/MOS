@@ -9,6 +9,7 @@
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/tasks/task_type.h"
 #include "mos/types.h"
 #include "mos/x86/acpi/acpi.h"
 #include "mos/x86/boot/multiboot.h"
@@ -26,8 +27,14 @@
 
 static char mos_cmdline[512];
 static serial_console_t com1_console = {
-    .device = { .port = COM1, .baud_rate = BAUD_RATE_115200, .char_length = CHAR_LENGTH_8, .stop_bits = STOP_BITS_1, .parity = PARITY_EVEN },
-    .console = { .name = "Serial Console on COM1", .caps = CONSOLE_CAP_SETUP | CONSOLE_CAP_COLOR, .setup = serial_console_setup },
+    .device.port = COM1,
+    .device.baud_rate = BAUD_RATE_115200,
+    .device.char_length = CHAR_LENGTH_8,
+    .device.stop_bits = STOP_BITS_1,
+    .device.parity = PARITY_EVEN,
+    .console.name = "Serial Console on COM1",
+    .console.caps = CONSOLE_CAP_SETUP | CONSOLE_CAP_COLOR,
+    .console.setup = serial_console_setup,
 };
 
 const uintptr_t mos_kernel_end = (uintptr_t) &__MOS_KERNEL_END;
@@ -55,7 +62,10 @@ void do_backtrace(u32 max)
 void x86_kpanic_hook()
 {
     pmem_freelist_dump();
-    x86_mm_dump_page_table(x86_get_pg_infra(current_thread->owner->pagetable));
+    pr_emph("Current task: %s", current_process->name);
+    pr_emph("Task Page Table:");
+    x86_mm_dump_page_table(x86_get_pg_infra(current_process->pagetable));
+    pr_emph("Kernel Page Table:");
     x86_mm_dump_page_table(x86_kpg_infra);
     do_backtrace(20);
 }
@@ -72,7 +82,6 @@ void x86_start_kernel(x86_startup_info *info)
     x86_tss_init();
     x86_irq_handler_init();
 
-    // I don't like the timer interrupt, so disable it.
     pic_unmask_irq(IRQ_TIMER);
     pic_unmask_irq(IRQ_KEYBOARD);
     pic_unmask_irq(IRQ_COM1);
@@ -94,7 +103,7 @@ void x86_start_kernel(x86_startup_info *info)
         x86_pgtable_entry *table = (x86_pgtable_entry *) (((x86_pgdir_entry *) cr3)[initrd_vaddr >> 22].page_table_paddr << 12);
         const uintptr_t initrd_paddr = table->phys_addr << 12;
         const size_t initrd_n_pages = ALIGN_UP_TO_PAGE(initrd_size) / MOS_PAGE_SIZE;
-        pg_do_map_pages(x86_kpg_infra, initrd_vaddr, initrd_paddr, initrd_n_pages, VM_GLOBAL);
+        pg_map_pages(x86_kpg_infra, initrd_vaddr, initrd_paddr, initrd_n_pages, VM_GLOBAL);
     }
 
     x86_acpi_init();
@@ -114,7 +123,7 @@ void x86_start_kernel(x86_startup_info *info)
     pmem_freelist_dump();
 #endif
 
-    x86_mm_enable_paging(x86_kpg_infra);
+    x86_mm_enable_paging();
 
     mos_kernel_mm_init(); // since then, we can use the kernel heap (kmalloc)
 
@@ -157,6 +166,7 @@ mos_platform_t x86_platform = {
     .mm_create_pagetable = x86_um_pgd_create,
     .mm_destroy_pagetable = x86_um_pgd_destroy,
     .mm_alloc_pages = x86_mm_pg_alloc,
+    .mm_alloc_pages_at = x86_mm_pg_alloc_at,
     .mm_free_pages = x86_mm_pg_free,
     // .mm_flag_pages = x86_mm_pg_flag,
     .mm_map_kvaddr = x86_mm_pg_map_to_kvirt,

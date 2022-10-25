@@ -10,13 +10,14 @@ typedef struct x86_pg_infra_t x86_pg_infra_t;
 extern x86_pg_infra_t *x86_kpg_infra;
 
 void x86_mm_prepare_paging();
-void x86_mm_enable_paging(x86_pg_infra_t *kpg_infra);
+void x86_mm_enable_paging(void);
 void x86_mm_dump_page_table(x86_pg_infra_t *pg);
 
 paging_handle_t x86_um_pgd_create();
 void x86_um_pgd_destroy(paging_handle_t pgt);
 
-vmblock_t x86_mm_pg_alloc(paging_handle_t pgt, size_t n, pgalloc_flags flags);
+vmblock_t x86_mm_pg_alloc(paging_handle_t pgt, size_t n, pgalloc_hints flags, vm_flags vm_flags);
+vmblock_t x86_mm_pg_alloc_at(paging_handle_t pgt, uintptr_t addr, size_t n, vm_flags vm_flags);
 bool x86_mm_pg_free(paging_handle_t pgt, uintptr_t vaddr, size_t n);
 void x86_mm_pg_flag(paging_handle_t pgt, uintptr_t vaddr, size_t n, vm_flags flags);
 

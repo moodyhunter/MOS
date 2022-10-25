@@ -36,9 +36,7 @@ typedef u64 reg64_t;
 #error "Something is wrong with the architecture"
 #endif
 
-#define PTR_FMT  "0x" _PTR_FMT
-#define VPTR_FMT "0v" _PTR_FMT
-#define PPTR_FMT "0p" _PTR_FMT
+#define PTR_FMT "0x" _PTR_FMT
 
 typedef union
 {

@@ -64,14 +64,14 @@ void x86_mm_prepare_paging()
     pg_map_pages(x86_kpg_infra, k_v_data_start, k_p_data_start, (k_v_data_end - k_v_data_start) / MOS_PAGE_SIZE, VM_GLOBAL | VM_WRITE);
 }
 
-void x86_mm_enable_paging(x86_pg_infra_t *infra)
+void x86_mm_enable_paging(void)
 {
-    mos_debug("paging: page directory vaddr at: %p", (void *) infra->pgdir);
-    x86_enable_paging_impl(((uintptr_t) infra->pgdir) - MOS_KERNEL_START_VADDR);
+    mos_debug("paging: page directory vaddr at: %p", (void *) x86_kpg_infra->pgdir);
+    x86_enable_paging_impl(((uintptr_t) x86_kpg_infra->pgdir) - MOS_KERNEL_START_VADDR);
     pr_info("paging: enabled");
 
 #if MOS_DEBUG
-    x86_mm_dump_page_table(infra);
+    x86_mm_dump_page_table(x86_kpg_infra);
     pmem_freelist_dump();
 #endif
 }
@@ -198,8 +198,9 @@ void x86_mm_dump_page_table(x86_pg_infra_t *pg)
 
 paging_handle_t x86_um_pgd_create()
 {
-    vmblock_t block = pg_page_alloc(x86_kpg_infra, ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE, PGALLOC_NONE);
-    x86_pg_infra_t *infra = (x86_pg_infra_t *) block.mem.vaddr;
+    vmblock_t block =
+        pg_page_alloc(x86_kpg_infra, ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE, PGALLOC_HINT_DEFAULT, VM_READ | VM_WRITE);
+    x86_pg_infra_t *infra = (x86_pg_infra_t *) block.vaddr;
     memset(infra, 0, sizeof(x86_pg_infra_t));
     paging_handle_t handle;
     handle.ptr = (uintptr_t) infra;
@@ -230,10 +231,16 @@ void x86_um_pgd_destroy(paging_handle_t pgt)
     kfree((void *) pgt.ptr);
 }
 
-vmblock_t x86_mm_pg_alloc(paging_handle_t pgt, size_t n, pgalloc_flags flags)
+vmblock_t x86_mm_pg_alloc(paging_handle_t pgt, size_t n, pgalloc_hints flags, vm_flags vm_flags)
 {
     x86_pg_infra_t *kpg_infra = x86_get_pg_infra(pgt);
-    return pg_page_alloc(kpg_infra, n, flags);
+    return pg_page_alloc(kpg_infra, n, flags, vm_flags);
+}
+
+vmblock_t x86_mm_pg_alloc_at(paging_handle_t pgt, uintptr_t vaddr, size_t n, vm_flags vm_flags)
+{
+    x86_pg_infra_t *kpg_infra = x86_get_pg_infra(pgt);
+    return pg_page_alloc_at(kpg_infra, vaddr, n, vm_flags);
 }
 
 bool x86_mm_pg_free(paging_handle_t pgt, uintptr_t vaddr, size_t n)
@@ -255,10 +262,9 @@ vmblock_t x86_mm_pg_map_to_kvirt(paging_handle_t table, uintptr_t vaddr, uintptr
     pg_do_map_pages(pg_infra, vaddr, paddr, n, flags);
 
     vmblock_t block = {
-        .mem.vaddr = vaddr,
-        .mem.paddr = paddr,
-        .mem.size_bytes = n * MOS_PAGE_SIZE,
-        .mem.available = true,
+        .vaddr = vaddr,
+        .paddr = paddr,
+        .pages = n,
         .flags = flags,
     };
     return block;
