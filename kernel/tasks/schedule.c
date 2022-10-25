@@ -13,8 +13,11 @@ bool schedule_to_thread(const void *key, void *value)
     tid_t *tid = (tid_t *) key;
     thread_t *thread = (thread_t *) value;
     MOS_ASSERT_X(thread->tid == *tid, "something is wrong with the thread table");
-    current_thread = thread;
-    mos_platform->switch_to_thread(&current_cpu->scheduler_stack, thread);
+    if (thread->status == THREAD_STATUS_READY)
+    {
+        current_thread = thread;
+        mos_platform->switch_to_thread(&current_cpu->scheduler_stack, thread);
+    }
     return true;
 }
 

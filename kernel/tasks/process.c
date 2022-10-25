@@ -7,6 +7,7 @@
 #include "mos/filesystem/filesystem.h"
 #include "mos/io/io.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/mm/paging.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/task_io.h"
@@ -127,11 +128,11 @@ void process_attach_thread(process_t *process, thread_t *thread)
     process->threads[process->threads_count++] = thread;
 }
 
-void process_attach_mmap(process_t *process, vm_block_t block)
+void process_attach_mmap(process_t *process, vmblock_t block, vm_type type)
 {
     MOS_ASSERT(process_is_valid(process));
-    process->mmaps = krealloc(process->mmaps, sizeof(vm_block_t) * (process->mmaps_count + 1));
-    process->mmaps[process->mmaps_count++] = block;
+    process->mmaps = krealloc(process->mmaps, sizeof(vmblock_t) * (process->mmaps_count + 1));
+    process->mmaps[process->mmaps_count++] = (proc_vmblock_t){ .vm = block, .type = type };
 }
 
 void process_handle_exit(process_t *process, int exit_code)
@@ -157,7 +158,16 @@ process_t *process_handle_fork(process_t *process)
     MOS_ASSERT(process_is_valid(process));
     pr_info("process %d forked", process->pid);
 
+    // TODO: get the returned address (replace NULL)
     process_t *child = process_new(process, process->effective_uid, process->name, NULL, NULL);
+
+    child->main_thread->status = THREAD_STATUS_WAITING;
+
+    // copy the parent's memory
+    for (int i = 0; i < process->mmaps_count; i++)
+    {
+        proc_vmblock_t block = process->mmaps[i];
+    }
 
     return NULL;
 }
@@ -166,19 +176,30 @@ void process_dump_mmaps(process_t *process)
 {
     for (int i = 0; i < process->mmaps_count; i++)
     {
-        vm_block_t block = process->mmaps[i];
-        pr_info("block %d: " VPTR_FMT " -> " PPTR_FMT ", %zd bytes, perm: %s%s%s%s%s%s%s",
-                i,                                           //
-                block.block.vaddr,                           //
-                block.block.paddr,                           //
-                block.block.size_bytes,                      //
-                block.flags & VM_READ ? "r" : "-",           //
-                block.flags & VM_WRITE ? "w" : "-",          //
-                block.flags & VM_EXEC ? "x" : "-",           //
-                block.flags & VM_WRITE_THROUGH ? "t" : "-",  //
-                block.flags & VM_CACHE_DISABLED ? "d" : "-", //
-                block.flags & VM_GLOBAL ? "g" : "-",         //
-                block.flags & VM_USERMODE ? "u" : "-"        //
+        proc_vmblock_t block = process->mmaps[i];
+        const char *type = "unknown";
+        switch (block.type)
+        {
+            case VMTYPE_APPCODE: type = "code"; break;
+            case VMTYPE_APPDATA: type = "data"; break;
+            case VMTYPE_STACK: type = "stack"; break;
+            case VMTYPE_FILE: type = "file"; break;
+            default: MOS_UNREACHABLE();
+        };
+
+        pr_info("block %d: " VPTR_FMT " -> " PPTR_FMT ", %zd bytes, perm: %s%s%s%s%s%s%s -> %s",
+                i,                                              //
+                block.vm.mem.vaddr,                             //
+                block.vm.mem.paddr,                             //
+                block.vm.mem.size_bytes,                        //
+                block.vm.flags & VM_READ ? "r" : "-",           //
+                block.vm.flags & VM_WRITE ? "w" : "-",          //
+                block.vm.flags & VM_EXEC ? "x" : "-",           //
+                block.vm.flags & VM_WRITE_THROUGH ? "W" : "-",  //
+                block.vm.flags & VM_CACHE_DISABLED ? "-" : "c", //
+                block.vm.flags & VM_GLOBAL ? "g" : "-",         //
+                block.vm.flags & VM_USERMODE ? "u" : "-",       //
+                type                                            //
         );
     }
 }

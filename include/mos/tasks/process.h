@@ -4,6 +4,7 @@
 
 #include "mos/filesystem/filesystem.h"
 #include "mos/mos_global.h"
+#include "mos/platform/platform.h"
 #include "mos/tasks/task_type.h"
 #include "mos/types.h"
 
@@ -22,7 +23,7 @@ fd_t process_attach_fd(process_t *process, io_t *file);
 bool process_detach_fd(process_t *process, fd_t fd);
 
 void process_attach_thread(process_t *process, thread_t *thread);
-void process_attach_mmap(process_t *process, vm_block_t block);
+void process_attach_mmap(process_t *process, vmblock_t block, vm_type type);
 
 void process_handle_exit(process_t *process, int exit_code);
 process_t *process_handle_fork(process_t *process);

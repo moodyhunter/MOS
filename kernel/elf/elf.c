@@ -5,6 +5,7 @@
 #include "lib/string.h"
 #include "mos/filesystem/filesystem.h"
 #include "mos/mm/paging.h"
+#include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
@@ -43,7 +44,7 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
     if (!f)
     {
         mos_warn("failed to open '%s'", path);
-        goto bail_out;
+        goto bail_out_1;
     }
 
     size_t npage_required = f->io.size / MOS_PAGE_SIZE + 1;
@@ -89,14 +90,18 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
             VM_USERMODE                                 //
         );
 
-        vm_block_t block = mos_platform->mm_map_kvaddr(           //
+        vmblock_t block = mos_platform->mm_map_kvaddr(            //
             proc->pagetable,                                      //
             ALIGN_DOWN_TO_PAGE(ph->vaddr),                        //
             (uintptr_t) buf + ph->data_offset,                    //
             ALIGN_UP_TO_PAGE(ph->segsize_in_mem) / MOS_PAGE_SIZE, //
             map_flags                                             //
         );
-        process_attach_mmap(proc, block);
+
+        if (unlikely(block.flags != map_flags))
+            pr_emerg("possibly incorrect mapping: " PTR_FMT, ph->vaddr);
+
+        process_attach_mmap(proc, block, (ph->p_flags & ELF_PH_F_X) ? VMTYPE_APPCODE : VMTYPE_APPDATA);
     }
 
 #if MOS_DEBUG
@@ -116,6 +121,7 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
 bail_out:
     if (buf)
         kpage_free(buf, npage_required);
+bail_out_1:
     if (f)
         io_close(&f->io);
     return NULL;

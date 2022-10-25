@@ -37,7 +37,15 @@ typedef enum
 {
     PGALLOC_NONE = 0 << 0,
     PGALLOC_KHEAP = 1 << 0,
-} pagealloc_flags;
+} pgalloc_flags;
+
+typedef enum
+{
+    VMTYPE_APPCODE,
+    VMTYPE_APPDATA,
+    VMTYPE_STACK,
+    VMTYPE_FILE,
+} vm_type;
 
 typedef struct
 {
@@ -56,9 +64,15 @@ typedef struct
 
 typedef struct
 {
-    memblock_t block;
+    memblock_t mem;
     vm_flags flags;
-} vm_block_t;
+} vmblock_t;
+
+typedef struct
+{
+    vmblock_t vm;
+    vm_type type;
+} proc_vmblock_t;
 
 typedef struct
 {
@@ -94,10 +108,10 @@ typedef struct
     paging_handle_t (*const mm_create_pagetable)();
     void (*const mm_destroy_pagetable)(paging_handle_t table);
 
-    vm_block_t (*const mm_alloc_pages)(paging_handle_t table, size_t n, pagealloc_flags flags);
+    vmblock_t (*const mm_alloc_pages)(paging_handle_t table, size_t n, pgalloc_flags flags);
     bool (*const mm_free_pages)(paging_handle_t table, uintptr_t vaddr, size_t n);
     // void (*const mm_flag_pages)(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
-    vm_block_t (*const mm_map_kvaddr)(paging_handle_t table, uintptr_t virt, uintptr_t kvaddr, size_t n, vm_flags flags);
+    vmblock_t (*const mm_map_kvaddr)(paging_handle_t table, uintptr_t virt, uintptr_t kvaddr, size_t n, vm_flags flags);
     void (*const mm_unmap)(paging_handle_t table, uintptr_t virt, size_t n);
 
     // process management

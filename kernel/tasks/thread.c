@@ -51,7 +51,7 @@ static tid_t new_thread_id()
     return (tid_t){ next++ };
 }
 
-thread_t *create_thread(process_t *owner, thread_flags_t flags, thread_entry_t entry, void *arg)
+thread_t *create_thread(process_t *owner, thread_flags_t tflags, thread_entry_t entry, void *arg)
 {
     thread_t *t = kmalloc(sizeof(thread_t));
     t->magic[0] = 'T';
@@ -61,18 +61,19 @@ thread_t *create_thread(process_t *owner, thread_flags_t flags, thread_entry_t e
     t->tid = new_thread_id();
     t->owner = owner;
     t->status = THREAD_STATUS_READY;
-    t->flags = flags;
+    t->flags = tflags;
 
     // allcate stack for the thread
     void *stack_page = kpage_alloc(thread_stack_npages, PGALLOC_NONE);
     stack_init(&t->stack, stack_page, THREAD_STACK_SIZE);
 
-    vm_flags stack_flags = VM_WRITE;
-    if (flags & THREAD_FLAG_USERMODE)
-        stack_flags |= VM_USERMODE;
+    vm_flags sflags = VM_WRITE;
+    if (tflags & THREAD_FLAG_USERMODE)
+        sflags |= VM_USERMODE;
 
     // thread stack
-    mos_platform->mm_map_kvaddr(owner->pagetable, (uintptr_t) stack_page, (uintptr_t) stack_page, thread_stack_npages, stack_flags);
+    vmblock_t blk = mos_platform->mm_map_kvaddr(owner->pagetable, (uintptr_t) stack_page, (uintptr_t) stack_page, thread_stack_npages, sflags);
+    process_attach_mmap(owner, blk, VMTYPE_STACK);
     mos_platform->context_setup(t, entry, arg);
 
     hashmap_put(thread_table, &t->tid, t);

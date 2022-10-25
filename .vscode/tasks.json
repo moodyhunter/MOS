@@ -39,7 +39,7 @@
                 "-m",
                 "4G",
                 "-smp",
-                "2",
+                "1",
                 "-display",
                 "gtk,show-tabs=on",
                 "-kernel",

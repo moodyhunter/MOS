@@ -43,7 +43,7 @@ typedef struct
     thread_t *threads[MOS_PROCESS_MAX_THREADS];
 
     ssize_t mmaps_count;
-    vm_block_t *mmaps;
+    proc_vmblock_t *mmaps;
 } process_t;
 
 typedef struct _thread

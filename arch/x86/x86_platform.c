@@ -55,6 +55,7 @@ void do_backtrace(u32 max)
 void x86_kpanic_hook()
 {
     pmem_freelist_dump();
+    x86_mm_dump_page_table(x86_get_pg_infra(current_thread->owner->pagetable));
     x86_mm_dump_page_table(x86_kpg_infra);
     do_backtrace(20);
 }

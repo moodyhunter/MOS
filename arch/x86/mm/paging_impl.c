@@ -20,7 +20,7 @@ always_inline void pg_flush_tlb(uintptr_t vaddr)
     __asm__ volatile("invlpg (%0)" ::"r"(vaddr));
 }
 
-vm_block_t pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pagealloc_flags flags)
+vmblock_t pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pgalloc_flags flags)
 {
     vm_flags pflags = VM_WRITE;
     // always allocate after the end of the kernel pages
@@ -34,6 +34,7 @@ vm_block_t pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pagealloc_flags flag
     }
     else
     {
+#pragma message "TODO: Why?"
         vaddr_begin = mos_kernel_end;
     }
 
@@ -48,7 +49,7 @@ vm_block_t pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pagealloc_flags flag
         if (i >= MM_PAGE_MAP_SIZE)
         {
             mos_warn("failed to allocate %zu pages", n_page);
-            return (vm_block_t){ .block.available = false };
+            return (vmblock_t){ .mem.available = false };
         }
         pagemap_line_t current_byte = pg->page_map[i];
 
@@ -81,15 +82,15 @@ vm_block_t pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pagealloc_flags flag
     if (paddr == 0)
     {
         mos_panic("OOM");
-        return (vm_block_t){ .block.available = false };
+        return (vmblock_t){ .mem.available = false };
     }
 
     pg_map_pages(pg, vaddr, paddr, n_page, pflags);
-    vm_block_t block = {
-        .block.available = true,
-        .block.vaddr = vaddr,
-        .block.paddr = paddr,
-        .block.size_bytes = n_page * MOS_PAGE_SIZE,
+    vmblock_t block = {
+        .mem.available = true,
+        .mem.vaddr = vaddr,
+        .mem.paddr = paddr,
+        .mem.size_bytes = n_page * MOS_PAGE_SIZE,
         .flags = pflags,
     };
     return block;
@@ -244,11 +245,14 @@ uintptr_t pg_page_get_mapped_paddr(x86_pg_infra_t *pg, uintptr_t vaddr)
     int page_dir_index = vaddr >> 22;
     int page_table_index = vaddr >> 12 & 0x3ff;
     x86_pgdir_entry *page_dir = pg->pgdir + page_dir_index;
+    x86_pgtable_entry *page_table = pg->pgtable + page_dir_index * 1024 + page_table_index;
+
+    if (page_dir_index >= 768)
+        page_dir = x86_kpg_infra->pgdir + page_dir_index, page_table = x86_kpg_infra->pgtable + page_dir_index * 1024 + page_table_index;
 
     if (unlikely(!page_dir->present))
         mos_panic("page directory for address " PTR_FMT " not mapped", vaddr);
 
-    x86_pgtable_entry *page_table = pg->pgtable + page_dir_index * 1024 + page_table_index;
     if (unlikely(!page_table->present))
         mos_panic("vmem " PTR_FMT " not mapped", vaddr);
 

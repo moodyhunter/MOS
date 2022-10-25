@@ -163,15 +163,23 @@ void x86_mm_dump_page_table(x86_pg_infra_t *pg)
             continue;
         }
 
+        x86_pgtable_entry *pgtable = NULL;
+        x86_pg_infra_t *dump_pg = NULL;
+        if (pgd_i < 768) // user pages
+            pgtable = pg->pgtable, dump_pg = pg;
+        else // HACK: kernel pages
+            pgtable = x86_kpg_infra->pgtable, dump_pg = x86_kpg_infra;
+
         for (int pte_i = 0; pte_i < 1024; pte_i++)
         {
-            x86_pgtable_entry *pte = &pg->pgtable[pgd_i * 1024 + pte_i];
+            x86_pgtable_entry *pte = &pgtable[pgd_i * 1024 + pte_i];
+            ;
             if (!pte->present)
             {
                 if (current_state == PRESENT)
                 {
                     size_t current_state_end_pg = pgd_i * 1024 + pte_i;
-                    page_table_dump_range(pg, current_state_begin_pg, current_state_end_pg);
+                    page_table_dump_range(dump_pg, current_state_begin_pg, current_state_end_pg);
                     current_state = ABSENT;
                     current_state_begin_pg = current_state_end_pg;
                 }
@@ -190,8 +198,8 @@ void x86_mm_dump_page_table(x86_pg_infra_t *pg)
 
 paging_handle_t x86_um_pgd_create()
 {
-    vm_block_t block = pg_page_alloc(x86_kpg_infra, ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE, PGALLOC_NONE);
-    x86_pg_infra_t *infra = (x86_pg_infra_t *) block.block.vaddr;
+    vmblock_t block = pg_page_alloc(x86_kpg_infra, ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE, PGALLOC_NONE);
+    x86_pg_infra_t *infra = (x86_pg_infra_t *) block.mem.vaddr;
     memset(infra, 0, sizeof(x86_pg_infra_t));
     paging_handle_t handle;
     handle.ptr = (uintptr_t) infra;
@@ -222,7 +230,7 @@ void x86_um_pgd_destroy(paging_handle_t pgt)
     kfree((void *) pgt.ptr);
 }
 
-vm_block_t x86_mm_pg_alloc(paging_handle_t pgt, size_t n, pagealloc_flags flags)
+vmblock_t x86_mm_pg_alloc(paging_handle_t pgt, size_t n, pgalloc_flags flags)
 {
     x86_pg_infra_t *kpg_infra = x86_get_pg_infra(pgt);
     return pg_page_alloc(kpg_infra, n, flags);
@@ -240,17 +248,17 @@ void x86_mm_pg_flag(paging_handle_t pgt, uintptr_t vaddr, size_t n, vm_flags fla
     pg_page_flag(kpg_infra, vaddr, n, flags);
 }
 
-vm_block_t x86_mm_pg_map_to_kvirt(paging_handle_t table, uintptr_t vaddr, uintptr_t kvaddr, size_t n, vm_flags flags)
+vmblock_t x86_mm_pg_map_to_kvirt(paging_handle_t table, uintptr_t vaddr, uintptr_t kvaddr, size_t n, vm_flags flags)
 {
     x86_pg_infra_t *pg_infra = x86_get_pg_infra(table);
     uintptr_t paddr = pg_page_get_mapped_paddr(x86_kpg_infra, kvaddr);
     pg_do_map_pages(pg_infra, vaddr, paddr, n, flags);
 
-    vm_block_t block = {
-        .block.vaddr = vaddr,
-        .block.paddr = paddr,
-        .block.size_bytes = n * MOS_PAGE_SIZE,
-        .block.available = true,
+    vmblock_t block = {
+        .mem.vaddr = vaddr,
+        .mem.paddr = paddr,
+        .mem.size_bytes = n * MOS_PAGE_SIZE,
+        .mem.available = true,
         .flags = flags,
     };
     return block;
