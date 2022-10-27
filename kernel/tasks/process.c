@@ -6,8 +6,8 @@
 #include "lib/structures/hashmap.h"
 #include "mos/filesystem/filesystem.h"
 #include "mos/io/io.h"
+#include "mos/mm/cow.h"
 #include "mos/mm/kmalloc.h"
-#include "mos/mm/paging.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/task_io.h"
@@ -128,11 +128,11 @@ void process_attach_thread(process_t *process, thread_t *thread)
     process->threads[process->threads_count++] = thread;
 }
 
-void process_attach_mmap(process_t *process, vmblock_t block, vm_type type)
+void process_attach_mmap(process_t *process, vmblock_t block, vm_type type, bool cow)
 {
     MOS_ASSERT(process_is_valid(process));
     process->mmaps = krealloc(process->mmaps, sizeof(proc_vmblock_t) * (process->mmaps_count + 1));
-    process->mmaps[process->mmaps_count++] = (proc_vmblock_t){ .vm = block, .type = type };
+    process->mmaps[process->mmaps_count++] = (proc_vmblock_t){ .vm = block, .type = type, .cow_mapped = cow };
 }
 
 void process_handle_exit(process_t *process, int exit_code)
@@ -171,16 +171,13 @@ process_t *process_handle_fork(process_t *process)
         proc_vmblock_t block = process->mmaps[i];
         if (block.type == VMTYPE_STACK)
             continue; // don't copy the stack (?)
-        pr_info("copying block %d", i);
-        vmblock_t m = mos_platform->mm_alloc_pages_at(child->pagetable, block.vm.vaddr, block.vm.pages, block.vm.flags);
-        process_attach_mmap(child, m, block.type);
 
-        // copy the memory
-        // TODO: Copy on write
-        // mos_platform->mm_copy_pages(child->pagetable, block.vm.vaddr, process->pagetable, block.vm.vaddr, block.vm.pages);
+        vmblock_t new_block = mm_map_cow(process->pagetable, block.vm.vaddr, child->pagetable, block.vm.vaddr, block.vm.npages);
+        process_attach_mmap(child, new_block, block.type, true);
     }
 
-    return NULL;
+    process_dump_mmaps(child);
+    return process;
 }
 
 void process_dump_mmaps(process_t *process)
@@ -198,11 +195,12 @@ void process_dump_mmaps(process_t *process)
             default: MOS_UNREACHABLE();
         };
 
-        pr_info("block %d: " PTR_FMT " -> " PTR_FMT ", %zd page(s), perm: %s%s%s%s%s%s%s -> %s",
+        pr_info("block %d: " PTR_FMT " -> " PTR_FMT ", %zd page(s), %sperm: %s%s%s%s%s%s%s -> %s",
                 i,                                              //
                 block.vm.vaddr,                                 //
                 block.vm.paddr,                                 //
-                block.vm.pages,                                 //
+                block.vm.npages,                                //
+                block.cow_mapped ? "cow, " : "",                //
                 block.vm.flags & VM_READ ? "r" : "-",           //
                 block.vm.flags & VM_WRITE ? "w" : "-",          //
                 block.vm.flags & VM_EXEC ? "x" : "-",           //

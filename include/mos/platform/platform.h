@@ -22,16 +22,15 @@ typedef struct _thread thread_t;
 typedef enum
 {
     VM_NONE = 0,
-    VM_READ = 1 << 0,
-    VM_WRITE = 1 << 1,
-    VM_USER = 1 << 2,
-    VM_WRITE_THROUGH = 1 << 3,
-    VM_CACHE_DISABLED = 1 << 4,
-    VM_GLOBAL = 1 << 5,
-    VM_EXEC = 1 << 6,
+    VM_READ = 1 << 1,
+    VM_WRITE = 1 << 2,
+    VM_USER = 1 << 3,
+    VM_WRITE_THROUGH = 1 << 4,
+    VM_CACHE_DISABLED = 1 << 5,
+    VM_GLOBAL = 1 << 6,
+    VM_EXEC = 1 << 7,
 } vm_flags;
 
-// indicates which type of page we are allocating
 typedef enum
 {
     PGALLOC_HINT_DEFAULT = 0 << 0,
@@ -67,7 +66,7 @@ typedef struct
 {
     uintptr_t vaddr;
     uintptr_t paddr; // probably non-contiguous
-    size_t pages;
+    size_t npages;
     vm_flags flags;
 } vmblock_t;
 
@@ -75,6 +74,11 @@ typedef struct
 {
     vmblock_t vm;
     vm_type type;
+
+    // if cow_mapped is true, then the flags in vm contains 'original' flags
+    // of this block. Which means if there're no VM_WRITE flag, then the block
+    // should not be writable.
+    bool cow_mapped;
 } proc_vmblock_t;
 
 typedef struct
@@ -111,12 +115,14 @@ typedef struct
     paging_handle_t (*const mm_create_user_pgd)();
     void (*const mm_destroy_user_pgd)(paging_handle_t table);
 
-    vmblock_t (*const mm_alloc_pages)(paging_handle_t table, size_t n, pgalloc_hints hints, vm_flags vm_flags);
-    vmblock_t (*const mm_alloc_pages_at)(paging_handle_t table, uintptr_t addr, size_t n, vm_flags vflags);
-    vmblock_t (*const mm_copy_maps)(paging_handle_t from, uintptr_t from_addr, paging_handle_t to, uintptr_t to_addr, size_t pages);
+    vmblock_t (*const mm_alloc_pages)(paging_handle_t table, size_t npages, pgalloc_hints hints, vm_flags vm_flags);
+    vmblock_t (*const mm_alloc_pages_at)(paging_handle_t table, uintptr_t vaddr, size_t npages, vm_flags vflags);
+    vmblock_t (*const mm_copy_maps)(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages);
     void (*const mm_unmap_pages)(paging_handle_t table, uintptr_t vaddr, size_t n);
-    bool (*const mm_free_pages)(paging_handle_t table, uintptr_t vaddr, size_t n);
+    void (*const mm_free_pages)(paging_handle_t table, uintptr_t vaddr, size_t n);
     void (*const mm_flag_pages)(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
+    vm_flags (*const mm_get_flags)(paging_handle_t table, uintptr_t vaddr);
+    uintptr_t (*const mm_get_phys_addr)(paging_handle_t table, uintptr_t vaddr);
 
     // process management
     void (*const context_setup)(thread_t *thread, thread_entry_t entry, void *arg);

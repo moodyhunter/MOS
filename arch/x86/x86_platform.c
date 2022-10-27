@@ -62,11 +62,14 @@ void do_backtrace(u32 max)
 void x86_kpanic_hook()
 {
     pmem_freelist_dump();
-    pr_emph("Current task: %s", current_process->name);
+    pr_emph("Current task: %s", current_thread ? current_thread->owner->name : "<none>");
+    if (current_thread)
+    {
+        pr_emph("Task Page Table:");
+        x86_mm_dump_page_table(x86_get_pg_infra(current_process->pagetable));
+    }
     pr_emph("Current Page Table:");
     x86_mm_dump_page_table(x86_get_pg_infra(current_cpu->pagetable));
-    pr_emph("Task Page Table:");
-    x86_mm_dump_page_table(x86_get_pg_infra(current_process->pagetable));
     pr_emph("Kernel Page Table:");
     x86_mm_dump_page_table(x86_kpg_infra);
     do_backtrace(20);

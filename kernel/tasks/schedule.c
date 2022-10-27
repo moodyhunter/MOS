@@ -12,6 +12,7 @@ bool schedule_to_thread(const void *key, void *value)
 {
     tid_t *tid = (tid_t *) key;
     thread_t *thread = (thread_t *) value;
+
     MOS_ASSERT_X(thread->tid == *tid, "something is wrong with the thread table");
     if (thread->status == THREAD_STATUS_READY)
     {

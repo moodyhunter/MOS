@@ -66,7 +66,7 @@ always_inline x86_pg_infra_t *x86_get_pg_infra(paging_handle_t table)
 
 vmblock_t pg_page_alloc(x86_pg_infra_t *pg, size_t n, pgalloc_hints flags, vm_flags vm_flags);
 vmblock_t pg_page_alloc_at(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n_page, vm_flags vm_flags);
-bool pg_page_free(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n);
+void pg_page_free(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n);
 
 void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags);
 

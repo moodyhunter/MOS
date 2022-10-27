@@ -3,6 +3,7 @@
 
 #include "lib/structures/list.h"
 #include "mos/ksyscall/dispatcher.h"
+#include "mos/mm/cow.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
 #include "mos/x86/devices/port.h"
@@ -93,7 +94,9 @@ void x86_handle_interrupt(u32 esp)
         frame->eax = result;
     }
     else
+    {
         pr_warn("Unknown interrupt number: %d", frame->interrupt_number);
+    }
 }
 
 static void x86_handle_exception(x86_stack_frame *stack)
@@ -143,18 +146,29 @@ static void x86_handle_exception(x86_stack_frame *stack)
         case EXCEPTION_PAGE_FAULT:
         {
             intr_type = "page fault";
-            bool is_write = (stack->error_code & 0x2) != 0;
 
             uintptr_t fault_address;
             __asm__ volatile("mov %%cr2, %0" : "=r"(fault_address));
+
+            bool present = (stack->error_code & 0x1) != 0;
+            bool is_write = (stack->error_code & 0x2) != 0;
+            bool is_user = (stack->error_code & 0x4) != 0;
+
+            if (present && is_write)
+            {
+                bool result = cow_handle_page_fault(fault_address);
+                if (result)
+                    return;
+            }
+
 #if MOS_MEME
+            MOS_UNUSED(is_user);
+            MOS_UNUSED(present);
             mos_panic("\n页面错误\n\n\"" PTR_FMT "\" 指令引用的 \"" PTR_FMT "\" 内存。该内存不能为 \"%s\"。\n"
                       "要终止程序，请单击 \"确定\"。\n"      //
                       "要调试程序，请单击 \"取消\"。\n\n\n", //
                       (uintptr_t) stack->intrrupt.eip, fault_address, is_write ? "written" : "read");
 #else
-            bool present = (stack->error_code & 0x1) != 0;
-            bool is_user = (stack->error_code & 0x4) != 0;
             mos_panic("Page Fault: %s code at " PTR_FMT " is trying to %s a %s address " PTR_FMT, //
                       is_user ? "Userspace" : "Kernel",                                           //
                       (uintptr_t) stack->intrrupt.eip,                                            //

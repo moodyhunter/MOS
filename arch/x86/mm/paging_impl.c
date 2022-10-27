@@ -42,7 +42,7 @@ vmblock_t pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pgalloc_hints flags, 
         if (i >= MM_PAGE_MAP_SIZE)
         {
             mos_warn("failed to allocate %zu pages", n_page);
-            return (vmblock_t){ 0, .pages = 0 };
+            return (vmblock_t){ 0, .npages = 0 };
         }
         pagemap_line_t current_byte = pg->page_map[i];
 
@@ -78,30 +78,29 @@ vmblock_t pg_page_alloc_at(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n_page, v
     if (paddr == 0)
     {
         mos_panic("OOM");
-        return (vmblock_t){ 0, .pages = 0 };
+        return (vmblock_t){ 0, .npages = 0 };
     }
 
     pg_map_pages(pg, vaddr, paddr, n_page, vm_flag);
     vmblock_t block = {
         .vaddr = vaddr,
         .paddr = paddr,
-        .pages = n_page,
+        .npages = n_page,
         .flags = vm_flag,
     };
     return block;
 }
 
-bool pg_page_free(x86_pg_infra_t *pg, uintptr_t vptr, size_t n_page)
+void pg_page_free(x86_pg_infra_t *pg, uintptr_t vptr, size_t n_page)
 {
     size_t page_index = vptr / MOS_PAGE_SIZE;
     mos_debug("paging: freeing %zu to %zu", page_index, page_index + n_page);
     pg_unmap_pages(pg, vptr, n_page);
-    return true;
 }
 
 void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags)
 {
-    mos_debug("paging: setting flags [%x] to [" PTR_FMT "] +%zu pages", flags, vaddr, n);
+    mos_debug("paging: setting flags [0x%x] to [" PTR_FMT "] +%zu pages", flags, vaddr, n);
     size_t start_page = vaddr / MOS_PAGE_SIZE;
     for (size_t i = 0; i < n; i++)
     {
@@ -119,6 +118,9 @@ void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags)
 
         pg->pgdir[pgd_i].cache_disabled = flags & VM_CACHE_DISABLED;
         pg->pgtable[page_i].cache_disabled = flags & VM_CACHE_DISABLED;
+
+        pg->pgdir[pgd_i].write_through = flags & VM_WRITE_THROUGH;
+        pg->pgtable[page_i].write_through = flags & VM_WRITE_THROUGH;
 
         pg->pgtable[page_i].global = flags & VM_GLOBAL;
         pg_flush_tlb(vaddr);

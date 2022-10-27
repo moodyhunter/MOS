@@ -4,7 +4,6 @@
 
 #include "lib/string.h"
 #include "mos/filesystem/filesystem.h"
-#include "mos/mm/paging.h"
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
@@ -91,8 +90,8 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
             VM_USER                                     //
         );
 
-        // this is dangerous
-        if (map_flags & (VM_READ | VM_WRITE | VM_EXEC))
+        // rwx
+        if (map_flags & VM_READ && map_flags & VM_WRITE && map_flags & VM_EXEC)
             mos_warn("segment is writable, readable and executable");
 
         vmblock_t block = mos_platform->mm_copy_maps(            //
@@ -103,8 +102,10 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
             ALIGN_UP_TO_PAGE(ph->segsize_in_mem) / MOS_PAGE_SIZE //
         );
 
-        mos_platform->mm_flag_pages(proc->pagetable, block.vaddr, block.pages, map_flags);
-        process_attach_mmap(proc, block, (ph->p_flags & ELF_PH_F_X) ? VMTYPE_APPCODE : VMTYPE_APPDATA);
+        mos_platform->mm_flag_pages(proc->pagetable, block.vaddr, block.npages, map_flags);
+        block.flags = map_flags;
+
+        process_attach_mmap(proc, block, (ph->p_flags & ELF_PH_F_X) ? VMTYPE_APPCODE : VMTYPE_APPDATA, false);
     }
 
 #if MOS_DEBUG
@@ -113,20 +114,20 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
     for (int i = 0; i < elf->sh.count; i++)
     {
         elf_section_hdr_t *sh = (elf_section_hdr_t *) (buf + elf->sh_offset + i * elf->sh.entry_size);
-        pr_info2("section %2d: %s", i, strtab + sh->name_index);
+        pr_info2("ELF section %2d: %s", i, strtab + sh->name_index);
     }
 #endif
 
     process_attach_fd(proc, &f->io);
 
     // unmap the buffer from kernel pages
-    mos_platform->mm_unmap_pages(mos_platform->kernel_pg, buf_block.vaddr, buf_block.pages);
+    mos_platform->mm_unmap_pages(current_cpu->pagetable, buf_block.vaddr, buf_block.npages);
 
     return proc;
 
 bail_out:
     if (buf)
-        kheap_free_page(buf, npage_required);
+        mos_platform->mm_free_pages(current_cpu->pagetable, buf_block.vaddr, buf_block.npages);
 bail_out_1:
     if (f)
         io_close(&f->io);

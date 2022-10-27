@@ -198,8 +198,7 @@ void x86_mm_dump_page_table(x86_pg_infra_t *pg)
 
 paging_handle_t x86_um_pgd_create()
 {
-    vmblock_t block =
-        pg_page_alloc(x86_kpg_infra, ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE, PGALLOC_HINT_DEFAULT, VM_READ | VM_WRITE);
+    vmblock_t block = pg_page_alloc(x86_kpg_infra, ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE, PGALLOC_HINT_DEFAULT, VM_READ | VM_WRITE);
     x86_pg_infra_t *infra = (x86_pg_infra_t *) block.vaddr;
     memset(infra, 0, sizeof(x86_pg_infra_t));
     paging_handle_t handle;
@@ -243,10 +242,10 @@ vmblock_t x86_mm_pg_alloc_at(paging_handle_t pgt, uintptr_t vaddr, size_t n, vm_
     return pg_page_alloc_at(kpg_infra, vaddr, n, vm_flags);
 }
 
-bool x86_mm_pg_free(paging_handle_t pgt, uintptr_t vaddr, size_t n)
+void x86_mm_pg_free(paging_handle_t pgt, uintptr_t vaddr, size_t n)
 {
     x86_pg_infra_t *kpg_infra = x86_get_pg_infra(pgt);
-    return pg_page_free(kpg_infra, vaddr, n);
+    pg_page_free(kpg_infra, vaddr, n);
 }
 
 void x86_mm_pg_flag(paging_handle_t pgt, uintptr_t vaddr, size_t n, vm_flags flags)
@@ -260,17 +259,26 @@ vmblock_t x86_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle
     x86_pg_infra_t *from_infra = x86_get_pg_infra(from);
     x86_pg_infra_t *to_infra = x86_get_pg_infra(to);
 
-    uintptr_t paddr = pg_page_get_mapped_paddr(from_infra, fvaddr);
-    vm_flags flags = pg_page_get_flags(from_infra, fvaddr);
+    uintptr_t start_paddr = pg_page_get_mapped_paddr(from_infra, fvaddr);
 
-    pg_do_map_pages(to_infra, tvaddr, paddr, npages, flags);
+    for (size_t i = 0; i < npages; i++)
+    {
+        uintptr_t from_vaddr = fvaddr + i * MOS_PAGE_SIZE;
+        uintptr_t to_vaddr = tvaddr + i * MOS_PAGE_SIZE;
+        uintptr_t expected_paddr = start_paddr + i * MOS_PAGE_SIZE;
+        uintptr_t paddr = pg_page_get_mapped_paddr(from_infra, from_vaddr);
+        MOS_ASSERT_X(paddr == expected_paddr, "copying pages must be contiguous");
+        vm_flags flags = pg_page_get_flags(from_infra, from_vaddr);
+        pg_do_map_page(to_infra, to_vaddr, paddr, flags);
+    }
 
     vmblock_t block = {
         .vaddr = tvaddr,
-        .paddr = paddr,
-        .pages = npages,
-        .flags = flags,
+        .paddr = start_paddr,
+        .npages = npages,
+        .flags = pg_page_get_flags(from_infra, fvaddr),
     };
+
     return block;
 }
 

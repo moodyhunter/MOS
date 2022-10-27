@@ -7,7 +7,6 @@
 #include "lib/structures/stack.h"
 #include "mos/kconfig.h"
 #include "mos/mm/kmalloc.h"
-#include "mos/mm/paging.h"
 #include "mos/platform/platform.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_type.h"
@@ -70,17 +69,17 @@ thread_t *create_thread(process_t *owner, thread_flags_t tflags, thread_entry_t 
     stack_init(&t->stack, stack, MOS_THREAD_STACK_SIZE);
 
     // copy the stack mappping to the process address space
-    vmblock_t blk = mos_platform->mm_copy_maps(current_cpu->pagetable, (uintptr_t) stack, owner->pagetable, (uintptr_t) stack, stack_block.pages);
-    mos_platform->mm_flag_pages(owner->pagetable, blk.vaddr, blk.pages, sflags);
+    vmblock_t blk = mos_platform->mm_copy_maps(current_cpu->pagetable, (uintptr_t) stack, owner->pagetable, (uintptr_t) stack, stack_block.npages);
+    mos_platform->mm_flag_pages(owner->pagetable, blk.vaddr, blk.npages, sflags);
 
-    process_attach_mmap(owner, blk, VMTYPE_STACK);
+    process_attach_mmap(owner, blk, VMTYPE_STACK, false);
     mos_platform->context_setup(t, entry, arg);
 
     hashmap_put(thread_table, &t->tid, t);
     process_attach_thread(owner, t);
 
     // unmap the stack from the kernel space
-    mos_platform->mm_unmap_pages(current_cpu->pagetable, stack_block.vaddr, stack_block.pages);
+    mos_platform->mm_unmap_pages(current_cpu->pagetable, stack_block.vaddr, stack_block.npages);
     return t;
 }
 
