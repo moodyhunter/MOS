@@ -13,7 +13,7 @@
 #include "mos/tasks/task_type.h"
 #include "mos/x86/tasks/context.h"
 
-static u32 thread_stack_npages = 0;
+static u32 STACK_NPAGES = 0;
 hashmap_t *thread_table;
 
 static hash_t hashmap_thread_hash(const void *key)
@@ -31,7 +31,7 @@ void thread_init()
     thread_table = kmalloc(sizeof(hashmap_t));
     memset(thread_table, 0, sizeof(hashmap_t));
     hashmap_init(thread_table, MOS_THREAD_STACK_SIZE, hashmap_thread_hash, hashmap_thread_equal);
-    thread_stack_npages = MOS_THREAD_STACK_SIZE / MOS_PAGE_SIZE;
+    STACK_NPAGES = MOS_THREAD_STACK_SIZE / MOS_PAGE_SIZE;
 }
 
 void thread_deinit()
@@ -64,17 +64,23 @@ thread_t *create_thread(process_t *owner, thread_flags_t tflags, thread_entry_t 
     if (tflags & THREAD_FLAG_USERMODE)
         sflags |= VM_USER, hints = PGALLOC_HINT_USERSPACE;
 
-    // allcate stack for the thread
-    void *stack_page = kpage_alloc(thread_stack_npages, hints, sflags);
-    stack_init(&t->stack, stack_page, MOS_THREAD_STACK_SIZE);
+    // allcate stack for the thread, in the kernel space
+    const vmblock_t stack_block = mos_platform->mm_alloc_pages(current_cpu->pagetable, STACK_NPAGES, hints, sflags);
+    void *const stack = (void *) stack_block.vaddr;
+    stack_init(&t->stack, stack, MOS_THREAD_STACK_SIZE);
 
-    // thread stack
-    vmblock_t blk = mos_platform->mm_map_kvaddr(owner->pagetable, (uintptr_t) stack_page, (uintptr_t) stack_page, thread_stack_npages, sflags);
+    // copy the stack mappping to the process address space
+    vmblock_t blk = mos_platform->mm_copy_maps(current_cpu->pagetable, (uintptr_t) stack, owner->pagetable, (uintptr_t) stack, stack_block.pages);
+    mos_platform->mm_flag_pages(owner->pagetable, blk.vaddr, blk.pages, sflags);
+
     process_attach_mmap(owner, blk, VMTYPE_STACK);
     mos_platform->context_setup(t, entry, arg);
 
     hashmap_put(thread_table, &t->tid, t);
     process_attach_thread(owner, t);
+
+    // unmap the stack from the kernel space
+    mos_platform->mm_unmap_pages(current_cpu->pagetable, stack_block.vaddr, stack_block.pages);
     return t;
 }
 

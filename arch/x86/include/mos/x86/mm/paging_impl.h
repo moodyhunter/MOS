@@ -71,6 +71,7 @@ bool pg_page_free(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n);
 void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags);
 
 uintptr_t pg_page_get_mapped_paddr(x86_pg_infra_t *pg, uintptr_t vaddr);
+vm_flags pg_page_get_flags(x86_pg_infra_t *pg, uintptr_t vaddr);
 void pg_map_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, vm_flags flags);
 void pg_unmap_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, size_t n_page);
 

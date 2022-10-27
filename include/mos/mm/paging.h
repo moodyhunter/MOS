@@ -5,5 +5,5 @@
 #include "mos/platform/platform.h"
 #include "mos/types.h"
 
-void *kpage_alloc(size_t npages, pgalloc_hints type, vm_flags vmflags);
-bool kpage_free(void *ptr, size_t npages);
+void *kheap_alloc_page(size_t npages, vm_flags vmflags);
+bool kheap_free_page(void *ptr, size_t npages);

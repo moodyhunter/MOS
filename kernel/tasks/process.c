@@ -78,7 +78,7 @@ process_t *process_new(process_t *parent, uid_t euid, const char *name, thread_e
     }
 
     proc->effective_uid = euid;
-    proc->pagetable = mos_platform->mm_create_pagetable();
+    proc->pagetable = mos_platform->mm_create_user_pgd();
 
     process_stdio_setup(proc);
     proc->main_thread = create_thread(proc, THREAD_FLAG_USERMODE, entry, arg);
@@ -169,9 +169,15 @@ process_t *process_handle_fork(process_t *process)
     for (int i = 0; i < process->mmaps_count; i++)
     {
         proc_vmblock_t block = process->mmaps[i];
+        if (block.type == VMTYPE_STACK)
+            continue; // don't copy the stack (?)
         pr_info("copying block %d", i);
         vmblock_t m = mos_platform->mm_alloc_pages_at(child->pagetable, block.vm.vaddr, block.vm.pages, block.vm.flags);
         process_attach_mmap(child, m, block.type);
+
+        // copy the memory
+        // TODO: Copy on write
+        // mos_platform->mm_copy_pages(child->pagetable, block.vm.vaddr, process->pagetable, block.vm.vaddr, block.vm.pages);
     }
 
     return NULL;

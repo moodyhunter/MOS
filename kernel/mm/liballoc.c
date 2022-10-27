@@ -25,26 +25,26 @@
 #define USE_CASE5
 
 /** This macro will conveniently align our pointer upwards */
-#define LIBALLOC_ALIGN_PTR(ptr)                                                                                                                 \
-    if (ALIGNMENT > 1)                                                                                                                          \
-    {                                                                                                                                           \
-        uintptr_t diff;                                                                                                                         \
-        ptr = (void *) ((uintptr_t) ptr + ALIGN_INFO);                                                                                          \
-        diff = (uintptr_t) ptr & (ALIGNMENT - 1);                                                                                               \
-        if (diff != 0)                                                                                                                          \
-        {                                                                                                                                       \
-            diff = ALIGNMENT - diff;                                                                                                            \
-            ptr = (void *) ((uintptr_t) ptr + diff);                                                                                            \
-        }                                                                                                                                       \
-        *((ALIGN_TYPE *) ((uintptr_t) ptr - ALIGN_INFO)) = diff + ALIGN_INFO;                                                                   \
+#define LIBALLOC_ALIGN_PTR(ptr)                                                                                                                                          \
+    if (ALIGNMENT > 1)                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        uintptr_t diff;                                                                                                                                                  \
+        ptr = (void *) ((uintptr_t) ptr + ALIGN_INFO);                                                                                                                   \
+        diff = (uintptr_t) ptr & (ALIGNMENT - 1);                                                                                                                        \
+        if (diff != 0)                                                                                                                                                   \
+        {                                                                                                                                                                \
+            diff = ALIGNMENT - diff;                                                                                                                                     \
+            ptr = (void *) ((uintptr_t) ptr + diff);                                                                                                                     \
+        }                                                                                                                                                                \
+        *((ALIGN_TYPE *) ((uintptr_t) ptr - ALIGN_INFO)) = diff + ALIGN_INFO;                                                                                            \
     }
 
-#define LIBALLOC_UNALIGN_PTR(ptr)                                                                                                               \
-    if (ALIGNMENT > 1)                                                                                                                          \
-    {                                                                                                                                           \
-        uintptr_t diff = *((ALIGN_TYPE *) ((uintptr_t) ptr - ALIGN_INFO));                                                                      \
-        if (diff < (ALIGNMENT + ALIGN_INFO))                                                                                                    \
-            ptr = (void *) ((uintptr_t) ptr - diff);                                                                                            \
+#define LIBALLOC_UNALIGN_PTR(ptr)                                                                                                                                        \
+    if (ALIGNMENT > 1)                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        uintptr_t diff = *((ALIGN_TYPE *) ((uintptr_t) ptr - ALIGN_INFO));                                                                                               \
+        if (diff < (ALIGNMENT + ALIGN_INFO))                                                                                                                             \
+            ptr = (void *) ((uintptr_t) ptr - diff);                                                                                                                     \
     }
 
 #define LIBALLOC_MAGIC 0xaabbccdd
@@ -129,7 +129,7 @@ static liballoc_block_t *allocate_new_pages_for(unsigned int size)
     if (st < l_alloc_n_page_once)
         st = l_alloc_n_page_once;
 
-    liballoc_block_t *maj = (liballoc_block_t *) kpage_alloc(st, PGALLOC_HINT_KHEAP, VM_READ | VM_WRITE);
+    liballoc_block_t *maj = (liballoc_block_t *) kheap_alloc_page(st, VM_READ | VM_WRITE);
     if (maj == NULL)
     {
         l_warnings += 1;
@@ -549,7 +549,7 @@ void liballoc_free(const void *ptr)
             maj->next->prev = maj->prev;
         l_mem_allocated -= maj->size;
 
-        kpage_free(maj, maj->pages);
+        kheap_free_page(maj, maj->pages);
     }
     else
     {

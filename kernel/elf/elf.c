@@ -48,7 +48,8 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
     }
 
     size_t npage_required = f->io.size / MOS_PAGE_SIZE + 1;
-    char *const buf = kpage_alloc(npage_required, PGALLOC_HINT_DEFAULT, VM_READ | VM_WRITE);
+    const vmblock_t buf_block = mos_platform->mm_alloc_pages(current_cpu->pagetable, npage_required, PGALLOC_HINT_DEFAULT, VM_READ | VM_WRITE);
+    char *const buf = (char *) buf_block.vaddr;
 
     size_t size = io_read(&f->io, buf, f->io.size);
     MOS_ASSERT_X(size == f->io.size, "failed to read init");
@@ -90,17 +91,19 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
             VM_USER                                     //
         );
 
-        vmblock_t block = mos_platform->mm_map_kvaddr(            //
-            proc->pagetable,                                      //
-            ALIGN_DOWN_TO_PAGE(ph->vaddr),                        //
-            (uintptr_t) buf + ph->data_offset,                    //
-            ALIGN_UP_TO_PAGE(ph->segsize_in_mem) / MOS_PAGE_SIZE, //
-            map_flags                                             //
+        // this is dangerous
+        if (map_flags & (VM_READ | VM_WRITE | VM_EXEC))
+            mos_warn("segment is writable, readable and executable");
+
+        vmblock_t block = mos_platform->mm_copy_maps(            //
+            current_cpu->pagetable,                              //
+            buf_block.vaddr + ph->data_offset,                   //
+            proc->pagetable,                                     //
+            ALIGN_DOWN_TO_PAGE(ph->vaddr),                       //
+            ALIGN_UP_TO_PAGE(ph->segsize_in_mem) / MOS_PAGE_SIZE //
         );
 
-        if (unlikely(block.flags != map_flags))
-            pr_emerg("possibly incorrect mapping: " PTR_FMT, ph->vaddr);
-
+        mos_platform->mm_flag_pages(proc->pagetable, block.vaddr, block.pages, map_flags);
         process_attach_mmap(proc, block, (ph->p_flags & ELF_PH_F_X) ? VMTYPE_APPCODE : VMTYPE_APPDATA);
     }
 
@@ -116,11 +119,14 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
 
     process_attach_fd(proc, &f->io);
 
+    // unmap the buffer from kernel pages
+    mos_platform->mm_unmap_pages(mos_platform->kernel_pg, buf_block.vaddr, buf_block.pages);
+
     return proc;
 
 bail_out:
     if (buf)
-        kpage_free(buf, npage_required);
+        kheap_free_page(buf, npage_required);
 bail_out_1:
     if (f)
         io_close(&f->io);

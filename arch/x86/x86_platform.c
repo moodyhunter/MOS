@@ -63,6 +63,8 @@ void x86_kpanic_hook()
 {
     pmem_freelist_dump();
     pr_emph("Current task: %s", current_process->name);
+    pr_emph("Current Page Table:");
+    x86_mm_dump_page_table(x86_get_pg_infra(current_cpu->pagetable));
     pr_emph("Task Page Table:");
     x86_mm_dump_page_table(x86_get_pg_infra(current_process->pagetable));
     pr_emph("Kernel Page Table:");
@@ -163,14 +165,15 @@ mos_platform_t x86_platform = {
     .irq_handler_remove = NULL,
 
     // memory management
-    .mm_create_pagetable = x86_um_pgd_create,
-    .mm_destroy_pagetable = x86_um_pgd_destroy,
+    .mm_create_user_pgd = x86_um_pgd_create,
+    .mm_destroy_user_pgd = x86_um_pgd_destroy,
+
     .mm_alloc_pages = x86_mm_pg_alloc,
     .mm_alloc_pages_at = x86_mm_pg_alloc_at,
+    .mm_copy_maps = x86_mm_copy_maps,
+    .mm_unmap_pages = x86_mm_pg_unmap,
     .mm_free_pages = x86_mm_pg_free,
-    // .mm_flag_pages = x86_mm_pg_flag,
-    .mm_map_kvaddr = x86_mm_pg_map_to_kvirt,
-    .mm_unmap = x86_mm_pg_unmap,
+    .mm_flag_pages = x86_mm_pg_flag,
 
     // process management
     .context_setup = x86_setup_thread_context,

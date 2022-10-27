@@ -255,16 +255,20 @@ void x86_mm_pg_flag(paging_handle_t pgt, uintptr_t vaddr, size_t n, vm_flags fla
     pg_page_flag(kpg_infra, vaddr, n, flags);
 }
 
-vmblock_t x86_mm_pg_map_to_kvirt(paging_handle_t table, uintptr_t vaddr, uintptr_t kvaddr, size_t n, vm_flags flags)
+vmblock_t x86_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages)
 {
-    x86_pg_infra_t *pg_infra = x86_get_pg_infra(table);
-    uintptr_t paddr = pg_page_get_mapped_paddr(x86_kpg_infra, kvaddr);
-    pg_do_map_pages(pg_infra, vaddr, paddr, n, flags);
+    x86_pg_infra_t *from_infra = x86_get_pg_infra(from);
+    x86_pg_infra_t *to_infra = x86_get_pg_infra(to);
+
+    uintptr_t paddr = pg_page_get_mapped_paddr(from_infra, fvaddr);
+    vm_flags flags = pg_page_get_flags(from_infra, fvaddr);
+
+    pg_do_map_pages(to_infra, tvaddr, paddr, npages, flags);
 
     vmblock_t block = {
-        .vaddr = vaddr,
+        .vaddr = tvaddr,
         .paddr = paddr,
-        .pages = n,
+        .pages = npages,
         .flags = flags,
     };
     return block;

@@ -6,10 +6,10 @@
 #include "mos/mos_global.h"
 #include "mos/types.h"
 
-#define PER_CPU_DECLARE(type, name)                                                                                                             \
-    struct                                                                                                                                      \
-    {                                                                                                                                           \
-        type percpu_value[MOS_MAX_CPU_COUNT];                                                                                                   \
+#define PER_CPU_DECLARE(type, name)                                                                                                                                      \
+    struct                                                                                                                                                               \
+    {                                                                                                                                                                    \
+        type percpu_value[MOS_MAX_CPU_COUNT];                                                                                                                            \
     } name
 
 #define per_cpu(var) (&(var.percpu_value[mos_platform->current_cpu_id()]))
@@ -52,6 +52,7 @@ typedef struct
     u32 id;
     thread_t *thread;
     uintptr_t scheduler_stack;
+    paging_handle_t pagetable;
 } cpu_t;
 
 typedef struct
@@ -107,15 +108,15 @@ typedef struct
     void (*const irq_handler_remove)(u32 irq, irq_handler handler);
 
     // memory management
-    paging_handle_t (*const mm_create_pagetable)();
-    void (*const mm_destroy_pagetable)(paging_handle_t table);
+    paging_handle_t (*const mm_create_user_pgd)();
+    void (*const mm_destroy_user_pgd)(paging_handle_t table);
 
-    vmblock_t (*const mm_alloc_pages)(paging_handle_t table, size_t n, pgalloc_hints pg_flags, vm_flags vm_flags);
+    vmblock_t (*const mm_alloc_pages)(paging_handle_t table, size_t n, pgalloc_hints hints, vm_flags vm_flags);
     vmblock_t (*const mm_alloc_pages_at)(paging_handle_t table, uintptr_t addr, size_t n, vm_flags vflags);
+    vmblock_t (*const mm_copy_maps)(paging_handle_t from, uintptr_t from_addr, paging_handle_t to, uintptr_t to_addr, size_t pages);
+    void (*const mm_unmap_pages)(paging_handle_t table, uintptr_t vaddr, size_t n);
     bool (*const mm_free_pages)(paging_handle_t table, uintptr_t vaddr, size_t n);
-    // void (*const mm_flag_pages)(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
-    vmblock_t (*const mm_map_kvaddr)(paging_handle_t table, uintptr_t virt, uintptr_t kvaddr, size_t n, vm_flags flags);
-    void (*const mm_unmap)(paging_handle_t table, uintptr_t virt, size_t n);
+    void (*const mm_flag_pages)(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
 
     // process management
     void (*const context_setup)(thread_t *thread, thread_entry_t entry, void *arg);

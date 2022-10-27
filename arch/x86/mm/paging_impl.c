@@ -255,3 +255,27 @@ uintptr_t pg_page_get_mapped_paddr(x86_pg_infra_t *pg, uintptr_t vaddr)
 
     return (page_table->phys_addr << 12) + (vaddr & 0xfff);
 }
+
+vm_flags pg_page_get_flags(x86_pg_infra_t *pg, uintptr_t vaddr)
+{
+    int page_dir_index = vaddr >> 22;
+    int page_table_index = vaddr >> 12 & 0x3ff;
+    x86_pgdir_entry *page_dir = pg->pgdir + page_dir_index;
+    x86_pgtable_entry *page_table = pg->pgtable + page_dir_index * 1024 + page_table_index;
+
+    if (page_dir_index >= 768)
+        page_dir = x86_kpg_infra->pgdir + page_dir_index, page_table = x86_kpg_infra->pgtable + page_dir_index * 1024 + page_table_index;
+
+    if (unlikely(!page_dir->present))
+        mos_panic("page directory for address " PTR_FMT " not mapped", vaddr);
+
+    if (unlikely(!page_table->present))
+        mos_panic("vmem " PTR_FMT " not mapped", vaddr);
+
+    vm_flags flags = VM_READ;
+    flags |= page_table->writable ? VM_WRITE : 0;
+    flags |= page_table->usermode ? VM_USER : 0;
+    flags |= page_table->cache_disabled ? VM_CACHE_DISABLED : 0;
+    flags |= page_table->global ? VM_GLOBAL : 0;
+    return flags;
+}

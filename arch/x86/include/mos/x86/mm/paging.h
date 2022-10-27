@@ -21,5 +21,5 @@ vmblock_t x86_mm_pg_alloc_at(paging_handle_t pgt, uintptr_t addr, size_t n, vm_f
 bool x86_mm_pg_free(paging_handle_t pgt, uintptr_t vaddr, size_t n);
 void x86_mm_pg_flag(paging_handle_t pgt, uintptr_t vaddr, size_t n, vm_flags flags);
 
-vmblock_t x86_mm_pg_map_to_kvirt(paging_handle_t table, uintptr_t vaddr, uintptr_t kvaddr, size_t n, vm_flags flags);
+vmblock_t x86_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages);
 void x86_mm_pg_unmap(paging_handle_t table, uintptr_t vaddr, size_t n);

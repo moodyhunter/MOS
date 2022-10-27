@@ -7,6 +7,7 @@
 #include "mos/filesystem/mount.h"
 #include "mos/filesystem/pathutils.h"
 #include "mos/mm/paging.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/schedule.h"
@@ -70,6 +71,7 @@ void dump_cmdline(void)
 
 void mos_start_kernel(const char *cmdline)
 {
+    current_cpu->pagetable = mos_platform->kernel_pg;
     mos_cmdline = mos_cmdline_create(cmdline);
 
     pr_info("Welcome to MOS!");
@@ -101,7 +103,7 @@ void mos_start_kernel(const char *cmdline)
     extern tss32_t tss_entry;
 // stack grows downwards from the top of the page
 #define KSTACK_PAGES 1
-    tss_entry.esp0 = (u32) kpage_alloc(KSTACK_PAGES, PGALLOC_HINT_DEFAULT, VM_READ | VM_WRITE) + KSTACK_PAGES * MOS_PAGE_SIZE;
+    tss_entry.esp0 = (u32) kheap_alloc_page(KSTACK_PAGES, VM_READ | VM_WRITE) + KSTACK_PAGES * MOS_PAGE_SIZE;
     pr_emph("kernel stack at " PTR_FMT, (uintptr_t) tss_entry.esp0);
 
     scheduler();
