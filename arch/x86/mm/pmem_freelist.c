@@ -32,7 +32,7 @@ size_t pmem_freelist_size()
 
 void pmem_freelist_dump()
 {
-    pr_info("paging: pmem freelist has %zu entries", pmem_freelist_count);
+    pr_info("pmem freelist has %zu entries", pmem_freelist_count);
     pmem_range_t *this = pmem_freelist;
     while (this)
     {
@@ -48,7 +48,7 @@ void pmem_freelist_dump()
 void pmem_freelist_setup(void)
 {
     size_t list_size = pmem_freelist_size();
-    pr_info2("paging: %zu bytes (aligned) required for physical memory freelist", list_size);
+    pr_info2("%zu bytes (aligned) required for physical memory freelist", list_size);
 
     memset(pmem_freelist, 0, list_size);
 
@@ -61,13 +61,13 @@ void pmem_freelist_setup(void)
 
         if (r->paddr + r->size_bytes < RESERVED_LOMEM)
         {
-            pr_emph("paging: ignored low memory: " PTR_FMT "-" PTR_FMT " (%zu bytes)", r->paddr, r->paddr + r->size_bytes, r->size_bytes);
+            pr_emph("ignored low memory: " PTR_FMT "-" PTR_FMT " (%zu bytes)", r->paddr, r->paddr + r->size_bytes, r->size_bytes);
             continue;
         }
 
         size_t alignment_loss = pmem_freelist_add_region(r->paddr, r->size_bytes);
         if (alignment_loss)
-            pr_emph("paging: %zu bytes of memory loss due to alignment", alignment_loss);
+            pr_emph("%zu bytes of memory loss due to alignment", alignment_loss);
     }
 }
 
@@ -81,7 +81,7 @@ size_t pmem_freelist_add_region(uintptr_t start_addr, size_t size_bytes)
 
     const size_t pages_in_region = (aligned_end - aligned_start) / MOS_PAGE_SIZE;
 
-    mos_debug("paging: adding physical memory region " PTR_FMT "-" PTR_FMT " to freelist.", aligned_start, aligned_end);
+    mos_debug("adding physical memory region " PTR_FMT "-" PTR_FMT " to freelist.", aligned_start, aligned_end);
 
     pmem_range_t *this = pmem_freelist;
     pmem_range_t *prev = NULL;
@@ -99,7 +99,7 @@ size_t pmem_freelist_add_region(uintptr_t start_addr, size_t size_bytes)
         if (aligned_end == this_start)
         {
             uintptr_t new_end = this_start + pages_in_region * MOS_PAGE_SIZE;
-            mos_debug("paging: enlarge range [" PTR_FMT "-" PTR_FMT "]: starts at " PTR_FMT, this_start, this_end, new_end);
+            mos_debug("enlarge range [" PTR_FMT "-" PTR_FMT "]: starts at " PTR_FMT, this_start, this_end, new_end);
             this->paddr = aligned_start;
             this->n_pages += pages_in_region;
             goto end;
@@ -118,7 +118,7 @@ size_t pmem_freelist_add_region(uintptr_t start_addr, size_t size_bytes)
             {
                 prev->n_pages += pages_in_region;
                 const uintptr_t new_ends = prev_end + pages_in_region * MOS_PAGE_SIZE;
-                mos_debug("paging: enlarged " PTR_FMT "-" PTR_FMT ": ends at " PTR_FMT, prev_start, prev_end, new_ends);
+                mos_debug("enlarged " PTR_FMT "-" PTR_FMT ": ends at " PTR_FMT, prev_start, prev_end, new_ends);
                 goto end;
             }
         }
@@ -165,7 +165,7 @@ void pmem_freelist_remove_region(uintptr_t start_addr, size_t size_bytes)
 
     const size_t pages_in_region = (end_addr - start_addr) / MOS_PAGE_SIZE;
 
-    mos_debug("paging: removing physical memory region " PTR_FMT "-" PTR_FMT " from freelist.", start_addr, end_addr);
+    mos_debug("removing physical memory region " PTR_FMT "-" PTR_FMT " from freelist.", start_addr, end_addr);
 
     bool needs_cleanup = false;
     bool freed = false;
@@ -194,13 +194,12 @@ void pmem_freelist_remove_region(uintptr_t start_addr, size_t size_bytes)
                 // part 1 is empty, which means we are removing from the front of the region
                 this->paddr = end_addr;
                 this->n_pages = part_2_size / MOS_PAGE_SIZE;
-                mos_debug("paging: this pmem block now starts at " PTR_FMT ", with %zu pages", this_start, this->n_pages);
+                mos_debug("pmem block now starts at " PTR_FMT ", with %zu pages", this_start, this->n_pages);
             }
             else if (part_1_size != 0 && part_2_size == 0)
             {
                 // part 2 is empty, which means we are removing the tail of part 1
-                mos_debug("paging: shrunk " PTR_FMT "-" PTR_FMT ": ends at " PTR_FMT, this_start, this_end,
-                          this_start + (this->n_pages - pages_in_region) * MOS_PAGE_SIZE);
+                mos_debug("shrunk " PTR_FMT "-" PTR_FMT ": ends at " PTR_FMT, this_start, this_end, this_start + (this->n_pages - pages_in_region) * MOS_PAGE_SIZE);
                 this->n_pages -= pages_in_region;
             }
             else if (part_1_size == 0 && part_2_size == 0)
@@ -214,13 +213,13 @@ void pmem_freelist_remove_region(uintptr_t start_addr, size_t size_bytes)
                 // have to do some cleanup
                 needs_cleanup = true;
                 cleanup_target_memptr = this;
-                mos_debug("paging: removed " PTR_FMT "-" PTR_FMT " from freelist.", this_start, this_end);
+                mos_debug("removed " PTR_FMT "-" PTR_FMT " from freelist.", this_start, this_end);
             }
             else
             {
                 // neither part 1 nor part 2 is empty, so we have to allocate a new entry for part 2
-                mos_debug("paging: split " PTR_FMT "-" PTR_FMT " into " PTR_FMT "-" PTR_FMT " and " PTR_FMT "-" PTR_FMT, this_start, this_end,
-                          this_start, start_addr, end_addr, end_addr + part_2_size);
+                mos_debug("split " PTR_FMT "-" PTR_FMT " into " PTR_FMT "-" PTR_FMT " and " PTR_FMT "-" PTR_FMT, this_start, this_end, this_start, start_addr, end_addr,
+                          end_addr + part_2_size);
                 pmem_range_t *new = (pmem_range_t *) pmem_freelist_storage + pmem_freelist_count++;
                 memset(new, 0, sizeof(pmem_range_t));
                 new->next = next;
@@ -237,7 +236,7 @@ void pmem_freelist_remove_region(uintptr_t start_addr, size_t size_bytes)
     }
 
     if (!freed)
-        mos_panic("paging: " PTR_FMT "-" PTR_FMT " is not in the freelist.", start_addr, end_addr);
+        mos_panic(PTR_FMT "-" PTR_FMT " is not in the freelist.", start_addr, end_addr);
 
     if (needs_cleanup)
     {
@@ -279,14 +278,14 @@ uintptr_t pmem_freelist_find_free(size_t pages)
         {
             // ! do not remove the range from the freelist
             uintptr_t addr = this->paddr;
-            mos_debug("paging: allocated %zu pages from freelist, starting at " PTR_FMT, pages, addr);
+            mos_debug("allocated %zu pages from freelist, starting at " PTR_FMT, pages, addr);
             return addr;
         }
         this = this->next;
     }
 
     // !! OOM
-    mos_warn("paging: out of memory?");
+    mos_warn("out of memory?");
     MOS_UNREACHABLE();
     return 0;
 }

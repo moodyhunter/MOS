@@ -150,6 +150,11 @@ static void x86_handle_exception(x86_stack_frame *stack)
             uintptr_t fault_address;
             __asm__ volatile("mov %%cr2, %0" : "=r"(fault_address));
 
+            if (fault_address < 1 KB)
+            {
+                mos_panic("Kernel NULL pointer dereference at " PTR_FMT " caused by address " PTR_FMT ".", (uintptr_t) stack->intrrupt.eip, fault_address);
+            }
+
             bool present = (stack->error_code & 0x1) != 0;
             bool is_write = (stack->error_code & 0x2) != 0;
             bool is_user = (stack->error_code & 0x4) != 0;
