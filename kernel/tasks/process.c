@@ -5,6 +5,7 @@
 #include "lib/string.h"
 #include "lib/structures/hashmap.h"
 #include "lib/structures/stack.h"
+#include "mos/device/block.h"
 #include "mos/filesystem/filesystem.h"
 #include "mos/io/io.h"
 #include "mos/mm/cow.h"
@@ -122,6 +123,7 @@ bool process_detach_fd(process_t *process, fd_t fd)
         return false;
     io_close(process->files[fd]);
     process->files[fd] = NULL;
+    process->files_count--;
     return true;
 }
 
@@ -159,6 +161,11 @@ void process_handle_exit(process_t *process, int exit_code)
     }
 }
 
+void fork_return()
+{
+    pr_info("fork return");
+}
+
 process_t *process_handle_fork(process_t *parent)
 {
     MOS_ASSERT(process_is_valid(parent));
@@ -166,17 +173,24 @@ process_t *process_handle_fork(process_t *parent)
 
     process_dump_mmaps(parent);
 
-    // TODO: get the returned address (replace NULL)
     process_t *child = process_allocate(parent, parent->effective_uid, parent->name);
-
-    child->main_thread->status = THREAD_STATUS_WAITING;
 
     // copy the parent's memory
     for (int i = 0; i < parent->mmaps_count; i++)
     {
         proc_vmblock_t block = parent->mmaps[i];
-        vmblock_t new_block = mm_map_cow(parent->pagetable, block.vm.vaddr, child->pagetable, block.vm.vaddr, block.vm.npages);
+        if (block.map_flags & MMAP_PRIVATE)
+        {
+            mos_debug("private mapping, skipping");
+            continue;
+        }
+        // probably stack pages should be copied in anyway
+        vmblock_t new_block = mm_make_process_map_cow(parent->pagetable, block.vm.vaddr, child->pagetable, block.vm.vaddr, block.vm.npages);
         process_attach_mmap(child, new_block, block.type, true);
+
+        // also mark parent's pages as Read-Only
+        parent->mmaps[i].map_flags |= MMAP_COW;
+        parent->mmaps[i].vm = mm_make_process_map_cow(parent->pagetable, block.vm.vaddr, parent->pagetable, block.vm.vaddr, block.vm.npages);
     }
 
     // copy the parent's files
@@ -196,10 +210,26 @@ process_t *process_handle_fork(process_t *parent)
         thread_t *new_thread = thread_allocate(child, thread->flags);
         new_thread->stack = thread->stack;
         new_thread->status = thread->status;
+
+        if (parent->main_thread == thread)
+            child->main_thread = new_thread;
+
+        uintptr_t esp;
+        __asm__ volatile("mov %%esp, %0" : "=r"(esp));
+
+        // uintptr_t eip;
+        // __asm__ volatile("mov %%eip, %0" : "=r"(eip));
+        new_thread->stack.head = esp;
+
+        mos_platform->context_setup(new_thread, fork_return, NULL);
+        // stack_push(&new_thread->stack, &fork_return, sizeof(uintptr_t));
+
         process_attach_thread(child, new_thread);
+        hashmap_put(thread_table, &new_thread->tid, new_thread);
     }
 
     process_dump_mmaps(child);
+    hashmap_put(process_table, &child->pid, child);
     return parent;
 }
 
@@ -218,10 +248,9 @@ void process_dump_mmaps(process_t *process)
             default: MOS_UNREACHABLE();
         };
 
-        pr_info("block %d: " PTR_FMT " -> " PTR_FMT ", %zd page(s), %s%sperm: %s%s%s%s%s%s%s -> %s",
+        pr_info("block %d: " PTR_FMT ", %zd page(s), %s%sperm: %s%s%s%s%s%s%s -> %s",
                 i,                                                 //
                 block.vm.vaddr,                                    //
-                block.vm.paddr,                                    //
                 block.vm.npages,                                   //
                 block.map_flags & MMAP_COW ? "cow, " : "",         //
                 block.map_flags & MMAP_PRIVATE ? "private, " : "", //

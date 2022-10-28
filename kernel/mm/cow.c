@@ -12,14 +12,14 @@
 
 // TODO: A global list of CoW blocks, so that we don't free them if they're still in use.
 
-vmblock_t mm_map_cow(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages)
+vmblock_t mm_make_process_map_cow(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages)
 {
     vmblock_t block = mos_platform->mm_copy_maps(from, fvaddr, to, tvaddr, npages);
     mos_platform->mm_flag_pages(to, tvaddr, npages, block.flags & ~VM_WRITE);
     return block;
 }
 
-static void copy_cow_pages(uintptr_t vaddr, size_t npages)
+void copy_cow_pages_inplace(uintptr_t vaddr, size_t npages)
 {
     paging_handle_t current_page_handle = current_process->pagetable;
     void *pagetmp = kmalloc(MOS_PAGE_SIZE);
@@ -57,7 +57,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr)
 
         mos_debug("cow_handle_page_fault: fault_addr=" PTR_FMT ", vmblock=" PTR_FMT "-" PTR_FMT, fault_addr, vm.vaddr, vm.vaddr + vm.npages * MOS_PAGE_SIZE);
 
-        copy_cow_pages(vm.vaddr, vm.npages);
+        copy_cow_pages_inplace(vm.vaddr, vm.npages);
         current_proc->mmaps[i].map_flags |= MMAP_COW;
         return true;
     }

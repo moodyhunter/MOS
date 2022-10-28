@@ -48,9 +48,15 @@ typedef enum
 
 typedef struct
 {
+    uintptr_t stack_addr;
+} platform_context_t;
+
+typedef struct
+{
     u32 id;
     thread_t *thread;
     uintptr_t scheduler_stack;
+    platform_context_t context;
     paging_handle_t pagetable;
 } cpu_t;
 
@@ -65,9 +71,8 @@ typedef struct
 typedef struct
 {
     uintptr_t vaddr;
-    uintptr_t paddr; // probably non-contiguous
     size_t npages;
-    vm_flags flags;
+    vm_flags flags; // the expected flags for the region, regardless of the copy-on-write state
 } vmblock_t;
 
 typedef enum

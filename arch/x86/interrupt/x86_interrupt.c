@@ -81,6 +81,7 @@ bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
 
 void x86_handle_interrupt(u32 esp)
 {
+    current_cpu->context.stack_addr = esp;
     x86_stack_frame *frame = (x86_stack_frame *) esp;
 
     if (frame->interrupt_number < IRQ_BASE)

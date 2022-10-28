@@ -274,7 +274,6 @@ vmblock_t x86_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle
 
     vmblock_t block = {
         .vaddr = tvaddr,
-        .paddr = start_paddr,
         .npages = npages,
         .flags = pg_page_get_flags(from_infra, fvaddr),
     };

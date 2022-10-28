@@ -84,7 +84,6 @@ vmblock_t pg_page_alloc_at(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n_page, v
     pg_map_pages(pg, vaddr, paddr, n_page, vm_flag);
     vmblock_t block = {
         .vaddr = vaddr,
-        .paddr = paddr,
         .npages = n_page,
         .flags = vm_flag,
     };
