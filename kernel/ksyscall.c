@@ -83,5 +83,6 @@ pid_t define_ksyscall(exec)(const char *path, const char *const argv[])
 
 pid_t define_ksyscall(get_pid)()
 {
-    return 0;
+    MOS_ASSERT(current_thread->owner);
+    return current_thread->owner->pid;
 }
