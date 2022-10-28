@@ -68,7 +68,7 @@ pid_t define_ksyscall(fork)(void)
 {
     process_t *new_process = process_handle_fork(current_thread->owner);
     if (new_process == NULL)
-        return -1;
+        return 0;
     return new_process->pid;
 }
 

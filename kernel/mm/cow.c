@@ -52,13 +52,13 @@ bool cow_handle_page_fault(uintptr_t fault_addr)
         if (fault_addr < block_start || fault_addr >= block_end)
             continue;
 
-        if (!current_proc->mmaps[i].cow_mapped)
+        if (!current_proc->mmaps[i].map_flags & MMAP_COW)
             mos_panic("cow_handle_page_fault: page fault in non-cow mapped region");
 
         mos_debug("cow_handle_page_fault: fault_addr=" PTR_FMT ", vmblock=" PTR_FMT "-" PTR_FMT, fault_addr, vm.vaddr, vm.vaddr + vm.npages * MOS_PAGE_SIZE);
 
         copy_cow_pages(vm.vaddr, vm.npages);
-        current_proc->mmaps[i].cow_mapped = false;
+        current_proc->mmaps[i].map_flags |= MMAP_COW;
         return true;
     }
 

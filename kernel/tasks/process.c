@@ -4,6 +4,7 @@
 
 #include "lib/string.h"
 #include "lib/structures/hashmap.h"
+#include "lib/structures/stack.h"
 #include "mos/filesystem/filesystem.h"
 #include "mos/io/io.h"
 #include "mos/mm/cow.h"
@@ -35,6 +36,40 @@ static pid_t new_process_id(void)
     return (pid_t){ next++ };
 }
 
+static process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
+{
+    process_t *proc = kmalloc(sizeof(process_t));
+    memzero(proc, sizeof(process_t));
+
+    proc->magic[0] = 'P';
+    proc->magic[1] = 'R';
+    proc->magic[2] = 'O';
+    proc->magic[3] = 'C';
+    proc->name = "<unknown>";
+
+    proc->pid = new_process_id();
+
+    if (proc->pid == 1)
+        proc->parent = proc;
+    else if (!parent)
+    {
+        proc->parent = parent;
+        pr_emerg("process %d has no parent", proc->pid);
+        kfree(proc);
+        return NULL;
+    }
+
+    if (name)
+    {
+        proc->name = kmalloc(strlen(name) + 1);
+        strcpy((char *) proc->name, name);
+    }
+
+    proc->effective_uid = euid;
+    proc->pagetable = mos_platform->mm_create_user_pgd();
+    return proc;
+}
+
 void process_init(void)
 {
     process_table = kmalloc(sizeof(hashmap_t));
@@ -50,39 +85,9 @@ void process_deinit(void)
 
 process_t *process_new(process_t *parent, uid_t euid, const char *name, thread_entry_t entry, void *arg)
 {
-    process_t *proc = kmalloc(sizeof(process_t));
-    memzero(proc, sizeof(process_t));
-
-    proc->magic[0] = 'P';
-    proc->magic[1] = 'R';
-    proc->magic[2] = 'O';
-    proc->magic[3] = 'C';
-
-    proc->pid = new_process_id();
-
-    if (proc->pid == 1)
-        proc->parent_pid = proc->pid;
-    else if (!parent)
-    {
-        proc->parent_pid = parent->pid;
-        pr_emerg("process %d has no parent", proc->pid);
-        kfree(proc);
-        return NULL;
-    }
-
-    proc->name = "<unknown>";
-    if (name)
-    {
-        proc->name = kmalloc(strlen(name) + 1);
-        strcpy((char *) proc->name, name);
-    }
-
-    proc->effective_uid = euid;
-    proc->pagetable = mos_platform->mm_create_user_pgd();
-
+    process_t *proc = process_allocate(parent, euid, name);
     process_stdio_setup(proc);
-    proc->main_thread = create_thread(proc, THREAD_FLAG_USERMODE, entry, arg);
-
+    proc->main_thread = thread_new(proc, THREAD_FLAG_USERMODE, entry, arg);
     void *old_proc = hashmap_put(process_table, &proc->pid, proc);
     MOS_ASSERT_X(old_proc == NULL, "process already exists, go and buy yourself a lottery :)");
     return proc;
@@ -124,6 +129,7 @@ void process_attach_thread(process_t *process, thread_t *thread)
 {
     MOS_ASSERT(process_is_valid(process));
     MOS_ASSERT(thread_is_valid(thread));
+    MOS_ASSERT(thread->owner == process);
     pr_info("process %d attached thread %d", process->pid, thread->tid);
     process->threads[process->threads_count++] = thread;
 }
@@ -132,7 +138,7 @@ void process_attach_mmap(process_t *process, vmblock_t block, vm_type type, bool
 {
     MOS_ASSERT(process_is_valid(process));
     process->mmaps = krealloc(process->mmaps, sizeof(proc_vmblock_t) * (process->mmaps_count + 1));
-    process->mmaps[process->mmaps_count++] = (proc_vmblock_t){ .vm = block, .type = type, .cow_mapped = cow };
+    process->mmaps[process->mmaps_count++] = (proc_vmblock_t){ .vm = block, .type = type, .map_flags = (cow ? MMAP_COW : MMAP_DEFAULT) };
 }
 
 void process_handle_exit(process_t *process, int exit_code)
@@ -153,31 +159,48 @@ void process_handle_exit(process_t *process, int exit_code)
     }
 }
 
-process_t *process_handle_fork(process_t *process)
+process_t *process_handle_fork(process_t *parent)
 {
-    MOS_ASSERT(process_is_valid(process));
-    pr_info("process %d forked", process->pid);
+    MOS_ASSERT(process_is_valid(parent));
+    pr_info("process %d forked", parent->pid);
 
-    process_dump_mmaps(process);
+    process_dump_mmaps(parent);
 
     // TODO: get the returned address (replace NULL)
-    process_t *child = process_new(process, process->effective_uid, process->name, NULL, NULL);
+    process_t *child = process_allocate(parent, parent->effective_uid, parent->name);
 
     child->main_thread->status = THREAD_STATUS_WAITING;
 
     // copy the parent's memory
-    for (int i = 0; i < process->mmaps_count; i++)
+    for (int i = 0; i < parent->mmaps_count; i++)
     {
-        proc_vmblock_t block = process->mmaps[i];
-        if (block.type == VMTYPE_STACK)
-            continue; // don't copy the stack (?)
-
-        vmblock_t new_block = mm_map_cow(process->pagetable, block.vm.vaddr, child->pagetable, block.vm.vaddr, block.vm.npages);
+        proc_vmblock_t block = parent->mmaps[i];
+        vmblock_t new_block = mm_map_cow(parent->pagetable, block.vm.vaddr, child->pagetable, block.vm.vaddr, block.vm.npages);
         process_attach_mmap(child, new_block, block.type, true);
     }
 
+    // copy the parent's files
+    for (int i = 0; i < parent->files_count; i++)
+    {
+        io_t *file = parent->files[i];
+        io_ref(file); // increase the refcount
+        process_attach_fd(child, file);
+    }
+
+    // copy the parent's threads
+    for (int i = 0; i < parent->threads_count; i++)
+    {
+        thread_t *thread = parent->threads[i];
+        if (thread->status == THREAD_STATUS_DEAD)
+            continue;
+        thread_t *new_thread = thread_allocate(child, thread->flags);
+        new_thread->stack = thread->stack;
+        new_thread->status = thread->status;
+        process_attach_thread(child, new_thread);
+    }
+
     process_dump_mmaps(child);
-    return process;
+    return parent;
 }
 
 void process_dump_mmaps(process_t *process)
@@ -195,20 +218,21 @@ void process_dump_mmaps(process_t *process)
             default: MOS_UNREACHABLE();
         };
 
-        pr_info("block %d: " PTR_FMT " -> " PTR_FMT ", %zd page(s), %sperm: %s%s%s%s%s%s%s -> %s",
-                i,                                              //
-                block.vm.vaddr,                                 //
-                block.vm.paddr,                                 //
-                block.vm.npages,                                //
-                block.cow_mapped ? "cow, " : "",                //
-                block.vm.flags & VM_READ ? "r" : "-",           //
-                block.vm.flags & VM_WRITE ? "w" : "-",          //
-                block.vm.flags & VM_EXEC ? "x" : "-",           //
-                block.vm.flags & VM_WRITE_THROUGH ? "W" : "-",  //
-                block.vm.flags & VM_CACHE_DISABLED ? "-" : "c", //
-                block.vm.flags & VM_GLOBAL ? "g" : "-",         //
-                block.vm.flags & VM_USER ? "u" : "-",           //
-                type                                            //
+        pr_info("block %d: " PTR_FMT " -> " PTR_FMT ", %zd page(s), %s%sperm: %s%s%s%s%s%s%s -> %s",
+                i,                                                 //
+                block.vm.vaddr,                                    //
+                block.vm.paddr,                                    //
+                block.vm.npages,                                   //
+                block.map_flags & MMAP_COW ? "cow, " : "",         //
+                block.map_flags & MMAP_PRIVATE ? "private, " : "", //
+                block.vm.flags & VM_READ ? "r" : "-",              //
+                block.vm.flags & VM_WRITE ? "w" : "-",             //
+                block.vm.flags & VM_EXEC ? "x" : "-",              //
+                block.vm.flags & VM_WRITE_THROUGH ? "W" : "-",     //
+                block.vm.flags & VM_CACHE_DISABLED ? "-" : "c",    //
+                block.vm.flags & VM_GLOBAL ? "g" : "-",            //
+                block.vm.flags & VM_USER ? "u" : "-",              //
+                type                                               //
         );
     }
 }

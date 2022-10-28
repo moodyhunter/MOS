@@ -25,7 +25,6 @@ x86_context_switch_impl:
     je      .finalise_pop   ;     pop
     mov     cr3, ecx        ; load page directory
 .finalise_pop:
-
     pop     esi
     pop     edi
     pop     ebx

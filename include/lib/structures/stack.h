@@ -8,7 +8,7 @@
 
 typedef struct
 {
-    const uintptr_t top;
+    uintptr_t top;
     uintptr_t head;
     size_t capacity;
 } downwards_stack_t;

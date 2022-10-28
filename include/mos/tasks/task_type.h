@@ -24,13 +24,14 @@ typedef enum
 } thread_flags_t;
 
 typedef struct _thread thread_t;
+typedef struct _process process_t;
 
-typedef struct
+typedef struct _process
 {
     char magic[4];
     const char *name;
     pid_t pid;
-    pid_t parent_pid;
+    process_t *parent;
     uid_t effective_uid;
     paging_handle_t pagetable;
 

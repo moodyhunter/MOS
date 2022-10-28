@@ -16,8 +16,10 @@ should_inline bool thread_is_valid(thread_t *thread)
     return thread && thread->magic[0] == 'T' && thread->magic[1] == 'H' && thread->magic[2] == 'R' && thread->magic[3] == 'D';
 }
 
+thread_t *thread_allocate(process_t *owner, thread_flags_t tflags);
+
 void thread_init();
 void thread_deinit();
 
-thread_t *create_thread(process_t *owner, thread_flags_t mode, thread_entry_t entry, void *arg);
-thread_t *get_thread(tid_t id);
+thread_t *thread_new(process_t *owner, thread_flags_t mode, thread_entry_t entry, void *arg);
+thread_t *thread_get(tid_t id);

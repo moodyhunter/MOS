@@ -25,6 +25,27 @@ static int hashmap_thread_equal(const void *key1, const void *key2)
     return *(tid_t *) key1 == *(tid_t *) key2;
 }
 
+static tid_t new_thread_id()
+{
+    static tid_t next = 1;
+    return (tid_t){ next++ };
+}
+
+thread_t *thread_allocate(process_t *owner, thread_flags_t tflags)
+{
+    thread_t *t = kmalloc(sizeof(thread_t));
+    t->magic[0] = 'T';
+    t->magic[1] = 'H';
+    t->magic[2] = 'R';
+    t->magic[3] = 'D';
+    t->tid = new_thread_id();
+    t->owner = owner;
+    t->status = THREAD_STATUS_READY;
+    t->flags = tflags;
+
+    return t;
+}
+
 void thread_init()
 {
     thread_table = kmalloc(sizeof(hashmap_t));
@@ -39,23 +60,9 @@ void thread_deinit()
     kfree(thread_table);
 }
 
-static tid_t new_thread_id()
+thread_t *thread_new(process_t *owner, thread_flags_t tflags, thread_entry_t entry, void *arg)
 {
-    static tid_t next = 1;
-    return (tid_t){ next++ };
-}
-
-thread_t *create_thread(process_t *owner, thread_flags_t tflags, thread_entry_t entry, void *arg)
-{
-    thread_t *t = kmalloc(sizeof(thread_t));
-    t->magic[0] = 'T';
-    t->magic[1] = 'H';
-    t->magic[2] = 'R';
-    t->magic[3] = 'D';
-    t->tid = new_thread_id();
-    t->owner = owner;
-    t->status = THREAD_STATUS_READY;
-    t->flags = tflags;
+    thread_t *t = thread_allocate(owner, tflags);
 
     vm_flags sflags = VM_READ | VM_WRITE;
     pgalloc_hints hints = PGALLOC_HINT_DEFAULT;
@@ -83,7 +90,7 @@ thread_t *create_thread(process_t *owner, thread_flags_t tflags, thread_entry_t 
     return t;
 }
 
-thread_t *get_thread(tid_t tid)
+thread_t *thread_get(tid_t tid)
 {
     return hashmap_get(thread_table, &tid);
 }

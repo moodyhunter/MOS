@@ -6,7 +6,7 @@
 #include "mos/x86/mm/paging_impl.h"
 
 extern asmlinkage void x86_um_thread_startup();
-extern asmlinkage void x86_context_switch_impl(uintptr_t *old_stack, uintptr_t new_stack, uintptr_t pgd);
+extern asmlinkage void x86_context_switch_impl(uintptr_t *old_stack_ptr, uintptr_t new_stack, uintptr_t pgd);
 
 void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
 {
@@ -24,7 +24,8 @@ void x86_context_switch(uintptr_t *old_stack, thread_t *to)
     x86_context_switch_impl(old_stack, (uintptr_t) to->stack.head, x);
 }
 
-void x86_context_switch_to_scheduler(uintptr_t *old_stack, uintptr_t new_stack)
+void x86_context_switch_to_scheduler(uintptr_t *old_stack_ptr, uintptr_t new_stack)
 {
-    x86_context_switch_impl(old_stack, new_stack, 0);
+    // pgd = 0 so that we don't switch to a different page table
+    x86_context_switch_impl(old_stack_ptr, new_stack, 0);
 }

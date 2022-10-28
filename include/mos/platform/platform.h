@@ -70,15 +70,22 @@ typedef struct
     vm_flags flags;
 } vmblock_t;
 
+typedef enum
+{
+    MMAP_DEFAULT = 0 << 0,
+    MMAP_COW = 1 << 0,
+    MMAP_PRIVATE = 1 << 1,
+} mmap_flags;
+
 typedef struct
 {
     vmblock_t vm;
     vm_type type;
 
-    // if cow_mapped is true, then the flags in vm contains 'original' flags
+    // if MMAP_COW is set, then the flags in vm contains 'original' flags
     // of this block. Which means if there're no VM_WRITE flag, then the block
     // should not be writable.
-    bool cow_mapped;
+    mmap_flags map_flags;
 } proc_vmblock_t;
 
 typedef struct
