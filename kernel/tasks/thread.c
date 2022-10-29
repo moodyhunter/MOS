@@ -12,7 +12,8 @@
 #include "mos/tasks/task_type.h"
 #include "mos/x86/tasks/context.h"
 
-static u32 STACK_NPAGES = 0;
+#define THREAD_HASHTABLE_SIZE 512
+
 hashmap_t *thread_table;
 
 static hash_t hashmap_thread_hash(const void *key)
@@ -40,7 +41,7 @@ thread_t *thread_allocate(process_t *owner, thread_flags_t tflags)
     t->magic[3] = 'D';
     t->tid = new_thread_id();
     t->owner = owner;
-    t->status = THREAD_STATUS_READY;
+    t->status = THREAD_STATUS_CREATED;
     t->flags = tflags;
 
     return t;
@@ -50,8 +51,7 @@ void thread_init()
 {
     thread_table = kmalloc(sizeof(hashmap_t));
     memset(thread_table, 0, sizeof(hashmap_t));
-    hashmap_init(thread_table, MOS_THREAD_STACK_SIZE, hashmap_thread_hash, hashmap_thread_equal);
-    STACK_NPAGES = MOS_THREAD_STACK_SIZE / MOS_PAGE_SIZE;
+    hashmap_init(thread_table, THREAD_HASHTABLE_SIZE, hashmap_thread_hash, hashmap_thread_equal);
 }
 
 void thread_deinit()
@@ -71,9 +71,9 @@ thread_t *thread_new(process_t *owner, thread_flags_t tflags, thread_entry_t ent
         sflags |= VM_USER, hints = PGALLOC_HINT_USERSPACE;
 
     // allcate stack for the thread, in the kernel space
-    const vmblock_t stack_block = mos_platform->mm_alloc_pages(current_cpu->pagetable, STACK_NPAGES, hints, sflags);
+    const vmblock_t stack_block = mos_platform->mm_alloc_pages(current_cpu->pagetable, MOS_STACK_PAGES_USER, hints, sflags);
     void *const stack = (void *) stack_block.vaddr;
-    stack_init(&t->stack, stack, MOS_THREAD_STACK_SIZE);
+    stack_init(&t->stack, stack, MOS_STACK_PAGES_USER * MOS_PAGE_SIZE);
     mos_platform->context_setup(t, entry, arg);
 
     // copy the stack mappping to the process address space

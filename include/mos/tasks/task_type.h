@@ -10,11 +10,13 @@
 
 typedef enum
 {
-    THREAD_STATUS_READY,
-    THREAD_STATUS_RUNNING,
-    THREAD_STATUS_WAITING,
-    THREAD_STATUS_DYING,
-    THREAD_STATUS_DEAD,
+    THREAD_STATUS_CREATED, // Thread has been created, but not started ever
+    THREAD_STATUS_FORKED,  // Thread has been forked, but not started ever
+    THREAD_STATUS_READY,   // Thread is ready to run, this state is set by the scheduler
+    THREAD_STATUS_RUNNING, // Thread is currently running, this state is set by the scheduler
+    THREAD_STATUS_WAITING, // ?
+    THREAD_STATUS_DYING,   // ?
+    THREAD_STATUS_DEAD,    // ?
 } thread_status_t;
 
 typedef enum
@@ -54,5 +56,6 @@ typedef struct _thread
     process_t *owner;
     thread_status_t status;
     downwards_stack_t stack;
+    uintptr_t current_instruction;
     thread_flags_t flags;
 } thread_t;

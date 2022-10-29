@@ -31,7 +31,16 @@ int main(void)
         invoke_ksyscall_io_close(fd);
     }
 
-    invoke_ksyscall_fork();
+    pid_t pid = invoke_ksyscall_fork();
+
+    if (pid == 0)
+    {
+        print("Child process\n");
+    }
+    else
+    {
+        print("Parent process\n");
+    }
 
     while (1)
         invoke_ksyscall_yield_cpu();

@@ -5,7 +5,9 @@
 #include "mos/ksyscall/dispatcher.h"
 #include "mos/mm/cow.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/tasks/task_type.h"
 #include "mos/x86/devices/port.h"
 #include "mos/x86/interrupt/pic.h"
 #include "mos/x86/x86_platform.h"
@@ -81,8 +83,15 @@ bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
 
 void x86_handle_interrupt(u32 esp)
 {
-    current_cpu->context.stack_addr = esp;
     x86_stack_frame *frame = (x86_stack_frame *) esp;
+
+    if (likely(current_cpu->thread))
+    {
+        thread_t *thread = current_cpu->thread;
+        thread->status = THREAD_STATUS_WAITING;
+        thread->stack.head = frame->interrupt.esp;
+        thread->current_instruction = frame->interrupt.eip;
+    }
 
     if (frame->interrupt_number < IRQ_BASE)
         x86_handle_exception(frame);
@@ -97,6 +106,14 @@ void x86_handle_interrupt(u32 esp)
     else
     {
         pr_warn("Unknown interrupt number: %d", frame->interrupt_number);
+    }
+
+    if (likely(current_cpu->thread))
+    {
+        thread_t *thread = current_cpu->thread;
+        thread->status = THREAD_STATUS_RUNNING;
+        frame->interrupt.esp = thread->stack.head;
+        frame->interrupt.eip = thread->current_instruction;
     }
 }
 
@@ -153,12 +170,16 @@ static void x86_handle_exception(x86_stack_frame *stack)
 
             if (fault_address < 1 KB)
             {
-                mos_panic("Kernel NULL pointer dereference at " PTR_FMT " caused by address " PTR_FMT ".", (uintptr_t) stack->intrrupt.eip, fault_address);
+                mos_panic("Kernel NULL pointer dereference at " PTR_FMT " caused by address " PTR_FMT ".", (uintptr_t) stack->interrupt.eip, fault_address);
             }
 
             bool present = (stack->error_code & 0x1) != 0;
             bool is_write = (stack->error_code & 0x2) != 0;
             bool is_user = (stack->error_code & 0x4) != 0;
+
+            if (current_thread)
+                pr_emph("page fault: thread %d, process %s (pid %d) at " PTR_FMT ", instruction " PTR_FMT, current_thread->tid, current_process->name,
+                        current_process->pid, fault_address, (uintptr_t) stack->interrupt.eip);
 
             if (present && is_write)
             {
@@ -177,7 +198,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
 #else
             mos_panic("Page Fault: %s code at " PTR_FMT " is trying to %s a %s address " PTR_FMT, //
                       is_user ? "Userspace" : "Kernel",                                           //
-                      (uintptr_t) stack->intrrupt.eip,                                            //
+                      (uintptr_t) stack->interrupt.eip,                                           //
                       is_write ? "write into" : "read from",                                      //
                       present ? "present" : "non-present",                                        //
                       fault_address);
@@ -216,11 +237,11 @@ static void x86_handle_exception(x86_stack_frame *stack)
               stack->error_code,                              //
               stack->eax, stack->ebx, stack->ecx, stack->edx, //
               stack->esi, stack->edi, stack->ebp, stack->esp, //
-              stack->intrrupt.eip,                            //
+              stack->interrupt.eip,                           //
               stack->ds, stack->es, stack->fs, stack->gs,     //
-              stack->intrrupt.eflags,                         //
-              stack->intrrupt.cs, stack->intrrupt.eip,        //
-              stack->intrrupt.ss, stack->intrrupt.esp         //
+              stack->interrupt.eflags,                        //
+              stack->interrupt.cs, stack->interrupt.eip,      //
+              stack->interrupt.ss, stack->interrupt.esp       //
     );
 }
 

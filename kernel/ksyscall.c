@@ -66,10 +66,12 @@ void define_ksyscall(yield_cpu)(void)
 
 pid_t define_ksyscall(fork)(void)
 {
-    process_t *new_process = process_handle_fork(current_thread->owner);
-    if (new_process == NULL)
+    process_t *parent = current_thread->owner;
+    process_t *child = process_handle_fork(parent);
+    if (child == NULL)
         return 0;
-    return new_process->pid;
+
+    return current_process == child ? 0 : child->pid; // return 0 for child, pid for parent
 }
 
 pid_t define_ksyscall(exec)(const char *path, const char *const argv[])

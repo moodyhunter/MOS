@@ -37,7 +37,7 @@ static pid_t new_process_id(void)
     return (pid_t){ next++ };
 }
 
-static process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
+process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
 {
     process_t *proc = kmalloc(sizeof(process_t));
     memzero(proc, sizeof(process_t));
@@ -164,73 +164,6 @@ void process_handle_exit(process_t *process, int exit_code)
 void fork_return()
 {
     pr_info("fork return");
-}
-
-process_t *process_handle_fork(process_t *parent)
-{
-    MOS_ASSERT(process_is_valid(parent));
-    pr_info("process %d forked", parent->pid);
-
-    process_dump_mmaps(parent);
-
-    process_t *child = process_allocate(parent, parent->effective_uid, parent->name);
-
-    // copy the parent's memory
-    for (int i = 0; i < parent->mmaps_count; i++)
-    {
-        proc_vmblock_t block = parent->mmaps[i];
-        if (block.map_flags & MMAP_PRIVATE)
-        {
-            mos_debug("private mapping, skipping");
-            continue;
-        }
-        // probably stack pages should be copied in anyway
-        vmblock_t new_block = mm_make_process_map_cow(parent->pagetable, block.vm.vaddr, child->pagetable, block.vm.vaddr, block.vm.npages);
-        process_attach_mmap(child, new_block, block.type, true);
-
-        // also mark parent's pages as Read-Only
-        parent->mmaps[i].map_flags |= MMAP_COW;
-        mos_platform->mm_flag_pages(parent->pagetable, block.vm.vaddr, block.vm.npages, block.vm.flags & ~VM_WRITE);
-    }
-
-    // copy the parent's files
-    for (int i = 0; i < parent->files_count; i++)
-    {
-        io_t *file = parent->files[i];
-        io_ref(file); // increase the refcount
-        process_attach_fd(child, file);
-    }
-
-    // copy the parent's threads
-    for (int i = 0; i < parent->threads_count; i++)
-    {
-        thread_t *thread = parent->threads[i];
-        if (thread->status == THREAD_STATUS_DEAD)
-            continue;
-        thread_t *new_thread = thread_allocate(child, thread->flags);
-        new_thread->stack = thread->stack;
-        new_thread->status = thread->status;
-
-        if (parent->main_thread == thread)
-            child->main_thread = new_thread;
-
-        uintptr_t esp;
-        __asm__ volatile("mov %%esp, %0" : "=r"(esp));
-
-        // uintptr_t eip;
-        // __asm__ volatile("mov %%eip, %0" : "=r"(eip));
-        new_thread->stack.head = esp;
-
-        mos_platform->context_setup(new_thread, fork_return, NULL);
-        // stack_push(&new_thread->stack, &fork_return, sizeof(uintptr_t));
-
-        process_attach_thread(child, new_thread);
-        hashmap_put(thread_table, &new_thread->tid, new_thread);
-    }
-
-    process_dump_mmaps(child);
-    hashmap_put(process_table, &child->pid, child);
-    return parent;
 }
 
 void process_dump_mmaps(process_t *process)

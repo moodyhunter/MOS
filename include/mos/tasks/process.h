@@ -8,6 +8,9 @@
 #include "mos/tasks/task_type.h"
 #include "mos/types.h"
 
+typedef struct hashmap hashmap_t;
+extern hashmap_t *process_table;
+
 void process_init();
 void process_deinit();
 
@@ -16,6 +19,7 @@ should_inline bool process_is_valid(process_t *process)
     return process != NULL && process->magic[0] == 'P' && process->magic[1] == 'R' && process->magic[2] == 'O' && process->magic[3] == 'C';
 }
 
+process_t *process_allocate(process_t *parent, uid_t euid, const char *name);
 process_t *process_new(process_t *parent, uid_t effective_uid, const char *name, thread_entry_t entry, void *arg);
 process_t *process_get(pid_t pid);
 

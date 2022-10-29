@@ -254,6 +254,12 @@ void x86_mm_pg_flag(paging_handle_t pgt, uintptr_t vaddr, size_t n, vm_flags fla
     pg_page_flag(kpg_infra, vaddr, n, flags);
 }
 
+vm_flags x86_mm_pg_get_flags(paging_handle_t pgt, uintptr_t vaddr)
+{
+    x86_pg_infra_t *kpg_infra = x86_get_pg_infra(pgt);
+    return pg_page_get_flags(kpg_infra, vaddr);
+}
+
 vmblock_t x86_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages)
 {
     x86_pg_infra_t *from_infra = x86_get_pg_infra(from);

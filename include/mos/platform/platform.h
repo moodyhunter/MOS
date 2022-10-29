@@ -56,7 +56,6 @@ typedef struct
     u32 id;
     thread_t *thread;
     uintptr_t scheduler_stack;
-    platform_context_t context;
     paging_handle_t pagetable;
 } cpu_t;
 

@@ -12,13 +12,14 @@ bool schedule_to_thread(const void *key, void *value)
 {
     tid_t *tid = (tid_t *) key;
     thread_t *thread = (thread_t *) value;
+    cpu_t *cpu = current_cpu;
 
     MOS_ASSERT_X(thread->tid == *tid, "something is wrong with the thread table");
-    if (thread->status == THREAD_STATUS_READY)
+    if (thread->status != THREAD_STATUS_DYING && thread->status != THREAD_STATUS_WAITING && thread->status != THREAD_STATUS_DEAD)
     {
-        current_thread = thread;
-        current_cpu->pagetable = thread->owner->pagetable;
-        mos_platform->switch_to_thread(&current_cpu->scheduler_stack, thread);
+        cpu->thread = thread;
+        cpu->pagetable = thread->owner->pagetable;
+        mos_platform->switch_to_thread(&cpu->scheduler_stack, thread);
     }
     return true;
 }
@@ -31,5 +32,6 @@ noreturn void scheduler(void)
 
 void jump_to_scheduler(void)
 {
-    mos_platform->switch_to_scheduler(&current_thread->stack.head, current_cpu->scheduler_stack);
+    cpu_t *cpu = current_cpu;
+    mos_platform->switch_to_scheduler(&cpu->thread->stack.head, cpu->scheduler_stack);
 }

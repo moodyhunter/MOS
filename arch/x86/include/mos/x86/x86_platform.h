@@ -32,7 +32,7 @@ typedef struct
 {
     reg32_t eip, cs;
     reg32_t eflags;
-    reg32_t ss, esp;
+    reg32_t esp, ss;
 } __packed x86_iret_params_t;
 
 typedef struct
@@ -40,7 +40,7 @@ typedef struct
     reg32_t ds, es, fs, gs;
     reg32_t edi, esi, ebp, esp, ebx, edx, ecx, eax;
     reg32_t interrupt_number, error_code;
-    x86_iret_params_t intrrupt;
+    x86_iret_params_t interrupt;
 } __packed x86_stack_frame;
 
 static_assert(sizeof(x86_stack_frame) == 76, "x86_stack_frame is not 76 bytes");

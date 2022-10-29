@@ -123,7 +123,7 @@ void x86_start_kernel(x86_startup_info *info)
     mos_kernel_mm_init(); // since then, we can use the kernel heap (kmalloc)
 
     // the stack memory to be used if we enter the kernelmode by a trap / interrupt
-    const vmblock_t esp0_block = pg_page_alloc(x86_kpg_infra, MOS_SYSCALL_STACK_PAGE_SIZE, PGALLOC_HINT_KHEAP, VM_READ | VM_WRITE);
+    const vmblock_t esp0_block = pg_page_alloc(x86_kpg_infra, MOS_STACK_PAGES_KERNEL, PGALLOC_HINT_KHEAP, VM_READ | VM_WRITE);
     tss_entry.esp0 = esp0_block.vaddr + esp0_block.npages * MOS_PAGE_SIZE;
     pr_emph("kernel stack at " PTR_FMT, (uintptr_t) tss_entry.esp0);
 
@@ -174,11 +174,12 @@ mos_platform_t x86_platform = {
     .mm_unmap_pages = x86_mm_pg_unmap,
     .mm_free_pages = x86_mm_pg_free,
     .mm_flag_pages = x86_mm_pg_flag,
+    .mm_get_flags = x86_mm_pg_get_flags,
 
     // process management
     .context_setup = x86_setup_thread_context,
-    .switch_to_thread = x86_context_switch,
-    .switch_to_scheduler = x86_context_switch_to_scheduler,
+    .switch_to_thread = x86_switch_to_thread,
+    .switch_to_scheduler = x86_switch_to_scheduler,
 };
 
 mos_platform_t *const mos_platform = &x86_platform;
