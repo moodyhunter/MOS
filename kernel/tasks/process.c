@@ -190,7 +190,7 @@ process_t *process_handle_fork(process_t *parent)
 
         // also mark parent's pages as Read-Only
         parent->mmaps[i].map_flags |= MMAP_COW;
-        parent->mmaps[i].vm = mm_make_process_map_cow(parent->pagetable, block.vm.vaddr, parent->pagetable, block.vm.vaddr, block.vm.npages);
+        mos_platform->mm_flag_pages(parent->pagetable, block.vm.vaddr, block.vm.npages, block.vm.flags & ~VM_WRITE);
     }
 
     // copy the parent's files

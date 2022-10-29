@@ -74,13 +74,12 @@ thread_t *thread_new(process_t *owner, thread_flags_t tflags, thread_entry_t ent
     const vmblock_t stack_block = mos_platform->mm_alloc_pages(current_cpu->pagetable, STACK_NPAGES, hints, sflags);
     void *const stack = (void *) stack_block.vaddr;
     stack_init(&t->stack, stack, MOS_THREAD_STACK_SIZE);
+    mos_platform->context_setup(t, entry, arg);
 
     // copy the stack mappping to the process address space
     vmblock_t blk = mos_platform->mm_copy_maps(current_cpu->pagetable, (uintptr_t) stack, owner->pagetable, (uintptr_t) stack, stack_block.npages);
     mos_platform->mm_flag_pages(owner->pagetable, blk.vaddr, blk.npages, sflags);
-
     process_attach_mmap(owner, blk, VMTYPE_STACK, false);
-    mos_platform->context_setup(t, entry, arg);
 
     hashmap_put(thread_table, &t->tid, t);
     process_attach_thread(owner, t);

@@ -24,6 +24,7 @@
 #include "mos/x86/mm/paging_impl.h"
 #include "mos/x86/mm/pmem_freelist.h"
 #include "mos/x86/tasks/context.h"
+#include "mos/x86/tasks/tss_types.h"
 
 static char mos_cmdline[512];
 static serial_console_t com1_console = {
@@ -123,16 +124,20 @@ void x86_start_kernel(x86_startup_info *info)
     memblock_t *bios_block = x86_bios_region;
     pg_do_map_pages(x86_kpg_infra, bios_block->paddr, bios_block->paddr, bios_block->size_bytes / MOS_PAGE_SIZE, VM_GLOBAL);
 
-#if MOS_DEBUG
-    x86_mm_dump_page_table(x86_kpg_infra);
-    pmem_freelist_dump();
-#endif
-
     x86_mm_enable_paging();
 
     mos_kernel_mm_init(); // since then, we can use the kernel heap (kmalloc)
 
-    mos_install_kpanic_hook(x86_kpanic_hook);
+    // the stack memory to be used if we enter the kernelmode by a trap / interrupt
+    extern tss32_t tss_entry;
+#define KSTACK_PAGES 1
+    const vmblock_t esp0_block = pg_page_alloc(x86_kpg_infra, KSTACK_PAGES, PGALLOC_HINT_KHEAP, VM_READ | VM_WRITE);
+    tss_entry.esp0 = esp0_block.vaddr + KSTACK_PAGES * MOS_PAGE_SIZE;
+
+    pr_emph("kernel stack at " PTR_FMT, (uintptr_t) tss_entry.esp0);
+    tss32_flush(GDT_SEGMENT_TSS);
+
+    // mos_install_kpanic_hook(x86_kpanic_hook);
     mos_install_console(&vga_text_mode_console);
     x86_install_interrupt_handler(IRQ_COM1, serial_irq_handler);
 

@@ -37,7 +37,7 @@ global x86_um_thread_startup:function (x86_um_thread_startup.end - x86_um_thread
 x86_um_thread_startup:
     cli
     ; We are currently on the thread's stack
-    ; LO [arg, entry_point                ] HI
+    ; LO [                arg, entry_point] HI
     pop     ecx                 ; arg
     pop     eax                 ; entry_point
     push    ecx                 ; arg
@@ -47,7 +47,7 @@ x86_um_thread_startup:
     ; eax = entry_point
     ; ebx = stack_addr
     ; ecx = arg
-    ; LO [fake_return_addr, arg           ] HI
+    ; LO [           fake_return_addr, arg] HI
 
     push    0x20 | 0x3      ; user data (stack) segment + RPL 3
     push    ebx             ; stack

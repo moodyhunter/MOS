@@ -12,8 +12,10 @@ void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
 {
     // x86_um_thread_startup needs [arg, entry_point] on the stack5
     uintptr_t entry_addr = (uintptr_t) entry;
-    stack_push(&thread->stack, &arg, sizeof(uintptr_t));
+    uintptr_t startup_func = (uintptr_t) x86_um_thread_startup;
     stack_push(&thread->stack, &entry_addr, sizeof(uintptr_t));
+    stack_push(&thread->stack, &arg, sizeof(uintptr_t));
+    stack_push(&thread->stack, &startup_func, sizeof(uintptr_t));
     stack_grow(&thread->stack, sizeof(reg_t) * 4); // space for esi, edi, ebx, ebp
 }
 
