@@ -11,7 +11,6 @@ void x86_tss_init()
 {
     memzero(&tss_entry, sizeof(tss_entry));
     tss_entry.ss0 = GDT_SEGMENT_KDATA;
-    // we will use an allocated kernel heap for the stack later, when we have
-    // kmalloc
-    // so do not `tss32_flush` here
+    tss_entry.esp0 = 0; // we will use an allocated kernel heap for the stack later, when we have kmalloc
+    tss32_flush(GDT_SEGMENT_TSS);
 }

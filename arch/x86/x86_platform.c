@@ -3,16 +3,11 @@
 #include "mos/x86/x86_platform.h"
 
 #include "lib/string.h"
-#include "mos/constants.h"
-#include "mos/kconfig.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
-#include "mos/tasks/task_type.h"
-#include "mos/types.h"
 #include "mos/x86/acpi/acpi.h"
-#include "mos/x86/boot/multiboot.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/cpu/smp.h"
 #include "mos/x86/devices/initrd_blockdev.h"
@@ -20,11 +15,10 @@
 #include "mos/x86/devices/text_mode_console.h"
 #include "mos/x86/interrupt/pic.h"
 #include "mos/x86/mm/mm.h"
-#include "mos/x86/mm/paging.h"
 #include "mos/x86/mm/paging_impl.h"
 #include "mos/x86/mm/pmem_freelist.h"
 #include "mos/x86/tasks/context.h"
-#include "mos/x86/tasks/tss_types.h"
+#include "mos/x86/x86_interrupt.h"
 
 static char mos_cmdline[512];
 static serial_console_t com1_console = {
@@ -129,17 +123,15 @@ void x86_start_kernel(x86_startup_info *info)
     mos_kernel_mm_init(); // since then, we can use the kernel heap (kmalloc)
 
     // the stack memory to be used if we enter the kernelmode by a trap / interrupt
-    extern tss32_t tss_entry;
-#define KSTACK_PAGES 1
-    const vmblock_t esp0_block = pg_page_alloc(x86_kpg_infra, KSTACK_PAGES, PGALLOC_HINT_KHEAP, VM_READ | VM_WRITE);
-    tss_entry.esp0 = esp0_block.vaddr + KSTACK_PAGES * MOS_PAGE_SIZE;
-
+    const vmblock_t esp0_block = pg_page_alloc(x86_kpg_infra, MOS_SYSCALL_STACK_PAGE_SIZE, PGALLOC_HINT_KHEAP, VM_READ | VM_WRITE);
+    tss_entry.esp0 = esp0_block.vaddr + esp0_block.npages * MOS_PAGE_SIZE;
     pr_emph("kernel stack at " PTR_FMT, (uintptr_t) tss_entry.esp0);
-    tss32_flush(GDT_SEGMENT_TSS);
 
-    // mos_install_kpanic_hook(x86_kpanic_hook);
+    mos_install_kpanic_hook(x86_kpanic_hook);
     mos_install_console(&vga_text_mode_console);
     x86_install_interrupt_handler(IRQ_COM1, serial_irq_handler);
+
+    x86_enable_interrupts();
 
     if (initrd_size)
     {

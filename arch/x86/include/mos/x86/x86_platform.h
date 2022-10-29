@@ -6,6 +6,7 @@
 #include "mos/x86/boot/multiboot.h"
 #include "mos/x86/gdt/gdt_types.h"
 #include "mos/x86/interrupt/idt_types.h"
+#include "mos/x86/tasks/tss_types.h"
 
 static_assert(sizeof(void *) == 4, "x86_64 is not supported");
 
@@ -63,6 +64,7 @@ extern const char __MOS_KERNEL_END;                                   // End of 
 
 extern const uintptr_t mos_kernel_end;
 extern mos_platform_t x86_platform;
+extern tss32_t tss_entry;
 
 void x86_gdt_init();
 void x86_ap_gdt_init();

@@ -51,6 +51,7 @@ mos_add_kconfig_define(MOS_USERSPACE_PGALLOC_START)
 mos_add_kconfig_define(MOS_THREAD_STACK_SIZE)
 mos_add_kconfig_define(MOS_PROCESS_MAX_OPEN_FILES)
 mos_add_kconfig_define(MOS_PROCESS_MAX_THREADS)
+mos_add_kconfig_define(MOS_SYSCALL_STACK_PAGE_SIZE)
 mos_add_kconfig_define(MOS_MEME)
 mos_add_kconfig_define(MOS_PATH_MAX_LENGTH)
 

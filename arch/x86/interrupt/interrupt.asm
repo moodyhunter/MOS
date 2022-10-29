@@ -20,6 +20,7 @@ global isr_stub_table
 ; handler for a ISR with its error code (already pushed onto the stack)
 %macro ISR_handler_ec 1
 isr_stub_%+%1:
+    cli
     nop                   ; ! If the interrupt is an exception, the CPU will push an error code onto the stack, as a doubleword.
     push %1               ; interrupt number
     jmp  do_handle_interrupt
@@ -28,6 +29,7 @@ isr_stub_%+%1:
 ; handler for a ISR
 %macro ISR_handler 1
 isr_stub_%+%1:
+    cli
     push 0                ; error code (not used)
     push %1               ; interrupt number
     jmp  do_handle_interrupt
@@ -36,6 +38,7 @@ isr_stub_%+%1:
 ; handler for an IRQ
 %macro IRQ_handler 1
 irq_stub_%1:
+    cli
     push 0                ; error code (not used)
     push %1 + IRQ_BASE    ; IRQ number
     jmp  do_handle_interrupt
@@ -141,5 +144,6 @@ do_handle_interrupt:
     pop     gs
     popad                           ; esp, eax, ecx, edx, ebx, ebp, esi, edi
     add     esp, REG_SIZE * 2       ; remove the pushed error code and interrupt (or IRQ) number
+    sti
     iret
 .end:

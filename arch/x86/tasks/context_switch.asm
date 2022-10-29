@@ -35,7 +35,6 @@ x86_context_switch_impl:
 ; void x86_um_thread_startup(void)
 global x86_um_thread_startup:function (x86_um_thread_startup.end - x86_um_thread_startup)
 x86_um_thread_startup:
-    cli
     ; We are currently on the thread's stack
     ; LO [                arg, entry_point] HI
     pop     ecx                 ; arg
@@ -52,6 +51,12 @@ x86_um_thread_startup:
     push    0x20 | 0x3      ; user data (stack) segment + RPL 3
     push    ebx             ; stack
     pushf                   ; push flags
+
+    ; enable interrupts
+    pop     edx             ; pop flags
+    or      edx, 0x200      ; set IF
+    push    edx             ; push flags
+
     push    0x18 | 0x3      ; user code segment + RPL 3
     push    eax             ; context->eip
 
