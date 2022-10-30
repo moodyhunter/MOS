@@ -39,7 +39,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr)
     if (!current_thread)
         return false;
 
-    process_t *current_proc = current_thread->owner;
+    process_t *current_proc = current_process;
 
     for (ssize_t i = 0; i < current_proc->mmaps_count; i++)
     {
@@ -61,5 +61,6 @@ bool cow_handle_page_fault(uintptr_t fault_addr)
         return true;
     }
 
+    pr_emph("page fault in unmapped region: " PTR_FMT, fault_addr);
     return false;
 }

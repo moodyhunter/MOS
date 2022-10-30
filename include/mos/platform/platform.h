@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "lib/structures/stack.h"
 #include "mos/kconfig.h"
 #include "mos/mos_global.h"
 #include "mos/types.h"
@@ -21,21 +22,20 @@ typedef struct _thread thread_t;
 
 typedef enum
 {
-    VM_NONE = 0,
-    VM_READ = 1 << 1,
-    VM_WRITE = 1 << 2,
-    VM_USER = 1 << 3,
-    VM_WRITE_THROUGH = 1 << 4,
-    VM_CACHE_DISABLED = 1 << 5,
-    VM_GLOBAL = 1 << 6,
-    VM_EXEC = 1 << 7,
+    VM_NONE = 1 << 1,
+    VM_READ = 1 << 2,
+    VM_WRITE = 1 << 3,
+    VM_USER = 1 << 4,
+    VM_WRITE_THROUGH = 1 << 5,
+    VM_CACHE_DISABLED = 1 << 6,
+    VM_GLOBAL = 1 << 7,
+    VM_EXEC = 1 << 8,
 } vm_flags;
 
 typedef enum
 {
-    PGALLOC_HINT_DEFAULT = 0 << 0,
-    PGALLOC_HINT_KHEAP = 1 << 0,
-    PGALLOC_HINT_USERSPACE = 1 << 1,
+    PGALLOC_HINT_KHEAP,
+    PGALLOC_HINT_USERSPACE,
 } pgalloc_hints;
 
 typedef enum
@@ -43,18 +43,15 @@ typedef enum
     VMTYPE_APPCODE,
     VMTYPE_APPDATA,
     VMTYPE_STACK,
+    VMTYPE_KSTACK,
     VMTYPE_FILE,
 } vm_type;
 
 typedef struct
 {
-    uintptr_t stack_addr;
-} platform_context_t;
-
-typedef struct
-{
     u32 id;
     thread_t *thread;
+    void *platform_context;
     uintptr_t scheduler_stack;
     paging_handle_t pagetable;
 } cpu_t;
@@ -128,6 +125,7 @@ typedef struct
 
     vmblock_t (*const mm_alloc_pages)(paging_handle_t table, size_t npages, pgalloc_hints hints, vm_flags vm_flags);
     vmblock_t (*const mm_alloc_pages_at)(paging_handle_t table, uintptr_t vaddr, size_t npages, vm_flags vflags);
+    vmblock_t (*const mm_get_free_pages)(paging_handle_t table, size_t npages, pgalloc_hints hints);
     vmblock_t (*const mm_copy_maps)(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages);
     void (*const mm_unmap_pages)(paging_handle_t table, uintptr_t vaddr, size_t n);
     void (*const mm_free_pages)(paging_handle_t table, uintptr_t vaddr, size_t n);
@@ -136,7 +134,7 @@ typedef struct
     uintptr_t (*const mm_get_phys_addr)(paging_handle_t table, uintptr_t vaddr);
 
     // process management
-    void (*const context_setup)(thread_t *thread, thread_entry_t entry, void *arg);
+    void (*const context_setup)(thread_t *thread, downwards_stack_t *proxy_stack, thread_entry_t entry, void *arg);
     void (*const switch_to_scheduler)(uintptr_t *old_stack, uintptr_t new_stack);
     void (*const switch_to_thread)(uintptr_t *old_stack, thread_t *new_thread);
 } mos_platform_t;

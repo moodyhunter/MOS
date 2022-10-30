@@ -6,7 +6,7 @@
 
 u32 x86_cpu_get_id(void)
 {
-    processor_version_t info;
-    cpuid_get_processor_info(&info);
-    return info.ebx.local_apic_id;
+    int lapic_id = 0;
+    __asm__ volatile("cpuid" : "=b"(lapic_id) : "a"(0x01), "c"(0x00) : "edx");
+    return lapic_id >> 24;
 }

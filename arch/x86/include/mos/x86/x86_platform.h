@@ -38,8 +38,8 @@ typedef struct
 typedef struct
 {
     reg32_t ds, es, fs, gs;
-    reg32_t edi, esi, ebp, esp, ebx, edx, ecx, eax;
-    reg32_t _ret, _ebp; // stub ebp and return address
+    reg32_t edi, esi, _stub_ebp, esp, ebx, edx, ecx, eax;
+    reg32_t ebp, _ret; // stub ebp and return address
     reg32_t interrupt_number, error_code;
     x86_iret_params_t interrupt;
 } __packed x86_stack_frame;

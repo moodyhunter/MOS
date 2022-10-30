@@ -10,8 +10,7 @@ void stack_init(downwards_stack_t *stack, void *mem_region_bottom, size_t size)
 {
     // the stack grows downwards
     uintptr_t stack_top = (uintptr_t) mem_region_bottom + size;
-
-    *((uintptr_t *) &stack->top) = stack_top;
+    stack->top = stack_top;
     stack->head = stack_top;
     stack->capacity = size;
 }

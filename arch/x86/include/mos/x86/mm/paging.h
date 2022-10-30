@@ -18,6 +18,7 @@ void x86_um_pgd_destroy(paging_handle_t pgt);
 
 vmblock_t x86_mm_pg_alloc(paging_handle_t pgt, size_t n, pgalloc_hints flags, vm_flags vm_flags);
 vmblock_t x86_mm_pg_alloc_at(paging_handle_t pgt, uintptr_t addr, size_t n, vm_flags vm_flags);
+vmblock_t x86_mm_pg_get_free(paging_handle_t pgt, size_t n, pgalloc_hints flags);
 void x86_mm_pg_free(paging_handle_t pgt, uintptr_t vaddr, size_t n);
 void x86_mm_pg_flag(paging_handle_t pgt, uintptr_t vaddr, size_t n, vm_flags flags);
 vm_flags x86_mm_pg_get_flags(paging_handle_t pgt, uintptr_t vaddr);

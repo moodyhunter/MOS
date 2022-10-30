@@ -7,6 +7,7 @@
 #include "lib/structures/stack.h"
 #include "mos/kconfig.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/mm/memops.h"
 #include "mos/platform/platform.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_type.h"
@@ -63,29 +64,35 @@ void thread_deinit()
 thread_t *thread_new(process_t *owner, thread_flags_t tflags, thread_entry_t entry, void *arg)
 {
     thread_t *t = thread_allocate(owner, tflags);
+    t->current_instruction = (uintptr_t) entry;
 
-    vm_flags sflags = VM_READ | VM_WRITE;
-    pgalloc_hints hints = PGALLOC_HINT_DEFAULT;
+    {
+        // Kernel stack
+        const vmblock_t kstack_blk = mos_platform->mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_KERNEL, PGALLOC_HINT_USERSPACE, VM_READ | VM_WRITE);
+        stack_init(&t->kernel_stack, (void *) kstack_blk.vaddr, kstack_blk.npages * MOS_PAGE_SIZE);
+        process_attach_mmap(owner, kstack_blk, VMTYPE_KSTACK, false);
+    }
 
     if (tflags & THREAD_FLAG_USERMODE)
-        sflags |= VM_USER, hints = PGALLOC_HINT_USERSPACE;
+    {
+        // allcate stack for the thread
+        const vmblock_t ustack_blk = mos_platform->mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_USER, PGALLOC_HINT_USERSPACE, VM_READ | VM_WRITE | VM_USER);
+        stack_init(&t->stack, (void *) ustack_blk.vaddr, MOS_STACK_PAGES_USER * MOS_PAGE_SIZE);
+        process_attach_mmap(owner, ustack_blk, VMTYPE_STACK, false);
 
-    // allcate stack for the thread, in the kernel space
-    const vmblock_t stack_block = mos_platform->mm_alloc_pages(current_cpu->pagetable, MOS_STACK_PAGES_USER, hints, sflags);
-    void *const stack = (void *) stack_block.vaddr;
-    stack_init(&t->stack, stack, MOS_STACK_PAGES_USER * MOS_PAGE_SIZE);
-    mos_platform->context_setup(t, entry, arg);
+        // map the stack into current kernel's address space, making a proxy stack
+        const vmblock_t ustack_proxy = mm_map_proxy_space(owner->pagetable, ustack_blk.vaddr, ustack_blk.npages);
+        downwards_stack_t proxy_stack;
+        stack_init(&proxy_stack, (void *) ustack_proxy.vaddr, ustack_proxy.npages * MOS_PAGE_SIZE);
+        mos_platform->context_setup(t, &proxy_stack, entry, arg);
 
-    // copy the stack mappping to the process address space
-    vmblock_t blk = mos_platform->mm_copy_maps(current_cpu->pagetable, (uintptr_t) stack, owner->pagetable, (uintptr_t) stack, stack_block.npages);
-    mos_platform->mm_flag_pages(owner->pagetable, blk.vaddr, blk.npages, sflags);
-    process_attach_mmap(owner, blk, VMTYPE_STACK, false);
+        t->stack.head -= proxy_stack.top - proxy_stack.head;
+        mm_unmap_proxy_space(ustack_proxy);
+    }
 
     hashmap_put(thread_table, &t->tid, t);
     process_attach_thread(owner, t);
 
-    // unmap the stack from the kernel space
-    mos_platform->mm_unmap_pages(current_cpu->pagetable, stack_block.vaddr, stack_block.npages);
     return t;
 }
 

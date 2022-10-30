@@ -62,6 +62,7 @@ noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
         holder->hook();
     }
 
+    pr_emerg("Halting...");
     mos_platform->halt_cpu();
 
     while (1)

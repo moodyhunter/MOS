@@ -14,7 +14,7 @@ fd_t define_ksyscall(file_open)(const char *path, file_open_flags flags)
     file_t *f = vfs_open(path, flags);
     if (!f)
         return -1;
-    return process_attach_fd(current_thread->owner, &f->io);
+    return process_attach_fd(current_process, &f->io);
 }
 
 bool define_ksyscall(file_stat)(const char *path, file_stat_t *stat)
@@ -26,19 +26,19 @@ size_t define_ksyscall(io_read)(fd_t fd, void *buf, size_t count, size_t offset)
 {
     if (offset)
         mos_warn("offset is not supported yet");
-    return io_read(current_thread->owner->files[fd], buf, count);
+    return io_read(current_process->files[fd], buf, count);
 }
 
 size_t define_ksyscall(io_write)(fd_t fd, const void *buf, size_t count, size_t offset)
 {
     if (offset)
         mos_warn("offset is not supported yet");
-    return io_write(current_thread->owner->files[fd], buf, count);
+    return io_write(current_process->files[fd], buf, count);
 }
 
 bool define_ksyscall(io_close)(fd_t fd)
 {
-    process_detach_fd(current_thread->owner, fd);
+    process_detach_fd(current_process, fd);
     return true;
 }
 
@@ -49,12 +49,12 @@ noreturn void define_ksyscall(panic)(void)
 
 noreturn void define_ksyscall(exit)(u32 exit_code)
 {
-    int pid = current_thread->owner->pid;
+    int pid = current_process->pid;
     if (unlikely(pid == 1))
         mos_panic("init process exited with code %d", exit_code);
 
     pr_info("Kernel syscall exit called with code %d from pid %d", exit_code, pid);
-    process_handle_exit(current_thread->owner, exit_code);
+    process_handle_exit(current_process, exit_code);
     jump_to_scheduler();
     MOS_UNREACHABLE();
 }
@@ -66,7 +66,7 @@ void define_ksyscall(yield_cpu)(void)
 
 pid_t define_ksyscall(fork)(void)
 {
-    process_t *parent = current_thread->owner;
+    process_t *parent = current_process;
     process_t *child = process_handle_fork(parent);
     if (child == NULL)
         return 0;
@@ -85,6 +85,6 @@ pid_t define_ksyscall(exec)(const char *path, const char *const argv[])
 
 pid_t define_ksyscall(get_pid)()
 {
-    MOS_ASSERT(current_thread->owner);
-    return current_thread->owner->pid;
+    MOS_ASSERT(current_process);
+    return current_process->pid;
 }

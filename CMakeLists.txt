@@ -76,6 +76,7 @@ add_library(mos_kernel.elf STATIC
     kernel/kernel_init.c
     kernel/mm/liballoc.c
     kernel/mm/cow.c
+    kernel/mm/memops.c
     kernel/panic.c
     kernel/printk.c
     kernel/stack_protector.c

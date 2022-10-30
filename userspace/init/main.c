@@ -9,17 +9,38 @@
 void print(const char *str)
 {
     invoke_ksyscall_io_write(stdout, str, strlen(str), 0);
+    invoke_ksyscall_io_write(stdout, "\n", 1, 0);
 }
 
 void print_err(const char *str)
 {
     invoke_ksyscall_io_write(stderr, str, strlen(str), 0);
+    invoke_ksyscall_io_write(stderr, "\n", 1, 0);
+}
+
+void print_int(int i)
+{
+    switch (i)
+    {
+        case 0: print("0"); break;
+        case 1: print("1"); break;
+        case 2: print("2"); break;
+        case 3: print("3"); break;
+        case 4: print("4"); break;
+        case 5: print("5"); break;
+        case 6: print("6"); break;
+        case 7: print("7"); break;
+        case 8: print("8"); break;
+        case 9: print("9"); break;
+        case 10: print("10"); break;
+    }
 }
 
 static char buf[2 KB] = { 0 };
 
 int main(void)
 {
+    volatile int mm = 11;
     int fd = invoke_ksyscall_file_open("/assets/msg.txt", FILE_OPEN_READ);
     if (fd < 0)
         print_err("Failed to open /assets/msg.txt");
@@ -32,18 +53,37 @@ int main(void)
     }
 
     pid_t my_pid = invoke_ksyscall_get_pid();
-    MOS_UNUSED(my_pid);
+    print_int(my_pid);
 
     pid_t pid = invoke_ksyscall_fork();
 
+    if (mm != 11)
+        invoke_ksyscall_panic();
+
     if (pid == 0)
     {
-        print("Child process\n");
+        print("Child process");
     }
     else
     {
-        print("Parent process\n");
+        print("Parent process");
     }
+
+    pid_t my_pid2 = invoke_ksyscall_get_pid();
+    print_int(my_pid2);
+
+    pid_t another_fork = invoke_ksyscall_fork();
+    if (another_fork == 0)
+    {
+        print("Child process");
+    }
+    else
+    {
+        print("Parent process");
+    }
+
+    pid_t haha = invoke_ksyscall_get_pid();
+    print_int(haha);
 
     while (1)
         invoke_ksyscall_yield_cpu();

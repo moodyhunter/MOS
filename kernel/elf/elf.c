@@ -47,7 +47,7 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
     }
 
     size_t npage_required = f->io.size / MOS_PAGE_SIZE + 1;
-    const vmblock_t buf_block = mos_platform->mm_alloc_pages(current_cpu->pagetable, npage_required, PGALLOC_HINT_DEFAULT, VM_READ | VM_WRITE);
+    const vmblock_t buf_block = mos_platform->mm_alloc_pages(current_cpu->pagetable, npage_required, PGALLOC_HINT_USERSPACE, VM_READ | VM_WRITE);
     char *const buf = (char *) buf_block.vaddr;
 
     size_t size = io_read(&f->io, buf, f->io.size);

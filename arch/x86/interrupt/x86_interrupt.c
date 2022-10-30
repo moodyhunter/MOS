@@ -5,6 +5,7 @@
 #include "mos/ksyscall/dispatcher.h"
 #include "mos/mm/cow.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/task_type.h"
@@ -84,11 +85,11 @@ bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
 void x86_handle_interrupt(u32 esp)
 {
     x86_stack_frame *frame = (x86_stack_frame *) esp;
+    current_cpu->platform_context = frame;
 
-    if (likely(current_cpu->thread))
+    if (likely(current_thread))
     {
-        thread_t *thread = current_cpu->thread;
-        thread->status = THREAD_STATUS_WAITING;
+        thread_t *thread = current_thread;
         thread->stack.head = frame->interrupt.esp;
         thread->current_instruction = frame->interrupt.eip;
     }
@@ -100,18 +101,21 @@ void x86_handle_interrupt(u32 esp)
     else if (frame->interrupt_number == MOS_SYSCALL_INTR)
     {
 #pragma message "TODO: Implement syscall handling for other arguments"
-        int result = dispatch_ksyscall(frame->eax, frame->ebx, frame->ecx, frame->edx, 0, 0, 0, 0, 0);
-        frame->eax = result;
+        long result = dispatch_ksyscall(frame->eax, frame->ebx, frame->ecx, frame->edx, 0, 0, 0, 0, 0);
+        frame->eax = (reg32_t) result;
     }
     else
     {
         pr_warn("Unknown interrupt number: %d", frame->interrupt_number);
     }
 
-    if (likely(current_cpu->thread))
+    if (likely(current_thread))
     {
-        thread_t *thread = current_cpu->thread;
-        thread->status = THREAD_STATUS_RUNNING;
+        thread_t *thread = current_thread;
+
+        if (unlikely(thread->status != THREAD_STATUS_RUNNING))
+            pr_warn("Thread %d is not in 'running' state", thread->tid);
+
         frame->interrupt.esp = thread->stack.head;
         frame->interrupt.eip = thread->current_instruction;
     }
@@ -170,7 +174,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
 
             if (fault_address < 1 KB)
             {
-                mos_panic("Kernel NULL pointer dereference at " PTR_FMT " caused by address " PTR_FMT ".", (uintptr_t) stack->interrupt.eip, fault_address);
+                mos_panic("Kernel NULL pointer dereference at " PTR_FMT " caused by instruction " PTR_FMT ".", fault_address, (uintptr_t) stack->interrupt.eip);
             }
 
             bool present = (stack->error_code & 0x1) != 0;
@@ -178,8 +182,15 @@ static void x86_handle_exception(x86_stack_frame *stack)
             bool is_user = (stack->error_code & 0x4) != 0;
 
             if (current_thread)
-                pr_emph("page fault: thread %d, process %s (pid %d) at " PTR_FMT ", instruction " PTR_FMT, current_thread->tid, current_process->name,
-                        current_process->pid, fault_address, (uintptr_t) stack->interrupt.eip);
+            {
+                pr_emph("page fault: thread %d, process %s (pid %d) at " PTR_FMT ", instruction " PTR_FMT, //
+                        current_thread->tid,                                                               //
+                        current_process->name,                                                             //
+                        current_process->pid,                                                              //
+                        fault_address,                                                                     //
+                        (uintptr_t) stack->interrupt.eip                                                   //
+                );
+            }
 
             if (present && is_write)
             {

@@ -15,6 +15,7 @@
 #include "mos/x86/devices/text_mode_console.h"
 #include "mos/x86/interrupt/pic.h"
 #include "mos/x86/mm/mm.h"
+#include "mos/x86/mm/paging.h"
 #include "mos/x86/mm/paging_impl.h"
 #include "mos/x86/mm/pmem_freelist.h"
 #include "mos/x86/tasks/context.h"
@@ -57,17 +58,32 @@ void do_backtrace(u32 max)
 void x86_kpanic_hook()
 {
     pmem_freelist_dump();
-    pr_emph("Current task: %s", current_thread ? current_thread->owner->name : "<none>");
+    const char *cpu_pagetable_source = current_cpu->pagetable.ptr == (uintptr_t) x86_kpg_infra ? "Kernel" : NULL;
+
     if (current_thread)
     {
+        pr_emph("Current task: %s (tid: %d, pid: %d)", current_process->name, current_thread->tid, current_process->pid);
         pr_emph("Task Page Table:");
         x86_mm_dump_page_table(x86_get_pg_infra(current_process->pagetable));
+        if (current_cpu->pagetable.ptr == current_process->pagetable.ptr)
+            cpu_pagetable_source = "Current Process";
     }
-    pr_emph("Current Page Table:");
-    x86_mm_dump_page_table(x86_get_pg_infra(current_cpu->pagetable));
-    pr_emph("Kernel Page Table:");
-    x86_mm_dump_page_table(x86_kpg_infra);
-    do_backtrace(20);
+    else
+    {
+        pr_emph("Kernel Page Table:");
+        x86_mm_dump_page_table(x86_kpg_infra);
+    }
+
+    if (cpu_pagetable_source)
+    {
+        pr_emph("CPU Page Table: %s", cpu_pagetable_source);
+    }
+    else
+    {
+        pr_emph("CPU Page Table:");
+        x86_mm_dump_page_table(x86_get_pg_infra(current_cpu->pagetable));
+    }
+    // do_backtrace(20);
 }
 
 void x86_start_kernel(x86_startup_info *info)
@@ -170,6 +186,7 @@ mos_platform_t x86_platform = {
 
     .mm_alloc_pages = x86_mm_pg_alloc,
     .mm_alloc_pages_at = x86_mm_pg_alloc_at,
+    .mm_get_free_pages = x86_mm_pg_get_free,
     .mm_copy_maps = x86_mm_copy_maps,
     .mm_unmap_pages = x86_mm_pg_unmap,
     .mm_free_pages = x86_mm_pg_free,

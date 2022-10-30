@@ -276,15 +276,14 @@ vmblock_t x86_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle
     x86_pg_infra_t *from_infra = x86_get_pg_infra(from);
     x86_pg_infra_t *to_infra = x86_get_pg_infra(to);
 
-    uintptr_t start_paddr = pg_page_get_mapped_paddr(from_infra, fvaddr);
+    // uintptr_t start_paddr = pg_page_get_mapped_paddr(from_infra, fvaddr);
 
     for (size_t i = 0; i < npages; i++)
     {
         uintptr_t from_vaddr = fvaddr + i * MOS_PAGE_SIZE;
         uintptr_t to_vaddr = tvaddr + i * MOS_PAGE_SIZE;
-        uintptr_t expected_paddr = start_paddr + i * MOS_PAGE_SIZE;
+        // uintptr_t expected_paddr = start_paddr + i * MOS_PAGE_SIZE;
         uintptr_t paddr = pg_page_get_mapped_paddr(from_infra, from_vaddr);
-        MOS_ASSERT_X(paddr == expected_paddr, "copying pages must be contiguous");
         vm_flags flags = pg_page_get_flags(from_infra, from_vaddr);
         pg_do_map_page(to_infra, to_vaddr, paddr, flags);
     }

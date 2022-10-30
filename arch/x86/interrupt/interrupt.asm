@@ -13,7 +13,7 @@ global irq_stub_table
 global isr_stub_table
 
 ; ! When the CPU calls the interrupt handlers, the CPU pushes these values onto the stack in this order:
-; ! EFLAGS -> CS -> EIP
+; ! SS -> ESP -> EFLAGS -> CS -> EIP
 ; ! If the gate type is not a trap gate, the CPU will clear the interrupt flag.
 
 ; handler for a ISR with its error code (already pushed onto the stack)
@@ -42,7 +42,7 @@ irq_stub_%1:
     push    0                       ; error code (not used)
     push    %1 + IRQ_BASE           ; IRQ number
     call    do_handle_interrupt
-    add     esp, 2 * REG_SIZE       ; error code and IRQ number
+    add     esp, 2 * REG_SIZE
     iret
 %endmacro
 

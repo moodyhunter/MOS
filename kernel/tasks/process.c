@@ -177,6 +177,7 @@ void process_dump_mmaps(process_t *process)
             case VMTYPE_APPCODE: type = "code"; break;
             case VMTYPE_APPDATA: type = "data"; break;
             case VMTYPE_STACK: type = "stack"; break;
+            case VMTYPE_KSTACK: type = "kernel stack"; break;
             case VMTYPE_FILE: type = "file"; break;
             default: MOS_UNREACHABLE();
         };
