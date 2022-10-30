@@ -31,6 +31,9 @@ int main(void)
         invoke_ksyscall_io_close(fd);
     }
 
+    pid_t my_pid = invoke_ksyscall_get_pid();
+    MOS_UNUSED(my_pid);
+
     pid_t pid = invoke_ksyscall_fork();
 
     if (pid == 0)
