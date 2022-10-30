@@ -9,7 +9,6 @@
 
 extern x86_handle_interrupt
 
-global x86_process_init_impl:function (x86_process_init_impl.end - x86_process_init_impl)
 global irq_stub_table
 global isr_stub_table
 
@@ -20,28 +19,31 @@ global isr_stub_table
 ; handler for a ISR with its error code (already pushed onto the stack)
 %macro ISR_handler_ec 1
 isr_stub_%+%1:
-    cli
-    nop                   ; ! If the interrupt is an exception, the CPU will push an error code onto the stack, as a doubleword.
-    push %1               ; interrupt number
-    jmp  do_handle_interrupt
+    nop                             ; ! If the interrupt is an exception, the CPU will push an error code onto the stack, as a doubleword.
+    push    %1                      ; interrupt number
+    call    do_handle_interrupt
+    add     esp, 2 * REG_SIZE
+    iret
 %endmacro
 
 ; handler for a ISR
 %macro ISR_handler 1
 isr_stub_%+%1:
-    cli
-    push 0                ; error code (not used)
-    push %1               ; interrupt number
-    jmp  do_handle_interrupt
+    push    0                       ; error code (not used)
+    push    %1                      ; interrupt number
+    call    do_handle_interrupt
+    add     esp, 2 * REG_SIZE
+    iret
 %endmacro
 
 ; handler for an IRQ
 %macro IRQ_handler 1
 irq_stub_%1:
-    cli
-    push 0                ; error code (not used)
-    push %1 + IRQ_BASE    ; IRQ number
-    jmp  do_handle_interrupt
+    push    0                       ; error code (not used)
+    push    %1 + IRQ_BASE           ; IRQ number
+    call    do_handle_interrupt
+    add     esp, 2 * REG_SIZE       ; error code and IRQ number
+    iret
 %endmacro
 
 ISR_handler     0 ; Divide-by-zero Error
@@ -118,7 +120,9 @@ irq_stub_table:
     %endrep
 
 do_handle_interrupt:
-    pushad                          ; save all registers
+    push    ebp
+    mov     ebp, esp
+    pusha
     push    gs                      ; save ds, es, fs, gs
     push    fs
     push    es
@@ -126,24 +130,22 @@ do_handle_interrupt:
     cld                             ; clears the DF flag in the EFLAGS register.
                                     ; so that string operations increment the index registers (ESI and/or EDI).
 
-    mov ax, GDT_SEGMENT_KDATA | 0   ; set the kernel data segment (ring 0)
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
+    mov     ax, GDT_SEGMENT_KDATA | 0   ; set the kernel data segment (ring 0)
+    mov     ds, ax
+    mov     es, ax
+    mov     fs, ax
+    mov     gs, ax
 
     mov     eax, esp
     push    eax                     ; the argument (stack *)
     call    x86_handle_interrupt    ; x86_handle_interrupt(u32 esp)
     add     esp, 4                  ; remove the pushed esp parameter
 
-.intrrupt_return:
     pop     ds
     pop     es
     pop     fs
     pop     gs
-    popad                           ; esp, eax, ecx, edx, ebx, ebp, esi, edi
-    add     esp, REG_SIZE * 2       ; remove the pushed error code and interrupt (or IRQ) number
-    sti
-    iret
+    popa
+    pop     ebp
+    ret
 .end:
