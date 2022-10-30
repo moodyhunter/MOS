@@ -6,7 +6,12 @@
 #include "mos/mos_global.h"
 #include "mos/types.h"
 
-void print(const char *str)
+#define STRINGIFY(x) #x
+#define TOSTRING(x)  STRINGIFY(x)
+
+#define print(msg) print_impl(TOSTRING(__LINE__) ": msg: " msg)
+
+void print_impl(const char *str)
 {
     invoke_ksyscall_io_write(stdout, str, strlen(str), 0);
     invoke_ksyscall_io_write(stdout, "\n", 1, 0);
@@ -69,8 +74,11 @@ int main(void)
         print("Parent process");
     }
 
-    pid_t my_pid2 = invoke_ksyscall_get_pid();
-    print_int(my_pid2);
+    pid_t me = invoke_ksyscall_get_pid();
+    pid_t parent = invoke_ksyscall_get_parent_pid();
+
+    print_int(me);
+    print_int(parent);
 
     pid_t another_fork = invoke_ksyscall_fork();
     if (another_fork == 0)
@@ -82,8 +90,10 @@ int main(void)
         print("Parent process");
     }
 
-    pid_t haha = invoke_ksyscall_get_pid();
-    print_int(haha);
+    me = invoke_ksyscall_get_pid();
+    parent = invoke_ksyscall_get_parent_pid();
+    print_int(me);
+    print_int(parent);
 
     while (1)
         invoke_ksyscall_yield_cpu();
