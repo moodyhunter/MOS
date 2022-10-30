@@ -50,11 +50,12 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
 
     proc->pid = new_process_id();
 
-    if (proc->pid == 1)
-        proc->parent = proc;
-    else if (!parent)
-    {
+    if (likely(parent))
         proc->parent = parent;
+    else if (unlikely(proc->pid == 1))
+        proc->parent = proc;
+    else
+    {
         pr_emerg("process %d has no parent", proc->pid);
         kfree(proc);
         return NULL;
@@ -132,7 +133,7 @@ void process_attach_thread(process_t *process, thread_t *thread)
     MOS_ASSERT(process_is_valid(process));
     MOS_ASSERT(thread_is_valid(thread));
     MOS_ASSERT(thread->owner == process);
-    pr_info("process %d attached thread %d", process->pid, thread->tid);
+    mos_debug("process %d attached thread %d", process->pid, thread->tid);
     process->threads[process->threads_count++] = thread;
 }
 

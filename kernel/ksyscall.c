@@ -88,3 +88,9 @@ pid_t define_ksyscall(get_pid)()
     MOS_ASSERT(current_process);
     return current_process->pid;
 }
+
+pid_t define_ksyscall(get_parent_pid)()
+{
+    MOS_ASSERT(current_process && current_process->parent);
+    return current_process->parent->pid;
+}

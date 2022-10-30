@@ -71,6 +71,12 @@
             "name": "get_pid",
             "return": "pid_t",
             "arguments": [ ]
+        },
+        {
+            "number": 11,
+            "name": "get_parent_pid",
+            "return": "pid_t",
+            "arguments": [ ]
         }
     ]
 }
