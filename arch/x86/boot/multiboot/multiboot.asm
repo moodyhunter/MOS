@@ -29,7 +29,7 @@ mos_x86_multiboot_start:
 
     ; on-stack struct x86_startup_info
     push    0                           ; bios_region_start
-    push    0                     ; Push initrd size
+    push    0                           ; Push initrd size
     push    ebx                         ; Push multiboot2 header pointer
     push    eax                         ; Push multiboot2 magic value[extern x86_start_kernel]
 
