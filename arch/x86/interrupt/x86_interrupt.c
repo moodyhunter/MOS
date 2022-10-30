@@ -180,6 +180,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
             bool present = (stack->error_code & 0x1) != 0;
             bool is_write = (stack->error_code & 0x2) != 0;
             bool is_user = (stack->error_code & 0x4) != 0;
+            bool is_exec = false;
 
             if (current_thread)
             {
@@ -192,12 +193,9 @@ static void x86_handle_exception(x86_stack_frame *stack)
                 );
             }
 
-            if (present && is_write)
-            {
-                bool result = cow_handle_page_fault(fault_address);
-                if (result)
-                    return;
-            }
+            bool result = cow_handle_page_fault(fault_address, present, is_write, is_user, is_exec);
+            if (result)
+                return;
 
 #if MOS_MEME
             MOS_UNUSED(is_user);

@@ -34,9 +34,15 @@ void copy_cow_pages_inplace(uintptr_t vaddr, size_t npages)
     kfree(pagetmp);
 }
 
-bool cow_handle_page_fault(uintptr_t fault_addr)
+bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bool is_user, bool is_exec)
 {
+    MOS_UNUSED(is_user);
+    MOS_UNUSED(is_exec);
+
     if (!current_thread)
+        return false;
+
+    if (!present || !is_write)
         return false;
 
     process_t *current_proc = current_process;
