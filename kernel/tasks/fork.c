@@ -13,9 +13,7 @@
 process_t *process_handle_fork(process_t *parent)
 {
     MOS_ASSERT(process_is_valid(parent));
-    pr_info("process %d forked", parent->pid);
-
-    process_dump_mmaps(parent);
+    mos_debug("process %d forked", parent->pid);
 
     process_t *child = process_allocate(parent, parent->effective_uid, parent->name);
 
@@ -75,6 +73,5 @@ process_t *process_handle_fork(process_t *parent)
     }
 
     hashmap_put(process_table, &child->pid, child);
-    process_dump_mmaps(child);
     return child;
 }
