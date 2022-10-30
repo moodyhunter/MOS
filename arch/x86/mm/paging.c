@@ -94,12 +94,16 @@ void page_table_dump_range(x86_pg_infra_t *kpg_infra, size_t start_page, size_t 
 
         uintptr_t v_range_start = i * MOS_PAGE_SIZE;
 
+        bool range_begin_usermode = pgtable->usermode;
+        bool range_begin_writable = pgtable->writable;
+
         // ! Special case: end_page - start_page == 1
         if (end_page - start_page == 1)
         {
             uintptr_t v_range_end = v_range_start + MOS_PAGE_SIZE;
             uintptr_t p_range_end = p_range_start + MOS_PAGE_SIZE;
-            pr_info("    " PTR_FMT "-" PTR_FMT " -> " PTR_FMT "-" PTR_FMT, v_range_start, v_range_end, p_range_start, p_range_end);
+            pr_info("    " PTR_FMT "-" PTR_FMT " -> " PTR_FMT "-" PTR_FMT " (%s, %s)", v_range_start, v_range_end, p_range_start, p_range_end,
+                    range_begin_writable ? "rw" : "ro", range_begin_usermode ? "user" : "kernel");
             return;
         }
 
@@ -131,7 +135,8 @@ void page_table_dump_range(x86_pg_infra_t *kpg_infra, size_t start_page, size_t 
             else
                 v_range_end += MOS_PAGE_SIZE;
             MOS_ASSERT(p_range_end - p_range_start == v_range_end - v_range_start);
-            pr_info("    " PTR_FMT "-" PTR_FMT " -> " PTR_FMT "-" PTR_FMT, v_range_start, v_range_end, p_range_start, p_range_end);
+            pr_info("    " PTR_FMT "-" PTR_FMT " -> " PTR_FMT "-" PTR_FMT " (%s, %s)", v_range_start, v_range_end, p_range_start, p_range_end,
+                    range_begin_writable ? "rw" : "ro", range_begin_usermode ? "user" : "kernel");
             break;
         }
     }
@@ -198,7 +203,7 @@ void x86_mm_dump_page_table(x86_pg_infra_t *pg)
 
 paging_handle_t x86_um_pgd_create()
 {
-    vmblock_t block = pg_page_alloc(x86_kpg_infra, ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE, PGALLOC_HINT_DEFAULT, VM_READ | VM_WRITE);
+    vmblock_t block = pg_page_alloc(x86_kpg_infra, ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE, PGALLOC_HINT_KHEAP, VM_READ | VM_WRITE);
     x86_pg_infra_t *infra = (x86_pg_infra_t *) block.vaddr;
     memset(infra, 0, sizeof(x86_pg_infra_t));
     paging_handle_t handle;
@@ -240,6 +245,12 @@ vmblock_t x86_mm_pg_alloc_at(paging_handle_t pgt, uintptr_t vaddr, size_t n, vm_
 {
     x86_pg_infra_t *kpg_infra = x86_get_pg_infra(pgt);
     return pg_page_alloc_at(kpg_infra, vaddr, n, vm_flags);
+}
+
+vmblock_t x86_mm_pg_get_free(paging_handle_t pgt, size_t n, pgalloc_hints flags)
+{
+    x86_pg_infra_t *kpg_infra = x86_get_pg_infra(pgt);
+    return pg_page_get_free(kpg_infra, n, flags);
 }
 
 void x86_mm_pg_free(paging_handle_t pgt, uintptr_t vaddr, size_t n)
