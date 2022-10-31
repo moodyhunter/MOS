@@ -4,7 +4,6 @@
 
 #include "mos/compiler.h"
 #include "mos/constants.h"
-#include "mos/kconfig.h"
 
 #define __aligned(x)    __attribute__((__aligned__(x)))
 #define __cold          __attribute__((__cold__))
@@ -49,11 +48,11 @@
 #define ALIGN_UP_TO_PAGE(addr)   ALIGN_UP(addr, MOS_PAGE_SIZE)
 #define ALIGN_DOWN_TO_PAGE(addr) ALIGN_DOWN(addr, MOS_PAGE_SIZE)
 
-#define once()                                                                                                                                  \
-    __extension__({                                                                                                                             \
-        static bool __once = false;                                                                                                             \
-        if (__once)                                                                                                                             \
-            false;                                                                                                                              \
-        __once = true;                                                                                                                          \
-        __once;                                                                                                                                 \
+#define once()                                                                                                                                                           \
+    __extension__({                                                                                                                                                      \
+        static bool __once = false;                                                                                                                                      \
+        if (__once)                                                                                                                                                      \
+            false;                                                                                                                                                       \
+        __once = true;                                                                                                                                                   \
+        __once;                                                                                                                                                          \
     })

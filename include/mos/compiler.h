@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "mos/kconfig.h"
+
 #define MOS_DO_PRAGMA(x) _Pragma(#x)
 
 #if defined(__clang__)
@@ -22,9 +24,9 @@
 #define static_assert _Static_assert
 #endif
 
-#if __SIZEOF_LONG__ == 8
+#if MOS_BITS == 64
 #define MOS_64BITS 1
-#elif __SIZEOF_LONG__ == 4
+#elif MOS_BITS == 32
 #define MOS_32BITS 1
 #else
 #error "unknown size of long"
