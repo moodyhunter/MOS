@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "mos/types.h"
+
 #ifdef __MOS_KERNEL__
 #include "mos/printk.h"
 #define MOS_LIB_ASSERT(cond)             MOS_ASSERT(cond)
@@ -15,7 +17,7 @@
 #define MOS_LIB_UNIMPLEMENTED(content)
 #define MOS_LIB_UNREACHABLE()
 #define mos_warn(...)
-inline void *liballoc_malloc(unsigned long size)
+inline void *liballoc_malloc(size_t size)
 {
     (void) size;
     return (void *) 0;
