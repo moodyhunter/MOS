@@ -203,7 +203,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
             mos_panic("\n页面错误\n\n\"" PTR_FMT "\" 指令引用的 \"" PTR_FMT "\" 内存。该内存不能为 \"%s\"。\n"
                       "要终止程序，请单击 \"确定\"。\n"      //
                       "要调试程序，请单击 \"取消\"。\n\n\n", //
-                      (uintptr_t) stack->intrrupt.eip, fault_address, is_write ? "written" : "read");
+                      (uintptr_t) stack->interrupt.eip, fault_address, is_write ? "written" : "read");
 #else
             mos_panic("Page Fault: %s code at " PTR_FMT " is trying to %s a %s address " PTR_FMT, //
                       is_user ? "Userspace" : "Kernel",                                           //
