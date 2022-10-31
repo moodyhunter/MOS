@@ -138,11 +138,6 @@ void x86_start_kernel(x86_startup_info *info)
 
     mos_kernel_mm_init(); // since then, we can use the kernel heap (kmalloc)
 
-    // the stack memory to be used if we enter the kernelmode by a trap / interrupt
-    const vmblock_t esp0_block = pg_page_alloc(x86_kpg_infra, MOS_STACK_PAGES_KERNEL, PGALLOC_HINT_KHEAP, VM_READ | VM_WRITE);
-    tss_entry.esp0 = esp0_block.vaddr + esp0_block.npages * MOS_PAGE_SIZE;
-    pr_emph("kernel stack at " PTR_FMT, (uintptr_t) tss_entry.esp0);
-
     mos_install_kpanic_hook(x86_kpanic_hook);
     mos_install_console(&vga_text_mode_console);
     x86_install_interrupt_handler(IRQ_COM1, serial_irq_handler);

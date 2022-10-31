@@ -131,7 +131,6 @@ typedef struct
     void (*const mm_free_pages)(paging_handle_t table, uintptr_t vaddr, size_t n);
     void (*const mm_flag_pages)(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
     vm_flags (*const mm_get_flags)(paging_handle_t table, uintptr_t vaddr);
-    uintptr_t (*const mm_get_phys_addr)(paging_handle_t table, uintptr_t vaddr);
 
     // process management
     void (*const context_setup)(thread_t *thread, downwards_stack_t *proxy_stack, thread_entry_t entry, void *arg);
