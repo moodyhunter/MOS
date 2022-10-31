@@ -57,7 +57,7 @@ fsnode_t *impl_path_get_subpath(fsnode_t *cwd, const char *path, size_t path_len
         if (cnode == NULL)
         {
             child = kcalloc(1, sizeof(fsnode_t));
-            child->name = duplicate_string_n(path, path_len);
+            child->name = duplicate_string(path, path_len);
             tree_add_child(tree_node(cwd), tree_node(child));
         }
         else
@@ -146,10 +146,10 @@ bool path_verify_prefix(const fsnode_t *path, const fsnode_t *prefix)
 const char *path_to_string_relative(const fsnode_t *root, const fsnode_t *leaf)
 {
     if (root == NULL || leaf == NULL)
-        return duplicate_string_n("", 0);
+        return duplicate_string("", 0);
 
     if (root == leaf)
-        return duplicate_string_n(root->name, strlen(root->name));
+        return duplicate_string(root->name, strlen(root->name));
 
     const fsnode_t *current = leaf;
     char *pool = kmalloc(MOS_PATH_MAX_LENGTH);
@@ -166,7 +166,7 @@ const char *path_to_string_relative(const fsnode_t *root, const fsnode_t *leaf)
 
     begin++; // remove leading '/'
 
-    const char *result = duplicate_string_n(begin, pool + MOS_PATH_MAX_LENGTH - begin);
+    const char *result = duplicate_string(begin, pool + MOS_PATH_MAX_LENGTH - begin);
     kfree(pool);
     return result;
 }
