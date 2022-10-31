@@ -1,14 +1,4 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-mos_add_summary_section(ARCH_X86 "x86 Architecture Specifics")
-
-mos_add_summary_item(ARCH_X86 "x86 Heap Address" "${MOS_X86_HEAP_BASE_VADDR}")
-mos_add_kconfig_define(MOS_X86_HEAP_BASE_VADDR)
-
-mos_add_summary_item(ARCH_X86 "x86 Initrd Virtual Address" "${MOS_X86_INITRD_VADDR}")
-mos_add_kconfig_define(MOS_X86_INITRD_VADDR)
-
-mos_add_summary_item(ARCH_X86 "x86 Page Size" "${MOS_PAGE_SIZE}")
-mos_add_kconfig_define(MOS_PAGE_SIZE)
 
 include(add_nasm_binary)
 include(prepare_bootable_kernel_binary)

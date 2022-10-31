@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-mos_add_summary_section(USERSPACE "Userspace Programs")
+summary_section(USERSPACE "Userspace Programs")
 
 add_library(mos_libuserspace OBJECT libuserspace.c)
 add_library(mos::libuserspace ALIAS mos_libuserspace)

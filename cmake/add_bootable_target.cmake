@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-mos_add_summary_section(BOOTABLE "Bootable Targets")
+summary_section(BOOTABLE "Bootable Targets")
 
 set(MOS_BOOTABLE_TARGETS)
 set(MOS_BOOTABLE_TARGETS_FILE)
@@ -21,7 +21,7 @@ endmacro()
 
 # dump the bootable targets into bootables.json
 macro(dump_bootable_targets)
-    mos_add_summary_section(BOOTABLE_INFO "Bootable Info File")
+    summary_section(BOOTABLE_INFO "Bootable Info File")
     mos_add_summary_item(BOOTABLE_INFO "File Location" ${CMAKE_BINARY_DIR}/bootables.json)
     set(BOOTABLE_DATA "{}")
     foreach(target ${MOS_BOOTABLE_TARGETS})
