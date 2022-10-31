@@ -65,7 +65,6 @@ void dump_cmdline(void)
             }
         }
     }
-    pr_emph("%-25s'%s'", "Kernel builtin cmdline:", MOS_KERNEL_BUILTIN_CMDLINE);
 }
 
 void mos_start_kernel(const char *cmdline)
