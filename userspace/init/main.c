@@ -60,12 +60,17 @@ int main(void)
     pid_t my_pid = invoke_ksyscall_get_pid();
     print_int(my_pid);
 
-    pid_t pid = invoke_ksyscall_fork();
+    pid_t ping_pid = invoke_ksyscall_spawn("/programs/kmsg-ping", 0, NULL);
+    pid_t pong_pid = invoke_ksyscall_spawn("/programs/kmsg-pong", 0, NULL);
+    print_int(ping_pid);
+    print_int(pong_pid);
+
+    my_pid = invoke_ksyscall_fork();
 
     if (mm != 11)
         invoke_ksyscall_panic();
 
-    if (pid == 0)
+    if (my_pid == 0)
     {
         print("Child process");
     }
@@ -74,25 +79,7 @@ int main(void)
         print("Parent process");
     }
 
-    pid_t me = invoke_ksyscall_get_pid();
     pid_t parent = invoke_ksyscall_get_parent_pid();
-
-    print_int(me);
-    print_int(parent);
-
-    pid_t another_fork = invoke_ksyscall_fork();
-    if (another_fork == 0)
-    {
-        print("Child process");
-    }
-    else
-    {
-        print("Parent process");
-    }
-
-    me = invoke_ksyscall_get_pid();
-    parent = invoke_ksyscall_get_parent_pid();
-    print_int(me);
     print_int(parent);
 
     while (1)

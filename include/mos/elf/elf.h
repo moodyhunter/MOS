@@ -219,4 +219,4 @@ typedef enum
 } elf_verify_result;
 
 elf_verify_result elf_verify_header(elf_header_t *header);
-process_t *create_elf_process(const char *path, uid_t effective_uid);
+process_t *process_create_from_elf(const char *path, process_t *parent, uid_t effective_uid);

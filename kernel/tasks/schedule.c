@@ -11,8 +11,12 @@
 
 void mos_update_current(thread_t *thread)
 {
-    if (likely(current_thread))
-        current_thread->status = THREAD_STATUS_READY;
+    if (current_thread)
+    {
+        // TODO: Add more checks
+        if (current_thread->status == THREAD_STATUS_RUNNING || current_thread->status != THREAD_STATUS_DEAD)
+            current_thread->status = THREAD_STATUS_READY;
+    }
     current_thread = thread;
     current_thread->status = THREAD_STATUS_RUNNING;
     current_cpu->pagetable = thread->owner->pagetable;

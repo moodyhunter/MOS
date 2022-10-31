@@ -162,11 +162,6 @@ void process_handle_exit(process_t *process, int exit_code)
     }
 }
 
-void fork_return()
-{
-    pr_info("fork return");
-}
-
 void process_dump_mmaps(process_t *process)
 {
     for (int i = 0; i < process->mmaps_count; i++)

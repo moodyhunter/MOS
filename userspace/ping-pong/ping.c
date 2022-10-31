@@ -4,7 +4,6 @@
 
 int main(void)
 {
-    invoke_ksyscall_io_write(1, "ping", 4, 0);
-    invoke_ksyscall_exit(0);
+    invoke_ksyscall_io_write(1, "ping\n", 5, 0);
     return 0;
 }

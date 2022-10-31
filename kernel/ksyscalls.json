@@ -9,7 +9,7 @@
         {
             "number": 0,
             "name": "panic",
-            "return": null,
+            "return": "void",
             "arguments": [ ]
         },
         {
@@ -77,6 +77,12 @@
             "name": "get_parent_pid",
             "return": "pid_t",
             "arguments": [ ]
+        },
+        {
+            "number": 12,
+            "name": "spawn",
+            "return": "pid_t",
+            "arguments": [ { "type": "const char *", "arg": "file_path" }, { "type": "int", "arg": "argc" }, { "type": "const char *const *", "arg": "argv" } ]
         }
     ]
 }

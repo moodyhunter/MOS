@@ -37,7 +37,7 @@ elf_verify_result elf_verify_header(elf_header_t *header)
     return ELF_VERIFY_OK;
 }
 
-process_t *create_elf_process(const char *path, uid_t effective_uid)
+process_t *process_create_from_elf(const char *path, process_t *parent, uid_t effective_uid)
 {
     file_t *f = vfs_open(path, FILE_OPEN_READ);
     if (!f)
@@ -67,7 +67,7 @@ process_t *create_elf_process(const char *path, uid_t effective_uid)
         goto bail_out;
     }
 
-    process_t *proc = process_new(NULL, effective_uid, f->fsnode->name, (thread_entry_t) elf->entry_point, NULL);
+    process_t *proc = process_new(parent, effective_uid, f->fsnode->name, (thread_entry_t) elf->entry_point, NULL);
 
     for (int i = 0; i < elf->ph.count; i++)
     {
