@@ -16,11 +16,11 @@
 #define MOS_UNREACHABLE()          mos_panic("UNREACHABLE line %d reached in file: %s", __LINE__, __FILE__)
 #define MOS_ASSERT_ONCE(...)       MOS_ASSERT_X(once(), __VA_ARGS__)
 #define MOS_ASSERT(cond)           MOS_ASSERT_X(cond, "")
-#define MOS_ASSERT_X(cond, msg, ...)                                                                                                            \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        if (unlikely(!(cond)))                                                                                                                  \
-            mos_panic("Assertion failed: %s \n" msg, #cond, ##__VA_ARGS__);                                                                     \
+#define MOS_ASSERT_X(cond, msg, ...)                                                                                                                                     \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (unlikely(!(cond)))                                                                                                                                           \
+            mos_panic("Assertion failed: %s \n" msg, #cond, ##__VA_ARGS__);                                                                                              \
     } while (0)
 
 typedef enum
@@ -51,11 +51,11 @@ typedef enum
 #if MOS_DEBUG
 #define mos_debug(fmt, ...) pr_info2("%s: " fmt, __func__, ##__VA_ARGS__)
 #else
-#define lprintk_noop(level, fmt, ...)                                                                                                           \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        if (0)                                                                                                                                  \
-            lprintk_wrapper(level, fmt, ##__VA_ARGS__);                                                                                         \
+#define lprintk_noop(level, fmt, ...)                                                                                                                                    \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (0)                                                                                                                                                           \
+            lprintk_wrapper(level, fmt, ##__VA_ARGS__);                                                                                                                  \
     } while (0)
 #define mos_debug(fmt, ...) lprintk_noop(MOS_LOG_INFO2, fmt "\n", ##__VA_ARGS__)
 #endif
@@ -63,11 +63,11 @@ typedef enum
 #define mos_warn(fmt, ...)  mos_kwarn(__func__, __LINE__, "WARN: " fmt "\n", ##__VA_ARGS__)
 #define mos_panic(fmt, ...) mos_kpanic(__func__, __LINE__, "" fmt, ##__VA_ARGS__)
 
-#define mos_warn_once(...)                                                                                                                      \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        if (once())                                                                                                                             \
-            mos_warn(__VA_ARGS__);                                                                                                              \
+#define mos_warn_once(...)                                                                                                                                               \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (once())                                                                                                                                                      \
+            mos_warn(__VA_ARGS__);                                                                                                                                       \
     } while (0)
 
 __printf(1, 2) void printk(const char *format, ...);

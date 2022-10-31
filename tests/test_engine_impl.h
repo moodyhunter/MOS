@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "lib/string.h"
 #include "mos/device/console.h"
 #include "mos/mos_global.h"
 #include "mos/types.h"
@@ -39,63 +40,63 @@ typedef struct
 #define MOS_TEST_CYAN    Cyan
 #define MOS_TEST_DEFAULT MOS_TEST_GRAY
 
-#define MOS_TEST_DEFINE_CONDITION(condition, message)                                                                                           \
-    const char *_mt_test_cond_##condition##_message = message;                                                                                  \
+#define MOS_TEST_DEFINE_CONDITION(condition, message)                                                                                                                    \
+    const char *_mt_test_cond_##condition##_message = message;                                                                                                           \
     static bool condition
 
-#define MOS_TEST_CONDITIONAL(cond)                                                                                                              \
-    for (MOS_TEST_CURRENT_TEST_SKIPPED = !(cond), (*_mt_loop_leave) = false, __extension__({                                                    \
-             if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                 \
-                 MOS_TEST_LOG(MOS_TEST_YELLOW, '\0', "Skipped '%s': condition '%s' not met.", _mt_test_cond_##cond##_message, #cond);           \
-         });                                                                                                                                    \
+#define MOS_TEST_CONDITIONAL(cond)                                                                                                                                       \
+    for (MOS_TEST_CURRENT_TEST_SKIPPED = !(cond), (*_mt_loop_leave) = false, __extension__({                                                                             \
+             if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                                          \
+                 MOS_TEST_LOG(MOS_TEST_YELLOW, '\0', "Skipped '%s': condition '%s' not met.", _mt_test_cond_##cond##_message, #cond);                                    \
+         });                                                                                                                                                             \
          !(*_mt_loop_leave); (*_mt_loop_leave) = true, MOS_TEST_CURRENT_TEST_SKIPPED = false)
 
-#define MOS_TEST_SKIP()                                                                                                                         \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        ++_MT_result->n_total;                                                                                                                  \
-        ++_MT_result->n_skipped;                                                                                                                \
+#define MOS_TEST_SKIP()                                                                                                                                                  \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        ++_MT_result->n_total;                                                                                                                                           \
+        ++_MT_result->n_skipped;                                                                                                                                         \
     } while (0)
 
-#define MOS_TEST_CASE(_TestName)                                                                                                                \
-    static void _TestName(TestResult *, bool *, bool *);                                                                                        \
-    static void _MT_WRAP_TEST_NAME(_TestName)(TestResult * result)                                                                              \
-    {                                                                                                                                           \
-        MOS_TEST_LOG(MOS_TEST_BLUE, 'T', "Starting test " #_TestName " (line %d)", __LINE__);                                                   \
-        _MT_RUN_TEST_AND_PRINT_RESULT(result, _TestName);                                                                                       \
-    }                                                                                                                                           \
-    _MT_REGISTER_TEST_CASE(_TestName, _MT_WRAP_TEST_NAME(_TestName));                                                                           \
+#define MOS_TEST_CASE(_TestName)                                                                                                                                         \
+    static void _TestName(TestResult *, bool *, bool *);                                                                                                                 \
+    static void _MT_WRAP_TEST_NAME(_TestName)(TestResult * result)                                                                                                       \
+    {                                                                                                                                                                    \
+        MOS_TEST_LOG(MOS_TEST_BLUE, 'T', "Starting test " #_TestName " (line %d)", __LINE__);                                                                            \
+        _MT_RUN_TEST_AND_PRINT_RESULT(result, _TestName);                                                                                                                \
+    }                                                                                                                                                                    \
+    _MT_REGISTER_TEST_CASE(_TestName, _MT_WRAP_TEST_NAME(_TestName));                                                                                                    \
     static void _TestName(TestResult *_MT_result, __maybe_unused bool *_mt_test_skipped, __maybe_unused bool *_mt_loop_leave)
 
-#define MOS_TEST_DECL_PTEST(_PTestName, ptest_args_printf_format, ...)                                                                          \
-    static const char *_MT_PTEST_ARG_FORMAT(_PTestName) = "argument: " ptest_args_printf_format;                                                \
+#define MOS_TEST_DECL_PTEST(_PTestName, ptest_args_printf_format, ...)                                                                                                   \
+    static const char *_MT_PTEST_ARG_FORMAT(_PTestName) = "argument: " ptest_args_printf_format;                                                                         \
     static void _PTestName(TestResult *_MT_result, __maybe_unused bool *_mt_test_skipped, __maybe_unused bool *_mt_loop_leave, __VA_ARGS__)
 
-#define MOS_TEST_PTEST_INSTANCE(_PTestName, ...)                                                                                                \
-    static void _MT_PTEST_CALLER(_PTestName)(TestResult * result, bool *_mt_test_skipped, bool *_mt_loop_leave)                                 \
-    {                                                                                                                                           \
-        _PTestName(result, _mt_test_skipped, _mt_loop_leave, __VA_ARGS__);                                                                      \
-    }                                                                                                                                           \
-    static void _MT_WRAP_PTEST_CALLER(_PTestName)(TestResult * result)                                                                          \
-    {                                                                                                                                           \
-        MOS_TEST_LOG(MOS_TEST_BLUE, 'P', "Starting parameterised test %s at line %d", #_PTestName, __LINE__);                                   \
-        MOS_TEST_LOG(MOS_TEST_BLUE, '\0', _MT_PTEST_ARG_FORMAT(_PTestName), __VA_ARGS__);                                                       \
-        _MT_RUN_TEST_AND_PRINT_RESULT(result, _MT_PTEST_CALLER(_PTestName));                                                                    \
-    }                                                                                                                                           \
+#define MOS_TEST_PTEST_INSTANCE(_PTestName, ...)                                                                                                                         \
+    static void _MT_PTEST_CALLER(_PTestName)(TestResult * result, bool *_mt_test_skipped, bool *_mt_loop_leave)                                                          \
+    {                                                                                                                                                                    \
+        _PTestName(result, _mt_test_skipped, _mt_loop_leave, __VA_ARGS__);                                                                                               \
+    }                                                                                                                                                                    \
+    static void _MT_WRAP_PTEST_CALLER(_PTestName)(TestResult * result)                                                                                                   \
+    {                                                                                                                                                                    \
+        MOS_TEST_LOG(MOS_TEST_BLUE, 'P', "Starting parameterised test %s at line %d", #_PTestName, __LINE__);                                                            \
+        MOS_TEST_LOG(MOS_TEST_BLUE, '\0', _MT_PTEST_ARG_FORMAT(_PTestName), __VA_ARGS__);                                                                                \
+        _MT_RUN_TEST_AND_PRINT_RESULT(result, _MT_PTEST_CALLER(_PTestName));                                                                                             \
+    }                                                                                                                                                                    \
     _MT_REGISTER_TEST_CASE(_TestName, _MT_WRAP_PTEST_CALLER(_PTestName));
 
-#define MOS_TEST_EXPECT_WARNING_N(N, body, msg)                                                                                                 \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
-        {                                                                                                                                       \
-            MOS_TEST_SKIP();                                                                                                                    \
-            break;                                                                                                                              \
-        }                                                                                                                                       \
-        test_engine_n_warning_expected = N;                                                                                                     \
-        body;                                                                                                                                   \
-        if (test_engine_n_warning_expected != 0)                                                                                                \
-            MOS_TEST_FAIL("%d more expected warning(s) not seen: %s, line %d", test_engine_n_warning_expected, msg, __LINE__);                  \
+#define MOS_TEST_EXPECT_WARNING_N(N, body, msg)                                                                                                                          \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                                               \
+        {                                                                                                                                                                \
+            MOS_TEST_SKIP();                                                                                                                                             \
+            break;                                                                                                                                                       \
+        }                                                                                                                                                                \
+        test_engine_n_warning_expected = N;                                                                                                                              \
+        body;                                                                                                                                                            \
+        if (test_engine_n_warning_expected != 0)                                                                                                                         \
+            MOS_TEST_FAIL("%d more expected warning(s) not seen: %s, line %d", test_engine_n_warning_expected, msg, __LINE__);                                           \
     } while (0)
 
 #define MOS_TEST_EXPECT_WARNING(body, msg) MOS_TEST_EXPECT_WARNING_N(1, body, msg)
@@ -106,11 +107,11 @@ typedef struct
  *   - format           - message printf format
  *   - args... [opt]    - arguments
  */
-#define MOS_TEST_FAIL(format, ...)                                                                                                              \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        ++_MT_result->n_failed;                                                                                                                 \
-        MOS_TEST_LOG(MOS_TEST_RED, 'X', "line %d: " format, __LINE__, __VA_ARGS__);                                                             \
+#define MOS_TEST_FAIL(format, ...)                                                                                                                                       \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        ++_MT_result->n_failed;                                                                                                                                          \
+        MOS_TEST_LOG(MOS_TEST_RED, 'X', "line %d: " format, __LINE__, __VA_ARGS__);                                                                                      \
     } while (false)
 
 /*
@@ -121,17 +122,17 @@ typedef struct
  *   - format           - message printf format
  *   - args... [opt]    - arguments
  */
-#define MOS_TEST_ASSERT(condition, format, ...)                                                                                                 \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
-        {                                                                                                                                       \
-            MOS_TEST_SKIP();                                                                                                                    \
-            break;                                                                                                                              \
-        }                                                                                                                                       \
-        ++_MT_result->n_total;                                                                                                                  \
-        if (!(condition))                                                                                                                       \
-            MOS_TEST_FAIL("ASSERTION FAILED: %s, " format, #condition, ##__VA_ARGS__);                                                          \
+#define MOS_TEST_ASSERT(condition, format, ...)                                                                                                                          \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                                               \
+        {                                                                                                                                                                \
+            MOS_TEST_SKIP();                                                                                                                                             \
+            break;                                                                                                                                                       \
+        }                                                                                                                                                                \
+        ++_MT_result->n_total;                                                                                                                                           \
+        if (!(condition))                                                                                                                                                \
+            MOS_TEST_FAIL("ASSERTION FAILED: %s, " format, #condition, ##__VA_ARGS__);                                                                                   \
     } while (false)
 
 /*
@@ -141,17 +142,17 @@ typedef struct
  *   - expected         - expected value
  *   - actual           - actual value
  */
-#define MOS_TEST_CHECK(actual, expected)                                                                                                        \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
-        {                                                                                                                                       \
-            MOS_TEST_SKIP();                                                                                                                    \
-            break;                                                                                                                              \
-        }                                                                                                                                       \
-        ++_MT_result->n_total;                                                                                                                  \
-        if ((expected) != (actual))                                                                                                             \
-            MOS_TEST_FAIL("'%s' is %d, expected %d", #actual, (actual), (expected));                                                            \
+#define MOS_TEST_CHECK(actual, expected)                                                                                                                                 \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                                               \
+        {                                                                                                                                                                \
+            MOS_TEST_SKIP();                                                                                                                                             \
+            break;                                                                                                                                                       \
+        }                                                                                                                                                                \
+        ++_MT_result->n_total;                                                                                                                                           \
+        if ((expected) != (actual))                                                                                                                                      \
+            MOS_TEST_FAIL("'%s' is %d, expected %d", #actual, (actual), (expected));                                                                                     \
     } while (false)
 
 /*
@@ -161,17 +162,17 @@ typedef struct
  *   - expected         - expected string
  *   - actual           - actual string
  */
-#define MOS_TEST_CHECK_STRING(actual, expected)                                                                                                 \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
-        {                                                                                                                                       \
-            MOS_TEST_SKIP();                                                                                                                    \
-            break;                                                                                                                              \
-        }                                                                                                                                       \
-        ++_MT_result->n_total;                                                                                                                  \
-        if (MOS_TEST_STRCMP(expected, actual) != 0)                                                                                             \
-            MOS_TEST_FAIL("values are different (expected = '%s', actual = '%s'), at line %u", (expected), (actual), (__LINE__));               \
+#define MOS_TEST_CHECK_STRING(actual, expected)                                                                                                                          \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                                               \
+        {                                                                                                                                                                \
+            MOS_TEST_SKIP();                                                                                                                                             \
+            break;                                                                                                                                                       \
+        }                                                                                                                                                                \
+        ++_MT_result->n_total;                                                                                                                                           \
+        if (MOS_TEST_STRCMP(expected, actual) != 0)                                                                                                                      \
+            MOS_TEST_FAIL("values are different (expected = '%s', actual = '%s'), at line %u", (expected), (actual), (__LINE__));                                        \
     } while (false)
 
 /*
@@ -182,17 +183,17 @@ typedef struct
  *   - actual           - actual value
  *   - epsilon          - maximum acceptable difference
  */
-#define MOS_TEST_CHECK_EPS(actual, expected, epsilon)                                                                                           \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
-        {                                                                                                                                       \
-            MOS_TEST_SKIP();                                                                                                                    \
-            break;                                                                                                                              \
-        }                                                                                                                                       \
-        ++_MT_result->n_total;                                                                                                                  \
-        if (_MT_FLOATABS((expected) - (actual)) > (epsilon))                                                                                    \
-            MOS_TEST_FAIL("values differ by more then %f (expected = %f, actual = %f)", (epsilon), (expected), (actual));                       \
+#define MOS_TEST_CHECK_EPS(actual, expected, epsilon)                                                                                                                    \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                                               \
+        {                                                                                                                                                                \
+            MOS_TEST_SKIP();                                                                                                                                             \
+            break;                                                                                                                                                       \
+        }                                                                                                                                                                \
+        ++_MT_result->n_total;                                                                                                                                           \
+        if (_MT_FLOATABS((expected) - (actual)) > (epsilon))                                                                                                             \
+            MOS_TEST_FAIL("values differ by more then %f (expected = %f, actual = %f)", (epsilon), (expected), (actual));                                                \
     } while (false)
 
 /*
@@ -204,23 +205,23 @@ typedef struct
  *   - actual           - actual array pointer
  *   - elements         - number of array elements
  */
-#define MOS_TEST_CHECK_ARRAY(actual, expected, elements)                                                                                        \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
-        {                                                                                                                                       \
-            MOS_TEST_SKIP();                                                                                                                    \
-            break;                                                                                                                              \
-        }                                                                                                                                       \
-        ++_MT_result->n_total;                                                                                                                  \
-        for (unsigned i = 0; i < (unsigned) (elements); ++i)                                                                                    \
-        {                                                                                                                                       \
-            if ((expected)[i] != (actual)[i])                                                                                                   \
-            {                                                                                                                                   \
-                MOS_TEST_FAIL("memories differ at %u-th position (expected = %d, actual = %d)", i, (expected)[i], (actual)[i]);                 \
-                break;                                                                                                                          \
-            }                                                                                                                                   \
-        }                                                                                                                                       \
+#define MOS_TEST_CHECK_ARRAY(actual, expected, elements)                                                                                                                 \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                                               \
+        {                                                                                                                                                                \
+            MOS_TEST_SKIP();                                                                                                                                             \
+            break;                                                                                                                                                       \
+        }                                                                                                                                                                \
+        ++_MT_result->n_total;                                                                                                                                           \
+        for (unsigned i = 0; i < (unsigned) (elements); ++i)                                                                                                             \
+        {                                                                                                                                                                \
+            if ((expected)[i] != (actual)[i])                                                                                                                            \
+            {                                                                                                                                                            \
+                MOS_TEST_FAIL("memories differ at %u-th position (expected = %d, actual = %d)", i, (expected)[i], (actual)[i]);                                          \
+                break;                                                                                                                                                   \
+            }                                                                                                                                                            \
+        }                                                                                                                                                                \
     } while (false)
 
 /*
@@ -233,43 +234,42 @@ typedef struct
  *   - epsilon          - maximum acceptable difference
  *   - elements         - number of array elements
  */
-#define MOS_TEST_CHECK_ARRAY_EPS(actual, expected, elements, epsilon)                                                                           \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
-        {                                                                                                                                       \
-            MOS_TEST_SKIP();                                                                                                                    \
-            break;                                                                                                                              \
-        }                                                                                                                                       \
-        ++_MT_result->n_total;                                                                                                                  \
-        for (unsigned i = 0; i < (unsigned) (elements); ++i)                                                                                    \
-        {                                                                                                                                       \
-            if (_MT_FLOATABS((expected)[i] - (actual)[i]) > (epsilon))                                                                          \
-            {                                                                                                                                   \
-                MOS_TEST_FAIL("memories differ at %u by more then %f (expected = %f, actual = %f)", i, (epsilon), (expected)[i], (actual)[i]);  \
-                break;                                                                                                                          \
-            }                                                                                                                                   \
-        }                                                                                                                                       \
+#define MOS_TEST_CHECK_ARRAY_EPS(actual, expected, elements, epsilon)                                                                                                    \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                                               \
+        {                                                                                                                                                                \
+            MOS_TEST_SKIP();                                                                                                                                             \
+            break;                                                                                                                                                       \
+        }                                                                                                                                                                \
+        ++_MT_result->n_total;                                                                                                                                           \
+        for (unsigned i = 0; i < (unsigned) (elements); ++i)                                                                                                             \
+        {                                                                                                                                                                \
+            if (_MT_FLOATABS((expected)[i] - (actual)[i]) > (epsilon))                                                                                                   \
+            {                                                                                                                                                            \
+                MOS_TEST_FAIL("memories differ at %u by more then %f (expected = %f, actual = %f)", i, (epsilon), (expected)[i], (actual)[i]);                           \
+                break;                                                                                                                                                   \
+            }                                                                                                                                                            \
+        }                                                                                                                                                                \
     } while (false)
 
-#define _MT_RUN_TEST_AND_PRINT_RESULT(_ResultVar, _TestFunc)                                                                                    \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        bool _mt_test_skipped = false;                                                                                                          \
-        bool _mt_loop_leave = false;                                                                                                            \
-        _TestFunc(_ResultVar, &_mt_test_skipped, &_mt_loop_leave);                                                                              \
-        u32 total = _ResultVar->n_total;                                                                                                        \
-        u32 failed = _ResultVar->n_failed;                                                                                                      \
-        u32 skipped = _ResultVar->n_skipped;                                                                                                    \
-        u32 passed = total - failed - skipped;                                                                                                  \
-        if (failed == 0)                                                                                                                        \
-            if (skipped == 0)                                                                                                                   \
-                MOS_TEST_LOG(MOS_TEST_GREEN, '\0', "%s: All %u test(s) passed", #_TestFunc, total);                                             \
-            else                                                                                                                                \
-                MOS_TEST_LOG(MOS_TEST_GREEN, '\0', "%s: All %u test(s) passed (%u skipped)", #_TestFunc, total, skipped);                       \
-        else                                                                                                                                    \
-            MOS_TEST_LOG(MOS_TEST_RED, 'X', "%s: %u out of %u test(s) failed (%u passed, %u skipped)", #_TestFunc, failed, total, passed,       \
-                         skipped);                                                                                                              \
+#define _MT_RUN_TEST_AND_PRINT_RESULT(_ResultVar, _TestFunc)                                                                                                             \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        bool _mt_test_skipped = false;                                                                                                                                   \
+        bool _mt_loop_leave = false;                                                                                                                                     \
+        _TestFunc(_ResultVar, &_mt_test_skipped, &_mt_loop_leave);                                                                                                       \
+        u32 total = _ResultVar->n_total;                                                                                                                                 \
+        u32 failed = _ResultVar->n_failed;                                                                                                                               \
+        u32 skipped = _ResultVar->n_skipped;                                                                                                                             \
+        u32 passed = total - failed - skipped;                                                                                                                           \
+        if (failed == 0)                                                                                                                                                 \
+            if (skipped == 0)                                                                                                                                            \
+                MOS_TEST_LOG(MOS_TEST_GREEN, '\0', "%s: All %u test(s) passed", #_TestFunc, total);                                                                      \
+            else                                                                                                                                                         \
+                MOS_TEST_LOG(MOS_TEST_GREEN, '\0', "%s: All %u test(s) passed (%u skipped)", #_TestFunc, total, skipped);                                                \
+        else                                                                                                                                                             \
+            MOS_TEST_LOG(MOS_TEST_RED, 'X', "%s: %u out of %u test(s) failed (%u passed, %u skipped)", #_TestFunc, failed, total, passed, skipped);                      \
     } while (0)
 
 #define _MT_FLOATABS(a) ((a) < 0 ? -(a) : (a))
@@ -291,9 +291,8 @@ typedef struct
 } mos_test_func_t;
 
 // ELF Section based test registration
-#define _MT_REGISTER_TEST_CASE(_TName, _TFunc)                                                                                                  \
-    const mos_test_func_t __section(.mos.test_cases) MOS_CONCAT(test_cases_##_TName##_L, __LINE__) = { _TFunc, #_TName }
-#define MOS_TEST_FOREACH_TEST_CASE(_FPtr) for (const mos_test_func_t *_FPtr = __MOS_TEST_CASES_START; _FPtr != __MOS_TEST_CASES_END; _FPtr++)
+#define _MT_REGISTER_TEST_CASE(_TName, _TFunc) const mos_test_func_t __section(.mos.test_cases) MOS_CONCAT(test_cases_##_TName##_L, __LINE__) = { _TFunc, #_TName }
+#define MOS_TEST_FOREACH_TEST_CASE(_FPtr)      for (const mos_test_func_t *_FPtr = __MOS_TEST_CASES_START; _FPtr != __MOS_TEST_CASES_END; _FPtr++)
 
 // Defined by the linker, do not rename.
 extern const mos_test_func_t __MOS_TEST_CASES_START[];
