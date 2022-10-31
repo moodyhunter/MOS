@@ -169,7 +169,7 @@ def gen_usermode_invoker(e):
     syscall_nargs = len(e["arguments"])
     syscall_conv_arg_to_long = ", ".join([str(e["number"])] + ["(long) %s" % arg["arg"] for arg in e["arguments"]])
 
-    gen("always_inline %s %s(%s)" % (syscall_return(e), "invoke_" + syscall_name(e), syscall_args(e)))
+    gen("should_inline %s %s(%s)" % (syscall_return(e), "invoke_" + syscall_name(e), syscall_args(e)))
     gen("{")
     enter_scope()
     gen("%splatform_syscall%d(%s);" % ("return " if syscall_has_return(e) else "", syscall_nargs, syscall_conv_arg_to_long))
