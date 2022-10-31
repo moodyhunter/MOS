@@ -33,12 +33,29 @@ endif()
 
 include(generate_syscall_headers)
 
-include_directories(
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_BINARY_DIR}/include
+add_library(mos_kernel_basic_include INTERFACE)
+add_library(mos_kernel_arch_specific_include INTERFACE)
+
+target_include_directories(mos_kernel_basic_include INTERFACE ${CMAKE_SOURCE_DIR}/kernel/include ${CMAKE_BINARY_DIR}/include)
+target_include_directories(mos_kernel_arch_specific_include INTERFACE ${CMAKE_SOURCE_DIR}/arch/${MOS_ISA_FAMILY}/include)
+
+add_library(mos::basic_include ALIAS mos_kernel_basic_include)
+add_library(mos::arch_specific_include ALIAS mos_kernel_arch_specific_include)
+
+set(MOS_STANDARD_LIBRARY_SOURCES
+    lib/structures/hashmap.c
+    lib/structures/hashmap_common.c
+    lib/structures/list.c
+    lib/structures/stack.c
+    lib/structures/tree.c
+    lib/stdio.c
+    lib/stdio_impl.c
+    lib/stdlib.c
+    lib/string.c
 )
 
 add_library(mos_kernel.elf STATIC
+    ${MOS_STANDARD_LIBRARY_SOURCES}
     kernel/cmdline.c
     kernel/device/console.c
     kernel/device/block.c
@@ -61,28 +78,35 @@ add_library(mos_kernel.elf STATIC
     kernel/tasks/task_io.c
     kernel/tasks/thread.c
     kernel/tasks/schedule.c
-    lib/structures/hashmap.c
-    lib/structures/hashmap_common.c
-    lib/structures/list.c
-    lib/structures/stack.c
-    lib/structures/tree.c
-    lib/stdio.c
-    lib/stdio_impl.c
-    lib/stdlib.c
-    lib/string.c
 )
 
 generate_syscall_headers(mos_kernel.elf ${CMAKE_SOURCE_DIR}/kernel/ksyscalls.json ksyscall mos/)
 
-add_library(mos::elf_kernel ALIAS mos_kernel.elf)
-target_link_libraries(mos_kernel.elf PUBLIC gcc)
+target_link_libraries(mos_kernel.elf PRIVATE gcc mos::basic_include mos::arch_specific_include)
+target_include_directories(mos_kernel.elf PRIVATE ${CMAKE_SOURCE_DIR}/lib/include)
+target_compile_definitions(mos_kernel.elf PRIVATE -D__MOS_KERNEL__)
 target_compile_options(mos_kernel.elf PUBLIC "-ffreestanding")
+
+add_library(mos::elf_kernel ALIAS mos_kernel.elf)
 
 # Configure architecture-specific stuff
 include(add_kernel_source)
 include(add_bootable_target)
 
 include(${MOS_ARCH_CONFIG})
+
+add_library(mos_userspace_stdlib STATIC ${MOS_STANDARD_LIBRARY_SOURCES})
+target_include_directories(mos_userspace_stdlib PUBLIC ${CMAKE_SOURCE_DIR}/lib/include)
+target_link_libraries(mos_userspace_stdlib PUBLIC gcc mos::basic_include mos::arch_specific_include)
+add_library(mos::userspace_stdlib ALIAS mos_userspace_stdlib)
+
+add_library(mos_libuserspace OBJECT userspace/libuserspace.c)
+target_include_directories(mos_libuserspace PUBLIC ${CMAKE_SOURCE_DIR}/userspace/include)
+target_link_libraries(mos_libuserspace PUBLIC mos::userspace_stdlib)
+add_library(mos::libuserspace ALIAS mos_libuserspace)
+
+# build userspace programs after the kernel
+add_dependencies(mos_libuserspace mos::elf_kernel)
 
 add_subdirectory(userspace)
 

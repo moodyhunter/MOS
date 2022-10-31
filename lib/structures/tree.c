@@ -3,17 +3,18 @@
 #include "lib/structures/tree.h"
 
 #include "lib/containers.h"
+#include "lib/mos_lib.h"
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
 
 void tree_add_child(tree_node_t *parent, tree_node_t *child)
 {
-    MOS_ASSERT(parent != NULL);
-    MOS_ASSERT(child != NULL);
-    MOS_ASSERT(child->parent == NULL);
-    MOS_ASSERT(child->n_children == 0);
-    MOS_ASSERT(child->children == NULL);
+    MOS_LIB_ASSERT(parent != NULL);
+    MOS_LIB_ASSERT(child != NULL);
+    MOS_LIB_ASSERT(child->parent == NULL);
+    MOS_LIB_ASSERT(child->n_children == 0);
+    MOS_LIB_ASSERT(child->children == NULL);
     child->parent = parent;
     parent->n_children++;
     parent->children = krealloc(parent->children, parent->n_children * sizeof(tree_node_t *));
@@ -22,8 +23,8 @@ void tree_add_child(tree_node_t *parent, tree_node_t *child)
 
 void tree_remove_if(tree_node_t *node, bool (*predicate)(const tree_node_t *node))
 {
-    MOS_ASSERT(node != NULL);
-    MOS_ASSERT(predicate != NULL);
+    MOS_LIB_ASSERT(node != NULL);
+    MOS_LIB_ASSERT(predicate != NULL);
     // TODO
     MOS_UNIMPLEMENTED("tree_remove_if");
 }

@@ -2,9 +2,9 @@
 
 #include "lib/structures/hashmap.h"
 
+#include "lib/mos_lib.h"
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"
-#include "mos/printk.h"
 
 typedef struct hashmap_entry
 {
@@ -15,7 +15,7 @@ typedef struct hashmap_entry
 
 void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, hashmap_key_compare_t compare_func)
 {
-    MOS_ASSERT(map);
+    MOS_LIB_ASSERT(map);
     if (map->magic == HASHMAP_MAGIC)
     {
         mos_panic("hashmap_init: hashmap %p is already initialized", (void *) map);
@@ -32,7 +32,7 @@ void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, has
 
 void hashmap_deinit(hashmap_t *map)
 {
-    MOS_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
+    MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
     for (size_t i = 0; i < map->capacity; i++)
     {
         hashmap_entry_t *entry = map->entries[i];
@@ -48,7 +48,7 @@ void hashmap_deinit(hashmap_t *map)
 
 void *hashmap_put(hashmap_t *map, const void *key, void *value)
 {
-    MOS_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
+    MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
     size_t index = map->hash_func(key).hash % map->capacity;
     hashmap_entry_t *entry = map->entries[index];
     while (entry != NULL)
@@ -73,7 +73,7 @@ void *hashmap_put(hashmap_t *map, const void *key, void *value)
 
 void *hashmap_get(const hashmap_t *map, const void *key)
 {
-    MOS_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
+    MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
     size_t index = map->hash_func(key).hash % map->capacity;
     hashmap_entry_t *entry = map->entries[index];
     while (entry != NULL)
@@ -89,7 +89,7 @@ void *hashmap_get(const hashmap_t *map, const void *key)
 
 void *hashmap_remove(hashmap_t *map, const void *key)
 {
-    MOS_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
+    MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
     size_t index = map->hash_func(key).hash % map->capacity;
     hashmap_entry_t *entry = map->entries[index];
     hashmap_entry_t *prev = NULL;
@@ -118,7 +118,7 @@ void *hashmap_remove(hashmap_t *map, const void *key)
 
 void hashmap_foreach(hashmap_t *map, hashmap_foreach_func_t func)
 {
-    MOS_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
+    MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
     for (size_t i = 0; i < map->capacity; i++)
     {
         hashmap_entry_t *entry = map->entries[i];

@@ -2,22 +2,9 @@
 
 summary_section(USERSPACE "Userspace Programs")
 
-add_library(mos_libuserspace OBJECT libuserspace.c)
-add_library(mos::libuserspace ALIAS mos_libuserspace)
-target_include_directories(mos_libuserspace
-    PUBLIC
-        ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_BINARY_DIR}/include
-        ${CMAKE_SOURCE_DIR}/arch/${MOS_ISA_FAMILY}/include
-        ${CMAKE_CURRENT_LIST_DIR}/include
-)
-
 # TODO: Remove this once we have a proper userspace libc
 target_compile_options(mos_libuserspace PUBLIC "-ffreestanding")
 target_link_options(mos_libuserspace PUBLIC "-nostdlib")
-
-# build userspace programs after the kernel
-add_dependencies(mos_libuserspace mos::elf_kernel)
 
 # create a gdbinit file for debugging
 write_file(${CMAKE_BINARY_DIR}/gdbinit "# GDB init file for MOS")

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "lib/mos_lib.h"
 #include "lib/stdio.h"
 #include "lib/stdlib.h"
 #include "lib/string.h"
-#include "mos/printk.h"
 
 typedef enum
 {
@@ -191,9 +191,9 @@ void buf_putchar(char **pbuf, char c)
 // ! prints d, i, o, u, x, and X
 static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char conv)
 {
-    MOS_ASSERT(conv == 'd' || conv == 'i' || conv == 'o' || conv == 'u' || conv == 'x' || conv == 'X');
-    MOS_ASSERT(pflags->precision >= 0);
-    MOS_ASSERT(pflags->minimum_width >= 0);
+    MOS_LIB_ASSERT(conv == 'd' || conv == 'i' || conv == 'o' || conv == 'u' || conv == 'x' || conv == 'X');
+    MOS_LIB_ASSERT(pflags->precision >= 0);
+    MOS_LIB_ASSERT(pflags->minimum_width >= 0);
 
     if (conv == 'd' || conv == 'i' || conv == 'u')
     {
@@ -240,7 +240,7 @@ static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char con
             case LM__t: number = (ptrdiff_t) number; break;
             case LM__L: number = (u64) number; break;
             case LM__j:
-            default: MOS_UNREACHABLE();
+            default: MOS_LIB_UNREACHABLE();
         }
     }
 
@@ -308,7 +308,7 @@ static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char con
                     while (number > 0)
                         buf_putchar(&pnumberbuf, hex_digits[number % 16]), number /= 16;
                     break;
-                default: MOS_UNREACHABLE();
+                default: MOS_LIB_UNREACHABLE();
             }
         }
 
@@ -368,9 +368,9 @@ static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char con
 
 static int printf_cs(char *buf, char *data, printf_flags_t *pflags, char conv)
 {
-    MOS_ASSERT(conv == 'c' || conv == 's');
-    MOS_ASSERT(pflags->precision >= 0);
-    MOS_ASSERT(pflags->minimum_width >= 0);
+    MOS_LIB_ASSERT(conv == 'c' || conv == 's');
+    MOS_LIB_ASSERT(pflags->precision >= 0);
+    MOS_LIB_ASSERT(pflags->minimum_width >= 0);
 
     if (unlikely(pflags->hash))
     {
@@ -471,7 +471,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                         case LM__t: value = va_arg(args, ptrdiff_t); break;
                         case LM__L: value = va_arg(args, s64); break;
                         case LM__j:
-                        default: MOS_UNREACHABLE();
+                        default: MOS_LIB_UNREACHABLE();
                     }
                     int c = printf_diouxX(buf, value, &flags, *format);
                     buf += c;
@@ -483,21 +483,21 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 case 'F':
                 {
                     // print a floating point number
-                    MOS_UNIMPLEMENTED("printf: %f / %F");
+                    MOS_LIB_UNIMPLEMENTED("printf: %f / %F");
                     break;
                 }
                 case 'e':
                 case 'E':
                 {
                     // print a floating point number in scientific notation
-                    MOS_UNIMPLEMENTED("printf: %e / %E");
+                    MOS_LIB_UNIMPLEMENTED("printf: %e / %E");
                     break;
                 }
                 case 'g':
                 case 'G':
                 {
                     // print a floating point number in scientific notation
-                    MOS_UNIMPLEMENTED("printf: %g / %G");
+                    MOS_LIB_UNIMPLEMENTED("printf: %g / %G");
                     break;
                 }
                 case 's':
@@ -530,13 +530,13 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 case 'A':
                 {
                     // print a hexadecimal number in ASCII
-                    MOS_UNIMPLEMENTED("printf: %a / %A");
+                    MOS_LIB_UNIMPLEMENTED("printf: %a / %A");
                     break;
                 }
                 case 'n':
                 {
                     // print the number of characters printed
-                    MOS_UNIMPLEMENTED("printf: %n");
+                    MOS_LIB_UNIMPLEMENTED("printf: %n");
                     break;
                 }
                 case '%':

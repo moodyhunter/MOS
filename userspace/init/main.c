@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "lib/stdio.h"
 #include "libuserspace.h"
 #include "mos/filesystem/filesystem.h"
 #include "mos/ksyscall/usermode.h"
@@ -69,6 +70,9 @@ int main(void)
 
     if (mm != 11)
         invoke_ksyscall_panic();
+
+    sprintf(buf, "Hello from pid %d", my_pid);
+    print_impl(buf);
 
     if (my_pid == 0)
     {
