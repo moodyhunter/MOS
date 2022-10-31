@@ -245,14 +245,14 @@ void pmem_freelist_remove_region(uintptr_t start_addr, size_t size_bytes)
         pmem_range_t *copy_source = &pmem_freelist_storage[pmem_freelist_count - 1];
         pmem_freelist_count--;
 
-        pmem_range_t *r_prev = NULL;
-        for (pmem_range_t *r_this = pmem_freelist; r_this != copy_source && r_this->next; r_this = r_this->next)
+        pmem_range_t *r_prev = pmem_freelist;
+        for (pmem_range_t *r_this = r_prev; r_this != copy_source && r_this->next; r_this = r_this->next)
             r_prev = r_this;
 
         if (cleanup_target_memptr != copy_source)
         {
             memmove(cleanup_target_memptr, copy_source, sizeof(pmem_range_t));
-            memset(copy_source, 0, sizeof(pmem_range_t)); // prevent from being used again
+            memzero(copy_source, sizeof(pmem_range_t)); // prevent from being used again
 
             if (copy_source != r_prev->next)
             {
