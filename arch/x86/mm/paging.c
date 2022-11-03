@@ -113,13 +113,13 @@ void page_table_dump_range(x86_pg_infra_t *kpg_infra, size_t start_page, size_t 
             if (i >= end_page)
                 return;
 
-            x86_pgtable_entry *this_entry = kpg_infra->pgtable + i;
-            MOS_ASSERT(this_entry->present);
+            x86_pgtable_entry *this_t = kpg_infra->pgtable + i;
+            MOS_ASSERT(this_t->present);
 
-            uintptr_t p_range_current = this_entry->phys_addr << 12;
+            uintptr_t p_range_current = this_t->phys_addr << 12;
 
             bool is_last_page = i == end_page - 1;
-            bool is_continuous = p_range_current == p_range_last + MOS_PAGE_SIZE;
+            bool is_continuous = p_range_current == p_range_last + MOS_PAGE_SIZE && this_t->usermode == range_begin_usermode && this_t->writable == range_begin_writable;
 
             if (is_continuous && !is_last_page)
             {
@@ -178,7 +178,7 @@ void x86_mm_dump_page_table(x86_pg_infra_t *pg)
         for (int pte_i = 0; pte_i < 1024; pte_i++)
         {
             x86_pgtable_entry *pte = &pgtable[pgd_i * 1024 + pte_i];
-            ;
+
             if (!pte->present)
             {
                 if (current_state == PRESENT)
