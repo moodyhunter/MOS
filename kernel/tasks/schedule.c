@@ -9,18 +9,19 @@
 #include "mos/tasks/task_type.h"
 #include "mos/tasks/thread.h"
 
-void mos_update_current(thread_t *thread)
+void mos_update_current(thread_t *new_current)
 {
+    thread_t *old_current = current_thread;
     // In the very first switch, current_thread is NULL
-    if (likely(current_thread))
+    if (likely(old_current))
     {
         // TODO: Add more checks
-        if (current_thread->status == THREAD_STATUS_RUNNING || current_thread->status != THREAD_STATUS_DEAD)
-            current_thread->status = THREAD_STATUS_READY;
+        if (old_current->status == THREAD_STATUS_RUNNING || current_thread->status != THREAD_STATUS_DEAD)
+            old_current->status = THREAD_STATUS_READY;
     }
-    current_thread = thread;
-    current_thread->status = THREAD_STATUS_RUNNING;
-    current_cpu->pagetable = thread->owner->pagetable;
+    current_thread = new_current;
+    new_current->status = THREAD_STATUS_RUNNING;
+    current_cpu->pagetable = new_current->owner->pagetable;
 }
 
 bool schedule_to_thread(const void *key, void *value)
@@ -48,5 +49,7 @@ noreturn void scheduler(void)
 void jump_to_scheduler(void)
 {
     cpu_t *cpu = current_cpu;
+    if (cpu->thread->status != THREAD_STATUS_DEAD)
+        cpu->thread->status = THREAD_STATUS_READY;
     mos_platform->switch_to_scheduler(&cpu->thread->stack.head, cpu->scheduler_stack);
 }

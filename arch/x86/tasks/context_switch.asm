@@ -39,10 +39,10 @@ x86_context_switch_impl:
 
 .iret_switch:
     ; We are now on the kernel stack.
-    ; edx = switch_mode_arg = struct { reg32_t ebp, eip; };
+    ; edx = switch_mode_arg = struct { eip, ebp; };
     push    0x20 | 0x3      ; user data (stack) segment + RPL 3
     push    eax             ; stack
-    mov     ebp, [edx]      ; ebp
+    mov     ebp, [edx + 4]  ; ebp
     pushf                   ; push flags
 
     ; enable interrupts
@@ -51,7 +51,7 @@ x86_context_switch_impl:
     push    ebx             ; push flags
 
     push    0x18 | 0x3      ; user code segment + RPL 3
-    push    dword [edx + 4]       ; eip
+    push    dword [edx]     ; eip
 
     xor     eax, eax        ; clear eax
     xor     esi, esi        ; clear esi

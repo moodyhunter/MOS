@@ -81,3 +81,4 @@ void x86_handle_interrupt(u32 esp);
 void x86_enable_interrupts();
 void x86_disable_interrupts();
 bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq));
+void irq_send_eoi(u8 irq);

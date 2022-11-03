@@ -15,7 +15,6 @@ typedef enum
     THREAD_STATUS_READY,   // thread can be scheduled
     THREAD_STATUS_RUNNING, // thread is currently running
     THREAD_STATUS_BLOCKED, // ?
-    THREAD_STATUS_DYING,   // ?
     THREAD_STATUS_DEAD,    // ?
 } thread_status_t;
 
@@ -57,6 +56,6 @@ typedef struct _thread
     downwards_stack_t stack;
     thread_status_t status;
     downwards_stack_t kernel_stack;
-    uintptr_t current_instruction;
+    platform_context_t *context;
     thread_flags_t flags;
 } thread_t;

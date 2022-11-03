@@ -122,8 +122,8 @@ void x86_start_kernel(x86_startup_info *info)
         pg_map_pages(x86_kpg_infra, initrd_vaddr, initrd_paddr, initrd_n_pages, VM_GLOBAL);
     }
 
-    x86_acpi_init();
-    x86_smp_init();
+    // x86_acpi_init();
+    // x86_smp_init();
 
     // ! map the bios memory area, should it be done like this?
     pr_info("mapping bios memory area...");
@@ -141,8 +141,7 @@ void x86_start_kernel(x86_startup_info *info)
     mos_install_kpanic_hook(x86_kpanic_hook);
     mos_install_console(&vga_text_mode_console);
     x86_install_interrupt_handler(IRQ_COM1, serial_irq_handler);
-
-    x86_enable_interrupts();
+    x86_install_interrupt_handler(IRQ_TIMER, x86_timer_handler);
 
     if (initrd_size)
     {
@@ -190,6 +189,7 @@ mos_platform_t x86_platform = {
 
     // process management
     .context_setup = x86_setup_thread_context,
+    .context_copy = x86_copy_thread_context,
     .switch_to_thread = x86_switch_to_thread,
     .switch_to_scheduler = x86_switch_to_scheduler,
 };

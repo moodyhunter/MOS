@@ -49,9 +49,13 @@ typedef enum
 
 typedef struct
 {
+    uintptr_t instruction;
+} __packed platform_context_t;
+
+typedef struct
+{
     u32 id;
     thread_t *thread;
-    void *platform_context;
     uintptr_t scheduler_stack;
     paging_handle_t pagetable;
 } cpu_t;
@@ -134,6 +138,7 @@ typedef struct
 
     // process management
     void (*const context_setup)(thread_t *thread, downwards_stack_t *proxy_stack, thread_entry_t entry, void *arg);
+    void (*const context_copy)(platform_context_t *from, platform_context_t **to);
     void (*const switch_to_scheduler)(uintptr_t *old_stack, uintptr_t new_stack);
     void (*const switch_to_thread)(uintptr_t *old_stack, thread_t *new_thread);
 } mos_platform_t;

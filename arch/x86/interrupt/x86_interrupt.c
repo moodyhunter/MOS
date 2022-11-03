@@ -11,6 +11,7 @@
 #include "mos/tasks/task_type.h"
 #include "mos/x86/devices/port.h"
 #include "mos/x86/interrupt/pic.h"
+#include "mos/x86/tasks/context.h"
 #include "mos/x86/x86_platform.h"
 
 static const char *x86_exception_names[EXCEPTION_COUNT] = {
@@ -82,16 +83,40 @@ bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
     return true;
 }
 
+static void x86_dump_registers(x86_stack_frame *frame)
+{
+    pr_emph("General Purpose Registers:\n"
+            "  EAX: 0x%08x EBX: 0x%08x ECX: 0x%08x EDX: 0x%08x\n"
+            "  ESI: 0x%08x EDI: 0x%08x EBP: 0x%08x ESP: 0x%08x\n"
+            "  EIP: 0x%08x\n"
+            "Segment Registers:\n"
+            "  DS:  0x%08x ES:  0x%08x FS:  0x%08x GS:  0x%08x\n"
+            "Context:\n"
+            "  EFLAGS:       0x%08x\n"
+            "  Instruction:  0x%x:%08x\n"
+            "  Stack:        0x%x:%08x",
+            frame->eax, frame->ebx, frame->ecx, frame->edx, //
+            frame->esi, frame->edi, frame->ebp, frame->esp, //
+            frame->iret_params.eip,                         //
+            frame->ds, frame->es, frame->fs, frame->gs,     //
+            frame->iret_params.eflags,                      //
+            frame->iret_params.cs, frame->iret_params.eip,  //
+            frame->iret_params.ss, frame->iret_params.esp   //
+    );
+}
+
 void x86_handle_interrupt(u32 esp)
 {
     x86_stack_frame *frame = (x86_stack_frame *) esp;
-    current_cpu->platform_context = frame;
 
-    if (likely(current_thread))
+    thread_t *old_current = current_thread;
+
+    if (likely(old_current))
     {
-        thread_t *thread = current_thread;
-        thread->stack.head = frame->interrupt.esp;
-        thread->current_instruction = frame->interrupt.eip;
+        old_current->stack.head = frame->iret_params.esp;
+        x86_thread_context_t *context = container_of(old_current->context, x86_thread_context_t, inner);
+        context->ebp = frame->ebp;
+        context->inner.instruction = frame->iret_params.eip;
     }
 
     if (frame->interrupt_number < IRQ_BASE)
@@ -109,21 +134,19 @@ void x86_handle_interrupt(u32 esp)
         pr_warn("Unknown interrupt number: %d", frame->interrupt_number);
     }
 
-    if (likely(current_thread))
+    thread_t *new_current = current_thread;
+    // the current thread may have changed during the scheduling
+
+    if (likely(new_current))
     {
-        thread_t *thread = current_thread;
-
-        if (unlikely(thread->status != THREAD_STATUS_RUNNING))
-            pr_warn("Thread %d is not in 'running' state", thread->tid);
-
-        frame->interrupt.esp = thread->stack.head;
-        frame->interrupt.eip = thread->current_instruction;
+        if (unlikely(new_current->status != THREAD_STATUS_RUNNING))
+            pr_warn("Thread %d is not in 'running' state", new_current->tid);
     }
+    frame->iret_params.eflags |= 0x200; // enable interrupts
 }
 
 static void x86_handle_exception(x86_stack_frame *stack)
 {
-    x86_disable_interrupts();
     MOS_ASSERT(stack->interrupt_number < EXCEPTION_COUNT);
 
     const char *name = x86_exception_names[stack->interrupt_number];
@@ -172,15 +195,20 @@ static void x86_handle_exception(x86_stack_frame *stack)
             uintptr_t fault_address;
             __asm__ volatile("mov %%cr2, %0" : "=r"(fault_address));
 
-            if (fault_address < 1 KB)
-            {
-                mos_panic("Kernel NULL pointer dereference at " PTR_FMT " caused by instruction " PTR_FMT ".", fault_address, (uintptr_t) stack->interrupt.eip);
-            }
-
             bool present = (stack->error_code & 0x1) != 0;
             bool is_write = (stack->error_code & 0x2) != 0;
             bool is_user = (stack->error_code & 0x4) != 0;
             bool is_exec = false;
+
+            if (fault_address < 1 KB)
+            {
+                x86_dump_registers(stack);
+                mos_panic("%s NULL pointer dereference at " PTR_FMT " caused by instruction " PTR_FMT ".\n",
+                          is_user ? "User" : "Kernel",       //
+                          fault_address,                     //
+                          (uintptr_t) stack->iret_params.eip //
+                );
+            }
 
             if (current_thread)
             {
@@ -189,7 +217,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
                         current_process->name,                                                             //
                         current_process->pid,                                                              //
                         fault_address,                                                                     //
-                        (uintptr_t) stack->interrupt.eip                                                   //
+                        (uintptr_t) stack->iret_params.eip                                                 //
                 );
             }
 
@@ -205,9 +233,12 @@ static void x86_handle_exception(x86_stack_frame *stack)
                       "要调试程序，请单击 \"取消\"。\n\n\n", //
                       (uintptr_t) stack->interrupt.eip, fault_address, is_write ? "written" : "read");
 #else
+            if (is_user && !is_write && present)
+                pr_warn("'%s' privilege violation?", current_process->name);
+            x86_dump_registers(stack);
             mos_panic("Page Fault: %s code at " PTR_FMT " is trying to %s a %s address " PTR_FMT, //
                       is_user ? "Userspace" : "Kernel",                                           //
-                      (uintptr_t) stack->interrupt.eip,                                           //
+                      (uintptr_t) stack->iret_params.eip,                                         //
                       is_write ? "write into" : "read from",                                      //
                       present ? "present" : "non-present",                                        //
                       fault_address);
@@ -228,30 +259,15 @@ static void x86_handle_exception(x86_stack_frame *stack)
         }
     }
 
-    mos_panic("x86 %s:\n"
-              "Interrupt #%d ('%s', error code %d)\n"
-              "General Purpose Registers:\n"
-              "  EAX: 0x%08x EBX: 0x%08x ECX: 0x%08x EDX: 0x%08x\n"
-              "  ESI: 0x%08x EDI: 0x%08x EBP: 0x%08x ESP: 0x%08x\n"
-              "  EIP: 0x%08x\n"
-              "Segment Registers:\n"
-              "  DS:  0x%08x ES:  0x%08x FS:  0x%08x GS:  0x%08x\n"
-              "Context:\n"
-              "  EFLAGS:       0x%08x\n"
-              "  Instruction:  0x%x:%08x\n"
-              "  Stack:        0x%x:%08x",
-              intr_type,                                      //
-              stack->interrupt_number,                        //
-              name,                                           //
-              stack->error_code,                              //
-              stack->eax, stack->ebx, stack->ecx, stack->edx, //
-              stack->esi, stack->edi, stack->ebp, stack->esp, //
-              stack->interrupt.eip,                           //
-              stack->ds, stack->es, stack->fs, stack->gs,     //
-              stack->interrupt.eflags,                        //
-              stack->interrupt.cs, stack->interrupt.eip,      //
-              stack->interrupt.ss, stack->interrupt.esp       //
-    );
+    x86_dump_registers(stack);
+    mos_panic("x86 %s:\nInterrupt #%d ('%s', error code %d)\n", intr_type, stack->interrupt_number, name, stack->error_code);
+}
+
+void irq_send_eoi(u8 irq)
+{
+    if (irq >= 8)
+        port_outb(PIC2_COMMAND, PIC_EOI);
+    port_outb(PIC1_COMMAND, PIC_EOI);
 }
 
 static void x86_handle_irq(x86_stack_frame *frame)
@@ -264,8 +280,13 @@ static void x86_handle_irq(x86_stack_frame *frame)
         u8 pic = (irq < 8) ? PIC1 : PIC2;
         port_outb(pic + 3, 0x03);
         if ((port_inb(pic) & 0x80) != 0)
-            goto irq_handled;
+        {
+            irq_send_eoi(irq);
+            return;
+        }
     }
+
+    irq_send_eoi(irq);
 
     bool irq_handled = false;
     list_foreach(x86_irq_handler_t, handler, irq_handlers[irq])
@@ -276,9 +297,4 @@ static void x86_handle_irq(x86_stack_frame *frame)
 
     if (unlikely(!irq_handled))
         pr_warn("IRQ %d not handled!", irq);
-
-irq_handled:
-    if (irq >= 8)
-        port_outb(PIC2_COMMAND, PIC_EOI);
-    port_outb(PIC1_COMMAND, PIC_EOI);
 }

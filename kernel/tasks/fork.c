@@ -63,7 +63,7 @@ process_t *process_handle_fork(process_t *parent)
         child_thread->stack = parent_thread->stack;
         child_thread->kernel_stack = parent_thread->kernel_stack;
         child_thread->status = THREAD_STATUS_FORKED;
-        child_thread->current_instruction = parent_thread->current_instruction;
+        mos_platform->context_copy(parent_thread->context, &child_thread->context);
 
         if (parent->main_thread == parent_thread)
             child->main_thread = child_thread;

@@ -64,14 +64,11 @@ void thread_deinit()
 thread_t *thread_new(process_t *owner, thread_flags_t tflags, thread_entry_t entry, void *arg)
 {
     thread_t *t = thread_allocate(owner, tflags);
-    t->current_instruction = (uintptr_t) entry;
 
-    {
-        // Kernel stack
-        const vmblock_t kstack_blk = mos_platform->mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_KERNEL, PGALLOC_HINT_USERSPACE, VM_READ | VM_WRITE);
-        stack_init(&t->kernel_stack, (void *) kstack_blk.vaddr, kstack_blk.npages * MOS_PAGE_SIZE);
-        process_attach_mmap(owner, kstack_blk, VMTYPE_KSTACK, false);
-    }
+    // Kernel stack
+    const vmblock_t kstack_blk = mos_platform->mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_KERNEL, PGALLOC_HINT_USERSPACE, VM_READ | VM_WRITE);
+    stack_init(&t->kernel_stack, (void *) kstack_blk.vaddr, kstack_blk.npages * MOS_PAGE_SIZE);
+    process_attach_mmap(owner, kstack_blk, VMTYPE_KSTACK, false);
 
     if (tflags & THREAD_FLAG_USERMODE)
     {
