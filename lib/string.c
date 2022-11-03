@@ -3,7 +3,6 @@
 #include "lib/string.h"
 
 #include "mos/mm/kmalloc.h"
-#include "mos/printk.h"
 
 size_t strlen(const char *str)
 {
@@ -111,23 +110,25 @@ void memzero(void *s, size_t n)
     }
 }
 
-void strcpy(char *dest, const char *src)
+char *strcpy(char *dest, const char *src)
 {
     while (*src)
         *dest++ = *src++;
     *dest = 0;
+    return dest;
 }
 
-void strcat(char *dest, const char *src)
+char *strcat(char *dest, const char *src)
 {
     while (*dest)
         dest++;
     while (*src)
         *dest++ = *src++;
     *dest = 0;
+    return dest;
 }
 
-void strncpy(char *dest, const char *src, size_t n)
+char *strncpy(char *dest, const char *src, size_t n)
 {
     while (n > 0 && *src)
     {
@@ -139,6 +140,7 @@ void strncpy(char *dest, const char *src, size_t n)
         *dest++ = 0;
         n--;
     }
+    return dest;
 }
 
 const char *duplicate_string(const char *src, size_t len)

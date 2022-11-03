@@ -13,9 +13,10 @@ void *memmove(void *dest, const void *src, size_t n);
 void *memset(void *s, int c, size_t n);
 void memzero(void *s, size_t n);
 
-void strcpy(char *dest, const char *src);
-void strcat(char *dest, const char *src);
-void strncpy(char *dest, const char *src, size_t n);
+char *strcpy(char *dest, const char *src);
+char *strcat(char *dest, const char *src);
+
+char *strncpy(char *dest, const char *src, size_t n);
 
 const char *duplicate_string(const char *src, size_t len);
 

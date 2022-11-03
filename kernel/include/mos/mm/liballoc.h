@@ -26,7 +26,7 @@ extern int liballoc_unlock();
 void mos_kernel_mm_init(void);
 
 void liballoc_dump();
-void liballoc_init(size_t page_size);
+void liballoc_init(void);
 void *liballoc_malloc(size_t size);
 void *liballoc_realloc(void *ptr, size_t size);
 void *liballoc_calloc(size_t object, size_t n_objects);

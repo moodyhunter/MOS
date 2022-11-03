@@ -4,6 +4,7 @@
 #include "lib/stdio.h"
 #include "lib/stdlib.h"
 #include "lib/string.h"
+#include "mos/mos_global.h"
 
 typedef enum
 {
@@ -182,7 +183,7 @@ flag_parse_done:
 }
 
 // writes a character into the buffer, and increses the buffer pointer
-void buf_putchar(char **pbuf, char c)
+should_inline void buf_putchar(char **pbuf, char c)
 {
     **pbuf = c;
     (*pbuf)++;

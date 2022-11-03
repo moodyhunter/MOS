@@ -3,6 +3,7 @@
 #include "mos/mm/liballoc.h"
 
 #include "lib/string.h"
+#include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 
@@ -51,7 +52,7 @@
 
 void mos_kernel_mm_init()
 {
-    liballoc_init(MOS_PAGE_SIZE);
+    liballoc_init();
 #if MOS_MM_LIBALLOC_DEBUG
     mos_install_kpanic_hook(liballoc_dump);
 #endif
@@ -122,7 +123,6 @@ typedef struct liballoc_part
 static liballoc_block_t *l_memroot = NULL; // The root memory block acquired from the system.
 static liballoc_block_t *l_bestbet = NULL; // The major with the most free memory.
 
-static size_t l_page_size = 0;         // The size of an individual page. Set up in liballoc_init.
 static size_t l_alloc_n_page_once = 0; // The number of pages to request per chunk. Set up in liballoc_init.
 
 static size_t l_mem_allocated = 0;     // Running total of allocated memory.
@@ -166,10 +166,10 @@ static liballoc_block_t *allocate_new_pages_for(unsigned int size)
     u32 st = size + sizeof(liballoc_block_t) + sizeof(liballoc_part_t);
 
     // Perfect amount of space?
-    if ((st % l_page_size) == 0)
-        st = st / (l_page_size);
+    if ((st % MOS_PAGE_SIZE) == 0)
+        st = st / (MOS_PAGE_SIZE);
     else
-        st = st / (l_page_size) + 1;
+        st = st / (MOS_PAGE_SIZE) + 1;
     // No, add the buffer.
 
     // Make sure it's >= the minimum size.
@@ -187,7 +187,7 @@ static liballoc_block_t *allocate_new_pages_for(unsigned int size)
     maj->prev = NULL;
     maj->next = NULL;
     maj->pages = st;
-    maj->size = st * l_page_size;
+    maj->size = st * MOS_PAGE_SIZE;
     maj->usage = sizeof(liballoc_block_t);
     maj->first = NULL;
 
@@ -201,9 +201,8 @@ static liballoc_block_t *allocate_new_pages_for(unsigned int size)
     return maj;
 }
 
-void liballoc_init(size_t page_size)
+void liballoc_init(void)
 {
-    l_page_size = page_size;
     l_alloc_n_page_once = 16;
 
     MOS_ASSERT_X(l_memroot == NULL, "liballoc_init() called twice");
