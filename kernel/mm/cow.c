@@ -57,7 +57,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
             continue;
 
         if (!(current_proc->mmaps[i].map_flags & MMAP_COW))
-            mos_panic("page fault in non-cow mapped region");
+            mos_panic("%s page fault (%s) in non-cow mapped region", is_user ? "User" : "Kernel", is_write ? "write" : "read");
 
         mos_debug("fault_addr=" PTR_FMT ", vmblock=" PTR_FMT "-" PTR_FMT, fault_addr, vm.vaddr, vm.vaddr + vm.npages * MOS_PAGE_SIZE);
 

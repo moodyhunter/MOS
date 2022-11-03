@@ -42,8 +42,8 @@ void apic_set_base_addr(uintptr_t base_addr)
 
 u32 apic_reg_read_offset_32(u32 offset)
 {
-    mos_debug("apic_reg_read_offset_32: offset: %x", offset);
-#pragma message "TODO: this didn't work"
+    mos_debug("offset: %x", offset);
+    mos_warn("This didn't work properly, need to investigate.");
     return *(volatile u32 *) (lapic_paddr_base + offset);
 }
 
@@ -67,8 +67,7 @@ static void apic_wait_sent()
         ;
 }
 
-void apic_interrupt_full(u8 vec, u8 dest, apic_delivery_mode_t delivery_mode, apic_dest_mode_t dest_mode, bool level, bool trigger,
-                         apic_shorthand_t shorthand)
+void apic_interrupt_full(u8 vec, u8 dest, apic_delivery_mode_t delivery_mode, apic_dest_mode_t dest_mode, bool level, bool trigger, apic_shorthand_t shorthand)
 {
     u64 value = 0;
     value |= SET_BITS(0, 8, vec);           // Interrupt Vector
