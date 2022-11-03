@@ -32,6 +32,6 @@
 #error "unknown size of long"
 #endif
 
-#define MOS_LITTLE_ENDIAN
+#define MOS_LITTLE_ENDIAN 1
 
 static_assert(sizeof(long) == sizeof(void *), "long is not the same size as a pointer");

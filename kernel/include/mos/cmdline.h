@@ -4,6 +4,8 @@
 
 #include "mos/types.h"
 
+#include KERNEL_INTERNAL_CHECK
+
 typedef enum
 {
     CMDLINE_PARAM_TYPE_STRING,

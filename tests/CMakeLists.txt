@@ -4,6 +4,7 @@ add_kernel_source(RELATIVE_SOURCES test_engine.c)
 macro(mos_add_test TEST_NAME TEST_DESCRIPTION)
     set(TEST_TARGET mos_test_${TEST_NAME})
     add_library(${TEST_TARGET} OBJECT ${CMAKE_CURRENT_LIST_DIR}/${TEST_NAME}/test_${TEST_NAME}.c)
+    target_compile_definitions(${TEST_TARGET} PRIVATE -D__MOS_KERNEL__)
     target_link_libraries(${TEST_TARGET} PRIVATE mos::basic_include mos::platform_include)
 
     if (${TEST_NAME} IN_LIST MOS_DISABLED_TESTS)

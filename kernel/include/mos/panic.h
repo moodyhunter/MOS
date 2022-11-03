@@ -4,6 +4,8 @@
 
 #include <stdarg.h>
 
+#include KERNEL_INTERNAL_CHECK
+
 typedef void(kmsg_handler_t)(const char *func, u32 line, const char *fmt, va_list args);
 typedef void(kpanic_hook_t)(void);
 

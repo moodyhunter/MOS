@@ -10,7 +10,7 @@ typedef enum
     ELF_BITS_INVALID = 0,
     ELF_BITS_32 = 1,
     ELF_BITS_64 = 2,
-#ifdef MOS_32BITS
+#if MOS_32BITS
     ELF_BITS_MOS_DEFAULT = ELF_BITS_32,
 #else
     ELF_BITS_MOS_DEFAULT = ELF_BITS_64,
@@ -22,7 +22,7 @@ typedef enum
     ELF_ENDIANNESS_INVALID = 0,
     ELF_ENDIANNESS_LSB = 1,
     ELF_ENDIANNESS_MSB = 2,
-#ifdef MOS_LITTLE_ENDIAN
+#if MOS_LITTLE_ENDIAN
     ELF_ENDIANNESS_MOS_DEFAULT = ELF_ENDIANNESS_LSB,
 #else
     ELF_ENDIANNESS_MOS_DEFAULT = ELF_ENDIANNESS_MSB,
@@ -138,7 +138,7 @@ typedef enum
 typedef struct
 {
     elf_program_header_type header_type;
-#ifdef MOS_64BITS
+#if MOS_64BITS
     u32 p_flags; // Segment independent flags (64-bit only)
 #endif
     uintptr_t data_offset;     // Offset of the segment in the file
@@ -146,7 +146,7 @@ typedef struct
     uintptr_t _reserved;       //  reserved
     uintptr_t segsize_in_file; // Size of the segment in the file (may be 0)
     uintptr_t segsize_in_mem;  // Size of the segment in memory (may be 0)
-#ifdef MOS_32BITS
+#if MOS_32BITS
     u32 p_flags; // Segment independent flags (32-bit only)
 #endif
     uintptr_t required_alignment;
@@ -193,7 +193,7 @@ typedef struct
 {
     u32 name_index; // Section name (string table (.shstrtab) index)
     elf_section_header_type header_type;
-#ifdef MOS_64BITS
+#if MOS_64BITS
     u64 attributes; // sizeof(long)
 #else
     elf_section_attribute attributes;

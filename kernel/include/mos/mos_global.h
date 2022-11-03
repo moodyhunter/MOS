@@ -5,6 +5,8 @@
 #include "mos/compiler.h"
 #include "mos/constants.h"
 
+#define KERNEL_INTERNAL_CHECK "mos/kernel_internal.h"
+
 #define __aligned(x)    __attribute__((__aligned__(x)))
 #define __cold          __attribute__((__cold__))
 #define __malloc        __attribute__((__malloc__))

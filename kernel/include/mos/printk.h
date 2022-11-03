@@ -5,6 +5,7 @@
 #include "mos/kconfig.h"
 #include "mos/mos_global.h"
 #include "mos/types.h"
+#include KERNEL_INTERNAL_CHECK
 
 #ifndef MOS_PRINTK_HAS_FILENAME
 #error "MOS_PRINTK_HAS_FILENAME must be defined"
@@ -48,17 +49,12 @@ typedef enum
 #define pr_emerg(fmt, ...) lprintk_wrapper(MOS_LOG_EMERG, fmt "\n", ##__VA_ARGS__)
 #define pr_fatal(fmt, ...) lprintk_wrapper(MOS_LOG_FATAL, fmt "\n", ##__VA_ARGS__)
 
-#if MOS_DEBUG
-#define mos_debug(fmt, ...) pr_info2("%s: " fmt, __func__, ##__VA_ARGS__)
-#else
-#define lprintk_noop(level, fmt, ...)                                                                                                                                    \
+#define mos_debug(fmt, ...)                                                                                                                                              \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
-        if (0)                                                                                                                                                           \
-            lprintk_wrapper(level, fmt, ##__VA_ARGS__);                                                                                                                  \
+        if (MOS_DEBUG)                                                                                                                                                   \
+            lprintk_wrapper(MOS_LOG_INFO2, "%s: " fmt "\n", __func__, ##__VA_ARGS__);                                                                                    \
     } while (0)
-#define mos_debug(fmt, ...) lprintk_noop(MOS_LOG_INFO2, fmt "\n", ##__VA_ARGS__)
-#endif
 
 #define mos_warn(fmt, ...)  mos_kwarn(__func__, __LINE__, "WARN: " fmt "\n", ##__VA_ARGS__)
 #define mos_panic(fmt, ...) mos_kpanic(__func__, __LINE__, "" fmt, ##__VA_ARGS__)

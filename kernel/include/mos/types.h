@@ -28,7 +28,7 @@ typedef u16 reg16_t;
 typedef u32 reg32_t;
 typedef u64 reg64_t;
 
-#ifdef MOS_32BITS
+#if MOS_32BITS
 #define _PTR_FMT "%8.8lx"
 #elif defined(MOS_64BITS)
 #define _PTR_FMT "%16.16lx"

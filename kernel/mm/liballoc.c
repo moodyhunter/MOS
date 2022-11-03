@@ -17,11 +17,11 @@
 // Alignment information is stored right before the pointer. This is the number of bytes of information stored there.
 #define ALIGN_INFO sizeof(ALIGN_TYPE) * 16
 
-#define USE_CASE1
-#define USE_CASE2
-#define USE_CASE3
-#define USE_CASE4
-#define USE_CASE5
+#define USE_CASE1 1
+#define USE_CASE2 1
+#define USE_CASE3 1
+#define USE_CASE4 1
+#define USE_CASE5 1
 
 /** This macro will conveniently align our pointer upwards */
 #define LIBALLOC_ALIGN_PTR(ptr)                                                                                                                                          \
@@ -287,7 +287,7 @@ void *liballoc_malloc(size_t req_size)
             bestSize = diff;
         }
 
-#ifdef USE_CASE1
+#if USE_CASE1
         // CASE 1:  There is not enough space in this major block.
         if (diff < (size + sizeof(liballoc_part_t)))
         {
@@ -320,7 +320,7 @@ void *liballoc_malloc(size_t req_size)
         }
 #endif
 
-#ifdef USE_CASE2
+#if USE_CASE2
         // CASE 2: It's a brand new block.
         if (block->first == NULL)
         {
@@ -353,7 +353,7 @@ void *liballoc_malloc(size_t req_size)
 #endif
 
         // CASE 3: Block in use and enough space at the start of the block.
-#ifdef USE_CASE3
+#if USE_CASE3
         {
             s64 diff = (uintptr_t) block->first - (uintptr_t) block;
             diff -= sizeof(liballoc_block_t);
@@ -388,7 +388,7 @@ void *liballoc_malloc(size_t req_size)
         }
 #endif
 
-#ifdef USE_CASE4
+#if USE_CASE4
         // CASE 4: There is enough space in this block. But is it contiguous?
         liballoc_part_t *section = block->first;
 
@@ -480,7 +480,7 @@ void *liballoc_malloc(size_t req_size)
 
 #endif
 
-#ifdef USE_CASE5
+#if USE_CASE5
         // CASE 5: Block full! Ensure next block and loop.
         if (block->next == NULL)
         {

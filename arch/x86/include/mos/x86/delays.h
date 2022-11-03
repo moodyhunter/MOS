@@ -7,7 +7,7 @@
 
 always_inline u64 rdtsc(void)
 {
-#ifdef MOS_32BITS
+#if MOS_32BITS
     u64 x;
     __asm__ volatile("rdtsc" : "=A"(x));
     return x;
