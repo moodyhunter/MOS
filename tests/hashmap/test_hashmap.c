@@ -150,7 +150,8 @@ MOS_TEST_CASE(hashmap_remove_function)
     MOS_TEST_CHECK(map.capacity, 10);
     MOS_TEST_CHECK(map.size, 0);
     MOS_TEST_CHECK_STRING(old, "foo1");
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, "foo"), NULL);
+    const char *nothing = hashmap_get(&map, "foo");
+    MOS_TEST_CHECK(nothing, NULL);
 
     old = hashmap_remove(&map, "foo");
     MOS_TEST_CHECK(old, NULL);

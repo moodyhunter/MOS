@@ -17,17 +17,12 @@ extern void mos_test_engine_log(standard_color_t color, char symbol, char *forma
 #define MOS_TEST_LOG(color, symbol, format, ...) mos_test_engine_log(color, symbol, format "\n", __VA_ARGS__)
 #endif
 
-#ifndef MOS_TEST_STRCMP
-int strcmp(const char *s1, const char *s2);
-#define MOS_TEST_STRCMP strcmp
-#endif
-
 typedef struct
 {
     u32 n_total;
     u32 n_failed;
     u32 n_skipped;
-} TestResult;
+} mos_test_result_t;
 
 #define MOS_TEST_RESULT_INIT .n_total = 0, .n_failed = 0, .n_skipped = 0
 
@@ -59,25 +54,25 @@ typedef struct
     } while (0)
 
 #define MOS_TEST_CASE(_TestName)                                                                                                                                         \
-    static void _TestName(TestResult *, bool *, bool *);                                                                                                                 \
-    static void _MT_WRAP_TEST_NAME(_TestName)(TestResult * result)                                                                                                       \
+    static void _TestName(mos_test_result_t *, bool *, bool *);                                                                                                          \
+    static void _MT_WRAP_TEST_NAME(_TestName)(mos_test_result_t * result)                                                                                                \
     {                                                                                                                                                                    \
         MOS_TEST_LOG(MOS_TEST_BLUE, 'T', "Starting test " #_TestName " (line %d)", __LINE__);                                                                            \
         _MT_RUN_TEST_AND_PRINT_RESULT(result, _TestName);                                                                                                                \
     }                                                                                                                                                                    \
     _MT_REGISTER_TEST_CASE(_TestName, _MT_WRAP_TEST_NAME(_TestName));                                                                                                    \
-    static void _TestName(TestResult *_MT_result, __maybe_unused bool *_mt_test_skipped, __maybe_unused bool *_mt_loop_leave)
+    static void _TestName(mos_test_result_t *_MT_result, __maybe_unused bool *_mt_test_skipped, __maybe_unused bool *_mt_loop_leave)
 
 #define MOS_TEST_DECL_PTEST(_PTestName, ptest_args_printf_format, ...)                                                                                                   \
     static const char *_MT_PTEST_ARG_FORMAT(_PTestName) = "argument: " ptest_args_printf_format;                                                                         \
-    static void _PTestName(TestResult *_MT_result, __maybe_unused bool *_mt_test_skipped, __maybe_unused bool *_mt_loop_leave, __VA_ARGS__)
+    static void _PTestName(mos_test_result_t *_MT_result, __maybe_unused bool *_mt_test_skipped, __maybe_unused bool *_mt_loop_leave, __VA_ARGS__)
 
 #define MOS_TEST_PTEST_INSTANCE(_PTestName, ...)                                                                                                                         \
-    static void _MT_PTEST_CALLER(_PTestName)(TestResult * result, bool *_mt_test_skipped, bool *_mt_loop_leave)                                                          \
+    static void _MT_PTEST_CALLER(_PTestName)(mos_test_result_t * result, bool *_mt_test_skipped, bool *_mt_loop_leave)                                                   \
     {                                                                                                                                                                    \
         _PTestName(result, _mt_test_skipped, _mt_loop_leave, __VA_ARGS__);                                                                                               \
     }                                                                                                                                                                    \
-    static void _MT_WRAP_PTEST_CALLER(_PTestName)(TestResult * result)                                                                                                   \
+    static void _MT_WRAP_PTEST_CALLER(_PTestName)(mos_test_result_t * result)                                                                                            \
     {                                                                                                                                                                    \
         MOS_TEST_LOG(MOS_TEST_BLUE, 'P', "Starting parameterised test %s at line %d", #_PTestName, __LINE__);                                                            \
         MOS_TEST_LOG(MOS_TEST_BLUE, '\0', _MT_PTEST_ARG_FORMAT(_PTestName), __VA_ARGS__);                                                                                \
@@ -171,7 +166,7 @@ typedef struct
             break;                                                                                                                                                       \
         }                                                                                                                                                                \
         ++_MT_result->n_total;                                                                                                                                           \
-        if (MOS_TEST_STRCMP(expected, actual) != 0)                                                                                                                      \
+        if (strcmp(expected, actual) != 0)                                                                                                                               \
             MOS_TEST_FAIL("values are different (expected = '%s', actual = '%s'), at line %u", (expected), (actual), (__LINE__));                                        \
     } while (false)
 
@@ -286,7 +281,7 @@ typedef struct
 
 typedef struct
 {
-    void (*func)(TestResult *);
+    void (*test_func)(mos_test_result_t *);
     const char *test_name;
 } mos_test_func_t;
 
