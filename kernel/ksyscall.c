@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "include/mos/tasks/thread.h"
 #include "mos/elf/elf.h"
 #include "mos/filesystem/filesystem.h"
 #include "mos/ksyscall/decl.h"
@@ -120,4 +121,14 @@ pid_t define_ksyscall(spawn)(const char *path, int argc, const char *const argv[
         return -1;
 
     return process->pid;
+}
+
+tid_t define_ksyscall(create_thread)(const char *name, thread_entry_t entry, void *arg)
+{
+    MOS_ASSERT(current_thread);
+    thread_t *thread = thread_new(current_process, THREAD_FLAG_USERMODE, entry, arg);
+    if (thread == NULL)
+        return -1;
+
+    return thread->tid;
 }

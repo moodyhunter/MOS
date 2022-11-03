@@ -3,6 +3,7 @@
     "includes": [
         "mos/filesystem/filesystem.h",
         "mos/mos_global.h",
+        "mos/platform/platform.h",
         "mos/types.h"
     ],
     "syscalls": [
@@ -83,6 +84,12 @@
             "name": "spawn",
             "return": "pid_t",
             "arguments": [ { "type": "const char *", "arg": "file_path" }, { "type": "int", "arg": "argc" }, { "type": "const char *const *", "arg": "argv" } ]
+        },
+        {
+            "number": 13,
+            "name": "create_thread",
+            "return": "tid_t",
+            "arguments": [ { "type": "const char *", "arg": "name" }, { "type": "thread_entry_t", "arg": "entry" }, { "type": "void *", "arg": "arg" } ]
         }
     ]
 }

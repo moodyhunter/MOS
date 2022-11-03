@@ -28,6 +28,8 @@ void x86_setup_thread_context(thread_t *thread, downwards_stack_t *proxy_stack, 
     MOS_UNUSED(entry);
     MOS_UNUSED(thread);
     stack_push(proxy_stack, &arg, sizeof(uintptr_t));
+    uintptr_t zero = 0;
+    stack_push(proxy_stack, &zero, sizeof(uintptr_t)); // a fake return value
 }
 
 void x86_switch_to_thread(uintptr_t *old_stack, thread_t *to)

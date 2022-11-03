@@ -11,7 +11,8 @@
 
 void mos_update_current(thread_t *thread)
 {
-    if (current_thread)
+    // In the very first switch, current_thread is NULL
+    if (likely(current_thread))
     {
         // TODO: Add more checks
         if (current_thread->status == THREAD_STATUS_RUNNING || current_thread->status != THREAD_STATUS_DEAD)

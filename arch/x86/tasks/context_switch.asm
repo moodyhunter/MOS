@@ -46,9 +46,9 @@ x86_context_switch_impl:
     pushf                   ; push flags
 
     ; enable interrupts
-    pop     eax             ; pop flags
-    or      eax, 0x200      ; set IF
-    push    eax             ; push flags
+    pop     ebx             ; pop flags
+    or      ebx, 0x200      ; set IF
+    push    ebx             ; push flags
 
     push    0x18 | 0x3      ; user code segment + RPL 3
     push    dword [edx + 4]       ; eip
