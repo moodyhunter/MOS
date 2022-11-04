@@ -80,7 +80,7 @@ add_library(mos_kernel.elf STATIC
     kernel/tasks/schedule.c
 )
 
-generate_syscall_headers(mos_kernel.elf ${CMAKE_SOURCE_DIR}/kernel/ksyscalls.json ksyscall mos/)
+generate_syscall_headers(mos_kernel.elf ${CMAKE_SOURCE_DIR}/kernel/ksyscalls.json)
 
 target_link_libraries(mos_kernel.elf PRIVATE gcc mos::basic_include mos::platform_include)
 target_compile_definitions(mos_kernel.elf PRIVATE -D__MOS_KERNEL__)

@@ -3,16 +3,16 @@
 #include "include/mos/tasks/thread.h"
 #include "mos/elf/elf.h"
 #include "mos/filesystem/filesystem.h"
-#include "mos/ksyscall/decl.h"
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/syscall/decl.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/schedule.h"
 #include "mos/tasks/task_type.h"
 #include "mos/types.h"
 
-void define_ksyscall(panic)(void)
+void define_syscall(panic)(void)
 {
     if (current_process->effective_uid == 0)
         mos_panic("Kernel panic called by syscall from process %d (%s), thread %d", current_process->pid, current_process->name, current_thread->tid);
@@ -20,7 +20,7 @@ void define_ksyscall(panic)(void)
         mos_warn("only root can panic");
 }
 
-fd_t define_ksyscall(file_open)(const char *path, file_open_flags flags)
+fd_t define_syscall(file_open)(const char *path, file_open_flags flags)
 {
     if (path == NULL)
         return -1;
@@ -31,7 +31,7 @@ fd_t define_ksyscall(file_open)(const char *path, file_open_flags flags)
     return process_attach_fd(current_process, &f->io);
 }
 
-bool define_ksyscall(file_stat)(const char *path, file_stat_t *stat)
+bool define_syscall(file_stat)(const char *path, file_stat_t *stat)
 {
     if (path == NULL || stat == NULL)
         return false;
@@ -39,7 +39,7 @@ bool define_ksyscall(file_stat)(const char *path, file_stat_t *stat)
     return vfs_stat(path, stat);
 }
 
-size_t define_ksyscall(io_read)(fd_t fd, void *buf, size_t count, size_t offset)
+size_t define_syscall(io_read)(fd_t fd, void *buf, size_t count, size_t offset)
 {
     if (fd < 0 || buf == NULL)
         return 0;
@@ -48,7 +48,7 @@ size_t define_ksyscall(io_read)(fd_t fd, void *buf, size_t count, size_t offset)
     return io_read(current_process->files[fd], buf, count);
 }
 
-size_t define_ksyscall(io_write)(fd_t fd, const void *buf, size_t count, size_t offset)
+size_t define_syscall(io_write)(fd_t fd, const void *buf, size_t count, size_t offset)
 {
     if (fd < 0 || buf == NULL)
         return 0;
@@ -57,7 +57,7 @@ size_t define_ksyscall(io_write)(fd_t fd, const void *buf, size_t count, size_t 
     return io_write(current_process->files[fd], buf, count);
 }
 
-bool define_ksyscall(io_close)(fd_t fd)
+bool define_syscall(io_close)(fd_t fd)
 {
     if (fd < 0)
         return false;
@@ -65,7 +65,7 @@ bool define_ksyscall(io_close)(fd_t fd)
     return true;
 }
 
-noreturn void define_ksyscall(exit)(u32 exit_code)
+noreturn void define_syscall(exit)(u32 exit_code)
 {
     int pid = current_process->pid;
     if (unlikely(pid == 1))
@@ -77,12 +77,12 @@ noreturn void define_ksyscall(exit)(u32 exit_code)
     MOS_UNREACHABLE();
 }
 
-void define_ksyscall(yield_cpu)(void)
+void define_syscall(yield_cpu)(void)
 {
     jump_to_scheduler();
 }
 
-pid_t define_ksyscall(fork)(void)
+pid_t define_syscall(fork)(void)
 {
     process_t *parent = current_process;
     process_t *child = process_handle_fork(parent);
@@ -92,7 +92,7 @@ pid_t define_ksyscall(fork)(void)
     return current_process == child ? 0 : child->pid; // return 0 for child, pid for parent
 }
 
-pid_t define_ksyscall(exec)(const char *path, const char *const argv[])
+pid_t define_syscall(exec)(const char *path, const char *const argv[])
 {
     MOS_UNUSED(path);
     MOS_UNUSED(argv);
@@ -100,19 +100,19 @@ pid_t define_ksyscall(exec)(const char *path, const char *const argv[])
     return -1;
 }
 
-pid_t define_ksyscall(get_pid)()
+pid_t define_syscall(get_pid)()
 {
     MOS_ASSERT(current_process);
     return current_process->pid;
 }
 
-pid_t define_ksyscall(get_parent_pid)()
+pid_t define_syscall(get_parent_pid)()
 {
     MOS_ASSERT(current_process && current_process->parent);
     return current_process->parent->pid;
 }
 
-pid_t define_ksyscall(spawn)(const char *path, int argc, const char *const argv[])
+pid_t define_syscall(spawn)(const char *path, int argc, const char *const argv[])
 {
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
@@ -123,8 +123,9 @@ pid_t define_ksyscall(spawn)(const char *path, int argc, const char *const argv[
     return process->pid;
 }
 
-tid_t define_ksyscall(create_thread)(const char *name, thread_entry_t entry, void *arg)
+tid_t define_syscall(create_thread)(const char *name, thread_entry_t entry, void *arg)
 {
+    MOS_UNUSED(name);
     MOS_ASSERT(current_thread);
     thread_t *thread = thread_new(current_process, THREAD_FLAG_USERMODE, entry, arg);
     if (thread == NULL)

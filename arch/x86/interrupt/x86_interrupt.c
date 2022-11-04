@@ -2,12 +2,12 @@
 #include "mos/x86/x86_interrupt.h"
 
 #include "lib/structures/list.h"
-#include "mos/ksyscall/dispatcher.h"
 #include "mos/mm/cow.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/syscall/dispatcher.h"
 #include "mos/tasks/task_type.h"
 #include "mos/x86/devices/port.h"
 #include "mos/x86/interrupt/pic.h"
@@ -126,7 +126,7 @@ void x86_handle_interrupt(u32 esp)
     else if (frame->interrupt_number == MOS_SYSCALL_INTR)
     {
 #pragma message "TODO: Implement syscall handling for other arguments"
-        long result = dispatch_ksyscall(frame->eax, frame->ebx, frame->ecx, frame->edx, 0, 0, 0, 0, 0);
+        long result = dispatch_syscall(frame->eax, frame->ebx, frame->ecx, frame->edx, 0, 0, 0, 0, 0);
         frame->eax = (reg32_t) result;
     }
     else
