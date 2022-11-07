@@ -22,8 +22,6 @@ set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -pedantic -fstack-protector-strong")
 
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 set(MOS_ARCH_CONFIG ${CMAKE_SOURCE_DIR}/arch/${MOS_ISA_FAMILY}/mos_platform.cmake)
 
