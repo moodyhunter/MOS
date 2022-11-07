@@ -10,7 +10,7 @@
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
-#include "tests/test_engine_impl.h"
+#include "test_engine_impl.h"
 
 s32 test_engine_n_warning_expected = 0;
 
