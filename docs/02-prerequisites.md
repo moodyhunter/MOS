@@ -140,7 +140,7 @@ or `sudo pacman -S nasm`). Or you can download a pre-built binary from [NASM's w
 
 ## cpio
 
-"cpio" is a tool to create archives in a simple format. MOS uses cpio as the initial
+cpio is the tool to create archives in a the cpio format. MOS uses cpio as the initial
 root filesystem.
 
 Similar to NASM, you can install cpio via both package manager like `sudo apt install cpio`

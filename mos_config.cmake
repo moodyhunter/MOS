@@ -11,32 +11,31 @@ summary_section(TESTS       "Tests")
 execute_process(
     COMMAND git describe --long --tags --all --dirty
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE MOS_KERNEL_REVISION_STRING
+    OUTPUT_VARIABLE REVISION
     ERROR_VARIABLE _DROP_
     OUTPUT_STRIP_TRAILING_WHITESPACE
     ERROR_STRIP_TRAILING_WHITESPACE
 )
 
-mos_kconfig(PLATFORM    MOS_ISA_FAMILY              "ISA Family"                        "x86")
-mos_kconfig(PLATFORM    MOS_ISA                     "ISA Name"                          "i686")
-mos_kconfig(PLATFORM    MOS_BITS                    "ISA Bits"                          32)
-mos_kconfig(PLATFORM    MOS_PAGE_SIZE               "Platform Page Size"                4096)
-mos_kconfig(HARDWARE    MOS_MAX_CPU_COUNT           "Max Supported CPUs"                16)
-mos_kconfig(LIMITS      MOS_PROCESS_MAX_OPEN_FILES  "Max Open Files per Process"        1024)
-mos_kconfig(LIMITS      MOS_PROCESS_MAX_THREADS     "Max Threads per Process"           64)
-mos_kconfig(LIMITS      MOS_PATH_MAX_LENGTH         "Max Path Length"                   256)
-mos_kconfig(LIMITS      MOS_STACK_PAGES_KERNEL      "Size of Kernel Stack (pages)"      16)
-mos_kconfig(LIMITS      MOS_STACK_PAGES_USER        "Size of User Stack (pages)"        32)
-mos_kconfig(ADDRESS     MOS_USERSPACE_PGALLOC_START "Userspace Page Start"              0x40000000)
-mos_kconfig(KERNEL      MOS_MM_LIBALLOC_LOCKS       "liballoc: has lock support"        OFF)
-mos_kconfig(KERNEL      MOS_KERNEL_REVISION_STRING  "Kernel revision"                   ${MOS_KERNEL_REVISION_STRING})
-mos_kconfig(DEBUG       MOS_MM_LIBALLOC_DEBUG       "liballoc: debug message enabled"   OFF)
-mos_kconfig(DEBUG       MOS_DEBUG                   "Enable debug log"                  OFF)
-mos_kconfig(DEBUG       MOS_PRINTK_HAS_FILENAME     "printk: has filename"              ON)
-mos_kconfig(MISC        MOS_MEME                    "Enable MEME"                       OFF)
-mos_kconfig(TESTS       BUILD_TESTING               "Build tests"                       OFF)
+mos_target_setup(x86 i686 32)
+
+mos_kconfig(PLATFORM    MOS_PAGE_SIZE                   4096                "Platform page size")
+mos_kconfig(HARDWARE    MOS_MAX_CPU_COUNT               16                  "Max supported number of CPUs")
+mos_kconfig(LIMITS      MOS_PROCESS_MAX_OPEN_FILES      1024                "Max open files per process")
+mos_kconfig(LIMITS      MOS_PROCESS_MAX_THREADS         64                  "Max threads per process")
+mos_kconfig(LIMITS      MOS_PATH_MAX_LENGTH             256                 "Max length of a psath")
+mos_kconfig(LIMITS      MOS_STACK_PAGES_KERNEL          16                  "Size of Kernel Stack (in pages)")
+mos_kconfig(LIMITS      MOS_STACK_PAGES_USER            32                  "Size of User Stack (in pages)")
+mos_kconfig(ADDRESS     MOS_USERSPACE_PGALLOC_START     0x40000000          "Userspace Page Start")
+mos_kconfig(KERNEL      MOS_KERNEL_REVISION_STRING      ${REVISION}         "Kernel revision string")
+mos_kconfig(KERNEL      MOS_MM_LIBALLOC_LOCKS           OFF                 "Enable locking support in liballoc")
+mos_kconfig(DEBUG       MOS_MM_LIBALLOC_DEBUG           OFF                 "Enable debug log for liballoc")
+mos_kconfig(DEBUG       MOS_DEBUG                       OFF                 "Enable debug log")
+mos_kconfig(DEBUG       MOS_VERBOSE_PRINTK              ON                  "Add filename and line number to printk")
+mos_kconfig(MISC        MOS_MEME                        OFF                 "Enable MEME")
+mos_kconfig(TESTS       BUILD_TESTING                   OFF                 "Kernel Space Unit Tests")
 
 # x86 specific options
 summary_section(ARCH_X86 "x86 Architecture")
-mos_kconfig(ARCH_X86    MOS_X86_HEAP_BASE_VADDR     "Heap Address"                      0xD0000000)
-mos_kconfig(ARCH_X86    MOS_X86_INITRD_VADDR        "Initrd Virtual Address"            0xC8000000)
+mos_kconfig(ARCH_X86    MOS_X86_HEAP_BASE_VADDR         0xD0000000          "Heap Address")
+mos_kconfig(ARCH_X86    MOS_X86_INITRD_VADDR            0xC8000000          "Initrd Virtual Address")

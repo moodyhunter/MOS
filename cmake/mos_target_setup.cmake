@@ -9,6 +9,9 @@ set(CMAKE_C_COMPILER_LAUNCHER "")
 set(CMAKE_CXX_COMPILER_LAUNCHER "")
 
 macro(mos_target_setup ISA_FAMILY ISA BITS)
+    mos_kconfig(PLATFORM MOS_BITS ${BITS} "ISA Bits")
+    set(MOS_ISA_FAMILY ${ISA_FAMILY})
+
     set(CMAKE_SYSTEM_PROCESSOR ${ISA})
     # set(CMAKE_ASM_NASM_OBJECT_FORMAT elf${BITS})
     # Add debug info to nasm

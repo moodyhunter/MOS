@@ -2,10 +2,8 @@
 cmake_minimum_required(VERSION 3.22)
 
 include(cmake/kconfig.cmake)
-include(mos_config.cmake)
 include(cmake/mos_target_setup.cmake)
-
-mos_target_setup(${MOS_ISA_FAMILY} ${MOS_ISA} ${MOS_BITS})
+include(mos_config.cmake)
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     message(FATAL_ERROR "In-source builds are not allowed. Please create a separate build directory and run CMake from there.")

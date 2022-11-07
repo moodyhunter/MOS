@@ -7,8 +7,8 @@
 #include "mos/types.h"
 #include KERNEL_INTERNAL_CHECK
 
-#ifndef MOS_PRINTK_HAS_FILENAME
-#error "MOS_PRINTK_HAS_FILENAME must be defined"
+#ifndef MOS_VERBOSE_PRINTK
+#error "MOS_VERBOSE_PRINTK must be defined"
 #endif
 
 #define PRINTK_BUFFER_SIZE 1024
@@ -35,7 +35,7 @@ typedef enum
     MOS_LOG_DEFAULT = MOS_LOG_INFO,
 } mos_log_level_t;
 
-#if MOS_PRINTK_HAS_FILENAME
+#if MOS_VERBOSE_PRINTK
 #define lprintk_wrapper(level, fmt, ...) lprintk(level, "%-20s | " fmt, MOS_FILE_LOCATION, ##__VA_ARGS__)
 #else
 #define lprintk_wrapper(level, fmt, ...) lprintk(level, "" fmt, ##__VA_ARGS__)
