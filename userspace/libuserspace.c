@@ -7,7 +7,7 @@
 extern int main(void);
 u64 __stack_chk_guard = 0;
 
-void noreturn __stack_chk_fail(void)
+noreturn void __stack_chk_fail(void)
 {
     syscall_panic();
     while (1)
