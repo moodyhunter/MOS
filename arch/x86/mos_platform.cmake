@@ -15,7 +15,6 @@ add_kernel_source(
         x86_descriptor_flush.asm
 
         acpi/acpi.c
-        cpu/cpu.c
         cpu/cpuid.c
         cpu/smp.c
         devices/initrd_blockdev.c
@@ -34,4 +33,5 @@ add_kernel_source(
         tasks/tss.c
         tasks/context.c
         x86_platform.c
+        x86_platform_api.c
 )

@@ -24,6 +24,24 @@ typedef enum
     THREAD_FLAG_USERMODE = 1 << 0,
 } thread_flags_t;
 
+typedef enum
+{
+    MMAP_DEFAULT = 0 << 0,
+    MMAP_COW = 1 << 0,
+    MMAP_PRIVATE = 1 << 1,
+} mmap_flags;
+
+typedef struct
+{
+    vmblock_t vm;
+    vm_type type;
+
+    // if MMAP_COW is set, then the flags in vm contains 'original' flags
+    // of this block. Which means if there're no VM_WRITE flag, then the block
+    // should not be writable.
+    mmap_flags map_flags;
+} proc_vmblock_t;
+
 typedef struct _thread thread_t;
 typedef struct _process process_t;
 

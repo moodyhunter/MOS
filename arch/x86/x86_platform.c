@@ -7,9 +7,7 @@
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
-#include "mos/x86/acpi/acpi.h"
 #include "mos/x86/cpu/cpu.h"
-#include "mos/x86/cpu/smp.h"
 #include "mos/x86/devices/initrd_blockdev.h"
 #include "mos/x86/devices/serial_console.h"
 #include "mos/x86/devices/text_mode_console.h"
@@ -110,7 +108,7 @@ void x86_start_kernel(x86_startup_info *info)
     x86_mem_init(mb_info->mmap_addr, count);
 
     x86_mm_prepare_paging();
-    x86_platform.kernel_pg.ptr = (uintptr_t) x86_kpg_infra;
+    current_cpu->pagetable.ptr = (uintptr_t) x86_kpg_infra;
 
     if (initrd_size)
     {
@@ -155,7 +153,7 @@ void x86_start_kernel(x86_startup_info *info)
     mos_start_kernel(mos_cmdline);
 }
 
-mos_platform_t x86_platform = {
+mos_platform_info_t x86_platform = {
     .regions = {
         .code_start = (uintptr_t) &__MOS_KERNEL_CODE_START,
         .code_end = (uintptr_t) &__MOS_KERNEL_CODE_END,
@@ -164,34 +162,6 @@ mos_platform_t x86_platform = {
         .rw_start = (uintptr_t) &__MOS_KERNEL_RW_START,
         .rw_end = (uintptr_t) &__MOS_KERNEL_RW_END,
     },
-
-    .halt_cpu = x86_cpu_halt,
-    .current_cpu_id = x86_cpu_get_id,
-
-    .shutdown = x86_shutdown_vm,
-    .interrupt_disable = x86_disable_interrupts,
-    .interrupt_enable = x86_enable_interrupts,
-    .irq_handler_install = x86_install_interrupt_handler,
-    .irq_handler_remove = NULL,
-
-    // memory management
-    .mm_create_user_pgd = x86_um_pgd_create,
-    .mm_destroy_user_pgd = x86_um_pgd_destroy,
-
-    .mm_alloc_pages = x86_mm_pg_alloc,
-    .mm_alloc_pages_at = x86_mm_pg_alloc_at,
-    .mm_get_free_pages = x86_mm_pg_get_free,
-    .mm_copy_maps = x86_mm_copy_maps,
-    .mm_unmap_pages = x86_mm_pg_unmap,
-    .mm_free_pages = x86_mm_pg_free,
-    .mm_flag_pages = x86_mm_pg_flag,
-    .mm_get_flags = x86_mm_pg_get_flags,
-
-    // process management
-    .context_setup = x86_setup_thread_context,
-    .context_copy = x86_copy_thread_context,
-    .switch_to_thread = x86_switch_to_thread,
-    .switch_to_scheduler = x86_switch_to_scheduler,
 };
 
-mos_platform_t *const mos_platform = &x86_platform;
+mos_platform_info_t *const platform_info = &x86_platform;

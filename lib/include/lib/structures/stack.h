@@ -6,7 +6,7 @@
 
 // A stack that grows downwards
 
-typedef struct
+typedef struct _downwards_stack_t
 {
     uintptr_t top;
     uintptr_t head;

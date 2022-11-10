@@ -10,14 +10,14 @@
 
 vmblock_t mm_map_proxy_space(paging_handle_t src, uintptr_t srcvaddr, size_t npages)
 {
-    const vmblock_t proxy_blk = mos_platform->mm_get_free_pages(current_cpu->pagetable, npages, PGALLOC_HINT_USERSPACE);
-    mos_platform->mm_copy_maps(src, srcvaddr, current_cpu->pagetable, proxy_blk.vaddr, npages);
+    const vmblock_t proxy_blk = platform_mm_get_free_pages(current_cpu->pagetable, npages, PGALLOC_HINT_USERSPACE);
+    platform_mm_copy_maps(src, srcvaddr, current_cpu->pagetable, proxy_blk.vaddr, npages);
     return proxy_blk;
 }
 
 void mm_unmap_proxy_space(vmblock_t proxy_blk)
 {
-    mos_platform->mm_unmap_pages(current_cpu->pagetable, proxy_blk.vaddr, proxy_blk.npages);
+    platform_mm_unmap_pages(current_cpu->pagetable, proxy_blk.vaddr, proxy_blk.npages);
 }
 
 void mm_copy_pages(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t n_pages)

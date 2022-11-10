@@ -41,7 +41,7 @@ noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
             ;
     }
     in_panic = true;
-    mos_platform->interrupt_disable();
+    platform_interrupt_disable();
 
     va_list args;
     char message[PRINTK_BUFFER_SIZE] = { 0 };
@@ -63,7 +63,7 @@ noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
     }
 
     pr_emerg("Halting...");
-    mos_platform->halt_cpu();
+    platform_halt_cpu();
 
     while (1)
         ;

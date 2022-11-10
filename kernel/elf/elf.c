@@ -47,7 +47,7 @@ process_t *process_create_from_elf(const char *path, process_t *parent, uid_t ef
     }
 
     size_t npage_required = f->io.size / MOS_PAGE_SIZE + 1;
-    const vmblock_t buf_block = mos_platform->mm_alloc_pages(current_cpu->pagetable, npage_required, PGALLOC_HINT_USERSPACE, VM_READ | VM_WRITE);
+    const vmblock_t buf_block = platform_mm_alloc_pages(current_cpu->pagetable, npage_required, PGALLOC_HINT_USERSPACE, VM_READ | VM_WRITE);
     char *const buf = (char *) buf_block.vaddr;
 
     size_t size = io_read(&f->io, buf, f->io.size);
@@ -94,7 +94,7 @@ process_t *process_create_from_elf(const char *path, process_t *parent, uid_t ef
         if (map_flags & VM_READ && map_flags & VM_WRITE && map_flags & VM_EXEC)
             mos_warn("segment is writable, readable and executable");
 
-        vmblock_t block = mos_platform->mm_copy_maps(            //
+        vmblock_t block = platform_mm_copy_maps(                 //
             current_cpu->pagetable,                              //
             buf_block.vaddr + ph->data_offset,                   //
             proc->pagetable,                                     //
@@ -102,7 +102,7 @@ process_t *process_create_from_elf(const char *path, process_t *parent, uid_t ef
             ALIGN_UP_TO_PAGE(ph->segsize_in_mem) / MOS_PAGE_SIZE //
         );
 
-        mos_platform->mm_flag_pages(proc->pagetable, block.vaddr, block.npages, map_flags);
+        platform_mm_flag_pages(proc->pagetable, block.vaddr, block.npages, map_flags);
         block.flags = map_flags;
 
         process_attach_mmap(proc, block, (ph->p_flags & ELF_PH_F_X) ? VMTYPE_APPCODE : VMTYPE_APPDATA, false);
@@ -121,13 +121,13 @@ process_t *process_create_from_elf(const char *path, process_t *parent, uid_t ef
     process_attach_fd(proc, &f->io);
 
     // unmap the buffer from kernel pages
-    mos_platform->mm_unmap_pages(current_cpu->pagetable, buf_block.vaddr, buf_block.npages);
+    platform_mm_unmap_pages(current_cpu->pagetable, buf_block.vaddr, buf_block.npages);
 
     return proc;
 
 bail_out:
     if (buf)
-        mos_platform->mm_free_pages(current_cpu->pagetable, buf_block.vaddr, buf_block.npages);
+        platform_mm_free_pages(current_cpu->pagetable, buf_block.vaddr, buf_block.npages);
 bail_out_1:
     if (f)
         io_close(&f->io);

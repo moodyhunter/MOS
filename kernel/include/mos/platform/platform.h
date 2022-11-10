@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "lib/structures/stack.h"
 #include "mos/kconfig.h"
 #include "mos/mos_global.h"
 #include "mos/types.h"
@@ -13,11 +12,16 @@
         type percpu_value[MOS_MAX_CPU_COUNT];                                                                                                                            \
     } name
 
-#define per_cpu(var) (&(var.percpu_value[mos_platform->current_cpu_id()]))
+#define per_cpu(var) (&(var.percpu_value[platform_current_cpu_id()]))
 
-typedef void (*irq_handler)(u32 irq);
+#define current_cpu     per_cpu(platform_info->cpu)
+#define current_thread  (current_cpu->thread)
+#define current_process (current_thread->owner)
+
 typedef void (*thread_entry_t)(void *arg);
+typedef void (*irq_handler)(u32 irq);
 
+typedef struct _downwards_stack_t downwards_stack_t;
 typedef struct _thread thread_t;
 
 typedef enum
@@ -75,24 +79,6 @@ typedef struct
     vm_flags flags; // the expected flags for the region, regardless of the copy-on-write state
 } vmblock_t;
 
-typedef enum
-{
-    MMAP_DEFAULT = 0 << 0,
-    MMAP_COW = 1 << 0,
-    MMAP_PRIVATE = 1 << 1,
-} mmap_flags;
-
-typedef struct
-{
-    vmblock_t vm;
-    vm_type type;
-
-    // if MMAP_COW is set, then the flags in vm contains 'original' flags
-    // of this block. Which means if there're no VM_WRITE flag, then the block
-    // should not be writable.
-    mmap_flags map_flags;
-} proc_vmblock_t;
-
 typedef struct
 {
     struct
@@ -108,46 +94,38 @@ typedef struct
     u32 num_cpus;
     u32 boot_cpu_id;
     PER_CPU_DECLARE(cpu_t, cpu);
+} mos_platform_info_t;
 
-    paging_handle_t kernel_pg;
-
-    void noreturn (*const shutdown)(void);
-
-    // cpu
-    void (*const halt_cpu)(void);
-    u32 (*const current_cpu_id)(void);
-
-    // interrupt
-    void (*const interrupt_enable)(void);
-    void (*const interrupt_disable)(void);
-    bool (*const irq_handler_install)(u32 irq, irq_handler handler);
-    void (*const irq_handler_remove)(u32 irq, irq_handler handler);
-
-    // memory management
-    paging_handle_t (*const mm_create_user_pgd)();
-    void (*const mm_destroy_user_pgd)(paging_handle_t table);
-
-    vmblock_t (*const mm_alloc_pages)(paging_handle_t table, size_t npages, pgalloc_hints hints, vm_flags vm_flags);
-    vmblock_t (*const mm_alloc_pages_at)(paging_handle_t table, uintptr_t vaddr, size_t npages, vm_flags vflags);
-    vmblock_t (*const mm_get_free_pages)(paging_handle_t table, size_t npages, pgalloc_hints hints);
-    vmblock_t (*const mm_copy_maps)(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages);
-    void (*const mm_unmap_pages)(paging_handle_t table, uintptr_t vaddr, size_t n);
-    void (*const mm_free_pages)(paging_handle_t table, uintptr_t vaddr, size_t n);
-    void (*const mm_flag_pages)(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
-    vm_flags (*const mm_get_flags)(paging_handle_t table, uintptr_t vaddr);
-
-    // process management
-    void (*const context_setup)(thread_t *thread, downwards_stack_t *proxy_stack, thread_entry_t entry, void *arg);
-    void (*const context_copy)(platform_context_t *from, platform_context_t **to);
-    void (*const switch_to_scheduler)(uintptr_t *old_stack, uintptr_t new_stack);
-    void (*const switch_to_thread)(uintptr_t *old_stack, thread_t *new_thread);
-} mos_platform_t;
-
-extern mos_platform_t *const mos_platform;
-
-#define current_cpu     per_cpu(mos_platform->cpu)
-#define current_thread  (current_cpu->thread)
-#define current_process (current_thread->owner)
+extern mos_platform_info_t *const platform_info;
 
 extern void mos_start_kernel(const char *cmdline);
 extern void mos_kernel_mm_init(void);
+
+// MOS platform APIs
+
+noreturn void platform_shutdown(void);
+
+void platform_halt_cpu(void);
+u32 platform_current_cpu_id(void);
+
+void platform_interrupt_enable(void);
+void platform_interrupt_disable(void);
+bool platform_irq_handler_install(u32 irq, irq_handler handler);
+void platform_irq_handler_remove(u32 irq, irq_handler handler);
+
+paging_handle_t platform_mm_create_user_pgd(void);
+void platform_mm_destroy_user_pgd(paging_handle_t table);
+
+vmblock_t platform_mm_alloc_pages(paging_handle_t table, size_t npages, pgalloc_hints hints, vm_flags vm_flags);
+vmblock_t platform_mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t npages, vm_flags vflags);
+vmblock_t platform_mm_get_free_pages(paging_handle_t table, size_t npages, pgalloc_hints hints);
+vmblock_t platform_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages);
+void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t n);
+void platform_mm_free_pages(paging_handle_t table, uintptr_t vaddr, size_t n);
+void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
+vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr);
+
+void platform_context_setup(thread_t *thread, downwards_stack_t *proxy_stack, thread_entry_t entry, void *arg);
+void platform_context_copy(platform_context_t *from, platform_context_t **to);
+void platform_switch_to_scheduler(uintptr_t *old_stack, uintptr_t new_stack);
+void platform_switch_to_thread(uintptr_t *old_stack, thread_t *new_thread);

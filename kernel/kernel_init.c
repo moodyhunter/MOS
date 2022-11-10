@@ -68,7 +68,6 @@ void dump_cmdline(void)
 
 void mos_start_kernel(const char *cmdline)
 {
-    current_cpu->pagetable = mos_platform->kernel_pg;
     mos_cmdline = mos_cmdline_create(cmdline);
 
     pr_info("Welcome to MOS!");

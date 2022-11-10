@@ -5,7 +5,9 @@
 #include "mos/compiler.h"
 #include "mos/constants.h"
 
-#define KERNEL_INTERNAL_CHECK "mos/kernel_internal.h"
+#include <stdnoreturn.h>
+
+#define MOS_KERNEL_INTERNAL_HEADER_CHECK "mos/kernel_internal.h"
 
 #define __aligned(x)    __attribute__((__aligned__(x)))
 #define __cold          __attribute__((__cold__))
@@ -19,7 +21,6 @@
 #define __weak_alias(x) __attribute__((weak, alias(x)))
 #define __weakref(x)    __attribute__((weakref(x)))
 
-#define noreturn      __attribute__((__noreturn__))
 #define asmlinkage    __attribute__((regparm(0)))
 #define should_inline __maybe_unused static inline
 #define always_inline should_inline __attribute__((__always_inline__))

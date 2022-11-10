@@ -66,10 +66,7 @@ void *kheap_alloc_page(size_t npages, vm_flags vmflags)
         return NULL;
     }
 
-    if (unlikely(mos_platform->mm_alloc_pages == NULL))
-        mos_panic("platform configuration error: alloc_page is NULL");
-
-    vmblock_t block = mos_platform->mm_alloc_pages(mos_platform->kernel_pg, npages, PGALLOC_HINT_KHEAP, vmflags);
+    vmblock_t block = platform_mm_alloc_pages(current_cpu->pagetable, npages, PGALLOC_HINT_KHEAP, vmflags);
     MOS_ASSERT_X(block.vaddr >= MOS_X86_HEAP_BASE_VADDR, "only use this function to free kernel heap pages");
 
     if (unlikely(block.npages < npages))
@@ -92,9 +89,8 @@ bool kheap_free_page(void *vptr, size_t npages)
         mos_warn("freeing negative or zero pages");
         return false;
     }
-    if (unlikely(mos_platform->mm_free_pages == NULL))
-        mos_panic("platform configuration error: free_page is NULL");
-    mos_platform->mm_free_pages(mos_platform->kernel_pg, (uintptr_t) vptr, npages);
+
+    platform_mm_free_pages(current_cpu->pagetable, (uintptr_t) vptr, npages);
     return true;
 }
 

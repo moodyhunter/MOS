@@ -5,7 +5,7 @@
 #include "mos/kconfig.h"
 #include "mos/mos_global.h"
 #include "mos/types.h"
-#include KERNEL_INTERNAL_CHECK
+#include MOS_KERNEL_INTERNAL_HEADER_CHECK
 
 #ifndef MOS_VERBOSE_PRINTK
 #error "MOS_VERBOSE_PRINTK must be defined"

@@ -68,7 +68,7 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
     }
 
     proc->effective_uid = euid;
-    proc->pagetable = mos_platform->mm_create_user_pgd();
+    proc->pagetable = platform_mm_create_user_pgd();
     return proc;
 }
 

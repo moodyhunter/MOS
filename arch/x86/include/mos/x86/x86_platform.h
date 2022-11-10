@@ -64,7 +64,7 @@ extern const char __MOS_KERNEL_RW_END;                                // }
 extern const char __MOS_KERNEL_END;                                   // End of kernel
 
 extern const uintptr_t mos_kernel_end;
-extern mos_platform_t x86_platform;
+extern mos_platform_info_t x86_platform;
 extern tss32_t tss_entry;
 
 void x86_gdt_init();

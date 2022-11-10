@@ -19,15 +19,6 @@ acpi_madt_t *x86_acpi_madt;
 acpi_hpet_t *x86_acpi_hpet;
 acpi_fadt_t *x86_acpi_fadt;
 
-void noreturn x86_shutdown_vm()
-{
-    x86_disable_interrupts();
-    port_outw(0x604, 0x2000);
-    x86_cpu_halt();
-    while (1)
-        ;
-}
-
 should_inline bool verify_sdt_checksum(acpi_sdt_header_t *tableHeader)
 {
     u8 sum = 0;

@@ -35,7 +35,7 @@ bool schedule_to_thread(const void *key, void *value)
 #if MOS_DEBUG
         process_dump_mmaps(thread->owner);
 #endif
-        mos_platform->switch_to_thread(&current_cpu->scheduler_stack, thread);
+        platform_switch_to_thread(&current_cpu->scheduler_stack, thread);
     }
     return true;
 }
@@ -51,5 +51,5 @@ void jump_to_scheduler(void)
     cpu_t *cpu = current_cpu;
     if (cpu->thread->status != THREAD_STATUS_DEAD)
         cpu->thread->status = THREAD_STATUS_READY;
-    mos_platform->switch_to_scheduler(&cpu->thread->stack.head, cpu->scheduler_stack);
+    platform_switch_to_scheduler(&cpu->thread->stack.head, cpu->scheduler_stack);
 }

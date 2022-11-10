@@ -28,4 +28,9 @@ should_inline reg_t x86_get_cr3()
     return cr3;
 }
 
-u32 x86_cpu_get_id(void);
+always_inline u32 x86_cpu_get_id(void)
+{
+    int lapic_id = 0;
+    __asm__ volatile("cpuid" : "=b"(lapic_id) : "a"(0x01), "c"(0x00) : "edx");
+    return lapic_id >> 24;
+}
