@@ -460,7 +460,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 case 'X':
                 {
                     // print a signed integer
-                    u64 value;
+                    u64 value = 0;
                     switch (flags.length)
                     {
                         case LM_hh: value = (s8) va_arg(args, s32); break;
