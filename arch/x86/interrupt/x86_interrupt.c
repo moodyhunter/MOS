@@ -126,7 +126,7 @@ void x86_handle_interrupt(u32 esp)
     else if (frame->interrupt_number == MOS_SYSCALL_INTR)
     {
 #pragma message "TODO: Implement syscall handling for other arguments"
-        long result = dispatch_syscall(frame->eax, frame->ebx, frame->ecx, frame->edx, 0, 0, 0, 0, 0);
+        long result = dispatch_syscall(frame->eax, frame->ebx, frame->ecx, frame->edx, frame->esi, frame->edi, 0, 0, 0);
         frame->eax = (reg32_t) result;
     }
     else

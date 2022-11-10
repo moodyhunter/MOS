@@ -90,6 +90,18 @@
             "name": "create_thread",
             "return": "tid_t",
             "arguments": [ { "type": "const char *", "arg": "name" }, { "type": "thread_entry_t", "arg": "entry" }, { "type": "void *", "arg": "arg" } ]
+        },
+        {
+            "number": 14,
+            "name": "get_tid",
+            "return": "tid_t",
+            "arguments": [ ]
+        },
+        {
+            "number": 15,
+            "name": "thread_exit",
+            "return": null,
+            "arguments": [ ]
         }
     ]
 }

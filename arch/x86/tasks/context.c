@@ -42,7 +42,8 @@ void x86_copy_thread_context(platform_context_t *from, platform_context_t **to)
 
 void x86_switch_to_thread(uintptr_t *old_stack, thread_t *to)
 {
-    uintptr_t pgd_paddr = pg_page_get_mapped_paddr(x86_kpg_infra, to->owner->pagetable.ptr);
+    bool need_pgd_switch = current_cpu->pagetable.ptr != to->owner->pagetable.ptr;
+    uintptr_t pgd_paddr = need_pgd_switch ? pg_page_get_mapped_paddr(x86_kpg_infra, to->owner->pagetable.ptr) : 0;
     tss_entry.esp0 = to->kernel_stack.top;
     x86_thread_context_t *context = container_of(to->context, x86_thread_context_t, inner);
 

@@ -9,6 +9,7 @@
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/memops.h"
 #include "mos/platform/platform.h"
+#include "mos/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_type.h"
 #include "mos/x86/tasks/context.h"
@@ -96,4 +97,12 @@ thread_t *thread_new(process_t *owner, thread_flags_t tflags, thread_entry_t ent
 thread_t *thread_get(tid_t tid)
 {
     return hashmap_get(thread_table, &tid);
+}
+
+void thread_handle_exit(thread_t *t)
+{
+    if (!thread_is_valid(t))
+        return;
+
+    mos_warn("TODO");
 }

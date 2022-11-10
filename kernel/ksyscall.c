@@ -133,3 +133,17 @@ tid_t define_syscall(create_thread)(const char *name, thread_entry_t entry, void
 
     return thread->tid;
 }
+
+tid_t define_syscall(get_tid)()
+{
+    MOS_ASSERT(current_thread);
+    return current_thread->tid;
+}
+
+noreturn void define_syscall(thread_exit)(void)
+{
+    MOS_ASSERT(current_thread);
+    thread_handle_exit(current_thread);
+    jump_to_scheduler();
+    MOS_UNREACHABLE();
+}
