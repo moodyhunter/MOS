@@ -57,8 +57,6 @@ typedef struct _process
     ssize_t files_count;
     io_t *files[MOS_PROCESS_MAX_OPEN_FILES];
 
-    thread_t *main_thread;
-
     ssize_t threads_count;
     thread_t *threads[MOS_PROCESS_MAX_THREADS];
 
@@ -70,9 +68,9 @@ typedef struct _thread
 {
     char magic[4];
     tid_t tid;
+    thread_status_t status;
     process_t *owner;
     downwards_stack_t stack;
-    thread_status_t status;
     downwards_stack_t kernel_stack;
     platform_context_t *context;
     thread_flags_t flags;

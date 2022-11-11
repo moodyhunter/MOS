@@ -65,9 +65,6 @@ process_t *process_handle_fork(process_t *parent)
         child_thread->status = THREAD_STATUS_FORKED;
         platform_context_copy(parent_thread->context, &child_thread->context);
 
-        if (parent->main_thread == parent_thread)
-            child->main_thread = child_thread;
-
         process_attach_thread(child, child_thread);
         hashmap_put(thread_table, &child_thread->tid, child_thread);
     }

@@ -89,7 +89,8 @@ process_t *process_new(process_t *parent, uid_t euid, const char *name, thread_e
 {
     process_t *proc = process_allocate(parent, euid, name);
     process_stdio_setup(proc);
-    proc->main_thread = thread_new(proc, THREAD_FLAG_USERMODE, entry, arg);
+    thread_t *main_thread = thread_new(proc, THREAD_FLAG_USERMODE, entry, arg);
+    process_attach_thread(proc, main_thread);
     void *old_proc = hashmap_put(process_table, &proc->pid, proc);
     MOS_ASSERT_X(old_proc == NULL, "process already exists, go and buy yourself a lottery :)");
     return proc;
