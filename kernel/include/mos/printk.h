@@ -66,7 +66,8 @@ typedef enum
             mos_warn(__VA_ARGS__);                                                                                                                                       \
     } while (0)
 
-__printf(1, 2) void printk(const char *format, ...);
+__cold void printk_set_console(const char *console);
+
 __printf(2, 3) void lprintk(int loglevel, const char *format, ...);
 __printf(3, 4) void mos_kwarn(const char *func, u32 line, const char *fmt, ...);
 noreturn __printf(3, 4) void mos_kpanic(const char *func, u32 line, const char *fmt, ...);

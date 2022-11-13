@@ -24,21 +24,6 @@ static void deduce_level_color(int loglevel, standard_color_t *fg, standard_colo
     }
 }
 
-void printk(const char *fmt, ...)
-{
-    char message[PRINTK_BUFFER_SIZE] = { 0 };
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
-    va_end(args);
-    const size_t len = strlen(message);
-
-    list_foreach(console_t, console, consoles)
-    {
-        console->write(console, message, len);
-    }
-}
-
 void lprintk(int loglevel, const char *fmt, ...)
 {
     standard_color_t fg = White, bg = Black;
