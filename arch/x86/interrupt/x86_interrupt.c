@@ -109,15 +109,13 @@ void x86_handle_interrupt(u32 esp)
 {
     x86_stack_frame *frame = (x86_stack_frame *) esp;
 
-    thread_t *old_current = current_thread;
+    thread_t *current = current_thread;
+    MOS_ASSERT_X(current != NULL, "No current thread");
 
-    if (likely(old_current))
-    {
-        old_current->stack.head = frame->iret_params.esp;
-        x86_thread_context_t *context = container_of(old_current->context, x86_thread_context_t, inner);
-        context->ebp = frame->ebp;
-        context->inner.instruction = frame->iret_params.eip;
-    }
+    current->stack.head = frame->iret_params.esp;
+    x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
+    context->ebp = frame->ebp;
+    context->inner.instruction = frame->iret_params.eip;
 
     if (frame->interrupt_number < IRQ_BASE)
         x86_handle_exception(frame);
@@ -126,22 +124,16 @@ void x86_handle_interrupt(u32 esp)
     else if (frame->interrupt_number == MOS_SYSCALL_INTR)
     {
 #pragma message "TODO: Implement syscall handling for other arguments"
-        long result = dispatch_syscall(frame->eax, frame->ebx, frame->ecx, frame->edx, frame->esi, frame->edi, 0, 0, 0);
-        frame->eax = (reg32_t) result;
+        frame->eax = (reg32_t) dispatch_syscall(frame->eax, frame->ebx, frame->ecx, frame->edx, frame->esi, frame->edi, 0, 0, 0);
     }
     else
     {
         pr_warn("Unknown interrupt number: %d", frame->interrupt_number);
     }
 
-    thread_t *new_current = current_thread;
-    // the current thread may have changed during the scheduling
+    if (unlikely(current->status != THREAD_STATUS_RUNNING))
+        pr_warn("Thread %d is not in 'running' state", current->tid);
 
-    if (likely(new_current))
-    {
-        if (unlikely(new_current->status != THREAD_STATUS_RUNNING))
-            pr_warn("Thread %d is not in 'running' state", new_current->tid);
-    }
     frame->iret_params.eflags |= 0x200; // enable interrupts
 }
 
