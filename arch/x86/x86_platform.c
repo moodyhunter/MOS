@@ -26,7 +26,7 @@ static serial_console_t com1_console = {
     .device.char_length = CHAR_LENGTH_8,
     .device.stop_bits = STOP_BITS_1,
     .device.parity = PARITY_EVEN,
-    .console.name = "Serial Console on COM1",
+    .console.name = "serial_com1",
     .console.caps = CONSOLE_CAP_SETUP | CONSOLE_CAP_COLOR,
     .console.setup = serial_console_setup,
 };
@@ -89,7 +89,7 @@ void x86_start_kernel(x86_startup_info *info)
     multiboot_info_t *mb_info = info->mb_info;
     uintptr_t initrd_size = info->initrd_size;
     x86_disable_interrupts();
-    mos_install_console(&com1_console.console);
+    console_register(&com1_console.console);
 
     x86_gdt_init();
     x86_idt_init();
@@ -137,7 +137,7 @@ void x86_start_kernel(x86_startup_info *info)
     mos_kernel_mm_init(); // since then, we can use the kernel heap (kmalloc)
 
     mos_install_kpanic_hook(x86_kpanic_hook);
-    mos_install_console(&vga_text_mode_console);
+    console_register(&vga_text_mode_console);
     x86_install_interrupt_handler(IRQ_COM1, serial_irq_handler);
     x86_install_interrupt_handler(IRQ_TIMER, x86_timer_handler);
 

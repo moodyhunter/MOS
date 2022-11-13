@@ -57,7 +57,9 @@
                 "-serial",
                 "chardev:serial_log",
                 "-initrd",
-                "${workspaceFolder}/build/initrd.cpio"
+                "${workspaceFolder}/build/initrd.cpio",
+                "-append",
+                "kmsg_console=x86"
             ],
             "problemMatcher": [ ],
             "group": "none",

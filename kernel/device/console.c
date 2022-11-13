@@ -3,6 +3,7 @@
 #include "mos/device/console.h"
 
 #include "lib/containers.h"
+#include "lib/string.h"
 #include "lib/structures/list.h"
 #include "mos/printk.h"
 
@@ -25,7 +26,7 @@ static console_t dummy_con = {
 static bool has_console_registered = false;
 list_node_t consoles = LIST_NODE_INIT(dummy_con);
 
-void mos_install_console(console_t *con)
+void console_register(console_t *con)
 {
     if (con->caps & CONSOLE_CAP_SETUP)
         con->setup(con);
@@ -42,4 +43,14 @@ void mos_install_console(console_t *con)
         list_remove(&dummy_con);
         has_console_registered = true;
     }
+}
+
+console_t *console_get(const char *name)
+{
+    list_foreach(console_t, con, consoles)
+    {
+        if (strcmp(con->name, name) == 0)
+            return con;
+    }
+    return NULL;
 }

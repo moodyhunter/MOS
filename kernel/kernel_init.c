@@ -69,6 +69,7 @@ void dump_cmdline(void)
 void mos_start_kernel(const char *cmdline)
 {
     mos_cmdline = mos_cmdline_create(cmdline);
+    printk_setup_console(); // setup printk console
 
     pr_info("Welcome to MOS!");
     dump_cmdline();

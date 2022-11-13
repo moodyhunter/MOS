@@ -69,4 +69,5 @@ struct console_t
 };
 
 extern list_node_t consoles;
-void mos_install_console(console_t *con);
+void console_register(console_t *con);
+console_t *console_get(const char *name);

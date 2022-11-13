@@ -162,7 +162,7 @@ static bool screen_clear(console_t *console)
 }
 
 console_t vga_text_mode_console = {
-    .name = "x86 VGA text mode console",
+    .name = "x86_vga_text_mode_console",
     .list_node = LIST_NODE_INIT(vga_text_mode_console),
     .caps = CONSOLE_CAP_COLOR | CONSOLE_CAP_CLEAR | CONSOLE_CAP_CURSOR_HIDE | CONSOLE_CAP_CURSOR_MOVE,
     .set_cursor = screen_enable_cursur,

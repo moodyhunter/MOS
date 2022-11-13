@@ -9,6 +9,14 @@
 void serial_irq_handler(u32 irq)
 {
     MOS_ASSERT(irq == IRQ_COM1);
+    pr_info("serial: irq %d", irq);
+
+    u8 status = port_inb(COM1 + 5);
+    if (status & 0x01)
+    {
+        u8 c = port_inb(COM1);
+        pr_info("serial: received %d (%c)", (int) c, c);
+    }
 }
 
 void set_baudrate_divisor(int com, serial_baud_rate divisor)
