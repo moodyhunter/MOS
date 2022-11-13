@@ -20,11 +20,24 @@ void io_ref(io_t *io)
 void io_unref(io_t *io)
 {
     mos_debug("io_unref(%p)", (void *) io);
-    io->refcount.atomic--;
+
+    if (unlikely(io->closed))
+    {
+        mos_warn("io_close: %p is already closed", (void *) io);
+        return;
+    }
+
     if (io->refcount.atomic > 0)
         return;
 
-    io_close(io);
+    if (unlikely(!io->ops->close))
+    {
+        mos_warn("io_close: no close function");
+        return;
+    }
+
+    io->closed = true;
+    io->ops->close(io);
 }
 
 size_t io_read(io_t *io, void *buf, size_t count)
@@ -56,26 +69,4 @@ size_t io_write(io_t *io, const void *buf, size_t count)
         return 0;
     }
     return io->ops->write(io, buf, count);
-}
-
-void io_close(io_t *io)
-{
-    if (unlikely(io->closed))
-    {
-        mos_warn("io_close: %p is already closed", (void *) io);
-        return;
-    }
-
-    if (unlikely(!io->ops->close))
-    {
-        mos_warn("io_close: no close function");
-        return;
-    }
-
-    io->refcount.atomic--;
-    if (io->refcount.atomic != 0)
-        mos_warn("io_close: %p still has %llu references", (void *) io, io->refcount.atomic);
-
-    io->closed = true;
-    io->ops->close(io);
 }

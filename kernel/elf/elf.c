@@ -130,6 +130,6 @@ bail_out:
         platform_mm_free_pages(current_cpu->pagetable, buf_block.vaddr, buf_block.npages);
 bail_out_1:
     if (f)
-        io_close(&f->io);
+        io_unref(&f->io);
     return NULL;
 }

@@ -44,11 +44,11 @@ typedef enum
 
 typedef enum
 {
-    VMTYPE_APPCODE,
-    VMTYPE_APPDATA,
-    VMTYPE_STACK,
-    VMTYPE_KSTACK,
-    VMTYPE_FILE,
+    VMTYPE_APPCODE, // '.text' section
+    VMTYPE_APPDATA, // '.data' and '.bss' sections
+    VMTYPE_STACK,   // userspace stack
+    VMTYPE_KSTACK,  // kernel stack
+    VMTYPE_FILE,    // file mapping (mmap)
 } vm_type;
 
 typedef struct
@@ -101,21 +101,24 @@ extern mos_platform_info_t *const platform_info;
 extern void mos_start_kernel(const char *cmdline);
 extern void mos_kernel_mm_init(void);
 
-// MOS platform APIs
-
+// Platform Machine APIs
 noreturn void platform_shutdown(void);
 
+// Platform CPU APIs
 void platform_halt_cpu(void);
 u32 platform_current_cpu_id(void);
 
+// Platform Interrupt APIs
 void platform_interrupt_enable(void);
 void platform_interrupt_disable(void);
 bool platform_irq_handler_install(u32 irq, irq_handler handler);
 void platform_irq_handler_remove(u32 irq, irq_handler handler);
 
+// Platform Page Table APIs
 paging_handle_t platform_mm_create_user_pgd(void);
 void platform_mm_destroy_user_pgd(paging_handle_t table);
 
+// Platform Paging APIs
 vmblock_t platform_mm_alloc_pages(paging_handle_t table, size_t npages, pgalloc_hints hints, vm_flags vm_flags);
 vmblock_t platform_mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t npages, vm_flags vflags);
 vmblock_t platform_mm_get_free_pages(paging_handle_t table, size_t npages, pgalloc_hints hints);
@@ -125,7 +128,10 @@ void platform_mm_free_pages(paging_handle_t table, uintptr_t vaddr, size_t n);
 void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
 vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr);
 
+// Platform Thread / Process APIs
 void platform_context_setup(thread_t *thread, downwards_stack_t *proxy_stack, thread_entry_t entry, void *arg);
 void platform_context_copy(platform_context_t *from, platform_context_t **to);
-void platform_switch_to_scheduler(uintptr_t *old_stack, uintptr_t new_stack);
+
+// Platform Context Switching APIs
 void platform_switch_to_thread(uintptr_t *old_stack, thread_t *new_thread);
+void platform_switch_to_scheduler(uintptr_t *old_stack, uintptr_t new_stack);

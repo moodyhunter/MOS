@@ -37,9 +37,16 @@ static size_t stderr_write(io_t *io, const void *buf, size_t count)
     return 0;
 }
 
-static const io_op_t task_stdin_op = { .read = stdin_read };
-static const io_op_t task_stdout_op = { .write = stdout_write };
-static const io_op_t task_stderr_op = { .write = stderr_write };
+static void stdio_close(io_t *io)
+{
+    stdio_t *stdio = container_of(io, stdio_t, io);
+    MOS_ASSERT(stdio->type == STDIO_TYPE_STDIN || stdio->type == STDIO_TYPE_STDOUT || stdio->type == STDIO_TYPE_STDERR);
+    kfree(stdio);
+}
+
+static const io_op_t task_stdin_op = { .read = stdin_read, .close = stdio_close };
+static const io_op_t task_stdout_op = { .write = stdout_write, .close = stdio_close };
+static const io_op_t task_stderr_op = { .write = stderr_write, .close = stdio_close };
 
 void process_stdio_setup(process_t *process)
 {

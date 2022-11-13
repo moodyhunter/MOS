@@ -89,8 +89,7 @@ process_t *process_new(process_t *parent, uid_t euid, const char *name, thread_e
 {
     process_t *proc = process_allocate(parent, euid, name);
     process_stdio_setup(proc);
-    thread_t *main_thread = thread_new(proc, THREAD_FLAG_USERMODE, entry, arg);
-    process_attach_thread(proc, main_thread);
+    thread_new(proc, THREAD_FLAG_USERMODE, entry, arg);
     void *old_proc = hashmap_put(process_table, &proc->pid, proc);
     MOS_ASSERT_X(old_proc == NULL, "process already exists, go and buy yourself a lottery :)");
     return proc;
@@ -123,7 +122,7 @@ bool process_detach_fd(process_t *process, fd_t fd)
     MOS_ASSERT(process_is_valid(process));
     if (fd < 0 || fd >= process->files_count)
         return false;
-    io_close(process->files[fd]);
+    io_unref(process->files[fd]);
     process->files[fd] = NULL;
     process->files_count--;
     return true;
@@ -159,7 +158,36 @@ void process_handle_exit(process_t *process, int exit_code)
             mos_warn("thread %d is already dead", thread->tid);
             continue;
         }
-        thread->status = THREAD_STATUS_DEAD;
+        thread->status = THREAD_STATUS_DEAD; // cleanup will be done by the scheduler
+    }
+
+    mos_debug("closing all %lu files owned by %d", process->files_count, process->pid);
+    for (int i = 0; i < process->files_count; i++)
+    {
+        io_unref(process->files[i]);
+        process->files[i] = NULL;
+    }
+}
+
+void process_handle_cleanup(process_t *process)
+{
+    MOS_ASSERT(process_is_valid(process));
+    MOS_ASSERT_X(current_process != process, "cannot cleanup current process");
+
+    mos_debug("cleaning up process %d", process->pid);
+    mos_debug("freeing all %lu memory regions owned by %d", process->mmaps_count, process->pid);
+
+    mos_debug("unmapping all %lu memory regions owned by %d", process->mmaps_count, process->pid);
+    for (int i = 0; i < process->mmaps_count; i++)
+    {
+        const mmap_flags flags = process->mmaps[i].map_flags;
+        const vmblock_t block = process->mmaps[i].vm;
+
+        // they will be unmapped when the last process detaches them
+        if (flags & MMAP_COW)
+            continue;
+
+        platform_mm_free_pages(process->pagetable, block.vaddr, block.npages);
     }
 }
 

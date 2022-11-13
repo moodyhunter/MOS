@@ -41,5 +41,3 @@ void io_unref(io_t *io);
 
 size_t io_read(io_t *io, void *buf, size_t count);
 size_t io_write(io_t *io, const void *buf, size_t count);
-
-void io_close(io_t *io);

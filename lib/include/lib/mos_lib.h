@@ -21,6 +21,12 @@
 #define MOS_LIB_UNIMPLEMENTED(content) MOS_UNUSED(content)
 #define MOS_LIB_UNREACHABLE()
 #define mos_warn(...)
+inline void *liballoc_calloc(size_t nobj, size_t size)
+{
+    (void) nobj;
+    (void) size;
+    return NULL;
+}
 inline void *liballoc_malloc(size_t size)
 {
     (void) size;
