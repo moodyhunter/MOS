@@ -16,10 +16,6 @@ typedef enum
 
 typedef struct
 {
-    // ref hooks
-    void (*before_ref)(io_t *io);
-    void (*after_unref)(io_t *io);
-
     size_t (*read)(io_t *io, void *buf, size_t count);
     size_t (*write)(io_t *io, const void *buf, size_t count);
     void (*close)(io_t *io);
@@ -36,7 +32,7 @@ typedef struct _io_t
 
 void io_init(io_t *io, io_flags_t flags, size_t size, const io_op_t *ops);
 
-void io_ref(io_t *io);
+io_t *io_ref(io_t *io);
 void io_unref(io_t *io);
 
 size_t io_read(io_t *io, void *buf, size_t count);

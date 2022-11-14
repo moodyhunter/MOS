@@ -28,7 +28,7 @@ fd_t define_syscall(file_open)(const char *path, file_open_flags flags)
     file_t *f = vfs_open(path, flags);
     if (!f)
         return -1;
-    return process_attach_fd(current_process, &f->io);
+    return process_attach_ref_fd(current_process, &f->io);
 }
 
 bool define_syscall(file_stat)(const char *path, file_stat_t *stat)
@@ -116,7 +116,8 @@ pid_t define_syscall(spawn)(const char *path, int argc, const char *const argv[]
 {
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
-    process_t *process = process_create_from_elf(path, current_process, current_process->effective_uid);
+    process_t *current = current_process;
+    process_t *process = elf_create_process(path, current, current->terminal, current->effective_uid);
     if (process == NULL)
         return -1;
 

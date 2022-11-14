@@ -10,7 +10,7 @@ typedef bool (*hashmap_foreach_func_t)(const void *key, void *value);
 
 typedef struct hashmap_entry hashmap_entry_t;
 
-typedef struct hashmap
+typedef struct _hashmap
 {
     s32 magic;
     hashmap_entry_t **entries;

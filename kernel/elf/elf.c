@@ -37,7 +37,7 @@ elf_verify_result elf_verify_header(elf_header_t *header)
     return ELF_VERIFY_OK;
 }
 
-process_t *process_create_from_elf(const char *path, process_t *parent, uid_t effective_uid)
+process_t *elf_create_process(const char *path, process_t *parent, terminal_t *term, uid_t effective_uid)
 {
     file_t *f = vfs_open(path, FILE_OPEN_READ);
     if (!f)
@@ -67,7 +67,7 @@ process_t *process_create_from_elf(const char *path, process_t *parent, uid_t ef
         goto bail_out;
     }
 
-    process_t *proc = process_new(parent, effective_uid, f->fsnode->name, (thread_entry_t) elf->entry_point, NULL);
+    process_t *proc = process_new(parent, effective_uid, f->fsnode->name, term, (thread_entry_t) elf->entry_point, NULL);
 
     for (int i = 0; i < elf->ph.count; i++)
     {
@@ -118,7 +118,7 @@ process_t *process_create_from_elf(const char *path, process_t *parent, uid_t ef
     }
 #endif
 
-    process_attach_fd(proc, &f->io);
+    process_attach_ref_fd(proc, &f->io);
 
     // unmap the buffer from kernel pages
     platform_mm_unmap_pages(current_cpu->pagetable, buf_block.vaddr, buf_block.npages);
@@ -130,6 +130,7 @@ bail_out:
         platform_mm_free_pages(current_cpu->pagetable, buf_block.vaddr, buf_block.npages);
 bail_out_1:
     if (f)
-        io_unref(&f->io);
+        io_unref(&f->io); // close the file, we should have the file's refcount == 0 here
+
     return NULL;
 }

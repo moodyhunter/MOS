@@ -58,3 +58,12 @@ should_inline size_t ring_buffer_push_front_byte(ring_buffer_t *buffer, u8 byte)
 {
     return ring_buffer_push_front(buffer, &byte, 1);
 }
+
+#define ring_buffer_push_back_t(buffer, type, data) ring_buffer_push_back(buffer, (u8 *) &data, sizeof(type))
+#define ring_buffer_pop_back_t(buffer, type, data)  ring_buffer_pop_back(buffer, (u8 *) &data, sizeof(type))
+
+#define ring_buffer_push_front_t(buffer, type, data) ring_buffer_push_front(buffer, (u8 *) &data, sizeof(type))
+#define ring_buffer_pop_front_t(buffer, type, data)  ring_buffer_pop_front(buffer, (u8 *) &data, sizeof(type))
+
+#define ring_buffer_enqueue_t(buffer, type, data) ring_buffer_push_back_t(buffer, type, data)
+#define ring_buffer_dequeue_t(buffer, type, data) ring_buffer_pop_front_t(buffer, type, data)

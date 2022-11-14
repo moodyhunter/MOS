@@ -6,7 +6,7 @@
 #include "mos/tasks/task_type.h"
 #include "mos/types.h"
 
-typedef struct hashmap hashmap_t;
+typedef struct _hashmap hashmap_t;
 typedef void (*thread_entry_t)(void *arg); // also defined in task_type.h
 
 extern hashmap_t *thread_table;

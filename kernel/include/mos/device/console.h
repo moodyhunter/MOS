@@ -72,6 +72,7 @@ struct console_t
 extern list_node_t consoles;
 void console_register(console_t *con);
 console_t *console_get(const char *name);
+console_t *console_get_by_prefix(const char *prefix);
 
 int console_read(console_t *con, char *dest, size_t size);
 int console_write(console_t *con, const char *data, size_t size);

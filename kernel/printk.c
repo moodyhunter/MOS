@@ -39,15 +39,12 @@ void printk_setup_console()
         return;
     }
 
-    // select by prefix
-    list_foreach(console_t, this_con, consoles)
+    console = console_get_by_prefix(kcon_name);
+    if (console)
     {
-        if (strncmp(this_con->name, kcon_name, strlen(kcon_name)) == 0)
-        {
-            pr_emph("Seleting console '%s' for future printk (prefix-based)", this_con->name);
-            printk_console = this_con;
-            return;
-        }
+        pr_emph("Seleting console '%s' for future printk (prefix-based)", console->name);
+        printk_console = console;
+        return;
     }
 
     mos_warn("No console found for printk based on given name or prefix '%s'", kcon_name);

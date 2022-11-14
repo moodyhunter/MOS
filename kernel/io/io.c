@@ -2,6 +2,7 @@
 
 #include "mos/io/io.h"
 
+#include "mos/mos_global.h"
 #include "mos/printk.h"
 
 void io_init(io_t *io, io_flags_t flags, size_t size, const io_op_t *ops)
@@ -9,12 +10,22 @@ void io_init(io_t *io, io_flags_t flags, size_t size, const io_op_t *ops)
     io->flags = flags;
     io->size = size;
     io->ops = ops;
+    io->closed = false;
+    io->refcount.atomic = 0;
 }
 
-void io_ref(io_t *io)
+io_t *io_ref(io_t *io)
 {
     mos_debug("io_ref(%p)", (void *) io);
+
+    if (unlikely(io->closed))
+    {
+        mos_warn("io_write: %p is already closed", (void *) io);
+        return 0;
+    }
+
     io->refcount.atomic++;
+    return io;
 }
 
 void io_unref(io_t *io)
@@ -42,12 +53,16 @@ void io_unref(io_t *io)
 
 size_t io_read(io_t *io, void *buf, size_t count)
 {
+    if (unlikely(io->closed))
+    {
+        mos_warn("io_write: %p is already closed", (void *) io);
+        return 0;
+    }
     if (!(io->flags & IO_READABLE))
     {
         pr_info2("io_read: %p is not readable\n", (void *) io);
         return 0;
     }
-
     if (unlikely(!io->ops->read))
     {
         mos_warn_once("io_read: no read function");
@@ -58,6 +73,11 @@ size_t io_read(io_t *io, void *buf, size_t count)
 
 size_t io_write(io_t *io, const void *buf, size_t count)
 {
+    if (unlikely(io->closed))
+    {
+        mos_warn("io_write: %p is already closed", (void *) io);
+        return 0;
+    }
     if (!(io->flags & IO_WRITABLE))
     {
         pr_info2("io_write: %p is not writable\n", (void *) io);

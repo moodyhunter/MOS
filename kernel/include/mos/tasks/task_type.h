@@ -8,6 +8,8 @@
 #include "mos/platform/platform.h"
 #include "mos/types.h"
 
+typedef struct _terminal terminal_t;
+
 typedef enum
 {
     THREAD_STATUS_CREATED, // created, not ever started
@@ -51,6 +53,7 @@ typedef struct _process
     const char *name;
     pid_t pid;
     process_t *parent;
+    terminal_t *terminal;
     uid_t effective_uid;
     paging_handle_t pagetable;
 

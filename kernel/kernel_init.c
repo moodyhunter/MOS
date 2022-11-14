@@ -2,10 +2,12 @@
 
 #include "mos/cmdline.h"
 #include "mos/device/block.h"
+#include "mos/device/console.h"
 #include "mos/elf/elf.h"
 #include "mos/filesystem/cpio/cpio.h"
 #include "mos/filesystem/mount.h"
 #include "mos/filesystem/pathutils.h"
+#include "mos/io/terminal.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
@@ -91,8 +93,17 @@ void mos_start_kernel(const char *cmdline)
 
     const char *init_path = cmdline_get_init_path();
 
+    console_t *init_con = console_get("serial");
+    if (!init_con)
+    {
+        init_con = console_get_by_prefix("serial");
+        if (!init_con)
+            mos_panic("failed to find serial console");
+    }
+    terminal_t *init_term = terminal_create_console(init_con);
+
     uid_t root_uid = 0;
-    process_t *init = process_create_from_elf(init_path, NULL, root_uid);
+    process_t *init = elf_create_process(init_path, NULL, init_term, root_uid);
     pr_info("created init process: %s", init->name);
 
     scheduler();

@@ -21,8 +21,6 @@ void vfs_io_ops_close(io_t *io)
     }
     mp->fs->op_close(file);
     tree_trace_to_root(tree_node(file->fsnode), path_treeop_decrement_refcount);
-    io_unref(&file->io);
-    kfree(file->fsnode);
     kfree(file);
 }
 
@@ -71,6 +69,7 @@ file_t *vfs_open(const char *path, file_open_flags flags)
         return NULL;
     }
     file->fsnode = node;
+    MOS_ASSERT_X(file->io.refcount.atomic == 0, "file has nonzero refcount");
     return file;
 }
 
@@ -136,7 +135,6 @@ _continue:;
 
     tree_trace_to_root(tree_node(path), path_treeop_increment_refcount);
     io_init(&file->io, (flags & FILE_OPEN_READ) | (flags & FILE_OPEN_WRITE), stat.size, &fs_io_ops);
-    io_ref(&file->io);
     return true;
 }
 

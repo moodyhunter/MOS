@@ -55,6 +55,16 @@ console_t *console_get(const char *name)
     return NULL;
 }
 
+console_t *console_get_by_prefix(const char *prefix)
+{
+    list_foreach(console_t, con, consoles)
+    {
+        if (strncmp(con->name, prefix, strlen(prefix)) == 0)
+            return con;
+    }
+    return NULL;
+}
+
 int console_read(console_t *con, char *dest, size_t size)
 {
     if (con->caps & CONSOLE_CAP_READ)

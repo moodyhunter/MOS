@@ -63,6 +63,7 @@ add_library(mos_kernel.elf STATIC
     kernel/filesystem/pathutils.c
     kernel/ksyscall.c
     kernel/io/io.c
+    kernel/io/terminal.c
     kernel/kernel_init.c
     kernel/mm/liballoc.c
     kernel/mm/cow.c
@@ -72,7 +73,6 @@ add_library(mos_kernel.elf STATIC
     kernel/stack_protector.c
     kernel/tasks/fork.c
     kernel/tasks/process.c
-    kernel/tasks/task_io.c
     kernel/tasks/thread.c
     kernel/tasks/schedule.c
 )

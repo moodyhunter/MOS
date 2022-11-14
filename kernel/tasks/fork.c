@@ -48,8 +48,7 @@ process_t *process_handle_fork(process_t *parent)
     for (int i = 0; i < parent->files_count; i++)
     {
         io_t *file = parent->files[i];
-        io_ref(file); // increase the refcount
-        process_attach_fd(child, file);
+        process_attach_ref_fd(child, file);
     }
 
     // copy the parent's threads

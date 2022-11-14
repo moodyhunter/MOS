@@ -8,11 +8,11 @@
 #include "mos/device/block.h"
 #include "mos/filesystem/filesystem.h"
 #include "mos/io/io.h"
+#include "mos/io/terminal.h"
 #include "mos/mm/cow.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
-#include "mos/tasks/task_io.h"
 #include "mos/tasks/task_type.h"
 #include "mos/tasks/thread.h"
 #include "mos/types.h"
@@ -79,16 +79,31 @@ void process_init(void)
     hashmap_init(process_table, PROCESS_HASHTABLE_SIZE, process_hash, process_equal);
 }
 
-void process_deinit(void)
+void process_cleanup(void)
 {
     hashmap_deinit(process_table);
     kfree(process_table);
 }
 
-process_t *process_new(process_t *parent, uid_t euid, const char *name, thread_entry_t entry, void *arg)
+process_t *process_new(process_t *parent, uid_t euid, const char *name, terminal_t *term, thread_entry_t entry, void *arg)
 {
     process_t *proc = process_allocate(parent, euid, name);
-    process_stdio_setup(proc);
+    if (unlikely(!proc))
+        return NULL;
+
+    if (unlikely(!term))
+    {
+        if (likely(parent))
+            proc->terminal = parent->terminal;
+        else
+            mos_panic("init process has no terminal");
+    }
+
+    proc->terminal = term;
+    process_attach_ref_fd(proc, &term->io);
+    process_attach_ref_fd(proc, &term->io);
+    process_attach_ref_fd(proc, &term->io);
+
     thread_new(proc, THREAD_FLAG_USERMODE, entry, arg);
     void *old_proc = hashmap_put(process_table, &proc->pid, proc);
     MOS_ASSERT_X(old_proc == NULL, "process already exists, go and buy yourself a lottery :)");
@@ -103,7 +118,7 @@ process_t *process_get(pid_t pid)
     return p;
 }
 
-fd_t process_attach_fd(process_t *process, io_t *file)
+fd_t process_attach_ref_fd(process_t *process, io_t *file)
 {
     MOS_ASSERT(process_is_valid(process));
     int fd = process->files_count++;
@@ -113,7 +128,7 @@ fd_t process_attach_fd(process_t *process, io_t *file)
         return -1;
     }
 
-    process->files[fd] = file;
+    process->files[fd] = io_ref(file);
     return fd;
 }
 
@@ -164,7 +179,8 @@ void process_handle_exit(process_t *process, int exit_code)
     mos_debug("closing all %lu files owned by %d", process->files_count, process->pid);
     for (int i = 0; i < process->files_count; i++)
     {
-        io_unref(process->files[i]);
+        if (!process->files[i]->closed)
+            io_unref(process->files[i]);
         process->files[i] = NULL;
     }
 }
