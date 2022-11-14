@@ -43,6 +43,7 @@ set(MOS_STANDARD_LIBRARY_SOURCES
     lib/structures/hashmap_common.c
     lib/structures/list.c
     lib/structures/stack.c
+    lib/structures/ring_buffer.c
     lib/structures/tree.c
     lib/stdio.c
     lib/stdio_impl.c
