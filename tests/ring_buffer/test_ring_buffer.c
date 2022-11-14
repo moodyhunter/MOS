@@ -373,4 +373,24 @@ MOS_TEST_CASE(ringbuffer_complicated_ops)
 
     full = ring_buffer_is_full(rb);
     MOS_TEST_CHECK(full, true);
+
+    c = ring_buffer_pop_back_byte(rb); // |c|b|a|4|5|6| |f|e|d|
+    MOS_TEST_CHECK(c, '7');
+    MOS_TEST_CHECK(rb->head, 7);
+    MOS_TEST_CHECK(rb->next_pos, 6);
+
+    written = ring_buffer_push_front_byte(rb, 'h'); // |c|b|a|4|5|6|h|f|e|d|
+    MOS_TEST_CHECK(written, 1);
+    MOS_TEST_CHECK(rb->head, 6);
+    MOS_TEST_CHECK(rb->next_pos, 6);
+
+    c = ring_buffer_pop_front_byte(rb); // |c|b|a|4|5|6| |f|e|d|
+    MOS_TEST_CHECK(c, 'h');
+    MOS_TEST_CHECK(rb->head, 7);
+    MOS_TEST_CHECK(rb->next_pos, 6);
+
+    written = ring_buffer_push_back_byte(rb, 'i'); // |c|b|a|4|5|6|i|f|e|d|
+    MOS_TEST_CHECK(written, 1);
+    MOS_TEST_CHECK(rb->head, 7);
+    MOS_TEST_CHECK(rb->next_pos, 7);
 }
