@@ -58,7 +58,7 @@ bool ring_buffer_resize(ring_buffer_t *buffer, size_t new_capacity)
     return true;
 }
 
-size_t ring_buffer_write_back(ring_buffer_t *buffer, const u8 *data, size_t size)
+size_t ring_buffer_push_back(ring_buffer_t *buffer, const u8 *data, size_t size)
 {
     size_t written = 0;
     while (written < size && buffer->size < buffer->capacity)
@@ -71,13 +71,41 @@ size_t ring_buffer_write_back(ring_buffer_t *buffer, const u8 *data, size_t size
     return written;
 }
 
-size_t ring_buffer_read_back(ring_buffer_t *buffer, u8 *data, size_t size)
+size_t ring_buffer_pop_back(ring_buffer_t *buffer, u8 *data, size_t size)
 {
     size_t read = 0;
     while (read < size && buffer->size > 0)
     {
         ((u8 *) data)[read] = buffer->data[buffer->tail];
+        buffer->data[buffer->tail] = 0;
         buffer->tail = (buffer->tail + 1) % buffer->capacity;
+        buffer->size--;
+        read++;
+    }
+    return read;
+}
+
+size_t ring_buffer_push_front(ring_buffer_t *buffer, const u8 *data, size_t size)
+{
+    size_t written = 0;
+    while (written < size && buffer->size < buffer->capacity)
+    {
+        buffer->data[buffer->tail] = ((const u8 *) data)[written];
+        buffer->tail = (buffer->tail + buffer->capacity - 1) % buffer->capacity;
+        buffer->size++;
+        written++;
+    }
+    return written;
+}
+
+size_t ring_buffer_pop_front(ring_buffer_t *buffer, u8 *data, size_t size)
+{
+    size_t read = 0;
+    while (read < size && buffer->size > 0)
+    {
+        ((u8 *) data)[read] = buffer->data[buffer->head];
+        buffer->head = (buffer->head + buffer->capacity - 1) % buffer->capacity;
+        buffer->data[buffer->head] = 0;
         buffer->size--;
         read++;
     }
