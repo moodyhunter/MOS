@@ -25,7 +25,7 @@ void for_each_console_print_with_color(standard_color_t fg, standard_color_t bg,
             console->set_color(console, fg, bg);
         }
 
-        console->write(console, message, length);
+        console_write(console, message, length);
 
         if (console->caps & CONSOLE_CAP_COLOR)
         {

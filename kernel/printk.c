@@ -84,7 +84,7 @@ static void print_to_console(console_t *con, int loglevel, const char *message, 
         con->set_color(con, fg, bg);
     }
 
-    con->write(con, message, len);
+    console_write(con, message, len);
 
     if (con->caps & CONSOLE_CAP_COLOR)
     {

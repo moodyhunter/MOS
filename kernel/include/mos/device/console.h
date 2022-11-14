@@ -45,7 +45,7 @@ struct console_t
 {
     as_linked_list;
 
-    char name[64];
+    const char *name;
     console_caps_t caps;
 
     bool (*setup)(console_t *con);
@@ -59,8 +59,9 @@ struct console_t
     bool (*get_color)(console_t *con, standard_color_t *fg, standard_color_t *bg);
     bool (*set_color)(console_t *con, standard_color_t fg, standard_color_t bg);
 
-    int (*read)(console_t *con, char *dest, size_t size);
-    int (*write)(console_t *con, const char *data, size_t size);
+    // not meant to be called directly, use console_read / console_write instead
+    int (*read_impl)(console_t *con, char *dest, size_t size);
+    int (*write_impl)(console_t *con, const char *data, size_t size);
 
     bool (*clear)(console_t *con);
     bool (*close)(console_t *con);
@@ -71,3 +72,6 @@ struct console_t
 extern list_node_t consoles;
 void console_register(console_t *con);
 console_t *console_get(const char *name);
+
+int console_read(console_t *con, char *dest, size_t size);
+int console_write(console_t *con, const char *data, size_t size);

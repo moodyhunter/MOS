@@ -6,16 +6,27 @@
 #include "mos/x86/devices/port.h"
 #include "mos/x86/x86_interrupt.h"
 
+static inline char serial_irq_read_char(serial_port_t port)
+{
+    u8 status = port_inb(port + 5);
+    if (status & 0x01)
+        return port_inb(port);
+    return 0;
+}
+
 void serial_irq_handler(u32 irq)
 {
-    MOS_ASSERT(irq == IRQ_COM1);
-    pr_info("serial: irq %d", irq);
-
-    u8 status = port_inb(COM1 + 5);
-    if (status & 0x01)
+    if (irq == IRQ_COM1)
     {
-        u8 c = port_inb(COM1);
-        pr_info("serial: received %d (%c)", (int) c, c);
+        char c = serial_irq_read_char(COM1);
+        MOS_UNUSED(c);
+    }
+    else if (irq == IRQ_COM2)
+    {
+    }
+    else
+    {
+        pr_warn("Unknown serial IRQ: %d", irq);
     }
 }
 

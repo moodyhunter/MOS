@@ -171,6 +171,6 @@ console_t vga_text_mode_console = {
     .get_cursor = screen_get_cursor_pos,
     .get_color = screen_get_color,
     .set_color = screen_set_color,
-    .write = screen_print_string,
+    .write_impl = screen_print_string,
     .clear = screen_clear,
 };

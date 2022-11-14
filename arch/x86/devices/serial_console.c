@@ -12,8 +12,8 @@ const char *ansi_reset = ANSI_COLOR_RESET;
 
 bool serial_console_setup(console_t *console)
 {
-    console->write = serial_console_write;
-    console->read = serial_console_read;
+    console->write_impl = serial_console_write;
+    console->read_impl = serial_console_read;
     console->caps |= CONSOLE_CAP_READ;
     if (console->caps & CONSOLE_CAP_COLOR)
     {

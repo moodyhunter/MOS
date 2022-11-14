@@ -7,7 +7,7 @@
 #include "lib/structures/list.h"
 #include "mos/printk.h"
 
-static int dummy_write(console_t *console, const char *message, size_t length)
+static int dummy_write_to_console(console_t *console, const char *message, size_t length)
 {
     (void) console;
     (void) message;
@@ -19,7 +19,7 @@ static int dummy_write(console_t *console, const char *message, size_t length)
 static console_t dummy_con = {
     .name = "dummy",
     .caps = CONSOLE_CAP_NONE,
-    .write = dummy_write,
+    .write_impl = dummy_write_to_console,
     .list_node = LIST_HEAD_INIT(consoles),
 };
 
@@ -53,4 +53,16 @@ console_t *console_get(const char *name)
             return con;
     }
     return NULL;
+}
+
+int console_read(console_t *con, char *dest, size_t size)
+{
+    if (con->caps & CONSOLE_CAP_READ)
+        return con->read_impl(con, dest, size);
+    return -1;
+}
+
+int console_write(console_t *con, const char *data, size_t size)
+{
+    return con->write_impl(con, data, size);
 }
