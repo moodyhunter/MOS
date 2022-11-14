@@ -42,6 +42,12 @@ int main(void)
         syscall_io_close(fd);
     }
 
+    char buf[256] = { 0 };
+
+    size_t read = syscall_io_read(stdin, buf, 256, 0);
+    printf("Read %d bytes from stdin", read);
+    syscall_io_write(stdout, buf, read, 0);
+
     pid_t my_pid = syscall_get_pid();
     printf("My PID: %d\n", my_pid);
 
