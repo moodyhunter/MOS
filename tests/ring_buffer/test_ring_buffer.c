@@ -13,7 +13,7 @@ MOS_TEST_CASE(ringbuffer_creation_and_destruction)
     MOS_TEST_CHECK(rb->capacity, 10);
     MOS_TEST_CHECK(rb->size, 0);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->next_pos, 0);
 
     ring_buffer_destroy(rb);
 
@@ -28,74 +28,74 @@ MOS_TEST_CASE(ringbuffer_put_and_get)
 
     written = ring_buffer_push_back_byte(rb, 'a');
     MOS_TEST_CHECK(rb->size, 1);
-    MOS_TEST_CHECK(rb->head, 1);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->head, 0);
+    MOS_TEST_CHECK(rb->next_pos, 1);
     MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_back_byte(rb, 'b');
     MOS_TEST_CHECK(rb->size, 2);
-    MOS_TEST_CHECK(rb->head, 2);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->head, 0);
+    MOS_TEST_CHECK(rb->next_pos, 2);
     MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_back_byte(rb, 'c');
     MOS_TEST_CHECK(rb->size, 3);
-    MOS_TEST_CHECK(rb->head, 3);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->head, 0);
+    MOS_TEST_CHECK(rb->next_pos, 3);
     MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_back_byte(rb, 'd');
     MOS_TEST_CHECK(rb->size, 4);
-    MOS_TEST_CHECK(rb->head, 4);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->head, 0);
+    MOS_TEST_CHECK(rb->next_pos, 4);
     MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_back_byte(rb, 'e');
     MOS_TEST_CHECK(rb->size, 5);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->next_pos, 0);
     MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_back_byte(rb, 'f');
     MOS_TEST_CHECK(rb->size, 5);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->next_pos, 0);
     MOS_TEST_CHECK(written, 0); // full
 
     char c = ring_buffer_pop_back_byte(rb);
     MOS_TEST_CHECK(rb->size, 4);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 1);
-    MOS_TEST_CHECK(c, 'a');
+    MOS_TEST_CHECK(rb->next_pos, 4);
+    MOS_TEST_CHECK(c, 'e');
 
     c = ring_buffer_pop_back_byte(rb);
     MOS_TEST_CHECK(rb->size, 3);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 2);
-    MOS_TEST_CHECK(c, 'b');
+    MOS_TEST_CHECK(rb->next_pos, 3);
+    MOS_TEST_CHECK(c, 'd');
 
     c = ring_buffer_pop_back_byte(rb);
     MOS_TEST_CHECK(rb->size, 2);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 3);
+    MOS_TEST_CHECK(rb->next_pos, 2);
     MOS_TEST_CHECK(c, 'c');
 
     c = ring_buffer_pop_back_byte(rb);
     MOS_TEST_CHECK(rb->size, 1);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 4);
-    MOS_TEST_CHECK(c, 'd');
+    MOS_TEST_CHECK(rb->next_pos, 1);
+    MOS_TEST_CHECK(c, 'b');
 
     c = ring_buffer_pop_back_byte(rb);
     MOS_TEST_CHECK(rb->size, 0);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 0);
-    MOS_TEST_CHECK(c, 'e');
+    MOS_TEST_CHECK(rb->next_pos, 0);
+    MOS_TEST_CHECK(c, 'a');
 
     c = ring_buffer_pop_back_byte(rb);
     MOS_TEST_CHECK(rb->size, 0);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->next_pos, 0);
     MOS_TEST_CHECK(c, 0); // empty
 
     ring_buffer_destroy(rb);
@@ -108,68 +108,68 @@ MOS_TEST_CASE(ringbuffer_push_pop_back)
 
     written = ring_buffer_push_back_byte(rb, 'a');
     MOS_TEST_CHECK(rb->size, 1);
-    MOS_TEST_CHECK(rb->head, 1);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->head, 0);
+    MOS_TEST_CHECK(rb->next_pos, 1);
     MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_back_byte(rb, 'b');
     MOS_TEST_CHECK(rb->size, 2);
-    MOS_TEST_CHECK(rb->head, 2);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->head, 0);
+    MOS_TEST_CHECK(rb->next_pos, 2);
     MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_back_byte(rb, 'c');
     MOS_TEST_CHECK(rb->size, 3);
-    MOS_TEST_CHECK(rb->head, 3);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->head, 0);
+    MOS_TEST_CHECK(rb->next_pos, 3);
     MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_back_byte(rb, 'd');
     MOS_TEST_CHECK(rb->size, 4);
-    MOS_TEST_CHECK(rb->head, 4);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->head, 0);
+    MOS_TEST_CHECK(rb->next_pos, 4);
     MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_back_byte(rb, 'e');
     MOS_TEST_CHECK(rb->size, 5);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->next_pos, 0);
     MOS_TEST_CHECK(written, 1);
 
     char c = ring_buffer_pop_back_byte(rb);
     MOS_TEST_CHECK(rb->size, 4);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 1);
-    MOS_TEST_CHECK(c, 'a');
+    MOS_TEST_CHECK(rb->next_pos, 4);
+    MOS_TEST_CHECK(c, 'e');
 
     c = ring_buffer_pop_back_byte(rb);
     MOS_TEST_CHECK(rb->size, 3);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 2);
-    MOS_TEST_CHECK(c, 'b');
+    MOS_TEST_CHECK(rb->next_pos, 3);
+    MOS_TEST_CHECK(c, 'd');
 
     c = ring_buffer_pop_back_byte(rb);
     MOS_TEST_CHECK(rb->size, 2);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 3);
+    MOS_TEST_CHECK(rb->next_pos, 2);
     MOS_TEST_CHECK(c, 'c');
 
     c = ring_buffer_pop_back_byte(rb);
     MOS_TEST_CHECK(rb->size, 1);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 4);
-    MOS_TEST_CHECK(c, 'd');
+    MOS_TEST_CHECK(rb->next_pos, 1);
+    MOS_TEST_CHECK(c, 'b');
 
     c = ring_buffer_pop_back_byte(rb);
     MOS_TEST_CHECK(rb->size, 0);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 0);
-    MOS_TEST_CHECK(c, 'e');
+    MOS_TEST_CHECK(rb->next_pos, 0);
+    MOS_TEST_CHECK(c, 'a');
 
     c = ring_buffer_pop_back_byte(rb);
     MOS_TEST_CHECK(rb->size, 0);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->next_pos, 0);
     MOS_TEST_CHECK(c, 0); // empty
 
     ring_buffer_destroy(rb);
@@ -182,68 +182,68 @@ MOS_TEST_CASE(ringbuffer_push_pop_front)
 
     written = ring_buffer_push_front_byte(rb, 'a');
     MOS_TEST_CHECK(rb->size, 1);
-    MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 4);
+    MOS_TEST_CHECK(rb->head, 4);
+    MOS_TEST_CHECK(rb->next_pos, 0);
     MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_front_byte(rb, 'b');
     MOS_TEST_CHECK(rb->size, 2);
-    MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 3);
+    MOS_TEST_CHECK(rb->head, 3);
+    MOS_TEST_CHECK(rb->next_pos, 0);
     MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_front_byte(rb, 'c');
     MOS_TEST_CHECK(rb->size, 3);
-    MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 2);
+    MOS_TEST_CHECK(rb->head, 2);
+    MOS_TEST_CHECK(rb->next_pos, 0);
     MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_front_byte(rb, 'd');
     MOS_TEST_CHECK(rb->size, 4);
-    MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 1);
+    MOS_TEST_CHECK(rb->head, 1);
+    MOS_TEST_CHECK(rb->next_pos, 0);
     MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_front_byte(rb, 'e');
     MOS_TEST_CHECK(rb->size, 5);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->next_pos, 0);
     MOS_TEST_CHECK(written, 1);
 
     char c = ring_buffer_pop_front_byte(rb);
     MOS_TEST_CHECK(rb->size, 4);
-    MOS_TEST_CHECK(rb->head, 4);
-    MOS_TEST_CHECK(rb->tail, 0);
-    MOS_TEST_CHECK(c, 'a');
+    MOS_TEST_CHECK(rb->head, 1);
+    MOS_TEST_CHECK(rb->next_pos, 0);
+    MOS_TEST_CHECK(c, 'e');
 
     c = ring_buffer_pop_front_byte(rb);
     MOS_TEST_CHECK(rb->size, 3);
-    MOS_TEST_CHECK(rb->head, 3);
-    MOS_TEST_CHECK(rb->tail, 0);
-    MOS_TEST_CHECK(c, 'b');
+    MOS_TEST_CHECK(rb->head, 2);
+    MOS_TEST_CHECK(rb->next_pos, 0);
+    MOS_TEST_CHECK(c, 'd');
 
     c = ring_buffer_pop_front_byte(rb);
     MOS_TEST_CHECK(rb->size, 2);
-    MOS_TEST_CHECK(rb->head, 2);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->head, 3);
+    MOS_TEST_CHECK(rb->next_pos, 0);
     MOS_TEST_CHECK(c, 'c');
 
     c = ring_buffer_pop_front_byte(rb);
     MOS_TEST_CHECK(rb->size, 1);
-    MOS_TEST_CHECK(rb->head, 1);
-    MOS_TEST_CHECK(rb->tail, 0);
-    MOS_TEST_CHECK(c, 'd');
+    MOS_TEST_CHECK(rb->head, 4);
+    MOS_TEST_CHECK(rb->next_pos, 0);
+    MOS_TEST_CHECK(c, 'b');
 
     c = ring_buffer_pop_front_byte(rb);
     MOS_TEST_CHECK(rb->size, 0);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 0);
-    MOS_TEST_CHECK(c, 'e');
+    MOS_TEST_CHECK(rb->next_pos, 0);
+    MOS_TEST_CHECK(c, 'a');
 
     c = ring_buffer_pop_front_byte(rb);
     MOS_TEST_CHECK(rb->size, 0);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->next_pos, 0);
     MOS_TEST_CHECK(c, 0); // empty
 
     ring_buffer_destroy(rb);
@@ -265,7 +265,7 @@ MOS_TEST_CASE(ringbuffer_full_and_empty)
     written = ring_buffer_push_back_byte(rb, 'a');
     MOS_TEST_CHECK(rb->size, 1);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->next_pos, 0);
     MOS_TEST_CHECK(written, 1);
 
     full = ring_buffer_is_full(rb);
@@ -277,7 +277,7 @@ MOS_TEST_CASE(ringbuffer_full_and_empty)
     char c = ring_buffer_pop_back_byte(rb);
     MOS_TEST_CHECK(rb->size, 0);
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 0);
+    MOS_TEST_CHECK(rb->next_pos, 0);
     MOS_TEST_CHECK(c, 'a');
 
     full = ring_buffer_is_full(rb);
@@ -300,11 +300,18 @@ MOS_TEST_CASE(ringbuffer_complicated_ops)
     ring_buffer_push_back_byte(rb, '3');
     ring_buffer_push_back_byte(rb, '4');
     ring_buffer_push_back_byte(rb, '5');
+    MOS_TEST_CHECK(rb->size, 5);
+    MOS_TEST_CHECK(rb->head, 0);
+    MOS_TEST_CHECK(rb->next_pos, 5);
+
     ring_buffer_push_back_byte(rb, '6');
     ring_buffer_push_back_byte(rb, '7');
     ring_buffer_push_back_byte(rb, '8');
     ring_buffer_push_back_byte(rb, '9');
     ring_buffer_push_back_byte(rb, '0');
+    MOS_TEST_CHECK(rb->size, 10);
+    MOS_TEST_CHECK(rb->head, 0);
+    MOS_TEST_CHECK(rb->next_pos, 0);
 
     // |1|2|3|4|5|6|7|8|9|0|
 
@@ -332,37 +339,37 @@ MOS_TEST_CASE(ringbuffer_complicated_ops)
     // | | | |4|5|6|7| | | |
 
     written = ring_buffer_push_front_byte(rb, 'a'); // | | |a|4|5|6|7| | | |
-    MOS_TEST_CHECK(c, 1);
+    MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_front_byte(rb, 'b'); // | |b|a|4|5|6|7| | | |
     MOS_TEST_CHECK(rb->head, 1);
-    MOS_TEST_CHECK(rb->tail, 6);
-    MOS_TEST_CHECK(c, 1);
+    MOS_TEST_CHECK(rb->next_pos, 7);
+    MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_front_byte(rb, 'c'); // |c|b|a|4|5|6|7| | | |
     MOS_TEST_CHECK(rb->head, 0);
-    MOS_TEST_CHECK(rb->tail, 6);
-    MOS_TEST_CHECK(c, 1);
+    MOS_TEST_CHECK(rb->next_pos, 7);
+    MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_front_byte(rb, 'd'); // |c|b|a|4|5|6|7| | |d|
     MOS_TEST_CHECK(rb->head, 9);
-    MOS_TEST_CHECK(rb->tail, 6);
-    MOS_TEST_CHECK(c, 1);
+    MOS_TEST_CHECK(rb->next_pos, 7);
+    MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_front_byte(rb, 'e'); // |c|b|a|4|5|6|7| |e|d|
     MOS_TEST_CHECK(rb->head, 8);
-    MOS_TEST_CHECK(rb->tail, 6);
-    MOS_TEST_CHECK(c, 1);
+    MOS_TEST_CHECK(rb->next_pos, 7);
+    MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_front_byte(rb, 'f'); // |c|b|a|4|5|6|7|f|e|d|
     MOS_TEST_CHECK(rb->head, 7);
-    MOS_TEST_CHECK(rb->tail, 6);
-    MOS_TEST_CHECK(c, 1);
+    MOS_TEST_CHECK(rb->next_pos, 7);
+    MOS_TEST_CHECK(written, 1);
 
     written = ring_buffer_push_front_byte(rb, 'g'); // |c|b|a|4|5|6|7|f|e|d|
     MOS_TEST_CHECK(rb->head, 7);
-    MOS_TEST_CHECK(rb->tail, 6);
-    MOS_TEST_CHECK(c, 0);
+    MOS_TEST_CHECK(rb->next_pos, 7);
+    MOS_TEST_CHECK(written, 0);
 
     full = ring_buffer_is_full(rb);
     MOS_TEST_CHECK(full, true);

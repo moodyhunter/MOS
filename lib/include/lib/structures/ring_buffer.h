@@ -10,8 +10,8 @@ typedef struct _ring_buffer
     u8 *data;
     size_t size;
     size_t capacity;
-    size_t head; // index of the first element
-    size_t tail; // index of the last element
+    size_t head;     // index of the first element
+    size_t next_pos; // index of the next element to be inserted
 } ring_buffer_t;
 
 ring_buffer_t *ring_buffer_create(size_t capacity);

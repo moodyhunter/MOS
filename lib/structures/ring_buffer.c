@@ -27,7 +27,7 @@ ring_buffer_t *ring_buffer_create(size_t capacity)
     rb->capacity = capacity;
     rb->size = 0;
     rb->head = 0;
-    rb->tail = 0;
+    rb->next_pos = 0;
     return rb;
 }
 
@@ -54,7 +54,7 @@ bool ring_buffer_resize(ring_buffer_t *buffer, size_t new_capacity)
     buffer->data = new_data;
     buffer->capacity = new_capacity;
     buffer->head = 0;
-    buffer->tail = buffer->size;
+    buffer->next_pos = buffer->size;
     return true;
 }
 
@@ -63,8 +63,8 @@ size_t ring_buffer_push_back(ring_buffer_t *buffer, const u8 *data, size_t size)
     size_t written = 0;
     while (written < size && buffer->size < buffer->capacity)
     {
-        buffer->data[buffer->head] = ((const u8 *) data)[written];
-        buffer->head = (buffer->head + 1) % buffer->capacity;
+        buffer->data[buffer->next_pos] = ((const u8 *) data)[written];
+        buffer->next_pos = (buffer->next_pos + 1) % buffer->capacity;
         buffer->size++;
         written++;
     }
@@ -76,9 +76,9 @@ size_t ring_buffer_pop_back(ring_buffer_t *buffer, u8 *data, size_t size)
     size_t read = 0;
     while (read < size && buffer->size > 0)
     {
-        ((u8 *) data)[read] = buffer->data[buffer->tail];
-        buffer->data[buffer->tail] = 0;
-        buffer->tail = (buffer->tail + 1) % buffer->capacity;
+        buffer->next_pos = (buffer->capacity + buffer->next_pos - 1) % buffer->capacity;
+        ((u8 *) data)[read] = buffer->data[buffer->next_pos];
+        buffer->data[buffer->next_pos] = 0;
         buffer->size--;
         read++;
     }
@@ -90,8 +90,8 @@ size_t ring_buffer_push_front(ring_buffer_t *buffer, const u8 *data, size_t size
     size_t written = 0;
     while (written < size && buffer->size < buffer->capacity)
     {
-        buffer->data[buffer->tail] = ((const u8 *) data)[written];
-        buffer->tail = (buffer->tail + buffer->capacity - 1) % buffer->capacity;
+        buffer->head = (buffer->capacity + buffer->head - 1) % buffer->capacity;
+        buffer->data[buffer->head] = ((const u8 *) data)[written];
         buffer->size++;
         written++;
     }
@@ -104,8 +104,8 @@ size_t ring_buffer_pop_front(ring_buffer_t *buffer, u8 *data, size_t size)
     while (read < size && buffer->size > 0)
     {
         ((u8 *) data)[read] = buffer->data[buffer->head];
-        buffer->head = (buffer->head + buffer->capacity - 1) % buffer->capacity;
         buffer->data[buffer->head] = 0;
+        buffer->head = (buffer->capacity + buffer->head + 1) % buffer->capacity;
         buffer->size--;
         read++;
     }
