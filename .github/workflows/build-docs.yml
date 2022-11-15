@@ -16,7 +16,6 @@ jobs:
         with:
           working_directory: docs
           root_file: mos.tex
-          compiler: pdflatex
 
       - name: Upload PDF file
         uses: actions/upload-artifact@v3
