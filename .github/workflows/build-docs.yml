@@ -1,4 +1,4 @@
-name: Build MOS Lab Tutorials and Documentation
+name: Build Lab Tutorials and Documentation
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
 
 jobs:
   build_docs:
-    name: Build MOS Lab Tutorials and Documentation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
