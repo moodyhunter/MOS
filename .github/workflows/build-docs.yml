@@ -1,0 +1,25 @@
+name: Build MOS Lab Tutorials and Documentation
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build_docs:
+    name: Build MOS Lab Tutorials and Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: LaTeX compilation
+        uses: xu-cheng/latex-action@v2
+        with:
+          working_directory: docs
+          root_file: mos.tex
+          compiler: pdflatex
+
+      - name: Upload PDF file
+        uses: actions/upload-artifact@v3
+        with:
+          name: PDF
+          path: docs/mos.pdf
