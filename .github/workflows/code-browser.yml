@@ -3,6 +3,9 @@ name: Generate MOS CodeBrowser
 on:
   push:
     branches: ["main"]
+    paths-ignore:
+      - "lab-tutorial/**"
+  workflow_dispatch:
 
 jobs:
   build:

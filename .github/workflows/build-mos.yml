@@ -2,6 +2,9 @@ name: Build MOS
 
 on:
   push:
+    paths-ignore:
+      - "lab-tutorial/**"
+  workflow_dispatch:
 
 jobs:
   build:
