@@ -1,4 +1,4 @@
-name: Build Lab Tutorials and Documentation
+name: Build Lab Tutorial PDF
 
 on:
   push:
@@ -13,11 +13,11 @@ jobs:
       - name: LaTeX compilation
         uses: xu-cheng/latex-action@v2
         with:
-          working_directory: docs
+          working_directory: lab-tutorial
           root_file: mos.tex
 
       - name: Upload PDF file
         uses: actions/upload-artifact@v3
         with:
-          name: PDF
-          path: docs/mos.pdf
+          name: lab-tutorial.zip
+          path: lab-tutorial/mos.pdf
