@@ -1,0 +1,23 @@
+name: Build Lab Tutorial PDF
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build_docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: LaTeX compilation
+        uses: xu-cheng/latex-action@v2
+        with:
+          working_directory: lab-tutorial
+          root_file: mos.tex
+
+      - name: Upload PDF file
+        uses: actions/upload-artifact@v3
+        with:
+          name: lab-tutorial.zip
+          path: lab-tutorial/mos.pdf

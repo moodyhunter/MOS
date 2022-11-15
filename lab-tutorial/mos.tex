@@ -1,0 +1,54 @@
+\documentclass{report}
+
+\usepackage[nopdftrailerid=true]{pdfprivacy}
+\usepackage{pdfpages}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage[margin=3cm]{geometry}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{url}
+
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+    {\normalfont\bfseries}{}{0pt}{\Huge}
+
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\small,
+    showstringspaces=false,
+    commentstyle=\color{blue},
+    stringstyle=\color{brown},
+    frame=single,
+}
+
+\usepackage{mdframed}
+\newenvironment{note}[0]    { \begin{mdframed}[backgroundcolor=blue!25] \textbf{Note:} } { \end{mdframed} }
+\newenvironment{warning}[0] { \begin{mdframed}[backgroundcolor=red!25] \textbf{Warning:} } { \end{mdframed} }
+\newenvironment{tip}[0]     { \begin{mdframed}[backgroundcolor=green!25] \textbf{Tip:} } { \end{mdframed} }
+
+\begin{document}
+
+\begin{titlepage}
+    \vspace*{5cm}
+    \begin{center}
+        \includegraphics[width=0.5\textwidth]{logo-no-background.png}
+    \end{center}
+
+    \vspace{1cm}
+
+    \begin{center}
+        \textbf{\huge The MOS Project}\\
+        \vspace{0.5cm}
+        \textbf{\large Lab Tutorial}
+
+        \vspace{5cm}
+        Moody Liu\\
+        November 2022
+    \end{center}
+\end{titlepage}
+
+\tableofcontents
+
+\include{chapters/lab.0.introduction.tex}
+\include{chapters/lab.1.devenv.tex}
+
+\end{document}
