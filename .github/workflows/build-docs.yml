@@ -17,10 +17,14 @@ jobs:
         uses: xu-cheng/latex-action@v2
         with:
           working_directory: lab-tutorial
-          root_file: mos.tex
+          root_file: lab-tutorial.tex
+
+      - name: Make the name of the PDF file with the commit hash
+        run: |
+          mv lab-tutorial/lab-tutorial.pdf lab-tutorial/lab-tutorial-$(git describe --long --tags --all | sed 's/heads\///g').pdf
 
       - name: Upload PDF file
         uses: actions/upload-artifact@v3
         with:
-          name: lab-tutorial.zip
-          path: lab-tutorial/mos.pdf
+          name: lab-tutorial-${{ github.sha }}
+          path: lab-tutorial/lab-tutorial-*.pdf
