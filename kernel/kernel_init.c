@@ -93,13 +93,14 @@ void mos_start_kernel(const char *cmdline)
 
     const char *init_path = cmdline_get_init_path();
 
-    console_t *init_con = console_get("serial");
+    console_t *init_con = console_get("x86");
     if (!init_con)
     {
-        init_con = console_get_by_prefix("serial");
+        init_con = console_get_by_prefix("x86");
         if (!init_con)
             mos_panic("failed to find serial console");
     }
+    init_con->clear(init_con);
     terminal_t *init_term = terminal_create_console(init_con);
 
     uid_t root_uid = 0;

@@ -59,7 +59,7 @@
                 "-initrd",
                 "${workspaceFolder}/build/initrd.cpio",
                 "-append",
-                "kmsg_console=x86"
+                "kmsg_console=serial"
             ],
             "problemMatcher": [ ],
             "group": "none",
