@@ -63,6 +63,5 @@ x86_context_switch_impl:
     mov     es, cx
     mov     fs, cx
     mov     gs, cx
-.shit:
     iret
 .end:
