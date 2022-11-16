@@ -5,6 +5,8 @@ export GCC_VERSION="12.2.0"    # The latest version at the time of writing
 export GDB_VERSION="12.1"      # The latest version at the time of writing
 export TARGET="i686-elf"       # The target triple
 
+set -e # Exit on error
+
 mkdir -p "$PREFIX"
 cd "$PREFIX"
 mkdir _work && cd _work
