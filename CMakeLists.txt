@@ -100,7 +100,7 @@ target_include_directories(mos_libuserspace PUBLIC ${CMAKE_SOURCE_DIR}/userspace
 target_link_libraries(mos_libuserspace PUBLIC mos::userspace_stdlib)
 add_library(mos::libuserspace ALIAS mos_libuserspace)
 
-# build userspace programs after the kernel
+# build userspace programs after the kernel (may require the generated syscall headers)
 add_dependencies(mos_libuserspace mos::elf_kernel)
 
 add_subdirectory(userspace)

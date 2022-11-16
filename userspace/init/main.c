@@ -44,7 +44,7 @@ int main(void)
 
     char buf[256] = { 0 };
 
-    size_t read = syscall_io_read(stdin, buf, 256, 0);
+    long read = syscall_io_read(stdin, buf, 256, 0);
     if (read > 0)
     {
         printf("Read %d bytes from stdin", read);
