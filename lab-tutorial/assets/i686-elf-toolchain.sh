@@ -58,4 +58,4 @@ mkdir build && cd build
 
 make && make install
 cd ../..
--cd .. # back to $PREFIX
+cd .. # back to $PREFIX
