@@ -1,71 +1,144 @@
 \chapter{Lab 1 - Setting Up the Development Environment}
 
-MOS is an operating system, thus, preparing for a fully-functional development
-environment is not an easy task (bruh). Several efforts have been made to make
-the process easier.
+In this chapter, we'll set up the development environment for the rest of our labs. Firstly
+I'll introduce you to the tools we'll be using, and then, in the second part, we'll actually
+install them.
 
-To set up the development environment for MOS (well, for now, only x86 target exists),
-several tools are required:
+\section{Introduction to the Tools}
 
-\begin{itemize}
-    \item CMake and (Ninja or Make)
-    \item i686-elf-binutils, i686-elf-gcc and i686-elf-gdb
-    \item NASM
-    \item cpio
-    \item qemu-system-i386
-\end{itemize}
+MOS is an operating system, thus, only to prepare for a development environment is already
+not an easy task (bruh). Several efforts have been made to make the process easier.
 
-We'll discuss about each of them in the following sections.
+We are currently targeting the 32-bit \texttt{x86} architecture, the tools in table \ref{tab:tools}
+are the ones we'll be using.
 
-\section{CMake and (Ninja or Make)}
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{|l|c|c|}
+        \hline \textbf{Tool}               & \textbf{Description}     & \textbf{Installation}            \\
+        \hline \texttt{CMake}              & \ref{sec:cmake}          & \ref{sec:cmake-install}          \\
+        \hline \texttt{i686-elf} toolchain & \ref{sec:cross-compiler} & \ref{sec:cross-compiler-install} \\
+        \hline \texttt{NASM}               & \ref{sec:nasm}           & \ref{sec:nasm-install}           \\
+        \hline \texttt{cpio}               & \ref{sec:cpio}           & \ref{sec:cpio-install}           \\
+        \hline \texttt{qemu-system-i386}   & \ref{sec:qemu}           & \ref{sec:qemu-install}           \\
+        \hline
+    \end{tabular}
+    \caption{Tools used in this lab}
+    \label{tab:tools}
+\end{table}
 
-CMake is a cross-platform build system generator, which generates (e.g. Makefiles)
-for a build system (e.g. GNU Make) to use.
+\subsection{CMake} \label{sec:cmake}
 
-MOS uses CMake instead of GNU Make directly, because CMake is more flexible and
-powerful in many aspects.
+\begin{quote}
+    CMake is an open-source, cross-platform family of tools designed to build, test and package
+    software\footnote{https://cmake.org/}
+\end{quote}
 
-We'll come back to CMake in the later chapters.
+MOS uses CMake as the build system generator, it supports many build systems like `Make', `Ninja',
+`Visual Studio' and `Xcode'.
 
-\section{i686-elf-\{binutils,gcc,gdb\}}
+\begin{note}
+    \item It's the actual build system (e.g. `Make') that starts the compiler, linker, etc.,
+    CMake is only to \textbf{generate} the configuration files for such build system.
+\end{note}
 
-As its name suggests, this is a cross-compiler toolchain for `i686-elf' target.
-`i686' means the 32-bit x86 architecture, and `elf' means the executable format.
+We'll use `Make' as the build system for MOS in this tutorial, but
+\textbf{you can use `Ninja' if you want}.
+
+\subsection{NASM} \label{sec:nasm}
+
+NASM is an assembler for x86 architecture. There are several files under `arch/x86`
+that are written in NASM. It has a cleaner syntax than the GNU assembler (i.e. \texttt{as}).
+
+\subsection{cpio} \label{sec:cpio}
+
+Cpio is the format of an archive, and also the tool to create such archives. MOS uses cpio as
+the initial root filesystem.
+
+\subsection{qemu-system-i386} \label{sec:qemu}
+
+QEMU is an open-source emulator, it also provides a gdb stub for debugging. It can be
+installed via your Linux's package manager.
+
+(e.g. \texttt{apt install qemu-system-i386} or \texttt{pacman -S qemu-system-x86}, \dots).
+
+See its \href{https://www.qemu.org/download}{download page} for more details.
+
+\subsection{i686-elf Toolchain} \label{sec:cross-compiler}
+
+As its name suggests, this is a cross toolchain for `i686-elf' target. `i686' means the 32-bit
+x86 architecture, and `elf' is the executable format. They together form the `target-triple' of
+the toolchain.
 
 \begin{tip}
-    Most 64-bit Linux has a target triple of `x86\_64-pc-linux-gnu'.
+    \item Most 64-bit Linux OSes have `target triple' of \texttt{x86\_64-pc-linux-gnu}, or
+    \texttt{x86\_64-linux-gnu}.
+    \item Read more about `target triple' at \url{https://wiki.osdev.org/Target_Triplet}.
 \end{tip}
 
-Unlike other applications (e.g. bash or vim) that they run on an existing operating
-system and a standard libc (say, glibc or musl). MOS itself is the operating system,
-thus there's not an existing OS for it to run on, neither a standard libc (i.e. no
-\texttt{printf}, no \texttt{malloc} etc.) for it to use.
+Unlike other applications (e.g. \texttt{bash} or \texttt{vim}) that they run on an existing
+operating system and a standard C library (say, \texttt{glibc} or \texttt{musl}). MOS itself is
+the operating system, thus there's not an existing OS for it to run on, neither a standard libc
+(i.e. no \texttt{printf}, no \texttt{malloc} etc.) for it to use, considering you're directly
+interacting with the CPU and the hardware.
 
-A `bare-metal' compiler toolchain is exactly for this situation. Considering you're
-directly interacting with the CPU and the hardware.
+This is called `bare-metal' environment, or `freestanding' environment, a `bare-metal' compiler
+toolchain is exactly for this situation.
 
-There are majorly two ways to get this toolchain, either by building it from source
-or by downloading a pre-built binary.
+\begin{warning}
+    \item One should never use a hosted compiler (e.g. the \texttt{gcc} installed on the lab machine)
+    to cross-compile for a bare-metal environment when they are targeting a different architecture,
+    (\texttt{x86} and \texttt{x86\_64} are different), it \textit{\textbf{may sometimes}} work, but
+    you'll have to add a lot of unnecessary flags.
 
-\subsection{Downloading a pre-built binary}
+    \item See \url{https://wiki.osdev.org/Why_do_I_need_a_Cross_Compiler%3F} for more information.
+\end{warning}
+
+\section{Installating the Tools}
+
+\subsection{CMake} \label{sec:cmake-install}
+
+CMake should come with your Linux distribution's package manager, MOS requires at least version
+3.20, but any newer version is recommended.
+
+\subsection{NASM} \label{sec:nasm-install}
+
+NASM can be installed via your Linux's package manager, the minimum version of NASM tested is \texttt{2.15.03}.
+A pre-built binary from \href{https://www.nasm.us}{NASM's website} is also available.
+
+\subsection{cpio} \label{sec:cpio-install}
+
+cpio can also be installed via your Linux's package manager, the minimum version of cpio tested is \texttt{2.12}.
+
+\subsection{qemu-system-i386} \label{sec:qemu-install}
+
+TODO
+
+\subsection{i686-elf Toolchain} \label{sec:cross-compiler-install}
+
+Installing the cross-compiler toolchain is probably the most difficult part of this lab, but it's
+once and for all, you don't have to do it again (unless you want to upgrade the toolchain).
+
+There are majorly two ways to get this toolchain, either by building it from source or by downloading
+a pre-built binary.
+
+\subsubsection{Downloading a pre-built binary}
 
 If you don't want to build the toolchain from source, you can download a pre-built
 binary from \href{https://github.com/moodyhunter/i686-elf-prebuilt/releases}{moodyhunter/i686-elf-prebuilt} (choose the i686 one).
 
 \begin{warning}
-    \begin{itemize}
-        \item Using pre-built binary saves time, but please consider doing so \textbf{only} if you trust the author.
-        \item The above pre-built binary is built with GitHub Actions, and is built on Ubuntu 20.04.5 LTS (Image \texttt{ubuntu-20.04} version \texttt{20221027.1}).
-    \end{itemize}
+    \item Using pre-built binary saves time, but please consider doing so \textbf{only} if you trust the author.
+    \item The above pre-built binary is built with GitHub Actions, and is built on Ubuntu 20.04.5 LTS (Image \texttt{ubuntu-20.04} version \texttt{20221027.1}).
 \end{warning}
 
-\subsection{Building From Source}
+\subsubsection{Building From Source}
 
 The source code of binutils and gcc can be found at \href{https://www.gnu.org/software/binutils}{GNU Binutils's Website}
 and \href{https://gcc.gnu.org}{GNU GCC's Website} respectively.
 
 \begin{note}
-    For Arch Linux users, checkout
+    \item For Arch Linux users, checkout
     \href{https://github.com/moodyhunter/repo/blob/main/moody/i686-elf-binutils/PKGBUILD}{i686-elf-binutils},
     \href{https://github.com/moodyhunter/repo/blob/main/moody/i686-elf-gcc/PKGBUILD}{i686-elf-gcc} and
     \href{https://github.com/moodyhunter/repo/blob/main/moody/i686-elf-gdb/PKGBUILD}{i686-elf-gdb}.
@@ -73,28 +146,3 @@ and \href{https://gcc.gnu.org}{GNU GCC's Website} respectively.
 
 The script located at \texttt{docs/assets/i686-elf-toolchain.sh} downloads, compiles and installs them into the
 directory specified by the \texttt{PREFIX} variable.
-
-\lstinputlisting[language=Octave]{assets/i686-elf-toolchain.sh}
-
-\section{NASM}
-
-NASM is an assembler for x86 architecture. There are several files under `arch/x86`
-that are written in NASM.
-
-NASM can be installed via your Linux's package manager, (e.g. `sudo apt install nasm`
-or `sudo pacman -S nasm`). Or you can download a pre-built binary from [NASM's website](https://www.nasm.us/).
-
-\section{cpio}
-
-cpio is the tool to create archives in a the cpio format. MOS uses cpio as the initial
-root filesystem.
-
-Similar to NASM, you can install cpio via both package manager like `sudo apt install cpio`
-or `sudo pacman -S cpio`, downloading and compiling it from source is also possible, but is not discussed here.
-
-\section{qemu-system-i386}
-
-QEMU is an open-source emulator, it also provides a gdb stub for debugging.
-
-QEMU can be installed via your Linux's package manager, (e.g. `sudo apt install qemu-system-i386`
-or `sudo pacman -S qemu-system-x86`). See its [download page](https://www.qemu.org/download) for more details.

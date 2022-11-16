@@ -5,12 +5,7 @@
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
 \usepackage[margin=3cm]{geometry}
 \usepackage{hyperref}
-\usepackage{xcolor}
 \usepackage{url}
-
-\usepackage{titlesec}
-\titleformat{\chapter}[display]
-    {\normalfont\bfseries}{}{0pt}{\Huge}
 
 \usepackage{listings}
 \lstset{basicstyle=\ttfamily\small,
@@ -21,9 +16,9 @@
 }
 
 \usepackage{mdframed}
-\newenvironment{note}[0]    { \begin{mdframed}[backgroundcolor=blue!25]     \textbf{Note:}      } { \end{mdframed} }
-\newenvironment{warning}[0] { \begin{mdframed}[backgroundcolor=red!25]      \textbf{Warning:}   } { \end{mdframed} }
-\newenvironment{tip}[0]     { \begin{mdframed}[backgroundcolor=green!25]    \textbf{Tip:}       } { \end{mdframed} }
+\newenvironment{note}[0]    { \begin{mdframed}[backgroundcolor=blue!25]  \textbf{Note:}    \begin{itemize} \itemsep0em } { \end{itemize} \end{mdframed} }
+\newenvironment{warning}[0] { \begin{mdframed}[backgroundcolor=red!25]   \textbf{Warning:} \begin{itemize} \itemsep0em } { \end{itemize} \end{mdframed} }
+\newenvironment{tip}[0]     { \begin{mdframed}[backgroundcolor=green!25] \textbf{Tip:}     \begin{itemize} \itemsep0em } { \end{itemize} \end{mdframed} }
 
 \begin{document}
 
