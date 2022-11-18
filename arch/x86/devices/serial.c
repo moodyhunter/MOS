@@ -19,7 +19,7 @@ void serial_irq_handler(u32 irq)
     if (irq == IRQ_COM1)
     {
         char c = serial_irq_read_char(COM1);
-        MOS_UNUSED(c);
+        pr_info("COM1: (%2d) %c", c, c);
     }
     else if (irq == IRQ_COM2)
     {

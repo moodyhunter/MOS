@@ -9,6 +9,7 @@
 #include "mos/printk.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/devices/initrd_blockdev.h"
+#include "mos/x86/devices/port.h"
 #include "mos/x86/devices/serial_console.h"
 #include "mos/x86/devices/text_mode_console.h"
 #include "mos/x86/interrupt/pic.h"
@@ -32,6 +33,20 @@ static serial_console_t com1_console = {
 };
 
 const uintptr_t mos_kernel_end = (uintptr_t) &__MOS_KERNEL_END;
+
+void x86_keyboard_handler(u32 irq)
+{
+    MOS_ASSERT(irq == IRQ_KEYBOARD);
+    int scancode = port_inb(0x60);
+    char buf[9] = { 0 };
+    for (int i = 7; i >= 0; i--)
+    {
+        buf[i] = '0' + (scancode & 1);
+        scancode >>= 1;
+    }
+
+    pr_info("scancode: 0b%s", buf);
+}
 
 void do_backtrace(u32 max)
 {
@@ -140,6 +155,7 @@ void x86_start_kernel(x86_startup_info *info)
     console_register(&vga_text_mode_console);
     x86_install_interrupt_handler(IRQ_COM1, serial_irq_handler);
     x86_install_interrupt_handler(IRQ_TIMER, x86_timer_handler);
+    x86_install_interrupt_handler(IRQ_KEYBOARD, x86_keyboard_handler);
 
     if (initrd_size)
     {
