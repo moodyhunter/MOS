@@ -4,7 +4,7 @@ on:
   push:
     path:
       - "lab-tutorial/**"
-      - ".github/workflows/build-docs.yml"
+      - ".github/workflows/build-labs.yml"
   workflow_dispatch:
 
 jobs:
