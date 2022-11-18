@@ -23,8 +23,8 @@ void thread_work(void *arg)
     pid_t process = syscall_get_pid();
     printf("Thread started, value = %d, from process %d\n", *value, process);
     // TODO: implement thread termination
-    while (1)
-        ;
+
+    syscall_thread_exit();
 }
 
 static int value = 0;

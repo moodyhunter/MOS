@@ -105,4 +105,5 @@ void thread_handle_exit(thread_t *t)
         return;
 
     mos_warn("TODO");
+    t->status = THREAD_STATUS_DEAD;
 }
