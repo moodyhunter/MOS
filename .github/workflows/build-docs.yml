@@ -39,5 +39,5 @@ jobs:
           ninja mos_initrd # We don't need to make a bootable kernel.
 
       - uses: mattnotmitt/doxygen-action@v1.9.4
-      - with:
+        with:
           doxyfile-path: ".github/workflows/Doxyfile"
