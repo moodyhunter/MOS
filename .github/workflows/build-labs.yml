@@ -2,7 +2,7 @@ name: Build Lab Tutorial PDF
 
 on:
   push:
-    path:
+    paths:
       - "lab-tutorial/**"
       - ".github/workflows/build-labs.yml"
   workflow_dispatch:
