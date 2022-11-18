@@ -36,6 +36,10 @@ jobs:
           cd ${{github.workspace}}/build
           ninja mos_initrd # We don't need to make a bootable kernel.
 
+      - name: Clone Stylesheet
+        run: |
+          git clone https://github.com/jothepro/doxygen-awesome-css ${{github.workspace}}/build/doxygen-awesome-css
+
       - uses: mattnotmitt/doxygen-action@v1.9.4
         with:
           doxyfile-path: ".github/workflows/Doxyfile"
