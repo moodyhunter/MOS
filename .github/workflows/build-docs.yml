@@ -1,30 +1,66 @@
-name: Build Lab Tutorial PDF
+name: Build MOS Documentation
 
 on:
   push:
-    path:
-      - "lab-tutorial/**"
-      - ".github/workflows/build-docs.yml"
   workflow_dispatch:
 
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
 jobs:
-  build_docs:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v2
 
-      - name: LaTeX compilation
-        uses: xu-cheng/latex-action@v2
-        with:
-          working_directory: lab-tutorial
-          root_file: lab-tutorial.tex
-
-      - name: Make the name of the PDF file with the commit hash
+      - name: Install packages
         run: |
-          mv lab-tutorial/lab-tutorial.pdf lab-tutorial/lab-tutorial-$(git describe --long --tags --all | sed 's/heads\///g').pdf
+          sudo apt update
+          sudo apt -y install nasm grub2-common mtools jq ninja-build cpio libgmp-dev libmpfr-dev libmpc-dev
 
-      - name: Upload PDF file
-        uses: actions/upload-artifact@v3
+      - name: Download & Extract Cross Compiler
+        run: |
+          wget -q "https://github.com/moodyhunter/i686-elf-prebuilt/releases/download/artifact/toolchain-i686-elf.tar.gz"
+          tar -xzf toolchain-i686-elf.tar.gz
+          mv toolchain /tmp/
+          echo "PATH=$PATH:/tmp/toolchain/bin" >> $GITHUB_ENV
+
+      - name: Configure CMake
+        run: |
+          cmake \
+            -DBUILD_TESTING=ON \
+            -B ${{github.workspace}}/build \
+            -G Ninja
+
+      - name: Build
+        run: |
+          cd ${{github.workspace}}/build
+          ninja mos_initrd # We don't need to make a bootable kernel.
+
+      - name: Clone Stylesheet
+        run: |
+          git clone https://github.com/jothepro/doxygen-awesome-css ${{github.workspace}}/build/doxygen-awesome-css
+
+      - uses: mattnotmitt/doxygen-action@v1.9.4
         with:
-          name: lab-tutorial-${{ github.sha }}
-          path: lab-tutorial/lab-tutorial-*.pdf
+          doxyfile-path: ".github/workflows/Doxyfile"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v2
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: "build/doxygen_output/html"
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
