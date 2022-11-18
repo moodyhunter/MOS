@@ -930,7 +930,8 @@ FILE_PATTERNS = *.c \
     *.hpp \
     *.h++ \
     *.mm \
-    *.dox
+    *.dox \
+    *.md
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
 # be searched for input files as well.
@@ -945,7 +946,7 @@ RECURSIVE = YES
 # Note that relative paths are relative to the directory from which doxygen is
 # run.
 
-EXCLUDE = build/doxygen-awesome-css/
+EXCLUDE = build/doxygen-awesome-css/ arch/ tests/ build/CMakeFiles/
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
@@ -1059,7 +1060,7 @@ FILTER_SOURCE_PATTERNS =
 # (index.html). This can be useful if you have a project on for instance GitHub
 # and want to reuse the introduction page also for the doxygen output.
 
-USE_MDFILE_AS_MAINPAGE =
+USE_MDFILE_AS_MAINPAGE = ./README.md
 
 # The Fortran standard specifies that for fixed formatted Fortran code all
 # characters from position 72 are to be considered as comment. A common
@@ -1100,7 +1101,7 @@ STRIP_CODE_COMMENTS = YES
 # entity all documented functions referencing it will be listed.
 # The default value is: NO.
 
-REFERENCED_BY_RELATION = NO
+REFERENCED_BY_RELATION = YES
 
 # If the REFERENCES_RELATION tag is set to YES then for each documented function
 # all documented entities called/used by that function will be listed.
@@ -1114,7 +1115,7 @@ REFERENCES_RELATION = NO
 # link to the documentation.
 # The default value is: YES.
 
-REFERENCES_LINK_SOURCE = YES
+REFERENCES_LINK_SOURCE = NO
 
 # If SOURCE_TOOLTIPS is enabled (the default) then hovering a hyperlink in the
 # source code will show a tooltip with additional information such as prototype,
@@ -1154,7 +1155,7 @@ USE_HTAGS = NO
 # See also: Section \class.
 # The default value is: YES.
 
-VERBATIM_HEADERS = YES
+VERBATIM_HEADERS = NO
 
 #---------------------------------------------------------------------------
 # Configuration options related to the alphabetical class index
