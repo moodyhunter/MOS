@@ -37,7 +37,7 @@ mountpoint_t *kmount(fsnode_t *path, filesystem_t *fs, blockdev_t *blockdev)
     MOS_ASSERT(fs != NULL);
     MOS_ASSERT(blockdev != NULL);
 
-    pr_info("mount '%s' on '%s' (blockdev '%s')", fs->name, path->name, blockdev->name);
+    pr_info("mounting '%s' on '%s' (blockdev '%s')", fs->name, path->name, blockdev->name);
     mountpoint_t *new_mp = kcalloc(1, sizeof(mountpoint_t));
 
     if (!new_mp)

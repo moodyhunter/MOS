@@ -34,7 +34,7 @@ void printk_setup_console()
     console_t *console = console_get(kcon_name);
     if (console)
     {
-        pr_emph("Seleting console '%s' for future printk", kcon_name);
+        pr_emph("Selected console '%s' for future printk", kcon_name);
         printk_console = console;
         return;
     }
@@ -42,7 +42,7 @@ void printk_setup_console()
     console = console_get_by_prefix(kcon_name);
     if (console)
     {
-        pr_emph("Seleting console '%s' for future printk (prefix-based)", console->name);
+        pr_emph("Selected console '%s' for future printk (prefix-based)", console->name);
         printk_console = console;
         return;
     }

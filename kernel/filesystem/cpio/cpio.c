@@ -98,7 +98,7 @@ bool cpio_mount(blockdev_t *dev, fsnode_t *path)
         return false;
     }
 
-    pr_info("cpio header: %.6s", header.magic);
+    mos_debug("cpio header: %.6s", header.magic);
 
     return true;
 }
