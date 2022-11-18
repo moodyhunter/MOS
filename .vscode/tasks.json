@@ -72,6 +72,18 @@
                 "close": true
             },
             "detail": "Start MOS and wait for the debugger to connect."
+        },
+        {
+            "label": "build_doxygen",
+            "type": "shell",
+            "command": "doxygen",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "args": [
+                "${workspaceFolder}/.github/workflows/Doxyfile"
+            ],
+            "problemMatcher": [ ]
         }
     ]
 }
