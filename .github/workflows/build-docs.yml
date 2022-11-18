@@ -43,3 +43,8 @@ jobs:
       - uses: mattnotmitt/doxygen-action@v1.9.4
         with:
           doxyfile-path: ".github/workflows/Doxyfile"
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: build/doxygen_output/html
