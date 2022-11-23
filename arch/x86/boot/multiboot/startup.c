@@ -46,15 +46,15 @@ __startup_rodata static x86_pgtable_entry *const pages = (x86_pgtable_entry *) &
 
 __startup_rwdata uintptr_t video_device_address = X86_VIDEO_DEVICE;
 
-#define STARTUP_ASSERT(cond, type)                                                                                                              \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        if (!unlikely(cond))                                                                                                                    \
-        {                                                                                                                                       \
-            print_debug_info('E', type);                                                                                                        \
-            while (1)                                                                                                                           \
-                __asm__("hlt");                                                                                                                 \
-        }                                                                                                                                       \
+#define STARTUP_ASSERT(cond, type)                                                                                                                                       \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (!unlikely(cond))                                                                                                                                             \
+        {                                                                                                                                                                \
+            print_debug_info('E', type);                                                                                                                                 \
+            while (1)                                                                                                                                                    \
+                __asm__("hlt");                                                                                                                                          \
+        }                                                                                                                                                                \
     } while (0)
 
 #define debug_print_step() print_debug_info('S', step++)
@@ -186,7 +186,7 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
     acpi_rsdp_t *rsdp = find_acpi_rsdp(BIOS_VADDR(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
     if (!rsdp)
         rsdp = find_acpi_rsdp(BIOS_VADDR(X86_BIOS_MEMREGION_PADDR), BIOS_MEMREGION_SIZE);
-    STARTUP_ASSERT(rsdp, 'r');
+    STARTUP_ASSERT(rsdp, 'R');
 
     const multiboot_memory_map_t *map_entries = (multiboot_memory_map_t *) startup->mb_info->mmap_addr;
     for (u32 i = 0; i < startup->mb_info->mmap_length / sizeof(multiboot_memory_map_t); i++)
