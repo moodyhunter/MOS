@@ -38,11 +38,11 @@ mos_x86_multiboot_start:
     pop     eax
 
     mov     esp, __MOS_KERNEL_HIGHER_STACK_TOP ; paging has been enabled, switch to higher stack
-    push    dword [eax + 12]
-    push    dword [eax + 8]
-    push    dword [eax + 4]
-    push    dword [eax]
-    push    esp
+    push    dword [eax + 12]            ; Push initrd size
+    push    dword [eax + 8]             ; Push initrd start
+    push    dword [eax + 4]             ; Push multiboot2 header pointer
+    push    dword [eax]                 ; Push multiboot2 magic value
+    push    esp                         ; Push [struct x86_startup_info] pointer
     call    x86_start_kernel
 .hang:
     hlt
