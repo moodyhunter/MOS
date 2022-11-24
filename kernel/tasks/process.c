@@ -36,7 +36,6 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
     memzero(proc, sizeof(process_t));
 
     proc->magic = PROCESS_MAGIC_PROC;
-    proc->name = "<unknown>";
 
     proc->pid = new_process_id();
 
@@ -51,10 +50,14 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
         return NULL;
     }
 
-    if (name)
+    if (likely(name))
     {
         proc->name = kmalloc(strlen(name) + 1);
         strcpy((char *) proc->name, name);
+    }
+    else
+    {
+        proc->name = "<unknown>";
     }
 
     proc->effective_uid = euid;
