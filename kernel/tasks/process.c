@@ -4,18 +4,11 @@
 
 #include "lib/string.h"
 #include "lib/structures/hashmap.h"
-#include "lib/structures/stack.h"
-#include "mos/device/block.h"
-#include "mos/filesystem/filesystem.h"
-#include "mos/io/io.h"
 #include "mos/io/terminal.h"
 #include "mos/mm/cow.h"
 #include "mos/mm/kmalloc.h"
-#include "mos/platform/platform.h"
 #include "mos/printk.h"
-#include "mos/tasks/task_type.h"
 #include "mos/tasks/thread.h"
-#include "mos/types.h"
 
 #define PROCESS_HASHTABLE_SIZE 512
 
@@ -42,10 +35,7 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
     process_t *proc = kmalloc(sizeof(process_t));
     memzero(proc, sizeof(process_t));
 
-    proc->magic[0] = 'P';
-    proc->magic[1] = 'R';
-    proc->magic[2] = 'O';
-    proc->magic[3] = 'C';
+    proc->magic = PROCESS_MAGIC_PROC;
     proc->name = "<unknown>";
 
     proc->pid = new_process_id();

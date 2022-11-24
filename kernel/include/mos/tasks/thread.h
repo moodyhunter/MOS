@@ -6,6 +6,8 @@
 #include "mos/tasks/task_type.h"
 #include "mos/types.h"
 
+#define THREAD_MAGIC_THRD 0x54524448 // "THRD"
+
 typedef struct _hashmap hashmap_t;
 typedef void (*thread_entry_t)(void *arg); // also defined in task_type.h
 
@@ -13,7 +15,7 @@ extern hashmap_t *thread_table;
 
 should_inline bool thread_is_valid(thread_t *thread)
 {
-    return thread && thread->magic[0] == 'T' && thread->magic[1] == 'H' && thread->magic[2] == 'R' && thread->magic[3] == 'D';
+    return thread && thread->magic == THREAD_MAGIC_THRD;
 }
 
 void thread_init();

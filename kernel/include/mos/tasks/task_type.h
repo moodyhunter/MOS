@@ -49,7 +49,7 @@ typedef struct _process process_t;
 
 typedef struct _process
 {
-    char magic[4];
+    u32 magic;
     const char *name;
     pid_t pid;
     process_t *parent;
@@ -69,7 +69,7 @@ typedef struct _process
 
 typedef struct _thread
 {
-    char magic[4];
+    u32 magic;
     tid_t tid;
     thread_status_t status;
     process_t *owner;

@@ -4,15 +4,11 @@
 
 #include "lib/string.h"
 #include "lib/structures/hashmap.h"
-#include "lib/structures/stack.h"
-#include "mos/kconfig.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/memops.h"
-#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_type.h"
-#include "mos/x86/tasks/context.h"
 
 #define THREAD_HASHTABLE_SIZE 512
 
@@ -37,10 +33,7 @@ static tid_t new_thread_id()
 thread_t *thread_allocate(process_t *owner, thread_flags_t tflags)
 {
     thread_t *t = kmalloc(sizeof(thread_t));
-    t->magic[0] = 'T';
-    t->magic[1] = 'H';
-    t->magic[2] = 'R';
-    t->magic[3] = 'D';
+    t->magic = THREAD_MAGIC_THRD;
     t->tid = new_thread_id();
     t->owner = owner;
     t->status = THREAD_STATUS_CREATED;

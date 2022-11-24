@@ -8,6 +8,8 @@
 #include "mos/tasks/task_type.h"
 #include "mos/types.h"
 
+#define PROCESS_MAGIC_PROC 0x50524F43 // "PROC"
+
 typedef struct _hashmap hashmap_t;
 typedef struct _terminal terminal_t;
 extern hashmap_t *process_table;
@@ -17,7 +19,7 @@ void process_cleanup();
 
 should_inline bool process_is_valid(process_t *process)
 {
-    return process != NULL && process->magic[0] == 'P' && process->magic[1] == 'R' && process->magic[2] == 'O' && process->magic[3] == 'C';
+    return process != NULL && process->magic == PROCESS_MAGIC_PROC;
 }
 
 process_t *process_allocate(process_t *parent, uid_t euid, const char *name);
