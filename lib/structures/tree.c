@@ -2,7 +2,6 @@
 
 #include "lib/structures/tree.h"
 
-#include "lib/containers.h"
 #include "lib/mos_lib.h"
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"

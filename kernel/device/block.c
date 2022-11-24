@@ -5,6 +5,7 @@
 #include "lib/string.h"
 #include "lib/structures/hashmap.h"
 #include "lib/structures/hashmap_common.h"
+#include "lib/structures/list.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
 #include "mos/types.h"

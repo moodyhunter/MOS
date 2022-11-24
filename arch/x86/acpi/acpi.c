@@ -2,7 +2,6 @@
 
 #include "mos/x86/acpi/acpi.h"
 
-#include "lib/containers.h"
 #include "lib/string.h"
 #include "mos/boot/startup.h"
 #include "mos/mos_global.h"

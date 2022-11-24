@@ -2,7 +2,6 @@
 
 #include "mos/x86/tasks/context.h"
 
-#include "lib/containers.h"
 #include "lib/string.h"
 #include "lib/structures/stack.h"
 #include "mos/mm/kmalloc.h"

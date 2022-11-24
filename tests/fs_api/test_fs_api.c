@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/containers.h"
 #include "lib/structures/tree.h"
 #include "mos/filesystem/filesystem.h"
 #include "mos/filesystem/pathutils.h"

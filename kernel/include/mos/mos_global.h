@@ -30,6 +30,8 @@
 
 #define to_union(u) __extension__(u)
 
+#define container_of(ptr, type, member) ((type *) ((char *) (ptr) - (offsetof(type, member))))
+
 #define GET_BIT(x, n)               (((x) >> (n)) & 1)
 #define MASK_BITS(value, width)     ((value) & ((1 << (width)) - 1))
 #define SET_BITS(bit, width, value) (MASK_BITS(value, width) << (bit))

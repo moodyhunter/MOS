@@ -2,8 +2,18 @@
 
 #pragma once
 
-#include "lib/containers.h"
 #include "mos/types.h"
+
+typedef struct tree_node tree_node_t;
+
+typedef struct tree_node
+{
+    tree_node_t *parent;
+    size_t n_children;
+    tree_node_t **children;
+} tree_node_t;
+
+#define as_tree tree_node_t tree_node
 
 typedef const struct
 {

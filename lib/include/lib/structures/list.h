@@ -2,8 +2,22 @@
 
 #pragma once
 
-#include "lib/containers.h"
 #include "mos/types.h"
+
+typedef struct list_node list_node_t;
+
+struct list_node
+{
+    list_node_t *prev;
+    list_node_t *next;
+};
+#define as_linked_list list_node_t list_node
+
+// clang-format off
+#define LIST_HEAD_INIT(container) { .prev = &(container), .next = &(container) }
+// clang-format on
+
+#define LIST_NODE_INIT(container) LIST_HEAD_INIT(container.list_node)
 
 #define list_entry(node, type) container_of((node), type, list_node)
 #define list_node(element)     (&((element)->list_node))

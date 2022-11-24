@@ -2,7 +2,6 @@
 
 #include "mos/device/console.h"
 
-#include "lib/containers.h"
 #include "lib/string.h"
 #include "lib/structures/list.h"
 #include "mos/printk.h"

@@ -2,7 +2,6 @@
 
 #include "mos/x86/devices/initrd_blockdev.h"
 
-#include "lib/containers.h"
 #include "lib/string.h"
 #include "mos/printk.h"
 
