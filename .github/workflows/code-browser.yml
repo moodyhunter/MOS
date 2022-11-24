@@ -17,7 +17,7 @@ jobs:
       - name: Install packages
         run: |
           sudo apt update
-          sudo apt -y install nasm cpio gcc-i686-linux-gnu g++-i686-linux-gnu ninja-build libclang-14-dev
+          sudo apt -y install nasm cpio gcc-i686-linux-gnu g++-i686-linux-gnu ninja-build libclang-14-dev libclang-13-dev
 
       - name: Configure CMake
         run: |
