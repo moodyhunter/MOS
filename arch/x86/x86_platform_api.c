@@ -68,8 +68,8 @@ paging_handle_t platform_mm_create_user_pgd(void)
     const uintptr_t kpgtable_paddr = pg_page_get_mapped_paddr(x86_kpg_infra, (uintptr_t) x86_kpg_infra->pgtable);
 
     // this is a bit of a hack, but it's the easiest way that I can think of ...
-    const int kernel_page_start = MOS_KERNEL_START_VADDR / (1024 * MOS_PAGE_SIZE);
-    for (int i = kernel_page_start; i < 1024; i++)
+    const int kernel_pagedir_id_start = MOS_KERNEL_START_VADDR / MOS_PAGE_SIZE / 1024; // addr / (size of page) / (# pages of a page directory)
+    for (int i = kernel_pagedir_id_start; i < 1024; i++)
     {
         x86_pgdir_entry *pgd = &infra->pgdir[i];
         pgd->present = true;
