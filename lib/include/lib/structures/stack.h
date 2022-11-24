@@ -4,8 +4,12 @@
 
 #include "mos/types.h"
 
-// A stack that grows downwards
-
+/**
+ * \defgroup down_stack libs.DownStack
+ * \ingroup libs
+ * \brief A stack that grows down.
+ * @{
+ */
 typedef struct _downwards_stack_t
 {
     uintptr_t top;
@@ -21,3 +25,5 @@ void stack_push(downwards_stack_t *stack, void *data, size_t size);
 
 // ! WARN: Caller must ensure the data is at least size bytes long
 void stack_pop(downwards_stack_t *stack, size_t size, void *data);
+
+/** @} */

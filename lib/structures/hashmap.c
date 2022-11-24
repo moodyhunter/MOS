@@ -32,6 +32,14 @@ void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, has
     map->key_compare_func = compare_func;
 }
 
+/**
+ * \brief Deinitialize a hashmap.
+ * \pre The hashmap must be initialized.
+ * \pre The hashmap should be empty, otherwise the entries will be leaked.
+ * \warning This function does not free the hashmap itself, nor does it free the keys or values, but only the internal data structures.
+ *
+ * \param map The hashmap to deinitialize.
+ */
 void hashmap_deinit(hashmap_t *map)
 {
     MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);

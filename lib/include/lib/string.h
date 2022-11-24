@@ -3,6 +3,13 @@
 
 #include "mos/types.h"
 
+/**
+ * \defgroup libs_std_string libs.String
+ * \ingroup libs
+ * \brief String manipulation functions, similar to the ones in the C standard library.
+ * @{
+ */
+
 size_t strlen(const char *str) __pure;
 s32 strcmp(const char *str1, const char *str2);
 s32 strncmp(const char *str1, const char *str2, size_t n);
@@ -24,3 +31,5 @@ s64 strtoll(const char *str, char **endptr, int base);
 s64 strntoll(const char *str, char **endptr, int base, size_t n);
 
 char *strchr(const char *s, int c);
+
+/** @} */

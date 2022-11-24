@@ -6,6 +6,13 @@
 #include <stdarg.h>
 #include <stddef.h>
 
+/**
+ * \defgroup libs_stdio libs.Stdio
+ * \ingroup libs
+ * \brief Standard input/output functions.
+ * @{
+ */
+
 // int printf(const char *restrict format, ...);
 // int vprintf(const char *restrict format, va_list ap);
 
@@ -16,3 +23,5 @@ int vsprintf(char *restrict str, const char *restrict format, va_list ap);
 
 // defined in stdio_impl.c
 int vsnprintf(char *restrict buf, size_t size, const char *restrict format, va_list args);
+
+/** @} */

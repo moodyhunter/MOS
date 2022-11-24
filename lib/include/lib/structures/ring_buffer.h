@@ -5,6 +5,12 @@
 #include "mos/mos_global.h"
 #include "mos/types.h"
 
+/**
+ * \defgroup ringbuffer libs.RingBuffer
+ * \ingroup libs
+ * \brief A ring buffer.
+ * @{
+ */
 typedef struct _ring_buffer
 {
     u8 *data;
@@ -67,3 +73,5 @@ should_inline size_t ring_buffer_push_front_byte(ring_buffer_t *buffer, u8 byte)
 
 #define ring_buffer_enqueue_t(buffer, type, data) ring_buffer_push_back_t(buffer, type, data)
 #define ring_buffer_dequeue_t(buffer, type, data) ring_buffer_pop_front_t(buffer, type, data)
+
+/** @} */

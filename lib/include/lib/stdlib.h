@@ -7,6 +7,13 @@
 #include <limits.h>
 #include <stddef.h>
 
+/**
+ * \defgroup libs_stdlib libs.Stdlib
+ * \ingroup libs
+ * \brief Some standard library functions.
+ * @{
+ */
+
 s32 abs(s32 x);
 long labs(long x);
 s64 llabs(s64 x);
@@ -16,3 +23,5 @@ void format_size(char *buf, size_t buf_size, u64 size);
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+/** @} */

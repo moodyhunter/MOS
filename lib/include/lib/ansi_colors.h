@@ -2,6 +2,29 @@
 
 #pragma once
 
+/**
+ * \defgroup libs_ansicolors libs.AnsiColors
+ * \ingroup libs
+ * \brief ANSI color codes.
+ * @{
+ */
+
+/**
+ * \brief ANSI color codes creator.
+ *
+ * \details
+ * Usage:
+ * - a foreground color: ANSI_COLOR(foreground)
+ * - a foreground color with style: ANSI_COLOR(foreground, style)
+ * - a foreground color with style and a background color: ANSI_COLOR(foreground, style, background)
+ */
+
+// "_" is to prevent the "must specify at least one argument for '...' parameter of variadic macro" warning
+#define ANSI_COLOR(...)  "\033[" _ANSI_COLOR_N(__VA_ARGS__, _ANSI_COLOR_3, _ANSI_COLOR_2, _ANSI_COLOR_1, _)(__VA_ARGS__) "m"
+#define ANSI_COLOR_RESET "\033[0m"
+
+// ! WARN: These below are not meant to be used directly
+
 #define _ANSI_FG "3"
 #define _ANSI_BG "4"
 
@@ -29,12 +52,4 @@
 #define _ANSI_COLOR_3(fg, style, bg)      _ANSI_STYLE_##style ";" _ANSI_FG _ANSI_COLOR_##fg ";" _ANSI_BG _ANSI_COLOR_##bg
 #define _ANSI_COLOR_N(_1, _2, _3, N, ...) N
 
-// USAGE:
-//
-// ANSI_COLOR(foreground)                       // a foreground color
-// ANSI_COLOR(foreground, style)                // a foreground color with style
-// ANSI_COLOR(foreground, style, background)    // a foreground color with style and a background color
-//
-// "_" is to prevent the "must specify at least one argument for '...' parameter of variadic macro" warning
-#define ANSI_COLOR(...)  "\033[" _ANSI_COLOR_N(__VA_ARGS__, _ANSI_COLOR_3, _ANSI_COLOR_2, _ANSI_COLOR_1, _)(__VA_ARGS__) "m"
-#define ANSI_COLOR_RESET "\033[0m"
+/** @} */

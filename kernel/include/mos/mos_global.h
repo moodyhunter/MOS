@@ -53,6 +53,9 @@
 #define ALIGN_UP_TO_PAGE(addr)   ALIGN_UP(addr, MOS_PAGE_SIZE)
 #define ALIGN_DOWN_TO_PAGE(addr) ALIGN_DOWN(addr, MOS_PAGE_SIZE)
 
+/**
+ * \brief Returns true for the first call, false for all subsequent calls.
+ */
 #define once()                                                                                                                                                           \
     __extension__({                                                                                                                                                      \
         static bool __once = false;                                                                                                                                      \

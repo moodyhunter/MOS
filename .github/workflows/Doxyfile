@@ -501,7 +501,7 @@ EXTRACT_PACKAGE = YES
 # included in the documentation.
 # The default value is: NO.
 
-EXTRACT_STATIC = YES
+EXTRACT_STATIC = NO
 
 # If the EXTRACT_LOCAL_CLASSES tag is set to YES, classes (and structs) defined
 # locally in source files will be included in the documentation. If set to NO,
@@ -509,7 +509,7 @@ EXTRACT_STATIC = YES
 # for Java sources.
 # The default value is: YES.
 
-EXTRACT_LOCAL_CLASSES = YES
+EXTRACT_LOCAL_CLASSES = NO
 
 # If this flag is set to YES, the members of anonymous namespaces will be
 # extracted and appear in the documentation as a namespace called

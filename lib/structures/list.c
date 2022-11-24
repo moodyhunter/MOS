@@ -2,12 +2,33 @@
 
 #include "lib/structures/list.h"
 
+// Note: The nullability of each parameter is not checked, because results will be the same no matter what.
+// (i.e. kernel panic / process termination)
+
+/**
+ * \brief Initialise a circular double linked list
+ * \post  head_node->next == head_node
+ * \post  head_node->prev == head_node
+ *
+ * \param head_node The list head node (and thus, the only element in the newly created list)
+ */
 void linked_list_init(list_node_t *node)
 {
     node->prev = node;
     node->next = node;
 }
 
+/**
+ * \brief Insert a node into a list
+ * \post  node->next == next
+ * \post  node->prev == prev
+ * \post  prev->next == node
+ * \post  next->prev == node
+ *
+ * \param node The node to insert
+ * \param prev The node before the insertion point
+ * \param next The node after the insertion point
+ */
 bool list_is_empty(list_node_t *head)
 {
     return head->next == head;
