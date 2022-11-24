@@ -5,6 +5,8 @@
 #include "mos/mos_global.h"
 #include "test_engine.h"
 
+#define HASHMAP_MAGIC 0x484d6170 // "HMap" (defined in lib/structures/hashmap.c)
+
 MOS_TEST_CASE(hashmap_init_simple_macro)
 {
     hashmap_t map = { 0 };

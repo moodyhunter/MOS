@@ -2,7 +2,6 @@
 
 #include "mos/types.h"
 
-#define HASHMAP_MAGIC 0x484d6170 // "HMap"
 
 typedef hash_t (*hashmap_hash_t)(const void *key);
 typedef int (*hashmap_key_compare_t)(const void *key1, const void *key2);

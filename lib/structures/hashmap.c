@@ -6,6 +6,8 @@
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"
 
+#define HASHMAP_MAGIC 0x484d6170 // "HMap"
+
 typedef struct hashmap_entry
 {
     const void *key;
