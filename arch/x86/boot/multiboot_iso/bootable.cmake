@@ -7,6 +7,7 @@ find_program(GRUB_MKRESCUE grub-mkrescue NO_CACHE)
 if (GRUB_MKRESCUE)
     message(STATUS "Found grub-mkrescue at: ${GRUB_MKRESCUE}")
     add_custom_target(multiboot_iso
+        BYPRODUCTS ${CMAKE_BINARY_DIR}/mos_multiboot_img.iso
         DEPENDS $<TARGET_FILE:multiboot> mos_initrd
         COMMAND ${CMAKE_COMMAND} -E rm -rf ${MOS_ISODIR}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${MOS_ISODIR}/boot/grub
