@@ -55,17 +55,17 @@ void pmem_freelist_setup(void)
     // add current physical memory region to the freelist
     for (size_t i = 0; i < x86_mem_regions_count; i++)
     {
-        memblock_t *r = &x86_mem_regions[i];
+        x86_pmblock_t *r = &x86_mem_regions[i];
         if (!r->available)
             continue;
 
-        if (r->paddr + r->size_bytes < RESERVED_LOMEM)
+        if (r->address + r->size_bytes < RESERVED_LOMEM)
         {
-            pr_emph("ignored low memory: " PTR_FMT "-" PTR_FMT " (%zu bytes)", r->paddr, r->paddr + r->size_bytes, r->size_bytes);
+            pr_emph("ignored low memory: " PTR_FMT "-" PTR_FMT " (%zu bytes)", r->address, r->address + r->size_bytes, r->size_bytes);
             continue;
         }
 
-        size_t alignment_loss = pmem_freelist_add_region(r->paddr, r->size_bytes);
+        size_t alignment_loss = pmem_freelist_add_region(r->address, r->size_bytes);
         if (alignment_loss)
             pr_emph("%zu bytes of memory loss due to alignment", alignment_loss);
     }

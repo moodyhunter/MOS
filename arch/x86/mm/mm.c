@@ -7,21 +7,21 @@
 #include "mos/x86/acpi/acpi.h"
 #include "mos/x86/x86_platform.h"
 
-memblock_t x86_mem_regions[X86_MEM_MAX_N_REGIONS] = { 0 };
+x86_pmblock_t x86_mem_regions[X86_MEM_MAX_N_REGIONS] = { 0 };
 size_t x86_mem_regions_count = 0;
 
 size_t x86_mem_size_total = 0;
 size_t x86_mem_available = 0;
 
-memblock_t *x86_bios_region = NULL;
+x86_pmblock_t *x86_bios_region = NULL;
 
 static void mem_add_region(u64 phys_addr, size_t size, bool available)
 {
     if (x86_mem_regions_count >= X86_MEM_MAX_N_REGIONS)
         mos_panic("too many memory regions added.");
 
-    memblock_t *block = &x86_mem_regions[x86_mem_regions_count];
-    block->paddr = phys_addr;
+    x86_pmblock_t *block = &x86_mem_regions[x86_mem_regions_count];
+    block->address = phys_addr;
     block->size_bytes = size;
     block->available = available;
     x86_mem_regions_count++;

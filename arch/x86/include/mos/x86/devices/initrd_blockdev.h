@@ -5,10 +5,11 @@
 #include "mos/device/block.h"
 #include "mos/platform/platform.h"
 #include "mos/types.h"
+#include "mos/x86/x86_platform.h"
 
 typedef struct
 {
-    memblock_t memblock;
+    x86_pmblock_t memblock;
     blockdev_t blockdev;
 } initrd_blockdev_t;
 

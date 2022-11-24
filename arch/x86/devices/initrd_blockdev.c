@@ -27,7 +27,7 @@ size_t initrd_read(blockdev_t *dev, void *buf, size_t size, size_t offset)
     if (offset + bytes_to_read > initrd->memblock.size_bytes)
         bytes_to_read = initrd->memblock.size_bytes - offset;
 
-    memcpy(buf, (void *) (initrd->memblock.vaddr + offset), bytes_to_read);
+    memcpy(buf, (void *) (initrd->memblock.address + offset), bytes_to_read);
     read = bytes_to_read;
     return read;
 }

@@ -54,6 +54,13 @@ typedef struct
     uintptr_t bios_region_start;
 } __packed x86_startup_info;
 
+typedef struct
+{
+    uintptr_t address;
+    size_t size_bytes;
+    bool available;
+} x86_pmblock_t;
+
 // defined in the linker script 'multiboot.ld'
 extern const char __MOS_KERNEL_CODE_START, __MOS_KERNEL_CODE_END;     // Kernel text
 extern const char __MOS_KERNEL_RODATA_START, __MOS_KERNEL_RODATA_END; // Kernel rodata

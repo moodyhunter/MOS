@@ -141,11 +141,11 @@ void x86_start_kernel(x86_startup_info *info)
     // ! map the bios memory area, should it be done like this?
     pr_info("mapping bios memory area...");
     for (u32 i = 0; i < x86_mem_regions_count; i++)
-        if (x86_mem_regions[i].paddr == info->bios_region_start)
+        if (x86_mem_regions[i].address == info->bios_region_start)
             x86_bios_region = &x86_mem_regions[i];
 
-    memblock_t *bios_block = x86_bios_region;
-    pg_do_map_pages(x86_kpg_infra, bios_block->paddr, bios_block->paddr, bios_block->size_bytes / MOS_PAGE_SIZE, VM_GLOBAL);
+    x86_pmblock_t *bios_block = x86_bios_region;
+    pg_do_map_pages(x86_kpg_infra, bios_block->address, bios_block->address, bios_block->size_bytes / MOS_PAGE_SIZE, VM_GLOBAL);
 
     x86_mm_enable_paging();
 
@@ -160,7 +160,7 @@ void x86_start_kernel(x86_startup_info *info)
     if (initrd_size)
     {
         initrd_blockdev_t *initrd_blockdev = kmalloc(sizeof(initrd_blockdev_t));
-        initrd_blockdev->memblock = (memblock_t){ .available = true, .vaddr = MOS_X86_INITRD_VADDR, .size_bytes = initrd_size };
+        initrd_blockdev->memblock = (x86_pmblock_t){ .available = true, .address = MOS_X86_INITRD_VADDR, .size_bytes = initrd_size };
 
         initrd_blockdev_preinstall(initrd_blockdev);
         blockdev_register(&initrd_blockdev->blockdev);

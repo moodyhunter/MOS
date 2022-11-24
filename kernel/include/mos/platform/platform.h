@@ -67,14 +67,6 @@ typedef struct
 typedef struct
 {
     uintptr_t vaddr;
-    uintptr_t paddr;
-    size_t size_bytes;
-    bool available;
-} memblock_t;
-
-typedef struct
-{
-    uintptr_t vaddr;
     size_t npages;
     vm_flags flags; // the expected flags for the region, regardless of the copy-on-write state
 } vmblock_t;
