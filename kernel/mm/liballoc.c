@@ -615,7 +615,7 @@ void *liballoc_calloc(size_t nobj, size_t size)
     MOS_ASSERT_X(nobj > 0, "You Fool! You can't allocate 0 objects!");
     size_t real_size = nobj * size;
     void *p = liballoc_malloc(real_size);
-    memset(p, 0, real_size);
+    memzero(p, real_size);
     return p;
 }
 
