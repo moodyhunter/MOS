@@ -2,8 +2,20 @@
 
 #include "lib/structures/hashmap_common.h"
 
-#include "lib/hash.h"
 #include "lib/string.h"
+
+static hash_t __pure string_hash(const char *s, const int n)
+{
+    const int p = 31, m = 1e9 + 7;
+    hash_t h = { 0 };
+    long p_pow = 1;
+    for (int i = 0; i < n; i++)
+    {
+        h.hash = (h.hash + (s[i] - 'a' + 1) * p_pow) % m;
+        p_pow = (p_pow * p) % m;
+    }
+    return h;
+}
 
 hash_t __pure hashmap_hash_string(const void *key)
 {
