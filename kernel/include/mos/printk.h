@@ -42,21 +42,21 @@ typedef enum
 #endif
 
 // print a colored message without handler, print unconditionally without a handler
-#define pr_info(fmt, ...)  lprintk_wrapper(MOS_LOG_INFO, fmt "\n", ##__VA_ARGS__)
-#define pr_info2(fmt, ...) lprintk_wrapper(MOS_LOG_INFO2, fmt "\n", ##__VA_ARGS__)
-#define pr_emph(fmt, ...)  lprintk_wrapper(MOS_LOG_EMPH, fmt "\n", ##__VA_ARGS__)
-#define pr_warn(fmt, ...)  lprintk_wrapper(MOS_LOG_WARN, fmt "\n", ##__VA_ARGS__)
-#define pr_emerg(fmt, ...) lprintk_wrapper(MOS_LOG_EMERG, fmt "\n", ##__VA_ARGS__)
-#define pr_fatal(fmt, ...) lprintk_wrapper(MOS_LOG_FATAL, fmt "\n", ##__VA_ARGS__)
+#define pr_info(fmt, ...)  lprintk_wrapper(MOS_LOG_INFO, fmt "\r\n", ##__VA_ARGS__)
+#define pr_info2(fmt, ...) lprintk_wrapper(MOS_LOG_INFO2, fmt "\r\n", ##__VA_ARGS__)
+#define pr_emph(fmt, ...)  lprintk_wrapper(MOS_LOG_EMPH, fmt "\r\n", ##__VA_ARGS__)
+#define pr_warn(fmt, ...)  lprintk_wrapper(MOS_LOG_WARN, fmt "\r\n", ##__VA_ARGS__)
+#define pr_emerg(fmt, ...) lprintk_wrapper(MOS_LOG_EMERG, fmt "\r\n", ##__VA_ARGS__)
+#define pr_fatal(fmt, ...) lprintk_wrapper(MOS_LOG_FATAL, fmt "\r\n", ##__VA_ARGS__)
 
 #define mos_debug(fmt, ...)                                                                                                                                              \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
         if (MOS_DEBUG)                                                                                                                                                   \
-            lprintk_wrapper(MOS_LOG_INFO2, "%s: " fmt "\n", __func__, ##__VA_ARGS__);                                                                                    \
+            lprintk_wrapper(MOS_LOG_INFO2, "%s: " fmt "\r\n", __func__, ##__VA_ARGS__);                                                                                  \
     } while (0)
 
-#define mos_warn(fmt, ...)  mos_kwarn(__func__, __LINE__, "WARN: " fmt "\n", ##__VA_ARGS__)
+#define mos_warn(fmt, ...)  mos_kwarn(__func__, __LINE__, "WARN: " fmt "\r\n", ##__VA_ARGS__)
 #define mos_panic(fmt, ...) mos_kpanic(__func__, __LINE__, "" fmt, ##__VA_ARGS__)
 
 #define mos_warn_once(...)                                                                                                                                               \
