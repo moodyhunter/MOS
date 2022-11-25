@@ -5,16 +5,6 @@
 #include "mos/platform/platform.h"
 #include "mos/syscall/usermode.h"
 
-void printf(const char *fmt, ...)
-{
-    char buf[4096];
-    va_list args;
-    va_start(args, fmt);
-    vsprintf(buf, fmt, args);
-    va_end(args);
-    syscall_io_write(stdout, buf, strlen(buf), 0);
-}
-
 static char buf[4 KB] = { 0 };
 
 void thread_work(void *arg)
@@ -22,9 +12,6 @@ void thread_work(void *arg)
     int *value = (int *) arg;
     pid_t process = syscall_get_pid();
     printf("Thread started, value = %d, from process %d\n", *value, process);
-    // TODO: implement thread termination
-
-    syscall_thread_exit();
 }
 
 static int value = 0;
@@ -61,7 +48,7 @@ int main(void)
     printf("ping pid: %d\n", ping_pid);
     printf("pong pid: %d\n", pong_pid);
 
-    syscall_create_thread("worker", thread_work, &value);
+    start_thread("worker", thread_work, &value);
 
     my_pid = syscall_fork();
 

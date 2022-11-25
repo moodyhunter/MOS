@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0
 
-#include "mos/syscall/usermode.h"
+#include "libuserspace.h"
 
 int main(void)
 {
-    syscall_io_write(1, "pong\n", 5, 0);
+    printf("pong\n");
     return 0;
 }

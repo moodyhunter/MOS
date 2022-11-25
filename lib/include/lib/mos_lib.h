@@ -48,18 +48,24 @@ should_inline void *mos_lib_calloc(size_t nmemb, size_t size)
 #define mos_panic(...)                 ; /* unimplemented */
 should_inline void *mos_lib_malloc(size_t size)
 {
+    MOS_UNUSED(size);
     return NULL; // unimplemented
 }
 should_inline void mos_lib_free(void *ptr)
 {
+    MOS_UNUSED(ptr);
     // unimplemented
 }
 should_inline void *mos_lib_realloc(void *ptr, size_t size)
 {
+    MOS_UNUSED(ptr);
+    MOS_UNUSED(size);
     return NULL; // unimplemented
 }
 should_inline void *mos_lib_calloc(size_t nmemb, size_t size)
 {
+    MOS_UNUSED(nmemb);
+    MOS_UNUSED(size);
     return NULL; // unimplemented
 }
 #endif
