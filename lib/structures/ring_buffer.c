@@ -2,8 +2,8 @@
 
 #include "lib/structures/ring_buffer.h"
 
+#include "lib/mos_lib.h"
 #include "lib/string.h"
-#include "mos/mm/kmalloc.h"
 
 static u8 ring_buffer_get(ring_buffer_t *buffer, size_t index)
 {
@@ -15,13 +15,13 @@ ring_buffer_t *ring_buffer_create(size_t capacity)
     if (capacity == 0)
         return NULL; // forget about it
 
-    ring_buffer_t *rb = kmalloc(sizeof(ring_buffer_t));
+    ring_buffer_t *rb = mos_lib_malloc(sizeof(ring_buffer_t));
     if (!rb)
         return NULL;
-    rb->data = kmalloc(capacity);
+    rb->data = mos_lib_malloc(capacity);
     if (!rb->data)
     {
-        kfree(rb);
+        mos_lib_free(rb);
         return NULL;
     }
     rb->capacity = capacity;
@@ -33,15 +33,15 @@ ring_buffer_t *ring_buffer_create(size_t capacity)
 
 void ring_buffer_destroy(ring_buffer_t *buffer)
 {
-    kfree(buffer->data);
-    kfree(buffer);
+    mos_lib_free(buffer->data);
+    mos_lib_free(buffer);
 }
 
 bool ring_buffer_resize(ring_buffer_t *buffer, size_t new_capacity)
 {
     if (new_capacity < buffer->size)
         return false;
-    void *new_data = kmalloc(new_capacity);
+    void *new_data = mos_lib_malloc(new_capacity);
     if (!new_data)
         return false;
     size_t i = 0;
@@ -50,7 +50,7 @@ bool ring_buffer_resize(ring_buffer_t *buffer, size_t new_capacity)
         ((char *) new_data)[i] = ring_buffer_get(buffer, i);
         i++;
     }
-    kfree(buffer->data);
+    mos_lib_free(buffer->data);
     buffer->data = new_data;
     buffer->capacity = new_capacity;
     buffer->head = 0;

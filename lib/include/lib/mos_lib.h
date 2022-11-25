@@ -11,17 +11,34 @@
  */
 
 #ifdef __MOS_KERNEL__ // ! Kernel
+#include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
 #define MOS_LIB_ASSERT(cond)             MOS_ASSERT(cond)
 #define MOS_LIB_ASSERT_X(cond, msg, ...) MOS_ASSERT_X(cond, msg, ##__VA_ARGS__)
 #define MOS_LIB_UNIMPLEMENTED(content)   MOS_UNIMPLEMENTED(content)
 #define MOS_LIB_UNREACHABLE()            MOS_UNREACHABLE()
+should_inline void *mos_lib_malloc(size_t size)
+{
+    return kmalloc(size);
+}
+should_inline void mos_lib_free(void *ptr)
+{
+    kfree(ptr);
+}
+should_inline void *mos_lib_realloc(void *ptr, size_t size)
+{
+    return krealloc(ptr, size);
+}
+should_inline void *mos_lib_calloc(size_t nmemb, size_t size)
+{
+    return kcalloc(nmemb, size);
+}
 #else // ! Userspace
 #define MOS_LIB_ASSERT(cond) MOS_UNUSED(cond)
 #define MOS_LIB_ASSERT_X(cond, msg, ...)                                                                                                                                 \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
-        /* Currently unimplemented */                                                                                                                                    \
+        /* unimplemented */                                                                                                                                              \
         MOS_UNUSED(cond);                                                                                                                                                \
         MOS_UNUSED(msg);                                                                                                                                                 \
     } while (0)
@@ -29,23 +46,21 @@
 #define MOS_LIB_UNREACHABLE()          ; /* unimplemented */
 #define mos_warn(...)                  ; /* unimplemented */
 #define mos_panic(...)                 ; /* unimplemented */
-inline void *liballoc_calloc(size_t nobj, size_t size)
+should_inline void *mos_lib_malloc(size_t size)
 {
-    /* unimplemented */
-    (void) nobj;
-    (void) size;
-    return NULL;
+    return NULL; // unimplemented
 }
-inline void *liballoc_malloc(size_t size)
+should_inline void mos_lib_free(void *ptr)
 {
-    /* unimplemented */
-    (void) size;
-    return (void *) 0;
+    // unimplemented
 }
-inline void liballoc_free(const void *ptr)
+should_inline void *mos_lib_realloc(void *ptr, size_t size)
 {
-    /* unimplemented */
-    (void) ptr;
+    return NULL; // unimplemented
+}
+should_inline void *mos_lib_calloc(size_t nmemb, size_t size)
+{
+    return NULL; // unimplemented
 }
 #endif
 

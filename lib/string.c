@@ -2,7 +2,7 @@
 
 #include "lib/string.h"
 
-#include "mos/mm/kmalloc.h"
+#include "lib/mos_lib.h"
 
 size_t strlen(const char *str)
 {
@@ -145,7 +145,7 @@ char *strncpy(char *dest, const char *src, size_t n)
 
 const char *duplicate_string(const char *src, size_t len)
 {
-    char *dst = kmalloc(len + 1);
+    char *dst = mos_lib_malloc(len + 1);
     strncpy(dst, src, len);
     dst[len] = '\0';
     return dst;

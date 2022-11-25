@@ -4,7 +4,6 @@
 
 #include "lib/mos_lib.h"
 #include "lib/string.h"
-#include "mos/mm/kmalloc.h"
 
 void stack_init(downwards_stack_t *stack, void *mem_region_bottom, size_t size)
 {

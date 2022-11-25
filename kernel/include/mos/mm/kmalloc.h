@@ -5,6 +5,8 @@
 #include "mos/mm/liballoc.h"
 #include "mos/types.h"
 
+#include MOS_KERNEL_INTERNAL_HEADER_CHECK
+
 should_inline __malloc void *kmalloc(size_t size)
 {
     return liballoc_malloc(size);

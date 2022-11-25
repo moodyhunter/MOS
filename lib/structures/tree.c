@@ -4,7 +4,6 @@
 
 #include "lib/mos_lib.h"
 #include "lib/string.h"
-#include "mos/mm/kmalloc.h"
 
 void tree_add_child(tree_node_t *parent, tree_node_t *child)
 {
@@ -15,7 +14,7 @@ void tree_add_child(tree_node_t *parent, tree_node_t *child)
     MOS_LIB_ASSERT(child->children == NULL);
     child->parent = parent;
     parent->n_children++;
-    parent->children = krealloc(parent->children, parent->n_children * sizeof(tree_node_t *));
+    parent->children = mos_lib_realloc(parent->children, parent->n_children * sizeof(tree_node_t *));
     parent->children[parent->n_children - 1] = child;
 }
 

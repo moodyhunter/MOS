@@ -4,7 +4,6 @@
 
 #include "lib/mos_lib.h"
 #include "lib/string.h"
-#include "mos/mm/kmalloc.h"
 
 #define HASHMAP_MAGIC 0x484d6170 // "HMap"
 
@@ -24,7 +23,7 @@ void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, has
         return;
     }
     map->magic = HASHMAP_MAGIC;
-    map->entries = kcalloc(capacity, sizeof(hashmap_entry_t *));
+    map->entries = mos_lib_calloc(capacity, sizeof(hashmap_entry_t *));
     memset(map->entries, 0, sizeof(hashmap_entry_t *) * capacity);
     map->capacity = capacity;
     map->size = 0;
@@ -49,11 +48,11 @@ void hashmap_deinit(hashmap_t *map)
         while (entry != NULL)
         {
             hashmap_entry_t *next = entry->next;
-            kfree(entry);
+            mos_lib_free(entry);
             entry = next;
         }
     }
-    kfree(map->entries);
+    mos_lib_free(map->entries);
 }
 
 void *hashmap_put(hashmap_t *map, const void *key, void *value)
@@ -72,7 +71,7 @@ void *hashmap_put(hashmap_t *map, const void *key, void *value)
         }
         entry = entry->next;
     }
-    entry = kmalloc(sizeof(hashmap_entry_t));
+    entry = mos_lib_malloc(sizeof(hashmap_entry_t));
     entry->key = key;
     entry->value = value;
     entry->next = map->entries[index];
@@ -116,7 +115,7 @@ void *hashmap_remove(hashmap_t *map, const void *key)
                 prev->next = entry->next;
             }
             void *value = entry->value;
-            kfree(entry);
+            mos_lib_free(entry);
             map->size--;
             return value;
         }
