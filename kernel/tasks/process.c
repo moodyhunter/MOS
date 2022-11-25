@@ -172,6 +172,7 @@ void process_handle_exit(process_t *process, int exit_code)
     mos_debug("closing all %lu files owned by %d", process->files_count, process->pid);
     for (int i = 0; i < process->files_count; i++)
     {
+        MOS_ASSERT_X(process->files[i], "file %d is NULL", i);
         if (!process->files[i]->closed)
             io_unref(process->files[i]);
         process->files[i] = NULL;

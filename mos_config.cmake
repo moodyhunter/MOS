@@ -28,7 +28,7 @@ mos_kconfig(LIMITS      MOS_STACK_PAGES_KERNEL          16                  "Siz
 mos_kconfig(LIMITS      MOS_STACK_PAGES_USER            32                  "Size of User Stack (in pages)")
 mos_kconfig(ADDRESS     MOS_USERSPACE_PGALLOC_START     0x40000000          "Userspace Page Start")
 mos_kconfig(KERNEL      MOS_KERNEL_REVISION_STRING      ${REVISION}         "Kernel revision string")
-mos_kconfig(KERNEL      MOS_MM_LIBALLOC_LOCKS           OFF                 "Enable locking support in liballoc")
+mos_kconfig(KERNEL      MOS_MM_LIBALLOC_LOCKS           ON                  "Enable locking support in liballoc")
 mos_kconfig(DEBUG       MOS_MM_LIBALLOC_DEBUG           OFF                 "Enable debug log for liballoc")
 mos_kconfig(DEBUG       MOS_DEBUG                       OFF                 "Enable debug log")
 mos_kconfig(DEBUG       MOS_VERBOSE_PRINTK              ON                  "Add filename and line number to printk")

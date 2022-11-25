@@ -17,6 +17,11 @@ void io_init(io_t *io, io_flags_t flags, size_t size, const io_op_t *ops)
 io_t *io_ref(io_t *io)
 {
     mos_debug("io_ref(%p)", (void *) io);
+    if (unlikely(!io))
+    {
+        mos_warn("io is NULL");
+        return NULL;
+    }
 
     if (unlikely(io->closed))
     {
@@ -31,6 +36,11 @@ io_t *io_ref(io_t *io)
 void io_unref(io_t *io)
 {
     mos_debug("io_unref(%p)", (void *) io);
+    if (unlikely(!io))
+    {
+        mos_warn("io is NULL");
+        return;
+    }
 
     if (unlikely(io->closed))
     {
@@ -38,10 +48,11 @@ void io_unref(io_t *io)
         return;
     }
 
-    if (refcount_get(&io->refcount) == 0)
+    if (refcount_get(&io->refcount) > 0)
+    {
+        refcount_dec(&io->refcount);
         return;
-
-    refcount_dec(&io->refcount);
+    }
 
     if (unlikely(!io->ops->close))
     {
@@ -55,19 +66,24 @@ void io_unref(io_t *io)
 
 size_t io_read(io_t *io, void *buf, size_t count)
 {
+    if (unlikely(!io))
+    {
+        mos_warn("io is NULL");
+        return 0;
+    }
     if (unlikely(io->closed))
     {
-        mos_warn("io_write: %p is already closed", (void *) io);
+        mos_warn("%p is already closed", (void *) io);
         return 0;
     }
     if (!(io->flags & IO_READABLE))
     {
-        pr_info2("io_read: %p is not readable\n", (void *) io);
+        pr_info2("%p is not readable\n", (void *) io);
         return 0;
     }
     if (unlikely(!io->ops->read))
     {
-        mos_warn_once("io_read: no read function");
+        mos_warn_once("no read function");
         return 0;
     }
     return io->ops->read(io, buf, count);
@@ -75,19 +91,24 @@ size_t io_read(io_t *io, void *buf, size_t count)
 
 size_t io_write(io_t *io, const void *buf, size_t count)
 {
+    if (unlikely(!io))
+    {
+        mos_warn("io is NULL");
+        return 0;
+    }
     if (unlikely(io->closed))
     {
-        mos_warn("io_write: %p is already closed", (void *) io);
+        mos_warn("%p is already closed", (void *) io);
         return 0;
     }
     if (!(io->flags & IO_WRITABLE))
     {
-        pr_info2("io_write: %p is not writable\n", (void *) io);
+        pr_info2("%p is not writable\n", (void *) io);
         return 0;
     }
     if (unlikely(!io->ops->write))
     {
-        mos_warn("io_write: no write function");
+        mos_warn_once("no write function");
         return 0;
     }
     return io->ops->write(io, buf, count);

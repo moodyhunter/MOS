@@ -6,6 +6,7 @@
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/sync/spinlock.h"
 
 #define VERSION "1.1"
 
@@ -92,6 +93,20 @@ bool kheap_free_page(void *vptr, size_t npages)
 
     platform_mm_free_pages(current_cpu->pagetable, (uintptr_t) vptr, npages);
     return true;
+}
+
+static spinlock_t alloc_lock = SPINLOCK_INIT;
+
+int liballoc_lock()
+{
+    spinlock_acquire(&alloc_lock);
+    return 0;
+}
+
+int liballoc_unlock()
+{
+    spinlock_release(&alloc_lock);
+    return 0;
 }
 
 // A structure found at the top of all system allocated memory blocks. It details the usage of the memory block.
