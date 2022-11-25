@@ -11,7 +11,7 @@ typedef struct
 } spinlock_t;
 
 // clang-format off
-#define SPINLOCK_INIT { ATOMIC_FLAG_INIT }
+#define SPINLOCK_INIT { 0 }
 // clang-format on
 
 should_inline void spinlock_acquire(spinlock_t *lock)
