@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/sync/refcount.h"
+#include "lib/sync/refcount.h"
 #include "mos/types.h"
 
 typedef struct _io_t io_t;

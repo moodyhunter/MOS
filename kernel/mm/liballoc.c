@@ -3,10 +3,10 @@
 #include "mos/mm/liballoc.h"
 
 #include "lib/string.h"
+#include "lib/sync/spinlock.h"
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
-#include "mos/sync/spinlock.h"
 
 #define VERSION "1.1"
 
