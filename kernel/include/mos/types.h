@@ -19,7 +19,7 @@ typedef float f32;
 typedef double f64;
 typedef long double f80;
 
-typedef unsigned long uintptr_t;
+typedef __UINTPTR_TYPE__ uintptr_t;
 static_assert(sizeof(uintptr_t) == sizeof(void *), "uintptr_t is not the same size as a pointer");
 
 // reg_t represents a register value
@@ -74,7 +74,6 @@ typedef id_t tid_t;
 #define new_opaque_ptr_type(name)   _named_opaque_type(uintptr_t, ptr, name)
 
 new_opaque_ptr_type(paging_handle_t);
-new_opaque_type(u64, atomic);
 new_opaque_type(size_t, hash);
 
 #undef _named_opaque_type

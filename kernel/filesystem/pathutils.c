@@ -175,12 +175,12 @@ void path_treeop_decrement_refcount(const tree_node_t *node)
 {
     fsnode_t *path = tree_entry(node, fsnode_t);
     mos_debug("decreasing refcount of path '%s'", path->name);
-    path->refcount.atomic--;
+    refcount_dec(&path->refcount);
 }
 
 void path_treeop_increment_refcount(const tree_node_t *node)
 {
     fsnode_t *path = tree_entry(node, fsnode_t);
     mos_debug("incrementing refcount of path '%s'", path->name);
-    path->refcount.atomic++;
+    refcount_inc(&path->refcount);
 }

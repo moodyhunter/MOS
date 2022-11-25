@@ -11,7 +11,7 @@ void io_init(io_t *io, io_flags_t flags, size_t size, const io_op_t *ops)
     io->size = size;
     io->ops = ops;
     io->closed = false;
-    io->refcount.atomic = 0;
+    refcount_zero(&io->refcount);
 }
 
 io_t *io_ref(io_t *io)
@@ -24,7 +24,7 @@ io_t *io_ref(io_t *io)
         return 0;
     }
 
-    io->refcount.atomic++;
+    refcount_inc(&io->refcount);
     return io;
 }
 
@@ -34,16 +34,18 @@ void io_unref(io_t *io)
 
     if (unlikely(io->closed))
     {
-        mos_warn("io_close: %p is already closed", (void *) io);
+        mos_warn("%p is already closed", (void *) io);
         return;
     }
 
-    if (io->refcount.atomic > 0)
+    if (refcount_get(&io->refcount) == 0)
         return;
+
+    refcount_dec(&io->refcount);
 
     if (unlikely(!io->ops->close))
     {
-        mos_warn("io_close: no close function");
+        mos_warn("no close function");
         return;
     }
 

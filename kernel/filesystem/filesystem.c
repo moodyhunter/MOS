@@ -69,7 +69,7 @@ file_t *vfs_open(const char *path, file_open_flags flags)
         return NULL;
     }
     file->fsnode = node;
-    MOS_ASSERT_X(file->io.refcount.atomic == 0, "file has nonzero refcount");
+    MOS_ASSERT_X(refcount_get(&file->io.refcount), "file has nonzero refcount");
     return file;
 }
 

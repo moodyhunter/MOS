@@ -60,9 +60,13 @@ mountpoint_t *kmount(fsnode_t *path, filesystem_t *fs, blockdev_t *blockdev)
 
 bool kunmount(mountpoint_t *mountpoint)
 {
-    if (mountpoint->refcount.atomic > 0)
+    if (mountpoint == NULL)
+        return false;
+
+    u64 refs = refcount_get(&mountpoint->refcount);
+    if (refs > 0)
     {
-        mos_warn("mountpoint %s still has %llu references", mountpoint->path->name, mountpoint->refcount.atomic);
+        mos_warn("mountpoint %s still has %llu references", mountpoint->path->name, refs);
         return false;
     }
     if (mountpoint->children_count > 0)

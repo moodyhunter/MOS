@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/sync/refcount.h"
 #include "mos/types.h"
 
 typedef struct _io_t io_t;
@@ -24,7 +25,7 @@ typedef struct
 typedef struct _io_t
 {
     bool closed;
-    atomic_t refcount;
+    mos_refcount_t refcount;
     io_flags_t flags;
     size_t size;
     const io_op_t *ops;
