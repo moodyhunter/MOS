@@ -5,11 +5,9 @@
 #include "mos/mos_global.h"
 #include "mos/types.h"
 
-#include <stdatomic.h>
-
 typedef struct
 {
-    atomic_flag flag;
+    bool flag;
 } spinlock_t;
 
 // clang-format off
@@ -18,11 +16,11 @@ typedef struct
 
 should_inline void spinlock_acquire(spinlock_t *lock)
 {
-    while (atomic_flag_test_and_set_explicit(&lock->flag, memory_order_acquire))
+    while (__atomic_test_and_set(&lock->flag, __ATOMIC_ACQUIRE))
         ;
 }
 
 should_inline void spinlock_release(spinlock_t *lock)
 {
-    atomic_flag_clear_explicit(&lock->flag, memory_order_release);
+    __atomic_clear(&lock->flag, __ATOMIC_RELEASE);
 }

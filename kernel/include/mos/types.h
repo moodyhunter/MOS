@@ -19,7 +19,7 @@ typedef float f32;
 typedef double f64;
 typedef long double f80;
 
-typedef __UINTPTR_TYPE__ uintptr_t;
+typedef unsigned long uintptr_t;
 static_assert(sizeof(uintptr_t) == sizeof(void *), "uintptr_t is not the same size as a pointer");
 
 // reg_t represents a register value

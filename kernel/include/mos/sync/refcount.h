@@ -5,26 +5,24 @@
 #include "mos/mos_global.h"
 #include "mos/types.h"
 
-#include <stdatomic.h>
-
-typedef volatile atomic_size_t mos_refcount_t;
+typedef volatile size_t mos_refcount_t;
 
 should_inline void refcount_inc(mos_refcount_t *atomic)
 {
-    atomic_fetch_add_explicit(atomic, 1, memory_order_relaxed);
+    __atomic_fetch_add(atomic, 1, __ATOMIC_RELAXED);
 }
 
 should_inline void refcount_dec(mos_refcount_t *atomic)
 {
-    atomic_fetch_sub_explicit(atomic, 1, memory_order_relaxed);
+    __atomic_fetch_sub(atomic, 1, __ATOMIC_RELAXED);
 }
 
 should_inline void refcount_zero(mos_refcount_t *atomic)
 {
-    atomic_store_explicit(atomic, 0, memory_order_relaxed);
+    __atomic_store_n(atomic, 0, __ATOMIC_RELAXED);
 }
 
 should_inline size_t refcount_get(mos_refcount_t *atomic)
 {
-    return atomic_load_explicit(atomic, memory_order_relaxed);
+    return __atomic_load_n(atomic, __ATOMIC_RELAXED);
 }
