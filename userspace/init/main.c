@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/stdio.h"
 #include "libuserspace.h"
-#include "mos/platform/platform.h"
 #include "mos/syscall/usermode.h"
 
 static char buf[4 KB] = { 0 };
@@ -18,13 +16,13 @@ static int value = 0;
 
 int main(void)
 {
+    printf("\n");
     int fd = syscall_file_open("/assets/msg.txt", FILE_OPEN_READ);
     if (fd < 0)
         printf("Failed to open /assets/msg.txt\n");
     else
     {
         size_t read = syscall_io_read(fd, buf, 512, 0);
-        printf("\n");
         syscall_io_write(stdout, buf, read, 0);
         syscall_io_close(fd);
     }

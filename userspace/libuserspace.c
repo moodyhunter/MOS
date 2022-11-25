@@ -2,9 +2,12 @@
 
 #include "libuserspace.h"
 
+#include "lib/stdio.h"
 #include "lib/string.h"
 #include "mos/platform/platform.h"
 #include "mos/syscall/usermode.h"
+
+#include <stdarg.h>
 
 typedef struct thread_start_args
 {
@@ -12,7 +15,6 @@ typedef struct thread_start_args
     void *arg;
 } thread_start_args_t;
 
-extern int main(void);
 u64 __stack_chk_guard = 0;
 
 noreturn void __stack_chk_fail(void)
@@ -29,6 +31,7 @@ void __stack_chk_fail_local(void)
 
 void _start(void)
 {
+    extern int main(void);
     int r = main();
     syscall_exit(r);
 }
@@ -40,14 +43,27 @@ void _thread_start(void *arg)
     syscall_thread_exit();
 }
 
+void dvprintf(int fd, const char *fmt, va_list ap)
+{
+    char buf[256];
+    vsnprintf(buf, sizeof(buf), fmt, ap);
+    syscall_io_write(fd, buf, strlen(buf), 0);
+}
+
+void dprintf(int fd, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    dvprintf(fd, fmt, ap);
+    va_end(ap);
+}
+
 void printf(const char *fmt, ...)
 {
-    char buf[4096];
-    va_list args;
-    va_start(args, fmt);
-    vsprintf(buf, fmt, args);
-    va_end(args);
-    syscall_io_write(stdout, buf, strlen(buf), 0);
+    va_list ap;
+    va_start(ap, fmt);
+    dvprintf(stdout, fmt, ap);
+    va_end(ap);
 }
 
 // TODO support 1) malloc? or 2) thread-local storage?
