@@ -46,7 +46,7 @@ void x86_switch_to_thread(uintptr_t *old_stack, thread_t *to)
     tss_entry.esp0 = to->kernel_stack.top;
     x86_thread_context_t *context = container_of(to->context, x86_thread_context_t, inner);
 
-    bool need_iret_switching = to->status == THREAD_STATUS_FORKED || to->status == THREAD_STATUS_CREATED;
+    bool need_iret_switching = to->status == THREAD_STATUS_CREATED;
 
     mos_update_current(to); // this updates to->status to THREAD_STATUS_RUNNING
 

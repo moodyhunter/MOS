@@ -30,7 +30,7 @@ bool schedule_to_thread(const void *key, void *value)
     thread_t *thread = (thread_t *) value;
 
     MOS_ASSERT_X(thread->tid == *tid, "something is wrong with the thread table");
-    if (thread->status == THREAD_STATUS_READY || thread->status == THREAD_STATUS_FORKED || thread->status == THREAD_STATUS_CREATED)
+    if (thread->status == THREAD_STATUS_READY || thread->status == THREAD_STATUS_CREATED)
     {
 #if MOS_DEBUG
         process_dump_mmaps(thread->owner);
