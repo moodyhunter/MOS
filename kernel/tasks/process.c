@@ -203,6 +203,7 @@ void process_handle_cleanup(process_t *process)
 
 void process_dump_mmaps(process_t *process)
 {
+    pr_info("process %d has %lu memory regions:", process->pid, process->mmaps_count);
     for (int i = 0; i < process->mmaps_count; i++)
     {
         proc_vmblock_t block = process->mmaps[i];
@@ -217,20 +218,18 @@ void process_dump_mmaps(process_t *process)
             default: MOS_UNREACHABLE();
         };
 
-        pr_info("block %d: " PTR_FMT ", %zd page(s), %s%sperm: %s%s%s%s%s%s%s -> %s",
-                i,                                                 //
-                block.vm.vaddr,                                    //
-                block.vm.npages,                                   //
-                block.map_flags & MMAP_COW ? "cow, " : "",         //
-                block.map_flags & MMAP_PRIVATE ? "private, " : "", //
-                block.vm.flags & VM_READ ? "r" : "-",              //
-                block.vm.flags & VM_WRITE ? "w" : "-",             //
-                block.vm.flags & VM_EXEC ? "x" : "-",              //
-                block.vm.flags & VM_WRITE_THROUGH ? "W" : "-",     //
-                block.vm.flags & VM_CACHE_DISABLED ? "-" : "c",    //
-                block.vm.flags & VM_GLOBAL ? "g" : "-",            //
-                block.vm.flags & VM_USER ? "u" : "-",              //
-                type                                               //
+        pr_info("  block %d: " PTR_FMT ", % 3zd page(s), [%c%c%c%c%c%c%c] -> %s",
+                i,                                          //
+                block.vm.vaddr,                             //
+                block.vm.npages,                            //
+                block.vm.flags & VM_READ ? 'r' : '-',       //
+                block.vm.flags & VM_WRITE ? 'w' : '-',      //
+                block.vm.flags & VM_EXEC ? 'x' : '-',       //
+                block.vm.flags & VM_GLOBAL ? 'g' : '-',     //
+                block.vm.flags & VM_USER ? 'u' : '-',       //
+                block.map_flags & MMAP_COW ? 'c' : '-',     //
+                block.map_flags & MMAP_PRIVATE ? 'p' : '-', //
+                type                                        //
         );
     }
 }

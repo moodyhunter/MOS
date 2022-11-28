@@ -6,6 +6,7 @@
 #include "mos/mm/kmalloc.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/tasks/process.h"
 #include "mos/tasks/task_type.h"
 
 // TODO: A global list of CoW blocks, so that we don't free them if they're still in use.
@@ -46,6 +47,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
         return false;
 
     process_t *current_proc = current_process;
+    process_dump_mmaps(current_proc);
 
     for (ssize_t i = 0; i < current_proc->mmaps_count; i++)
     {
@@ -59,6 +61,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
         if (!(current_proc->mmaps[i].map_flags & MMAP_COW))
             mos_panic("%s page fault (%s) in non-cow mapped region", is_user ? "User" : "Kernel", is_write ? "write" : "read");
 
+        pr_info2("CoW page fault in block %ld", i);
         mos_debug("fault_addr=" PTR_FMT ", vmblock=" PTR_FMT "-" PTR_FMT, fault_addr, vm.vaddr, vm.vaddr + vm.npages * MOS_PAGE_SIZE);
 
         copy_cow_pages_inplace(vm.vaddr, vm.npages);
