@@ -217,14 +217,6 @@ static void x86_handle_exception(x86_stack_frame *stack)
             if (result)
                 return;
 
-#if MOS_MEME
-            MOS_UNUSED(is_user);
-            MOS_UNUSED(present);
-            mos_panic("\n页面错误\n\n\"" PTR_FMT "\" 指令引用的 \"" PTR_FMT "\" 内存。该内存不能为 \"%s\"。\n"
-                      "要终止程序，请单击 \"确定\"。\n"      //
-                      "要调试程序，请单击 \"取消\"。\n\n\n", //
-                      (uintptr_t) stack->interrupt.eip, fault_address, is_write ? "written" : "read");
-#else
             if (is_user && !is_write && present)
                 pr_warn("'%s' privilege violation?", current_process->name);
             x86_dump_registers(stack);
@@ -234,7 +226,6 @@ static void x86_handle_exception(x86_stack_frame *stack)
                       is_write ? "write into" : "read from",                                      //
                       present ? "present" : "non-present",                                        //
                       fault_address);
-#endif
             break;
         }
 

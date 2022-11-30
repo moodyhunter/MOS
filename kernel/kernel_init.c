@@ -77,10 +77,6 @@ void mos_start_kernel(const char *cmdline)
     pr_info("Welcome to MOS!");
     dump_cmdline();
 
-#if MOS_MEME
-    mos_warn("V2Ray 4.45.2 started");
-#endif
-
 #if BUILD_TESTING
     if (mos_cmdline_get_arg("mos_tests"))
         mos_test_engine_run_tests();

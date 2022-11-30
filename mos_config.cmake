@@ -32,7 +32,6 @@ mos_kconfig(KERNEL      MOS_MM_LIBALLOC_LOCKS           ON                  "Ena
 mos_kconfig(DEBUG       MOS_MM_LIBALLOC_DEBUG           OFF                 "Enable debug log for liballoc")
 mos_kconfig(DEBUG       MOS_DEBUG                       OFF                 "Enable debug log")
 mos_kconfig(DEBUG       MOS_VERBOSE_PRINTK              ON                  "Add filename and line number to printk")
-mos_kconfig(MISC        MOS_MEME                        OFF                 "Enable MEME")
 mos_kconfig(TESTS       BUILD_TESTING                   OFF                 "Kernel Space Unit Tests")
 
 # x86 specific options
