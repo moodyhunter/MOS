@@ -58,10 +58,11 @@
  */
 #define once()                                                                                                                                                           \
     __extension__({                                                                                                                                                      \
-        static bool __once = false;                                                                                                                                      \
-        if (__once)                                                                                                                                                      \
-            return false;                                                                                                                                                \
+        static bool __seen = false;                                                                                                                                      \
+        bool ret = false;                                                                                                                                                \
+        if (__seen)                                                                                                                                                      \
+            ret = false;                                                                                                                                                 \
         else                                                                                                                                                             \
-            __once = true;                                                                                                                                               \
-        __once;                                                                                                                                                          \
+            ret = true;                                                                                                                                                  \
+        ret;                                                                                                                                                             \
     })
