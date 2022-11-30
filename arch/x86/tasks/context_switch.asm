@@ -53,6 +53,9 @@ x86_context_switch_impl:
     push    0x18 | 0x3      ; user code segment + RPL 3
     push    dword [edx]     ; eip
 
+    ;! note: for process initialization, eax is 0
+    ;!       for a child process after fork, eax is also 0
+    ;!       so here we have to set eax to 0
     xor     eax, eax        ; clear eax
     xor     esi, esi        ; clear esi
     xor     edi, edi        ; clear edi

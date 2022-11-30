@@ -51,16 +51,17 @@ void x86_switch_to_thread(uintptr_t *old_stack, thread_t *to)
     mos_update_current(to); // this updates to->status to THREAD_STATUS_RUNNING
 
     if (unlikely(need_iret_switching))
+        // eax is set to 0, which is exactly what a child process should get (from fork)
         x86_context_switch_impl(old_stack, to->stack.head, pgd_paddr, SWITCH_MODE_IRET, context);
     else
-        x86_context_switch_impl(old_stack, to->stack.head, pgd_paddr, 0, 0);
+        x86_context_switch_impl(old_stack, to->stack.head, pgd_paddr, SWITCH_MODE_NORMAL, 0);
 }
 
 void x86_switch_to_scheduler(uintptr_t *old_stack_ptr, uintptr_t new_stack)
 {
     // pgd = 0 so that we don't switch to a different page table
     // pass 0 as switch_mode so that we don't switch to IRET
-    x86_context_switch_impl(old_stack_ptr, new_stack, 0, 0, 0);
+    x86_context_switch_impl(old_stack_ptr, new_stack, 0, SWITCH_MODE_NORMAL, 0);
 }
 
 void x86_timer_handler()
