@@ -381,3 +381,31 @@ port.
     \caption{VSCode Debugging MOS}
     \label{fig:vscode-debugging}
 \end{figure}
+
+\begin{exercise}
+    \item In the \texttt{mos\_start\_kernel} function (in \texttt{kernel/kernel\_init.c}), add some code
+    to print out your name with some other information. e.g. `This is Moody's own version of MOS!'
+
+    Compile and run the kernel, do you see your name printed out?
+
+    \begin{mdframed}
+        Hint: There are various ways to print out strings in MOS kernel, you can either of:
+        \texttt{printk}, \texttt{pr\_info}, \texttt{pr\_info2}, \texttt{pr\_emph}, \texttt{pr\_warn},
+        \texttt{pr\_emerg} or \texttt{pr\_fatal}.
+    \end{mdframed}
+
+    Can you spot the differences between these functions?
+
+    \item You can find a call to \texttt{cmdline\_get\_init\_path} in \texttt{mos\_start\_kernel} function,
+    which returns a string named \texttt{init\_path}. Try writing code to print out this string.
+
+    \begin{mdframed}
+        Hint: The above ways of printing out strings have similar usage like \texttt{printf}.
+    \end{mdframed}
+
+    \item Try to set a breakpoint somewhere in the \texttt{mos\_start\_kernel} function, start debugging
+    the kernel and see if it works.
+
+    \item Try setting another breakpoint in the userspace program, \texttt{init}. The corresponding
+    source file is at \texttt{userspace/init/main.c}.
+\end{exercise}
