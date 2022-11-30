@@ -76,7 +76,7 @@ __startup_code should_inline void startup_setup_pgd(int pgdid, x86_pgtable_entry
     STARTUP_ASSERT((uintptr_t) pgtable % 4096 == 0, 'a'); // pgtable must be aligned to 4096
     STARTUP_ASSERT(!startup_pgd[pgdid].present, 'p');     // pgdir entry already present
 
-    mos_startup_memzero(startup_pgd + pgdid, sizeof(x86_pgdir_entry));
+    mos_startup_memzero((void *) (startup_pgd + pgdid), sizeof(x86_pgdir_entry));
     startup_pgd[pgdid].present = true;
     startup_pgd[pgdid].page_table_paddr = (uintptr_t) pgtable >> 12;
 }
@@ -109,7 +109,7 @@ __startup_code void mos_startup_map_single_page(uintptr_t vaddr, uintptr_t paddr
     this_dir->writable = flags & VM_WRITE;
 
     x86_pgtable_entry *this_table = (x86_pgtable_entry *) (this_dir->page_table_paddr << 12) + table_index;
-    mos_startup_memzero(this_table, sizeof(x86_pgtable_entry));
+    mos_startup_memzero((void *) this_table, sizeof(x86_pgtable_entry));
     this_table->present = true;
     this_table->phys_addr = (uintptr_t) paddr >> 12;
     this_table->writable = flags & VM_WRITE;
@@ -134,7 +134,7 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
     STARTUP_ASSERT(startup->mb_magic == MULTIBOOT_BOOTLOADER_MAGIC, '1');
     STARTUP_ASSERT(startup->mb_info->flags & MULTIBOOT_INFO_MEM_MAP, '2');
 
-    mos_startup_memzero(startup_pgd, sizeof(x86_pgdir_entry) * 1024);
+    mos_startup_memzero((void *) startup_pgd, sizeof(x86_pgdir_entry) * 1024);
 
     debug_print_step();
     mos_startup_map_identity((uintptr_t) startup->mb_info, sizeof(multiboot_info_t), VM_NONE);
