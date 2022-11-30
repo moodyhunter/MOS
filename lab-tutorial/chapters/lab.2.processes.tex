@@ -1,0 +1,67 @@
+\chapter{Lab 2 - Processes}
+
+Firstly, congratulations on completing the first lab! Hopefully you have had a chance to play
+around with the MOS kernel and have a better understanding of its structure.
+
+\begin{note}
+    \item Do email me or ask the lab assistant for help if you are stuck.
+\end{note}
+
+In this lab, we will be looking at the process management system in MOS.
+
+\section{Process Control Blocks}
+
+As you have seen in the lecture, `a process is a program in execution', and a process control
+block (PCB, in short) is a data structure that contains information about a process.
+
+Now, let's look at the PCB structure in MOS.
+
+The PCB structure is defined in \texttt{kernel/include/mos/tasks/task\_type.h}:
+
+\begin{verbatim}
+typedef struct process_t
+{
+    u32 magic;
+    const char *name;
+    pid_t pid;
+    process_t *parent;
+    terminal_t *terminal;
+    uid_t effective_uid;
+    paging_handle_t pagetable;
+
+    ssize_t files_count;
+    io_t *files[MOS_PROCESS_MAX_OPEN_FILES];
+
+    ssize_t threads_count;
+    thread_t *threads[MOS_PROCESS_MAX_THREADS];
+
+    ssize_t mmaps_count;
+    proc_vmblock_t *mmaps;
+} process_t;
+\end{verbatim}
+
+The very first field is a magic number, which is used to check if we are dealing with a valid
+PCB. Then follows the process name and its PID.
+
+Each process has a parent, which is the process that created it, and this forms a tree-like
+structure.
+
+\begin{note}
+    \item At the root of the tree is the \texttt{init} process, it's fun to think about
+    it being its own parent.
+\end{note}
+
+You may have noticed that the PCB MOS uses is a bit different from the one in the lecture.
+It doesn't specify the process state or its stack/heap/text memory regions. This is because
+MOS is using threads as the basic unit of execution, and each thread has its own state,
+you'll find out more about threads in the next lab session.
+
+\begin{exercise}
+    \item Read the \texttt{kernel/include/mos/tasks/task\_type.h} header file to get
+    familiar with the PCB structure in MOS.
+\end{exercise}
+
+\section{Process Creation and Termination}
+
+A process has to be created from a `program' (a binary executable file) in order to be
+executed.
