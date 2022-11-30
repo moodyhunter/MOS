@@ -71,12 +71,13 @@ thread_t *thread_new(process_t *owner, thread_flags_t tflags, thread_entry_t ent
         stack_init(&t->stack, (void *) ustack_blk.vaddr, MOS_STACK_PAGES_USER * MOS_PAGE_SIZE);
         process_attach_mmap(owner, ustack_blk, VMTYPE_STACK, false);
 
-        // map the stack into current kernel's address space, making a proxy stack
+        // we cannot access the stack until we switch to its address space, so we
+        // map the stack into current kernel's address space, making a proxy stack for it
+        // TODO: any way to avoid this?
         const vmblock_t ustack_proxy = mm_map_proxy_space(owner->pagetable, ustack_blk.vaddr, ustack_blk.npages);
         downwards_stack_t proxy_stack;
         stack_init(&proxy_stack, (void *) ustack_proxy.vaddr, ustack_proxy.npages * MOS_PAGE_SIZE);
         platform_context_setup(t, &proxy_stack, entry, arg);
-
         t->stack.head -= proxy_stack.top - proxy_stack.head;
         mm_unmap_proxy_space(ustack_proxy);
     }
