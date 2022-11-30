@@ -1,28 +1,35 @@
 \chapter*{Introduction to the MOS Lab}
 
+\textbf{Welcome to the MOS Lab!}
+
+MOS is a microkernel operating system, it's designed to be simple and easy to understand.
+During the lab, you will be working with the MOS kernel and exploring corresponding concepts of
+operating systems.
+
+Throughout the labs, you will explore the following topics, in the order listed. Items in
+\textbf{bold} are the main topics of the lab.
+
 \begin{warning}
-    \item This chapter is a work in progress.
+    \item The table below is still a work in progress, efforts are being made to make it match the
+    timetable of the lectures.
 \end{warning}
 
-The primary goal of MOS is to provide an platform-independent environment for beginners to learn OS.
-
-Users of MOS will be able to experiment and get them familiar with with these following features
-of an operating system:
-
-\textit{Note:} The \textbf{bold} items are the main objectives of the project.
-
 \begin{itemize}
-    \item Basic OS Knowledges
-    \item Memory Management
-          \subitem \textbf{Paging}, and a Brief of Segmentation
-          \subitem Common Memory Management Practices in Modern Kernels
-    \item File Systems
-          \subitem Underlying File Operations
-          \subitem VFS Framework (a file-system abstraction layer)
-    \item Process Management
-          \subitem Allocating a New Process
-          \subitem The Famous \texttt{fork()} Syscall
-          \subitem \textbf{Process Scheduler}
-          \subitem \textbf{Threads}
-          \subitem \textbf{Threads Synchronization} via \texttt{mutex}
+    \item \textbf{Lab 1}: Basic Compiler and Linker Usage
+          \subitem Cross-Compiler Usage
+    \item \textbf{Lab 2}: Process and Threads
+          \subitem \textbf{PCB} \textbf{TCB}, process tables and thread tables
+          \subitem Allocating a new process
+          \subitem \textbf{The famous \texttt{fork()} syscall}
+    \item \textbf{Lab 3} Multi-Threading
+          \subitem \textbf{Multi-Thread} applications
+          \subitem \textbf{Signals} handling
+    \item \textbf{Lab 4}: Scheduling
+          \subitem \textbf{Scheduler} and different scheduling algorithms
+    \item \textbf{Lab 5}: Synchronization
+          \subitem \textbf{Synchronization Primitives} such as \texttt{mutex} and \texttt{semaphore}
+          \subitem A demonstration of \textbf{Deadlock}s
+    \item \textbf{Lab 6}: Memory Management
+          \subitem Segmentation and \textbf{Paging}, \textbf{Virtual Memory} and \textbf{Address Spaces}
+          \subitem Common memory management practices in modern kernels
 \end{itemize}
