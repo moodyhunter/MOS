@@ -13,15 +13,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [multiboot, multiboot_iso]
-        build_type: [Debug, RelWithDebInfo]
+        target: [multiboot]
+        build_type: [Debug, RelWithDebInfo, Release]
         run_tests: [ON, OFF]
 
-        exclude:
-          - target: multiboot_iso
-            run_tests: ON
+        include:
           - target: multiboot_iso
             build_type: Debug
+            run_tests: OFF
+          - target: multiboot_iso
+            build_type: RelWithDebInfo
+            run_tests: OFF
+          - target: multiboot_iso
+            build_type: Release
+            run_tests: OFF
 
     steps:
       - uses: actions/checkout@v3
