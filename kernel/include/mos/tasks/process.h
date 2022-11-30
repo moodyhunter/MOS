@@ -2,11 +2,7 @@
 
 #pragma once
 
-#include "mos/filesystem/filesystem.h"
-#include "mos/mos_global.h"
-#include "mos/platform/platform.h"
 #include "mos/tasks/task_type.h"
-#include "mos/types.h"
 
 #define PROCESS_MAGIC_PROC 0x50524F43 // "PROC"
 

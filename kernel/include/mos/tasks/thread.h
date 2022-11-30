@@ -2,9 +2,7 @@
 
 #pragma once
 
-#include "mos/mos_global.h"
 #include "mos/tasks/task_type.h"
-#include "mos/types.h"
 
 #define THREAD_MAGIC_THRD 0x54524448 // "THRD"
 
