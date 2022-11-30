@@ -51,7 +51,7 @@ void printk_setup_console()
     printk_console = NULL;
 }
 
-static void deduce_level_color(int loglevel, standard_color_t *fg, standard_color_t *bg)
+static inline void deduce_level_color(int loglevel, standard_color_t *fg, standard_color_t *bg)
 {
     *bg = Black;
     switch (loglevel)
@@ -89,13 +89,10 @@ static void print_to_console(console_t *con, int loglevel, const char *message, 
     }
 }
 
-void lprintk(int loglevel, const char *fmt, ...)
+static void lvprintk(int loglevel, const char *fmt, va_list args)
 {
     char message[PRINTK_BUFFER_SIZE] = { 0 };
-    va_list args;
-    va_start(args, fmt);
     vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
-    va_end(args);
     const size_t len = strlen(message);
 
     if (likely(printk_console))
@@ -109,4 +106,20 @@ void lprintk(int loglevel, const char *fmt, ...)
             print_to_console(con, loglevel, message, len);
         }
     }
+}
+
+void lprintk(int loglevel, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    lvprintk(loglevel, format, args);
+    va_end(args);
+}
+
+void printk(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    lvprintk(MOS_LOG_INFO, format, args);
+    va_end(args);
 }
