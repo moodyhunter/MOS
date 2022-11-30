@@ -7,7 +7,7 @@
 #include "mos/types.h"
 #include "mos/x86/x86_platform.h"
 
-typedef struct
+typedef volatile struct
 {
     bool present : 1;
     bool writable : 1;
@@ -28,7 +28,7 @@ typedef struct
 
 static_assert(sizeof(x86_pgtable_entry) == 4, "page_table_entry is not 4 bytes");
 
-typedef struct
+typedef volatile struct
 {
     bool present : 1;
     bool writable : 1;
