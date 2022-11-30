@@ -130,6 +130,7 @@ void x86_smp_init()
     pr_info("smp: platform has %u cpu(s)", num_cpus);
     x86_platform.num_cpus = num_cpus;
 
+    // !! TODO: is this the correct way?
     mos_startup_map_bytes(X86_AP_TRAMPOLINE_ADDR, X86_AP_TRAMPOLINE_ADDR, 4 KB, VM_WRITE);
     memcpy((void *) X86_AP_TRAMPOLINE_ADDR, (void *) (uintptr_t) &x86_ap_trampoline, 4 KB);
 
