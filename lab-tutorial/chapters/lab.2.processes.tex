@@ -1,47 +1,22 @@
 \chapter{Lab 2 - Processes}
 
+% Processes, Threads (Intro), Process Creation and Context Switching
+
 Firstly, congratulations on completing the first lab! Hopefully you have had a chance to play
 around with the MOS kernel and have a better understanding of its structure.
-
-\begin{note}
-    \item Do email me or ask the lab assistant for help if you are stuck.
-\end{note}
 
 In this lab, we will be looking at the process management system in MOS.
 
 \section{Process Control Blocks}
 
-As you have seen in the lecture, `a process is a program in execution', and a process control
-block (PCB, in short) is a data structure that contains information about a process.
+You have learnt about this in the lecture: `a process is a program in execution', and a process
+control block (PCB) is a data structure that contains information about a process.
 
-Now, let's look at the PCB structure in MOS.
+Now, let's look at the PCB structure in MOS. In \texttt{kernel/include/mos/tasks/task\_type.h}.
 
-The PCB structure is defined in \texttt{kernel/include/mos/tasks/task\_type.h}:
-
-\begin{verbatim}
-typedef struct process_t
-{
-    u32 magic;
-    const char *name;
-    pid_t pid;
-    process_t *parent;
-    terminal_t *terminal;
-    uid_t effective_uid;
-    paging_handle_t pagetable;
-
-    ssize_t files_count;
-    io_t *files[MOS_PROCESS_MAX_OPEN_FILES];
-
-    ssize_t threads_count;
-    thread_t *threads[MOS_PROCESS_MAX_THREADS];
-
-    ssize_t mmaps_count;
-    proc_vmblock_t *mmaps;
-} process_t;
-\end{verbatim}
-
-The very first field is a magic number, which is used to check if we are dealing with a valid
-PCB. Then follows the process name and its PID.
+The first field is a magic number, which is used to check if we are dealing with a valid PCB.
+Then follows the process name and its PID, a list of opened files, a list of threads and a list
+of mapped memory regions, which we will look more closely at later.
 
 Each process has a parent, which is the process that created it, and this forms a tree-like
 structure.
@@ -51,17 +26,47 @@ structure.
     it being its own parent.
 \end{note}
 
-You may have noticed that the PCB MOS uses is a bit different from the one in the lecture.
-It doesn't specify the process state or its stack/heap/text memory regions. This is because
-MOS is using threads as the basic unit of execution, and each thread has its own state,
-you'll find out more about threads in the next lab session.
+\section{Thread Control Blocks}
 
-\begin{exercise}
-    \item Read the \texttt{kernel/include/mos/tasks/task\_type.h} header file to get
-    familiar with the PCB structure in MOS.
-\end{exercise}
+You may have noticed that the PCB above is different from the one in the lecture: it doesn't
+have a `process state' or its `stack/heap/text memory regions'. This is because MOS is using
+thread as a basic unit of execution, and each thread has its own state.
 
-\section{Process Creation and Termination}
+The thread control block is defined in the same file as the PCB. You can see that it contains
+a \texttt{tid} for a thread id, and a \texttt{state} field to indicate the state of the thread,
+its owner process, two stacks for the kernel and user mode respectively.
+
+There's also a \texttt{context} pointer, this will be used in context switching, we'll look at
+that later.
+
+\section{Process Creation}
 
 A process has to be created from a `program' (a binary executable file) in order to be
-executed.
+executed. WLOG, creating a process involves the following steps:
+
+\begin{enumerate}
+    \item Load the program into memory.
+          \begin{enumerate}
+              \item Allocate memory for the program.
+              \item Read the program from the disk.
+              \item Parse the program and map corresponding memory regions.
+          \end{enumerate}
+    \item Create a PCB for the process.
+          \begin{enumerate}
+              \item Allocate memory for the PCB.
+              \item Initialize the PCB with the information of the program.
+              \item Add the PCB to the process table.
+          \end{enumerate}
+    \item Create a thread for the process.
+          \begin{enumerate}
+              \item Allocate the main thread's TCB.
+              \item Initialize TCB.
+              \item Create the main thread's stack, in MOS, both the userspace and the kernel stack.
+                    TODO CHANGE THIS, IT'S NOT ONLY ALLOCATING THE STACK, BUT ALSO THE HEAP
+              \item Add the thread to the thread table.
+              \item Mark the thread as \texttt{CREATED}.
+          \end{enumerate}
+\end{enumerate}
+
+As you can see, the main steps are just to fill in the PCB and TCB with correct information loaded
+from the program, and then add them to the corresponding tables.
