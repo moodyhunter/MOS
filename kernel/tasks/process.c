@@ -40,9 +40,15 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
     proc->pid = new_process_id();
 
     if (likely(parent))
+    {
         proc->parent = parent;
+    }
     else if (unlikely(proc->pid == 1))
+    {
         proc->parent = proc;
+        MOS_ASSERT_ONCE("Only the init process should have a parent of itself");
+        pr_emph("created init process");
+    }
     else
     {
         pr_emerg("process %d has no parent", proc->pid);
@@ -213,12 +219,12 @@ void process_dump_mmaps(process_t *process)
             case VMTYPE_APPCODE: type = "code"; break;
             case VMTYPE_APPDATA: type = "data"; break;
             case VMTYPE_STACK: type = "stack"; break;
-            case VMTYPE_KSTACK: type = "kernel stack"; break;
+            case VMTYPE_KSTACK: type = "stack (kernel)"; break;
             case VMTYPE_FILE: type = "file"; break;
             default: MOS_UNREACHABLE();
         };
 
-        pr_info("  block %d: " PTR_FMT ", % 3zd page(s), [%c%c%c%c%c%c%c] -> %s",
+        pr_info("  block %d: " PTR_FMT ", % 3zd page(s), [%c%c%c%c%c%c%c]: %s",
                 i,                                          //
                 block.vm.vaddr,                             //
                 block.vm.npages,                            //

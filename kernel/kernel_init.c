@@ -22,13 +22,13 @@ bool mount_initrd(void)
     blockdev_t *dev = blockdev_find("initrd");
     if (!dev)
         return false;
-    pr_info("found initrd block device: %s", dev->name);
+    pr_info2("found initrd block device: %s", dev->name);
 
     mountpoint_t *mount = kmount(&root_path, &fs_cpio, dev);
     if (!mount)
         return false;
 
-    pr_info("mounted initrd as rootfs");
+    pr_info2("mounted initrd as rootfs");
     return true;
 }
 
@@ -49,7 +49,8 @@ const char *cmdline_get_init_path(void)
 void dump_cmdline(void)
 {
     pr_emph("MOS %s (%s)", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION);
-    pr_emph("MOS Arguments: (total of %zu options)", mos_cmdline->args_count);
+    if (mos_cmdline->args_count)
+        pr_emph("MOS Arguments: (total of %zu options)", mos_cmdline->args_count);
     for (u32 i = 0; i < mos_cmdline->args_count; i++)
     {
         cmdline_arg_t *option = mos_cmdline->arguments[i];

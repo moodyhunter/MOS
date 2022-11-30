@@ -60,7 +60,8 @@
     __extension__({                                                                                                                                                      \
         static bool __once = false;                                                                                                                                      \
         if (__once)                                                                                                                                                      \
-            false;                                                                                                                                                       \
-        __once = true;                                                                                                                                                   \
+            return false;                                                                                                                                                \
+        else                                                                                                                                                             \
+            __once = true;                                                                                                                                               \
         __once;                                                                                                                                                          \
     })
