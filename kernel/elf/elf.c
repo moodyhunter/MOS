@@ -46,7 +46,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
         goto bail_out_1;
     }
 
-    size_t npage_required = f->io.size / MOS_PAGE_SIZE + 1;
+    size_t npage_required = ALIGN_UP_TO_PAGE(f->io.size) / MOS_PAGE_SIZE;
     const vmblock_t buf_block = platform_mm_alloc_pages(current_cpu->pagetable, npage_required, PGALLOC_HINT_USERSPACE, VM_READ | VM_WRITE);
     char *const buf = (char *) buf_block.vaddr;
 
