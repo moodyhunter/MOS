@@ -59,7 +59,7 @@ void mos_kernel_mm_init()
 #endif
 }
 
-void *kheap_alloc_page(size_t npages, vm_flags vmflags)
+static void *kheap_alloc_page(size_t npages, vm_flags vmflags)
 {
     if (unlikely(npages <= 0))
     {
@@ -68,7 +68,7 @@ void *kheap_alloc_page(size_t npages, vm_flags vmflags)
     }
 
     vmblock_t block = platform_mm_alloc_pages(current_cpu->pagetable, npages, PGALLOC_HINT_KHEAP, vmflags);
-    MOS_ASSERT_X(block.vaddr >= MOS_X86_HEAP_BASE_VADDR, "only use this function to free kernel heap pages");
+    MOS_ASSERT_X(block.vaddr >= MOS_ADDR_KERNEL_HEAP, "only use this function to free kernel heap pages");
 
     if (unlikely(block.npages < npages))
         mos_warn("failed to allocate %zu pages", npages);
@@ -76,9 +76,9 @@ void *kheap_alloc_page(size_t npages, vm_flags vmflags)
     return (void *) block.vaddr;
 }
 
-bool kheap_free_page(void *vptr, size_t npages)
+static bool kheap_free_page(void *vptr, size_t npages)
 {
-    MOS_ASSERT_X(vptr >= (void *) MOS_X86_HEAP_BASE_VADDR, "only use this function to free kernel heap pages");
+    MOS_ASSERT_X(vptr >= (void *) MOS_ADDR_KERNEL_HEAP, "only use this function to free kernel heap pages");
 
     if (unlikely(vptr == NULL))
     {
