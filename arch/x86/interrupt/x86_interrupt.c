@@ -110,12 +110,13 @@ void x86_handle_interrupt(u32 esp)
     x86_stack_frame *frame = (x86_stack_frame *) esp;
 
     thread_t *current = current_thread;
-    MOS_ASSERT_X(current != NULL, "No current thread");
-
-    current->stack.head = frame->iret_params.esp;
-    x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
-    context->ebp = frame->ebp;
-    context->inner.instruction = frame->iret_params.eip;
+    if (likely(current))
+    {
+        current->stack.head = frame->iret_params.esp;
+        x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
+        context->ebp = frame->ebp;
+        context->inner.instruction = frame->iret_params.eip;
+    }
 
     if (frame->interrupt_number < IRQ_BASE)
         x86_handle_exception(frame);
@@ -131,8 +132,11 @@ void x86_handle_interrupt(u32 esp)
         pr_warn("Unknown interrupt number: %d", frame->interrupt_number);
     }
 
-    if (unlikely(current->status != THREAD_STATUS_RUNNING))
-        pr_warn("Thread %d is not in 'running' state", current->tid);
+    if (likely(current))
+    {
+        if (unlikely(current->status != THREAD_STATUS_RUNNING))
+            pr_warn("Thread %d is not in 'running' state", current->tid);
+    }
 
     frame->iret_params.eflags |= 0x200; // enable interrupts
 }
