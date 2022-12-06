@@ -49,10 +49,14 @@ vmblock_t pg_page_get_free(x86_pg_infra_t *pg, size_t n_pages, pgalloc_hints fla
 {
     uintptr_t vaddr_begin;
 
-    if (flags == PGALLOC_HINT_KHEAP)
-        vaddr_begin = MOS_X86_HEAP_BASE_VADDR;
-    if (flags == PGALLOC_HINT_USERSPACE)
-        vaddr_begin = MOS_USERSPACE_PGALLOC_START;
+    switch (flags)
+    {
+        case PGALLOC_HINT_KHEAP: vaddr_begin = MOS_ADDR_KERNEL_HEAP; break;
+        case PGALLOC_HINT_UHEAP: vaddr_begin = MOS_ADDR_USER_HEAP; break;
+        case PGALLOC_HINT_STACK: vaddr_begin = MOS_ADDR_USER_STACK; break;
+        case PGALLOC_HINT_MMAP: vaddr_begin = MOS_ADDR_USER_MMAP; break;
+        default: mos_panic("invalid pgalloc_hints"); break;
+    }
 
     // simply rename the variable, we are dealing with bitmaps
     size_t n_bits = n_pages;

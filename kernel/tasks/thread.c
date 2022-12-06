@@ -60,14 +60,14 @@ thread_t *thread_new(process_t *owner, thread_flags_t tflags, thread_entry_t ent
     thread_t *t = thread_allocate(owner, tflags);
 
     // Kernel stack
-    const vmblock_t kstack_blk = platform_mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_KERNEL, PGALLOC_HINT_USERSPACE, VM_READ | VM_WRITE);
+    const vmblock_t kstack_blk = platform_mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_KERNEL, PGALLOC_HINT_STACK, VM_READ | VM_WRITE);
     stack_init(&t->kernel_stack, (void *) kstack_blk.vaddr, kstack_blk.npages * MOS_PAGE_SIZE);
     process_attach_mmap(owner, kstack_blk, VMTYPE_KSTACK, false);
 
     if (tflags & THREAD_FLAG_USERMODE)
     {
         // allcate stack for the thread
-        const vmblock_t ustack_blk = platform_mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_USER, PGALLOC_HINT_USERSPACE, VM_READ | VM_WRITE | VM_USER);
+        const vmblock_t ustack_blk = platform_mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_USER, PGALLOC_HINT_STACK, VM_READ | VM_WRITE | VM_USER);
         stack_init(&t->stack, (void *) ustack_blk.vaddr, MOS_STACK_PAGES_USER * MOS_PAGE_SIZE);
         process_attach_mmap(owner, ustack_blk, VMTYPE_STACK, false);
 

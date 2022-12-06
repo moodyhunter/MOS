@@ -10,7 +10,7 @@
 
 vmblock_t mm_map_proxy_space(paging_handle_t src, uintptr_t srcvaddr, size_t npages)
 {
-    const vmblock_t proxy_blk = platform_mm_get_free_pages(current_cpu->pagetable, npages, PGALLOC_HINT_USERSPACE);
+    const vmblock_t proxy_blk = platform_mm_get_free_pages(current_cpu->pagetable, npages, PGALLOC_HINT_KHEAP);
     platform_mm_copy_maps(src, srcvaddr, current_cpu->pagetable, proxy_blk.vaddr, npages);
     return proxy_blk;
 }

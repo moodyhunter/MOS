@@ -39,7 +39,9 @@ typedef enum
 typedef enum
 {
     PGALLOC_HINT_KHEAP,
-    PGALLOC_HINT_USERSPACE,
+    PGALLOC_HINT_UHEAP,
+    PGALLOC_HINT_STACK,
+    PGALLOC_HINT_MMAP,
 } pgalloc_hints;
 
 typedef enum
