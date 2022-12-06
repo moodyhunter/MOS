@@ -5,7 +5,7 @@
 #include "lib/mos_lib.h"
 #include "lib/string.h"
 
-#define HASHMAP_MAGIC 0x484d6170 // "HMap"
+#define HASHMAP_MAGIC MOS_FOURCC('H', 'M', 'a', 'p')
 
 typedef struct hashmap_entry
 {

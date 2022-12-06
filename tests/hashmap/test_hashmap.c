@@ -5,7 +5,7 @@
 #include "mos/mos_global.h"
 #include "test_engine.h"
 
-#define HASHMAP_MAGIC 0x484d6170 // "HMap" (defined in lib/structures/hashmap.c)
+#define HASHMAP_MAGIC MOS_FOURCC('H', 'M', 'a', 'p')
 
 MOS_TEST_CASE(hashmap_init_simple_macro)
 {

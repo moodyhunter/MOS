@@ -4,7 +4,7 @@
 
 #include "mos/tasks/task_type.h"
 
-#define PROCESS_MAGIC_PROC 0x50524F43 // "PROC"
+#define PROCESS_MAGIC_PROC MOS_FOURCC('P', 'R', 'O', 'C')
 
 typedef struct _hashmap hashmap_t;
 typedef struct _terminal terminal_t;
