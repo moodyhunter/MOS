@@ -7,6 +7,7 @@
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/x86/acpi/acpi.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/devices/initrd_blockdev.h"
 #include "mos/x86/devices/port.h"
@@ -135,7 +136,7 @@ void x86_start_kernel(x86_startup_info *info)
         pg_map_pages(x86_kpg_infra, initrd_vaddr, initrd_paddr, initrd_n_pages, VM_GLOBAL);
     }
 
-    // x86_acpi_init();
+    x86_acpi_init();
     // x86_smp_init();
 
     // ! map the bios memory area, should it be done like this?

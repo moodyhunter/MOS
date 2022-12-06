@@ -183,9 +183,9 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
     video_device_address = BIOS_VADDR(X86_VIDEO_DEVICE);
     debug_print_step();
 
-    acpi_rsdp_t *rsdp = find_acpi_rsdp(BIOS_VADDR(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
+    acpi_rsdp_t *rsdp = acpi_find_rsdp(BIOS_VADDR(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
     if (!rsdp)
-        rsdp = find_acpi_rsdp(BIOS_VADDR(X86_BIOS_MEMREGION_PADDR), BIOS_MEMREGION_SIZE);
+        rsdp = acpi_find_rsdp(BIOS_VADDR(X86_BIOS_MEMREGION_PADDR), BIOS_MEMREGION_SIZE);
     STARTUP_ASSERT(rsdp, 'R');
 
     const multiboot_memory_map_t *map_entries = (multiboot_memory_map_t *) startup->mb_info->mmap_addr;

@@ -28,15 +28,18 @@ should_inline bool verify_sdt_checksum(acpi_sdt_header_t *tableHeader)
 
 void x86_acpi_init()
 {
-    acpi_rsdp_t *rsdp = find_acpi_rsdp(X86_EBDA_MEMREGION_PADDR | BIOS_VADDR_MASK, EBDA_MEMREGION_SIZE);
+    acpi_rsdp_t *rsdp = acpi_find_rsdp(X86_EBDA_MEMREGION_PADDR | BIOS_VADDR_MASK, EBDA_MEMREGION_SIZE);
     if (!rsdp)
     {
-        rsdp = find_acpi_rsdp(X86_BIOS_MEMREGION_PADDR | BIOS_VADDR_MASK, BIOS_MEMREGION_SIZE);
+        rsdp = acpi_find_rsdp(X86_BIOS_MEMREGION_PADDR | BIOS_VADDR_MASK, BIOS_MEMREGION_SIZE);
         if (!rsdp)
             mos_panic("RSDP not found");
     }
 
     // !! "MUST" USE XSDT IF FOUND !!
+    if (rsdp->xsdt_addr)
+        mos_panic("XSDT not supported");
+
     x86_acpi_rsdt = container_of(BIOS_VADDR(rsdp->v1.rsdt_addr), acpi_rsdt_t, sdt_header);
     if (!verify_sdt_checksum(&x86_acpi_rsdt->sdt_header))
         mos_panic("RSDT checksum error");
@@ -129,7 +132,7 @@ void x86_acpi_init()
     }
 }
 
-acpi_rsdp_t *find_acpi_rsdp(uintptr_t start, size_t size)
+acpi_rsdp_t *acpi_find_rsdp(uintptr_t start, size_t size)
 {
     for (uintptr_t addr = start; addr < start + size; addr += 0x10)
     {

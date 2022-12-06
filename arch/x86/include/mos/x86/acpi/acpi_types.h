@@ -209,9 +209,9 @@ typedef struct
 #define ACPI_SIGNATURE_MADT "APIC" // Multiple APIC Description Table
 
 #define madt_is_valid_entry_type(type) ((type >= 0 && type <= 5) || type == 9)
-#define madt_entry_foreach(var, madt)                                                                                                           \
-    for (acpi_madt_entry_header_t *var = (acpi_madt_entry_header_t *) ((char *) madt + sizeof(acpi_madt_t));                                    \
-         madt_is_valid_entry_type(var->type); var = (acpi_madt_entry_header_t *) ((char *) var + entry->record_length))
+#define madt_entry_foreach(var, madt)                                                                                                                                    \
+    for (acpi_madt_entry_header_t *var = (acpi_madt_entry_header_t *) ((char *) madt + sizeof(acpi_madt_t)); madt_is_valid_entry_type(var->type);                        \
+         var = (acpi_madt_entry_header_t *) ((char *) var + entry->record_length))
 
 typedef struct
 {
@@ -237,4 +237,4 @@ typedef struct
     bool valid;
 } s_dsdt;
 
-acpi_rsdp_t *find_acpi_rsdp(uintptr_t start, size_t size);
+acpi_rsdp_t *acpi_find_rsdp(uintptr_t start, size_t size);
