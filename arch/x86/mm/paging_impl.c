@@ -48,10 +48,14 @@ vmblock_t pg_page_alloc_at(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n_page, v
 vmblock_t pg_page_get_free(x86_pg_infra_t *pg, size_t n_pages, pgalloc_hints flags)
 {
     uintptr_t vaddr_begin;
+    pagemap_line_t *pagemap = pg->page_map; // paging trick
 
     switch (flags)
     {
-        case PGALLOC_HINT_KHEAP: vaddr_begin = MOS_ADDR_KERNEL_HEAP; break;
+        case PGALLOC_HINT_KHEAP:
+            vaddr_begin = MOS_ADDR_KERNEL_HEAP;
+            pagemap = x86_kpg_infra->page_map;
+            break;
         case PGALLOC_HINT_UHEAP: vaddr_begin = MOS_ADDR_USER_HEAP; break;
         case PGALLOC_HINT_STACK: vaddr_begin = MOS_ADDR_USER_STACK; break;
         case PGALLOC_HINT_MMAP: vaddr_begin = MOS_ADDR_USER_MMAP; break;
@@ -71,7 +75,7 @@ vmblock_t pg_page_get_free(x86_pg_infra_t *pg, size_t n_pages, pgalloc_hints fla
             mos_warn("failed to allocate %zu pages", n_pages);
             return (vmblock_t){ 0, .npages = 0 };
         }
-        pagemap_line_t current_byte = pg->page_map[i];
+        pagemap_line_t current_byte = pagemap[i];
 
         if (current_byte == 0)
         {
@@ -95,6 +99,10 @@ vmblock_t pg_page_get_free(x86_pg_infra_t *pg, size_t n_pages, pgalloc_hints fla
 
     size_t page_i = vaddr_map_bit_begin * PAGEMAP_WIDTH + target_bit;
     uintptr_t vaddr = page_i * MOS_PAGE_SIZE;
+
+    // sanity check: if we are not asked to allocate in kernel space, we should not be doing so (?)
+    if (flags != PGALLOC_HINT_KHEAP)
+        MOS_ASSERT_X(vaddr < MOS_KERNEL_START_VADDR, "make up your mind to allocate in kernel space!");
 
     return (vmblock_t){ .vaddr = vaddr, .npages = n_pages };
 }
@@ -169,14 +177,12 @@ void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_fla
     MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not aligned to 4096");
 
     // ! todo: ensure the offsets are correct for both paddr and vaddr
-    int page_dir_index = vaddr >> 22;
-    int page_table_index = vaddr >> 12 & 0x3ff; // mask out the lower 12 bits
+    u32 pd_index = vaddr >> 22;
+    u32 pt_index = pd_index * 1024 + (vaddr >> 12 & 0x3ff);
 
-    u32 pte_index = page_dir_index * 1024 + page_table_index;
+    x86_pgdir_entry *this_dir = &pg->pgdir[pd_index];
+    x86_pgtable_entry *this_table = pd_index >= 768 ? &x86_kpg_infra->pgtable[pt_index] : &pg->pgtable[pt_index];
 
-    x86_pgdir_entry *this_dir = &pg->pgdir[page_dir_index];
-
-    x86_pgtable_entry *this_table = &pg->pgtable[pte_index];
     if (unlikely(!this_dir->present))
     {
         this_dir->present = true;
@@ -184,13 +190,13 @@ void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_fla
         // kernel page tables are identity mapped
         uintptr_t table_paddr;
         if (pg == x86_kpg_infra)
-            table_paddr = (uintptr_t) this_table - MOS_KERNEL_START_VADDR;
+            table_paddr = (uintptr_t) this_table - MOS_KERNEL_START_VADDR; // kvaddr = kpaddr + MOS_KERNEL_START_VADDR
         else
             table_paddr = pg_page_get_mapped_paddr(x86_kpg_infra, (uintptr_t) this_table);
         this_dir->page_table_paddr = table_paddr >> 12;
     }
 
-    if (pg != x86_kpg_infra && page_dir_index >= 768)
+    if (pg != x86_kpg_infra && pd_index >= 768)
         MOS_ASSERT_X(this_dir->present, "page directory not present for kernel addresses, when mapping user pages");
 
     MOS_ASSERT_X(this_table->present == false, "page is already mapped");
@@ -210,28 +216,33 @@ void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_fla
     this_table->global = flags & VM_GLOBAL;
 
     // update the mm_page_map
-    PAGEMAP_MAP(pg->page_map, pte_index);
+    if (pt_index < MOS_KERNEL_START_VADDR / MOS_PAGE_SIZE)
+        PAGEMAP_MAP(pg->page_map, pt_index);
+    else
+        PAGEMAP_MAP(x86_kpg_infra->page_map, pt_index);
     pg_flush_tlb(vaddr);
 }
 
 void pg_do_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr)
 {
-    int page_dir_index = vaddr >> 22;
-    int page_table_index = vaddr >> 12 & 0x3ff;
+    u32 pd_index = vaddr >> 22;
+    u32 pt_index = pd_index * 1024 + (vaddr >> 12 & 0x3ff);
 
-    x86_pgdir_entry *page_dir = &pg->pgdir[page_dir_index];
+    x86_pgdir_entry *page_dir = &pg->pgdir[pd_index];
     if (unlikely(!page_dir->present))
     {
         mos_panic("vmem " PTR_FMT " not mapped", vaddr);
         return;
     }
 
-    x86_pgtable_entry *page_table = &pg->pgtable[page_dir_index * 1024 + page_table_index];
-    page_table->present = false;
+    x86_pgtable_entry *this_table = pd_index >= 768 ? &x86_kpg_infra->pgtable[pt_index] : &pg->pgtable[pt_index];
+    this_table->present = false;
 
     // update the mm page map
-    u32 pte_index = page_dir_index * 1024 + page_table_index;
-    PAGEMAP_UNMAP(pg->page_map, pte_index);
+    if (pd_index >= 768)
+        PAGEMAP_UNMAP(x86_kpg_infra->page_map, pt_index);
+    else
+        PAGEMAP_UNMAP(pg->page_map, pt_index);
     pg_flush_tlb(vaddr);
 }
 
