@@ -227,7 +227,6 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
 
     if (heap->map_flags & MMAP_COW)
     {
-        mos_warn("growing heap of process %d with COW flag set, check this", process->pid);
         heap->vm.npages += npages;
         return heap->vm.vaddr + heap->vm.npages * MOS_PAGE_SIZE;
     }
