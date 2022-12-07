@@ -192,6 +192,9 @@ void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_fla
     MOS_ASSERT_X(paddr < X86_MAX_MEM_SIZE, "physical address out of bounds");
     MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not aligned to 4096");
 
+    if (pg == x86_kpg_infra)
+        MOS_ASSERT_X(vaddr >= MOS_KERNEL_START_VADDR, "make up your mind to allocate userspace address in kernel page table");
+
     // ! todo: ensure the offsets are correct for both paddr and vaddr
     u32 pd_index = vaddr >> 22;
     u32 pt_index = pd_index * 1024 + (vaddr >> 12 & 0x3ff);

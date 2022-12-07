@@ -35,11 +35,6 @@ void x86_mm_prepare_paging()
     pr_info("paging: setting up physical memory freelist...");
     pmem_freelist_setup(x86_kpg_infra);
 
-    pr_info("paging: setting up low 1MB identity mapping... (except for the NULL page)");
-    // skip the free list setup, use do_ version
-    pg_do_map_page(x86_kpg_infra, 0, 0, VM_NONE); // ! the zero page is not writable
-    pg_do_map_pages(x86_kpg_infra, MOS_PAGE_SIZE, MOS_PAGE_SIZE, 1 MB / MOS_PAGE_SIZE - 1, VM_GLOBAL | VM_WRITE);
-
     // map video memory
     pr_info("paging: mapping video memory...");
     pg_do_map_pages(x86_kpg_infra, BIOS_VADDR(X86_VIDEO_DEVICE_PADDR), X86_VIDEO_DEVICE_PADDR, 1, VM_GLOBAL | VM_WRITE);

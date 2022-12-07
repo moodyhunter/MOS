@@ -146,7 +146,8 @@ void x86_start_kernel(x86_startup_info *info)
             x86_bios_region = &x86_mem_regions[i];
 
     x86_pmblock_t *bios_block = x86_bios_region;
-    pg_do_map_pages(x86_kpg_infra, bios_block->address, bios_block->address, bios_block->size_bytes / MOS_PAGE_SIZE, VM_GLOBAL);
+    pg_do_map_pages(x86_kpg_infra, BIOS_VADDR(bios_block->address), bios_block->address, bios_block->size_bytes / MOS_PAGE_SIZE, VM_GLOBAL);
+    bios_block->address = BIOS_VADDR(bios_block->address);
 
     x86_mm_enable_paging();
 
