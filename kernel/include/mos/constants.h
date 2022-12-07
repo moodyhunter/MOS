@@ -18,8 +18,7 @@
 #define BIOS_VADDR_TYPE(paddr, type) ((type) BIOS_VADDR((uintptr_t) (paddr)))
 
 // clang-format off
-#define B  * 1
-#define KB * 1024 B
+#define KB * 1024
 #define MB * 1024 KB
 #define GB * (u64) 1024 MB
 #define TB * (u64) 1024 GB
