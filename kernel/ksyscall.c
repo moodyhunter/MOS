@@ -173,9 +173,9 @@ uintptr_t define_syscall(heap_control)(heap_control_op op, uintptr_t arg)
 
     switch (op)
     {
-        case HEAP_OP_GET_BASE: return block->vm.vaddr;
-        case HEAP_OP_GET_TOP: return block->vm.vaddr + block->vm.npages * MOS_PAGE_SIZE;
-        case HEAP_OP_SET_TOP:
+        case HEAP_GET_BASE: return block->vm.vaddr;
+        case HEAP_GET_TOP: return block->vm.vaddr + block->vm.npages * MOS_PAGE_SIZE;
+        case HEAP_SET_TOP:
         {
             if (arg < block->vm.vaddr)
             {
@@ -200,8 +200,8 @@ uintptr_t define_syscall(heap_control)(heap_control_op op, uintptr_t arg)
 
             return process_grow_heap(process, (arg - block->vm.vaddr) / MOS_PAGE_SIZE);
         }
-        case HEAP_OP_GET_SIZE: return block->vm.npages * MOS_PAGE_SIZE;
-        case HEAP_OP_GROW:
+        case HEAP_GET_SIZE: return block->vm.npages * MOS_PAGE_SIZE;
+        case HEAP_GROW:
         {
             if (arg % MOS_PAGE_SIZE)
             {
