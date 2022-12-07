@@ -13,9 +13,9 @@
 process_t *process_handle_fork(process_t *parent)
 {
     MOS_ASSERT(process_is_valid(parent));
-    mos_debug("process %d forked", parent->pid);
 
     process_t *child = process_allocate(parent, parent->effective_uid, parent->name);
+    pr_emph("process %d forked to %d", parent->pid, child->pid);
 
     // copy the parent's memory
     for (int i = 0; i < parent->mmaps_count; i++)

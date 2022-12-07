@@ -111,7 +111,7 @@ bool path_resolve(fsnode_t *cwd, const char *path, fsnode_t **resolved)
         real_cwd = &root_path;
     }
 
-    size_t segment_len;
+    size_t segment_len = 0;
     const char *next_seg = path_next_segment(path, &segment_len);
 
     fsnode_t *current = impl_path_get_subpath(real_cwd, path, segment_len);

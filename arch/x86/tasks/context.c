@@ -26,6 +26,7 @@ void x86_setup_thread_context(thread_t *thread, downwards_stack_t *proxy_stack, 
     context->ebp = 0;
 
     thread->context = &context->inner;
+    // TODO: remove this hack
     stack_push(proxy_stack, &arg, sizeof(uintptr_t));
     uintptr_t zero = 0;
     stack_push(proxy_stack, &zero, sizeof(uintptr_t)); // a fake return address

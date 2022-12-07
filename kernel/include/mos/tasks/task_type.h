@@ -73,7 +73,7 @@ typedef struct _thread
     thread_status_t status;
     process_t *owner;
     downwards_stack_t stack;
-    downwards_stack_t kernel_stack;
+    downwards_stack_t kernel_stack; // TODO: per-cpu? (s.a. "an interrupt can not preempt another interrupt (it used to be possible)")
     platform_context_t *context;
     thread_flags_t flags;
 } thread_t;
