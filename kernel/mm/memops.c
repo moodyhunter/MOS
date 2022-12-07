@@ -10,8 +10,14 @@
 #include "mos/printk.h"
 #include "mos/types.h"
 
+static vmblock_t zero_block;
+
 void mos_kernel_mm_init()
 {
+    // zero fill on demand (read-only, user-accessible)
+    zero_block = platform_mm_alloc_pages(current_cpu->pagetable, 1, PGALLOC_HINT_KHEAP, VM_READ | VM_WRITE);
+    memzero((void *) zero_block.vaddr, MOS_PAGE_SIZE);
+
     liballoc_init();
 #if MOS_MM_LIBALLOC_DEBUG
     mos_install_kpanic_hook(liballoc_dump);
@@ -56,6 +62,48 @@ bool liballoc_free_page(void *vptr, size_t npages)
 
     platform_mm_free_pages(current_cpu->pagetable, (uintptr_t) vptr, npages);
     return true;
+}
+
+vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, pgalloc_hints hints, vm_flags flags)
+{
+    vmblock_t free_pages = platform_mm_get_free_pages(handle, npages, hints);
+    if (free_pages.npages < npages)
+    {
+        mos_warn("failed to allocate %zu pages", npages);
+        return (vmblock_t){ 0 };
+    }
+
+    // zero fill the pages
+    for (size_t i = 0; i < npages; i++)
+    {
+        // actually, zero_block is always accessible, using [handle] == using [current_cpu->pagetable] as source
+        platform_mm_copy_maps(current_cpu->pagetable, zero_block.vaddr, handle, free_pages.vaddr + i * MOS_PAGE_SIZE, 1);
+    }
+
+    // make the pages read-only (because for now, they are mapped to zero_block)
+    platform_mm_flag_pages(handle, free_pages.vaddr, npages, VM_READ | ((flags & VM_USER) ? VM_USER : 0));
+    free_pages.flags = flags; // but set the desired flags correctly
+    return free_pages;
+}
+
+vmblock_t mm_alloc_zeroed_pages_at(paging_handle_t handle, uintptr_t vaddr, size_t npages, vm_flags flags)
+{
+    if (platform_mm_get_is_mapped(handle, vaddr))
+    {
+        mos_warn("failed to allocate %zu pages at %p: already mapped", npages, (void *) vaddr);
+        return (vmblock_t){ 0 };
+    }
+
+    // zero fill the pages
+    for (size_t i = 0; i < npages; i++)
+    {
+        // actually, zero_block is always accessible, using [handle] == using [current_cpu->pagetable] as source
+        platform_mm_copy_maps(current_cpu->pagetable, zero_block.vaddr, handle, vaddr + i * MOS_PAGE_SIZE, 1);
+    }
+
+    // make the pages read-only (because for now, they are mapped to zero_block)
+    platform_mm_flag_pages(handle, vaddr, npages, VM_READ | ((flags & VM_USER) ? VM_USER : 0));
+    return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags };
 }
 
 vmblock_t mm_map_proxy_space(paging_handle_t src, uintptr_t srcvaddr, size_t npages)
