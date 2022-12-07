@@ -17,18 +17,20 @@
 #define MOS_LIB_UNIMPLEMENTED(content)   MOS_UNIMPLEMENTED(content)
 #define MOS_LIB_UNREACHABLE()            MOS_UNREACHABLE()
 #else // ! Userspace
-#define MOS_LIB_ASSERT(cond) MOS_UNUSED(cond)
+#include "libuserspace.h"
+#define MOS_LIB_ASSERT(cond)                                                                                                                                             \
+    if (!(cond))                                                                                                                                                         \
+    fatal_abort("Assertion failed: %s", #cond)
 #define MOS_LIB_ASSERT_X(cond, msg, ...)                                                                                                                                 \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
-        /* unimplemented */                                                                                                                                              \
-        MOS_UNUSED(cond);                                                                                                                                                \
-        MOS_UNUSED(msg);                                                                                                                                                 \
+        if (!(cond))                                                                                                                                                     \
+            fatal_abort("Assertion failed: %s: " msg, #cond, ##__VA_ARGS__);                                                                                             \
     } while (0)
-#define MOS_LIB_UNIMPLEMENTED(content) ; /* unimplemented */
-#define MOS_LIB_UNREACHABLE()          ; /* unimplemented */
-#define mos_warn(...)                  ; /* unimplemented */
-#define mos_panic(...)                 ; /* unimplemented */
+#define MOS_LIB_UNIMPLEMENTED(content) fatal_abort("Unimplemented: " content)
+#define MOS_LIB_UNREACHABLE()          fatal_abort("Unreachable code reached")
+#define mos_warn(...)                  dprintf(stderr, __VA_ARGS__)
+#define mos_panic(...)                 fatal_abort(__VA_ARGS__)
 #endif
 
 /** @} */

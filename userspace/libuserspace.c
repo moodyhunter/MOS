@@ -3,6 +3,7 @@
 #include "libuserspace.h"
 
 #include "lib/liballoc.h"
+#include "lib/memory.h"
 #include "lib/stdio.h"
 #include "lib/string.h"
 #include "mos/platform/platform.h"
@@ -83,6 +84,17 @@ void printf(const char *fmt, ...)
     va_start(ap, fmt);
     dvprintf(stdout, fmt, ap);
     va_end(ap);
+}
+
+void fatal_abort(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    dvprintf(stderr, fmt, ap);
+    va_end(ap);
+    syscall_exit(-1);
+    while (1)
+        ;
 }
 
 void *liballoc_alloc_page(size_t npages)

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "lib/memory.h"
+#include "lib/string.h"
 #include "libuserspace.h"
 #include "mos/syscall/usermode.h"
 
@@ -47,7 +49,6 @@ int main(void)
     printf("pong pid: %d\n", pong_pid);
 
     start_thread("worker", thread_work, &value);
-
     my_pid = syscall_fork();
 
     if (my_pid == 0)
@@ -91,6 +92,10 @@ int main(void)
     // write to the heap
     char *ptr = (char *) new_heap - 1;
     *ptr = 0x42;
+
+    char *data = malloc(50);
+    strcpy(data, "Hello world!");
+    printf("Data: %s\n", data);
 
     while (1)
         ;
