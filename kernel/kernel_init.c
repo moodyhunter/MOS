@@ -97,7 +97,10 @@ void mos_start_kernel(const char *cmdline)
         if (!init_con)
             mos_panic("failed to find serial console");
     }
-    init_con->clear(init_con);
+
+    if (init_con->caps & CONSOLE_CAP_CLEAR)
+        init_con->clear(init_con);
+
     terminal_t *init_term = terminal_create_console(init_con);
 
     uid_t root_uid = 0;
