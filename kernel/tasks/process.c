@@ -255,6 +255,7 @@ void process_dump_mmaps(process_t *process)
         {
             case VMTYPE_APPCODE: type = "code"; break;
             case VMTYPE_APPDATA: type = "data"; break;
+            case VMTYPE_APPDATA_ZERO: type = "data (zeroed)"; break;
             case VMTYPE_HEAP: type = "heap"; break;
             case VMTYPE_STACK: type = "stack"; break;
             case VMTYPE_KSTACK: type = "stack (kernel)"; break;

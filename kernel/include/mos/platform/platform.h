@@ -46,12 +46,13 @@ typedef enum
 
 typedef enum
 {
-    VMTYPE_APPCODE, // '.text' section
-    VMTYPE_APPDATA, // '.data' and '.bss' sections
-    VMTYPE_HEAP,    // userspace heap
-    VMTYPE_STACK,   // userspace stack
-    VMTYPE_KSTACK,  // kernel stack
-    VMTYPE_FILE,    // file mapping (mmap)
+    VMTYPE_APPCODE,      // '.text' section
+    VMTYPE_APPDATA,      // '.data' sections
+    VMTYPE_APPDATA_ZERO, // '.bss' sections (zeroed out)
+    VMTYPE_HEAP,         // userspace heap
+    VMTYPE_STACK,        // userspace stack
+    VMTYPE_KSTACK,       // kernel stack
+    VMTYPE_FILE,         // file mapping (mmap)
 } vm_type;
 
 typedef enum
