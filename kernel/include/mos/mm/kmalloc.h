@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/mm/liballoc.h"
+#include "lib/liballoc.h"
 #include "mos/types.h"
 
 #include MOS_KERNEL_INTERNAL_HEADER_CHECK

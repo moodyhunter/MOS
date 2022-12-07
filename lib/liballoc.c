@@ -1,23 +1,22 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "mos/mm/liballoc.h"
+#include "lib/liballoc.h"
 
+#include "lib/mos_lib.h"
 #include "lib/string.h"
 #include "lib/sync/spinlock.h"
-#include "mos/panic.h"
 #include "mos/platform/platform.h"
-#include "mos/printk.h"
 
 #define VERSION "1.1"
 
 // This is the byte alignment that memory must be allocated on. IMPORTANT for GTK and other stuff.
-#define ALIGNMENT 16 // or 4
+static const int ALIGNMENT = 16; // or 4
 
 // unsigned char[16], or unsigned short
-#define ALIGN_TYPE char
+typedef char liballoc_align_t;
 
 // Alignment information is stored right before the pointer. This is the number of bytes of information stored there.
-#define ALIGN_INFO sizeof(ALIGN_TYPE) * 16
+#define ALIGN_INFO (sizeof(liballoc_align_t) * 16)
 
 #define USE_CASE1 1
 #define USE_CASE2 1
@@ -37,63 +36,21 @@
             diff = ALIGNMENT - diff;                                                                                                                                     \
             ptr = (void *) ((uintptr_t) ptr + diff);                                                                                                                     \
         }                                                                                                                                                                \
-        *((ALIGN_TYPE *) ((uintptr_t) ptr - ALIGN_INFO)) = diff + ALIGN_INFO;                                                                                            \
+        *((liballoc_align_t *) ((uintptr_t) ptr - ALIGN_INFO)) = diff + ALIGN_INFO;                                                                                      \
     }
 
 #define LIBALLOC_UNALIGN_PTR(ptr)                                                                                                                                        \
     if (ALIGNMENT > 1)                                                                                                                                                   \
     {                                                                                                                                                                    \
-        uintptr_t diff = *((ALIGN_TYPE *) ((uintptr_t) ptr - ALIGN_INFO));                                                                                               \
+        uintptr_t diff = *((liballoc_align_t *) ((uintptr_t) ptr - ALIGN_INFO));                                                                                         \
         if (diff < (ALIGNMENT + ALIGN_INFO))                                                                                                                             \
             ptr = (void *) ((uintptr_t) ptr - diff);                                                                                                                     \
     }
 
-#define LIBALLOC_MAGIC 0xaabbccdd
-#define LIBALLOC_DEAD  0xdeaddead
+#define LIBALLOC_MAGIC MOS_FOURCC('A', 'L', 'O', 'C')
+#define LIBALLOC_DEAD  MOS_FOURCC('D', 'E', 'A', 'D')
 
-void mos_kernel_mm_init()
-{
-    liballoc_init();
-#if MOS_MM_LIBALLOC_DEBUG
-    mos_install_kpanic_hook(liballoc_dump);
-#endif
-}
-
-static void *kheap_alloc_page(size_t npages, vm_flags vmflags)
-{
-    if (unlikely(npages <= 0))
-    {
-        mos_warn("allocating negative or zero pages");
-        return NULL;
-    }
-
-    vmblock_t block = platform_mm_alloc_pages(current_cpu->pagetable, npages, PGALLOC_HINT_KHEAP, vmflags);
-    MOS_ASSERT_X(block.vaddr >= MOS_ADDR_KERNEL_HEAP, "only use this function to free kernel heap pages");
-
-    if (unlikely(block.npages < npages))
-        mos_warn("failed to allocate %zu pages", npages);
-
-    return (void *) block.vaddr;
-}
-
-static bool kheap_free_page(void *vptr, size_t npages)
-{
-    MOS_ASSERT_X(vptr >= (void *) MOS_ADDR_KERNEL_HEAP, "only use this function to free kernel heap pages");
-
-    if (unlikely(vptr == NULL))
-    {
-        mos_warn("freeing NULL pointer");
-        return false;
-    }
-    if (unlikely(npages <= 0))
-    {
-        mos_warn("freeing negative or zero pages");
-        return false;
-    }
-
-    platform_mm_free_pages(current_cpu->pagetable, (uintptr_t) vptr, npages);
-    return true;
-}
+#define LIBALLOC_PRINT_DEBUG_MESSAGES MOS_MM_LIBALLOC_DEBUG &&__MOS_KERNEL__ // only print debug messages in kernel mode
 
 static spinlock_t alloc_lock = SPINLOCK_INIT;
 
@@ -142,7 +99,7 @@ static size_t l_warnings = 0;          // Number of warnings encountered
 static size_t l_errors = 0;            // Number of actual errors
 static size_t l_possible_overruns = 0; // Number of possible overruns
 
-#if MOS_MM_LIBALLOC_DEBUG
+#if LIBALLOC_PRINT_DEBUG_MESSAGES
 void liballoc_dump()
 {
     pr_info("--------------- Memory data ---------------");
@@ -187,7 +144,7 @@ static liballoc_block_t *allocate_new_pages_for(unsigned int size)
     if (st < l_alloc_n_page_once)
         st = l_alloc_n_page_once;
 
-    liballoc_block_t *maj = (liballoc_block_t *) kheap_alloc_page(st, VM_READ | VM_WRITE);
+    liballoc_block_t *maj = (liballoc_block_t *) liballoc_alloc_page(st);
     if (maj == NULL)
     {
         l_warnings += 1;
@@ -204,7 +161,7 @@ static liballoc_block_t *allocate_new_pages_for(unsigned int size)
 
     l_mem_allocated += maj->size;
 
-#if MOS_MM_LIBALLOC_DEBUG
+#if LIBALLOC_PRINT_DEBUG_MESSAGES
     pr_info("liballoc: Allocated %u pages (%zu bytes) at %p for %u bytes to be used.", st, maj->size, (void *) maj, size);
     pr_info("liballoc: Total memory usage = %i KB", (int) ((l_mem_allocated / (1024))));
 #endif
@@ -216,11 +173,19 @@ void liballoc_init(void)
 {
     l_alloc_n_page_once = 16;
 
-    MOS_ASSERT_X(l_memroot == NULL, "liballoc_init() called twice");
+    l_memroot = NULL;
+    l_bestbet = NULL;
+    l_alloc_n_page_once = 0;
+    l_mem_allocated = 0;
+    l_mem_inuse = 0;
+    l_warnings = 0;
+    l_errors = 0;
+    l_possible_overruns = 0;
 
-#if MOS_MM_LIBALLOC_DEBUG
+    MOS_LIB_ASSERT_X(l_memroot == NULL, "liballoc_init() called twice");
+
+#if LIBALLOC_PRINT_DEBUG_MESSAGES
     pr_info("liballoc: initialization of liballoc " VERSION "");
-    // atexit(liballoc_dump);
 #endif
 
     // This is the first time we are being used.
@@ -230,12 +195,12 @@ void liballoc_init(void)
 #if MOS_MM_LIBALLOC_LOCKS
         liballoc_unlock();
 #endif
-#if MOS_MM_LIBALLOC_DEBUG
+#if LIBALLOC_PRINT_DEBUG_MESSAGES
         pr_info("liballoc: initial l_memRoot initialization failed");
 #endif
     }
 
-#if MOS_MM_LIBALLOC_DEBUG
+#if LIBALLOC_PRINT_DEBUG_MESSAGES
     pr_info("liballoc: set up first memory major %p", (void *) l_memroot);
 #endif
 }
@@ -265,7 +230,7 @@ void *liballoc_malloc(size_t req_size)
         return liballoc_malloc(1);
     }
 
-    MOS_ASSERT_X(l_memroot, "liballoc: liballoc_malloc() called before liballoc_init().");
+    MOS_LIB_ASSERT_X(l_memroot, "liballoc: liballoc_malloc() called before liballoc_init().");
 
     // Now we need to bounce through every major and find enough space....
 
@@ -301,7 +266,7 @@ void *liballoc_malloc(size_t req_size)
         // CASE 1:  There is not enough space in this major block.
         if (diff < (size + sizeof(liballoc_part_t)))
         {
-#if MOS_MM_LIBALLOC_DEBUG
+#if LIBALLOC_PRINT_DEBUG_MESSAGES
             pr_info("CASE 1: Insufficient space in block %p", (void *) block);
 #endif
 
@@ -354,7 +319,7 @@ void *liballoc_malloc(size_t req_size)
             liballoc_unlock(); // release the lock
 #endif
 
-#if MOS_MM_LIBALLOC_DEBUG
+#if LIBALLOC_PRINT_DEBUG_MESSAGES
             pr_info("liballoc: allocating %lu bytes at %p", size, p);
 #endif
             return p;
@@ -390,7 +355,7 @@ void *liballoc_malloc(size_t req_size)
 #if MOS_MM_LIBALLOC_LOCKS
                 liballoc_unlock(); // release the lock
 #endif
-#if MOS_MM_LIBALLOC_DEBUG
+#if LIBALLOC_PRINT_DEBUG_MESSAGES
                 pr_info("liballoc: allocating %lu bytes at %p", size, p);
 #endif
                 return p;
@@ -438,7 +403,7 @@ void *liballoc_malloc(size_t req_size)
 #if MOS_MM_LIBALLOC_LOCKS
                     liballoc_unlock(); // release the lock
 #endif
-#if MOS_MM_LIBALLOC_DEBUG
+#if LIBALLOC_PRINT_DEBUG_MESSAGES
                     pr_info("liballoc: allocating %lu bytes at %p", size, p);
 #endif
                     return p;
@@ -478,7 +443,7 @@ void *liballoc_malloc(size_t req_size)
 #if MOS_MM_LIBALLOC_LOCKS
                     liballoc_unlock(); // release the lock
 #endif
-#if MOS_MM_LIBALLOC_DEBUG
+#if LIBALLOC_PRINT_DEBUG_MESSAGES
                     pr_info("liballoc: allocating %lu bytes at %p", size, p);
 #endif
                     return p;
@@ -494,7 +459,7 @@ void *liballoc_malloc(size_t req_size)
         // CASE 5: Block full! Ensure next block and loop.
         if (block->next == NULL)
         {
-#if MOS_MM_LIBALLOC_DEBUG
+#if LIBALLOC_PRINT_DEBUG_MESSAGES
             pr_info("CASE 5: block full");
 #endif
 
@@ -523,7 +488,7 @@ void *liballoc_malloc(size_t req_size)
 
     mos_warn("No memory available.");
 
-#if MOS_MM_LIBALLOC_DEBUG
+#if LIBALLOC_PRINT_DEBUG_MESSAGES
     liballoc_dump();
 #endif
 
@@ -606,7 +571,7 @@ void liballoc_free(const void *ptr)
             maj->next->prev = maj->prev;
         l_mem_allocated -= maj->size;
 
-        kheap_free_page(maj, maj->pages);
+        liballoc_free_page(maj, maj->pages);
     }
     else
     {
@@ -627,7 +592,7 @@ void liballoc_free(const void *ptr)
 
 void *liballoc_calloc(size_t nobj, size_t size)
 {
-    MOS_ASSERT_X(nobj > 0, "You Fool! You can't allocate 0 objects!");
+    MOS_LIB_ASSERT_X(nobj > 0, "You Fool! You can't allocate 0 objects!");
     size_t real_size = nobj * size;
     void *p = liballoc_malloc(real_size);
     memzero(p, real_size);

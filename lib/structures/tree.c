@@ -2,6 +2,7 @@
 
 #include "lib/structures/tree.h"
 
+#include "lib/liballoc.h"
 #include "lib/mos_lib.h"
 #include "lib/string.h"
 
@@ -14,7 +15,7 @@ void tree_add_child(tree_node_t *parent, tree_node_t *child)
     MOS_LIB_ASSERT(child->children == NULL);
     child->parent = parent;
     parent->n_children++;
-    parent->children = mos_lib_realloc(parent->children, parent->n_children * sizeof(tree_node_t *));
+    parent->children = liballoc_realloc(parent->children, parent->n_children * sizeof(tree_node_t *));
     parent->children[parent->n_children - 1] = child;
 }
 

@@ -2,11 +2,61 @@
 
 #include "mos/mm/memops.h"
 
+#include "lib/liballoc.h"
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/types.h"
+
+void mos_kernel_mm_init()
+{
+    liballoc_init();
+#if MOS_MM_LIBALLOC_DEBUG
+    mos_install_kpanic_hook(liballoc_dump);
+#endif
+}
+
+// allocate new pages for liballoc
+// !! This function is called by liballoc, not intended to be called by anyone else !!
+void *liballoc_alloc_page(size_t npages)
+{
+    if (unlikely(npages <= 0))
+    {
+        mos_warn("allocating negative or zero pages");
+        return NULL;
+    }
+
+    vmblock_t block = platform_mm_alloc_pages(current_cpu->pagetable, npages, PGALLOC_HINT_KHEAP, VM_READ | VM_WRITE);
+    MOS_ASSERT_X(block.vaddr >= MOS_ADDR_KERNEL_HEAP, "only use this function to free kernel heap pages");
+
+    if (unlikely(block.npages < npages))
+        mos_warn("failed to allocate %zu pages", npages);
+
+    return (void *) block.vaddr;
+}
+
+// free pages allocated by liballoc
+// !! This function is called by liballoc, not intended to be called by anyone else !!
+bool liballoc_free_page(void *vptr, size_t npages)
+{
+    MOS_ASSERT_X(vptr >= (void *) MOS_ADDR_KERNEL_HEAP, "only use this function to free kernel heap pages");
+
+    if (unlikely(vptr == NULL))
+    {
+        mos_warn("freeing NULL pointer");
+        return false;
+    }
+    if (unlikely(npages <= 0))
+    {
+        mos_warn("freeing negative or zero pages");
+        return false;
+    }
+
+    platform_mm_free_pages(current_cpu->pagetable, (uintptr_t) vptr, npages);
+    return true;
+}
 
 vmblock_t mm_map_proxy_space(paging_handle_t src, uintptr_t srcvaddr, size_t npages)
 {

@@ -2,6 +2,7 @@
 
 #include "lib/structures/ring_buffer.h"
 
+#include "lib/liballoc.h"
 #include "lib/mos_lib.h"
 #include "lib/string.h"
 
@@ -15,13 +16,13 @@ ring_buffer_t *ring_buffer_create(size_t capacity)
     if (capacity == 0)
         return NULL; // forget about it
 
-    ring_buffer_t *rb = mos_lib_malloc(sizeof(ring_buffer_t));
+    ring_buffer_t *rb = liballoc_malloc(sizeof(ring_buffer_t));
     if (!rb)
         return NULL;
-    rb->data = mos_lib_malloc(capacity);
+    rb->data = liballoc_malloc(capacity);
     if (!rb->data)
     {
-        mos_lib_free(rb);
+        liballoc_free(rb);
         return NULL;
     }
     rb->capacity = capacity;
@@ -33,15 +34,15 @@ ring_buffer_t *ring_buffer_create(size_t capacity)
 
 void ring_buffer_destroy(ring_buffer_t *buffer)
 {
-    mos_lib_free(buffer->data);
-    mos_lib_free(buffer);
+    liballoc_free(buffer->data);
+    liballoc_free(buffer);
 }
 
 bool ring_buffer_resize(ring_buffer_t *buffer, size_t new_capacity)
 {
     if (new_capacity < buffer->size)
         return false;
-    void *new_data = mos_lib_malloc(new_capacity);
+    void *new_data = liballoc_malloc(new_capacity);
     if (!new_data)
         return false;
     size_t i = 0;
@@ -50,7 +51,7 @@ bool ring_buffer_resize(ring_buffer_t *buffer, size_t new_capacity)
         ((char *) new_data)[i] = ring_buffer_get(buffer, i);
         i++;
     }
-    mos_lib_free(buffer->data);
+    liballoc_free(buffer->data);
     buffer->data = new_data;
     buffer->capacity = new_capacity;
     buffer->head = 0;

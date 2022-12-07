@@ -2,6 +2,7 @@
 
 #include "lib/structures/hashmap.h"
 
+#include "lib/liballoc.h"
 #include "lib/mos_lib.h"
 #include "lib/string.h"
 
@@ -23,7 +24,7 @@ void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, has
         return;
     }
     map->magic = HASHMAP_MAGIC;
-    map->entries = mos_lib_calloc(capacity, sizeof(hashmap_entry_t *));
+    map->entries = liballoc_calloc(capacity, sizeof(hashmap_entry_t *));
     memset(map->entries, 0, sizeof(hashmap_entry_t *) * capacity);
     map->capacity = capacity;
     map->size = 0;
@@ -48,11 +49,11 @@ void hashmap_deinit(hashmap_t *map)
         while (entry != NULL)
         {
             hashmap_entry_t *next = entry->next;
-            mos_lib_free(entry);
+            liballoc_free(entry);
             entry = next;
         }
     }
-    mos_lib_free(map->entries);
+    liballoc_free(map->entries);
 }
 
 void *hashmap_put(hashmap_t *map, const void *key, void *value)
@@ -71,7 +72,7 @@ void *hashmap_put(hashmap_t *map, const void *key, void *value)
         }
         entry = entry->next;
     }
-    entry = mos_lib_malloc(sizeof(hashmap_entry_t));
+    entry = liballoc_malloc(sizeof(hashmap_entry_t));
     entry->key = key;
     entry->value = value;
     entry->next = map->entries[index];
@@ -115,7 +116,7 @@ void *hashmap_remove(hashmap_t *map, const void *key)
                 prev->next = entry->next;
             }
             void *value = entry->value;
-            mos_lib_free(entry);
+            liballoc_free(entry);
             map->size--;
             return value;
         }

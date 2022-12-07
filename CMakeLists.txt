@@ -49,6 +49,7 @@ set(MOS_STANDARD_LIBRARY_SOURCES
     lib/stdio_impl.c
     lib/stdlib.c
     lib/string.c
+    lib/liballoc.c
 )
 
 add_library(mos_kernel.elf STATIC
@@ -65,7 +66,6 @@ add_library(mos_kernel.elf STATIC
     kernel/io/io.c
     kernel/io/terminal.c
     kernel/kernel_init.c
-    kernel/mm/liballoc.c
     kernel/mm/cow.c
     kernel/mm/memops.c
     kernel/panic.c

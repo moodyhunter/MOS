@@ -2,6 +2,7 @@
 
 #include "libuserspace.h"
 
+#include "lib/liballoc.h"
 #include "lib/stdio.h"
 #include "lib/string.h"
 #include "mos/platform/platform.h"
@@ -15,7 +16,7 @@ typedef struct thread_start_args
     void *arg;
 } thread_start_args_t;
 
-u64 __stack_chk_guard = 0;
+u64 __stack_chk_guard = 0xdeadbeefdeadbeef;
 
 noreturn void __stack_chk_fail(void)
 {
@@ -29,17 +30,35 @@ void __stack_chk_fail_local(void)
     __stack_chk_fail();
 }
 
+static void invoke_init(void)
+{
+    typedef void (*func_ptr)(void);
+    extern char __init_array_start, __init_array_end;
+    for (func_ptr *func = (void *) &__init_array_start; func != (void *) &__init_array_end; func++)
+        if (func)
+            (*func)();
+}
+
+static void __attribute__((constructor)) __liballoc_userspace_init(void)
+{
+    liballoc_init();
+}
+
 void _start(void)
 {
     extern int main(void);
+    extern void invoke_init(void);
+    invoke_init();
     int r = main();
     syscall_exit(r);
 }
 
-void _thread_start(void *arg)
+static void thread_start(void *_arg)
 {
-    thread_start_args_t *args = (thread_start_args_t *) arg;
-    args->entry(args->arg);
+    thread_entry_t entry = ((thread_start_args_t *) _arg)->entry;
+    void *entry_arg = ((thread_start_args_t *) _arg)->arg;
+    free(_arg);
+    entry(entry_arg);
     syscall_thread_exit();
 }
 
@@ -66,11 +85,27 @@ void printf(const char *fmt, ...)
     va_end(ap);
 }
 
-// TODO support 1) malloc? or 2) thread-local storage?
-static thread_start_args_t thread_start_args;
+void *liballoc_alloc_page(size_t npages)
+{
+    uintptr_t new_top = syscall_heap_control(HEAP_GROW_PAGES, npages);
+    if (new_top == 0)
+        return NULL;
+
+    return (void *) (new_top - npages * MOS_PAGE_SIZE);
+}
+
+bool liballoc_free_page(void *vptr, size_t npages)
+{
+    MOS_UNUSED(npages);
+    MOS_UNUSED(vptr);
+    dprintf(stderr, "liballoc_free_page not implemented\n");
+    return false;
+}
 
 void start_thread(const char *name, thread_entry_t entry, void *arg)
 {
-    thread_start_args = (thread_start_args_t){ .entry = entry, .arg = arg };
-    syscall_create_thread(name, _thread_start, &thread_start_args);
+    thread_start_args_t *thread_start_args = malloc(sizeof(thread_start_args_t));
+    thread_start_args->entry = entry;
+    thread_start_args->arg = arg;
+    syscall_create_thread(name, thread_start, thread_start_args);
 }

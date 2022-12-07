@@ -3,6 +3,7 @@
 
 /**  Durand's Amazing Super Duper Memory functions.  */
 
+#include "mos/platform/platform.h"
 #include "mos/types.h"
 
 #if MOS_MM_LIBALLOC_LOCKS
@@ -23,11 +24,12 @@ extern int liballoc_lock();
 extern int liballoc_unlock();
 #endif
 
-void mos_kernel_mm_init(void);
-
 void liballoc_dump();
 void liballoc_init(void);
 void *liballoc_malloc(size_t size);
 void *liballoc_realloc(void *ptr, size_t size);
 void *liballoc_calloc(size_t object, size_t n_objects);
 void liballoc_free(const void *ptr);
+
+void *liballoc_alloc_page(size_t npages);
+bool liballoc_free_page(void *vptr, size_t npages);
