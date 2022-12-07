@@ -19,7 +19,7 @@ vmblock_t mm_make_process_map_cow(paging_handle_t from, uintptr_t fvaddr, paging
     return block;
 }
 
-void copy_cow_pages_inplace(uintptr_t vaddr, size_t npages)
+static void copy_cow_pages_inplace(uintptr_t vaddr, size_t npages)
 {
     paging_handle_t current_page_handle = current_process->pagetable;
     void *pagetmp = kmalloc(MOS_PAGE_SIZE);
