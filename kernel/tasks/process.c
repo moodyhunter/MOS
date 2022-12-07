@@ -151,11 +151,11 @@ void process_attach_thread(process_t *process, thread_t *thread)
     process->threads[process->threads_count++] = thread;
 }
 
-void process_attach_mmap(process_t *process, vmblock_t block, vm_type type, bool cow)
+void process_attach_mmap(process_t *process, vmblock_t block, vm_type type, mmap_flags flags)
 {
     MOS_ASSERT(process_is_valid(process));
     process->mmaps = krealloc(process->mmaps, sizeof(proc_vmblock_t) * (process->mmaps_count + 1));
-    process->mmaps[process->mmaps_count++] = (proc_vmblock_t){ .vm = block, .type = type, .map_flags = (cow ? MMAP_COW : MMAP_DEFAULT) };
+    process->mmaps[process->mmaps_count++] = (proc_vmblock_t){ .vm = block, .type = type, .map_flags = flags };
 }
 
 void process_handle_exit(process_t *process, int exit_code)

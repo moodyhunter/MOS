@@ -105,7 +105,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
         platform_mm_flag_pages(proc->pagetable, block.vaddr, block.npages, map_flags);
         block.flags = map_flags;
 
-        process_attach_mmap(proc, block, (ph->p_flags & ELF_PH_F_X) ? VMTYPE_APPCODE : VMTYPE_APPDATA, false);
+        process_attach_mmap(proc, block, (ph->p_flags & ELF_PH_F_X) ? VMTYPE_APPCODE : VMTYPE_APPDATA, MMAP_DEFAULT);
     }
 
 #if MOS_DEBUG

@@ -34,13 +34,13 @@ process_t *process_handle_fork(process_t *parent)
             child_vmblock = platform_mm_alloc_pages_at(child->pagetable, block.vm.vaddr, block.vm.npages, block.vm.flags);
             // do we copy its kernel stack?
             // mm_copy_pages(parent->pagetable, block.vm.vaddr, child->pagetable, block.vm.vaddr, MOS_STACK_PAGES_KERNEL);
-            process_attach_mmap(child, child_vmblock, VMTYPE_KSTACK, false);
+            process_attach_mmap(child, child_vmblock, VMTYPE_KSTACK, MMAP_DEFAULT);
         }
         else
         {
             parent->mmaps[i].map_flags |= MMAP_COW;
             child_vmblock = mm_make_process_map_cow(parent->pagetable, block.vm.vaddr, child->pagetable, block.vm.vaddr, block.vm.npages);
-            process_attach_mmap(child, child_vmblock, block.type, true);
+            process_attach_mmap(child, child_vmblock, block.type, MMAP_COW);
         }
     }
 
