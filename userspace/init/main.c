@@ -84,7 +84,7 @@ int main(void)
     printf("Heap base: " PTR_FMT "\n", heap);
 
     // grow the heap by 16 KB
-    uintptr_t new_heap = syscall_heap_control(HEAP_GROW, 16 KB);
+    uintptr_t new_heap = syscall_heap_control(HEAP_GROW_PAGES, 4); // in pages
 
     printf("New heap top: " PTR_FMT "\n", new_heap);
 

@@ -243,7 +243,7 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
 
     pr_info2("grew heap of process %d by %zu pages", process->pid, npages);
     heap->vm.npages += npages;
-    return heap->vm.vaddr + (heap->vm.npages - npages) * MOS_PAGE_SIZE;
+    return heap->vm.vaddr + heap->vm.npages * MOS_PAGE_SIZE;
 }
 
 void process_dump_mmaps(process_t *process)

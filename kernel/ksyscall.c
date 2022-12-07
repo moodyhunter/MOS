@@ -203,13 +203,9 @@ uintptr_t define_syscall(heap_control)(heap_control_op op, uintptr_t arg)
         case HEAP_GET_SIZE: return block->vm.npages * MOS_PAGE_SIZE;
         case HEAP_GROW:
         {
-            if (arg % MOS_PAGE_SIZE)
-            {
-                mos_warn("heap_control: grow size is not page-aligned");
-                return 0;
-            }
+            // arg is the number of pages to grow
             // some bad guy would pass a huge value here :)
-            return process_grow_heap(process, arg / MOS_PAGE_SIZE);
+            return process_grow_heap(process, arg);
         }
         default: mos_warn("heap_control: unknown op %d", op); return 0;
     }
