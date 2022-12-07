@@ -289,3 +289,22 @@ vm_flags pg_page_get_flags(x86_pg_infra_t *pg, uintptr_t vaddr)
     flags |= page_table->global ? VM_GLOBAL : 0;
     return flags;
 }
+
+bool pg_page_get_is_mapped(x86_pg_infra_t *pg, uintptr_t vaddr)
+{
+    int page_dir_index = vaddr >> 22;
+    int page_table_index = vaddr >> 12 & 0x3ff;
+    x86_pgdir_entry *page_dir = pg->pgdir + page_dir_index;
+    x86_pgtable_entry *page_table = pg->pgtable + page_dir_index * 1024 + page_table_index;
+
+    if (page_dir_index >= 768)
+        page_dir = x86_kpg_infra->pgdir + page_dir_index, page_table = x86_kpg_infra->pgtable + page_dir_index * 1024 + page_table_index;
+
+    if (unlikely(!page_dir->present))
+        return false;
+
+    if (unlikely(!page_table->present))
+        return false;
+
+    return true;
+}

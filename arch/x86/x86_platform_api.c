@@ -155,6 +155,12 @@ vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr)
     return pg_page_get_flags(kpg_infra, vaddr);
 }
 
+bool platform_mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr)
+{
+    x86_pg_infra_t *kpg_infra = x86_get_pg_infra(table);
+    return pg_page_get_is_mapped(kpg_infra, vaddr);
+}
+
 void platform_context_setup(thread_t *thread, downwards_stack_t *proxy_stack, thread_entry_t entry, void *arg)
 {
     x86_setup_thread_context(thread, proxy_stack, entry, arg);

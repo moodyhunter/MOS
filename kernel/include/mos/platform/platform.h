@@ -121,6 +121,7 @@ void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t n);
 void platform_mm_free_pages(paging_handle_t table, uintptr_t vaddr, size_t n);
 void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
 vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr);
+bool platform_mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr);
 
 // Platform Thread / Process APIs
 void platform_context_setup(thread_t *thread, downwards_stack_t *proxy_stack, thread_entry_t entry, void *arg);
