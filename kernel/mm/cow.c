@@ -21,15 +21,24 @@ vmblock_t mm_make_process_map_cow(paging_handle_t from, uintptr_t fvaddr, paging
 
 static void copy_cow_pages_inplace(uintptr_t vaddr, size_t npages)
 {
-    paging_handle_t current_page_handle = current_process->pagetable;
+    paging_handle_t pg_handle = current_process->pagetable;
+    const vm_flags flags = platform_mm_get_flags(pg_handle, vaddr); // this flags are the same for all pages (in the same proc_vmblock)
     void *pagetmp = kmalloc(MOS_PAGE_SIZE);
     for (size_t j = 0; j < npages; j++)
     {
         const uintptr_t current_page = vaddr + j * MOS_PAGE_SIZE;
+        bool mapped = platform_mm_get_is_mapped(pg_handle, current_page);
+        if (!mapped)
+        {
+            // in the case where this page is not mapped, it means the original page was "made-up"
+            // (consider the case where user heap is grown immediately after a fork)
+            // we just allocate a new page, (since there's no 'original' page to copy from)
+            platform_mm_alloc_pages_at(pg_handle, current_page, 1, flags);
+            continue;
+        }
         memcpy(pagetmp, (void *) current_page, MOS_PAGE_SIZE);
-        vm_flags flags = platform_mm_get_flags(current_page_handle, current_page);
-        platform_mm_unmap_pages(current_page_handle, current_page, 1);
-        platform_mm_alloc_pages_at(current_page_handle, current_page, 1, flags | VM_WRITE);
+        platform_mm_unmap_pages(pg_handle, current_page, 1);
+        platform_mm_alloc_pages_at(pg_handle, current_page, 1, flags | VM_WRITE);
         memcpy((void *) current_page, pagetmp, MOS_PAGE_SIZE);
     }
     kfree(pagetmp);
@@ -38,13 +47,16 @@ static void copy_cow_pages_inplace(uintptr_t vaddr, size_t npages)
 bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bool is_user, bool is_exec)
 {
     MOS_UNUSED(is_user);
-    MOS_UNUSED(is_exec);
+    MOS_UNUSED(present);
 
     if (!current_thread)
         return false;
 
-    if (!present || !is_write)
+    if (!is_write)
         return false;
+
+    if (is_write && is_exec)
+        mos_panic("Cannot write and execute at the same time");
 
     process_t *current_proc = current_process;
     process_dump_mmaps(current_proc);
