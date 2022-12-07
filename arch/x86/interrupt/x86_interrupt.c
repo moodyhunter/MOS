@@ -215,11 +215,14 @@ static void x86_handle_exception(x86_stack_frame *stack)
                         fault_address,                                                                     //
                         (uintptr_t) stack->iret_params.eip                                                 //
                 );
-            }
+                bool result = cow_handle_page_fault(fault_address, present, is_write, is_user, is_exec);
 
-            bool result = cow_handle_page_fault(fault_address, present, is_write, is_user, is_exec);
-            if (result)
-                return;
+                if (result)
+                {
+                    pr_emph("page fault: resolved by CoW");
+                    return;
+                }
+            }
 
             if (is_user && !is_write && present)
                 pr_warn("'%s' privilege violation?", current_process->name);
