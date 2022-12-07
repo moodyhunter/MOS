@@ -91,13 +91,9 @@ include(add_bootable_target)
 
 include(${MOS_ARCH_CONFIG})
 
-add_library(mos_userspace_stdlib STATIC ${MOS_STANDARD_LIBRARY_SOURCES})
-target_link_libraries(mos_userspace_stdlib PUBLIC gcc mos::basic_include mos::platform_include)
-add_library(mos::userspace_stdlib ALIAS mos_userspace_stdlib)
-
-add_library(mos_libuserspace OBJECT userspace/libuserspace.c)
+add_library(mos_libuserspace OBJECT userspace/libuserspace.c ${MOS_STANDARD_LIBRARY_SOURCES})
 target_include_directories(mos_libuserspace PUBLIC ${CMAKE_SOURCE_DIR}/userspace/include)
-target_link_libraries(mos_libuserspace PUBLIC mos::userspace_stdlib)
+target_link_libraries(mos_libuserspace PUBLIC gcc mos::basic_include mos::platform_include)
 add_library(mos::libuserspace ALIAS mos_libuserspace)
 
 # build userspace programs after the kernel (may require the generated syscall headers)
