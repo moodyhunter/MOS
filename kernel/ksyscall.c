@@ -201,7 +201,7 @@ uintptr_t define_syscall(heap_control)(heap_control_op op, uintptr_t arg)
             return process_grow_heap(process, (arg - block->vm.vaddr) / MOS_PAGE_SIZE);
         }
         case HEAP_GET_SIZE: return block->vm.npages * MOS_PAGE_SIZE;
-        case HEAP_GROW:
+        case HEAP_GROW_PAGES:
         {
             // arg is the number of pages to grow
             // some bad guy would pass a huge value here :)
