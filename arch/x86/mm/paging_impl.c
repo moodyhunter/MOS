@@ -11,9 +11,10 @@
 #include "mos/x86/mm/pmem_freelist.h"
 #include "mos/x86/x86_platform.h"
 
-#define PAGEMAP_MAP(map, index)   map[index / PAGEMAP_WIDTH] |= 1 << (index % PAGEMAP_WIDTH)
-#define PAGEMAP_UNMAP(map, index) map[index / PAGEMAP_WIDTH] &= ~(1 << (index % PAGEMAP_WIDTH))
-#define BIT_IS_SET(byte, bit)     ((byte) & (1 << (bit)))
+#define PAGEMAP_MAP(map, index)    map[index / PAGEMAP_WIDTH] |= 1 << (index % PAGEMAP_WIDTH)
+#define PAGEMAP_UNMAP(map, index)  map[index / PAGEMAP_WIDTH] &= ~(1 << (index % PAGEMAP_WIDTH))
+#define PAGEMAP_IS_SET(map, index) (map[index / PAGEMAP_WIDTH] & (1 << (index % PAGEMAP_WIDTH)))
+#define BIT_IS_SET(byte, bit)      ((byte) & (1 << (bit)))
 
 always_inline void pg_flush_tlb(uintptr_t vaddr)
 {
@@ -62,43 +63,58 @@ vmblock_t pg_page_get_free(x86_pg_infra_t *pg, size_t n_pages, pgalloc_hints fla
         default: mos_panic("invalid pgalloc_hints"); break;
     }
 
-    // simply rename the variable, we are dealing with bitmaps
-    size_t n_bits = n_pages;
-    size_t n_zero_bits = 0;
-
-    u8 target_bit = 0;
-    uintptr_t vaddr_map_bit_begin = vaddr_begin / MOS_PAGE_SIZE / PAGEMAP_WIDTH;
-    for (size_t i = vaddr_map_bit_begin; n_zero_bits < n_bits; i++)
+    size_t n_free_pages = 0;
+    u8 target_starting_bit = 0;
+    uintptr_t map_line_i = vaddr_begin / MOS_PAGE_SIZE / PAGEMAP_WIDTH;
+    for (size_t i = map_line_i; n_free_pages < n_pages; i++)
     {
+        // TODO: check if we are going beyond the end of user's address space (i.e. larger than 0xC0000000)
         if (i >= MM_PAGE_MAP_SIZE)
         {
             mos_warn("failed to allocate %zu pages", n_pages);
-            return (vmblock_t){ 0, .npages = 0 };
+            return (vmblock_t){ 0 }; // possibly out of virtual memory
         }
-        pagemap_line_t current_byte = pagemap[i];
 
-        if (current_byte == 0)
+        pagemap_line_t line = pagemap[i];
+
+        if (line == 0)
         {
-            n_zero_bits += PAGEMAP_WIDTH;
+            n_free_pages += PAGEMAP_WIDTH;
             continue;
         }
-        if (current_byte == (pagemap_line_t) ~0)
+        else if (line == (pagemap_line_t) ~0)
         {
-            vaddr_map_bit_begin = i + 1;
+            // a full line of used pages
+            map_line_i = i + 1;
+            n_free_pages = 0;
+            target_starting_bit = 0;
             continue;
         }
 
         for (size_t bit = 0; bit < PAGEMAP_WIDTH; bit++)
         {
-            if (!BIT_IS_SET(current_byte, bit))
-                n_zero_bits++;
+            if (!BIT_IS_SET(line, bit))
+            {
+                // we have found a free page
+                n_free_pages++;
+            }
             else
-                n_zero_bits = 0, target_bit = bit + 1, vaddr_map_bit_begin = i;
+            {
+                // this page is used
+                if (n_free_pages >= n_pages)
+                    // but we have enough free pages
+                    break;
+                n_free_pages = 0;
+                target_starting_bit = bit + 1;
+                map_line_i = i;
+            }
         }
     }
 
-    size_t page_i = vaddr_map_bit_begin * PAGEMAP_WIDTH + target_bit;
+    size_t page_i = map_line_i * PAGEMAP_WIDTH + target_starting_bit;
     uintptr_t vaddr = page_i * MOS_PAGE_SIZE;
+
+    MOS_ASSERT_X(!PAGEMAP_IS_SET(pagemap, page_i), "page %zu is already allocated", page_i);
 
     // sanity check: if we are not asked to allocate in kernel space, we should not be doing so (?)
     if (flags != PGALLOC_HINT_KHEAP)
@@ -199,7 +215,7 @@ void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_fla
     if (pg != x86_kpg_infra && pd_index >= 768)
         MOS_ASSERT_X(this_dir->present, "page directory not present for kernel addresses, when mapping user pages");
 
-    MOS_ASSERT_X(this_table->present == false, "page is already mapped");
+    MOS_ASSERT_X(this_table->present == false, "page " PTR_FMT " already mapped", vaddr);
 
     this_table->present = true;
     this_table->phys_addr = (uintptr_t) paddr >> 12;
@@ -215,11 +231,14 @@ void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_fla
 
     this_table->global = flags & VM_GLOBAL;
 
-    // update the mm_page_map
-    if (pt_index < MOS_KERNEL_START_VADDR / MOS_PAGE_SIZE)
-        PAGEMAP_MAP(pg->page_map, pt_index);
-    else
-        PAGEMAP_MAP(x86_kpg_infra->page_map, pt_index);
+    pagemap_line_t *page_map = pd_index < 768 ? pg->page_map : x86_kpg_infra->page_map;
+
+    if (unlikely(PAGEMAP_IS_SET(page_map, pt_index)))
+        mos_panic("vmem " PTR_FMT " already mapped", vaddr);
+    PAGEMAP_MAP(page_map, pt_index);
+
+    MOS_ASSERT_X(PAGEMAP_IS_SET(page_map, pt_index), "page map not set for " PTR_FMT, vaddr);
+
     pg_flush_tlb(vaddr);
 }
 
@@ -239,10 +258,14 @@ void pg_do_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr)
     this_table->present = false;
 
     // update the mm page map
-    if (pd_index >= 768)
-        PAGEMAP_UNMAP(x86_kpg_infra->page_map, pt_index);
-    else
-        PAGEMAP_UNMAP(pg->page_map, pt_index);
+    pagemap_line_t *page_map = pd_index < 768 ? pg->page_map : x86_kpg_infra->page_map;
+    if (unlikely(!PAGEMAP_IS_SET(page_map, pt_index)))
+    {
+        mos_panic("vmem " PTR_FMT " not mapped", vaddr);
+        return;
+    }
+
+    PAGEMAP_UNMAP(page_map, pt_index);
     pg_flush_tlb(vaddr);
 }
 
