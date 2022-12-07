@@ -46,12 +46,12 @@ vmblock_t pg_page_alloc_at(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n_page, v
     return block;
 }
 
-vmblock_t pg_page_get_free(x86_pg_infra_t *pg, size_t n_pages, pgalloc_hints flags)
+vmblock_t pg_page_get_free(x86_pg_infra_t *pg, size_t n_pages, pgalloc_hints hints)
 {
     uintptr_t vaddr_begin;
     pagemap_line_t *pagemap = pg->page_map; // paging trick
 
-    switch (flags)
+    switch (hints)
     {
         case PGALLOC_HINT_KHEAP:
             vaddr_begin = MOS_ADDR_KERNEL_HEAP;
@@ -117,7 +117,7 @@ vmblock_t pg_page_get_free(x86_pg_infra_t *pg, size_t n_pages, pgalloc_hints fla
     MOS_ASSERT_X(!PAGEMAP_IS_SET(pagemap, page_i), "page %zu is already allocated", page_i);
 
     // sanity check: if we are not asked to allocate in kernel space, we should not be doing so (?)
-    if (flags != PGALLOC_HINT_KHEAP)
+    if (hints != PGALLOC_HINT_KHEAP)
         MOS_ASSERT_X(vaddr < MOS_KERNEL_START_VADDR, "make up your mind to allocate in kernel space!");
 
     return (vmblock_t){ .vaddr = vaddr, .npages = n_pages };
@@ -126,13 +126,13 @@ vmblock_t pg_page_get_free(x86_pg_infra_t *pg, size_t n_pages, pgalloc_hints fla
 void pg_page_free(x86_pg_infra_t *pg, uintptr_t vptr, size_t n_page)
 {
     size_t page_index = vptr / MOS_PAGE_SIZE;
-    mos_debug("paging: freeing %zu to %zu", page_index, page_index + n_page);
+    mos_debug("freeing %zu to %zu", page_index, page_index + n_page);
     pg_unmap_pages(pg, vptr, n_page);
 }
 
 void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags)
 {
-    mos_debug("paging: setting flags [0x%x] to [" PTR_FMT "] +%zu pages", flags, vaddr, n);
+    mos_debug("setting flags [0x%x] to [" PTR_FMT "] +%zu pages (pg " PTR_FMT ")", flags, vaddr, n, (uintptr_t) pg);
     size_t start_page = vaddr / MOS_PAGE_SIZE;
     for (size_t i = 0; i < n; i++)
     {
