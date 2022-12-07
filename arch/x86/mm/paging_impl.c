@@ -67,7 +67,7 @@ vmblock_t pg_page_get_free(x86_pg_infra_t *pg, size_t n_pages, pgalloc_hints fla
     size_t n_zero_bits = 0;
 
     u8 target_bit = 0;
-    uintptr_t vaddr_map_bit_begin = vaddr_begin / MOS_PAGE_SIZE / PAGEMAP_WIDTH + 1;
+    uintptr_t vaddr_map_bit_begin = vaddr_begin / MOS_PAGE_SIZE / PAGEMAP_WIDTH;
     for (size_t i = vaddr_map_bit_begin; n_zero_bits < n_bits; i++)
     {
         if (i >= MM_PAGE_MAP_SIZE)
