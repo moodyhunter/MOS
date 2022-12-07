@@ -27,6 +27,7 @@ bool process_detach_fd(process_t *process, fd_t fd);
 
 void process_attach_thread(process_t *process, thread_t *thread);
 void process_attach_mmap(process_t *process, vmblock_t block, vm_type type, mmap_flags flags);
+uintptr_t process_grow_heap(process_t *process, size_t npages);
 
 void process_handle_exit(process_t *process, int exit_code);
 process_t *process_handle_fork(process_t *process);

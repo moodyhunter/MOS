@@ -104,6 +104,10 @@ process_t *process_new(process_t *parent, uid_t euid, const char *name, terminal
     process_attach_ref_fd(proc, &term->io);
 
     thread_new(proc, THREAD_FLAG_USERMODE, entry, arg);
+
+    vmblock_t heap = platform_mm_alloc_pages(proc->pagetable, 1, PGALLOC_HINT_UHEAP, VM_READ | VM_WRITE | VM_USER);
+    process_attach_mmap(proc, heap, VMTYPE_HEAP, MMAP_DEFAULT);
+
     void *old_proc = hashmap_put(process_table, &proc->pid, proc);
     MOS_ASSERT_X(old_proc == NULL, "process already exists, go and buy yourself a lottery :)");
     return proc;
@@ -190,9 +194,6 @@ void process_handle_cleanup(process_t *process)
     MOS_ASSERT(process_is_valid(process));
     MOS_ASSERT_X(current_process != process, "cannot cleanup current process");
 
-    mos_debug("cleaning up process %d", process->pid);
-    mos_debug("freeing all %lu memory regions owned by %d", process->mmaps_count, process->pid);
-
     mos_debug("unmapping all %lu memory regions owned by %d", process->mmaps_count, process->pid);
     for (int i = 0; i < process->mmaps_count; i++)
     {
@@ -200,11 +201,49 @@ void process_handle_cleanup(process_t *process)
         const vmblock_t block = process->mmaps[i].vm;
 
         // they will be unmapped when the last process detaches them
+        // !! TODO: How to track this??
         if (flags & MMAP_COW)
             continue;
 
         platform_mm_free_pages(process->pagetable, block.vaddr, block.npages);
     }
+}
+
+uintptr_t process_grow_heap(process_t *process, size_t npages)
+{
+    MOS_ASSERT(process_is_valid(process));
+
+    proc_vmblock_t *heap = NULL;
+    for (int i = 0; i < process->mmaps_count; i++)
+    {
+        if (process->mmaps[i].type == VMTYPE_HEAP)
+        {
+            heap = &process->mmaps[i];
+            break;
+        }
+    }
+
+    MOS_ASSERT(heap != NULL);
+
+    if (heap->map_flags & MMAP_COW)
+    {
+        mos_warn("growing heap of process %d with COW flag set, check this", process->pid);
+        heap->vm.npages += npages;
+        return heap->vm.vaddr + heap->vm.npages * MOS_PAGE_SIZE;
+    }
+
+    uintptr_t heap_top = heap->vm.vaddr + heap->vm.npages * MOS_PAGE_SIZE;
+    vmblock_t new_part = platform_mm_alloc_pages_at(process->pagetable, heap_top, npages, VM_READ | VM_WRITE | VM_USER);
+    if (new_part.vaddr == 0 || new_part.npages != npages)
+    {
+        mos_warn("failed to grow heap of process %d", process->pid);
+        platform_mm_free_pages(process->pagetable, new_part.vaddr, new_part.npages);
+        return heap->vm.vaddr + heap->vm.npages * MOS_PAGE_SIZE;
+    }
+
+    pr_info2("grew heap of process %d by %zu pages", process->pid, npages);
+    heap->vm.npages += npages;
+    return heap->vm.vaddr + (heap->vm.npages - npages) * MOS_PAGE_SIZE;
 }
 
 void process_dump_mmaps(process_t *process)
@@ -218,6 +257,7 @@ void process_dump_mmaps(process_t *process)
         {
             case VMTYPE_APPCODE: type = "code"; break;
             case VMTYPE_APPDATA: type = "data"; break;
+            case VMTYPE_HEAP: type = "heap"; break;
             case VMTYPE_STACK: type = "stack"; break;
             case VMTYPE_KSTACK: type = "stack (kernel)"; break;
             case VMTYPE_FILE: type = "file"; break;

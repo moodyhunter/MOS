@@ -48,10 +48,20 @@ typedef enum
 {
     VMTYPE_APPCODE, // '.text' section
     VMTYPE_APPDATA, // '.data' and '.bss' sections
+    VMTYPE_HEAP,    // userspace heap
     VMTYPE_STACK,   // userspace stack
     VMTYPE_KSTACK,  // kernel stack
     VMTYPE_FILE,    // file mapping (mmap)
 } vm_type;
+
+typedef enum
+{
+    HEAP_OP_GET_BASE,
+    HEAP_OP_GET_TOP,
+    HEAP_OP_SET_TOP,
+    HEAP_OP_GET_SIZE,
+    HEAP_OP_GROW,
+} heap_control_op;
 
 typedef struct
 {

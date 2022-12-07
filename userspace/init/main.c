@@ -53,7 +53,23 @@ int main(void)
     if (my_pid == 0)
     {
         printf("Child process\n");
-        syscall_exit(0);
+        uintptr_t heap_top = syscall_heap_control(HEAP_OP_GET_TOP, 0);
+        printf("Child top: " PTR_FMT "\n", heap_top);
+        uintptr_t new_top = syscall_heap_control(HEAP_OP_SET_TOP, heap_top + 16 KB);
+        printf("Child new top: " PTR_FMT "\n", new_top);
+
+        char *ptr = (char *) new_top - 1;
+        *ptr = 0x42;
+        u32 pid_new_forked = syscall_fork();
+        if (pid_new_forked == 0)
+        {
+            printf("Child process of child process\n");
+            syscall_exit(0);
+        }
+        else
+        {
+            printf("Parent process of child process\n");
+        }
     }
     else
     {
@@ -62,6 +78,19 @@ int main(void)
 
     pid_t parent = syscall_get_parent_pid();
     printf("Parent PID: %d\n", parent);
+
+    // get heap address
+    uintptr_t heap = syscall_heap_control(HEAP_OP_GET_TOP, 0);
+    printf("Heap base: " PTR_FMT "\n", heap);
+
+    // grow the heap by 16 KB
+    uintptr_t new_heap = syscall_heap_control(HEAP_OP_GROW, 16 KB);
+
+    printf("New heap top: " PTR_FMT "\n", new_heap);
+
+    // write to the heap
+    char *ptr = (char *) new_heap - 1;
+    *ptr = 0x42;
 
     while (1)
         ;

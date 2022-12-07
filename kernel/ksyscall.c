@@ -149,3 +149,68 @@ noreturn void define_syscall(thread_exit)(void)
     jump_to_scheduler();
     MOS_UNREACHABLE();
 }
+
+uintptr_t define_syscall(heap_control)(heap_control_op op, uintptr_t arg)
+{
+    MOS_ASSERT(current_process);
+    process_t *process = current_process;
+
+    proc_vmblock_t *block = NULL;
+    for (int i = 0; i < process->mmaps_count; i++)
+    {
+        if (process->mmaps[i].type == VMTYPE_HEAP)
+        {
+            block = &process->mmaps[i];
+            break;
+        }
+    }
+
+    if (block == NULL)
+    {
+        mos_warn("heap_control called but no heap block found");
+        return 0;
+    }
+
+    switch (op)
+    {
+        case HEAP_OP_GET_BASE: return block->vm.vaddr;
+        case HEAP_OP_GET_TOP: return block->vm.vaddr + block->vm.npages * MOS_PAGE_SIZE;
+        case HEAP_OP_SET_TOP:
+        {
+            if (arg < block->vm.vaddr)
+            {
+                mos_warn("heap_control: new top is below heap base");
+                return 0;
+            }
+
+            if (arg % MOS_PAGE_SIZE)
+            {
+                mos_warn("heap_control: new top is not page-aligned");
+                return 0;
+            }
+
+            if (arg == block->vm.vaddr + block->vm.npages * MOS_PAGE_SIZE)
+                return 0; // no change
+
+            if (arg < block->vm.vaddr + block->vm.npages * MOS_PAGE_SIZE)
+            {
+                mos_warn("heap_control: shrinking heap not supported yet");
+                return 0;
+            }
+
+            return process_grow_heap(process, (arg - block->vm.vaddr) / MOS_PAGE_SIZE);
+        }
+        case HEAP_OP_GET_SIZE: return block->vm.npages * MOS_PAGE_SIZE;
+        case HEAP_OP_GROW:
+        {
+            if (arg % MOS_PAGE_SIZE)
+            {
+                mos_warn("heap_control: grow size is not page-aligned");
+                return 0;
+            }
+            // some bad guy would pass a huge value here :)
+            return process_grow_heap(process, arg / MOS_PAGE_SIZE);
+        }
+        default: mos_warn("heap_control: unknown op %d", op); return 0;
+    }
+}

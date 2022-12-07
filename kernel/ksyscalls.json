@@ -102,6 +102,12 @@
             "name": "thread_exit",
             "return": null,
             "arguments": [ ]
+        },
+        {
+            "number": 16,
+            "name": "heap_control",
+            "return": "uintptr_t",
+            "arguments": [ { "type": "heap_control_op", "arg": "op" }, { "type": "uintptr_t", "arg": "arg" } ]
         }
     ]
 }

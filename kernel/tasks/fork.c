@@ -30,10 +30,9 @@ process_t *process_handle_fork(process_t *parent)
         vmblock_t child_vmblock;
         if (block.type == VMTYPE_KSTACK)
         {
+            // Kernel stacks are special, we need to allocate a new one (not CoW-mapped)
             MOS_ASSERT_X(block.vm.npages == MOS_STACK_PAGES_KERNEL, "kernel stack size is not %d pages", MOS_STACK_PAGES_KERNEL);
             child_vmblock = platform_mm_alloc_pages_at(child->pagetable, block.vm.vaddr, block.vm.npages, block.vm.flags);
-            // do we copy its kernel stack?
-            // mm_copy_pages(parent->pagetable, block.vm.vaddr, child->pagetable, block.vm.vaddr, MOS_STACK_PAGES_KERNEL);
             process_attach_mmap(child, child_vmblock, VMTYPE_KSTACK, MMAP_DEFAULT);
         }
         else
