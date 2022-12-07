@@ -58,8 +58,7 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
 
     if (likely(name))
     {
-        proc->name = kmalloc(strlen(name) + 1);
-        strcpy((char *) proc->name, name);
+        proc->name = duplicate_string(name, strlen(name));
     }
     else
     {
