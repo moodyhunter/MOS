@@ -169,25 +169,8 @@ static liballoc_block_t *allocate_new_pages_for(unsigned int size)
     return maj;
 }
 
-void liballoc_init(void)
+static void liballoc_first_alloc()
 {
-    l_alloc_n_page_once = 16;
-
-    l_memroot = NULL;
-    l_bestbet = NULL;
-    l_alloc_n_page_once = 0;
-    l_mem_allocated = 0;
-    l_mem_inuse = 0;
-    l_warnings = 0;
-    l_errors = 0;
-    l_possible_overruns = 0;
-
-    MOS_LIB_ASSERT_X(l_memroot == NULL, "liballoc_init() called twice");
-
-#if LIBALLOC_PRINT_DEBUG_MESSAGES
-    pr_info("liballoc: initialization of liballoc " VERSION "");
-#endif
-
     // This is the first time we are being used.
     l_memroot = allocate_new_pages_for(sizeof(liballoc_block_t));
     if (l_memroot == NULL)
@@ -203,6 +186,19 @@ void liballoc_init(void)
 #if LIBALLOC_PRINT_DEBUG_MESSAGES
     pr_info("liballoc: set up first memory major %p", (void *) l_memroot);
 #endif
+}
+
+void liballoc_init(void)
+{
+    l_memroot = NULL;
+    l_bestbet = NULL;
+    MOS_LIB_ASSERT_X(l_memroot == NULL, "liballoc_init() called twice");
+    l_alloc_n_page_once = 8;
+#if LIBALLOC_PRINT_DEBUG_MESSAGES
+    pr_info("liballoc: initialization of liballoc " VERSION "");
+#endif
+
+    liballoc_first_alloc();
 }
 
 void *liballoc_malloc(size_t req_size)
@@ -230,7 +226,10 @@ void *liballoc_malloc(size_t req_size)
         return liballoc_malloc(1);
     }
 
-    MOS_LIB_ASSERT_X(l_memroot, "liballoc: liballoc_malloc() called before liballoc_init().");
+    if (l_memroot == NULL)
+    {
+        liballoc_first_alloc();
+    }
 
     // Now we need to bounce through every major and find enough space....
 
