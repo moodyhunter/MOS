@@ -32,9 +32,6 @@ bool schedule_to_thread(const void *key, void *value)
     MOS_ASSERT_X(thread->tid == *tid, "something is wrong with the thread table");
     if (thread->status == THREAD_STATUS_READY || thread->status == THREAD_STATUS_CREATED)
     {
-#if MOS_DEBUG
-        process_dump_mmaps(thread->owner);
-#endif
         platform_switch_to_thread(&current_cpu->scheduler_stack, thread);
     }
     return true;
