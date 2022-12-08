@@ -109,6 +109,11 @@ __startup_code void mos_startup_map_single_page(uintptr_t vaddr, uintptr_t paddr
     this_dir->writable = flags & VM_WRITE;
 
     x86_pgtable_entry *this_table = (x86_pgtable_entry *) (this_dir->page_table_paddr << 12) + table_index;
+    if (this_table->present)
+    {
+        STARTUP_ASSERT(this_table->phys_addr == (paddr >> 12), 'd'); // page already mapped to different physical address
+        return;
+    }
     mos_startup_memzero((void *) this_table, sizeof(x86_pgtable_entry));
     this_table->present = true;
     this_table->phys_addr = (uintptr_t) paddr >> 12;
@@ -135,6 +140,7 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
     STARTUP_ASSERT(startup->mb_info->flags & MULTIBOOT_INFO_MEM_MAP, '2');
 
     mos_startup_memzero((void *) startup_pgd, sizeof(x86_pgdir_entry) * 1024);
+    mos_startup_memzero((void *) pages, 512 KB);
 
     debug_print_step();
     mos_startup_map_identity((uintptr_t) startup->mb_info, sizeof(multiboot_info_t), VM_NONE);
