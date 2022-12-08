@@ -33,7 +33,7 @@ process_t *process_handle_fork(process_t *parent)
             // Kernel stacks are special, we need to allocate a new one (not CoW-mapped)
             MOS_ASSERT_X(block.vm.npages == MOS_STACK_PAGES_KERNEL, "kernel stack size is not %d pages", MOS_STACK_PAGES_KERNEL);
             child_vmblock = platform_mm_alloc_pages(child->pagetable, block.vm.npages, PGALLOC_HINT_STACK, block.vm.flags);
-            pr_info2("fork %d->%d: kernel stack " PTR_FMT "+%d, flags = [%x]", parent->pid, child->pid, block.vm.vaddr, block.vm.npages, block.vm.flags);
+            pr_info2("fork %d->%d: kernel stack " PTR_FMT "+%zu, flags = [%x]", parent->pid, child->pid, block.vm.vaddr, block.vm.npages, block.vm.flags);
             process_attach_mmap(child, child_vmblock, VMTYPE_KSTACK, MMAP_DEFAULT);
         }
         else
@@ -41,7 +41,7 @@ process_t *process_handle_fork(process_t *parent)
             parent->mmaps[i].map_flags |= MMAP_COW;
             mm_make_process_map_cow(parent->pagetable, block.vm.vaddr, child->pagetable, block.vm.vaddr, block.vm.npages);
             child_vmblock = parent->mmaps[i].vm; // do not use the return value from mm_make_process_map_cow
-            pr_info2("fork %d->%d: CoW " PTR_FMT "+%d, flags = [%x]", parent->pid, child->pid, block.vm.vaddr, block.vm.npages, block.vm.flags);
+            pr_info2("fork %d->%d: CoW " PTR_FMT "+%zu, flags = [%x]", parent->pid, child->pid, block.vm.vaddr, block.vm.npages, block.vm.flags);
             process_attach_mmap(child, child_vmblock, block.type, MMAP_COW);
         }
     }
