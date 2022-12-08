@@ -66,10 +66,10 @@ void x86_acpi_init()
         }
         else if (strncmp(addr->signature, ACPI_SIGNATURE_HPET, 4) == 0)
         {
-            x86_acpi_hpet = container_of(addr, acpi_hpet_t, sdt_header);
+            x86_acpi_hpet = container_of(addr, acpi_hpet_t, header);
             MOS_WARNING_PUSH
             MOS_WARNING_DISABLE("-Waddress-of-packed-member")
-            if (!verify_sdt_checksum(&x86_acpi_hpet->sdt_header))
+            if (!verify_sdt_checksum(&x86_acpi_hpet->header))
                 mos_panic("HPET checksum error");
             MOS_WARNING_POP
         }
@@ -88,43 +88,43 @@ void x86_acpi_init()
         {
             case 0:
             {
-                acpi_madt_et0_lapic_t *lapic = container_of(entry, acpi_madt_et0_lapic_t, madt_entry_header);
+                acpi_madt_et0_lapic_t *lapic = container_of(entry, acpi_madt_et0_lapic_t, header);
                 pr_info2("acpi: MADT entry LAPIC [%p]", (void *) lapic);
                 break;
             }
             case 1:
             {
-                acpi_madt_et1_ioapic_t *ioapic = container_of(entry, acpi_madt_et1_ioapic_t, madt_entry_header);
+                acpi_madt_et1_ioapic_t *ioapic = container_of(entry, acpi_madt_et1_ioapic_t, header);
                 pr_info2("acpi: MADT entry IOAPIC [%p]", (void *) ioapic);
                 break;
             }
             case 2:
             {
-                acpi_madt_et2_ioapic_override_t *int_override = container_of(entry, acpi_madt_et2_ioapic_override_t, madt_entry_header);
+                acpi_madt_et2_ioapic_override_t *int_override = container_of(entry, acpi_madt_et2_ioapic_override_t, header);
                 pr_info2("acpi: MADT entry IOAPIC override [%p]", (void *) int_override);
                 break;
             }
             case 3:
             {
-                acpi_madt_et3_ioapic_nmi_t *int_override = container_of(entry, acpi_madt_et3_ioapic_nmi_t, madt_entry_header);
+                acpi_madt_et3_ioapic_nmi_t *int_override = container_of(entry, acpi_madt_et3_ioapic_nmi_t, header);
                 pr_info2("acpi: MADT entry IOAPIC NMI [%p]", (void *) int_override);
                 break;
             }
             case 4:
             {
-                acpi_madt_et4_lapic_nmi_t *nmi = container_of(entry, acpi_madt_et4_lapic_nmi_t, madt_entry_header);
+                acpi_madt_et4_lapic_nmi_t *nmi = container_of(entry, acpi_madt_et4_lapic_nmi_t, header);
                 pr_info2("acpi: MADT entry LAPIC NMI [%p]", (void *) nmi);
                 break;
             }
             case 5:
             {
-                acpi_madt_et5_lapic_addr_t *local_apic_nmi = container_of(entry, acpi_madt_et5_lapic_addr_t, madt_entry_header);
+                acpi_madt_et5_lapic_addr_t *local_apic_nmi = container_of(entry, acpi_madt_et5_lapic_addr_t, header);
                 pr_info2("acpi: MADT entry LAPIC address override [%p]", (void *) local_apic_nmi);
                 break;
             }
             case 9:
             {
-                acpi_madt_et9_lx2apic_t *local_sapic_override = container_of(entry, acpi_madt_et9_lx2apic_t, madt_entry_header);
+                acpi_madt_et9_lx2apic_t *local_sapic_override = container_of(entry, acpi_madt_et9_lx2apic_t, header);
                 pr_info2("acpi: MADT entry local x2 SAPIC override [%p]", (void *) local_sapic_override);
                 break;
             }

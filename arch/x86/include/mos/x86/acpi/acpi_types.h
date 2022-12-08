@@ -131,12 +131,12 @@ typedef struct
 {
     u8 type;
     u8 record_length;
-} acpi_madt_entry_header_t;
+} acpi_madt_header_t;
 
 // Type 0 - Processor Local APIC
 typedef struct
 {
-    acpi_madt_entry_header_t madt_entry_header;
+    acpi_madt_header_t header;
     u8 processor_id;
     u8 apic_id;
     u32 flags;
@@ -145,7 +145,7 @@ typedef struct
 // Type 1 - I/O APIC
 typedef struct
 {
-    acpi_madt_entry_header_t madt_entry_header;
+    acpi_madt_header_t header;
     u8 io_apic_id;
     u8 reserved;
     u32 address;
@@ -155,7 +155,7 @@ typedef struct
 // Type 2 - IO/APIC Interrupt Source Override
 typedef struct
 {
-    acpi_madt_entry_header_t madt_entry_header;
+    acpi_madt_header_t header;
     u8 bus_source;
     u8 irq_source;
     u32 global_system_interrupt;
@@ -165,7 +165,7 @@ typedef struct
 // Type 3 - IO/APIC Non-maskable interrupt source
 typedef struct
 {
-    acpi_madt_entry_header_t madt_entry_header;
+    acpi_madt_header_t header;
     u8 nmi_source;
     u8 reserved;
     u16 flags;
@@ -175,7 +175,7 @@ typedef struct
 // Type 4 - Local APIC Non-maskable interrupts
 typedef struct
 {
-    acpi_madt_entry_header_t madt_entry_header;
+    acpi_madt_header_t header;
     u8 acpi_processor_id;
     u16 flags;
     u8 lint_number;
@@ -184,7 +184,7 @@ typedef struct
 // Type 5 - Local APIC Address Override
 typedef struct
 {
-    acpi_madt_entry_header_t madt_entry_header;
+    acpi_madt_header_t header;
     u16 reserved;
     u64 lapic_paddr;
 } acpi_madt_et5_lapic_addr_t;
@@ -192,7 +192,7 @@ typedef struct
 // Type 9 - Processor Local x2APIC
 typedef struct
 {
-    acpi_madt_entry_header_t madt_entry_header;
+    acpi_madt_header_t header;
     u16 reserved;
     u32 processor_lx2apic_id;
     u32 flags;
@@ -208,14 +208,13 @@ typedef struct
 
 #define ACPI_SIGNATURE_MADT "APIC" // Multiple APIC Description Table
 
-#define madt_is_valid_entry_type(type) ((type >= 0 && type <= 5) || type == 9)
+#define madt_type_is_valid(type) ((type >= 0 && type <= 5) || type == 9)
 #define madt_entry_foreach(var, madt)                                                                                                                                    \
-    for (acpi_madt_entry_header_t *var = (acpi_madt_entry_header_t *) ((char *) madt + sizeof(acpi_madt_t)); madt_is_valid_entry_type(var->type);                        \
-         var = (acpi_madt_entry_header_t *) ((char *) var + entry->record_length))
+    for (acpi_madt_header_t *var = (void *) ((char *) madt + sizeof(acpi_madt_t)); madt_type_is_valid(var->type); var = (void *) ((char *) var + var->record_length))
 
 typedef struct
 {
-    acpi_sdt_header_t sdt_header;
+    acpi_sdt_header_t header;
     u8 hardware_rev_id;
     u8 compatible_id : 5;
     u8 counter_size : 1;
