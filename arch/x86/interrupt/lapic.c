@@ -27,7 +27,7 @@
 #define APIC_INTERRUPT_COMMAND_REG_BEGIN 0x300
 #define APIC_INTERRUPT_COMMAND_REG_END   0x310
 
-static uintptr_t lapic_paddr_base = 0;
+static volatile u32 *lapic_regs = NULL;
 
 #define IA32_APIC_BASE_MSR        0x1B
 #define IA32_APIC_BASE_MSR_ENABLE 0x800
@@ -39,30 +39,47 @@ void lapic_set_base_addr(uintptr_t base_addr)
     cpu_set_msr(IA32_APIC_BASE_MSR, eax, edx);
 }
 
-u32 lapic_reg_read_offset_32(u32 offset)
+u32 lapic_read32(u32 offset)
 {
-    mos_debug("offset: %x", offset);
-    mos_warn("This didn't work properly, need to investigate.");
-    return *(volatile u32 *) (lapic_paddr_base + offset);
+    mos_debug("reg: %x", offset);
+    return lapic_regs[offset / sizeof(u32)];
 }
 
-void lapic_reg_write_offset_32(u32 offset, u32 value)
+u64 lapic_read64(u32 offset)
 {
-    mos_debug("reg: 0x%x, value: 0x%.8x", offset, value);
-    *(volatile u32 *) (lapic_paddr_base + offset) = value;
+    mos_debug("reg: %x", offset);
+    u32 high = lapic_regs[(offset + 0x10) / sizeof(u32)];
+    u32 low = lapic_regs[offset / sizeof(u32)];
+    return ((u64) high << 32) | low;
 }
 
-void lapic_reg_write_offset_64(u32 offset, u64 value)
+void lapic_write32(u32 offset, u32 value)
 {
-    mos_debug("reg: 0x%x, value: 0x%.16llx", offset, value);
-    *(volatile u32 *) (lapic_paddr_base + offset + 0x10) = value >> 32;
-    *(volatile u32 *) (lapic_paddr_base + offset) = value & 0xffffffff;
+    mos_debug("reg: %x, value: 0x%.8x", offset, value);
+    lapic_regs[offset / sizeof(u32)] = value;
+#ifdef MOS_DEBUG
+    u32 read_value = lapic_read32(offset);
+    if (read_value != value)
+        mos_warn("INCORRECT: 0x%.8x", read_value);
+#endif
+}
+
+void lapic_write64(u32 offset, u64 value)
+{
+    mos_debug("reg: %x, value: 0x%.16llx", offset, value);
+    lapic_regs[(offset + 0x10) / sizeof(u32)] = value >> 32;
+    lapic_regs[offset / sizeof(u32)] = value & 0xffffffff;
+#ifdef MOS_DEBUG
+    u64 read_value = lapic_read64(offset);
+    if (read_value != value)
+        mos_warn("INCORRECT: 0x%.16llx", read_value);
+#endif
 }
 
 static void lapic_wait_sent()
 {
     // Wait for the delivery status bit to be set
-    while (lapic_reg_read_offset_32(APIC_INTERRUPT_COMMAND_REG_BEGIN) & SET_BITS(12, 1, 1))
+    while (lapic_read32(APIC_INTERRUPT_COMMAND_REG_BEGIN) & SET_BITS(12, 1, 1))
         ;
 }
 
@@ -78,8 +95,8 @@ void lapic_interrupt_full(u8 vec, u8 dest, apic_delivery_mode_t delivery_mode, a
     value |= SET_BITS(18, 2, shorthand);    // Destination shorthand
     value |= SET_BITS(56, 8, (u64) dest);   // Destination
 
-    lapic_reg_write_offset_32(APIC_REG_ERROR_STATUS, 0);
-    lapic_reg_write_offset_64(APIC_INTERRUPT_COMMAND_REG_BEGIN, value);
+    lapic_write32(APIC_REG_ERROR_STATUS, 0);
+    lapic_write64(APIC_INTERRUPT_COMMAND_REG_BEGIN, value);
     lapic_wait_sent();
 }
 
@@ -88,7 +105,7 @@ void lapic_interrupt(u8 vec, u8 dest, apic_delivery_mode_t delivery_mode, apic_d
     lapic_interrupt_full(vec, dest, delivery_mode, dest_mode, true, false, shorthand);
 }
 
-void lapic_enable()
+void lapic_memory_setup()
 {
     // CPUID.01h:EDX[bit 9]
     processor_version_t info;
@@ -100,30 +117,36 @@ void lapic_enable()
     if (!info.edx.msr)
         mos_panic("MSR is not present");
 
-    lapic_paddr_base = x86_acpi_madt->lapic_addr;
-    if (lapic_paddr_base != BIOS_VADDR(lapic_paddr_base))
+    uintptr_t base_addr = x86_acpi_madt->lapic_addr;
+    pr_info("LAPIC: base address: " PTR_FMT, base_addr);
+
+    if ((uintptr_t) base_addr != BIOS_VADDR(base_addr))
     {
-        pr_info("LAPIC base address: " PTR_FMT ", remapping it to " PTR_FMT, lapic_paddr_base, BIOS_VADDR(lapic_paddr_base));
-        lapic_paddr_base = BIOS_VADDR(lapic_paddr_base);
-        lapic_set_base_addr(lapic_paddr_base);
-    }
-    else
-    {
-        pr_info("LAPIC base address: " PTR_FMT, lapic_paddr_base);
+        pr_info("LAPIC: remapping it to " PTR_FMT, BIOS_VADDR(base_addr));
+        base_addr = BIOS_VADDR(base_addr);
     }
 
     // map both the current pagedir and x86_kpg_infra (because we are now using the former one)
-    mos_startup_map_bios(lapic_paddr_base, 1 KB, VM_READ | VM_GLOBAL | VM_WRITE | VM_CACHE_DISABLED);
-    pg_do_map_page(x86_kpg_infra, lapic_paddr_base, lapic_paddr_base, VM_READ | VM_GLOBAL | VM_WRITE | VM_CACHE_DISABLED);
+    mos_startup_map_bios(base_addr, 1 KB, VM_READ | VM_GLOBAL | VM_WRITE | VM_CACHE_DISABLED);
+    pg_do_map_page(x86_kpg_infra, base_addr, base_addr, VM_READ | VM_GLOBAL | VM_WRITE | VM_CACHE_DISABLED);
 
-#define APIC_SOFTWARE_ENABLE (1 << 8)
-    // set the Spurious Interrupt Vector Register
-    // To enable the APIC, set bit 8 (or 0x100) of this register.
-    // All the other bits are currently reserved.
-    lapic_reg_write_offset_32(APIC_REG_SPURIOUS_INTR_VEC, lapic_reg_read_offset_32(APIC_REG_SPURIOUS_INTR_VEC) | APIC_SOFTWARE_ENABLE);
+    lapic_regs = (u32 *) base_addr;
+}
 
-    u32 current_cpu_id = lapic_reg_read_offset_32(APIC_REG_LAPIC_ID);
-    u32 version_reg = lapic_reg_read_offset_32(APIC_REG_LAPIC_VERSION);
+void lapic_enable()
+{
+    lapic_set_base_addr((uintptr_t) lapic_regs);
+
+    // (https://wiki.osdev.org/APIC#Local_APIC_configuration)
+    // To enable the Local APIC to receive interrupts it is necessary to configure the "Spurious Interrupt Vector Register".
+    // The correct value for this field is
+    // - the IRQ number that you want to map the spurious interrupts to within the lowest 8 bits, and
+    // - the 8th bit set to 1
+    //  to actually enable the APIC
+    lapic_write32(APIC_REG_SPURIOUS_INTR_VEC, lapic_read32(APIC_REG_SPURIOUS_INTR_VEC) | (1 << 8));
+
+    u32 current_cpu_id = lapic_read32(APIC_REG_LAPIC_ID);
+    u32 version_reg = lapic_read32(APIC_REG_LAPIC_VERSION);
     u32 max_lvt_entry = (version_reg >> 16) & 0xff;
     u32 version_id = version_reg & 0xff;
     pr_info("LAPIC{%d}: version: %x, max LVT entry: %x", current_cpu_id, version_id, max_lvt_entry);

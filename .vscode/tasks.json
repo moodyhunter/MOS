@@ -58,6 +58,8 @@
                 "chardev:serial_log",
                 "-initrd",
                 "${workspaceFolder}/build/initrd.cpio",
+                "-smp",
+                "4",
                 "-append",
                 "kmsg_console=serial"
             ],

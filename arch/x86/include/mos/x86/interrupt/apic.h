@@ -53,10 +53,19 @@ typedef enum
 } apic_shorthand_t;
 
 void apic_assert_supported();
+void lapic_memory_setup();
 void lapic_enable();
 void lapic_interrupt(u8 vec, u8 dest, apic_delivery_mode_t delivery_mode, apic_dest_mode_t dest_mode, apic_shorthand_t shorthand);
 void lapic_interrupt_full(u8 vec, u8 dest, apic_delivery_mode_t dliv_mode, apic_dest_mode_t dstmode, bool lvl, bool trigger, apic_shorthand_t sh);
 
-u32 lapic_reg_read_offset_32(u32 offset);
-void lapic_reg_write_offset_32(u32 offset, u32 value);
-void lapic_reg_write_offset_64(u32 offset, u64 value);
+u32 lapic_read32(u32 offset);
+void lapic_write32(u32 offset, u32 value);
+void lapic_write64(u32 offset, u64 value);
+
+should_inline u8 lapic_get_id()
+{
+    // https://stackoverflow.com/a/71756491
+    // https://github.com/rust-osdev/apic/blob/master/src/registers.rs
+    // shift 24 because the ID is in the upper 8 bits
+    return lapic_read32(APIC_REG_LAPIC_ID) >> 24;
+}

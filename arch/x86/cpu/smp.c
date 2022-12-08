@@ -49,6 +49,7 @@ void ap_begin_exec()
     x86_ap_gdt_init();
     x86_idt_init();
     x86_mm_enable_paging();
+    lapic_enable();
 
     processor_version_t info;
     cpuid_get_processor_info(&info);
@@ -57,11 +58,10 @@ void ap_begin_exec()
     print_cpu_info();
 
     per_cpu(x86_platform.cpu)->id = info.ebx.local_apic_id;
-
-    unsigned int x = lapic_reg_read_offset_32(APIC_REG_LAPIC_ID);
-    if (x != info.ebx.local_apic_id)
+    u8 lapic_id = lapic_get_id();
+    if (lapic_id != info.ebx.local_apic_id)
     {
-        mos_warn("smp: AP %u: LAPIC ID mismatch: %u != %u", info.ebx.local_apic_id, x, info.ebx.local_apic_id);
+        mos_warn("smp: AP %u: LAPIC ID mismatch: %u != %u", info.ebx.local_apic_id, lapic_id, info.ebx.local_apic_id);
     }
 
     while (1)
@@ -108,6 +108,7 @@ void x86_smp_init()
     pic_disable();
 
     pr_info2("enabling APIC...");
+    lapic_memory_setup();
     lapic_enable();
 
     u32 num_cpus = 0;
