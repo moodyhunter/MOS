@@ -36,13 +36,13 @@ typedef enum
     APIC_DELIVER_MODE_INIT = 5,
     APIC_DELIVER_MODE_INIT_DEASSERT = APIC_DELIVER_MODE_INIT,
     APIC_DELIVER_MODE_STARTUP = 6,
-} apic_delivery_mode_t;
+} lapic_delivery_mode_t;
 
 typedef enum
 {
     APIC_DEST_MODE_PHYSICAL = 0,
     APIC_DEST_MODE_LOGICAL = 1,
-} apic_dest_mode_t;
+} lapic_dest_mode_t;
 
 typedef enum
 {
@@ -50,15 +50,15 @@ typedef enum
     APIC_SHORTHAND_SELF = 1,
     APIC_SHORTHAND_ALL = 2,
     APIC_SHORTHAND_ALL_EXCLUDING_SELF = 3,
-} apic_shorthand_t;
+} lapic_shorthand_t;
 
-void apic_assert_supported();
 void lapic_memory_setup();
 void lapic_enable();
-void lapic_interrupt(u8 vec, u8 dest, apic_delivery_mode_t delivery_mode, apic_dest_mode_t dest_mode, apic_shorthand_t shorthand);
-void lapic_interrupt_full(u8 vec, u8 dest, apic_delivery_mode_t dliv_mode, apic_dest_mode_t dstmode, bool lvl, bool trigger, apic_shorthand_t sh);
+void lapic_interrupt(u8 vec, u8 dest, lapic_delivery_mode_t delivery_mode, lapic_dest_mode_t dest_mode, lapic_shorthand_t shorthand);
+void lapic_interrupt_full(u8 vec, u8 dest, lapic_delivery_mode_t dliv_mode, lapic_dest_mode_t dstmode, bool lvl, bool trigger, lapic_shorthand_t sh);
 
 u32 lapic_read32(u32 offset);
+u64 lapic_read64(u32 offset);
 void lapic_write32(u32 offset, u32 value);
 void lapic_write64(u32 offset, u64 value);
 

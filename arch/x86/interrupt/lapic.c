@@ -83,7 +83,7 @@ static void lapic_wait_sent()
         ;
 }
 
-void lapic_interrupt_full(u8 vec, u8 dest, apic_delivery_mode_t delivery_mode, apic_dest_mode_t dest_mode, bool level, bool trigger, apic_shorthand_t shorthand)
+void lapic_interrupt_full(u8 vec, u8 dest, lapic_delivery_mode_t delivery_mode, lapic_dest_mode_t dest_mode, bool level, bool trigger, lapic_shorthand_t shorthand)
 {
     u64 value = 0;
     value |= SET_BITS(0, 8, vec);           // Interrupt Vector
@@ -100,7 +100,7 @@ void lapic_interrupt_full(u8 vec, u8 dest, apic_delivery_mode_t delivery_mode, a
     lapic_wait_sent();
 }
 
-void lapic_interrupt(u8 vec, u8 dest, apic_delivery_mode_t delivery_mode, apic_dest_mode_t dest_mode, apic_shorthand_t shorthand)
+void lapic_interrupt(u8 vec, u8 dest, lapic_delivery_mode_t delivery_mode, lapic_dest_mode_t dest_mode, lapic_shorthand_t shorthand)
 {
     lapic_interrupt_full(vec, dest, delivery_mode, dest_mode, true, false, shorthand);
 }
