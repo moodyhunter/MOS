@@ -50,19 +50,20 @@ void x86_acpi_init()
     for (size_t i = 0; i < count; i++)
     {
         acpi_sdt_header_t *addr = (acpi_sdt_header_t *) BIOS_VADDR((uintptr_t) x86_acpi_rsdt->sdts[i]);
-        pr_info2("acpi: RSDT entry %zu: %.4s", i, addr->signature);
 
         if (strncmp(addr->signature, ACPI_SIGNATURE_FADT, 4) == 0)
         {
             x86_acpi_fadt = container_of(addr, acpi_fadt_t, sdt_header);
             if (!verify_sdt_checksum(&x86_acpi_fadt->sdt_header))
                 mos_panic("FADT checksum error");
+            pr_info2("acpi: FADT at %p", (void *) x86_acpi_fadt);
         }
         else if (strncmp(addr->signature, ACPI_SIGNATURE_MADT, 4) == 0)
         {
             x86_acpi_madt = container_of(addr, acpi_madt_t, sdt_header);
             if (!verify_sdt_checksum(&x86_acpi_madt->sdt_header))
                 mos_panic("MADT checksum error");
+            pr_info2("acpi: MADT at %p", (void *) x86_acpi_madt);
         }
         else if (strncmp(addr->signature, ACPI_SIGNATURE_HPET, 4) == 0)
         {
@@ -72,6 +73,7 @@ void x86_acpi_init()
             if (!verify_sdt_checksum(&x86_acpi_hpet->header))
                 mos_panic("HPET checksum error");
             MOS_WARNING_POP
+            pr_info2("acpi: HPET at %p", (void *) x86_acpi_hpet);
         }
         else
         {
