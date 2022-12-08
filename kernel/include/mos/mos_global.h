@@ -65,6 +65,6 @@
         if (__seen)                                                                                                                                                      \
             ret = false;                                                                                                                                                 \
         else                                                                                                                                                             \
-            ret = true;                                                                                                                                                  \
+            __seen = true, ret = true;                                                                                                                                   \
         ret;                                                                                                                                                             \
     })
