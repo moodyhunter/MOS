@@ -7,6 +7,7 @@
 #include "mos/io/terminal.h"
 #include "mos/mm/cow.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/mm/memops.h"
 #include "mos/printk.h"
 #include "mos/tasks/thread.h"
 
@@ -224,24 +225,27 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
 
     MOS_ASSERT(heap != NULL);
 
+    const uintptr_t heap_top = heap->vm.vaddr + heap->vm.npages * MOS_PAGE_SIZE;
+
     if (heap->map_flags & MMAP_COW)
     {
-        heap->vm.npages += npages;
-        return heap->vm.vaddr + heap->vm.npages * MOS_PAGE_SIZE;
+        vmblock_t zeroed = mm_alloc_zeroed_pages_at(process->pagetable, heap_top, npages, VM_READ | VM_WRITE | VM_USER);
+        MOS_ASSERT(zeroed.npages == npages);
     }
-
-    uintptr_t heap_top = heap->vm.vaddr + heap->vm.npages * MOS_PAGE_SIZE;
-    vmblock_t new_part = platform_mm_alloc_pages_at(process->pagetable, heap_top, npages, VM_READ | VM_WRITE | VM_USER);
-    if (new_part.vaddr == 0 || new_part.npages != npages)
+    else
     {
-        mos_warn("failed to grow heap of process %d", process->pid);
-        platform_mm_free_pages(process->pagetable, new_part.vaddr, new_part.npages);
-        return heap->vm.vaddr + heap->vm.npages * MOS_PAGE_SIZE;
+        vmblock_t new_part = platform_mm_alloc_pages_at(process->pagetable, heap_top, npages, VM_READ | VM_WRITE | VM_USER);
+        if (new_part.vaddr == 0 || new_part.npages != npages)
+        {
+            mos_warn("failed to grow heap of process %d", process->pid);
+            platform_mm_free_pages(process->pagetable, new_part.vaddr, new_part.npages);
+            return heap_top;
+        }
     }
 
     pr_info2("grew heap of process %d by %zu pages", process->pid, npages);
     heap->vm.npages += npages;
-    return heap->vm.vaddr + heap->vm.npages * MOS_PAGE_SIZE;
+    return heap_top + npages * MOS_PAGE_SIZE;
 }
 
 void process_dump_mmaps(process_t *process)
