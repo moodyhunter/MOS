@@ -53,10 +53,10 @@ typedef enum
 } apic_shorthand_t;
 
 void apic_assert_supported();
-void apic_enable();
-void apic_interrupt(u8 vec, u8 dest, apic_delivery_mode_t delivery_mode, apic_dest_mode_t dest_mode, apic_shorthand_t shorthand);
-void apic_interrupt_full(u8 vec, u8 dest, apic_delivery_mode_t dliv_mode, apic_dest_mode_t dstmode, bool lvl, bool trigger, apic_shorthand_t sh);
+void lapic_enable();
+void lapic_interrupt(u8 vec, u8 dest, apic_delivery_mode_t delivery_mode, apic_dest_mode_t dest_mode, apic_shorthand_t shorthand);
+void lapic_interrupt_full(u8 vec, u8 dest, apic_delivery_mode_t dliv_mode, apic_dest_mode_t dstmode, bool lvl, bool trigger, apic_shorthand_t sh);
 
-u32 apic_reg_read_offset_32(u32 offset);
-void apic_reg_write_offset_32(u32 offset, u32 value);
-void apic_reg_write_offset_64(u32 offset, u64 value);
+u32 lapic_reg_read_offset_32(u32 offset);
+void lapic_reg_write_offset_32(u32 offset, u32 value);
+void lapic_reg_write_offset_64(u32 offset, u64 value);

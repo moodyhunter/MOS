@@ -22,7 +22,7 @@ add_kernel_source(
         devices/serial_console.c
         devices/text_mode_console.c
         gdt/gdt.c
-        interrupt/apic.c
+        interrupt/lapic.c
         interrupt/idt.c
         interrupt/x86_interrupt.c
         interrupt/pic.c

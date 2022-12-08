@@ -58,7 +58,7 @@ void ap_begin_exec()
 
     per_cpu(x86_platform.cpu)->id = info.ebx.local_apic_id;
 
-    unsigned int x = apic_reg_read_offset_32(APIC_REG_LAPIC_ID);
+    unsigned int x = lapic_reg_read_offset_32(APIC_REG_LAPIC_ID);
     if (x != info.ebx.local_apic_id)
     {
         mos_warn("smp: AP %u: LAPIC ID mismatch: %u != %u", info.ebx.local_apic_id, x, info.ebx.local_apic_id);
@@ -78,17 +78,17 @@ void x86_cpu_start(int apic_id, uintptr_t stack_addr)
     ap_pgd_addr = x86_get_cr3();
     ap_stack_addr = stack_addr;
 
-    apic_interrupt_full(0, apic_id, APIC_DELIVER_MODE_INIT, APIC_DEST_MODE_PHYSICAL, true, true, APIC_SHORTHAND_NONE);
+    lapic_interrupt_full(0, apic_id, APIC_DELIVER_MODE_INIT, APIC_DEST_MODE_PHYSICAL, true, true, APIC_SHORTHAND_NONE);
     mdelay(100);
-    apic_interrupt_full(0, apic_id, APIC_DELIVER_MODE_INIT_DEASSERT, APIC_DEST_MODE_PHYSICAL, false, true, APIC_SHORTHAND_NONE);
+    lapic_interrupt_full(0, apic_id, APIC_DELIVER_MODE_INIT_DEASSERT, APIC_DEST_MODE_PHYSICAL, false, true, APIC_SHORTHAND_NONE);
 
     ap_state = AP_STATUS_BSP_STARTUP_SENT;
     pr_info2("smp: bsp sent startup to cpu %u", apic_id);
 
     mdelay(100);
-    apic_interrupt(X86_AP_TRAMPOLINE_ADDR >> 12, apic_id, APIC_DELIVER_MODE_STARTUP, APIC_DEST_MODE_PHYSICAL, APIC_SHORTHAND_NONE);
+    lapic_interrupt(X86_AP_TRAMPOLINE_ADDR >> 12, apic_id, APIC_DELIVER_MODE_STARTUP, APIC_DEST_MODE_PHYSICAL, APIC_SHORTHAND_NONE);
     mdelay(100);
-    apic_interrupt(X86_AP_TRAMPOLINE_ADDR >> 12, apic_id, APIC_DELIVER_MODE_STARTUP, APIC_DEST_MODE_PHYSICAL, APIC_SHORTHAND_NONE);
+    lapic_interrupt(X86_AP_TRAMPOLINE_ADDR >> 12, apic_id, APIC_DELIVER_MODE_STARTUP, APIC_DEST_MODE_PHYSICAL, APIC_SHORTHAND_NONE);
 
     wait_for(AP_STATUS_START_REQUEST);
     pr_info2("smp: cpu %u received start request", apic_id);
@@ -108,7 +108,7 @@ void x86_smp_init()
     pic_disable();
 
     pr_info2("enabling APIC...");
-    apic_enable();
+    lapic_enable();
 
     u32 num_cpus = 0;
     processor_version_t info;
