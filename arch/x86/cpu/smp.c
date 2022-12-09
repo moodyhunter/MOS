@@ -4,17 +4,16 @@
 
 #include "lib/string.h"
 #include "mos/boot/startup.h"
-#include "mos/mos_global.h"
 #include "mos/printk.h"
+#include "mos/tasks/schedule.h"
 #include "mos/types.h"
 #include "mos/x86/acpi/madt.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/cpu/cpuid.h"
 #include "mos/x86/delays.h"
 #include "mos/x86/interrupt/apic.h"
-#include "mos/x86/interrupt/pic.h"
 #include "mos/x86/mm/paging.h"
-#include "mos/x86/mm/paging_impl.h"
+#include "mos/x86/x86_interrupt.h"
 #include "mos/x86/x86_platform.h"
 
 volatile enum
@@ -29,19 +28,6 @@ volatile uintptr_t ap_stack_addr = 0;
 volatile uintptr_t ap_pgd_addr = 0;
 extern void x86_ap_trampoline();
 
-void print_cpu_info()
-{
-    char manufacturer[13];
-    cpuid_get_manufacturer(manufacturer);
-    processor_version_t info;
-    cpuid_get_processor_info(&info);
-    char brand_string[49];
-    cpuid_get_brand_string(brand_string);
-    pr_info2("CPU: %s (%s)", brand_string, manufacturer);
-    pr_info2("  Family %u, Model %u, Stepping %u", info.eax.family, info.eax.model, info.eax.stepping);
-    pr_info2("  Type: %s, Ext family: %u, Ext model: %u", cpuid_type_str[info.eax.type], info.eax.ext_family, info.eax.ext_model);
-}
-
 void ap_begin_exec()
 {
     x86_ap_gdt_init();
@@ -53,7 +39,7 @@ void ap_begin_exec()
     cpuid_get_processor_info(&info);
 
     pr_info("smp: AP %u started", info.ebx.local_apic_id);
-    print_cpu_info();
+    cpuid_print_cpu_info();
 
     per_cpu(x86_platform.cpu)->id = info.ebx.local_apic_id;
     u8 lapic_id = lapic_get_id();
@@ -63,7 +49,7 @@ void ap_begin_exec()
     }
 
     while (1)
-        __asm__ volatile("cli; hlt");
+        __asm__ volatile("cli; hlt;");
 }
 
 // clang-format off
@@ -99,20 +85,6 @@ void x86_cpu_start(int apic_id, uintptr_t stack_addr)
 
 void x86_smp_init()
 {
-    pr_info("smp: boot cpu:");
-    print_cpu_info();
-
-    pr_info2("enabling APIC...");
-    acpi_parse_madt();
-    lapic_memory_setup();
-    lapic_enable();
-    ioapic_init();
-
-    processor_version_t info;
-    cpuid_get_processor_info(&info);
-    x86_platform.boot_cpu_id = info.ebx.local_apic_id;
-    per_cpu(x86_platform.cpu)->id = x86_platform.boot_cpu_id;
-
     // we are still using the old page tables, use mos_startup_map_bytes
     mos_startup_map_bytes(X86_AP_TRAMPOLINE_ADDR, X86_AP_TRAMPOLINE_ADDR, 4 KB, VM_WRITE);
     memcpy((void *) X86_AP_TRAMPOLINE_ADDR, (void *) (uintptr_t) &x86_ap_trampoline, 4 KB);

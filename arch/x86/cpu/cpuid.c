@@ -57,3 +57,16 @@ void cpuid_get_brand_string(char *brand_string)
     *(u32 *) &brand_string[44] = cpuid.edx;
     brand_string[48] = 0;
 }
+
+void cpuid_print_cpu_info()
+{
+    char manufacturer[13];
+    cpuid_get_manufacturer(manufacturer);
+    processor_version_t info;
+    cpuid_get_processor_info(&info);
+    char brand_string[49];
+    cpuid_get_brand_string(brand_string);
+    pr_info2("CPU: %s (%s)", brand_string, manufacturer);
+    pr_info2("  Family %u, Model %u, Stepping %u", info.eax.family, info.eax.model, info.eax.stepping);
+    pr_info2("  Type: %s, Ext family: %u, Ext model: %u", cpuid_type_str[info.eax.type], info.eax.ext_family, info.eax.ext_model);
+}
