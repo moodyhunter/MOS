@@ -10,6 +10,7 @@
 #include "mos/syscall/dispatcher.h"
 #include "mos/tasks/task_type.h"
 #include "mos/x86/devices/port.h"
+#include "mos/x86/interrupt/apic.h"
 #include "mos/x86/interrupt/pic.h"
 #include "mos/x86/tasks/context.h"
 #include "mos/x86/x86_platform.h"
@@ -105,6 +106,31 @@ static void x86_dump_registers(x86_stack_frame *frame)
     );
 }
 
+void x86_handle_nmi(x86_stack_frame *frame)
+{
+    pr_emph("NMI received");
+
+    u8 scp1 = port_inb(0x92);
+    u8 scp2 = port_inb(0x61);
+
+    static const char *const scp1_names[] = { "Alternate Hot Reset", "Alternate A20 Gate", "[RESERVED]",     "Security Lock",
+                                              "Watchdog Timer",      "[RESERVED]",         "HDD 2 Activity", "HDD 1 Activity" };
+
+    static const char *const scp2_names[] = { "Timer 2 Tied to Speaker", "Speaker Data Enable", "Parity Check Enable", "Channel Check Enable",
+                                              "Refresh Request",         "Timer 2 Output",      "Channel Check",       "Parity Check" };
+
+    for (int bit = 0; bit < 8; bit++)
+        if (scp1 & (1 << bit))
+            pr_emph("  %s", scp1_names[bit]);
+
+    for (int bit = 0; bit < 8; bit++)
+        if (scp2 & (1 << bit))
+            pr_emph("  %s", scp2_names[bit]);
+
+    x86_dump_registers(frame);
+    mos_panic("NMI received");
+}
+
 void x86_handle_interrupt(u32 esp)
 {
     x86_stack_frame *frame = (x86_stack_frame *) esp;
@@ -153,9 +179,13 @@ static void x86_handle_exception(x86_stack_frame *stack)
     // Aborts: Some severe unrecoverable error.
     switch ((x86_exception_enum_t) stack->interrupt_number)
     {
+        case EXCEPTION_NMI:
+        {
+            x86_handle_nmi(stack);
+            return;
+        }
         case EXCEPTION_DIVIDE_ERROR:
         case EXCEPTION_DEBUG:
-        case EXCEPTION_NMI:
         case EXCEPTION_OVERFLOW:
         case EXCEPTION_BOUND_RANGE_EXCEEDED:
         case EXCEPTION_INVALID_OPCODE:
@@ -253,30 +283,11 @@ static void x86_handle_exception(x86_stack_frame *stack)
     mos_panic("x86 %s:\nInterrupt #%d ('%s', error code %d)\n", intr_type, stack->interrupt_number, name, stack->error_code);
 }
 
-void irq_send_eoi(u8 irq)
-{
-    if (irq >= 8)
-        port_outb(PIC2_COMMAND, PIC_EOI);
-    port_outb(PIC1_COMMAND, PIC_EOI);
-}
-
 static void x86_handle_irq(x86_stack_frame *frame)
 {
     int irq = frame->interrupt_number - IRQ_BASE;
 
-    if (irq == 7 || irq == 15)
-    {
-        // these irqs may be fake ones, test it
-        u8 pic = (irq < 8) ? PIC1 : PIC2;
-        port_outb(pic + 3, 0x03);
-        if ((port_inb(pic) & 0x80) != 0)
-        {
-            irq_send_eoi(irq);
-            return;
-        }
-    }
-
-    irq_send_eoi(irq);
+    lapic_eoi(irq);
 
     bool irq_handled = false;
     list_foreach(x86_irq_handler_t, handler, irq_handlers[irq])

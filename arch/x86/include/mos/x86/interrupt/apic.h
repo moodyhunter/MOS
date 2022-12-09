@@ -4,29 +4,7 @@
 
 #include "mos/types.h"
 
-#define APIC_REG_LAPIC_ID            0x20
-#define APIC_REG_LAPIC_VERSION       0x30
-#define APIC_REG_PRIO_TASK           0x80
-#define APIC_REG_PRIO_ARBITRATION    0x90
-#define APIC_REG_PRIO_PROCESSOR      0xA0
-#define APIC_REG_EOI                 0xB0
-#define APIC_REG_REMOTE_READ         0xC0
-#define APIC_REG_LOGICAL_DEST        0xD0
-#define APIC_REG_DEST_FORMAT         0xE0
-#define APIC_REG_SPURIOUS_INTR_VEC   0xF0
-#define APIC_REG_ERROR_STATUS        0x280
-#define APIC_REG_TIMER_INITIAL_COUNT 0x380
-#define APIC_REG_TIMER_CURRENT_COUNT 0x390
-#define APIC_REG_TIMER_DIVIDE_CONFIG 0x3E0
-
-#define APIC_REG_LVT_CMCI_INTR      0x2F0
-#define APIC_REG_LVT_TIMER          0x320
-#define APIC_REG_LVT_THERMAL_SENSOR 0x330
-#define APIC_REG_LVT_PERF_MON_CTR   0x340
-#define APIC_REG_LVT_LINT0          0x350
-#define APIC_REG_LVT_LINT1          0x360
-#define APIC_REG_LVT_ERROR          0x370
-
+#define APIC_REG_LAPIC_ID 0x20
 typedef enum
 {
     APIC_DELIVER_MODE_FIXED = 0,
@@ -62,10 +40,33 @@ u64 lapic_read64(u32 offset);
 void lapic_write32(u32 offset, u32 value);
 void lapic_write64(u32 offset, u64 value);
 
+void lapic_eoi();
+
 should_inline u8 lapic_get_id()
 {
     // https://stackoverflow.com/a/71756491
     // https://github.com/rust-osdev/apic/blob/master/src/registers.rs
     // shift 24 because the ID is in the upper 8 bits
     return lapic_read32(APIC_REG_LAPIC_ID) >> 24;
+}
+
+typedef enum
+{
+    IOAPIC_TRIGGER_MODE_EDGE = 0,
+    IOAPIC_TRIGGER_MODE_LEVEL = 1,
+} ioapic_trigger_mode_t;
+
+typedef enum
+{
+    IOAPIC_POLARITY_ACTIVE_HIGH = 0,
+    IOAPIC_POLARITY_ACTIVE_LOW = 1,
+} ioapic_polarity_t;
+
+void ioapic_init();
+void ioapic_enable_with_mode(u32 irq, u32 cpu, ioapic_trigger_mode_t trigger_mode, ioapic_polarity_t polarity);
+void ioapic_disable(u32 irq);
+
+should_inline void ioapic_enable_interrupt(u32 irq, u32 cpu)
+{
+    ioapic_enable_with_mode(irq, cpu, IOAPIC_TRIGGER_MODE_EDGE, IOAPIC_POLARITY_ACTIVE_HIGH);
 }

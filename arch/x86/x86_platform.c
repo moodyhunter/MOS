@@ -9,10 +9,12 @@
 #include "mos/printk.h"
 #include "mos/x86/acpi/acpi.h"
 #include "mos/x86/cpu/cpu.h"
+#include "mos/x86/cpu/smp.h"
 #include "mos/x86/devices/initrd_blockdev.h"
 #include "mos/x86/devices/port.h"
 #include "mos/x86/devices/serial_console.h"
 #include "mos/x86/devices/text_mode_console.h"
+#include "mos/x86/interrupt/apic.h"
 #include "mos/x86/interrupt/pic.h"
 #include "mos/x86/mm/mm.h"
 #include "mos/x86/mm/paging.h"
@@ -112,11 +114,6 @@ void x86_start_kernel(x86_startup_info *info)
     x86_tss_init();
     x86_irq_handler_init();
 
-    pic_unmask_irq(IRQ_TIMER);
-    pic_unmask_irq(IRQ_KEYBOARD);
-    pic_unmask_irq(IRQ_COM1);
-    pic_unmask_irq(IRQ_COM2);
-
     if (mb_info->flags & MULTIBOOT_INFO_CMDLINE)
         strncpy(mos_cmdline, mb_info->cmdline, sizeof(mos_cmdline));
 
@@ -137,7 +134,7 @@ void x86_start_kernel(x86_startup_info *info)
     }
 
     x86_acpi_init();
-    // x86_smp_init();
+    x86_smp_init();
 
     // ! map the bios memory area, should it be done like this?
     pr_info("mapping bios memory area...");
@@ -155,9 +152,14 @@ void x86_start_kernel(x86_startup_info *info)
 
     mos_install_kpanic_hook(x86_kpanic_hook);
     console_register(&vga_text_mode_console);
+
     x86_install_interrupt_handler(IRQ_COM1, serial_irq_handler);
     x86_install_interrupt_handler(IRQ_TIMER, x86_timer_handler);
     x86_install_interrupt_handler(IRQ_KEYBOARD, x86_keyboard_handler);
+
+    ioapic_enable_interrupt(IRQ_TIMER, 0);
+    ioapic_enable_interrupt(IRQ_KEYBOARD, 0);
+    ioapic_enable_interrupt(IRQ_COM1, 0);
 
     if (initrd_size)
     {

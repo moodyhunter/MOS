@@ -7,8 +7,7 @@
 #include "mos/mos_global.h"
 #include "mos/printk.h"
 #include "mos/types.h"
-#include "mos/x86/acpi/acpi.h"
-#include "mos/x86/acpi/acpi_types.h"
+#include "mos/x86/acpi/madt.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/cpu/cpuid.h"
 #include "mos/x86/delays.h"
@@ -28,7 +27,6 @@ volatile enum
 
 volatile uintptr_t ap_stack_addr = 0;
 volatile uintptr_t ap_pgd_addr = 0;
-static u32 lapics[MOS_MAX_CPU_COUNT] = { 0 };
 extern void x86_ap_trampoline();
 
 void print_cpu_info()
@@ -104,40 +102,24 @@ void x86_smp_init()
     pr_info("smp: boot cpu:");
     print_cpu_info();
 
-    pr_info2("disabling 8259 PIC...");
-    pic_disable();
-
     pr_info2("enabling APIC...");
+    acpi_parse_madt();
     lapic_memory_setup();
     lapic_enable();
+    ioapic_init();
 
-    u32 num_cpus = 0;
     processor_version_t info;
     cpuid_get_processor_info(&info);
     x86_platform.boot_cpu_id = info.ebx.local_apic_id;
     per_cpu(x86_platform.cpu)->id = x86_platform.boot_cpu_id;
 
-    madt_entry_foreach(entry, x86_acpi_madt)
-    {
-        if (entry->type == 0)
-        {
-            acpi_madt_et0_lapic_t *et0 = (acpi_madt_et0_lapic_t *) entry;
-            pr_info2("cpu %d: processor id %d, apic id %d", num_cpus, et0->processor_id, et0->apic_id);
-            lapics[num_cpus] = et0->apic_id;
-            num_cpus++;
-        }
-    }
-
-    pr_info("smp: platform has %u cpu(s)", num_cpus);
-    x86_platform.num_cpus = num_cpus;
-
-    // !! TODO: is this the correct way?
+    // we are still using the old page tables, use mos_startup_map_bytes
     mos_startup_map_bytes(X86_AP_TRAMPOLINE_ADDR, X86_AP_TRAMPOLINE_ADDR, 4 KB, VM_WRITE);
     memcpy((void *) X86_AP_TRAMPOLINE_ADDR, (void *) (uintptr_t) &x86_ap_trampoline, 4 KB);
 
-    for (u32 i = 0; i < num_cpus; i++)
+    for (u32 i = 0; i < x86_platform.num_cpus; i++)
     {
-        u32 apic_id = lapics[i];
+        u32 apic_id = x86_cpu_lapic[i];
         if (apic_id == x86_platform.boot_cpu_id)
             continue;
 

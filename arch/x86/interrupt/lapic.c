@@ -5,12 +5,34 @@
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
-#include "mos/x86/acpi/acpi.h"
+#include "mos/x86/acpi/madt.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/cpu/cpuid.h"
 #include "mos/x86/interrupt/apic.h"
 #include "mos/x86/mm/paging.h"
 #include "mos/x86/mm/paging_impl.h"
+
+#define APIC_REG_LAPIC_VERSION       0x30
+#define APIC_REG_PRIO_TASK           0x80
+#define APIC_REG_PRIO_ARBITRATION    0x90
+#define APIC_REG_PRIO_PROCESSOR      0xA0
+#define APIC_REG_EOI                 0xB0
+#define APIC_REG_REMOTE_READ         0xC0
+#define APIC_REG_LOGICAL_DEST        0xD0
+#define APIC_REG_DEST_FORMAT         0xE0
+#define APIC_REG_SPURIOUS_INTR_VEC   0xF0
+#define APIC_REG_ERROR_STATUS        0x280
+#define APIC_REG_TIMER_INITIAL_COUNT 0x380
+#define APIC_REG_TIMER_CURRENT_COUNT 0x390
+#define APIC_REG_TIMER_DIVIDE_CONFIG 0x3E0
+
+#define APIC_REG_LVT_CMCI_INTR      0x2F0
+#define APIC_REG_LVT_TIMER          0x320
+#define APIC_REG_LVT_THERMAL_SENSOR 0x330
+#define APIC_REG_LVT_PERF_MON_CTR   0x340
+#define APIC_REG_LVT_LINT0          0x350
+#define APIC_REG_LVT_LINT1          0x360
+#define APIC_REG_LVT_ERROR          0x370
 
 #define APIC_IN_SERVICE_REG_BEGIN 0x100
 #define APIC_IN_SERVICE_REG_END   0x170
@@ -150,4 +172,9 @@ void lapic_enable()
     u32 max_lvt_entry = (version_reg >> 16) & 0xff;
     u32 version_id = version_reg & 0xff;
     pr_info("LAPIC{%d}: version: %x, max LVT entry: %x", current_cpu_id, version_id, max_lvt_entry);
+}
+
+void lapic_eoi()
+{
+    lapic_write32(APIC_REG_EOI, 0);
 }

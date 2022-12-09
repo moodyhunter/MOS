@@ -146,10 +146,10 @@ typedef struct
 typedef struct
 {
     acpi_madt_header_t header;
-    u8 io_apic_id;
+    u8 id;
     u8 reserved;
     u32 address;
-    u32 global_system_interrupt_base;
+    u32 global_intr_base;
 } acpi_madt_et1_ioapic_t;
 
 // Type 2 - IO/APIC Interrupt Source Override
@@ -158,7 +158,7 @@ typedef struct
     acpi_madt_header_t header;
     u8 bus_source;
     u8 irq_source;
-    u32 global_system_interrupt;
+    u32 global_intr;
     u16 flags;
 } acpi_madt_et2_ioapic_override_t;
 
@@ -169,14 +169,14 @@ typedef struct
     u8 nmi_source;
     u8 reserved;
     u16 flags;
-    u32 global_system_interrupt;
+    u32 global_irq;
 } acpi_madt_et3_ioapic_nmi_t;
 
 // Type 4 - Local APIC Non-maskable interrupts
 typedef struct
 {
     acpi_madt_header_t header;
-    u8 acpi_processor_id;
+    u8 processor_id;
     u16 flags;
     u8 lint_number;
 } acpi_madt_et4_lapic_nmi_t;

@@ -15,6 +15,7 @@ add_kernel_source(
         x86_descriptor_flush.asm
 
         acpi/acpi.c
+        acpi/madt.c
         cpu/cpuid.c
         cpu/smp.c
         devices/initrd_blockdev.c
@@ -23,6 +24,7 @@ add_kernel_source(
         devices/text_mode_console.c
         gdt/gdt.c
         interrupt/lapic.c
+        interrupt/ioapic.c
         interrupt/idt.c
         interrupt/x86_interrupt.c
         interrupt/pic.c
