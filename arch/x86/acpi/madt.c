@@ -95,7 +95,7 @@ void acpi_parse_madt()
             case 5:
             {
                 acpi_madt_et5_lapic_addr_t *local_apic_nmi = container_of(entry, acpi_madt_et5_lapic_addr_t, header);
-                pr_info2("acpi: MADT entry LAPIC address override [%p], address=%p", (void *) local_apic_nmi, (void *) local_apic_nmi->lapic_paddr);
+                pr_info2("acpi: MADT entry LAPIC address override [%p], address=%llu", (void *) local_apic_nmi, local_apic_nmi->lapic_paddr);
                 mos_warn("Unhandled MADT entry type 5 (LAPIC address override)");
                 break;
             }
