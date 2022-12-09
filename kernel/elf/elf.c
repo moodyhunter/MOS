@@ -118,8 +118,8 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
             if (section_inmem_addr >= ph->vaddr && section_inmem_addr < ph->vaddr + ph->segsize_in_mem)
             {
                 MOS_ASSERT_X(!is_loadable, "section %d is loadable in multiple program headers", sh_i);
-                pr_info2("section %d (%s), header %d, file offset " PTR_FMT " (%zu bytes) -> mem " PTR_FMT, sh_i, name, ph_i, sh->sh_offset, sh->sh_size,
-                         section_inmem_addr);
+                mos_debug("section %d (%s), header %d, file offset " PTR_FMT " (%zu bytes) -> mem " PTR_FMT, sh_i, name, ph_i, sh->sh_offset, sh->sh_size,
+                          section_inmem_addr);
                 is_loadable = true;
                 map_flags |= ((ph->p_flags & ELF_PH_F_R ? VM_READ : 0) |  //
                               (ph->p_flags & ELF_PH_F_W ? VM_WRITE : 0) | //
