@@ -76,7 +76,7 @@ void mos_test_engine_run_tests()
 {
     kwarn_handler_set(test_engine_warning_handler);
 
-    mos_test_result_t result = { MOS_TEST_RESULT_INIT };
+    mos_test_result_t result = { 0 };
 
     cmdline_arg_t *skip_tests_option = mos_cmdline_get_arg("mos_tests_skip");
     cmdline_arg_t *mos_tests_skip_prefix_option = mos_cmdline_get_arg("mos_tests_skip_prefix");
@@ -109,7 +109,7 @@ void mos_test_engine_run_tests()
         if (should_skip)
             continue;
 
-        mos_test_result_t r = { MOS_TEST_RESULT_INIT };
+        mos_test_result_t r = { 0 };
         test_case->test_func(&r);
 
         result.n_total += r.n_total;

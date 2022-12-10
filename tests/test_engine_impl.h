@@ -24,8 +24,6 @@ typedef struct
     u32 n_skipped;
 } mos_test_result_t;
 
-#define MOS_TEST_RESULT_INIT .n_total = 0, .n_failed = 0, .n_skipped = 0
-
 #define MOS_TEST_GRAY    LightGray
 #define MOS_TEST_RED     Red
 #define MOS_TEST_GREEN   Green
