@@ -160,8 +160,7 @@ void x86_handle_interrupt(u32 esp)
 
     if (likely(current))
     {
-        if (unlikely(current->status != THREAD_STATUS_RUNNING))
-            pr_warn("Thread %d is not in 'running' state", current->tid);
+        MOS_ASSERT_X(current->status == THREAD_STATUS_RUNNING, "Thread %d is not in 'running' state", current->tid);
     }
 
     frame->iret_params.eflags |= 0x200; // enable interrupts
