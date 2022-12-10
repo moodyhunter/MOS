@@ -8,6 +8,7 @@
 #include "mos/filesystem/mount.h"
 #include "mos/filesystem/pathutils.h"
 #include "mos/io/terminal.h"
+#include "mos/ipc/ipc.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
@@ -82,6 +83,7 @@ void mos_start_kernel(const char *cmdline)
         mos_test_engine_run_tests();
 #endif
 
+    ipc_init();
     process_init();
     thread_init();
 

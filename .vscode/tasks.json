@@ -61,7 +61,7 @@
                 "-smp",
                 "4",
                 "-append",
-                "kmsg_console=serial"
+                "kmsg_console=serial init=/programs/kmsg-ping"
             ],
             "problemMatcher": [ ],
             "group": "none",

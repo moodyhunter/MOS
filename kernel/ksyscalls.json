@@ -4,6 +4,7 @@
         "mos/filesystem/filesystem.h",
         "mos/mos_global.h",
         "mos/platform/platform.h",
+        "mos/ipc/ipc_types.h",
         "mos/types.h"
     ],
     "syscalls": [
@@ -142,6 +143,12 @@
                 "",
                 "This syscall releases a mutex that was previously acquired by the some thread."
             ]
+        },
+        {
+            "number": 20,
+            "name": "ipc_open",
+            "return": "fd_t",
+            "arguments": [ { "type": "const char *", "arg": "name" }, { "type": "ipc_open_flags", "arg": "flags" }, { "type": "size_t", "arg": "buffer_size" } ]
         }
     ]
 }

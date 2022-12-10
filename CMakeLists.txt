@@ -65,6 +65,7 @@ add_library(mos_kernel.elf STATIC
     kernel/ksyscall.c
     kernel/io/io.c
     kernel/io/terminal.c
+    kernel/ipc/ipc.c
     kernel/kernel_init.c
     kernel/mm/cow.c
     kernel/mm/memops.c
