@@ -3,9 +3,11 @@
 #include "lib/memory.h"
 #include "lib/string.h"
 #include "libuserspace.h"
+#include "mos/filesystem/filesystem.h"
 #include "mos/syscall/usermode.h"
 
 static char buf[4 KB] = { 0 };
+static int value = 0;
 
 static void thread_work(void *arg)
 {
@@ -14,41 +16,73 @@ static void thread_work(void *arg)
     printf("Thread started, value = %d, from process %d\n", *value, process);
 }
 
-static int value = 0;
+static void file_api()
+{
+    file_stat_t stat = { 0 };
+    if (syscall_file_stat("/assets/msg.txt", &stat))
+    {
+        printf("File size: %d bytes\n", stat.size);
+        printf("Owner: %d:%d\n", stat.uid, stat.gid);
+        printf("Permissions: %c%c%c%c%c%c%c%c%c",
+               stat.permissions.owner & FILE_PERM_READ ? 'r' : '-',  //
+               stat.permissions.owner & FILE_PERM_WRITE ? 'w' : '-', //
+               stat.permissions.owner & FILE_PERM_EXEC ? 'x' : '-',  //
+               stat.permissions.group & FILE_PERM_READ ? 'r' : '-',  //
+               stat.permissions.group & FILE_PERM_WRITE ? 'w' : '-', //
+               stat.permissions.group & FILE_PERM_EXEC ? 'x' : '-',  //
+               stat.permissions.other & FILE_PERM_READ ? 'r' : '-',  //
+               stat.permissions.other & FILE_PERM_WRITE ? 'w' : '-', //
+               stat.permissions.other & FILE_PERM_EXEC ? 'x' : '-'   //
+        );
+        if (stat.suid)
+            printf("[SUID]");
+        if (stat.sgid)
+            printf("[SGID]");
+        if (stat.sticky)
+            printf("[STICKY]");
+        printf("\n");
+
+        int fd = syscall_file_open("/assets/msg.txt", FILE_OPEN_READ);
+        if (fd >= 0)
+        {
+            size_t read = syscall_io_read(fd, buf, 512, 0);
+            syscall_io_write(stdout, buf, read, 0);
+            syscall_io_close(fd);
+        }
+        else
+        {
+            printf("Failed to open /assets/msg.txt\n");
+        }
+    }
+    else
+    {
+        printf("Failed to stat /assets/msg.txt");
+    }
+}
 
 int main(void)
 {
-    printf("\n");
-    int fd = syscall_file_open("/assets/msg.txt", FILE_OPEN_READ);
-    if (fd < 0)
-        printf("Failed to open /assets/msg.txt\n");
-    else
-    {
-        size_t read = syscall_io_read(fd, buf, 512, 0);
-        syscall_io_write(stdout, buf, read, 0);
-        syscall_io_close(fd);
-    }
-
-    char buf[256] = { 0 };
-
-    long read = syscall_io_read(stdin, buf, 256, 0);
-    if (read > 0)
-    {
-        printf("Read %d bytes from stdin", read);
-        syscall_io_write(stdout, buf, read, 0);
-    }
-
-    syscall_spawn("/programs/locks", 0, NULL);
+    file_api();
+    // char buf[256] = { 0 };
+    // long read = syscall_io_read(stdin, buf, 256, 0);
+    // if (read > 0)
+    // {
+    //     printf("Read %d bytes from stdin", read);
+    //     syscall_io_write(stdout, buf, read, 0);
+    // }
 
     pid_t my_pid = syscall_get_pid();
     printf("My PID: %d\n", my_pid);
 
-    value = 3456787;
     pid_t ping_pid = syscall_spawn("/programs/kmsg-ping", 0, NULL);
     pid_t pong_pid = syscall_spawn("/programs/kmsg-pong", 0, NULL);
     printf("ping pid: %d\n", ping_pid);
     printf("pong pid: %d\n", pong_pid);
 
+    pid_t locks_pid = syscall_spawn("/programs/locks", 0, NULL);
+    printf("locks pid: %d\n", locks_pid);
+
+    value = 3456787;
     start_thread("worker", thread_work, &value);
     my_pid = syscall_fork();
 
