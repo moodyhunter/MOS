@@ -132,6 +132,9 @@ int main(void)
     strcpy(data, "Hello world!");
     printf("Data: %s\n", data);
 
+    if (syscall_get_pid() != 1)
+        syscall_exit(0);
+
     while (1)
         ;
 
