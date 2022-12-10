@@ -130,7 +130,7 @@ def syscall_name(e):
 
 
 def gen_kernel_impl_decl(e):
-    gen("%s%s %s(%s);" % (syscall_attr(e), syscall_return(e) , "impl_" + syscall_name(e), syscall_args(e)))
+    gen("%s%s %s(%s);" % (syscall_attr(e), syscall_return(e), "impl_" + syscall_name(e), syscall_args(e)))
 
 
 def gen_dispatcher(j):
@@ -165,6 +165,17 @@ def gen_number_header(e):
 def gen_usermode(e):
     syscall_nargs = len(e["arguments"])
     syscall_conv_arg_to_long = ", ".join([str(e["number"])] + ["(long) %s" % arg["arg"] for arg in e["arguments"]])
+
+    comments = e["comments"] if "comments" in e else []
+    if len(comments) > 0:
+        gen("/**")
+        gen(" * %s" % e["name"])
+
+    for comment in e["comments"] if "comments" in e else []:
+        gen(" * %s" % comment)
+
+    if len(comments) > 0:
+        gen(" */")
 
     gen("should_inline %s %s(%s)" % (syscall_return(e), syscall_name(e), syscall_args(e)))
     gen("{")

@@ -25,6 +25,10 @@
                             },
                             "required": [ "type", "arg" ]
                         }
+                    },
+                    "comments": {
+                        "type": [ "array", "string" ],
+                        "items": { "type": "string" }
                     }
                 }
             },
