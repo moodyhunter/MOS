@@ -21,6 +21,7 @@ typedef struct _ring_buffer
 } ring_buffer_t;
 
 ring_buffer_t *ring_buffer_create(size_t capacity);
+ring_buffer_t *ring_buffer_create_at(void *data, size_t capacity);
 void ring_buffer_destroy(ring_buffer_t *buffer);
 
 bool ring_buffer_resize(ring_buffer_t *buffer, size_t new_capacity);

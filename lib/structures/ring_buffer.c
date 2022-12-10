@@ -32,6 +32,22 @@ ring_buffer_t *ring_buffer_create(size_t capacity)
     return rb;
 }
 
+ring_buffer_t *ring_buffer_create_at(void *data, size_t capacity)
+{
+    if (capacity == 0)
+        return NULL; // forget about it
+
+    ring_buffer_t *rb = liballoc_malloc(sizeof(ring_buffer_t));
+    if (!rb)
+        return NULL;
+    rb->data = data;
+    rb->capacity = capacity;
+    rb->size = 0;
+    rb->head = 0;
+    rb->next_pos = 0;
+    return rb;
+}
+
 void ring_buffer_destroy(ring_buffer_t *buffer)
 {
     liballoc_free(buffer->data);
