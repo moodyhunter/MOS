@@ -108,6 +108,12 @@
             "name": "heap_control",
             "return": "uintptr_t",
             "arguments": [ { "type": "heap_control_op", "arg": "op" }, { "type": "uintptr_t", "arg": "arg" } ]
+        },
+        {
+            "number": 17,
+            "name": "wait_for_thread",
+            "return": "bool",
+            "arguments": [ { "type": "tid_t", "arg": "tid" } ]
         }
     ]
 }

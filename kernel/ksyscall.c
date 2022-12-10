@@ -10,6 +10,7 @@
 #include "mos/tasks/process.h"
 #include "mos/tasks/schedule.h"
 #include "mos/tasks/task_type.h"
+#include "mos/tasks/wait.h"
 #include "mos/types.h"
 
 void define_syscall(panic)(void)
@@ -209,4 +210,35 @@ uintptr_t define_syscall(heap_control)(heap_control_op op, uintptr_t arg)
         }
         default: mos_warn("heap_control: unknown op %d", op); return 0;
     }
+}
+
+bool define_syscall(wait_for_thread)(tid_t tid)
+{
+    MOS_ASSERT(current_thread);
+    thread_t *target = thread_get(tid);
+    if (target == NULL)
+        return false;
+
+    if (target->owner != current_process)
+    {
+        pr_warn("wait_for_thread(%d) from process %d (%s) but thread belongs to process %d (%s)", tid, current_process->pid, current_process->name, target->owner->pid,
+                target->owner->name);
+        return false;
+    }
+
+    if (target->status == THREAD_STATUS_DEAD)
+    {
+        return true; // thread is already dead, no need to wait
+    }
+
+    current_thread->status = THREAD_STATUS_BLOCKED;
+    wait_condition_t *wc = wc_wait_for_thread(target);
+    bool added = thread_add_wait_condition(current_thread, wc);
+    if (!added)
+    {
+        return false;
+    }
+
+    jump_to_scheduler();
+    return true;
 }
