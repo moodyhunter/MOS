@@ -15,6 +15,7 @@ wait_condition_t *wc_wait_for_thread(thread_t *target)
     wait_condition_t *condition = kmalloc(sizeof(wait_condition_t));
     condition->arg = target;
     condition->verify = wait_for_thread_is_ready;
+    condition->cleanup = NULL;
     return condition;
 }
 
