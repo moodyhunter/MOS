@@ -26,3 +26,8 @@ should_inline void kfree(const void *ptr)
 {
     liballoc_free(ptr);
 }
+
+should_inline void *kzalloc(size_t size)
+{
+    return kcalloc(1, size);
+}

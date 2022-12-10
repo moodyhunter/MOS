@@ -60,7 +60,7 @@ io_op_t fs_io_ops = {
 file_t *vfs_open(const char *path, file_open_flags flags)
 {
     fsnode_t *node = path_find_fsnode(path);
-    file_t *file = kcalloc(1, sizeof(file_t));
+    file_t *file = kzalloc(sizeof(file_t));
     bool opened = vfs_path_open(node, flags, file);
     if (!opened)
     {

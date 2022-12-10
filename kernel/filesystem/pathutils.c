@@ -56,7 +56,7 @@ fsnode_t *impl_path_get_subpath(fsnode_t *cwd, const char *path, size_t path_len
         fsnode_t *child;
         if (cnode == NULL)
         {
-            child = kcalloc(1, sizeof(fsnode_t));
+            child = kzalloc(sizeof(fsnode_t));
             child->name = duplicate_string(path, path_len);
             tree_add_child(tree_node(cwd), tree_node(child));
         }
