@@ -8,7 +8,7 @@
 #include "mos/mm/memops.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
-#include "mos/tasks/task_type.h"
+#include "mos/tasks/task_types.h"
 
 #define THREAD_HASHTABLE_SIZE 512
 

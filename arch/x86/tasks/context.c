@@ -8,7 +8,7 @@
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/schedule.h"
-#include "mos/tasks/task_type.h"
+#include "mos/tasks/task_types.h"
 #include "mos/x86/mm/paging.h"
 #include "mos/x86/mm/paging_impl.h"
 #include "mos/x86/x86_interrupt.h"

@@ -12,7 +12,7 @@
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/schedule.h"
-#include "mos/tasks/task_type.h"
+#include "mos/tasks/task_types.h"
 #include "mos/tasks/thread.h"
 
 extern void mos_test_engine_run_tests(); // defined in tests/test_engine.c

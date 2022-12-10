@@ -9,7 +9,7 @@
 #include "mos/syscall/decl.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/schedule.h"
-#include "mos/tasks/task_type.h"
+#include "mos/tasks/task_types.h"
 #include "mos/tasks/wait.h"
 #include "mos/types.h"
 

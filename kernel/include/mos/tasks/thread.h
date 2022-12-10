@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include "mos/tasks/task_type.h"
+#include "mos/tasks/task_types.h"
 
 #define THREAD_MAGIC_THRD MOS_FOURCC('T', 'H', 'R', 'D')
 
 typedef struct _hashmap hashmap_t;
-typedef void (*thread_entry_t)(void *arg); // also defined in task_type.h
+typedef void (*thread_entry_t)(void *arg); // also defined in task_types.h
 
 extern hashmap_t *thread_table;
 

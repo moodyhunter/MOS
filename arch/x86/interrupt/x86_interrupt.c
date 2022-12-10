@@ -8,7 +8,7 @@
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/syscall/dispatcher.h"
-#include "mos/tasks/task_type.h"
+#include "mos/tasks/task_types.h"
 #include "mos/x86/devices/port.h"
 #include "mos/x86/interrupt/apic.h"
 #include "mos/x86/interrupt/pic.h"

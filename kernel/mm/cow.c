@@ -7,7 +7,7 @@
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
-#include "mos/tasks/task_type.h"
+#include "mos/tasks/task_types.h"
 
 // TODO: A global list of CoW blocks, so that we don't free them if they're still in use.
 
