@@ -114,6 +114,34 @@
             "name": "wait_for_thread",
             "return": "bool",
             "arguments": [ { "type": "tid_t", "arg": "tid" } ]
+        },
+        {
+            "number": 18,
+            "name": "mutex_acquire",
+            "return": "bool",
+            "arguments": [ { "type": "bool *", "arg": "mutex" } ],
+            "comments": [
+                "Try to acquire a mutex and block the calling thread.",
+                "\\param mutex The mutex to lock.",
+                "\\return true if the mutex was locked, false if it was already locked.",
+                "",
+                "This syscall blocks the calling thread until the target mutex has been released",
+                "by another thread. Once the mutex is acquired, it returns true and the calling",
+                "thread will be scheduled to run again."
+            ]
+        },
+        {
+            "number": 19,
+            "name": "mutex_release",
+            "return": "bool",
+            "arguments": [ { "type": "bool *", "arg": "mutex" } ],
+            "comments": [
+                "Release a mutex.",
+                "\\param mutex The mutex to release.",
+                "\\return true if the mutex was released, false if it was already released.",
+                "",
+                "This syscall releases a mutex that was previously acquired by the some thread."
+            ]
         }
     ]
 }

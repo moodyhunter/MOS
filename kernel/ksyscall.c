@@ -242,3 +242,46 @@ bool define_syscall(wait_for_thread)(tid_t tid)
     jump_to_scheduler();
     return true;
 }
+
+bool define_syscall(mutex_acquire)(bool *mutex)
+{
+    MOS_ASSERT(current_thread);
+
+    if (*mutex == MUTEX_UNLOCKED) // TODO: this is unsafe in SMP
+    {
+        pr_info2("mutex_acquire: mutex is unlocked, acquired by tid %d", current_thread->tid);
+        *mutex = MUTEX_LOCKED;
+        return true;
+    }
+
+    pr_info2("mutex_acquire: mutex is locked, waiting for tid %d", current_thread->tid);
+
+    wait_condition_t *wc = wc_wait_for_mutex(mutex);
+    current_thread->status = THREAD_STATUS_BLOCKED;
+    bool added = thread_add_wait_condition(current_thread, wc);
+    if (!added)
+        return false;
+
+    jump_to_scheduler();
+    return true;
+}
+
+bool define_syscall(mutex_release)(bool *mutex)
+{
+    MOS_ASSERT(current_thread);
+
+    if (*mutex == MUTEX_LOCKED)
+    {
+        // TODO: this is unsafe in SMP
+        pr_info2("mutex_release: mutex is locked, released by tid %d", current_thread->tid);
+        *mutex = MUTEX_UNLOCKED;
+        return true;
+    }
+    else
+    {
+        pr_warn("mutex_release called but mutex is already released");
+        return false;
+    }
+
+    return false;
+}
