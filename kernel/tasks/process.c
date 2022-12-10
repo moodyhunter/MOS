@@ -173,7 +173,7 @@ void process_handle_exit(process_t *process, int exit_code)
         thread_t *thread = process->threads[i];
         if (thread->status == THREAD_STATUS_DEAD)
         {
-            mos_warn("thread %d is already dead", thread->tid);
+            pr_warn("thread %d is already dead", thread->tid);
             continue;
         }
         thread->status = THREAD_STATUS_DEAD; // cleanup will be done by the scheduler
