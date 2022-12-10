@@ -7,14 +7,14 @@
 
 typedef volatile size_t mos_refcount_t;
 
-should_inline void refcount_inc(mos_refcount_t *atomic)
+should_inline mos_refcount_t refcount_inc(mos_refcount_t *atomic)
 {
-    __atomic_fetch_add(atomic, 1, __ATOMIC_RELAXED);
+    return __atomic_add_fetch(atomic, 1, __ATOMIC_RELAXED);
 }
 
-should_inline void refcount_dec(mos_refcount_t *atomic)
+should_inline mos_refcount_t refcount_dec(mos_refcount_t *atomic)
 {
-    __atomic_fetch_sub(atomic, 1, __ATOMIC_RELAXED);
+    return __atomic_sub_fetch(atomic, 1, __ATOMIC_RELAXED);
 }
 
 should_inline void refcount_zero(mos_refcount_t *atomic)
@@ -22,7 +22,7 @@ should_inline void refcount_zero(mos_refcount_t *atomic)
     __atomic_store_n(atomic, 0, __ATOMIC_RELAXED);
 }
 
-should_inline size_t refcount_get(mos_refcount_t *atomic)
+should_inline mos_refcount_t refcount_get(mos_refcount_t *atomic)
 {
     return __atomic_load_n(atomic, __ATOMIC_RELAXED);
 }
