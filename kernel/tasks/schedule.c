@@ -8,6 +8,31 @@
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_type.h"
 #include "mos/tasks/thread.h"
+#include "mos/tasks/wait.h"
+
+static bool should_schedule_to_thread(thread_t *thread)
+{
+    bool state_ok = thread->status == THREAD_STATUS_READY || thread->status == THREAD_STATUS_CREATED;
+    if (!state_ok)
+        return false;
+
+    if (thread->waiting_condition)
+    {
+        wait_condition_t *condition = thread->waiting_condition;
+        MOS_ASSERT_X(condition->verify, "wait condition has no verify function");
+
+        if (!condition->verify(condition))
+            return false;
+
+        wc_condition_cleanup(condition);
+        thread->waiting_condition = NULL;
+    }
+
+    // A thread is
+    // - in READY or CREATED state, and
+    // - its wait condition is satisfied
+    return true;
+}
 
 void mos_update_current(thread_t *new_current)
 {
@@ -30,7 +55,7 @@ bool schedule_to_thread(const void *key, void *value)
     thread_t *thread = (thread_t *) value;
 
     MOS_ASSERT_X(thread->tid == *tid, "something is wrong with the thread table");
-    if (thread->status == THREAD_STATUS_READY || thread->status == THREAD_STATUS_CREATED)
+    if (should_schedule_to_thread(thread))
     {
         mos_debug("switching to thread %d", thread->tid);
         platform_switch_to_thread(&current_cpu->scheduler_stack, thread);

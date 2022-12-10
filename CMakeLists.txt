@@ -75,6 +75,7 @@ add_library(mos_kernel.elf STATIC
     kernel/tasks/process.c
     kernel/tasks/thread.c
     kernel/tasks/schedule.c
+    kernel/tasks/wait.c
 )
 
 generate_syscall_headers(mos_kernel.elf ${CMAKE_SOURCE_DIR}/kernel/ksyscalls.json)

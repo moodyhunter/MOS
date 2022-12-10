@@ -43,8 +43,16 @@ typedef struct
     mmap_flags map_flags;
 } proc_vmblock_t;
 
+typedef struct _wait_condition wait_condition_t;
 typedef struct _thread thread_t;
 typedef struct _process process_t;
+
+typedef struct _wait_condition
+{
+    void *arg;
+    bool (*verify)(wait_condition_t *condition); // return true if condition is met
+    void (*cleanup)(wait_condition_t *condition);
+} wait_condition_t;
 
 typedef struct _process
 {
@@ -76,4 +84,5 @@ typedef struct _thread
     downwards_stack_t kernel_stack;
     platform_context_t *context;
     thread_flags_t flags;
+    wait_condition_t *waiting_condition;
 } thread_t;

@@ -38,6 +38,7 @@ thread_t *thread_allocate(process_t *owner, thread_flags_t tflags)
     t->owner = owner;
     t->status = THREAD_STATUS_CREATED;
     t->flags = tflags;
+    t->waiting_condition = NULL;
 
     return t;
 }
@@ -92,6 +93,25 @@ thread_t *thread_new(process_t *owner, thread_flags_t tflags, thread_entry_t ent
 thread_t *thread_get(tid_t tid)
 {
     return hashmap_get(thread_table, &tid);
+}
+
+bool thread_add_wait_condition(thread_t *thread, wait_condition_t *condition)
+{
+    if (!thread_is_valid(thread))
+        return false;
+
+    if (thread->status != THREAD_STATUS_BLOCKED)
+        mos_panic("thread %d is not blocked, make it be before adding wait conditions", thread->tid);
+
+    // actually, a thread can only wait for one thing at a time, (isn't it?)
+    if (thread->waiting_condition == NULL)
+    {
+        thread->waiting_condition = condition;
+        return true;
+    }
+
+    mos_warn("thread %d is already waiting for something else", thread->tid);
+    return false;
 }
 
 void thread_handle_exit(thread_t *t)
