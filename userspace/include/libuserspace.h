@@ -16,4 +16,4 @@ void dprintf(int fd, const char *fmt, ...);
 void dvprintf(int fd, const char *fmt, va_list ap);
 void fatal_abort(const char *fmt, ...);
 
-void start_thread(const char *name, thread_entry_t entry, void *arg);
+tid_t start_thread(const char *name, thread_entry_t entry, void *arg);
