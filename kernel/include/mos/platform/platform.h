@@ -52,6 +52,7 @@ typedef enum
     VMTYPE_HEAP,         // userspace heap
     VMTYPE_STACK,        // userspace stack
     VMTYPE_KSTACK,       // kernel stack
+    VMTYPE_SHM,          // shared memory
     VMTYPE_FILE,         // file mapping (mmap)
 } vm_type;
 

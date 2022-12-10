@@ -263,6 +263,7 @@ void process_dump_mmaps(process_t *process)
             case VMTYPE_HEAP: type = "heap"; break;
             case VMTYPE_STACK: type = "stack"; break;
             case VMTYPE_KSTACK: type = "stack (kernel)"; break;
+            case VMTYPE_SHM: type = "shared memory"; break;
             case VMTYPE_FILE: type = "file"; break;
             default: MOS_UNREACHABLE();
         };

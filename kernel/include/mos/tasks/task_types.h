@@ -27,9 +27,10 @@ typedef enum
 
 typedef enum
 {
-    MMAP_DEFAULT = 0 << 0, // default flags
-    MMAP_COW = 1 << 0,     // this block is currently copy-on-write-mapped
-    MMAP_PRIVATE = 1 << 1, // this block is private, and should not be shared when forked
+    MMAP_DEFAULT = 0 << 0,   // default flags
+    MMAP_COW = 1 << 0,       // this block is currently copy-on-write-mapped
+    MMAP_PRIVATE = 1 << 1,   // this block is private, and should not be shared when forked
+    MMAP_SHAREDMEM = 1 << 2, // this block is shared, and should be shared when forked (aka, two processes can write to the same block)
 } mmap_flags;
 
 typedef struct
