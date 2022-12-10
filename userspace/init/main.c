@@ -7,7 +7,7 @@
 
 static char buf[4 KB] = { 0 };
 
-void thread_work(void *arg)
+static void thread_work(void *arg)
 {
     int *value = (int *) arg;
     pid_t process = syscall_get_pid();
@@ -38,11 +38,12 @@ int main(void)
         syscall_io_write(stdout, buf, read, 0);
     }
 
+    syscall_spawn("/programs/locks", 0, NULL);
+
     pid_t my_pid = syscall_get_pid();
     printf("My PID: %d\n", my_pid);
 
     value = 3456787;
-
     pid_t ping_pid = syscall_spawn("/programs/kmsg-ping", 0, NULL);
     pid_t pong_pid = syscall_spawn("/programs/kmsg-pong", 0, NULL);
     printf("ping pid: %d\n", ping_pid);

@@ -80,9 +80,11 @@ endmacro()
 add_userspace_program(init SOURCES init/main.c)
 add_userspace_program(kmsg-ping SOURCES ping-pong/ping.c)
 add_userspace_program(kmsg-pong SOURCES ping-pong/pong.c)
+add_userspace_program(locks SOURCES locks/main.c)
 
 add_initrd_item(TARGET /programs init)
 add_initrd_item(TARGET /programs kmsg-ping)
 add_initrd_item(TARGET /programs kmsg-pong)
+add_initrd_item(TARGET /programs locks)
 
 add_initrd_item(FILE /assets assets/msg.txt)
