@@ -50,7 +50,11 @@ should_inline long platform_syscall5(long number, long arg1, long arg2, long arg
 should_inline long platform_syscall6(long number, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6)
 {
     long result = 0;
-    __asm__ volatile("push %%ebp\n"
+    __asm__ volatile("push %%ebx\n" // callee-saved
+                     "push %%edi\n" // callee-saved
+                     "push %%esi\n" // callee-saved
+                     "push %%ebp\n" // callee-saved
+
                      "mov %1, %%eax\n"
                      "mov %2, %%ebx\n"
                      "mov %3, %%ecx\n"
@@ -58,8 +62,13 @@ should_inline long platform_syscall6(long number, long arg1, long arg2, long arg
                      "mov %5, %%esi\n"
                      "mov %6, %%edi\n"
                      "mov %7, %%ebp\n"
+
                      "int $0x88\n"
+
                      "pop %%ebp\n"
+                     "pop %%esi\n"
+                     "pop %%edi\n"
+                     "pop %%ebx\n"
                      : "=a"(result)
                      : "m"(number), "m"(arg1), "m"(arg2), "m"(arg3), "m"(arg4), "m"(arg5), "m"(arg6));
     return result;
