@@ -295,7 +295,7 @@ fd_t define_syscall(ipc_open)(const char *name, ipc_open_flags flags, size_t buf
     process_t *current = current_process;
     // IPC pages are not intended to be shared with child processes, so MMAP_PRIVATE
     vmblock_t shm = shm_allocate(current, buffer_size / MOS_PAGE_SIZE, MMAP_PRIVATE);
-    io_t *io = ipc_create_server(current, shm, name, flags);
+    io_t *io = ipc_open(current, shm, name, flags);
     if (io == NULL)
         return -1;
     return process_attach_ref_fd(current, io);

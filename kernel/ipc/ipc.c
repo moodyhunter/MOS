@@ -116,3 +116,16 @@ io_t *ipc_create_server(process_t *owner, vmblock_t vmblock, const char *name)
     io_init(&ipcio->io, IO_READABLE | IO_WRITABLE, 0, &ipc_ops);
     return &ipcio->io;
 }
+
+io_t *ipc_create_client(vmblock_t vmblock, const char *name)
+{
+    // pr_info2("opening channel %s", name);
+    // ipc_server_t *channel = hashmap_get(ipc_channels, name);
+    // ipc_io_t *ipcio = kzalloc(sizeof(ipc_io_t));
+    // ipcio->server = channel;
+    // io_init(&ipcio->io, IO_READABLE | IO_WRITABLE, 0, &ipc_ops);
+    // return &ipcio->io;
+    MOS_UNUSED(vmblock);
+    MOS_UNUSED(name);
+    return NULL;
+}
