@@ -22,9 +22,7 @@ isr_stub_%+%1:
     cli
     nop                             ; ! If the interrupt is an exception, the CPU will push an error code onto the stack, as a doubleword.
     push    %1                      ; interrupt number
-    call    do_handle_interrupt
-    add     esp, 2 * REG_SIZE
-    iret
+    jmp     do_handle_interrupt
 %endmacro
 
 ; handler for a ISR
@@ -33,9 +31,7 @@ isr_stub_%+%1:
     cli
     push    0                       ; error code (not used)
     push    %1                      ; interrupt number
-    call    do_handle_interrupt
-    add     esp, 2 * REG_SIZE
-    iret
+    jmp     do_handle_interrupt
 %endmacro
 
 ; handler for an IRQ
@@ -44,9 +40,7 @@ irq_stub_%1:
     cli
     push    0                       ; error code (not used)
     push    %1 + IRQ_BASE           ; IRQ number
-    call    do_handle_interrupt
-    add     esp, 2 * REG_SIZE
-    iret
+    jmp     do_handle_interrupt
 %endmacro
 
 ISR_handler     0 ; Divide-by-zero Error
@@ -123,8 +117,6 @@ irq_stub_table:
     %endrep
 
 do_handle_interrupt:
-    push    ebp
-    mov     ebp, esp
     pusha
     push    gs                      ; save ds, es, fs, gs
     push    fs
@@ -149,6 +141,6 @@ do_handle_interrupt:
     pop     fs
     pop     gs
     popa
-    pop     ebp
-    ret
+    add     esp, 2 * REG_SIZE
+    iret
 .end:

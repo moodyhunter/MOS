@@ -96,13 +96,13 @@ static void x86_dump_registers(x86_stack_frame *frame)
             "  EFLAGS:       0x%08x\n"
             "  Instruction:  0x%x:%08x\n"
             "  Stack:        0x%x:%08x",
-            frame->eax, frame->ebx, frame->ecx, frame->edx, //
-            frame->esi, frame->edi, frame->ebp, frame->esp, //
-            frame->iret_params.eip,                         //
-            frame->ds, frame->es, frame->fs, frame->gs,     //
-            frame->iret_params.eflags,                      //
-            frame->iret_params.cs, frame->iret_params.eip,  //
-            frame->iret_params.ss, frame->iret_params.esp   //
+            frame->eax, frame->ebx, frame->ecx, frame->edx,             //
+            frame->esi, frame->edi, frame->ebp, frame->iret_params.esp, //
+            frame->iret_params.eip,                                     //
+            frame->ds, frame->es, frame->fs, frame->gs,                 //
+            frame->iret_params.eflags,                                  //
+            frame->iret_params.cs, frame->iret_params.eip,              //
+            frame->iret_params.ss, frame->iret_params.esp               //
     );
 }
 
@@ -150,8 +150,7 @@ void x86_handle_interrupt(u32 esp)
         x86_handle_irq(frame);
     else if (frame->interrupt_number == MOS_SYSCALL_INTR)
     {
-#pragma message "TODO: Implement syscall handling for other arguments"
-        frame->eax = (reg32_t) dispatch_syscall(frame->eax, frame->ebx, frame->ecx, frame->edx, frame->esi, frame->edi, 0, 0, 0);
+        frame->eax = (reg32_t) dispatch_syscall(frame->eax, frame->ebx, frame->ecx, frame->edx, frame->esi, frame->edi, frame->ebp); // "ebp?"
     }
     else
     {

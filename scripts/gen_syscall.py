@@ -16,7 +16,7 @@ GEN_TYPE_DISPATCHER = "gen-dispatcher"
 GEN_TYPE_NUMBER_HEADER = "gen-number"
 GEN_TYPE_USERMODE = "gen-usermode"
 
-MAX_SYSCALL_NARGS = 8
+MAX_SYSCALL_NARGS = 6
 
 outfile: io.TextIOBase = None
 

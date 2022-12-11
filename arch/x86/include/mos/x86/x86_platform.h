@@ -38,13 +38,12 @@ typedef struct
 typedef struct
 {
     reg32_t ds, es, fs, gs;
-    reg32_t edi, esi, _stub_ebp, esp, ebx, edx, ecx, eax;
-    reg32_t ebp, _ret; // stub ebp and return address
+    reg32_t edi, esi, ebp, _esp, ebx, edx, ecx, eax; // the _esp is unused, see iret_params.esp
     reg32_t interrupt_number, error_code;
     x86_iret_params_t iret_params;
 } __packed x86_stack_frame;
 
-static_assert(sizeof(x86_stack_frame) == 84, "x86_stack_frame has incorrect size");
+static_assert(sizeof(x86_stack_frame) == 76, "x86_stack_frame has incorrect size");
 
 typedef struct
 {
