@@ -236,7 +236,7 @@ bool define_syscall(wait_for_thread)(tid_t tid)
 
     current_thread->status = THREAD_STATUS_BLOCKED;
     wait_condition_t *wc = wc_wait_for_thread(target);
-    bool added = thread_add_wait_condition(current_thread, wc);
+    bool added = thread_set_wait_condition(current_thread, wc);
     if (!added)
     {
         return false;
@@ -261,7 +261,7 @@ bool define_syscall(mutex_acquire)(bool *mutex)
 
     wait_condition_t *wc = wc_wait_for_mutex(mutex);
     current_thread->status = THREAD_STATUS_BLOCKED;
-    bool added = thread_add_wait_condition(current_thread, wc);
+    bool added = thread_set_wait_condition(current_thread, wc);
     if (!added)
         return false;
 

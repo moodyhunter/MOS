@@ -95,7 +95,7 @@ thread_t *thread_get(tid_t tid)
     return hashmap_get(thread_table, &tid);
 }
 
-bool thread_add_wait_condition(thread_t *thread, wait_condition_t *condition)
+bool thread_set_wait_condition(thread_t *thread, wait_condition_t *condition)
 {
     if (!thread_is_valid(thread))
         return false;
