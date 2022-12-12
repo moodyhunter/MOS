@@ -149,8 +149,8 @@ void lapic_memory_setup()
     }
 
     // map both the current pagedir and x86_kpg_infra (because we are now using the former one)
-    mos_startup_map_bios(base_addr, 1 KB, VM_READ | VM_GLOBAL | VM_WRITE | VM_CACHE_DISABLED);
-    pg_do_map_page(x86_kpg_infra, base_addr, base_addr, VM_READ | VM_GLOBAL | VM_WRITE | VM_CACHE_DISABLED);
+    mos_startup_map_bios(base_addr, 1 KB, VM_RW | VM_GLOBAL | VM_CACHE_DISABLED);
+    pg_do_map_page(x86_kpg_infra, base_addr, base_addr, VM_RW | VM_GLOBAL | VM_CACHE_DISABLED);
 
     lapic_regs = (u32 *) base_addr;
 }

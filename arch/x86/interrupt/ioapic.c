@@ -93,8 +93,8 @@ ioapic_redirection_entry_t ioapic_read_redirection_entry(u32 irq)
 void ioapic_init()
 {
     ioapic = (u32 volatile *) x86_ioapic_address;
-    mos_startup_map_bios(x86_ioapic_address, MOS_PAGE_SIZE, VM_READ | VM_WRITE);
-    pg_do_map_page(x86_kpg_infra, x86_ioapic_address, x86_ioapic_address, VM_READ | VM_WRITE);
+    mos_startup_map_bios(x86_ioapic_address, MOS_PAGE_SIZE, VM_RW);
+    pg_do_map_page(x86_kpg_infra, x86_ioapic_address, x86_ioapic_address, VM_RW);
 
     if (x86_ioapic_address == 0)
     {

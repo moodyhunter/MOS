@@ -55,7 +55,7 @@ void platform_irq_handler_remove(u32 irq, irq_handler handler)
 
 paging_handle_t platform_mm_create_user_pgd(void)
 {
-    vmblock_t block = pg_page_alloc(x86_kpg_infra, ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE, PGALLOC_HINT_KHEAP, VM_READ | VM_WRITE);
+    vmblock_t block = pg_page_alloc(x86_kpg_infra, ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE, PGALLOC_HINT_KHEAP, VM_RW);
     x86_pg_infra_t *infra = (x86_pg_infra_t *) block.vaddr;
     memset(infra, 0, sizeof(x86_pg_infra_t));
     paging_handle_t handle;

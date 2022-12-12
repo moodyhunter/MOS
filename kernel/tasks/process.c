@@ -105,7 +105,7 @@ process_t *process_new(process_t *parent, uid_t euid, const char *name, terminal
 
     thread_new(proc, THREAD_FLAG_USERMODE, entry, arg);
 
-    vmblock_t heap = platform_mm_alloc_pages(proc->pagetable, 0, PGALLOC_HINT_UHEAP, VM_READ | VM_WRITE | VM_USER);
+    vmblock_t heap = platform_mm_alloc_pages(proc->pagetable, 0, PGALLOC_HINT_UHEAP, VM_USER_RW);
     process_attach_mmap(proc, heap, VMTYPE_HEAP, MMAP_DEFAULT);
 
     void *old_proc = hashmap_put(process_table, &proc->pid, proc);
@@ -229,12 +229,12 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
 
     if (heap->map_flags & MMAP_COW)
     {
-        vmblock_t zeroed = mm_alloc_zeroed_pages_at(process->pagetable, heap_top, npages, VM_READ | VM_WRITE | VM_USER);
+        vmblock_t zeroed = mm_alloc_zeroed_pages_at(process->pagetable, heap_top, npages, VM_USER_RW);
         MOS_ASSERT(zeroed.npages == npages);
     }
     else
     {
-        vmblock_t new_part = platform_mm_alloc_pages_at(process->pagetable, heap_top, npages, VM_READ | VM_WRITE | VM_USER);
+        vmblock_t new_part = platform_mm_alloc_pages_at(process->pagetable, heap_top, npages, VM_USER_RW);
         if (new_part.vaddr == 0 || new_part.npages != npages)
         {
             mos_warn("failed to grow heap of process %d", process->pid);

@@ -161,7 +161,7 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
 
     // ! we do not separate the startup code and data to simplify the setup.
     // ! this page directory will be removed as soon as the kernel is loaded, it shouldn't be a problem.
-    mos_startup_map_identity(startup_start, startup_end - startup_start, VM_READ | VM_WRITE | VM_EXEC);
+    mos_startup_map_identity(startup_start, startup_end - startup_start, VM_RW | VM_EXEC);
 
     debug_print_step();
     const size_t kernel_code_pgsize = ALIGN_UP_TO_PAGE(kernel_code_vend - kernel_code_vstart) / MOS_PAGE_SIZE;

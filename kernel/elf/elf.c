@@ -49,7 +49,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
     }
 
     size_t npage_required = ALIGN_UP_TO_PAGE(f->io.size) / MOS_PAGE_SIZE;
-    const vmblock_t buf_block = platform_mm_alloc_pages(current_cpu->pagetable, npage_required, PGALLOC_HINT_KHEAP, VM_READ | VM_WRITE);
+    const vmblock_t buf_block = platform_mm_alloc_pages(current_cpu->pagetable, npage_required, PGALLOC_HINT_KHEAP, VM_RW);
     char *const buf = (char *) buf_block.vaddr;
 
     size_t size = io_read(&f->io, buf, f->io.size);

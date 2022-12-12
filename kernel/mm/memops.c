@@ -15,7 +15,7 @@ static vmblock_t zero_block;
 void mos_kernel_mm_init()
 {
     // zero fill on demand (read-only, user-accessible)
-    zero_block = platform_mm_alloc_pages(current_cpu->pagetable, 1, PGALLOC_HINT_KHEAP, VM_READ | VM_WRITE);
+    zero_block = platform_mm_alloc_pages(current_cpu->pagetable, 1, PGALLOC_HINT_KHEAP, VM_RW);
     memzero((void *) zero_block.vaddr, MOS_PAGE_SIZE);
 
     liballoc_init();
@@ -34,7 +34,7 @@ void *liballoc_alloc_page(size_t npages)
         return NULL;
     }
 
-    vmblock_t block = platform_mm_alloc_pages(current_cpu->pagetable, npages, PGALLOC_HINT_KHEAP, VM_READ | VM_WRITE);
+    vmblock_t block = platform_mm_alloc_pages(current_cpu->pagetable, npages, PGALLOC_HINT_KHEAP, VM_RW);
     MOS_ASSERT_X(block.vaddr >= MOS_ADDR_KERNEL_HEAP, "only use this function to free kernel heap pages");
 
     if (unlikely(block.npages < npages))

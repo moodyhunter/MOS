@@ -34,6 +34,10 @@ typedef enum
     VM_CACHE_DISABLED = 1 << 6,
     VM_GLOBAL = 1 << 7,
     VM_EXEC = 1 << 8,
+
+    // composite flags (for convenience)
+    VM_RW = VM_READ | VM_WRITE,
+    VM_USER_RW = VM_USER | VM_RW,
 } vm_flags;
 
 typedef enum
