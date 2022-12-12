@@ -18,13 +18,10 @@ static bool should_schedule_to_thread(thread_t *thread)
 
     if (thread->waiting_condition)
     {
-        wait_condition_t *condition = thread->waiting_condition;
-        MOS_ASSERT_X(condition->verify, "wait condition has no verify function");
-
-        if (!condition->verify(condition))
+        if (!wc_condition_verify(thread->waiting_condition))
             return false;
 
-        wc_condition_cleanup(condition);
+        wc_condition_cleanup(thread->waiting_condition);
         thread->waiting_condition = NULL;
     }
 
