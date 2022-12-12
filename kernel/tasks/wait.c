@@ -4,13 +4,13 @@
 
 #include "mos/mm/kmalloc.h"
 
-static bool wait_for_thread_is_ready(wait_condition_t *condition)
+static bool thread_is_ready(wait_condition_t *condition)
 {
     thread_t *thread = condition->arg;
     return thread->status == THREAD_STATUS_DEAD;
 }
 
-static bool wait_for_mutex_is_ready(wait_condition_t *condition)
+static bool mutex_is_ready(wait_condition_t *condition)
 {
     // return true if the mutex is free (aka false)
     bool *mutex = condition->arg;
@@ -19,19 +19,20 @@ static bool wait_for_mutex_is_ready(wait_condition_t *condition)
 
 wait_condition_t *wc_wait_for_thread(thread_t *target)
 {
-    wait_condition_t *condition = kmalloc(sizeof(wait_condition_t));
-    condition->arg = target;
-    condition->verify = wait_for_thread_is_ready;
-    condition->cleanup = NULL;
-    return condition;
+    return wc_wait_for(target, thread_is_ready, NULL);
 }
 
 wait_condition_t *wc_wait_for_mutex(bool *mutex)
 {
+    return wc_wait_for(mutex, mutex_is_ready, NULL);
+}
+
+wait_condition_t *wc_wait_for(void *arg, bool (*verify)(wait_condition_t *condition), void (*cleanup)(wait_condition_t *condition))
+{
     wait_condition_t *condition = kmalloc(sizeof(wait_condition_t));
-    condition->arg = mutex;
-    condition->verify = wait_for_mutex_is_ready;
-    condition->cleanup = NULL;
+    condition->arg = arg;
+    condition->verify = verify;
+    condition->cleanup = cleanup;
     return condition;
 }
 

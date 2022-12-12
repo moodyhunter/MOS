@@ -13,4 +13,6 @@ enum
 wait_condition_t *wc_wait_for_thread(thread_t *thread);
 wait_condition_t *wc_wait_for_mutex(bool *mutex);
 
+wait_condition_t *wc_wait_for(void *arg, bool (*verify)(wait_condition_t *condition), void (*cleanup)(wait_condition_t *condition));
+
 void wc_condition_cleanup(wait_condition_t *condition);
