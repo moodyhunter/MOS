@@ -15,7 +15,7 @@ typedef enum
     THREAD_STATUS_READY,   // thread can be scheduled
     THREAD_STATUS_CREATED, // created or forked, but not ever started
     THREAD_STATUS_RUNNING, // thread is currently running
-    THREAD_STATUS_BLOCKED, // ?
+    THREAD_STATUS_BLOCKED, // thread is blocked by a wait condition
     THREAD_STATUS_DEAD,    // thread is dead, and will be cleaned up soon by the scheduler
 } thread_status_t;
 
