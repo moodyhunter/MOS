@@ -254,7 +254,6 @@ bool define_syscall(wait_for_thread)(tid_t tid)
         return true; // thread is already dead, no need to wait
     }
 
-    current_thread->status = THREAD_STATUS_BLOCKED;
     wait_condition_t *wc = wc_wait_for_thread(target);
     reschedule_for_wait_condition(wc);
     return true;
