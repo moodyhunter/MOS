@@ -5,10 +5,9 @@
 #include "mos/mos_global.h"
 #include "mos/printk.h"
 
-void io_init(io_t *io, io_flags_t flags, size_t size, const io_op_t *ops)
+void io_init(io_t *io, io_flags_t flags, const io_op_t *ops)
 {
     io->flags = flags;
-    io->size = size;
     io->ops = ops;
     io->closed = false;
     refcount_zero(&io->refcount);

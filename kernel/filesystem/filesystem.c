@@ -134,7 +134,7 @@ _continue:;
     }
 
     tree_trace_to_root(tree_node(path), path_treeop_increment_refcount);
-    io_init(&file->io, (flags & FILE_OPEN_READ) | (flags & FILE_OPEN_WRITE), stat.size, &fs_io_ops);
+    io_init(&file->io, (flags & FILE_OPEN_READ) | (flags & FILE_OPEN_WRITE), &fs_io_ops);
     return true;
 }
 

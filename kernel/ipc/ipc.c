@@ -198,7 +198,7 @@ io_t *ipc_create(const char *name, size_t max_pending_connections)
     server->name = duplicate_string(name, strlen(name));
     server->max_pending = max_pending_connections;
     server->pending = kcalloc(max_pending_connections, sizeof(ipc_connection_t));
-    io_init(&server->io, IO_TYPE_NONE, 0, &ipc_server_ops);
+    io_init(&server->io, IO_TYPE_NONE, &ipc_server_ops);
     hashmap_put(ipc_servers, server->name, server);
 
     return &server->io;
@@ -243,7 +243,7 @@ io_t *ipc_accept(io_t *server)
 
     // map the shared memory
     vmblock_t shared_block = shm_map_shared_block(conn->shm_block, current_process);
-    io_init(&conn->server_io, IO_READABLE | IO_WRITABLE, 0, &ipc_connection_server_ops);
+    io_init(&conn->server_io, IO_READABLE | IO_WRITABLE, &ipc_connection_server_ops);
     conn->server_buffer = ring_buffer_create_at((void *) shared_block.vaddr, shared_block.npages * MOS_PAGE_SIZE);
     return &conn->server_io;
 }
@@ -307,7 +307,7 @@ io_t *ipc_connect(process_t *owner, const char *name, ipc_connect_flags flags, s
         return NULL;
     }
     pr_info2("resuming after connection was accepted");
-    io_init(&conn->client_io, IO_READABLE | IO_WRITABLE, 0, &ipc_connection_client_ops);
+    io_init(&conn->client_io, IO_READABLE | IO_WRITABLE, &ipc_connection_client_ops);
     conn->client_buffer = ring_buffer_create_at((void *) conn->shm_block.block.vaddr, conn->shm_block.block.npages * MOS_PAGE_SIZE);
     return &conn->client_io;
 }

@@ -27,11 +27,10 @@ typedef struct _io_t
     bool closed;
     mos_refcount_t refcount;
     io_flags_t flags;
-    size_t size;
     const io_op_t *ops;
 } io_t;
 
-void io_init(io_t *io, io_flags_t flags, size_t size, const io_op_t *ops);
+void io_init(io_t *io, io_flags_t flags, const io_op_t *ops);
 
 io_t *io_ref(io_t *io);
 void io_unref(io_t *io);

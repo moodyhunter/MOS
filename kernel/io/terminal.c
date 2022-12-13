@@ -61,7 +61,7 @@ terminal_t *terminal_create_console(console_t *console)
     terminal_t *terminal = kzalloc(sizeof(terminal_t));
     terminal->type = TERM_TYPE_CONSOLE;
     terminal->console = console;
-    io_init(&terminal->io, IO_READABLE | IO_WRITABLE, -1, &terminal_io_op);
+    io_init(&terminal->io, IO_READABLE | IO_WRITABLE, &terminal_io_op);
     return terminal;
 }
 
@@ -71,6 +71,6 @@ terminal_t *terminal_create_pipe(io_t *read, io_t *write)
     terminal->type = TERM_TYPE_PIPE;
     terminal->pipe.read = io_ref(read);
     terminal->pipe.write = io_ref(write);
-    io_init(&terminal->io, IO_READABLE | IO_WRITABLE, -1, &terminal_io_op);
+    io_init(&terminal->io, IO_READABLE | IO_WRITABLE, &terminal_io_op);
     return terminal;
 }

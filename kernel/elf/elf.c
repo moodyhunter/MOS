@@ -41,6 +41,13 @@ elf_verify_result elf_verify_header(elf_header_t *header)
 
 process_t *elf_create_process(const char *path, process_t *parent, terminal_t *term, uid_t effective_uid)
 {
+    file_stat_t stat;
+    if (!vfs_stat(path, &stat))
+    {
+        mos_warn("failed to stat '%s'", path);
+        return NULL;
+    }
+
     file_t *f = vfs_open(path, FILE_OPEN_READ);
     if (!f)
     {
@@ -48,12 +55,12 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
         goto bail_out_1;
     }
 
-    size_t npage_required = ALIGN_UP_TO_PAGE(f->io.size) / MOS_PAGE_SIZE;
+    size_t npage_required = ALIGN_UP_TO_PAGE(stat.size) / MOS_PAGE_SIZE;
     const vmblock_t buf_block = platform_mm_alloc_pages(current_cpu->pagetable, npage_required, PGALLOC_HINT_KHEAP, VM_RW);
     char *const buf = (char *) buf_block.vaddr;
 
-    size_t size = io_read(&f->io, buf, f->io.size);
-    MOS_ASSERT_X(size == f->io.size, "failed to read entire file '%s'", path);
+    size_t size = io_read(&f->io, buf, stat.size);
+    MOS_ASSERT_X(size == stat.size, "failed to read entire file '%s'", path);
 
     elf_header_t *elf = (elf_header_t *) buf;
     elf_program_hdr_t **ph_list = kcalloc(sizeof(elf_program_hdr_t *), elf->ph.count);
