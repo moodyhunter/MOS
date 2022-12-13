@@ -12,23 +12,31 @@
 
 static bool should_schedule_to_thread(thread_t *thread)
 {
-    bool state_ok = thread->status == THREAD_STATUS_READY || thread->status == THREAD_STATUS_CREATED;
-    if (!state_ok)
-        return false;
-
-    if (thread->waiting_condition)
+    switch (thread->status)
     {
-        if (!wc_condition_verify(thread->waiting_condition))
+        case THREAD_STATUS_READY:
+        case THREAD_STATUS_CREATED:
+        {
+            return true;
+        }
+        case THREAD_STATUS_BLOCKED:
+        {
+            MOS_ASSERT(thread->waiting_condition);
+            if (!wc_condition_verify(thread->waiting_condition))
+                return false;
+            wc_condition_cleanup(thread->waiting_condition);
+            thread->waiting_condition = NULL;
+            return true;
+        }
+        case THREAD_STATUS_DEAD:
+        {
             return false;
-
-        wc_condition_cleanup(thread->waiting_condition);
-        thread->waiting_condition = NULL;
+        }
+        default:
+        {
+            mos_panic("Unknown thread status %d", thread->status);
+        }
     }
-
-    // A thread is
-    // - in READY or CREATED state, and
-    // - its wait condition is satisfied
-    return true;
 }
 
 void mos_update_current(thread_t *new_current)
@@ -37,7 +45,7 @@ void mos_update_current(thread_t *new_current)
     MOS_ASSERT(old_current && new_current);
 
     // TODO: Add more checks
-    if (old_current->status == THREAD_STATUS_RUNNING || current_thread->status != THREAD_STATUS_DEAD)
+    if (old_current->status == THREAD_STATUS_RUNNING)
         old_current->status = THREAD_STATUS_READY;
 
     current_thread = new_current;
