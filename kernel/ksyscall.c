@@ -16,12 +16,20 @@
 #include "mos/tasks/wait.h"
 #include "mos/types.h"
 
-void define_syscall(panic)(void)
+void define_syscall(poweroff)(bool reboot, u32 magic)
 {
+#define POWEROFF_MAGIC MOS_FOURCC('G', 'B', 'y', 'e')
     if (current_process->effective_uid == 0)
-        mos_panic("Kernel panic called by syscall from process %d (%s), thread %d", current_process->pid, current_process->name, current_thread->tid);
+    {
+        if (magic != POWEROFF_MAGIC)
+            mos_warn("poweroff syscall called with wrong magic number (0x%x)", magic);
+        if (!reboot)
+            platform_shutdown();
+        else
+            mos_warn("reboot is not implemented yet");
+    }
     else
-        mos_warn("only root can panic");
+        mos_warn("poweroff syscall called by non-root user");
 }
 
 fd_t define_syscall(file_open)(const char *path, file_open_flags flags)

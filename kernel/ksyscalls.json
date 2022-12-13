@@ -10,9 +10,9 @@
     "syscalls": [
         {
             "number": 0,
-            "name": "panic",
+            "name": "poweroff",
             "return": "void",
-            "arguments": [ ]
+            "arguments": [ { "type": "bool", "arg": "reboot" }, { "type": "u32", "arg": "magic" } ]
         },
         {
             "number": 1,
