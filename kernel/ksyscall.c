@@ -46,19 +46,31 @@ bool define_syscall(file_stat)(const char *path, file_stat_t *stat)
 size_t define_syscall(io_read)(fd_t fd, void *buf, size_t count, size_t offset)
 {
     if (fd < 0 || buf == NULL)
-        return 0;
+        return -1;
     if (offset)
+    {
         mos_warn("offset is not supported yet");
-    return io_read(current_process->files[fd], buf, count);
+        return -1;
+    }
+    io_t *io = process_get_fd(current_process, fd);
+    if (!io)
+        return -1;
+    return io_read(io, buf, count);
 }
 
 size_t define_syscall(io_write)(fd_t fd, const void *buf, size_t count, size_t offset)
 {
     if (fd < 0 || buf == NULL)
-        return 0;
+        return -1;
     if (offset)
+    {
         mos_warn("offset is not supported yet");
-    return io_write(current_process->files[fd], buf, count);
+        return -1;
+    }
+    io_t *io = process_get_fd(current_process, fd);
+    if (!io)
+        return -1;
+    return io_write(io, buf, count);
 }
 
 bool define_syscall(io_close)(fd_t fd)

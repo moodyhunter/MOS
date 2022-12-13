@@ -135,6 +135,14 @@ fd_t process_attach_ref_fd(process_t *process, io_t *file)
     return fd;
 }
 
+io_t *process_get_fd(process_t *process, fd_t fd)
+{
+    MOS_ASSERT(process_is_valid(process));
+    if (fd < 0 || fd >= process->files_count)
+        return NULL;
+    return process->files[fd];
+}
+
 bool process_detach_fd(process_t *process, fd_t fd)
 {
     MOS_ASSERT(process_is_valid(process));

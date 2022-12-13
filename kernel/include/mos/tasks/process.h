@@ -23,6 +23,7 @@ process_t *process_new(process_t *parent, uid_t effective_uid, const char *name,
 process_t *process_get(pid_t pid);
 
 fd_t process_attach_ref_fd(process_t *process, io_t *file);
+io_t *process_get_fd(process_t *process, fd_t fd);
 bool process_detach_fd(process_t *process, fd_t fd);
 
 void process_attach_thread(process_t *process, thread_t *thread);
