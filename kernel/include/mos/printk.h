@@ -13,10 +13,11 @@
 
 #define PRINTK_BUFFER_SIZE 1024
 
-#define MOS_UNIMPLEMENTED(content) mos_panic("UNIMPLEMENTED: %s", content)
-#define MOS_UNREACHABLE()          mos_panic("UNREACHABLE line %d reached in file: %s", __LINE__, __FILE__)
-#define MOS_ASSERT_ONCE(...)       MOS_ASSERT_X(once(), __VA_ARGS__)
-#define MOS_ASSERT(cond)           MOS_ASSERT_X(cond, "")
+#define MOS_UNIMPLEMENTED(content)  mos_panic("\nUNIMPLEMENTED: %s", content)
+#define MOS_UNREACHABLE()           mos_panic("\nUNREACHABLE line %d reached in file: %s", __LINE__, __FILE__)
+#define MOS_UNREACHABLE_X(msg, ...) mos_panic("\nUNREACHABLE line %d reached in file: %s\n" msg, __LINE__, __FILE__, ##__VA_ARGS__)
+#define MOS_ASSERT_ONCE(...)        MOS_ASSERT_X(once(), __VA_ARGS__)
+#define MOS_ASSERT(cond)            MOS_ASSERT_X(cond, "")
 #define MOS_ASSERT_X(cond, msg, ...)                                                                                                                                     \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \

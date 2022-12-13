@@ -39,21 +39,7 @@ static bool should_schedule_to_thread(thread_t *thread)
     }
 }
 
-void mos_update_current(thread_t *new_current)
-{
-    thread_t *old_current = current_thread;
-    MOS_ASSERT(old_current && new_current);
-
-    // TODO: Add more checks
-    if (old_current->status == THREAD_STATUS_RUNNING)
-        old_current->status = THREAD_STATUS_READY;
-
-    current_thread = new_current;
-    new_current->status = THREAD_STATUS_RUNNING;
-    current_cpu->pagetable = new_current->owner->pagetable;
-}
-
-bool schedule_to_thread(const void *key, void *value)
+static bool schedule_to_thread(const void *key, void *value)
 {
     tid_t *tid = (tid_t *) key;
     thread_t *thread = (thread_t *) value;
@@ -67,13 +53,38 @@ bool schedule_to_thread(const void *key, void *value)
     return true;
 }
 
+void mos_update_current(thread_t *current)
+{
+    cpu_t *cpu = current_cpu;
+    thread_t *previous = cpu->thread;
+    MOS_ASSERT(previous && current);
+
+    // TODO: Add more checks
+    if (previous->status == THREAD_STATUS_RUNNING)
+        previous->status = THREAD_STATUS_READY;
+
+    current->status = THREAD_STATUS_RUNNING;
+    cpu->thread = current;
+    cpu->pagetable = current->owner->pagetable;
+}
+
 noreturn void scheduler(void)
 {
     while (1)
         hashmap_foreach(thread_table, schedule_to_thread);
 }
 
-void jump_to_scheduler(void)
+void reschedule_for_wait_condition(wait_condition_t *wait_condition)
+{
+    thread_t *t = current_cpu->thread;
+    MOS_ASSERT_X(t->status == THREAD_STATUS_BLOCKED, "thread %d is not blocked, make it be before adding wait conditions", t->tid);
+    MOS_ASSERT_X(t->waiting_condition == NULL, "thread %d is already waiting for something else", t->tid);
+    t->status = THREAD_STATUS_BLOCKED;
+    t->waiting_condition = wait_condition;
+    reschedule();
+}
+
+void reschedule(void)
 {
     // A thread can jump to the scheduler if it is:
     // - in RUNNING state       normal condition (context switch caused by timer interrupt or yield())

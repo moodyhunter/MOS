@@ -67,5 +67,5 @@ void x86_switch_to_scheduler(uintptr_t *old_stack_ptr, uintptr_t new_stack)
 
 void x86_timer_handler()
 {
-    jump_to_scheduler();
+    reschedule();
 }

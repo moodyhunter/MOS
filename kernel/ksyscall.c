@@ -89,13 +89,13 @@ noreturn void define_syscall(exit)(u32 exit_code)
 
     pr_info2("Kernel syscall exit called with code %d from pid %d", exit_code, pid);
     process_handle_exit(current_process, exit_code);
-    jump_to_scheduler();
+    reschedule();
     MOS_UNREACHABLE();
 }
 
 void define_syscall(yield_cpu)(void)
 {
-    jump_to_scheduler();
+    reschedule();
 }
 
 pid_t define_syscall(fork)(void)
@@ -162,7 +162,7 @@ noreturn void define_syscall(thread_exit)(void)
     MOS_ASSERT(current_thread);
     pr_info2("Kernel syscall thread_exit called from tid %d", current_thread->tid);
     thread_handle_exit(current_thread);
-    jump_to_scheduler();
+    reschedule();
     MOS_UNREACHABLE();
 }
 
@@ -248,13 +248,7 @@ bool define_syscall(wait_for_thread)(tid_t tid)
 
     current_thread->status = THREAD_STATUS_BLOCKED;
     wait_condition_t *wc = wc_wait_for_thread(target);
-    bool added = thread_set_wait_condition(current_thread, wc);
-    if (!added)
-    {
-        return false;
-    }
-
-    jump_to_scheduler();
+    reschedule_for_wait_condition(wc);
     return true;
 }
 
@@ -272,12 +266,7 @@ bool define_syscall(mutex_acquire)(bool *mutex)
     pr_info2("mutex_acquire: tid %d blocks on a locked lock at " PTR_FMT, current_thread->tid, (uintptr_t) mutex);
 
     wait_condition_t *wc = wc_wait_for_mutex(mutex);
-    current_thread->status = THREAD_STATUS_BLOCKED;
-    bool added = thread_set_wait_condition(current_thread, wc);
-    if (!added)
-        return false;
-
-    jump_to_scheduler();
+    reschedule_for_wait_condition(wc);
     pr_info2("mutex_acquire: tid %d unblocks and acquires a lock at " PTR_FMT, current_thread->tid, (uintptr_t) mutex);
     *mutex = MUTEX_LOCKED;
     return true;

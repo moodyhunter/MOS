@@ -95,25 +95,6 @@ thread_t *thread_get(tid_t tid)
     return hashmap_get(thread_table, &tid);
 }
 
-bool thread_set_wait_condition(thread_t *thread, wait_condition_t *condition)
-{
-    if (!thread_is_valid(thread))
-        return false;
-
-    if (thread->status != THREAD_STATUS_BLOCKED)
-        mos_panic("thread %d is not blocked, make it be before adding wait conditions", thread->tid);
-
-    // actually, a thread can only wait for one thing at a time, (isn't it?)
-    if (thread->waiting_condition == NULL)
-    {
-        thread->waiting_condition = condition;
-        return true;
-    }
-
-    mos_warn("thread %d is already waiting for something else", thread->tid);
-    return false;
-}
-
 void thread_handle_exit(thread_t *t)
 {
     if (!thread_is_valid(t))

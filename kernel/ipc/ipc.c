@@ -230,10 +230,7 @@ io_t *ipc_accept(io_t *server)
         // no pending connections, wait for one
         pr_info2("waiting for a pending connection");
         wait_condition_t *cond = wc_wait_for(ipc_server, wc_ipc_has_pending, NULL);
-        current_thread->status = THREAD_STATUS_BLOCKED;
-        bool set = thread_set_wait_condition(current_thread, cond);
-        MOS_ASSERT_X(set, "thread already has a wait condition");
-        jump_to_scheduler();
+        reschedule_for_wait_condition(cond);
         pr_info2("resuming after pending connection");
         conn = ipc_server_get_pending(ipc_server);
     }
@@ -264,10 +261,7 @@ io_t *ipc_connect(process_t *owner, const char *name, ipc_connect_flags flags, s
 
         const char *name_copy = duplicate_string(name, strlen(name));
         wait_condition_t *cond = wc_wait_for((void *) name_copy, wc_ipc_name_is_ready, wc_ipc_name_cleanup);
-        current_thread->status = THREAD_STATUS_BLOCKED;
-        bool set = thread_set_wait_condition(current_thread, cond);
-        MOS_ASSERT_X(set, "thread already has a wait condition");
-        jump_to_scheduler();
+        reschedule_for_wait_condition(cond);
         pr_info2("resuming after channel %s was created", name);
 
         server = hashmap_get(ipc_servers, name);
@@ -297,10 +291,7 @@ io_t *ipc_connect(process_t *owner, const char *name, ipc_connect_flags flags, s
 
     // wait for the server to accept the connection
     wait_condition_t *cond = wc_wait_for(conn, wc_ipc_connection_is_connected_or_closed, NULL);
-    current_thread->status = THREAD_STATUS_BLOCKED;
-    bool set = thread_set_wait_condition(current_thread, cond);
-    MOS_ASSERT_X(set, "thread already has a wait condition");
-    jump_to_scheduler();
+    reschedule_for_wait_condition(cond);
     if (conn->state == IPC_CONNECTION_STATE_CLOSED)
     {
         pr_warn("connection was closed before it was accepted");
