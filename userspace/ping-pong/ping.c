@@ -6,28 +6,28 @@
 
 int main(void)
 {
+    syscall_spawn("/programs/kmsg-pong", 0, NULL);
     printf("ping\n");
-    fd_t fd = syscall_ipc_open("kmsg-ping-pong", 0, MOS_PAGE_SIZE);
+    fd_t fd = syscall_ipc_create("kmsg-ping-pong", 32);
     if (fd < 0)
     {
-        printf("failed to open ipc channel");
-        return 1;
+        printf("failed to open ipc channel\n");
+        return -1;
     }
 
+    fd_t client_fd;
+    while ((client_fd = syscall_ipc_accept(fd)) < 0)
+        ;
+
     char *data = "ping";
-    size_t written = syscall_io_write(fd, data, strlen(data), 0);
+    size_t written = syscall_io_write(client_fd, data, strlen(data), 0);
     if (written != strlen(data))
     {
-        printf("failed to write to ipc channel");
-        return 1;
+        printf("server: failed to write to ipc channel\n");
     }
-    char buf[150];
-    size_t read = syscall_io_read(fd, buf, 150, 0);
-    if (read != strlen(data))
-    {
-        printf("failed to read from ipc channel");
-        return 1;
-    }
-    printf("pong: %s", buf);
+
+    while (1)
+        ;
+
     return 0;
 }

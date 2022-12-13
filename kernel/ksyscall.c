@@ -303,14 +303,30 @@ bool define_syscall(mutex_release)(bool *mutex)
     return false;
 }
 
-fd_t define_syscall(ipc_open)(const char *name, ipc_open_flags flags, size_t buffer_size)
+fd_t define_syscall(ipc_create)(const char *name, size_t max_pending_connections)
 {
     MOS_ASSERT(current_thread);
-    process_t *current = current_process;
-    // IPC pages are not intended to be shared with child processes, so MMAP_PRIVATE
-    vmblock_t shm = shm_allocate(current, buffer_size / MOS_PAGE_SIZE, MMAP_PRIVATE);
-    io_t *io = ipc_open(current, shm, name, flags);
+    io_t *io = ipc_create(name, max_pending_connections);
     if (io == NULL)
         return -1;
-    return process_attach_ref_fd(current, io);
+    return process_attach_ref_fd(current_process, io);
+}
+
+fd_t define_syscall(ipc_accept)(fd_t listen_fd)
+{
+    MOS_ASSERT(current_thread);
+    io_t *server = process_get_fd(current_process, listen_fd);
+    io_t *client_io = ipc_accept(server);
+    if (client_io == NULL)
+        return -1;
+    return process_attach_ref_fd(current_process, client_io);
+}
+
+fd_t define_syscall(ipc_connect)(const char *server, ipc_connect_flags flags, size_t buffer_size)
+{
+    MOS_ASSERT(current_thread);
+    io_t *io = ipc_connect(current_process, server, flags, buffer_size);
+    if (io == NULL)
+        return -1;
+    return process_attach_ref_fd(current_process, io);
 }

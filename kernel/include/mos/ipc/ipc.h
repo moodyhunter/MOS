@@ -6,7 +6,9 @@
 #include "mos/tasks/task_types.h"
 
 void ipc_init(void);
-io_t *ipc_create_server(process_t *owner, vmblock_t vmblock, const char *name);
-io_t *ipc_create_client(vmblock_t vmblock, const char *name);
 
-io_t *ipc_open(process_t *owner, vmblock_t vmblock, const char *name, ipc_open_flags flags);
+io_t *ipc_create(const char *name, size_t max_pending_connections);
+
+io_t *ipc_accept(io_t *server);
+
+io_t *ipc_connect(process_t *owner, const char *name, ipc_connect_flags flags, size_t buffer_size);
