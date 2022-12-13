@@ -66,5 +66,7 @@ typedef struct ipc_connection_t
     ipc_connection_state state;
     shm_block_t shm_block;
     io_t server_io, client_io;
-    ring_buffer_t *server_buffer, *client_buffer; // mapped to the same paddr
+    uintptr_t server_data_vaddr, client_data_vaddr;
+    size_t server_data_size, client_data_size;
+    ring_buffer_pos_t buffer_pos;
 } ipc_connection_t;

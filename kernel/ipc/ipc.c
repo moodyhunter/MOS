@@ -2,6 +2,7 @@
 
 #include "mos/ipc/ipc.h"
 
+#include "lib/stdlib.h"
 #include "lib/string.h"
 #include "lib/structures/hashmap.h"
 #include "lib/structures/hashmap_common.h"
@@ -91,7 +92,19 @@ static bool wc_ipc_connection_is_connected_or_closed(wait_condition_t *cond)
     return conn->state == IPC_CONNECTION_STATE_CONNECTED || conn->state == IPC_CONNECTION_STATE_CLOSED;
 }
 
-static size_t ipc_connection_server_read(io_t *io, void *buf, size_t size)
+static bool wc_ipc_connection_wait_for_client_data(wait_condition_t *cond)
+{
+    ipc_connection_t *conn = cond->arg;
+    return conn->client_data_size > 0;
+}
+
+static bool wc_ipc_connection_wait_for_server_data(wait_condition_t *cond)
+{
+    ipc_connection_t *conn = cond->arg;
+    return conn->server_data_size > 0;
+}
+
+static size_t ipc_connection_server_read(io_t *io, void *buf, size_t buf_size)
 {
     ipc_connection_t *conn = container_of(io, ipc_connection_t, server_io);
     if (conn->state != IPC_CONNECTION_STATE_CONNECTED)
@@ -100,7 +113,24 @@ static size_t ipc_connection_server_read(io_t *io, void *buf, size_t size)
         return 0;
     }
 
-    return 0;
+    if (conn->server_data_size == 0)
+    {
+        pr_info2("waiting for client data");
+        wait_condition_t *wc = wc_wait_for(conn, wc_ipc_connection_wait_for_server_data, NULL);
+        reschedule_for_wait_condition(wc);
+        pr_info2("resumed");
+    }
+
+    const size_t read_size = MIN(conn->server_data_size, buf_size);
+
+    // not enough data to read
+    if (read_size == 0)
+        return 0;
+
+    // server reads from the back of the ring buffer (where the client writes)
+    size_t read = ring_buffer_pos_pop_back((u8 *) conn->server_data_vaddr, &conn->buffer_pos, buf, read_size);
+    conn->server_data_size -= read; // for the client
+    return read;
 }
 
 static size_t ipc_connection_server_write(io_t *io, const void *buf, size_t size)
@@ -112,7 +142,10 @@ static size_t ipc_connection_server_write(io_t *io, const void *buf, size_t size
         return 0;
     }
 
-    return 0;
+    // server writes to the front of the ring buffer (where the client reads)
+    size_t written = ring_buffer_pos_push_front((u8 *) conn->server_data_vaddr, &conn->buffer_pos, buf, size);
+    conn->client_data_size += written; // for the client
+    return written;
 }
 
 static void ipc_connection_server_close(io_t *io)
@@ -127,7 +160,7 @@ static void ipc_connection_server_close(io_t *io)
     conn->state = IPC_CONNECTION_STATE_CLOSED;
 }
 
-static size_t ipc_connection_client_read(io_t *io, void *buf, size_t size)
+static size_t ipc_connection_client_read(io_t *io, void *buf, size_t buf_size)
 {
     ipc_connection_t *conn = container_of(io, ipc_connection_t, client_io);
     if (conn->state != IPC_CONNECTION_STATE_CONNECTED)
@@ -136,7 +169,24 @@ static size_t ipc_connection_client_read(io_t *io, void *buf, size_t size)
         return 0;
     }
 
-    return 0;
+    if (conn->client_data_size == 0)
+    {
+        pr_info2("waiting for server data");
+        wait_condition_t *wc = wc_wait_for(conn, wc_ipc_connection_wait_for_client_data, NULL);
+        reschedule_for_wait_condition(wc);
+        pr_info2("resumed");
+    }
+
+    const size_t read_size = MIN(conn->client_data_size, buf_size);
+
+    // not enough data
+    if (read_size == 0)
+        return 0;
+
+    // client reads from the front of the ring buffer (where the server writes)
+    size_t read = ring_buffer_pos_pop_front((u8 *) conn->client_data_vaddr, &conn->buffer_pos, buf, read_size);
+    conn->client_data_size -= read; // for the server
+    return read;
 }
 
 static size_t ipc_connection_client_write(io_t *io, const void *buf, size_t size)
@@ -148,7 +198,10 @@ static size_t ipc_connection_client_write(io_t *io, const void *buf, size_t size
         return 0;
     }
 
-    return 0;
+    // client writes to the back of the ring buffer (where the server reads)
+    size_t written = ring_buffer_pos_push_back((u8 *) conn->client_data_vaddr, &conn->buffer_pos, buf, size);
+    conn->server_data_size += written; // for the server
+    return written;
 }
 
 static void ipc_connection_client_close(io_t *io)
@@ -239,9 +292,10 @@ io_t *ipc_accept(io_t *server)
     conn->state = IPC_CONNECTION_STATE_CONNECTED;
 
     // map the shared memory
-    vmblock_t shared_block = shm_map_shared_block(conn->shm_block, current_process);
+    vmblock_t shm_block = shm_map_shared_block(conn->shm_block, current_process);
     io_init(&conn->server_io, IO_READABLE | IO_WRITABLE, &ipc_connection_server_ops);
-    conn->server_buffer = ring_buffer_create_at((void *) shared_block.vaddr, shared_block.npages * MOS_PAGE_SIZE);
+    ring_buffer_pos_init(&conn->buffer_pos, shm_block.npages * MOS_PAGE_SIZE);
+    conn->server_data_vaddr = shm_block.vaddr;
     return &conn->server_io;
 }
 
@@ -285,9 +339,12 @@ io_t *ipc_connect(process_t *owner, const char *name, ipc_connect_flags flags, s
         return NULL;
     }
 
+    shm_block_t shm_block = shm_allocate(owner, buffer_size / MOS_PAGE_SIZE, MMAP_PRIVATE, VM_RW); // not user accessible, not child-inheritable
+
     conn->state = IPC_CONNECTION_STATE_PENDING;
-    conn->shm_block = shm_allocate(owner, buffer_size / MOS_PAGE_SIZE, MMAP_PRIVATE, VM_RW); // not user accessible, not child-inheritable
+    conn->shm_block = shm_block;
     conn->server = server;
+    conn->client_data_vaddr = shm_block.block.vaddr;
 
     // wait for the server to accept the connection
     wait_condition_t *cond = wc_wait_for(conn, wc_ipc_connection_is_connected_or_closed, NULL);
@@ -299,6 +356,5 @@ io_t *ipc_connect(process_t *owner, const char *name, ipc_connect_flags flags, s
     }
     pr_info2("resuming after connection was accepted");
     io_init(&conn->client_io, IO_READABLE | IO_WRITABLE, &ipc_connection_client_ops);
-    conn->client_buffer = ring_buffer_create_at((void *) conn->shm_block.block.vaddr, conn->shm_block.block.npages * MOS_PAGE_SIZE);
     return &conn->client_io;
 }

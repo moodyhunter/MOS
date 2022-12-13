@@ -10,13 +10,16 @@ int main(void)
     fd_t client = syscall_ipc_connect("kmsg-ping-pong", IPC_CONNECT_DEFAULT, MOS_PAGE_SIZE);
 
     // client read
-    char *data = "ping";
     char client_buf[150];
-    size_t client_read = syscall_io_read(client, client_buf, 150, 0);
-    if (client_read != strlen(data))
+    size_t read_size = syscall_io_read(client, client_buf, 150, 0);
+    printf("Client: Received '%.*s'\n", (int) read_size, client_buf);
+
+    size_t written = syscall_io_write(client, "Nice Fox!", 10, 0);
+
+    if (written != 10)
     {
-        printf("client: failed to read from ipc channel\n");
-        return 1;
+        printf("Client: failed to write to ipc channel\n");
     }
+
     return 0;
 }
