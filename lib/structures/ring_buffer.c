@@ -4,11 +4,12 @@
 
 #include "lib/liballoc.h"
 #include "lib/mos_lib.h"
+#include "lib/stdlib.h"
 #include "lib/string.h"
 
-static u8 ring_buffer_get(ring_buffer_t *buffer, size_t index)
+static u8 ring_buffer_get(u8 *data, ring_buffer_pos_t *pos, size_t index)
 {
-    return buffer->data[(buffer->head + index) % buffer->size];
+    return data[(pos->head + index) % pos->size];
 }
 
 ring_buffer_t *ring_buffer_create(size_t capacity)
@@ -25,10 +26,7 @@ ring_buffer_t *ring_buffer_create(size_t capacity)
         liballoc_free(rb);
         return NULL;
     }
-    rb->capacity = capacity;
-    rb->size = 0;
-    rb->head = 0;
-    rb->next_pos = 0;
+    ring_buffer_pos_init(&rb->pos, capacity);
     return rb;
 }
 
@@ -41,11 +39,16 @@ ring_buffer_t *ring_buffer_create_at(void *data, size_t capacity)
     if (!rb)
         return NULL;
     rb->data = data;
-    rb->capacity = capacity;
-    rb->size = 0;
-    rb->head = 0;
-    rb->next_pos = 0;
+    ring_buffer_pos_init(&rb->pos, capacity);
     return rb;
+}
+
+void ring_buffer_pos_init(ring_buffer_pos_t *pos, size_t capacity)
+{
+    pos->capacity = capacity;
+    pos->size = 0;
+    pos->head = 0;
+    pos->next_pos = 0;
 }
 
 void ring_buffer_destroy(ring_buffer_t *buffer)
@@ -56,75 +59,94 @@ void ring_buffer_destroy(ring_buffer_t *buffer)
 
 bool ring_buffer_resize(ring_buffer_t *buffer, size_t new_capacity)
 {
-    if (new_capacity < buffer->size)
+    if (new_capacity < buffer->pos.size)
         return false;
     void *new_data = liballoc_malloc(new_capacity);
     if (!new_data)
         return false;
     size_t i = 0;
-    while (i < buffer->size)
+    while (i < buffer->pos.size)
     {
-        ((char *) new_data)[i] = ring_buffer_get(buffer, i);
+        ((char *) new_data)[i] = ring_buffer_get(buffer->data, &buffer->pos, i);
         i++;
     }
     liballoc_free(buffer->data);
     buffer->data = new_data;
-    buffer->capacity = new_capacity;
-    buffer->head = 0;
-    buffer->next_pos = buffer->size;
+    buffer->pos.capacity = new_capacity;
+    buffer->pos.head = 0;
+    buffer->pos.next_pos = buffer->pos.size;
     return true;
 }
 
-size_t ring_buffer_push_back(ring_buffer_t *buffer, const u8 *data, size_t size)
+size_t ring_buffer_pos_push_back(u8 *data, ring_buffer_pos_t *pos, const u8 *target, size_t size)
 {
-    size_t written = 0;
-    while (written < size && buffer->size < buffer->capacity)
-    {
-        buffer->data[buffer->next_pos] = ((const u8 *) data)[written];
-        buffer->next_pos = (buffer->next_pos + 1) % buffer->capacity;
-        buffer->size++;
-        written++;
-    }
-    return written;
+    if (pos->size + size > pos->capacity)
+        return 0;
+
+    size_t first_part_i = pos->next_pos;
+    size_t first_part_size = MIN(size, pos->capacity - pos->next_pos);
+    size_t second_part = size - first_part_size;
+    memcpy(data + first_part_i, target, first_part_size);
+    memcpy(data, target + first_part_size, second_part);
+    pos->next_pos = (pos->next_pos + size) % pos->capacity;
+    pos->size += size;
+    return size;
 }
 
-size_t ring_buffer_pop_back(ring_buffer_t *buffer, u8 *data, size_t size)
+size_t ring_buffer_pos_pop_back(u8 *data, ring_buffer_pos_t *pos, u8 *target, size_t size)
 {
-    size_t read = 0;
-    while (read < size && buffer->size > 0)
-    {
-        buffer->next_pos = (buffer->capacity + buffer->next_pos - 1) % buffer->capacity;
-        ((u8 *) data)[read] = buffer->data[buffer->next_pos];
-        buffer->data[buffer->next_pos] = 0;
-        buffer->size--;
-        read++;
-    }
-    return read;
+    if (size > pos->size)
+        size = pos->size;
+
+    size_t first_part_i = (pos->capacity + pos->next_pos - size) % pos->capacity;
+    size_t first_part_size = MIN(size, pos->capacity - first_part_i);
+
+    size_t second_part_i = 0;
+    size_t second_part_size = size - first_part_size;
+
+    memcpy(target, data + first_part_i, first_part_size);
+    memcpy(target + first_part_size, data + second_part_i, second_part_size);
+
+    pos->next_pos = (pos->capacity + pos->next_pos - size) % pos->capacity;
+    pos->size -= size;
+
+    return size;
 }
 
-size_t ring_buffer_push_front(ring_buffer_t *buffer, const u8 *data, size_t size)
+size_t ring_buffer_pos_push_front(u8 *data, ring_buffer_pos_t *pos, const u8 *target, size_t size)
 {
-    size_t written = 0;
-    while (written < size && buffer->size < buffer->capacity)
-    {
-        buffer->head = (buffer->capacity + buffer->head - 1) % buffer->capacity;
-        buffer->data[buffer->head] = ((const u8 *) data)[written];
-        buffer->size++;
-        written++;
-    }
-    return written;
+    if (pos->size + size > pos->capacity)
+        return 0;
+
+    size_t first_part_i = (pos->capacity + pos->head - size) % pos->capacity;
+    size_t first_part_size = MIN(size, pos->capacity - first_part_i);
+
+    size_t second_part_i = 0;
+    size_t second_part_size = size - first_part_size;
+
+    memcpy(data + first_part_i, target, first_part_size);
+    memcpy(data + second_part_i, target + first_part_size, second_part_size);
+
+    pos->head = (pos->capacity + pos->head - size) % pos->capacity;
+    pos->size += size;
+    return size;
 }
 
-size_t ring_buffer_pop_front(ring_buffer_t *buffer, u8 *data, size_t size)
+size_t ring_buffer_pos_pop_front(u8 *data, ring_buffer_pos_t *pos, u8 *target, size_t size)
 {
-    size_t read = 0;
-    while (read < size && buffer->size > 0)
-    {
-        ((u8 *) data)[read] = buffer->data[buffer->head];
-        buffer->data[buffer->head] = 0;
-        buffer->head = (buffer->capacity + buffer->head + 1) % buffer->capacity;
-        buffer->size--;
-        read++;
-    }
-    return read;
+    if (size > pos->size)
+        size = pos->size;
+
+    size_t first_part_i = pos->head;
+    size_t first_part_size = MIN(size, pos->capacity - first_part_i);
+
+    size_t second_part_i = 0;
+    size_t second_part_size = size - first_part_size;
+
+    memcpy(target, data + first_part_i, first_part_size);
+    memcpy(target + first_part_size, data + second_part_i, second_part_size);
+
+    pos->head = (pos->head + size) % pos->capacity;
+    pos->size -= size;
+    return size;
 }
