@@ -3,6 +3,7 @@
 #pragma once
 
 #include "lib/structures/list.h"
+#include "lib/sync/spinlock.h"
 #include "mos/types.h"
 
 #define STD_COLOR_LIGHT 0x8
@@ -67,6 +68,7 @@ struct console_t
     bool (*close)(console_t *con);
 
     void *data;
+    spinlock_t lock __aligned(8);
 };
 
 extern list_node_t consoles;

@@ -33,6 +33,8 @@ void console_register(console_t *con)
     if (con->caps & CONSOLE_CAP_CLEAR)
         con->clear(con);
 
+    con->lock = (spinlock_t) SPINLOCK_INIT;
+
     list_node_append(&consoles, list_node(con));
     pr_info("console: registered '%s'", con->name);
 

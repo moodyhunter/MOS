@@ -5,6 +5,7 @@
 #include "lib/stdio.h"
 #include "lib/string.h"
 #include "lib/structures/list.h"
+#include "lib/sync/spinlock.h"
 #include "mos/cmdline.h"
 #include "mos/device/console.h"
 
@@ -71,6 +72,8 @@ static void print_to_console(console_t *con, int loglevel, const char *message, 
     if (!con)
         return;
 
+    spinlock_acquire(&con->lock);
+
     standard_color_t prev_fg, prev_bg;
     standard_color_t fg = White, bg = Black;
     deduce_level_color(loglevel, &fg, &bg);
@@ -84,9 +87,9 @@ static void print_to_console(console_t *con, int loglevel, const char *message, 
     console_write(con, message, len);
 
     if (con->caps & CONSOLE_CAP_COLOR)
-    {
         con->set_color(con, prev_fg, prev_bg);
-    }
+
+    spinlock_release(&con->lock);
 }
 
 static void lvprintk(int loglevel, const char *fmt, va_list args)
