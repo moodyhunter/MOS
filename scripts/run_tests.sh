@@ -3,13 +3,15 @@
 # get the current directory
 DIR=$(pwd)
 
-qemu-system-i386 -kernel $DIR/mos_multiboot.bin \
+qemu-system-i386 \
+    -kernel $DIR/mos_multiboot.bin \
+    -initrd $DIR/initrd.cpio \
     -m 4G \
     -smp 2 \
     -monitor "unix:/tmp/monitor.sock,server,nowait" \
     -nographic \
     -chardev stdio,id=char0,logfile=test-failure.log,signal=off \
-    -append "mos_tests" \
+    -append "$1" \
     -serial chardev:char0 &
 
 pid=$!
