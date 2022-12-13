@@ -34,13 +34,12 @@ static bool should_schedule_to_thread(thread_t *thread)
 void mos_update_current(thread_t *new_current)
 {
     thread_t *old_current = current_thread;
-    // In the very first switch, current_thread is NULL
-    if (likely(old_current))
-    {
-        // TODO: Add more checks
-        if (old_current->status == THREAD_STATUS_RUNNING || current_thread->status != THREAD_STATUS_DEAD)
-            old_current->status = THREAD_STATUS_READY;
-    }
+    MOS_ASSERT(old_current && new_current);
+
+    // TODO: Add more checks
+    if (old_current->status == THREAD_STATUS_RUNNING || current_thread->status != THREAD_STATUS_DEAD)
+        old_current->status = THREAD_STATUS_READY;
+
     current_thread = new_current;
     new_current->status = THREAD_STATUS_RUNNING;
     current_cpu->pagetable = new_current->owner->pagetable;
@@ -68,8 +67,16 @@ noreturn void scheduler(void)
 
 void jump_to_scheduler(void)
 {
+    // A thread can jump to the scheduler if it is:
+    // - in RUNNING state       normal condition (context switch caused by timer interrupt or yield())
+    // - in CREATED state       the thread is not yet started
+    // - in DEAD state          the thread is exiting, and the scheduler will clean it up
+    // - in BLOCKED state       the thread is waiting for a condition, and we'll schedule to other threads
+    // but not if it is:
+    // - in READY state         the thread should not be running anyway
     cpu_t *cpu = current_cpu;
-    if (cpu->thread->status != THREAD_STATUS_DEAD)
+    MOS_ASSERT(cpu->thread->status != THREAD_STATUS_READY);
+    if (cpu->thread->status == THREAD_STATUS_RUNNING)
         cpu->thread->status = THREAD_STATUS_READY;
     platform_switch_to_scheduler(&cpu->thread->stack.head, cpu->scheduler_stack);
 }

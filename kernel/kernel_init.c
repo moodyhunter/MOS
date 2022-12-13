@@ -107,6 +107,7 @@ void mos_start_kernel(const char *cmdline)
 
     uid_t root_uid = 0;
     process_t *init = elf_create_process(init_path, NULL, init_term, root_uid);
+    current_thread = init->threads[0];
     pr_info("created init process: %s", init->name);
 
     scheduler();
