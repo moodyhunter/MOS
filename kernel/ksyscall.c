@@ -252,12 +252,12 @@ bool define_syscall(mutex_acquire)(bool *mutex)
 
     if (*mutex == MUTEX_UNLOCKED) // TODO: this is unsafe in SMP
     {
-        pr_info2("mutex_acquire: mutex is unlocked, acquired by tid %d", current_thread->tid);
+        pr_info2("mutex_acquire: tid %d acquires a free lock at " PTR_FMT, current_thread->tid, (uintptr_t) mutex);
         *mutex = MUTEX_LOCKED;
         return true;
     }
 
-    pr_info2("mutex_acquire: mutex is locked, waiting for tid %d", current_thread->tid);
+    pr_info2("mutex_acquire: tid %d blocks on a locked lock at " PTR_FMT, current_thread->tid, (uintptr_t) mutex);
 
     wait_condition_t *wc = wc_wait_for_mutex(mutex);
     current_thread->status = THREAD_STATUS_BLOCKED;
@@ -266,6 +266,8 @@ bool define_syscall(mutex_acquire)(bool *mutex)
         return false;
 
     jump_to_scheduler();
+    pr_info2("mutex_acquire: tid %d unblocks and acquires a lock at " PTR_FMT, current_thread->tid, (uintptr_t) mutex);
+    *mutex = MUTEX_LOCKED;
     return true;
 }
 
@@ -276,13 +278,13 @@ bool define_syscall(mutex_release)(bool *mutex)
     if (*mutex == MUTEX_LOCKED)
     {
         // TODO: this is unsafe in SMP
-        pr_info2("mutex_release: mutex is locked, released by tid %d", current_thread->tid);
+        pr_info2("mutex_release: tid %d releases a lock at " PTR_FMT, current_thread->tid, (uintptr_t) mutex);
         *mutex = MUTEX_UNLOCKED;
         return true;
     }
     else
     {
-        pr_warn("mutex_release called but mutex is already released");
+        pr_warn("mutex_release: tid %d tried to release a lock at " PTR_FMT " but it was already unlocked", current_thread->tid, (uintptr_t) mutex);
         return false;
     }
 
