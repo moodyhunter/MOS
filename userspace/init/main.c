@@ -75,9 +75,7 @@ int main(void)
     printf("My PID: %d\n", my_pid);
 
     pid_t ping_pid = syscall_spawn("/programs/kmsg-ping", 0, NULL);
-    pid_t pong_pid = syscall_spawn("/programs/kmsg-pong", 0, NULL);
     printf("ping pid: %d\n", ping_pid);
-    printf("pong pid: %d\n", pong_pid);
 
     pid_t locks_pid = syscall_spawn("/programs/locks", 0, NULL);
     printf("locks pid: %d\n", locks_pid);
