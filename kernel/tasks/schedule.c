@@ -77,7 +77,7 @@ noreturn void scheduler(void)
 void reschedule_for_wait_condition(wait_condition_t *wait_condition)
 {
     thread_t *t = current_cpu->thread;
-    MOS_ASSERT_X(t->status == THREAD_STATUS_BLOCKED, "thread %d is not blocked, make it be before adding wait conditions", t->tid);
+    MOS_ASSERT_X(t->status != THREAD_STATUS_BLOCKED, "thread %d is already blocked", t->tid);
     MOS_ASSERT_X(t->waiting_condition == NULL, "thread %d is already waiting for something else", t->tid);
     t->status = THREAD_STATUS_BLOCKED;
     t->waiting_condition = wait_condition;
