@@ -43,7 +43,8 @@ void x86_acpi_init()
     if (!verify_sdt_checksum(&x86_acpi_rsdt->sdt_header))
         mos_panic("RSDT checksum error");
 
-    MOS_ASSERT(strncmp(x86_acpi_rsdt->sdt_header.signature, "RSDT", 4) == 0);
+    if (strncmp(x86_acpi_rsdt->sdt_header.signature, "RSDT", 4) != 0)
+        mos_panic("RSDT signature mismatch");
 
     const size_t count = (x86_acpi_rsdt->sdt_header.length - sizeof(acpi_sdt_header_t)) / sizeof(u32);
     for (size_t i = 0; i < count; i++)
