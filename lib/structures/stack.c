@@ -32,7 +32,7 @@ void *stack_grow(downwards_stack_t *stack, size_t size)
     return (void *) stack->head;
 }
 
-void stack_push(downwards_stack_t *stack, void *data, size_t size)
+void stack_push(downwards_stack_t *stack, const void *data, size_t size)
 {
     // high memory | top -----> head -----> top - capacity | low memory
     if (unlikely(stack->head - (stack->top - stack->capacity) < size))
