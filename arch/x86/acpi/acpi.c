@@ -27,10 +27,10 @@ should_inline bool verify_sdt_checksum(acpi_sdt_header_t *tableHeader)
 
 void x86_acpi_init()
 {
-    acpi_rsdp_t *rsdp = acpi_find_rsdp(X86_EBDA_MEMREGION_PADDR | BIOS_VADDR_MASK, EBDA_MEMREGION_SIZE);
+    acpi_rsdp_t *rsdp = acpi_find_rsdp(BIOS_VADDR(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
     if (!rsdp)
     {
-        rsdp = acpi_find_rsdp(X86_BIOS_MEMREGION_PADDR | BIOS_VADDR_MASK, BIOS_MEMREGION_SIZE);
+        rsdp = acpi_find_rsdp(BIOS_VADDR(X86_BIOS_MEMREGION_PADDR), BIOS_MEMREGION_SIZE);
         if (!rsdp)
             mos_panic("RSDP not found");
     }
@@ -46,8 +46,8 @@ void x86_acpi_init()
     if (strncmp(x86_acpi_rsdt->sdt_header.signature, "RSDT", 4) != 0)
         mos_panic("RSDT signature mismatch");
 
-    const size_t count = (x86_acpi_rsdt->sdt_header.length - sizeof(acpi_sdt_header_t)) / sizeof(u32);
-    for (size_t i = 0; i < count; i++)
+    const size_t num_headers = (x86_acpi_rsdt->sdt_header.length - sizeof(acpi_sdt_header_t)) / sizeof(u32);
+    for (size_t i = 0; i < num_headers; i++)
     {
         acpi_sdt_header_t *addr = (acpi_sdt_header_t *) BIOS_VADDR((uintptr_t) x86_acpi_rsdt->sdts[i]);
 
