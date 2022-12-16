@@ -57,6 +57,7 @@ add_library(mos_kernel.elf STATIC
     kernel/cmdline.c
     kernel/device/console.c
     kernel/device/block.c
+    kernel/device/device_manager.c
     kernel/elf/elf.c
     kernel/filesystem/cpio/cpio.c
     kernel/filesystem/filesystem.c

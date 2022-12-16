@@ -3,6 +3,7 @@
 #include "mos/cmdline.h"
 #include "mos/device/block.h"
 #include "mos/device/console.h"
+#include "mos/device/device_manager.h"
 #include "mos/elf/elf.h"
 #include "mos/filesystem/cpio/cpio.h"
 #include "mos/filesystem/mount.h"
@@ -112,6 +113,7 @@ void mos_start_kernel(const char *cmdline)
     pr_info("created init process: %s", init->name);
 
     kthread_init();
+    device_manager_init();
 
     scheduler();
     MOS_UNREACHABLE();
