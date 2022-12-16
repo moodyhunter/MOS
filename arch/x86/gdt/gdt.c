@@ -10,7 +10,6 @@
 static gdt_ptr32_t gdt_ptr;
 static gdt_entry32_t gdt[GDT_ENTRY_COUNT] __aligned(8);
 
-extern tss32_t tss_entry;
 typedef enum
 {
     GDT_ENTRY_CODE,
@@ -70,7 +69,7 @@ void x86_gdt_init()
     gdt32_set_entry(4, 0x00000000, 0xFFFFFFFF, GDT_ENTRY_DATA, GDT_RING_USER, GDT_GRAN_PAGE);
 
     // TSS segment
-    gdt_entry32_t *tss_seg = gdt32_set_entry(5, (uintptr_t) &tss_entry, sizeof(__typeof__(tss_entry)), GDT_ENTRY_CODE, GDT_RING_KERNEL, GDT_GRAN_BYTE);
+    gdt_entry32_t *tss_seg = gdt32_set_entry(5, (uintptr_t) per_cpu(x86_tss.tss), sizeof(__typeof__(x86_tss)), GDT_ENTRY_CODE, GDT_RING_KERNEL, GDT_GRAN_BYTE);
 
     // ! Set special attributes for the TSS segment.
     tss_seg->code_data_segment = 0; // indicates TSS/LDT (see also `accessed`)

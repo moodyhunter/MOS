@@ -71,7 +71,12 @@ extern const char __MOS_KERNEL_END;                                   // End of 
 
 extern const uintptr_t mos_kernel_end;
 extern mos_platform_info_t x86_platform;
-extern tss32_t tss_entry;
+typedef struct
+{
+    PER_CPU_DECLARE(tss32_t, tss);
+} x86_percpu_tss_t;
+
+extern x86_percpu_tss_t x86_tss;
 
 void x86_gdt_init();
 void x86_ap_gdt_init();

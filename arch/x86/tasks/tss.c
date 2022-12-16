@@ -5,12 +5,12 @@
 #include "mos/x86/x86_platform.h"
 
 // TSS used by the system for ring-changing-interrupts
-tss32_t tss_entry;
+x86_percpu_tss_t x86_tss;
 
 void x86_tss_init()
 {
-    memzero(&tss_entry, sizeof(tss_entry));
-    tss_entry.ss0 = GDT_SEGMENT_KDATA;
-    tss_entry.esp0 = 0; // we will use an allocated kernel heap for the stack later, when we have kmalloc
+    memzero(&x86_tss, sizeof(x86_tss));
+    per_cpu(x86_tss.tss)->ss0 = GDT_SEGMENT_KDATA;
+    per_cpu(x86_tss.tss)->esp0 = 0; // we will use an allocated kernel heap for the stack later, when we have kmalloc
     tss32_flush(GDT_SEGMENT_TSS);
 }
