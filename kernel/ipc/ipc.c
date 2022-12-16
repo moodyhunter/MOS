@@ -231,7 +231,7 @@ static io_op_t ipc_connection_client_ops = {
 void ipc_init(void)
 {
     pr_info("Initializing IPC subsystem...");
-    ipc_servers = kmalloc(sizeof(hashmap_t));
+    ipc_servers = kzalloc(sizeof(hashmap_t));
     hashmap_init(ipc_servers, IPC_CHANNEL_HASHMAP_SIZE, ipc_server_hash, ipc_server_compare);
 }
 
