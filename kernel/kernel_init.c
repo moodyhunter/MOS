@@ -11,6 +11,7 @@
 #include "mos/ipc/ipc.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/tasks/kthread.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/schedule.h"
 #include "mos/tasks/task_types.h"
@@ -109,6 +110,8 @@ void mos_start_kernel(const char *cmdline)
     process_t *init = elf_create_process(init_path, NULL, init_term, root_uid);
     current_thread = init->threads[0];
     pr_info("created init process: %s", init->name);
+
+    kthread_init();
 
     scheduler();
     MOS_UNREACHABLE();

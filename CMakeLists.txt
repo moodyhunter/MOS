@@ -76,6 +76,7 @@ add_library(mos_kernel.elf STATIC
     kernel/tasks/fork.c
     kernel/tasks/process.c
     kernel/tasks/thread.c
+    kernel/tasks/kthread.c
     kernel/tasks/schedule.c
     kernel/tasks/wait.c
 )

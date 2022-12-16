@@ -63,7 +63,8 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
     t->name = duplicate_string(name, strlen(name));
 
     // Kernel stack
-    const vmblock_t kstack_blk = platform_mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_KERNEL, PGALLOC_HINT_STACK, VM_RW);
+    const pgalloc_hints kstack_hint = (tmode == THREAD_MODE_KERNEL) ? PGALLOC_HINT_KHEAP : PGALLOC_HINT_STACK;
+    const vmblock_t kstack_blk = platform_mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_KERNEL, kstack_hint, VM_RW);
     stack_init(&t->kernel_stack, (void *) kstack_blk.vaddr, kstack_blk.npages * MOS_PAGE_SIZE);
     process_attach_mmap(owner, kstack_blk, VMTYPE_KSTACK, MMAP_DEFAULT);
 
@@ -85,6 +86,12 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
         platform_context_setup(t, &proxy_stack, entry, arg);
         t->stack.head -= proxy_stack.top - proxy_stack.head;
         mm_unmap_proxy_space(ustack_proxy);
+    }
+    else
+    {
+        // kernel thread
+        stack_init(&t->stack, NULL, 0);
+        platform_context_setup(t, &t->kernel_stack, entry, arg);
     }
 
     hashmap_put(thread_table, &t->tid, t);

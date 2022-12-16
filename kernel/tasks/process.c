@@ -44,11 +44,10 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
     {
         proc->parent = parent;
     }
-    else if (unlikely(proc->pid == 1))
+    else if (unlikely(proc->pid == 1) || unlikely(proc->pid == 2))
     {
         proc->parent = proc;
-        MOS_ASSERT_ONCE("Only the init process should have a parent of itself");
-        pr_emph("created init process");
+        pr_emph("special process %d (%s) created", proc->pid, name);
     }
     else
     {
@@ -67,7 +66,16 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
     }
 
     proc->effective_uid = euid;
-    proc->pagetable = platform_mm_create_user_pgd();
+
+    if (unlikely(proc->pid == 2))
+    {
+        proc->pagetable.ptr = 0; // ! Special case: PID 2 (kthreadd) uses the kernel page table
+    }
+    else
+    {
+        proc->pagetable = platform_mm_create_user_pgd();
+    }
+
     return proc;
 }
 
