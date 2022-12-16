@@ -19,8 +19,8 @@ should_inline bool thread_is_valid(thread_t *thread)
 void thread_init();
 void thread_deinit();
 
-thread_t *thread_allocate(process_t *owner, thread_flags_t tflags);
-thread_t *thread_new(process_t *owner, thread_flags_t mode, thread_entry_t entry, void *arg);
+thread_t *thread_allocate(process_t *owner, thread_mode tflags);
+thread_t *thread_new(process_t *owner, thread_mode mode, const char *name, thread_entry_t entry, void *arg);
 thread_t *thread_get(tid_t id);
 
 void thread_handle_exit(thread_t *t);

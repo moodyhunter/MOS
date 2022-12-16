@@ -45,7 +45,7 @@ void x86_switch_to_thread(uintptr_t *old_stack, thread_t *to)
     bool need_pgd_switch = current_cpu->pagetable.ptr != to->owner->pagetable.ptr;
     uintptr_t pgd_paddr = need_pgd_switch ? pg_page_get_mapped_paddr(x86_kpg_infra, to->owner->pagetable.ptr) : 0;
     x86_thread_context_t *context = container_of(to->context, x86_thread_context_t, inner);
-    const bool need_iret_switching = to->state == THREAD_STATE_CREATED;
+    const bool need_iret_switching = to->mode == THREAD_MODE_USER && to->state == THREAD_STATE_CREATED;
 
     per_cpu(x86_tss.tss)->esp0 = to->kernel_stack.top;
 

@@ -21,9 +21,9 @@ typedef enum
 
 typedef enum
 {
-    THREAD_FLAG_KERNEL = 0 << 0,
-    THREAD_FLAG_USERMODE = 1 << 0,
-} thread_flags_t;
+    THREAD_MODE_KERNEL = 0 << 0,
+    THREAD_MODE_USER = 1 << 0,
+} thread_mode;
 
 typedef enum
 {
@@ -79,11 +79,12 @@ typedef struct _thread
 {
     u32 magic;
     tid_t tid;
+    const char *name;
     thread_status_t state;
     process_t *owner;
     downwards_stack_t stack;
     downwards_stack_t kernel_stack;
     platform_context_t *context;
-    thread_flags_t flags;
+    thread_mode mode;
     wait_condition_t *waiting_condition;
 } thread_t;

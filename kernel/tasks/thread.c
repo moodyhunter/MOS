@@ -30,14 +30,14 @@ static tid_t new_thread_id()
     return (tid_t){ next++ };
 }
 
-thread_t *thread_allocate(process_t *owner, thread_flags_t tflags)
+thread_t *thread_allocate(process_t *owner, thread_mode tflags)
 {
     thread_t *t = kmalloc(sizeof(thread_t));
     t->magic = THREAD_MAGIC_THRD;
     t->tid = new_thread_id();
     t->owner = owner;
     t->state = THREAD_STATE_CREATED;
-    t->flags = tflags;
+    t->mode = tflags;
     t->waiting_condition = NULL;
 
     return t;
@@ -56,16 +56,18 @@ void thread_deinit()
     kfree(thread_table);
 }
 
-thread_t *thread_new(process_t *owner, thread_flags_t tflags, thread_entry_t entry, void *arg)
+thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thread_entry_t entry, void *arg)
 {
-    thread_t *t = thread_allocate(owner, tflags);
+    thread_t *t = thread_allocate(owner, tmode);
+
+    t->name = duplicate_string(name, strlen(name));
 
     // Kernel stack
     const vmblock_t kstack_blk = platform_mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_KERNEL, PGALLOC_HINT_STACK, VM_RW);
     stack_init(&t->kernel_stack, (void *) kstack_blk.vaddr, kstack_blk.npages * MOS_PAGE_SIZE);
     process_attach_mmap(owner, kstack_blk, VMTYPE_KSTACK, MMAP_DEFAULT);
 
-    if (tflags & THREAD_FLAG_USERMODE)
+    if (tmode == THREAD_MODE_USER)
     {
         // allcate stack for the thread
         // TODO: change [platform_mm_alloc_pages] to [mm_alloc_zeroed_pages] once
@@ -76,6 +78,7 @@ thread_t *thread_new(process_t *owner, thread_flags_t tflags, thread_entry_t ent
         // we cannot access the stack until we switch to its address space, so we
         // map the stack into current kernel's address space, making a proxy stack for it
         // TODO: any way to avoid this?
+        // TODO: possibly jumps back to a kernel function to do this (when switching to the correct address space)
         const vmblock_t ustack_proxy = mm_map_proxy_space(owner->pagetable, ustack_blk.vaddr, ustack_blk.npages);
         downwards_stack_t proxy_stack;
         stack_init(&proxy_stack, (void *) ustack_proxy.vaddr, ustack_proxy.npages * MOS_PAGE_SIZE);

@@ -60,7 +60,7 @@ process_t *process_handle_fork(process_t *parent)
         if (parent_thread != current_thread)
             continue;
 
-        thread_t *child_thread = thread_allocate(child, parent_thread->flags);
+        thread_t *child_thread = thread_allocate(child, parent_thread->mode);
         child_thread->stack = parent_thread->stack;
         child_thread->kernel_stack = parent_thread->kernel_stack;
         child_thread->state = THREAD_STATE_CREATED;

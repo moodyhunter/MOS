@@ -150,9 +150,8 @@ pid_t define_syscall(spawn)(const char *path, int argc, const char *const argv[]
 
 tid_t define_syscall(create_thread)(const char *name, thread_entry_t entry, void *arg)
 {
-    MOS_UNUSED(name);
     MOS_ASSERT(current_thread);
-    thread_t *thread = thread_new(current_process, THREAD_FLAG_USERMODE, entry, arg);
+    thread_t *thread = thread_new(current_process, THREAD_MODE_USER, name, entry, arg);
     if (thread == NULL)
         return -1;
 
