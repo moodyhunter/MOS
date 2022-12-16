@@ -12,14 +12,14 @@
 
 static bool should_schedule_to_thread(thread_t *thread)
 {
-    switch (thread->status)
+    switch (thread->state)
     {
-        case THREAD_STATUS_READY:
-        case THREAD_STATUS_CREATED:
+        case THREAD_STATE_READY:
+        case THREAD_STATE_CREATED:
         {
             return true;
         }
-        case THREAD_STATUS_BLOCKED:
+        case THREAD_STATE_BLOCKED:
         {
             MOS_ASSERT(thread->waiting_condition);
             if (!wc_condition_verify(thread->waiting_condition))
@@ -28,13 +28,13 @@ static bool should_schedule_to_thread(thread_t *thread)
             thread->waiting_condition = NULL;
             return true;
         }
-        case THREAD_STATUS_DEAD:
+        case THREAD_STATE_DEAD:
         {
             return false;
         }
         default:
         {
-            mos_panic("Unknown thread status %d", thread->status);
+            mos_panic("Unknown thread status %d", thread->state);
         }
     }
 }
@@ -60,10 +60,10 @@ void mos_update_current(thread_t *current)
     MOS_ASSERT(previous && current);
 
     // TODO: Add more checks
-    if (previous->status == THREAD_STATUS_RUNNING)
-        previous->status = THREAD_STATUS_READY;
+    if (previous->state == THREAD_STATE_RUNNING)
+        previous->state = THREAD_STATE_READY;
 
-    current->status = THREAD_STATUS_RUNNING;
+    current->state = THREAD_STATE_RUNNING;
     cpu->thread = current;
     cpu->pagetable = current->owner->pagetable;
 }
@@ -77,9 +77,9 @@ noreturn void scheduler(void)
 void reschedule_for_wait_condition(wait_condition_t *wait_condition)
 {
     thread_t *t = current_cpu->thread;
-    MOS_ASSERT_X(t->status != THREAD_STATUS_BLOCKED, "thread %d is already blocked", t->tid);
+    MOS_ASSERT_X(t->state != THREAD_STATE_BLOCKED, "thread %d is already blocked", t->tid);
     MOS_ASSERT_X(t->waiting_condition == NULL, "thread %d is already waiting for something else", t->tid);
-    t->status = THREAD_STATUS_BLOCKED;
+    t->state = THREAD_STATE_BLOCKED;
     t->waiting_condition = wait_condition;
     reschedule();
 }
@@ -94,8 +94,8 @@ void reschedule(void)
     // but not if it is:
     // - in READY state         the thread should not be running anyway
     cpu_t *cpu = current_cpu;
-    MOS_ASSERT(cpu->thread->status != THREAD_STATUS_READY);
-    if (cpu->thread->status == THREAD_STATUS_RUNNING)
-        cpu->thread->status = THREAD_STATUS_READY;
+    MOS_ASSERT(cpu->thread->state != THREAD_STATE_READY);
+    if (cpu->thread->state == THREAD_STATE_RUNNING)
+        cpu->thread->state = THREAD_STATE_READY;
     platform_switch_to_scheduler(&cpu->thread->stack.head, cpu->scheduler_stack);
 }

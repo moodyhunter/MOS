@@ -36,7 +36,7 @@ thread_t *thread_allocate(process_t *owner, thread_flags_t tflags)
     t->magic = THREAD_MAGIC_THRD;
     t->tid = new_thread_id();
     t->owner = owner;
-    t->status = THREAD_STATUS_CREATED;
+    t->state = THREAD_STATE_CREATED;
     t->flags = tflags;
     t->waiting_condition = NULL;
 
@@ -101,5 +101,5 @@ void thread_handle_exit(thread_t *t)
         return;
 
     mos_warn("TODO");
-    t->status = THREAD_STATUS_DEAD;
+    t->state = THREAD_STATE_DEAD;
 }

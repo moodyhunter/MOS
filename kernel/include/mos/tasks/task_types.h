@@ -12,11 +12,11 @@ typedef struct _terminal terminal_t;
 
 typedef enum
 {
-    THREAD_STATUS_READY,   // thread can be scheduled
-    THREAD_STATUS_CREATED, // created or forked, but not ever started
-    THREAD_STATUS_RUNNING, // thread is currently running
-    THREAD_STATUS_BLOCKED, // thread is blocked by a wait condition
-    THREAD_STATUS_DEAD,    // thread is dead, and will be cleaned up soon by the scheduler
+    THREAD_STATE_READY,   // thread can be scheduled
+    THREAD_STATE_CREATED, // created or forked, but not ever started
+    THREAD_STATE_RUNNING, // thread is currently running
+    THREAD_STATE_BLOCKED, // thread is blocked by a wait condition
+    THREAD_STATE_DEAD,    // thread is dead, and will be cleaned up soon by the scheduler
 } thread_status_t;
 
 typedef enum
@@ -79,7 +79,7 @@ typedef struct _thread
 {
     u32 magic;
     tid_t tid;
-    thread_status_t status;
+    thread_status_t state;
     process_t *owner;
     downwards_stack_t stack;
     downwards_stack_t kernel_stack;

@@ -8,7 +8,7 @@
 static bool thread_is_ready(wait_condition_t *condition)
 {
     thread_t *thread = condition->arg;
-    return thread->status == THREAD_STATUS_DEAD;
+    return thread->state == THREAD_STATE_DEAD;
 }
 
 static bool mutex_is_ready(wait_condition_t *condition)

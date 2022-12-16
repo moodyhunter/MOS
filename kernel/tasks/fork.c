@@ -63,7 +63,7 @@ process_t *process_handle_fork(process_t *parent)
         thread_t *child_thread = thread_allocate(child, parent_thread->flags);
         child_thread->stack = parent_thread->stack;
         child_thread->kernel_stack = parent_thread->kernel_stack;
-        child_thread->status = THREAD_STATUS_CREATED;
+        child_thread->state = THREAD_STATE_CREATED;
         platform_context_copy(parent_thread->context, &child_thread->context);
 
         process_attach_thread(child, child_thread);

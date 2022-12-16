@@ -249,7 +249,7 @@ bool define_syscall(wait_for_thread)(tid_t tid)
         return false;
     }
 
-    if (target->status == THREAD_STATUS_DEAD)
+    if (target->state == THREAD_STATE_DEAD)
     {
         return true; // thread is already dead, no need to wait
     }

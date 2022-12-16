@@ -179,12 +179,12 @@ void process_handle_exit(process_t *process, int exit_code)
     for (int i = 0; i < process->threads_count; i++)
     {
         thread_t *thread = process->threads[i];
-        if (thread->status == THREAD_STATUS_DEAD)
+        if (thread->state == THREAD_STATE_DEAD)
         {
             pr_warn("thread %d is already dead", thread->tid);
             continue;
         }
-        thread->status = THREAD_STATUS_DEAD; // cleanup will be done by the scheduler
+        thread->state = THREAD_STATE_DEAD; // cleanup will be done by the scheduler
     }
 
     mos_debug("closing all %lu files owned by %d", process->files_count, process->pid);
