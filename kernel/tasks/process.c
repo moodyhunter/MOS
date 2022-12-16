@@ -69,7 +69,7 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
 
     if (unlikely(proc->pid == 2))
     {
-        proc->pagetable.ptr = 0; // ! Special case: PID 2 (kthreadd) uses the kernel page table
+        proc->pagetable = platform_mm_get_kernel_pgd(); // ! Special case: PID 2 (kthreadd) uses the kernel page table
     }
     else
     {

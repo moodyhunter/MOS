@@ -29,6 +29,7 @@ void x86_setup_thread_context(thread_t *thread, downwards_stack_t *proxy_stack, 
 
     if (thread->mode == THREAD_MODE_KERNEL)
     {
+        // pop, pop, pop, pop, ret sequence
         stack_push(proxy_stack, &entry, sizeof(uintptr_t));
         // esi, edi, ebx, ebp
         stack_push(proxy_stack, &zero /* esi */, sizeof(uintptr_t));

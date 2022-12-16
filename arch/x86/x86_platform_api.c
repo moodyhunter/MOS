@@ -53,6 +53,13 @@ void platform_irq_handler_remove(u32 irq, irq_handler handler)
     MOS_UNUSED(handler);
 }
 
+paging_handle_t platform_mm_get_kernel_pgd()
+{
+    paging_handle_t handle;
+    handle.ptr = (uintptr_t) x86_kpg_infra->pgdir;
+    return handle;
+}
+
 paging_handle_t platform_mm_create_user_pgd(void)
 {
     vmblock_t block = pg_page_alloc(x86_kpg_infra, ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE, PGALLOC_HINT_KHEAP, VM_RW);

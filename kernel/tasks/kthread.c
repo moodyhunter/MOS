@@ -3,12 +3,27 @@
 #include "mos/tasks/kthread.h"
 
 #include "lib/structures/hashmap.h"
+#include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_types.h"
 #include "mos/tasks/thread.h"
 
 static process_t *kthreadd = NULL;
+
+typedef struct kthread_arg
+{
+    thread_entry_t entry;
+    void *arg;
+} kthread_arg_t;
+
+static void kthread_entry(void *arg)
+{
+    kthread_arg_t *kthread_arg = arg;
+    kthread_arg->entry(kthread_arg->arg);
+    kfree(kthread_arg);
+    thread_handle_exit(current_thread);
+}
 
 void kthread_init(void)
 {
@@ -19,6 +34,9 @@ void kthread_init(void)
 
 thread_t *kthread_create(thread_entry_t entry, void *arg, const char *name)
 {
-    thread_t *thread = thread_new(kthreadd, THREAD_MODE_KERNEL, name, entry, arg);
+    kthread_arg_t *kthread_arg = kzalloc(sizeof(kthread_arg_t));
+    kthread_arg->entry = entry;
+    kthread_arg->arg = arg;
+    thread_t *thread = thread_new(kthreadd, THREAD_MODE_KERNEL, name, kthread_entry, kthread_arg);
     return thread;
 }

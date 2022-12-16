@@ -125,6 +125,7 @@ bool platform_irq_handler_install(u32 irq, irq_handler handler);
 void platform_irq_handler_remove(u32 irq, irq_handler handler);
 
 // Platform Page Table APIs
+paging_handle_t platform_mm_get_kernel_pgd(void);
 paging_handle_t platform_mm_create_user_pgd(void);
 void platform_mm_destroy_user_pgd(paging_handle_t table);
 
