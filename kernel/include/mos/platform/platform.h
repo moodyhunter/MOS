@@ -117,6 +117,8 @@ noreturn void platform_shutdown(void);
 // Platform CPU APIs
 void platform_halt_cpu(void);
 u32 platform_current_cpu_id(void);
+void platform_msleep(u64 ms);
+void platform_usleep(u64 us);
 
 // Platform Interrupt APIs
 void platform_interrupt_enable(void);

@@ -6,6 +6,7 @@
 #include "mos/platform/platform.h"
 #include "mos/x86/acpi/acpi.h"
 #include "mos/x86/cpu/cpu.h"
+#include "mos/x86/delays.h"
 #include "mos/x86/devices/port.h"
 #include "mos/x86/mm/paging.h"
 #include "mos/x86/mm/paging_impl.h"
@@ -29,6 +30,16 @@ void platform_halt_cpu(void)
 u32 platform_current_cpu_id(void)
 {
     return x86_cpu_get_id();
+}
+
+void platform_msleep(u64 ms)
+{
+    mdelay(ms);
+}
+
+void platform_usleep(u64 us)
+{
+    udelay(us);
 }
 
 void platform_interrupt_enable(void)
