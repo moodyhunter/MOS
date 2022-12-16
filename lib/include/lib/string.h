@@ -4,9 +4,9 @@
 #include "mos/types.h"
 
 /**
- * \defgroup libs_std_string libs.String
- * \ingroup libs
- * \brief String manipulation functions, similar to the ones in the C standard library.
+ * @defgroup libs_std_string libs.String
+ * @ingroup libs
+ * @brief String manipulation functions, similar to the ones in the C standard library.
  * @{
  */
 

@@ -3,9 +3,9 @@
 #include "mos/types.h"
 
 /**
- * \defgroup libs_hashmap libs.HashMap
- * \ingroup libs
- * \brief A simple hashmap.
+ * @defgroup libs_hashmap libs.HashMap
+ * @ingroup libs
+ * @brief A simple hashmap.
  * @{
  */
 

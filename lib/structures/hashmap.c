@@ -33,12 +33,12 @@ void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, has
 }
 
 /**
- * \brief Deinitialize a hashmap.
- * \pre The hashmap must be initialized.
- * \pre The hashmap should be empty, otherwise the entries will be leaked.
- * \warning This function does not free the hashmap itself, nor does it free the keys or values, but only the internal data structures.
+ * @brief Deinitialize a hashmap.
+ * @pre The hashmap must be initialized.
+ * @pre The hashmap should be empty, otherwise the entries will be leaked.
+ * @warning This function does not free the hashmap itself, nor does it free the keys or values, but only the internal data structures.
  *
- * \param map The hashmap to deinitialize.
+ * @param map The hashmap to deinitialize.
  */
 void hashmap_deinit(hashmap_t *map)
 {

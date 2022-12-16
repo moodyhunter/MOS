@@ -14,7 +14,7 @@ typedef struct tree_node
 } tree_node_t;
 
 /**
- * \brief Embed a tree node into a struct
+ * @brief Embed a tree node into a struct
  */
 #define as_tree tree_node_t tree_node
 

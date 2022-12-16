@@ -8,9 +8,9 @@
 #include <stddef.h>
 
 /**
- * \defgroup libs_stdlib libs.Stdlib
- * \ingroup libs
- * \brief Some standard library functions.
+ * @defgroup libs_stdlib libs.Stdlib
+ * @ingroup libs
+ * @brief Some standard library functions.
  * @{
  */
 

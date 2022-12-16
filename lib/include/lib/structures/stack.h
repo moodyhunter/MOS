@@ -5,9 +5,9 @@
 #include "mos/types.h"
 
 /**
- * \defgroup down_stack libs.DownStack
- * \ingroup libs
- * \brief A stack that grows down.
+ * @defgroup down_stack libs.DownStack
+ * @ingroup libs
+ * @brief A stack that grows down.
  * @{
  */
 typedef struct _downwards_stack_t

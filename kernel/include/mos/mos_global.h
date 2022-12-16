@@ -57,7 +57,7 @@
 #define MOS_FOURCC(a, b, c, d) ((u32) (a) | ((u32) (b) << 8) | ((u32) (c) << 16) | ((u32) (d) << 24))
 
 /**
- * \brief Returns true for the first call, false for all subsequent calls.
+ * @brief Returns true for the first call, false for all subsequent calls.
  */
 #define once()                                                                                                                                                           \
     __extension__({                                                                                                                                                      \

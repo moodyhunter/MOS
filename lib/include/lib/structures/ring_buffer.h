@@ -6,9 +6,9 @@
 #include "mos/types.h"
 
 /**
- * \defgroup ringbuffer libs.RingBuffer
- * \ingroup libs
- * \brief A ring buffer.
+ * @defgroup ringbuffer libs.RingBuffer
+ * @ingroup libs
+ * @brief A ring buffer.
  * @{
  */
 

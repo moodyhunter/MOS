@@ -5,8 +5,8 @@
 #include "mos/types.h"
 
 /**
- * \defgroup libs MOS Libraries
- * \brief A platform-independent library of useful data structures and functions.
+ * @defgroup libs MOS Libraries
+ * @brief A platform-independent library of useful data structures and functions.
  * @{
  */
 

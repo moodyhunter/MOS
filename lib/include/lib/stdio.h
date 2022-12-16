@@ -7,9 +7,9 @@
 #include <stddef.h>
 
 /**
- * \defgroup libs_stdio libs.Stdio
- * \ingroup libs
- * \brief Standard input/output functions.
+ * @defgroup libs_stdio libs.Stdio
+ * @ingroup libs
+ * @brief Standard input/output functions.
  * @{
  */
 

@@ -3,16 +3,16 @@
 #pragma once
 
 /**
- * \defgroup libs_ansicolors libs.AnsiColors
- * \ingroup libs
- * \brief ANSI color codes.
+ * @defgroup libs_ansicolors libs.AnsiColors
+ * @ingroup libs
+ * @brief ANSI color codes.
  * @{
  */
 
 /**
- * \brief ANSI color codes creator.
+ * @brief ANSI color codes creator.
  *
- * \details
+ * @details
  * Usage:
  * - a foreground color: ANSI_COLOR(foreground)
  * - a foreground color with style: ANSI_COLOR(foreground, style)
