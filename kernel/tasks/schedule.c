@@ -97,5 +97,7 @@ void reschedule(void)
     MOS_ASSERT(cpu->thread->state != THREAD_STATE_READY);
     if (cpu->thread->state == THREAD_STATE_RUNNING)
         cpu->thread->state = THREAD_STATE_READY;
-    platform_switch_to_scheduler(&cpu->thread->stack.head, cpu->scheduler_stack);
+
+    // update k_stack because we are now running on the kernel stack
+    platform_switch_to_scheduler(&cpu->thread->k_stack.head, cpu->scheduler_stack);
 }

@@ -179,9 +179,9 @@ bool platform_mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr)
     return pg_page_get_is_mapped(kpg_infra, vaddr);
 }
 
-void platform_context_setup(thread_t *thread, downwards_stack_t *proxy_stack, thread_entry_t entry, void *arg)
+void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg)
 {
-    x86_setup_thread_context(thread, proxy_stack, entry, arg);
+    x86_setup_thread_context(thread, entry, arg);
 }
 
 void platform_context_copy(platform_context_t *from, platform_context_t **to)

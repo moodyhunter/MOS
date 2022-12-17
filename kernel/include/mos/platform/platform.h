@@ -72,6 +72,7 @@ typedef enum
 typedef struct
 {
     uintptr_t instruction;
+    uintptr_t stack;
 } __packed platform_context_t;
 
 typedef struct
@@ -143,7 +144,7 @@ vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr);
 bool platform_mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr);
 
 // Platform Thread / Process APIs
-void platform_context_setup(thread_t *thread, downwards_stack_t *proxy_stack, thread_entry_t entry, void *arg);
+void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg);
 void platform_context_copy(platform_context_t *from, platform_context_t **to);
 
 // Platform Context Switching APIs

@@ -64,35 +64,24 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
     // Kernel stack
     const pgalloc_hints kstack_hint = (tmode == THREAD_MODE_KERNEL) ? PGALLOC_HINT_KHEAP : PGALLOC_HINT_STACK;
     const vmblock_t kstack_blk = platform_mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_KERNEL, kstack_hint, VM_RW);
-    stack_init(&t->kernel_stack, (void *) kstack_blk.vaddr, kstack_blk.npages * MOS_PAGE_SIZE);
+    stack_init(&t->k_stack, (void *) kstack_blk.vaddr, kstack_blk.npages * MOS_PAGE_SIZE);
     process_attach_mmap(owner, kstack_blk, VMTYPE_KSTACK, MMAP_DEFAULT);
 
     if (tmode == THREAD_MODE_USER)
     {
-        // allcate stack for the thread
         // TODO: change [platform_mm_alloc_pages] to [mm_alloc_zeroed_pages] once
         const vmblock_t ustack_blk = platform_mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_USER, PGALLOC_HINT_STACK, VM_USER_RW);
-        stack_init(&t->stack, (void *) ustack_blk.vaddr, MOS_STACK_PAGES_USER * MOS_PAGE_SIZE);
         process_attach_mmap(owner, ustack_blk, VMTYPE_STACK, MMAP_DEFAULT);
 
-        // we cannot access the stack until we switch to its address space, so we
-        // map the stack into current kernel's address space, making a proxy stack for it
-        // TODO: any way to avoid this?
-        // TODO: possibly jumps back to a kernel function to do this (when switching to the correct address space)
-        const vmblock_t ustack_proxy = mm_map_proxy_space(owner->pagetable, ustack_blk.vaddr, ustack_blk.npages);
-        downwards_stack_t proxy_stack;
-        stack_init(&proxy_stack, (void *) ustack_proxy.vaddr, ustack_proxy.npages * MOS_PAGE_SIZE);
-        platform_context_setup(t, &proxy_stack, entry, arg);
-        t->stack.head -= proxy_stack.top - proxy_stack.head;
-        mm_unmap_proxy_space(ustack_proxy);
+        stack_init(&t->u_stack, (void *) ustack_blk.vaddr, MOS_STACK_PAGES_USER * MOS_PAGE_SIZE);
     }
     else
     {
-        // kernel thread
-        stack_init(&t->stack, NULL, 0);
-        platform_context_setup(t, &t->kernel_stack, entry, arg);
+        // kernel thread has no user stack
+        stack_init(&t->u_stack, NULL, 0);
     }
 
+    platform_context_setup(t, entry, arg);
     hashmap_put(thread_table, &t->tid, t);
     process_attach_thread(owner, t);
 

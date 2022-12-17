@@ -82,8 +82,8 @@ typedef struct _thread
     const char *name;
     thread_status_t state;
     process_t *owner;
-    downwards_stack_t stack;
-    downwards_stack_t kernel_stack;
+    downwards_stack_t u_stack;
+    downwards_stack_t k_stack;
     platform_context_t *context;
     thread_mode mode;
     wait_condition_t *waiting_condition;
