@@ -63,6 +63,7 @@ process_t *process_handle_fork(process_t *parent)
         thread_t *child_thread = thread_allocate(child, parent_thread->mode);
         child_thread->stack = parent_thread->stack;
         child_thread->kernel_stack = parent_thread->kernel_stack;
+        child_thread->name = duplicate_string(parent_thread->name, strlen(parent_thread->name));
         child_thread->state = THREAD_STATE_CREATED;
         platform_context_copy(parent_thread->context, &child_thread->context);
 
