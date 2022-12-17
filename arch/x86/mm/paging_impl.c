@@ -118,7 +118,9 @@ vmblock_t pg_page_get_free(x86_pg_infra_t *pg, size_t n_pages, pgalloc_hints hin
 
     // sanity check: if we are not asked to allocate in kernel space, we should not be doing so (?)
     if (hints != PGALLOC_HINT_KHEAP)
-        MOS_ASSERT_X(vaddr < MOS_KERNEL_START_VADDR, "make up your mind to allocate in kernel space!");
+    {
+        MOS_ASSERT_X((vaddr + n_pages * MOS_PAGE_SIZE) < MOS_KERNEL_START_VADDR, "allocating in kernel space!");
+    }
 
     return (vmblock_t){ .vaddr = vaddr, .npages = n_pages };
 }
