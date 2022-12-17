@@ -227,21 +227,25 @@ static void x86_handle_exception(x86_stack_frame *stack)
             if (fault_address < 1 KB)
             {
                 x86_dump_registers(stack);
-                mos_panic("%s NULL pointer dereference at " PTR_FMT " caused by instruction " PTR_FMT ".\n",
+                mos_panic("%s NULL pointer dereference at " PTR_FMT " caused by instruction " PTR_FMT,
                           is_user ? "User" : "Kernel",       //
                           fault_address,                     //
                           (uintptr_t) stack->iret_params.eip //
                 );
             }
 
-            if (current_thread)
+            thread_t *current = current_thread;
+
+            if (current)
             {
-                pr_emph("page fault: thread %d, process %s (pid %d) at " PTR_FMT ", instruction " PTR_FMT, //
-                        current_thread->tid,                                                               //
-                        current_process->name,                                                             //
-                        current_process->pid,                                                              //
-                        fault_address,                                                                     //
-                        (uintptr_t) stack->iret_params.eip                                                 //
+                pr_emph("%s page fault: thread %d (%s), process %d (%s) at " PTR_FMT ", instruction " PTR_FMT, //
+                        is_user ? "user" : "kernel",                                                           //
+                        current->tid,                                                                          //
+                        current->name,                                                                         //
+                        current->owner->pid,                                                                   //
+                        current->owner->name,                                                                  //
+                        fault_address,                                                                         //
+                        (uintptr_t) stack->iret_params.eip                                                     //
                 );
                 bool result = cow_handle_page_fault(fault_address, present, is_write, is_user, is_exec);
 
