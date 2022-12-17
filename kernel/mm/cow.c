@@ -29,15 +29,6 @@ static void copy_cow_pages_inplace(uintptr_t vaddr, size_t npages)
     for (size_t j = 0; j < npages; j++)
     {
         const uintptr_t current_page = vaddr + j * MOS_PAGE_SIZE;
-        bool mapped = platform_mm_get_is_mapped(pg_handle, current_page);
-        if (!mapped)
-        {
-            // in the case where this page is not mapped, it means the original page was "made-up"
-            // (consider the case where user heap is grown immediately after a fork)
-            // we just allocate a new page, (since there's no 'original' page to copy from)
-            platform_mm_alloc_pages_at(pg_handle, current_page, 1, flags);
-            continue;
-        }
         memcpy(pagetmp, (void *) current_page, MOS_PAGE_SIZE);
         platform_mm_unmap_pages(pg_handle, current_page, 1);
         platform_mm_alloc_pages_at(pg_handle, current_page, 1, flags | VM_WRITE);
@@ -54,6 +45,9 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
     if (!current_thread)
         return false;
 
+    if (!present)
+        return false;
+
     if (!is_write)
         return false;
 
@@ -61,7 +55,9 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
         mos_panic("Cannot write and execute at the same time");
 
     process_t *current_proc = current_process;
+#if MOS_DEBUG
     process_dump_mmaps(current_proc);
+#endif
 
     for (ssize_t i = 0; i < current_proc->mmaps_count; i++)
     {
@@ -72,16 +68,37 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
         if (fault_addr < block_start || fault_addr >= block_end)
             continue;
 
-        if (!(current_proc->mmaps[i].map_flags & MMAP_COW))
-            mos_panic("%s page fault (%s) in non-cow mapped region", is_user ? "User" : "Kernel", is_write ? "write" : "read");
+        proc_vmblock_t *mmap = &current_proc->mmaps[i];
 
-        pr_info2("CoW page fault in block %ld", i);
+        const bool is_cow = mmap->map_flags & MMAP_COW;
+        const bool is_zero_on_demand = mmap->map_flags & MMAP_ZERO_ON_DEMAND;
         mos_debug("fault_addr=" PTR_FMT ", vmblock=" PTR_FMT "-" PTR_FMT, fault_addr, vm.vaddr, vm.vaddr + vm.npages * MOS_PAGE_SIZE);
 
-        copy_cow_pages_inplace(vm.vaddr, vm.npages);
-        platform_mm_flag_pages(current_proc->pagetable, vm.vaddr, vm.npages, vm.flags);
-        current_proc->mmaps[i].map_flags &= ~MMAP_COW;
-        return true;
+        if (is_zero_on_demand)
+        {
+            pr_emph("Zero-on-demand page fault in block %ld", i);
+            // TODO: only allocate the page where the fault happened
+            platform_mm_unmap_pages(current_proc->pagetable, vm.vaddr, vm.npages);
+            platform_mm_alloc_pages_at(current_proc->pagetable, vm.vaddr, vm.npages, vm.flags);
+            memzero((void *) vm.vaddr, MOS_PAGE_SIZE * vm.npages);
+            current_proc->mmaps[i].map_flags &= ~MMAP_ZERO_ON_DEMAND;
+            mos_debug("ZoD resolved");
+            return true;
+        }
+        else if (is_cow)
+        {
+            pr_emph("CoW page fault in block %ld", i);
+            // TODO: only copy the page where the fault happened
+            copy_cow_pages_inplace(vm.vaddr, vm.npages);
+            platform_mm_flag_pages(current_proc->pagetable, vm.vaddr, vm.npages, vm.flags);
+            current_proc->mmaps[i].map_flags &= ~MMAP_COW;
+            mos_debug("CoW resolved");
+            return true;
+        }
+        else
+        {
+            mos_panic("%s page fault (%s) in non-cow mapped region", is_user ? "User" : "Kernel", is_write ? "write" : "read");
+        }
     }
 
     pr_emph("page fault in unmapped region: " PTR_FMT, fault_addr);

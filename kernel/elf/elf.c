@@ -206,7 +206,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
         if (sh->header_type == ELF_SH_T_NOBITS)
         {
             vmblock_t zero_block = mm_alloc_zeroed_pages_at(proc->pagetable, first_unmapped_addr, pages_to_map, map_flags);
-            process_attach_mmap(proc, zero_block, VMTYPE_APPDATA_ZERO, MMAP_COW); // zero-fill-on-demand is CoW
+            process_attach_mmap(proc, zero_block, VMTYPE_APPDATA_ZERO, MMAP_ZERO_ON_DEMAND);
         }
         else
         {

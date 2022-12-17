@@ -250,10 +250,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
                 bool result = cow_handle_page_fault(fault_address, present, is_write, is_user, is_exec);
 
                 if (result)
-                {
-                    pr_emph("page fault: resolved by CoW");
                     return;
-                }
             }
 
             if (is_user && !is_write && present)
