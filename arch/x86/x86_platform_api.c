@@ -79,9 +79,6 @@ paging_handle_t platform_mm_create_user_pgd(void)
     paging_handle_t handle;
     handle.ptr = (uintptr_t) infra;
 
-    // pg_do_map_pages(infra, 0, 0, 1, VM_NONE); // ! the zero page is not writable, nor readable by user
-    pg_do_map_pages(infra, MOS_PAGE_SIZE, MOS_PAGE_SIZE, 1 MB / MOS_PAGE_SIZE - 1, VM_GLOBAL | VM_WRITE);
-
     // physical address of kernel page table
     const uintptr_t kpgtable_paddr = pg_page_get_mapped_paddr(x86_kpg_infra, (uintptr_t) x86_kpg_infra->pgtable);
 
