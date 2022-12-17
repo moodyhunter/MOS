@@ -14,6 +14,7 @@ void shm_init(void)
 
 shm_block_t shm_allocate(process_t *owner, size_t npages, mmap_flags flags, vm_flags vmflags)
 {
+    // TODO: add tracking of shared memory blocks
     pr_info2("allocating %zu SHM pages in address space " PTR_FMT, npages, owner->pagetable.ptr);
     vmblock_t block = platform_mm_alloc_pages(owner->pagetable, npages, PGALLOC_HINT_MMAP, vmflags);
     process_attach_mmap(owner, block, VMTYPE_SHM, flags);
