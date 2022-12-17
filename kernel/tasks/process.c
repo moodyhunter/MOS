@@ -33,8 +33,7 @@ static pid_t new_process_id(void)
 
 process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
 {
-    process_t *proc = kmalloc(sizeof(process_t));
-    memzero(proc, sizeof(process_t));
+    process_t *proc = kzalloc(sizeof(process_t));
 
     proc->magic = PROCESS_MAGIC_PROC;
 
@@ -81,8 +80,7 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
 
 void process_init(void)
 {
-    process_table = kmalloc(sizeof(hashmap_t));
-    memset(process_table, 0, sizeof(hashmap_t));
+    process_table = kzalloc(sizeof(hashmap_t));
     hashmap_init(process_table, PROCESS_HASHTABLE_SIZE, process_hash, process_equal);
 }
 

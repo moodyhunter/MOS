@@ -32,7 +32,7 @@ static tid_t new_thread_id()
 
 thread_t *thread_allocate(process_t *owner, thread_mode tflags)
 {
-    thread_t *t = kmalloc(sizeof(thread_t));
+    thread_t *t = kzalloc(sizeof(thread_t));
     t->magic = THREAD_MAGIC_THRD;
     t->tid = new_thread_id();
     t->owner = owner;
@@ -45,8 +45,7 @@ thread_t *thread_allocate(process_t *owner, thread_mode tflags)
 
 void thread_init()
 {
-    thread_table = kmalloc(sizeof(hashmap_t));
-    memset(thread_table, 0, sizeof(hashmap_t));
+    thread_table = kzalloc(sizeof(hashmap_t));
     hashmap_init(thread_table, THREAD_HASHTABLE_SIZE, hashmap_thread_hash, hashmap_thread_equal);
 }
 
