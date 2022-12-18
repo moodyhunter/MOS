@@ -30,7 +30,7 @@ void x86_mm_prepare_paging()
     mos_debug("paging: provided size: 0x%zu, minimum required size: 0x%zu", paging_area_size, sizeof(x86_pg_infra_t));
 
     // initialize the page directory
-    memset(x86_kpg_infra, 0, sizeof(x86_pg_infra_t));
+    memzero(x86_kpg_infra, sizeof(x86_pg_infra_t));
 
     pr_info("paging: setting up physical memory freelist...");
     pmem_freelist_setup(x86_kpg_infra);
