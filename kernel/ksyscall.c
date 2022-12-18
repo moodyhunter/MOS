@@ -262,19 +262,19 @@ bool define_syscall(mutex_acquire)(bool *mutex)
 {
     MOS_ASSERT(current_thread);
 
-    if (*mutex == MUTEX_UNLOCKED) // TODO: this is unsafe in SMP
+    if (__sync_bool_compare_and_swap(mutex, MUTEX_UNLOCKED, MUTEX_LOCKED)) // if the mutex is unlocked, lock it
     {
         pr_info2("mutex_acquire: tid %d acquires a free lock at " PTR_FMT, current_thread->tid, (uintptr_t) mutex);
-        *mutex = MUTEX_LOCKED;
         return true;
     }
 
     pr_info2("mutex_acquire: tid %d blocks on a locked lock at " PTR_FMT, current_thread->tid, (uintptr_t) mutex);
 
+    // TODO: this uses a user pointer, which will DEFINITELY cause problems when we have multiple processes
     wait_condition_t *wc = wc_wait_for_mutex(mutex);
     reschedule_for_wait_condition(wc);
     pr_info2("mutex_acquire: tid %d unblocks and acquires a lock at " PTR_FMT, current_thread->tid, (uintptr_t) mutex);
-    *mutex = MUTEX_LOCKED;
+    __atomic_store_n(mutex, MUTEX_LOCKED, __ATOMIC_SEQ_CST);
     return true;
 }
 
@@ -282,17 +282,16 @@ bool define_syscall(mutex_release)(bool *mutex)
 {
     MOS_ASSERT(current_thread);
 
-    if (*mutex == MUTEX_LOCKED)
-    {
-        // TODO: this is unsafe in SMP
-        pr_info2("mutex_release: tid %d releases a lock at " PTR_FMT, current_thread->tid, (uintptr_t) mutex);
-        *mutex = MUTEX_UNLOCKED;
-        return true;
-    }
-    else
+    if (__atomic_load_n(mutex, __ATOMIC_SEQ_CST) == MUTEX_UNLOCKED)
     {
         pr_warn("mutex_release: tid %d tried to release a lock at " PTR_FMT " but it was already unlocked", current_thread->tid, (uintptr_t) mutex);
         return false;
+    }
+
+    if (__sync_bool_compare_and_swap(mutex, MUTEX_LOCKED, MUTEX_UNLOCKED)) // if the mutex is locked, unlock it
+    {
+        pr_info2("mutex_release: tid %d releases a lock at " PTR_FMT, current_thread->tid, (uintptr_t) mutex);
+        return true;
     }
 
     return false;
