@@ -39,6 +39,7 @@ add_library(mos::basic_include ALIAS mos_kernel_basic_include)
 add_library(mos::platform_include ALIAS mos_kernel_platform_include)
 
 set(MOS_STANDARD_LIBRARY_SOURCES
+    lib/structures/bitmap.c
     lib/structures/hashmap.c
     lib/structures/hashmap_common.c
     lib/structures/list.c

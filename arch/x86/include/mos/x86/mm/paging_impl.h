@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "lib/structures/bitmap.h"
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/types.h"
@@ -44,10 +45,7 @@ typedef volatile struct
 
 static_assert(sizeof(x86_pgdir_entry) == 4, "page_directory_entry is not 4 bytes");
 
-typedef u32 pagemap_line_t;
-
-#define PAGEMAP_WIDTH    (sizeof(pagemap_line_t) * 8)
-#define MM_PAGE_MAP_SIZE (X86_MAX_MEM_SIZE / MOS_PAGE_SIZE / PAGEMAP_WIDTH)
+#define X86_MM_PAGEMAP_NLINES ALIGN_UP(X86_MAX_MEM_SIZE / MOS_PAGE_SIZE / BITMAP_LINE_BITS, BITMAP_LINE_BITS)
 
 // !! FIXME: This is HUGE for a process, consider allocate it on demand
 // !! FIXME: This is HUGE for a process, consider allocate it on demand
@@ -56,7 +54,7 @@ typedef struct x86_pg_infra_t
 {
     x86_pgdir_entry pgdir[1024];
     x86_pgtable_entry pgtable[1024 * 1024];
-    pagemap_line_t page_map[MM_PAGE_MAP_SIZE];
+    bitmap_line_t page_map[X86_MM_PAGEMAP_NLINES];
 } x86_pg_infra_t;
 
 always_inline x86_pg_infra_t *x86_get_pg_infra(paging_handle_t table)
