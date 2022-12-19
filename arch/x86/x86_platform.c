@@ -181,15 +181,14 @@ void x86_start_kernel(x86_startup_info *info)
 
     pr_info("Parsing ACPI tables...");
     x86_acpi_init();
-    acpi_parse_madt();
 
     pr_info("Initializing APICs...");
+    acpi_parse_madt();
     lapic_memory_setup();
     lapic_enable();
     ioapic_init();
 
     pr_info("Starting APs...");
-    cpuid_print_cpu_info();
     x86_platform.boot_cpu_id = lapic_get_id();
     per_cpu(x86_platform.cpu)->id = lapic_get_id();
     x86_smp_init();
