@@ -111,10 +111,18 @@ typedef struct
     PER_CPU_DECLARE(cpu_t, cpu);
 
     vmblock_t k_code, k_rwdata, k_rodata;
-    size_t num_mem_regions;
-    memregion_t mem_regions[MOS_MAX_SUPPORTED_MEMREGION];
-    size_t available_mem_bytes, total_mem_bytes;
 
+    struct
+    {
+        size_t count;
+        memregion_t regions[MOS_MAX_SUPPORTED_MEMREGION];
+    } mem_regions;
+
+    struct
+    {
+        size_t available;
+        size_t total;
+    } mem;
     paging_handle_t kernel_pgd;
 } mos_platform_info_t;
 

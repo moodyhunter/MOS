@@ -25,7 +25,7 @@ static size_t pmlist_count = 0;
 
 static size_t freelist_size()
 {
-    return ALIGN_UP_TO_PAGE(PMEM_FREELIST_SIZE_FOR(platform_info->available_mem_bytes));
+    return ALIGN_UP_TO_PAGE(PMEM_FREELIST_SIZE_FOR(platform_info->mem.available));
 }
 
 void mos_pmalloc_setup(void)
@@ -36,9 +36,9 @@ void mos_pmalloc_setup(void)
     memzero(pmlist_head, list_size);
 
     // add current physical memory region to the freelist
-    for (size_t i = 0; i < platform_info->num_mem_regions; i++)
+    for (size_t i = 0; i < platform_info->mem_regions.count; i++)
     {
-        memregion_t *r = &platform_info->mem_regions[i];
+        memregion_t *r = &platform_info->mem_regions.regions[i];
         if (!r->available)
             continue;
 

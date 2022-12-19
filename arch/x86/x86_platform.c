@@ -163,12 +163,12 @@ void x86_start_kernel(x86_startup_info *info)
 
     // ! map the bios memory area, should it be done like this?
     pr_info("mapping bios memory area...");
-    for (u32 i = 0; i < x86_platform.num_mem_regions; i++)
+    for (u32 i = 0; i < x86_platform.mem_regions.count; i++)
     {
-        if (x86_platform.mem_regions[i].address != info->bios_region_start)
+        if (x86_platform.mem_regions.regions[i].address != info->bios_region_start)
             continue;
 
-        memregion_t *bios_block = &x86_platform.mem_regions[i];
+        memregion_t *bios_block = &x86_platform.mem_regions.regions[i];
         vmblock_t bios_vmblock = (vmblock_t){
             .npages = bios_block->size_bytes / MOS_PAGE_SIZE,
             .vaddr = BIOS_VADDR(bios_block->address),

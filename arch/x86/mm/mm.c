@@ -8,24 +8,24 @@
 
 static void mem_add_region(u64 phys_addr, size_t size, bool available)
 {
-    if (x86_platform.num_mem_regions >= MOS_MAX_SUPPORTED_MEMREGION)
+    if (x86_platform.mem_regions.count >= MOS_MAX_SUPPORTED_MEMREGION)
         mos_panic("too many memory regions added.");
 
-    memregion_t *block = &x86_platform.mem_regions[x86_platform.num_mem_regions++];
+    memregion_t *block = &x86_platform.mem_regions.regions[x86_platform.mem_regions.count++];
     block->address = phys_addr;
     block->size_bytes = size;
     block->available = available;
 
     if (available)
-        x86_platform.available_mem_bytes += size;
-    x86_platform.total_mem_bytes += size;
+        x86_platform.mem.available += size;
+    x86_platform.mem.available += size;
 }
 
 void x86_mem_init(const multiboot_memory_map_t *map_entry, u32 count)
 {
-    x86_platform.num_mem_regions = 0;
-    x86_platform.available_mem_bytes = 0;
-    x86_platform.total_mem_bytes = 0;
+    x86_platform.mem_regions.count = 0;
+    x86_platform.mem.total = 0;
+    x86_platform.mem.available = 0;
 
     pr_info("Multiboot memory map:");
     for (u32 i = 0; i < count; i++)
@@ -71,8 +71,8 @@ void x86_mem_init(const multiboot_memory_map_t *map_entry, u32 count)
     char buf[SIZE_BUF_LEN];
     char buf_available[SIZE_BUF_LEN];
     char buf_unavailable[SIZE_BUF_LEN];
-    format_size(buf, sizeof(buf), x86_platform.total_mem_bytes);
-    format_size(buf_available, sizeof(buf_available), x86_platform.available_mem_bytes);
-    format_size(buf_unavailable, sizeof(buf_unavailable), x86_platform.total_mem_bytes - x86_platform.available_mem_bytes);
+    format_size(buf, sizeof(buf), x86_platform.mem.total);
+    format_size(buf_available, sizeof(buf_available), x86_platform.mem.available);
+    format_size(buf_unavailable, sizeof(buf_unavailable), x86_platform.mem.total - x86_platform.mem.available);
     pr_info("Total Memory: %s (%s available, %s unavailable)", buf, buf_available, buf_unavailable);
 }
