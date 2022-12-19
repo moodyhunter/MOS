@@ -98,7 +98,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
         }
         else
         {
-            mos_panic("%s page fault (%s) in non-cow mapped region", is_user ? "User" : "Kernel", is_write ? "write" : "read");
+            pr_emerg("%s page fault (%s) in non-cow mapped region", is_user ? "User" : "Kernel", is_write ? "write" : "read");
         }
     }
 
