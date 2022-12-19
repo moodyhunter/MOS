@@ -85,11 +85,11 @@ void x86_kpanic_hook()
         x86_mm_dump_page_table(x86_get_pg_infra(current_process->pagetable));
         if (current_cpu->pagetable.pgd == current_process->pagetable.pgd)
             cpu_pagetable_source = "Current Process";
-        pr_emph("Kernel Page Table:");
-        x86_mm_dump_page_table(x86_kpg_infra);
     }
     else
     {
+        pr_emph("Kernel Page Table:");
+        x86_mm_dump_page_table(x86_kpg_infra);
     }
 
     if (cpu_pagetable_source)
