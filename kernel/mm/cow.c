@@ -56,6 +56,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
         mos_panic("Cannot write and execute at the same time");
 
     process_t *current_proc = current_process;
+    MOS_ASSERT_X(current_proc->pagetable.pgd == current_cpu->pagetable.pgd, "Page fault in a process that is not the current process?!");
 #if MOS_DEBUG
     process_dump_mmaps(current_proc);
 #endif
