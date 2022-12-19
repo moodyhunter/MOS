@@ -5,7 +5,7 @@
 #include "lib/structures/bitmap.h"
 #include "mos/constants.h"
 #include "mos/mm/kmalloc.h"
-#include "mos/mm/paging/pmem_freelist.h"
+#include "mos/mm/paging/pmalloc.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 
@@ -102,7 +102,7 @@ vmblock_t mm_alloc_pages(paging_handle_t table, size_t npages, pgalloc_hints hin
 
 vmblock_t mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t n_pages, vm_flags flags)
 {
-    uintptr_t paddr = pmem_freelist_allocate_free(n_pages);
+    uintptr_t paddr = pmalloc_alloc(n_pages);
     MOS_ASSERT_X(paddr != 0, "could not find free physical memory");
 
     vmblock_t block = { .vaddr = vaddr, .npages = n_pages, .paddr = paddr, .flags = flags };
@@ -113,12 +113,12 @@ vmblock_t mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t n_pag
 void mm_free_pages(paging_handle_t table, vmblock_t block)
 {
     mm_unmap_pages(table, block.vaddr, block.npages);
-    pmem_freelist_add_region(block.paddr, block.npages * MOS_PAGE_SIZE);
+    pmalloc_release_region(block.paddr, block.npages * MOS_PAGE_SIZE);
 }
 
 void mm_map_pages(paging_handle_t table, vmblock_t block)
 {
-    pmem_freelist_remove_region(block.paddr, block.npages * MOS_PAGE_SIZE);
+    pmalloc_acquire_region(block.paddr, block.npages * MOS_PAGE_SIZE);
     mm_map_allocated_pages(table, block);
 }
 

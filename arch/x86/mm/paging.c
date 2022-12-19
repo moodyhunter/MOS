@@ -3,13 +3,8 @@
 #include "mos/x86/mm/paging.h"
 
 #include "lib/string.h"
-#include "mos/constants.h"
-#include "mos/mm/kmalloc.h"
 #include "mos/mm/paging/paging.h"
-#include "mos/mm/paging/pmem_freelist.h"
-#include "mos/platform/platform.h"
 #include "mos/printk.h"
-#include "mos/x86/mm/mm.h"
 #include "mos/x86/mm/paging_impl.h"
 #include "mos/x86/x86_platform.h"
 

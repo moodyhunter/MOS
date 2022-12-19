@@ -6,7 +6,7 @@
 #include "mos/platform/platform.h"
 
 /**
- * @defgroup paging Platform-Independent Paging Interface
+ * @defgroup paging Paging
  * @ingroup mm
  * @brief This module provides a platform-independent interface to interact
  * with the paging subsystem, such as allocating and freeing pages, and

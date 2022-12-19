@@ -6,7 +6,7 @@
 #include "mos/constants.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging/paging.h"
-#include "mos/mm/paging/pmem_freelist.h"
+#include "mos/mm/paging/pmalloc.h"
 #include "mos/mos_global.h"
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
@@ -142,7 +142,7 @@ void x86_start_kernel(x86_startup_info *info)
     x86_mem_init(mb_info->mmap_addr, count);
 
     pr_info("paging: setting up physical memory freelist...");
-    mos_pmem_freelist_setup();
+    mos_pmalloc_setup();
 
     x86_mm_prepare_paging();
 
