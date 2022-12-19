@@ -198,19 +198,22 @@ void x86_start_kernel(x86_startup_info *info)
             mos_panic("RSDP not found");
     }
 
+    // find the RSDT and map the whole region it's in
     for (u32 i = 0; i < x86_platform.mem_regions.count; i++)
     {
-        memregion_t *this_block = &x86_platform.mem_regions.regions[i];
-        if (rsdp->v1.rsdt_addr >= this_block->address && rsdp->v1.rsdt_addr < this_block->address + this_block->size_bytes)
+        memregion_t *this_region = &x86_platform.mem_regions.regions[i];
+        if (rsdp->xsdt_addr)
+            mos_panic("XSDT not supported");
+        if (rsdp->v1.rsdt_addr >= this_region->address && rsdp->v1.rsdt_addr < this_region->address + this_region->size_bytes)
         {
             vmblock_t bios_vmblock = (vmblock_t){
-                .npages = this_block->size_bytes / MOS_PAGE_SIZE,
-                .vaddr = BIOS_VADDR(this_block->address),
+                .npages = this_region->size_bytes / MOS_PAGE_SIZE,
+                .vaddr = BIOS_VADDR(this_region->address),
                 .flags = VM_READ | VM_GLOBAL,
-                .paddr = this_block->address,
+                .paddr = this_region->address,
             };
-            mm_map_allocated_pages(current_cpu->pagetable, bios_vmblock);
-            this_block->address = BIOS_VADDR(this_block->address);
+            mm_map_allocated_pages(x86_platform.kernel_pgd, bios_vmblock);
+            this_region->address = BIOS_VADDR(this_region->address);
             break;
         }
     }
