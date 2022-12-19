@@ -13,7 +13,7 @@
 
 static bitmap_line_t kernel_page_map[MOS_PAGEMAP_KERNEL_LINES] = { 0 };
 
-void pagemap_use(page_map_t *map, uintptr_t vaddr, size_t n_pages)
+static void pagemap_mark_used(page_map_t *map, uintptr_t vaddr, size_t n_pages)
 {
     const bool is_kernel = vaddr >= MOS_KERNEL_START_VADDR;
     const uintptr_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
@@ -37,7 +37,7 @@ void pagemap_use(page_map_t *map, uintptr_t vaddr, size_t n_pages)
     }
 }
 
-void pagemap_free(page_map_t *map, uintptr_t vaddr, size_t n_pages)
+static void pagemap_mark_free(page_map_t *map, uintptr_t vaddr, size_t n_pages)
 {
     const bool is_kernel = vaddr >= MOS_KERNEL_START_VADDR;
     const uintptr_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
@@ -57,17 +57,6 @@ void pagemap_free(page_map_t *map, uintptr_t vaddr, size_t n_pages)
         MOS_ASSERT_X(is_set, "page " PTR_FMT " is already free", (pagemap_index + i) * MOS_PAGE_SIZE + pagemap_base);
         bitmap_clear(pagemap, pagemap_size_lines, pagemap_index + i);
     }
-}
-
-bool mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr)
-{
-    const bool is_kernel = vaddr >= MOS_KERNEL_START_VADDR;
-    const size_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
-    const size_t pagemap_size_lines = is_kernel ? MOS_PAGEMAP_KERNEL_LINES : MOS_PAGEMAP_USER_LINES;
-    const size_t pagemap_index = (vaddr - pagemap_base) / MOS_PAGE_SIZE;
-
-    bitmap_line_t *pagemap = is_kernel ? kernel_page_map : table.um_page_map->ummap;
-    return bitmap_get(pagemap, pagemap_size_lines, pagemap_index);
 }
 
 vmblock_t mm_get_free_pages(paging_handle_t table, size_t n_pages, pgalloc_hints hints)
@@ -121,6 +110,12 @@ vmblock_t mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t n_pag
     return block;
 }
 
+void mm_free_pages(paging_handle_t table, vmblock_t block)
+{
+    mm_unmap_pages(table, block.vaddr, block.npages);
+    pmem_freelist_add_region(block.paddr, block.npages * MOS_PAGE_SIZE);
+}
+
 void mm_map_pages(paging_handle_t table, vmblock_t block)
 {
     pmem_freelist_remove_region(block.paddr, block.npages * MOS_PAGE_SIZE);
@@ -129,27 +124,32 @@ void mm_map_pages(paging_handle_t table, vmblock_t block)
 
 void mm_map_allocated_pages(paging_handle_t table, vmblock_t block)
 {
-    pagemap_use(table.um_page_map, block.vaddr, block.npages);
+    pagemap_mark_used(table.um_page_map, block.vaddr, block.npages);
     platform_mm_map_pages(PGD_FOR_VADDR(block.vaddr, table), block);
 }
 
 void mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t npages)
 {
-    pagemap_free(table.um_page_map, vaddr, npages);
+    pagemap_mark_free(table.um_page_map, vaddr, npages);
     platform_mm_unmap_pages(PGD_FOR_VADDR(vaddr, table), vaddr, npages);
-}
-
-void mm_free_pages(paging_handle_t table, vmblock_t block)
-{
-    mm_unmap_pages(table, block.vaddr, block.npages);
-    pmem_freelist_add_region(block.paddr, block.npages * MOS_PAGE_SIZE);
 }
 
 vmblock_t mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages)
 {
-    pagemap_use(to.um_page_map, tvaddr, npages);
+    pagemap_mark_used(to.um_page_map, tvaddr, npages);
     vmblock_t block = platform_mm_copy_maps(PGD_FOR_VADDR(fvaddr, from), fvaddr, PGD_FOR_VADDR(tvaddr, to), tvaddr, npages);
     return block;
+}
+
+bool mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr)
+{
+    const bool is_kernel = vaddr >= MOS_KERNEL_START_VADDR;
+    const size_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
+    const size_t pagemap_size_lines = is_kernel ? MOS_PAGEMAP_KERNEL_LINES : MOS_PAGEMAP_USER_LINES;
+    const size_t pagemap_index = (vaddr - pagemap_base) / MOS_PAGE_SIZE;
+
+    bitmap_line_t *pagemap = is_kernel ? kernel_page_map : table.um_page_map->ummap;
+    return bitmap_get(pagemap, pagemap_size_lines, pagemap_index);
 }
 
 paging_handle_t mm_create_user_pgd()
