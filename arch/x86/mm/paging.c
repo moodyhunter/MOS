@@ -32,7 +32,6 @@ void x86_mm_enable_paging(void)
 
 #if MOS_DEBUG
     x86_mm_dump_page_table(x86_kpg_infra);
-    pmem_freelist_dump();
 #endif
 }
 
