@@ -134,11 +134,12 @@ void x86_start_kernel(x86_startup_info *info)
     x86_platform.k_rodata.paddr = (uintptr_t) &__MOS_KERNEL_RODATA_START - MOS_KERNEL_START_VADDR;
     x86_platform.k_rodata.flags = VM_GLOBAL | VM_READ;
 
+    console_register(&com1_console.console);
+    pr_info("mos_startup_info: initrd %zu bytes, mbinfo at: " PTR_FMT ", magic " PTR_FMT, info->initrd_size, (uintptr_t) info->mb_info, (uintptr_t) info->mb_magic);
+
     const multiboot_info_t *mb_info = info->mb_info;
     const uintptr_t initrd_size = info->initrd_size;
     const uintptr_t initrd_paddr = ((x86_pgtable_entry *) (((x86_pgdir_entry *) x86_get_cr3())[MOS_X86_INITRD_VADDR >> 22].page_table_paddr << 12))->phys_addr << 12;
-
-    console_register(&com1_console.console);
 
     x86_gdt_init();
     x86_idt_init();

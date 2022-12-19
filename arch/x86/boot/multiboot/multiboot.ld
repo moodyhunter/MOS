@@ -26,7 +26,7 @@ SECTIONS
         . += 4K;
         _mos_startup_PGTABLE = .;
         . += 512K;  /* ! 512 KiB paging area (aka 512MiB memory) */
-        . += 4K;
+        . += 4K;    /* ! 4 KiB for the stack */
         _mos_startup_stack = .;
         _mos_startup_END = .;
     }
