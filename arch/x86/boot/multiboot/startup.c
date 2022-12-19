@@ -2,12 +2,8 @@
 
 #include "mos/boot/startup.h"
 
+#include "lib/string.h"
 #include "mos/device/console.h"
-#include "mos/kconfig.h"
-#include "mos/mos_global.h"
-#include "mos/platform/platform.h"
-#include "mos/types.h"
-#include "mos/x86/acpi/acpi_types.h"
 #include "mos/x86/boot/multiboot.h"
 #include "mos/x86/mm/paging_impl.h"
 #include "mos/x86/x86_platform.h"
@@ -51,20 +47,20 @@ __startup_rwdata uintptr_t video_device_address = X86_VIDEO_DEVICE;
     {                                                                                                                                                                    \
         if (!unlikely(cond))                                                                                                                                             \
         {                                                                                                                                                                \
-            print_debug_info('E', type);                                                                                                                                 \
+            print_debug_info('E', type, Red, Gray);                                                                                                                      \
             while (1)                                                                                                                                                    \
                 __asm__("hlt");                                                                                                                                          \
         }                                                                                                                                                                \
     } while (0)
 
-#define debug_print_step() print_debug_info('S', step++)
+#define debug_print_step() print_debug_info('S', step++, LightGreen, Gray)
 
-__startup_code should_inline void print_debug_info(char a, char b)
+__startup_code should_inline void print_debug_info(char a, char b, char color1, char color2)
 {
     *((volatile char *) video_device_address + 0) = a;
-    *((volatile char *) video_device_address + 1) = LightMagenta;
+    *((volatile char *) video_device_address + 1) = color1;
     *((volatile char *) video_device_address + 2) = b;
-    *((volatile char *) video_device_address + 3) = Gray;
+    *((volatile char *) video_device_address + 3) = color2;
     *((volatile char *) video_device_address + 4) = '\0';
     *((volatile char *) video_device_address + 5) = White;
 }
@@ -189,23 +185,5 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
     video_device_address = BIOS_VADDR(X86_VIDEO_DEVICE);
     debug_print_step();
 
-    acpi_rsdp_t *rsdp = acpi_find_rsdp(BIOS_VADDR(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
-    if (!rsdp)
-        rsdp = acpi_find_rsdp(BIOS_VADDR(X86_BIOS_MEMREGION_PADDR), BIOS_MEMREGION_SIZE);
-    STARTUP_ASSERT(rsdp, 'R');
-
-    const multiboot_memory_map_t *map_entries = (multiboot_memory_map_t *) startup->mb_info->mmap_addr;
-    for (u32 i = 0; i < startup->mb_info->mmap_length / sizeof(multiboot_memory_map_t); i++)
-    {
-        u64 region_length = map_entries[i].len;
-        u64 region_base = map_entries[i].phys_addr;
-        if (rsdp->v1.rsdt_addr >= region_base && rsdp->v1.rsdt_addr < region_base + region_length)
-        {
-            mos_startup_map_bios(region_base, region_length, VM_NONE);
-            startup->bios_region_start = region_base;
-            break;
-        }
-    }
-
-    debug_print_step();
+    print_debug_info('O', 'k', Green, Green);
 }

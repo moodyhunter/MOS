@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/boot/startup.h"
 #include "mos/constants.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/mos_global.h"
@@ -12,6 +11,7 @@
 #include "mos/x86/interrupt/apic.h"
 #include "mos/x86/mm/paging.h"
 #include "mos/x86/mm/paging_impl.h"
+#include "mos/x86/x86_platform.h"
 
 #define APIC_REG_LAPIC_VERSION       0x30
 #define APIC_REG_PRIO_TASK           0x80
@@ -149,17 +149,13 @@ void lapic_memory_setup()
         base_addr = BIOS_VADDR(base_addr);
     }
 
-    // map both the current pagedir and x86_kpg_infra (because we are now using the former one)
-    mos_startup_map_bios(base_addr, 1 KB, VM_RW | VM_GLOBAL | VM_CACHE_DISABLED);
-
-    vmblock_t block = {
+    const vmblock_t lapic_block = {
         .vaddr = base_addr,
         .paddr = base_addr,
         .npages = 1,
         .flags = VM_RW | VM_GLOBAL | VM_CACHE_DISABLED,
     };
-    mm_map_allocated_pages(current_cpu->pagetable, block);
-
+    mm_map_allocated_pages(x86_platform.kernel_pgd, lapic_block);
     lapic_regs = (u32 *) base_addr;
 }
 
@@ -172,7 +168,7 @@ void lapic_enable()
     // The correct value for this field is
     // - the IRQ number that you want to map the spurious interrupts to within the lowest 8 bits, and
     // - the 8th bit set to 1
-    //  to actually enable the APIC
+    // to actually enable the APIC
     lapic_write32(APIC_REG_SPURIOUS_INTR_VEC, lapic_read32(APIC_REG_SPURIOUS_INTR_VEC) | (1 << 8));
 
     u32 current_cpu_id = lapic_read32(APIC_REG_LAPIC_ID);

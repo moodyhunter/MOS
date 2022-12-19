@@ -22,11 +22,6 @@ void x86_mm_prepare_paging()
 
     // initialize the page directory
     memzero(x86_kpg_infra, sizeof(x86_pg_infra_t));
-
-    pr_info("paging: mapping kernel space...");
-    mm_map_pages(current_cpu->pagetable, x86_platform.k_code);
-    mm_map_pages(current_cpu->pagetable, x86_platform.k_rodata);
-    mm_map_pages(current_cpu->pagetable, x86_platform.k_rwdata);
 }
 
 void x86_mm_enable_paging(void)

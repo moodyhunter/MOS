@@ -25,16 +25,9 @@ should_inline bool verify_sdt_checksum(acpi_sdt_header_t *tableHeader)
     return sum == 0;
 }
 
-void x86_acpi_init()
+void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
 {
-    acpi_rsdp_t *rsdp = acpi_find_rsdp(BIOS_VADDR(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
-    if (!rsdp)
-    {
-        rsdp = acpi_find_rsdp(BIOS_VADDR(X86_BIOS_MEMREGION_PADDR), BIOS_MEMREGION_SIZE);
-        if (!rsdp)
-            mos_panic("RSDP not found");
-    }
-
+    pr_info("Initializing ACPI with RSDP at " PTR_FMT, (uintptr_t) rsdp);
     // !! "MUST" USE XSDT IF FOUND !!
     if (rsdp->xsdt_addr)
         mos_panic("XSDT not supported");

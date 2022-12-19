@@ -30,6 +30,7 @@ static size_t freelist_size()
 
 void mos_pmalloc_setup(void)
 {
+    pr_info("Initializing Physical Memory Allocator");
     const size_t list_size = freelist_size();
     pr_info2("%zu bytes (aligned) required for physical memory freelist", list_size);
 

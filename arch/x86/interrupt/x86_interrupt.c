@@ -1,17 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "mos/x86/x86_interrupt.h"
 
-#include "lib/structures/list.h"
 #include "mos/mm/cow.h"
 #include "mos/mm/kmalloc.h"
-#include "mos/mos_global.h"
-#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/syscall/dispatcher.h"
-#include "mos/tasks/task_types.h"
 #include "mos/x86/devices/port.h"
 #include "mos/x86/interrupt/apic.h"
-#include "mos/x86/interrupt/pic.h"
 #include "mos/x86/tasks/context.h"
 #include "mos/x86/x86_platform.h"
 
@@ -56,8 +51,6 @@ typedef struct
     void (*handler)(u32 irq);
 } x86_irq_handler_t;
 
-static void x86_handle_irq(x86_stack_frame *frame);
-static void x86_handle_exception(x86_stack_frame *frame);
 list_node_t irq_handlers[IRQ_MAX_COUNT];
 
 void x86_irq_handler_init(void)
@@ -106,7 +99,7 @@ static void x86_dump_registers(x86_stack_frame *frame)
     );
 }
 
-void x86_handle_nmi(x86_stack_frame *frame)
+static void x86_handle_nmi(x86_stack_frame *frame)
 {
     pr_emph("NMI received");
 
@@ -129,40 +122,6 @@ void x86_handle_nmi(x86_stack_frame *frame)
 
     x86_dump_registers(frame);
     mos_panic("NMI received");
-}
-
-void x86_handle_interrupt(u32 esp)
-{
-    x86_stack_frame *frame = (x86_stack_frame *) esp;
-
-    thread_t *current = current_thread;
-    if (likely(current))
-    {
-        current->context->stack = frame->iret_params.esp;
-        x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
-        context->ebp = frame->ebp;
-        context->inner.instruction = frame->iret_params.eip;
-    }
-
-    if (frame->interrupt_number < IRQ_BASE)
-        x86_handle_exception(frame);
-    else if (frame->interrupt_number < MOS_SYSCALL_INTR)
-        x86_handle_irq(frame);
-    else if (frame->interrupt_number == MOS_SYSCALL_INTR)
-    {
-        frame->eax = (reg32_t) dispatch_syscall(frame->eax, frame->ebx, frame->ecx, frame->edx, frame->esi, frame->edi, frame->ebp); // "ebp?"
-    }
-    else
-    {
-        pr_warn("Unknown interrupt number: %d", frame->interrupt_number);
-    }
-
-    if (likely(current))
-    {
-        MOS_ASSERT_X(current->state == THREAD_STATE_RUNNING, "Thread %d is not in 'running' state", current->tid);
-    }
-
-    frame->iret_params.eflags |= 0x200; // enable interrupts
 }
 
 static void x86_handle_exception(x86_stack_frame *stack)
@@ -297,4 +256,38 @@ static void x86_handle_irq(x86_stack_frame *frame)
 
     if (unlikely(!irq_handled))
         pr_warn("IRQ %d not handled!", irq);
+}
+
+void x86_handle_interrupt(u32 esp)
+{
+    x86_stack_frame *frame = (x86_stack_frame *) esp;
+
+    thread_t *current = current_thread;
+    if (likely(current))
+    {
+        current->context->stack = frame->iret_params.esp;
+        x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
+        context->ebp = frame->ebp;
+        context->inner.instruction = frame->iret_params.eip;
+    }
+
+    if (frame->interrupt_number < IRQ_BASE)
+        x86_handle_exception(frame);
+    else if (frame->interrupt_number < MOS_SYSCALL_INTR)
+        x86_handle_irq(frame);
+    else if (frame->interrupt_number == MOS_SYSCALL_INTR)
+    {
+        frame->eax = (reg32_t) dispatch_syscall(frame->eax, frame->ebx, frame->ecx, frame->edx, frame->esi, frame->edi, frame->ebp); // "ebp?"
+    }
+    else
+    {
+        pr_warn("Unknown interrupt number: %d", frame->interrupt_number);
+    }
+
+    if (likely(current))
+    {
+        MOS_ASSERT_X(current->state == THREAD_STATE_RUNNING, "Thread %d is not in 'running' state", current->tid);
+    }
+
+    frame->iret_params.eflags |= 0x200; // enable interrupts
 }

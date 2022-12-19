@@ -48,7 +48,6 @@ typedef struct
     u32 mb_magic;
     multiboot_info_t *mb_info;
     size_t initrd_size;
-    uintptr_t bios_region_start;
 } __packed x86_startup_info;
 
 // defined in the linker script 'multiboot.ld'

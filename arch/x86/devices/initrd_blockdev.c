@@ -3,14 +3,6 @@
 #include "mos/x86/devices/initrd_blockdev.h"
 
 #include "lib/string.h"
-#include "mos/printk.h"
-
-void initrd_blockdev_preinstall(initrd_blockdev_t *dev)
-{
-    dev->blockdev.name = "initrd";
-    dev->blockdev.read = initrd_read;
-    dev->blockdev.write = initrd_write;
-}
 
 size_t initrd_read(blockdev_t *dev, void *buf, size_t size, size_t offset)
 {
@@ -29,14 +21,4 @@ size_t initrd_read(blockdev_t *dev, void *buf, size_t size, size_t offset)
     memcpy(buf, (void *) (initrd->memblock.address + offset), bytes_to_read);
     read = bytes_to_read;
     return read;
-}
-
-size_t initrd_write(blockdev_t *dev, const void *buf, size_t size, size_t offset)
-{
-    MOS_UNUSED(dev);
-    MOS_UNUSED(buf);
-    MOS_UNUSED(size);
-    MOS_UNUSED(offset);
-    mos_warn("initrd device does not support writing");
-    return 0;
 }

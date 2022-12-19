@@ -21,7 +21,7 @@ u32 x86_ioapic_get_irq_override(u32 irq)
     return ioapic_irq_override[irq];
 }
 
-void acpi_parse_madt()
+void madt_parse_table()
 {
     if (!x86_acpi_madt)
         mos_panic("MADT not found");

@@ -21,7 +21,6 @@
 #include "mos/x86/devices/serial_console.h"
 #include "mos/x86/devices/text_mode_console.h"
 #include "mos/x86/interrupt/apic.h"
-#include "mos/x86/interrupt/pic.h"
 #include "mos/x86/mm/mm.h"
 #include "mos/x86/mm/paging.h"
 #include "mos/x86/mm/paging_impl.h"
@@ -38,6 +37,20 @@ static serial_console_t com1_console = {
     .console.name = "serial_com1",
     .console.caps = CONSOLE_CAP_SETUP | CONSOLE_CAP_COLOR,
     .console.setup = serial_console_setup,
+};
+
+static const vmblock_t x86_bios_block = {
+    .npages = BIOS_MEMREGION_SIZE / MOS_PAGE_SIZE,
+    .vaddr = BIOS_VADDR(X86_BIOS_MEMREGION_PADDR),
+    .flags = VM_READ | VM_GLOBAL | VM_CACHE_DISABLED,
+    .paddr = X86_BIOS_MEMREGION_PADDR,
+};
+
+static const vmblock_t x86_ebda_block = {
+    .npages = EBDA_MEMREGION_SIZE / MOS_PAGE_SIZE,
+    .vaddr = BIOS_VADDR(X86_EBDA_MEMREGION_PADDR),
+    .flags = VM_READ | VM_GLOBAL | VM_CACHE_DISABLED,
+    .paddr = X86_EBDA_MEMREGION_PADDR,
 };
 
 void x86_keyboard_handler(u32 irq)
@@ -121,9 +134,10 @@ void x86_start_kernel(x86_startup_info *info)
     x86_platform.k_rodata.paddr = (uintptr_t) &__MOS_KERNEL_RODATA_START - MOS_KERNEL_START_VADDR;
     x86_platform.k_rodata.flags = VM_GLOBAL | VM_READ;
 
-    multiboot_info_t *mb_info = info->mb_info;
-    uintptr_t initrd_size = info->initrd_size;
-    x86_disable_interrupts();
+    const multiboot_info_t *mb_info = info->mb_info;
+    const uintptr_t initrd_size = info->initrd_size;
+    const uintptr_t initrd_paddr = ((x86_pgtable_entry *) (((x86_pgdir_entry *) x86_get_cr3())[MOS_X86_INITRD_VADDR >> 22].page_table_paddr << 12))->phys_addr << 12;
+
     console_register(&com1_console.console);
 
     x86_gdt_init();
@@ -134,81 +148,87 @@ void x86_start_kernel(x86_startup_info *info)
     if (mb_info->flags & MULTIBOOT_INFO_CMDLINE)
         strncpy(mos_cmdline, mb_info->cmdline, sizeof(mos_cmdline));
 
-    current_cpu->pagetable.pgd = (uintptr_t) x86_kpg_infra;
-    current_cpu->pagetable.um_page_map = NULL; // a kernel page table does not have a user-mode page map
-    x86_platform.kernel_pgd = current_cpu->pagetable;
+    current_cpu->pagetable.pgd = x86_platform.kernel_pgd.pgd = (uintptr_t) x86_kpg_infra;
+    current_cpu->pagetable.um_page_map = x86_platform.kernel_pgd.um_page_map = NULL; // a kernel page table does not have a user-mode page map
 
-    u32 count = mb_info->mmap_length / sizeof(multiboot_memory_map_t);
-    x86_mem_init(mb_info->mmap_addr, count);
-
-    pr_info("paging: setting up physical memory freelist...");
+    const u32 memregion_count = mb_info->mmap_length / sizeof(multiboot_memory_map_t);
+    x86_mem_init(mb_info->mmap_addr, memregion_count);
+    MOS_ASSERT_X(x86_platform.mem_regions.count != memregion_count, "x86_mem_init() failed to initialize all memory regions");
     mos_pmalloc_setup();
 
     x86_mm_prepare_paging();
 
+    pr_info("mapping kernel space...");
+    mm_map_pages(x86_platform.kernel_pgd, x86_platform.k_code);
+    mm_map_pages(x86_platform.kernel_pgd, x86_platform.k_rodata);
+    mm_map_pages(x86_platform.kernel_pgd, x86_platform.k_rwdata);
+
+    pr_info("mapping bios memory area...");
+    mm_map_allocated_pages(x86_platform.kernel_pgd, x86_bios_block);
+    mm_map_allocated_pages(x86_platform.kernel_pgd, x86_ebda_block);
+
+    pr_info("reserving memory for AP boot...");
+    x86_smp_copy_trampoline();
+
+    x86_mm_enable_paging();
+    mos_kernel_mm_init(); // since then, we can use the kernel heap (kmalloc)
+
     if (initrd_size)
     {
-        reg_t cr3 = x86_get_cr3();
-        const volatile x86_pgtable_entry *table = (x86_pgtable_entry *) (((x86_pgdir_entry *) cr3)[MOS_X86_INITRD_VADDR >> 22].page_table_paddr << 12);
-
         vmblock_t initrd_block = (vmblock_t){
-            .npages = ALIGN_UP_TO_PAGE(initrd_size) / MOS_PAGE_SIZE,
             .vaddr = MOS_X86_INITRD_VADDR,
             .flags = VM_READ | VM_GLOBAL,
-            .paddr = table->phys_addr << 12,
+            .paddr = initrd_paddr,
+            .npages = ALIGN_UP_TO_PAGE(initrd_size) / MOS_PAGE_SIZE,
         };
+        mm_map_pages(x86_platform.kernel_pgd, initrd_block);
 
-        mm_map_pages(current_cpu->pagetable, initrd_block);
-    }
-
-    // ! map the bios memory area, should it be done like this?
-    pr_info("mapping bios memory area...");
-    for (u32 i = 0; i < x86_platform.mem_regions.count; i++)
-    {
-        if (x86_platform.mem_regions.regions[i].address != info->bios_region_start)
-            continue;
-
-        memregion_t *bios_block = &x86_platform.mem_regions.regions[i];
-        vmblock_t bios_vmblock = (vmblock_t){
-            .npages = bios_block->size_bytes / MOS_PAGE_SIZE,
-            .vaddr = BIOS_VADDR(bios_block->address),
-            .flags = VM_READ | VM_GLOBAL,
-            .paddr = bios_block->address,
-        };
-        mm_map_allocated_pages(current_cpu->pagetable, bios_vmblock);
-        bios_block->address = BIOS_VADDR(bios_block->address);
+        initrd_blockdev_t *initrd_blockdev = kzalloc(sizeof(initrd_blockdev_t));
+        initrd_blockdev->blockdev = (blockdev_t){ .name = "initrd", .read = initrd_read };
+        initrd_blockdev->memblock = (memregion_t){ .available = true, .address = MOS_X86_INITRD_VADDR, .size_bytes = initrd_size };
+        blockdev_register(&initrd_blockdev->blockdev);
     }
 
     pr_info("Parsing ACPI tables...");
-    x86_acpi_init();
+    acpi_rsdp_t *rsdp = acpi_find_rsdp(BIOS_VADDR(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
+    if (!rsdp)
+    {
+        rsdp = acpi_find_rsdp(BIOS_VADDR(X86_BIOS_MEMREGION_PADDR), BIOS_MEMREGION_SIZE);
+        if (!rsdp)
+            mos_panic("RSDP not found");
+    }
+
+    for (u32 i = 0; i < x86_platform.mem_regions.count; i++)
+    {
+        memregion_t *this_block = &x86_platform.mem_regions.regions[i];
+        if (rsdp->v1.rsdt_addr >= this_block->address && rsdp->v1.rsdt_addr < this_block->address + this_block->size_bytes)
+        {
+            vmblock_t bios_vmblock = (vmblock_t){
+                .npages = this_block->size_bytes / MOS_PAGE_SIZE,
+                .vaddr = BIOS_VADDR(this_block->address),
+                .flags = VM_READ | VM_GLOBAL,
+                .paddr = this_block->address,
+            };
+            mm_map_allocated_pages(current_cpu->pagetable, bios_vmblock);
+            this_block->address = BIOS_VADDR(this_block->address);
+            break;
+        }
+    }
+
+    acpi_parse_rsdt(rsdp);
 
     pr_info("Initializing APICs...");
-    acpi_parse_madt();
+    madt_parse_table();
     lapic_memory_setup();
     lapic_enable();
+    pic_remap_irq();
     ioapic_init();
 
     pr_info("Starting APs...");
-    x86_platform.boot_cpu_id = lapic_get_id();
-    per_cpu(x86_platform.cpu)->id = lapic_get_id();
-    x86_smp_init();
-
-    x86_mm_enable_paging();
-
-    mos_kernel_mm_init(); // since then, we can use the kernel heap (kmalloc)
+    current_cpu->id = x86_platform.boot_cpu_id = lapic_get_id();
+    x86_smp_start_all();
 
     mos_install_kpanic_hook(x86_kpanic_hook);
-
-    // map video memory
-    pr_info("paging: mapping video memory...");
-    vmblock_t video_block = (vmblock_t){
-        .npages = 1,
-        .vaddr = BIOS_VADDR(X86_VIDEO_DEVICE_PADDR),
-        .flags = VM_RW | VM_GLOBAL,
-        .paddr = X86_VIDEO_DEVICE_PADDR,
-    };
-    platform_mm_map_pages(current_cpu->pagetable, video_block); // the use platform_mm_map_pages is intentional (no pmem list, no pagemap)
-    console_register(&vga_text_mode_console);
 
     x86_install_interrupt_handler(IRQ_TIMER, x86_timer_handler);
     x86_install_interrupt_handler(IRQ_KEYBOARD, x86_keyboard_handler);
@@ -218,14 +238,16 @@ void x86_start_kernel(x86_startup_info *info)
     ioapic_enable_interrupt(IRQ_KEYBOARD, 0);
     ioapic_enable_interrupt(IRQ_COM1, 0);
 
-    if (initrd_size)
-    {
-        initrd_blockdev_t *initrd_blockdev = kmalloc(sizeof(initrd_blockdev_t));
-        initrd_blockdev->memblock = (memregion_t){ .available = true, .address = MOS_X86_INITRD_VADDR, .size_bytes = initrd_size };
-
-        initrd_blockdev_preinstall(initrd_blockdev);
-        blockdev_register(&initrd_blockdev->blockdev);
-    }
+    // TODO: move this to a userspace program
+    pr_info("paging: mapping video memory...");
+    vmblock_t video_block = (vmblock_t){
+        .npages = 1,
+        .vaddr = BIOS_VADDR(X86_VIDEO_DEVICE_PADDR),
+        .flags = VM_RW | VM_GLOBAL,
+        .paddr = X86_VIDEO_DEVICE_PADDR,
+    };
+    mm_map_allocated_pages(current_cpu->pagetable, video_block);
+    console_register(&vga_text_mode_console);
 
     mos_start_kernel(mos_cmdline);
 }

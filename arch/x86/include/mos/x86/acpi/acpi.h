@@ -9,4 +9,4 @@ extern acpi_rsdt_t *x86_acpi_rsdt;
 extern acpi_hpet_t *x86_acpi_hpet;
 extern acpi_fadt_t *x86_acpi_fadt;
 
-void x86_acpi_init();
+void acpi_parse_rsdt(acpi_rsdp_t *rsdp);

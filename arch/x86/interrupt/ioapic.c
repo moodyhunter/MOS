@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/boot/startup.h"
 #include "mos/mm/paging/paging.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/x86/acpi/madt.h"
 #include "mos/x86/interrupt/apic.h"
-#include "mos/x86/mm/paging.h"
-#include "mos/x86/mm/paging_impl.h"
 #include "mos/x86/x86_interrupt.h"
+#include "mos/x86/x86_platform.h"
 
 // +-------+     +-------+     +-------+
 // |       |     |       |     |       |
@@ -64,7 +63,7 @@ should_inline void ioapic_write(u32 reg, u32 value)
     ioapic[4] = value;
 }
 
-void ioapic_write_redirection_entry(u32 irq, ioapic_redirection_entry_t entry)
+should_inline void ioapic_write_redirection_entry(u32 irq, ioapic_redirection_entry_t entry)
 {
     union
     {
@@ -76,7 +75,7 @@ void ioapic_write_redirection_entry(u32 irq, ioapic_redirection_entry_t entry)
     ioapic_write(IOAPIC_REG_REDIR_TABLE(irq) + 1, u.value >> 32);
 }
 
-ioapic_redirection_entry_t ioapic_read_redirection_entry(u32 irq)
+should_inline ioapic_redirection_entry_t ioapic_read_redirection_entry(u32 irq)
 {
     union
     {
@@ -92,15 +91,15 @@ ioapic_redirection_entry_t ioapic_read_redirection_entry(u32 irq)
 
 void ioapic_init()
 {
+    MOS_ASSERT_X(x86_ioapic_address != 0, "ioapic: no ioapic found in madt");
     ioapic = (u32 volatile *) x86_ioapic_address;
-    mos_startup_map_bios(x86_ioapic_address, MOS_PAGE_SIZE, VM_RW);
-    vmblock_t ioapic_block = { .vaddr = x86_ioapic_address, .paddr = x86_ioapic_address, .npages = 1, .flags = VM_RW };
-    mm_map_allocated_pages(current_cpu->pagetable, ioapic_block);
-
-    if (x86_ioapic_address == 0)
-    {
-        mos_panic("ioapic: no ioapic found in madt");
-    }
+    const vmblock_t ioapic_block = (vmblock_t){
+        .vaddr = x86_ioapic_address,
+        .paddr = x86_ioapic_address,
+        .npages = 1,
+        .flags = VM_RW | VM_GLOBAL | VM_CACHE_DISABLED,
+    };
+    mm_map_allocated_pages(x86_platform.kernel_pgd, ioapic_block);
 
     const u32 ioapic_id = ioapic_read(IOAPIC_REG_ID) >> 24 & 0xf; // get the 24-27 bits
 
@@ -121,12 +120,7 @@ void ioapic_init()
     pr_info2("ioapic: max IRQs: %d, id: %d, version: %d, arb: %d", version.max_redir_entries + 1, ioapic_id, version.version, arb_id);
 
     for (int i = 0; i < version.max_redir_entries + 1; i++)
-    {
-        ioapic_redirection_entry_t entry = { 0 };
-        entry.interrupt_vec = i + ISR_MAX_COUNT;
-        entry.mask = true;
-        ioapic_write_redirection_entry(i, entry); // disable all interrupts
-    }
+        ioapic_disable(i);
 }
 
 void ioapic_enable_with_mode(u32 irq, u32 cpu, ioapic_trigger_mode_t trigger_mode, ioapic_polarity_t polarity)
@@ -147,5 +141,6 @@ void ioapic_disable(u32 irq)
 {
     ioapic_redirection_entry_t entry = { 0 };
     entry.interrupt_vec = irq + ISR_MAX_COUNT;
+    entry.mask = true;
     ioapic_write_redirection_entry(irq, entry);
 }

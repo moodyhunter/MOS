@@ -1,14 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/mos_global.h"
-#include "mos/platform/platform.h"
-#include "mos/x86/devices/port.h"
-#include "mos/x86/interrupt/idt_types.h"
-#include "mos/x86/interrupt/pic.h"
+#include "mos/x86/x86_interrupt.h"
 #include "mos/x86/x86_platform.h"
-
-#define PIC1_OFFSET 0x20
-#define PIC2_OFFSET 0x28
 
 static idt_entry32_t idt[IDT_ENTRY_COUNT] __aligned(16) = { 0 };
 static idtr32_t idtr;
@@ -43,8 +36,6 @@ void x86_idt_init()
 
     // system calls
     idt_set_descriptor(MOS_SYSCALL_INTR, isr_stub_table[MOS_SYSCALL_INTR], true, true);
-
-    pic_remap_irq(PIC1_OFFSET, PIC2_OFFSET);
 
     idtr.base = &idt[0];
     idtr.limit = (u16) sizeof(idt_entry32_t) * IDT_ENTRY_COUNT - 1;

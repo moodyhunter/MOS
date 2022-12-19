@@ -70,6 +70,8 @@ typedef enum
 
 static_assert(IRQ_MAX_COUNT == IRQ_MAX, "IRQ_MAX_COUNT is not equal to IRQ_MAX");
 
+void pic_remap_irq(void);
+
 // The following `extern` symbols are defined in the interrupt_handler.asm file.
 extern list_node_t irq_handlers[IRQ_MAX_COUNT];
 extern void *isr_stub_table[];
