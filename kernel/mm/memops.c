@@ -60,7 +60,7 @@ bool liballoc_free_page(void *vptr, size_t npages)
     }
 
     // TODO: this is a hack
-    vmblock_t block = platform_mm_get_block_info(current_cpu->pagetable, (uintptr_t) vptr, npages);
+    vmblock_t block = mm_get_block_info(current_cpu->pagetable, (uintptr_t) vptr, npages);
     mm_free_pages(current_cpu->pagetable, block);
     return true;
 }

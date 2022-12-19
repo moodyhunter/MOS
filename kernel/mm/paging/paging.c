@@ -152,6 +152,19 @@ bool mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr)
     return bitmap_get(pagemap, pagemap_size_lines, pagemap_index);
 }
 
+vmblock_t mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t n_pages)
+{
+    const bool is_kernel = vaddr >= MOS_KERNEL_START_VADDR;
+    const size_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
+    const size_t pagemap_size_lines = is_kernel ? MOS_PAGEMAP_KERNEL_LINES : MOS_PAGEMAP_USER_LINES;
+    const size_t pagemap_index = (vaddr - pagemap_base) / MOS_PAGE_SIZE;
+
+    bitmap_line_t *pagemap = is_kernel ? kernel_page_map : table.um_page_map->ummap;
+    MOS_ASSERT_X(bitmap_get(pagemap, pagemap_size_lines, pagemap_index), "page %zu is not allocated", pagemap_index);
+
+    return platform_mm_get_block_info(PGD_FOR_VADDR(vaddr, table), vaddr, n_pages);
+}
+
 paging_handle_t mm_create_user_pgd()
 {
     paging_handle_t table = platform_mm_create_user_pgd();

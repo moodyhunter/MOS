@@ -154,6 +154,15 @@ vmblock_t mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t t
 bool mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr);
 
 /**
+ * @brief Get the block info of a virtual address in a page table.
+ *
+ * @param table The page table to get the physical address from.
+ * @param vaddr The virtual address to get the physical address of.
+ * @return vmblock_t The block info of the virtual address.
+ */
+vmblock_t mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t n_pages);
+
+/**
  * @brief Create a user-mode platform-dependent page table.
  * @return paging_handle_t The created page table.
  * @note A platform-independent page-map is also created.
