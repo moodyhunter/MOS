@@ -6,6 +6,7 @@
 #include "mos/filesystem/filesystem.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/memops.h"
+#include "mos/mm/paging/paging.h"
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
@@ -56,7 +57,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
     }
 
     size_t npage_required = ALIGN_UP_TO_PAGE(stat.size) / MOS_PAGE_SIZE;
-    const vmblock_t buf_block = platform_mm_alloc_pages(current_cpu->pagetable, npage_required, PGALLOC_HINT_KHEAP, VM_RW);
+    const vmblock_t buf_block = mm_alloc_pages(current_cpu->pagetable, npage_required, PGALLOC_HINT_KHEAP, VM_RW);
     char *const buf = (char *) buf_block.vaddr;
 
     size_t size = io_read(&f->io, buf, stat.size);
@@ -150,7 +151,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
         for (mapped_pages_n = 0; mapped_pages_n < section_inmem_pages; mapped_pages_n++)
         {
             uintptr_t page_addr = ALIGN_DOWN_TO_PAGE(section_inmem_addr) + mapped_pages_n * MOS_PAGE_SIZE;
-            if (unlikely(platform_mm_get_is_mapped(proc->pagetable, page_addr)))
+            if (unlikely(mm_get_is_mapped(proc->pagetable, page_addr)))
                 continue;
             break;
         }
@@ -211,7 +212,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
         else
         {
             uintptr_t file_offset = ALIGN_DOWN_TO_PAGE((uintptr_t) buf + sh->sh_offset) + mapped_pages_n * MOS_PAGE_SIZE;
-            vmblock_t block = platform_mm_copy_maps(current_cpu->pagetable, file_offset, proc->pagetable, first_unmapped_addr, pages_to_map);
+            vmblock_t block = mm_copy_maps(current_cpu->pagetable, file_offset, proc->pagetable, first_unmapped_addr, pages_to_map);
             platform_mm_flag_pages(proc->pagetable, block.vaddr, block.npages, map_flags);
             block.flags = map_flags;
             process_attach_mmap(proc, block, map_flags & VM_EXEC ? VMTYPE_APPCODE : VMTYPE_APPDATA, MMAP_DEFAULT);
@@ -221,7 +222,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
     process_attach_ref_fd(proc, &f->io); // do we need this?
 
     // unmap the buffer from kernel pages
-    platform_mm_unmap_pages(current_cpu->pagetable, buf_block.vaddr, buf_block.npages);
+    mm_unmap_pages(current_cpu->pagetable, buf_block.vaddr, buf_block.npages);
 
     return proc;
 
@@ -229,7 +230,7 @@ bail_out:
     if (ph_list)
         kfree(ph_list);
     if (buf)
-        platform_mm_free_pages(current_cpu->pagetable, buf_block.vaddr, buf_block.npages);
+        mm_free_pages(current_cpu->pagetable, buf_block);
 bail_out_1:
     if (f)
         io_unref(&f->io); // close the file, we should have the file's refcount == 0 here

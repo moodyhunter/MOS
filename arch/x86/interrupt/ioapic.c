@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/boot/startup.h"
-#include "mos/mos_global.h"
+#include "mos/mm/paging/paging.h"
 #include "mos/printk.h"
 #include "mos/x86/acpi/madt.h"
 #include "mos/x86/interrupt/apic.h"
@@ -94,7 +94,8 @@ void ioapic_init()
 {
     ioapic = (u32 volatile *) x86_ioapic_address;
     mos_startup_map_bios(x86_ioapic_address, MOS_PAGE_SIZE, VM_RW);
-    pg_do_map_page(x86_kpg_infra, x86_ioapic_address, x86_ioapic_address, VM_RW);
+    vmblock_t ioapic_block = { .vaddr = x86_ioapic_address, .paddr = x86_ioapic_address, .npages = 1, .flags = VM_RW };
+    mm_map_allocated_pages(current_cpu->pagetable, ioapic_block);
 
     if (x86_ioapic_address == 0)
     {

@@ -23,6 +23,7 @@ typedef void (*irq_handler)(u32 irq);
 
 typedef struct _downwards_stack_t downwards_stack_t;
 typedef struct _thread thread_t;
+typedef struct _page_map page_map_t;
 
 typedef enum
 {
@@ -71,6 +72,12 @@ typedef enum
 
 typedef struct
 {
+    uintptr_t pgd;
+    page_map_t *um_page_map;
+} paging_handle_t;
+
+typedef struct
+{
     uintptr_t instruction;
     uintptr_t stack;
 } __packed platform_context_t;
@@ -85,26 +92,30 @@ typedef struct
 
 typedef struct
 {
-    uintptr_t vaddr;
+    uintptr_t vaddr, paddr; // virtual and physical addresses
     size_t npages;
     vm_flags flags; // the expected flags for the region, regardless of the copy-on-write state
 } vmblock_t;
 
 typedef struct
 {
-    struct
-    {
-        const uintptr_t code_start;
-        const uintptr_t code_end;
-        const uintptr_t rodata_start;
-        const uintptr_t rodata_end;
-        const uintptr_t rw_start;
-        const uintptr_t rw_end;
-    } regions;
+    uintptr_t address;
+    size_t size_bytes;
+    bool available;
+} memregion_t;
 
+typedef struct
+{
     u32 num_cpus;
     u32 boot_cpu_id;
     PER_CPU_DECLARE(cpu_t, cpu);
+
+    vmblock_t k_code, k_rwdata, k_rodata;
+    size_t num_mem_regions;
+    memregion_t mem_regions[MOS_MAX_SUPPORTED_MEMREGION];
+    size_t available_mem_bytes, total_mem_bytes;
+
+    paging_handle_t kernel_pgd;
 } mos_platform_info_t;
 
 extern mos_platform_info_t *const platform_info;
@@ -128,20 +139,16 @@ bool platform_irq_handler_install(u32 irq, irq_handler handler);
 void platform_irq_handler_remove(u32 irq, irq_handler handler);
 
 // Platform Page Table APIs
-paging_handle_t platform_mm_get_kernel_pgd(void);
 paging_handle_t platform_mm_create_user_pgd(void);
 void platform_mm_destroy_user_pgd(paging_handle_t table);
 
 // Platform Paging APIs
-vmblock_t platform_mm_alloc_pages(paging_handle_t table, size_t npages, pgalloc_hints hints, vm_flags vm_flags);
-vmblock_t platform_mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t npages, vm_flags vflags);
-vmblock_t platform_mm_get_free_pages(paging_handle_t table, size_t npages, pgalloc_hints hints);
+void platform_mm_map_pages(paging_handle_t table, vmblock_t block);
+void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t n_pages);
+vmblock_t platform_mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t npages);
 vmblock_t platform_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages);
-void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t n);
-void platform_mm_free_pages(paging_handle_t table, uintptr_t vaddr, size_t n);
 void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
 vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr);
-bool platform_mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr);
 
 // Platform Thread / Process APIs
 void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg);

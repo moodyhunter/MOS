@@ -2,8 +2,10 @@
 
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/mm/paging/paging.h"
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
+#include "mos/printk.h"
 #include "mos/x86/acpi/acpi.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/delays.h"
@@ -64,20 +66,14 @@ void platform_irq_handler_remove(u32 irq, irq_handler handler)
     MOS_UNUSED(handler);
 }
 
-paging_handle_t platform_mm_get_kernel_pgd()
-{
-    paging_handle_t handle;
-    handle.ptr = (uintptr_t) x86_kpg_infra->pgdir;
-    return handle;
-}
-
 paging_handle_t platform_mm_create_user_pgd(void)
 {
-    vmblock_t block = pg_page_alloc(x86_kpg_infra, ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE, PGALLOC_HINT_KHEAP, VM_RW);
+    const size_t npages = ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE;
+    vmblock_t block = mm_alloc_pages(current_cpu->pagetable, npages, PGALLOC_HINT_KHEAP, VM_RW);
     x86_pg_infra_t *infra = (x86_pg_infra_t *) block.vaddr;
-    memset(infra, 0, sizeof(x86_pg_infra_t));
+    memzero(infra, sizeof(x86_pg_infra_t));
     paging_handle_t handle;
-    handle.ptr = (uintptr_t) infra;
+    handle.pgd = (uintptr_t) infra;
 
     // physical address of kernel page table
     const uintptr_t kpgtable_paddr = pg_page_get_mapped_paddr(x86_kpg_infra, (uintptr_t) x86_kpg_infra->pgtable);
@@ -99,81 +95,7 @@ paging_handle_t platform_mm_create_user_pgd(void)
 
 void platform_mm_destroy_user_pgd(paging_handle_t table)
 {
-    kfree((void *) table.ptr);
-}
-
-vmblock_t platform_mm_alloc_pages(paging_handle_t table, size_t npages, pgalloc_hints hints, vm_flags vm_flags)
-{
-    x86_pg_infra_t *kpg_infra = x86_get_pg_infra(table);
-    return pg_page_alloc(kpg_infra, npages, hints, vm_flags);
-}
-
-vmblock_t platform_mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t npages, vm_flags vflags)
-{
-    x86_pg_infra_t *kpg_infra = x86_get_pg_infra(table);
-    return pg_page_alloc_at(kpg_infra, vaddr, npages, vflags);
-}
-
-vmblock_t platform_mm_get_free_pages(paging_handle_t table, size_t npages, pgalloc_hints hints)
-{
-    x86_pg_infra_t *kpg_infra = x86_get_pg_infra(table);
-    return pg_page_get_free(kpg_infra, npages, hints);
-}
-
-vmblock_t platform_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages)
-{
-    x86_pg_infra_t *from_infra = x86_get_pg_infra(from);
-    x86_pg_infra_t *to_infra = x86_get_pg_infra(to);
-
-    // uintptr_t start_paddr = pg_page_get_mapped_paddr(from_infra, fvaddr);
-
-    for (size_t i = 0; i < npages; i++)
-    {
-        uintptr_t from_vaddr = fvaddr + i * MOS_PAGE_SIZE;
-        uintptr_t to_vaddr = tvaddr + i * MOS_PAGE_SIZE;
-        // uintptr_t expected_paddr = start_paddr + i * MOS_PAGE_SIZE;
-        uintptr_t paddr = pg_page_get_mapped_paddr(from_infra, from_vaddr);
-        vm_flags flags = pg_page_get_flags(from_infra, from_vaddr);
-        pg_do_map_page(to_infra, to_vaddr, paddr, flags);
-    }
-
-    vmblock_t block = {
-        .vaddr = tvaddr,
-        .npages = npages,
-        .flags = pg_page_get_flags(from_infra, fvaddr),
-    };
-
-    return block;
-}
-
-void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t n)
-{
-    x86_pg_infra_t *kpg_infra = x86_get_pg_infra(table);
-    pg_do_unmap_pages(kpg_infra, vaddr, n);
-}
-
-void platform_mm_free_pages(paging_handle_t table, uintptr_t vaddr, size_t n)
-{
-    x86_pg_infra_t *kpg_infra = x86_get_pg_infra(table);
-    pg_page_free(kpg_infra, vaddr, n);
-}
-
-void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags)
-{
-    x86_pg_infra_t *kpg_infra = x86_get_pg_infra(table);
-    pg_page_flag(kpg_infra, vaddr, n, flags);
-}
-
-vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr)
-{
-    x86_pg_infra_t *kpg_infra = x86_get_pg_infra(table);
-    return pg_page_get_flags(kpg_infra, vaddr);
-}
-
-bool platform_mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr)
-{
-    x86_pg_infra_t *kpg_infra = x86_get_pg_infra(table);
-    return pg_page_get_is_mapped(kpg_infra, vaddr);
+    kfree((void *) table.pgd);
 }
 
 void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg)
@@ -194,4 +116,68 @@ void platform_switch_to_scheduler(uintptr_t *old_stack, uintptr_t new_stack)
 void platform_switch_to_thread(uintptr_t *old_stack, thread_t *new_thread)
 {
     x86_switch_to_thread(old_stack, new_thread);
+}
+
+void platform_mm_map_pages(paging_handle_t table, vmblock_t block)
+{
+    mos_debug("paging: mapping %zu pages (" PTR_FMT "->" PTR_FMT ") @ table " PTR_FMT, block.npages, block.vaddr, block.paddr, table.pgd);
+
+    x86_pg_infra_t *infra = x86_get_pg_infra(table);
+    for (size_t i = 0; i < block.npages; i++)
+        pg_do_map_page(infra, block.vaddr + i * MOS_PAGE_SIZE, block.paddr + i * MOS_PAGE_SIZE, block.flags);
+}
+
+void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr_start, size_t n_pages)
+{
+    mos_debug("paging: unmapping %zu pages starting at " PTR_FMT " @ table " PTR_FMT, n_pages, vaddr_start, table.pgd);
+
+    x86_pg_infra_t *infra = x86_get_pg_infra(table);
+    for (size_t i = 0; i < n_pages; i++)
+        pg_do_unmap_page(infra, vaddr_start + i * MOS_PAGE_SIZE);
+}
+
+vmblock_t platform_mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t npages)
+{
+    x86_pg_infra_t *infra = x86_get_pg_infra(table);
+    vmblock_t block;
+    block.vaddr = vaddr;
+    block.paddr = pg_page_get_mapped_paddr(infra, vaddr);
+    block.npages = npages;
+    block.flags = pg_page_get_flags(infra, vaddr);
+    return block;
+}
+
+vmblock_t platform_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages)
+{
+    x86_pg_infra_t *from_infra = x86_get_pg_infra(from);
+    x86_pg_infra_t *to_infra = x86_get_pg_infra(to);
+
+    for (size_t i = 0; i < npages; i++)
+    {
+        uintptr_t from_vaddr = fvaddr + i * MOS_PAGE_SIZE;
+        uintptr_t to_vaddr = tvaddr + i * MOS_PAGE_SIZE;
+        uintptr_t paddr = pg_page_get_mapped_paddr(from_infra, from_vaddr);
+        vm_flags flags = pg_page_get_flags(from_infra, from_vaddr);
+        pg_do_map_page(to_infra, to_vaddr, paddr, flags);
+    }
+
+    vmblock_t block = {
+        .vaddr = tvaddr,
+        .npages = npages,
+        .flags = pg_page_get_flags(from_infra, fvaddr),
+    };
+
+    return block;
+}
+
+void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags)
+{
+    x86_pg_infra_t *infra = x86_get_pg_infra(table);
+    pg_page_flag(infra, vaddr, n, flags);
+}
+
+vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr)
+{
+    x86_pg_infra_t *infra = x86_get_pg_infra(table);
+    return pg_page_get_flags(infra, vaddr);
 }

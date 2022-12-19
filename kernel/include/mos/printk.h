@@ -37,7 +37,7 @@ typedef enum
 } mos_log_level_t;
 
 #if MOS_VERBOSE_PRINTK
-#define lprintk_wrapper(level, fmt, ...) lprintk(level, "%-20s | " fmt, MOS_FILE_LOCATION, ##__VA_ARGS__)
+#define lprintk_wrapper(level, fmt, ...) lprintk(level, "%-25s | " fmt, MOS_FILE_LOCATION, ##__VA_ARGS__)
 #else
 #define lprintk_wrapper(level, fmt, ...) lprintk(level, "" fmt, ##__VA_ARGS__)
 #endif

@@ -18,8 +18,6 @@ static_assert(sizeof(void *) == 4, "x86_64 is not supported");
 #define GDT_SEGMENT_TSS      0x28
 #define GDT_ENTRY_COUNT      6
 
-#define X86_MAX_MEM_SIZE ((u32) (4 GB - 1))
-
 #define X86_BIOS_MEMREGION_PADDR 0xf0000
 #define BIOS_MEMREGION_SIZE      0x10000
 
@@ -53,13 +51,6 @@ typedef struct
     uintptr_t bios_region_start;
 } __packed x86_startup_info;
 
-typedef struct
-{
-    uintptr_t address;
-    size_t size_bytes;
-    bool available;
-} x86_pmblock_t;
-
 // defined in the linker script 'multiboot.ld'
 extern const char __MOS_KERNEL_CODE_START, __MOS_KERNEL_CODE_END;     // Kernel text
 extern const char __MOS_KERNEL_RODATA_START, __MOS_KERNEL_RODATA_END; // Kernel rodata
@@ -67,9 +58,7 @@ extern const char __MOS_KERNEL_RW_START;                              // Kernel 
 extern const char __MOS_X86_PAGING_AREA_START;                        //     Paging area {
 extern const char __MOS_X86_PAGING_AREA_END;                          //     }
 extern const char __MOS_KERNEL_RW_END;                                // }
-extern const char __MOS_KERNEL_END;                                   // End of kernel
 
-extern const uintptr_t mos_kernel_end;
 extern mos_platform_info_t x86_platform;
 typedef struct
 {

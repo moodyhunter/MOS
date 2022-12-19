@@ -20,6 +20,7 @@ mos_target_setup(x86 i686 32)
 
 mos_kconfig(PLATFORM    MOS_PAGE_SIZE                   4096                "Platform page size")
 mos_kconfig(HARDWARE    MOS_MAX_CPU_COUNT               16                  "Max supported number of CPUs")
+mos_kconfig(LIMITS      MOS_MAX_SUPPORTED_MEMREGION     32                  "Max supported memory regions")
 mos_kconfig(LIMITS      MOS_PROCESS_MAX_OPEN_FILES      1024                "Max open files per process")
 mos_kconfig(LIMITS      MOS_PROCESS_MAX_THREADS         64                  "Max threads per process")
 mos_kconfig(LIMITS      MOS_PATH_MAX_LENGTH             256                 "Max length of a psath")

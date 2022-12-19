@@ -7,15 +7,10 @@
 
 bitmap_line_t *bitmap_create(size_t size)
 {
-    size_t nlines = bitmap_nlines(size);
+    size_t nlines = BITMAP_LINE_COUNT(size);
     bitmap_line_t *bitmap = liballoc_malloc(nlines * sizeof(bitmap_line_t));
     bitmap_zero(bitmap, nlines);
     return bitmap;
-}
-
-size_t bitmap_nlines(size_t size)
-{
-    return ALIGN_UP(size, BITMAP_LINE_BITS) / BITMAP_LINE_BITS;
 }
 
 void bitmap_zero(bitmap_line_t *bitmap, size_t bitmap_nlines)
@@ -50,51 +45,101 @@ bool bitmap_get(bitmap_line_t *bitmap, size_t bitmap_nlines, size_t index)
     return bitmap[line] & ((bitmap_line_t) 1 << bit);
 }
 
-size_t bitmap_find_first_free_n(bitmap_line_t *bitmap, size_t bitmap_nlines, size_t n_bits)
+size_t bitmap_find_first_free_n(bitmap_line_t *bitmap, size_t bitmap_nlines, size_t begin_bit, size_t n_bits)
 {
-    size_t n_free_pages = 0;
-    size_t target_starting_bit = 0;
-    size_t map_line_i = 0;
-    for (size_t i = 0; n_free_pages < n_bits; i++)
+    size_t target_starting_line = begin_bit / BITMAP_LINE_BITS;
+    size_t target_starting_bit = begin_bit % BITMAP_LINE_BITS;
+    size_t free_bits = 0;
+
+    for (size_t line_i = target_starting_line; free_bits < n_bits; line_i++)
     {
-        if (i >= bitmap_nlines)
+        if (line_i >= bitmap_nlines)
             return 0;
 
-        bitmap_line_t line = bitmap[i];
+        bitmap_line_t line = bitmap[line_i];
 
         if (line == 0)
         {
-            n_free_pages += BITMAP_LINE_BITS;
+            free_bits += BITMAP_LINE_BITS;
             continue;
         }
         else if (line == (bitmap_line_t) ~0)
         {
-            // a full line of used pages
-            map_line_i = i + 1;
-            n_free_pages = 0;
+            // a full line of occupied bits
+            target_starting_line = line_i + 1;
+            free_bits = 0;
             target_starting_bit = 0;
             continue;
         }
 
         for (size_t bit = 0; bit < BITMAP_LINE_BITS; bit++)
         {
+            if (free_bits >= n_bits)
+                break;
+
             if (!bitmap_get(&line, bitmap_nlines, bit))
             {
-                // we have found a free page
-                n_free_pages++;
+                // we have found a free line
+                free_bits++;
             }
             else
             {
-                // this page is used
-                if (n_free_pages >= n_bits)
-                    // but we have enough free pages
-                    break;
-                n_free_pages = 0;
+                // this bit is occupied
+                free_bits = 0;
                 target_starting_bit = bit + 1;
-                map_line_i = i;
+                target_starting_line = line_i;
             }
         }
     }
 
-    return map_line_i * BITMAP_LINE_BITS + target_starting_bit;
+    return target_starting_line * BITMAP_LINE_BITS + target_starting_bit;
+}
+
+void bitmap_set_range(bitmap_line_t *bitmap, size_t bitmap_nlines, size_t start_bit, size_t end_bit, bool value)
+{
+    size_t start_line = start_bit / BITMAP_LINE_BITS;
+    size_t start_bit_in_line = start_bit % BITMAP_LINE_BITS;
+    size_t end_line = end_bit / BITMAP_LINE_BITS;
+    size_t end_bit_in_line = end_bit % BITMAP_LINE_BITS;
+
+    if (start_line >= bitmap_nlines || end_line >= bitmap_nlines)
+        return;
+
+    if (start_line == end_line)
+    {
+        bitmap_line_t line = bitmap[start_line];
+        bitmap_line_t mask = ((bitmap_line_t) 1 << (end_bit_in_line - start_bit_in_line + 1)) - 1;
+        mask <<= start_bit_in_line;
+        if (value)
+            line |= mask;
+        else
+            line &= ~mask;
+        bitmap[start_line] = line;
+        return;
+    }
+
+    bitmap_line_t line = bitmap[start_line];
+    bitmap_line_t mask = ((bitmap_line_t) 1 << (BITMAP_LINE_BITS - start_bit_in_line)) - 1;
+    mask <<= start_bit_in_line;
+    if (value)
+        line |= mask;
+    else
+        line &= ~mask;
+    bitmap[start_line] = line;
+
+    for (size_t i = start_line + 1; i < end_line; i++)
+    {
+        if (value)
+            bitmap[i] = (bitmap_line_t) ~0;
+        else
+            bitmap[i] = 0;
+    }
+
+    line = bitmap[end_line];
+    mask = ((bitmap_line_t) 1 << (end_bit_in_line + 1)) - 1;
+    if (value)
+        line |= mask;
+    else
+        line &= ~mask;
+    bitmap[end_line] = line;
 }

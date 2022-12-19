@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/mm/pmem_freelist.h"
+#include "mos/mm/paging/pmem_freelist.h"
 
 #include "lib/stdlib.h"
 #include "lib/string.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
-#include "mos/x86/mm/mm.h"
-#include "mos/x86/mm/paging_impl.h"
-#include "mos/x86/x86_platform.h"
 
 #define RESERVED_LOMEM 1 MB
 
@@ -20,14 +18,14 @@ typedef struct pmem_range_t
     size_t n_pages;
 } pmem_range_t;
 
-extern const void __MOS_X86_PMEM_FREE_LIST;
-static pmem_range_t *const pmem_freelist_storage = (pmem_range_t *) &__MOS_X86_PMEM_FREE_LIST;
-static pmem_range_t *pmem_freelist = (pmem_range_t *) &__MOS_X86_PMEM_FREE_LIST;
+extern const void __MOS_PMEM_FREE_LIST;
+static pmem_range_t *const pmem_freelist_storage = (pmem_range_t *) &__MOS_PMEM_FREE_LIST;
+static pmem_range_t *pmem_freelist = (pmem_range_t *) &__MOS_PMEM_FREE_LIST;
 static size_t pmem_freelist_count = 0;
 
 size_t pmem_freelist_size()
 {
-    return ALIGN_UP_TO_PAGE(PMEM_FREELIST_SIZE_FOR(x86_mem_available));
+    return ALIGN_UP_TO_PAGE(PMEM_FREELIST_SIZE_FOR(platform_info->available_mem_bytes));
 }
 
 void pmem_freelist_dump()
@@ -45,17 +43,17 @@ void pmem_freelist_dump()
     }
 }
 
-void pmem_freelist_setup(void)
+void mos_pmem_freelist_setup(void)
 {
     size_t list_size = pmem_freelist_size();
     pr_info2("%zu bytes (aligned) required for physical memory freelist", list_size);
 
-    memset(pmem_freelist, 0, list_size);
+    memzero(pmem_freelist, list_size);
 
     // add current physical memory region to the freelist
-    for (size_t i = 0; i < x86_mem_regions_count; i++)
+    for (size_t i = 0; i < platform_info->num_mem_regions; i++)
     {
-        x86_pmblock_t *r = &x86_mem_regions[i];
+        memregion_t *r = &platform_info->mem_regions[i];
         if (!r->available)
             continue;
 
@@ -269,7 +267,7 @@ void pmem_freelist_remove_region(uintptr_t start_addr, size_t size_bytes)
 #undef this_start
 #undef this_end
 
-uintptr_t pmem_freelist_find_free(size_t pages)
+uintptr_t pmem_freelist_allocate_free(size_t pages)
 {
     pmem_range_t *this = pmem_freelist;
     while (this)
@@ -279,13 +277,11 @@ uintptr_t pmem_freelist_find_free(size_t pages)
             // ! do not remove the range from the freelist
             uintptr_t addr = this->paddr;
             mos_debug("allocated %zu pages from freelist, starting at " PTR_FMT, pages, addr);
+            pmem_freelist_remove_region(addr, pages * MOS_PAGE_SIZE);
             return addr;
         }
         this = this->next;
     }
 
-    // !! OOM
-    mos_warn("out of memory?");
-    MOS_UNREACHABLE();
-    return 0;
+    mos_panic("no free physical memory found in freelist");
 }

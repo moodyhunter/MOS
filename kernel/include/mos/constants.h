@@ -12,6 +12,8 @@
 #define MOS_KERNEL_START_VADDR 0xFFFFFFFFC0000000
 #endif
 
+#define MOS_MAX_VADDR ((uintptr_t) ~0)
+
 #define MOS_SYSCALL_INTR             0x88
 #define BIOS_VADDR_MASK              0xF0000000
 #define BIOS_VADDR(paddr)            (BIOS_VADDR_MASK | paddr)

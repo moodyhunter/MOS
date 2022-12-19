@@ -5,6 +5,7 @@
 #include "lib/structures/stack.h"
 #include "mos/mm/cow.h"
 #include "mos/mm/memops.h"
+#include "mos/mm/paging/paging.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
@@ -33,7 +34,7 @@ process_t *process_handle_fork(process_t *parent)
         {
             // Kernel stacks are special, we need to allocate a new one (not CoW-mapped)
             MOS_ASSERT_X(block.vm.npages == MOS_STACK_PAGES_KERNEL, "kernel stack size is not %d pages", MOS_STACK_PAGES_KERNEL);
-            child_vmblock = platform_mm_alloc_pages(child->pagetable, block.vm.npages, PGALLOC_HINT_STACK, block.vm.flags);
+            child_vmblock = mm_alloc_pages(child->pagetable, block.vm.npages, PGALLOC_HINT_STACK, block.vm.flags);
             pr_info2("fork %d->%d: kernel stack " PTR_FMT "+%zu, flags = [%x]", parent->pid, child->pid, block.vm.vaddr, block.vm.npages, block.vm.flags);
             process_attach_mmap(child, child_vmblock, VMTYPE_KSTACK, MMAP_DEFAULT);
         }

@@ -8,6 +8,7 @@
 #include "mos/mm/cow.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/memops.h"
+#include "mos/mm/paging/paging.h"
 #include "mos/printk.h"
 #include "mos/tasks/thread.h"
 
@@ -68,11 +69,11 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
 
     if (unlikely(proc->pid == 2))
     {
-        proc->pagetable = platform_mm_get_kernel_pgd(); // ! Special case: PID 2 (kthreadd) uses the kernel page table
+        proc->pagetable = platform_info->kernel_pgd; // ! Special case: PID 2 (kthreadd) uses the kernel page table
     }
     else
     {
-        proc->pagetable = platform_mm_create_user_pgd();
+        proc->pagetable = mm_create_user_pgd();
     }
 
     return proc;
@@ -111,7 +112,7 @@ process_t *process_new(process_t *parent, uid_t euid, const char *name, terminal
 
     thread_new(proc, THREAD_MODE_USER, name, entry, arg);
 
-    vmblock_t heap = platform_mm_alloc_pages(proc->pagetable, 0, PGALLOC_HINT_UHEAP, VM_USER_RW);
+    vmblock_t heap = mm_alloc_pages(proc->pagetable, 0, PGALLOC_HINT_UHEAP, VM_USER_RW);
     process_attach_mmap(proc, heap, VMTYPE_HEAP, MMAP_DEFAULT);
 
     void *old_proc = hashmap_put(process_table, &proc->pid, proc);
@@ -219,7 +220,7 @@ void process_handle_cleanup(process_t *process)
         if (flags & MMAP_COW)
             continue;
 
-        platform_mm_free_pages(process->pagetable, block.vaddr, block.npages);
+        mm_free_pages(process->pagetable, block);
     }
 }
 
@@ -248,11 +249,11 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
     }
     else
     {
-        vmblock_t new_part = platform_mm_alloc_pages_at(process->pagetable, heap_top, npages, VM_USER_RW);
+        vmblock_t new_part = mm_alloc_pages_at(process->pagetable, heap_top, npages, VM_USER_RW);
         if (new_part.vaddr == 0 || new_part.npages != npages)
         {
             mos_warn("failed to grow heap of process %d", process->pid);
-            platform_mm_free_pages(process->pagetable, new_part.vaddr, new_part.npages);
+            mm_free_pages(process->pagetable, new_part);
             return heap_top;
         }
     }

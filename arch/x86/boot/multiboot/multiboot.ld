@@ -63,12 +63,11 @@ SECTIONS
 
         /* ! Without PAE, a maximum of 4G memory would take (1024 * 1024 * sizeof(PTE) + 1024 * sizeof(PDE)) */
         . = ALIGN(4K);
-        __MOS_X86_PMEM_FREE_LIST = .;
+        __MOS_PMEM_FREE_LIST = .;
         . += 6M;    /* ! for pmem_freelist */
         __MOS_X86_PAGING_AREA_START = .;
         . += 4K;
         . += 4M;
-        . += 1M;    /* ! for the stupid page map */
         __MOS_X86_PAGING_AREA_END = .;
     }
 

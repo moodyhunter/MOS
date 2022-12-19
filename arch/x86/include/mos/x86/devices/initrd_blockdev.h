@@ -9,7 +9,7 @@
 
 typedef struct
 {
-    x86_pmblock_t memblock;
+    memregion_t memblock;
     blockdev_t blockdev;
 } initrd_blockdev_t;
 

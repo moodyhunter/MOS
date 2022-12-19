@@ -71,6 +71,8 @@ add_library(mos_kernel.elf STATIC
     kernel/kernel_init.c
     kernel/mm/cow.c
     kernel/mm/memops.c
+    kernel/mm/paging/paging.c
+    kernel/mm/paging/pmem_freelist.c
     kernel/mm/shm.c
     kernel/panic.c
     kernel/printk.c

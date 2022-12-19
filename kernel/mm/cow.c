@@ -4,6 +4,7 @@
 
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/mm/paging/paging.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
@@ -15,7 +16,7 @@ vmblock_t mm_make_process_map_cow(paging_handle_t from, uintptr_t fvaddr, paging
 {
     // Note that the block returned by this function contains it's ACTRUAL flags, which may be different from the flags of the original block.
     // (consider the case where we CoW-map a page that is already CoW-mapped)
-    vmblock_t block = platform_mm_copy_maps(from, fvaddr, to, tvaddr, npages);
+    vmblock_t block = mm_copy_maps(from, fvaddr, to, tvaddr, npages);
     platform_mm_flag_pages(from, fvaddr, npages, block.flags & ~VM_WRITE);
     platform_mm_flag_pages(to, tvaddr, npages, block.flags & ~VM_WRITE);
     return block;
@@ -30,8 +31,8 @@ static void copy_cow_pages_inplace(uintptr_t vaddr, size_t npages)
     {
         const uintptr_t current_page = vaddr + j * MOS_PAGE_SIZE;
         memcpy(pagetmp, (void *) current_page, MOS_PAGE_SIZE);
-        platform_mm_unmap_pages(pg_handle, current_page, 1);
-        platform_mm_alloc_pages_at(pg_handle, current_page, 1, flags | VM_WRITE);
+        mm_unmap_pages(pg_handle, current_page, 1);
+        mm_alloc_pages_at(pg_handle, current_page, 1, flags | VM_WRITE);
         memcpy((void *) current_page, pagetmp, MOS_PAGE_SIZE);
     }
     kfree(pagetmp);
@@ -78,8 +79,8 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
         {
             pr_emph("Zero-on-demand page fault in block %ld", i);
             // TODO: only allocate the page where the fault happened
-            platform_mm_unmap_pages(current_proc->pagetable, vm.vaddr, vm.npages);
-            platform_mm_alloc_pages_at(current_proc->pagetable, vm.vaddr, vm.npages, vm.flags);
+            mm_unmap_pages(current_proc->pagetable, vm.vaddr, vm.npages);
+            mm_alloc_pages_at(current_proc->pagetable, vm.vaddr, vm.npages, vm.flags);
             memzero((void *) vm.vaddr, MOS_PAGE_SIZE * vm.npages);
             current_proc->mmaps[i].map_flags &= ~MMAP_ZERO_ON_DEMAND;
             mos_debug("ZoD resolved");

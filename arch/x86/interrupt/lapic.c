@@ -2,6 +2,7 @@
 
 #include "mos/boot/startup.h"
 #include "mos/constants.h"
+#include "mos/mm/paging/paging.h"
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
@@ -150,7 +151,14 @@ void lapic_memory_setup()
 
     // map both the current pagedir and x86_kpg_infra (because we are now using the former one)
     mos_startup_map_bios(base_addr, 1 KB, VM_RW | VM_GLOBAL | VM_CACHE_DISABLED);
-    pg_do_map_page(x86_kpg_infra, base_addr, base_addr, VM_RW | VM_GLOBAL | VM_CACHE_DISABLED);
+
+    vmblock_t block = {
+        .vaddr = base_addr,
+        .paddr = base_addr,
+        .npages = 1,
+        .flags = VM_RW | VM_GLOBAL | VM_CACHE_DISABLED,
+    };
+    mm_map_allocated_pages(current_cpu->pagetable, block);
 
     lapic_regs = (u32 *) base_addr;
 }

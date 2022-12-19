@@ -6,6 +6,7 @@
 #include "lib/structures/hashmap.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/memops.h"
+#include "mos/mm/paging/paging.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_types.h"
@@ -63,7 +64,7 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
 
     // Kernel stack
     const pgalloc_hints kstack_hint = (tmode == THREAD_MODE_KERNEL) ? PGALLOC_HINT_KHEAP : PGALLOC_HINT_STACK;
-    const vmblock_t kstack_blk = platform_mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_KERNEL, kstack_hint, VM_RW);
+    const vmblock_t kstack_blk = mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_KERNEL, kstack_hint, VM_RW);
     stack_init(&t->k_stack, (void *) kstack_blk.vaddr, kstack_blk.npages * MOS_PAGE_SIZE);
     process_attach_mmap(owner, kstack_blk, VMTYPE_KSTACK, MMAP_DEFAULT);
 

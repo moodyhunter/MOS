@@ -31,7 +31,6 @@ add_kernel_source(
         mm/mm.c
         mm/paging.c
         mm/paging_impl.c
-        mm/pmem_freelist.c
         tasks/tss.c
         tasks/context.c
         x86_platform.c

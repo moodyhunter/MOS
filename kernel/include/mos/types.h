@@ -73,7 +73,6 @@ typedef id_t tid_t;
 #define new_opaque_type(type, name) _named_opaque_type(type, name, name##_t)
 #define new_opaque_ptr_type(name)   _named_opaque_type(uintptr_t, ptr, name)
 
-new_opaque_ptr_type(paging_handle_t);
 new_opaque_type(size_t, hash);
 
 #undef _named_opaque_type

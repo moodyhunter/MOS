@@ -5,58 +5,33 @@
 #include "lib/string.h"
 #include "mos/constants.h"
 #include "mos/mm/kmalloc.h"
-#include "mos/mos_global.h"
+#include "mos/mm/paging/paging.h"
+#include "mos/mm/paging/pmem_freelist.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
-#include "mos/x86/acpi/acpi.h"
-#include "mos/x86/acpi/acpi_types.h"
 #include "mos/x86/mm/mm.h"
 #include "mos/x86/mm/paging_impl.h"
-#include "mos/x86/mm/pmem_freelist.h"
 #include "mos/x86/x86_platform.h"
 
 // defined in enable_paging.asm
 extern void x86_enable_paging_impl(uintptr_t page_dir);
 
-static const uintptr_t x86_paging_area_start = (uintptr_t) &__MOS_X86_PAGING_AREA_START;
-static const uintptr_t x86_paging_area_end = (uintptr_t) &__MOS_X86_PAGING_AREA_END;
 x86_pg_infra_t *x86_kpg_infra = (void *) &__MOS_X86_PAGING_AREA_START;
 
 void x86_mm_prepare_paging()
 {
     // validate if the memory region calculated from the linker script is correct.
-    size_t paging_area_size = x86_paging_area_end - x86_paging_area_start;
+    const size_t paging_area_size = (uintptr_t) &__MOS_X86_PAGING_AREA_END - (uintptr_t) &__MOS_X86_PAGING_AREA_START;
     MOS_ASSERT_X(paging_area_size >= sizeof(x86_pg_infra_t), "allocated paging area size is too small");
     mos_debug("paging: provided size: 0x%zu, minimum required size: 0x%zu", paging_area_size, sizeof(x86_pg_infra_t));
 
     // initialize the page directory
     memzero(x86_kpg_infra, sizeof(x86_pg_infra_t));
 
-    pr_info("paging: setting up physical memory freelist...");
-    pmem_freelist_setup(x86_kpg_infra);
-
-    // map video memory
-    pr_info("paging: mapping video memory...");
-    pg_do_map_pages(x86_kpg_infra, BIOS_VADDR(X86_VIDEO_DEVICE_PADDR), X86_VIDEO_DEVICE_PADDR, 1, VM_GLOBAL | VM_WRITE);
-
     pr_info("paging: mapping kernel space...");
-    mos_debug("mapping kernel code...");
-    const uintptr_t k_v_code_start = ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_CODE_START);
-    const uintptr_t k_v_code_end = ALIGN_UP_TO_PAGE((uintptr_t) &__MOS_KERNEL_CODE_END);
-    const uintptr_t k_p_code_start = ALIGN_DOWN_TO_PAGE(k_v_code_start - MOS_KERNEL_START_VADDR);
-    pg_map_pages(x86_kpg_infra, k_v_code_start, k_p_code_start, (k_v_code_end - k_v_code_start) / MOS_PAGE_SIZE, VM_GLOBAL | VM_EXEC);
-
-    mos_debug("mapping kernel rodata...");
-    const uintptr_t k_v_rodata_start = ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_RODATA_START);
-    const uintptr_t k_v_rodata_end = ALIGN_UP_TO_PAGE((uintptr_t) &__MOS_KERNEL_RODATA_END);
-    const uintptr_t k_p_rodata_start = ALIGN_DOWN_TO_PAGE(k_v_rodata_start - MOS_KERNEL_START_VADDR);
-    pg_map_pages(x86_kpg_infra, k_v_rodata_start, k_p_rodata_start, (k_v_rodata_end - k_v_rodata_start) / MOS_PAGE_SIZE, VM_GLOBAL);
-
-    mos_debug("mapping kernel writable data...");
-    const uintptr_t k_v_data_start = ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_RW_START);
-    const uintptr_t k_v_data_end = ALIGN_UP_TO_PAGE((uintptr_t) &__MOS_KERNEL_RW_END);
-    const uintptr_t k_p_data_start = ALIGN_DOWN_TO_PAGE(k_v_data_start - MOS_KERNEL_START_VADDR);
-    pg_map_pages(x86_kpg_infra, k_v_data_start, k_p_data_start, (k_v_data_end - k_v_data_start) / MOS_PAGE_SIZE, VM_GLOBAL | VM_WRITE);
+    mm_map_pages(current_cpu->pagetable, x86_platform.k_code);
+    mm_map_pages(current_cpu->pagetable, x86_platform.k_rodata);
+    mm_map_pages(current_cpu->pagetable, x86_platform.k_rwdata);
 }
 
 void x86_mm_enable_paging(void)

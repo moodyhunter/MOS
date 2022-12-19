@@ -2,86 +2,29 @@
 
 #include "mos/x86/mm/paging_impl.h"
 
-#include "lib/structures/bitmap.h"
-#include "mos/constants.h"
-#include "mos/mos_global.h"
-#include "mos/platform/platform.h"
 #include "mos/printk.h"
-#include "mos/types.h"
 #include "mos/x86/mm/paging.h"
-#include "mos/x86/mm/pmem_freelist.h"
 #include "mos/x86/x86_platform.h"
+
+#define PAGING_CORRECT_PGTABLE_SANITY_CHECKS(_pg, _vaddr)                                                                                                                \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (_pg == x86_kpg_infra)                                                                                                                                        \
+            MOS_ASSERT_X(_vaddr >= MOS_KERNEL_START_VADDR, "operating with [userspace address] in the [kernel page] table");                                             \
+        else                                                                                                                                                             \
+            MOS_ASSERT_X(_vaddr < MOS_KERNEL_START_VADDR, "operating with [kernel address] in the [userspace page] table");                                              \
+    } while (0)
 
 always_inline void pg_flush_tlb(uintptr_t vaddr)
 {
     __asm__ volatile("invlpg (%0)" ::"r"(vaddr));
 }
 
-vmblock_t pg_page_alloc(x86_pg_infra_t *pg, size_t n_page, pgalloc_hints hints, vm_flags vm_flag)
-{
-    vmblock_t block = pg_page_get_free(pg, n_page, hints);
-    return pg_page_alloc_at(pg, block.vaddr, n_page, vm_flag);
-}
-
-vmblock_t pg_page_alloc_at(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n_page, vm_flags vm_flag)
-{
-    uintptr_t paddr = pmem_freelist_find_free(n_page);
-
-    if (paddr == 0)
-    {
-        mos_panic("OOM");
-        return (vmblock_t){ 0, .npages = 0 };
-    }
-
-    pg_map_pages(pg, vaddr, paddr, n_page, vm_flag);
-    vmblock_t block = {
-        .vaddr = vaddr,
-        .npages = n_page,
-        .flags = vm_flag,
-    };
-    return block;
-}
-
-vmblock_t pg_page_get_free(x86_pg_infra_t *pg, size_t n_pages, pgalloc_hints hints)
-{
-    uintptr_t vaddr_begin;
-    bitmap_line_t *pagemap = pg->page_map; // paging trick
-
-    switch (hints)
-    {
-        case PGALLOC_HINT_KHEAP:
-            vaddr_begin = MOS_ADDR_KERNEL_HEAP;
-            pagemap = x86_kpg_infra->page_map;
-            break;
-        case PGALLOC_HINT_UHEAP: vaddr_begin = MOS_ADDR_USER_HEAP; break;
-        case PGALLOC_HINT_STACK: vaddr_begin = MOS_ADDR_USER_STACK; break;
-        case PGALLOC_HINT_MMAP: vaddr_begin = MOS_ADDR_USER_MMAP; break;
-        default: mos_panic("invalid pgalloc_hints"); break;
-    }
-
-    uintptr_t start_line = vaddr_begin / MOS_PAGE_SIZE / BITMAP_LINE_BITS;
-    size_t page_i = bitmap_find_first_free_n_from(pagemap, X86_MM_PAGEMAP_NLINES, n_pages, start_line);
-    MOS_ASSERT_X(!bitmap_get(pagemap, X86_MM_PAGEMAP_NLINES, page_i), "page %zu is already allocated", page_i);
-
-    // sanity check: if we are not asked to allocate in kernel space, we should not be doing so (?)
-    uintptr_t vaddr = page_i * MOS_PAGE_SIZE;
-    if (hints != PGALLOC_HINT_KHEAP)
-    {
-        MOS_ASSERT_X((vaddr + n_pages * MOS_PAGE_SIZE) < MOS_KERNEL_START_VADDR, "allocating in kernel space!");
-    }
-
-    return (vmblock_t){ .vaddr = vaddr, .npages = n_pages };
-}
-
-void pg_page_free(x86_pg_infra_t *pg, uintptr_t vptr, size_t n_page)
-{
-    size_t page_index = vptr / MOS_PAGE_SIZE;
-    mos_debug("freeing %zu to %zu", page_index, page_index + n_page);
-    pg_unmap_pages(pg, vptr, n_page);
-}
-
 void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags)
 {
+    MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not aligned to 4096");
+    PAGING_CORRECT_PGTABLE_SANITY_CHECKS(pg, vaddr);
+
     mos_debug("setting flags [0x%x] to [" PTR_FMT "] +%zu pages (pg " PTR_FMT ")", flags, vaddr, n, (uintptr_t) pg);
     size_t start_page = vaddr / MOS_PAGE_SIZE;
     for (size_t i = 0; i < n; i++)
@@ -109,69 +52,33 @@ void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags)
     }
 }
 
-void pg_map_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, vm_flags flags)
-{
-    pmem_freelist_remove_region(paddr_start, n_page * MOS_PAGE_SIZE);
-    pg_do_map_pages(pg, vaddr_start, paddr_start, n_page, flags);
-}
-
-void pg_unmap_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, size_t n_page)
-{
-    uintptr_t paddr = pg_page_get_mapped_paddr(pg, vaddr_start);
-    pg_do_unmap_pages(pg, vaddr_start, n_page);
-    pmem_freelist_add_region(paddr, n_page * MOS_PAGE_SIZE);
-}
-
-void pg_do_map_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, uintptr_t paddr_start, size_t n_page, vm_flags flags)
-{
-    mos_debug("paging: mapping %zu pages (" PTR_FMT "->" PTR_FMT ") @ table %lu", n_page, vaddr_start, paddr_start, vaddr_start / MOS_PAGE_SIZE);
-    for (size_t i = 0; i < n_page; i++)
-        pg_do_map_page(pg, vaddr_start + i * MOS_PAGE_SIZE, paddr_start + i * MOS_PAGE_SIZE, flags);
-}
-
-void pg_do_unmap_pages(x86_pg_infra_t *pg, uintptr_t vaddr_start, size_t n_page)
-{
-    mos_debug("paging: unmapping %zu pages starting at " PTR_FMT " @ table %lu", n_page, vaddr_start, vaddr_start / MOS_PAGE_SIZE);
-    for (size_t i = 0; i < n_page; i++)
-        pg_do_unmap_page(pg, vaddr_start + i * MOS_PAGE_SIZE);
-}
-
 void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_flags flags)
 {
-    // ensure the page is aligned to 4096
-    MOS_ASSERT_X(paddr < X86_MAX_MEM_SIZE, "physical address out of bounds");
     MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not aligned to 4096");
     MOS_ASSERT_X(paddr % MOS_PAGE_SIZE == 0, "paddr is not aligned to 4096");
+    PAGING_CORRECT_PGTABLE_SANITY_CHECKS(pg, vaddr);
 
-    if (pg == x86_kpg_infra)
-        MOS_ASSERT_X(vaddr >= MOS_KERNEL_START_VADDR, "allocate userspace address in kernel page table?");
-
-    u32 pd_index = vaddr >> 22;
-    u32 pt_index = pd_index * 1024 + (vaddr >> 12 & 0x3ff);
+    const u32 pd_index = vaddr >> 22;
+    const u32 pt_index = pd_index * 1024 + (vaddr >> 12 & 0x3ff);
 
     x86_pgdir_entry *this_dir = &pg->pgdir[pd_index];
-    x86_pgtable_entry *this_table = pd_index >= 768 ? &x86_kpg_infra->pgtable[pt_index] : &pg->pgtable[pt_index];
+    x86_pgtable_entry *this_table = &pg->pgtable[pt_index];
 
     if (unlikely(!this_dir->present))
     {
         this_dir->present = true;
 
-        // kernel page tables are identity mapped
-        uintptr_t table_paddr;
-        if (pg == x86_kpg_infra)
-            table_paddr = (uintptr_t) this_table - MOS_KERNEL_START_VADDR; // kvaddr = kpaddr + MOS_KERNEL_START_VADDR
+        if (vaddr >= MOS_KERNEL_START_VADDR)
+        {
+            // kernel page tables are identity mapped, directly subtract the kernel start address
+            // chicken and egg problem: get the physical address of the very first page table
+            this_dir->page_table_paddr = ((uintptr_t) &pg->pgtable[pd_index * 1024] - MOS_KERNEL_START_VADDR) >> 12;
+        }
         else
-            table_paddr = pg_page_get_mapped_paddr(x86_kpg_infra, (uintptr_t) this_table);
-        this_dir->page_table_paddr = table_paddr >> 12;
+        {
+            this_dir->page_table_paddr = pg_page_get_mapped_paddr(x86_kpg_infra, (uintptr_t) this_table) >> 12;
+        }
     }
-
-    if (pg != x86_kpg_infra && pd_index >= 768)
-        MOS_ASSERT_X(this_dir->present, "page directory not present for kernel addresses, when mapping user pages");
-
-    bitmap_line_t *page_map = pd_index < 768 ? pg->page_map : x86_kpg_infra->page_map;
-    bool page_mapped_in_map = bitmap_get(page_map, X86_MM_PAGEMAP_NLINES, pt_index);
-    if (page_mapped_in_map != this_table->present)
-        mos_panic("inconsistent page map for " PTR_FMT, vaddr);
 
     MOS_ASSERT_X(this_table->present == false, "page " PTR_FMT " already mapped", vaddr);
 
@@ -189,17 +96,16 @@ void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_fla
 
     this_table->global = flags & VM_GLOBAL;
 
-    bitmap_set(page_map, X86_MM_PAGEMAP_NLINES, pt_index);
-
-    MOS_ASSERT_X(bitmap_get(page_map, X86_MM_PAGEMAP_NLINES, pt_index), "page map not set for " PTR_FMT, vaddr);
-
     pg_flush_tlb(vaddr);
 }
 
 void pg_do_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr)
 {
-    u32 pd_index = vaddr >> 22;
-    u32 pt_index = pd_index * 1024 + (vaddr >> 12 & 0x3ff);
+    MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not aligned to 4096");
+    PAGING_CORRECT_PGTABLE_SANITY_CHECKS(pg, vaddr);
+
+    const u32 pd_index = vaddr >> 22;
+    const u32 pt_index = pd_index * 1024 + (vaddr >> 12 & 0x3ff);
 
     x86_pgdir_entry *page_dir = &pg->pgdir[pd_index];
     if (unlikely(!page_dir->present))
@@ -208,30 +114,21 @@ void pg_do_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr)
         return;
     }
 
-    x86_pgtable_entry *this_table = pd_index >= 768 ? &x86_kpg_infra->pgtable[pt_index] : &pg->pgtable[pt_index];
-    this_table->present = false;
-
-    // update the mm page map
-    bitmap_line_t *page_map = pd_index < 768 ? pg->page_map : x86_kpg_infra->page_map;
-    if (unlikely(!bitmap_get(page_map, X86_MM_PAGEMAP_NLINES, pt_index)))
-    {
-        mos_panic("vmem " PTR_FMT " not mapped", vaddr);
-        return;
-    }
-
-    bitmap_clear(page_map, X86_MM_PAGEMAP_NLINES, pt_index);
+    pg->pgtable[pt_index].present = false;
     pg_flush_tlb(vaddr);
 }
 
 // !! TODO: read real address instead of assuming memory layout = x86_pg_infra_t
 uintptr_t pg_page_get_mapped_paddr(x86_pg_infra_t *pg, uintptr_t vaddr)
 {
+    PAGING_CORRECT_PGTABLE_SANITY_CHECKS(pg, vaddr);
+
     int page_dir_index = vaddr >> 22;
     int page_table_index = vaddr >> 12 & 0x3ff;
     x86_pgdir_entry *page_dir = pg->pgdir + page_dir_index;
     x86_pgtable_entry *page_table = pg->pgtable + page_dir_index * 1024 + page_table_index;
 
-    if (page_dir_index >= 768)
+    if (vaddr >= MOS_KERNEL_START_VADDR)
         page_dir = x86_kpg_infra->pgdir + page_dir_index, page_table = x86_kpg_infra->pgtable + page_dir_index * 1024 + page_table_index;
 
     if (unlikely(!page_dir->present))
@@ -245,12 +142,15 @@ uintptr_t pg_page_get_mapped_paddr(x86_pg_infra_t *pg, uintptr_t vaddr)
 
 vm_flags pg_page_get_flags(x86_pg_infra_t *pg, uintptr_t vaddr)
 {
+    MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not aligned to 4096");
+    PAGING_CORRECT_PGTABLE_SANITY_CHECKS(pg, vaddr);
+
     int page_dir_index = vaddr >> 22;
     int page_table_index = vaddr >> 12 & 0x3ff;
     x86_pgdir_entry *page_dir = pg->pgdir + page_dir_index;
     x86_pgtable_entry *page_table = pg->pgtable + page_dir_index * 1024 + page_table_index;
 
-    if (page_dir_index >= 768)
+    if (vaddr >= MOS_KERNEL_START_VADDR)
         page_dir = x86_kpg_infra->pgdir + page_dir_index, page_table = x86_kpg_infra->pgtable + page_dir_index * 1024 + page_table_index;
 
     if (unlikely(!page_dir->present))
@@ -265,23 +165,4 @@ vm_flags pg_page_get_flags(x86_pg_infra_t *pg, uintptr_t vaddr)
     flags |= (page_dir->cache_disabled && page_table->cache_disabled) ? VM_CACHE_DISABLED : 0;
     flags |= page_table->global ? VM_GLOBAL : 0;
     return flags;
-}
-
-bool pg_page_get_is_mapped(x86_pg_infra_t *pg, uintptr_t vaddr)
-{
-    int page_dir_index = vaddr >> 22;
-    int page_table_index = vaddr >> 12 & 0x3ff;
-    x86_pgdir_entry *page_dir = pg->pgdir + page_dir_index;
-    x86_pgtable_entry *page_table = pg->pgtable + page_dir_index * 1024 + page_table_index;
-
-    if (page_dir_index >= 768)
-        page_dir = x86_kpg_infra->pgdir + page_dir_index, page_table = x86_kpg_infra->pgtable + page_dir_index * 1024 + page_table_index;
-
-    if (unlikely(!page_dir->present))
-        return false;
-
-    if (unlikely(!page_table->present))
-        return false;
-
-    return true;
 }
