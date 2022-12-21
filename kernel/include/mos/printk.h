@@ -36,7 +36,7 @@ typedef enum
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
         if (MOS_DEBUG_FEATURE(feat))                                                                                                                                     \
-            pr_info2("%s: " fmt, __func__, ##__VA_ARGS__);                                                                                                               \
+            pr_info2("%s: " fmt, #feat, ##__VA_ARGS__);                                                                                                                  \
     } while (0)
 
 #if MOS_CONFIG(MOS_PRINTK_WITH_FILENAME)
