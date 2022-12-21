@@ -4,11 +4,12 @@
 
 #include "mos/tasks/task_types.h"
 #include "mos/types.h"
+#include "mos/x86/x86_platform.h"
 
 typedef struct
 {
     platform_context_t inner;
-    reg32_t ebp;
+    x86_stack_frame regs;
     void *arg;
 } __packed x86_thread_context_t;
 

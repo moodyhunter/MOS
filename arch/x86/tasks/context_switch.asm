@@ -35,10 +35,10 @@ x86_context_switch_impl:
     xor     ebx, ebx
     ; ecx contains jump_addr
     ; edx contains arguments for the new thread, don't clear it
-    ; edx = struct { eip, stack, ebp, arg; };
-    xor     esi, esi
-    xor     edi, edi
-    xor     ebp, ebp
+    ; edx = struct { eip, stack, x86_stack_frame, arg; };
+    ; xor     esi, esi
+    ; xor     edi, edi
+    ; xor     ebp, ebp
     ; jump to jump_addr
     jmp     ecx
 .end:
@@ -60,7 +60,7 @@ global x86_switch_impl_new_kernel_thread:function (x86_switch_impl_new_kernel_th
 x86_switch_impl_new_kernel_thread:
     ; we are now on the kernel stack, it's empty thus nothing to restore
     mov     eax, [edx]          ; eax = eip
-    push    dword [edx + 12]    ; push the argument
+    push    dword [edx + 21 * 4]; push the argument
     push    0                   ; push a dummy return address
     xor     edx, edx            ; clear edx
     jmp     eax                 ; jump to eip
@@ -69,26 +69,33 @@ x86_switch_impl_new_kernel_thread:
 global x86_switch_impl_new_user_thread:function (x86_switch_impl_new_user_thread.end - x86_switch_impl_new_user_thread)
 x86_switch_impl_new_user_thread:
     ; we are now on the kernel stack of the corresponding thread
-    ; edx = struct { eip, stack, ebp, arg; };
-    mov     ebx, [edx + 4]  ; ebx = stack
-    mov     ebp, [edx + 8]  ; ebp
-    mov     eax, [edx + 12] ; eax = arg
-    mov     ecx, [edx]      ; ecx = eip
+    ; edx = struct { eip, stack, x86_stack_frame, arg; }; (size: 1, 1, 19, 1)
+
+    mov     ecx, [edx]          ; ecx = eip
+    mov     eax, [edx + 21 * 4] ; eax = arg
+
+    ; ebx, ebp, edi, esi are callee-saved registers
+    mov     edi, [edx + 2 * 4 + 4 * 4]
+    mov     esi, [edx + 2 * 4 + 5 * 4]
+    mov     ebp, [edx + 2 * 4 + 6 * 4]
+    mov     ebx, [edx + 2 * 4 + 8 * 4]
+
+    mov     edx, [edx + 1 * 4]  ; edx = stack
 
     ; push the argument and a dummy return address
-    sub     ebx, 4
-    mov     [ebx], eax
-    sub     ebx, 4
-    mov     dword [ebx - 8], 0
+    sub     edx, 4
+    mov     [edx], eax
+    sub     edx, 4
+    mov     dword [edx - 8], 0
 
     push    0x20 | 0x3      ; user data (stack) segment + RPL 3
-    push    ebx             ; stack
+    push    edx             ; stack
     pushf                   ; push flags
 
     ; enable interrupts
-    pop     ebx             ; pop flags
-    or      ebx, 0x200      ; set IF
-    push    ebx             ; push flags
+    pop     edx             ; pop flags
+    or      edx, 0x200      ; set IF
+    push    edx             ; push flags
 
     push    0x18 | 0x3      ; user code segment + RPL 3
     push    ecx             ; eip
@@ -97,12 +104,8 @@ x86_switch_impl_new_user_thread:
     ;!       for a child process after fork, eax is also 0
     ;!       so here we have to set eax to 0
     xor     eax, eax        ; clear eax
-    xor     ebx, ebx        ; clear ebx
     xor     ecx, ecx        ; clear ecx
     xor     edx, edx        ; clear edx
-    xor     esi, esi        ; clear esi
-    xor     edi, edi        ; clear edi
-    xor     ebx, ebx        ; clear ebx
 
     mov     cx, 0x20 | 3    ; user data segment + RPL 3
     mov     ds, cx

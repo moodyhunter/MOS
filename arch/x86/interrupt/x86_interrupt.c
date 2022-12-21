@@ -267,7 +267,7 @@ void x86_handle_interrupt(u32 esp)
     {
         current->context->stack = frame->iret_params.esp;
         x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
-        context->ebp = frame->ebp;
+        context->regs = *frame;
         context->inner.instruction = frame->iret_params.eip;
     }
 

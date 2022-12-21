@@ -24,11 +24,10 @@ extern asmlinkage void x86_context_switch_impl(uintptr_t *old_stack, uintptr_t n
 
 void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
 {
-    x86_thread_context_t *context = kmalloc(sizeof(x86_thread_context_t));
+    x86_thread_context_t *context = kzalloc(sizeof(x86_thread_context_t));
     context->inner.instruction = (uintptr_t) entry;
     context->inner.stack = thread->mode == THREAD_MODE_KERNEL ? thread->k_stack.head : thread->u_stack.head;
     context->arg = arg;
-    context->ebp = 0;
     thread->context = &context->inner;
 }
 
