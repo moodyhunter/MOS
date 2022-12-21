@@ -34,8 +34,9 @@ __startup_rodata static const uintptr_t kernel_ro_vend = (uintptr_t) &__MOS_KERN
 __startup_rodata static const uintptr_t kernel_rw_vstart = (uintptr_t) &__MOS_KERNEL_RW_START;
 __startup_rodata static const uintptr_t kernel_rw_vend = (uintptr_t) &__MOS_KERNEL_RW_END;
 
+// 768 KB of pages gives us 768 MB of virtual memory
 __startup_rwdata x86_pgdir_entry startup_pgd[1024] __aligned(MOS_PAGE_SIZE) = { 0 };
-__startup_rwdata x86_pgtable_entry pages[768 KB / 4] __aligned(MOS_PAGE_SIZE) = { 0 };
+__startup_rwdata x86_pgtable_entry startup_pgt[768 KB / 4] __aligned(MOS_PAGE_SIZE) = { 0 };
 
 __startup_rwdata uintptr_t video_device_address = X86_VIDEO_DEVICE;
 
@@ -93,7 +94,7 @@ __startup_code void mos_startup_map_single_page(uintptr_t vaddr, uintptr_t paddr
         else
             STARTUP_ASSERT(false, 'v');
 
-        startup_setup_pgd(dir_index, &pages[pagedir_entry_table_index]);
+        startup_setup_pgd(dir_index, &startup_pgt[pagedir_entry_table_index]);
         used_pgd++;
     }
 
@@ -133,7 +134,7 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
     STARTUP_ASSERT(startup->mb_info->flags & MULTIBOOT_INFO_MEM_MAP, '2');
 
     mos_startup_memzero((void *) startup_pgd, sizeof(x86_pgdir_entry) * 1024);
-    mos_startup_memzero((void *) pages, 512 KB);
+    mos_startup_memzero((void *) startup_pgt, 512 KB);
 
     debug_print_step();
     mos_startup_map_identity((uintptr_t) startup->mb_info, sizeof(multiboot_info_t), VM_NONE);
