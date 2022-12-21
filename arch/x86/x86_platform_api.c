@@ -118,7 +118,7 @@ void platform_switch_to_thread(uintptr_t *old_stack, thread_t *new_thread)
 
 void platform_mm_map_pages(paging_handle_t table, vmblock_t block)
 {
-    mos_debug("paging: mapping %zu pages (" PTR_FMT "->" PTR_FMT ") @ table " PTR_FMT, block.npages, block.vaddr, block.paddr, table.pgd);
+    mos_debug(x86_paging, "mapping %zu pages (" PTR_FMT "->" PTR_FMT ") @ table " PTR_FMT, block.npages, block.vaddr, block.paddr, table.pgd);
 
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
     for (size_t i = 0; i < block.npages; i++)
@@ -127,7 +127,7 @@ void platform_mm_map_pages(paging_handle_t table, vmblock_t block)
 
 void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr_start, size_t n_pages)
 {
-    mos_debug("paging: unmapping %zu pages starting at " PTR_FMT " @ table " PTR_FMT, n_pages, vaddr_start, table.pgd);
+    mos_debug(x86_paging, "unmapping %zu pages starting at " PTR_FMT " @ table " PTR_FMT, n_pages, vaddr_start, table.pgd);
 
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
     for (size_t i = 0; i < n_pages; i++)

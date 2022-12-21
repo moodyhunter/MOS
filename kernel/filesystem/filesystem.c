@@ -108,7 +108,7 @@ bool vfs_path_open(fsnode_t *path, file_open_flags flags, file_t *file)
         return NULL;
     }
 
-    mos_debug("opening file %s on fs: %s, blockdev: %s", path->name, mp->fs->name, mp->dev->name);
+    mos_debug(fs, "opening file %s on fs: %s, blockdev: %s", path->name, mp->fs->name, mp->dev->name);
 
     file_stat_t stat;
     if (!mp->fs->op_stat(mp, path, &stat))

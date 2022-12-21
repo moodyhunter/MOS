@@ -18,7 +18,7 @@ void x86_mm_prepare_paging()
     // validate if the memory region calculated from the linker script is correct.
     const size_t paging_area_size = (uintptr_t) &__MOS_X86_PAGING_AREA_END - (uintptr_t) &__MOS_X86_PAGING_AREA_START;
     MOS_ASSERT_X(paging_area_size >= sizeof(x86_pg_infra_t), "allocated paging area size is too small");
-    mos_debug("paging: provided size: 0x%zu, minimum required size: 0x%zu", paging_area_size, sizeof(x86_pg_infra_t));
+    mos_debug(x86_paging, "provided size: 0x%zu, minimum required size: 0x%zu", paging_area_size, sizeof(x86_pg_infra_t));
 
     // initialize the page directory
     memzero(x86_kpg_infra, sizeof(x86_pg_infra_t));
@@ -26,11 +26,11 @@ void x86_mm_prepare_paging()
 
 void x86_mm_enable_paging(void)
 {
-    mos_debug("paging: page directory vaddr at: %p", (void *) x86_kpg_infra->pgdir);
+    mos_debug(x86_paging, "page directory vaddr at: %p", (void *) x86_kpg_infra->pgdir);
     x86_enable_paging_impl(((uintptr_t) x86_kpg_infra->pgdir) - MOS_KERNEL_START_VADDR);
     pr_info("paging: enabled");
 
-#if MOS_DEBUG
+#if MOS_DEBUG_FEATURE(x86_paging)
     x86_mm_dump_page_table(x86_kpg_infra);
 #endif
 }

@@ -25,7 +25,7 @@ process_t *process_handle_fork(process_t *parent)
         proc_vmblock_t block = parent->mmaps[i];
         if (block.map_flags & MMAP_PRIVATE)
         {
-            mos_debug("private mapping, skipping");
+            mos_debug(fork, "private mapping, skipping");
             continue;
         }
 

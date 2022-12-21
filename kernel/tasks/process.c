@@ -166,7 +166,7 @@ void process_attach_thread(process_t *process, thread_t *thread)
     MOS_ASSERT(process_is_valid(process));
     MOS_ASSERT(thread_is_valid(thread));
     MOS_ASSERT(thread->owner == process);
-    mos_debug("process %d attached thread %d", process->pid, thread->tid);
+    mos_debug(process, "process %d attached thread %d", process->pid, thread->tid);
     process->threads[process->threads_count++] = thread;
 }
 
@@ -182,7 +182,7 @@ void process_handle_exit(process_t *process, int exit_code)
     MOS_ASSERT(process_is_valid(process));
     pr_info("process %d exited with code %d", process->pid, exit_code);
 
-    mos_debug("terminating all %lu threads owned by %d", process->threads_count, process->pid);
+    mos_debug(process, "terminating all %lu threads owned by %d", process->threads_count, process->pid);
     for (int i = 0; i < process->threads_count; i++)
     {
         thread_t *thread = process->threads[i];
@@ -194,7 +194,7 @@ void process_handle_exit(process_t *process, int exit_code)
         thread->state = THREAD_STATE_DEAD; // cleanup will be done by the scheduler
     }
 
-    mos_debug("closing all %lu files owned by %d", process->files_count, process->pid);
+    mos_debug(process, "closing all %lu files owned by %d", process->files_count, process->pid);
     for (int i = 0; i < process->files_count; i++)
     {
         MOS_ASSERT_X(process->files[i], "file %d is NULL", i);
@@ -209,7 +209,7 @@ void process_handle_cleanup(process_t *process)
     MOS_ASSERT(process_is_valid(process));
     MOS_ASSERT_X(current_process != process, "cannot cleanup current process");
 
-    mos_debug("unmapping all %lu memory regions owned by %d", process->mmaps_count, process->pid);
+    mos_debug(process, "unmapping all %lu memory regions owned by %d", process->mmaps_count, process->pid);
     for (int i = 0; i < process->mmaps_count; i++)
     {
         const mmap_flags flags = process->mmaps[i].map_flags;

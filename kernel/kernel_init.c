@@ -10,6 +10,7 @@
 #include "mos/filesystem/pathutils.h"
 #include "mos/io/terminal.h"
 #include "mos/ipc/ipc.h"
+#include "mos/kconfig.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/kthread.h"
@@ -51,7 +52,7 @@ const char *cmdline_get_init_path(void)
 
 void dump_cmdline(void)
 {
-    pr_emph("MOS %s (%s)", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION);
+    pr_emph("MOS %s (%s)", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION_STRING);
     if (mos_cmdline->args_count)
         pr_emph("MOS Arguments: (total of %zu options)", mos_cmdline->args_count);
     for (u32 i = 0; i < mos_cmdline->args_count; i++)

@@ -15,7 +15,7 @@ void io_init(io_t *io, io_flags_t flags, const io_op_t *ops)
 
 io_t *io_ref(io_t *io)
 {
-    mos_debug("io_ref(%p)", (void *) io);
+    mos_debug(io, "io_ref(%p)", (void *) io);
     if (unlikely(!io))
     {
         mos_warn("io is NULL");
@@ -34,7 +34,7 @@ io_t *io_ref(io_t *io)
 
 void io_unref(io_t *io)
 {
-    mos_debug("io_unref(%p)", (void *) io);
+    mos_debug(io, "io_unref(%p)", (void *) io);
     if (unlikely(!io))
     {
         mos_warn("io is NULL");

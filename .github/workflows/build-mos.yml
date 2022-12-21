@@ -47,8 +47,7 @@ jobs:
         run: |
           cmake \
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
-            -DMOS_MM_LIBALLOC_DEBUG=${{matrix.run_tests}} \
-            -DMOS_DEBUG=${{matrix.run_tests}} \
+            -DMOS_DEBUG_ALL=${{matrix.run_tests}} \
             -DBUILD_TESTING=${{matrix.run_tests}} \
             -B ${{github.workspace}}/build \
             -G Ninja

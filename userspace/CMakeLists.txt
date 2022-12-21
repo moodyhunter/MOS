@@ -33,7 +33,7 @@ macro(add_userspace_program NAME)
 
     set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}")
     target_link_libraries(${NAME} PUBLIC mos::libuserspace)
-    mos_add_summary_item(USERSPACE ${NAME} ${OUTPUT_DIR}/${NAME})
+    mos_add_summary_item(USERSPACE ${NAME} "Userspace Program ${NAME}" ${OUTPUT_DIR}/${NAME})
     write_file(${CMAKE_BINARY_DIR}/gdbinit "add-symbol-file ${OUTPUT_DIR}/${NAME}" APPEND)
     add_dependencies(mos_userspace_programs ${NAME})
 endmacro()

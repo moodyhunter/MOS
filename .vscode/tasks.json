@@ -61,7 +61,9 @@
                 "-smp",
                 "4",
                 "-append",
-                "kmsg_console=serial"
+                "kmsg_console=serial",
+                "-nic",
+                "user",
             ],
             "problemMatcher": [ ],
             "group": "none",

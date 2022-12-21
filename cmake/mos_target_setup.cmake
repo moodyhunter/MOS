@@ -2,6 +2,9 @@
 
 set(CMAKE_SYSTEM_NAME Linux) # "MOS" ?
 
+set(CMAKE_C_FLAGS "-Werror=div-by-zero")
+set(CMAKE_CXX_FLAGS "-Werror=div-by-zero")
+
 set(CMAKE_C_FLAGS_DEBUG "-ggdb3")
 set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3")
 
@@ -9,7 +12,7 @@ set(CMAKE_C_COMPILER_LAUNCHER "")
 set(CMAKE_CXX_COMPILER_LAUNCHER "")
 
 macro(mos_target_setup ISA_FAMILY ISA BITS)
-    mos_kconfig(PLATFORM MOS_BITS ${BITS} "ISA Bits")
+    mos_kconfig(KERNEL MOS_BITS ${BITS} "ISA Bits")
     set(MOS_ISA_FAMILY ${ISA_FAMILY})
 
     set(CMAKE_SYSTEM_PROCESSOR ${ISA})

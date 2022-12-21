@@ -57,7 +57,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
 
     process_t *current_proc = current_process;
     MOS_ASSERT_X(current_proc->pagetable.pgd == current_cpu->pagetable.pgd, "Page fault in a process that is not the current process?!");
-#if MOS_DEBUG
+#if MOS_DEBUG_FEATURE(cow)
     process_dump_mmaps(current_proc);
 #endif
 
@@ -74,7 +74,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
 
         const bool is_cow = mmap->map_flags & MMAP_COW;
         const bool is_zero_on_demand = mmap->map_flags & MMAP_ZERO_ON_DEMAND;
-        mos_debug("fault_addr=" PTR_FMT ", vmblock=" PTR_FMT "-" PTR_FMT, fault_addr, vm.vaddr, vm.vaddr + vm.npages * MOS_PAGE_SIZE);
+        mos_debug(cow, "fault_addr=" PTR_FMT ", vmblock=" PTR_FMT "-" PTR_FMT, fault_addr, vm.vaddr, vm.vaddr + vm.npages * MOS_PAGE_SIZE);
 
         if (is_zero_on_demand)
         {
@@ -84,7 +84,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
             mm_alloc_pages_at(current_proc->pagetable, vm.vaddr, vm.npages, vm.flags);
             memzero((void *) vm.vaddr, MOS_PAGE_SIZE * vm.npages);
             current_proc->mmaps[i].map_flags &= ~MMAP_ZERO_ON_DEMAND;
-            mos_debug("ZoD resolved");
+            mos_debug(cow, "ZoD resolved");
             return true;
         }
         else if (is_cow)
@@ -94,7 +94,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
             copy_cow_pages_inplace(vm.vaddr, vm.npages);
             platform_mm_flag_pages(current_proc->pagetable, vm.vaddr, vm.npages, vm.flags);
             current_proc->mmaps[i].map_flags &= ~MMAP_COW;
-            mos_debug("CoW resolved");
+            mos_debug(cow, "CoW resolved");
             return true;
         }
         else

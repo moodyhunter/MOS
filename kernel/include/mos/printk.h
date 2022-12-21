@@ -7,10 +7,6 @@
 #include "mos/types.h"
 #include MOS_KERNEL_INTERNAL_HEADER_CHECK
 
-#ifndef MOS_VERBOSE_PRINTK
-#error "MOS_VERBOSE_PRINTK must be defined"
-#endif
-
 #define PRINTK_BUFFER_SIZE 1024
 
 #define MOS_UNIMPLEMENTED(content)  mos_panic("\nUNIMPLEMENTED: %s", content)
@@ -36,8 +32,15 @@ typedef enum
     MOS_LOG_DEFAULT = MOS_LOG_INFO,
 } mos_log_level_t;
 
-#if MOS_VERBOSE_PRINTK
-#define lprintk_wrapper(level, fmt, ...) lprintk(level, "%-25s | " fmt, MOS_FILE_LOCATION, ##__VA_ARGS__)
+#define mos_debug(feat, fmt, ...)                                                                                                                                        \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (MOS_DEBUG_FEATURE(feat))                                                                                                                                     \
+            pr_info2("%s: " fmt, __func__, ##__VA_ARGS__);                                                                                                               \
+    } while (0)
+
+#if MOS_CONFIG(MOS_PRINTK_WITH_FILENAME)
+#define lprintk_wrapper(level, fmt, ...) lprintk(level, "%-30s | " fmt, MOS_FILE_LOCATION, ##__VA_ARGS__)
 #else
 #define lprintk_wrapper(level, fmt, ...) lprintk(level, "" fmt, ##__VA_ARGS__)
 #endif
@@ -50,13 +53,7 @@ typedef enum
 #define pr_emerg(fmt, ...) lprintk_wrapper(MOS_LOG_EMERG, fmt "\r\n", ##__VA_ARGS__)
 #define pr_fatal(fmt, ...) lprintk_wrapper(MOS_LOG_FATAL, fmt "\r\n", ##__VA_ARGS__)
 
-#define mos_debug(fmt, ...)                                                                                                                                              \
-    do                                                                                                                                                                   \
-    {                                                                                                                                                                    \
-        if (MOS_DEBUG)                                                                                                                                                   \
-            lprintk_wrapper(MOS_LOG_INFO2, "%s: " fmt "\r\n", __func__, ##__VA_ARGS__);                                                                                  \
-    } while (0)
-
+// these two also invokes a warning/panic handler
 #define mos_warn(fmt, ...)  mos_kwarn(__func__, __LINE__, "WARN: " fmt "\r\n", ##__VA_ARGS__)
 #define mos_panic(fmt, ...) mos_kpanic(__func__, __LINE__, "" fmt, ##__VA_ARGS__)
 

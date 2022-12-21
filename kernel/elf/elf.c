@@ -84,7 +84,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
     for (int i = 0; i < elf->ph.count; i++)
     {
         elf_program_hdr_t *ph = (elf_program_hdr_t *) (buf + elf->ph_offset + i * elf->ph.entry_size);
-        mos_debug("program header %d: %c%c%c%s at " PTR_FMT, i,
+        mos_debug(elf, "program header %d: %c%c%c%s at " PTR_FMT, i,
                   (elf_program_header_flags) ph->p_flags & ELF_PH_F_R ? 'r' : '-', //
                   (elf_program_header_flags) ph->p_flags & ELF_PH_F_W ? 'w' : '-', //
                   (elf_program_header_flags) ph->p_flags & ELF_PH_F_X ? 'x' : '-', //
@@ -108,7 +108,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
     {
         elf_section_hdr_t *sh = (elf_section_hdr_t *) (buf + elf->sh_offset + sh_i * elf->sh.entry_size);
         const char *const name = &strtab[sh->name_index];
-        mos_debug("elf section %2d: %s", sh_i, name);
+        mos_debug(elf, "elf section %2d: %s", sh_i, name);
 
         if (sh->sh_size == 0)
             continue; // skip empty sections
@@ -126,7 +126,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
             if (section_inmem_addr >= ph->vaddr && section_inmem_addr < ph->vaddr + ph->segsize_in_mem)
             {
                 MOS_ASSERT_X(!is_loadable, "section %d is loadable in multiple program headers", sh_i);
-                mos_debug("section %d (%s), header %d, file offset " PTR_FMT " (%zu bytes) -> mem " PTR_FMT, sh_i, name, ph_i, sh->sh_offset, sh->sh_size,
+                mos_debug(elf, "section %d (%s), header %d, file offset " PTR_FMT " (%zu bytes) -> mem " PTR_FMT, sh_i, name, ph_i, sh->sh_offset, sh->sh_size,
                           section_inmem_addr);
                 is_loadable = true;
                 map_flags |= ((ph->p_flags & ELF_PH_F_R ? VM_READ : 0) |  //
@@ -137,7 +137,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
 
         if (!is_loadable)
         {
-            mos_debug("section %d is not loadable", sh_i);
+            mos_debug(elf, "section %d is not loadable", sh_i);
             continue;
         }
 
@@ -164,7 +164,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
 
         if (mapped_pages_n == 0)
         {
-            mos_debug("section %d is not previously mapped", sh_i);
+            mos_debug(elf, "section %d is not previously mapped", sh_i);
         }
         else
         {
@@ -172,7 +172,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
             // previously mapped pages
             if (sh->header_type == ELF_SH_T_NOBITS && mapped_pages_n)
             {
-                mos_debug("section %d is NOBITS, zeroing previously mapped area", sh_i);
+                mos_debug(elf, "section %d is NOBITS, zeroing previously mapped area", sh_i);
                 MOS_ASSERT(previouse_sh); // It's just impossible to have a previously mapped section if this is the first section
 
                 // Memory layout:
@@ -190,12 +190,12 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
 
             if (mapped_pages_n == section_inmem_pages)
             {
-                mos_debug("section %d is already fully mapped", sh_i);
+                mos_debug(elf, "section %d is already fully mapped", sh_i);
                 continue;
             }
             else
             {
-                mos_debug("section %d is partially mapped (%zu pages), mapping the rest (%zu pages)", sh_i, mapped_pages_n, pages_to_map);
+                mos_debug(elf, "section %d is partially mapped (%zu pages), mapping the rest (%zu pages)", sh_i, mapped_pages_n, pages_to_map);
             }
         }
 

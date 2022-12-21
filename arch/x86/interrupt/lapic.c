@@ -64,13 +64,13 @@ void lapic_set_base_addr(uintptr_t base_addr)
 
 u32 lapic_read32(u32 offset)
 {
-    mos_debug("reg: %x", offset);
+    mos_debug(x86_lapic, "reg: %x", offset);
     return lapic_regs[offset / sizeof(u32)];
 }
 
 u64 lapic_read64(u32 offset)
 {
-    mos_debug("reg: %x", offset);
+    mos_debug(x86_lapic, "reg: %x", offset);
     u32 high = lapic_regs[(offset + 0x10) / sizeof(u32)];
     u32 low = lapic_regs[offset / sizeof(u32)];
     return ((u64) high << 32) | low;
@@ -78,9 +78,9 @@ u64 lapic_read64(u32 offset)
 
 void lapic_write32(u32 offset, u32 value)
 {
-    mos_debug("reg: %x, value: 0x%.8x", offset, value);
+    mos_debug(x86_lapic, "reg: %x, value: 0x%.8x", offset, value);
     lapic_regs[offset / sizeof(u32)] = value;
-#ifdef MOS_DEBUG
+#if MOS_DEBUG_FEATURE(x86_lapic)
     u32 read_value = lapic_read32(offset);
     if (read_value != value)
         mos_warn("INCORRECT: 0x%.8x", read_value);
@@ -89,10 +89,10 @@ void lapic_write32(u32 offset, u32 value)
 
 void lapic_write64(u32 offset, u64 value)
 {
-    mos_debug("reg: %x, value: 0x%.16llx", offset, value);
+    mos_debug(x86_lapic, "reg: %x, value: 0x%.16llx", offset, value);
     lapic_regs[(offset + 0x10) / sizeof(u32)] = value >> 32;
     lapic_regs[offset / sizeof(u32)] = value & 0xffffffff;
-#ifdef MOS_DEBUG
+#if MOS_DEBUG_FEATURE(x86_lapic)
     u64 read_value = lapic_read64(offset);
     if (read_value != value)
         mos_warn("INCORRECT: 0x%.16llx", read_value);

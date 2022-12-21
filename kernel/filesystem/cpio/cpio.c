@@ -98,7 +98,7 @@ bool cpio_mount(blockdev_t *dev, fsnode_t *path)
         return false;
     }
 
-    mos_debug("cpio header: %.6s", header.magic);
+    mos_debug(cpio, "cpio header: %.6s", header.magic);
 
     return true;
 }
@@ -112,7 +112,7 @@ bool cpio_unmount(mountpoint_t *mountpoint)
 bool cpio_open(const mountpoint_t *mp, const fsnode_t *path, file_open_flags flags, file_t *file)
 {
     const char *strpath = path_to_string_relative(mp->path, path);
-    mos_debug("cpio_open: %s", strpath);
+    mos_debug(cpio, "cpio_open: %s", strpath);
     if (flags & FILE_OPEN_WRITE)
     {
         mos_warn("cpio_open: write not supported");

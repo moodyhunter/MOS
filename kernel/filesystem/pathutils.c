@@ -174,13 +174,13 @@ const char *path_to_string_relative(const fsnode_t *root, const fsnode_t *leaf)
 void path_treeop_decrement_refcount(const tree_node_t *node)
 {
     fsnode_t *path = tree_entry(node, fsnode_t);
-    mos_debug("decreasing refcount of path '%s'", path->name);
+    mos_debug(fs, "decreasing refcount of path '%s'", path->name);
     refcount_dec(&path->refcount);
 }
 
 void path_treeop_increment_refcount(const tree_node_t *node)
 {
     fsnode_t *path = tree_entry(node, fsnode_t);
-    mos_debug("incrementing refcount of path '%s'", path->name);
+    mos_debug(fs, "incrementing refcount of path '%s'", path->name);
     refcount_inc(&path->refcount);
 }

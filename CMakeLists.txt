@@ -38,6 +38,18 @@ target_include_directories(mos_kernel_platform_include INTERFACE ${CMAKE_SOURCE_
 add_library(mos::basic_include ALIAS mos_kernel_basic_include)
 add_library(mos::platform_include ALIAS mos_kernel_platform_include)
 
+execute_process(
+    COMMAND git describe --long --tags --all --dirty
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE REVISION
+    ERROR_VARIABLE _DROP_
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_STRIP_TRAILING_WHITESPACE
+)
+
+mos_kconfig(MISC MOS_KERNEL_VERSION "\"${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}\"" "Kernel version")
+mos_kconfig(MISC MOS_KERNEL_REVISION_STRING "\"${REVISION}\"" "Kernel revision string")
+
 set(MOS_STANDARD_LIBRARY_SOURCES
     lib/structures/bitmap.c
     lib/structures/hashmap.c
@@ -108,10 +120,7 @@ add_library(mos::libuserspace ALIAS mos_libuserspace)
 add_dependencies(mos_libuserspace mos::elf_kernel)
 
 add_subdirectory(userspace)
-
-if(BUILD_TESTING)
-    add_subdirectory(tests)
-endif()
+add_subdirectory(tests)
 
 generate_kconfig(mos_kernel.elf)
 

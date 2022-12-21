@@ -52,6 +52,7 @@ typedef char liballoc_align_t;
 
 #define LIBALLOC_PRINT_DEBUG_MESSAGES MOS_MM_LIBALLOC_DEBUG &&__MOS_KERNEL__ // only print debug messages in kernel mode
 
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
 static spinlock_t alloc_lock = SPINLOCK_INIT;
 
 int liballoc_lock()
@@ -65,6 +66,7 @@ int liballoc_unlock()
     spinlock_release(&alloc_lock);
     return 0;
 }
+#endif
 
 // A structure found at the top of all system allocated memory blocks. It details the usage of the memory block.
 typedef struct liballoc_block
@@ -175,7 +177,7 @@ static void liballoc_first_alloc()
     l_memroot = allocate_new_pages_for(sizeof(liballoc_block_t));
     if (l_memroot == NULL)
     {
-#if MOS_MM_LIBALLOC_LOCKS
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
         liballoc_unlock();
 #endif
 #if LIBALLOC_PRINT_DEBUG_MESSAGES
@@ -212,7 +214,7 @@ void *liballoc_malloc(size_t req_size)
     }
     // So, ideally, we really want an alignment of 0 or 1 in order to save space.
 
-#if MOS_MM_LIBALLOC_LOCKS
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
     liballoc_lock();
 #endif
 
@@ -220,7 +222,7 @@ void *liballoc_malloc(size_t req_size)
     {
         mos_warn("liballoc: liballoc_malloc(0) called.");
         l_warnings += 1;
-#if MOS_MM_LIBALLOC_LOCKS
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
         liballoc_unlock();
 #endif
         return liballoc_malloc(1);
@@ -314,7 +316,7 @@ void *liballoc_malloc(size_t req_size)
 
             LIBALLOC_ALIGN_PTR(p);
 
-#if MOS_MM_LIBALLOC_LOCKS
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
             liballoc_unlock(); // release the lock
 #endif
 
@@ -351,7 +353,7 @@ void *liballoc_malloc(size_t req_size)
                 void *p = (void *) ((uintptr_t) (block->first) + sizeof(liballoc_part_t));
                 LIBALLOC_ALIGN_PTR(p);
 
-#if MOS_MM_LIBALLOC_LOCKS
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
                 liballoc_unlock(); // release the lock
 #endif
 #if LIBALLOC_PRINT_DEBUG_MESSAGES
@@ -399,7 +401,7 @@ void *liballoc_malloc(size_t req_size)
                     void *p = (void *) ((uintptr_t) section + sizeof(liballoc_part_t));
                     LIBALLOC_ALIGN_PTR(p);
 
-#if MOS_MM_LIBALLOC_LOCKS
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
                     liballoc_unlock(); // release the lock
 #endif
 #if LIBALLOC_PRINT_DEBUG_MESSAGES
@@ -439,7 +441,7 @@ void *liballoc_malloc(size_t req_size)
                     void *p = (void *) ((uintptr_t) new_min + sizeof(liballoc_part_t));
                     LIBALLOC_ALIGN_PTR(p);
 
-#if MOS_MM_LIBALLOC_LOCKS
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
                     liballoc_unlock(); // release the lock
 #endif
 #if LIBALLOC_PRINT_DEBUG_MESSAGES
@@ -481,7 +483,7 @@ void *liballoc_malloc(size_t req_size)
         block = block->next;
     } // while (maj != NULL)
 
-#if MOS_MM_LIBALLOC_LOCKS
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
     liballoc_unlock(); // release the lock
 #endif
 
@@ -508,7 +510,7 @@ void liballoc_free(const void *ptr)
 
     LIBALLOC_UNALIGN_PTR(ptr);
 
-#if MOS_MM_LIBALLOC_LOCKS
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
     liballoc_lock(); // lockit
 #endif
 
@@ -534,7 +536,7 @@ void liballoc_free(const void *ptr)
         {
             mos_warn("liballoc: bad free(%p) called.", ptr);
         }
-#if MOS_MM_LIBALLOC_LOCKS
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
         // being lied to...
         liballoc_unlock(); // release the lock
 #endif
@@ -584,7 +586,7 @@ void liballoc_free(const void *ptr)
         }
     }
 
-#if MOS_MM_LIBALLOC_LOCKS
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
     liballoc_unlock(); // release the lock
 #endif
 }
@@ -617,7 +619,7 @@ void *liballoc_realloc(void *p, size_t size)
     void *ptr = p;
     LIBALLOC_UNALIGN_PTR(ptr);
 
-#if MOS_MM_LIBALLOC_LOCKS
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
     liballoc_lock(); // lockit
 #endif
 
@@ -644,7 +646,7 @@ void *liballoc_realloc(void *p, size_t size)
         {
             mos_warn("liballoc: Bad free(%p) called", ptr);
         }
-#if MOS_MM_LIBALLOC_LOCKS
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
         // being lied to...
         liballoc_unlock(); // release the lock
 #endif
@@ -658,12 +660,12 @@ void *liballoc_realloc(void *p, size_t size)
     if (real_size >= size)
     {
         min->req_size = size;
-#if MOS_MM_LIBALLOC_LOCKS
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
         liballoc_unlock();
 #endif
         return p;
     }
-#if MOS_MM_LIBALLOC_LOCKS
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
     liballoc_unlock();
 #endif
 
