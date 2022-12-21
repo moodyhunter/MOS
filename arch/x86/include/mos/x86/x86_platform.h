@@ -53,10 +53,7 @@ typedef struct
 // defined in the linker script 'multiboot.ld'
 extern const char __MOS_KERNEL_CODE_START, __MOS_KERNEL_CODE_END;     // Kernel text
 extern const char __MOS_KERNEL_RODATA_START, __MOS_KERNEL_RODATA_END; // Kernel rodata
-extern const char __MOS_KERNEL_RW_START;                              // Kernel read-write data {
-extern const char __MOS_X86_PAGING_AREA_START;                        //     Paging area {
-extern const char __MOS_X86_PAGING_AREA_END;                          //     }
-extern const char __MOS_KERNEL_RW_END;                                // }
+extern const char __MOS_KERNEL_RW_START, __MOS_KERNEL_RW_END;         // Kernel read-write data
 
 extern mos_platform_info_t x86_platform;
 typedef struct

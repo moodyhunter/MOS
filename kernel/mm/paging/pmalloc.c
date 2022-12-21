@@ -17,9 +17,9 @@ typedef struct _pmlist_node_t
     size_t n_pages;
 } pmlist_node_t;
 
-extern const void __MOS_PMEM_FREE_LIST;
-static pmlist_node_t *const pmlist_storage = (pmlist_node_t *) &__MOS_PMEM_FREE_LIST;
-static pmlist_node_t *pmlist_head = (pmlist_node_t *) &__MOS_PMEM_FREE_LIST;
+// Do not mark as const, or the compiler will put it in .rodata
+static pmlist_node_t pmlist_storage[PMEM_FREELIST_SIZE_FOR(MOS_MAX_VADDR)] __aligned(MOS_PAGE_SIZE) = { 0 };
+static pmlist_node_t *pmlist_head = (pmlist_node_t *) pmlist_storage;
 static size_t pmlist_count = 0;
 
 static size_t freelist_size()

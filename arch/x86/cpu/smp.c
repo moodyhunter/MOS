@@ -11,6 +11,7 @@
 #include "mos/x86/delays.h"
 #include "mos/x86/interrupt/apic.h"
 #include "mos/x86/mm/paging.h"
+#include "mos/x86/mm/paging_impl.h"
 #include "mos/x86/x86_platform.h"
 
 volatile enum
@@ -23,10 +24,10 @@ volatile enum
 
 #define X86_AP_TRAMPOLINE_ADDR 0x8000
 
-volatile uintptr_t ap_stack_addr = 0;
 extern char x86_ap_trampoline[];
-extern const void _mos_startup_PGD;
-volatile uintptr_t ap_pgd_addr = (uintptr_t) &_mos_startup_PGD;
+extern x86_pgdir_entry startup_pgd[1024];
+volatile uintptr_t ap_stack_addr = 0;
+volatile uintptr_t ap_pgd_addr = (uintptr_t) &startup_pgd;
 
 void ap_begin_exec()
 {

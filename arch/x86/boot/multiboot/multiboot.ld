@@ -22,10 +22,6 @@ SECTIONS
     {
         *(.mos.startup.data);
         . = ALIGN(4K);
-        _mos_startup_PGD = .;
-        . += 4K;
-        _mos_startup_PGTABLE = .;
-        . += 512K;  /* ! 512 KiB paging area (aka 512MiB memory) */
         . += 4K;    /* ! 4 KiB for the stack */
         _mos_startup_stack = .;
         _mos_startup_END = .;
@@ -40,7 +36,6 @@ SECTIONS
         __MOS_KERNEL_CODE_START = .;
         *(.text);
         *(.text.*);
-        . = ALIGN(4K);
         __MOS_TEST_CASES_START = .;
         *(.mos.test_cases);
         __MOS_TEST_CASES_END = .;
@@ -61,15 +56,6 @@ SECTIONS
     {
         __MOS_KERNEL_RW_START = .;
         *(.data);
-
-        /* ! Without PAE, a maximum of 4G memory would take (1024 * 1024 * sizeof(PTE) + 1024 * sizeof(PDE)) */
-        . = ALIGN(4K);
-        __MOS_PMEM_FREE_LIST = .;
-        . += 6M;    /* ! for pmem_freelist */
-        __MOS_X86_PAGING_AREA_START = .;
-        . += 4K;
-        . += 4M;
-        __MOS_X86_PAGING_AREA_END = .;
     }
 
     .bss ALIGN(4K) : AT (ADDR(.bss) - 0xC0000000)

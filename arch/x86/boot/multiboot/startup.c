@@ -24,9 +24,6 @@ extern const char __MOS_KERNEL_RW_END;
 
 extern const char __MOS_KERNEL_END;
 
-extern const void _mos_startup_PGD;
-extern const void _mos_startup_PGTABLE;
-
 __startup_rodata static const uintptr_t startup_start = (uintptr_t) &_mos_startup_START;
 __startup_rodata static const uintptr_t startup_end = (uintptr_t) &_mos_startup_END;
 
@@ -37,8 +34,8 @@ __startup_rodata static const uintptr_t kernel_ro_vend = (uintptr_t) &__MOS_KERN
 __startup_rodata static const uintptr_t kernel_rw_vstart = (uintptr_t) &__MOS_KERNEL_RW_START;
 __startup_rodata static const uintptr_t kernel_rw_vend = (uintptr_t) &__MOS_KERNEL_RW_END;
 
-__startup_rodata static x86_pgdir_entry *const startup_pgd = (x86_pgdir_entry *) &_mos_startup_PGD;
-__startup_rodata static x86_pgtable_entry *const pages = (x86_pgtable_entry *) &_mos_startup_PGTABLE;
+__startup_rwdata x86_pgdir_entry startup_pgd[1024] __aligned(MOS_PAGE_SIZE) = { 0 };
+__startup_rwdata x86_pgtable_entry pages[768 KB / 4] __aligned(MOS_PAGE_SIZE) = { 0 };
 
 __startup_rwdata uintptr_t video_device_address = X86_VIDEO_DEVICE;
 
