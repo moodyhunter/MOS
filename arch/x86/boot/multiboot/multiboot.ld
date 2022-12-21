@@ -36,6 +36,7 @@ SECTIONS
         __MOS_KERNEL_CODE_START = .;
         *(.text);
         *(.text.*);
+        . = ALIGN(4K);
         __MOS_TEST_CASES_START = .;
         *(.mos.test_cases);
         __MOS_TEST_CASES_END = .;
