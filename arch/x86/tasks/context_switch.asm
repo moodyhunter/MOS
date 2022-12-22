@@ -36,9 +36,9 @@ x86_context_switch_impl:
     ; ecx contains jump_addr
     ; edx contains arguments for the new thread, don't clear it
     ; edx = struct { eip, stack, x86_stack_frame, arg; };
-    ; xor     esi, esi
-    ; xor     edi, edi
-    ; xor     ebp, ebp
+    xor     esi, esi
+    xor     edi, edi
+    xor     ebp, ebp
     ; jump to jump_addr
     jmp     ecx
 .end:
@@ -51,7 +51,6 @@ x86_switch_impl_normal:
     pop     esi
     pop     edi
     pop     ebx
-
     pop     ebp
     ret
 .end:
