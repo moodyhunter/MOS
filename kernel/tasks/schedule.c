@@ -59,7 +59,6 @@ void mos_update_current(thread_t *current)
     thread_t *previous = cpu->thread;
     MOS_ASSERT(previous && current);
 
-    // TODO: Add more checks
     if (previous->state == THREAD_STATE_RUNNING)
         previous->state = THREAD_STATE_READY;
 
