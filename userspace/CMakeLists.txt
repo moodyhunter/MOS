@@ -7,6 +7,7 @@ target_compile_options(mos_libuserspace PUBLIC "-ffreestanding")
 target_link_options(mos_libuserspace PUBLIC "-nostdlib")
 
 # create a gdbinit file for debugging
+# ! GDB doesn't pick correct symbol file when debugging multiple processes, solve this.
 write_file(${CMAKE_BINARY_DIR}/gdbinit "# GDB init file for MOS")
 write_file(${CMAKE_BINARY_DIR}/gdbinit "" APPEND)
 
