@@ -81,7 +81,7 @@ int main(void)
     printf("locks pid: %d\n", locks_pid);
 
     value = 3456787;
-    // start_thread("worker", thread_work, &value);
+    start_thread("worker", thread_work, &value);
     my_pid = syscall_fork();
 
     if (my_pid == 0)
