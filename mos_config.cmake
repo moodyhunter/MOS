@@ -12,7 +12,7 @@ summary_section(KERNEL      "Kernel Features")
 summary_section(TESTS       "Tests")
 summary_section(MM          "Memory Management")
 
-if (NOT DEFINED MOS_DEBUG_ALL)
+if(NOT DEFINED MOS_DEBUG_ALL)
     set(MOS_DEBUG_ALL OFF)
 endif()
 

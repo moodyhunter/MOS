@@ -16,16 +16,19 @@ macro(mos_target_setup ISA_FAMILY ISA BITS)
     set(MOS_ISA_FAMILY ${ISA_FAMILY})
 
     set(CMAKE_SYSTEM_PROCESSOR ${ISA})
+
     # set(CMAKE_ASM_NASM_OBJECT_FORMAT elf${BITS})
     # Add debug info to nasm
     set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> -felf${BITS} -gdwarf -o <OBJECT> <SOURCE>")
 
     find_program(CC_PATH NAMES "${ISA}-elf-gcc" NO_CACHE)
+
     if(NOT CC_PATH)
         message(FATAL_ERROR "TOOLCHAIN: Could not find a C compiler for ${ISA}")
     endif()
 
     find_program(CXX_PATH NAMES "${ISA}-elf-g++" NO_CACHE)
+
     if(NOT CXX_PATH)
         message(FATAL_ERROR "TOOLCHAIN: Could not find a C++ compiler for ${ISA}")
     endif()

@@ -18,7 +18,8 @@ macro(add_userspace_program NAME)
     set(ONE_VALUE_ARGS "INSTALL_PREFIX")
     set(MULTI_VALUE_ARGS "SOURCES")
     cmake_parse_arguments(ARG "${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN})
-    if (ARG_UNPARSED_ARGUEMENTS)
+
+    if(ARG_UNPARSED_ARGUEMENTS)
         message(FATAL_ERROR "Unknown argument(s): ${ARG_UNPARSED_ARGUEMENTS}")
     endif()
 
