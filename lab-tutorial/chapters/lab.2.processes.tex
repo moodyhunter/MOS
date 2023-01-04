@@ -2,7 +2,7 @@
 
 % Processes, Threads (Intro), Process Creation and Context Switching
 
-Firstly, congratulations on completing the first lab! Hopefully you have had a chance to play
+Congratulations on completing the first lab! Hopefully you have had a chance to play
 around with the MOS kernel and have a better understanding of its structure.
 
 In this lab, we will be looking at the process management system in MOS.
@@ -45,37 +45,95 @@ A process has to be created from a `program' (a binary executable file) in order
 executed. WLOG, creating a process involves the following steps:
 
 \begin{enumerate}
-    \item Load the program into memory.
+    \item Load the program into the memory.
+    \item Create a PCB and populate the fields.
           \begin{enumerate}
-              \item Allocate memory for the program.
-              \item Read the program from the disk.
-              \item Parse the program and map corresponding memory regions.
-          \end{enumerate}
-    \item Create a PCB for the process.
-          \begin{enumerate}
-              \item Allocate memory for the PCB.
-              \item Initialize the PCB with the information of the program.
+              \item Allocate and initialize the PCB.
+              \item Allocate a user-mode page table.
+              \item Parse the program and map corresponding memory regions into the page table.
+              \item Allocate a heap for the process in the user-mode page table.
+                    (part 2 in Figure \ref{fig:mos-process-memory-layout})
               \item Add the PCB to the process table.
           \end{enumerate}
-    \item Create a thread for the process.
+    \item Create a main thread.
           \begin{enumerate}
-              \item Allocate the main thread's TCB.
-              \item Initialize TCB.
-              \item Create the main thread's stack, in MOS, both the userspace and the kernel stack.
-                    TODO CHANGE THIS, IT'S NOT ONLY ALLOCATING THE STACK, BUT ALSO THE HEAP
+              \item Allocate and initialize the TCB for the main thread.
+              \item Allocate \textbf{both} the user-space and kernel-space stack space for the thread.
+                    (part 2 in Figure \ref{fig:mos-process-memory-layout})
               \item Add the thread to the thread table.
-              \item Mark the thread as \texttt{CREATED}.
+              \item Set thread state to \texttt{CREATED}.
           \end{enumerate}
+    \item (optionally) schedule to the new thread.
 \end{enumerate}
 
-As you can see, the main steps are just to fill in the PCB and TCB with correct information loaded
-from the program, and then add them to the corresponding tables.
+The figure \ref{fig:mos-process-memory-layout} shows the memory layout of a process in MOS
+after its creation.
 
-TODO: Follow the code and explain the details?
+\begin{figure}
+    \definecolor{lightcyan}{rgb}{0.8,1,1}
+    \definecolor{lightgreen}{rgb}{0.56,0.93,0.56}
+    \definecolor{lightlightgreen}{rgb}{0.8,1,0.8}
+    \definecolor{gray}{rgb}{0.7,0.7,0.7}
+    \definecolor{lightred}{rgb}{1,0.7,0.71}
 
-TODO: Add a diagram?
+    % \memsection{end address}{start address}{height in lines}{text in box}{color}
+    \newcommand{\memsection}[6][lrtb]{%
+        \bytefieldsetup{bitheight=#4\baselineskip}%
+        \bitbox[]{10}{
+            \texttt{#2} \\ % end addressd
+            \vspace{#4\baselineskip}
+            \vspace{-2\baselineskip}
+            \vspace{-#4pt}
+            \texttt{#3} % start address
+        }
+        \bitbox[#1]{16}[bgcolor=#5]{\small #6}
+    }
 
-TODO: Add some exercises?
+    \newcommand{\memgap}[2][lrtb]{
+        \bytefieldsetup{bitheight=#2\baselineskip}
+        \bitbox[#1]{16}[bgcolor=gray]{\small Gap}
+    }
+
+    Color Description:
+    \colorbox{gray}{\textbf{Unavailable}}
+    \colorbox{lightred}{\textbf{Kernel Only}}
+    \colorbox{lightgreen}{\textbf{User Read-Only}}
+    \colorbox{cyan}{\textbf{User Read-Write}}
+
+    \begin{center}
+        \begin{bytefield}{24}
+            \memsection{0xffffffff}{0xC0000000}{6}{lightred}{Kernel}\\
+            \memgap{6}\\
+            \begin{leftwordgroup}{2. Address determined\\ by the MOS Kernel}
+                \begin{rightwordgroup}{4. Per-thread\\Memory Regions}
+                    \memsection{}{}{2}{lightred}{\scriptsize{Kernel-Mode Thread Stacks \dots}}\\
+                    \memsection{}{}{2}{cyan}{\scriptsize{User-Mode Thread Stacks \dots}}
+                \end{rightwordgroup}\\
+                \begin{rightwordgroup}{4. \textit{Main Thread}\\Memory Regions}
+                    \memsection{}{}{2}{lightred}{\scriptsize{Kernel-Mode \textbf{Main} Thread Stack}}\\
+                    \memsection{0x60020000}{\dots}{2}{cyan}{\scriptsize{User-Mode \textbf{Main} Thread Stack}}
+                \end{rightwordgroup}\\
+                \memgap{2}\\
+                \begin{rightwordgroup}{3. Per-process\\Memory Regions}
+                    \memsection[ltr]{}{}{5}{lightcyan}{\textit{Future} Heap \textit{Area}}\\
+                    \memsection[lbr]{}{0x40000000}{3}{cyan}{\texttt{\large{$\uparrow$}} \\ Heap}
+                \end{rightwordgroup}
+            \end{leftwordgroup}\\
+            \memgap{4}\\
+            \begin{leftwordgroup}{1. Address determined\\ by the Program Header}
+                \memsection{}{}{3}{cyan}{BSS Section}\\
+                \memsection{}{}{3}{cyan}{R/W Data Section}\\
+                \memsection{}{}{2}{lightgreen}{RO Data Section}\\
+                \memsection{}{0x08048000}{2}{lightgreen}{Text Section}
+            \end{leftwordgroup}\\
+            \memsection{}{0x00000000}{5}{gray}{Unavailable}\\
+        \end{bytefield}
+    \end{center}
+    \caption{The memory layout of a process in MOS (Not to scale)}
+    \label{fig:mos-process-memory-layout}
+\end{figure}
+
+\textbf{\textit{TODO: Add exercises}}
 
 \section{The famous \texttt{fork()} system call}
 
