@@ -106,10 +106,10 @@ after its creation.
             \memgap{6}\\
             \begin{leftwordgroup}{2. Address determined\\ by the MOS Kernel}
                 \begin{rightwordgroup}{4. Per-thread\\Memory Regions}
-                    \memsection{}{}{2}{lightred}{\scriptsize{Kernel-Mode Thread Stacks \dots}}\\
+                    \memsection{\dots}{}{2}{lightred}{\scriptsize{Kernel-Mode Thread Stacks \dots}}\\
                     \memsection{}{}{2}{cyan}{\scriptsize{User-Mode Thread Stacks \dots}}
                 \end{rightwordgroup}\\
-                \begin{rightwordgroup}{4. \textit{Main Thread}\\Memory Regions}
+                \begin{rightwordgroup}{4. \textbf{Main} Thread\\Memory Regions}
                     \memsection{}{}{2}{lightred}{\scriptsize{Kernel-Mode \textbf{Main} Thread Stack}}\\
                     \memsection{0x60020000}{\dots}{2}{cyan}{\scriptsize{User-Mode \textbf{Main} Thread Stack}}
                 \end{rightwordgroup}\\
@@ -121,10 +121,10 @@ after its creation.
             \end{leftwordgroup}\\
             \memgap{4}\\
             \begin{leftwordgroup}{1. Address determined\\ by the Program Header}
-                \memsection{}{}{3}{cyan}{BSS Section}\\
-                \memsection{}{}{3}{cyan}{R/W Data Section}\\
-                \memsection{}{}{2}{lightgreen}{RO Data Section}\\
-                \memsection{}{0x08048000}{2}{lightgreen}{Text Section}
+                \memsection{\dots}{}{3}{cyan}{\texttt{.bss} Section}\\
+                \memsection{}{}{3}{cyan}{\texttt{.data} Section}\\
+                \memsection{}{}{2}{lightgreen}{\texttt{.rodata} Section}\\
+                \memsection{}{0x08048000}{2}{lightgreen}{\texttt{.text} Section}
             \end{leftwordgroup}\\
             \memsection{}{0x00000000}{5}{gray}{Unavailable}\\
         \end{bytefield}
