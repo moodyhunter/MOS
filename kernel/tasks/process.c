@@ -112,7 +112,7 @@ process_t *process_new(process_t *parent, uid_t euid, const char *name, terminal
 
     thread_new(proc, THREAD_MODE_USER, name, entry, arg);
 
-    vmblock_t heap = mm_alloc_pages(proc->pagetable, 0, PGALLOC_HINT_UHEAP, VM_USER_RW);
+    vmblock_t heap = mm_alloc_pages(proc->pagetable, 1, PGALLOC_HINT_UHEAP, VM_USER_RW);
     process_attach_mmap(proc, heap, VMTYPE_HEAP, MMAP_DEFAULT);
 
     void *old_proc = hashmap_put(process_table, &proc->pid, proc);
