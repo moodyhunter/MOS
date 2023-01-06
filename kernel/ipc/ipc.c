@@ -248,7 +248,7 @@ io_t *ipc_create(const char *name, size_t max_pending_connections)
     pr_info2("creating new channel %s", name);
     server = kzalloc(sizeof(ipc_server_t));
     server->magic = IPC_SERVER_MAGIC;
-    server->name = duplicate_string(name, strlen(name));
+    server->name = strdup(name);
     server->max_pending = max_pending_connections;
     server->pending = kcalloc(max_pending_connections, sizeof(ipc_connection_t));
     io_init(&server->io, IO_TYPE_NONE, &ipc_server_ops);
@@ -313,8 +313,7 @@ io_t *ipc_connect(process_t *owner, const char *name, ipc_connect_flags flags, s
 
         pr_info2("waiting for channel %s to be created", name);
 
-        const char *name_copy = duplicate_string(name, strlen(name));
-        wait_condition_t *cond = wc_wait_for((void *) name_copy, wc_ipc_name_is_ready, wc_ipc_name_cleanup);
+        wait_condition_t *cond = wc_wait_for((void *) strdup(name), wc_ipc_name_is_ready, wc_ipc_name_cleanup);
         reschedule_for_wait_condition(cond);
         pr_info2("resuming after channel %s was created", name);
 

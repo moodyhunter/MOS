@@ -26,6 +26,7 @@ char *strcat(char *dest, const char *src);
 char *strncpy(char *dest, const char *src, size_t n);
 
 const char *duplicate_string(const char *src, size_t len);
+char *strdup(const char *src);
 
 s64 strtoll(const char *str, char **endptr, int base);
 s64 strntoll(const char *str, char **endptr, int base, size_t n);

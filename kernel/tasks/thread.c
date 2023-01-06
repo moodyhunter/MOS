@@ -60,7 +60,7 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
 {
     thread_t *t = thread_allocate(owner, tmode);
 
-    t->name = duplicate_string(name, strlen(name));
+    t->name = strdup(name);
 
     // Kernel stack
     const pgalloc_hints kstack_hint = (tmode == THREAD_MODE_KERNEL) ? PGALLOC_HINT_KHEAP : PGALLOC_HINT_STACK;

@@ -144,6 +144,13 @@ char *strncpy(char *dest, const char *src, size_t n)
     return dest;
 }
 
+char *strdup(const char *src)
+{
+    char *dst = liballoc_malloc(strlen(src) + 1);
+    strcpy(dst, src);
+    return dst;
+}
+
 const char *duplicate_string(const char *src, size_t len)
 {
     char *dst = liballoc_malloc(len + 1);

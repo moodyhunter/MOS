@@ -146,10 +146,10 @@ bool path_verify_prefix(const fsnode_t *path, const fsnode_t *prefix)
 const char *path_to_string_relative(const fsnode_t *root, const fsnode_t *leaf)
 {
     if (root == NULL || leaf == NULL)
-        return duplicate_string("", 0);
+        return strdup("");
 
     if (root == leaf)
-        return duplicate_string(root->name, strlen(root->name));
+        return strdup(root->name);
 
     const fsnode_t *current = leaf;
     char *pool = kmalloc(MOS_PATH_MAX_LENGTH);

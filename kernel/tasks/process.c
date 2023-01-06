@@ -58,7 +58,7 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
 
     if (likely(name))
     {
-        proc->name = duplicate_string(name, strlen(name));
+        proc->name = strdup(name);
     }
     else
     {
