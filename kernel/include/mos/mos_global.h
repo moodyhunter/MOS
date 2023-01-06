@@ -56,7 +56,8 @@
 
 #define MOS_FOURCC(a, b, c, d) ((u32) (a) | ((u32) (b) << 8) | ((u32) (c) << 16) | ((u32) (d) << 24))
 
-// If the feature is enabled, the expression will be 1, otherwise 0, which will cause a division by zero error.
+// If the feature is enabled, the expression will be 1, otherwise -1.
+// If the given feature is not defined, the expression will be 0, which throws a division by zero error.
 #define MOS_CONFIG(feat) (1 / feat == 1)
 
 #define MOS_DEBUG_FEATURE(feat) MOS_CONFIG(MOS_CONCAT(MOS_DEBUG_, feat))
