@@ -76,8 +76,7 @@ uintptr_t pmalloc_alloc(size_t pages)
     {
         if (this->n_pages >= pages)
         {
-            // ! do not remove the range from the freelist
-            uintptr_t addr = this->paddr;
+            const uintptr_t addr = this->paddr; // ! pmalloc_acquire_region changes `this->paddr`, make a copy first
             mos_debug(pmm, "allocated %zu pages from freelist, starting at " PTR_FMT, pages, addr);
             pmalloc_acquire_region(addr, pages * MOS_PAGE_SIZE);
             return addr;
@@ -85,7 +84,7 @@ uintptr_t pmalloc_alloc(size_t pages)
         this = this->next;
     }
 
-    mos_panic("no free physical memory found in freelist");
+    mos_panic("no free physical memory found in freelist, %zu pages requested", pages);
 }
 
 #define this_start (this->paddr)
