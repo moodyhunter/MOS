@@ -1,3 +1,5 @@
+; SPDX-License-Identifier: GPL-3.0-or-later
+
 [bits 32]
 global x86_enable_paging_impl
 
