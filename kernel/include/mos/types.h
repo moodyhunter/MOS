@@ -20,7 +20,6 @@ typedef double f64;
 typedef long double f80;
 
 typedef unsigned long uintptr_t;
-static_assert(sizeof(uintptr_t) == sizeof(void *), "uintptr_t is not the same size as a pointer");
 
 // reg_t represents a register value
 typedef unsigned long reg_t;
@@ -28,15 +27,13 @@ typedef u16 reg16_t;
 typedef u32 reg32_t;
 typedef u64 reg64_t;
 
-#if MOS_32BITS
-#define _PTR_FMT "%8.8lx"
-#elif defined(MOS_64BITS)
-#define _PTR_FMT "%16.16lx"
+#if MOS_BITS == 32
+#define PTR_FMT "0x%8.8lx"
+#elif MOS_BITS == 64
+#define PTR_FMT "0x%16.16lx"
 #else
-#error "Something is wrong with the architecture"
+#error "Invalid MOS_BITS"
 #endif
-
-#define PTR_FMT "0x" _PTR_FMT
 
 typedef union
 {

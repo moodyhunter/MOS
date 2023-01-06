@@ -24,14 +24,7 @@
 #define static_assert _Static_assert
 #endif
 
-#if MOS_BITS == 64
-#define MOS_64BITS 1
-#elif MOS_BITS == 32
-#define MOS_32BITS 1
-#else
-#error "unknown size of long"
-#endif
-
 #define MOS_LITTLE_ENDIAN 1
 
 static_assert(sizeof(long) == sizeof(void *), "long is not the same size as a pointer");
+static_assert(sizeof(long) == MOS_BITS / 8, "long is not the same size as the architecture");

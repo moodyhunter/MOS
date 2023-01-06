@@ -13,9 +13,9 @@
 #include "mos/tasks/process.h"
 #include "mos/types.h"
 
-static_assert(sizeof(elf_header_t) == (MOS_32BITS ? 0x34 : 0x40), "elf_header has wrong size");
-static_assert(sizeof(elf_program_hdr_t) == (MOS_32BITS ? 0x20 : 0x38), "elf_program_header has wrong size");
-static_assert(sizeof(elf_section_hdr_t) == (MOS_32BITS ? 0x28 : 0x40), "elf_section_header has wrong size");
+static_assert(sizeof(elf_header_t) == (MOS_BITS == 32 ? 0x34 : 0x40), "elf_header has wrong size");
+static_assert(sizeof(elf_program_hdr_t) == (MOS_BITS == 32 ? 0x20 : 0x38), "elf_program_header has wrong size");
+static_assert(sizeof(elf_section_hdr_t) == (MOS_BITS == 32 ? 0x28 : 0x40), "elf_section_header has wrong size");
 
 elf_verify_result elf_verify_header(elf_header_t *header)
 {

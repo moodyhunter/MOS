@@ -4,12 +4,12 @@
 
 #include "mos/compiler.h"
 
-#if MOS_32BITS
+#if MOS_BITS == 32
 #define MOS_KERNEL_START_VADDR 0xC0000000
-#endif
-
-#if MOS_64BITS
+#elif MOS_BITS == 64
 #define MOS_KERNEL_START_VADDR 0xFFFFFFFFC0000000
+#else
+#error "Cannot determine MOS_KERNEL_START_VADDR"
 #endif
 
 #define MOS_MAX_VADDR ((uintptr_t) ~0)

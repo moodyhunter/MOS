@@ -7,14 +7,16 @@
 
 always_inline u64 rdtsc(void)
 {
-#if MOS_32BITS
+#if MOS_BITS == 32
     u64 x;
     __asm__ volatile("rdtsc" : "=A"(x));
     return x;
-#elif defined(MOS_64BITS)
+#elif MOS_BITS == 64
     u64 a, d;
     __asm__ volatile("rdtsc" : "=a"(a), "=d"(d));
     return (d << 32) | a;
+#else
+#error "Unsupported MOS_BITS"
 #endif
 }
 
