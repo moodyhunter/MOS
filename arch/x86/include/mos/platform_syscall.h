@@ -3,8 +3,6 @@
 #include "mos/mos_global.h"
 #include "mos/types.h"
 
-// TODO: rewrite in ASM
-
 should_inline long platform_syscall0(long number)
 {
     long result = 0;
