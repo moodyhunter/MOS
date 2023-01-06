@@ -92,7 +92,7 @@ static void print_to_console(console_t *con, int loglevel, const char *message, 
     spinlock_release(&con->lock);
 }
 
-static void lvprintk(int loglevel, const char *fmt, va_list args)
+static void lvprintk(mos_log_level_t loglevel, const char *fmt, va_list args)
 {
     char message[PRINTK_BUFFER_SIZE] = { 0 };
     vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
@@ -111,7 +111,7 @@ static void lvprintk(int loglevel, const char *fmt, va_list args)
     }
 }
 
-void lprintk(int loglevel, const char *format, ...)
+void lprintk(mos_log_level_t loglevel, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
