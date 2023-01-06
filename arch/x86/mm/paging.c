@@ -13,13 +13,7 @@ extern void x86_enable_paging_impl(uintptr_t page_dir);
 
 static x86_pg_infra_t x86_kpg_infra_storage __aligned(MOS_PAGE_SIZE) = { 0 };
 
-x86_pg_infra_t *x86_kpg_infra = &x86_kpg_infra_storage;
-
-void x86_mm_prepare_paging()
-{
-    // initialize the page directory
-    memzero(x86_kpg_infra, sizeof(x86_pg_infra_t));
-}
+x86_pg_infra_t *const x86_kpg_infra = &x86_kpg_infra_storage;
 
 void x86_mm_enable_paging(void)
 {

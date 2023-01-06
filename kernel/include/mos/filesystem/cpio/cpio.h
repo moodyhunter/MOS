@@ -40,4 +40,4 @@ typedef struct
 
 static_assert(sizeof(cpio_newc_header_t) == 110, "cpio_newc_header has wrong size");
 
-extern filesystem_t fs_cpio;
+extern const filesystem_t fs_cpio;

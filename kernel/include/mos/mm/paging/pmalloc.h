@@ -4,7 +4,7 @@
 
 #include "mos/types.h"
 
-void mos_pmalloc_setup();
+void mos_pmm_setup();
 
 void pmalloc_dump();
 

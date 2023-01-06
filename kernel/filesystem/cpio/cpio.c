@@ -213,7 +213,7 @@ bool cpio_readlink(const mountpoint_t *mp, const fsnode_t *path, char *buf, size
     return true;
 }
 
-filesystem_t fs_cpio = {
+const filesystem_t fs_cpio = {
     .name = "cpio",
     .op_mount = cpio_mount,
     .op_unmount = cpio_unmount,

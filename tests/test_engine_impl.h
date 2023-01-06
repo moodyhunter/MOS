@@ -34,7 +34,7 @@ typedef struct
 #define MOS_TEST_DEFAULT MOS_TEST_GRAY
 
 #define MOS_TEST_DEFINE_CONDITION(condition, message)                                                                                                                    \
-    const char *_mt_test_cond_##condition##_message = message;                                                                                                           \
+    const char *const _mt_test_cond_##condition##_message = message;                                                                                                     \
     static bool condition
 
 #define MOS_TEST_CONDITIONAL(cond)                                                                                                                                       \

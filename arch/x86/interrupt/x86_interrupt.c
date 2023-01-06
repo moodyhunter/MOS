@@ -10,7 +10,7 @@
 #include "mos/x86/tasks/context.h"
 #include "mos/x86/x86_platform.h"
 
-static const char *x86_exception_names[EXCEPTION_COUNT] = {
+static const char *const x86_exception_names[EXCEPTION_COUNT] = {
     "Divide-By-Zero Error",
     "Debug",
     "Non-Maskable Interrupt",

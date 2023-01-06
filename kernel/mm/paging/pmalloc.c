@@ -27,7 +27,7 @@ static size_t freelist_size()
     return ALIGN_UP_TO_PAGE(PMEM_FREELIST_SIZE_FOR(platform_info->mem.available));
 }
 
-void mos_pmalloc_setup(void)
+void mos_pmm_setup(void)
 {
     pr_info("Initializing Physical Memory Allocator");
     const size_t list_size = freelist_size();

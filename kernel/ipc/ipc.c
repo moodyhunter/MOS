@@ -56,7 +56,7 @@ static void ipc_server_close(io_t *io)
     kfree(server);
 }
 
-static io_op_t ipc_server_ops = {
+static const io_op_t ipc_server_ops = {
     .close = ipc_server_close,
 };
 
@@ -216,13 +216,13 @@ static void ipc_connection_client_close(io_t *io)
     conn->state = IPC_CONNECTION_STATE_CLOSED;
 }
 
-static io_op_t ipc_connection_server_ops = {
+static const io_op_t ipc_connection_server_ops = {
     .read = ipc_connection_server_read,
     .write = ipc_connection_server_write,
     .close = ipc_connection_server_close,
 };
 
-static io_op_t ipc_connection_client_ops = {
+static const io_op_t ipc_connection_client_ops = {
     .read = ipc_connection_client_read,
     .write = ipc_connection_client_write,
     .close = ipc_connection_client_close,

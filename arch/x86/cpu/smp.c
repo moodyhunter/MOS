@@ -27,7 +27,7 @@ volatile enum
 extern char x86_ap_trampoline[];
 extern x86_pgdir_entry startup_pgd[1024];
 volatile uintptr_t ap_stack_addr = 0;
-volatile uintptr_t ap_pgd_addr = (uintptr_t) &startup_pgd;
+volatile const uintptr_t ap_pgd_addr = (uintptr_t) &startup_pgd;
 
 void ap_begin_exec()
 {

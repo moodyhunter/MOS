@@ -91,9 +91,9 @@ typedef struct _file
 
 #define get_fsdata(file, type) ((type *) file->fsdata)
 
-bool vfs_path_open(fsnode_t *path, file_open_flags flags, file_t *file);
-bool vfs_path_stat(fsnode_t *path, file_stat_t *restrict stat);
-bool vfs_path_readlink(fsnode_t *path, fsnode_t **link);
+bool vfs_path_open(const fsnode_t *path, file_open_flags flags, file_t *file);
+bool vfs_path_stat(const fsnode_t *path, file_stat_t *restrict stat);
+bool vfs_path_readlink(const fsnode_t *path, fsnode_t **link);
 
 file_t *vfs_open(const char *path, file_open_flags flags);
 bool vfs_stat(const char *path, file_stat_t *restrict stat);

@@ -29,7 +29,7 @@ fsnode_t root_path = {
 };
 // Private functions
 
-fsnode_t *impl_path_get_subpath(fsnode_t *cwd, const char *path, size_t path_len)
+static fsnode_t *impl_path_get_subpath(fsnode_t *cwd, const char *path, size_t path_len)
 {
     MOS_ASSERT(cwd != NULL);
     MOS_ASSERT(path != NULL);

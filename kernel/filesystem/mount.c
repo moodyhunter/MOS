@@ -89,7 +89,7 @@ bool kunmount(mountpoint_t *mountpoint)
     return true;
 }
 
-mountpoint_t *kmount_find_mp(fsnode_t *path)
+mountpoint_t *kmount_find_mp(const fsnode_t *path)
 {
     if (unlikely(rootmp == NULL))
         return NULL;
@@ -97,7 +97,7 @@ mountpoint_t *kmount_find_mp(fsnode_t *path)
     return kmount_find_submp(rootmp, path);
 }
 
-mountpoint_t *kmount_find_submp(mountpoint_t *mp, fsnode_t *path)
+mountpoint_t *kmount_find_submp(mountpoint_t *mp, const fsnode_t *path)
 {
     if (mp->children == NULL)
         return mp;

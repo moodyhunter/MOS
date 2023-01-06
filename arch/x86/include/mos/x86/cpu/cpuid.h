@@ -20,8 +20,6 @@ typedef enum
     CPUID_T_Reserved
 } cpuid_type_t;
 
-extern const char *cpuid_type_str[];
-
 typedef struct
 {
     union

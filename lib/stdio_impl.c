@@ -189,6 +189,9 @@ should_inline void buf_putchar(char **pbuf, char c)
     (*pbuf)++;
 }
 
+static const char *const lower_hex_digits = "0123456789abcdef";
+static const char *const upper_hex_digits = "0123456789ABCDEF";
+
 // ! prints d, i, o, u, x, and X
 static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char conv)
 {
@@ -205,12 +208,9 @@ static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char con
         }
     }
 
-    static char lower_hex_digits[] = "0123456789abcdef";
-    static char upper_hex_digits[] = "0123456789ABCDEF";
-
     base_t base = BASE_10;
     bool upper_case = false;
-    char *hex_digits = NULL;
+    const char *hex_digits = NULL;
 
     bool is_unsigned_ouxX = conv == 'o' || conv == 'u' || conv == 'x' || conv == 'X';
     if (is_unsigned_ouxX)

@@ -45,7 +45,7 @@ static void terminal_io_close(io_t *io)
     kfree(terminal);
 }
 
-static io_op_t terminal_io_op = {
+static const io_op_t terminal_io_op = {
     .read = terminal_io_read,
     .write = terminal_io_write,
     .close = terminal_io_close,

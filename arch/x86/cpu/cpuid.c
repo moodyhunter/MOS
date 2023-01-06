@@ -4,7 +4,7 @@
 
 #include "mos/printk.h"
 
-const char *cpuid_type_str[] = {
+const char *const cpuid_type_str[] = {
     [CPUID_T_OEM] = "OEM",
     [CPUID_T_IntelOverdrive] = "Intel Overdrive",
     [CPUID_T_DualProcessor] = "Dual Processor",

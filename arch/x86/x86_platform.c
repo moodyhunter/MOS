@@ -155,9 +155,10 @@ void x86_start_kernel(x86_startup_info *info)
     const u32 memregion_count = mb_info->mmap_length / sizeof(multiboot_memory_map_t);
     x86_mem_init(mb_info->mmap_addr, memregion_count);
     MOS_ASSERT_X(x86_platform.mem_regions.count != memregion_count, "x86_mem_init() failed to initialize all memory regions");
-    mos_pmalloc_setup();
+    mos_pmm_setup();
 
-    x86_mm_prepare_paging();
+    // initialize the page directory
+    memzero(x86_kpg_infra, sizeof(x86_pg_infra_t));
 
     pr_info("mapping kernel space...");
     mm_map_pages(x86_platform.kernel_pgd, x86_platform.k_code);

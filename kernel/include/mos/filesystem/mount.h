@@ -40,5 +40,5 @@ typedef struct _mountpoint
 mountpoint_t *kmount(fsnode_t *path, filesystem_t *fs, blockdev_t *blockdev);
 bool kunmount(mountpoint_t *mountpoint);
 
-mountpoint_t *kmount_find_mp(fsnode_t *path);
-mountpoint_t *kmount_find_submp(mountpoint_t *mp, fsnode_t *path);
+mountpoint_t *kmount_find_mp(const fsnode_t *path);
+mountpoint_t *kmount_find_submp(mountpoint_t *mp, const fsnode_t *path);

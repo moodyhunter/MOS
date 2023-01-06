@@ -22,7 +22,6 @@ static console_t dummy_con = {
     .list_node = LIST_HEAD_INIT(consoles),
 };
 
-static bool has_console_registered = false;
 list_node_t consoles = LIST_NODE_INIT(dummy_con);
 
 void console_register(console_t *con)
@@ -38,11 +37,10 @@ void console_register(console_t *con)
     list_node_append(&consoles, list_node(con));
     pr_info("console: registered '%s'", con->name);
 
-    if (unlikely(!has_console_registered))
+    if (once()) // remove the dummy console
     {
         pr_info2("console: removing '%s'", dummy_con.name);
         list_remove(&dummy_con);
-        has_console_registered = true;
     }
 }
 

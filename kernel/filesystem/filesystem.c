@@ -99,7 +99,7 @@ fsnode_t *vfs_readlink(const char *path)
     return target;
 }
 
-bool vfs_path_open(fsnode_t *path, file_open_flags flags, file_t *file)
+bool vfs_path_open(const fsnode_t *path, file_open_flags flags, file_t *file)
 {
     mountpoint_t *mp = kmount_find_mp(path);
     if (mp == NULL)
@@ -138,7 +138,7 @@ _continue:;
     return true;
 }
 
-bool vfs_path_readlink(fsnode_t *path, fsnode_t **link)
+bool vfs_path_readlink(const fsnode_t *path, fsnode_t **link)
 {
     mountpoint_t *mp = kmount_find_mp(path);
     if (mp == NULL)
@@ -173,7 +173,7 @@ bool vfs_path_readlink(fsnode_t *path, fsnode_t **link)
     return resolved;
 }
 
-bool vfs_path_stat(fsnode_t *path, file_stat_t *restrict stat)
+bool vfs_path_stat(const fsnode_t *path, file_stat_t *restrict stat)
 {
     mountpoint_t *mp = kmount_find_mp(path);
     if (mp == NULL)
