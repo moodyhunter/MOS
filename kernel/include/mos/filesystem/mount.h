@@ -28,7 +28,7 @@ typedef struct _mountpoint
 {
     mos_refcount_t refcount;
     fsnode_t *path;
-    filesystem_t *fs;
+    const filesystem_t *fs;
     blockdev_t *dev;
     void *fs_data;
     size_t children_count;
@@ -37,7 +37,7 @@ typedef struct _mountpoint
     mountpoint_t **children;
 } mountpoint_t;
 
-mountpoint_t *kmount(fsnode_t *path, filesystem_t *fs, blockdev_t *blockdev);
+mountpoint_t *kmount(fsnode_t *path, const filesystem_t *fs, blockdev_t *blockdev);
 bool kunmount(mountpoint_t *mountpoint);
 
 mountpoint_t *kmount_find_mp(const fsnode_t *path);

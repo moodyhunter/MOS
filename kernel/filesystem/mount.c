@@ -31,7 +31,7 @@ void kmount_add_mp(mountpoint_t *new_mp)
     parent->children[parent->children_count] = new_mp;
 }
 
-mountpoint_t *kmount(fsnode_t *path, filesystem_t *fs, blockdev_t *blockdev)
+mountpoint_t *kmount(fsnode_t *path, const filesystem_t *fs, blockdev_t *blockdev)
 {
     MOS_ASSERT(path != NULL);
     MOS_ASSERT(fs != NULL);
