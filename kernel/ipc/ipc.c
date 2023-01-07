@@ -118,7 +118,7 @@ static size_t ipc_connection_server_read(io_t *io, void *buf, size_t buf_size)
         pr_info2("waiting for client data");
         wait_condition_t *wc = wc_wait_for(conn, wc_ipc_connection_wait_for_server_data, NULL);
         reschedule_for_wait_condition(wc);
-        pr_info2("resumed");
+        pr_info2("ipc server: client data available");
     }
 
     const size_t read_size = MIN(conn->server_data_size, buf_size);
@@ -174,7 +174,7 @@ static size_t ipc_connection_client_read(io_t *io, void *buf, size_t buf_size)
         pr_info2("waiting for server data");
         wait_condition_t *wc = wc_wait_for(conn, wc_ipc_connection_wait_for_client_data, NULL);
         reschedule_for_wait_condition(wc);
-        pr_info2("resumed");
+        pr_info2("ipc client: server data available");
     }
 
     const size_t read_size = MIN(conn->client_data_size, buf_size);

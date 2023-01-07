@@ -186,6 +186,8 @@ void process_handle_exit(process_t *process, int exit_code)
     mos_debug(process, "terminating all %lu threads owned by %d", process->threads_count, process->pid);
     for (int i = 0; i < process->threads_count; i++)
     {
+        // TODO: if a thread is being executed, we should wait for it to finish
+        // TODO: if a thread holds a lock, we should release it?
         thread_t *thread = process->threads[i];
         if (thread->state == THREAD_STATE_DEAD)
         {
