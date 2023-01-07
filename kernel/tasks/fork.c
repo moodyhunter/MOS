@@ -49,10 +49,14 @@ process_t *process_handle_fork(process_t *parent)
     }
 
     // copy the parent's files
-    for (int i = 0; i < parent->files_count; i++)
+    for (int i = 0; i < MOS_PROCESS_MAX_OPEN_FILES; i++)
     {
         io_t *file = parent->files[i];
-        process_attach_ref_fd(child, file);
+        if (!file)
+            continue; // skip empty slots
+        if (file->closed)
+            continue; // skip closed files
+        child->files[i] = io_ref(file);
     }
 
     // copy the parent's threads

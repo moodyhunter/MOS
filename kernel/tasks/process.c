@@ -132,11 +132,17 @@ process_t *process_get(pid_t pid)
 fd_t process_attach_ref_fd(process_t *process, io_t *file)
 {
     MOS_ASSERT(process_is_valid(process));
-    int fd = process->files_count++;
-    if (fd >= MOS_PROCESS_MAX_OPEN_FILES)
+
+    // find a free fd
+    fd_t fd = 0;
+    while (process->files[fd] != NULL)
     {
-        mos_warn("process %d has too many open files", process->pid);
-        return -1;
+        fd++;
+        if (fd >= MOS_PROCESS_MAX_OPEN_FILES)
+        {
+            mos_warn("process %d has too many open files", process->pid);
+            return -1;
+        }
     }
 
     process->files[fd] = io_ref(file);
@@ -146,7 +152,7 @@ fd_t process_attach_ref_fd(process_t *process, io_t *file)
 io_t *process_get_fd(process_t *process, fd_t fd)
 {
     MOS_ASSERT(process_is_valid(process));
-    if (fd < 0 || fd >= process->files_count)
+    if (fd < 0 || fd >= MOS_PROCESS_MAX_OPEN_FILES)
         return NULL;
     return process->files[fd];
 }
@@ -154,11 +160,10 @@ io_t *process_get_fd(process_t *process, fd_t fd)
 bool process_detach_fd(process_t *process, fd_t fd)
 {
     MOS_ASSERT(process_is_valid(process));
-    if (fd < 0 || fd >= process->files_count)
+    if (fd < 0 || fd >= MOS_PROCESS_MAX_OPEN_FILES)
         return false;
     io_unref(process->files[fd]);
     process->files[fd] = NULL;
-    process->files_count--;
     return true;
 }
 
@@ -197,14 +202,23 @@ void process_handle_exit(process_t *process, int exit_code)
         thread->state = THREAD_STATE_DEAD; // cleanup will be done by the scheduler
     }
 
-    mos_debug(process, "closing all %lu files owned by %d", process->files_count, process->pid);
-    for (int i = 0; i < process->files_count; i++)
+    size_t files_total = 0;
+    size_t files_already_closed = 0;
+    for (int i = 0; i < MOS_PROCESS_MAX_OPEN_FILES; i++)
     {
-        MOS_ASSERT_X(process->files[i], "file %d is NULL", i);
-        if (!process->files[i]->closed)
-            io_unref(process->files[i]);
-        process->files[i] = NULL;
+        if (process->files[i])
+        {
+            files_total++;
+            if (!process->files[i]->closed)
+            {
+                files_already_closed++;
+                io_unref(process->files[i]);
+            }
+            process->files[i] = NULL;
+        }
     }
+
+    mos_debug(process, "closed %zu/%zu files owned by %d", files_already_closed, files_total, process->pid);
 }
 
 void process_handle_cleanup(process_t *process)
