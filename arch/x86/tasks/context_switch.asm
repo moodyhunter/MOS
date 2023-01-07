@@ -70,8 +70,12 @@ x86_switch_impl_new_user_thread:
     ; we are now on the kernel stack of the corresponding thread
     ; edx = struct { eip, stack, x86_stack_frame, arg; }; (size: 1, 1, 19, 1)
 
+    push    edx                ; save edx
+    [extern x86_switch_impl_setup_user_thread:function]
+    call    x86_switch_impl_setup_user_thread
+    pop     edx                ; restore edx
+
     mov     ecx, [edx]          ; ecx = eip
-    mov     eax, [edx + 21 * 4] ; eax = arg
 
     ; ebx, ebp, edi, esi are callee-saved registers
     mov     edi, [edx + 2 * 4 + 4 * 4]
@@ -83,9 +87,7 @@ x86_switch_impl_new_user_thread:
 
     ; push the argument and a dummy return address
     sub     edx, 4
-    mov     [edx], eax
-    sub     edx, 4
-    mov     dword [edx - 8], 0
+    mov     dword [edx], 0
 
     push    0x20 | 0x3      ; user data (stack) segment + RPL 3
     push    edx             ; stack

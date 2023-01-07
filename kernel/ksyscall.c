@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "include/mos/tasks/thread.h"
+#include "lib/string.h"
 #include "mos/elf/elf.h"
 #include "mos/filesystem/filesystem.h"
 #include "mos/ipc/ipc.h"
 #include "mos/ipc/ipc_types.h"
+#include "mos/mm/kmalloc.h"
 #include "mos/mm/shm.h"
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
@@ -138,10 +140,17 @@ pid_t define_syscall(get_parent_pid)()
 
 pid_t define_syscall(spawn)(const char *path, int argc, const char *const argv[])
 {
-    MOS_UNUSED(argc);
-    MOS_UNUSED(argv);
     process_t *current = current_process;
-    process_t *process = elf_create_process(path, current, current->terminal, current->effective_uid);
+
+    const char **new_argv = kmalloc(sizeof(uintptr_t) * (argc + 1));
+    if (new_argv == NULL)
+        return -1;
+
+    for (int i = 0; i < argc; i++)
+        new_argv[i] = strdup(argv[i]);
+    new_argv[argc] = NULL;
+
+    process_t *process = elf_create_process(path, current, current->terminal, current->effective_uid, (argv_t){ .argc = argc, .argv = new_argv });
     if (process == NULL)
         return -1;
 

@@ -19,7 +19,7 @@ should_inline bool process_is_valid(process_t *process)
 }
 
 process_t *process_allocate(process_t *parent, uid_t euid, const char *name);
-process_t *process_new(process_t *parent, uid_t effective_uid, const char *name, terminal_t *term, thread_entry_t entry, void *arg);
+process_t *process_new(process_t *parent, uid_t effective_uid, const char *name, terminal_t *term, thread_entry_t entry, argv_t argv);
 process_t *process_get(pid_t pid);
 
 fd_t process_attach_ref_fd(process_t *process, io_t *file);

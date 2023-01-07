@@ -72,6 +72,12 @@ typedef enum
 
 typedef struct
 {
+    size_t argc;
+    const char **argv;
+} argv_t;
+
+typedef struct
+{
     uintptr_t pgd;
     page_map_t *um_page_map;
 } paging_handle_t;

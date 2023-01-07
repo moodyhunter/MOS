@@ -45,12 +45,12 @@ static void __attribute__((constructor)) __liballoc_userspace_init(void)
     liballoc_init();
 }
 
-void _start(void)
+void _start(size_t argc, char **argv)
 {
-    extern int main(void);
+    extern int main();
     extern void invoke_init(void);
     invoke_init();
-    int r = main();
+    int r = main(argc, argv);
     syscall_exit(r);
 }
 

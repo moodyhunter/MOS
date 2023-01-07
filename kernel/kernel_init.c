@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "lib/string.h"
 #include "mos/cmdline.h"
 #include "mos/device/block.h"
 #include "mos/device/console.h"
@@ -11,6 +12,7 @@
 #include "mos/io/terminal.h"
 #include "mos/ipc/ipc.h"
 #include "mos/kconfig.h"
+#include "mos/mm/kmalloc.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/kthread.h"
@@ -108,8 +110,17 @@ void mos_start_kernel(const char *cmdline)
 
     terminal_t *init_term = terminal_create_console(init_con);
 
+    argv_t init_argv = {
+        .argc = 2,
+        .argv = kmalloc(sizeof(char *) * 3),
+    };
+
+    init_argv.argv[0] = strdup(init_path);
+    init_argv.argv[1] = strdup(cmdline);
+    init_argv.argv[2] = NULL;
+
     uid_t root_uid = 0;
-    process_t *init = elf_create_process(init_path, NULL, init_term, root_uid);
+    process_t *init = elf_create_process(init_path, NULL, init_term, root_uid, init_argv);
     current_thread = init->threads[0];
     pr_info("created init process: %s", init->name);
 

@@ -4,10 +4,24 @@
 #include "libuserspace.h"
 #include "mos/syscall/usermode.h"
 
-int main(void)
+int main(int argc, char **argv)
 {
-    printf("pong\n");
-    fd_t client = syscall_ipc_connect("kmsg-ping-pong", IPC_CONNECT_DEFAULT, MOS_PAGE_SIZE);
+    if (argc != 2)
+    {
+        printf("Usage: pong <ping-pong-ipc-channel>\n");
+        printf("Connects to the given ipc name and reads a message from it");
+        return 1;
+    }
+
+    const char *ipc_name = argv[1];
+    printf("Client: Connecting to ipc name '%s'\n", ipc_name);
+
+    fd_t client = syscall_ipc_connect(ipc_name, IPC_CONNECT_DEFAULT, MOS_PAGE_SIZE);
+    if (client < 0)
+    {
+        printf("Client: failed to open ipc channel '%s'\n", ipc_name);
+        return 1;
+    }
 
     // client read
     char client_buf[150];

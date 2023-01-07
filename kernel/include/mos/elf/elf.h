@@ -225,4 +225,4 @@ typedef enum
 } elf_verify_result;
 
 elf_verify_result elf_verify_header(elf_header_t *header);
-process_t *elf_create_process(const char *path, process_t *parent, terminal_t *term, uid_t effective_uid);
+process_t *elf_create_process(const char *path, process_t *parent, terminal_t *term, uid_t effective_uid, argv_t argv);

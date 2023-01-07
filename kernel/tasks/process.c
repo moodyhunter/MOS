@@ -91,7 +91,7 @@ void process_cleanup(void)
     kfree(process_table);
 }
 
-process_t *process_new(process_t *parent, uid_t euid, const char *name, terminal_t *term, thread_entry_t entry, void *arg)
+process_t *process_new(process_t *parent, uid_t euid, const char *name, terminal_t *term, thread_entry_t entry, argv_t argv)
 {
     process_t *proc = process_allocate(parent, euid, name);
     if (unlikely(!proc))
@@ -105,6 +105,7 @@ process_t *process_new(process_t *parent, uid_t euid, const char *name, terminal
             mos_panic("init process has no terminal");
     }
 
+    proc->argv = argv;
     proc->terminal = term;
     process_attach_ref_fd(proc, &term->io);
     process_attach_ref_fd(proc, &term->io);

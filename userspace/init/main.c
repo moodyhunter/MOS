@@ -60,7 +60,7 @@ static void file_api()
     }
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
     file_api();
     // char buf[256] = { 0 };
@@ -71,10 +71,15 @@ int main(void)
     //     syscall_io_write(stdout, buf, read, 0);
     // }
 
+    printf("init called with %d arguments:\n", argc);
+    for (int i = 0; i < argc; i++)
+        printf("argv[%d] = %s\n", i, argv[i]);
+
     pid_t my_pid = syscall_get_pid();
     printf("My PID: %d\n", my_pid);
 
-    pid_t ping_pid = syscall_spawn("/programs/kmsg-ping", 0, NULL);
+    const char *kmsg_ping_pong_argv[] = { "kmsg-ping", "kmsg-ping-pong-ipc", NULL };
+    pid_t ping_pid = syscall_spawn("/programs/kmsg-ping", 2, kmsg_ping_pong_argv);
     printf("ping pid: %d\n", ping_pid);
 
     pid_t locks_pid = syscall_spawn("/programs/locks", 0, NULL);

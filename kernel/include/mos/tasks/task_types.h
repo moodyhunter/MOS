@@ -66,6 +66,8 @@ typedef struct _process
     uid_t effective_uid;
     paging_handle_t pagetable;
 
+    argv_t argv;
+
     ssize_t files_count;
     io_t *files[MOS_PROCESS_MAX_OPEN_FILES];
 

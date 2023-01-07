@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "lib/memory.h"
 #include "lib/stdio.h"
 #include "lib/string.h"
 #include "libuserspace.h"
@@ -25,12 +26,28 @@ static void thread_main(void *arg)
     syscall_io_close(client_fd);
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
+    if (argc != 2)
+    {
+        printf("Usage: %s <ping-pong-ipc-channel>\n", argv[0]);
+        printf("Starts a server that accepts connections on the given ipc name.\n");
+        return -1;
+    }
+
+    const char *ipc_name = argv[1];
+    printf("Server: Starting with ipc name '%s'\n", ipc_name);
+
+    const char *args[3] = {
+        "/programs/kmsg-pong",
+        ipc_name,
+        NULL,
+    };
+
     for (int i = 0; i < 10; i++)
-        syscall_spawn("/programs/kmsg-pong", 0, NULL);
-    printf("ping\n");
-    fd_t fd = syscall_ipc_create("kmsg-ping-pong", 32);
+        syscall_spawn("/programs/kmsg-pong", 2, args);
+
+    fd_t fd = syscall_ipc_create(ipc_name, 32);
     if (fd < 0)
     {
         printf("failed to open ipc channel\n");
