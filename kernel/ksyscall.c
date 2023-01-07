@@ -9,6 +9,7 @@
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/shm.h"
 #include "mos/mos_global.h"
+#include "mos/mutex/mutex.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/syscall/decl.h"
@@ -71,7 +72,10 @@ size_t define_syscall(io_read)(fd_t fd, void *buf, size_t count, size_t offset)
 size_t define_syscall(io_write)(fd_t fd, const void *buf, size_t count, size_t offset)
 {
     if (fd < 0 || buf == NULL)
+    {
+        pr_warn("io_write called with invalid arguments (fd=%d, buf=%p, count=%zd, offset=%zd)", fd, buf, count, offset);
         return -1;
+    }
     if (offset)
     {
         mos_warn("offset is not supported yet");
@@ -79,7 +83,10 @@ size_t define_syscall(io_write)(fd_t fd, const void *buf, size_t count, size_t o
     }
     io_t *io = process_get_fd(current_process, fd);
     if (!io)
+    {
+        pr_warn("io_write called with invalid fd %d", fd);
         return -1;
+    }
     return io_write(io, buf, count);
 }
 
@@ -270,40 +277,14 @@ bool define_syscall(wait_for_thread)(tid_t tid)
 bool define_syscall(mutex_acquire)(bool *mutex)
 {
     MOS_ASSERT(current_thread);
-
-    if (__sync_bool_compare_and_swap(mutex, MUTEX_UNLOCKED, MUTEX_LOCKED)) // if the mutex is unlocked, lock it
-    {
-        pr_info2("mutex_acquire: tid %d acquires a free lock at " PTR_FMT, current_thread->tid, (uintptr_t) mutex);
-        return true;
-    }
-
-    pr_info2("mutex_acquire: tid %d blocks on a locked lock at " PTR_FMT, current_thread->tid, (uintptr_t) mutex);
-
-    // TODO: this uses a user pointer, which will DEFINITELY cause problems when we have multiple processes
-    wait_condition_t *wc = wc_wait_for_mutex(mutex);
-    reschedule_for_wait_condition(wc);
-    pr_info2("mutex_acquire: tid %d unblocks and acquires a lock at " PTR_FMT, current_thread->tid, (uintptr_t) mutex);
-    __atomic_store_n(mutex, MUTEX_LOCKED, __ATOMIC_SEQ_CST);
+    mutex_try_acquire_may_reschedule(mutex);
     return true;
 }
 
 bool define_syscall(mutex_release)(bool *mutex)
 {
     MOS_ASSERT(current_thread);
-
-    if (__atomic_load_n(mutex, __ATOMIC_SEQ_CST) == MUTEX_UNLOCKED)
-    {
-        pr_warn("mutex_release: tid %d tried to release a lock at " PTR_FMT " but it was already unlocked", current_thread->tid, (uintptr_t) mutex);
-        return false;
-    }
-
-    if (__sync_bool_compare_and_swap(mutex, MUTEX_LOCKED, MUTEX_UNLOCKED)) // if the mutex is locked, unlock it
-    {
-        pr_info2("mutex_release: tid %d releases a lock at " PTR_FMT, current_thread->tid, (uintptr_t) mutex);
-        return true;
-    }
-
-    return false;
+    return mutex_release(mutex);
 }
 
 fd_t define_syscall(ipc_create)(const char *name, size_t max_pending_connections)

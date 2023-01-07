@@ -86,6 +86,7 @@ add_library(mos_kernel.elf STATIC
     kernel/mm/paging/paging.c
     kernel/mm/paging/pmalloc.c
     kernel/mm/shm.c
+    kernel/mutex/mutex.c
     kernel/panic.c
     kernel/printk.c
     kernel/stack_protector.c

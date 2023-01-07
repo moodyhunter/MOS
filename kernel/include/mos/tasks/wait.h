@@ -4,12 +4,6 @@
 
 #include "mos/tasks/task_types.h"
 
-enum
-{
-    MUTEX_LOCKED = true,
-    MUTEX_UNLOCKED = false,
-};
-
 wait_condition_t *wc_wait_for_thread(thread_t *thread);
 wait_condition_t *wc_wait_for_mutex(bool *mutex);
 

@@ -3,6 +3,7 @@
 #include "mos/tasks/wait.h"
 
 #include "mos/mm/kmalloc.h"
+#include "mos/mutex/mutex.h"
 #include "mos/printk.h"
 
 static bool thread_is_ready(wait_condition_t *condition)
