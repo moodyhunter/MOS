@@ -13,11 +13,11 @@
 #include "mos/x86/x86_interrupt.h"
 #include "mos/x86/x86_platform.h"
 
-acpi_rsdt_t *x86_acpi_rsdt;
-acpi_hpet_t *x86_acpi_hpet;
-acpi_fadt_t *x86_acpi_fadt;
+const acpi_rsdt_t *x86_acpi_rsdt;
+const acpi_hpet_t *x86_acpi_hpet;
+const acpi_fadt_t *x86_acpi_fadt;
 
-should_inline bool verify_sdt_checksum(acpi_sdt_header_t *tableHeader)
+should_inline bool verify_sdt_checksum(const acpi_sdt_header_t *tableHeader)
 {
     u8 sum = 0;
     for (u32 i = 0; i < tableHeader->length; i++)
@@ -27,7 +27,7 @@ should_inline bool verify_sdt_checksum(acpi_sdt_header_t *tableHeader)
 
 void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
 {
-    pr_info("Initializing ACPI with RSDP at " PTR_FMT, (uintptr_t) rsdp);
+    pr_info("Initializing ACPI with RSDP at %p", (void *) rsdp);
     // !! "MUST" USE XSDT IF FOUND !!
     if (rsdp->xsdt_addr)
         mos_panic("XSDT not supported");
@@ -39,28 +39,28 @@ void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
     if (strncmp(x86_acpi_rsdt->sdt_header.signature, "RSDT", 4) != 0)
         mos_panic("RSDT signature mismatch");
 
-    const size_t num_headers = (x86_acpi_rsdt->sdt_header.length - sizeof(acpi_sdt_header_t)) / sizeof(u32);
+    const size_t num_headers = (x86_acpi_rsdt->sdt_header.length - sizeof(acpi_sdt_header_t)) / sizeof(u32); // TODO: uintptr_t?
     for (size_t i = 0; i < num_headers; i++)
     {
-        acpi_sdt_header_t *addr = (acpi_sdt_header_t *) BIOS_VADDR((uintptr_t) x86_acpi_rsdt->sdts[i]);
+        const acpi_sdt_header_t *const header = BIOS_VADDR_TYPE(x86_acpi_rsdt->sdts[i], acpi_sdt_header_t *);
 
-        if (strncmp(addr->signature, ACPI_SIGNATURE_FADT, 4) == 0)
+        if (strncmp(header->signature, ACPI_SIGNATURE_FADT, 4) == 0)
         {
-            x86_acpi_fadt = container_of(addr, acpi_fadt_t, sdt_header);
+            x86_acpi_fadt = container_of(header, acpi_fadt_t, sdt_header);
             if (!verify_sdt_checksum(&x86_acpi_fadt->sdt_header))
                 mos_panic("FADT checksum error");
             pr_info2("acpi: FADT at %p", (void *) x86_acpi_fadt);
         }
-        else if (strncmp(addr->signature, ACPI_SIGNATURE_MADT, 4) == 0)
+        else if (strncmp(header->signature, ACPI_SIGNATURE_MADT, 4) == 0)
         {
-            x86_acpi_madt = container_of(addr, acpi_madt_t, sdt_header);
+            x86_acpi_madt = container_of(header, acpi_madt_t, sdt_header);
             if (!verify_sdt_checksum(&x86_acpi_madt->sdt_header))
                 mos_panic("MADT checksum error");
             pr_info2("acpi: MADT at %p", (void *) x86_acpi_madt);
         }
-        else if (strncmp(addr->signature, ACPI_SIGNATURE_HPET, 4) == 0)
+        else if (strncmp(header->signature, ACPI_SIGNATURE_HPET, 4) == 0)
         {
-            x86_acpi_hpet = container_of(addr, acpi_hpet_t, header);
+            x86_acpi_hpet = container_of(header, acpi_hpet_t, header);
             MOS_WARNING_PUSH
             MOS_WARNING_DISABLE("-Waddress-of-packed-member")
             if (!verify_sdt_checksum(&x86_acpi_hpet->header))
@@ -70,7 +70,7 @@ void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
         }
         else
         {
-            pr_info2("acpi: unknown entry %.4s", addr->signature);
+            pr_warn("acpi: unknown entry %.4s", header->signature);
         }
     }
 }
