@@ -4,4 +4,3 @@
 #include "test_engine_impl.h"
 
 void mos_test_engine_log(standard_color_t color, char symbol, char *format, ...);
-void mos_test_engine_run_tests(void);

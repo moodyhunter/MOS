@@ -15,13 +15,31 @@
 #include "mos/mm/kmalloc.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/setup.h"
 #include "mos/tasks/kthread.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/schedule.h"
 #include "mos/tasks/task_types.h"
 #include "mos/tasks/thread.h"
 
-extern void mos_test_engine_run_tests(); // defined in tests/test_engine.c
+const char *init_path = "/programs/init";
+
+bool setup_init_path(int argc, const char **argv)
+{
+    if (argc != 1)
+    {
+        pr_warn("setup_init_path: expected 1 argument, got %d", argc);
+        for (int i = 0; i < argc; i++)
+            pr_warn("  %d: %s", i, argv[i]);
+        return false;
+    }
+
+    init_path = strdup(argv[0]);
+    pr_emph("init path set to '%s'", init_path);
+    return true;
+}
+
+__setup(init, "init", setup_init_path);
 
 bool mount_initrd(void)
 {
@@ -38,55 +56,25 @@ bool mount_initrd(void)
     return true;
 }
 
-const char *cmdline_get_init_path(void)
-{
-    cmdline_arg_t *init_arg = mos_cmdline_get_arg("init");
-    if (init_arg && init_arg->params_count > 0)
-    {
-        cmdline_param_t *init_param = init_arg->params[0];
-        if (init_param->param_type == CMDLINE_PARAM_TYPE_STRING)
-            return init_param->val.string;
-
-        pr_warn("init path is not a string, using default '/programs/init'");
-    }
-    return "/programs/init";
-}
-
-void dump_cmdline(void)
-{
-    pr_emph("MOS %s (%s)", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION_STRING);
-    if (mos_cmdline->args_count)
-        pr_emph("MOS Arguments: (total of %zu options)", mos_cmdline->args_count);
-    for (u32 i = 0; i < mos_cmdline->args_count; i++)
-    {
-        cmdline_arg_t *option = mos_cmdline->arguments[i];
-        pr_info("%2d: %s", i, option->arg_name);
-
-        for (u32 j = 0; j < option->params_count; j++)
-        {
-            cmdline_param_t *parameter = option->params[j];
-            switch (parameter->param_type)
-            {
-                case CMDLINE_PARAM_TYPE_STRING: pr_info("%6s%s", "", parameter->val.string); break;
-                case CMDLINE_PARAM_TYPE_BOOL: pr_info("%6s%s", "", parameter->val.boolean ? "true" : "false"); break;
-                default: MOS_UNREACHABLE();
-            }
-        }
-    }
-}
-
 void mos_start_kernel(const char *cmdline)
 {
-    mos_cmdline = mos_cmdline_create(cmdline);
-    printk_setup_console(); // setup printk console
+    mos_cmdline = cmdline_create(cmdline);
 
     pr_info("Welcome to MOS!");
-    dump_cmdline();
+    pr_emph("MOS %s (%s)", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION_STRING);
 
-#if BUILD_TESTING
-    if (mos_cmdline_get_arg("mos_tests"))
-        mos_test_engine_run_tests();
-#endif
+    if (mos_cmdline->options_count)
+        pr_emph("MOS Arguments: (total of %zu options)", mos_cmdline->options_count);
+
+    for (u32 i = 0; i < mos_cmdline->options_count; i++)
+    {
+        cmdline_option_t *option = mos_cmdline->options[i];
+        pr_info("%2d: %s", i + 1, option->name);
+        for (u32 j = 0; j < option->argc; j++)
+            pr_info2("  %2d: %s", j + 1, option->argv[j]);
+    }
+
+    invoke_setup_functions(mos_cmdline);
 
     ipc_init();
     process_init();
@@ -94,8 +82,6 @@ void mos_start_kernel(const char *cmdline)
 
     if (unlikely(!mount_initrd()))
         mos_panic("failed to mount initrd");
-
-    const char *init_path = cmdline_get_init_path();
 
     console_t *init_con = console_get("x86");
     if (!init_con)
@@ -124,7 +110,7 @@ void mos_start_kernel(const char *cmdline)
     current_thread = init->threads[0];
     pr_info("created init process: %s", init->name);
 
-    kthread_init();
+    kthread_init(); // must be called after creating the first init process
     device_manager_init();
 
     scheduler();

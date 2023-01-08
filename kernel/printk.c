@@ -8,36 +8,28 @@
 #include "lib/sync/spinlock.h"
 #include "mos/cmdline.h"
 #include "mos/device/console.h"
+#include "mos/setup.h"
 
 #include <stdarg.h>
 
 static console_t *printk_console;
 
-void printk_setup_console()
+static bool printk_setup_console(int argc, const char **argv)
 {
-    cmdline_arg_t *kcon_arg = mos_cmdline_get_arg("kmsg_console");
-
-    if (!kcon_arg || kcon_arg->params_count <= 0)
-        return;
-
-    if (kcon_arg->params_count > 1)
-        pr_warn("too many parameters for kmsg_console, using first one");
-
-    cmdline_param_t *kcon_param = kcon_arg->params[0];
-    if (unlikely(kcon_param->param_type != CMDLINE_PARAM_TYPE_STRING))
+    if (argc != 1)
     {
-        pr_warn("kmsg_console parameter is not a string, ignoring");
-        return;
+        pr_warn("printk_setup_console: expected 1 argument, got %d", argc);
+        return false;
     }
 
-    const char *kcon_name = kcon_param->val.string;
+    const char *const kcon_name = argv[0];
 
     console_t *console = console_get(kcon_name);
     if (console)
     {
         pr_emph("Selected console '%s' for future printk", kcon_name);
         printk_console = console;
-        return;
+        return true;
     }
 
     console = console_get_by_prefix(kcon_name);
@@ -45,12 +37,15 @@ void printk_setup_console()
     {
         pr_emph("Selected console '%s' for future printk (prefix-based)", console->name);
         printk_console = console;
-        return;
+        return true;
     }
 
     mos_warn("No console found for printk based on given name or prefix '%s'", kcon_name);
     printk_console = NULL;
+    return false;
 }
+
+__setup(kconsole, "kmsg_console", printk_setup_console);
 
 static inline void deduce_level_color(int loglevel, standard_color_t *fg, standard_color_t *bg)
 {

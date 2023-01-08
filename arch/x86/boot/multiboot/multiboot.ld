@@ -51,6 +51,12 @@ SECTIONS
         __MOS_TEST_CASES_START = .;
         *(.mos.test_cases);
         __MOS_TEST_CASES_END = .;
+
+        . = ALIGN(4K);
+        __MOS_SETUP_START = .;
+        *(.mos.setup);
+        __MOS_SETUP_END = .;
+
         __MOS_KERNEL_RODATA_END = .;
     }
 

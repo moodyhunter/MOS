@@ -8,72 +8,48 @@
 
 cmdline_t *mos_cmdline = NULL;
 
-cmdline_t *mos_cmdline_create(const char *cmdline)
+cmdline_t *cmdline_create(const char *cmdline)
 {
-    cmdline_t *cmd = kmalloc(sizeof(cmdline_t));
-    cmd->args_count = 0;
-    cmd->arguments = NULL;
+    cmdline_t *cmd = kzalloc(sizeof(cmdline_t));
 
     while (*cmdline)
     {
         if (*cmdline == ' ')
             cmdline++;
-        cmdline_arg_t *arg = kmalloc(sizeof(cmdline_arg_t));
-        arg->params = NULL;
-        arg->params_count = 0;
-        cmd->arguments = krealloc(cmd->arguments, sizeof(cmdline_arg_t *) * (cmd->args_count + 1));
-        cmd->arguments[cmd->args_count] = arg;
-        cmd->args_count++;
+
+        cmd->options = krealloc(cmd->options, sizeof(cmdline_option_t *) * (cmd->options_count + 1));
+        cmdline_option_t *opt = cmd->options[cmd->options_count++] = kzalloc(sizeof(cmdline_option_t));
 
         // an arg name ends with an '=' (has parameters) or a space
         {
-            const char *start = cmdline;
+            const char *const start = cmdline;
             while (*cmdline && !((*cmdline) == ' ' || (*cmdline) == '='))
                 cmdline++;
-            arg->arg_name = duplicate_string(start, cmdline - start);
+            opt->name = duplicate_string(start, cmdline - start);
         }
 
-        // the option has parameters
+        // the option has more arguments
         if (*cmdline && *cmdline++ != '=')
             continue;
 
         while (*cmdline && *cmdline != ' ')
         {
-            cmdline_param_t *param = kmalloc(sizeof(cmdline_param_t));
-            arg->params = krealloc(arg->params, sizeof(cmdline_param_t *) * (arg->params_count + 1));
-            arg->params[arg->params_count] = param;
-            arg->params_count++;
+            opt->argv = krealloc(opt->argv, sizeof(const char *) * (opt->argc + 1));
 
-            if (strncmp(cmdline, "true", 4) == 0)
-            {
-                param->param_type = CMDLINE_PARAM_TYPE_BOOL;
-                param->val.boolean = true;
-                cmdline += 4;
-            }
-            else if (strncmp(cmdline, "false", 5) == 0)
-            {
-                param->param_type = CMDLINE_PARAM_TYPE_BOOL;
-                param->val.boolean = false;
-                cmdline += 5;
-            }
-            else
-            {
-                param->param_type = CMDLINE_PARAM_TYPE_STRING;
-                // an option ends with a space or a comma
-                const char *param_start = cmdline;
-                while (*cmdline && *cmdline != ' ' && *cmdline != ',')
-                    cmdline++;
+            // an option ends with a space or a comma
+            const char *const start = cmdline;
+            while (*cmdline && *cmdline != ' ' && *cmdline != ',')
+                cmdline++;
 
-                param->val.string = duplicate_string(param_start, cmdline - param_start);
-            }
+            opt->argv[opt->argc++] = duplicate_string(start, cmdline - start);
 
             MOS_ASSERT(*cmdline == ' ' || *cmdline == ',' || *cmdline == '\0');
 
-            // we have another option
+            // we have another argument
             if (*cmdline == ',')
                 cmdline++;
 
-            // we have no other options, continue with another parameter
+            // we have another option
             if (*cmdline == ' ')
             {
                 cmdline++;
@@ -85,34 +61,36 @@ cmdline_t *mos_cmdline_create(const char *cmdline)
     return cmd;
 }
 
-void mos_cmdline_destroy(cmdline_t *cmdline)
+static void cmdline_free_option(cmdline_option_t *opt)
 {
-    for (u32 i = 0; i < cmdline->args_count; i++)
-    {
-        cmdline_arg_t *arg = cmdline->arguments[i];
-        kfree(arg->arg_name);
-        for (u32 j = 0; j < arg->params_count; j++)
-        {
-            cmdline_param_t *param = arg->params[j];
-            if (param->param_type == CMDLINE_PARAM_TYPE_STRING)
-                kfree(param->val.string);
-            kfree(param);
-        }
-        if (arg->params_count)
-            kfree(arg->params);
-        kfree(arg);
-    }
-    kfree(cmdline->arguments);
-    kfree(cmdline);
+    kfree(opt->name);
+    for (u32 i = 0; i < opt->argc; i++)
+        kfree(opt->argv[i]);
+    kfree(opt->argv);
+    kfree(opt);
 }
 
-cmdline_arg_t *mos_cmdline_get_arg(const char *option_name)
+bool cmdline_remove_option(cmdline_t *cmdline, const char *arg)
 {
-    MOS_ASSERT(mos_cmdline);
-    for (u32 i = 0; i < mos_cmdline->args_count; i++)
+    for (u32 i = 0; i < cmdline->options_count; i++)
     {
-        if (strcmp(mos_cmdline->arguments[i]->arg_name, option_name) == 0)
-            return mos_cmdline->arguments[i];
+        if (strcmp(cmdline->options[i]->name, arg) == 0)
+        {
+            cmdline_free_option(cmdline->options[i]);
+            cmdline->options_count--;
+            cmdline->options[i] = cmdline->options[cmdline->options_count]; // move the last element to the current position
+            cmdline->options = krealloc(cmdline->options, sizeof(cmdline_option_t *) * cmdline->options_count);
+            return true;
+        }
     }
-    return NULL;
+    return false;
+}
+
+void cmdline_destroy(cmdline_t *cmdline)
+{
+    for (u32 i = 0; i < cmdline->options_count; i++)
+        cmdline_free_option(cmdline->options[i]);
+
+    kfree(cmdline->options);
+    kfree(cmdline);
 }

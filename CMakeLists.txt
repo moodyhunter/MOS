@@ -90,6 +90,7 @@ add_library(mos_kernel.elf STATIC
     kernel/panic.c
     kernel/printk.c
     kernel/stack_protector.c
+    kernel/setup.c
     kernel/tasks/fork.c
     kernel/tasks/process.c
     kernel/tasks/thread.c

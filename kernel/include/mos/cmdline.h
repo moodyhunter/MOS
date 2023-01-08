@@ -2,42 +2,26 @@
 
 #pragma once
 
+#include "mos/platform/platform.h"
 #include "mos/types.h"
 
 #include MOS_KERNEL_INTERNAL_HEADER_CHECK
 
-typedef enum
+typedef struct
 {
-    CMDLINE_PARAM_TYPE_STRING,
-    CMDLINE_PARAM_TYPE_BOOL,
-} option_value_type_t;
+    const char *name;
+    u32 argc;
+    const char **argv;
+} cmdline_option_t;
 
 typedef struct
 {
-    option_value_type_t param_type;
-    union
-    {
-        const char *string;
-        bool boolean;
-    } val;
-} cmdline_param_t;
-
-typedef struct
-{
-    const char *arg_name;
-    size_t params_count;
-    cmdline_param_t **params;
-} cmdline_arg_t;
-
-typedef struct
-{
-    size_t args_count;
-    cmdline_arg_t **arguments;
+    size_t options_count;
+    cmdline_option_t **options;
 } cmdline_t;
 
 extern cmdline_t *mos_cmdline;
 
-cmdline_t *mos_cmdline_create(const char *kcmdline);
-void mos_cmdline_destroy(cmdline_t *cmdline);
-
-cmdline_arg_t *mos_cmdline_get_arg(const char *arg);
+cmdline_t *cmdline_create(const char *kcmdline);
+bool cmdline_remove_option(cmdline_t *cmdline, const char *arg);
+void cmdline_destroy(cmdline_t *cmdline);

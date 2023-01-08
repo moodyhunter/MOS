@@ -7,9 +7,11 @@
 #include "lib/structures/list.h"
 #include "mos/cmdline.h"
 #include "mos/device/console.h"
+#include "mos/mm/kmalloc.h"
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/setup.h"
 #include "test_engine_impl.h"
 
 s32 test_engine_n_warning_expected = 0;
@@ -72,39 +74,54 @@ static void test_engine_warning_handler(const char *func, u32 line, const char *
     test_engine_n_warning_expected--;
 }
 
-void mos_test_engine_run_tests()
+static const char **test_engine_skip_prefix_list = NULL;
+static bool test_engine_do_not_shutdown = false;
+
+static bool mos_test_engine_setup_skip_prefix_list(int argc, const char **argv)
 {
+    test_engine_skip_prefix_list = kmalloc(sizeof(char *) * argc);
+    for (int i = 0; i < argc; i++)
+        test_engine_skip_prefix_list[i] = strdup(argv[i]);
+    return true;
+}
+
+__setup(tests_skip, "mos_tests_skip_prefix", mos_test_engine_setup_skip_prefix_list);
+
+static bool mos_test_engine_setup_do_not_shutdown(int argc, const char **argv)
+{
+    MOS_UNUSED(argc);
+    MOS_UNUSED(argv);
+    test_engine_do_not_shutdown = true;
+    return true;
+}
+
+__setup(tests_halt_on_success, "mos_tests_halt_on_success", mos_test_engine_setup_do_not_shutdown);
+
+static bool mos_test_engine_should_skip(const char *test_name)
+{
+    if (!test_engine_skip_prefix_list)
+        return false;
+
+    for (int i = 0; test_engine_skip_prefix_list[i]; i++)
+    {
+        if (strncmp(test_name, test_engine_skip_prefix_list[i], strlen(test_engine_skip_prefix_list[i])) == 0)
+            return true;
+    }
+
+    return false;
+}
+
+static bool mos_test_engine_run_tests(int argc, const char **argv)
+{
+    MOS_UNUSED(argc);
+    MOS_UNUSED(argv);
     kwarn_handler_set(test_engine_warning_handler);
 
     mos_test_result_t result = { 0 };
 
-    cmdline_arg_t *skip_tests_option = mos_cmdline_get_arg("mos_tests_skip");
-    cmdline_arg_t *mos_tests_skip_prefix_option = mos_cmdline_get_arg("mos_tests_skip_prefix");
-
     MOS_TEST_FOREACH_TEST_CASE(test_case)
     {
-        bool should_skip = false;
-        for (u32 i = 0; skip_tests_option && i < skip_tests_option->params_count; i++)
-        {
-            cmdline_param_t *parameter = skip_tests_option->params[i];
-            if (strcmp(parameter->val.string, test_case->test_name) == 0)
-            {
-                MOS_TEST_LOG(MOS_TEST_YELLOW, 'S', "Test %s skipped by kernel cmdline", test_case->test_name);
-                should_skip = true;
-                break;
-            }
-        }
-
-        for (u32 i = 0; mos_tests_skip_prefix_option && i < mos_tests_skip_prefix_option->params_count; i++)
-        {
-            cmdline_param_t *parameter = mos_tests_skip_prefix_option->params[i];
-            if (strncmp(parameter->val.string, test_case->test_name, strlen(parameter->val.string)) == 0)
-            {
-                MOS_TEST_LOG(MOS_TEST_YELLOW, 'S', "Test %s skipped by kernel cmdline (prefix %s)", test_case->test_name, parameter->val.string);
-                should_skip = true;
-                break;
-            }
-        }
+        bool should_skip = mos_test_engine_should_skip(test_case->test_name);
 
         if (should_skip)
             continue;
@@ -125,8 +142,12 @@ void mos_test_engine_run_tests()
     u32 passed = result.n_total - result.n_failed - result.n_skipped;
     pr_emph("ALL %u TESTS PASSED: (%u succeed, %u failed, %u skipped)", result.n_total, passed, result.n_failed, result.n_skipped);
 
-    if (mos_cmdline_get_arg("mos_tests_halt_on_success"))
+    if (test_engine_do_not_shutdown)
         platform_halt_cpu();
     else
         platform_shutdown();
+
+    MOS_UNREACHABLE();
 }
+
+__setup(tests_run, "mos_tests", mos_test_engine_run_tests);

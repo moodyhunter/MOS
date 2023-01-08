@@ -49,6 +49,7 @@ mos_debug(elf           "ELF loader debug log")
 mos_debug(fs            "Filesystem debug log")
 mos_debug(io            "I/O debug log")
 mos_debug(cpio          "CPIO debug log")
+mos_debug(init          "Init debug log")
 
 # x86 specific options
 summary_section(ARCH_X86 "x86 Architecture")
