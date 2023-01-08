@@ -26,12 +26,11 @@ void invoke_setup_functions(cmdline_t *cmdline)
         cmdline_option_t *option = cmdline_get_option(func->param);
         if (unlikely(!option))
         {
-            pr_info2("no option given for '%s'", func->param);
-            // mos_debug(init, "no option given for '%s'", opt->param);
-            continue; // no option given for this setup function, skip
+            mos_debug(init, "no option given for '%s'", func->param);
+            continue;
         }
 
-        pr_info2("invoking setup function for '%s'", func->param);
+        mos_debug(init, "invoking setup function for '%s'", func->param);
         const bool result = func->setup_fn(option->argc, option->argv);
         if (unlikely(!result))
         {

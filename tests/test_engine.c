@@ -75,7 +75,7 @@ static void test_engine_warning_handler(const char *func, u32 line, const char *
 }
 
 static const char **test_engine_skip_prefix_list = NULL;
-static bool test_engine_do_not_shutdown = false;
+static bool mos_tests_halt_on_success = false;
 
 static bool mos_test_engine_setup_skip_prefix_list(int argc, const char **argv)
 {
@@ -87,15 +87,13 @@ static bool mos_test_engine_setup_skip_prefix_list(int argc, const char **argv)
 
 __setup(tests_skip, "mos_tests_skip_prefix", mos_test_engine_setup_skip_prefix_list);
 
-static bool mos_test_engine_setup_do_not_shutdown(int argc, const char **argv)
+static bool mos_tests_setup_halt_on_success(int argc, const char **argv)
 {
-    MOS_UNUSED(argc);
-    MOS_UNUSED(argv);
-    test_engine_do_not_shutdown = true;
+    mos_tests_halt_on_success = cmdline_arg_get_bool("mos_tests_halt_on_success", argc, argv, true);
     return true;
 }
 
-__setup(tests_halt_on_success, "mos_tests_halt_on_success", mos_test_engine_setup_do_not_shutdown);
+__setup(tests_halt_on_success, "mos_tests_halt_on_success", mos_tests_setup_halt_on_success);
 
 static bool mos_test_engine_should_skip(const char *test_name)
 {
@@ -142,7 +140,7 @@ static bool mos_test_engine_run_tests(int argc, const char **argv)
     u32 passed = result.n_total - result.n_failed - result.n_skipped;
     pr_emph("ALL %u TESTS PASSED: (%u succeed, %u failed, %u skipped)", result.n_total, passed, result.n_failed, result.n_skipped);
 
-    if (test_engine_do_not_shutdown)
+    if (mos_tests_halt_on_success)
         platform_halt_cpu();
     else
         platform_shutdown();

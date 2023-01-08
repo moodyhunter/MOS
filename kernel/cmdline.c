@@ -66,7 +66,8 @@ static void cmdline_free_option(cmdline_option_t *opt)
     kfree(opt->name);
     for (u32 i = 0; i < opt->argc; i++)
         kfree(opt->argv[i]);
-    kfree(opt->argv);
+    if (opt->argc > 0)
+        kfree(opt->argv);
     kfree(opt);
 }
 
@@ -93,4 +94,32 @@ void cmdline_destroy(cmdline_t *cmdline)
 
     kfree(cmdline->options);
     kfree(cmdline);
+}
+
+static bool cmdline_is_truthy(const char *arg)
+{
+    return strcmp(arg, "true") == 0 || strcmp(arg, "1") == 0 || strcmp(arg, "yes") == 0 || strcmp(arg, "on") == 0;
+}
+
+static bool cmdline_is_falsy(const char *arg)
+{
+    return strcmp(arg, "false") == 0 || strcmp(arg, "0") == 0 || strcmp(arg, "no") == 0 || strcmp(arg, "off") == 0;
+}
+
+bool cmdline_arg_get_bool(const char *s, int argc, const char **argv, bool default_value)
+{
+    s = s ? s : "";
+    if (argc == 0)
+        return default_value;
+    else if (argc > 1)
+        pr_warn("%s: too many arguments (%d), only the first one will be used", s, argc);
+
+    if (cmdline_is_truthy(argv[0]))
+        return true;
+    else if (cmdline_is_falsy(argv[0]))
+        return false;
+    else
+        pr_warn("%s: invalid argument '%s', assuming %s", s, argv[0], default_value ? "true" : "false");
+
+    return default_value;
 }
