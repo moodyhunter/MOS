@@ -141,7 +141,7 @@ extern void mos_kernel_mm_init(void);
 noreturn void platform_shutdown(void);
 
 // Platform CPU APIs
-void platform_halt_cpu(void);
+noreturn void platform_halt_cpu(void);
 u32 platform_current_cpu_id(void);
 void platform_msleep(u64 ms);
 void platform_usleep(u64 us);

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "mos/mos_global.h"
+#include "mos/printk.h"
 #include "mos/types.h"
 
 should_inline void cpu_get_msr(u32 msr, u32 *lo, u32 *hi)
@@ -15,9 +16,10 @@ should_inline void cpu_set_msr(u32 msr, u32 lo, u32 hi)
     __asm__ volatile("wrmsr" : : "a"(lo), "d"(hi), "c"(msr));
 }
 
-should_inline void x86_cpu_halt()
+should_inline noreturn void x86_cpu_halt()
 {
     __asm__ volatile("hlt");
+    mos_panic("halt failed");
 }
 
 should_inline reg_t x86_get_cr3()
