@@ -5,9 +5,9 @@
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 
-#define __startup_code   __section(.mos.startup.text)
-#define __startup_rodata __section(.mos.startup.rodata)
-#define __startup_rwdata __section(.mos.startup.data)
+#define __startup_code   __section(".mos.startup.text")
+#define __startup_rodata __section(".mos.startup.rodata")
+#define __startup_rwdata __section(".mos.startup.data")
 
 // map a single page of a given physical address to a given virtual address
 // vaddr and paddr must be page-aligned

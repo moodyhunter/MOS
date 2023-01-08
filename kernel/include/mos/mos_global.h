@@ -15,7 +15,7 @@
 #define __packed        __attribute__((__packed__))
 #define __printf(a, b)  __attribute__((__format__(__printf__, a, b)))
 #define __pure          __attribute__((__pure__))
-#define __section(S)    __attribute__((__section__(#S)))
+#define __section(S)    __attribute__((__section__(S)))
 #define __maybe_unused  __attribute__((__unused__))
 #define __used          __attribute__((__used__))
 #define __weak_alias(x) __attribute__((weak, alias(x)))
