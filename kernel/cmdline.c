@@ -79,7 +79,10 @@ bool cmdline_remove_option(cmdline_t *cmdline, const char *arg)
         {
             cmdline_free_option(cmdline->options[i]);
             cmdline->options_count--;
-            cmdline->options[i] = cmdline->options[cmdline->options_count]; // move the last element to the current position
+
+            for (u32 j = i; j < cmdline->options_count; j++)
+                cmdline->options[j] = cmdline->options[j + 1]; // shift the array to the left by one
+
             cmdline->options = krealloc(cmdline->options, sizeof(cmdline_option_t *) * cmdline->options_count);
             return true;
         }
