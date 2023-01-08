@@ -16,8 +16,8 @@
 
 #define MOS_SYSCALL_INTR             0x88
 #define BIOS_VADDR_MASK              0xF0000000
-#define BIOS_VADDR(paddr)            (BIOS_VADDR_MASK | paddr)
-#define BIOS_VADDR_TYPE(paddr, type) ((type) BIOS_VADDR((uintptr_t) (paddr)))
+#define BIOS_VADDR(paddr)            (BIOS_VADDR_MASK | ((uintptr_t) (paddr)))
+#define BIOS_VADDR_TYPE(paddr, type) ((type) BIOS_VADDR((paddr)))
 
 // clang-format off
 #define KB * 1024
