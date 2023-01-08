@@ -177,7 +177,7 @@ void x86_start_kernel(x86_startup_info *info)
 
     if (initrd_size)
     {
-        vmblock_t initrd_block = (vmblock_t){
+        const vmblock_t initrd_block = (vmblock_t){
             .vaddr = MOS_X86_INITRD_VADDR,
             .flags = VM_READ | VM_GLOBAL,
             .paddr = initrd_paddr,
