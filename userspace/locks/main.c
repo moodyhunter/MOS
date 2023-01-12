@@ -56,11 +56,13 @@ int main()
 
     tid_t t1 = start_thread("thread1", thread_do_work, (void *) 1000000);
     tid_t t2 = start_thread("thread2", thread_do_work, (void *) 1000000);
+    tid_t t3 = start_thread("thread3", thread_do_work, (void *) 1000000);
 
     syscall_wait_for_thread(t1);
     syscall_wait_for_thread(t2);
+    syscall_wait_for_thread(t3);
 
-    u64 expected = 1000000 * 2;
+    const u64 expected = 1000000 * 3;
 
     if (counter != expected)
     {
