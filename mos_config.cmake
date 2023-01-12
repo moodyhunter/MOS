@@ -58,7 +58,7 @@ mos_kconfig(ARCH_X86    MOS_ADDR_USER_HEAP              0x40000000          "Use
 mos_kconfig(ARCH_X86    MOS_ADDR_USER_STACK             0x60000000          "User Stack Start Address")
 mos_kconfig(ARCH_X86    MOS_ADDR_USER_MMAP              0x90000000          "User MMAP Start Address")
 mos_kconfig(ARCH_X86    MOS_ADDR_KERNEL_HEAP            0xD0000000          "Kernel Heap Start Address")
-mos_kconfig(ARCH_X86    MOS_X86_INITRD_VADDR            0xC8000000          "Initrd Virtual Address")
+mos_kconfig(ARCH_X86    MOS_X86_INITRD_VADDR            0xE0000000          "Initrd Virtual Address")
 
 mos_debug(x86_paging    "x86 Paging debug log")
 mos_debug(x86_cpu       "x86 CPU debug log")
