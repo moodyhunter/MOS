@@ -1,6 +1,5 @@
 ; SPDX-License-Identifier: GPL-3.0-or-later
 
-[bits 16]
 [global x86_ap_trampoline]
 
 [extern ap_state]
@@ -17,22 +16,17 @@ AP_STATUS_START                     equ 3
 
 begin:
 x86_ap_trampoline:
+[bits 16]
     cli
     cld
-    or      ax, ax              ; clear segment registers
-    mov     ds, ax
-    mov     es, ax
-    mov     ss, ax
-    mov     fs, ax
-    mov     gs, ax
     lgdt    [gdt_ptr - begin + X86_AP_TRAMPOLINE_ADDR]
     mov     eax, cr0
     or      eax, 0x1
     mov     cr0, eax
     jmp     0x08:(pm_init - begin + X86_AP_TRAMPOLINE_ADDR)
 
-[bits 32]
 pm_init:
+[bits 32]
     mov     bx, 0x10            ; Data Segment
     mov     ds, bx
     mov     es, bx
