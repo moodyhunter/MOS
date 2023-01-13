@@ -120,7 +120,8 @@ void x86_kpanic_hook()
         x86_mm_dump_page_table(x86_get_pg_infra(current_cpu->pagetable));
         spinlock_release(current_cpu->pagetable.pgd_lock);
     }
-    // do_backtrace(20);
+
+    do_backtrace(20);
 }
 
 void x86_start_kernel(x86_startup_info *info)

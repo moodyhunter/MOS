@@ -4,6 +4,7 @@
 
 #include "lib/stdlib.h"
 #include "lib/string.h"
+#include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 
@@ -53,11 +54,17 @@ void mos_pmm_setup(void)
         if (alignment_loss)
             pr_emph("%zu bytes of memory loss due to alignment", alignment_loss);
     }
+
+    pr_info("Physical Memory Allocator initialized");
+#if MOS_DEBUG_FEATURE(pmm)
+    pmalloc_dump();
+    mos_install_kpanic_hook(pmalloc_dump);
+#endif
 }
 
 void pmalloc_dump()
 {
-    pr_info("pmem freelist has %zu entries", pmlist_count);
+    pr_info("Physical Memory Allocator dump:");
     pmlist_node_t *this = pmlist_head;
     while (this)
     {

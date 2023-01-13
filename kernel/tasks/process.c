@@ -10,6 +10,8 @@
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/memops.h"
 #include "mos/mm/paging/paging.h"
+#include "mos/panic.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/thread.h"
 
@@ -32,6 +34,23 @@ static pid_t new_process_id(void)
     static pid_t next = 1;
     return (pid_t){ next++ };
 }
+
+#if MOS_DEBUG_FEATURE(process)
+static void debug_dump_process(void)
+{
+    if (current_thread)
+    {
+        process_t *proc = current_process;
+        printk("process %d (%s) ", proc->pid, proc->name);
+        if (proc->parent)
+            printk("parent %d (%s) ", proc->parent->pid, proc->parent->name);
+        else
+            printk("parent <none> ");
+        printk("uid %d ", proc->effective_uid);
+        process_dump_mmaps(proc);
+    }
+}
+#endif
 
 process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
 {
@@ -83,7 +102,10 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
 void process_init(void)
 {
     process_table = kzalloc(sizeof(hashmap_t));
+#if MOS_DEBUG_FEATURE(process)
     hashmap_init(process_table, PROCESS_HASHTABLE_SIZE, process_hash, process_equal);
+    mos_install_kpanic_hook(debug_dump_process);
+#endif
 }
 
 void process_cleanup(void)
