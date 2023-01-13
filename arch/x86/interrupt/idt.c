@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/x86/interrupt/idt.h"
+
+#include "mos/x86/descriptors/descriptor_types.h"
 #include "mos/x86/x86_interrupt.h"
 #include "mos/x86/x86_platform.h"
 
@@ -10,6 +13,8 @@ static idtr32_t idtr;
 
 #define STS_IG32 0xE // 32-bit Interrupt Gate
 #define STS_TG32 0xF // 32-bit Trap Gate
+
+extern asmlinkage void idt32_flush(idtr32_t *idtr);
 
 static void idt_set_descriptor(u8 vector, void *isr, bool usermode, bool is_trap)
 {
@@ -24,6 +29,11 @@ static void idt_set_descriptor(u8 vector, void *isr, bool usermode, bool is_trap
     descriptor->s = 0;
     descriptor->reserved = 0;
     descriptor->args = 0;
+}
+
+void x86_idt_flush()
+{
+    idt32_flush(&idtr);
 }
 
 void x86_idt_init()

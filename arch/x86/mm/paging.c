@@ -4,6 +4,7 @@
 
 #include "lib/string.h"
 #include "mos/mm/paging/paging.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/x86/mm/paging_impl.h"
 #include "mos/x86/x86_platform.h"
@@ -12,8 +13,19 @@
 extern void x86_enable_paging_impl(uintptr_t page_dir);
 
 static x86_pg_infra_t x86_kpg_infra_storage __aligned(MOS_PAGE_SIZE) = { 0 };
+static spinlock_t x86_kernel_pgd_lock = SPINLOCK_INIT;
 
 x86_pg_infra_t *const x86_kpg_infra = &x86_kpg_infra_storage;
+
+void x86_mm_paging_init()
+{
+    // initialize the page directory
+    memzero(x86_kpg_infra, sizeof(x86_pg_infra_t));
+    x86_platform.kernel_pgd.pgd = (uintptr_t) x86_kpg_infra;
+    x86_platform.kernel_pgd.um_page_map = NULL; // a kernel page table does not have a user-mode page map
+    x86_platform.kernel_pgd.pgd_lock = &x86_kernel_pgd_lock;
+    current_cpu->pagetable = x86_platform.kernel_pgd;
+}
 
 void x86_mm_enable_paging(void)
 {

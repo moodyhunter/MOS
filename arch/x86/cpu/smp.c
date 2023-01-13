@@ -4,6 +4,8 @@
 
 #include "lib/string.h"
 #include "mos/boot/startup.h"
+#include "mos/mm/paging/paging.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/x86/acpi/madt.h"
 #include "mos/x86/delays.h"
@@ -30,27 +32,27 @@ volatile const uintptr_t ap_pgd_addr = (uintptr_t) &startup_pgd;
 #define wait_for(state) do {} while (ap_state != state)
 // clang-format on
 
-static void x86_cpu_start(int apic_id)
+static void start_ap(int apic_id)
 {
     ap_state = AP_STATUS_INVALID;
 
     lapic_interrupt_full(0, apic_id, APIC_DELIVER_MODE_INIT, APIC_DEST_MODE_PHYSICAL, true, true, APIC_SHORTHAND_NONE);
-    mdelay(100);
+    mdelay(50);
     lapic_interrupt_full(0, apic_id, APIC_DELIVER_MODE_INIT_DEASSERT, APIC_DEST_MODE_PHYSICAL, false, true, APIC_SHORTHAND_NONE);
 
     ap_state = AP_STATUS_BSP_STARTUP_SENT;
-    pr_info2("smp: bsp sent startup to cpu %u", apic_id);
+    mos_debug(x86_cpu, "bsp sent startup to cpu %u", apic_id);
 
-    mdelay(100);
+    mdelay(50);
     lapic_interrupt(X86_AP_TRAMPOLINE_ADDR >> 12, apic_id, APIC_DELIVER_MODE_STARTUP, APIC_DEST_MODE_PHYSICAL, APIC_SHORTHAND_NONE);
-    mdelay(100);
+    mdelay(50);
     lapic_interrupt(X86_AP_TRAMPOLINE_ADDR >> 12, apic_id, APIC_DELIVER_MODE_STARTUP, APIC_DEST_MODE_PHYSICAL, APIC_SHORTHAND_NONE);
 
     wait_for(AP_STATUS_START_REQUEST);
-    pr_info2("smp: cpu %u received start request", apic_id);
+    mos_debug(x86_cpu, "cpu %u received start request", apic_id);
 
     ap_state = AP_STATUS_START;
-    pr_info2("smp: started cpu %u", apic_id);
+    mos_debug(x86_cpu, "started cpu %u", apic_id);
 }
 
 #undef wait_for
@@ -63,15 +65,16 @@ void x86_smp_copy_trampoline()
 
 void x86_smp_start_all()
 {
+    extern const void __MOS_KERNEL_HIGHER_STACK_TOP;
+    const size_t AP_STACKS_TOP = (uintptr_t) &__MOS_KERNEL_HIGHER_STACK_TOP - MOS_X86_INITIAL_STACK_SIZE; // minus the boot cpu stack
     for (u32 i = 0; i < x86_platform.num_cpus; i++)
     {
-        u32 apic_id = x86_cpu_lapic[i];
+        const u32 apic_id = x86_cpu_lapic[i];
         if (apic_id == x86_platform.boot_cpu_id)
             continue;
 
-        extern const void __MOS_KERNEL_HIGHER_STACK_TOP;
-        ap_stack_addr = (uintptr_t) &__MOS_KERNEL_HIGHER_STACK_TOP - (i * 1 MB);
-        pr_info("smp: starting AP %d, LAPIC %d, stack " PTR_FMT, i, apic_id, ap_stack_addr);
-        x86_cpu_start(apic_id);
+        ap_stack_addr = AP_STACKS_TOP - i * MOS_X86_INITIAL_STACK_SIZE;
+        pr_info("smp: starting AP %d, LAPIC %d, stack top: " PTR_FMT, i, apic_id, ap_stack_addr);
+        start_ap(apic_id);
     }
 }

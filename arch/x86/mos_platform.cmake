@@ -23,7 +23,7 @@ add_kernel_source(
         devices/serial.c
         devices/serial_console.c
         devices/text_mode_console.c
-        gdt/gdt.c
+        descriptors/descriptors.c
         interrupt/lapic.c
         interrupt/ioapic.c
         interrupt/idt.c
@@ -32,7 +32,6 @@ add_kernel_source(
         mm/mm.c
         mm/paging.c
         mm/paging_impl.c
-        tasks/tss.c
         tasks/context.c
         x86_platform.c
         x86_platform_api.c

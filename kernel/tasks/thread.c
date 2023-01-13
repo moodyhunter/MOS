@@ -82,8 +82,8 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
     }
 
     platform_context_setup(t, entry, arg);
-    hashmap_put(thread_table, &t->tid, t);
     process_attach_thread(owner, t);
+    hashmap_put(thread_table, &t->tid, t);
 
     return t;
 }
@@ -98,6 +98,8 @@ void thread_handle_exit(thread_t *t)
     if (!thread_is_valid(t))
         return;
 
-    mos_warn("TODO");
+    spinlock_acquire(&t->state_lock);
     t->state = THREAD_STATE_DEAD;
+    spinlock_release(&t->state_lock);
+    mos_warn("TODO");
 }

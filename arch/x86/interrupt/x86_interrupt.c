@@ -101,7 +101,7 @@ static void x86_dump_registers(x86_stack_frame *frame)
 
 static void x86_handle_nmi(x86_stack_frame *frame)
 {
-    pr_emph("NMI received");
+    pr_emph("cpu %d: NMI received", lapic_get_id());
 
     u8 scp1 = port_inb(0x92);
     u8 scp2 = port_inb(0x61);
@@ -238,7 +238,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
     }
 
     x86_dump_registers(stack);
-    mos_panic("x86 %s:\nInterrupt #%d ('%s', error code %d)\n", intr_type, stack->interrupt_number, name, stack->error_code);
+    mos_panic("x86 %s:\nInterrupt #%d ('%s', error code %d)", intr_type, stack->interrupt_number, name, stack->error_code);
 }
 
 static void x86_handle_irq(x86_stack_frame *frame)

@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "lib/string.h"
+#include "lib/sync/spinlock.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/printk.h"
+#include "mos/tasks/task_types.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/delays.h"
 #include "mos/x86/devices/port.h"
@@ -70,7 +72,7 @@ paging_handle_t platform_mm_create_user_pgd(void)
     vmblock_t block = mm_alloc_pages(x86_platform.kernel_pgd, npages, PGALLOC_HINT_KHEAP, VM_RW);
     x86_pg_infra_t *infra = (x86_pg_infra_t *) block.vaddr;
     memzero(infra, sizeof(x86_pg_infra_t));
-    paging_handle_t handle;
+    paging_handle_t handle = { 0 };
     handle.pgd = (uintptr_t) infra;
 
     // physical address of kernel page table
@@ -111,9 +113,9 @@ void platform_switch_to_scheduler(uintptr_t *old_stack, uintptr_t new_stack)
     x86_switch_to_scheduler(old_stack, new_stack);
 }
 
-void platform_switch_to_thread(uintptr_t *old_stack, thread_t *new_thread)
+void platform_switch_to_thread(uintptr_t *old_stack, const thread_t *new_thread, switch_flags_t switch_flags)
 {
-    x86_switch_to_thread(old_stack, new_thread);
+    x86_switch_to_thread(old_stack, new_thread, switch_flags);
 }
 
 void platform_mm_map_pages(paging_handle_t table, vmblock_t block)
@@ -121,8 +123,11 @@ void platform_mm_map_pages(paging_handle_t table, vmblock_t block)
     mos_debug(x86_paging, "mapping %zu pages (" PTR_FMT "->" PTR_FMT ") @ table " PTR_FMT, block.npages, block.vaddr, block.paddr, table.pgd);
 
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
+
+    spinlock_acquire(table.pgd_lock);
     for (size_t i = 0; i < block.npages; i++)
         pg_do_map_page(infra, block.vaddr + i * MOS_PAGE_SIZE, block.paddr + i * MOS_PAGE_SIZE, block.flags);
+    spinlock_release(table.pgd_lock);
 }
 
 void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr_start, size_t n_pages)
@@ -130,18 +135,22 @@ void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr_start, size_
     mos_debug(x86_paging, "unmapping %zu pages starting at " PTR_FMT " @ table " PTR_FMT, n_pages, vaddr_start, table.pgd);
 
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
+    spinlock_acquire(table.pgd_lock);
     for (size_t i = 0; i < n_pages; i++)
         pg_do_unmap_page(infra, vaddr_start + i * MOS_PAGE_SIZE);
+    spinlock_release(table.pgd_lock);
 }
 
 vmblock_t platform_mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t npages)
 {
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
+    spinlock_acquire(table.pgd_lock);
     vmblock_t block;
     block.vaddr = vaddr;
     block.paddr = pg_page_get_mapped_paddr(infra, vaddr);
     block.npages = npages;
     block.flags = pg_page_get_flags(infra, vaddr);
+    spinlock_release(table.pgd_lock);
     return block;
 }
 
@@ -149,6 +158,9 @@ vmblock_t platform_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_h
 {
     x86_pg_infra_t *from_infra = x86_get_pg_infra(from);
     x86_pg_infra_t *to_infra = x86_get_pg_infra(to);
+
+    spinlock_acquire(from.pgd_lock);
+    spinlock_acquire(to.pgd_lock);
 
     for (size_t i = 0; i < npages; i++)
     {
@@ -165,17 +177,24 @@ vmblock_t platform_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_h
         .flags = pg_page_get_flags(from_infra, fvaddr),
     };
 
+    spinlock_release(to.pgd_lock);
+    spinlock_release(from.pgd_lock);
     return block;
 }
 
 void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags)
 {
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
+    spinlock_acquire(table.pgd_lock);
     pg_page_flag(infra, vaddr, n, flags);
+    spinlock_release(table.pgd_lock);
 }
 
 vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr)
 {
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
-    return pg_page_get_flags(infra, vaddr);
+    spinlock_acquire(table.pgd_lock);
+    vm_flags flags = pg_page_get_flags(infra, vaddr);
+    spinlock_release(table.pgd_lock);
+    return flags;
 }

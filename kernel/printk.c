@@ -67,24 +67,9 @@ static void print_to_console(console_t *con, int loglevel, const char *message, 
     if (!con)
         return;
 
-    spinlock_acquire(&con->lock);
-
-    standard_color_t prev_fg, prev_bg;
     standard_color_t fg = White, bg = Black;
     deduce_level_color(loglevel, &fg, &bg);
-
-    if (con->caps & CONSOLE_CAP_COLOR)
-    {
-        con->get_color(con, &prev_fg, &prev_bg);
-        con->set_color(con, fg, bg);
-    }
-
-    console_write(con, message, len);
-
-    if (con->caps & CONSOLE_CAP_COLOR)
-        con->set_color(con, prev_fg, prev_bg);
-
-    spinlock_release(&con->lock);
+    console_write_color(con, message, len, fg, bg);
 }
 
 static void lvprintk(mos_log_level_t loglevel, const char *fmt, va_list args)

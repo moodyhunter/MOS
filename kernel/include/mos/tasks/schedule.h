@@ -6,7 +6,7 @@
 #include "mos/platform/platform.h"
 #include "mos/tasks/task_types.h"
 
-void mos_update_current(thread_t *thread);
+void unblock_scheduler(void);
 noreturn void scheduler(void);
 
 void reschedule_for_wait_condition(wait_condition_t *wait_condition);

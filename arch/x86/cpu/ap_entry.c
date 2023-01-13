@@ -1,15 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/tasks/schedule.h"
 #include "mos/x86/cpu/cpuid.h"
+#include "mos/x86/descriptors/descriptor_types.h"
 #include "mos/x86/interrupt/apic.h"
+#include "mos/x86/interrupt/idt.h"
 #include "mos/x86/mm/paging.h"
 #include "mos/x86/x86_platform.h"
 
-void ap_begin_exec()
+noreturn void ap_begin_exec()
 {
-    x86_ap_gdt_init();
-    x86_idt_init();
+    x86_init_current_cpu_gdt();
+    x86_init_current_cpu_tss();
+    x86_idt_flush();
     x86_mm_enable_paging();
     lapic_enable();
 
@@ -20,10 +25,12 @@ void ap_begin_exec()
     cpuid_print_cpu_info();
 
     per_cpu(x86_platform.cpu)->id = info.ebx.local_apic_id;
+    current_cpu->pagetable = x86_platform.kernel_pgd;
+
     u8 lapic_id = lapic_get_id();
     if (lapic_id != info.ebx.local_apic_id)
         mos_warn("smp: AP %u: LAPIC ID mismatch: %u != %u", info.ebx.local_apic_id, lapic_id, info.ebx.local_apic_id);
 
-    while (1)
-        __asm__ volatile("cli; hlt;");
+    scheduler();
+    MOS_UNREACHABLE();
 }

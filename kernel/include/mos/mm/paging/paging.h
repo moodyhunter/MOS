@@ -27,6 +27,7 @@
 typedef struct _page_map
 {
     bitmap_line_t ummap[MOS_PAGEMAP_USER_LINES];
+    spinlock_t lock;
 } page_map_t;
 
 /**

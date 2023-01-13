@@ -4,6 +4,7 @@
 
 #include "lib/string.h"
 #include "lib/structures/hashmap.h"
+#include "lib/sync/spinlock.h"
 #include "mos/io/terminal.h"
 #include "mos/mm/cow.h"
 #include "mos/mm/kmalloc.h"
@@ -194,12 +195,16 @@ void process_handle_exit(process_t *process, int exit_code)
         // TODO: if a thread is being executed, we should wait for it to finish
         // TODO: if a thread holds a lock, we should release it?
         thread_t *thread = process->threads[i];
+        spinlock_acquire(&thread->state_lock);
         if (thread->state == THREAD_STATE_DEAD)
         {
             pr_warn("thread %d is already dead", thread->tid);
-            continue;
         }
-        thread->state = THREAD_STATE_DEAD; // cleanup will be done by the scheduler
+        else
+        {
+            thread->state = THREAD_STATE_DEAD; // cleanup will be done by the scheduler
+        }
+        spinlock_release(&thread->state_lock);
     }
 
     size_t files_total = 0;

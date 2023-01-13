@@ -1,25 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "lib/string.h"
-#include "mos/cmdline.h"
-#include "mos/device/block.h"
 #include "mos/device/console.h"
 #include "mos/device/device_manager.h"
 #include "mos/elf/elf.h"
 #include "mos/filesystem/cpio/cpio.h"
-#include "mos/filesystem/mount.h"
 #include "mos/filesystem/pathutils.h"
 #include "mos/io/terminal.h"
 #include "mos/ipc/ipc.h"
 #include "mos/kconfig.h"
 #include "mos/mm/kmalloc.h"
-#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/setup.h"
 #include "mos/tasks/kthread.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/schedule.h"
-#include "mos/tasks/task_types.h"
 #include "mos/tasks/thread.h"
 
 const char *init_path = "/programs/init";
@@ -134,12 +129,13 @@ void mos_start_kernel(const char *cmdline)
     }
 
     process_t *init = elf_create_process(init_path, NULL, init_term, (uid_t) 0, init_argv);
-    current_thread = init->threads[0];
     pr_info("created init process: %s", init->name);
 
     kthread_init(); // must be called after creating the first init process
     device_manager_init();
 
+    pr_info("starting scheduler");
+    unblock_scheduler();
     scheduler();
     MOS_UNREACHABLE();
 }

@@ -22,7 +22,7 @@ SECTIONS
     {
         *(.mos.startup.data);
         . = ALIGN(4K);
-        . += 4K;    /* ! 4 KiB for the stack */
+        . += 8K;    /* ! 8 KiB for the stack */
         _mos_startup_stack = .;
         _mos_startup_END = .;
     }
@@ -70,7 +70,7 @@ SECTIONS
     {
         *(.bss);
         . = ALIGN(4K);
-        . += 16M;  /* ! stack */
+        . += 1M * 16; /* ! 16 MiB for all CPUs' stacks (defined in mos_config.cmake) */
         __MOS_KERNEL_HIGHER_STACK_TOP = .;
         __MOS_KERNEL_RW_END = .;
         __MOS_KERNEL_END = .;

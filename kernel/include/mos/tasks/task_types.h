@@ -3,21 +3,13 @@
 #pragma once
 
 #include "lib/structures/stack.h"
+#include "lib/sync/spinlock.h"
 #include "mos/io/io.h"
 #include "mos/kconfig.h"
 #include "mos/platform/platform.h"
 #include "mos/types.h"
 
 typedef struct _terminal terminal_t;
-
-typedef enum
-{
-    THREAD_STATE_READY,   // thread can be scheduled
-    THREAD_STATE_CREATED, // created or forked, but not ever started
-    THREAD_STATE_RUNNING, // thread is currently running
-    THREAD_STATE_BLOCKED, // thread is blocked by a wait condition
-    THREAD_STATE_DEAD,    // thread is dead, and will be cleaned up soon by the scheduler
-} thread_status_t;
 
 typedef enum
 {
@@ -83,6 +75,8 @@ typedef struct _thread
     tid_t tid;
     const char *name;
     thread_status_t state;
+    spinlock_t state_lock;
+
     process_t *owner;
     downwards_stack_t u_stack;
     downwards_stack_t k_stack;

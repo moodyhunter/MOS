@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "lib/string.h"
-#include "mos/mos_global.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
-#include "mos/x86/gdt/gdt_types.h"
-#include "mos/x86/tasks/tss_types.h"
+#include "mos/x86/descriptors/descriptor_types.h"
 #include "mos/x86/x86_platform.h"
 
-static gdt_ptr32_t gdt_ptr;
-static gdt_entry32_t gdt[GDT_ENTRY_COUNT] __aligned(8);
+struct x86_cpu_descriptor x86_cpu_descriptor = { 0 };
 
 typedef enum
 {
@@ -30,10 +28,8 @@ typedef enum
     GDT_GRAN_PAGE = 1,
 } gdt_gran_t;
 
-static gdt_entry32_t *gdt32_set_entry(u32 id, u32 base, u32 limit, gdt_entry_type_t entry_type, gdt_ring_t dpl, gdt_gran_t gran)
+static gdt_entry32_t *gdt32_set_entry(gdt_entry32_t *entry, u32 base, u32 limit, gdt_entry_type_t entry_type, gdt_ring_t dpl, gdt_gran_t gran)
 {
-    MOS_ASSERT_X(id < GDT_ENTRY_COUNT, "GDT entry id out of bounds: %u", id);
-    gdt_entry32_t *entry = &gdt[id];
     entry->base_low = MASK_BITS(base, 24);
     entry->base_high = MASK_BITS((base >> 24), 8);
     entry->limit_low = MASK_BITS(limit, 16);
@@ -57,19 +53,20 @@ static gdt_entry32_t *gdt32_set_entry(u32 id, u32 base, u32 limit, gdt_entry_typ
     return entry;
 }
 
-void x86_gdt_init()
+void x86_init_current_cpu_gdt()
 {
-    memset(gdt, 0, sizeof(gdt));
+    x86_cpu_descriptor_t *this_cpu_desc = per_cpu(x86_cpu_descriptor);
+    memzero(this_cpu_desc, sizeof(x86_cpu_descriptor_t));
 
     // {Kernel,User}{Code,Data} Segments
     // We are using a flat memory model, so the base is 0 and the limit is all the way up to the end of the address space.
-    gdt32_set_entry(1, 0x00000000, 0xFFFFFFFF, GDT_ENTRY_CODE, GDT_RING_KERNEL, GDT_GRAN_PAGE);
-    gdt32_set_entry(2, 0x00000000, 0xFFFFFFFF, GDT_ENTRY_DATA, GDT_RING_KERNEL, GDT_GRAN_PAGE);
-    gdt32_set_entry(3, 0x00000000, 0xFFFFFFFF, GDT_ENTRY_CODE, GDT_RING_USER, GDT_GRAN_PAGE);
-    gdt32_set_entry(4, 0x00000000, 0xFFFFFFFF, GDT_ENTRY_DATA, GDT_RING_USER, GDT_GRAN_PAGE);
+    gdt32_set_entry(&this_cpu_desc->gdt[1], 0x00000000, 0xFFFFFFFF, GDT_ENTRY_CODE, GDT_RING_KERNEL, GDT_GRAN_PAGE);
+    gdt32_set_entry(&this_cpu_desc->gdt[2], 0x00000000, 0xFFFFFFFF, GDT_ENTRY_DATA, GDT_RING_KERNEL, GDT_GRAN_PAGE);
+    gdt32_set_entry(&this_cpu_desc->gdt[3], 0x00000000, 0xFFFFFFFF, GDT_ENTRY_CODE, GDT_RING_USER, GDT_GRAN_PAGE);
+    gdt32_set_entry(&this_cpu_desc->gdt[4], 0x00000000, 0xFFFFFFFF, GDT_ENTRY_DATA, GDT_RING_USER, GDT_GRAN_PAGE);
 
     // TSS segment
-    gdt_entry32_t *tss_seg = gdt32_set_entry(5, (uintptr_t) per_cpu(x86_tss.tss), sizeof(__typeof__(x86_tss)), GDT_ENTRY_CODE, GDT_RING_KERNEL, GDT_GRAN_BYTE);
+    gdt_entry32_t *tss_seg = gdt32_set_entry(&this_cpu_desc->gdt[5], (uintptr_t) &this_cpu_desc->tss, sizeof(tss32_t), GDT_ENTRY_CODE, GDT_RING_KERNEL, GDT_GRAN_BYTE);
 
     // ! Set special attributes for the TSS segment.
     tss_seg->code_data_segment = 0; // indicates TSS/LDT (see also `accessed`)
@@ -78,12 +75,13 @@ void x86_gdt_init()
     tss_seg->executable = 1;        // For a TSS, 1 indicates 32-bit (1) or 16-bit (0).
     tss_seg->available = 0;         // 0 for a TSS
 
-    gdt_ptr.base = gdt;
-    gdt_ptr.limit = sizeof(gdt) - 1;
-    gdt32_flush(&gdt_ptr);
+    this_cpu_desc->gdt_ptr.base = &this_cpu_desc->gdt[0];
+    this_cpu_desc->gdt_ptr.limit = sizeof(this_cpu_desc->gdt) - 1;
+    gdt32_flush(&this_cpu_desc->gdt_ptr);
 }
 
-void x86_ap_gdt_init()
+void x86_init_current_cpu_tss()
 {
-    gdt32_flush_only(&gdt_ptr);
+    per_cpu(x86_cpu_descriptor)->tss.ss0 = GDT_SEGMENT_KDATA;
+    tss32_flush(GDT_SEGMENT_TSS);
 }

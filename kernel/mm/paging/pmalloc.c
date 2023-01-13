@@ -21,6 +21,7 @@ typedef struct _pmlist_node_t
 static pmlist_node_t pmlist_storage[PMEM_FREELIST_SIZE_FOR(MOS_MAX_VADDR)] __aligned(MOS_PAGE_SIZE) = { 0 };
 static pmlist_node_t *pmlist_head = (pmlist_node_t *) pmlist_storage;
 static size_t pmlist_count = 0;
+static spinlock_t pmlist_lock = SPINLOCK_INIT;
 
 static size_t freelist_size()
 {
@@ -71,6 +72,7 @@ void pmalloc_dump()
 
 uintptr_t pmalloc_alloc(size_t pages)
 {
+    spinlock_acquire(&pmlist_lock);
     pmlist_node_t *this = pmlist_head;
     while (this)
     {
@@ -78,7 +80,29 @@ uintptr_t pmalloc_alloc(size_t pages)
         {
             const uintptr_t addr = this->paddr; // ! pmalloc_acquire_region changes `this->paddr`, make a copy first
             mos_debug(pmm, "allocated %zu pages from freelist, starting at " PTR_FMT, pages, addr);
-            pmalloc_acquire_region(addr, pages * MOS_PAGE_SIZE);
+
+            if (this->n_pages == pages)
+            {
+                // remove this node from the list
+                if (this == pmlist_head)
+                    pmlist_head = this->next;
+                else
+                {
+                    pmlist_node_t *prev = pmlist_head;
+                    while (prev->next != this)
+                        prev = prev->next;
+                    prev->next = this->next;
+                }
+                pmlist_count--;
+            }
+            else
+            {
+                // shrink this node
+                this->paddr += pages * MOS_PAGE_SIZE;
+                this->n_pages -= pages;
+            }
+
+            spinlock_release(&pmlist_lock);
             return addr;
         }
         this = this->next;
@@ -105,6 +129,8 @@ void pmalloc_acquire_region(uintptr_t start_addr, size_t size_bytes)
     bool needs_cleanup = false;
     bool freed = false;
     void *cleanup_target_memptr = NULL;
+
+    spinlock_acquire(&pmlist_lock);
 
     pmlist_node_t *this = pmlist_head;
     pmlist_node_t *prev = NULL;
@@ -175,7 +201,7 @@ void pmalloc_acquire_region(uintptr_t start_addr, size_t size_bytes)
 
     if (needs_cleanup)
     {
-        // firstly find who is at 'pmem_freelist_count' that should be copied to 'cleanup_target_memptr'
+        // firstly find who is at 'pmlist_count' that should be copied to 'cleanup_target_memptr'
         // minus 1 because it's a count, make it an index
         pmlist_node_t *copy_source = &pmlist_storage[pmlist_count - 1];
         pmlist_count--;
@@ -199,6 +225,8 @@ void pmalloc_acquire_region(uintptr_t start_addr, size_t size_bytes)
             }
         }
     }
+
+    spinlock_release(&pmlist_lock);
 }
 
 size_t pmalloc_release_region(uintptr_t start_addr, size_t size_bytes)
@@ -210,6 +238,8 @@ size_t pmalloc_release_region(uintptr_t start_addr, size_t size_bytes)
 
     mos_debug(pmm, "adding physical memory region " PTR_FMT "-" PTR_FMT " to freelist.", aligned_start, aligned_end);
 
+    spinlock_acquire(&pmlist_lock);
+
     pmlist_node_t *this = pmlist_head;
     pmlist_node_t *prev = NULL;
 
@@ -219,7 +249,6 @@ size_t pmalloc_release_region(uintptr_t start_addr, size_t size_bytes)
         if ((this_start <= aligned_start && aligned_start < this_end) || (this_start < aligned_end && aligned_end <= this_end))
         {
             mos_panic("new pmem " PTR_FMT "-" PTR_FMT " overlaps with " PTR_FMT "-" PTR_FMT, aligned_start, aligned_end, this_start, this_end);
-            return 0;
         }
 
         // prepend to 'this' region
@@ -278,6 +307,7 @@ size_t pmalloc_release_region(uintptr_t start_addr, size_t size_bytes)
     new_range->next = NULL;
 
 end:
+    spinlock_release(&pmlist_lock);
     // return the amount of memory that was lost due to alignment
     return (aligned_start - start_addr) + ((start_addr + size_bytes) - aligned_end);
 }

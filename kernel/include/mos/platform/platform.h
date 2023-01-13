@@ -2,12 +2,13 @@
 
 #pragma once
 
+#include "lib/sync/spinlock.h"
 #include "mos/kconfig.h"
 #include "mos/mos_global.h"
 #include "mos/types.h"
 
 #define PER_CPU_DECLARE(type, name)                                                                                                                                      \
-    struct                                                                                                                                                               \
+    struct name                                                                                                                                                          \
     {                                                                                                                                                                    \
         type percpu_value[MOS_MAX_CPU_COUNT];                                                                                                                            \
     } name
@@ -70,6 +71,23 @@ typedef enum
     HEAP_GROW_PAGES,
 } heap_control_op;
 
+typedef enum
+{
+    THREAD_STATE_READY,   // thread can be scheduled
+    THREAD_STATE_CREATED, // created or forked, but not ever started
+    THREAD_STATE_RUNNING, // thread is currently running
+    THREAD_STATE_BLOCKED, // thread is blocked by a wait condition
+    THREAD_STATE_DEAD,    // thread is dead, and will be cleaned up soon by the scheduler
+} thread_status_t;
+
+typedef enum
+{
+    SWITCH_REGULAR = 0,
+    SWITCH_TO_NEW_PAGE_TABLE = 1 << 0,
+    SWITCH_TO_NEW_USER_THREAD = 1 << 1,
+    SWITCH_TO_NEW_KERNEL_THREAD = 1 << 2,
+} switch_flags_t;
+
 typedef struct
 {
     size_t argc;
@@ -79,6 +97,7 @@ typedef struct
 typedef struct
 {
     uintptr_t pgd;
+    spinlock_t *pgd_lock;
     page_map_t *um_page_map;
 } paging_handle_t;
 
@@ -169,5 +188,5 @@ void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg);
 void platform_context_copy(platform_context_t *from, platform_context_t **to);
 
 // Platform Context Switching APIs
-void platform_switch_to_thread(uintptr_t *old_stack, thread_t *new_thread);
+void platform_switch_to_thread(uintptr_t *old_stack, const thread_t *new_thread, switch_flags_t switch_flags);
 void platform_switch_to_scheduler(uintptr_t *old_stack, uintptr_t new_stack);

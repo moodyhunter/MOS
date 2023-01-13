@@ -73,5 +73,26 @@ int console_read(console_t *con, char *dest, size_t size)
 
 int console_write(console_t *con, const char *data, size_t size)
 {
-    return con->write_impl(con, data, size);
+    spinlock_acquire(&con->lock);
+    int sz = con->write_impl(con, data, size);
+    spinlock_release(&con->lock);
+    return sz;
+}
+
+int console_write_color(console_t *con, const char *data, size_t size, standard_color_t fg, standard_color_t bg)
+{
+    standard_color_t prev_fg, prev_bg;
+    spinlock_acquire(&con->lock);
+    if (con->caps & CONSOLE_CAP_COLOR)
+    {
+        con->get_color(con, &prev_fg, &prev_bg);
+        con->set_color(con, fg, bg);
+    }
+
+    int ret = con->write_impl(con, data, size);
+
+    if (con->caps & CONSOLE_CAP_COLOR)
+        con->set_color(con, prev_fg, prev_bg);
+    spinlock_release(&con->lock);
+    return ret;
 }

@@ -4,19 +4,8 @@
 
 #include "mos/platform/platform.h"
 #include "mos/x86/boot/multiboot.h"
-#include "mos/x86/gdt/gdt_types.h"
-#include "mos/x86/interrupt/idt_types.h"
-#include "mos/x86/tasks/tss_types.h"
 
 static_assert(sizeof(void *) == 4, "x86_64 is not supported");
-
-#define GDT_SEGMENT_NULL     0x00
-#define GDT_SEGMENT_KCODE    0x08
-#define GDT_SEGMENT_KDATA    0x10
-#define GDT_SEGMENT_USERCODE 0x18
-#define GDT_SEGMENT_USERDATA 0x20
-#define GDT_SEGMENT_TSS      0x28
-#define GDT_ENTRY_COUNT      6
 
 #define X86_BIOS_MEMREGION_PADDR 0xf0000
 #define BIOS_MEMREGION_SIZE      0x10000
@@ -56,20 +45,3 @@ extern const char __MOS_KERNEL_RODATA_START, __MOS_KERNEL_RODATA_END; // Kernel 
 extern const char __MOS_KERNEL_RW_START, __MOS_KERNEL_RW_END;         // Kernel read-write data
 
 extern mos_platform_info_t x86_platform;
-typedef struct
-{
-    PER_CPU_DECLARE(tss32_t, tss);
-} x86_percpu_tss_t;
-
-extern x86_percpu_tss_t x86_tss;
-
-void x86_gdt_init();
-void x86_ap_gdt_init();
-void x86_idt_init();
-void x86_tss_init();
-
-// The following 5 symbols are defined in the descriptor_flush.asm file.
-extern asmlinkage void gdt32_flush(gdt_ptr32_t *gdt_ptr);
-extern asmlinkage void idt32_flush(idtr32_t *idtr);
-extern asmlinkage void tss32_flush(u32 tss_selector);
-extern asmlinkage void gdt32_flush_only(gdt_ptr32_t *gdt_ptr);

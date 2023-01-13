@@ -16,11 +16,13 @@
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/cpu/cpuid.h"
 #include "mos/x86/cpu/smp.h"
+#include "mos/x86/descriptors/descriptor_types.h"
 #include "mos/x86/devices/initrd_blockdev.h"
 #include "mos/x86/devices/port.h"
 #include "mos/x86/devices/serial_console.h"
 #include "mos/x86/devices/text_mode_console.h"
 #include "mos/x86/interrupt/apic.h"
+#include "mos/x86/interrupt/idt.h"
 #include "mos/x86/mm/mm.h"
 #include "mos/x86/mm/paging.h"
 #include "mos/x86/mm/paging_impl.h"
@@ -95,7 +97,9 @@ void x86_kpanic_hook()
     {
         pr_emph("Current task: %s (tid: %d, pid: %d)", current_process->name, current_thread->tid, current_process->pid);
         pr_emph("Task Page Table:");
+        spinlock_acquire(current_process->pagetable.pgd_lock);
         x86_mm_dump_page_table(x86_get_pg_infra(current_process->pagetable));
+        spinlock_release(current_process->pagetable.pgd_lock);
         if (current_cpu->pagetable.pgd == current_process->pagetable.pgd)
             cpu_pagetable_source = "Current Process";
     }
@@ -112,7 +116,9 @@ void x86_kpanic_hook()
     else
     {
         pr_emph("CPU Page Table:");
+        spinlock_acquire(current_cpu->pagetable.pgd_lock);
         x86_mm_dump_page_table(x86_get_pg_infra(current_cpu->pagetable));
+        spinlock_release(current_cpu->pagetable.pgd_lock);
     }
     // do_backtrace(20);
 }
@@ -141,24 +147,20 @@ void x86_start_kernel(x86_startup_info *info)
     const uintptr_t initrd_size = info->initrd_size;
     const uintptr_t initrd_paddr = ((x86_pgtable_entry *) (((x86_pgdir_entry *) x86_get_cr3())[MOS_X86_INITRD_VADDR >> 22].page_table_paddr << 12))->phys_addr << 12;
 
-    x86_gdt_init();
+    x86_init_current_cpu_gdt();
     x86_idt_init();
-    x86_tss_init();
+    x86_init_current_cpu_tss();
     x86_irq_handler_init();
 
     if (mb_info->flags & MULTIBOOT_INFO_CMDLINE)
         strncpy(mos_cmdline, mb_info->cmdline, sizeof(mos_cmdline));
-
-    current_cpu->pagetable.pgd = x86_platform.kernel_pgd.pgd = (uintptr_t) x86_kpg_infra;
-    current_cpu->pagetable.um_page_map = x86_platform.kernel_pgd.um_page_map = NULL; // a kernel page table does not have a user-mode page map
 
     const u32 memregion_count = mb_info->mmap_length / sizeof(multiboot_memory_map_t);
     x86_mem_init(mb_info->mmap_addr, memregion_count);
     MOS_ASSERT_X(x86_platform.mem_regions.count != memregion_count, "x86_mem_init() failed to initialize all memory regions");
     mos_pmm_setup();
 
-    // initialize the page directory
-    memzero(x86_kpg_infra, sizeof(x86_pg_infra_t));
+    x86_mm_paging_init();
 
     pr_info("mapping kernel space...");
     mm_map_pages(x86_platform.kernel_pgd, x86_platform.k_code);
@@ -229,10 +231,6 @@ void x86_start_kernel(x86_startup_info *info)
     pic_remap_irq();
     ioapic_init();
 
-    pr_info("Starting APs...");
-    current_cpu->id = x86_platform.boot_cpu_id = lapic_get_id();
-    x86_smp_start_all();
-
     mos_install_kpanic_hook(x86_kpanic_hook);
 
     x86_install_interrupt_handler(IRQ_TIMER, x86_timer_handler);
@@ -253,6 +251,10 @@ void x86_start_kernel(x86_startup_info *info)
     };
     mm_map_allocated_pages(current_cpu->pagetable, video_block);
     console_register(&vga_text_mode_console);
+
+    pr_info("Starting APs...");
+    current_cpu->id = x86_platform.boot_cpu_id = lapic_get_id();
+    x86_smp_start_all();
 
     mos_start_kernel(mos_cmdline);
 }

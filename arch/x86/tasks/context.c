@@ -9,6 +9,7 @@
 #include "mos/printk.h"
 #include "mos/tasks/schedule.h"
 #include "mos/tasks/task_types.h"
+#include "mos/x86/descriptors/descriptor_types.h"
 #include "mos/x86/mm/paging.h"
 #include "mos/x86/mm/paging_impl.h"
 #include "mos/x86/x86_interrupt.h"
@@ -31,7 +32,7 @@ asmlinkage void x86_switch_impl_setup_user_thread()
     if (current == current->owner->threads[0])
     {
         // this is the main thread of a new process, so we need to set up the arguments
-        pr_info2("setting up main thread (id: %d) of process '%s' (%d)", current->tid, current->owner->name, current->owner->pid);
+        pr_info2("cpu %d: setting up main thread (id: %d) of process '%s' (%d)", current_cpu->id, current->tid, current->owner->name, current->owner->pid);
 
         MOS_ASSERT_X(!context->arg, "arg is not NULL for main thread of process '%s' (%d)", current->owner->name, current->owner->pid);
 
@@ -80,27 +81,14 @@ void x86_copy_thread_context(platform_context_t *from, platform_context_t **to)
     *to = &to_arg->inner;
 }
 
-void x86_switch_to_thread(uintptr_t *scheduler_stack, thread_t *to)
+void x86_switch_to_thread(uintptr_t *scheduler_stack, const thread_t *to, switch_flags_t switch_flags)
 {
-    const bool need_pgd_switch = current_cpu->pagetable.pgd != to->owner->pagetable.pgd;
-    const uintptr_t pgd_paddr = need_pgd_switch ? pg_page_get_mapped_paddr(x86_kpg_infra, to->owner->pagetable.pgd) : 0;
-
-    per_cpu(x86_tss.tss)->esp0 = to->k_stack.top;
-
+    per_cpu(x86_cpu_descriptor)->tss.esp0 = to->k_stack.top;
+    const uintptr_t pgd_paddr = switch_flags & SWITCH_TO_NEW_PAGE_TABLE ? pg_page_get_mapped_paddr(x86_kpg_infra, to->owner->pagetable.pgd) : 0;
     const x86_thread_context_t *context = container_of(to->context, x86_thread_context_t, inner);
-
-    switch_func_t switch_func = NULL;
-    if (likely(to->state != THREAD_STATE_CREATED))
-    {
-        switch_func = x86_switch_impl_normal;
-    }
-    else
-    {
-        // eax will be set to 0 (when need_iret_switching), which is exactly what a child process should get (from fork)
-        switch_func = to->mode == THREAD_MODE_KERNEL ? x86_switch_impl_new_kernel_thread : x86_switch_impl_new_user_thread;
-    }
-
-    mos_update_current(to); // this updates to->mode to THREAD_MODE_RUNNING
+    const switch_func_t switch_func = switch_flags & SWITCH_TO_NEW_USER_THREAD   ? x86_switch_impl_new_user_thread :
+                                      switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? x86_switch_impl_new_kernel_thread :
+                                                                                   x86_switch_impl_normal;
     x86_context_switch_impl(scheduler_stack, to->k_stack.head, pgd_paddr, switch_func, context);
 }
 

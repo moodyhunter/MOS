@@ -78,3 +78,4 @@ console_t *console_get_by_prefix(const char *prefix);
 
 int console_read(console_t *con, char *dest, size_t size);
 int console_write(console_t *con, const char *data, size_t size);
+int console_write_color(console_t *con, const char *data, size_t size, standard_color_t fg, standard_color_t bg);
