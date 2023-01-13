@@ -279,7 +279,7 @@ void x86_handle_interrupt(u32 esp)
         x86_handle_irq(frame);
     else if (frame->interrupt_number == MOS_SYSCALL_INTR)
     {
-        frame->eax = (reg32_t) dispatch_syscall(frame->eax, frame->ebx, frame->ecx, frame->edx, frame->esi, frame->edi, frame->ebp); // "ebp?"
+        frame->eax = (reg32_t) dispatch_syscall(frame->eax, frame->ebx, frame->ecx, frame->edx, frame->esi, frame->edi, frame->ebp);
     }
     else
     {
