@@ -58,7 +58,8 @@ void mos_pmm_setup(void)
     pr_info("Physical Memory Allocator initialized");
 #if MOS_DEBUG_FEATURE(pmm)
     pmalloc_dump();
-    mos_install_kpanic_hook(pmalloc_dump);
+    declare_panic_hook(pmalloc_dump);
+    install_panic_hook(&pmalloc_dump_holder);
 #endif
 }
 

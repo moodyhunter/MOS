@@ -104,7 +104,8 @@ void process_init(void)
     process_table = kzalloc(sizeof(hashmap_t));
 #if MOS_DEBUG_FEATURE(process)
     hashmap_init(process_table, PROCESS_HASHTABLE_SIZE, process_hash, process_equal);
-    mos_install_kpanic_hook(debug_dump_process);
+    declare_panic_hook(debug_dump_process);
+    install_panic_hook(&debug_dump_process_holder);
 #endif
 }
 

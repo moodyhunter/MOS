@@ -8,12 +8,6 @@
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 
-typedef struct
-{
-    as_linked_list;
-    kpanic_hook_t *hook;
-} panic_hook_holder_t;
-
 static list_node_t kpanic_hooks = LIST_HEAD_INIT(kpanic_hooks);
 static kmsg_handler_t *kwarn_handler = NULL;
 
@@ -89,9 +83,7 @@ void mos_kwarn(const char *func, u32 line, const char *fmt, ...)
     lprintk(MOS_LOG_WARN, "  in function: %s (line %u)\n", func, line);
 }
 
-void mos_install_kpanic_hook(kpanic_hook_t *hook)
+void install_panic_hook(panic_hook_holder_t *hook)
 {
-    panic_hook_holder_t *holder = kmalloc(sizeof(panic_hook_holder_t));
-    holder->hook = hook;
-    list_node_append(&kpanic_hooks, &holder->list_node);
+    list_node_append(&kpanic_hooks, list_node(hook));
 }

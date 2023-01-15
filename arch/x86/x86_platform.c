@@ -232,7 +232,8 @@ void x86_start_kernel(x86_startup_info *info)
     pic_remap_irq();
     ioapic_init();
 
-    mos_install_kpanic_hook(x86_kpanic_hook);
+    declare_panic_hook(x86_kpanic_hook);
+    install_panic_hook(&x86_kpanic_hook_holder);
 
     x86_install_interrupt_handler(IRQ_TIMER, x86_timer_handler);
     x86_install_interrupt_handler(IRQ_KEYBOARD, x86_keyboard_handler);
