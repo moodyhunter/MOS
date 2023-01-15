@@ -55,13 +55,13 @@ typedef char liballoc_align_t;
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
 static spinlock_t alloc_lock = SPINLOCK_INIT;
 
-int liballoc_lock()
+static int liballoc_lock()
 {
     spinlock_acquire(&alloc_lock);
     return 0;
 }
 
-int liballoc_unlock()
+static int liballoc_unlock()
 {
     spinlock_release(&alloc_lock);
     return 0;
