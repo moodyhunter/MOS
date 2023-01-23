@@ -102,8 +102,8 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
 void process_init(void)
 {
     process_table = kzalloc(sizeof(hashmap_t));
-#if MOS_DEBUG_FEATURE(process)
     hashmap_init(process_table, PROCESS_HASHTABLE_SIZE, process_hash, process_equal);
+#if MOS_DEBUG_FEATURE(process)
     declare_panic_hook(debug_dump_process);
     install_panic_hook(&debug_dump_process_holder);
 #endif
