@@ -31,6 +31,7 @@ jobs:
           cmake \
             -DCMAKE_BUILD_TYPE=Debug \
             -DBUILD_TESTING=ON \
+            -DMOS_ARCH=x86 \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -B ${{github.workspace}}/build \
             -G Ninja

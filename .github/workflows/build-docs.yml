@@ -40,6 +40,7 @@ jobs:
           cmake \
             -DBUILD_TESTING=ON \
             -B ${{github.workspace}}/build \
+            -DMOS_ARCH=x86 \
             -G Ninja
 
       - name: Build

@@ -11,18 +11,13 @@ set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3")
 set(CMAKE_C_COMPILER_LAUNCHER "")
 set(CMAKE_CXX_COMPILER_LAUNCHER "")
 
-macro(mos_target_setup ARCH_SUBDIR ISA BITS)
-    mos_kconfig(KERNEL MOS_BITS ${BITS} "ISA Bits")
-    set(MOS_ISA_FAMILY ${ARCH_SUBDIR})
-
-    set(CMAKE_SYSTEM_PROCESSOR ${ISA})
-
+macro(mos_target_setup)
     # set(CMAKE_ASM_NASM_OBJECT_FORMAT elf${BITS})
     # Add debug info to nasm
-    set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> -felf${BITS} -gdwarf -o <OBJECT> <SOURCE>")
+    set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> -felf${MOS_BITS} -gdwarf -o <OBJECT> <SOURCE>")
 
-    find_program(CMAKE_C_COMPILER NAMES "${ISA}-elf-gcc" NO_CACHE REQUIRED)
-    find_program(CMAKE_CXX_COMPILER NAMES "${ISA}-elf-g++" NO_CACHE REQUIRED)
+    find_program(CMAKE_C_COMPILER NAMES "${MOS_COMPILER_PREFIX}gcc" NO_CACHE REQUIRED)
+    find_program(CMAKE_CXX_COMPILER NAMES "${MOS_COMPILER_PREFIX}g++" NO_CACHE REQUIRED)
 
     execute_process(COMMAND ${CMAKE_C_COMPILER} "-print-file-name=crtbegin.o"
         OUTPUT_VARIABLE MOS_CRTBEGIN
@@ -33,9 +28,9 @@ macro(mos_target_setup ARCH_SUBDIR ISA BITS)
 
     set(CMAKE_C_COMPILER_WORKS 1)
     set(CMAKE_CXX_COMPILER_WORKS 1)
-    message(STATUS "${ISA}: C compiler: ${CMAKE_C_COMPILER}")
-    message(STATUS "${ISA}: C++ compiler: ${CMAKE_CXX_COMPILER}")
-    message(STATUS "${ISA}: CRTBEGIN: ${MOS_CRTBEGIN}, CRTEND: ${MOS_CRTEND}")
+    message(STATUS "Target: C compiler: ${CMAKE_C_COMPILER}")
+    message(STATUS "Target: C++ compiler: ${CMAKE_CXX_COMPILER}")
+    message(STATUS "Target: CRTBEGIN: ${MOS_CRTBEGIN}, CRTEND: ${MOS_CRTEND}")
 
     # to be used later?
     add_library(mos::crtbegin IMPORTED STATIC GLOBAL)

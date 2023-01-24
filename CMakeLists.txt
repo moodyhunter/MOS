@@ -21,10 +21,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -pedantic")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-set(MOS_ARCH_CONFIG ${CMAKE_SOURCE_DIR}/arch/${MOS_ISA_FAMILY}/mos_platform.cmake)
+set(MOS_ARCH_CONFIG ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/mos_platform.cmake)
 
 if(NOT EXISTS ${MOS_ARCH_CONFIG})
-    message(FATAL_ERROR "No configuration file for architecture '${MOS_ISA_FAMILY}'")
+    message(FATAL_ERROR "No configuration file for architecture '${MOS_ARCH}'")
 endif()
 
 include(generate_syscall_headers)
@@ -32,8 +32,13 @@ include(generate_syscall_headers)
 add_library(mos_kernel_basic_include INTERFACE)
 add_library(mos_kernel_platform_include INTERFACE)
 
-target_include_directories(mos_kernel_basic_include INTERFACE ${CMAKE_SOURCE_DIR}/kernel/include ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/lib/include)
-target_include_directories(mos_kernel_platform_include INTERFACE ${CMAKE_SOURCE_DIR}/arch/${MOS_ISA_FAMILY}/include)
+target_include_directories(mos_kernel_basic_include INTERFACE
+    ${CMAKE_SOURCE_DIR}/kernel/include
+    ${CMAKE_BINARY_DIR}/include
+    ${CMAKE_SOURCE_DIR}/lib/include)
+
+target_include_directories(mos_kernel_platform_include INTERFACE
+    ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/include)
 
 add_library(mos::basic_include ALIAS mos_kernel_basic_include)
 add_library(mos::platform_include ALIAS mos_kernel_platform_include)

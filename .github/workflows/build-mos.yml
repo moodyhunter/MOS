@@ -16,6 +16,7 @@ jobs:
         target: [multiboot]
         build_type: [Debug, RelWithDebInfo, Release]
         run_tests: [ON, OFF]
+        arch: [x86]
 
         include:
           - target: multiboot_iso
@@ -49,6 +50,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
             -DMOS_DEBUG_ALL=${{matrix.run_tests}} \
             -DBUILD_TESTING=${{matrix.run_tests}} \
+            -DMOS_ARCH=${{matrix.arch}} \
             -B ${{github.workspace}}/build \
             -G Ninja
           echo "BOOTABLE=$(jq -r .${{matrix.target}} < ${{github.workspace}}/build/bootables.json)" >> $GITHUB_ENV

@@ -20,8 +20,21 @@ macro(mos_debug feature description)
     mos_kconfig(DEBUG MOS_DEBUG_${feature} ${MOS_DEBUG_ALL} ${description})
 endmacro()
 
-mos_target_setup(x86 i686 32)
+set(_ARCH_CONFIGURATION_FILE ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/platform_config.cmake)
 
+if(NOT DEFINED MOS_ARCH OR NOT EXISTS ${_ARCH_CONFIGURATION_FILE})
+    message(FATAL_ERROR "MOS_ARCH is not defined or is incorrect, please specify the target architecture")
+endif()
+
+include(${_ARCH_CONFIGURATION_FILE})
+
+if(NOT DEFINED MOS_COMPILER_PREFIX OR NOT DEFINED MOS_BITS)
+    message(FATAL_ERROR "MOS_COMPILER_PREFIX or MOS_BITS is not defined, the target architecture config file is not correct")
+endif()
+
+mos_target_setup()
+
+mos_kconfig(KERNEL      MOS_BITS                        ${MOS_BITS}         "ISA Bits")
 mos_kconfig(LIMITS      MOS_MAX_CPU_COUNT               16                  "Max supported number of CPUs")
 mos_kconfig(LIMITS      MOS_MAX_SUPPORTED_MEMREGION     32                  "Max supported memory regions")
 mos_kconfig(LIMITS      MOS_PROCESS_MAX_OPEN_FILES      1024                "Max open files per process")
@@ -51,5 +64,3 @@ mos_debug(io            "I/O debug log")
 mos_debug(cpio          "CPIO debug log")
 mos_debug(init          "Init debug log")
 mos_debug(spinlock      "Spinlock debug log")
-
-include(${CMAKE_SOURCE_DIR}/arch/${MOS_ISA_FAMILY}/platform_config.cmake)

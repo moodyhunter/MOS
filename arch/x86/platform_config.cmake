@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+set(MOS_COMPILER_PREFIX "i686-elf-")
+set(MOS_BITS 32)
+
 summary_section(ARCH_X86 "x86 Architecture")
 mos_kconfig(ARCH_X86    MOS_PAGE_SIZE                   4096                "x86 Page Size")
 mos_kconfig(ARCH_X86    MOS_ADDR_USER_HEAP              0x40000000          "User Heap Start Address")
