@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+if(NOT ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "i686")
+    message(FATAL_ERROR "x86 platform code only supports i686, not ${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
 include(prepare_bootable_kernel_binary)
 add_bootable_target(boot/multiboot)
 add_bootable_target(boot/multiboot_iso)
