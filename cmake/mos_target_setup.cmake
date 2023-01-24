@@ -11,9 +11,9 @@ set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3")
 set(CMAKE_C_COMPILER_LAUNCHER "")
 set(CMAKE_CXX_COMPILER_LAUNCHER "")
 
-macro(mos_target_setup ISA_FAMILY ISA BITS)
+macro(mos_target_setup ARCH_SUBDIR ISA BITS)
     mos_kconfig(KERNEL MOS_BITS ${BITS} "ISA Bits")
-    set(MOS_ISA_FAMILY ${ISA_FAMILY})
+    set(MOS_ISA_FAMILY ${ARCH_SUBDIR})
 
     set(CMAKE_SYSTEM_PROCESSOR ${ISA})
 
@@ -21,25 +21,13 @@ macro(mos_target_setup ISA_FAMILY ISA BITS)
     # Add debug info to nasm
     set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> -felf${BITS} -gdwarf -o <OBJECT> <SOURCE>")
 
-    find_program(CC_PATH NAMES "${ISA}-elf-gcc" NO_CACHE)
+    find_program(CMAKE_C_COMPILER NAMES "${ISA}-elf-gcc" NO_CACHE REQUIRED)
+    find_program(CMAKE_CXX_COMPILER NAMES "${ISA}-elf-g++" NO_CACHE REQUIRED)
 
-    if(NOT CC_PATH)
-        message(FATAL_ERROR "TOOLCHAIN: Could not find a C compiler for ${ISA}")
-    endif()
-
-    find_program(CXX_PATH NAMES "${ISA}-elf-g++" NO_CACHE)
-
-    if(NOT CXX_PATH)
-        message(FATAL_ERROR "TOOLCHAIN: Could not find a C++ compiler for ${ISA}")
-    endif()
-
-    set(CMAKE_C_COMPILER ${CC_PATH})
-    set(CMAKE_CXX_COMPILER ${CXX_PATH})
-
-    execute_process(COMMAND ${CC_PATH} ${CMAKE_C_FLAGS} -print-file-name=crtbegin.o
+    execute_process(COMMAND ${CMAKE_C_COMPILER} "-print-file-name=crtbegin.o"
         OUTPUT_VARIABLE MOS_CRTBEGIN
         OUTPUT_STRIP_TRAILING_WHITESPACE)
-    execute_process(COMMAND ${CC_PATH} ${CMAKE_C_FLAGS} -print-file-name=crtend.o
+    execute_process(COMMAND ${CMAKE_CXX_COMPILER} "-print-file-name=crtend.o"
         OUTPUT_VARIABLE MOS_CRTEND
         OUTPUT_STRIP_TRAILING_WHITESPACE)
 
