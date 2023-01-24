@@ -52,4 +52,4 @@ mos_debug(cpio          "CPIO debug log")
 mos_debug(init          "Init debug log")
 mos_debug(spinlock      "Spinlock debug log")
 
-include(${CMAKE_SOURCE_DIR}/arch/${MOS_ISA_FAMILY}/mos_config.cmake)
+include(${CMAKE_SOURCE_DIR}/arch/${MOS_ISA_FAMILY}/platform_config.cmake)
