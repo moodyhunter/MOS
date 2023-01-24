@@ -89,7 +89,7 @@ void do_backtrace(u32 max)
     }
 }
 
-void x86_kpanic_hook()
+void x86_kpanic_hook(void)
 {
     const char *cpu_pagetable_source = current_cpu->pagetable.pgd == (uintptr_t) x86_kpg_infra ? "Kernel" : NULL;
 

@@ -30,8 +30,8 @@ typedef enum
     APIC_SHORTHAND_ALL_EXCLUDING_SELF = 3,
 } lapic_shorthand_t;
 
-void lapic_memory_setup();
-void lapic_enable();
+void lapic_memory_setup(void);
+void lapic_enable(void);
 void lapic_interrupt(u8 vec, u8 dest, lapic_delivery_mode_t delivery_mode, lapic_dest_mode_t dest_mode, lapic_shorthand_t shorthand);
 void lapic_interrupt_full(u8 vec, u8 dest, lapic_delivery_mode_t dliv_mode, lapic_dest_mode_t dstmode, bool lvl, bool trigger, lapic_shorthand_t sh);
 
@@ -40,9 +40,9 @@ u64 lapic_read64(u32 offset);
 void lapic_write32(u32 offset, u32 value);
 void lapic_write64(u32 offset, u64 value);
 
-void lapic_eoi();
+void lapic_eoi(void);
 
-should_inline u8 lapic_get_id()
+should_inline u8 lapic_get_id(void)
 {
     // https://stackoverflow.com/a/71756491
     // https://github.com/rust-osdev/apic/blob/master/src/registers.rs
@@ -62,7 +62,7 @@ typedef enum
     IOAPIC_POLARITY_ACTIVE_LOW = 1,
 } ioapic_polarity_t;
 
-void ioapic_init();
+void ioapic_init(void);
 void ioapic_enable_with_mode(u32 irq, u32 cpu, ioapic_trigger_mode_t trigger_mode, ioapic_polarity_t polarity);
 void ioapic_disable(u32 irq);
 

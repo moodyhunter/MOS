@@ -45,6 +45,6 @@ typedef struct device_t
     device_driver_t *driver;
 } device_t;
 
-void device_manager_init();
+void device_manager_init(void);
 
 /** @} */

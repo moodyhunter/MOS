@@ -4,9 +4,9 @@
 
 #include "mos/types.h"
 
-void mos_pmm_setup();
+void mos_pmm_setup(void);
 
-void pmalloc_dump();
+void pmalloc_dump(void);
 
 uintptr_t pmalloc_alloc(size_t n_pages);
 

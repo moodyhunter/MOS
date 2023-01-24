@@ -29,7 +29,7 @@ static my_mutex_t lock = false;
 
 static u64 counter = 0;
 
-static void time_consuming_work()
+static void time_consuming_work(void)
 {
     for (u32 i = 0; i < 100; i++)
         ;
@@ -50,8 +50,10 @@ static void thread_do_work(void *arg)
     printf("Thread %d finished!\n", syscall_get_tid());
 }
 
-int main()
+int main(int argc, char **argv)
 {
+    MOS_UNUSED(argc);
+    MOS_UNUSED(argv);
     printf("Threads and Locks Test!\n");
 
     tid_t t1 = start_thread("thread1", thread_do_work, (void *) 1000000);

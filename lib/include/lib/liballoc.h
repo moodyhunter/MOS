@@ -6,7 +6,7 @@
 #include "mos/platform/platform.h"
 #include "mos/types.h"
 
-void liballoc_dump();
+void liballoc_dump(void);
 void liballoc_init(void);
 void *liballoc_malloc(size_t size);
 void *liballoc_realloc(void *ptr, size_t size);

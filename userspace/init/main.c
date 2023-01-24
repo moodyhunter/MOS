@@ -16,7 +16,7 @@ static void thread_work(void *arg)
     printf("Thread started, value = %d, from process %d\n", *value, process);
 }
 
-static void file_api()
+static void file_api(void)
 {
     file_stat_t stat = { 0 };
     if (syscall_file_stat("/assets/msg.txt", &stat))

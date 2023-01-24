@@ -24,7 +24,7 @@ static pmlist_node_t *pmlist_head = (pmlist_node_t *) pmlist_storage;
 static size_t pmlist_count = 0;
 static spinlock_t pmlist_lock = SPINLOCK_INIT;
 
-static size_t freelist_size()
+static size_t freelist_size(void)
 {
     return ALIGN_UP_TO_PAGE(PMEM_FREELIST_SIZE_FOR(platform_info->mem.available));
 }
@@ -63,7 +63,7 @@ void mos_pmm_setup(void)
 #endif
 }
 
-void pmalloc_dump()
+void pmalloc_dump(void)
 {
     pr_info("Physical Memory Allocator dump:");
     pmlist_node_t *this = pmlist_head;

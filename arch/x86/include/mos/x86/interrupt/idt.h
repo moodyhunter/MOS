@@ -27,4 +27,4 @@ static_assert(sizeof(idt_entry32_t) == 8, "idt_entry32_t is not 8 bytes");
 static_assert(sizeof(idtr32_t) == 6, "idtr32_t is not 6 bytes");
 
 void x86_idt_flush(void);
-void x86_idt_init();
+void x86_idt_init(void);

@@ -245,7 +245,7 @@ static void x86_handle_irq(x86_stack_frame *frame)
 {
     int irq = frame->interrupt_number - IRQ_BASE;
 
-    lapic_eoi(irq);
+    lapic_eoi();
 
     bool irq_handled = false;
     list_foreach(x86_irq_handler_t, handler, irq_handlers[irq])

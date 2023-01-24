@@ -99,7 +99,7 @@ void lapic_write64(u32 offset, u64 value)
 #endif
 }
 
-static void lapic_wait_sent()
+static void lapic_wait_sent(void)
 {
     // Wait for the delivery status bit to be set
     while (lapic_read32(APIC_INTERRUPT_COMMAND_REG_BEGIN) & SET_BITS(12, 1, 1))
@@ -128,7 +128,7 @@ void lapic_interrupt(u8 vec, u8 dest, lapic_delivery_mode_t delivery_mode, lapic
     lapic_interrupt_full(vec, dest, delivery_mode, dest_mode, true, false, shorthand);
 }
 
-void lapic_memory_setup()
+void lapic_memory_setup(void)
 {
     // CPUID.01h:EDX[bit 9]
     processor_version_t info;
@@ -159,7 +159,7 @@ void lapic_memory_setup()
     lapic_regs = (u32 *) base_addr;
 }
 
-void lapic_enable()
+void lapic_enable(void)
 {
     lapic_set_base_addr((uintptr_t) lapic_regs);
 
@@ -178,7 +178,7 @@ void lapic_enable()
     pr_info("LAPIC{%d}: version: %x, max LVT entry: %x", current_cpu_id, version_id, max_lvt_entry);
 }
 
-void lapic_eoi()
+void lapic_eoi(void)
 {
     lapic_write32(APIC_REG_EOI, 0);
 }

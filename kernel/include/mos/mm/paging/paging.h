@@ -168,7 +168,7 @@ vmblock_t mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t n_pag
  * @return paging_handle_t The created page table.
  * @note A platform-independent page-map is also created.
  */
-paging_handle_t mm_create_user_pgd();
+paging_handle_t mm_create_user_pgd(void);
 
 /**
  * @brief Destroy a user-mode platform-dependent page table.

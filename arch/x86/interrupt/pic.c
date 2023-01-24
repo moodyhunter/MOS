@@ -22,7 +22,7 @@
 #define PIC2_OFFSET 0x28
 
 // We now have APIC, so PIC is not used anymore, but the above initialization code is still used
-void pic_remap_irq()
+void pic_remap_irq(void)
 {
     port_outb(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4); // starts the initialization sequence (in cascade mode)
     port_outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);

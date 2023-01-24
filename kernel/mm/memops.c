@@ -13,7 +13,7 @@
 
 static vmblock_t zero_block;
 
-void mos_kernel_mm_init()
+void mos_kernel_mm_init(void)
 {
     // zero fill on demand (read-only)
     zero_block = mm_alloc_pages(current_cpu->pagetable, 1, PGALLOC_HINT_KHEAP, VM_RW);

@@ -10,7 +10,7 @@
 #include "mos/x86/mm/paging.h"
 #include "mos/x86/x86_platform.h"
 
-noreturn void ap_begin_exec()
+noreturn void ap_begin_exec(void)
 {
     x86_init_current_cpu_gdt();
     x86_init_current_cpu_tss();

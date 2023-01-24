@@ -18,12 +18,13 @@ static void device_manager_thread(void *arg)
     while (true)
     {
         io_t *io = ipc_accept(server_io);
+        MOS_UNUSED(io);
     }
 
     return;
 }
 
-void device_manager_init()
+void device_manager_init(void)
 {
     MOS_ASSERT_X(server_io == NULL, "Device manager already initialized");
     server_io = ipc_create(MOS_DEVICE_MANAGER_SERVICE_NAME, 32);

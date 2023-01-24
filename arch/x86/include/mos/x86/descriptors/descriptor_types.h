@@ -78,8 +78,8 @@ typedef struct
 
 extern PER_CPU_DECLARE(x86_cpu_descriptor_t, x86_cpu_descriptor);
 
-void x86_init_current_cpu_gdt();
-void x86_init_current_cpu_tss();
+void x86_init_current_cpu_gdt(void);
+void x86_init_current_cpu_tss(void);
 
 // The following 5 symbols are defined in the descriptor_flush.asm file.
 extern asmlinkage void gdt32_flush(gdt_ptr32_t *gdt_ptr);

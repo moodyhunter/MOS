@@ -16,8 +16,8 @@ should_inline bool thread_is_valid(thread_t *thread)
     return thread && thread->magic == THREAD_MAGIC_THRD;
 }
 
-void thread_init();
-void thread_deinit();
+void thread_init(void);
+void thread_deinit(void);
 
 thread_t *thread_allocate(process_t *owner, thread_mode tflags);
 thread_t *thread_new(process_t *owner, thread_mode mode, const char *name, thread_entry_t entry, void *arg);

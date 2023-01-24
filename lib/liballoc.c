@@ -55,13 +55,13 @@ typedef char liballoc_align_t;
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
 static spinlock_t alloc_lock = SPINLOCK_INIT;
 
-static int liballoc_lock()
+static int liballoc_lock(void)
 {
     spinlock_acquire(&alloc_lock);
     return 0;
 }
 
-static int liballoc_unlock()
+static int liballoc_unlock(void)
 {
     spinlock_release(&alloc_lock);
     return 0;
@@ -171,7 +171,7 @@ static liballoc_block_t *allocate_new_pages_for(unsigned int size)
     return maj;
 }
 
-static void liballoc_first_alloc()
+static void liballoc_first_alloc(void)
 {
     // This is the first time we are being used.
     l_memroot = allocate_new_pages_for(sizeof(liballoc_block_t));

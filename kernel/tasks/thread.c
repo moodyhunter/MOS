@@ -25,7 +25,7 @@ static int hashmap_thread_equal(const void *key1, const void *key2)
     return *(tid_t *) key1 == *(tid_t *) key2;
 }
 
-static tid_t new_thread_id()
+static tid_t new_thread_id(void)
 {
     static tid_t next = 1;
     return (tid_t){ next++ };
@@ -44,13 +44,13 @@ thread_t *thread_allocate(process_t *owner, thread_mode tflags)
     return t;
 }
 
-void thread_init()
+void thread_init(void)
 {
     thread_table = kzalloc(sizeof(hashmap_t));
     hashmap_init(thread_table, THREAD_HASHTABLE_SIZE, hashmap_thread_hash, hashmap_thread_equal);
 }
 
-void thread_deinit()
+void thread_deinit(void)
 {
     hashmap_deinit(thread_table);
     kfree(thread_table);

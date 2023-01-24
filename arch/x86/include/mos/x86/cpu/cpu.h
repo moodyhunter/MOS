@@ -16,13 +16,13 @@ should_inline void cpu_set_msr(u32 msr, u32 lo, u32 hi)
     __asm__ volatile("wrmsr" : : "a"(lo), "d"(hi), "c"(msr));
 }
 
-should_inline noreturn void x86_cpu_halt()
+should_inline noreturn void x86_cpu_halt(void)
 {
     __asm__ volatile("hlt");
     mos_panic("halt failed");
 }
 
-should_inline reg_t x86_get_cr3()
+should_inline reg_t x86_get_cr3(void)
 {
     reg_t cr3;
     __asm__ volatile("mov %%cr3, %0" : "=r"(cr3));

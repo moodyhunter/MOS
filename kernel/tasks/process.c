@@ -109,7 +109,7 @@ void process_init(void)
 #endif
 }
 
-void process_cleanup(void)
+void process_deinit(void)
 {
     hashmap_deinit(process_table);
     kfree(process_table);

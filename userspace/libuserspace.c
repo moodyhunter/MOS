@@ -47,7 +47,7 @@ static void __attribute__((constructor)) __liballoc_userspace_init(void)
 
 void _start(size_t argc, char **argv)
 {
-    extern int main();
+    extern int main(int argc, char **argv);
     extern void invoke_init(void);
     invoke_init();
     int r = main(argc, argv);

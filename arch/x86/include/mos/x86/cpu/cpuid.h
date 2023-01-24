@@ -157,4 +157,4 @@ void x86_call_cpuid(u32 eax, x86_cpuid_info_t *cpuid);
 void cpuid_get_manufacturer(char *manufacturer);
 void cpuid_get_processor_info(processor_version_t *info);
 void cpuid_get_brand_string(char *brand_string);
-void cpuid_print_cpu_info();
+void cpuid_print_cpu_info(void);

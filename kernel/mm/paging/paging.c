@@ -176,7 +176,7 @@ vmblock_t mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t n_pag
     return platform_mm_get_block_info(PGD_FOR_VADDR(vaddr, table), vaddr, n_pages);
 }
 
-paging_handle_t mm_create_user_pgd()
+paging_handle_t mm_create_user_pgd(void)
 {
     paging_handle_t table = platform_mm_create_user_pgd();
     table.um_page_map = (page_map_t *) kzalloc(sizeof(page_map_t));

@@ -24,7 +24,7 @@ extern void x86_switch_impl_normal(void);
 extern asmlinkage void x86_context_switch_impl(uintptr_t *old_stack, uintptr_t new_kstack, uintptr_t pgd, switch_func_t switcher, const x86_thread_context_t *context);
 
 // called from assembly
-asmlinkage void x86_switch_impl_setup_user_thread()
+asmlinkage void x86_switch_impl_setup_user_thread(void)
 {
     thread_t *current = current_thread;
     x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
@@ -98,7 +98,8 @@ void x86_switch_to_scheduler(uintptr_t *old_stack, uintptr_t scheduler_stack)
     x86_context_switch_impl(old_stack, scheduler_stack, 0, x86_switch_impl_normal, NULL);
 }
 
-void x86_timer_handler()
+void x86_timer_handler(u32 irq)
 {
+    MOS_UNUSED(irq);
     reschedule();
 }

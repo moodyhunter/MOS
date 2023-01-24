@@ -17,7 +17,7 @@ void kwarn_handler_set(kmsg_handler_t *handler)
     kwarn_handler = handler;
 }
 
-void kwarn_handler_remove()
+void kwarn_handler_remove(void)
 {
     pr_warn("removing warning handler...");
     if (!kwarn_handler)
