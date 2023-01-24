@@ -205,7 +205,7 @@ void liballoc_init(void)
 
 void *liballoc_malloc(size_t req_size)
 {
-    unsigned long size = req_size;
+    size_t size = req_size;
 
     // For alignment, we adjust size so there's enough space to align.
     if (ALIGNMENT > 1)
@@ -253,7 +253,7 @@ void *liballoc_malloc(size_t req_size)
 
     while (block != NULL)
     {
-        s64 diff = block->size - block->usage;
+        size_t diff = block->size - block->usage;
         // free memory in the block
 
         if (bestSize < diff)
@@ -331,7 +331,7 @@ void *liballoc_malloc(size_t req_size)
         // CASE 3: Block in use and enough space at the start of the block.
 #if USE_CASE3
         {
-            s64 diff = (uintptr_t) block->first - (uintptr_t) block;
+            size_t diff = (uintptr_t) block->first - (uintptr_t) block;
             diff -= sizeof(liballoc_block_t);
 
             if (diff >= (size + sizeof(liballoc_part_t)))
@@ -415,7 +415,7 @@ void *liballoc_malloc(size_t req_size)
             if (section->next != NULL)
             {
                 // is the difference between here and next big enough?
-                s64 diff = (uintptr_t) (section->next);
+                size_t diff = (uintptr_t) (section->next);
                 diff -= (uintptr_t) section;
                 diff -= sizeof(liballoc_part_t);
                 diff -= section->size;
