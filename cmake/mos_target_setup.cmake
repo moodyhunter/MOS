@@ -33,8 +33,8 @@ macro(mos_target_setup ARCH_SUBDIR ISA BITS)
 
     set(CMAKE_C_COMPILER_WORKS 1)
     set(CMAKE_CXX_COMPILER_WORKS 1)
-    message(STATUS "${ISA}: C compiler: ${CC_PATH}")
-    message(STATUS "${ISA}: C++ compiler: ${CXX_PATH}")
+    message(STATUS "${ISA}: C compiler: ${CMAKE_C_COMPILER}")
+    message(STATUS "${ISA}: C++ compiler: ${CMAKE_CXX_COMPILER}")
     message(STATUS "${ISA}: CRTBEGIN: ${MOS_CRTBEGIN}, CRTEND: ${MOS_CRTEND}")
 
     # to be used later?
