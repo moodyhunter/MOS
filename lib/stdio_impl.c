@@ -66,7 +66,12 @@ typedef enum
     BASE_16 = 16,
 } base_t;
 
-static size_t parse_printf_flags(const char *format, printf_flags_t *pflags, va_list *args)
+typedef struct
+{
+    va_list real;
+} va_list_ptrwrappper_t;
+
+static size_t parse_printf_flags(const char *format, printf_flags_t *pflags, va_list_ptrwrappper_t *args)
 {
     const char *start = format;
 #define goto_next_char() (format++)
@@ -92,7 +97,7 @@ flag_parse_done:
     pflags->minimum_width = 0;
     if (current == '*')
     {
-        pflags->minimum_width = va_arg(*args, s32), goto_next_char();
+        pflags->minimum_width = va_arg(args->real, s32), goto_next_char();
         if (pflags->minimum_width < 0)
         {
             // A negative field width is taken as a '-' flag followed by a positive field width
@@ -114,7 +119,7 @@ flag_parse_done:
         goto_next_char();
         if (current == '*')
         {
-            pflags->precision = va_arg(*args, s32), goto_next_char();
+            pflags->precision = va_arg(args->real, s32), goto_next_char();
             // A negative precision argument is taken as if the precision were omitted.
             if (pflags->precision < 0)
                 pflags->precision = 0, pflags->has_explicit_precision = false;
@@ -432,8 +437,12 @@ static int printf_cs(char *buf, char *data, printf_flags_t *pflags, char conv)
     return buf - start;
 }
 
-int vsnprintf(char *buf, size_t size, const char *format, va_list args)
+int vsnprintf(char *buf, size_t size, const char *format, va_list _args)
 {
+    va_list_ptrwrappper_t args;
+    va_copy(args.real, _args);
+    va_end(_args);
+
 #pragma message "TODO: Check for buffer overflow."
     MOS_UNUSED(size);
     char *start = buf;
@@ -463,14 +472,14 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                     u64 value = 0;
                     switch (flags.length)
                     {
-                        case LM_hh: value = (s8) va_arg(args, s32); break;
-                        case LM__h: value = (s16) va_arg(args, s32); break;
+                        case LM_hh: value = (s8) va_arg(args.real, s32); break;
+                        case LM__h: value = (s16) va_arg(args.real, s32); break;
                         case LM_none:
-                        case LM__l: value = va_arg(args, s32); break;
-                        case LM_ll: value = va_arg(args, s64); break;
-                        case LM__z: value = va_arg(args, size_t); break;
-                        case LM__t: value = va_arg(args, ptrdiff_t); break;
-                        case LM__L: value = va_arg(args, s64); break;
+                        case LM__l: value = va_arg(args.real, s32); break;
+                        case LM_ll: value = va_arg(args.real, s64); break;
+                        case LM__z: value = va_arg(args.real, size_t); break;
+                        case LM__t: value = va_arg(args.real, ptrdiff_t); break;
+                        case LM__L: value = va_arg(args.real, s64); break;
                         case LM__j:
                         default: MOS_LIB_UNREACHABLE();
                     }
@@ -504,7 +513,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 case 's':
                 {
                     // print string
-                    char *string = va_arg(args, char *);
+                    char *string = va_arg(args.real, char *);
                     int c = printf_cs(buf, string, &flags, *format);
                     buf += c;
                     break;
@@ -512,7 +521,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 case 'c':
                 {
                     // print a character
-                    char value = (char) va_arg(args, s32);
+                    char value = (char) va_arg(args.real, s32);
                     int c = printf_cs(buf, &value, &flags, *format);
                     buf += c;
                     break;
@@ -520,7 +529,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
                 case 'p':
                 {
                     // print a pointer
-                    u64 value = (size_t) va_arg(args, void *);
+                    u64 value = (size_t) va_arg(args.real, void *);
                     buf_putchar(&buf, '0');
                     buf_putchar(&buf, 'x');
                     int c = printf_diouxX(buf, value, &flags, 'x');
@@ -569,6 +578,6 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list args)
 end:
     buf_putchar(&buf, 0);
 
-    va_end(args);
+    va_end(args.real);
     return buf - start;
 }
