@@ -20,6 +20,10 @@ macro(mos_debug feature description)
     mos_kconfig(DEBUG MOS_DEBUG_${feature} ${MOS_DEBUG_ALL} ${description})
 endmacro()
 
+if (NOT DEFINED MOS_ARCH)
+    set(MOS_ARCH "x86") # The only supported architecture for now
+endif()
+
 set(_ARCH_CONFIGURATION_FILE ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/platform_config.cmake)
 
 if(NOT DEFINED MOS_ARCH OR NOT EXISTS ${_ARCH_CONFIGURATION_FILE})
