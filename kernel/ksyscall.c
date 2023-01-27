@@ -133,13 +133,13 @@ pid_t define_syscall(exec)(const char *path, const char *const argv[])
     return -1;
 }
 
-pid_t define_syscall(get_pid)()
+pid_t define_syscall(get_pid)(void)
 {
     MOS_ASSERT(current_process);
     return current_process->pid;
 }
 
-pid_t define_syscall(get_parent_pid)()
+pid_t define_syscall(get_parent_pid)(void)
 {
     MOS_ASSERT(current_process && current_process->parent);
     return current_process->parent->pid;
@@ -174,7 +174,7 @@ tid_t define_syscall(create_thread)(const char *name, thread_entry_t entry, void
     return thread->tid;
 }
 
-tid_t define_syscall(get_tid)()
+tid_t define_syscall(get_tid)(void)
 {
     MOS_ASSERT(current_thread);
     return current_thread->tid;
