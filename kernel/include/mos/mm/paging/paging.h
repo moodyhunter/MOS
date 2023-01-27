@@ -160,6 +160,7 @@ bool mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr);
  * @param table The page table to get the physical address from.
  * @param vaddr The virtual address to get the physical address of.
  * @return vmblock_t The block info of the virtual address.
+ * @warning vaddr will be rounded down to the nearest page boundary if it's not page-aligned.
  */
 vmblock_t mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t n_pages);
 

@@ -165,6 +165,7 @@ bool mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr)
 
 vmblock_t mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t n_pages)
 {
+    vaddr = vaddr & ~(MOS_PAGE_SIZE - 1);
     const bool is_kernel = vaddr >= MOS_KERNEL_START_VADDR;
     const size_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
     const size_t pagemap_size_lines = is_kernel ? MOS_PAGEMAP_KERNEL_LINES : MOS_PAGEMAP_USER_LINES;
