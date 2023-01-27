@@ -100,7 +100,7 @@ bool define_syscall(io_close)(fd_t fd)
 
 noreturn void define_syscall(exit)(u32 exit_code)
 {
-    int pid = current_process->pid;
+    const pid_t pid = current_process->pid;
     if (unlikely(pid == 1))
         mos_panic("init process exited with code %d", exit_code);
 
@@ -135,13 +135,11 @@ pid_t define_syscall(exec)(const char *path, const char *const argv[])
 
 pid_t define_syscall(get_pid)(void)
 {
-    MOS_ASSERT(current_process);
     return current_process->pid;
 }
 
 pid_t define_syscall(get_parent_pid)(void)
 {
-    MOS_ASSERT(current_process && current_process->parent);
     return current_process->parent->pid;
 }
 
@@ -166,7 +164,6 @@ pid_t define_syscall(spawn)(const char *path, int argc, const char *const argv[]
 
 tid_t define_syscall(create_thread)(const char *name, thread_entry_t entry, void *arg)
 {
-    MOS_ASSERT(current_thread);
     thread_t *thread = thread_new(current_process, THREAD_MODE_USER, name, entry, arg);
     if (thread == NULL)
         return -1;
@@ -176,13 +173,11 @@ tid_t define_syscall(create_thread)(const char *name, thread_entry_t entry, void
 
 tid_t define_syscall(get_tid)(void)
 {
-    MOS_ASSERT(current_thread);
     return current_thread->tid;
 }
 
 noreturn void define_syscall(thread_exit)(void)
 {
-    MOS_ASSERT(current_thread);
     pr_info2("Kernel syscall thread_exit called from tid %d", current_thread->tid);
     thread_handle_exit(current_thread);
     reschedule();
@@ -191,7 +186,6 @@ noreturn void define_syscall(thread_exit)(void)
 
 uintptr_t define_syscall(heap_control)(heap_control_op op, uintptr_t arg)
 {
-    MOS_ASSERT(current_process);
     process_t *process = current_process;
 
     proc_vmblock_t *block = NULL;
@@ -252,7 +246,6 @@ uintptr_t define_syscall(heap_control)(heap_control_op op, uintptr_t arg)
 
 bool define_syscall(wait_for_thread)(tid_t tid)
 {
-    MOS_ASSERT(current_thread);
     thread_t *target = thread_get(tid);
     if (target == NULL)
         return false;
@@ -276,20 +269,17 @@ bool define_syscall(wait_for_thread)(tid_t tid)
 
 bool define_syscall(mutex_acquire)(bool *mutex)
 {
-    MOS_ASSERT(current_thread);
     mutex_try_acquire_may_reschedule(mutex);
     return true;
 }
 
 bool define_syscall(mutex_release)(bool *mutex)
 {
-    MOS_ASSERT(current_thread);
     return mutex_release(mutex);
 }
 
 fd_t define_syscall(ipc_create)(const char *name, size_t max_pending_connections)
 {
-    MOS_ASSERT(current_thread);
     io_t *io = ipc_create(name, max_pending_connections);
     if (io == NULL)
         return -1;
@@ -298,7 +288,6 @@ fd_t define_syscall(ipc_create)(const char *name, size_t max_pending_connections
 
 fd_t define_syscall(ipc_accept)(fd_t listen_fd)
 {
-    MOS_ASSERT(current_thread);
     io_t *server = process_get_fd(current_process, listen_fd);
     io_t *client_io = ipc_accept(server);
     if (client_io == NULL)
@@ -308,7 +297,6 @@ fd_t define_syscall(ipc_accept)(fd_t listen_fd)
 
 fd_t define_syscall(ipc_connect)(const char *server, ipc_connect_flags flags, size_t buffer_size)
 {
-    MOS_ASSERT(current_thread);
     io_t *io = ipc_connect(current_process, server, flags, buffer_size);
     if (io == NULL)
         return -1;
