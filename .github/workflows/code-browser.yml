@@ -25,6 +25,13 @@ jobs:
           sudo apt remove clang-12 clang-13 llvm-11-dev llvm-12-dev llvm-13-dev
           sudo apt -y install nasm cpio gcc-i686-linux-gnu g++-i686-linux-gnu ninja-build libclang-14-dev
 
+      - name: Download & Extract Cross Compiler
+        run: |
+          wget -q "https://github.com/moodyhunter/i686-elf-prebuilt/releases/download/artifact/toolchain-i686-elf.tar.gz"
+          tar -xzf toolchain-i686-elf.tar.gz
+          mv toolchain /tmp/
+          echo "PATH=$PATH:/tmp/toolchain/bin" >> $GITHUB_ENV
+
       - name: Configure CMake
         run: |
           sed -i 's/-elf-g/-linux-gnu-g/g' cmake/mos_target_setup.cmake
