@@ -118,10 +118,10 @@ static size_t ipc_connection_server_read(io_t *io, void *buf, size_t buf_size)
     if (conn->server_data_size == 0)
     {
         mutex_release(&conn->lock);
-        pr_info2("waiting for client data");
+        mos_debug(ipc, "waiting for client data");
         wait_condition_t *wc = wc_wait_for(conn, wc_ipc_connection_wait_for_server_data, NULL);
         reschedule_for_wait_condition(wc);
-        pr_info2("ipc server: client data available");
+        mos_debug(ipc, "ipc server: client data available");
         mutex_acquire(&conn->lock);
     }
 
@@ -183,11 +183,11 @@ static size_t ipc_connection_client_read(io_t *io, void *buf, size_t buf_size)
 
     if (conn->client_data_size == 0)
     {
-        pr_info2("waiting for server data");
+        mos_debug(ipc, "waiting for server data");
         wait_condition_t *wc = wc_wait_for(conn, wc_ipc_connection_wait_for_client_data, NULL);
         mutex_release(&conn->lock);
         reschedule_for_wait_condition(wc);
-        pr_info2("ipc client: server data available");
+        mos_debug(ipc, "ipc client: server data available");
         mutex_acquire(&conn->lock);
     }
 
@@ -265,7 +265,7 @@ io_t *ipc_create(const char *name, size_t max_pending_connections)
         return NULL;
     }
 
-    pr_info2("creating new channel %s", name);
+    pr_info("ipc: channel %s created", name);
     server = kzalloc(sizeof(ipc_server_t));
     server->magic = IPC_SERVER_MAGIC;
     server->name = strdup(name);
@@ -301,10 +301,10 @@ io_t *ipc_accept(io_t *server)
     if (unlikely(!conn))
     {
         // no pending connections, wait for one
-        pr_info2("waiting for a pending connection");
+        mos_debug(ipc, "waiting for a pending connection");
         wait_condition_t *cond = wc_wait_for(ipc_server, wc_ipc_has_pending, NULL);
         reschedule_for_wait_condition(cond);
-        pr_info2("resuming after pending connection");
+        mos_debug(ipc, "resuming after pending connection");
         conn = ipc_server_get_pending(ipc_server);
     }
 
@@ -331,16 +331,16 @@ io_t *ipc_connect(process_t *owner, const char *name, ipc_connect_flags flags, s
             return NULL;
         }
 
-        pr_info2("waiting for channel %s to be created", name);
+        mos_debug(ipc, "waiting for channel %s to be created", name);
 
         wait_condition_t *cond = wc_wait_for((void *) strdup(name), wc_ipc_name_is_ready, wc_ipc_name_cleanup);
         reschedule_for_wait_condition(cond);
-        pr_info2("resuming after channel %s was created", name);
+        mos_debug(ipc, "resuming after channel %s was created", name);
 
         server = hashmap_get(ipc_servers, name);
     }
 
-    pr_info2("connecting to channel %s", name);
+    mos_debug(ipc, "connecting to channel %s", name);
     // find a pending connection slot
     ipc_connection_t *conn = NULL;
     for (size_t i = 0; i < server->max_pending; i++)
@@ -373,7 +373,7 @@ io_t *ipc_connect(process_t *owner, const char *name, ipc_connect_flags flags, s
         pr_warn("connection was closed before it was accepted");
         return NULL;
     }
-    pr_info2("resuming after connection was accepted");
+    mos_debug(ipc, "resuming after connection was accepted");
     io_init(&conn->client_io, IO_READABLE | IO_WRITABLE, &ipc_connection_client_ops);
     return &conn->client_io;
 }
