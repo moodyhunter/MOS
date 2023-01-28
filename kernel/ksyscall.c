@@ -104,7 +104,6 @@ noreturn void define_syscall(exit)(u32 exit_code)
     if (unlikely(pid == 1))
         mos_panic("init process exited with code %d", exit_code);
 
-    pr_info2("Kernel syscall exit called with code %d from pid %d", exit_code, pid);
     process_handle_exit(current_process, exit_code);
     reschedule();
     MOS_UNREACHABLE();
@@ -178,7 +177,6 @@ tid_t define_syscall(get_tid)(void)
 
 noreturn void define_syscall(thread_exit)(void)
 {
-    pr_info2("Kernel syscall thread_exit called from tid %d", current_thread->tid);
     thread_handle_exit(current_thread);
     reschedule();
     MOS_UNREACHABLE();
