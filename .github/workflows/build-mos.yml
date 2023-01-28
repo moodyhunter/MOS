@@ -22,12 +22,15 @@ jobs:
           - target: multiboot_iso
             build_type: Debug
             run_tests: OFF
+            arch: x86
           - target: multiboot_iso
             build_type: RelWithDebInfo
             run_tests: OFF
+            arch: x86
           - target: multiboot_iso
             build_type: Release
             run_tests: OFF
+            arch: x86
 
     steps:
       - uses: actions/checkout@v3
