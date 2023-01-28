@@ -16,6 +16,7 @@
 const acpi_rsdt_t *x86_acpi_rsdt;
 const acpi_hpet_t *x86_acpi_hpet;
 const acpi_fadt_t *x86_acpi_fadt;
+uintptr_t x86_acpi_dsdt = 0;
 
 should_inline bool verify_sdt_checksum(const acpi_sdt_header_t *tableHeader)
 {
@@ -50,6 +51,12 @@ void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
             if (!verify_sdt_checksum(&x86_acpi_fadt->sdt_header))
                 mos_panic("FADT checksum error");
             pr_info2("acpi: FADT at %p", (void *) x86_acpi_fadt);
+
+            acpi_sdt_header_t *dsdt = BIOS_VADDR_TYPE(x86_acpi_fadt->dsdt, acpi_sdt_header_t *);
+            if (!verify_sdt_checksum(dsdt))
+                mos_panic("DSDT checksum error");
+            pr_info2("acpi: DSDT at %p", (void *) dsdt);
+            x86_acpi_dsdt = (uintptr_t) dsdt;
         }
         else if (strncmp(header->signature, ACPI_SIGNATURE_MADT, 4) == 0)
         {
