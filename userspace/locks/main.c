@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "lib/sync/mutex.h"
 #include "lib/sync/spinlock.h"
 #include "libuserspace.h"
 #include "mos/syscall/usermode.h"
@@ -16,10 +17,9 @@ static spinlock_t lock = SPINLOCK_INIT;
 #define LOCK()   spinlock_acquire(&lock)
 #define UNLOCK() spinlock_release(&lock)
 #elif LOCK_TYPE == LOCK_KERNEL_MUTEX
-typedef bool my_mutex_t;
-static my_mutex_t lock = false;
-#define LOCK()   syscall_mutex_acquire(&lock)
-#define UNLOCK() syscall_mutex_release(&lock)
+static mutex_t lock = MUTEX_INIT;
+#define LOCK()   mutex_acquire(&lock)
+#define UNLOCK() mutex_release(&lock)
 #elif LOCK_TYPE == LOCK_NO_LOCK
 #define LOCK()
 #define UNLOCK()
@@ -56,15 +56,21 @@ int main(int argc, char **argv)
     MOS_UNUSED(argv);
     printf("Threads and Locks Test!\n");
 
-    tid_t t1 = start_thread("thread1", thread_do_work, (void *) 1000000);
-    tid_t t2 = start_thread("thread2", thread_do_work, (void *) 1000000);
-    tid_t t3 = start_thread("thread3", thread_do_work, (void *) 1000000);
+    const u32 N_THREADS = 20;
+    const u32 N_WORK = 500000;
+    tid_t threads[N_THREADS];
 
-    syscall_wait_for_thread(t1);
-    syscall_wait_for_thread(t2);
-    syscall_wait_for_thread(t3);
+    for (u32 i = 0; i < N_THREADS; i++)
+    {
+        threads[i] = start_thread("thread", thread_do_work, (void *) N_WORK);
+    }
 
-    const u64 expected = 1000000 * 3;
+    for (u32 i = 0; i < N_THREADS; i++)
+    {
+        syscall_wait_for_thread(threads[i]);
+    }
+
+    const u64 expected = N_WORK * N_THREADS;
 
     if (counter != expected)
     {

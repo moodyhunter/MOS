@@ -15,7 +15,6 @@ static bool scheduler_ready = false;
 
 static bool should_schedule_to_thread(thread_t *thread)
 {
-    MOS_ASSERT_X(spinlock_is_locked(&thread->state_lock), "thread state lock is not locked");
     switch (thread->state)
     {
         case THREAD_STATE_READY:
@@ -25,7 +24,10 @@ static bool should_schedule_to_thread(thread_t *thread)
         }
         case THREAD_STATE_BLOCKED:
         {
-            MOS_ASSERT(thread->waiting_condition);
+            // if the thread is blocked, check if the condition (if any) is met
+            if (!thread->waiting_condition)
+                return false;
+
             if (!wc_condition_verify(thread->waiting_condition))
                 return false;
             wc_condition_cleanup(thread->waiting_condition);
@@ -121,15 +123,15 @@ void reschedule(void)
     // - in CREATED state       the thread is not yet started
     // - in DEAD state          the thread is exiting, and the scheduler will clean it up
     // - in BLOCKED state       the thread is waiting for a condition, and we'll schedule to other threads
-    // but not if it is:
-    // - in READY state         the thread should not be running anyway
+    // - in READY state         the thread is the current thread which was blocked, but a suddenly it became ready
     cpu_t *cpu = current_cpu;
 
     spinlock_acquire(&cpu->thread->state_lock);
-    MOS_ASSERT(cpu->thread->state != THREAD_STATE_READY);
     if (cpu->thread->state == THREAD_STATE_RUNNING)
+    {
         cpu->thread->state = THREAD_STATE_READY;
-    mos_debug(schedule, "cpu %d: rescheduling thread %d, making it ready", cpu->id, cpu->thread->tid);
+        mos_debug(schedule, "cpu %d: rescheduling thread %d, making it ready", cpu->id, cpu->thread->tid);
+    }
     spinlock_release(&cpu->thread->state_lock);
 
     // update k_stack because we are now running on the kernel stack

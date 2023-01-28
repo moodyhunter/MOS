@@ -56,6 +56,7 @@ mos_kconfig(MISC MOS_KERNEL_VERSION "\"${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PR
 mos_kconfig(MISC MOS_KERNEL_REVISION_STRING "\"${REVISION}\"" "Kernel revision string")
 
 set(MOS_STANDARD_LIBRARY_SOURCES
+    lib/sync/mutex.c
     lib/structures/bitmap.c
     lib/structures/hashmap.c
     lib/structures/hashmap_common.c
@@ -91,7 +92,7 @@ add_library(mos_kernel.elf STATIC
     kernel/mm/paging/paging.c
     kernel/mm/paging/pmalloc.c
     kernel/mm/shm.c
-    kernel/mutex/mutex.c
+    kernel/locks/futex.c
     kernel/panic.c
     kernel/printk.c
     kernel/stack_protector.c

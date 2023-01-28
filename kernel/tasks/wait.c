@@ -3,7 +3,6 @@
 #include "mos/tasks/wait.h"
 
 #include "mos/mm/kmalloc.h"
-#include "mos/mutex/mutex.h"
 #include "mos/printk.h"
 
 static bool thread_is_ready(wait_condition_t *condition)
@@ -12,21 +11,9 @@ static bool thread_is_ready(wait_condition_t *condition)
     return thread->state == THREAD_STATE_DEAD;
 }
 
-static bool mutex_is_ready(wait_condition_t *condition)
-{
-    // return true if the mutex is free (aka false)
-    bool *mutex = condition->arg;
-    return *mutex == MUTEX_UNLOCKED; // TODO: this is unsafe in SMP
-}
-
 wait_condition_t *wc_wait_for_thread(thread_t *target)
 {
     return wc_wait_for(target, thread_is_ready, NULL);
-}
-
-wait_condition_t *wc_wait_for_mutex(bool *mutex)
-{
-    return wc_wait_for(mutex, mutex_is_ready, NULL);
 }
 
 wait_condition_t *wc_wait_for(void *arg, bool (*verify)(wait_condition_t *condition), void (*cleanup)(wait_condition_t *condition))

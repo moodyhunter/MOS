@@ -3,6 +3,7 @@
 #pragma once
 
 #include "lib/structures/ring_buffer.h"
+#include "lib/sync/mutex.h"
 #include "lib/sync/refcount.h"
 #include "mos/io/io.h"
 #include "mos/mm/mm_types.h"
@@ -69,5 +70,5 @@ typedef struct ipc_connection_t
     uintptr_t server_data_vaddr, client_data_vaddr;
     size_t server_data_size, client_data_size;
     ring_buffer_pos_t buffer_pos;
-    bool mutex;
+    mutex_t lock;
 } ipc_connection_t;

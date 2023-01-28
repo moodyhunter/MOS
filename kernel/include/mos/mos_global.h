@@ -5,6 +5,7 @@
 #include "mos/compiler.h"
 #include "mos/constants.h"
 
+#include <limits.h>
 #include <stdnoreturn.h>
 
 #define MOS_KERNEL_INTERNAL_HEADER_CHECK "mos/kernel_internal.h"

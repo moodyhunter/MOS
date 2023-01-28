@@ -12,7 +12,6 @@
 #include "mos/ipc/ipc_types.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/shm.h"
-#include "mos/mutex/mutex.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/schedule.h"
@@ -114,16 +113,16 @@ static size_t ipc_connection_server_read(io_t *io, void *buf, size_t buf_size)
         return 0;
     }
 
-    mutex_try_acquire_may_reschedule(&conn->mutex);
+    mutex_acquire(&conn->lock);
 
     if (conn->server_data_size == 0)
     {
-        mutex_release(&conn->mutex);
+        mutex_release(&conn->lock);
         pr_info2("waiting for client data");
         wait_condition_t *wc = wc_wait_for(conn, wc_ipc_connection_wait_for_server_data, NULL);
         reschedule_for_wait_condition(wc);
         pr_info2("ipc server: client data available");
-        mutex_try_acquire_may_reschedule(&conn->mutex);
+        mutex_acquire(&conn->lock);
     }
 
     const size_t read_size = MIN(conn->server_data_size, buf_size);
@@ -136,7 +135,7 @@ static size_t ipc_connection_server_read(io_t *io, void *buf, size_t buf_size)
     size_t read = ring_buffer_pos_pop_back((u8 *) conn->server_data_vaddr, &conn->buffer_pos, buf, read_size);
     conn->server_data_size -= read; // for the client
 
-    mutex_release(&conn->mutex);
+    mutex_release(&conn->lock);
     return read;
 }
 
@@ -149,13 +148,13 @@ static size_t ipc_connection_server_write(io_t *io, const void *buf, size_t size
         return 0;
     }
 
-    mutex_try_acquire_may_reschedule(&conn->mutex);
+    mutex_acquire(&conn->lock);
 
     // server writes to the front of the ring buffer (where the client reads)
     size_t written = ring_buffer_pos_push_front((u8 *) conn->server_data_vaddr, &conn->buffer_pos, buf, size);
     conn->client_data_size += written; // for the client
 
-    mutex_release(&conn->mutex);
+    mutex_release(&conn->lock);
     return written;
 }
 
@@ -180,16 +179,16 @@ static size_t ipc_connection_client_read(io_t *io, void *buf, size_t buf_size)
         return 0;
     }
 
-    mutex_try_acquire_may_reschedule(&conn->mutex);
+    mutex_acquire(&conn->lock);
 
     if (conn->client_data_size == 0)
     {
         pr_info2("waiting for server data");
         wait_condition_t *wc = wc_wait_for(conn, wc_ipc_connection_wait_for_client_data, NULL);
-        mutex_release(&conn->mutex);
+        mutex_release(&conn->lock);
         reschedule_for_wait_condition(wc);
         pr_info2("ipc client: server data available");
-        mutex_try_acquire_may_reschedule(&conn->mutex);
+        mutex_acquire(&conn->lock);
     }
 
     const size_t read_size = MIN(conn->client_data_size, buf_size);
@@ -202,7 +201,7 @@ static size_t ipc_connection_client_read(io_t *io, void *buf, size_t buf_size)
     size_t read = ring_buffer_pos_pop_front((u8 *) conn->client_data_vaddr, &conn->buffer_pos, buf, read_size);
     conn->client_data_size -= read; // for the server
 
-    mutex_release(&conn->mutex);
+    mutex_release(&conn->lock);
     return read;
 }
 
@@ -215,13 +214,13 @@ static size_t ipc_connection_client_write(io_t *io, const void *buf, size_t size
         return 0;
     }
 
-    mutex_try_acquire_may_reschedule(&conn->mutex);
+    mutex_acquire(&conn->lock);
 
     // client writes to the back of the ring buffer (where the server reads)
     size_t written = ring_buffer_pos_push_back((u8 *) conn->client_data_vaddr, &conn->buffer_pos, buf, size);
     conn->server_data_size += written; // for the server
 
-    mutex_release(&conn->mutex);
+    mutex_release(&conn->lock);
     return written;
 }
 

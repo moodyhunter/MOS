@@ -6,10 +6,10 @@
 #include "mos/filesystem/filesystem.h"
 #include "mos/ipc/ipc.h"
 #include "mos/ipc/ipc_types.h"
+#include "mos/locks/futex.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/shm.h"
 #include "mos/mos_global.h"
-#include "mos/mutex/mutex.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/syscall/decl.h"
@@ -267,15 +267,14 @@ bool define_syscall(wait_for_thread)(tid_t tid)
     return true;
 }
 
-bool define_syscall(mutex_acquire)(bool *mutex)
+bool define_syscall(futex_wait)(futex_word_t *futex, u32 val)
 {
-    mutex_try_acquire_may_reschedule(mutex);
-    return true;
+    return futex_wait(futex, val);
 }
 
-bool define_syscall(mutex_release)(bool *mutex)
+bool define_syscall(futex_wake)(futex_word_t *futex, size_t count)
 {
-    return mutex_release(mutex);
+    return futex_wake(futex, count);
 }
 
 fd_t define_syscall(ipc_create)(const char *name, size_t max_pending_connections)

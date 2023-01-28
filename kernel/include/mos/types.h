@@ -75,3 +75,5 @@ new_opaque_type(size_t, hash);
 #undef _named_opaque_type
 #undef new_opaque_type
 #undef new_opaque_ptr_type
+
+typedef u32 futex_word_t;

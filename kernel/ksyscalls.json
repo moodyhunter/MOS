@@ -118,31 +118,15 @@
         },
         {
             "number": 18,
-            "name": "mutex_acquire",
+            "name": "futex_wait",
             "return": "bool",
-            "arguments": [ { "type": "bool *", "arg": "mutex" } ],
-            "comments": [
-                "Try to acquire a mutex and block the calling thread.",
-                "@param mutex The mutex to lock.",
-                "@return true if the mutex was locked, false if it was already locked.",
-                "",
-                "This syscall blocks the calling thread until the target mutex has been released",
-                "by another thread. Once the mutex is acquired, it returns true and the calling",
-                "thread will be scheduled to run again."
-            ]
+            "arguments": [ { "type": "futex_word_t *", "arg": "futex" }, { "type": "u32", "arg": "val" } ]
         },
         {
             "number": 19,
-            "name": "mutex_release",
+            "name": "futex_wake",
             "return": "bool",
-            "arguments": [ { "type": "bool *", "arg": "mutex" } ],
-            "comments": [
-                "Release a mutex.",
-                "@param mutex The mutex to release.",
-                "@return true if the mutex was released, false if it was already released.",
-                "",
-                "This syscall releases a mutex that was previously acquired by the some thread."
-            ]
+            "arguments": [ { "type": "futex_word_t *", "arg": "futex" }, { "type": "size_t", "arg": "count" } ]
         },
         {
             "number": 20,
