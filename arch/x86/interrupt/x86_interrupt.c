@@ -59,12 +59,12 @@ void x86_irq_handler_init(void)
         linked_list_init(&irq_handlers[i]);
 }
 
-void x86_disable_interrupts()
+void x86_disable_interrupts(void)
 {
     __asm__ volatile("cli");
 }
 
-void x86_enable_interrupts()
+void x86_enable_interrupts(void)
 {
     __asm__ volatile("sti");
 }

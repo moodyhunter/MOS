@@ -123,8 +123,8 @@ uintptr_t pg_page_get_mapped_paddr(x86_pg_infra_t *pg, uintptr_t vaddr)
 {
     PAGING_CORRECT_PGTABLE_SANITY_CHECKS(pg, vaddr);
 
-    int page_dir_index = vaddr >> 22;
-    int page_table_index = vaddr >> 12 & 0x3ff;
+    size_t page_dir_index = vaddr >> 22;
+    size_t page_table_index = vaddr >> 12 & 0x3ff;
     x86_pgdir_entry *page_dir = pg->pgdir + page_dir_index;
     x86_pgtable_entry *page_table = pg->pgtable + page_dir_index * 1024 + page_table_index;
 
@@ -145,8 +145,8 @@ vm_flags pg_page_get_flags(x86_pg_infra_t *pg, uintptr_t vaddr)
     MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not aligned to 4096");
     PAGING_CORRECT_PGTABLE_SANITY_CHECKS(pg, vaddr);
 
-    int page_dir_index = vaddr >> 22;
-    int page_table_index = vaddr >> 12 & 0x3ff;
+    size_t page_dir_index = vaddr >> 22;
+    size_t page_table_index = vaddr >> 12 & 0x3ff;
     x86_pgdir_entry *page_dir = pg->pgdir + page_dir_index;
     x86_pgtable_entry *page_table = pg->pgtable + page_dir_index * 1024 + page_table_index;
 
