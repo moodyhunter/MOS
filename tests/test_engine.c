@@ -20,19 +20,7 @@ void for_each_console_print_with_color(standard_color_t fg, standard_color_t bg,
 {
     list_foreach(console_t, console, consoles)
     {
-        standard_color_t prev_fg, prev_bg;
-        if (console->caps & CONSOLE_CAP_COLOR)
-        {
-            console->get_color(console, &prev_fg, &prev_bg);
-            console->set_color(console, fg, bg);
-        }
-
-        console_write(console, message, length);
-
-        if (console->caps & CONSOLE_CAP_COLOR)
-        {
-            console->set_color(console, prev_fg, prev_bg);
-        }
+        console_write_color(console, message, length, fg, bg);
     }
 }
 
