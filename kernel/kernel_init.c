@@ -10,6 +10,7 @@
 #include "mos/ipc/ipc.h"
 #include "mos/kconfig.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/mm/shm.h"
 #include "mos/printk.h"
 #include "mos/setup.h"
 #include "mos/tasks/kthread.h"
@@ -71,6 +72,7 @@ void mos_start_kernel(const char *cmdline)
 
     invoke_setup_functions(mos_cmdline);
 
+    shm_init();
     ipc_init();
     process_init();
     thread_init();
