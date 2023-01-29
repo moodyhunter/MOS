@@ -4,10 +4,14 @@
 #include "lib/sync/spinlock.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging/paging.h"
+#include "mos/mos_global.h"
+#include "mos/platform/platform.h"
+#include "mos/platform_syscall.h"
 #include "mos/printk.h"
 #include "mos/tasks/task_types.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/delays.h"
+#include "mos/x86/descriptors/descriptor_types.h"
 #include "mos/x86/devices/port.h"
 #include "mos/x86/mm/paging.h"
 #include "mos/x86/mm/paging_impl.h"
@@ -197,4 +201,30 @@ vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr)
     vm_flags flags = pg_page_get_flags(infra, vaddr);
     spinlock_release(table.pgd_lock);
     return flags;
+}
+
+u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unused arg2, u64 __maybe_unused arg3, u64 __maybe_unused arg4)
+{
+    switch (syscall)
+    {
+        case X86_SYSCALL_IOPL_ENABLE:
+        {
+            pr_info2("enabling IOPL for thread %d", current_thread->tid);
+            x86_thread_context_t *ctx = container_of(current_thread->context, x86_thread_context_t, inner);
+            ctx->regs.iret_params.eflags |= 3 << 12; // IOPL 3
+            return 0;
+        }
+        case X86_SYSCALL_IOPL_DISABLE:
+        {
+            pr_info2("disabling IOPL for thread %d", current_thread->tid);
+            x86_thread_context_t *ctx = container_of(current_thread->context, x86_thread_context_t, inner);
+            ctx->regs.iret_params.eflags &= ~(3 << 12); // IOPL 0
+            return 0;
+        }
+        default:
+        {
+            pr_warn("unknown arch-specific syscall %llu", syscall);
+            return -1;
+        }
+    }
 }

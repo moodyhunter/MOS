@@ -65,39 +65,29 @@ x86_switch_impl_new_kernel_thread:
     jmp     eax                 ; jump to eip
 .end:
 
+[extern x86_switch_impl_setup_user_thread:function]
+
 global x86_switch_impl_new_user_thread:function (x86_switch_impl_new_user_thread.end - x86_switch_impl_new_user_thread)
 x86_switch_impl_new_user_thread:
     ; we are now on the kernel stack of the corresponding thread
     ; edx = struct { eip, stack, x86_stack_frame, arg; }; (size: 1, 1, 19, 1)
-
-    push    edx                ; save edx
-    [extern x86_switch_impl_setup_user_thread:function]
-    call    x86_switch_impl_setup_user_thread
-    pop     edx                ; restore edx
-
-    mov     ecx, [edx]          ; ecx = eip
 
     ; ebx, ebp, edi, esi are callee-saved registers
     mov     edi, [edx + 2 * 4 + 4 * 4]
     mov     esi, [edx + 2 * 4 + 5 * 4]
     mov     ebp, [edx + 2 * 4 + 6 * 4]
     mov     ebx, [edx + 2 * 4 + 8 * 4]
+    push    dword [edx]     ; save eip
 
-    mov     edx, [edx + 1 * 4]  ; edx = stack
+    call    x86_switch_impl_setup_user_thread
+    ; the function returns the new stack pointer in eax
 
-    ; push the argument and a dummy return address
-    sub     edx, 4
-    mov     dword [edx], 0
+    pop     ecx             ; pop eip
 
+    ; set up the iret frame
     push    0x20 | 0x3      ; user data (stack) segment + RPL 3
-    push    edx             ; stack
-    pushf                   ; push flags
-
-    ; enable interrupts
-    pop     edx             ; pop flags
-    or      edx, 0x200      ; set IF
-    push    edx             ; push flags
-
+    push    eax             ; stack
+    push    0x200           ; push flags (IF = 1)
     push    0x18 | 0x3      ; user code segment + RPL 3
     push    ecx             ; eip
 

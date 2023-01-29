@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#pragma once
 
 #include "mos/mos_global.h"
 #include "mos/types.h"
+
+enum
+{
+    X86_SYSCALL_IOPL_ENABLE = 0,
+    X86_SYSCALL_IOPL_DISABLE = 1,
+};
 
 should_inline long platform_syscall0(long number)
 {

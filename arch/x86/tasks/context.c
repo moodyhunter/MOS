@@ -24,7 +24,7 @@ extern void x86_switch_impl_normal(void);
 extern asmlinkage void x86_context_switch_impl(uintptr_t *old_stack, uintptr_t new_kstack, uintptr_t pgd, switch_func_t switcher, const x86_thread_context_t *context);
 
 // called from assembly
-asmlinkage void x86_switch_impl_setup_user_thread(void)
+asmlinkage uintptr_t x86_switch_impl_setup_user_thread(void)
 {
     thread_t *current = current_thread;
     x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
@@ -61,7 +61,11 @@ asmlinkage void x86_switch_impl_setup_user_thread(void)
         stack_push(&current->u_stack, &context->arg, sizeof(void *));
     }
 
+    const uintptr_t zero = 0;
+    stack_push(&current->u_stack, &zero, sizeof(uintptr_t)); // return address
+
     context->inner.stack = current->u_stack.head;
+    return context->inner.stack;
 }
 
 void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
@@ -78,6 +82,7 @@ void x86_copy_thread_context(platform_context_t *from, platform_context_t **to)
     x86_thread_context_t *from_arg = container_of(from, x86_thread_context_t, inner);
     x86_thread_context_t *to_arg = kmalloc(sizeof(x86_thread_context_t));
     memcpy(to_arg, from_arg, sizeof(x86_thread_context_t));
+    to_arg->regs.iret_params.eflags &= ~(3 << 12); // clear IOPL
     *to = &to_arg->inner;
 }
 

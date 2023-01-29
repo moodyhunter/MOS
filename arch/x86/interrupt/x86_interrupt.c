@@ -261,14 +261,12 @@ static void x86_handle_irq(x86_stack_frame *frame)
 void x86_handle_interrupt(u32 esp)
 {
     x86_stack_frame *frame = (x86_stack_frame *) esp;
-    x86_thread_context_t original_context = { 0 };
 
     thread_t *current = current_thread;
     if (likely(current))
     {
         current->context->stack = frame->iret_params.esp;
         x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
-        original_context = *context;
         context->regs = *frame;
         context->inner.instruction = frame->iret_params.eip;
     }
@@ -291,7 +289,9 @@ void x86_handle_interrupt(u32 esp)
     {
         MOS_ASSERT_X(current->state == THREAD_STATE_RUNNING, "Thread %d is not in 'running' state", current->tid);
         x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
-        *context = original_context;
+
+        // flags may have been changed by platform_arch_syscall
+        frame->iret_params.eflags = context->regs.iret_params.eflags;
     }
 
     frame->iret_params.eflags |= 0x200; // enable interrupts

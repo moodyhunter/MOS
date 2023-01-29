@@ -190,3 +190,6 @@ void platform_context_copy(platform_context_t *from, platform_context_t **to);
 // Platform Context Switching APIs
 void platform_switch_to_thread(uintptr_t *old_stack, const thread_t *new_thread, switch_flags_t switch_flags);
 void platform_switch_to_scheduler(uintptr_t *old_stack, uintptr_t new_stack);
+
+// Platform-Specific syscall APIs
+u64 platform_arch_syscall(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64 arg4);

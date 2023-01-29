@@ -299,3 +299,8 @@ fd_t define_syscall(ipc_connect)(const char *server, ipc_connect_flags flags, si
         return -1;
     return process_attach_ref_fd(current_process, io);
 }
+
+u64 define_syscall(arch_syscall)(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64 arg4)
+{
+    return platform_arch_syscall(syscall, arg1, arg2, arg3, arg4);
+}
