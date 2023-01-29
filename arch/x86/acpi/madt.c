@@ -69,7 +69,7 @@ void madt_parse_table()
                     mos_panic("IOAPIC override for non-ISA bus not supported");
 
                 if (unlikely(int_override->irq_source >= IOAPIC_IRQ_OVERRIDE_MAX))
-                    mos_panic("IOAPIC override for IRQ >= 16 not supported");
+                    mos_panic("IOAPIC override for IRQ >= 255 not supported");
 
                 if (unlikely(ioapic_irq_override[int_override->irq_source] != int_override->irq_source))
                     mos_panic("Multiple IOAPIC overrides for the same IRQ not supported");
