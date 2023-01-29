@@ -22,6 +22,7 @@
 #define IPC_CHANNEL_HASHMAP_SIZE 64
 
 static hashmap_t *ipc_servers;
+mutex_t ipc_servers_lock;
 
 static hash_t ipc_server_hash(const void *key)
 {
@@ -43,14 +44,19 @@ static void ipc_server_close(io_t *io)
         return;
     }
 
+    mutex_acquire(&ipc_servers_lock);
+    hashmap_remove(ipc_servers, server->name);
+    mutex_release(&ipc_servers_lock);
+
+    mutex_acquire(&server->pending_lock);
     for (size_t i = 0; i < server->max_pending; i++)
     {
         ipc_connection_t *conn = &server->pending[i];
         if (conn->state == IPC_CONNECTION_STATE_PENDING)
             conn->state = IPC_CONNECTION_STATE_CLOSED;
     }
+    mutex_release(&server->pending_lock);
 
-    hashmap_remove(ipc_servers, server->name);
     kfree(server->name);
     kfree(server->pending);
     kfree(server);
@@ -62,11 +68,13 @@ static const io_op_t ipc_server_ops = {
 
 static ipc_connection_t *ipc_server_get_pending(ipc_server_t *server)
 {
+    mutex_acquire(&server->pending_lock);
     for (size_t i = 0; i < server->max_pending; i++)
     {
         if (server->pending[i].state == IPC_CONNECTION_STATE_PENDING)
             return &server->pending[i];
     }
+    mutex_release(&server->pending_lock);
     return NULL;
 }
 
@@ -272,7 +280,11 @@ io_t *ipc_create(const char *name, size_t max_pending_connections)
     server->max_pending = max_pending_connections;
     server->pending = kcalloc(max_pending_connections, sizeof(ipc_connection_t));
     io_init(&server->io, IO_TYPE_NONE, &ipc_server_ops);
+    mutex_init(&server->pending_lock);
+
+    mutex_acquire(&ipc_servers_lock);
     hashmap_put(ipc_servers, server->name, server);
+    mutex_release(&ipc_servers_lock);
 
     return &server->io;
 }
@@ -289,6 +301,7 @@ io_t *ipc_accept(io_t *server)
     ipc_connection_t *conn = NULL;
 
     // find a pending connection
+    mutex_acquire(&ipc_server->pending_lock);
     for (size_t i = 0; i < ipc_server->max_pending; i++)
     {
         if (ipc_server->pending[i].state == IPC_CONNECTION_STATE_PENDING)
@@ -297,6 +310,7 @@ io_t *ipc_accept(io_t *server)
             break;
         }
     }
+    mutex_release(&ipc_server->pending_lock);
 
     if (unlikely(!conn))
     {
@@ -343,6 +357,8 @@ io_t *ipc_connect(process_t *owner, const char *name, ipc_connect_flags flags, s
     mos_debug(ipc, "connecting to channel %s", name);
     // find a pending connection slot
     ipc_connection_t *conn = NULL;
+
+    mutex_acquire(&server->pending_lock);
     for (size_t i = 0; i < server->max_pending; i++)
     {
         if (server->pending[i].state == IPC_CONNECTION_STATE_INVALID)
@@ -351,6 +367,7 @@ io_t *ipc_connect(process_t *owner, const char *name, ipc_connect_flags flags, s
             break;
         }
     }
+    mutex_release(&server->pending_lock);
 
     if (unlikely(!conn))
     {
@@ -358,12 +375,12 @@ io_t *ipc_connect(process_t *owner, const char *name, ipc_connect_flags flags, s
         return NULL;
     }
 
-    shm_block_t shm_block = shm_allocate(owner, buffer_size / MOS_PAGE_SIZE, MMAP_PRIVATE, VM_RW); // not user accessible, not child-inheritable
+    const shm_block_t shm = shm_allocate(owner, buffer_size / MOS_PAGE_SIZE, MMAP_PRIVATE, VM_RW); // not user accessible, not child-inheritable
 
     conn->state = IPC_CONNECTION_STATE_PENDING;
-    conn->shm_block = shm_block;
+    conn->shm_block = shm;
     conn->server = server;
-    conn->client_data_vaddr = shm_block.block.vaddr;
+    conn->client_data_vaddr = shm.block.vaddr;
 
     // wait for the server to accept the connection
     wait_condition_t *cond = wc_wait_for(conn, wc_ipc_connection_is_connected_or_closed, NULL);

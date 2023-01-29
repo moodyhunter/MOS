@@ -59,6 +59,7 @@ typedef struct ipc_server_t
 
     size_t max_pending;
     ipc_connection_t *pending;
+    mutex_t pending_lock;
 } ipc_server_t;
 
 typedef struct ipc_connection_t
