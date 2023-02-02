@@ -10,7 +10,7 @@ void io_init(io_t *io, io_flags_t flags, const io_op_t *ops)
     io->flags = flags;
     io->ops = ops;
     io->closed = false;
-    refcount_zero(&io->refcount);
+    io->refcount = 0;
 }
 
 io_t *io_ref(io_t *io)
@@ -28,7 +28,7 @@ io_t *io_ref(io_t *io)
         return 0;
     }
 
-    refcount_inc(&io->refcount);
+    io->refcount++;
     return io;
 }
 
@@ -47,9 +47,9 @@ void io_unref(io_t *io)
         return;
     }
 
-    if (refcount_get(&io->refcount) > 0)
+    if (io->refcount > 0)
     {
-        refcount_dec(&io->refcount);
+        io->refcount--;
         return;
     }
 

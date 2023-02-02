@@ -63,7 +63,7 @@ bool kunmount(mountpoint_t *mountpoint)
     if (mountpoint == NULL)
         return false;
 
-    u64 refs = refcount_get(&mountpoint->refcount);
+    u64 refs = mountpoint->refcount;
     if (refs > 0)
     {
         mos_warn("mountpoint %s still has %llu references", mountpoint->path->name, refs);

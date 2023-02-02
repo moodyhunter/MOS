@@ -75,7 +75,7 @@ typedef struct
 typedef struct _fsnode
 {
     as_tree;
-    mos_refcount_t refcount;
+    atomic_t refcount;
     const char *name;
 } fsnode_t;
 

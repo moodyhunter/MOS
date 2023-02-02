@@ -77,3 +77,6 @@ new_opaque_type(size_t, hash);
 #undef new_opaque_ptr_type
 
 typedef u32 futex_word_t;
+
+#define __atomic(type) _Atomic(type)
+typedef __atomic(size_t) atomic_t;

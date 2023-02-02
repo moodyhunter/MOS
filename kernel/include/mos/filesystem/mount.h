@@ -26,7 +26,7 @@ typedef struct _filesystem
 
 typedef struct _mountpoint
 {
-    mos_refcount_t refcount;
+    atomic_t refcount;
     fsnode_t *path;
     const filesystem_t *fs;
     blockdev_t *dev;
