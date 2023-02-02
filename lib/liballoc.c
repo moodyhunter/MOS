@@ -50,7 +50,7 @@ typedef char liballoc_align_t;
 #define LIBALLOC_MAGIC MOS_FOURCC('A', 'L', 'O', 'C')
 #define LIBALLOC_DEAD  MOS_FOURCC('D', 'E', 'A', 'D')
 
-#define LIBALLOC_PRINT_DEBUG_MESSAGES MOS_MM_LIBALLOC_DEBUG &&__MOS_KERNEL__ // only print debug messages in kernel mode
+#define LIBALLOC_PRINT_DEBUG_MESSAGES MOS_DEBUG_FEATURE(liballoc) && __MOS_KERNEL__ // only print debug messages in kernel mode
 
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
 static spinlock_t alloc_lock = SPINLOCK_INIT;
@@ -102,7 +102,7 @@ static size_t l_errors = 0;            // Number of actual errors
 static size_t l_possible_overruns = 0; // Number of possible overruns
 
 #if LIBALLOC_PRINT_DEBUG_MESSAGES
-void liballoc_dump()
+void liballoc_dump(void)
 {
     pr_info("--------------- Memory data ---------------");
     pr_info("Total Memory Allocated: %zu bytes", l_mem_allocated);
@@ -321,7 +321,7 @@ void *liballoc_malloc(size_t req_size)
 #endif
 
 #if LIBALLOC_PRINT_DEBUG_MESSAGES
-            pr_info("liballoc: allocating %lu bytes at %p", size, p);
+            pr_info("liballoc: allocating %zu bytes at %p", size, p);
 #endif
             return p;
         }
@@ -357,7 +357,7 @@ void *liballoc_malloc(size_t req_size)
                 liballoc_unlock(); // release the lock
 #endif
 #if LIBALLOC_PRINT_DEBUG_MESSAGES
-                pr_info("liballoc: allocating %lu bytes at %p", size, p);
+                pr_info("liballoc: allocating %zu bytes at %p", size, p);
 #endif
                 return p;
             }
@@ -405,7 +405,7 @@ void *liballoc_malloc(size_t req_size)
                     liballoc_unlock(); // release the lock
 #endif
 #if LIBALLOC_PRINT_DEBUG_MESSAGES
-                    pr_info("liballoc: allocating %lu bytes at %p", size, p);
+                    pr_info("liballoc: allocating %zu bytes at %p", size, p);
 #endif
                     return p;
                 }
@@ -445,7 +445,7 @@ void *liballoc_malloc(size_t req_size)
                     liballoc_unlock(); // release the lock
 #endif
 #if LIBALLOC_PRINT_DEBUG_MESSAGES
-                    pr_info("liballoc: allocating %lu bytes at %p", size, p);
+                    pr_info("liballoc: allocating %zu bytes at %p", size, p);
 #endif
                     return p;
                 }
