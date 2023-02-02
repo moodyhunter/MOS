@@ -152,6 +152,7 @@ bool ipcshm_request(const char *name, size_t buffer_size, void **read_buf, void 
             shm->state = IPCSHM_PENDING;
             shm->server = server;
             shm->buffer_size = buffer_size;
+            // keep the lock held intentionally
             break;
         }
         spinlock_release(&server->pending[i]->lock);
@@ -183,6 +184,7 @@ bool ipcshm_request(const char *name, size_t buffer_size, void **read_buf, void 
     // step 2
     {
         reschedule_for_wait_condition(wc_wait_for(shm, wc_ipcshm_is_attached_or_freed, NULL));
+        spinlock_acquire(&shm->lock); // blocked until the server has finished setting up the connection
         if (shm->state == IPCSHM_FREE)
         {
             pr_warn("connection was closed before it was accepted");
@@ -197,7 +199,7 @@ bool ipcshm_request(const char *name, size_t buffer_size, void **read_buf, void 
         const vmblock_t block = shm_map_shared_block(shm->server_write_shm);
         *read_buf = (void *) block.vaddr;
     }
-
+    spinlock_release(&shm->lock);
     return true;
 }
 
@@ -242,6 +244,7 @@ bool ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_buf, v
             pr_warn("ipcshm_accept: server was closed");
             return false;
         }
+        spinlock_acquire(&shm->lock);
     }
 
     // there are 3 steps for a client to connect to a server:
