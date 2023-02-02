@@ -20,7 +20,7 @@ write_file(${CMAKE_BINARY_DIR}/gdbinit "" APPEND)
 
 include(cmake/userspace.cmake)
 
-add_subdirectory(libs/libipc)
+add_subdirectory(libs)
 
 add_subdirectory(init)
 add_subdirectory(ping-pong)
