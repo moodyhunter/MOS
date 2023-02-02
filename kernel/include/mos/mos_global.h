@@ -56,6 +56,7 @@
 #define ALIGN_DOWN_TO_PAGE(addr) ALIGN_DOWN(addr, MOS_PAGE_SIZE)
 
 #define MOS_FOURCC(a, b, c, d) ((u32) (a) | ((u32) (b) << 8) | ((u32) (c) << 16) | ((u32) (d) << 24))
+#define MOS_ARRAY_SIZE(x)      (sizeof(x) / sizeof(x[0]))
 
 // If the feature is enabled, the expression will be 1, otherwise -1.
 // If the given feature is not defined, the expression will be 0, which throws a division by zero error.
