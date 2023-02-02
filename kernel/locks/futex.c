@@ -136,6 +136,7 @@ bool futex_wake(futex_word_t *lock, size_t num_to_wake)
     {
         thread_t *t = fu->waiters[i];
         spinlock_acquire(&t->state_lock);
+        MOS_ASSERT_X(t->state == THREAD_STATE_BLOCKED, "thread %d was not blocked", t->tid);
         t->state = THREAD_STATE_READY;
         spinlock_release(&t->state_lock);
     }

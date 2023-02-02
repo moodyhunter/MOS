@@ -87,6 +87,12 @@ vmblock_t mm_get_free_pages(paging_handle_t table, size_t n_pages, pgalloc_hints
 
     spinlock_acquire(lock);
     size_t page_i = bitmap_find_first_free_n(pagemap, pagemap_size_lines, pagemap_begin_index, n_pages);
+    if (unlikely(page_i == 0))
+    {
+        spinlock_release(lock);
+        pr_warn("no contiguous %zu pages found in pagemap", n_pages);
+        return (vmblock_t){ .vaddr = 0, .npages = 0 };
+    }
     MOS_ASSERT_X(!bitmap_get(pagemap, pagemap_size_lines, page_i), "page %zu is already allocated", page_i);
     spinlock_release(lock);
 
