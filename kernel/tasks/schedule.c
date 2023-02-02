@@ -11,6 +11,14 @@
 #include "mos/tasks/thread.h"
 #include "mos/tasks/wait.h"
 
+static const char thread_state_str[] = {
+    [THREAD_STATE_CREATED] = 'C', //
+    [THREAD_STATE_READY] = 'R',   //
+    [THREAD_STATE_RUNNING] = 'r', //
+    [THREAD_STATE_BLOCKED] = 'B', //
+    [THREAD_STATE_DEAD] = 'D',    //
+};
+
 static bool scheduler_ready = false;
 
 static bool should_schedule_to_thread(thread_t *thread)
@@ -32,6 +40,7 @@ static bool should_schedule_to_thread(thread_t *thread)
                 return false;
             wc_condition_cleanup(thread->waiting_condition);
             thread->waiting_condition = NULL;
+            mos_debug(scheduler, "cpu %d: thread %d waiting condition is resolved", current_cpu->id, thread->tid);
             return true;
         }
         case THREAD_STATE_DEAD:
@@ -64,17 +73,19 @@ static bool schedule_to_thread(const void *key, void *value)
             switch_flags |= SWITCH_TO_NEW_PAGE_TABLE;
 
         thread->state = THREAD_STATE_RUNNING;
-        spinlock_release(&thread->state_lock);
+
+        mos_debug(scheduler, "cpu %d: switching to thread %d -> %d, flags: %c%c%c", //
+                  current_cpu->id,                                                  //
+                  current_thread ? current_thread->tid : 0,                         //
+                  thread->tid,                                                      //
+                  switch_flags & SWITCH_TO_NEW_PAGE_TABLE ? 'P' : '-',              //
+                  switch_flags & SWITCH_TO_NEW_USER_THREAD ? 'U' : '-',             //
+                  switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? 'K' : '-'            //
+        );
 
         current_thread = thread;
         current_cpu->pagetable = thread->owner->pagetable;
-        mos_debug(schedule, "cpu %d: switching to thread %d, flags: %c%c%c", //
-                  current_cpu->id,                                           //
-                  thread->tid,                                               //
-                  switch_flags & SWITCH_TO_NEW_PAGE_TABLE ? 'P' : '-',       //
-                  switch_flags & SWITCH_TO_NEW_USER_THREAD ? 'U' : '-',      //
-                  switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? 'K' : '-'     //
-        );
+        spinlock_release(&thread->state_lock);
 
         platform_switch_to_thread(&current_cpu->scheduler_stack, thread, switch_flags);
     }
@@ -87,7 +98,7 @@ static bool schedule_to_thread(const void *key, void *value)
 
 void __cold unblock_scheduler(void)
 {
-    mos_debug(schedule, "unblocking scheduler");
+    mos_debug(scheduler, "unblocking scheduler");
     MOS_ASSERT_X(!scheduler_ready, "scheduler is already unblocked");
     scheduler_ready = true;
 }
@@ -97,7 +108,7 @@ noreturn void scheduler(void)
     while (likely(!scheduler_ready))
         ; // wait for the scheduler to be unblocked
 
-    mos_debug(schedule, "cpu %d: scheduler is ready", current_cpu->id);
+    mos_debug(scheduler, "cpu %d: scheduler is ready", current_cpu->id);
 
     while (1)
         hashmap_foreach(thread_table, schedule_to_thread);
@@ -110,10 +121,10 @@ void reschedule_for_wait_condition(wait_condition_t *wait_condition)
     MOS_ASSERT_X(t->waiting_condition == NULL, "thread %d is already waiting for something else", t->tid);
     spinlock_acquire(&t->state_lock);
     t->state = THREAD_STATE_BLOCKED;
-    mos_debug(schedule, "cpu %d: thread %d is now blocked", current_cpu->id, t->tid);
+    mos_debug(scheduler, "cpu %d: thread %d is now blocked", current_cpu->id, t->tid);
     spinlock_release(&t->state_lock);
     t->waiting_condition = wait_condition;
-    reschedule();
+    platform_switch_to_scheduler(&t->k_stack.head, current_cpu->scheduler_stack);
 }
 
 void reschedule(void)
@@ -123,14 +134,21 @@ void reschedule(void)
     // - in CREATED state       the thread is not yet started
     // - in DEAD state          the thread is exiting, and the scheduler will clean it up
     // - in BLOCKED state       the thread is waiting for a condition, and we'll schedule to other threads
-    // - in READY state         the thread is the current thread which was blocked, but a suddenly it became ready
+    // But it can't be:
+    // - in READY state
     cpu_t *cpu = current_cpu;
 
     spinlock_acquire(&cpu->thread->state_lock);
+    MOS_ASSERT_X(cpu->thread->state != THREAD_STATE_READY, "thread %d must not be ready", cpu->thread->tid);
+
     if (cpu->thread->state == THREAD_STATE_RUNNING)
     {
         cpu->thread->state = THREAD_STATE_READY;
-        mos_debug(schedule, "cpu %d: rescheduling thread %d, making it ready", cpu->id, cpu->thread->tid);
+        mos_debug(scheduler, "cpu %d: rescheduling thread %d, making it ready", cpu->id, cpu->thread->tid);
+    }
+    else
+    {
+        mos_debug(scheduler, "cpu %d: rescheduling thread %d, state: '%c'", cpu->id, cpu->thread->tid, thread_state_str[cpu->thread->state]);
     }
     spinlock_release(&cpu->thread->state_lock);
 

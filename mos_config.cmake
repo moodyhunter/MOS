@@ -55,7 +55,7 @@ mos_kconfig(TESTS       BUILD_TESTING                   OFF                 "Ker
 mos_debug(thread        "Thread debug log")
 mos_debug(process       "Process debug log")
 mos_debug(fork          "Fork debug log")
-mos_debug(schedule      "Scheduler debug log")
+mos_debug(scheduler     "Scheduler debug log")
 mos_debug(syscall       "Syscall debug log")
 mos_debug(pmm           "Physical memory manager debug log")
 mos_debug(vmm           "Virtual memory manager debug log")
