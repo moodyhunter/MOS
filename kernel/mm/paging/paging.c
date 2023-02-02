@@ -76,7 +76,7 @@ vmblock_t mm_get_free_pages(paging_handle_t table, size_t n_pages, pgalloc_hints
         [PGALLOC_HINT_MMAP] = MOS_ADDR_USER_MMAP,
     };
 
-    uintptr_t vaddr_begin = limits[hints];
+    const uintptr_t vaddr_begin = limits[hints];
 
     const bool is_kernel = hints == PGALLOC_HINT_KHEAP;
     bitmap_line_t *pagemap = is_kernel ? kernel_page_map : table.um_page_map->ummap;

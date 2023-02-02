@@ -18,6 +18,11 @@ shm_block_t shm_allocate(size_t npages, mmap_flags flags, vm_flags vmflags)
     // TODO: add tracking of shared memory blocks
     mos_debug(shm, "allocating %zu SHM pages in address space " PTR_FMT, npages, owner->pagetable.pgd);
     vmblock_t block = mm_alloc_pages(owner->pagetable, npages, PGALLOC_HINT_MMAP, vmflags);
+    if (block.npages == 0)
+    {
+        pr_warn("failed to allocate shared memory block");
+        return (shm_block_t){ 0 };
+    }
 
     process_attach_mmap(owner, block, VMTYPE_SHM, flags);
     return (shm_block_t){ .block = block, .address_space = owner->pagetable };
@@ -25,6 +30,12 @@ shm_block_t shm_allocate(size_t npages, mmap_flags flags, vm_flags vmflags)
 
 vmblock_t shm_map_shared_block(shm_block_t source)
 {
+    if (source.block.npages == 0 || source.address_space.pgd == 0)
+    {
+        pr_warn("attempted to map invalid shared memory block");
+        return (vmblock_t){ 0 };
+    }
+
     process_t *owner = current_process;
     mos_debug(shm, "sharing %zu pages from address space " PTR_FMT " to address space " PTR_FMT, source.block.npages, source.address_space.pgd, owner->pagetable.pgd);
     vmblock_t block = mm_get_free_pages(owner->pagetable, source.block.npages, PGALLOC_HINT_MMAP);

@@ -149,7 +149,6 @@ bool ipcshm_request(const char *name, size_t buffer_size, void **read_buf, void 
         if (server->pending[i]->state == IPCSHM_FREE)
         {
             shm = server->pending[i];
-            pr_warn("found free pending connection slot %zd", i);
             shm->state = IPCSHM_PENDING;
             shm->server = server;
             shm->buffer_size = buffer_size;
@@ -224,7 +223,6 @@ bool ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_buf, v
             shm->state = IPCSHM_ATTACHED;
             // replace the pending connection with a new one
             server->pending[i] = kzalloc(sizeof(ipcshm_t));
-            pr_warn("found pending connection slot %zd", i);
             break;
         }
         spinlock_release(&server->pending[i]->lock);
@@ -239,6 +237,11 @@ bool ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_buf, v
 
         // TODO: check if the server was closed
         shm = ipcshm_server_get_pending(server);
+        if (!shm)
+        {
+            pr_warn("ipcshm_accept: server was closed");
+            return false;
+        }
     }
 
     // there are 3 steps for a client to connect to a server:
