@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#pragma once
+
 #include "lib/liballoc.h"
 #include "mos/mos_global.h"
 
