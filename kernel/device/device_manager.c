@@ -3,8 +3,6 @@
 #include "mos/device/device_manager.h"
 
 #include "mos/ipc/ipc.h"
-#include "mos/ipc/ipc_types.h"
-#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/kthread.h"
 

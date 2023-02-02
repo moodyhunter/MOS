@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "mos/ipc/ipc_types.h"
 #include "mos/types.h"
 
 /**

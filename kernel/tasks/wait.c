@@ -16,7 +16,7 @@ wait_condition_t *wc_wait_for_thread(thread_t *target)
     return wc_wait_for(target, thread_is_ready, NULL);
 }
 
-wait_condition_t *wc_wait_for(void *arg, bool (*verify)(wait_condition_t *condition), void (*cleanup)(wait_condition_t *condition))
+wait_condition_t *wc_wait_for(void *arg, wait_condition_verifier_t verify, wait_condition_cleanup_t cleanup)
 {
     wait_condition_t *condition = kmalloc(sizeof(wait_condition_t));
     condition->arg = arg;

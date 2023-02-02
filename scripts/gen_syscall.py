@@ -70,13 +70,20 @@ def main():
     gen("#pragma once")
     gen("")
 
-    if gen_type == GEN_TYPE_USERMODE:
-        j["includes"] += ["mos/platform_syscall.h"]
+    # sort the includes
+    j["includes"].sort()
 
     if gen_type != GEN_TYPE_NUMBER_HEADER:
         for inc in j["includes"]:
             gen("#include \"%s\"" % inc)
         gen("")
+
+        if gen_type == GEN_TYPE_USERMODE:
+            # also include the 'mos/platform_syscall.h' header
+            gen("// platform syscall header")
+            gen("#include \"mos/platform_syscall.h\"")
+            gen("")
+            pass
 
     if gen_type == GEN_TYPE_DISPATCHER:
         gen_dispatcher(j)
@@ -180,7 +187,10 @@ def gen_usermode(e):
     gen("should_inline %s %s(%s)" % (syscall_return(e), syscall_name(e), syscall_args(e)))
     gen("{")
     enter_scope()
-    gen("%splatform_syscall%d(%s);" % ("return " if syscall_has_return(e) else "", syscall_nargs, syscall_conv_arg_to_long))
+    gen("%s%splatform_syscall%d(%s);" % ("return " if syscall_has_return(e) else "",
+                                         "(" + syscall_return(e) + ") " if syscall_return(e) != "void" else "",
+                                         syscall_nargs,
+                                         syscall_conv_arg_to_long))
     leave_scope()
     gen("}")
 

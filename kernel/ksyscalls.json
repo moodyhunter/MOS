@@ -4,7 +4,6 @@
         "mos/filesystem/filesystem.h",
         "mos/mos_global.h",
         "mos/platform/platform.h",
-        "mos/ipc/ipc_types.h",
         "mos/types.h"
     ],
     "syscalls": [
@@ -144,7 +143,7 @@
             "number": 22,
             "name": "ipc_connect",
             "return": "fd_t",
-            "arguments": [ { "type": "const char *", "arg": "name" }, { "type": "ipc_connect_flags", "arg": "flags" }, { "type": "size_t", "arg": "buffer_size" } ]
+            "arguments": [ { "type": "const char *", "arg": "name" }, { "type": "size_t", "arg": "buffer_size" } ]
         },
         {
             "number": 23,

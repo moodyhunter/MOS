@@ -5,7 +5,6 @@
 #include "mos/elf/elf.h"
 #include "mos/filesystem/filesystem.h"
 #include "mos/ipc/ipc.h"
-#include "mos/ipc/ipc_types.h"
 #include "mos/locks/futex.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/shm.h"
@@ -292,9 +291,9 @@ fd_t define_syscall(ipc_accept)(fd_t listen_fd)
     return process_attach_ref_fd(current_process, client_io);
 }
 
-fd_t define_syscall(ipc_connect)(const char *server, ipc_connect_flags flags, size_t buffer_size)
+fd_t define_syscall(ipc_connect)(const char *server, size_t buffer_size)
 {
-    io_t *io = ipc_connect(current_process, server, flags, buffer_size);
+    io_t *io = ipc_connect(server, buffer_size);
     if (io == NULL)
         return -1;
     return process_attach_ref_fd(current_process, io);

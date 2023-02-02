@@ -2,291 +2,120 @@
 
 #include "mos/ipc/ipc.h"
 
-#include "lib/stdlib.h"
-#include "lib/string.h"
-#include "lib/structures/hashmap.h"
-#include "lib/structures/hashmap_common.h"
 #include "lib/structures/ring_buffer.h"
-#include "lib/sync/refcount.h"
 #include "mos/io/io.h"
-#include "mos/ipc/ipc_types.h"
+#include "mos/mm/ipcshm/ipcshm.h"
 #include "mos/mm/kmalloc.h"
-#include "mos/mm/shm.h"
-#include "mos/platform/platform.h"
+#include "mos/mos_global.h"
 #include "mos/printk.h"
 #include "mos/tasks/schedule.h"
 #include "mos/tasks/task_types.h"
-#include "mos/tasks/thread.h"
 #include "mos/tasks/wait.h"
 
 #define IPC_CHANNEL_HASHMAP_SIZE 64
+#define IPC_SERVER_MAGIC         MOS_FOURCC('I', 'P', 'C', 'S')
 
-static hashmap_t *ipc_servers;
-mutex_t ipc_servers_lock;
-
-static hash_t ipc_server_hash(const void *key)
+typedef struct
 {
-    return hashmap_hash_string(key);
-}
-
-static int ipc_server_compare(const void *a, const void *b)
-{
-    return strcmp((const char *) a, (const char *) b) == 0;
-}
+    u32 magic;
+    io_t io;
+    ipcshm_server_t *shm_server;
+} ipc_server_t;
 
 static void ipc_server_close(io_t *io)
 {
-    pr_info("closing ipc server (io refcount: %zu)", io->refcount);
-    ipc_server_t *server = container_of(io, ipc_server_t, io);
-    if (server->magic != IPC_SERVER_MAGIC)
+    ipc_server_t *ipc_server = container_of(io, ipc_server_t, io);
+    if (ipc_server->magic != IPC_SERVER_MAGIC)
     {
-        mos_warn("invalid magic");
+        pr_warn("ipc_server_close: invalid magic");
         return;
     }
-
-    mutex_acquire(&ipc_servers_lock);
-    hashmap_remove(ipc_servers, server->name);
-    mutex_release(&ipc_servers_lock);
-
-    mutex_acquire(&server->pending_lock);
-    for (size_t i = 0; i < server->max_pending; i++)
-    {
-        ipc_connection_t *conn = &server->pending[i];
-        if (conn->state == IPC_CONNECTION_STATE_PENDING)
-            conn->state = IPC_CONNECTION_STATE_CLOSED;
-    }
-    mutex_release(&server->pending_lock);
-
-    kfree(server->name);
-    kfree(server->pending);
-    kfree(server);
+    ipcshm_server_t *shm_server = ipc_server->shm_server;
+    ipcshm_deannounce(shm_server->name); // shm_server is freed by ipcshm_deannounce
+    kfree(ipc_server);
+    // existing connections are not closed (they have their own io_t)
 }
 
-static const io_op_t ipc_server_ops = {
+static size_t ipc_conn_write(io_t *io, const void *buf, size_t size)
+{
+    struct _ipc_node *ipc_node = container_of(io, struct _ipc_node, io);
+    struct _ipc_node_buf *writebuf = ipc_node->writebuf_obj;
+
+    // write data to buffer
+    spinlock_acquire(&writebuf->lock);
+    size_t written = ring_buffer_pos_push_back(ipc_node->write_buffer, &writebuf->pos, buf, size);
+    spinlock_release(&writebuf->lock);
+    return written;
+}
+
+static bool buffer_pos_ready_for_read(wait_condition_t *wc)
+{
+    return !ring_buffer_pos_is_empty((ring_buffer_pos_t *) wc->arg);
+}
+
+static wait_condition_t *wc_wait_for_buffer_ready_read(ring_buffer_pos_t *pos)
+{
+    return wc_wait_for(pos, buffer_pos_ready_for_read, NULL);
+}
+
+static size_t ipc_conn_read(io_t *io, void *buf, size_t size)
+{
+    struct _ipc_node *ipc_node = container_of(io, struct _ipc_node, io);
+    struct _ipc_node_buf *readbuf = ipc_node->readbuf_obj;
+
+    // read data from buffer
+    // unfortunately this is a blocking read, we have to reschedule
+    spinlock_acquire(&readbuf->lock);
+    while (ring_buffer_pos_is_empty(&readbuf->pos))
+    {
+        mos_debug(ipc, "tid %d buffer empty, rescheduling", current_thread->tid);
+        spinlock_release(&readbuf->lock);
+        reschedule_for_wait_condition(wc_wait_for_buffer_ready_read(&readbuf->pos));
+        spinlock_acquire(&readbuf->lock);
+        mos_debug(ipc, "tid %d rescheduled", current_thread->tid);
+    }
+    size_t read = ring_buffer_pos_pop_front(ipc_node->read_buffer, &readbuf->pos, buf, size);
+    spinlock_release(&readbuf->lock);
+    return read;
+}
+
+static void ipc_conn_close(io_t *io)
+{
+    // the refcount drops to 0, so these are definitely okay to be freed
+    struct _ipc_node *ipc_node = container_of(io, struct _ipc_node, io);
+    MOS_UNUSED(ipc_node);
+    pr_warn("ipc connection closed, TODO: unmap shared memory and kfree()");
+}
+
+static const io_op_t ipc_server_op = {
+    .read = NULL,
+    .write = NULL,
     .close = ipc_server_close,
 };
 
-static ipc_connection_t *ipc_server_get_pending(ipc_server_t *server)
-{
-    mutex_acquire(&server->pending_lock);
-    for (size_t i = 0; i < server->max_pending; i++)
-    {
-        if (server->pending[i].state == IPC_CONNECTION_STATE_PENDING)
-            return &server->pending[i];
-    }
-    mutex_release(&server->pending_lock);
-    return NULL;
-}
-
-static bool wc_ipc_name_is_ready(wait_condition_t *cond)
-{
-    return hashmap_get(ipc_servers, cond->arg) != NULL;
-}
-
-static void wc_ipc_name_cleanup(wait_condition_t *cond)
-{
-    kfree(cond->arg);
-}
-
-static bool wc_ipc_has_pending(wait_condition_t *cond)
-{
-    ipc_server_t *server = cond->arg;
-    return ipc_server_get_pending(server) != NULL;
-}
-
-static bool wc_ipc_connection_is_connected_or_closed(wait_condition_t *cond)
-{
-    ipc_connection_t *conn = cond->arg;
-    return conn->state == IPC_CONNECTION_STATE_CONNECTED || conn->state == IPC_CONNECTION_STATE_CLOSED;
-}
-
-static bool wc_ipc_connection_wait_for_client_data(wait_condition_t *cond)
-{
-    ipc_connection_t *conn = cond->arg;
-    return conn->client_data_size > 0;
-}
-
-static bool wc_ipc_connection_wait_for_server_data(wait_condition_t *cond)
-{
-    ipc_connection_t *conn = cond->arg;
-    return conn->server_data_size > 0;
-}
-
-static size_t ipc_connection_server_read(io_t *io, void *buf, size_t buf_size)
-{
-    ipc_connection_t *conn = container_of(io, ipc_connection_t, server_io);
-    if (conn->state != IPC_CONNECTION_STATE_CONNECTED)
-    {
-        pr_warn("connection is not connected");
-        return 0;
-    }
-
-    mutex_acquire(&conn->lock);
-
-    if (conn->server_data_size == 0)
-    {
-        mutex_release(&conn->lock);
-        mos_debug(ipc, "waiting for client data");
-        wait_condition_t *wc = wc_wait_for(conn, wc_ipc_connection_wait_for_server_data, NULL);
-        reschedule_for_wait_condition(wc);
-        mos_debug(ipc, "ipc server: client data available");
-        mutex_acquire(&conn->lock);
-    }
-
-    const size_t read_size = MIN(conn->server_data_size, buf_size);
-
-    // not enough data to read
-    if (read_size == 0)
-        return 0;
-
-    // server reads from the back of the ring buffer (where the client writes)
-    size_t read = ring_buffer_pos_pop_back((u8 *) conn->server_data_vaddr, &conn->buffer_pos, buf, read_size);
-    conn->server_data_size -= read; // for the client
-
-    mutex_release(&conn->lock);
-    return read;
-}
-
-static size_t ipc_connection_server_write(io_t *io, const void *buf, size_t size)
-{
-    ipc_connection_t *conn = container_of(io, ipc_connection_t, server_io);
-    if (conn->state != IPC_CONNECTION_STATE_CONNECTED)
-    {
-        pr_warn("connection is not connected");
-        return 0;
-    }
-
-    mutex_acquire(&conn->lock);
-
-    // server writes to the front of the ring buffer (where the client reads)
-    size_t written = ring_buffer_pos_push_front((u8 *) conn->server_data_vaddr, &conn->buffer_pos, buf, size);
-    conn->client_data_size += written; // for the client
-
-    mutex_release(&conn->lock);
-    return written;
-}
-
-static void ipc_connection_server_close(io_t *io)
-{
-    ipc_connection_t *conn = container_of(io, ipc_connection_t, server_io);
-    if (conn->state != IPC_CONNECTION_STATE_CONNECTED)
-    {
-        pr_warn("connection is not connected");
-        return;
-    }
-
-    conn->state = IPC_CONNECTION_STATE_CLOSED;
-}
-
-static size_t ipc_connection_client_read(io_t *io, void *buf, size_t buf_size)
-{
-    ipc_connection_t *conn = container_of(io, ipc_connection_t, client_io);
-    if (conn->state != IPC_CONNECTION_STATE_CONNECTED)
-    {
-        pr_warn("connection is not connected");
-        return 0;
-    }
-
-    mutex_acquire(&conn->lock);
-
-    if (conn->client_data_size == 0)
-    {
-        mos_debug(ipc, "waiting for server data");
-        wait_condition_t *wc = wc_wait_for(conn, wc_ipc_connection_wait_for_client_data, NULL);
-        mutex_release(&conn->lock);
-        reschedule_for_wait_condition(wc);
-        mos_debug(ipc, "ipc client: server data available");
-        mutex_acquire(&conn->lock);
-    }
-
-    const size_t read_size = MIN(conn->client_data_size, buf_size);
-
-    // not enough data
-    if (read_size == 0)
-        return 0;
-
-    // client reads from the front of the ring buffer (where the server writes)
-    size_t read = ring_buffer_pos_pop_front((u8 *) conn->client_data_vaddr, &conn->buffer_pos, buf, read_size);
-    conn->client_data_size -= read; // for the server
-
-    mutex_release(&conn->lock);
-    return read;
-}
-
-static size_t ipc_connection_client_write(io_t *io, const void *buf, size_t size)
-{
-    ipc_connection_t *conn = container_of(io, ipc_connection_t, client_io);
-    if (conn->state != IPC_CONNECTION_STATE_CONNECTED)
-    {
-        pr_warn("connection is not connected");
-        return 0;
-    }
-
-    mutex_acquire(&conn->lock);
-
-    // client writes to the back of the ring buffer (where the server reads)
-    size_t written = ring_buffer_pos_push_back((u8 *) conn->client_data_vaddr, &conn->buffer_pos, buf, size);
-    conn->server_data_size += written; // for the server
-
-    mutex_release(&conn->lock);
-    return written;
-}
-
-static void ipc_connection_client_close(io_t *io)
-{
-    ipc_connection_t *conn = container_of(io, ipc_connection_t, client_io);
-    if (conn->state != IPC_CONNECTION_STATE_CONNECTED)
-    {
-        pr_warn("connection is not connected");
-        return;
-    }
-
-    conn->state = IPC_CONNECTION_STATE_CLOSED;
-}
-
-static const io_op_t ipc_connection_server_ops = {
-    .read = ipc_connection_server_read,
-    .write = ipc_connection_server_write,
-    .close = ipc_connection_server_close,
-};
-
-static const io_op_t ipc_connection_client_ops = {
-    .read = ipc_connection_client_read,
-    .write = ipc_connection_client_write,
-    .close = ipc_connection_client_close,
+static const io_op_t ipc_connection_op = {
+    .read = ipc_conn_read,
+    .write = ipc_conn_write,
+    .close = ipc_conn_close,
 };
 
 void ipc_init(void)
 {
-    pr_info("Initializing IPC subsystem...");
-    ipc_servers = kzalloc(sizeof(hashmap_t));
-    hashmap_init(ipc_servers, IPC_CHANNEL_HASHMAP_SIZE, ipc_server_hash, ipc_server_compare);
+    pr_info2("initializing IPC subsystem");
+    ipcshm_init();
 }
 
-io_t *ipc_create(const char *name, size_t max_pending_connections)
+io_t *ipc_create(const char *name, size_t max_pending)
 {
-    ipc_server_t *server = hashmap_get(ipc_servers, name);
-
-    if (unlikely(server))
-    {
-        pr_warn("IPC channel '%s' already exists", name);
+    ipcshm_server_t *server = ipcshm_announce(name, max_pending);
+    if (!server)
         return NULL;
-    }
 
-    pr_info("ipc: channel %s created", name);
-    server = kzalloc(sizeof(ipc_server_t));
-    server->magic = IPC_SERVER_MAGIC;
-    server->name = strdup(name);
-    server->max_pending = max_pending_connections;
-    server->pending = kcalloc(max_pending_connections, sizeof(ipc_connection_t));
-    io_init(&server->io, IO_TYPE_NONE, &ipc_server_ops);
-    mutex_init(&server->pending_lock);
-
-    mutex_acquire(&ipc_servers_lock);
-    hashmap_put(ipc_servers, server->name, server);
-    mutex_release(&ipc_servers_lock);
-
-    return &server->io;
+    ipc_server_t *ipc_server = kzalloc(sizeof(ipc_server_t));
+    ipc_server->shm_server = server;
+    ipc_server->magic = IPC_SERVER_MAGIC;
+    io_init(&ipc_server->io, IO_TYPE_NONE, &ipc_server_op);
+    return io_ref(&ipc_server->io);
 }
 
 io_t *ipc_accept(io_t *server)
@@ -294,103 +123,43 @@ io_t *ipc_accept(io_t *server)
     ipc_server_t *ipc_server = container_of(server, ipc_server_t, io);
     if (ipc_server->magic != IPC_SERVER_MAGIC)
     {
-        pr_warn("given io is not an IPC server");
+        pr_warn("ipc_accept: invalid magic");
         return NULL;
     }
+    ipcshm_server_t *shm_server = ipc_server->shm_server;
 
-    ipc_connection_t *conn = NULL;
+    void *write_buf = NULL, *read_buf = NULL, *ipc_ptr = NULL; // ipc will be set to the ipc_t of the new connection (created by ipc_connect)
 
-    // find a pending connection
-    mutex_acquire(&ipc_server->pending_lock);
-    for (size_t i = 0; i < ipc_server->max_pending; i++)
-    {
-        if (ipc_server->pending[i].state == IPC_CONNECTION_STATE_PENDING)
-        {
-            conn = &ipc_server->pending[i];
-            break;
-        }
-    }
-    mutex_release(&ipc_server->pending_lock);
+    bool accepted = ipcshm_accept(shm_server, &read_buf, &write_buf, (void **) &ipc_ptr);
+    if (!accepted)
+        return NULL;
 
-    if (unlikely(!conn))
-    {
-        // no pending connections, wait for one
-        mos_debug(ipc, "waiting for a pending connection");
-        wait_condition_t *cond = wc_wait_for(ipc_server, wc_ipc_has_pending, NULL);
-        reschedule_for_wait_condition(cond);
-        mos_debug(ipc, "resuming after pending connection");
-        conn = ipc_server_get_pending(ipc_server);
-    }
+    ipc_t *ipc = (ipc_t *) ipc_ptr;
+    ipc->server.read_buffer = read_buf;
+    ipc->server.write_buffer = write_buf;
 
-    // accept the connection
-    conn->state = IPC_CONNECTION_STATE_CONNECTED;
-
-    // map the shared memory
-    vmblock_t shm_block = shm_map_shared_block(conn->shm_block, current_process);
-    io_init(&conn->server_io, IO_READABLE | IO_WRITABLE, &ipc_connection_server_ops);
-    ring_buffer_pos_init(&conn->buffer_pos, shm_block.npages * MOS_PAGE_SIZE);
-    conn->server_data_vaddr = shm_block.vaddr;
-    return &conn->server_io;
+    io_init(&ipc->server.io, IO_READABLE | IO_WRITABLE, &ipc_connection_op);
+    return io_ref(&ipc->server.io);
 }
 
-io_t *ipc_connect(process_t *owner, const char *name, ipc_connect_flags flags, size_t buffer_size)
+io_t *ipc_connect(const char *name, size_t buffer_size)
 {
-    ipc_server_t *server = hashmap_get(ipc_servers, name);
+    ipc_t *ipc = kzalloc(sizeof(ipc_t));
 
-    if (unlikely(!server))
+    // the server's write buffer is the client's read buffer and vice versa
+    ipc->server.writebuf_obj = ipc->client.readbuf_obj = &ipc->server_nodebuf;
+    ipc->client.writebuf_obj = ipc->server.readbuf_obj = &ipc->client_nodebuf;
+
+    ring_buffer_pos_init(&ipc->server_nodebuf.pos, buffer_size);
+    ring_buffer_pos_init(&ipc->client_nodebuf.pos, buffer_size);
+
+    bool connected = ipcshm_request(name, buffer_size, &ipc->client.read_buffer, &ipc->client.write_buffer, ipc);
+    if (!connected)
     {
-        if (flags & IPC_CONNECT_NONBLOCK)
-        {
-            pr_warn("IPC channel '%s' does not exist", name);
-            return NULL;
-        }
-
-        mos_debug(ipc, "waiting for channel %s to be created", name);
-
-        wait_condition_t *cond = wc_wait_for((void *) strdup(name), wc_ipc_name_is_ready, wc_ipc_name_cleanup);
-        reschedule_for_wait_condition(cond);
-        mos_debug(ipc, "resuming after channel %s was created", name);
-
-        server = hashmap_get(ipc_servers, name);
-    }
-
-    mos_debug(ipc, "connecting to channel %s", name);
-    // find a pending connection slot
-    ipc_connection_t *conn = NULL;
-
-    mutex_acquire(&server->pending_lock);
-    for (size_t i = 0; i < server->max_pending; i++)
-    {
-        if (server->pending[i].state == IPC_CONNECTION_STATE_INVALID)
-        {
-            conn = &server->pending[i];
-            break;
-        }
-    }
-    mutex_release(&server->pending_lock);
-
-    if (unlikely(!conn))
-    {
-        pr_warn("no pending connection slots available");
+        kfree(ipc);
         return NULL;
     }
 
-    const shm_block_t shm = shm_allocate(owner, buffer_size / MOS_PAGE_SIZE, MMAP_PRIVATE, VM_RW); // not user accessible, not child-inheritable
-
-    conn->state = IPC_CONNECTION_STATE_PENDING;
-    conn->shm_block = shm;
-    conn->server = server;
-    conn->client_data_vaddr = shm.block.vaddr;
-
-    // wait for the server to accept the connection
-    wait_condition_t *cond = wc_wait_for(conn, wc_ipc_connection_is_connected_or_closed, NULL);
-    reschedule_for_wait_condition(cond);
-    if (conn->state == IPC_CONNECTION_STATE_CLOSED)
-    {
-        pr_warn("connection was closed before it was accepted");
-        return NULL;
-    }
-    mos_debug(ipc, "resuming after connection was accepted");
-    io_init(&conn->client_io, IO_READABLE | IO_WRITABLE, &ipc_connection_client_ops);
-    return &conn->client_io;
+    io_init(&ipc->client.io, IO_READABLE | IO_WRITABLE, &ipc_connection_op);
+    return io_ref(&ipc->client.io);
 }

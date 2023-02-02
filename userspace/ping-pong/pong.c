@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     const char *ipc_name = argv[1];
     printf("Client: Connecting to ipc name '%s'\n", ipc_name);
 
-    fd_t client = syscall_ipc_connect(ipc_name, IPC_CONNECT_DEFAULT, MOS_PAGE_SIZE);
+    fd_t client = syscall_ipc_connect(ipc_name, MOS_PAGE_SIZE);
     if (client < 0)
     {
         printf("Client: failed to open ipc channel '%s'\n", ipc_name);
