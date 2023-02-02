@@ -13,8 +13,9 @@
  * @{
  */
 
-// int printf(const char *restrict format, ...);
-// int vprintf(const char *restrict format, va_list ap);
+#ifndef __MOS_KERNEL__ // for userspace only
+int __printf(1, 2) printf(const char *restrict format, ...);
+#endif
 
 // defined in stdio.c
 int __printf(2, 3) sprintf(char *restrict str, const char *restrict format, ...);

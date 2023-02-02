@@ -21,7 +21,7 @@ static void file_api(void)
     file_stat_t stat = { 0 };
     if (syscall_file_stat("/assets/msg.txt", &stat))
     {
-        printf("File size: %d bytes\n", stat.size);
+        printf("File size: %zd bytes\n", stat.size);
         printf("Owner: %d:%d\n", stat.uid, stat.gid);
         printf("Permissions: %c%c%c%c%c%c%c%c%c",
                stat.permissions.owner & FILE_PERM_READ ? 'r' : '-',  //

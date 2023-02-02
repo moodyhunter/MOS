@@ -63,34 +63,37 @@ static void thread_start(void *_arg)
     syscall_thread_exit();
 }
 
-void dvprintf(int fd, const char *fmt, va_list ap)
+int vdprintf(int fd, const char *fmt, va_list ap)
 {
     char buf[256];
-    vsnprintf(buf, sizeof(buf), fmt, ap);
-    syscall_io_write(fd, buf, strlen(buf), 0);
+    int len = vsnprintf(buf, sizeof(buf), fmt, ap);
+    syscall_io_write(fd, buf, len, 0);
+    return len;
 }
 
-void dprintf(int fd, const char *fmt, ...)
+int dprintf(int fd, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    dvprintf(fd, fmt, ap);
+    int size = vdprintf(fd, fmt, ap);
     va_end(ap);
+    return size;
 }
 
-void printf(const char *fmt, ...)
+int printf(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    dvprintf(stdout, fmt, ap);
+    int size = vdprintf(stdout, fmt, ap);
     va_end(ap);
+    return size;
 }
 
 void fatal_abort(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    dvprintf(stderr, fmt, ap);
+    vdprintf(stderr, fmt, ap);
     va_end(ap);
     syscall_exit(-1);
     while (1)

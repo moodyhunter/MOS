@@ -27,7 +27,7 @@
         if (!(cond))                                                                                                                                                     \
             fatal_abort("Assertion failed: %s: " msg, #cond, ##__VA_ARGS__);                                                                                             \
     } while (0)
-#define MOS_LIB_UNIMPLEMENTED(content) fatal_abort("Unimplemented: " content)
+#define MOS_LIB_UNIMPLEMENTED(content) fatal_abort("Unimplemented: %s", content)
 #define MOS_LIB_UNREACHABLE()          fatal_abort("Unreachable code reached")
 #define mos_warn(...)                  dprintf(stderr, __VA_ARGS__)
 #define mos_panic(...)                 fatal_abort(__VA_ARGS__)

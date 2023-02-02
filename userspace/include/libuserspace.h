@@ -11,9 +11,9 @@
 #define stdout 1
 #define stderr 2
 
-void printf(const char *fmt, ...);
-void dprintf(int fd, const char *fmt, ...);
-void dvprintf(int fd, const char *fmt, va_list ap);
-void fatal_abort(const char *fmt, ...);
+int __printf(1, 2) printf(const char *fmt, ...);
+int __printf(2, 3) dprintf(int fd, const char *fmt, ...);
+int vdprintf(int fd, const char *fmt, va_list ap);
+void __printf(1, 2) fatal_abort(const char *fmt, ...);
 
 tid_t start_thread(const char *name, thread_entry_t entry, void *arg);
