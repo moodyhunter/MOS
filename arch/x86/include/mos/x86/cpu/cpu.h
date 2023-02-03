@@ -35,3 +35,26 @@ always_inline u32 x86_cpu_get_id(void)
     __asm__ volatile("cpuid" : "=b"(lapic_id) : "a"(0x01), "c"(0x00) : "edx");
     return lapic_id >> 24;
 }
+
+should_inline void x86_cpu_set_cr3(reg_t cr3)
+{
+    __asm__ volatile("mov %0, %%cr3" : : "r"(cr3));
+}
+
+should_inline void x86_cpu_invlpg(uintptr_t addr)
+{
+    __asm__ volatile("invlpg (%0)" : : "r"(addr) : "memory");
+}
+
+should_inline void x86_cpu_invlpg_all(void)
+{
+    __asm__ volatile("mov %%cr3, %%eax; mov %%eax, %%cr3" : : : "eax");
+}
+
+should_inline void x86_cpu_invlpg_range(uintptr_t start, uintptr_t end)
+{
+    for (uintptr_t addr = start; addr < end; addr += MOS_PAGE_SIZE)
+    {
+        x86_cpu_invlpg(addr);
+    }
+}

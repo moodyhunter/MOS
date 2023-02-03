@@ -3,6 +3,7 @@
 #include "mos/x86/mm/paging_impl.h"
 
 #include "mos/printk.h"
+#include "mos/x86/cpu/cpu.h"
 #include "mos/x86/mm/paging.h"
 #include "mos/x86/x86_platform.h"
 
@@ -14,11 +15,6 @@
         else                                                                                                                                                             \
             MOS_ASSERT_X(_vaddr < MOS_KERNEL_START_VADDR, "operating with [kernel address] in the [userspace page] table");                                              \
     } while (0)
-
-always_inline void pg_flush_tlb(uintptr_t vaddr)
-{
-    __asm__ volatile("invlpg (%0)" ::"r"(vaddr));
-}
 
 void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags)
 {
@@ -48,7 +44,7 @@ void pg_page_flag(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags)
         pg->pgtable[page_i].write_through = flags & VM_WRITE_THROUGH;
 
         pg->pgtable[page_i].global = flags & VM_GLOBAL;
-        pg_flush_tlb(vaddr);
+        x86_cpu_invlpg(vaddr);
     }
 }
 
@@ -96,7 +92,7 @@ void pg_do_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_fla
 
     this_table->global = flags & VM_GLOBAL;
 
-    pg_flush_tlb(vaddr);
+    x86_cpu_invlpg(vaddr);
 }
 
 void pg_do_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr)
@@ -115,7 +111,7 @@ void pg_do_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr)
     }
 
     pg->pgtable[pt_index].present = false;
-    pg_flush_tlb(vaddr);
+    x86_cpu_invlpg(vaddr);
 }
 
 // !! TODO: read real address instead of assuming memory layout = x86_pg_infra_t
