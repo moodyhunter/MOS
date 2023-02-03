@@ -28,10 +28,6 @@
             "type": "process",
             "command": "tmux",
             "options": {
-                "env": {
-                    // HACK: VERY HACKY! VSCode on Wayland sets this to x11, which is passed to the tmux session, which then makes the qemu window REALLY small
-                    "GDK_BACKEND": "wayland",
-                },
                 "cwd": "${workspaceFolder}/build",
             },
             "args": [
