@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "libipc/libipc.h"
+#include "libipc/ipc.h"
 
 ipc_msg_t *ipc_msg_create(size_t size)
 {
@@ -16,11 +16,11 @@ void ipc_msg_destroy(ipc_msg_t *buffer)
 
 ipc_msg_t *ipc_read_msg(fd_t fd)
 {
-    u64 size;
+    size_t size;
     size_t read_size = syscall_io_read(fd, &size, sizeof(size), 0);
     if (read_size != sizeof(size))
     {
-        dprintf(stderr, "failed to read size from ipc channel");
+        dprintf(stderr, "failed to read size from ipc channel\n");
         return NULL;
     }
 
@@ -28,7 +28,7 @@ ipc_msg_t *ipc_read_msg(fd_t fd)
     read_size = syscall_io_read(fd, buffer->data, size, 0);
     if (read_size != size)
     {
-        dprintf(stderr, "failed to read data from ipc channel");
+        dprintf(stderr, "failed to read data from ipc channel\n");
         ipc_msg_destroy(buffer);
         return NULL;
     }
@@ -41,14 +41,14 @@ bool ipc_write_msg(fd_t fd, ipc_msg_t *buffer)
     size_t written = syscall_io_write(fd, &buffer->size, sizeof(buffer->size), 0);
     if (written != sizeof(buffer->size))
     {
-        dprintf(stderr, "failed to write size to ipc channel");
+        dprintf(stderr, "failed to write size to ipc channel\n");
         return false;
     }
 
     written = syscall_io_write(fd, buffer->data, buffer->size, 0);
     if (written != buffer->size)
     {
-        dprintf(stderr, "failed to write data to ipc channel");
+        dprintf(stderr, "failed to write data to ipc channel\n");
         return false;
     }
 
@@ -61,13 +61,13 @@ bool ipc_write_as_msg(fd_t fd, const char *data, size_t size)
     w = syscall_io_write(fd, &size, sizeof(size), 0);
     if (unlikely(w != sizeof(size)))
     {
-        dprintf(stderr, "failed to write size to ipc channel");
+        dprintf(stderr, "failed to write size to ipc channel\n");
         return false;
     }
     w = syscall_io_write(fd, data, size, 0);
     if (unlikely(w != size))
     {
-        dprintf(stderr, "failed to write data to ipc channel");
+        dprintf(stderr, "failed to write data to ipc channel\n");
         return false;
     }
 
@@ -81,13 +81,20 @@ size_t ipc_read_as_msg(fd_t fd, char *buffer, size_t buffer_size)
     r = syscall_io_read(fd, &data_size, sizeof(size_t), 0);
     if (unlikely(r != sizeof(size_t)))
     {
-        dprintf(stderr, "failed to read size from ipc channel");
+        dprintf(stderr, "failed to read size from ipc channel\n");
         return 0;
     }
+
+    if (unlikely(data_size > buffer_size))
+    {
+        dprintf(stderr, "buffer too small\n");
+        return 0;
+    }
+
     r = syscall_io_read(fd, buffer, buffer_size, 0);
     if (unlikely(r != data_size))
     {
-        dprintf(stderr, "failed to read data from ipc channel");
+        dprintf(stderr, "failed to read data from ipc channel\n");
         return 0;
     }
     return data_size;

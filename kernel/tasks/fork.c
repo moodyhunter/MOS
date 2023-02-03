@@ -25,7 +25,7 @@ process_t *process_handle_fork(process_t *parent)
         proc_vmblock_t block = parent->mmaps[i];
         if (block.map_flags & MMAP_PRIVATE)
         {
-            mos_debug(fork, "private mapping, skipping");
+            pr_info2("fork %d->%d: private " PTR_FMT "+%zu, flags = [%x]", parent->pid, child->pid, block.vm.vaddr, block.vm.npages, block.vm.flags);
             continue;
         }
 
@@ -71,6 +71,7 @@ process_t *process_handle_fork(process_t *parent)
         child_thread->k_stack = parent_thread->k_stack;
         child_thread->name = strdup(parent_thread->name);
         child_thread->state = THREAD_STATE_CREATED;
+        pr_info2("fork: thread %d->%d", parent_thread->tid, child_thread->tid);
         platform_context_copy(parent_thread->context, &child_thread->context);
 
         process_attach_thread(child, child_thread);

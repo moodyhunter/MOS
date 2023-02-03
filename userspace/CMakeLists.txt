@@ -24,6 +24,7 @@ add_subdirectory(libs)
 
 add_subdirectory(init)
 add_subdirectory(ping-pong)
+add_subdirectory(drivers/x86_text_console)
 
 add_userspace_program(locks SOURCES locks/main.c)
 add_initrd_item(TARGET /programs locks)

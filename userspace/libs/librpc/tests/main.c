@@ -1,40 +1,155 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "librpc/rpc.h"
+#include "lib/memory.h"
+#include "lib/stdio.h"
+#include "librpc/rpc_client.h"
+#include "librpc/rpc_server.h"
 #include "mos/syscall/usermode.h"
 
-#define LINRPC_TEST_SERVERNAME "testserver"
+#define RPC_TEST_SERVERNAME "testserver"
 
 enum
 {
-    TESTSERVER_ECHO = 0,
+    TESTSERVER_PING = 0,
+    TESTSERVER_ECHO = 1,
+    TESTSERVER_CALCULATION = 2,
 };
 
-static int testserver_echo(rpc_server_t *server, rpc_request_t *request, rpc_reply_t **reply)
+enum
+{
+    CALC_ADD = 0,
+    CALC_SUB = 1,
+    CALC_MUL = 2,
+    CALC_DIV = 3,
+} calculation_type_t;
+
+static int testserver_ping(rpc_server_t *server, rpc_args_iter_t *args, rpc_result_t *reply, void *data)
 {
     MOS_UNUSED(server);
-    MOS_UNUSED(request);
+    MOS_UNUSED(args);
     MOS_UNUSED(reply);
+    MOS_UNUSED(data);
+    printf("!!!!!!!!!!! ping !!!!!!!!!!!\n");
+    return 0;
+}
 
+static int testserver_echo(rpc_server_t *server, rpc_args_iter_t *args, rpc_result_t *reply, void *data)
+{
+    MOS_UNUSED(server);
+    MOS_UNUSED(data);
+
+    size_t arg1_size;
+    const char *arg1 = rpc_arg_next(args, &arg1_size);
+    printf("echo server: received '%.*s'\n", (int) arg1_size, arg1);
+    rpc_write_result(reply, arg1, arg1_size);
+
+    return 0;
+}
+
+static int testserver_calculation(rpc_server_t *server, rpc_args_iter_t *args, rpc_result_t *reply, void *data)
+{
+    MOS_UNUSED(server);
+    MOS_UNUSED(data);
+
+    size_t arg1_size;
+    const int *a = rpc_arg_next(args, &arg1_size);
+    size_t arg2_size;
+    const int *b = rpc_arg_next(args, &arg2_size);
+    size_t arg3_size;
+    const int *c = rpc_arg_next(args, &arg3_size);
+
+    int result = 0;
+    switch (*b)
+    {
+        case CALC_ADD: result = *a + *c; break;
+        case CALC_SUB: result = *a - *c; break;
+        case CALC_MUL: result = *a * *c; break;
+        case CALC_DIV: result = *a / *c; break;
+    }
+
+    static const char op_names[] = { '+', '-', '*', '/' };
+    printf("calculation server: %d %c %d = %d\n", *a, op_names[*b], *c, result);
+
+    rpc_write_result(reply, &result, sizeof(result));
     return 0;
 }
 
 void run_server(void)
 {
     static rpc_function_info_t testserver_functions[] = {
-        { TESTSERVER_ECHO, testserver_echo, 0 },
+        { TESTSERVER_PING, testserver_ping, 0 },
+        { TESTSERVER_ECHO, testserver_echo, 1 },
+        { TESTSERVER_CALCULATION, testserver_calculation, 3 },
     };
 
-    rpc_server_t *server = rpc_create_server(LINRPC_TEST_SERVERNAME, NULL);
+    rpc_server_t *server = rpc_server_create(RPC_TEST_SERVERNAME, NULL);
+    rpc_server_register_functions(server, testserver_functions, MOS_ARRAY_SIZE(testserver_functions));
+    rpc_server_exec(server);
 
-    for (size_t i = 0; i < MOS_ARRAY_SIZE(testserver_functions); i++)
-        rpc_register_function(server, testserver_functions[i]);
-
-    rpc_server_run(server);
+    printf("rpc_server_destroy");
 }
 
 void run_client(void)
 {
+    printf("rpc_client_create\n");
+    rpc_server_stub_t *stub = rpc_client_create(RPC_TEST_SERVERNAME);
+
+    // ping
+    {
+        rpc_call_t *ping_call = rpc_call_create(stub, TESTSERVER_PING);
+        rpc_call_exec(ping_call, NULL, NULL);
+        rpc_call_destroy(ping_call);
+    }
+
+    // echo
+    {
+        rpc_call_t *echo_call = rpc_call_create(stub, TESTSERVER_ECHO);
+        rpc_call_arg(echo_call, "hello world", 12);
+
+        char *result;
+        size_t result_size;
+        rpc_call_exec(echo_call, (void *) &result, &result_size);
+        rpc_call_destroy(echo_call);
+
+        printf("echo client: received '%.*s'\n", (int) result_size, result);
+        free(result);
+    }
+
+    // calculation
+    {
+        rpc_call_t *calc_call = rpc_call_create(stub, TESTSERVER_CALCULATION);
+        int a = 10;
+        int b = CALC_ADD;
+        int c = 5;
+        rpc_call_arg(calc_call, &a, sizeof(a));
+        rpc_call_arg(calc_call, &b, sizeof(b));
+        rpc_call_arg(calc_call, &c, sizeof(c));
+
+        int *result;
+        size_t result_size;
+        rpc_call_exec(calc_call, (void *) &result, &result_size);
+        rpc_call_destroy(calc_call);
+
+        printf("calculation client: received '%d'\n", *result);
+        free(result);
+
+        rpc_call_t *calc_call2 = rpc_call_create(stub, TESTSERVER_CALCULATION);
+        a = 10;
+        b = CALC_SUB;
+        c = 5;
+        rpc_call_arg(calc_call2, &a, sizeof(a));
+        rpc_call_arg(calc_call2, &b, sizeof(b));
+        rpc_call_arg(calc_call2, &c, sizeof(c));
+
+        rpc_call_exec(calc_call2, (void *) &result, &result_size);
+        rpc_call_destroy(calc_call2);
+
+        printf("calculation client: received '%d'\n", *result);
+        free(result);
+    }
+
+    rpc_client_destroy(stub);
+    printf("all done\n");
 }
 
 int main(int argc, char *argv[])
@@ -42,16 +157,14 @@ int main(int argc, char *argv[])
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
 
-    pid_t forked_pid = syscall_fork();
-    if (forked_pid == 0)
+    pid_t child = syscall_fork();
+    if (child != 0)
         run_server();
     else
     {
         syscall_fork();
         syscall_fork();
-        syscall_fork();
 
-        // after 3 forks, we should have 8 child processes
         run_client();
     }
 

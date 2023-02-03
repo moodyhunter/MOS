@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/device/dm_types.h"
 #include "mos/types.h"
 
 /**
@@ -25,16 +26,6 @@ typedef struct device_driver_t
 
     bool (*probe)(device_driver_t *driver, device_t *dev);
 } device_driver_t;
-
-/**
- * @brief Device type
- */
-typedef enum
-{
-    DEVICE_TYPE_BLOCK,
-    DEVICE_TYPE_CHAR,
-    DEVICE_TYPE_NET,
-} device_type_t;
 
 typedef struct device_t
 {
