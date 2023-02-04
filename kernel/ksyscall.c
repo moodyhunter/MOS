@@ -117,7 +117,8 @@ pid_t define_syscall(fork)(void)
 {
     process_t *parent = current_process;
     process_t *child = process_handle_fork(parent);
-    MOS_ASSERT(child);
+    if (unlikely(child == NULL))
+        return -1;
     return child->pid; // return 0 for child, pid for parent
 }
 

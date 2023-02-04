@@ -3,6 +3,7 @@
 
 #include "mos/mm/cow.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/syscall/dispatcher.h"
 #include "mos/x86/devices/port.h"
@@ -183,17 +184,21 @@ static void x86_handle_exception(x86_stack_frame *stack)
             bool is_user = (stack->error_code & 0x4) != 0;
             bool is_exec = false;
 
+            thread_t *current = current_thread;
+
             if (fault_address < 1 KB)
             {
                 x86_dump_registers(stack);
-                mos_panic("%s NULL pointer dereference at " PTR_FMT " caused by instruction " PTR_FMT,
-                          is_user ? "User" : "Kernel",       //
-                          fault_address,                     //
-                          (uintptr_t) stack->iret_params.eip //
+                mos_panic("thread %d (%s), process %d (%s), %s NULL pointer dereference at " PTR_FMT " caused by instruction " PTR_FMT,
+                          current ? current->tid : 0,                //
+                          current ? current->name : "<none>",        //
+                          current ? current->owner->pid : 0,         //
+                          current ? current->owner->name : "<none>", //
+                          is_user ? "User" : "Kernel",               //
+                          fault_address,                             //
+                          (uintptr_t) stack->iret_params.eip         //
                 );
             }
-
-            thread_t *current = current_thread;
 
             if (current)
             {
@@ -210,6 +215,11 @@ static void x86_handle_exception(x86_stack_frame *stack)
 
                 if (result)
                     return;
+            }
+            else
+            {
+                // early boot page fault?
+                mos_warn("early boot page fault");
             }
 
             if (is_user && !is_write && present)

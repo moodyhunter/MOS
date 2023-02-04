@@ -159,7 +159,7 @@ void x86_start_kernel(x86_startup_info *info)
     const u32 memregion_count = mb_info->mmap_length / sizeof(multiboot_memory_map_t);
     x86_mem_init(mb_info->mmap_addr, memregion_count);
     if (x86_platform.mem_regions.count != memregion_count)
-        mos_warn("x86_mem_init() failed to initialize all memory regions");
+        mos_warn("x86_mem_init() did not initialize all memory regions");
 
     mos_pmm_setup();
 

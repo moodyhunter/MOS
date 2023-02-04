@@ -17,10 +17,20 @@ static spinlock_t kernel_page_map_lock = SPINLOCK_INIT;
 
 static void pagemap_mark_used(page_map_t *map, uintptr_t vaddr, size_t n_pages)
 {
+    MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not page aligned");
+    if (n_pages == 0)
+    {
+        mos_warn("pagemap_mark_used: n_pages is 0");
+        return;
+    }
+
     const bool is_kernel = vaddr >= MOS_KERNEL_START_VADDR;
     const uintptr_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
     const size_t pagemap_size_lines = is_kernel ? MOS_PAGEMAP_KERNEL_LINES : MOS_PAGEMAP_USER_LINES;
     const size_t pagemap_index = (vaddr - pagemap_base) / MOS_PAGE_SIZE;
+
+    if (!is_kernel)
+        MOS_ASSERT_X(map, "map is null for a user pagetable");
 
     bitmap_line_t *pagemap = is_kernel ? kernel_page_map : map->ummap;
     spinlock_t *lock = is_kernel ? &kernel_page_map_lock : &map->lock;
@@ -93,7 +103,9 @@ vmblock_t mm_get_free_pages(paging_handle_t table, size_t n_pages, pgalloc_hints
         pr_warn("no contiguous %zu pages found in pagemap", n_pages);
         return (vmblock_t){ .vaddr = 0, .npages = 0 };
     }
-    MOS_ASSERT_X(!bitmap_get(pagemap, pagemap_size_lines, page_i), "page %zu is already allocated", page_i);
+
+    bool is_set = bitmap_get(pagemap, pagemap_size_lines, page_i);
+    MOS_ASSERT_X(!is_set, "page %zu is already allocated", page_i);
     spinlock_release(lock);
 
     const uintptr_t vaddr = pagemap_base + page_i * MOS_PAGE_SIZE;
@@ -113,14 +125,35 @@ vmblock_t mm_get_free_pages(paging_handle_t table, size_t n_pages, pgalloc_hints
 
 vmblock_t mm_alloc_pages(paging_handle_t table, size_t npages, pgalloc_hints hints, vm_flags flags)
 {
+    if (unlikely(table.pgd == 0))
+    {
+        mos_warn("cannot allocate %zd pages, pagetable is null", npages);
+        return (vmblock_t){ .vaddr = 0, .npages = 0 };
+    }
+
     vmblock_t block = mm_get_free_pages(table, npages, hints);
+    if (unlikely(block.vaddr == 0))
+    {
+        mos_warn("could not find free %zd pages", npages);
+        return block;
+    }
     return mm_alloc_pages_at(table, block.vaddr, block.npages, flags);
 }
 
 vmblock_t mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t n_pages, vm_flags flags)
 {
+    if (unlikely(table.pgd == 0))
+    {
+        mos_warn("cannot allocate %zd pages at " PTR_FMT ", pagetable is null", n_pages, vaddr);
+        return (vmblock_t){ .vaddr = 0, .npages = 0 };
+    }
+
     uintptr_t paddr = pmalloc_alloc(n_pages);
-    MOS_ASSERT_X(paddr != 0, "could not find free physical memory");
+    if (unlikely(paddr == 0))
+    {
+        mos_warn("could not allocate %zd physical pages", n_pages);
+        return (vmblock_t){ .vaddr = 0, .npages = 0 };
+    }
 
     vmblock_t block = { .vaddr = vaddr, .npages = n_pages, .paddr = paddr, .flags = flags };
     mm_map_allocated_pages(table, block);
@@ -135,24 +168,48 @@ void mm_free_pages(paging_handle_t table, vmblock_t block)
 
 void mm_map_pages(paging_handle_t table, vmblock_t block)
 {
+    if (unlikely(table.pgd == 0))
+    {
+        mos_warn("cannot map pages at " PTR_FMT ", pagetable is null", block.vaddr);
+        return;
+    }
+
     pmalloc_acquire_region(block.paddr, block.npages * MOS_PAGE_SIZE);
     mm_map_allocated_pages(table, block);
 }
 
 void mm_map_allocated_pages(paging_handle_t table, vmblock_t block)
 {
+    if (unlikely(table.pgd == 0))
+    {
+        mos_warn("cannot map pages at " PTR_FMT ", pagetable is null", block.vaddr);
+        return;
+    }
+
     pagemap_mark_used(table.um_page_map, block.vaddr, block.npages);
     platform_mm_map_pages(PGD_FOR_VADDR(block.vaddr, table), block);
 }
 
 void mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t npages)
 {
+    if (unlikely(table.pgd == 0))
+    {
+        mos_warn("cannot unmap pages at " PTR_FMT ", pagetable is null", vaddr);
+        return;
+    }
+
     pagemap_mark_free(table.um_page_map, vaddr, npages);
     platform_mm_unmap_pages(PGD_FOR_VADDR(vaddr, table), vaddr, npages);
 }
 
 vmblock_t mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages)
 {
+    if (unlikely(from.pgd == 0 || to.pgd == 0))
+    {
+        mos_warn("cannot copy maps from " PTR_FMT " to " PTR_FMT ", pagetable is null", fvaddr, tvaddr);
+        return (vmblock_t){ .vaddr = 0, .npages = 0 };
+    }
+
     pagemap_mark_used(to.um_page_map, tvaddr, npages);
     vmblock_t block = platform_mm_copy_maps(PGD_FOR_VADDR(fvaddr, from), fvaddr, PGD_FOR_VADDR(tvaddr, to), tvaddr, npages);
     return block;
@@ -160,6 +217,12 @@ vmblock_t mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t t
 
 bool mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr)
 {
+    if (unlikely(table.pgd == 0))
+    {
+        mos_warn("cannot get is mapped at " PTR_FMT ", pagetable is null", vaddr);
+        return false;
+    }
+
     const bool is_kernel = vaddr >= MOS_KERNEL_START_VADDR;
     const size_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
     const size_t pagemap_size_lines = is_kernel ? MOS_PAGEMAP_KERNEL_LINES : MOS_PAGEMAP_USER_LINES;
@@ -171,6 +234,12 @@ bool mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr)
 
 vmblock_t mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t n_pages)
 {
+    if (unlikely(table.pgd == 0))
+    {
+        mos_warn("cannot get block info at " PTR_FMT ", pagetable is null", vaddr);
+        return (vmblock_t){ .vaddr = 0, .npages = 0 };
+    }
+
     vaddr = vaddr & ~(MOS_PAGE_SIZE - 1);
     const bool is_kernel = vaddr >= MOS_KERNEL_START_VADDR;
     const size_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
@@ -188,11 +257,30 @@ paging_handle_t mm_create_user_pgd(void)
     paging_handle_t table = platform_mm_create_user_pgd();
     table.um_page_map = (page_map_t *) kzalloc(sizeof(page_map_t));
     table.pgd_lock = (spinlock_t *) kzalloc(sizeof(spinlock_t));
+
+    if (unlikely(table.pgd == 0 || table.um_page_map == 0 || table.pgd_lock == 0))
+    {
+        mos_warn("cannot create user pgd");
+        if (table.um_page_map != 0)
+            kfree(table.um_page_map);
+        if (table.pgd_lock != 0)
+            kfree(table.pgd_lock);
+        if (table.pgd != 0)
+            mm_destroy_user_pgd(table);
+        return (paging_handle_t){ .pgd = 0, .um_page_map = 0, .pgd_lock = 0 };
+    }
+
     return table;
 }
 
 void mm_destroy_user_pgd(paging_handle_t table)
 {
+    if (unlikely(table.pgd == 0))
+    {
+        mos_warn("cannot destroy user pgd, pagetable is null");
+        return;
+    }
+
     platform_mm_destroy_user_pgd(table);
     kfree(table.um_page_map);
 }

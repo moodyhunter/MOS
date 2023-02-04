@@ -372,7 +372,7 @@ static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char con
     return buf - start;
 }
 
-static int printf_cs(char *buf, char *data, printf_flags_t *pflags, char conv)
+static int printf_cs(char *buf, const char *data, printf_flags_t *pflags, char conv)
 {
     MOS_LIB_ASSERT(conv == 'c' || conv == 's');
     MOS_LIB_ASSERT(pflags->precision >= 0);
@@ -513,7 +513,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list _args)
                 case 's':
                 {
                     // print string
-                    char *string = va_arg(args.real, char *);
+                    const char *string = va_arg(args.real, char *);
                     int c = printf_cs(buf, string, &flags, *format);
                     buf += c;
                     break;

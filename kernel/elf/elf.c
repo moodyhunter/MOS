@@ -49,6 +49,12 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
         return NULL;
     }
 
+    if (stat.type != FILE_TYPE_REGULAR_FILE)
+    {
+        mos_warn("'%s' is not a regular file", path);
+        return NULL;
+    }
+
     file_t *f = vfs_open(path, FILE_OPEN_READ);
     if (!f)
     {

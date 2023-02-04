@@ -17,6 +17,12 @@ process_t *process_handle_fork(process_t *parent)
     MOS_ASSERT(process_is_valid(parent));
 
     process_t *child = process_allocate(parent, parent->effective_uid, parent->name);
+    if (unlikely(!child))
+    {
+        pr_emerg("failed to allocate process for fork");
+        return NULL;
+    }
+
     pr_emph("process %d forked to %d", parent->pid, child->pid);
 
     // copy the parent's memory
@@ -72,7 +78,7 @@ process_t *process_handle_fork(process_t *parent)
         child_thread->name = strdup(parent_thread->name);
         child_thread->state = THREAD_STATE_CREATED;
         pr_info2("fork: thread %d->%d", parent_thread->tid, child_thread->tid);
-        platform_context_copy(parent_thread->context, &child_thread->context);
+        platform_setup_forked_context(parent_thread->context, &child_thread->context);
 
         process_attach_thread(child, child_thread);
         hashmap_put(thread_table, &child_thread->tid, child_thread);

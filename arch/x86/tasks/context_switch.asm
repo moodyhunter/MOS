@@ -79,6 +79,7 @@ x86_switch_impl_new_user_thread:
     mov     ebx, [edx + 2 * 4 + 8 * 4]
     push    dword [edx]     ; save eip
 
+    ; the x86_stack_frame may change during this call
     call    x86_switch_impl_setup_user_thread
     ; the function returns the new stack pointer in eax
 

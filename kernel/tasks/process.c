@@ -57,7 +57,6 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
     process_t *proc = kzalloc(sizeof(process_t));
 
     proc->magic = PROCESS_MAGIC_PROC;
-
     proc->pid = new_process_id();
 
     if (likely(parent))
@@ -76,15 +75,7 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
         return NULL;
     }
 
-    if (likely(name))
-    {
-        proc->name = strdup(name);
-    }
-    else
-    {
-        proc->name = "<unknown>";
-    }
-
+    proc->name = strdup(name ? name : "<unknown>");
     proc->effective_uid = euid;
 
     if (unlikely(proc->pid == 2))
@@ -94,6 +85,14 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
     else
     {
         proc->pagetable = mm_create_user_pgd();
+    }
+
+    if (unlikely(!proc->pagetable.pgd))
+    {
+        pr_emerg("failed to create page table for process %d (%s)", proc->pid, proc->name);
+        kfree(proc->name);
+        kfree(proc);
+        return NULL;
     }
 
     return proc;
@@ -279,6 +278,7 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
         if (process->mmaps[i].type == VMTYPE_HEAP)
         {
             heap = &process->mmaps[i];
+            spinlock_acquire(&heap->lock);
             break;
         }
     }
@@ -299,12 +299,14 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
         {
             mos_warn("failed to grow heap of process %d", process->pid);
             mm_free_pages(process->pagetable, new_part);
+            spinlock_release(&heap->lock);
             return heap_top;
         }
     }
 
     pr_info2("grew heap of process %d by %zu pages", process->pid, npages);
     heap->vm.npages += npages;
+    spinlock_release(&heap->lock);
     return heap_top + npages * MOS_PAGE_SIZE;
 }
 

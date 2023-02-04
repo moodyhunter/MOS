@@ -63,27 +63,32 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
 
     for (ssize_t i = 0; i < current_proc->mmaps_count; i++)
     {
-        const vmblock_t vm = current_proc->mmaps[i].vm;
-        uintptr_t block_start = vm.vaddr;
-        uintptr_t block_end = vm.vaddr + vm.npages * MOS_PAGE_SIZE;
+        proc_vmblock_t *mmap = &current_proc->mmaps[i];
+        spinlock_acquire(&mmap->lock);
+
+        const vmblock_t *vm = &mmap->vm;
+        uintptr_t block_start = vm->vaddr;
+        uintptr_t block_end = vm->vaddr + vm->npages * MOS_PAGE_SIZE;
 
         if (fault_addr < block_start || fault_addr >= block_end)
+        {
+            spinlock_release(&mmap->lock);
             continue;
-
-        proc_vmblock_t *mmap = &current_proc->mmaps[i];
+        }
 
         const bool is_cow = mmap->map_flags & MMAP_COW;
         const bool is_zero_on_demand = mmap->map_flags & MMAP_ZERO_ON_DEMAND;
-        mos_debug(cow, "fault_addr=" PTR_FMT ", vmblock=" PTR_FMT "-" PTR_FMT, fault_addr, vm.vaddr, vm.vaddr + vm.npages * MOS_PAGE_SIZE);
+        mos_debug(cow, "fault_addr=" PTR_FMT ", vmblock=" PTR_FMT "-" PTR_FMT, fault_addr, vm->vaddr, vm->vaddr + vm->npages * MOS_PAGE_SIZE);
 
         if (is_zero_on_demand)
         {
             pr_emph("Zero-on-demand page fault in block %ld", i);
             // TODO: only allocate the page where the fault happened
-            mm_unmap_pages(current_proc->pagetable, vm.vaddr, vm.npages);
-            mm_alloc_pages_at(current_proc->pagetable, vm.vaddr, vm.npages, vm.flags);
-            memzero((void *) vm.vaddr, MOS_PAGE_SIZE * vm.npages);
-            current_proc->mmaps[i].map_flags &= ~MMAP_ZERO_ON_DEMAND;
+            mm_unmap_pages(current_proc->pagetable, vm->vaddr, vm->npages);
+            mm_alloc_pages_at(current_proc->pagetable, vm->vaddr, vm->npages, vm->flags);
+            memzero((void *) vm->vaddr, MOS_PAGE_SIZE * vm->npages);
+            mmap->map_flags &= ~MMAP_ZERO_ON_DEMAND;
+            spinlock_release(&mmap->lock);
             mos_debug(cow, "ZoD resolved");
             return true;
         }
@@ -91,15 +96,18 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
         {
             pr_emph("CoW page fault in block %ld", i);
             // TODO: only copy the page where the fault happened
-            copy_cow_pages_inplace(vm.vaddr, vm.npages);
-            platform_mm_flag_pages(current_proc->pagetable, vm.vaddr, vm.npages, vm.flags);
-            current_proc->mmaps[i].map_flags &= ~MMAP_COW;
+            copy_cow_pages_inplace(vm->vaddr, vm->npages);
+            platform_mm_flag_pages(current_proc->pagetable, vm->vaddr, vm->npages, vm->flags);
+            mmap->map_flags &= ~MMAP_COW;
+            spinlock_release(&mmap->lock);
             mos_debug(cow, "CoW resolved");
             return true;
         }
         else
         {
             pr_emerg("%s page fault (%s) in non-cow mapped region", is_user ? "User" : "Kernel", is_write ? "write" : "read");
+            spinlock_release(&mmap->lock);
+            return false;
         }
     }
 

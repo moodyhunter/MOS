@@ -74,6 +74,12 @@ paging_handle_t platform_mm_create_user_pgd(void)
 {
     const size_t npages = ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE;
     vmblock_t block = mm_alloc_pages(x86_platform.kernel_pgd, npages, PGALLOC_HINT_KHEAP, VM_RW);
+    if (!block.vaddr)
+    {
+        mos_warn("failed to allocate page directory");
+        return (paging_handle_t){ 0 };
+    }
+
     x86_pg_infra_t *infra = (x86_pg_infra_t *) block.vaddr;
     memzero(infra, sizeof(x86_pg_infra_t));
     paging_handle_t handle = { 0 };
@@ -99,6 +105,11 @@ paging_handle_t platform_mm_create_user_pgd(void)
 
 void platform_mm_destroy_user_pgd(paging_handle_t table)
 {
+    if (!table.pgd)
+    {
+        mos_warn("invalid pgd");
+        return;
+    }
     kfree((void *) table.pgd);
 }
 
@@ -107,9 +118,9 @@ void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg)
     x86_setup_thread_context(thread, entry, arg);
 }
 
-void platform_context_copy(platform_context_t *from, platform_context_t **to)
+void platform_setup_forked_context(const platform_context_t *from, platform_context_t **to)
 {
-    x86_copy_thread_context(from, to);
+    x86_setup_forked_context(from, to);
 }
 
 void platform_switch_to_scheduler(uintptr_t *old_stack, uintptr_t new_stack)
@@ -188,6 +199,12 @@ vmblock_t platform_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_h
 
 void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags)
 {
+    if (unlikely(table.pgd == 0))
+    {
+        mos_warn("invalid pgd");
+        return;
+    }
+
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
     spinlock_acquire(table.pgd_lock);
     pg_page_flag(infra, vaddr, n, flags);

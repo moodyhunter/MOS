@@ -35,6 +35,7 @@ typedef struct
     // of this block. Which means if there're no VM_WRITE flag, then the block
     // should not be writable.
     mmap_flags map_flags;
+    spinlock_t lock;
 } proc_vmblock_t;
 
 typedef struct _wait_condition wait_condition_t;

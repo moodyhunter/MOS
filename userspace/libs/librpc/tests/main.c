@@ -164,6 +164,7 @@ int main(int argc, char *argv[])
     {
         syscall_fork();
         syscall_fork();
+        syscall_fork();
 
         run_client();
     }
