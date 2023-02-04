@@ -15,8 +15,6 @@ int main(void)
         syscall_fork();
         syscall_fork();
         syscall_fork();
-        syscall_fork();
-        syscall_fork();
 
         printf("after so many forks: pid = %d\n", syscall_get_pid());
     }
