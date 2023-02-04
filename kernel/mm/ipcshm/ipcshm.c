@@ -54,7 +54,7 @@ static bool wc_ipcshm_is_attached_or_freed(wait_condition_t *cond)
     return conn->state == IPCSHM_ATTACHED || conn->state == IPCSHM_FREE;
 }
 
-static bool wc_ipcshm_server_exists(wait_condition_t *cond)
+static bool wc_ipcshm_server_name_exists(wait_condition_t *cond)
 {
     const char *name = cond->arg;
     spinlock_acquire(&billboard_lock);
@@ -63,7 +63,7 @@ static bool wc_ipcshm_server_exists(wait_condition_t *cond)
     return server != NULL;
 }
 
-static void wc_ipcshm_server_free(wait_condition_t *cond)
+static void wc_ipcshm_server_name_free(wait_condition_t *cond)
 {
     const char *name = cond->arg;
     kfree(name);
@@ -79,17 +79,17 @@ void ipcshm_init(void)
 ipcshm_server_t *ipcshm_announce(const char *name, size_t max_pending)
 {
     spinlock_acquire(&billboard_lock);
-    ipcshm_server_t *server = hashmap_get(ipcshm_billboard, name);
+    ipcshm_server_t *existing_server = hashmap_get(ipcshm_billboard, name);
     spinlock_release(&billboard_lock);
 
-    if (unlikely(server))
+    if (unlikely(existing_server))
     {
         pr_warn("IPC channel '%s' already exists", name);
         return NULL;
     }
 
     pr_info("ipc: channel '%s' created", name);
-    server = kzalloc(sizeof(ipcshm_server_t));
+    ipcshm_server_t *server = kzalloc(sizeof(ipcshm_server_t));
     server->magic = IPCSHM_SERVER_MAGIC;
     server->name = strdup(name);
     server->max_pending = max_pending;
@@ -115,7 +115,7 @@ bool ipcshm_request(const char *name, size_t buffer_size, void **read_buf, void 
     if (unlikely(!server))
     {
         mos_debug(ipc, "no server found for channel '%s', waiting...", name);
-        reschedule_for_wait_condition(wc_wait_for(strdup(name), wc_ipcshm_server_exists, NULL));
+        reschedule_for_wait_condition(wc_wait_for(strdup(name), wc_ipcshm_server_name_exists, wc_ipcshm_server_name_free));
         mos_debug(ipc, "server for channel '%s' found, connecting...", name);
 
         spinlock_acquire(&billboard_lock);
@@ -205,7 +205,6 @@ bool ipcshm_request(const char *name, size_t buffer_size, void **read_buf, void 
 
 bool ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_buf, void **data_out)
 {
-    pr_info("ipc: accepting connection on channel '%s'", server->name);
     // find a pending connection and attach to it
     ipcshm_t *shm = NULL;
 
@@ -214,6 +213,8 @@ bool ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_buf, v
         pr_warn("ipcshm_accept: server magic is invalid (0x%x)", server->magic);
         return false;
     }
+
+    pr_info("ipc: accepting connection on channel '%s'", server->name);
 
     spinlock_acquire(&server->pending_lock);
     for (size_t i = 0; i < server->max_pending; i++)
@@ -234,7 +235,7 @@ bool ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_buf, v
     if (unlikely(!shm))
     {
         mos_debug(ipc, "waiting for a pending connection");
-        reschedule_for_wait_condition(wc_wait_for(server, wc_ipcshm_has_pending, wc_ipcshm_server_free));
+        reschedule_for_wait_condition(wc_wait_for(server, wc_ipcshm_has_pending, NULL));
         mos_debug(ipc, "resuming after pending connection");
 
         // TODO: check if the server was closed
