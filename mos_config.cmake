@@ -5,7 +5,6 @@
 
 summary_section(HARDWARE    "Hardware Support")
 summary_section(LIMITS      "Limits")
-summary_section(ADDR        "Special Addresses")
 summary_section(DEBUG       "Debugging")
 summary_section(MISC        "Miscellaneous")
 summary_section(KERNEL      "Kernel Features")

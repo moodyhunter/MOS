@@ -24,7 +24,7 @@ macro(mos_add_test TEST_NAME TEST_DESCRIPTION)
         target_link_libraries(mos_kernel.elf PRIVATE $<TARGET_OBJECTS:${TEST_TARGET}>)
     endif()
 
-    mos_add_summary_item(TESTS ${TEST_NAME} "${TEST_DESCRIPTION}" "${MOS_TEST_${TEST_NAME}_STATE}")
+    add_summary_item(TESTS ${TEST_NAME} "${TEST_DESCRIPTION}" "${MOS_TEST_${TEST_NAME}_STATE}")
 endmacro()
 
 mos_add_test(printf "printf family")

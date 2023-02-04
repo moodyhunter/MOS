@@ -55,7 +55,7 @@
                 "-initrd",
                 "${workspaceFolder}/build/initrd.cpio",
                 "-smp",
-                "1",
+                "4",
                 "-append",
                 "kmsg_console=serial init=/tests/fork-test",
                 "-nic",

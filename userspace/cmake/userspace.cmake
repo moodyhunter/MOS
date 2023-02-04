@@ -1,35 +1,21 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-macro(add_userspace_program NAME)
-    set(OPTIONS "NO_GDBINIT")
-    set(ONE_VALUE_ARGS "INSTALL_PREFIX")
-    set(MULTI_VALUE_ARGS "SOURCES")
-    cmake_parse_arguments(ARG "${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN})
+# create a gdbinit file for debugging
+# ! GDB doesn't pick correct symbol file when debugging multiple processes, solve this.
+write_file(${CMAKE_BINARY_DIR}/gdbinit "# GDB init file for MOS")
+write_file(${CMAKE_BINARY_DIR}/gdbinit "" APPEND)
 
-    if(ARG_UNPARSED_ARGUEMENTS)
-        message(FATAL_ERROR "Unknown argument(s): ${ARG_UNPARSED_ARGUEMENTS}")
-    endif()
+add_custom_target(mos_userspace_programs)
 
-    add_executable(${NAME} EXCLUDE_FROM_ALL ${ARG_SOURCES})
+summary_section(USERSPACE "Userspace Programs")
 
-    if(ARG_INSTALL_PREFIX)
-        set(OUTPUT_DIR "${CMAKE_BINARY_DIR}/${ARG_INSTALL_PREFIX}")
-    else()
-        set(OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
-    endif()
-
-    set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}")
-    target_link_libraries(${NAME} PUBLIC mos::libuserspace)
-    mos_add_summary_item(USERSPACE ${NAME} "Userspace Program ${NAME}" ${OUTPUT_DIR}/${NAME})
-
-    if(NOT ARG_NO_GDBINIT)
-        write_file(${CMAKE_BINARY_DIR}/gdbinit "add-symbol-file ${OUTPUT_DIR}/${NAME}" APPEND)
-    endif()
-
-    add_dependencies(mos_userspace_programs ${NAME})
+macro(add_to_gdbinit TARGET)
+    get_target_property(OUT_DIR ${TARGET} RUNTIME_OUTPUT_DIRECTORY)
+    file(APPEND ${CMAKE_BINARY_DIR}/gdbinit "# ${TARGET}\r\n")
+    file(APPEND ${CMAKE_BINARY_DIR}/gdbinit "add-symbol-file ${OUT_DIR}/${TARGET}")
 endmacro()
 
-macro(add_initrd_item ITEM_TYPE PATH SOURCE_NAME)
+macro(add_to_initrd ITEM_TYPE SOURCE_NAME PATH)
     set(INITRD_DIR "${CMAKE_BINARY_DIR}/initrd")
     set(OUTPUT_DIR "${INITRD_DIR}${PATH}")
 
@@ -59,4 +45,14 @@ macro(add_initrd_item ITEM_TYPE PATH SOURCE_NAME)
     else()
         message(FATAL_ERROR "Unknown initrd item type: ${ITEM_TYPE}")
     endif()
+endmacro()
+
+macro(setup_userspace_program TARGET INITRD_PATH DESCRIPTION)
+    add_dependencies(mos_userspace_programs ${TARGET})
+
+    set_target_properties(${TARGET} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+    target_link_libraries(${TARGET} PRIVATE mos::libuserspace)
+
+    add_to_initrd(TARGET ${TARGET} ${INITRD_PATH})
+    add_summary_item(USERSPACE "${TARGET}" "${DESCRIPTION}" "${INITRD_PATH}/${TARGET}")
 endmacro()

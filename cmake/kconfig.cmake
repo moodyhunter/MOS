@@ -12,7 +12,7 @@ macro(mos_kconfig SECTION NAME DEFAULT HELP)
 
     set(${NAME} ${DEFAULT} CACHE ${TYPE} "${HELP}")
     set(_value "${${NAME}}")
-    mos_add_summary_item(${SECTION} "${NAME}" "${HELP}" "${_value}")
+    add_summary_item(${SECTION} "${NAME}" "${HELP}" "${_value}")
 
     list(APPEND MOS_KCONFIG_DEFINES "${NAME}")
     set(_MOS_KCONFIG_DEFINES_${NAME}_file "${CMAKE_CURRENT_LIST_FILE}")
@@ -57,22 +57,17 @@ function(generate_kconfig TARGET)
 endfunction()
 
 macro(summary_section section name)
-    if(DEFINED MOS_SUMMARY_SECTION_${section})
-        message(FATAL_ERROR "ERROR: summary section ${section} already defined")
-    endif()
-
     set(MOS_SUMMARY_SECTION_${section} "${name}")
     list(APPEND MOS_SUMMARY_SECTION_ORDER ${section})
 
     get_directory_property(hasParent PARENT_DIRECTORY)
 
-    if(hasParent)
-        set(MOS_SUMMARY_SECTION_ORDER "${MOS_SUMMARY_SECTION_ORDER}" PARENT_SCOPE)
-        set(MOS_SUMMARY_SECTION_${section} "${name}" PARENT_SCOPE)
-    endif()
+    set(MOS_SUMMARY_SECTION_ORDER "${MOS_SUMMARY_SECTION_ORDER}" CACHE INTERNAL "" FORCE)
+    set(MOS_SUMMARY_SECTION_${section} "${name}" CACHE INTERNAL "" FORCE)
+    set(MOS_SUMMARY_SECTION_CONTENT_${section} "" CACHE INTERNAL "" FORCE)
 endmacro()
 
-macro(mos_add_summary_item section name description value)
+macro(add_summary_item section name description value)
     if(NOT DEFINED MOS_SUMMARY_SECTION_${section})
         message(FATAL_ERROR "Unknown summary section '${section}'")
     endif()
@@ -96,12 +91,7 @@ macro(mos_add_summary_item section name description value)
     string(REPEAT "." ${padding} PADDING_STRING_DESC)
 
     list(APPEND MOS_SUMMARY_SECTION_CONTENT_${section} "${description} ${PADDING_STRING_DESC}${PADDING_STRING_NAME} ${name} = ${value}")
-
-    get_directory_property(hasParent PARENT_DIRECTORY)
-
-    if(hasParent)
-        set(MOS_SUMMARY_SECTION_CONTENT_${section} "${MOS_SUMMARY_SECTION_CONTENT_${section}}" PARENT_SCOPE)
-    endif()
+    set(MOS_SUMMARY_SECTION_CONTENT_${section} "${MOS_SUMMARY_SECTION_CONTENT_${section}}" CACHE INTERNAL "" FORCE)
 endmacro()
 
 function(mos_print_summary)
