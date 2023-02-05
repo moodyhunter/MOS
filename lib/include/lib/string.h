@@ -33,4 +33,8 @@ s64 strntoll(const char *str, char **endptr, int base, size_t n);
 
 char *strchr(const char *s, int c);
 
+size_t strspn(const char *s, const char *accept);
+char *strpbrk(const char *s, const char *accept);
+char *strtok(char *str, const char *delim);
+
 /** @} */

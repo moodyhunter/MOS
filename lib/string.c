@@ -204,3 +204,48 @@ char *strchr(const char *s, int c)
     }
     return NULL;
 }
+
+size_t strspn(const char *s, const char *accept)
+{
+    size_t i = 0;
+    while (s[i])
+    {
+        if (!strchr(accept, s[i]))
+            break;
+        i++;
+    }
+    return i;
+}
+
+char *strpbrk(const char *s, const char *accept)
+{
+    while (*s)
+    {
+        if (strchr(accept, *s))
+            return (char *) s;
+        s++;
+    }
+    return NULL;
+}
+
+char *strtok(char *str, const char *delim)
+{
+    static char *last;
+    if (str == NULL)
+        str = last;
+    if (str == NULL)
+        return NULL;
+    str += strspn(str, delim);
+    if (*str == '\0')
+        return last = NULL;
+    char *token = str;
+    str = strpbrk(token, delim);
+    if (str == NULL)
+        last = NULL;
+    else
+    {
+        *str = '\0';
+        last = str + 1;
+    }
+    return token;
+}
