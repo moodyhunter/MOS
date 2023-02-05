@@ -2,14 +2,12 @@
 
 #include "lib/memory.h"
 #include "lib/string.h"
-#include "librpc/rpc.h"
-#include "librpc/rpc_client.h"
 #include "libuserspace.h"
 #include "mos/device/dm_types.h"
 #include "mos/filesystem/filesystem.h"
 #include "mos/syscall/usermode.h"
 
-static char buf[4 KB] = { 0 };
+static char file_content[4 KB] = { 0 };
 static int value = 0;
 
 static void thread_work(void *arg)
@@ -48,8 +46,8 @@ static void file_api(void)
         int fd = syscall_file_open("/assets/msg.txt", FILE_OPEN_READ);
         if (fd >= 0)
         {
-            size_t read = syscall_io_read(fd, buf, 512, 0);
-            syscall_io_write(stdout, buf, read, 0);
+            size_t read = syscall_io_read(fd, file_content, 512, 0);
+            syscall_io_write(stdout, file_content, read, 0);
             syscall_io_close(fd);
         }
         else
@@ -63,31 +61,8 @@ static void file_api(void)
     }
 }
 
-static void start_drivers(void)
-{
-    rpc_server_stub_t *console_stub = rpc_client_create("drivers.x86_text_console");
-
-    rpc_call_t *call = rpc_call_create(console_stub, DM_CONSOLE_WRITE);
-    rpc_call_arg(call, "Hello", 6);
-
-    size_t data_size = 6;
-    rpc_call_arg(call, &data_size, sizeof(data_size));
-
-    rpc_result_code_t result = rpc_call_exec(call, NULL, NULL);
-    if (result != RPC_RESULT_OK)
-    {
-        printf("Failed to call DM_CONSOLE_WRITE: %d", result);
-    }
-    rpc_call_destroy(call);
-    rpc_client_destroy(console_stub);
-}
-
 int main(int argc, char *argv[])
 {
-    const char *driver_argv[] = { "x86_console_driver", NULL };
-    syscall_spawn("/drivers/x86_console_driver", 1, driver_argv);
-
-    start_drivers();
     file_api();
 
     // char buf[256] = { 0 };

@@ -14,12 +14,13 @@ target_link_options(mos_libuserspace PUBLIC "-nostdlib")
 include(cmake/userspace.cmake)
 
 add_subdirectory(libs)
-add_subdirectory(init)
+add_subdirectory(programs)
 add_subdirectory(drivers)
 add_subdirectory(tests)
 
 # initrd resources
 add_to_initrd(FILE assets/msg.txt /assets)
+add_to_initrd(FILE assets/config/init.conf /assets/config)
 
 # if you want to debug a userspace program, replace the line below with the
 # target name of the program you want to debug

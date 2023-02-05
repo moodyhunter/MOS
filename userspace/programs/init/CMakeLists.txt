@@ -2,5 +2,4 @@
 
 add_executable(init main.c)
 setup_userspace_program(init /programs "The init program")
-
 target_link_libraries(init PRIVATE rpc)
