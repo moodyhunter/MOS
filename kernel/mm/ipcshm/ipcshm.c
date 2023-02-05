@@ -214,8 +214,6 @@ bool ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_buf, v
         return false;
     }
 
-    pr_info("ipc: accepting connection on channel '%s'", server->name);
-
     spinlock_acquire(&server->pending_lock);
     for (size_t i = 0; i < server->max_pending; i++)
     {
@@ -247,6 +245,8 @@ bool ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_buf, v
         }
         spinlock_acquire(&shm->lock);
     }
+
+    pr_info("ipcshm_accept: accepted connection");
 
     // there are 3 steps for a client to connect to a server:
     //
