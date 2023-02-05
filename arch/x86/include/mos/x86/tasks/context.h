@@ -14,6 +14,11 @@ typedef struct
     bool is_forked; // true if this context is a forked copy of another context
 } __packed x86_thread_context_t;
 
+typedef struct
+{
+    bool iopl_enabled;
+} x86_process_options_t;
+
 void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg);
 void x86_setup_forked_context(const platform_context_t *from, platform_context_t **to);
 

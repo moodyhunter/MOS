@@ -245,17 +245,6 @@ void x86_start_kernel(x86_startup_info *info)
     ioapic_enable_interrupt(IRQ_KEYBOARD, 0);
     ioapic_enable_interrupt(IRQ_COM1, 0);
 
-    // TODO: move this to a userspace program
-    pr_info("paging: mapping video memory...");
-    vmblock_t video_block = (vmblock_t){
-        .npages = 1,
-        .vaddr = BIOS_VADDR(X86_VIDEO_DEVICE_PADDR),
-        .flags = VM_RW | VM_GLOBAL,
-        .paddr = X86_VIDEO_DEVICE_PADDR,
-    };
-    mm_map_allocated_pages(current_cpu->pagetable, video_block);
-    console_register(&vga_text_mode_console);
-
     pr_info("Starting APs...");
     current_cpu->id = x86_platform.boot_cpu_id = lapic_get_id();
     x86_smp_start_all();

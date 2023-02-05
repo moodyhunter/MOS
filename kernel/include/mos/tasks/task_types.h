@@ -68,6 +68,9 @@ typedef struct _process
 
     ssize_t mmaps_count;
     proc_vmblock_t *mmaps;
+
+    // platform per-process flags
+    void *platform_options;
 } process_t;
 
 typedef struct _thread

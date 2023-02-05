@@ -22,7 +22,6 @@ add_kernel_source(
         devices/initrd_blockdev.c
         devices/serial.c
         devices/serial_console.c
-        devices/text_mode_console.c
         descriptors/descriptors.c
         interrupt/lapic.c
         interrupt/ioapic.c

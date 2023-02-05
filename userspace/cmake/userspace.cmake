@@ -11,7 +11,7 @@ summary_section(USERSPACE "Userspace Programs")
 
 macro(add_to_gdbinit TARGET)
     get_target_property(OUT_DIR ${TARGET} RUNTIME_OUTPUT_DIRECTORY)
-    file(APPEND ${CMAKE_BINARY_DIR}/gdbinit "# ${TARGET}\r\n")
+    file(APPEND ${CMAKE_BINARY_DIR}/gdbinit "\r\n# ${TARGET}\r\n")
     file(APPEND ${CMAKE_BINARY_DIR}/gdbinit "add-symbol-file ${OUT_DIR}/${TARGET}")
 endmacro()
 

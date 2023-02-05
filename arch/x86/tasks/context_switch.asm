@@ -77,6 +77,7 @@ x86_switch_impl_new_user_thread:
     mov     esi, [edx + 2 * 4 + 5 * 4]
     mov     ebp, [edx + 2 * 4 + 6 * 4]
     mov     ebx, [edx + 2 * 4 + 8 * 4]
+    push    dword [edx + 2 * 4 + 16 * 4] ; push the eflags
     push    dword [edx]     ; save eip
 
     ; the x86_stack_frame may change during this call
@@ -84,11 +85,12 @@ x86_switch_impl_new_user_thread:
     ; the function returns the new stack pointer in eax
 
     pop     ecx             ; pop eip
+    pop     edx             ; pop eflags
 
     ; set up the iret frame
     push    0x20 | 0x3      ; user data (stack) segment + RPL 3
     push    eax             ; stack
-    push    0x200           ; push flags (IF = 1)
+    push    edx             ; push flags (IF = 1)
     push    0x18 | 0x3      ; user code segment + RPL 3
     push    ecx             ; eip
 

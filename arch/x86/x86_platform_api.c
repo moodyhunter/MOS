@@ -8,6 +8,7 @@
 #include "mos/platform/platform.h"
 #include "mos/platform_syscall.h"
 #include "mos/printk.h"
+#include "mos/tasks/process.h"
 #include "mos/tasks/task_types.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/delays.h"
@@ -227,16 +228,35 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
         case X86_SYSCALL_IOPL_ENABLE:
         {
             pr_info2("enabling IOPL for thread %d", current_thread->tid);
-            x86_thread_context_t *ctx = container_of(current_thread->context, x86_thread_context_t, inner);
-            ctx->regs.iret_params.eflags |= 3 << 12; // IOPL 3
+
+            if (!current_process->platform_options)
+                current_process->platform_options = kzalloc(sizeof(x86_process_options_t));
+
+            x86_process_options_t *options = current_process->platform_options;
+            options->iopl_enabled = true;
             return 0;
         }
         case X86_SYSCALL_IOPL_DISABLE:
         {
             pr_info2("disabling IOPL for thread %d", current_thread->tid);
-            x86_thread_context_t *ctx = container_of(current_thread->context, x86_thread_context_t, inner);
-            ctx->regs.iret_params.eflags &= ~(3 << 12); // IOPL 0
+
+            if (!current_process->platform_options)
+                current_process->platform_options = kzalloc(sizeof(x86_process_options_t));
+
+            x86_process_options_t *options = current_process->platform_options;
+            options->iopl_enabled = false;
             return 0;
+        }
+        case X86_SYSCALL_MAP_VGA_MEMORY:
+        {
+            pr_info2("mapping VGA memory for thread %d", current_thread->tid);
+
+            vmblock_t block = mm_get_free_pages(current_process->pagetable, 1, PGALLOC_HINT_MMAP);
+            block.flags = VM_USER_RW;
+            block.paddr = X86_VIDEO_DEVICE_PADDR;
+            mm_map_allocated_pages(current_thread->owner->pagetable, block);
+            process_attach_mmap(current_process, block, VMTYPE_SHM, MMAP_PRIVATE);
+            return block.vaddr;
         }
         default:
         {

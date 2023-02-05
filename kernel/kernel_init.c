@@ -80,14 +80,7 @@ void mos_start_kernel(const char *cmdline)
     if (unlikely(!mount_initrd()))
         mos_panic("failed to mount initrd");
 
-    console_t *init_con = console_get("x86");
-    if (!init_con)
-    {
-        init_con = console_get_by_prefix("x86");
-        if (!init_con)
-            mos_panic("failed to find serial console");
-    }
-
+    console_t *init_con = console_get("serial_com1");
     if (init_con->caps & CONSOLE_CAP_CLEAR)
         init_con->clear(init_con);
 

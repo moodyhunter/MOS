@@ -84,11 +84,13 @@ done:
 
 void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
 {
+    x86_process_options_t *options = thread->owner->platform_options;
     x86_thread_context_t *context = kzalloc(sizeof(x86_thread_context_t));
     context->inner.instruction = (uintptr_t) entry;
     context->inner.stack = thread->mode == THREAD_MODE_KERNEL ? thread->k_stack.head : thread->u_stack.head;
     context->arg = arg;
     context->is_forked = false;
+    context->regs.iret_params.eflags = 0x202 | (options && options->iopl_enabled ? 0x3000 : 0);
     thread->context = &context->inner;
 }
 
@@ -98,9 +100,7 @@ void x86_setup_forked_context(const platform_context_t *from, platform_context_t
     x86_thread_context_t *to_ctx = kzalloc(sizeof(x86_thread_context_t));
     *to = &to_ctx->inner;
     *to_ctx = *from_ctx; // copy everything
-
     to_ctx->is_forked = true;
-    to_ctx->regs.iret_params.eflags &= ~(3 << 12); // clear IOPL
 }
 
 void x86_switch_to_thread(uintptr_t *scheduler_stack, const thread_t *to, switch_flags_t switch_flags)

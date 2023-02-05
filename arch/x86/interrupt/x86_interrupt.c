@@ -298,10 +298,16 @@ void x86_handle_interrupt(u32 esp)
     if (likely(current))
     {
         MOS_ASSERT_X(current->state == THREAD_STATE_RUNNING, "Thread %d is not in 'running' state", current->tid);
-        x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
 
         // flags may have been changed by platform_arch_syscall
-        frame->iret_params.eflags = context->regs.iret_params.eflags;
+        x86_process_options_t *options = current->owner->platform_options;
+        if (options)
+        {
+            if (options->iopl_enabled)
+                frame->iret_params.eflags |= 0x3000; // enable IOPL
+            else
+                frame->iret_params.eflags &= ~0x3000; // disable IOPL
+        }
     }
 
     frame->iret_params.eflags |= 0x200; // enable interrupts
