@@ -20,7 +20,6 @@
 #include "mos/x86/devices/initrd_blockdev.h"
 #include "mos/x86/devices/port.h"
 #include "mos/x86/devices/serial_console.h"
-#include "mos/x86/devices/text_mode_console.h"
 #include "mos/x86/interrupt/apic.h"
 #include "mos/x86/interrupt/idt.h"
 #include "mos/x86/mm/mm.h"

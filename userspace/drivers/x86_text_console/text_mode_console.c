@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/devices/text_mode_console.h"
-
 #include "lib/string.h"
 #include "mos/device/console.h"
-#include "mos/mos_global.h"
 #include "mos/x86/devices/port.h"
 #include "mos/x86/x86_platform.h"
 
