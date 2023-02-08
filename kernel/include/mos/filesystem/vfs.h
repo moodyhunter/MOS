@@ -1,9 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Virtual File System Public API
 
 #pragma once
 
-#include "fs_types.h"
+#include "lib/sync/mutex.h"
+#include "mos/filesystem/fs_types.h"
+#include "mos/tasks/task_types.h"
 #include "mos/types.h"
+
+#define get_fsdata(file, type) ((type *) file->fsdata)
+
+typedef enum
+{
+    FILE_OPEN_READ = IO_READABLE,  // 1 << 0
+    FILE_OPEN_WRITE = IO_WRITABLE, // 1 << 1
+    FILE_OPEN_SYMLINK_NO_FOLLOW = 1 << 2,
+    FILE_CREATE_IF_NOT_EXIST = 1 << 3,
+} file_open_flags;
 
 always_inline void file_format_perm(file_mode_t perms, char buf[10])
 {
@@ -19,15 +32,8 @@ always_inline void file_format_perm(file_mode_t perms, char buf[10])
     buf[9] = '\0';
 }
 
-#define PATH_SEPARATOR        '/'
-#define PATH_SEPARATOR_STRING "/"
-
-#define get_fsdata(file, type) ((type *) file->fsdata)
-
-bool vfs_path_open(const fsnode_t *path, file_open_flags flags, file_t *file);
-bool vfs_path_stat(const fsnode_t *path, file_stat_t *restrict stat);
-bool vfs_path_readlink(const fsnode_t *path, fsnode_t **link);
-
 file_t *vfs_open(const char *path, file_open_flags flags);
 bool vfs_stat(const char *path, file_stat_t *restrict stat);
-fsnode_t *vfs_readlink(const char *path);
+const char *vfs_readlink(const char *path);
+
+bool vfs_mount(const char *device, const char *path, const char *fs, const char *options);

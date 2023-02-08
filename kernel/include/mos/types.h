@@ -64,6 +64,8 @@ typedef id_t gid_t;
 typedef id_t pid_t;
 typedef id_t tid_t;
 
+typedef ssize_t off_t;
+
 // clang-format off
 #define _named_opaque_type(base, name, type) typedef struct { base name; } __packed type
 // clang-format on

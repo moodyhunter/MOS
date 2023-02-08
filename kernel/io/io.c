@@ -60,7 +60,7 @@ void io_unref(io_t *io)
     }
 
     io->closed = true;
-    io->ops->close(io);
+    io->ops->close(io); // io would be freed here, don't use it after this
 }
 
 size_t io_read(io_t *io, void *buf, size_t count)

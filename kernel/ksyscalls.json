@@ -153,14 +153,19 @@
             "comments": [
                 "This syscall is used to implement architecture-specific syscalls.",
                 "The first argument is the syscall number, and the remaining arguments",
-                "are the arguments to the syscall."
+                "are passed to the corresponding syscall handler."
             ]
         },
         {
             "number": 24,
             "name": "vfs_mount",
             "return": "bool",
-            "arguments": [ { "type": "const char *", "arg": "device" }, { "type": "const char *", "arg": "mount_point" }, { "type": "const char *", "arg": "fs_type" }, { "type": "u32", "arg": "flags" } ]
+            "arguments": [
+                { "type": "const char *", "arg": "device" },
+                { "type": "const char *", "arg": "mount_point" },
+                { "type": "const char *", "arg": "fs_type" },
+                { "type": "const char *", "arg": "options" }
+            ]
         }
     ]
 }

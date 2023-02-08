@@ -4,6 +4,7 @@
 
 #include "lib/string.h"
 #include "lib/structures/hashmap.h"
+#include "lib/structures/hashmap_common.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/memops.h"
 #include "mos/mm/paging/paging.h"
@@ -14,16 +15,11 @@
 
 #define THREAD_HASHTABLE_SIZE 512
 
-hashmap_t *thread_table;
+hashmap_t *thread_table = { 0 }; // tid_t -> thread_t
 
 static hash_t hashmap_thread_hash(const void *key)
 {
     return (hash_t){ .hash = *(tid_t *) key };
-}
-
-static int hashmap_thread_equal(const void *key1, const void *key2)
-{
-    return *(tid_t *) key1 == *(tid_t *) key2;
 }
 
 static tid_t new_thread_id(void)
@@ -48,7 +44,7 @@ thread_t *thread_allocate(process_t *owner, thread_mode tflags)
 void thread_init(void)
 {
     thread_table = kzalloc(sizeof(hashmap_t));
-    hashmap_init(thread_table, THREAD_HASHTABLE_SIZE, hashmap_thread_hash, hashmap_thread_equal);
+    hashmap_init(thread_table, THREAD_HASHTABLE_SIZE, hashmap_thread_hash, hashmap_simple_key_compare);
 }
 
 void thread_deinit(void)

@@ -4,16 +4,15 @@
 
 #include "lib/structures/list.h"
 #include "lib/structures/tree.h"
+#include "lib/sync/mutex.h"
 #include "lib/sync/spinlock.h"
 #include "mos/io/io.h"
+#include "mos/platform/platform.h"
 #include "mos/types.h"
 
-typedef enum
-{
-    FILE_OPEN_READ = IO_READABLE,
-    FILE_OPEN_WRITE = IO_WRITABLE,
-    FILE_OPEN_SYMLINK_NO_FOLLOW = 1 << 2,
-} file_open_flags;
+#define PATH_DELIM     '/'
+#define PATH_DELIM_STR "/"
+#define PATH_MAX       1024
 
 typedef struct
 {
@@ -62,34 +61,33 @@ typedef struct
 
 typedef struct _dentry dentry_t;
 typedef struct _inode inode_t;
-typedef struct _mountpoint mountpoint_t;
+typedef struct _mount mount_t;
 typedef struct _superblock superblock_t;
-typedef struct _path path_t;
+typedef struct _filesystem filesystem_t;
+typedef struct _file_ops file_ops_t;
+typedef struct _file file_t;
 
 typedef u64 dev_t;
 
 typedef struct
 {
-    inode_t *(*inode_create)(superblock_t *this_superblock);
-    int (*inode_destroy)(inode_t *this_inode);
+    inode_t *(*alloc_inode)(superblock_t *this_superblock);
+    int (*write_inode)(inode_t *, bool should_sync); // write inode to disk
+    int (*release_inode)(inode_t *this_inode);
 
-    void (*inode_dirty)(
-        inode_t *,
-        int flags); //     this method is called by the VFS when an inode is marked dirty. This is specifically for the inode itself being marked dirty, not its data. If
-                    //     the update needs to be persisted by fdatasync(), then I_DIRTY_DATASYNC will be set in the flags argument. I_DIRTY_TIME will be set in the flags
-                    //     in case lazytime is enabled and inode_t has times updated since the last ->dirty_inode call.
-
-    int (*inode_write)(inode_t *, bool should_sync); // write inode to disk
-    void (*inode_delete)(inode_t *);                 // delete inode from disk
-    void (*put_super)(superblock_t *);               // "called when the VFS wishes to free the superblock (i.e. unmount). This is called with the superblock lock held"
-    int (*sync)(superblock_t *sb);                   // called when VFS is writing out all dirty data associated with a superblock.
+    // this method is called by the VFS when an inode is marked dirty. This is specifically for the inode itself being marked dirty, not its data. If
+    // the update needs to be persisted by fdatasync(), then I_DIRTY_DATASYNC will be set in the flags argument. I_DIRTY_TIME will be set in the flags
+    // in case lazytime is enabled and inode_t has times updated since the last ->dirty_inode call.
+    void (*inode_dirty)(inode_t *, int flags);
+    void (*release_superblock)(superblock_t *); // "called when the VFS wishes to free the superblock (i.e. unmount). This is called with the superblock lock held"
 } superblock_ops_t;
 
-typedef struct _superblock
+typedef struct
 {
-    list_node_t all_inodes; // list of all inodes in this super block (or filesystem)
-    superblock_ops_t *ops;
-} superblock_t;
+    int (*init)(dentry_t *self);
+    void (*deinit)(dentry_t *self);
+    char *(*get_name)(dentry_t *self, char *buffer, size_t buflen);
+} dentry_ops_t;
 
 typedef struct
 {
@@ -105,36 +103,80 @@ typedef struct
     int (*readlink)(dentry_t *dentry, char *buffer, size_t buflen);                                // read the contents of a symbolic link
 } inode_ops_t;
 
-struct _dentry
+typedef struct _filesystem_ops
+{
+    dentry_t *(*mount)(filesystem_t *fs, const char *dev_name, const char *mount_options);
+    void (*release_superblock)(superblock_t *sb);
+} filesystem_ops_t;
+
+typedef struct _file_ops
+{
+    bool (*open)(inode_t *inode, file_t *file);
+    ssize_t (*read)(file_t *file, void *buf, size_t size);
+    ssize_t (*write)(file_t *file, const void *buf, size_t size);
+    int (*flush)(file_t *file);
+    int (*mmap)(file_t *file, void *addr, size_t size, vmblock_t *vmblock);
+} file_ops_t;
+
+typedef struct _superblock
+{
+    bool dirty;
+    dentry_t *root;
+    superblock_ops_t *ops;
+    list_node_t mounts; // ?
+    dentry_ops_t *default_d_op;
+} superblock_t;
+
+typedef struct _dentry
 {
     as_tree;
     spinlock_t lock;
     atomic_t refcount;
     inode_t *inode;
     const char *name;
-    superblock_t *d_sb; /* The root of the dentry tree */
-    void *d_fsdata;     // fs-specific data
-};
+    dentry_ops_t *ops;
+    superblock_t *superblock; // The root of the dentry tree
+    bool is_mountpoint;
+    void *private; // fs-specific data
+} dentry_t;
 
-struct _inode
+typedef struct _inode
 {
+    u64 ino;                  // inode number
     file_stat_t stat;         // type, permissions, uid, gid, sticky, suid, sgid, size
     file_stat_time_t times;   // accessed, created, modified
     const inode_ops_t *ops;   // operations on this inode
     superblock_t *superblock; // superblock of this inode
-    atomic_t refcount;
-    void *private; // private data
-};
+    ssize_t nlinks;           // number of hard links to this inode
+    file_ops_t *file_ops;     // operations on files of this inode
+    void *private;            // private data
+} inode_t;
 
-struct _path
+typedef struct _filesystem
 {
-    mountpoint_t *mnt;
-    dentry_t *dentry;
-};
+    as_linked_list;
+    const char *name;
+    filesystem_ops_t *ops;
+    list_node_t superblocks;
+} filesystem_t;
 
-// struct _file
-// {
-//     io_t io;
-//     void *pdata;
-//     fsnode_t *fsnode;
-// };
+typedef struct _mount
+{
+    as_linked_list;
+    dentry_t *root;       // root of the mounted tree
+    dentry_t *mountpoint; // where the tree is mounted
+    superblock_t *superblock;
+} mount_t;
+
+typedef struct _process process_t; // forward declaration
+
+typedef struct _file
+{
+    io_t io; // refcount is tracked by the io_t
+    dentry_t *dentry;
+    file_ops_t *ops;
+    process_t *owner;
+
+    mutex_t offset_lock; // protects the offset field
+    off_t offset;        // tracks the current position in the file
+} file_t;

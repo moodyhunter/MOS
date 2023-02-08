@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "lib/structures/list.h"
 #include "mos/types.h"
 
 typedef struct tree_node tree_node_t;
@@ -9,8 +10,8 @@ typedef struct tree_node tree_node_t;
 typedef struct tree_node
 {
     tree_node_t *parent;
-    size_t n_children;
-    tree_node_t **children;
+    tree_node_t *first_child;
+    list_node_t siblings;
 } tree_node_t;
 
 /**
@@ -25,6 +26,13 @@ typedef const struct
 
 #define tree_entry(node, type) container_of((node), type, tree_node)
 #define tree_node(element)     (&((element)->tree_node))
+
+#define _tree_sibling_entry(node, type) container_of((node), type, tree_node.siblings)
+#define _tree_sibling_list_node(node)   (&(node)->tree_node.siblings)
+
+#define tree_foreach_child(type, var, node)                                                                                                                              \
+    for (type *var = _tree_sibling_entry((node)->tree_node.first_child, type); _tree_sibling_list_node(var) != (&(node)->tree_node.siblings);                            \
+         var = _tree_sibling_entry(_tree_sibling_list_node(var)->next, type))
 
 void tree_add_child(tree_node_t *parent, tree_node_t *child);
 void tree_remove_if(tree_node_t *node, bool (*predicate)(const tree_node_t *node));
