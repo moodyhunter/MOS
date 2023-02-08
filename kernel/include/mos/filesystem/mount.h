@@ -6,7 +6,6 @@
 #include "mos/filesystem/filesystem.h"
 #include "mos/types.h"
 
-typedef struct _mountpoint mountpoint_t;
 typedef struct _filesystem
 {
     const char *name;
@@ -22,19 +21,14 @@ typedef struct _filesystem
 
     bool (*op_stat)(const mountpoint_t *mp, const fsnode_t *path, file_stat_t *stat);
     bool (*op_readlink)(const mountpoint_t *mp, const fsnode_t *path, char *buf, size_t bufsize);
+
+    bool (*op_readdir)(const mountpoint_t *mp, const fsnode_t *path, size_t index, fsnode_t *node);
 } filesystem_t;
 
 typedef struct _mountpoint
 {
-    atomic_t refcount;
-    fsnode_t *path;
-    const filesystem_t *fs;
-    blockdev_t *dev;
-    void *fs_data;
-    size_t children_count;
-
-    mountpoint_t *parent;
-    mountpoint_t **children;
+    dentry_t *mnt_root;   /* root of the mounted tree */
+    superblock_t *mnt_sb; /* pointer to superblock */
 } mountpoint_t;
 
 mountpoint_t *kmount(fsnode_t *path, const filesystem_t *fs, blockdev_t *blockdev);

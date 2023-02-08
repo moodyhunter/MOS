@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     pid_t my_pid = syscall_get_pid();
     printf("My PID: %d\n", my_pid);
 
-    const char *kmsg_ping_pong_argv[] = { "kmsg-ping", "kmsg-ping-pong-ipc", NULL };
+    const char *kmsg_ping_pong_argv[] = { "kmsg-ping-pong-ipc", NULL };
     pid_t ping_pid = syscall_spawn("/programs/kmsg-ping", 2, kmsg_ping_pong_argv);
     printf("ping pid: %d\n", ping_pid);
 

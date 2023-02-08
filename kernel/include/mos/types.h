@@ -57,6 +57,7 @@ typedef u32 id_t;
 typedef s32 fd_t;
 
 typedef signed long ssize_t;
+typedef signed long time_t;
 
 typedef id_t uid_t;
 typedef id_t gid_t;

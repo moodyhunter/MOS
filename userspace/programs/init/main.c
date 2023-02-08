@@ -1,93 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "lib/memory.h"
-#include "lib/string.h"
-#include "mos/mos_global.h"
 #include "mos/syscall/usermode.h"
+#include "parser.h"
 
-/*
- * Configuration file format:
- *
- * # This is a comment
- * key = value # comment
- * key2 = value2
- * key3 = value3
- *
- */
+static init_config_t *config;
 
-typedef struct
+static pid_t start_device_manager(void)
 {
-    char *key;
-    char *value;
-} config_entry_t;
+    const char *dm_path = config_get(config, "device_manager.path");
+    if (!dm_path)
+        dm_path = "/bin/device_manager";
 
-static size_t config_entries_count = 0;
-static config_entry_t *config_entries = NULL;
+    size_t dm_args_count;
+    const char **dm_args = config_get_all(config, "device_manager.args", &dm_args_count);
 
-static char file_content[4 KB] = { 0 };
-
-bool parse_config_file(fd_t fd)
-{
-    size_t read = syscall_io_read(fd, file_content, 4 KB, 0);
-    if (read == 0)
-        return false;
-
-    char *line = strtok(file_content, "\n");
-    while (line)
-    {
-        // Skip comments
-        if (line[0] == '#')
-        {
-            line = strtok(NULL, "\n");
-            continue;
-        }
-
-        // Skip empty lines
-        if (strlen(line) == 0)
-        {
-            line = strtok(NULL, "\n");
-            continue;
-        }
-
-        // Parse key
-        char *key = strtok(line, "=");
-        if (!key)
-        {
-            line = strtok(NULL, "\n");
-            continue;
-        }
-
-        // Parse value
-        char *value = strtok(NULL, "=");
-        if (!value)
-        {
-            line = strtok(NULL, "\n");
-            continue;
-        }
-
-        // Remove trailing spaces
-        size_t key_len = strlen(key);
-        while (key[key_len - 1] == ' ')
-            key[--key_len] = '\0';
-
-        size_t value_len = strlen(value);
-        while (value[value_len - 1] == ' ')
-            value[--value_len] = '\0';
-
-        // Remove leading spaces
-        while (value[0] == ' ')
-            value++;
-
-        // Add entry to the list
-        config_entries = realloc(config_entries, sizeof(config_entry_t) * (config_entries_count + 1));
-        config_entries[config_entries_count].key = strdup(key);
-        config_entries[config_entries_count].value = strdup(value);
-        config_entries_count++;
-
-        line = strtok(NULL, "\n");
-    }
-
-    return true;
+    // start the device manager
+    return syscall_spawn(dm_path, dm_args_count, dm_args); // TODO: check if the dm_args are valid
 }
 
 int main(int argc, char *argv[])
@@ -96,17 +25,23 @@ int main(int argc, char *argv[])
     MOS_UNUSED(argv);
 
     // We don't have a console yet, so printing to stdout will not work.
-    fd_t config_file_fd = syscall_file_open("/assets/config/init.conf", FILE_OPEN_READ);
+    fd_t config_fd = syscall_file_open("/assets/config/init.conf", FILE_OPEN_READ);
 
-    if (config_file_fd <= 0)
+    if (config_fd <= 0)
         return 1;
 
-    bool parsed = parse_config_file(config_file_fd);
+    config = config_parse_file(config_fd);
 
-    if (!parsed)
+    if (!config)
         return 2;
 
-    syscall_io_close(config_file_fd);
+    syscall_io_close(config_fd);
 
+    pid_t dm_pid = start_device_manager();
+    if (dm_pid <= 0)
+        return 3;
+
+    while (1)
+        ;
     return 0;
 }

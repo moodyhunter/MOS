@@ -2,4 +2,5 @@
 
 add_subdirectory(init)
 add_subdirectory(device-manager)
+add_subdirectory(vfs-daemon)
 add_subdirectory(syscall_demo)
