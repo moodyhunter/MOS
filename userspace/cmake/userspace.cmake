@@ -15,6 +15,11 @@ macro(add_to_gdbinit TARGET)
     file(APPEND ${CMAKE_BINARY_DIR}/gdbinit "add-symbol-file ${OUT_DIR}/${TARGET}")
 endmacro()
 
+add_custom_target(mos_cleanup_initrd
+    COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/initrd
+    COMMENT "Cleaning up initrd"
+)
+
 macro(add_to_initrd ITEM_TYPE SOURCE_NAME PATH)
     set(INITRD_DIR "${CMAKE_BINARY_DIR}/initrd")
     set(OUTPUT_DIR "${INITRD_DIR}${PATH}")
@@ -22,13 +27,15 @@ macro(add_to_initrd ITEM_TYPE SOURCE_NAME PATH)
     message(STATUS "Adding ${ITEM_TYPE} ${SOURCE_NAME} to initrd at ${PATH}")
 
     if("${ITEM_TYPE}" STREQUAL "TARGET")
-        add_dependencies(mos_initrd ${SOURCE_NAME})
-        add_custom_command(TARGET ${SOURCE_NAME} POST_BUILD
+        add_custom_target(${SOURCE_NAME}_initrd
+            WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIR}
-            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${SOURCE_NAME}> ${OUTPUT_DIR}/${SOURCE_NAME}
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${SOURCE_NAME}> ${OUTPUT_DIR}
             COMMENT "Copying ${SOURCE_NAME} to initrd"
+            DEPENDS ${SOURCE_NAME} mos_cleanup_initrd
             BYPRODUCTS ${OUTPUT_DIR}/${SOURCE_NAME}
         )
+        add_dependencies(mos_initrd ${SOURCE_NAME}_initrd)
     elseif("${ITEM_TYPE}" STREQUAL "FILE")
         set(SOURCE_NAME ${CMAKE_CURRENT_LIST_DIR}/${SOURCE_NAME})
         get_filename_component(FILE_NAME ${SOURCE_NAME} NAME)
@@ -38,8 +45,21 @@ macro(add_to_initrd ITEM_TYPE SOURCE_NAME PATH)
             COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIR}
             COMMAND ${CMAKE_COMMAND} -E copy ${SOURCE_NAME} ${OUTPUT_DIR}
             COMMENT "Copying ${SOURCE_NAME} to initrd"
-            DEPENDS ${SOURCE_NAME}
+            DEPENDS ${SOURCE_NAME} mos_cleanup_initrd
             BYPRODUCTS ${OUTPUT_DIR}/${FILE_NAME}
+        )
+        add_dependencies(mos_initrd ${TARGET_NAME}_initrd)
+    elseif("${ITEM_TYPE}" STREQUAL "DIRECTORY")
+        set(SOURCE_NAME ${CMAKE_CURRENT_LIST_DIR}/${SOURCE_NAME})
+        get_filename_component(DIR_NAME ${SOURCE_NAME} NAME)
+        string(REPLACE "/" "_" TARGET_NAME ${SOURCE_NAME})
+        add_custom_target(${TARGET_NAME}_initrd
+            WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIR}
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_NAME} ${OUTPUT_DIR}
+            COMMENT "Copying ${SOURCE_NAME} to initrd"
+            DEPENDS ${SOURCE_NAME} mos_cleanup_initrd
+            BYPRODUCTS ${OUTPUT_DIR}/${DIR_NAME}
         )
         add_dependencies(mos_initrd ${TARGET_NAME}_initrd)
     else()
