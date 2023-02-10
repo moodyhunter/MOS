@@ -199,9 +199,16 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
         return NULL;
     }
 
-    if (flags & RESOLVE_FOLLOW_SYMLINK)
+    if (flags & RESOLVE_FOLLOW_SYMLINK && child->inode->stat.type == FILE_TYPE_SYMLINK)
     {
         dentry_t *symlink_target = dentry_resolve_follow_symlink(child, flags);
+        if (unlikely(symlink_target == NULL))
+        {
+            mos_warn("failed to resolve symlink");
+            return NULL;
+        }
+
+        return symlink_target;
     }
 
     return child;

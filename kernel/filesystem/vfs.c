@@ -137,10 +137,22 @@ file_t *vfs_do_open_relative(dentry_t *base, const char *path, file_open_flags f
 
     file_t *file = kzalloc(sizeof(file_t));
     file->dentry = entry;
+    io_init(&file->io, flags, &fs_io_ops);
 
-    bool opened = file_get_ops(file)->open(file->dentry->inode, file);
+    const file_ops_t *ops = file_get_ops(file);
+    if (ops->open)
+    {
+        bool opened = ops->open(file->dentry->inode, file);
+        if (!opened)
+        {
+            pr_warn("failed to open file '%s'", path);
+            kfree(file);
+            return NULL;
+        }
+    }
 
-    MOS_UNREACHABLE();
+    tree_trace_to_root(tree_node(file->dentry), path_treeop_increment_refcount);
+    return file;
 }
 
 file_t *vfs_open(const char *path, file_open_flags flags)
@@ -150,7 +162,7 @@ file_t *vfs_open(const char *path, file_open_flags flags)
 
 file_t *vfs_openat(int fd, const char *path, file_open_flags flags)
 {
-    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
+    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);
     file_t *file = vfs_do_open_relative(base, path, flags);
     return file;
 }
