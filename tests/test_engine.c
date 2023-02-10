@@ -73,7 +73,7 @@ static bool mos_test_engine_setup_skip_prefix_list(int argc, const char **argv)
     return true;
 }
 
-__setup(tests_skip, "mos_tests_skip_prefix", mos_test_engine_setup_skip_prefix_list);
+__setup(mos_test_engine_setup_skip_prefix_list, "mos_tests_skip_prefix");
 
 static bool mos_tests_setup_halt_on_success(int argc, const char **argv)
 {
@@ -81,7 +81,7 @@ static bool mos_tests_setup_halt_on_success(int argc, const char **argv)
     return true;
 }
 
-__setup(tests_halt_on_success, "mos_tests_halt_on_success", mos_tests_setup_halt_on_success);
+__setup(mos_tests_setup_halt_on_success, "mos_tests_halt_on_success");
 
 static bool mos_test_engine_should_skip(const char *test_name)
 {
@@ -136,4 +136,4 @@ static bool mos_test_engine_run_tests(int argc, const char **argv)
     MOS_UNREACHABLE();
 }
 
-__setup(tests_run, "mos_tests", mos_test_engine_run_tests);
+__setup(mos_test_engine_run_tests, "mos_tests");
