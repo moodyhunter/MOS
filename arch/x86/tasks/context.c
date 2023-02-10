@@ -56,7 +56,7 @@ asmlinkage uintptr_t x86_switch_impl_setup_user_thread(void)
         {
             if (src_argv[i] == NULL)
             {
-                pr_warn("argv[%d] is NULL, replacing with NULL", i);
+                pr_warn("argv[%zu] is NULL, replacing with NULL", i);
                 real_argv[i] = NULL;
             }
             else
