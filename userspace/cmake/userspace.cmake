@@ -5,15 +5,18 @@
 write_file(${CMAKE_BINARY_DIR}/gdbinit "# GDB init file for MOS")
 write_file(${CMAKE_BINARY_DIR}/gdbinit "" APPEND)
 
-add_custom_target(mos_userspace_programs)
-
-summary_section(USERSPACE "Userspace Programs")
-
 macro(add_to_gdbinit TARGET)
     get_target_property(OUT_DIR ${TARGET} RUNTIME_OUTPUT_DIRECTORY)
     file(APPEND ${CMAKE_BINARY_DIR}/gdbinit "\r\n# ${TARGET}\r\n")
     file(APPEND ${CMAKE_BINARY_DIR}/gdbinit "add-symbol-file ${OUT_DIR}/${TARGET}")
 endmacro()
+
+add_custom_target(mos_initrd
+    find . -depth | cpio -o --format=crc >../initrd.cpio
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/initrd
+    COMMENT "Creating initrd at ${CMAKE_BINARY_DIR}/initrd.cpio"
+    BYPRODUCTS ${CMAKE_BINARY_DIR}/initrd.cpio
+)
 
 add_custom_target(mos_cleanup_initrd
     COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/initrd
@@ -66,6 +69,9 @@ macro(add_to_initrd ITEM_TYPE SOURCE_NAME PATH)
         message(FATAL_ERROR "Unknown initrd item type: ${ITEM_TYPE}")
     endif()
 endmacro()
+
+add_custom_target(mos_userspace_programs)
+summary_section(USERSPACE "Userspace Programs")
 
 macro(setup_userspace_program TARGET INITRD_PATH DESCRIPTION)
     add_dependencies(mos_userspace_programs ${TARGET})

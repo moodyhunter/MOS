@@ -1,15 +1,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-add_custom_target(mos_initrd
-    find . -depth | cpio -o --format=crc >../initrd.cpio
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/initrd
-    COMMENT "Creating initrd at ${CMAKE_BINARY_DIR}/initrd.cpio"
-    BYPRODUCTS ${CMAKE_BINARY_DIR}/initrd.cpio
-)
+add_library(mos_libuserspace OBJECT libuserspace.c ${MOS_STANDARD_LIBRARY_SOURCES})
+target_include_directories(mos_libuserspace PUBLIC ${CMAKE_SOURCE_DIR}/userspace/include)
+target_link_libraries(mos_libuserspace PUBLIC gcc mos::include)
+add_dependencies(mos_libuserspace mos::syscall::decl) # needs to be generated before we can compile
 
 # TODO: Remove this once we have a proper userspace libc
 target_compile_options(mos_libuserspace PUBLIC "-ffreestanding")
 target_link_options(mos_libuserspace PUBLIC "-nostdlib")
+
+add_library(mos::libuserspace ALIAS mos_libuserspace)
 
 include(cmake/userspace.cmake)
 

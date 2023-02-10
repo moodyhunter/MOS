@@ -10,15 +10,15 @@ macro(add_kernel_source)
         message(FATAL_ERROR "Unparsed arguments: ${ARG_UNPARSED_ARGUMENTS}")
     endif()
 
-    target_sources(mos_kernel.elf PRIVATE ${ARG_SOURCES})
+    target_sources(mos_kernel PRIVATE ${ARG_SOURCES})
 
     foreach(SOURCE ${ARG_RELATIVE_SOURCES})
-        target_sources(mos_kernel.elf PRIVATE ${CMAKE_CURRENT_LIST_DIR}/${SOURCE})
+        target_sources(mos_kernel PRIVATE ${CMAKE_CURRENT_LIST_DIR}/${SOURCE})
     endforeach()
 
     if(ARG_INCLUDE_DIRECTORIES)
         foreach(INCLUDE_DIRECTORY ${ARG_INCLUDE_DIRECTORIES})
-            target_include_directories(mos_kernel.elf PRIVATE ${INCLUDE_DIRECTORY})
+            target_include_directories(mos_kernel PRIVATE ${INCLUDE_DIRECTORY})
         endforeach()
     endif()
 endmacro()
