@@ -28,11 +28,12 @@ typedef const struct
 #define tree_node(element)      (&((element)->tree_node))
 #define tree_parent(node, type) (tree_entry(tree_node(node)->parent, type))
 
-#define tree_child_entry(node, type) container_of(node, type, tree_node.children)
-#define tree_child_node(node)        (&((node)->tree_node.children))
+#define tree_children_list(node)     (&((node)->tree_node.children))
+#define tree_child_entry(node, type) container_of(node, type, tree_node.list_node)
+#define tree_child_node(node)        (&((node)->tree_node.list_node))
 
 #define tree_foreach_child(t, v, h)                                                                                                                                      \
-    for (t *v = tree_child_entry(tree_child_node(h)->next, t); tree_child_node(v) != tree_child_node(h); v = tree_child_entry(tree_child_node(v)->next, t))
+    for (t *v = tree_child_entry(tree_children_list(h)->next, t); tree_child_node(v) != tree_children_list(h); v = tree_child_entry(tree_child_node(v)->next, t))
 
 void tree_add_child(tree_node_t *parent, tree_node_t *child);
 void tree_remove_if(tree_node_t *node, bool (*predicate)(const tree_node_t *node));
