@@ -51,8 +51,10 @@ SECTIONS
         __MOS_TEST_CASES_START = .;
         *(.mos.test_cases);
         __MOS_TEST_CASES_END = .;
+    }
 
-        . = ALIGN(4K);
+    .mos.info ALIGN(4K) : AT (ADDR(.mos.info) - 0xC0000000)
+    {
         __MOS_SETUP_START = .;
         *(.mos.setup);
         __MOS_SETUP_END = .;

@@ -45,7 +45,7 @@ static bool printk_setup_console(int argc, const char **argv)
     return false;
 }
 
-__setup(kconsole, "kmsg_console", printk_setup_console);
+__setup(printk_setup_console, "kmsg_console");
 
 static inline void deduce_level_color(int loglevel, standard_color_t *fg, standard_color_t *bg)
 {

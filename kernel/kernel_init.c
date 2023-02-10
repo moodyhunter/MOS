@@ -35,7 +35,7 @@ bool setup_init_path(int argc, const char **argv)
     return true;
 }
 
-__setup(init, "init", setup_init_path);
+__setup(setup_init_path, "init");
 
 bool mount_initrd(void)
 {

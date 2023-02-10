@@ -23,18 +23,18 @@ void invoke_setup_functions(cmdline_t *cmdline)
 
     for (const setup_func_t *func = __MOS_SETUP_START; func < __MOS_SETUP_END; func++)
     {
-        cmdline_option_t *option = cmdline_get_option(func->param);
+        cmdline_option_t *option = cmdline_get_option(func->name);
+
         if (unlikely(!option))
         {
-            mos_debug(init, "no option given for '%s'", func->param);
+            mos_debug(setup, "no option given for '%s'", func->name);
             continue;
         }
 
-        mos_debug(init, "invoking setup function for '%s'", func->param);
-        const bool result = func->setup_fn(option->argc, option->argv);
-        if (unlikely(!result))
+        mos_debug(setup, "invoking setup function for '%s'", func->name);
+        if (unlikely(!func->setup_fn(option->argc, option->argv)))
         {
-            pr_warn("setup function for '%s' failed", func->param);
+            pr_warn("setup function for '%s' failed", func->name);
             continue;
         }
 

@@ -7,10 +7,10 @@
 
 typedef struct
 {
-    const char *const param;
+    const char *const name;
     bool (*setup_fn)(int argc, const char **argv);
 } setup_func_t;
 
-#define __setup(_name, _param_name, _initfn) const setup_func_t __setup_##_name __section(".mos.setup") = { .param = _param_name, .setup_fn = _initfn }
+#define __setup(_fn, _param) static const setup_func_t __used __setup_##_fn __section(".mos.setup") = { .name = #_fn, .setup_fn = _fn }
 
 void invoke_setup_functions(cmdline_t *cmdline);
