@@ -57,6 +57,15 @@ static mount_t *dentry_find_mount(dentry_t *dentry)
     return mount;
 }
 
+/**
+ * @brief Lookup the parent directory of a given path, and return the last segment of the path in last_seg_out
+ *
+ * @param base_dir A directory to start the lookup from
+ * @param root_dir The root directory of the filesystem, the lookup will not go above this directory
+ * @param original_path The path to lookup
+ * @param last_seg_out The last segment of the path will be returned in this parameter, the caller is responsible for freeing it
+ * @return dentry_t* The parent directory of the path, or NULL if the path is invalid
+ */
 static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, const char *original_path, char **last_seg_out)
 {
     MOS_ASSERT(base_dir != NULL && root_dir != NULL && original_path != NULL);
@@ -152,8 +161,7 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve
     mos_debug(vfs, "symlink target: %s", target);
 
     char *last_segment;
-    dentry_t *base = current_process->working_directory;
-    dentry_t *parent = dentry_lookup_parent(base, root_dentry, target, &last_segment);
+    dentry_t *parent = dentry_lookup_parent(tree_parent(dentry, dentry_t), root_dentry, target, &last_segment);
     if (parent == NULL)
     {
         mos_warn("symlink target does not exist");
@@ -226,14 +234,6 @@ void dentry_init(void)
     hashmap_init(&vfs_mountpoint_map, VFS_MOUNTPOINT_MAP_SIZE, dentry_hash, hashmap_simple_key_compare);
 }
 
-bool path_is_absolute(const char *path)
-{
-    if (strlen(path) == 0)
-        return false; // empty path is not absolute
-
-    return path[0] == '/';
-}
-
 void dentry_unref(dentry_t *dentry)
 {
     if (dentry == NULL)
@@ -248,7 +248,7 @@ void dentry_unref(dentry_t *dentry)
     dentry->refcount--;
     if (dentry->refcount == 0)
     {
-        // TODO: free the inode
+        // TODO: do we need to free the inode?
         mos_warn("TODO: free the inode");
         if (dentry->name)
             kfree(dentry->name);
@@ -267,7 +267,6 @@ dentry_t *dentry_create(dentry_t *parent, const char *name)
     if (parent)
     {
         tree_add_child(tree_node(parent), tree_node(dentry));
-        dentry->ops = parent->ops;
         dentry->superblock = parent->superblock;
     }
     return dentry_ref(dentry);

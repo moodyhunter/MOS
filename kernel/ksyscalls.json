@@ -150,7 +150,13 @@
             "number": 23,
             "name": "arch_syscall",
             "return": "u64",
-            "arguments": [ { "type": "u64", "arg": "nr" }, { "type": "u64", "arg": "arg1" }, { "type": "u64", "arg": "arg2" }, { "type": "u64", "arg": "arg3" }, { "type": "u64", "arg": "arg4" } ],
+            "arguments": [
+                { "type": "u64", "arg": "nr" },
+                { "type": "u64", "arg": "arg1" },
+                { "type": "u64", "arg": "arg2" },
+                { "type": "u64", "arg": "arg3" },
+                { "type": "u64", "arg": "arg4" }
+            ],
             "comments": [
                 "This syscall is used to implement architecture-specific syscalls.",
                 "The first argument is the syscall number, and the remaining arguments",
@@ -166,6 +172,16 @@
                 { "type": "const char *", "arg": "mount_point" },
                 { "type": "const char *", "arg": "fs_type" },
                 { "type": "const char *", "arg": "options" }
+            ]
+        },
+        {
+            "number": 25,
+            "name": "vfs_readlink",
+            "return": "ssize_t",
+            "arguments": [
+                { "type": "const char *", "arg": "path" },
+                { "type": "char *", "arg": "buf" },
+                { "type": "size_t", "arg": "buf_size" }
             ]
         }
     ]

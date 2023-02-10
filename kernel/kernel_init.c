@@ -5,7 +5,6 @@
 #include "mos/device/console.h"
 #include "mos/device/device_manager.h"
 #include "mos/elf/elf.h"
-#include "mos/filesystem/pathutils.h"
 #include "mos/filesystem/vfs.h"
 #include "mos/io/terminal.h"
 #include "mos/ipc/ipc.h"
@@ -126,6 +125,7 @@ void mos_start_kernel(const char *cmdline)
     process_t *init = elf_create_process(init_path, NULL, init_term, (uid_t) 0, init_argv);
     if (unlikely(!init))
         mos_panic("failed to create init process");
+    init->working_directory = root_dentry;
 
     pr_info("created init process: %s", init->name);
 

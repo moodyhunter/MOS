@@ -81,13 +81,6 @@ typedef struct
 
 typedef struct
 {
-    bool (*init)(dentry_t *self);
-    bool (*get_name)(dentry_t *self, char *buffer, size_t buflen);
-    void (*deinit)(dentry_t *self);
-} dentry_ops_t;
-
-typedef struct
-{
     bool (*lookup)(inode_t *dir, dentry_t *dentry);                                                 // lookup a file in a directory
     bool (*create)(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm);             // create a new file
     bool (*link)(dentry_t *old_dentry, inode_t *dir, dentry_t *new_dentry);                         // create a hard link
@@ -97,7 +90,7 @@ typedef struct
     bool (*rmdir)(inode_t *dir, dentry_t *dentry);                                                  // remove a directory
     bool (*mknod)(inode_t *dir, dentry_t *dentry, file_perm_t perm, dev_t dev);                     // create a new device file
     bool (*rename)(inode_t *old_dir, dentry_t *old_dentry, inode_t *new_dir, dentry_t *new_dentry); // rename a file
-    bool (*readlink)(dentry_t *dentry, char *buffer, size_t buflen);                                // read the contents of a symbolic link
+    size_t (*readlink)(dentry_t *dentry, char *buffer, size_t buflen);                              // read the contents of a symbolic link
 } inode_ops_t;
 
 typedef struct
@@ -121,7 +114,6 @@ typedef struct _superblock
     dentry_t *root;
     list_node_t mounts;
     const superblock_ops_t *ops;
-    const dentry_ops_t *default_d_ops;
 } superblock_t;
 
 typedef struct _dentry
@@ -131,7 +123,6 @@ typedef struct _dentry
     atomic_t refcount;
     inode_t *inode;
     const char *name;
-    dentry_ops_t *ops;
     superblock_t *superblock; // The root of the dentry tree
     bool is_mountpoint;
     void *private; // fs-specific data

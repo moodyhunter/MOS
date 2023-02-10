@@ -40,7 +40,6 @@ typedef struct
 } tmpfs_inode_t;
 
 static const superblock_ops_t superblock_ops;
-static const dentry_ops_t dentry_ops;
 
 static const inode_ops_t tmpfs_inode_dir_ops;
 static const inode_ops_t tmpfs_inode_file_ops;
@@ -111,7 +110,6 @@ static const file_perm_t tmpfs_default_mode = {
 static dentry_t *tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char *options)
 {
     tmpfs_superblock_t *sb = kzalloc(sizeof(tmpfs_superblock_t));
-    sb->fs_superblock.default_d_ops = &dentry_ops;
     sb->fs_superblock.ops = &superblock_ops;
 
     dentry_t *root = dentry_create(NULL, NULL);
@@ -147,24 +145,6 @@ static const superblock_ops_t superblock_ops = {
     .write_inode = tmpfs_sb_write_inode,
     .inode_dirty = tmpfs_sb_inode_dirty,
     .release_superblock = tmpfs_release_superblock,
-};
-
-static bool tmpfs_d_init(dentry_t *dentry)
-{
-}
-
-static bool tmpfs_d_get_name(dentry_t *self, char *buffer, size_t buflen)
-{
-}
-
-static void tmpfs_d_deinit(dentry_t *dentry)
-{
-}
-
-static const dentry_ops_t dentry_ops = {
-    .init = tmpfs_d_init,
-    .get_name = tmpfs_d_get_name,
-    .deinit = tmpfs_d_deinit,
 };
 
 // create a new node in the directory

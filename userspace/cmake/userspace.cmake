@@ -58,8 +58,7 @@ macro(add_to_initrd ITEM_TYPE SOURCE_NAME PATH)
         string(REPLACE "/" "_" TARGET_NAME ${SOURCE_NAME})
         add_custom_target(${TARGET_NAME}_initrd
             WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIR}
-            COMMAND ${CMAKE_COMMAND} -E copy_directory ${SOURCE_NAME} ${OUTPUT_DIR}
+            COMMAND cp -rvT ${SOURCE_NAME} ${OUTPUT_DIR} # see https://gitlab.kitware.com/cmake/cmake/-/issues/14609
             COMMENT "Copying ${SOURCE_NAME} to initrd"
             DEPENDS ${SOURCE_NAME} mos_cleanup_initrd
             BYPRODUCTS ${OUTPUT_DIR}/${DIR_NAME}

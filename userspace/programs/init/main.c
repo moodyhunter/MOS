@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "lib/memory.h"
+#include "mos/filesystem/fs_types.h"
 #include "mos/syscall/usermode.h"
 #include "parser.h"
 
@@ -23,6 +24,22 @@ int main(int argc, char *argv[])
 {
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
+
+    file_stat_t stat;
+    if (!syscall_file_stat("/assets/symlink-rel", &stat))
+        return 1;
+
+    char buf[PATH_MAX] = { 0 };
+    size_t size = syscall_vfs_readlink("/assets/symlink-abs", buf, PATH_MAX);
+    if (size == 0)
+        return 1;
+
+    if (!syscall_file_stat(buf, &stat))
+        return 1;
+
+    fd_t fd = syscall_file_open("/assets/symlink-rel", FILE_OPEN_READ);
+    if (fd <= 0)
+        return 2;
 
     // We don't have a console yet, so printing to stdout will not work.
     fd_t config_fd = syscall_file_open("/assets/config/init.conf", FILE_OPEN_READ);

@@ -308,3 +308,8 @@ bool define_syscall(vfs_mount)(const char *device, const char *mountpoint, const
 {
     return vfs_mount(strdup(device), strdup(mountpoint), strdup(fs_type), strdup(options));
 }
+
+ssize_t define_syscall(vfs_readlink)(const char *path, char *buf, size_t buflen)
+{
+    return vfs_readlink(path, buf, buflen);
+}

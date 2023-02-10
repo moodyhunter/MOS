@@ -37,6 +37,18 @@ void vfs_init(void);
 
 void vfs_register_filesystem(filesystem_t *fs);
 
+/**
+ * @brief Mount a filesystem at a given existing path
+ *
+ * @param device The device to mount
+ * @param path The path to mount the filesystem at, this absolute path to a directory must exist
+ * @param fs The filesystem type, e.g. "tmpfs"
+ * @param options The options to pass to the filesystem
+ * @return true if the filesystem was mounted successfully
+ * @return false if the filesystem could not be mounted, see the kernel log for more information
+ */
+bool vfs_mount(const char *device, const char *path, const char *fs, const char *options);
+
 file_t *vfs_open(const char *path, file_open_flags flags);
 file_t *vfs_openat(int fd, const char *path, file_open_flags flags);
 
@@ -50,14 +62,4 @@ file_t *vfs_openat(int fd, const char *path, file_open_flags flags);
  */
 bool vfs_stat(const char *path, file_stat_t *restrict stat);
 
-/**
- * @brief Mount a filesystem at a given existing path
- *
- * @param device The device to mount
- * @param path The path to mount the filesystem at, this absolute path to a directory must exist
- * @param fs The filesystem type, e.g. "tmpfs"
- * @param options The options to pass to the filesystem
- * @return true if the filesystem was mounted successfully
- * @return false if the filesystem could not be mounted, see the kernel log for more information
- */
-bool vfs_mount(const char *device, const char *path, const char *fs, const char *options);
+size_t vfs_readlink(const char *path, char *buf, size_t size);

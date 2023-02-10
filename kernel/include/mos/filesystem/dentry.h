@@ -21,11 +21,12 @@ void dentry_init(void);
  * @brief Check if a path is absolute
  *
  * @param path The path to check
- * @return true if the path is absolute
- * @return false if the path is relative
+ * @return true if the path is absolute (starts with a '/'), false otherwise
  */
-
-bool path_is_absolute(const char *path);
+should_inline bool path_is_absolute(const char *path)
+{
+    return path[0] == '/';
+}
 
 /**
  * @brief Increment the reference count of a dentry

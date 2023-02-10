@@ -7,7 +7,6 @@
 #include "mos/device/block.h"
 #include "mos/filesystem/dentry.h"
 #include "mos/filesystem/fs_types.h"
-#include "mos/filesystem/pathutils.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mos_global.h"
 #include "mos/printk.h"
@@ -173,7 +172,6 @@ typedef struct
 } cpio_superblock_t;
 
 static const superblock_ops_t cpio_superblock_ops;
-static const dentry_ops_t cpio_dentry_ops;
 static const inode_ops_t cpio_dir_inode_ops;
 static const inode_ops_t cpio_file_inode_ops;
 static const file_ops_t cpio_file_ops;
@@ -231,7 +229,6 @@ static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *
     root->inode = &i->inode;
 
     cpio_superblock_t *sb = kzalloc(sizeof(cpio_superblock_t));
-    sb->sb.default_d_ops = &cpio_dentry_ops;
     sb->sb.ops = &cpio_superblock_ops;
     sb->sb.root = root;
     sb->dev = dev;
@@ -285,11 +282,14 @@ static bool cpio_i_lookup(inode_t *parent_dir, dentry_t *dentry)
     return true;
 }
 
-static const dentry_ops_t cpio_dentry_ops = {
-    .init = NULL,
-    .get_name = NULL,
-    .deinit = NULL,
-};
+static size_t cpio_i_readlink(dentry_t *dentry, char *buffer, size_t buflen)
+{
+    cpio_metadata_t metadata = CPIO_INODE(dentry->inode)->metadata;
+    blockdev_t *dev = CPIO_SB(dentry->inode->superblock)->dev;
+
+    size_t read = dev->read(dev, buffer, MIN(buflen, metadata.data_length), metadata.data_offset);
+    return read;
+}
 
 static const superblock_ops_t cpio_superblock_ops = {
     .write_inode = NULL,
@@ -302,7 +302,7 @@ static const inode_ops_t cpio_dir_inode_ops = {
 };
 
 static const inode_ops_t cpio_file_inode_ops = {
-    .readlink = NULL,
+    .readlink = cpio_i_readlink,
 };
 
 static const file_ops_t cpio_file_ops = {
