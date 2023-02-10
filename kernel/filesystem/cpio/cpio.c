@@ -224,7 +224,7 @@ static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *
     i->inode.file_ops = NULL;
     i->inode.ops = &cpio_dir_inode_ops;
     i->inode.stat.type = FILE_TYPE_DIRECTORY;
-    i->inode.stat.perm.others = i->inode.stat.perm.group = i->inode.stat.perm.owner = (file_perm_t){ .read = true, .write = true, .execute = true };
+    i->inode.stat.perm.others = i->inode.stat.perm.group = i->inode.stat.perm.owner = (file_single_perm_t){ .read = true, .write = true, .execute = true };
     i->inode.stat.perm.owner.execute = i->inode.stat.perm.group.execute = true;
 
     dentry_t *root = dentry_create(NULL, NULL);

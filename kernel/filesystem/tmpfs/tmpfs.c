@@ -56,13 +56,13 @@ should_inline tmpfs_inode_t *INODE(inode_t *inode)
     return container_of(inode, tmpfs_inode_t, real_inode);
 }
 
-inode_t *tmpfs_create_inode(superblock_t *sb, file_type_t type, file_mode_t mode)
+inode_t *tmpfs_create_inode(superblock_t *sb, file_type_t type, file_perm_t perm)
 {
     tmpfs_inode_t *inode = kzalloc(sizeof(tmpfs_inode_t));
     inode->real_inode.superblock = sb;
 
     inode->real_inode.stat.type = type;
-    inode->real_inode.stat.perm = mode;
+    inode->real_inode.stat.perm = perm;
 
     inode->real_inode.ino = ++tmpfs_inode_count;
 
@@ -102,7 +102,7 @@ inode_t *tmpfs_create_inode(superblock_t *sb, file_type_t type, file_mode_t mode
     return &inode->real_inode;
 }
 
-static const file_mode_t tmpfs_default_mode = {
+static const file_perm_t tmpfs_default_mode = {
     .owner = { 1, 1, 0 },
     .group = { 1, 1, 0 },
     .others = { 0, 0, 0 },
@@ -168,9 +168,9 @@ static const dentry_ops_t dentry_ops = {
 };
 
 // create a new node in the directory
-static bool tmpfs_mknod_impl(inode_t *dir, dentry_t *dentry, file_type_t type, file_mode_t mode, dev_t dev)
+static bool tmpfs_mknod_impl(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm, dev_t dev)
 {
-    inode_t *inode = tmpfs_create_inode(dir->superblock, type, mode);
+    inode_t *inode = tmpfs_create_inode(dir->superblock, type, perm);
     dentry->inode = inode;
     return true;
 }
@@ -183,7 +183,7 @@ static bool tmpfs_i_lookup(inode_t *dir, dentry_t *dentry)
     return false;
 }
 
-static bool tmpfs_i_create(inode_t *dir, dentry_t *dentry, file_mode_t mode)
+static bool tmpfs_i_create(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm)
 {
     return false;
 }
@@ -203,9 +203,9 @@ static bool tmpfs_i_unlink(inode_t *dir, dentry_t *dentry)
     return false;
 }
 
-static bool tmpfs_i_mkdir(inode_t *dir, dentry_t *dentry, file_mode_t mode)
+static bool tmpfs_i_mkdir(inode_t *dir, dentry_t *dentry, file_perm_t perm)
 {
-    tmpfs_mknod_impl(dir, dentry, FILE_TYPE_DIRECTORY, mode, 0);
+    tmpfs_mknod_impl(dir, dentry, FILE_TYPE_DIRECTORY, perm, 0);
 }
 
 static bool tmpfs_i_rmdir(inode_t *dir, dentry_t *dentry)
@@ -213,9 +213,9 @@ static bool tmpfs_i_rmdir(inode_t *dir, dentry_t *dentry)
     return false;
 }
 
-static bool tmpfs_i_mknod(inode_t *dir, dentry_t *dentry, file_mode_t mode, dev_t dev)
+static bool tmpfs_i_mknod(inode_t *dir, dentry_t *dentry, file_perm_t perm, dev_t dev)
 {
-    inode_t *inode = tmpfs_create_inode(dir->superblock, FILE_TYPE_REGULAR, mode);
+    inode_t *inode = tmpfs_create_inode(dir->superblock, FILE_TYPE_REGULAR, perm);
 }
 
 static bool tmpfs_i_rename(inode_t *old_dir, dentry_t *old_dentry, inode_t *new_dir, dentry_t *new_dentry)

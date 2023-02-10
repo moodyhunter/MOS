@@ -38,19 +38,19 @@ typedef enum
 typedef struct
 {
     bool read, write, execute;
-} __packed file_perm_t;
+} __packed file_single_perm_t;
 
 typedef struct
 {
-    file_perm_t owner;
-    file_perm_t group;
-    file_perm_t others;
-} file_mode_t;
+    file_single_perm_t owner;
+    file_single_perm_t group;
+    file_single_perm_t others;
+} file_perm_t;
 
 typedef struct
 {
     file_type_t type;
-    file_mode_t perm;
+    file_perm_t perm;
     uid_t uid;
     gid_t gid;
     bool sticky;
@@ -89,13 +89,13 @@ typedef struct
 typedef struct
 {
     bool (*lookup)(inode_t *dir, dentry_t *dentry);                                                 // lookup a file in a directory
-    bool (*create)(inode_t *dir, dentry_t *dentry, file_mode_t mode);                               // create a new file
+    bool (*create)(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm);             // create a new file
     bool (*link)(dentry_t *old_dentry, inode_t *dir, dentry_t *new_dentry);                         // create a hard link
     bool (*symlink)(inode_t *dir, dentry_t *dentry, const char *symname);                           // create a symbolic link
     bool (*unlink)(inode_t *dir, dentry_t *dentry);                                                 // remove a file
-    bool (*mkdir)(inode_t *dir, dentry_t *dentry, file_mode_t mode);                                // create a new directory
+    bool (*mkdir)(inode_t *dir, dentry_t *dentry, file_perm_t perm);                                // create a new directory
     bool (*rmdir)(inode_t *dir, dentry_t *dentry);                                                  // remove a directory
-    bool (*mknod)(inode_t *dir, dentry_t *dentry, file_mode_t mode, dev_t dev);                     // create a new device file
+    bool (*mknod)(inode_t *dir, dentry_t *dentry, file_perm_t perm, dev_t dev);                     // create a new device file
     bool (*rename)(inode_t *old_dir, dentry_t *old_dentry, inode_t *new_dir, dentry_t *new_dentry); // rename a file
     bool (*readlink)(dentry_t *dentry, char *buffer, size_t buflen);                                // read the contents of a symbolic link
 } inode_ops_t;

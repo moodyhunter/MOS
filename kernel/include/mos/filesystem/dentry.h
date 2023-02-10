@@ -6,10 +6,10 @@
 
 typedef enum
 {
-    RESOLVE_DIRECTORY = 1 << 0,         // expect the last segment to be a directory
-    RESOLVE_FILE = 1 << 1,              // expect the last segment to be a file
-    RESOLVE_FOLLOW_SYMLINK = 1 << 2,    // follow symlinks (if the last segment is a symlink) (only for the last segment)
-    RESOLVE_ALLOW_NONEXISTENT = 1 << 3, // allow the last segment to not exist
+    RESOLVE_DIRECTORY = 1 << 0,          // expect the last segment to be a directory
+    RESOLVE_FILE = 1 << 1,               // expect the last segment to be a file
+    RESOLVE_FOLLOW_SYMLINK = 1 << 2,     // follow symlinks (if the last segment is a symlink) (only for the last segment)
+    RESOLVE_CREATE_IF_NONEXIST = 1 << 3, // allow the last segment to not exist
 } lastseg_resolve_flags_t;
 
 /**

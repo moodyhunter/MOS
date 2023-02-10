@@ -149,6 +149,8 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve
 
     target[read] = '\0'; // ensure null termination
 
+    mos_debug(vfs, "symlink target: %s", target);
+
     char *last_segment;
     dentry_t *base = current_process->working_directory;
     dentry_t *parent = dentry_lookup_parent(base, root_dentry, target, &last_segment);
@@ -158,6 +160,7 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve
         return NULL;
     }
 
+    // it's possibly that the symlink target is also a symlink, this will be handled recursively
     dentry_t *child = dentry_resolve_handle_last_segment(parent, last_segment, flags);
     if (child == NULL)
     {
@@ -172,11 +175,13 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
 {
     MOS_ASSERT(parent != NULL && leaf != NULL);
 
+    mos_debug(vfs, "resolving last segment: %s", leaf);
+
     dentry_t *child = dentry_get_child(parent, leaf); // now we have a reference to the child
 
     if (unlikely(child == NULL))
     {
-        if (flags & RESOLVE_ALLOW_NONEXISTENT)
+        if (flags & RESOLVE_CREATE_IF_NONEXIST)
         {
             child = dentry_create(parent, leaf);
             if (unlikely(child == NULL))
@@ -201,6 +206,7 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
 
     if (flags & RESOLVE_FOLLOW_SYMLINK && child->inode->stat.type == FILE_TYPE_SYMLINK)
     {
+        mos_debug(vfs, "resolving symlink: %s", leaf);
         dentry_t *symlink_target = dentry_resolve_follow_symlink(child, flags);
         if (unlikely(symlink_target == NULL))
         {
@@ -320,6 +326,7 @@ dentry_t *dentry_resolve(dentry_t *base_dir, dentry_t *root_dir, const char *pat
     if (last_segment == NULL)
     {
         // path is a single "/"
+        mos_debug(vfs, "path '%s' is a single '/'", path);
         MOS_ASSERT(parent == root_dir);
         return dentry_ref(parent);
     }

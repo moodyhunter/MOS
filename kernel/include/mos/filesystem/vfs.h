@@ -12,11 +12,12 @@ typedef enum
 {
     FILE_OPEN_READ = IO_READABLE,  // 1 << 0
     FILE_OPEN_WRITE = IO_WRITABLE, // 1 << 1
-    FILE_OPEN_SYMLINK_NO_FOLLOW = 1 << 2,
-    FILE_CREATE_IF_NOT_EXIST = 1 << 3,
+    FILE_OPEN_NO_FOLLOW = 1 << 2,
+    FILE_OPEN_CREATE = 1 << 3,
+    FILE_OPEN_EXECUTE = 1 << 4,
 } file_open_flags;
 
-always_inline void file_format_perm(file_mode_t perms, char buf[10])
+always_inline void file_format_perm(file_perm_t perms, char buf[10])
 {
     buf[0] = perms.owner.read ? 'r' : '-';
     buf[1] = perms.owner.write ? 'w' : '-';

@@ -2,6 +2,7 @@
 
 #include "lib/string.h"
 #include "lib/structures/list.h"
+#include "lib/structures/tree.h"
 #include "lib/sync/spinlock.h"
 #include "mos/filesystem/dentry.h"
 #include "mos/filesystem/fs_types.h"
@@ -74,6 +75,23 @@ static filesystem_t *vfs_find_filesystem(const char *name)
     return fs_found;
 }
 
+static bool vfs_verify_permissions(dentry_t *file_dentry, bool open, bool read, bool create, bool execute, bool write)
+{
+    MOS_ASSERT(file_dentry != NULL && file_dentry->inode != NULL);
+    const file_perm_t file_perm = file_dentry->inode->stat.perm;
+
+    // TODO: we are treating all users as root for now, only checks for execute permission
+    MOS_UNUSED(open);
+    MOS_UNUSED(read);
+    MOS_UNUSED(create);
+    MOS_UNUSED(write);
+
+    if (execute && !(file_perm.owner.execute || file_perm.group.execute || file_perm.others.execute))
+        return false; // execute permission denied
+
+    return true;
+}
+
 void vfs_init(void)
 {
     pr_info("initializing the Virtual File System (VFS) subsystem...");
@@ -133,11 +151,29 @@ file_t *vfs_do_open_relative(dentry_t *base, const char *path, file_open_flags f
     if (base == NULL)
         return NULL;
 
-    dentry_t *entry = dentry_resolve(base, root_dentry, path, RESOLVE_FILE | RESOLVE_FOLLOW_SYMLINK);
+    const bool may_create = flags & FILE_OPEN_CREATE;
+    const bool read = flags & FILE_OPEN_READ;
+    const bool write = flags & FILE_OPEN_WRITE;
+    const bool execute = flags & FILE_OPEN_EXECUTE;
+    const bool no_follow = flags & FILE_OPEN_NO_FOLLOW;
+
+    lastseg_resolve_flags_t resolve_flags = RESOLVE_FILE | (no_follow ? 0 : RESOLVE_FOLLOW_SYMLINK) | (may_create ? RESOLVE_CREATE_IF_NONEXIST : 0);
+    dentry_t *entry = dentry_resolve(base, root_dentry, path, resolve_flags);
+
+    if (entry == NULL)
+    {
+        pr_warn("failed to resolve path '%s', c=%d, r=%d, e=%d, n=%d", path, may_create, read, execute, no_follow);
+        return NULL;
+    }
+
+    if (!vfs_verify_permissions(entry, true, read, may_create, execute, write))
+        return NULL;
 
     file_t *file = kzalloc(sizeof(file_t));
     file->dentry = entry;
-    io_init(&file->io, flags, &fs_io_ops);
+
+    io_flags_t io_flags = (flags & FILE_OPEN_READ ? IO_READABLE : 0) | (flags & FILE_OPEN_WRITE ? IO_WRITABLE : 0) | IO_SEEKABLE;
+    io_init(&file->io, io_flags, &fs_io_ops);
 
     const file_ops_t *ops = file_get_ops(file);
     if (ops->open)
