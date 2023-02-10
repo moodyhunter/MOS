@@ -79,6 +79,7 @@ add_library(mos_kernel.elf STATIC
     kernel/device/device_manager.c
     kernel/elf/elf.c
     kernel/filesystem/cpio/cpio.c
+    kernel/filesystem/tmpfs/tmpfs.c
     kernel/filesystem/vfs.c
     kernel/filesystem/dentry.c
     kernel/filesystem/pathutils.c

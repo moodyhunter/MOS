@@ -26,3 +26,8 @@ int __pure hashmap_compare_string(const void *key1, const void *key2)
 {
     return strcmp((const char *) key1, (const char *) key2) == 0;
 }
+
+int __pure hashmap_simple_key_compare(const void *key1, const void *key2)
+{
+    return key1 == key2;
+}

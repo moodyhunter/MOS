@@ -1,7 +1,8 @@
 {
     "$schema": "../assets/syscalls.schema.json",
     "includes": [
-        "mos/filesystem/filesystem.h",
+        "mos/filesystem/fs_types.h",
+        "mos/filesystem/vfs.h",
         "mos/mos_global.h",
         "mos/platform/platform.h",
         "mos/types.h"

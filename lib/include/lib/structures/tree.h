@@ -9,9 +9,9 @@ typedef struct tree_node tree_node_t;
 
 typedef struct tree_node
 {
+    as_linked_list;
     tree_node_t *parent;
-    tree_node_t *first_child;
-    list_node_t siblings;
+    list_node_t children;
 } tree_node_t;
 
 /**
@@ -24,15 +24,15 @@ typedef const struct
     void (*get_node_name)(const tree_node_t *node, char **name, size_t *name_len);
 } tree_op_t;
 
-#define tree_entry(node, type) container_of((node), type, tree_node)
-#define tree_node(element)     (&((element)->tree_node))
+#define tree_entry(node, type)  container_of((node), type, tree_node)
+#define tree_node(element)      (&((element)->tree_node))
+#define tree_parent(node, type) (tree_entry(tree_node(node)->parent, type))
 
-#define _tree_sibling_entry(node, type) container_of((node), type, tree_node.siblings)
-#define _tree_sibling_list_node(node)   (&(node)->tree_node.siblings)
+#define tree_child_entry(node, type) container_of(node, type, tree_node.children)
+#define tree_child_node(node)        (&((node)->tree_node.children))
 
-#define tree_foreach_child(type, var, node)                                                                                                                              \
-    for (type *var = _tree_sibling_entry((node)->tree_node.first_child, type); _tree_sibling_list_node(var) != (&(node)->tree_node.siblings);                            \
-         var = _tree_sibling_entry(_tree_sibling_list_node(var)->next, type))
+#define tree_foreach_child(t, v, h)                                                                                                                                      \
+    for (t *v = tree_child_entry(tree_child_node(h)->next, t); tree_child_node(v) != tree_child_node(h); v = tree_child_entry(tree_child_node(v)->next, t))
 
 void tree_add_child(tree_node_t *parent, tree_node_t *child);
 void tree_remove_if(tree_node_t *node, bool (*predicate)(const tree_node_t *node));

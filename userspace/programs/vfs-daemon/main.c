@@ -9,7 +9,9 @@
 
 static rpc_server_t *vfs_server;
 
-extern rpc_function_info_t vfs_functions[VFSOP_MAX_OP];
+static rpc_function_info_t vfs_functions[VFSOP_MAX_OP] = {
+    0,
+};
 
 int main(int argc, const char *argv[])
 {

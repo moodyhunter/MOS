@@ -4,8 +4,7 @@
 
 #include "lib/structures/list.h"
 #include "mos/device/block.h"
-#include "mos/filesystem/filesystem.h"
-#include "mos/filesystem/mount.h"
+#include "mos/filesystem/fs_types.h"
 #include "mos/ipc/ipc.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/printk.h"
@@ -13,21 +12,19 @@
 
 static io_t *server_io = NULL;
 
-bool devfs_mount(blockdev_t *dev, fsnode_t *mount_point)
+dentry_t *devfs_mount(filesystem_t *fs, const char *dev, const char *options)
 {
-    (void) dev;
-    (void) mount_point;
-
     // vfs_readlink(mount_point, mount_point->name, 0, 0)
-
-    pr_info("devfs mounted at %s", mount_point->name);
-    return true;
+    return 0;
 }
 
 // register a /dev filesystem
 static filesystem_t devfs = {
     .name = "devfs",
-    .op_mount = devfs_mount,
+    .ops =
+        &(filesystem_ops_t){
+            .mount = devfs_mount,
+        },
 };
 
 static void device_manager_thread(void *arg)

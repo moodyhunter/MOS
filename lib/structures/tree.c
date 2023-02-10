@@ -15,16 +15,8 @@ void tree_add_child(tree_node_t *parent, tree_node_t *child)
 
     child->parent = parent;
 
-    if (parent->first_child == NULL)
-    {
-        parent->first_child = child;
-        linked_list_init(&child->siblings);
-    }
-    else
-    {
-        linked_list_init(&child->siblings);
-        list_node_append(&parent->first_child->siblings, &child->siblings);
-    }
+    linked_list_init(&child->children);
+    list_node_append(&parent->children, &child->list_node);
 }
 
 void tree_remove_if(tree_node_t *node, bool (*predicate)(const tree_node_t *node))
@@ -42,9 +34,9 @@ const tree_node_t *tree_find_child_by_name(tree_op_t *op, const tree_node_t *nod
     if (name_len == 0)
         return node;
 
-    list_node_foreach(sibling, &node->first_child->siblings)
+    list_node_foreach(child_node, &node->children)
     {
-        const tree_node_t *child = container_of(sibling, tree_node_t, siblings);
+        const tree_node_t *child = container_of(child_node, tree_node_t, children);
         char *child_name = NULL;
         size_t child_name_len = 0;
         op->get_node_name(child, &child_name, &child_name_len);

@@ -3,7 +3,7 @@
 #include "mos/elf/elf.h"
 
 #include "lib/string.h"
-#include "mos/filesystem/filesystem.h"
+#include "mos/filesystem/vfs.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/memops.h"
 #include "mos/mm/paging/paging.h"
@@ -49,7 +49,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
         return NULL;
     }
 
-    if (stat.type != FILE_TYPE_REGULAR_FILE)
+    if (stat.type != FILE_TYPE_REGULAR)
     {
         mos_warn("'%s' is not a regular file", path);
         return NULL;
@@ -85,7 +85,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
         goto bail_out;
     }
 
-    process_t *proc = process_new(parent, effective_uid, f->fsnode->name, term, (thread_entry_t) elf->entry_point, argv);
+    process_t *proc = process_new(parent, effective_uid, f->dentry->name, term, (thread_entry_t) elf->entry_point, argv);
 
     for (int i = 0; i < elf->ph.count; i++)
     {
