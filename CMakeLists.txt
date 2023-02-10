@@ -56,9 +56,10 @@ file(GLOB_RECURSE MOS_KERNEL_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/kerne
 generate_syscall_headers(${CMAKE_SOURCE_DIR}/kernel/ksyscalls.json)
 
 add_library(mos_kernel STATIC ${MOS_STANDARD_LIBRARY_SOURCES} ${MOS_KERNEL_SOURCES})
-target_link_libraries(mos_kernel PRIVATE gcc mos::include mos::syscall::decl)
+target_link_libraries(mos_kernel PRIVATE gcc mos::include)
 target_compile_definitions(mos_kernel PRIVATE -D__MOS_KERNEL__)
 target_compile_options(mos_kernel PUBLIC "-ffreestanding")
+add_dependencies(mos_kernel mos_syscall_decl)
 add_library(mos::kernel ALIAS mos_kernel)
 
 # Configure architecture-specific stuff
