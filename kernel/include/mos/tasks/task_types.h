@@ -4,6 +4,7 @@
 
 #include "lib/structures/stack.h"
 #include "lib/sync/spinlock.h"
+#include "mos/filesystem/fs_types.h"
 #include "mos/io/io.h"
 #include "mos/kconfig.h"
 #include "mos/platform/platform.h"
@@ -68,6 +69,8 @@ typedef struct _process
 
     ssize_t mmaps_count;
     proc_vmblock_t *mmaps;
+
+    dentry_t *working_directory;
 
     // platform per-process flags
     void *platform_options;

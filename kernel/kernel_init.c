@@ -4,8 +4,7 @@
 #include "mos/device/console.h"
 #include "mos/device/device_manager.h"
 #include "mos/elf/elf.h"
-#include "mos/filesystem/cpio/cpio.h"
-#include "mos/filesystem/pathutils.h"
+#include "mos/filesystem/vfs.h"
 #include "mos/io/terminal.h"
 #include "mos/ipc/ipc.h"
 #include "mos/kconfig.h"
@@ -18,6 +17,7 @@
 #include "mos/tasks/schedule.h"
 #include "mos/tasks/thread.h"
 
+extern filesystem_t fs_cpiofs;
 const char *init_path = "/programs/init";
 
 bool setup_init_path(int argc, const char **argv)
@@ -37,56 +37,8 @@ bool setup_init_path(int argc, const char **argv)
 
 __setup(setup_init_path, "init");
 
-bool mount_initrd(void)
+argv_t create_argv_from_cmdline(void)
 {
-    blockdev_t *dev = blockdev_find("initrd");
-    if (!dev)
-        return false;
-    pr_info2("found initrd block device: %s", dev->name);
-
-    mountpoint_t *mount = kmount(&root_path, &fs_cpio, dev);
-    if (!mount)
-        return false;
-
-    pr_info2("mounted initrd as rootfs");
-    return true;
-}
-
-void mos_start_kernel(const char *cmdline)
-{
-    mos_cmdline = cmdline_create(cmdline);
-
-    pr_info("Welcome to MOS!");
-    pr_emph("MOS %s (%s)", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION_STRING);
-
-    if (mos_cmdline->options_count)
-        pr_emph("MOS Arguments: (total of %zu options)", mos_cmdline->options_count);
-
-    for (u32 i = 0; i < mos_cmdline->options_count; i++)
-    {
-        cmdline_option_t *option = mos_cmdline->options[i];
-        pr_info("%2d: %s", i + 1, option->name);
-        for (u32 j = 0; j < option->argc; j++)
-            pr_info2("  %2d: %s", j + 1, option->argv[j]);
-    }
-
-    invoke_setup_functions(mos_cmdline);
-
-    shm_init();
-    ipc_init();
-    process_init();
-    thread_init();
-
-    if (unlikely(!mount_initrd()))
-        mos_panic("failed to mount initrd");
-
-    console_t *init_con = console_get("serial_com1");
-    if (init_con->caps & CONSOLE_CAP_CLEAR)
-        init_con->clear(init_con);
-
-    terminal_t *init_term = terminal_create_console(init_con);
-
-    // construct argv for init process
     argv_t init_argv = {
         .argc = mos_cmdline->options_count + 1,
         .argv = kmalloc(sizeof(char *) * (mos_cmdline->options_count + 2)), // +1 for init path, +1 for NULL
@@ -123,9 +75,54 @@ void mos_start_kernel(const char *cmdline)
         init_argv.argv[i + 1] = str;
     }
 
+    init_argv.argv[init_argv.argc - 1] = NULL;
+    return init_argv;
+}
+
+void mos_start_kernel(const char *cmdline)
+{
+    mos_cmdline = cmdline_create(cmdline);
+
+    pr_info("Welcome to MOS!");
+    pr_emph("MOS %s (%s)", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION_STRING);
+
+    if (mos_cmdline->options_count)
+        pr_emph("MOS Kernel cmdline");
+
+    for (u32 i = 0; i < mos_cmdline->options_count; i++)
+    {
+        cmdline_option_t *option = mos_cmdline->options[i];
+        pr_info("%2d: %s", i + 1, option->name);
+        for (u32 j = 0; j < option->argc; j++)
+            pr_info2("  %2d: %s", j + 1, option->argv[j]);
+    }
+
+    invoke_setup_functions(mos_cmdline);
+
+    // register builtin filesystems
+    vfs_init();
+    vfs_register_filesystem(&fs_cpiofs);
+
+    bool mounted = vfs_mount("initrd", "/", "cpio", NULL);
+    if (!mounted)
+        mos_panic("failed to mount rootfs");
+
+    shm_init();
+    ipc_init();
+    process_init();
+    thread_init();
+
+    console_t *init_con = console_get("serial_com1");
+    if (init_con->caps & CONSOLE_CAP_CLEAR)
+        init_con->clear(init_con);
+
+    terminal_t *init_term = terminal_create_console(init_con);
+
+    const argv_t init_argv = create_argv_from_cmdline();
     process_t *init = elf_create_process(init_path, NULL, init_term, (uid_t) 0, init_argv);
     if (unlikely(!init))
         mos_panic("failed to create init process");
+    init->working_directory = root_dentry;
 
     pr_info("created init process: %s", init->name);
 

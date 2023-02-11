@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/filesystem/cpio/cpio.h"
-
 #include "lib/stdlib.h"
 #include "lib/string.h"
+#include "lib/structures/list.h"
+#include "lib/structures/tree.h"
 #include "mos/device/block.h"
-#include "mos/filesystem/mount.h"
-#include "mos/filesystem/pathutils.h"
+#include "mos/filesystem/dentry.h"
+#include "mos/filesystem/fs_types.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/mos_global.h"
 #include "mos/printk.h"
+#include "mos/setup.h"
 
 #define CPIO_MODE_FILE_TYPE 0170000 // This masks the file type bits.
 #define CPIO_MODE_SOCKET    0140000 // File type value for sockets.
@@ -22,7 +24,41 @@
 #define CPIO_MODE_SGID      0002000 // SGID bit.
 #define CPIO_MODE_STICKY    0001000 // Sticky bit.
 
-bool cpio_read_metadata(blockdev_t *dev, const char *target, cpio_metadata_t *metadata)
+typedef struct
+{
+    char magic[6];
+    char ino[8];
+    char mode[8];
+    char uid[8];
+    char gid[8];
+    char nlink[8];
+    char mtime[8];
+
+    char filesize[8];
+    char devmajor[8];
+    char devminor[8];
+    char rdevmajor[8];
+    char rdevminor[8];
+
+    char namesize[8];
+    char check[8];
+} cpio_newc_header_t;
+
+typedef struct
+{
+    cpio_newc_header_t header;
+    size_t header_offset;
+
+    size_t name_offset;
+    size_t name_length;
+
+    size_t data_offset;
+    size_t data_length;
+} cpio_metadata_t;
+
+static_assert(sizeof(cpio_newc_header_t) == 110, "cpio_newc_header has wrong size");
+
+static bool cpio_read_metadata(blockdev_t *dev, const char *target, cpio_metadata_t *metadata)
 {
     if (unlikely(strcmp(target, "TRAILER!!!") == 0))
         mos_panic("what the heck are you doing?");
@@ -44,8 +80,9 @@ bool cpio_read_metadata(blockdev_t *dev, const char *target, cpio_metadata_t *me
 
         size_t filename_len = strntoll(header.namesize, NULL, 16, sizeof(header.namesize) / sizeof(char));
 
-        char filename[filename_len];
+        char filename[filename_len + 1]; // +1 for null terminator
         dev->read(dev, filename, filename_len, offset);
+        filename[filename_len] = '\0';
 
         bool found = strncmp(filename, target, filename_len) == 0;
 
@@ -80,12 +117,93 @@ bool cpio_read_metadata(blockdev_t *dev, const char *target, cpio_metadata_t *me
     MOS_UNREACHABLE();
 }
 
-bool cpio_mount(blockdev_t *dev, fsnode_t *path)
+static void cpio_metadata_to_stat(cpio_metadata_t *metadata, file_stat_t *stat)
 {
-    MOS_UNUSED(path);
-    size_t read = 0;
+    stat->size = metadata->data_length;
+
+    stat->uid = strntoll(metadata->header.uid, NULL, 16, sizeof(metadata->header.uid) / sizeof(char));
+    stat->gid = strntoll(metadata->header.gid, NULL, 16, sizeof(metadata->header.gid) / sizeof(char));
+
+    //  0000777  The lower 9 bits specify read/write/execute permissions for world, group, and user following standard POSIX conventions.
+    u32 modebits = strntoll(metadata->header.mode, NULL, 16, sizeof(metadata->header.mode) / sizeof(char));
+    stat->perm.others.read = modebits & 0004;
+    stat->perm.others.write = modebits & 0002;
+    stat->perm.others.execute = modebits & 0001;
+
+    stat->perm.group.read = modebits & 0040;
+    stat->perm.group.write = modebits & 0020;
+    stat->perm.group.execute = modebits & 0010;
+
+    stat->perm.owner.read = modebits & 0400;
+    stat->perm.owner.write = modebits & 0200;
+    stat->perm.owner.execute = modebits & 0100;
+
+    stat->sticky = modebits & CPIO_MODE_STICKY;
+    stat->sgid = modebits & CPIO_MODE_SGID;
+    stat->suid = modebits & CPIO_MODE_SUID;
+
+    switch (modebits & CPIO_MODE_FILE_TYPE)
+    {
+        case CPIO_MODE_FILE: stat->type = FILE_TYPE_REGULAR; break;
+        case CPIO_MODE_DIR: stat->type = FILE_TYPE_DIRECTORY; break;
+        case CPIO_MODE_SYMLINK: stat->type = FILE_TYPE_SYMLINK; break;
+        case CPIO_MODE_CHARDEV: stat->type = FILE_TYPE_CHAR_DEVICE; break;
+        case CPIO_MODE_BLOCKDEV: stat->type = FILE_TYPE_BLOCK_DEVICE; break;
+        case CPIO_MODE_FIFO: stat->type = FILE_TYPE_NAMED_PIPE; break;
+        case CPIO_MODE_SOCKET: stat->type = FILE_TYPE_SOCKET; break;
+        default: mos_warn("invalid cpio file mode"); break;
+    }
+}
+
+// ============================================================================================================
+
+extern filesystem_t fs_cpiofs;
+
+typedef struct
+{
+    inode_t inode;
+    cpio_metadata_t metadata;
+} cpio_inode_t;
+
+typedef struct
+{
+    superblock_t sb;
+    blockdev_t *dev;
+} cpio_superblock_t;
+
+static const superblock_ops_t cpio_superblock_ops;
+static const inode_ops_t cpio_dir_inode_ops;
+static const inode_ops_t cpio_file_inode_ops;
+static const file_ops_t cpio_file_ops;
+
+should_inline cpio_superblock_t *CPIO_SB(superblock_t *sb)
+{
+    return container_of(sb, cpio_superblock_t, sb);
+}
+
+should_inline cpio_inode_t *CPIO_INODE(inode_t *inode)
+{
+    return container_of(inode, cpio_inode_t, inode);
+}
+
+// ============================================================================================================
+
+static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *mount_options)
+{
+    MOS_ASSERT(fs == &fs_cpiofs);
+
+    if (unlikely(mount_options) && strlen(mount_options) > 0)
+        mos_warn("cpio: mount options are not supported");
+
+    blockdev_t *dev = blockdev_find(dev_name);
+    if (unlikely(!dev))
+    {
+        mos_warn("cpio: failed to find block device %s", dev_name);
+        return NULL;
+    }
+
     cpio_newc_header_t header;
-    read = dev->read(dev, &header, sizeof(header), 0);
+    size_t read = dev->read(dev, &header, sizeof(header), 0);
     if (read != sizeof(header))
     {
         mos_warn("failed to read cpio archive");
@@ -100,128 +218,105 @@ bool cpio_mount(blockdev_t *dev, fsnode_t *path)
 
     mos_debug(cpio, "cpio header: %.6s", header.magic);
 
-    return true;
+    cpio_inode_t *i = kzalloc(sizeof(cpio_inode_t));
+    i->inode.file_ops = NULL;
+    i->inode.ops = &cpio_dir_inode_ops;
+    i->inode.stat.type = FILE_TYPE_DIRECTORY;
+    i->inode.stat.perm.others = i->inode.stat.perm.group = i->inode.stat.perm.owner = (file_single_perm_t){ .read = true, .write = true, .execute = true };
+    i->inode.stat.perm.owner.execute = i->inode.stat.perm.group.execute = true;
+
+    dentry_t *root = dentry_create(NULL, NULL);
+    root->inode = &i->inode;
+
+    cpio_superblock_t *sb = kzalloc(sizeof(cpio_superblock_t));
+    sb->sb.ops = &cpio_superblock_ops;
+    sb->sb.root = root;
+    sb->dev = dev;
+
+    root->superblock = i->inode.superblock = &sb->sb;
+
+    return root;
 }
 
-bool cpio_unmount(mountpoint_t *mountpoint)
+static ssize_t cpio_f_read(file_t *file, void *buf, size_t size)
 {
-    MOS_ASSERT(mountpoint->fs == &fs_cpio);
-    return true;
-}
+    cpio_metadata_t metadata = CPIO_INODE(file->dentry->inode)->metadata;
+    blockdev_t *dev = CPIO_SB(file->dentry->inode->superblock)->dev;
 
-bool cpio_open(const mountpoint_t *mp, const fsnode_t *path, file_open_flags flags, file_t *file)
-{
-    const char *strpath = path_to_string_relative(mp->path, path);
-    mos_debug(cpio, "cpio_open: %s", strpath);
-    if (flags & FILE_OPEN_WRITE)
-    {
-        mos_warn("cpio_open: write not supported");
-        return false;
-    }
-
-    cpio_metadata_t metadata;
-    bool result = cpio_read_metadata(mp->dev, strpath, &metadata);
-
-    if (!result)
-        return false;
-
-    file->pdata = kmalloc(sizeof(cpio_metadata_t));
-    memcpy(file->pdata, &metadata, sizeof(cpio_metadata_t));
-    return true;
-}
-
-size_t cpio_read(blockdev_t *dev, file_t *file, void *buf, size_t size)
-{
-    cpio_metadata_t *metadata = file->pdata;
-    size_t read = dev->read(dev, buf, MIN(size, metadata->data_length), metadata->data_offset);
+    size_t read = dev->read(dev, buf, MIN(size, metadata.data_length), metadata.data_offset);
     return read;
 }
 
-bool cpio_close(file_t *file)
+static bool cpio_i_lookup(inode_t *parent_dir, dentry_t *dentry)
 {
-    MOS_UNUSED(file);
-    return false;
-}
+    // keep prepending the path with the parent path, until we reach the root
+    char *path = strdup(dentry->name);
 
-bool cpio_stat(const mountpoint_t *mp, const fsnode_t *path, file_stat_t *stat)
-{
-    const char *strpath = path_to_string_relative(mp->path, path);
-    cpio_metadata_t metadata;
-    bool result = cpio_read_metadata(mp->dev, strpath, &metadata);
-    if (!result)
-        return false;
-
-    stat->size = metadata.data_length;
-
-    stat->uid = strntoll(metadata.header.uid, NULL, 16, sizeof(metadata.header.uid) / sizeof(char));
-    stat->gid = strntoll(metadata.header.gid, NULL, 16, sizeof(metadata.header.gid) / sizeof(char));
-
-    //  0000777  The lower 9 bits specify read/write/execute permissions for world, group, and user following standard POSIX conventions.
-    u32 modebits = strntoll(metadata.header.mode, NULL, 16, sizeof(metadata.header.mode) / sizeof(char));
-    stat->permissions.other = (modebits & 0007) >> 0;
-    stat->permissions.group = (modebits & 0070) >> 3;
-    stat->permissions.owner = (modebits & 0700) >> 6;
-
-    stat->sticky = modebits & CPIO_MODE_STICKY;
-    stat->sgid = modebits & CPIO_MODE_SGID;
-    stat->suid = modebits & CPIO_MODE_SUID;
-
-    switch (modebits & CPIO_MODE_FILE_TYPE)
+    for (dentry_t *current = tree_parent(dentry, dentry_t); current->name != NULL; current = tree_parent(current, dentry_t))
     {
-        case CPIO_MODE_FILE: stat->type = FILE_TYPE_REGULAR_FILE; break;
-        case CPIO_MODE_DIR: stat->type = FILE_TYPE_DIRECTORY; break;
-        case CPIO_MODE_SYMLINK: stat->type = FILE_TYPE_SYMLINK; break;
-        case CPIO_MODE_CHARDEV: stat->type = FILE_TYPE_CHAR_DEVICE; break;
-        case CPIO_MODE_BLOCKDEV: stat->type = FILE_TYPE_BLOCK_DEVICE; break;
-        case CPIO_MODE_FIFO: stat->type = FILE_TYPE_NAMED_PIPE; break;
-        case CPIO_MODE_SOCKET: stat->type = FILE_TYPE_SOCKET; break;
-        default: mos_warn("invalid cpio file mode"); return -1;
+        char *newpath = kmalloc(strlen(current->name) + 1 + strlen(path) + 1);
+        strcpy(newpath, current->name);
+        strcat(newpath, "/");
+        strcat(newpath, path);
+        kfree(path);
+        path = newpath;
     }
+
+    cpio_superblock_t *sb = CPIO_SB(parent_dir->superblock);
+
+    cpio_metadata_t metadata;
+    const bool found = cpio_read_metadata(sb->dev, path, &metadata);
+    if (!found)
+        return false; // not found
+
+    cpio_inode_t *i = kzalloc(sizeof(cpio_inode_t));
+    file_stat_t stat;
+    cpio_metadata_to_stat(&metadata, &stat);
+
+    i->inode.stat = stat;
+    i->inode.ops = stat.type == FILE_TYPE_DIRECTORY ? &cpio_dir_inode_ops : &cpio_file_inode_ops;
+    i->inode.superblock = parent_dir->superblock;
+    i->inode.file_ops = stat.type == FILE_TYPE_DIRECTORY ? NULL : &cpio_file_ops;
+    i->metadata = metadata;
+    dentry->inode = &i->inode;
     return true;
 }
 
-bool cpio_readlink(const mountpoint_t *mp, const fsnode_t *path, char *buf, size_t bufsize)
+static size_t cpio_i_readlink(dentry_t *dentry, char *buffer, size_t buflen)
 {
-    const char *strpath = path_to_string_relative(mp->path, path);
-    cpio_metadata_t metadata;
-    bool result = cpio_read_metadata(mp->dev, strpath, &metadata);
-    if (!result)
-        return false;
-    u32 modebits = strntoll(metadata.header.mode, NULL, 16, sizeof(metadata.header.mode) / sizeof(char));
+    cpio_metadata_t metadata = CPIO_INODE(dentry->inode)->metadata;
+    blockdev_t *dev = CPIO_SB(dentry->inode->superblock)->dev;
 
-    if (!(modebits & 0120000))
-    {
-        mos_warn("cpio_readlink: not a symbolic link");
-        return false;
-    }
-
-    size_t read = 0;
-    if (metadata.data_length > bufsize)
-    {
-        mos_warn("cpio_readlink: buffer too small");
-        return false;
-    }
-
-    u32 limit = metadata.data_length < bufsize ? metadata.data_length : bufsize;
-
-    read = mp->dev->read(mp->dev, buf, limit, metadata.data_offset);
-    if (read != limit)
-    {
-        mos_warn("cpio_readlink: failed to read link");
-        return false;
-    }
-    return true;
+    size_t read = dev->read(dev, buffer, MIN(buflen, metadata.data_length), metadata.data_offset);
+    return read;
 }
 
-const filesystem_t fs_cpio = {
+static const superblock_ops_t cpio_superblock_ops = {
+    .write_inode = NULL,
+    .inode_dirty = NULL,
+    .release_superblock = NULL,
+};
+
+static const inode_ops_t cpio_dir_inode_ops = {
+    .lookup = cpio_i_lookup,
+};
+
+static const inode_ops_t cpio_file_inode_ops = {
+    .readlink = cpio_i_readlink,
+};
+
+static const file_ops_t cpio_file_ops = {
+    .open = NULL,
+    .read = cpio_f_read,
+    .mmap = NULL,
+};
+
+filesystem_t fs_cpiofs = {
+    .list_node = LIST_HEAD_INIT(fs_cpiofs.list_node),
+    .superblocks = LIST_HEAD_INIT(fs_cpiofs.superblocks),
     .name = "cpio",
-    .op_mount = cpio_mount,
-    .op_unmount = cpio_unmount,
-
-    .op_open = cpio_open,
-    .op_read = cpio_read,
-    .op_close = cpio_close,
-    .op_readlink = cpio_readlink,
-
-    .op_stat = cpio_stat,
+    .ops =
+        &(filesystem_ops_t){
+            .mount = cpio_mount,
+        },
 };

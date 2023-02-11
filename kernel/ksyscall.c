@@ -3,7 +3,7 @@
 #include "include/mos/tasks/thread.h"
 #include "lib/string.h"
 #include "mos/elf/elf.h"
-#include "mos/filesystem/filesystem.h"
+#include "mos/filesystem/vfs.h"
 #include "mos/ipc/ipc.h"
 #include "mos/locks/futex.h"
 #include "mos/mm/kmalloc.h"
