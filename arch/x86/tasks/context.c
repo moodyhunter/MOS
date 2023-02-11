@@ -54,8 +54,16 @@ asmlinkage uintptr_t x86_switch_impl_setup_user_thread(void)
         const char *real_argv[argc + 1];
         for (size_t i = 0; i < argc; i++)
         {
-            real_argv[i] = stack_grow(&current->u_stack, strlen(src_argv[i]) + 1);
-            strcpy((char *) real_argv[i], src_argv[i]);
+            if (src_argv[i] == NULL)
+            {
+                pr_warn("argv[%zu] is NULL, replacing with NULL", i);
+                real_argv[i] = NULL;
+            }
+            else
+            {
+                real_argv[i] = stack_grow(&current->u_stack, strlen(src_argv[i]) + 1);
+                strcpy((char *) real_argv[i], src_argv[i]);
+            }
         }
         real_argv[argc] = NULL;
 

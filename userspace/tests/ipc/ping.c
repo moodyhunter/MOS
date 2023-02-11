@@ -38,14 +38,8 @@ int main(int argc, char **argv)
     const char *ipc_name = argv[1];
     printf("Server: Starting with ipc name '%s'\n", ipc_name);
 
-    const char *args[3] = {
-        "/programs/kmsg-pong",
-        ipc_name,
-        NULL,
-    };
-
     for (int i = 0; i < 10; i++)
-        syscall_spawn("/programs/kmsg-pong", 2, args);
+        syscall_spawn("/programs/kmsg-pong", 1, &ipc_name);
 
     fd_t fd = syscall_ipc_create(ipc_name, 32);
     if (fd < 0)
