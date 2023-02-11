@@ -55,7 +55,8 @@ struct list_node
  * @param v Name of the variable to use for the current element (e.g. `item')
  * @param h List Head (e.g. `consoles')
  */
-#define list_foreach(t, v, h) for (t *v = list_entry((h).next, t); list_node(v) != &(h); v = list_entry(list_node(v)->next, t))
+#define list_foreach(t, v, h)         for (t *v = list_entry((h).next, t); list_node(v) != &(h); v = list_entry(list_node(v)->next, t))
+#define list_node_foreach(node, head) for (list_node_t *node = (head)->next; node != (head); node = node->next)
 
 void linked_list_init(list_node_t *head_node);
 bool list_is_empty(list_node_t *head);

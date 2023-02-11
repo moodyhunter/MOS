@@ -5,18 +5,18 @@
 #include "lib/liballoc.h"
 #include "lib/mos_lib.h"
 #include "lib/string.h"
+#include "lib/structures/list.h"
 
 void tree_add_child(tree_node_t *parent, tree_node_t *child)
 {
     MOS_LIB_ASSERT(parent != NULL);
     MOS_LIB_ASSERT(child != NULL);
     MOS_LIB_ASSERT(child->parent == NULL);
-    MOS_LIB_ASSERT(child->n_children == 0);
-    MOS_LIB_ASSERT(child->children == NULL);
+
     child->parent = parent;
-    parent->n_children++;
-    parent->children = liballoc_realloc(parent->children, parent->n_children * sizeof(tree_node_t *));
-    parent->children[parent->n_children - 1] = child;
+
+    linked_list_init(&child->children);
+    list_node_append(&parent->children, &child->list_node);
 }
 
 void tree_remove_if(tree_node_t *node, bool (*predicate)(const tree_node_t *node))
@@ -33,16 +33,17 @@ const tree_node_t *tree_find_child_by_name(tree_op_t *op, const tree_node_t *nod
         return NULL;
     if (name_len == 0)
         return node;
-    for (size_t i = 0; i < node->n_children; i++)
-    {
-        const tree_node_t *child = node->children[i];
 
+    list_node_foreach(child_node, &node->children)
+    {
+        const tree_node_t *child = container_of(child_node, tree_node_t, children);
         char *child_name = NULL;
         size_t child_name_len = 0;
         op->get_node_name(child, &child_name, &child_name_len);
         if (name_len == child_name_len && strncmp(name, child_name, name_len) == 0)
             return child;
     }
+
     return NULL;
 }
 
