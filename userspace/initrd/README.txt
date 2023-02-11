@@ -10,5 +10,5 @@
 
 Hello, world!
 
-This text is stored in /assets/msg.txt and is read by the
+This text is stored in /README.txt and is read by the
 init program.

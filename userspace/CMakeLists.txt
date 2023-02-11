@@ -5,12 +5,6 @@ target_include_directories(mos_libuserspace PUBLIC ${CMAKE_SOURCE_DIR}/userspace
 target_link_libraries(mos_libuserspace PUBLIC gcc mos::include)
 add_library(mos::libuserspace ALIAS mos_libuserspace)
 add_dependencies(mos_libuserspace mos_syscall_decl) # needs to be generated before we can compile
-add_custom_target(mos_initrd
-    find . -depth | cpio -o --format=crc >../initrd.cpio
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/initrd
-    COMMENT "Creating initrd at ${CMAKE_BINARY_DIR}/initrd.cpio"
-    BYPRODUCTS ${CMAKE_BINARY_DIR}/initrd.cpio
-)
 
 # TODO: Remove this once we have a proper userspace libc
 target_compile_options(mos_libuserspace PUBLIC "-ffreestanding")
@@ -24,8 +18,7 @@ add_subdirectory(drivers)
 add_subdirectory(tests)
 
 # initrd resources
-add_to_initrd(FILE assets/msg.txt /assets)
-add_to_initrd(FILE assets/config/init.conf /assets/config)
+add_subdirectory(initrd)
 
 # if you want to debug a userspace program, replace the line below with the
 # target name of the program you want to debug
