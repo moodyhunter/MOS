@@ -24,17 +24,11 @@ static void file_api(void)
     {
         printf("File size: %zd bytes\n", stat.size);
         printf("Owner: %d:%d\n", stat.uid, stat.gid);
-        printf("Permissions: %c%c%c%c%c%c%c%c%c",
-               stat.permissions.owner & FILE_PERM_READ ? 'r' : '-',  //
-               stat.permissions.owner & FILE_PERM_WRITE ? 'w' : '-', //
-               stat.permissions.owner & FILE_PERM_EXEC ? 'x' : '-',  //
-               stat.permissions.group & FILE_PERM_READ ? 'r' : '-',  //
-               stat.permissions.group & FILE_PERM_WRITE ? 'w' : '-', //
-               stat.permissions.group & FILE_PERM_EXEC ? 'x' : '-',  //
-               stat.permissions.other & FILE_PERM_READ ? 'r' : '-',  //
-               stat.permissions.other & FILE_PERM_WRITE ? 'w' : '-', //
-               stat.permissions.other & FILE_PERM_EXEC ? 'x' : '-'   //
-        );
+
+        char buf[16] = { 0 };
+        file_format_perm(stat.perm, buf);
+        printf("Permissions: %.9s", buf);
+
         if (stat.suid)
             printf("[SUID]");
         if (stat.sgid)
