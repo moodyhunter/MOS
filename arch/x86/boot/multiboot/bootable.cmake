@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-target_sources(mos_kernel.elf PRIVATE ${CMAKE_CURRENT_LIST_DIR}/startup.c)
+target_sources(mos_kernel PRIVATE ${CMAKE_CURRENT_LIST_DIR}/startup.c)
 
 prepare_bootable_kernel_binary(multiboot
     LOADER_ASM ${CMAKE_CURRENT_LIST_DIR}/multiboot.asm

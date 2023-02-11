@@ -30,5 +30,5 @@ function(prepare_bootable_kernel_binary TARGET_NAME)
         LINK_OPTIONS "-T${KERNEL_BINARY_LINKER_SCRIPT};-nostdlib")
 
     # target_link_options(${TARGET_NAME} PRIVATE "-Wl,-Map=output.map")
-    target_link_libraries(${TARGET_NAME} PRIVATE gcc mos::elf_kernel)
+    target_link_libraries(${TARGET_NAME} PRIVATE gcc mos::kernel)
 endfunction()

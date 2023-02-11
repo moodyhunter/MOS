@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+add_library(mos_libuserspace OBJECT libuserspace.c ${MOS_STANDARD_LIBRARY_SOURCES})
+target_include_directories(mos_libuserspace PUBLIC ${CMAKE_SOURCE_DIR}/userspace/include)
+target_link_libraries(mos_libuserspace PUBLIC gcc mos::include)
+add_library(mos::libuserspace ALIAS mos_libuserspace)
+add_dependencies(mos_libuserspace mos_syscall_decl) # needs to be generated before we can compile
 add_custom_target(mos_initrd
     find . -depth | cpio -o --format=crc >../initrd.cpio
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/initrd

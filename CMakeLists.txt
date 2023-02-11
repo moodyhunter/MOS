@@ -29,19 +29,14 @@ endif()
 
 include(generate_syscall_headers)
 
-add_library(mos_kernel_basic_include INTERFACE)
-add_library(mos_kernel_platform_include INTERFACE)
-
-target_include_directories(mos_kernel_basic_include INTERFACE
-    ${CMAKE_SOURCE_DIR}/kernel/include
+add_library(mos_kernel_include INTERFACE)
+target_include_directories(mos_kernel_include INTERFACE
     ${CMAKE_BINARY_DIR}/include
-    ${CMAKE_SOURCE_DIR}/lib/include)
-
-target_include_directories(mos_kernel_platform_include INTERFACE
-    ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/include)
-
-add_library(mos::basic_include ALIAS mos_kernel_basic_include)
-add_library(mos::platform_include ALIAS mos_kernel_platform_include)
+    ${CMAKE_SOURCE_DIR}/kernel/include
+    ${CMAKE_SOURCE_DIR}/lib/include
+    ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/include
+)
+add_library(mos::include ALIAS mos_kernel_include)
 
 execute_process(
     COMMAND git describe --long --tags --all --dirty
@@ -55,64 +50,17 @@ execute_process(
 mos_kconfig(MISC MOS_KERNEL_VERSION "\"${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}\"" "Kernel version")
 mos_kconfig(MISC MOS_KERNEL_REVISION_STRING "\"${REVISION}\"" "Kernel revision string")
 
-set(MOS_STANDARD_LIBRARY_SOURCES
-    lib/sync/mutex.c
-    lib/structures/bitmap.c
-    lib/structures/hashmap.c
-    lib/structures/hashmap_common.c
-    lib/structures/list.c
-    lib/structures/stack.c
-    lib/structures/ring_buffer.c
-    lib/structures/tree.c
-    lib/stdio.c
-    lib/stdio_impl.c
-    lib/stdlib.c
-    lib/string.c
-    lib/liballoc.c
-)
+generate_syscall_headers(${CMAKE_SOURCE_DIR}/kernel/ksyscalls.json)
 
-add_library(mos_kernel.elf STATIC
-    ${MOS_STANDARD_LIBRARY_SOURCES}
-    kernel/cmdline.c
-    kernel/device/console.c
-    kernel/device/block.c
-    kernel/device/device_manager.c
-    kernel/elf/elf.c
-    kernel/filesystem/cpio/cpio.c
-    kernel/filesystem/filesystem.c
-    kernel/filesystem/mount.c
-    kernel/filesystem/pathutils.c
-    kernel/ksyscall.c
-    kernel/io/io.c
-    kernel/io/terminal.c
-    kernel/ipc/ipc.c
-    kernel/kernel_init.c
-    kernel/mm/cow.c
-    kernel/mm/memops.c
-    kernel/mm/paging/paging.c
-    kernel/mm/paging/pmalloc.c
-    kernel/mm/shm.c
-    kernel/mm/ipcshm/ipcshm.c
-    kernel/locks/futex.c
-    kernel/panic.c
-    kernel/printk.c
-    kernel/stack_protector.c
-    kernel/setup.c
-    kernel/tasks/fork.c
-    kernel/tasks/process.c
-    kernel/tasks/thread.c
-    kernel/tasks/kthread.c
-    kernel/tasks/schedule.c
-    kernel/tasks/wait.c
-)
+file(GLOB_RECURSE MOS_STANDARD_LIBRARY_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/lib/*.c)
+file(GLOB_RECURSE MOS_KERNEL_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/kernel/*.c)
 
-generate_syscall_headers(mos_kernel.elf ${CMAKE_SOURCE_DIR}/kernel/ksyscalls.json)
-
-target_link_libraries(mos_kernel.elf PRIVATE gcc mos::basic_include mos::platform_include)
-target_compile_definitions(mos_kernel.elf PRIVATE -D__MOS_KERNEL__)
-target_compile_options(mos_kernel.elf PUBLIC "-ffreestanding")
-
-add_library(mos::elf_kernel ALIAS mos_kernel.elf)
+add_library(mos_kernel STATIC ${MOS_STANDARD_LIBRARY_SOURCES} ${MOS_KERNEL_SOURCES})
+target_link_libraries(mos_kernel PRIVATE gcc mos::include)
+target_compile_definitions(mos_kernel PRIVATE -D__MOS_KERNEL__)
+target_compile_options(mos_kernel PUBLIC "-ffreestanding")
+add_dependencies(mos_kernel mos_syscall_decl)
+add_library(mos::kernel ALIAS mos_kernel)
 
 # Configure architecture-specific stuff
 include(add_kernel_source)
@@ -120,18 +68,10 @@ include(add_bootable_target)
 
 include(${MOS_ARCH_CONFIG})
 
-add_library(mos_libuserspace OBJECT userspace/libuserspace.c ${MOS_STANDARD_LIBRARY_SOURCES})
-target_include_directories(mos_libuserspace PUBLIC ${CMAKE_SOURCE_DIR}/userspace/include)
-target_link_libraries(mos_libuserspace PUBLIC gcc mos::basic_include mos::platform_include)
-add_library(mos::libuserspace ALIAS mos_libuserspace)
-
-# build userspace programs after the kernel (may require the generated syscall headers)
-add_dependencies(mos_libuserspace mos::elf_kernel)
-
 add_subdirectory(userspace)
 add_subdirectory(tests)
 
-generate_kconfig(mos_kernel.elf)
+generate_kconfig(mos_kernel)
 
 message("")
 message("MOS is now configured :)")
