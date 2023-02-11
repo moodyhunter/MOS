@@ -17,6 +17,7 @@
 #include "mos/tasks/schedule.h"
 #include "mos/tasks/thread.h"
 
+extern filesystem_t fs_tmpfs;
 extern filesystem_t fs_cpiofs;
 const char *init_path = "/programs/init";
 
@@ -101,6 +102,7 @@ void mos_start_kernel(const char *cmdline)
 
     // register builtin filesystems
     vfs_init();
+    vfs_register_filesystem(&fs_tmpfs);
     vfs_register_filesystem(&fs_cpiofs);
 
     bool mounted = vfs_mount("initrd", "/", "cpio", NULL);
