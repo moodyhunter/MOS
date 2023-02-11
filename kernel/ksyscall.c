@@ -303,3 +303,13 @@ u64 define_syscall(arch_syscall)(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64 
 {
     return platform_arch_syscall(syscall, arg1, arg2, arg3, arg4);
 }
+
+bool define_syscall(vfs_mount)(const char *device, const char *mountpoint, const char *fs_type, const char *options)
+{
+    return vfs_mount(strdup(device), strdup(mountpoint), strdup(fs_type), strdup(options));
+}
+
+ssize_t define_syscall(vfs_readlink)(const char *path, char *buf, size_t buflen)
+{
+    return vfs_readlink(path, buf, buflen);
+}
