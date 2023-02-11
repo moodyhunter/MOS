@@ -144,6 +144,15 @@ char *strncpy(char *dest, const char *src, size_t n)
     return dest;
 }
 
+size_t strlcpy(char *dest, const char *src, size_t dest_size)
+{
+    size_t i;
+    for (i = 0; i < dest_size - 1 && src[i] != '\0'; i++)
+        dest[i] = src[i];
+    dest[i] = '\0';
+    return i;
+}
+
 char *strdup(const char *src)
 {
     char *dst = liballoc_malloc(strlen(src) + 1);
