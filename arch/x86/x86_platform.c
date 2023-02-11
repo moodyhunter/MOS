@@ -54,6 +54,8 @@ static const vmblock_t x86_ebda_block = {
     .paddr = X86_EBDA_MEMREGION_PADDR,
 };
 
+static vmblock_t x86_acpi_block = { 0 };
+
 void x86_keyboard_handler(u32 irq)
 {
     MOS_ASSERT(irq == IRQ_KEYBOARD);
@@ -207,19 +209,21 @@ void x86_start_kernel(x86_startup_info *info)
     // find the RSDT and map the whole region it's in
     for (u32 i = 0; i < x86_platform.mem_regions.count; i++)
     {
-        memregion_t *this_region = &x86_platform.mem_regions.regions[i];
+        memregion_t *r = &x86_platform.mem_regions.regions[i];
         if (rsdp->xsdt_addr)
             mos_panic("XSDT not supported");
-        if (rsdp->v1.rsdt_addr >= this_region->address && rsdp->v1.rsdt_addr < this_region->address + this_region->size_bytes)
+        if (rsdp->v1.rsdt_addr >= r->address && rsdp->v1.rsdt_addr < r->address + r->size_bytes)
         {
-            vmblock_t bios_vmblock = (vmblock_t){
-                .npages = this_region->size_bytes / MOS_PAGE_SIZE,
-                .vaddr = BIOS_VADDR(this_region->address),
+            x86_acpi_block = (vmblock_t){
+                .npages = r->size_bytes / MOS_PAGE_SIZE,
+                .vaddr = BIOS_VADDR(r->address),
                 .flags = VM_READ | VM_GLOBAL,
-                .paddr = this_region->address,
+                .paddr = r->address,
             };
-            mm_map_allocated_pages(x86_platform.kernel_pgd, bios_vmblock);
-            this_region->address = BIOS_VADDR(this_region->address);
+
+            pr_info2("mapping ACPI tables " PTR_FMT " (+%zd pages) to vaddr=" PTR_FMT, r->address, x86_acpi_block.npages, x86_acpi_block.vaddr);
+            mm_map_allocated_pages(x86_platform.kernel_pgd, x86_acpi_block);
+            r->address = BIOS_VADDR(r->address);
             break;
         }
     }
