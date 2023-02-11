@@ -314,7 +314,7 @@ static const file_ops_t cpio_file_ops = {
 filesystem_t fs_cpiofs = {
     .list_node = LIST_HEAD_INIT(fs_cpiofs.list_node),
     .superblocks = LIST_HEAD_INIT(fs_cpiofs.superblocks),
-    .name = "cpio",
+    .name = "cpiofs",
     .ops =
         &(filesystem_ops_t){
             .mount = cpio_mount,

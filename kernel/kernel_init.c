@@ -105,7 +105,7 @@ void mos_start_kernel(const char *cmdline)
     vfs_register_filesystem(&fs_tmpfs);
     vfs_register_filesystem(&fs_cpiofs);
 
-    bool mounted = vfs_mount("initrd", "/", "cpio", NULL);
+    bool mounted = vfs_mount("initrd", "/", "cpiofs", NULL);
     if (!mounted)
         mos_panic("failed to mount rootfs");
 
