@@ -93,8 +93,10 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, file_open_
     const bool execute = flags & FILE_OPEN_EXECUTE;
     const bool no_follow = flags & FILE_OPEN_NO_FOLLOW;
 
-    lastseg_resolve_flags_t resolve_flags = RESOLVE_FILE | (no_follow ? 0 : RESOLVE_FOLLOW_SYMLINK) | (may_create ? RESOLVE_CREATE_IF_NONEXIST : 0);
-    dentry_t *entry = dentry_resolve(base, root_dentry, path, resolve_flags);
+    lastseg_resolve_flags_t resolve_flags = RESOLVE_EXPECT_FILE |                        //
+                                            (no_follow ? 0 : RESOLVE_SYMLINK_NOFOLLOW) | //
+                                            (may_create ? RESOLVE_CREATE_IF_NONEXIST : RESOLVE_EXPECT_EXIST);
+    dentry_t *entry = dentry_get(base, root_dentry, path, resolve_flags);
 
     if (entry == NULL)
     {
@@ -165,7 +167,7 @@ bool vfs_mount(const char *device, const char *path, const char *fs, const char 
     }
 
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
-    dentry_t *mount_point = dentry_resolve(base, root_dentry, path, RESOLVE_DIRECTORY | RESOLVE_FOLLOW_SYMLINK);
+    dentry_t *mount_point = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST);
     if (unlikely(mount_point == NULL))
     {
         mos_warn("mount point does not exist");
@@ -179,13 +181,14 @@ bool vfs_mount(const char *device, const char *path, const char *fs, const char 
         return false;
     }
 
-    bool mounted = dentry_mount(mount_point, mounted_root);
+    bool mounted = dentry_mount(mount_point, mounted_root, real_fs);
     if (unlikely(!mounted))
     {
         mos_warn("failed to mount filesystem");
         return false;
     }
 
+    pr_info2("mounted filesystem '%s' on '%s'", fs, path);
     return true;
 }
 
@@ -204,7 +207,7 @@ file_t *vfs_openat(int fd, const char *path, file_open_flags flags)
 bool vfs_stat(const char *path, file_stat_t *restrict stat)
 {
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
-    dentry_t *file = dentry_resolve(base, root_dentry, path, RESOLVE_FILE);
+    dentry_t *file = dentry_get(base, root_dentry, path, RESOLVE_FOR_STAT);
     if (file == NULL)
         return false;
 
@@ -215,7 +218,7 @@ bool vfs_stat(const char *path, file_stat_t *restrict stat)
 size_t vfs_readlink(const char *path, char *buf, size_t size)
 {
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
-    dentry_t *dentry = dentry_resolve(base, root_dentry, path, RESOLVE_FILE);
+    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_SYMLINK_NOFOLLOW | RESOLVE_EXPECT_EXIST);
     if (dentry == NULL)
         return 0;
 
@@ -227,4 +230,63 @@ size_t vfs_readlink(const char *path, char *buf, size_t size)
         return 0;
 
     return len;
+}
+
+bool vfs_touch(const char *path, file_type_t type, u32 perms)
+{
+    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
+    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_CREATE_IF_NONEXIST);
+    if (dentry == NULL)
+        return false;
+
+    dentry_t *parentdir = tree_parent(dentry, dentry_t);
+    if (parentdir == NULL)
+        return false;
+
+    file_perm_t perms_obj = {
+        .owner.read = perms & 0400,
+        .owner.write = perms & 0200,
+        .owner.execute = perms & 0100,
+        .group.read = perms & 0040,
+        .group.write = perms & 0020,
+        .group.execute = perms & 0010,
+        .others.read = perms & 0004,
+        .others.write = perms & 0002,
+        .others.execute = perms & 0001,
+    };
+
+    parentdir->inode->ops->newfile(parentdir->inode, dentry, type, perms_obj);
+    return true;
+}
+
+bool vfs_symlink(const char *path, const char *target)
+{
+    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
+    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_CREATE_ONLY);
+    if (dentry == NULL)
+        return false;
+
+    dentry_t *parent_dir = tree_parent(dentry, dentry_t);
+    bool created = parent_dir->inode->ops->symlink(parent_dir->inode, dentry, target);
+
+    if (!created)
+        mos_warn("failed to create symlink '%s'", path);
+
+    return created;
+}
+
+bool vfs_mkdir(const char *path)
+{
+    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
+    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_CREATE_ONLY);
+    if (dentry == NULL)
+        return false;
+
+    dentry_t *parent_dir = tree_parent(dentry, dentry_t);
+    bool created = parent_dir->inode->ops->mkdir(parent_dir->inode, dentry, parent_dir->inode->stat.perm); // TODO: use umask or something else
+
+    if (!created)
+        mos_warn("failed to create directory '%s'", path);
+
+    return created;
 }

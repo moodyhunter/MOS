@@ -6,10 +6,26 @@
 
 typedef enum
 {
-    RESOLVE_DIRECTORY = 1 << 0,          // expect the last segment to be a directory
-    RESOLVE_FILE = 1 << 1,               // expect the last segment to be a file
-    RESOLVE_FOLLOW_SYMLINK = 1 << 2,     // follow symlinks (if the last segment is a symlink) (only for the last segment)
-    RESOLVE_CREATE_IF_NONEXIST = 1 << 3, // allow the last segment to not exist
+    // bit 0, 1: the operation only succeeds if the inode is a...
+    RESOLVE_EXPECT_FILE = 1 << 0,
+    RESOLVE_EXPECT_DIR = 1 << 1,
+    RESOLVE_ANY = RESOLVE_EXPECT_FILE | RESOLVE_EXPECT_DIR,
+
+    // bit 2: follow symlinks?
+    // only for the last segment, (if it is a symlink)
+    RESOLVE_SYMLINK_NOFOLLOW = 1 << 2,
+
+    // bit 3, 4: the operation only succeeds if...
+    RESOLVE_EXPECT_EXIST = 1 << 3,
+    RESOLVE_EXPECT_NONEXIST = 1 << 4,
+
+    // bit 5: the operation will...
+    RESOLVE_WILL_CREATE = 1 << 5, // create the file if it doesn't exist
+
+    // compose the flags
+    RESOLVE_CREATE_ONLY = RESOLVE_EXPECT_NONEXIST | RESOLVE_WILL_CREATE,
+    RESOLVE_CREATE_IF_NONEXIST = RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_NONEXIST | RESOLVE_WILL_CREATE,
+    RESOLVE_FOR_STAT = RESOLVE_EXPECT_FILE | RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST,
 } lastseg_resolve_flags_t;
 
 /**
@@ -93,14 +109,15 @@ dentry_t *dentry_get_child(dentry_t *parent, const char *name);
  *         NULL if any intermediate directory in the path does not exist.
  *
  */
-dentry_t *dentry_resolve(dentry_t *base, dentry_t *root_dir, const char *path, lastseg_resolve_flags_t flags);
+dentry_t *dentry_get(dentry_t *base, dentry_t *root_dir, const char *path, lastseg_resolve_flags_t flags);
 
 /**
  * @brief Mount a filesystem at a mountpoint
  *
  * @param mountpoint The mountpoint
  * @param root The root directory of the filesystem
+ * @param fs The filesystem to mount
  *
  * @return true if the filesystem was mounted successfully, false otherwise
  */
-__nodiscard bool dentry_mount(dentry_t *mountpoint, dentry_t *root);
+__nodiscard bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs);

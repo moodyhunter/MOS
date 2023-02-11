@@ -72,6 +72,8 @@ static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, co
     char *saveptr;
     char *path = strdup(original_path);
 
+    mos_debug(vfs, "lookup parent of %s", path);
+
     char *current_seg = strtok_r(path, PATH_DELIM_STR, &saveptr);
     dentry_t *current_dir = path_is_absolute(path) ? root_dir : base_dir;
 
@@ -129,6 +131,12 @@ static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, co
 
         current_dir = child;
         current_seg = next;
+
+        if (current_dir->is_mountpoint)
+        {
+            mos_debug(vfs, "jumping to mountpoint %s", current_dir->name);
+            current_dir = dentry_find_mount(current_dir)->root; // if it's a mountpoint, jump to the tree of mounted filesystem instead
+        }
     }
 
     MOS_UNREACHABLE();
@@ -189,7 +197,13 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
 
     if (unlikely(child == NULL))
     {
-        if (flags & RESOLVE_CREATE_IF_NONEXIST)
+        if (!(flags & RESOLVE_EXPECT_NONEXIST))
+        {
+            mos_warn("file does not exist, didn't expect it");
+            return NULL;
+        }
+
+        if (flags & RESOLVE_WILL_CREATE)
         {
             child = dentry_create(parent, leaf);
             if (unlikely(child == NULL))
@@ -212,8 +226,14 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
         return NULL;
     }
 
-    if (flags & RESOLVE_FOLLOW_SYMLINK && child->inode->stat.type == FILE_TYPE_SYMLINK)
+    if (child->inode->stat.type == FILE_TYPE_SYMLINK)
     {
+        if (flags & RESOLVE_SYMLINK_NOFOLLOW)
+        {
+            mos_debug(vfs, "not resolving symlink");
+            return child;
+        }
+
         mos_debug(vfs, "resolving symlink: %s", leaf);
         dentry_t *symlink_target = dentry_resolve_follow_symlink(child, flags);
         if (unlikely(symlink_target == NULL))
@@ -223,6 +243,23 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
         }
 
         return symlink_target;
+    }
+
+    if (child->inode->stat.type == FILE_TYPE_DIRECTORY)
+    {
+        if (!(flags & RESOLVE_EXPECT_DIR))
+        {
+            mos_warn("got a directory, didn't expect it");
+            return NULL;
+        }
+    }
+    else
+    {
+        if (!(flags & RESOLVE_EXPECT_FILE))
+        {
+            mos_warn("got a file, didn't expect it");
+            return NULL;
+        }
     }
 
     return child;
@@ -248,8 +285,6 @@ void dentry_unref(dentry_t *dentry)
     dentry->refcount--;
     if (dentry->refcount == 0)
     {
-        // TODO: do we need to free the inode?
-        mos_warn("TODO: free the inode");
         if (dentry->name)
             kfree(dentry->name);
         kfree(dentry);
@@ -289,7 +324,10 @@ dentry_t *dentry_get_child(dentry_t *parent, const char *name)
     tree_foreach_child(dentry_t, c, parent)
     {
         if (strcmp(c->name, name) == 0)
+        {
+            mos_debug(vfs, "found dentry '%s' in cache", name);
             return dentry_ref(c);
+        }
     }
 
     // not in the cache, try to find it in the filesystem
@@ -312,9 +350,10 @@ dentry_t *dentry_get_child(dentry_t *parent, const char *name)
     return NULL;
 }
 
-dentry_t *dentry_resolve(dentry_t *base_dir, dentry_t *root_dir, const char *path, lastseg_resolve_flags_t flags)
+dentry_t *dentry_get(dentry_t *base_dir, dentry_t *root_dir, const char *path, lastseg_resolve_flags_t flags)
 {
     char *last_segment;
+    mos_debug(vfs, "resolving path '%s'", path);
     dentry_t *parent = dentry_lookup_parent(base_dir, root_dir, path, &last_segment);
     if (parent == NULL)
     {
@@ -333,12 +372,13 @@ dentry_t *dentry_resolve(dentry_t *base_dir, dentry_t *root_dir, const char *pat
     return dentry_resolve_handle_last_segment(parent, last_segment, flags);
 }
 
-bool dentry_mount(dentry_t *mountpoint, dentry_t *root)
+bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs)
 {
     mount_t *mount = kzalloc(sizeof(mount_t));
     mount->root = root;
     mount->superblock = root->inode->superblock;
     mount->mountpoint = mountpoint;
+    mount->fs = fs;
     mountpoint->is_mountpoint = true;
 
     if (hashmap_put(&vfs_mountpoint_map, mountpoint, mount) != NULL)

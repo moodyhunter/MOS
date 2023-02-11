@@ -177,6 +177,24 @@
                 { "type": "char *", "arg": "buf" },
                 { "type": "size_t", "arg": "buf_size" }
             ]
+        },
+        {
+            "number": 26,
+            "name": "vfs_touch",
+            "return": "bool",
+            "arguments": [ { "type": "const char *", "arg": "path" }, { "type": "file_type_t", "arg": "type" }, { "type": "u32", "arg": "mode" } ]
+        },
+        {
+            "number": 27,
+            "name": "vfs_symlink",
+            "return": "bool",
+            "arguments": [ { "type": "const char *", "arg": "link_path" }, { "type": "const char *", "arg": "target" } ]
+        },
+        {
+            "number": 28,
+            "name": "vfs_mkdir",
+            "return": "bool",
+            "arguments": [ { "type": "const char *", "arg": "path" } ]
         }
     ]
 }

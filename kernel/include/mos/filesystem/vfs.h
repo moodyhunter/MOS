@@ -62,4 +62,40 @@ file_t *vfs_openat(int fd, const char *path, file_open_flags flags);
  */
 bool vfs_stat(const char *path, file_stat_t *restrict stat);
 
+/**
+ * @brief Read a symbolic link
+ *
+ * @param path The path to the symbolic link
+ * @param buf The buffer to store the link in
+ * @param size The size of the buffer
+ * @return size_t The size of the link, or 0 if the link could not be read, or the buffer was too small
+ */
 size_t vfs_readlink(const char *path, char *buf, size_t size);
+
+/**
+ * @brief Create a new file
+ *
+ * @param path The path to the file
+ * @param perms The permissions of the file, if the file already exists, the permissions will not be changed
+ * @return true if the file was created successfully, or already exists. false if the file could not be created
+ */
+bool vfs_touch(const char *path, file_type_t type, u32 perms);
+
+/**
+ * @brief Create a symbolic link
+ *
+ * @param path The path to the symbolic link
+ * @param target The target of the symbolic link
+ * @return true
+ * @return false
+ */
+bool vfs_symlink(const char *path, const char *target);
+
+/**
+ * @brief Create a directory
+ *
+ * @param path The path to the directory
+ * @return true
+ * @return false
+ */
+bool vfs_mkdir(const char *path);

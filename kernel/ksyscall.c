@@ -3,6 +3,7 @@
 #include "include/mos/tasks/thread.h"
 #include "lib/string.h"
 #include "mos/elf/elf.h"
+#include "mos/filesystem/fs_types.h"
 #include "mos/filesystem/vfs.h"
 #include "mos/ipc/ipc.h"
 #include "mos/locks/futex.h"
@@ -306,10 +307,25 @@ u64 define_syscall(arch_syscall)(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64 
 
 bool define_syscall(vfs_mount)(const char *device, const char *mountpoint, const char *fs_type, const char *options)
 {
-    return vfs_mount(strdup(device), strdup(mountpoint), strdup(fs_type), strdup(options));
+    return vfs_mount(device, mountpoint, fs_type, options);
 }
 
 ssize_t define_syscall(vfs_readlink)(const char *path, char *buf, size_t buflen)
 {
     return vfs_readlink(path, buf, buflen);
+}
+
+bool define_syscall(vfs_touch)(const char *path, file_type_t type, u32 mode)
+{
+    return vfs_touch(path, type, mode);
+}
+
+bool define_syscall(vfs_symlink)(const char *target, const char *linkpath)
+{
+    return vfs_symlink(target, linkpath);
+}
+
+bool define_syscall(vfs_mkdir)(const char *path)
+{
+    return vfs_mkdir(path);
 }
