@@ -249,3 +249,29 @@ char *strtok(char *str, const char *delim)
     }
     return token;
 }
+
+char *strtok_r(char *str, const char *delim, char **saveptr)
+{
+    if (str == NULL)
+        str = *saveptr;
+
+    if (str == NULL)
+        return NULL;
+
+    str += strspn(str, delim);
+
+    if (*str == '\0')
+        return *saveptr = NULL;
+
+    char *token = str;
+    str = strpbrk(token, delim);
+
+    if (str == NULL)
+        *saveptr = NULL;
+    else
+    {
+        *str = '\0';
+        *saveptr = str + 1;
+    }
+    return token;
+}

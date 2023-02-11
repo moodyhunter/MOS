@@ -36,5 +36,5 @@ char *strchr(const char *s, int c);
 size_t strspn(const char *s, const char *accept);
 char *strpbrk(const char *s, const char *accept);
 char *strtok(char *str, const char *delim);
-
+char *strtok_r(char *str, const char *delim, char **saveptr);
 /** @} */
