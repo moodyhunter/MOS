@@ -15,4 +15,6 @@
 hash_t __pure hashmap_hash_string(const void *key);
 int __pure hashmap_compare_string(const void *key1, const void *key2);
 
+int __pure hashmap_simple_key_compare(const void *key1, const void *key2);
+
 /** @} */

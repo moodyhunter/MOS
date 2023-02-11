@@ -4,6 +4,7 @@
 
 #include "lib/string.h"
 #include "lib/structures/hashmap.h"
+#include "lib/structures/hashmap_common.h"
 #include "lib/sync/spinlock.h"
 #include "mos/io/terminal.h"
 #include "mos/mm/cow.h"
@@ -17,16 +18,11 @@
 
 #define PROCESS_HASHTABLE_SIZE 512
 
-hashmap_t *process_table;
+hashmap_t *process_table = { 0 }; // pid_t -> process_t
 
 static hash_t process_hash(const void *key)
 {
     return (hash_t){ .hash = *(pid_t *) key };
-}
-
-static int process_equal(const void *key1, const void *key2)
-{
-    return *(pid_t *) key1 == *(pid_t *) key2;
 }
 
 static pid_t new_process_id(void)
@@ -101,7 +97,7 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
 void process_init(void)
 {
     process_table = kzalloc(sizeof(hashmap_t));
-    hashmap_init(process_table, PROCESS_HASHTABLE_SIZE, process_hash, process_equal);
+    hashmap_init(process_table, PROCESS_HASHTABLE_SIZE, process_hash, hashmap_simple_key_compare);
 #if MOS_DEBUG_FEATURE(process)
     declare_panic_hook(debug_dump_process);
     install_panic_hook(&debug_dump_process_holder);
