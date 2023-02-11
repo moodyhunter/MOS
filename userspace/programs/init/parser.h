@@ -6,7 +6,7 @@
 
 typedef struct init_config init_config_t;
 
-init_config_t *config_parse_file(fd_t fd);
+init_config_t *config_parse_file(const char *file_path);
 
 // returns a pointer to the value of the key, or NULL if the key is not found
 // the returned pointer is valid until the config is freed

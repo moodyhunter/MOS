@@ -4,6 +4,7 @@
 
 #include "lib/memory.h"
 #include "lib/string.h"
+#include "mos/filesystem/fs_types.h"
 #include "mos/syscall/usermode.h"
 
 typedef struct init_config
@@ -16,47 +17,58 @@ typedef struct init_config
     } *entries;
 } init_config_t;
 
-init_config_t *config_parse_file(fd_t fd)
+init_config_t *config_parse_file(const char *file_path)
 {
-    static char file_content[4 KB] = { 0 };
-    size_t read = syscall_io_read(fd, file_content, 4 KB, 0);
-    if (read == 0)
+    file_stat_t stat;
+    if (!syscall_file_stat(file_path, &stat))
+        return NULL;
+
+    fd_t fd = syscall_file_open(file_path, FILE_OPEN_READ);
+    if (fd <= 0)
+        return NULL;
+
+    char *file_content = malloc(stat.size);
+
+    size_t read = syscall_io_read(fd, file_content, stat.size, 0);
+    if (read != stat.size)
         return NULL;
 
     init_config_t *config = malloc(sizeof(init_config_t));
     config->count = 0;
     config->entries = NULL;
 
-    char *line = strtok(file_content, "\n");
+    char *saveptr;
+    char *line = strtok_r(file_content, "\n", &saveptr);
     while (line)
     {
         // Skip comments
         if (line[0] == '#')
         {
-            line = strtok(NULL, "\n");
+            line = strtok_r(NULL, "\n", &saveptr);
             continue;
         }
 
         // Skip empty lines
         if (strlen(line) == 0)
         {
-            line = strtok(NULL, "\n");
+            line = strtok_r(NULL, "\n", &saveptr);
             continue;
         }
 
         // Parse key
-        char *key = strtok(line, "=");
+        char *keysaveptr;
+        char *key = strtok_r(line, "=", &keysaveptr);
         if (!key)
         {
-            line = strtok(NULL, "\n");
+            line = strtok_r(NULL, "\n", &saveptr);
             continue;
         }
 
         // Parse value
-        char *value = strtok(NULL, "=");
+        char *value = strtok_r(NULL, "=", &keysaveptr);
         if (!value)
         {
-            line = strtok(NULL, "\n");
+            line = strtok_r(NULL, "\n", &saveptr);
             continue;
         }
 
@@ -79,9 +91,10 @@ init_config_t *config_parse_file(fd_t fd)
         config->entries[config->count].value = strdup(value);
         config->count++;
 
-        line = strtok(NULL, "\n");
+        line = strtok_r(NULL, "\n", &saveptr);
     }
 
+    free(file_content);
     return config;
 }
 
