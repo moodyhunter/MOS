@@ -1,5 +1,8 @@
 config.cmake
 
+# rootfs image
+rootfs.img
+
 # build directories
 build/
 
