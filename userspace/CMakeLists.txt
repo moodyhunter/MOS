@@ -19,7 +19,7 @@ add_subdirectory(drivers)
 add_subdirectory(tests)
 
 # initrd resources
-add_to_initrd(DIRECTORY assets /assets)
+add_subdirectory(initrd)
 
 # if you want to debug a userspace program, replace the line below with the
 # target name of the program you want to debug

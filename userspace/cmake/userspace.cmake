@@ -19,54 +19,65 @@ add_custom_target(mos_initrd
 )
 
 add_custom_target(mos_cleanup_initrd
-    COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/initrd
+    COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_BINARY_DIR}/initrd
     COMMENT "Cleaning up initrd"
 )
 
-macro(add_to_initrd ITEM_TYPE SOURCE_NAME PATH)
+macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
     set(INITRD_DIR "${CMAKE_BINARY_DIR}/initrd")
     set(OUTPUT_DIR "${INITRD_DIR}${PATH}")
 
-    message(STATUS "Adding ${ITEM_TYPE} ${SOURCE_NAME} to initrd at ${PATH}")
+    message(STATUS "Adding ${ITEM_TYPE} ${SOURCE_ITEM} to initrd at ${PATH}")
 
     if("${ITEM_TYPE}" STREQUAL "TARGET")
-        add_custom_target(${SOURCE_NAME}_initrd
+        set(TARGET_NAME _mos_initrd_target_${SOURCE_ITEM})
+
+        add_custom_target(${TARGET_NAME}
             WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIR}
-            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${SOURCE_NAME}> ${OUTPUT_DIR}
-            COMMENT "Copying ${SOURCE_NAME} to initrd"
-            DEPENDS ${SOURCE_NAME} mos_cleanup_initrd
-            BYPRODUCTS ${OUTPUT_DIR}/${SOURCE_NAME}
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${SOURCE_ITEM}> ${OUTPUT_DIR}
+            COMMENT "Copying target ${SOURCE_ITEM} to initrd"
+            DEPENDS ${SOURCE_ITEM} mos_cleanup_initrd
+            BYPRODUCTS ${OUTPUT_DIR}/${SOURCE_ITEM}
         )
-        add_dependencies(mos_initrd ${SOURCE_NAME}_initrd)
     elseif("${ITEM_TYPE}" STREQUAL "FILE")
-        set(SOURCE_NAME ${CMAKE_CURRENT_LIST_DIR}/${SOURCE_NAME})
-        get_filename_component(FILE_NAME ${SOURCE_NAME} NAME)
-        string(REPLACE "/" "_" TARGET_NAME ${SOURCE_NAME})
-        add_custom_target(${TARGET_NAME}_initrd
+        set(SOURCE_FILE ${CMAKE_CURRENT_LIST_DIR}/${SOURCE_ITEM})
+        set(TARGET_NAME _mos_initrd_file_${SOURCE_FILE})
+        string(REPLACE "/" "_" TARGET_NAME ${TARGET_NAME})
+
+        get_filename_component(FILE_NAME ${SOURCE_FILE} NAME)
+
+        add_custom_target(${TARGET_NAME}
             WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIR}
-            COMMAND ${CMAKE_COMMAND} -E copy ${SOURCE_NAME} ${OUTPUT_DIR}
-            COMMENT "Copying ${SOURCE_NAME} to initrd"
-            DEPENDS ${SOURCE_NAME} mos_cleanup_initrd
+            COMMAND ${CMAKE_COMMAND} -E copy ${SOURCE_FILE} ${OUTPUT_DIR}
+            COMMENT "Copying file ${SOURCE_FILE} to initrd"
+            DEPENDS ${SOURCE_FILE} mos_cleanup_initrd
             BYPRODUCTS ${OUTPUT_DIR}/${FILE_NAME}
         )
-        add_dependencies(mos_initrd ${TARGET_NAME}_initrd)
     elseif("${ITEM_TYPE}" STREQUAL "DIRECTORY")
-        set(SOURCE_NAME ${CMAKE_CURRENT_LIST_DIR}/${SOURCE_NAME})
-        get_filename_component(DIR_NAME ${SOURCE_NAME} NAME)
-        string(REPLACE "/" "_" TARGET_NAME ${SOURCE_NAME})
-        add_custom_target(${TARGET_NAME}_initrd
+        set(TARGET_NAME _mos_initrd_directory_${SOURCE_ITEM}_to_${PATH})
+        set(SOURCE_DIR_FULL ${CMAKE_CURRENT_LIST_DIR}/${SOURCE_ITEM})
+
+        file(GLOB ALL_FILES RELATIVE ${SOURCE_DIR_FULL} "${SOURCE_DIR_FULL}/*")
+
+        # create a list of all files in the target directory
+        set(DEST_FILES "")
+        foreach(FILE ${ALL_FILES})
+            list(APPEND DEST_FILES "${OUTPUT_DIR}/${FILE}")
+        endforeach()
+
+        string(REPLACE "/" "_" TARGET_NAME ${TARGET_NAME})
+        add_custom_target(${TARGET_NAME}
             WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-            COMMAND cp -rvT ${SOURCE_NAME} ${OUTPUT_DIR} # see https://gitlab.kitware.com/cmake/cmake/-/issues/14609
-            COMMENT "Copying ${SOURCE_NAME} to initrd"
-            DEPENDS ${SOURCE_NAME} mos_cleanup_initrd
-            BYPRODUCTS ${OUTPUT_DIR}/${DIR_NAME}
+            COMMAND cp -rT ${SOURCE_ITEM} ${OUTPUT_DIR} # see https://gitlab.kitware.com/cmake/cmake/-/issues/14609
+            COMMENT "Copying directory ${SOURCE_ITEM} to initrd"
+            DEPENDS ${SOURCE_ITEM} mos_cleanup_initrd
+            BYPRODUCTS ${DEST_FILES}
         )
-        add_dependencies(mos_initrd ${TARGET_NAME}_initrd)
     else()
         message(FATAL_ERROR "Unknown initrd item type: ${ITEM_TYPE}")
     endif()
+
+    add_dependencies(mos_initrd ${TARGET_NAME})
 endmacro()
 
 add_custom_target(mos_userspace_programs)
