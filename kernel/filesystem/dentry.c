@@ -192,6 +192,15 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
     MOS_ASSERT(parent != NULL && leaf != NULL);
 
     mos_debug(vfs, "resolving last segment: %s", leaf);
+    const bool ends_with_slash = leaf[strlen(leaf) - 1] == PATH_DELIM;
+    if (ends_with_slash)
+        leaf[strlen(leaf) - 1] = '\0'; // remove the trailing slash
+
+    if (unlikely(ends_with_slash && !(flags & RESOLVE_EXPECT_DIR)))
+    {
+        mos_warn("RESOLVE_EXPECT_DIR isn't set, but the provided path ends with a slash");
+        return NULL;
+    }
 
     dentry_t *child = dentry_get_child(parent, leaf); // now we have a reference to the child
 
@@ -419,9 +428,9 @@ size_t dentry_list(dentry_t *dir, dir_iterator_state_t *state)
 
     if (state->dir_nth == 0)
     {
-        // TODO: this is a hack, we should be able to get the inode number from the dentry
+        inode_t *inode = dir->inode;
         size_t w;
-        w = dentry_add_dir(state, -1, ".", 1, FILE_TYPE_DIRECTORY);
+        w = dentry_add_dir(state, inode->ino, ".", 1, FILE_TYPE_DIRECTORY);
         if (w == 0)
             return written;
         written += w;
@@ -429,7 +438,12 @@ size_t dentry_list(dentry_t *dir, dir_iterator_state_t *state)
 
     if (state->dir_nth == 1)
     {
-        size_t w = dentry_add_dir(state, -2, "..", 2, FILE_TYPE_DIRECTORY);
+        dentry_t *parent = tree_parent(dir, dentry_t);
+        if (parent == NULL)
+            parent = root_dentry;
+
+        MOS_ASSERT(parent->inode != NULL);
+        size_t w = dentry_add_dir(state, parent->inode->ino, "..", 2, FILE_TYPE_DIRECTORY);
         if (w == 0)
             return written;
         written += w;

@@ -6,6 +6,7 @@
 #include "lib/structures/hashmap.h"
 #include "lib/structures/hashmap_common.h"
 #include "lib/sync/spinlock.h"
+#include "mos/filesystem/vfs.h"
 #include "mos/io/terminal.h"
 #include "mos/mm/cow.h"
 #include "mos/mm/kmalloc.h"
@@ -134,6 +135,8 @@ process_t *process_new(process_t *parent, uid_t euid, const char *name, terminal
 
     vmblock_t heap = mm_alloc_pages(proc->pagetable, 1, PGALLOC_HINT_UHEAP, VM_USER_RW);
     process_attach_mmap(proc, heap, VMTYPE_HEAP, MMAP_DEFAULT);
+
+    proc->working_directory = parent ? parent->working_directory : root_dentry;
 
     void *old_proc = hashmap_put(process_table, &proc->pid, proc);
     MOS_ASSERT_X(old_proc == NULL, "process already exists, go and buy yourself a lottery :)");

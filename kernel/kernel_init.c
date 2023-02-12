@@ -124,7 +124,6 @@ void mos_start_kernel(const char *cmdline)
     process_t *init = elf_create_process(init_path, NULL, init_term, (uid_t) 0, init_argv);
     if (unlikely(!init))
         mos_panic("failed to create init process");
-    init->working_directory = root_dentry;
 
     pr_info("created init process: %s", init->name);
 
