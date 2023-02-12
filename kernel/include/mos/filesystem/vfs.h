@@ -10,12 +10,14 @@
 
 typedef enum
 {
-    FILE_OPEN_READ = IO_READABLE,  // 1 << 0
-    FILE_OPEN_WRITE = IO_WRITABLE, // 1 << 1
-    FILE_OPEN_NO_FOLLOW = 1 << 2,
-    FILE_OPEN_CREATE = 1 << 3,
-    FILE_OPEN_EXECUTE = 1 << 4,
-} file_open_flags;
+    OPEN_READ = IO_READABLE,  // 1 << 0
+    OPEN_WRITE = IO_WRITABLE, // 1 << 1
+    OPEN_NO_FOLLOW = 1 << 2,
+    OPEN_CREATE = 1 << 3,
+    OPEN_EXECUTE = 1 << 4,
+    OPEN_TRUNCATE = 1 << 5,
+    OPEN_DIR = 1 << 6,
+} open_flags;
 
 always_inline void file_format_perm(file_perm_t perms, char buf[10])
 {
@@ -49,8 +51,8 @@ void vfs_register_filesystem(filesystem_t *fs);
  */
 bool vfs_mount(const char *device, const char *path, const char *fs, const char *options);
 
-file_t *vfs_open(const char *path, file_open_flags flags);
-file_t *vfs_openat(int fd, const char *path, file_open_flags flags);
+file_t *vfs_open(const char *path, open_flags flags);
+file_t *vfs_openat(int fd, const char *path, open_flags flags);
 
 /**
  * @brief Stat a file
@@ -99,3 +101,14 @@ bool vfs_symlink(const char *path, const char *target);
  * @return false
  */
 bool vfs_mkdir(const char *path);
+
+/**
+ * @brief Get the content of a directory
+ *
+ * @param io The io object of a file_t, must be a directory and opened with FILE_OPEN_READ
+ * @param buf The buffer to store the directory entries in
+ * @param size The size of the buffer
+ *
+ * @return size_t The number of bytes read, or 0 if the end of the directory was reached
+ */
+size_t vfs_list_dir(io_t *io, char *buf, size_t size);

@@ -12,7 +12,7 @@ macro(add_to_gdbinit TARGET)
 endmacro()
 
 add_custom_target(mos_initrd
-    find . -depth | cpio -o --format=crc >../initrd.cpio
+    find . -depth | sort | cpio -o --format=crc >../initrd.cpio
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/initrd
     COMMENT "Creating initrd at ${CMAKE_BINARY_DIR}/initrd.cpio"
     BYPRODUCTS ${CMAKE_BINARY_DIR}/initrd.cpio

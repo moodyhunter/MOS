@@ -265,6 +265,27 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
     return child;
 }
 
+static size_t dentry_add_dir(dir_iterator_state_t *state, u64 ino, const char *name, size_t name_len, file_type_t type)
+{
+    const size_t this_record_size = sizeof(dir_entry_t) + name_len + 1; // + 1 for null terminator
+
+    if (state->buf_capacity - state->buf_written < this_record_size)
+        return 0; // not enough space
+
+    dir_entry_t *entry = (dir_entry_t *) (state->buf + state->buf_written);
+    entry->ino = ino;
+    entry->next_offset = this_record_size;
+    entry->type = type;
+    entry->name_len = name_len;
+
+    strcpy(entry->name, name);
+    entry->name[entry->name_len] = '\0'; // ensure null termination
+
+    state->dir_nth++;
+    state->buf_written += this_record_size;
+    return this_record_size;
+}
+
 void dentry_init(void)
 {
     pr_info2("initializing dentry cache...");
@@ -366,6 +387,8 @@ dentry_t *dentry_get(dentry_t *base_dir, dentry_t *root_dir, const char *path, l
         // path is a single "/"
         mos_debug(vfs, "path '%s' is a single '/'", path);
         MOS_ASSERT(parent == root_dir);
+        // TODO: ensure that flags expect a directory
+        mos_warn("TODO: ensure that flags expect a directory");
         return dentry_ref(parent);
     }
 
@@ -388,4 +411,39 @@ bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs)
     }
 
     return true;
+}
+
+size_t dentry_list(dentry_t *dir, dir_iterator_state_t *state)
+{
+    size_t written = 0;
+
+    if (state->dir_nth == 0)
+    {
+        // TODO: this is a hack, we should be able to get the inode number from the dentry
+        size_t w;
+        w = dentry_add_dir(state, -1, ".", 1, FILE_TYPE_DIRECTORY);
+        if (w == 0)
+            return written;
+        written += w;
+    }
+
+    if (state->dir_nth == 1)
+    {
+        size_t w = dentry_add_dir(state, -2, "..", 2, FILE_TYPE_DIRECTORY);
+        if (w == 0)
+            return written;
+        written += w;
+    }
+
+    if (dir->inode->ops->iterate_dir == NULL)
+    {
+        mos_warn("inode does not support list");
+        return 0;
+    }
+
+    // this call may not write all the entries, because the buffer may not be big enough
+    written += dir->inode->ops->iterate_dir(dir->inode, state, dentry_add_dir);
+    MOS_ASSERT(written <= state->buf_capacity); // we should never write more than the buffer can hold
+
+    return written;
 }

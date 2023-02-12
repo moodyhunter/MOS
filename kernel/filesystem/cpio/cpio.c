@@ -58,6 +58,24 @@ typedef struct
 
 static_assert(sizeof(cpio_newc_header_t) == 110, "cpio_newc_header has wrong size");
 
+static file_type_t cpio_modebits_to_filetype(u32 modebits)
+{
+    file_type_t type = FILE_TYPE_UNKNOWN;
+    switch (modebits & CPIO_MODE_FILE_TYPE)
+    {
+        case CPIO_MODE_FILE: type = FILE_TYPE_REGULAR; break;
+        case CPIO_MODE_DIR: type = FILE_TYPE_DIRECTORY; break;
+        case CPIO_MODE_SYMLINK: type = FILE_TYPE_SYMLINK; break;
+        case CPIO_MODE_CHARDEV: type = FILE_TYPE_CHAR_DEVICE; break;
+        case CPIO_MODE_BLOCKDEV: type = FILE_TYPE_BLOCK_DEVICE; break;
+        case CPIO_MODE_FIFO: type = FILE_TYPE_NAMED_PIPE; break;
+        case CPIO_MODE_SOCKET: type = FILE_TYPE_SOCKET; break;
+        default: mos_warn("invalid cpio file mode"); break;
+    }
+
+    return type;
+}
+
 static bool cpio_read_metadata(blockdev_t *dev, const char *target, cpio_metadata_t *metadata)
 {
     if (unlikely(strcmp(target, "TRAILER!!!") == 0))
@@ -142,17 +160,7 @@ static void cpio_metadata_to_stat(cpio_metadata_t *metadata, file_stat_t *stat)
     stat->sgid = modebits & CPIO_MODE_SGID;
     stat->suid = modebits & CPIO_MODE_SUID;
 
-    switch (modebits & CPIO_MODE_FILE_TYPE)
-    {
-        case CPIO_MODE_FILE: stat->type = FILE_TYPE_REGULAR; break;
-        case CPIO_MODE_DIR: stat->type = FILE_TYPE_DIRECTORY; break;
-        case CPIO_MODE_SYMLINK: stat->type = FILE_TYPE_SYMLINK; break;
-        case CPIO_MODE_CHARDEV: stat->type = FILE_TYPE_CHAR_DEVICE; break;
-        case CPIO_MODE_BLOCKDEV: stat->type = FILE_TYPE_BLOCK_DEVICE; break;
-        case CPIO_MODE_FIFO: stat->type = FILE_TYPE_NAMED_PIPE; break;
-        case CPIO_MODE_SOCKET: stat->type = FILE_TYPE_SOCKET; break;
-        default: mos_warn("invalid cpio file mode"); break;
-    }
+    stat->type = cpio_modebits_to_filetype(modebits & CPIO_MODE_FILE_TYPE);
 }
 
 // ============================================================================================================
@@ -188,6 +196,29 @@ should_inline cpio_inode_t *CPIO_INODE(inode_t *inode)
 
 // ============================================================================================================
 
+static cpio_inode_t *cpio_inode_create(cpio_superblock_t *sb, cpio_metadata_t *metadata)
+{
+    cpio_inode_t *i = kzalloc(sizeof(cpio_inode_t));
+    file_stat_t stat;
+    cpio_metadata_to_stat(metadata, &stat);
+
+    const s64 ino = strntoll(metadata->header.ino, NULL, 16, sizeof(metadata->header.ino) / sizeof(char));
+    const s64 nlinks = strntoll(metadata->header.nlink, NULL, 16, sizeof(metadata->header.nlink) / sizeof(char));
+
+    i->inode.ino = ino;
+    i->inode.nlinks = nlinks;
+
+    i->inode.stat = stat;
+    i->inode.ops = stat.type == FILE_TYPE_DIRECTORY ? &cpio_dir_inode_ops : &cpio_file_inode_ops;
+    i->inode.superblock = &sb->sb;
+    i->inode.file_ops = stat.type == FILE_TYPE_DIRECTORY ? NULL : &cpio_file_ops;
+    i->metadata = *metadata;
+
+    return i;
+}
+
+// ============================================================================================================
+
 static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *mount_options)
 {
     MOS_ASSERT(fs == &fs_cpiofs);
@@ -202,39 +233,21 @@ static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *
         return NULL;
     }
 
-    cpio_newc_header_t header;
-    size_t read = dev->read(dev, &header, sizeof(header), 0);
-    if (read != sizeof(header))
-    {
-        mos_warn("failed to read cpio archive");
-        return false;
-    }
+    cpio_metadata_t header;
+    const bool found = cpio_read_metadata(dev, ".", &header);
+    if (!found)
+        return false; // not found
 
-    if (strncmp(header.magic, "07070", 5) != 0 || (header.magic[5] != '1' && header.magic[5] != '2'))
-    {
-        mos_warn("invalid cpio header magic, possibly corrupt archive");
-        return false;
-    }
-
-    mos_debug(cpio, "cpio header: %.6s", header.magic);
-
-    cpio_inode_t *i = kzalloc(sizeof(cpio_inode_t));
-    i->inode.file_ops = NULL;
-    i->inode.ops = &cpio_dir_inode_ops;
-    i->inode.stat.type = FILE_TYPE_DIRECTORY;
-    i->inode.stat.perm.others = i->inode.stat.perm.group = i->inode.stat.perm.owner = (file_single_perm_t){ .read = true, .write = true, .execute = true };
-    i->inode.stat.perm.owner.execute = i->inode.stat.perm.group.execute = true;
-
-    dentry_t *root = dentry_create(NULL, NULL);
-    root->inode = &i->inode;
+    mos_debug(cpio, "cpio header: %.6s", header.header.magic);
 
     cpio_superblock_t *sb = kzalloc(sizeof(cpio_superblock_t));
+    cpio_inode_t *i = cpio_inode_create(sb, &header);
+    dentry_t *root = dentry_create(NULL, NULL); // root dentry has no name, this "feature" is used by cpio_i_lookup
+    root->inode = &i->inode;
     sb->sb.ops = &cpio_superblock_ops;
     sb->sb.root = root;
     sb->dev = dev;
-
     root->superblock = i->inode.superblock = &sb->sb;
-
     return root;
 }
 
@@ -269,17 +282,92 @@ static bool cpio_i_lookup(inode_t *parent_dir, dentry_t *dentry)
     if (!found)
         return false; // not found
 
-    cpio_inode_t *i = kzalloc(sizeof(cpio_inode_t));
-    file_stat_t stat;
-    cpio_metadata_to_stat(&metadata, &stat);
-
-    i->inode.stat = stat;
-    i->inode.ops = stat.type == FILE_TYPE_DIRECTORY ? &cpio_dir_inode_ops : &cpio_file_inode_ops;
-    i->inode.superblock = parent_dir->superblock;
-    i->inode.file_ops = stat.type == FILE_TYPE_DIRECTORY ? NULL : &cpio_file_ops;
-    i->metadata = metadata;
+    cpio_inode_t *i = cpio_inode_create(sb, &metadata);
     dentry->inode = &i->inode;
     return true;
+}
+
+static size_t cpio_i_iterate_dir(inode_t *dir, dir_iterator_state_t *state, dentry_iterator_op *op)
+{
+    cpio_inode_t *i = CPIO_INODE(dir);
+    cpio_superblock_t *sb = CPIO_SB(dir->superblock);
+    blockdev_t *dev = sb->dev;
+
+    char path_prefix[i->metadata.name_length + 1]; // +1 for null terminator
+    dev->read(dev, path_prefix, i->metadata.name_length, i->metadata.name_offset);
+    path_prefix[i->metadata.name_length] = '\0';
+    size_t prefix_len = strlen(path_prefix); // +1 for the slash
+
+    if (strcmp(path_prefix, ".") == 0)
+        path_prefix[0] = '\0', prefix_len = 0; // root directory
+
+    const size_t start_nth = state->dir_nth - DIR_ITERATOR_NTH_START; // - 2 because of '.' and '..', so we start at that offset
+
+    // find all children of this directory, that starts with 'path' and doesn't have any more slashes
+    size_t written = 0;
+    cpio_newc_header_t header;
+    size_t offset = 0;
+    size_t filtered_n = 0;
+    while (true)
+    {
+        dev->read(dev, &header, sizeof(cpio_newc_header_t), offset);
+        offset += sizeof(cpio_newc_header_t);
+
+        if (strncmp(header.magic, "07070", 5) != 0 || (header.magic[5] != '1' && header.magic[5] != '2'))
+            mos_panic("invalid cpio header magic, possibly corrupt archive");
+
+        const size_t filename_len = strntoll(header.namesize, NULL, 16, sizeof(header.namesize) / sizeof(char));
+
+        char filename[filename_len + 1]; // +1 for null terminator
+        dev->read(dev, filename, filename_len, offset);
+        filename[filename_len] = '\0';
+
+        const bool found = strncmp(path_prefix, filename, prefix_len) == 0     // make sure the path starts with the parent path
+                           && (prefix_len == 0 || filename[prefix_len] == '/') // make sure it's a child, not a sibling (/path/to vs /path/toooo)
+                           && strchr(filename + prefix_len + 1, '/') == NULL;  // make sure it's only one level deep
+
+        const bool is_TRAILER = strcmp(filename, "TRAILER!!!") == 0;
+        const bool is_root_dot = strcmp(filename, ".") == 0;
+
+        // only continue after we've found the start_nth file
+        if (found && !is_TRAILER && !is_root_dot)
+        {
+            if (filtered_n++ >= start_nth)
+            {
+                mos_debug(cpio, "prefix '%s' filename '%s'", path_prefix, filename);
+
+                const u32 modebits = strntoll(header.mode, NULL, 16, sizeof(header.mode) / sizeof(char));
+                const file_type_t type = cpio_modebits_to_filetype(modebits & CPIO_MODE_FILE_TYPE);
+                const s64 ino = strntoll(header.ino, NULL, 16, sizeof(header.ino) / sizeof(char));
+
+                const char *name = filename + prefix_len + (prefix_len == 0 ? 0 : 1);          // +1 for the slash if it's not the root
+                const size_t name_len = filename_len - prefix_len - (prefix_len == 0 ? 0 : 1); // -1 for the slash if it's not the root
+
+                const size_t w = op(state, ino, name, name_len, type);
+                written += w;
+
+                // no more space, terminate the iteration
+                if (w == 0)
+                {
+                    mos_debug(cpio, "iteration terminated at %zu, possibly out of space", filtered_n);
+                    return written;
+                }
+            }
+        }
+
+        if (unlikely(is_TRAILER))
+            break;
+
+        offset += filename_len;
+        offset = ((offset + 3) & ~0x03); // align to 4 bytes
+
+        const size_t data_len = strntoll(header.filesize, NULL, 16, sizeof(header.filesize) / sizeof(char));
+        offset += data_len;
+        offset = ((offset + 3) & ~0x03); // align to 4 bytes (again)
+    }
+
+    mos_debug(cpio, "iterated with prefix='%s', started at %zu, wrote %zu bytes for %zu items", path_prefix, start_nth, written, filtered_n);
+    return written;
 }
 
 static size_t cpio_i_readlink(dentry_t *dentry, char *buffer, size_t buflen)
@@ -299,6 +387,7 @@ static const superblock_ops_t cpio_superblock_ops = {
 
 static const inode_ops_t cpio_dir_inode_ops = {
     .lookup = cpio_i_lookup,
+    .iterate_dir = cpio_i_iterate_dir,
 };
 
 static const inode_ops_t cpio_file_inode_ops = {

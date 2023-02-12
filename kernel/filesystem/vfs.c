@@ -82,25 +82,28 @@ static bool vfs_verify_permissions(dentry_t *file_dentry, bool open, bool read, 
     return true;
 }
 
-static file_t *vfs_do_open_relative(dentry_t *base, const char *path, file_open_flags flags)
+static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags flags)
 {
     if (base == NULL)
         return NULL;
 
-    const bool may_create = flags & FILE_OPEN_CREATE;
-    const bool read = flags & FILE_OPEN_READ;
-    const bool write = flags & FILE_OPEN_WRITE;
-    const bool execute = flags & FILE_OPEN_EXECUTE;
-    const bool no_follow = flags & FILE_OPEN_NO_FOLLOW;
+    const bool may_create = flags & OPEN_CREATE;
+    const bool read = flags & OPEN_READ;
+    const bool write = flags & OPEN_WRITE;
+    const bool execute = flags & OPEN_EXECUTE;
+    const bool no_follow = flags & OPEN_NO_FOLLOW;
+    const bool expect_dir = flags & OPEN_DIR;
+    const bool truncate = flags & OPEN_TRUNCATE;
 
-    lastseg_resolve_flags_t resolve_flags = RESOLVE_EXPECT_FILE |                        //
-                                            (no_follow ? 0 : RESOLVE_SYMLINK_NOFOLLOW) | //
-                                            (may_create ? RESOLVE_CREATE_IF_NONEXIST : RESOLVE_EXPECT_EXIST);
+    lastseg_resolve_flags_t resolve_flags = RESOLVE_EXPECT_FILE |                                              //
+                                            (no_follow ? 0 : RESOLVE_SYMLINK_NOFOLLOW) |                       //
+                                            (may_create ? RESOLVE_CREATE_IF_NONEXIST : RESOLVE_EXPECT_EXIST) | //
+                                            (expect_dir ? RESOLVE_EXPECT_DIR : 0);
     dentry_t *entry = dentry_get(base, root_dentry, path, resolve_flags);
 
     if (entry == NULL)
     {
-        pr_warn("failed to resolve path '%s', c=%d, r=%d, e=%d, n=%d", path, may_create, read, execute, no_follow);
+        pr_warn("failed to resolve path '%s', c=%d, r=%d, e=%d, n=%d, d=%d, t=%d", path, may_create, read, execute, no_follow, expect_dir, truncate);
         return NULL;
     }
 
@@ -110,11 +113,11 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, file_open_
     file_t *file = kzalloc(sizeof(file_t));
     file->dentry = entry;
 
-    io_flags_t io_flags = (flags & FILE_OPEN_READ ? IO_READABLE : 0) | (flags & FILE_OPEN_WRITE ? IO_WRITABLE : 0) | IO_SEEKABLE;
+    io_flags_t io_flags = (flags & OPEN_READ ? IO_READABLE : 0) | (flags & OPEN_WRITE ? IO_WRITABLE : 0) | IO_SEEKABLE;
     io_init(&file->io, io_flags, &fs_io_ops);
 
     const file_ops_t *ops = file_get_ops(file);
-    if (ops->open)
+    if (ops && ops->open)
     {
         bool opened = ops->open(file->dentry->inode, file);
         if (!opened)
@@ -192,12 +195,12 @@ bool vfs_mount(const char *device, const char *path, const char *fs, const char 
     return true;
 }
 
-file_t *vfs_open(const char *path, file_open_flags flags)
+file_t *vfs_open(const char *path, open_flags flags)
 {
     return vfs_openat(FD_CWD, path, flags);
 }
 
-file_t *vfs_openat(int fd, const char *path, file_open_flags flags)
+file_t *vfs_openat(int fd, const char *path, open_flags flags)
 {
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);
     file_t *file = vfs_do_open_relative(base, path, flags);
@@ -289,4 +292,25 @@ bool vfs_mkdir(const char *path)
         mos_warn("failed to create directory '%s'", path);
 
     return created;
+}
+
+size_t vfs_list_dir(io_t *io, char *buf, size_t size)
+{
+    file_t *file = container_of(io, file_t, io);
+    if (unlikely(file->dentry->inode->stat.type != FILE_TYPE_DIRECTORY))
+    {
+        mos_warn("not a directory");
+        return 0;
+    }
+
+    dir_iterator_state_t state = {
+        .dir_nth = file->offset,
+        .buf = buf,
+        .buf_capacity = size,
+        .buf_written = 0,
+    };
+
+    size_t written = dentry_list(file->dentry, &state);
+    file->offset = state.dir_nth;
+    return written;
 }

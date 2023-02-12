@@ -18,7 +18,7 @@
             "number": 1,
             "name": "file_open",
             "return": "fd_t",
-            "arguments": [ { "type": "const char *", "arg": "file_path" }, { "type": "file_open_flags", "arg": "flags" } ]
+            "arguments": [ { "type": "const char *", "arg": "file_path" }, { "type": "open_flags", "arg": "flags" } ]
         },
         {
             "number": 2,
@@ -195,6 +195,12 @@
             "name": "vfs_mkdir",
             "return": "bool",
             "arguments": [ { "type": "const char *", "arg": "path" } ]
+        },
+        {
+            "number": 29,
+            "name": "vfs_list_dir",
+            "return": "size_t",
+            "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "char *", "arg": "buffer" }, { "type": "size_t", "arg": "buffer_size" } ]
         }
     ]
 }

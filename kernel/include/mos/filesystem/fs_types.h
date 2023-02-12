@@ -5,7 +5,6 @@
 #include "lib/structures/list.h"
 #include "lib/structures/tree.h"
 #include "lib/sync/mutex.h"
-#include "lib/sync/spinlock.h"
 #include "mos/io/io.h"
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
@@ -15,6 +14,8 @@
 #define PATH_DELIM_STR "/"
 #define PATH_MAX       1024
 #define FD_CWD         -69
+
+#define DIR_ITERATOR_NTH_START 2 // 0 and 1 are '.' and '..'
 
 typedef struct
 {
@@ -67,6 +68,15 @@ typedef struct _filesystem filesystem_t;
 typedef struct _file file_t;
 
 typedef u64 dev_t;
+typedef struct _dir_iterator_state
+{
+    size_t dir_nth;
+    size_t buf_capacity;
+    size_t buf_written;
+    char *buf;
+} dir_iterator_state_t;
+
+typedef size_t(dentry_iterator_op)(dir_iterator_state_t *state, u64 ino, const char *name, size_t name_len, file_type_t type);
 
 typedef struct
 {
@@ -81,16 +91,17 @@ typedef struct
 
 typedef struct
 {
-    bool (*lookup)(inode_t *dir, dentry_t *dentry);                                                 // lookup a file in a directory
-    bool (*newfile)(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm);            // create a new file
-    bool (*hardlink)(dentry_t *old_dentry, inode_t *dir, dentry_t *new_dentry);                     // create a hard link
-    bool (*symlink)(inode_t *dir, dentry_t *dentry, const char *symname);                           // create a symbolic link
-    bool (*unlink)(inode_t *dir, dentry_t *dentry);                                                 // remove a file
-    bool (*mkdir)(inode_t *dir, dentry_t *dentry, file_perm_t perm);                                // create a new directory
-    bool (*rmdir)(inode_t *dir, dentry_t *dentry);                                                  // remove a directory
-    bool (*mknode)(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm, dev_t dev);  // create a new device file
-    bool (*rename)(inode_t *old_dir, dentry_t *old_dentry, inode_t *new_dir, dentry_t *new_dentry); // rename a file
-    size_t (*readlink)(dentry_t *dentry, char *buffer, size_t buflen);                              // read the contents of a symbolic link
+    bool (*lookup)(inode_t *dir, dentry_t *dentry);                                                    // lookup a file in a directory
+    bool (*newfile)(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm);               // create a new file
+    bool (*hardlink)(dentry_t *old_dentry, inode_t *dir, dentry_t *new_dentry);                        // create a hard link
+    bool (*symlink)(inode_t *dir, dentry_t *dentry, const char *symname);                              // create a symbolic link
+    bool (*unlink)(inode_t *dir, dentry_t *dentry);                                                    // remove a file
+    bool (*mkdir)(inode_t *dir, dentry_t *dentry, file_perm_t perm);                                   // create a new directory
+    bool (*rmdir)(inode_t *dir, dentry_t *dentry);                                                     // remove a directory
+    bool (*mknode)(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm, dev_t dev);     // create a new device file
+    bool (*rename)(inode_t *old_dir, dentry_t *old_dentry, inode_t *new_dir, dentry_t *new_dentry);    // rename a file
+    size_t (*readlink)(dentry_t *dentry, char *buffer, size_t buflen);                                 // read the contents of a symbolic link
+    size_t (*iterate_dir)(inode_t *dir, dir_iterator_state_t *iterator_state, dentry_iterator_op *op); // iterate over the contents of a directory
 } inode_ops_t;
 
 typedef struct
@@ -170,3 +181,12 @@ should_inline const file_ops_t *file_get_ops(file_t *file)
 {
     return file->dentry->inode->file_ops;
 }
+
+typedef struct
+{
+    u64 ino;
+    u64 next_offset; // sizeof(dir_entry_t) + name_len + 1
+    u32 type;
+    u32 name_len; // not including the null terminator
+    char name[];
+} dir_entry_t;

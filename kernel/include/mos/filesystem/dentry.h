@@ -121,3 +121,13 @@ dentry_t *dentry_get(dentry_t *base, dentry_t *root_dir, const char *path, lasts
  * @return true if the filesystem was mounted successfully, false otherwise
  */
 __nodiscard bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs);
+
+/**
+ * @brief List the contents of a directory
+ *
+ * @param dir The directory to list
+ * @param state The state of the directory iterator
+ *
+ * @return The number of bytes written to the buffer, which is contained in the state object
+ */
+size_t dentry_list(dentry_t *dir, dir_iterator_state_t *state);

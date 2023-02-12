@@ -35,7 +35,7 @@ void define_syscall(poweroff)(bool reboot, u32 magic)
         mos_warn("poweroff syscall called by non-root user");
 }
 
-fd_t define_syscall(file_open)(const char *path, file_open_flags flags)
+fd_t define_syscall(file_open)(const char *path, open_flags flags)
 {
     if (path == NULL)
         return -1;
@@ -328,4 +328,12 @@ bool define_syscall(vfs_symlink)(const char *target, const char *linkpath)
 bool define_syscall(vfs_mkdir)(const char *path)
 {
     return vfs_mkdir(path);
+}
+
+size_t define_syscall(vfs_list_dir)(fd_t fd, char *buffer, size_t buffer_size)
+{
+    io_t *io = process_get_fd(current_process, fd);
+    if (io == NULL)
+        return false;
+    return vfs_list_dir(io, buffer, buffer_size);
 }

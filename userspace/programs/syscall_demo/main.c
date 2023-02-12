@@ -37,7 +37,7 @@ static void file_api(void)
             printf("[STICKY]");
         printf("\n");
 
-        int fd = syscall_file_open("/assets/msg.txt", FILE_OPEN_READ);
+        int fd = syscall_file_open("/assets/msg.txt", OPEN_READ);
         if (fd >= 0)
         {
             size_t read = syscall_io_read(fd, file_content, 512, 0);
@@ -53,6 +53,30 @@ static void file_api(void)
     {
         printf("Failed to stat /assets/msg.txt");
     }
+
+    fd_t dirfd = syscall_file_open("/", OPEN_READ | OPEN_DIR);
+    if (dirfd < 0)
+        return;
+
+    char buffer[50];
+
+    printf("OK\n");
+
+    do
+    {
+        size_t sz = syscall_vfs_list_dir(dirfd, buffer, 50);
+        if (sz == 0)
+            break;
+
+        const dir_entry_t *dirent = (dir_entry_t *) buffer;
+        while (true)
+        {
+            if ((char *) dirent >= buffer + sz)
+                break;
+            printf("'%.*s' (inode: %llu, type: %x)\n", dirent->name_len, dirent->name, dirent->ino, dirent->type);
+            dirent = (dir_entry_t *) ((char *) dirent + dirent->next_offset);
+        }
+    } while (true);
 }
 
 int main(int argc, char *argv[])

@@ -55,7 +55,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
         return NULL;
     }
 
-    file_t *f = vfs_open(path, FILE_OPEN_READ);
+    file_t *f = vfs_open(path, OPEN_READ);
     if (!f)
     {
         mos_warn("failed to open '%s'", path);

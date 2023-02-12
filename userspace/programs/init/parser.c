@@ -23,7 +23,7 @@ init_config_t *config_parse_file(const char *file_path)
     if (!syscall_file_stat(file_path, &stat))
         return NULL;
 
-    fd_t fd = syscall_file_open(file_path, FILE_OPEN_READ);
+    fd_t fd = syscall_file_open(file_path, OPEN_READ);
     if (fd <= 0)
         return NULL;
 
