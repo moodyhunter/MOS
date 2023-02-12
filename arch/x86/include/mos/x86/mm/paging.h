@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "mos/platform/platform.h"
 #include "mos/types.h"
 
 typedef struct x86_pg_infra_t x86_pg_infra_t;

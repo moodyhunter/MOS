@@ -3,7 +3,6 @@
 
 /**  Durand's Amazing Super Duper Memory functions.  */
 
-#include "mos/platform/platform.h"
 #include "mos/types.h"
 
 void liballoc_dump(void);

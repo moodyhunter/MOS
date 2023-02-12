@@ -10,8 +10,6 @@
 #include "mos/device/console.h"
 #include "mos/setup.h"
 
-#include <stdarg.h>
-
 static console_t *printk_console;
 
 static bool printk_setup_console(int argc, const char **argv)

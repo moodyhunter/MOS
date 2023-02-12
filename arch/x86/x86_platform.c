@@ -3,7 +3,6 @@
 #include "mos/x86/x86_platform.h"
 
 #include "lib/string.h"
-#include "mos/constants.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/mm/paging/pmalloc.h"

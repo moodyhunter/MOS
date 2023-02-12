@@ -6,7 +6,6 @@
 #include "lib/memory.h"
 #include "lib/stdio.h"
 #include "lib/string.h"
-#include "mos/platform/platform.h"
 #include "mos/syscall/usermode.h"
 
 #include <stdarg.h>

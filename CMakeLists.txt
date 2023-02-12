@@ -21,22 +21,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -pedantic")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-set(MOS_ARCH_CONFIG ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/mos_platform.cmake)
-
-if(NOT EXISTS ${MOS_ARCH_CONFIG})
-    message(FATAL_ERROR "No configuration file for architecture '${MOS_ARCH}'")
-endif()
-
-include(generate_syscall_headers)
-
-add_library(mos_kernel_include INTERFACE)
-target_include_directories(mos_kernel_include INTERFACE
-    ${CMAKE_BINARY_DIR}/include
-    ${CMAKE_SOURCE_DIR}/kernel/include
-    ${CMAKE_SOURCE_DIR}/lib/include
-    ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/include
-)
-add_library(mos::include ALIAS mos_kernel_include)
 
 execute_process(
     COMMAND git describe --long --tags --all --dirty
@@ -50,13 +34,29 @@ execute_process(
 mos_kconfig(MISC MOS_KERNEL_VERSION "\"${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}\"" "Kernel version")
 mos_kconfig(MISC MOS_KERNEL_REVISION_STRING "\"${REVISION}\"" "Kernel revision string")
 
+include(generate_syscall_headers)
 generate_syscall_headers(${CMAKE_SOURCE_DIR}/kernel/ksyscalls.json)
 
 file(GLOB_RECURSE MOS_STANDARD_LIBRARY_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/lib/*.c)
 file(GLOB_RECURSE MOS_KERNEL_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/kernel/*.c)
 
+add_library(mos_kernel_include INTERFACE)
+target_include_directories(mos_kernel_include INTERFACE
+    ${CMAKE_BINARY_DIR}/include                     # generated headers
+    ${CMAKE_SOURCE_DIR}/kernel/include/public       # public types
+    ${CMAKE_SOURCE_DIR}/lib/include                 # standard library
+    ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/include    # architecture-specific headers
+)
+add_library(mos::include ALIAS mos_kernel_include)
+
+add_library(mos_kernel_private_include INTERFACE)
+target_include_directories(mos_kernel_private_include INTERFACE
+    ${CMAKE_SOURCE_DIR}/kernel/include/private
+)
+add_library(mos::private_include ALIAS mos_kernel_private_include)
+
 add_library(mos_kernel STATIC ${MOS_STANDARD_LIBRARY_SOURCES} ${MOS_KERNEL_SOURCES})
-target_link_libraries(mos_kernel PRIVATE gcc mos::include)
+target_link_libraries(mos_kernel PRIVATE gcc mos::include mos::private_include)
 target_compile_definitions(mos_kernel PRIVATE -D__MOS_KERNEL__)
 target_compile_options(mos_kernel PUBLIC "-ffreestanding")
 add_dependencies(mos_kernel mos_syscall_decl)

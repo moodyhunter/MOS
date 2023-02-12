@@ -11,6 +11,7 @@ mos_kconfig(ARCH_X86    MOS_ADDR_USER_MMAP              0x90000000          "Use
 mos_kconfig(ARCH_X86    MOS_ADDR_KERNEL_HEAP            0xD0000000          "Kernel Heap Start Address")
 mos_kconfig(ARCH_X86    MOS_X86_INITRD_VADDR            0xEC000000          "Initrd Virtual Address")
 mos_kconfig(ARCH_X86    MOS_X86_INITIAL_STACK_SIZE      0x100000            "Initial Stack Size")   # Update corresponding linker script if changed
+mos_kconfig(MM          MOS_KERNEL_START_VADDR          0xC8000000          "Kernel start virtual address")
 
 mos_debug(x86_paging    "x86 Paging debug log")
 mos_debug(x86_cpu       "x86 CPU debug log")

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/printk.h"
-#include "mos/types.h"
 
 u64 __stack_chk_guard = 0;
 

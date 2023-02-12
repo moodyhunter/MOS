@@ -3,7 +3,6 @@
 #pragma once
 
 #include "lib/liballoc.h"
-#include "mos/platform/platform.h"
 
 #include <stdarg.h>
 

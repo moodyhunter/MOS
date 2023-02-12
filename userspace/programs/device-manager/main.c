@@ -4,5 +4,7 @@
 
 int main(int argc, char *argv[])
 {
+    MOS_UNUSED(argc);
+    MOS_UNUSED(argv);
     return 0;
 }

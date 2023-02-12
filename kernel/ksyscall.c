@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "include/mos/tasks/thread.h"
 #include "lib/string.h"
 #include "mos/elf/elf.h"
 #include "mos/filesystem/fs_types.h"
@@ -16,6 +15,7 @@
 #include "mos/tasks/process.h"
 #include "mos/tasks/schedule.h"
 #include "mos/tasks/task_types.h"
+#include "mos/tasks/thread.h"
 #include "mos/tasks/wait.h"
 #include "mos/types.h"
 

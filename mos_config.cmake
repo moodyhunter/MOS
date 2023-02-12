@@ -24,9 +24,10 @@ if (NOT DEFINED MOS_ARCH)
 endif()
 
 set(_ARCH_CONFIGURATION_FILE ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/platform_config.cmake)
+set(MOS_ARCH_CONFIG ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/mos_platform.cmake)
 
-if(NOT DEFINED MOS_ARCH OR NOT EXISTS ${_ARCH_CONFIGURATION_FILE})
-    message(FATAL_ERROR "MOS_ARCH is not defined or is incorrect, please specify the target architecture")
+if(NOT EXISTS ${_ARCH_CONFIGURATION_FILE} OR NOT EXISTS ${MOS_ARCH_CONFIG})
+    message(FATAL_ERROR "Architecture '${MOS_ARCH}' is not supported, or the configuration file is missing.")
 endif()
 
 include(${_ARCH_CONFIGURATION_FILE})

@@ -9,7 +9,6 @@
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
-#include "mos/types.h"
 
 static vmblock_t zero_block;
 

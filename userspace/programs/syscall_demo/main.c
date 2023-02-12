@@ -4,7 +4,7 @@
 #include "lib/string.h"
 #include "libuserspace.h"
 #include "mos/device/dm_types.h"
-#include "mos/filesystem/vfs.h"
+#include "mos/filesystem/fs_types.h"
 #include "mos/syscall/usermode.h"
 
 static char file_content[4 KB] = { 0 };

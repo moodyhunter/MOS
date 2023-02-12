@@ -4,7 +4,6 @@
 
 #include "lib/structures/bitmap.h"
 #include "lib/sync/spinlock.h"
-#include "mos/constants.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging/pmalloc.h"
 #include "mos/platform/platform.h"

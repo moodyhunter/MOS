@@ -9,7 +9,6 @@
 #include "mos/device/console.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/panic.h"
-#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/setup.h"
 #include "test_engine_impl.h"

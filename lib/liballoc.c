@@ -5,7 +5,6 @@
 #include "lib/mos_lib.h"
 #include "lib/string.h"
 #include "lib/sync/spinlock.h"
-#include "mos/platform/platform.h"
 
 #define VERSION "1.1"
 
