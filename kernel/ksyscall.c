@@ -145,16 +145,17 @@ pid_t define_syscall(spawn)(const char *path, int argc, const char *const argv[]
 {
     process_t *current = current_process;
 
-    const char **new_argv = kmalloc(sizeof(uintptr_t) * (argc + 2));
+    const char **new_argv = kmalloc(sizeof(uintptr_t) * (argc + 2)); // +1 for path, +1 for NULL
     if (new_argv == NULL)
         return -1;
 
+    const int real_argc = argc + 1; // +1 for path, but not including NULL
     new_argv[0] = strdup(path);
     for (int i = 0; i < argc; i++)
         new_argv[i + 1] = strdup(argv[i]);
-    new_argv[argc] = NULL;
+    new_argv[real_argc] = NULL;
 
-    process_t *process = elf_create_process(path, current, current->terminal, current->effective_uid, (argv_t){ .argc = argc, .argv = new_argv });
+    process_t *process = elf_create_process(path, current, current->terminal, current->effective_uid, (argv_t){ .argc = real_argc, .argv = new_argv });
     if (process == NULL)
         return -1;
 

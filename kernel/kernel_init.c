@@ -76,7 +76,7 @@ argv_t create_argv_from_cmdline(void)
         init_argv.argv[i + 1] = str;
     }
 
-    init_argv.argv[init_argv.argc - 1] = NULL;
+    init_argv.argv[init_argv.argc] = NULL;
     return init_argv;
 }
 

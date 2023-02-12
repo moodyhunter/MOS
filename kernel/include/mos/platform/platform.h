@@ -90,7 +90,7 @@ typedef enum
 
 typedef struct
 {
-    size_t argc;
+    size_t argc; // size of argv, does not include the terminating NULL
     const char **argv;
 } argv_t;
 
