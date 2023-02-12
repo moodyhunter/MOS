@@ -82,6 +82,9 @@ int main(int argc, char *argv[])
     if (dm_pid <= 0)
         return DYN_ERROR_CODE;
 
+    const char *ls_path = "/programs/";
+    syscall_spawn("/programs/ls", 1, &ls_path);
+
     while (1)
         ;
     return 0;
