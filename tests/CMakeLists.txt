@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+mos_kconfig(TESTS   BUILD_TESTING   OFF "Kernel Unit Tests")
+
 if (BUILD_TESTING)
     message(STATUS "MOS kernel unit tests are enabled")
-    message(STATUS "Specific unit tests can be disabled with -DMOS_TESTING_DISABLE_<test_name>=ON")
 endif()
 
 add_kernel_source(RELATIVE_SOURCES test_engine.c)
@@ -16,16 +17,11 @@ macro(mos_add_test TEST_NAME TEST_DESCRIPTION)
     target_include_directories(${TEST_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     target_link_libraries(${TEST_TARGET} PRIVATE mos::include mos::private_include)
 
-    if (MOS_TESTING_DISABLE_${TEST_NAME})
-        set(MOS_TEST_${TEST_NAME}_STATE "disabled")
-    elseif (NOT BUILD_TESTING)
-        set(MOS_TEST_${TEST_NAME}_STATE "disabled globally")
-    else()
-        set(MOS_TEST_${TEST_NAME}_STATE "enabled")
+    mos_kconfig(TESTS   TEST_${TEST_NAME} ${BUILD_TESTING} "Enable ${TEST_DESCRIPTION} test")
+
+    if (TEST_${TEST_NAME})
         target_link_libraries(mos_kernel PRIVATE $<TARGET_OBJECTS:${TEST_TARGET}>)
     endif()
-
-    add_summary_item(TESTS ${TEST_NAME} "${TEST_DESCRIPTION}" "${MOS_TEST_${TEST_NAME}_STATE}")
 endmacro()
 
 mos_add_test(printf "printf family")

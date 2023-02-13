@@ -16,7 +16,7 @@ macro(add_bootable_target FOLDER)
         message(FATAL_ERROR "Failed to add bootable '${boot_target}': missing target file")
     endif()
 
-    add_summary_item(BOOTABLE ${boot_target} "Bootable Target" ${MOS_BOOTABLE_TARGETS_FILE_${boot_target}})
+    add_summary_item(BOOTABLE ${boot_target} ${MOS_BOOTABLE_TARGETS_FILE_${boot_target}} "Bootable Target")
     list(APPEND MOS_BOOTABLE_TARGETS ${boot_target})
 endmacro()
 

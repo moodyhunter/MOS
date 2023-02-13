@@ -3,16 +3,20 @@
 # ! This file contains the default configuration for MOS.
 # ! To override the default values, use CMake's -D option instead of editing this file.
 
-summary_section(HARDWARE    "Hardware Support")
-summary_section(LIMITS      "Limits")
-summary_section(DEBUG       "Debugging")
-summary_section(MISC        "Miscellaneous")
-summary_section(KERNEL      "Kernel Features")
-summary_section(TESTS       "Kernelspace Unit Tests")
-summary_section(MM          "Memory Management")
 summary_section(BOOTABLE    "Bootable Targets")
+summary_section(DEBUG       "Platform-Independent Kernel Debugging")
+summary_section(HARDWARE    "Hardware Support")
+summary_section(INITRD      "Initrd Items")
+summary_section(KERNEL      "Kernel Features")
+summary_section(LIMITS      "Limits")
+summary_section(MISC        "Miscellaneous")
+summary_section(MM          "Memory Management")
+summary_section(TESTS       "Kernelspace Unit Tests")
 summary_section(USERSPACE   "Userspace Targets")
 summary_section(UTILITY     "Utility Targets")
+
+add_summary_item(DEBUG      MOS_DEBUG_ALL               OFF "Enable all debugging features")
+mos_kconfig(DEBUG           MOS_PRINTK_WITH_FILENAME    OFF "Print filename in printk")
 
 if(NOT DEFINED MOS_DEBUG_ALL)
     set(MOS_DEBUG_ALL OFF)
@@ -49,10 +53,7 @@ mos_kconfig(LIMITS      MOS_PROCESS_MAX_THREADS         64                  "Max
 mos_kconfig(LIMITS      MOS_PATH_MAX_LENGTH             256                 "Max length of a psath")
 mos_kconfig(LIMITS      MOS_STACK_PAGES_KERNEL          16                  "Pages of kernel stack")
 mos_kconfig(LIMITS      MOS_STACK_PAGES_USER            32                  "Pages of user stack")
-
 mos_kconfig(MM          MOS_MM_LIBALLOC_LOCKS           ON                  "Enable locking support in liballoc")
-mos_kconfig(DEBUG       MOS_PRINTK_WITH_FILENAME        OFF                 "Print filename in printk")
-mos_kconfig(TESTS       BUILD_TESTING                   OFF                 "Kernel Unit Tests")
 
 # Debugging options
 mos_debug(thread        "Thread debug log")
