@@ -9,3 +9,5 @@ add_to_initrd(DIRECTORY empty /data)
 add_to_initrd(DIRECTORY empty /tmp)
 
 add_to_initrd(FILE README.txt /)
+
+add_to_initrd(FILE "${CMAKE_BINARY_DIR}/summary.txt" /)
