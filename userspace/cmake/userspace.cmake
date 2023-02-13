@@ -17,11 +17,14 @@ add_custom_target(mos_initrd
     COMMENT "Creating initrd at ${CMAKE_BINARY_DIR}/initrd.cpio"
     BYPRODUCTS ${CMAKE_BINARY_DIR}/initrd.cpio
 )
+add_summary_item(UTILITY mos_initrd "Create Initrd" "${CMAKE_BINARY_DIR}/initrd.cpio")
 
 add_custom_target(mos_cleanup_initrd
     COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_BINARY_DIR}/initrd
     COMMENT "Cleaning up initrd"
 )
+
+add_summary_item(UTILITY mos_cleanup_initrd "Cleanup Initrd" "")
 
 macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
     set(INITRD_DIR "${CMAKE_BINARY_DIR}/initrd")
@@ -81,7 +84,7 @@ macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
 endmacro()
 
 add_custom_target(mos_userspace_programs)
-summary_section(USERSPACE "Userspace Programs")
+add_summary_item(UTILITY mos_userspace_programs "All Userspace Programs" "")
 
 macro(setup_userspace_program TARGET INITRD_PATH DESCRIPTION)
     add_dependencies(mos_userspace_programs ${TARGET})

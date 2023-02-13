@@ -1,15 +1,18 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # ! This file contains the default configuration for MOS.
-# ! To override the default values, use CMake's -D option.
+# ! To override the default values, use CMake's -D option instead of editing this file.
 
 summary_section(HARDWARE    "Hardware Support")
 summary_section(LIMITS      "Limits")
 summary_section(DEBUG       "Debugging")
 summary_section(MISC        "Miscellaneous")
 summary_section(KERNEL      "Kernel Features")
-summary_section(TESTS       "Tests")
+summary_section(TESTS       "Kernelspace Unit Tests")
 summary_section(MM          "Memory Management")
+summary_section(BOOTABLE    "Bootable Targets")
+summary_section(USERSPACE   "Userspace Targets")
+summary_section(UTILITY     "Utility Targets")
 
 if(NOT DEFINED MOS_DEBUG_ALL)
     set(MOS_DEBUG_ALL OFF)

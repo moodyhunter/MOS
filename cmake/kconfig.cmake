@@ -92,11 +92,16 @@ macro(add_summary_item section name description value)
 
     string(REPEAT "." ${padding} PADDING_STRING_DESC)
 
-    list(APPEND MOS_SUMMARY_SECTION_CONTENT_${section} "${description} ${PADDING_STRING_DESC}${PADDING_STRING_NAME} ${name} = ${value}")
+    if (NOT "${value}" STREQUAL "")
+        set(new_value " = ${value}")
+    else()
+        set(new_value "")
+    endif()
+    list(APPEND MOS_SUMMARY_SECTION_CONTENT_${section} "${description} ${PADDING_STRING_DESC}${PADDING_STRING_NAME} ${name}${new_value}")
     set(MOS_SUMMARY_SECTION_CONTENT_${section} "${MOS_SUMMARY_SECTION_CONTENT_${section}}" CACHE INTERNAL "" FORCE)
 endmacro()
 
-function(mos_print_summary)
+function(print_summary)
     message("Configuration Summary:")
 
     foreach(section ${MOS_SUMMARY_SECTION_ORDER})

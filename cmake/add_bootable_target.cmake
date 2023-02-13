@@ -1,7 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-summary_section(BOOTABLE "Bootable Targets")
-
 set(MOS_BOOTABLE_TARGETS)
 set(MOS_BOOTABLE_TARGETS_FILE)
 
