@@ -10,6 +10,6 @@ typedef struct
     bool (*setup_fn)(int argc, const char **argv);
 } setup_func_t;
 
-#define __setup(_fn, _param) static const setup_func_t __used __setup_##_fn __section(".mos.setup") = { .name = _param, .setup_fn = _fn }
+#define __setup(_param, _fn) static const setup_func_t __used __setup_##_fn __section(".mos.setup") = { .name = _param, .setup_fn = _fn }
 
 void invoke_setup_functions(cmdline_t *cmdline);

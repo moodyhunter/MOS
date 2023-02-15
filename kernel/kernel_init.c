@@ -36,7 +36,7 @@ bool setup_init_path(int argc, const char **argv)
     return true;
 }
 
-__setup(setup_init_path, "init");
+__setup("init", setup_init_path);
 
 argv_t create_argv_from_cmdline(void)
 {
