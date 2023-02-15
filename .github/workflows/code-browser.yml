@@ -52,7 +52,7 @@ jobs:
       - name: Build CodeBrowser
         run: |
           cd ${{github.workspace}}/build
-          git clone https://github.com/KDAB/codebrowser
+          git clone https://github.com/moodyhunter/codebrowser
           cd codebrowser
           mkdir build && cd build
           cmake ..
