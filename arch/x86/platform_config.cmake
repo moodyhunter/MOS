@@ -3,8 +3,8 @@
 set(MOS_COMPILER_PREFIX "i686-elf-")
 set(MOS_BITS 32)
 
-summary_section(ARCH_X86 "x86 Architecture")
-summary_section(ARCH_X86_DEBUG "x86 Debug")
+add_summary_section(ARCH_X86 "x86 Architecture")
+add_summary_section(ARCH_X86_DEBUG "x86 Debug")
 
 mos_kconfig(ARCH_X86    MOS_PAGE_SIZE                   4096                "x86 Page Size")
 mos_kconfig(ARCH_X86    MOS_ADDR_USER_HEAP              0x40000000          "User Heap Start Address")

@@ -71,7 +71,7 @@ include(${MOS_ARCH_CONFIG})
 add_subdirectory(userspace)
 add_subdirectory(tests)
 
-generate_kconfig(mos_kernel)
+generate_kconfig()
 
 add_custom_target(mos_print_summary COMMAND ${CMAKE_COMMAND} -E cat ${CMAKE_BINARY_DIR}/summary.txt USES_TERMINAL)
 add_summary_item(UTILITY "mos_print_summary" "" "Print Configuration Summary")

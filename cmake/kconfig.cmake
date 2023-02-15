@@ -5,32 +5,84 @@ set(MOS_SUMMARY_DESCRIPTION_LENGTH 40)
 
 set(MOS_SUMMARY_SECTION_ORDER "" CACHE INTERNAL "" FORCE)
 
-macro(mos_kconfig SECTION NAME DEFAULT HELP)
-    set(TYPE "STRING")
+macro(add_summary_section SECTION_ID NAME)
+    list(APPEND MOS_SUMMARY_SECTION_ORDER ${SECTION_ID})
 
-    if(DEFAULT STREQUAL "ON" OR DEFAULT STREQUAL "OFF" OR DEFAULT STREQUAL "YES" OR DEFAULT STREQUAL "NO" OR DEFAULT STREQUAL "TRUE" OR DEFAULT STREQUAL "FALSE")
-        set(TYPE "BOOLEAN")
+    set(MOS_SUMMARY_SECTION_ORDER "${MOS_SUMMARY_SECTION_ORDER}" CACHE INTERNAL "" FORCE)
+    set(MOS_SUMMARY_SECTION_${SECTION_ID} "${NAME}" CACHE INTERNAL "" FORCE)
+    set(MOS_SUMMARY_SECTION_CONTENT_${SECTION_ID} "" CACHE INTERNAL "" FORCE)
+endmacro()
+
+macro(add_summary_item SECTION_ID VARIABLE VALUE DESCRIPTION)
+    if(NOT DEFINED MOS_SUMMARY_SECTION_${SECTION_ID})
+        message(FATAL_ERROR "Unknown summary section '${SECTION_ID}'")
     endif()
 
-    if (NOT DEFINED "${NAME}")
-        set(${NAME} "${DEFAULT}")
+    string(LENGTH ${VARIABLE} NAME_LEN)
+    math(EXPR padding "${MOS_SUMMARY_NAME_LENGTH} - ${NAME_LEN} - 2")
+
+    if(padding LESS 0)
+        set(padding 0)
+    endif()
+
+    string(REPEAT "." ${padding} PADDING_STRING_NAME)
+
+    string(LENGTH "${DESCRIPTION}" DESC_LEN)
+    math(EXPR padding "${MOS_SUMMARY_DESCRIPTION_LENGTH} - ${DESC_LEN} - 2")
+
+    if(padding LESS 0)
+        set(padding 0)
+    endif()
+
+    string(REPEAT "." ${padding} PADDING_STRING_DESC)
+
+    if (NOT "${VALUE}" STREQUAL "")
+        set(PRETTY_VALUE " = ${VALUE}")
+    else()
+        set(PRETTY_VALUE "")
+    endif()
+    list(APPEND MOS_SUMMARY_SECTION_CONTENT_${SECTION_ID} "${DESCRIPTION} ${PADDING_STRING_DESC}${PADDING_STRING_NAME} ${VARIABLE}${PRETTY_VALUE}")
+    set(MOS_SUMMARY_SECTION_CONTENT_${SECTION_ID} "${MOS_SUMMARY_SECTION_CONTENT_${SECTION_ID}}" CACHE INTERNAL "" FORCE)
+endmacro()
+
+macro(mos_kconfig SECTION_ID VARIABLE DEFAULT_VALUE DESCRIPTION)
+    if (NOT DEFINED "${VARIABLE}")
+        set(${VARIABLE} "${DEFAULT_VALUE}")
         set(_reason "(default)")
     else()
-        if (NOT "${${NAME}}" STREQUAL "${DEFAULT}")
-            set(_reason "(overridden, default is ${DEFAULT})")
+        if (NOT "${${VARIABLE}}" STREQUAL "${DEFAULT_VALUE}")
+            set(_reason "(overridden, default is ${DEFAULT_VALUE})")
         else()
-            set(_reason "(same as default)")
+            set(_reason "(overridden, same as default)")
         endif()
     endif()
 
-    set(_value "${${NAME}}")
-    add_summary_item(${SECTION} "${NAME}" "${_value} ${_reason}" "${HELP}")
+    set(_value "${${VARIABLE}}")
+    add_summary_item(${SECTION_ID} "${VARIABLE}" "${_value} ${_reason}" "${DESCRIPTION}")
 
-    list(APPEND MOS_KCONFIG_DEFINES "${NAME}")
-    set(_MOS_KCONFIG_DEFINES_${NAME}_file "${CMAKE_CURRENT_LIST_FILE}")
+    list(APPEND MOS_KCONFIG_DEFINES "${VARIABLE}")
+    set(_MOS_KCONFIG_DEFINES_${VARIABLE}_file "${CMAKE_CURRENT_LIST_FILE}")
 endmacro()
 
-function(generate_kconfig TARGET)
+function(print_summary)
+    message("Configuration Summary:")
+
+    foreach(section ${MOS_SUMMARY_SECTION_ORDER})
+        message("  ${MOS_SUMMARY_SECTION_${section}}")
+
+        foreach(item ${MOS_SUMMARY_SECTION_${section}})
+            foreach(item ${MOS_SUMMARY_SECTION_CONTENT_${section}})
+                message("    ${item}")
+            endforeach()
+        endforeach()
+
+        message("")
+    endforeach()
+
+    mos_save_summary()
+endfunction()
+
+function(generate_kconfig)
     message(STATUS "Generating kconfig.c according to configuration...")
 
     make_directory(${CMAKE_BINARY_DIR}/include)
@@ -45,7 +97,6 @@ function(generate_kconfig TARGET)
     file(APPEND ${KCONFIG_H} "\n")
 
     configure_file(${CMAKE_SOURCE_DIR}/cmake/kconfig.h.in "${KCONFIG_H}")
-    target_sources(${TARGET} PRIVATE "${KCONFIG_H}")
 
     set(_prev_file "")
 
@@ -66,67 +117,6 @@ function(generate_kconfig TARGET)
 
         file(APPEND ${KCONFIG_H} "#define ${CONFIG} ${_val}\n")
     endforeach()
-endfunction()
-
-macro(summary_section section name)
-    set(MOS_SUMMARY_SECTION_${section} "${name}")
-    list(APPEND MOS_SUMMARY_SECTION_ORDER ${section})
-
-    get_directory_property(hasParent PARENT_DIRECTORY)
-
-    set(MOS_SUMMARY_SECTION_ORDER "${MOS_SUMMARY_SECTION_ORDER}" CACHE INTERNAL "" FORCE)
-    set(MOS_SUMMARY_SECTION_${section} "${name}" CACHE INTERNAL "" FORCE)
-    set(MOS_SUMMARY_SECTION_CONTENT_${section} "" CACHE INTERNAL "" FORCE)
-endmacro()
-
-macro(add_summary_item section name value description)
-    if(NOT DEFINED MOS_SUMMARY_SECTION_${section})
-        message(FATAL_ERROR "Unknown summary section '${section}'")
-    endif()
-
-    string(LENGTH ${name} NAME_LEN)
-    math(EXPR padding "${MOS_SUMMARY_NAME_LENGTH} - ${NAME_LEN} - 2")
-
-    if(padding LESS 0)
-        set(padding 0)
-    endif()
-
-    string(REPEAT "." ${padding} PADDING_STRING_NAME)
-
-    string(LENGTH "${description}" DESC_LEN)
-    math(EXPR padding "${MOS_SUMMARY_DESCRIPTION_LENGTH} - ${DESC_LEN} - 2")
-
-    if(padding LESS 0)
-        set(padding 0)
-    endif()
-
-    string(REPEAT "." ${padding} PADDING_STRING_DESC)
-
-    if (NOT "${value}" STREQUAL "")
-        set(new_value " = ${value}")
-    else()
-        set(new_value "")
-    endif()
-    list(APPEND MOS_SUMMARY_SECTION_CONTENT_${section} "${description} ${PADDING_STRING_DESC}${PADDING_STRING_NAME} ${name}${new_value}")
-    set(MOS_SUMMARY_SECTION_CONTENT_${section} "${MOS_SUMMARY_SECTION_CONTENT_${section}}" CACHE INTERNAL "" FORCE)
-endmacro()
-
-function(print_summary)
-    message("Configuration Summary:")
-
-    foreach(section ${MOS_SUMMARY_SECTION_ORDER})
-        message("  ${MOS_SUMMARY_SECTION_${section}}")
-
-        foreach(item ${MOS_SUMMARY_SECTION_${section}})
-            foreach(item ${MOS_SUMMARY_SECTION_CONTENT_${section}})
-                message("    ${item}")
-            endforeach()
-        endforeach()
-
-        message("")
-    endforeach()
-
-    mos_save_summary()
 endfunction()
 
 function(mos_save_summary)
