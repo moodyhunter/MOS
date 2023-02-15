@@ -96,8 +96,6 @@ function(generate_kconfig)
     file(APPEND ${KCONFIG_H} "// !! Any changes to this file will be lost.\n")
     file(APPEND ${KCONFIG_H} "\n")
 
-    configure_file(${CMAKE_SOURCE_DIR}/cmake/kconfig.h.in "${KCONFIG_H}")
-
     set(_prev_file "")
 
     foreach(CONFIG ${MOS_KCONFIG_DEFINES})
