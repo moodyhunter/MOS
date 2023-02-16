@@ -82,8 +82,8 @@ typedef struct _thread
     u32 magic;
     tid_t tid;
     const char *name;
-    thread_status_t state;
     spinlock_t state_lock;
+    thread_state_t state;
 
     process_t *owner;
     downwards_stack_t u_stack;
