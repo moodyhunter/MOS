@@ -107,7 +107,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
 
     // previous_sh is used to deterimine the ending address of the previous section
     //! assuming that the sections are sorted by their address (which should be?)
-    elf_section_hdr_t *previouse_sh = NULL;
+    elf_section_hdr_t *previous_sh = NULL;
 
     const char *const strtab = buf + ((elf_section_hdr_t *) (buf + elf->sh_offset + elf->sh_strtab_index * elf->sh.entry_size))->sh_offset;
     for (int sh_i = 0; sh_i < elf->sh.count; sh_i++)
@@ -179,7 +179,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
             if (sh->header_type == ELF_SH_T_NOBITS && mapped_pages_n)
             {
                 mos_debug(elf, "section %d is NOBITS, zeroing previously mapped area", sh_i);
-                MOS_ASSERT(previouse_sh); // It's just impossible to have a previously mapped section if this is the first section
+                MOS_ASSERT(previous_sh); // It's just impossible to have a previously mapped section if this is the first section
 
                 // Memory layout:
                 //                                                  'A'
@@ -188,7 +188,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
                 //                               |<-  [zero_size]  ->|<- [first_unmapped_addr]
                 //                              'B'
 
-                const uintptr_t A = ALIGN_UP_TO_PAGE((uintptr_t) buf + previouse_sh->sh_offset + previouse_sh->sh_size);
+                const uintptr_t A = ALIGN_UP_TO_PAGE((uintptr_t) buf + previous_sh->sh_offset + previous_sh->sh_size);
                 const uintptr_t zero_size = ALIGN_UP_TO_PAGE(sh->sh_addr) - sh->sh_addr;
                 const uintptr_t B = A - zero_size;
                 memzero((void *) B, zero_size);
@@ -205,7 +205,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
             }
         }
 
-        previouse_sh = sh;
+        previous_sh = sh;
 
         if (mapped_pages_n == section_inmem_pages)
             continue; // all pages are already mapped
