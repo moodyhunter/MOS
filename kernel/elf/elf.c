@@ -230,6 +230,9 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
     // unmap the buffer from kernel pages
     mm_unmap_pages(current_cpu->pagetable, buf_block.vaddr, buf_block.npages);
 
+    // free the program headers
+    kfree(ph_list);
+
     return proc;
 
 bail_out:
