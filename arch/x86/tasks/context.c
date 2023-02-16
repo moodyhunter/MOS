@@ -102,7 +102,7 @@ void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
     thread->context = &context->inner;
 }
 
-void x86_setup_forked_context(const platform_context_t *from, platform_context_t **to)
+void x86_setup_forked_context(const thread_context_t *from, thread_context_t **to)
 {
     const x86_thread_context_t *from_ctx = container_of(from, const x86_thread_context_t, inner);
     x86_thread_context_t *to_ctx = kzalloc(sizeof(x86_thread_context_t));

@@ -33,13 +33,13 @@ static bool should_schedule_to_thread(thread_t *thread)
         case THREAD_STATE_BLOCKED:
         {
             // if the thread is blocked, check if the condition (if any) is met
-            if (!thread->waiting_condition)
+            if (!thread->waiting)
                 return false;
 
-            if (!wc_condition_verify(thread->waiting_condition))
+            if (!wc_condition_verify(thread->waiting))
                 return false;
-            wc_condition_cleanup(thread->waiting_condition);
-            thread->waiting_condition = NULL;
+            wc_condition_cleanup(thread->waiting);
+            thread->waiting = NULL;
             mos_debug(scheduler, "cpu %d: thread %d waiting condition is resolved", current_cpu->id, thread->tid);
             return true;
         }
@@ -118,12 +118,12 @@ void reschedule_for_wait_condition(wait_condition_t *wait_condition)
 {
     thread_t *t = current_cpu->thread;
     MOS_ASSERT_X(t->state != THREAD_STATE_BLOCKED, "thread %d is already blocked", t->tid);
-    MOS_ASSERT_X(t->waiting_condition == NULL, "thread %d is already waiting for something else", t->tid);
+    MOS_ASSERT_X(t->waiting == NULL, "thread %d is already waiting for something else", t->tid);
     spinlock_acquire(&t->state_lock);
     t->state = THREAD_STATE_BLOCKED;
     mos_debug(scheduler, "cpu %d: thread %d is now blocked", current_cpu->id, t->tid);
     spinlock_release(&t->state_lock);
-    t->waiting_condition = wait_condition;
+    t->waiting = wait_condition;
     platform_switch_to_scheduler(&t->k_stack.head, current_cpu->scheduler_stack);
 }
 

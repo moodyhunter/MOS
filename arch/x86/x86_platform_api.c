@@ -119,7 +119,7 @@ void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg)
     x86_setup_thread_context(thread, entry, arg);
 }
 
-void platform_setup_forked_context(const platform_context_t *from, platform_context_t **to)
+void platform_setup_forked_context(const thread_context_t *from, thread_context_t **to)
 {
     x86_setup_forked_context(from, to);
 }

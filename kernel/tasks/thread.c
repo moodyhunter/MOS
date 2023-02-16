@@ -36,7 +36,7 @@ thread_t *thread_allocate(process_t *owner, thread_mode tflags)
     t->owner = owner;
     t->state = THREAD_STATE_CREATED;
     t->mode = tflags;
-    t->waiting_condition = NULL;
+    t->waiting = NULL;
 
     return t;
 }

@@ -57,8 +57,8 @@ typedef struct _process
     const char *name;
     pid_t pid;
     process_t *parent;
-    terminal_t *terminal;
-    uid_t effective_uid;
+    terminal_t *terminal; // terminal this process's stdin/stdout/stderr are connected to
+    uid_t effective_uid;  // effective user id (currently this is not used)
     paging_handle_t pagetable;
 
     argv_t argv;
@@ -82,13 +82,12 @@ typedef struct _thread
     u32 magic;
     tid_t tid;
     const char *name;
-    spinlock_t state_lock;
-    thread_state_t state;
-
     process_t *owner;
-    downwards_stack_t u_stack;
-    downwards_stack_t k_stack;
-    platform_context_t *context;
-    thread_mode mode;
-    wait_condition_t *waiting_condition;
+    thread_mode mode;          // user-mode thread or kernel-mode
+    spinlock_t state_lock;     // protects the thread state
+    thread_state_t state;      // thread state
+    downwards_stack_t u_stack; // user-mode stack
+    downwards_stack_t k_stack; // kernel-mode stack
+    thread_context_t *context; // platform-specific context
+    wait_condition_t *waiting;
 } thread_t;

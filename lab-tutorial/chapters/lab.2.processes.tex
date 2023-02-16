@@ -1,36 +1,86 @@
 \chapter{Lab 2 - Processes}
 
-% Processes, Threads (Intro), Process Creation and Context Switching
-
 Congratulations on completing the first lab! Hopefully you have had a chance to play
 around with the MOS kernel and have a better understanding of its structure.
 
-In this lab, we will be looking at the process management system in MOS.
+In this lab, we will be looking at the process management in MOS.
+
+\section{Files in MOS that relate to process management}
+
+\begin{figure}[ht]
+    \centering
+    \raisebox{-.5\height}{\includegraphics[width=0.4\textwidth]{assets/c2.headers.png}}
+    \raisebox{-.5\height}{\includegraphics[width=0.4\textwidth]{assets/c2.sources.png}}
+    \caption{The header and source files in \texttt{kernel/tasks}}
+    \label{fig:mos-process-management-files}
+\end{figure}
+
+The process management in MOS is implemented in the \texttt{kernel/tasks} directory, and the
+corresponding header files are in \texttt{kernel/include/private/mos/tasks} as shown in
+Figure \ref{fig:mos-process-management-files}.
+
+\begin{note}
+    \item The \texttt{kernel/include/private} directory is a convension used in MOS, which
+    contains the header files that are \textbf{not} meant to be used by userspace programs.
+\end{note}
 
 \section{Process Control Blocks}
 
 You have learnt about this in the lecture: `a process is a program in execution', and a process
 control block (PCB) is a data structure that contains information about a process.
 
-Now, let's look at the PCB structure in MOS. In \texttt{kernel/include/mos/tasks/task\_types.h}.
+Now, let's look at the PCB structure in MOS. The PCB is defined as a struct named \texttt{process\_t}
+in \texttt{task\_types.h}.
 
-The first field is a magic number, which is used to check if we are dealing with a valid PCB.
-Then follows the process name and its PID, a list of opened files, a list of threads and a list
-of mapped memory regions, which we will look more closely at later.
+Several fields are defined in PCB, but we will only look at the ones that are relevant to
+process management, which are:
 
-Each process has a parent, which is the process that created it, and this forms a tree-like
-structure.
+\begin{itemize}
+    \item \texttt{pid}: The process id.
 
-\begin{note}
-    \item At the root of the tree is the \texttt{init} process, it's fun to think about
-    it being its own parent.
-\end{note}
+          Each process has a unique id, this is what MOS uses to identify a process.\\
+          In MOS, the process id is an unsigned 32-bit integer, and this number always
+          increases.
+
+    \item \texttt{name}: The name of the process, nothing interesting here.
+
+    \item \texttt{parent}: The parent of the process, this is a pointer to the PCB of the parent.
+
+          Unlike most animals, a process can only have one parent. The \texttt{init}
+          process lives at the root of the process tree, it's fun to think about it being its own
+          parent.
+
+    \item \texttt{files}: A list of opened files.
+
+          This is a staticly allocated array of size \texttt{MOS\_PROCESS\_MAX\_OPEN\_FILES},
+          the value of which is determined by the kernel configuration.
+
+          Each time a file is opened, an \texttt{io\_t} that represents an IO object (file, pipe, etc.)
+          is added to this array, and the index of such an object is returned to the user program.
+
+          This index is called a `file descriptor', or `fd' for short. The user program can use
+          this number to refer to the file in the future.
+
+          The \texttt{io\_t} structure is defined in \texttt{kernel/include/private/mos/io/io.h},
+          the details of which is probably beyond the scope of this lab.
+
+    \item \texttt{threads}: A list of threads.
+
+          To be honest, this list is unnecessary, because we already have a thread table elsewhere
+          in MOS, the list here is just a convenience for the kernel to iterate over all threads
+          of a specific process, (think about it as a cache).
+
+    \item \texttt{pagetable}, \texttt{mmaps}: The page table and a list of mapped memory regions,
+          these two will be discussed in later chapters.
+\end{itemize}
 
 \section{Thread Control Blocks}
 
-You may have noticed that the PCB above is different from the one in the lecture: it doesn't
-have a `process state' or its `stack/heap/text memory regions'. This is because MOS is using
-thread as a basic unit of execution, and each thread has its own state.
+You may have noticed that the PCB above is \textit{little bit} different from the one in the
+lecture: It has neither `process state' nor `stack/heap/text memory regions'.
+
+Because, in MOS, a thread is basic unit of execution instead of a process. Thus it's the thread that has a
+`state' and a `stack', and the process is just a collection of threads.
 
 The thread control block is defined in the same file as the PCB. You can see that it contains
 a \texttt{tid} for a thread id, and a \texttt{state} field to indicate the state of the thread,

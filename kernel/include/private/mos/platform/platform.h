@@ -95,7 +95,7 @@ typedef struct
 {
     uintptr_t instruction;
     uintptr_t stack;
-} __packed platform_context_t;
+} __packed thread_context_t;
 
 typedef struct
 {
@@ -175,7 +175,7 @@ vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr);
 
 // Platform Thread / Process APIs
 void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg);
-void platform_setup_forked_context(const platform_context_t *from, platform_context_t **to);
+void platform_setup_forked_context(const thread_context_t *from, thread_context_t **to);
 
 // Platform Context Switching APIs
 void platform_switch_to_thread(uintptr_t *old_stack, const thread_t *new_thread, switch_flags_t switch_flags);
