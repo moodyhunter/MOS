@@ -212,15 +212,15 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
 
         if (sh->header_type == ELF_SH_T_NOBITS)
         {
-            vmblock_t zero_block = mm_alloc_zeroed_pages_at(proc->pagetable, first_unmapped_addr, pages_to_map, map_flags);
+            const vmblock_t zero_block = mm_alloc_zeroed_pages_at(proc->pagetable, first_unmapped_addr, pages_to_map, map_flags);
             process_attach_mmap(proc, zero_block, VMTYPE_APPDATA_ZERO, MMAP_ZERO_ON_DEMAND);
         }
         else
         {
             uintptr_t file_offset = ALIGN_DOWN_TO_PAGE((uintptr_t) buf + sh->sh_offset) + mapped_pages_n * MOS_PAGE_SIZE;
             vmblock_t block = mm_copy_maps(current_cpu->pagetable, file_offset, proc->pagetable, first_unmapped_addr, pages_to_map);
+            block.flags = map_flags; // use the original flags
             platform_mm_flag_pages(proc->pagetable, block.vaddr, block.npages, map_flags);
-            block.flags = map_flags;
             process_attach_mmap(proc, block, map_flags & VM_EXEC ? VMTYPE_APPCODE : VMTYPE_APPDATA, MMAP_DEFAULT);
         }
     }
