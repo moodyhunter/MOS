@@ -61,3 +61,8 @@ MOSAPI void __cxa_finalize(destructor_t f)
         return;
     }
 }
+
+int atexit(void (*func)(void))
+{
+    return __cxa_atexit((destructor_t) func, NULL, NULL);
+}
