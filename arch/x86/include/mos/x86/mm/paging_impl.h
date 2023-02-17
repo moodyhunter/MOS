@@ -23,7 +23,7 @@ typedef volatile struct
     u32 phys_addr : 20;
 } __packed x86_pgtable_entry;
 
-static_assert(sizeof(x86_pgtable_entry) == 4, "page_table_entry is not 4 bytes");
+MOS_STATIC_ASSERT(sizeof(x86_pgtable_entry) == 4, "page_table_entry is not 4 bytes");
 
 typedef volatile struct
 {
@@ -39,7 +39,7 @@ typedef volatile struct
     u32 page_table_paddr : 20;
 } __packed x86_pgdir_entry;
 
-static_assert(sizeof(x86_pgdir_entry) == 4, "page_directory_entry is not 4 bytes");
+MOS_STATIC_ASSERT(sizeof(x86_pgdir_entry) == 4, "page_directory_entry is not 4 bytes");
 
 #define X86_MM_PAGEMAP_NLINES ALIGN_UP(X86_MAX_MEM_SIZE / MOS_PAGE_SIZE / BITMAP_LINE_BITS, BITMAP_LINE_BITS)
 

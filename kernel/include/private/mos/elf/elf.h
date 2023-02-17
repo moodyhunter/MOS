@@ -63,7 +63,7 @@ typedef struct
     u8 __padding[7];
 } elf_identity_t;
 
-static_assert(sizeof(elf_identity_t) == 16, "elf_identity_t has wrong size");
+MOS_STATIC_ASSERT(sizeof(elf_identity_t) == 16, "elf_identity_t has wrong size");
 
 typedef enum
 {

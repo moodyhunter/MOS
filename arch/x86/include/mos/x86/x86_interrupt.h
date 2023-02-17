@@ -45,7 +45,7 @@ typedef enum
     EXCEPTION_COUNT = 32
 } x86_exception_enum_t;
 
-static_assert(IRQ_BASE > EXCEPTION_MAX, "IRQ_BASE is too small, possibly overlapping with exceptions");
+MOS_STATIC_ASSERT(IRQ_BASE > EXCEPTION_MAX, "IRQ_BASE is too small, possibly overlapping with exceptions");
 
 typedef enum
 {
@@ -68,7 +68,7 @@ typedef enum
     IRQ_MAX = 16,
 } x86_irq_enum_t;
 
-static_assert(IRQ_MAX_COUNT == IRQ_MAX, "IRQ_MAX_COUNT is not equal to IRQ_MAX");
+MOS_STATIC_ASSERT(IRQ_MAX_COUNT == IRQ_MAX, "IRQ_MAX_COUNT is not equal to IRQ_MAX");
 
 void pic_remap_irq(void);
 

@@ -47,7 +47,7 @@ typedef struct
     } __packed destination;
 } __packed ioapic_redirection_entry_t;
 
-static_assert(sizeof(ioapic_redirection_entry_t) == sizeof(u64), "ioapic_register_1 is not 64 bits");
+MOS_STATIC_ASSERT(sizeof(ioapic_redirection_entry_t) == sizeof(u64), "ioapic_register_1 is not 64 bits");
 
 static u32 volatile *ioapic = NULL;
 

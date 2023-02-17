@@ -13,7 +13,7 @@ typedef struct
     u32 rsdt_addr;
 } __packed acpi_rsdp_v1_t;
 
-static_assert(sizeof(acpi_rsdp_v1_t) == 20, "acpi_rsdp_v1_t is not 20 bytes");
+MOS_STATIC_ASSERT(sizeof(acpi_rsdp_v1_t) == 20, "acpi_rsdp_v1_t is not 20 bytes");
 
 typedef struct
 {

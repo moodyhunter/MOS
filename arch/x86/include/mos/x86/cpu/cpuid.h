@@ -143,7 +143,7 @@ typedef struct
     } edx;
 } __packed processor_version_t;
 
-static_assert(sizeof(processor_version_t) == sizeof(u32) * 4, "processor_version is not 32 bits");
+MOS_STATIC_ASSERT(sizeof(processor_version_t) == sizeof(u32) * 4, "processor_version is not 32 bits");
 
 typedef struct
 {

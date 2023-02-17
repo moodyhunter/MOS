@@ -51,7 +51,7 @@ typedef union
     u8 byte;
 } byte_t;
 
-static_assert(sizeof(byte_t) == 1, "byte_t is not 1 byte");
+MOS_STATIC_ASSERT(sizeof(byte_t) == 1, "byte_t is not 1 byte");
 
 typedef u32 id_t;
 typedef s32 fd_t;

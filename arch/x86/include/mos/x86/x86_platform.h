@@ -5,7 +5,7 @@
 #include "mos/platform/platform.h"
 #include "mos/x86/boot/multiboot.h"
 
-static_assert(sizeof(void *) == 4, "x86_64 is not supported");
+MOS_STATIC_ASSERT(sizeof(void *) == 4, "x86_64 is not supported");
 
 #define X86_BIOS_MEMREGION_PADDR 0xf0000
 #define BIOS_MEMREGION_SIZE      0x10000
@@ -30,7 +30,7 @@ typedef struct
     x86_iret_params_t iret_params;
 } __packed x86_stack_frame;
 
-static_assert(sizeof(x86_stack_frame) == 76, "x86_stack_frame has incorrect size");
+MOS_STATIC_ASSERT(sizeof(x86_stack_frame) == 76, "x86_stack_frame has incorrect size");
 
 typedef struct
 {

@@ -45,8 +45,8 @@ typedef struct
     gdt_entry32_t *base;
 } __packed gdt_ptr32_t;
 
-static_assert(sizeof(gdt_entry32_t) == 8, "gdt_entry_t is not 8 bytes");
-static_assert(sizeof(gdt_ptr32_t) == 6, "gdt_ptr_t is not 6 bytes");
+MOS_STATIC_ASSERT(sizeof(gdt_entry32_t) == 8, "gdt_entry_t is not 8 bytes");
+MOS_STATIC_ASSERT(sizeof(gdt_ptr32_t) == 6, "gdt_ptr_t is not 6 bytes");
 
 typedef struct
 {
@@ -67,7 +67,7 @@ typedef struct
     u16 iomap;
 } __packed tss32_t;
 
-static_assert(sizeof(tss32_t) == 104, "tss32_t is not 104 bytes");
+MOS_STATIC_ASSERT(sizeof(tss32_t) == 104, "tss32_t is not 104 bytes");
 
 typedef struct
 {

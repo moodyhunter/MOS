@@ -56,7 +56,7 @@ typedef struct
     size_t data_length;
 } cpio_metadata_t;
 
-static_assert(sizeof(cpio_newc_header_t) == 110, "cpio_newc_header has wrong size");
+MOS_STATIC_ASSERT(sizeof(cpio_newc_header_t) == 110, "cpio_newc_header has wrong size");
 
 static file_type_t cpio_modebits_to_filetype(u32 modebits)
 {
