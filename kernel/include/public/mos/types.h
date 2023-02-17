@@ -80,7 +80,9 @@ new_opaque_type(size_t, hash);
 
 typedef u32 futex_word_t;
 
+#ifndef __cplusplus
 #define __atomic(type) _Atomic(type)
 typedef __atomic(size_t) atomic_t;
+#endif
 
 typedef void (*thread_entry_t)(void *arg);

@@ -44,12 +44,34 @@ static void __attribute__((constructor)) __liballoc_userspace_init(void)
     liballoc_init();
 }
 
+void *malloc(size_t size)
+{
+    return liballoc_malloc(size);
+}
+
+void free(void *ptr)
+{
+    liballoc_free(ptr);
+}
+
+void *calloc(size_t nmemb, size_t size)
+{
+    return liballoc_calloc(nmemb, size);
+}
+
+void *realloc(void *ptr, size_t size)
+{
+    return liballoc_realloc(ptr, size);
+}
+
 void _start(size_t argc, char **argv)
 {
     extern int main(int argc, char **argv);
-    extern void invoke_init(void);
+    extern void __cxa_finalize(void *d);
+
     invoke_init();
     int r = main(argc, argv);
+    __cxa_finalize(NULL);
     syscall_exit(r);
 }
 

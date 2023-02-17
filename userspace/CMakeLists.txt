@@ -1,6 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-add_library(mos_libuserspace OBJECT libuserspace.c ${MOS_STANDARD_LIBRARY_SOURCES})
+add_library(mos_libuserspace OBJECT
+    ${MOS_STANDARD_LIBRARY_SOURCES}
+    libs/libuserspace.c
+    libs/libuserspace++.cpp
+    libs/cxa.c
+)
+
 target_include_directories(mos_libuserspace PUBLIC ${CMAKE_SOURCE_DIR}/userspace/include)
 target_link_libraries(mos_libuserspace PUBLIC gcc mos::include)
 add_library(mos::libuserspace ALIAS mos_libuserspace)

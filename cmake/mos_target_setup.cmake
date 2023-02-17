@@ -3,7 +3,7 @@
 set(CMAKE_SYSTEM_NAME Linux) # "MOS" ?
 
 set(CMAKE_C_FLAGS "-Werror=div-by-zero -Wstrict-prototypes")
-set(CMAKE_CXX_FLAGS "-Werror=div-by-zero -Wstrict-prototypes")
+set(CMAKE_CXX_FLAGS "-Werror=div-by-zero -fno-rtti -fno-exceptions")
 
 set(CMAKE_C_FLAGS_DEBUG "-ggdb3")
 set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3")
