@@ -11,6 +11,9 @@ macro(add_to_gdbinit TARGET)
     file(APPEND ${CMAKE_BINARY_DIR}/gdbinit "add-symbol-file ${OUT_DIR}/${TARGET}")
 endmacro()
 
+set(INITRD_DIR "${CMAKE_BINARY_DIR}/initrd")
+make_directory(${INITRD_DIR})
+
 add_custom_target(mos_initrd
     find . -depth | sort | cpio -o --format=crc >../initrd.cpio
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/initrd
@@ -26,7 +29,6 @@ add_custom_target(mos_cleanup_initrd
 add_summary_item(UTILITY mos_cleanup_initrd "" "Cleanup Initrd")
 
 macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
-    set(INITRD_DIR "${CMAKE_BINARY_DIR}/initrd")
     set(OUTPUT_DIR "${INITRD_DIR}${PATH}")
 
     # append a slash to the path if there's none
