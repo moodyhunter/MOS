@@ -11,7 +11,7 @@ const size_t data_size = 43;
 
 static void thread_main(void *arg)
 {
-    fd_t client_fd = (fd_t) arg;
+    fd_t client_fd = (fd_t) (long) arg;
 
     char buf[150];
     size_t sz = sprintf(buf, "Welcome to the server, client fd %d!", client_fd);
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
         }
 
         printf("Server: Accepted fd %d\n", client_fd);
-        start_thread("child", thread_main, (void *) client_fd);
+        start_thread("child", thread_main, (void *) (long) client_fd);
     }
 
     return 0;

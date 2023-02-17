@@ -39,7 +39,7 @@ static void thread_do_work(void *arg)
 {
     printf("Thread %d started!\n", syscall_get_tid());
     LOCK();
-    for (u32 i = 0; i < (u32) arg; i++)
+    for (long i = 0; i < (long) arg; i++)
     {
         u64 current_count = counter;
         time_consuming_work();
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
     printf("Threads and Locks Test!\n");
 
     const u32 N_THREADS = 20;
-    const u32 N_WORK = 500000;
+    const size_t N_WORK = 500000;
     tid_t threads[N_THREADS];
 
     for (u32 i = 0; i < N_THREADS; i++)
