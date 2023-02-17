@@ -224,7 +224,7 @@ bool vfs_fstat(io_t *io, file_stat_t *restrict stat)
     if (file == NULL)
         return false;
 
-    MOS_ASSERT_X(file->dentry == NULL, "A file without a backing dentry?");
+    MOS_ASSERT_X(file->dentry, "A file without a backing dentry?");
 
     if (file->dentry->inode == NULL)
         return false;
