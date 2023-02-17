@@ -52,7 +52,7 @@ process management, which are:
 
     \item \texttt{files}: A list of opened files.
 
-          This is a staticly allocated array of size \texttt{MOS\_PROCESS\_MAX\_OPEN\_FILES},
+          This is a statically allocated array of size \texttt{MOS\_PROCESS\_MAX\_OPEN\_FILES},
           the value of which is determined by the kernel configuration.
 
           Each time a file is opened, an \texttt{io\_t} that represents an IO object (file, pipe, etc.)
@@ -84,15 +84,12 @@ Because, in MOS, a thread is basic unit of execution instead of a process. Thus 
 
 The thread control block is defined in the same file as the PCB. You can see that it contains
 a \texttt{tid} for a thread id, and a \texttt{state} field to indicate the state of the thread,
-its owner process, two stacks for the kernel and user mode respectively.
-
-There's also a \texttt{context} pointer, this will be used in context switching, we'll look at
-that later.
+its owner process, two stacks for the kernel and user mode respectively. There's also a
+\texttt{context} pointer, this will be used in context switching, we'll look at that later.
 
 \section{Process Creation}
 
-A process has to be created from a `program' (a binary executable file) in order to be
-executed. WLOG, creating a process involves the following steps:
+To create a process, the following steps are taken:
 
 \begin{enumerate}
     \item Load the program into the memory.
@@ -116,6 +113,146 @@ executed. WLOG, creating a process involves the following steps:
     \item (optionally) schedule to the new thread.
 \end{enumerate}
 
+A process has to be created from a `program' (an executable file) in order to be executed.
+In MOS, the format called `ELF' is used as the executable format.
+
+Thus, to be honest, the journey of a process should start from the function \texttt{elf\_create\_process}
+located in \texttt{kernel/elf/elf.c} (corresponding to the first step above), but the code for
+parsing an ELF file is a bit overcomplicated and not very interesting.
+
+Because of that, we'll jump ahead and begin at the \texttt{process\_new} function.
+
+\subsection{\texttt{process\_new}}
+
+This function is defined in file \texttt{kernel/tasks/process.c}. It accepts several arguments,
+the important ones among them are:
+
+\begin{itemize}
+    \item \texttt{process\_t *parent}: The parent of the process, this is a pointer to the PCB of the parent.
+    \item \texttt{const char *name}: The name of the process, this is just a string that is used for debugging.
+    \item \texttt{thread\_entry\_t entry}: The entry point of the process, this is the address of the
+          \texttt{main} function of the program.
+\end{itemize}
+
+The function first allocates a PCB by calling \texttt{process\_allocate}. In that function, a
+\texttt{process\_t} structure is allocated and initialized. The PID, magic number, name and
+parent are set, then it calls \texttt{mm\_create\_user\_pgd} to create a user-mode page table,
+which will become the `address space' of the process.
+
+Going back to \texttt{process\_new}, several (precisely, 3) calls to \texttt{process\_attach\_ref\_fd}
+are made to attach the standard input, output and error streams to the process.
+
+Then the function calls \texttt{thread\_new} to create a main thread for the process. As you can see,
+the \texttt{entry} is passed as the argument.
+
+\begin{note}
+    \item The function also passes \texttt{NULL} as the \texttt{arg} argument, which is an implementation
+    detail that MOS handles arguments for the main thread differently.
+\end{note}
+
+After the main thread is created, the function allocates a heap by calling \texttt{mm\_alloc\_pages}
+and then completes the initialization of the PCB by adding the PCB into the process table.
+
+We'll now look at the \texttt{thread\_new} function.
+
+\subsection{\texttt{thread\_new}}
+
+This function is defined in file \texttt{kernel/tasks/thread.c}.
+
+Similarly, it firstly calls \texttt{thread\_allocate} to allocate a TCB for the thread, which
+initializes the \texttt{tid}, \texttt{magic}, \texttt{owner}, \texttt{state} and \texttt{mode}
+fields.
+
+After a TCB is allocated, the function allocates two types of stacks for the thread:
+
+\begin{itemize}
+    \item \textbf{Kernel Mode Stack}
+
+          This is the stack used when the thread is running in kernel mode. A thread is running
+          in `kernel mode' when it is executing a system call, or when a hardware interrupt, such as
+          a timer interrupt or a keyboard interrupt, occurs.
+
+    \item \textbf{User Mode Stack}
+
+          This is the stack used when the thread is running in user mode, nothing special here?
+\end{itemize}
+
+\begin{tip}
+    \item Pay attention to the different \texttt{mm\_} functions used to allocate the stacks.
+    The kernel stack is allocated by \texttt{mm\_alloc\_pages}, while the user stack is
+    allocated by \texttt{mm\_alloc\_zeroed\_pages}.
+    \item The reason for this will be explained in the later chapters.
+\end{tip}
+
+After stacks are allocated, the function calls \texttt{platform\_context\_setup}, which is
+a platform-specific function that setup the initial context of the thread.
+
+Although we won't go into details into architecture-specific code, it's worth noting it's here
+that the \texttt{entry} and \texttt{arg} arguments are used. For example, the entry will be
+the initial instruction pointer of the thread and the \texttt{arg} will be pushed onto the stack
+or passed in a register (depending on the architecture).
+
+After the context is setup, the function adds the thread into the thread table, completing
+the initialization of that thread.
+
+\subsection{Thread States}
+
+In MOS, a thread can be in one of the following states:
+
+\begin{itemize}
+    \item \texttt{CREATED}: thread is created or forked, but not ever started
+    \item \texttt{READY}: thread can be scheduled
+    \item \texttt{RUNNING}: thread is currently running
+    \item \texttt{BLOCKED}: thread is blocked by a wait condition
+    \item \texttt{DEAD}: thread is dead, and will be cleaned up soon by the scheduler
+\end{itemize}
+
+The state transition diagram of a thread is shown in Figure \ref{fig:thread-state-transition}
+\footnote{Process termination with multiple running threads is not shown in this diagram}.
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}[auto]
+
+        \node[state] (C) at (0,-2) {CREATED};
+        \node[state] (D) at (0, 2) {DEAD};
+
+        \node[state] (U) at (3, 1) {RUNNING};
+        \node[state] (R) at (9, 1) {READY};
+        \node[state] (B) at (6,-3) {BLOCKED};
+
+        \draw[->, thick] (-2, -2) -- (C);
+
+        \path[->] (C) edge node {initial run} (U);
+        \path[->] (U) edge node {exit} (D);
+
+        \path[->] (U) edge [bend right] node {interrupted} (R);
+        \path[->] (R) edge [bend right] node {scheduled} (U);
+        \path[->] (U) edge [bend right] node {wait} (B);
+        \path[->] (B) edge [bend right] node {wakeup} (R);
+    \end{tikzpicture}
+    \caption{Thread State Transition Diagram in MOS}
+    \label{fig:thread-state-transition}
+\end{figure}
+
+\begin{note}
+    \item MOS transitions a thread from \texttt{CREATED} \textbf{directly} to
+    \texttt{RUNNING} without going through the \texttt{READY} state. This is different
+    from what's in the lecture, where a thread is then \texttt{admitted}.
+
+    This is because the scheduler in MOS require state as an indicator of whether a thread
+    needs special setup before really jumping to the thread entry point.
+\end{note}
+
+In later chapters, we'll see what really happens when a thread is scheduled, blocked
+or woken up. For now, we'll just focus on the process and thread creation.
+
+\subsection{Process Address Space}
+
+In MOS, a process has a virtual address space that is shared by all its threads. This is
+similar to what Linux does. The underlying mechanism is called `paging' which we'll
+also cover in later chapters.
+
 The figure \ref{fig:mos-process-memory-layout} shows the memory layout of a process in MOS
 after its creation.
 
@@ -130,7 +267,7 @@ after its creation.
     \newcommand{\memsection}[6][lrtb]{%
         \bytefieldsetup{bitheight=#4\baselineskip}%
         \bitbox[]{10}{
-            \texttt{#2} \\ % end addressd
+            \texttt{#2} \\ % end address
             \vspace{#4\baselineskip}
             \vspace{-2\baselineskip}
             \vspace{-#4pt}
@@ -144,7 +281,7 @@ after its creation.
         \bitbox[#1]{16}[bgcolor=gray]{\small Gap}
     }
 
-    Color Description:
+    Color Legend:
     \colorbox{gray}{\textbf{Unavailable}}
     \colorbox{lightred}{\textbf{Kernel Only}}
     \colorbox{lightgreen}{\textbf{User Read-Only}}
@@ -170,7 +307,7 @@ after its creation.
                 \end{rightwordgroup}
             \end{leftwordgroup}\\
             \memgap{4}\\
-            \begin{leftwordgroup}{1. Address determined\\ by the Program Header}
+            \begin{leftwordgroup}{1. Address statically\\defined by compiler}
                 \memsection{\dots}{}{3}{cyan}{\texttt{.bss} Section}\\
                 \memsection{}{}{3}{cyan}{\texttt{.data} Section}\\
                 \memsection{}{}{2}{lightgreen}{\texttt{.rodata} Section}\\
@@ -183,16 +320,24 @@ after its creation.
     \label{fig:mos-process-memory-layout}
 \end{figure}
 
-\textbf{\textit{TODO: Add exercises}}
+\subsection{Exercises for Part 1}
+
+\begin{exercise}
+    \item Read the code in \texttt{process.c}, find the function \texttt{process\_dump\_mmaps()}
+    \item Print the memory map of the \texttt{init} process in \texttt{mos\_start\_kernel}.
+    \item Find out where is those memory map information is added to the process, and try
+    print out a log message each time a new memory map is added.
+\end{exercise}
 
 \section{The famous \texttt{fork()} system call}
 
-You may have known that the \texttt{fork()} system call is used to create a new process, which seems
-to be the same as what we have just discussed. However, think about the following question:
+You may have known that the \texttt{fork()} system call is used to create a new process, which
+seems to be the same as what we have just discussed. However, think about the following
+question:
 
 \begin{quote}
-    What if we want to create a new process that is exactly the same as the current process, instead
-    of creating a new process from a program?
+    What if we want to create a new process that is exactly the same as the current process,
+    instead of creating a new process from a program?
 \end{quote}
 
-\dots
+\dots TODO
