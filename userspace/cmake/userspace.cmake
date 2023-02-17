@@ -23,7 +23,7 @@ add_custom_target(mos_initrd
 add_summary_item(UTILITY mos_initrd "${CMAKE_BINARY_DIR}/initrd.cpio" "Create Initrd")
 
 add_custom_target(mos_cleanup_initrd
-    COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_BINARY_DIR}/initrd
+    COMMAND ${CMAKE_COMMAND} -E rm -rf ${INITRD_DIR} && ${CMAKE_COMMAND} -E make_directory ${INITRD_DIR}
     COMMENT "Cleaning up initrd"
 )
 add_summary_item(UTILITY mos_cleanup_initrd "" "Cleanup Initrd")
