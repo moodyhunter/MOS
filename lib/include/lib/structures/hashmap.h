@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "lib/mos_lib.h"
 #include "mos/types.h"
 
 /**
@@ -25,13 +26,13 @@ typedef struct _hashmap
     hashmap_key_compare_t key_compare_func;
 } hashmap_t;
 
-void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, hashmap_key_compare_t compare_func);
-void hashmap_deinit(hashmap_t *map);
+MOSAPI void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, hashmap_key_compare_t compare_func);
+MOSAPI void hashmap_deinit(hashmap_t *map);
 
-void *hashmap_put(hashmap_t *map, const void *key, void *value);
-void *hashmap_get(const hashmap_t *map, const void *key);
-void *hashmap_remove(hashmap_t *map, const void *key);
+MOSAPI void *hashmap_put(hashmap_t *map, const void *key, void *value);
+MOSAPI void *hashmap_get(const hashmap_t *map, const void *key);
+MOSAPI void *hashmap_remove(hashmap_t *map, const void *key);
 
-void hashmap_foreach(hashmap_t *map, hashmap_foreach_func_t func);
+MOSAPI void hashmap_foreach(hashmap_t *map, hashmap_foreach_func_t func);
 
 /** @} */

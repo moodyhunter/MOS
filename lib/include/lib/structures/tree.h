@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "lib/mos_lib.h"
 #include "lib/structures/list.h"
 #include "mos/types.h"
 
@@ -35,10 +36,10 @@ typedef const struct
 #define tree_foreach_child(t, v, h)                                                                                                                                      \
     for (t *v = tree_child_entry(tree_children_list(h)->next, t); tree_child_node(v) != tree_children_list(h); v = tree_child_entry(tree_child_node(v)->next, t))
 
-void tree_add_child(tree_node_t *parent, tree_node_t *child);
-void tree_remove_if(tree_node_t *node, bool (*predicate)(const tree_node_t *node));
+MOSAPI void tree_add_child(tree_node_t *parent, tree_node_t *child);
+MOSAPI void tree_remove_if(tree_node_t *node, bool (*predicate)(const tree_node_t *node));
 
-const tree_node_t *tree_find_child_by_name(tree_op_t *op, const tree_node_t *node, const char *name, size_t name_len);
-const tree_node_t *tree_find_common_prefix(const tree_node_t *node1, const tree_node_t *node2);
+MOSAPI const tree_node_t *tree_find_child_by_name(tree_op_t *op, const tree_node_t *node, const char *name, size_t name_len);
+MOSAPI const tree_node_t *tree_find_common_prefix(const tree_node_t *node1, const tree_node_t *node2);
 
-void tree_trace_to_root(const tree_node_t *node, void (*trace_func)(const tree_node_t *node));
+MOSAPI void tree_trace_to_root(const tree_node_t *node, void (*trace_func)(const tree_node_t *node));

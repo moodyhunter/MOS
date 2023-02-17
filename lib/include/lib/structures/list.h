@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "lib/mos_lib.h"
 #include "mos/types.h"
 
 /**
@@ -61,13 +62,13 @@ struct list_node
 #define list_foreach_reverse(t, v, h)         for (t *v = list_entry((h).prev, t); list_node(v) != &(h); v = list_entry(list_node(v)->prev, t))
 #define list_node_foreach_reverse(node, head) for (list_node_t *node = (head)->prev; node != (head); node = node->prev)
 
-void linked_list_init(list_node_t *head_node);
-bool list_is_empty(list_node_t *head);
-void list_node_remove(list_node_t *link);
+MOSAPI void linked_list_init(list_node_t *head_node);
+MOSAPI bool list_is_empty(list_node_t *head);
+MOSAPI void list_node_remove(list_node_t *link);
 
-void list_node_prepend(list_node_t *head, list_node_t *item);
-void list_node_append(list_node_t *head, list_node_t *item);
-void list_node_insert_before(list_node_t *element, list_node_t *item);
-void list_node_insert_after(list_node_t *element, list_node_t *item);
+MOSAPI void list_node_prepend(list_node_t *head, list_node_t *item);
+MOSAPI void list_node_append(list_node_t *head, list_node_t *item);
+MOSAPI void list_node_insert_before(list_node_t *element, list_node_t *item);
+MOSAPI void list_node_insert_after(list_node_t *element, list_node_t *item);
 
 /** @} */

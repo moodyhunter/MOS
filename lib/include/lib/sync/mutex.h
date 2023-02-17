@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "lib/mos_lib.h"
 #include "mos/types.h"
 
 typedef futex_word_t mutex_t;
@@ -12,5 +13,5 @@ should_inline void mutex_init(mutex_t *mutex)
     *mutex = MUTEX_INIT;
 }
 
-void mutex_acquire(mutex_t *mutex);
-void mutex_release(mutex_t *mutex);
+MOSAPI void mutex_acquire(mutex_t *mutex);
+MOSAPI void mutex_release(mutex_t *mutex);

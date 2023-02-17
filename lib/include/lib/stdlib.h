@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "lib/mos_lib.h"
 #include "mos/types.h"
 
 #include <limits.h>
@@ -14,12 +15,12 @@
  * @{
  */
 
-s32 abs(s32 x);
-long labs(long x);
-s64 llabs(s64 x);
-s32 atoi(const char *nptr);
+MOSAPI s32 abs(s32 x);
+MOSAPI long labs(long x);
+MOSAPI s64 llabs(s64 x);
+MOSAPI s32 atoi(const char *nptr);
 
-void format_size(char *buf, size_t buf_size, u64 size);
+MOSAPI void format_size(char *buf, size_t buf_size, u64 size);
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))

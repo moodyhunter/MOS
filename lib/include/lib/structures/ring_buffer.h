@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/mos_global.h"
+#include "lib/mos_lib.h"
 #include "mos/types.h"
 
 /**
@@ -28,18 +28,18 @@ typedef struct _ring_buffer
     ring_buffer_pos_t pos;
 } ring_buffer_t;
 
-ring_buffer_t *ring_buffer_create(size_t capacity);
-ring_buffer_t *ring_buffer_create_at(void *data, size_t capacity);
-void ring_buffer_pos_init(ring_buffer_pos_t *pos, size_t capacity);
-void ring_buffer_destroy(ring_buffer_t *buffer);
+MOSAPI ring_buffer_t *ring_buffer_create(size_t capacity);
+MOSAPI ring_buffer_t *ring_buffer_create_at(void *data, size_t capacity);
+MOSAPI void ring_buffer_pos_init(ring_buffer_pos_t *pos, size_t capacity);
+MOSAPI void ring_buffer_destroy(ring_buffer_t *buffer);
 
-bool ring_buffer_resize(ring_buffer_t *buffer, size_t new_capacity);
+MOSAPI bool ring_buffer_resize(ring_buffer_t *buffer, size_t new_capacity);
 
-size_t ring_buffer_pos_push_back(u8 *buffer, ring_buffer_pos_t *pos, const u8 *data, size_t size);
-size_t ring_buffer_pos_pop_back(u8 *buffer, ring_buffer_pos_t *pos, u8 *buf, size_t size);
+MOSAPI size_t ring_buffer_pos_push_back(u8 *buffer, ring_buffer_pos_t *pos, const u8 *data, size_t size);
+MOSAPI size_t ring_buffer_pos_pop_back(u8 *buffer, ring_buffer_pos_t *pos, u8 *buf, size_t size);
 
-size_t ring_buffer_pos_push_front(u8 *buffer, ring_buffer_pos_t *pos, const u8 *data, size_t size);
-size_t ring_buffer_pos_pop_front(u8 *buffer, ring_buffer_pos_t *pos, u8 *buf, size_t size);
+MOSAPI size_t ring_buffer_pos_push_front(u8 *buffer, ring_buffer_pos_t *pos, const u8 *data, size_t size);
+MOSAPI size_t ring_buffer_pos_pop_front(u8 *buffer, ring_buffer_pos_t *pos, u8 *buf, size_t size);
 
 should_inline u8 ring_buffer_pos_pop_back_byte(u8 *buffer, ring_buffer_pos_t *pos)
 {

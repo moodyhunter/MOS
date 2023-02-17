@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "lib/mos_lib.h"
 #include "mos/types.h"
 
 /**
@@ -12,9 +13,9 @@
  */
 #define hashmap_common_type_init(map, cap, type) hashmap_init(map, cap, hashmap_hash_##type, hashmap_compare_##type)
 
-hash_t __pure hashmap_hash_string(const void *key);
-int __pure hashmap_compare_string(const void *key1, const void *key2);
+MOSAPI hash_t __pure hashmap_hash_string(const void *key);
+MOSAPI int __pure hashmap_compare_string(const void *key1, const void *key2);
 
-int __pure hashmap_simple_key_compare(const void *key1, const void *key2);
+MOSAPI int __pure hashmap_simple_key_compare(const void *key1, const void *key2);
 
 /** @} */

@@ -3,10 +3,11 @@
 #pragma once
 
 #include "lib/liballoc.h"
+#include "lib/mos_lib.h"
 #include "libuserspace.h"
 #include "mos/mos_global.h"
 
-__mosapi __malloc void *malloc(size_t size);
-__mosapi void free(void *ptr);
-__mosapi void *calloc(size_t nmemb, size_t size);
-__mosapi void *realloc(void *ptr, size_t size);
+MOSAPI __malloc void *malloc(size_t size);
+MOSAPI void free(void *ptr);
+MOSAPI void *calloc(size_t nmemb, size_t size);
+MOSAPI void *realloc(void *ptr, size_t size);

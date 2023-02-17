@@ -18,7 +18,11 @@ struct cdtor_test
     }
 };
 
-static cdtor_test cdtor_test[10];
+static cdtor_test cdtor_test1[10];
+static cdtor_test cdtor_test2[10];
+static cdtor_test cdtor_test3[10];
+static cdtor_test cdtor_test4[10];
+static cdtor_test cdtor_test5[10];
 
 int main(int argc, char *argv[])
 {
@@ -34,6 +38,9 @@ int main(int argc, char *argv[])
     {
         mos::cout << "argv[" << i << "] = " << argv[i] << mos::endl;
     }
+
+    mos::mutex m;
+    m.lock();
 
     int *ptr = new int;
     mos::cout << "ptr = " << ptr << mos::endl;

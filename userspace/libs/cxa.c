@@ -16,7 +16,7 @@ typedef struct
     void *dso_handle;
 } atexit_func_entry_t;
 
-__mosapi int __cxa_atexit(destructor_t f, void *objptr, void *dso)
+MOSAPI int __cxa_atexit(destructor_t f, void *objptr, void *dso)
 {
     atexit_func_entry_t *node = malloc(sizeof(atexit_func_entry_t));
     if (!node)
@@ -32,7 +32,7 @@ __mosapi int __cxa_atexit(destructor_t f, void *objptr, void *dso)
     return 0;
 }
 
-__mosapi void __cxa_finalize(destructor_t f)
+MOSAPI void __cxa_finalize(destructor_t f)
 {
     if (f == NULL)
     {
