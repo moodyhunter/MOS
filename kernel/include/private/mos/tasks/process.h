@@ -33,4 +33,4 @@ uintptr_t process_grow_heap(process_t *process, size_t npages);
 void process_handle_exit(process_t *process, int exit_code);
 process_t *process_handle_fork(process_t *process);
 
-void process_dump_mmaps(process_t *process);
+void process_dump_mmaps(const process_t *process);

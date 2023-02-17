@@ -309,9 +309,9 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
     return heap_top + npages * MOS_PAGE_SIZE;
 }
 
-void process_dump_mmaps(process_t *process)
+void process_dump_mmaps(const process_t *process)
 {
-    pr_info("process %d has %lu memory regions:", process->pid, process->mmaps_count);
+    pr_info("process %d (%s) has %lu memory regions:", process->pid, process->name, process->mmaps_count);
     for (int i = 0; i < process->mmaps_count; i++)
     {
         proc_vmblock_t block = process->mmaps[i];
