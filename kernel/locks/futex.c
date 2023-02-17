@@ -88,11 +88,11 @@ bool futex_wait(futex_word_t *futex, futex_word_t expected)
     current_thread->state = THREAD_STATE_BLOCKED;
     spinlock_release(&current_thread->state_lock);
 
-    mos_debug(futex, "tid %d waiting on lock key=" PTR_FMT, current_thread->tid, key);
+    mos_debug(futex, "tid %ld waiting on lock key=" PTR_FMT, current_thread->tid, key);
 
     reschedule();
 
-    mos_debug(futex, "tid %d woke up", current_thread->tid);
+    mos_debug(futex, "tid %ld woke up", current_thread->tid);
     return true;
 }
 
@@ -104,7 +104,7 @@ bool futex_wake(futex_word_t *lock, size_t num_to_wake)
     const futex_key_t key = futex_get_key(lock);
     if (unlikely(num_to_wake == 0))
     {
-        mos_debug(futex, "tid %d tried to release a key=" PTR_FMT " but num_to_wake was 0", current_thread->tid, key);
+        mos_debug(futex, "tid %ld tried to release a key=" PTR_FMT " but num_to_wake was 0", current_thread->tid, key);
         return false;
     }
 
@@ -124,19 +124,19 @@ bool futex_wake(futex_word_t *lock, size_t num_to_wake)
 
     if (!fu)
     {
-        mos_debug(futex, "tid %d tried to release a lock key=" PTR_FMT " but it was already unlocked", current_thread->tid, key);
+        mos_debug(futex, "tid %ld tried to release a lock key=" PTR_FMT " but it was already unlocked", current_thread->tid, key);
         return true;
     }
 
     const u32 num_to_wake_actual = MIN(num_to_wake, fu->num_waiters);
 
     // wake up the threads
-    mos_debug(futex, "tid %d releasing a lock key=" PTR_FMT " and waking up %d threads", current_thread->tid, key, num_to_wake_actual);
+    mos_debug(futex, "tid %ld releasing a lock key=" PTR_FMT " and waking up %d threads", current_thread->tid, key, num_to_wake_actual);
     for (u32 i = 0; i < num_to_wake_actual; i++)
     {
         thread_t *t = fu->waiters[i];
         spinlock_acquire(&t->state_lock);
-        MOS_ASSERT_X(t->state == THREAD_STATE_BLOCKED, "thread %d was not blocked", t->tid);
+        MOS_ASSERT_X(t->state == THREAD_STATE_BLOCKED, "thread %ld was not blocked", t->tid);
         t->state = THREAD_STATE_READY;
         spinlock_release(&t->state_lock);
     }

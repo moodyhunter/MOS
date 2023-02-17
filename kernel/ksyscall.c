@@ -73,7 +73,7 @@ size_t define_syscall(io_write)(fd_t fd, const void *buf, size_t count, size_t o
 {
     if (fd < 0 || buf == NULL)
     {
-        pr_warn("io_write called with invalid arguments (fd=%d, buf=%p, count=%zd, offset=%zd)", fd, buf, count, offset);
+        pr_warn("io_write called with invalid arguments (fd=%ld, buf=%p, count=%zd, offset=%zd)", fd, buf, count, offset);
         return -1;
     }
     if (offset)
@@ -84,7 +84,7 @@ size_t define_syscall(io_write)(fd_t fd, const void *buf, size_t count, size_t o
     io_t *io = process_get_fd(current_process, fd);
     if (!io)
     {
-        pr_warn("io_write called with invalid fd %d", fd);
+        pr_warn("io_write called with invalid fd %ld", fd);
         return -1;
     }
     return io_write(io, buf, count);
@@ -251,7 +251,7 @@ bool define_syscall(wait_for_thread)(tid_t tid)
 
     if (target->owner != current_process)
     {
-        pr_warn("wait_for_thread(%d) from process %d (%s) but thread belongs to process %d (%s)", tid, current_process->pid, current_process->name, target->owner->pid,
+        pr_warn("wait_for_thread(%ld) from process %ld (%s) but thread belongs to process %ld (%s)", tid, current_process->pid, current_process->name, target->owner->pid,
                 target->owner->name);
         return false;
     }

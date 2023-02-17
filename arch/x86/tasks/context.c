@@ -33,7 +33,7 @@ asmlinkage uintptr_t x86_switch_impl_setup_user_thread(void)
 
     if (is_forked)
     {
-        pr_info2("cpu %d: setting up forked thread (id: %d) of process '%s' (%d)", current_cpu->id, current->tid, current->owner->name, current->owner->pid);
+        pr_info2("cpu %d: setting up forked thread (id: %ld) of process '%s' (%ld)", current_cpu->id, current->tid, current->owner->name, current->owner->pid);
         // do nothing
         goto done;
     }
@@ -43,10 +43,10 @@ asmlinkage uintptr_t x86_switch_impl_setup_user_thread(void)
     if (is_main_thread)
     {
         // set up the main thread of a 'new' process (not forked)
-        pr_info2("cpu %d: setting up main thread (id: %d) of process '%s' (%d)", current_cpu->id, current->tid, current->owner->name, current->owner->pid);
+        pr_info2("cpu %d: setting up main thread (id: %ld) of process '%s' (%ld)", current_cpu->id, current->tid, current->owner->name, current->owner->pid);
 
         // the main thread of a process has no arg, because it uses argv
-        MOS_ASSERT_X(context->arg == NULL, "arg should be NULL for the 'main' thread of process '%s' (%d)", current->owner->name, current->owner->pid);
+        MOS_ASSERT_X(context->arg == NULL, "arg should be NULL for the 'main' thread of process '%s' (%ld)", current->owner->name, current->owner->pid);
 
         const char *const *const src_argv = current->owner->argv.argv;
         const size_t argc = current->owner->argv.argc;

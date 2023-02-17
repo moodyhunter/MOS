@@ -37,7 +37,7 @@ static void time_consuming_work(void)
 
 static void thread_do_work(void *arg)
 {
-    printf("Thread %d started!\n", syscall_get_tid());
+    printf("Thread %ld started!\n", syscall_get_tid());
     LOCK();
     for (long i = 0; i < (long) arg; i++)
     {
@@ -47,7 +47,7 @@ static void thread_do_work(void *arg)
         counter = current_count;
     }
     UNLOCK();
-    printf("Thread %d finished!\n", syscall_get_tid());
+    printf("Thread %ld finished!\n", syscall_get_tid());
 }
 
 int main(int argc, char **argv)

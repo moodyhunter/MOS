@@ -227,7 +227,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
     {
         case X86_SYSCALL_IOPL_ENABLE:
         {
-            pr_info2("enabling IOPL for thread %d", current_thread->tid);
+            pr_info2("enabling IOPL for thread %ld", current_thread->tid);
 
             if (!current_process->platform_options)
                 current_process->platform_options = kzalloc(sizeof(x86_process_options_t));
@@ -238,7 +238,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
         }
         case X86_SYSCALL_IOPL_DISABLE:
         {
-            pr_info2("disabling IOPL for thread %d", current_thread->tid);
+            pr_info2("disabling IOPL for thread %ld", current_thread->tid);
 
             if (!current_process->platform_options)
                 current_process->platform_options = kzalloc(sizeof(x86_process_options_t));
@@ -249,7 +249,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
         }
         case X86_SYSCALL_MAP_VGA_MEMORY:
         {
-            pr_info2("mapping VGA memory for thread %d", current_thread->tid);
+            pr_info2("mapping VGA memory for thread %ld", current_thread->tid);
 
             vmblock_t block = mm_get_free_pages(current_process->pagetable, 1, PGALLOC_HINT_MMAP);
             block.flags = VM_USER_RW;

@@ -38,7 +38,7 @@ static void debug_dump_process(void)
     if (current_thread)
     {
         process_t *proc = current_process;
-        printk("process %d (%s) ", proc->pid, proc->name);
+        printk("process %ld (%s) ", proc->pid, proc->name);
         if (proc->parent)
             printk("parent %d (%s) ", proc->parent->pid, proc->parent->name);
         else
@@ -63,11 +63,11 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
     else if (unlikely(proc->pid == 1) || unlikely(proc->pid == 2))
     {
         proc->parent = proc;
-        pr_emph("special process %d (%s) created", proc->pid, name);
+        pr_emph("special process %ld (%s) created", proc->pid, name);
     }
     else
     {
-        pr_emerg("process %d has no parent", proc->pid);
+        pr_emerg("process %ld has no parent", proc->pid);
         kfree(proc);
         return NULL;
     }
@@ -86,7 +86,7 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
 
     if (unlikely(!proc->pagetable.pgd))
     {
-        pr_emerg("failed to create page table for process %d (%s)", proc->pid, proc->name);
+        pr_emerg("failed to create page table for process %ld (%s)", proc->pid, proc->name);
         kfree(proc->name);
         kfree(proc);
         return NULL;
@@ -147,7 +147,7 @@ process_t *process_get(pid_t pid)
 {
     process_t *p = hashmap_get(process_table, &pid);
     if (p == NULL)
-        mos_warn("process %d not found", pid);
+        mos_warn("process %ld not found", pid);
     return p;
 }
 
@@ -162,7 +162,7 @@ fd_t process_attach_ref_fd(process_t *process, io_t *file)
         fd++;
         if (fd >= MOS_PROCESS_MAX_OPEN_FILES)
         {
-            mos_warn("process %d has too many open files", process->pid);
+            mos_warn("process %ld has too many open files", process->pid);
             return -1;
         }
     }
@@ -194,7 +194,7 @@ void process_attach_thread(process_t *process, thread_t *thread)
     MOS_ASSERT(process_is_valid(process));
     MOS_ASSERT(thread_is_valid(thread));
     MOS_ASSERT(thread->owner == process);
-    mos_debug(process, "process %d attached thread %d", process->pid, thread->tid);
+    mos_debug(process, "process %ld attached thread %ld", process->pid, thread->tid);
     process->threads[process->threads_count++] = thread;
 }
 
@@ -208,9 +208,9 @@ void process_attach_mmap(process_t *process, vmblock_t block, vm_type type, mmap
 void process_handle_exit(process_t *process, int exit_code)
 {
     MOS_ASSERT(process_is_valid(process));
-    pr_info("process %d exited with code %d", process->pid, exit_code);
+    pr_info("process %ld exited with code %d", process->pid, exit_code);
 
-    mos_debug(process, "terminating all %lu threads owned by %d", process->threads_count, process->pid);
+    mos_debug(process, "terminating all %lu threads owned by %ld", process->threads_count, process->pid);
     for (int i = 0; i < process->threads_count; i++)
     {
         // TODO: if a thread is being executed, we should wait for it to finish
@@ -219,7 +219,7 @@ void process_handle_exit(process_t *process, int exit_code)
         spinlock_acquire(&thread->state_lock);
         if (thread->state == THREAD_STATE_DEAD)
         {
-            pr_warn("thread %d is already dead", thread->tid);
+            pr_warn("thread %ld is already dead", thread->tid);
         }
         else
         {
@@ -244,7 +244,7 @@ void process_handle_exit(process_t *process, int exit_code)
         }
     }
 
-    mos_debug(process, "closed %zu/%zu files owned by %d", files_already_closed, files_total, process->pid);
+    mos_debug(process, "closed %zu/%zu files owned by %ld", files_already_closed, files_total, process->pid);
 }
 
 void process_handle_cleanup(process_t *process)
@@ -252,7 +252,7 @@ void process_handle_cleanup(process_t *process)
     MOS_ASSERT(process_is_valid(process));
     MOS_ASSERT_X(current_process != process, "cannot cleanup current process");
 
-    mos_debug(process, "unmapping all %lu memory regions owned by %d", process->mmaps_count, process->pid);
+    mos_debug(process, "unmapping all %lu memory regions owned by %ld", process->mmaps_count, process->pid);
     for (int i = 0; i < process->mmaps_count; i++)
     {
         const mmap_flags flags = process->mmaps[i].map_flags;
@@ -296,14 +296,14 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
         vmblock_t new_part = mm_alloc_pages_at(process->pagetable, heap_top, npages, VM_USER_RW);
         if (new_part.vaddr == 0 || new_part.npages != npages)
         {
-            mos_warn("failed to grow heap of process %d", process->pid);
+            mos_warn("failed to grow heap of process %ld", process->pid);
             mm_free_pages(process->pagetable, new_part);
             spinlock_release(&heap->lock);
             return heap_top;
         }
     }
 
-    pr_info2("grew heap of process %d by %zu pages", process->pid, npages);
+    pr_info2("grew heap of process %ld by %zu pages", process->pid, npages);
     heap->vm.npages += npages;
     spinlock_release(&heap->lock);
     return heap_top + npages * MOS_PAGE_SIZE;
@@ -311,7 +311,7 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
 
 void process_dump_mmaps(const process_t *process)
 {
-    pr_info("process %d (%s) has %lu memory regions:", process->pid, process->name, process->mmaps_count);
+    pr_info("process %ld (%s) has %lu memory regions:", process->pid, process->name, process->mmaps_count);
     for (int i = 0; i < process->mmaps_count; i++)
     {
         proc_vmblock_t block = process->mmaps[i];

@@ -1,52 +1,53 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/mos_global.h"
+#include "mos/types.h"
 
-should_inline long platform_syscall0(long number)
+should_inline reg_t platform_syscall0(reg_t number)
 {
-    long result = 0;
+    reg_t result = 0;
     __asm__ volatile("int $0x88" : "=a"(result) : "a"(number));
     return result;
 }
 
-should_inline long platform_syscall1(long number, long arg1)
+should_inline reg_t platform_syscall1(reg_t number, reg_t arg1)
 {
-    long result = 0;
+    reg_t result = 0;
     __asm__ volatile("int $0x88" : "=a"(result) : "a"(number), "b"(arg1));
     return result;
 }
 
-should_inline long platform_syscall2(long number, long arg1, long arg2)
+should_inline reg_t platform_syscall2(reg_t number, reg_t arg1, reg_t arg2)
 {
-    long result = 0;
+    reg_t result = 0;
     __asm__ volatile("int $0x88" : "=a"(result) : "a"(number), "b"(arg1), "c"(arg2));
     return result;
 }
 
-should_inline long platform_syscall3(long number, long arg1, long arg2, long arg3)
+should_inline reg_t platform_syscall3(reg_t number, reg_t arg1, reg_t arg2, reg_t arg3)
 {
-    long result = 0;
+    reg_t result = 0;
     __asm__ volatile("int $0x88" : "=a"(result) : "a"(number), "b"(arg1), "c"(arg2), "d"(arg3));
     return result;
 }
 
-should_inline long platform_syscall4(long number, long arg1, long arg2, long arg3, long arg4)
+should_inline reg_t platform_syscall4(reg_t number, reg_t arg1, reg_t arg2, reg_t arg3, reg_t arg4)
 {
-    long result = 0;
+    reg_t result = 0;
     __asm__ volatile("int $0x88" : "=a"(result) : "a"(number), "b"(arg1), "c"(arg2), "d"(arg3), "S"(arg4));
     return result;
 }
 
-should_inline long platform_syscall5(long number, long arg1, long arg2, long arg3, long arg4, long arg5)
+should_inline reg_t platform_syscall5(reg_t number, reg_t arg1, reg_t arg2, reg_t arg3, reg_t arg4, reg_t arg5)
 {
-    long result = 0;
+    reg_t result = 0;
     __asm__ volatile("int $0x88" : "=a"(result) : "a"(number), "b"(arg1), "c"(arg2), "d"(arg3), "S"(arg4), "D"(arg5));
     return result;
 }
 
-should_inline long platform_syscall6(long number, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6)
+should_inline reg_t platform_syscall6(reg_t number, reg_t arg1, reg_t arg2, reg_t arg3, reg_t arg4, reg_t arg5, reg_t arg6)
 {
-    long result = 0;
+    reg_t result = 0;
     __asm__ volatile("push %%rbx\n" // callee-saved
                      "push %%rdi\n" // callee-saved
                      "push %%rsi\n" // callee-saved

@@ -14,7 +14,7 @@ static void thread_work(void *arg)
 {
     int *value = (int *) arg;
     pid_t process = syscall_get_pid();
-    printf("Thread started, value = %d, from process %d\n", *value, process);
+    printf("Thread started, value = %d, from process %ld\n", *value, process);
 }
 
 static void file_api(void)
@@ -23,7 +23,7 @@ static void file_api(void)
     if (syscall_file_stat("/assets/msg.txt", &stat))
     {
         printf("File size: %zd bytes\n", stat.size);
-        printf("Owner: %d:%d\n", stat.uid, stat.gid);
+        printf("Owner: %ld:%ld\n", stat.uid, stat.gid);
 
         char buf[16] = { 0 };
         file_format_perm(stat.perm, buf);
@@ -96,14 +96,14 @@ int main(int argc, char *argv[])
         printf("argv[%d] = %s\n", i, argv[i]);
 
     pid_t my_pid = syscall_get_pid();
-    printf("My PID: %d\n", my_pid);
+    printf("My PID: %ld\n", my_pid);
 
     const char *kmsg_ping_pong_argv[] = { "kmsg-ping-pong-ipc", NULL };
     pid_t ping_pid = syscall_spawn("/programs/kmsg-ping", 2, kmsg_ping_pong_argv);
-    printf("ping pid: %d\n", ping_pid);
+    printf("ping pid: %ld\n", ping_pid);
 
     pid_t locks_pid = syscall_spawn("/programs/locks", 0, NULL);
-    printf("locks pid: %d\n", locks_pid);
+    printf("locks pid: %ld\n", locks_pid);
 
     value = 3456787;
     start_thread("worker", thread_work, &value);
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
     }
 
     pid_t parent = syscall_get_parent_pid();
-    printf("Parent PID: %d\n", parent);
+    printf("Parent PID: %ld\n", parent);
 
     // get heap address
     uintptr_t heap = syscall_heap_control(HEAP_GET_TOP, 0);

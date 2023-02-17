@@ -155,7 +155,7 @@ def gen_dispatcher(j):
         gen("extern %s%s %s(%s);" % (syscall_attr(e), syscall_return(e), "impl_" + syscall_name(e), syscall_args(e)))
         gen("if (number == %d)" % e["number"])
         enter_scope()
-        gen("%s%s(%s);" % ("ret = (long) " if syscall_has_return(e) else "", "impl_" + syscall_name(e), syscall_arg_casted))
+        gen("%s%s(%s);" % ("ret = (reg_t) " if syscall_has_return(e) else "", "impl_" + syscall_name(e), syscall_arg_casted))
         leave_scope()
         gen("")
 
@@ -171,7 +171,7 @@ def gen_number_header(e):
 
 def gen_usermode(e):
     syscall_nargs = len(e["arguments"])
-    syscall_conv_arg_to_long = ", ".join([str(e["number"])] + ["(long) %s" % arg["arg"] for arg in e["arguments"]])
+    syscall_conv_arg_to_long = ", ".join([str(e["number"])] + ["(reg_t) %s" % arg["arg"] for arg in e["arguments"]])
 
     comments = e["comments"] if "comments" in e else []
     if len(comments) > 0:

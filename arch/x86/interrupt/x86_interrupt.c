@@ -189,7 +189,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
             if (fault_address < 1 KB)
             {
                 x86_dump_registers(stack);
-                mos_panic("thread %d (%s), process %d (%s), %s NULL pointer dereference at " PTR_FMT " caused by instruction " PTR_FMT,
+                mos_panic("thread %ld (%s), process %ld (%s), %s NULL pointer dereference at " PTR_FMT " caused by instruction " PTR_FMT,
                           current ? current->tid : 0,                //
                           current ? current->name : "<none>",        //
                           current ? current->owner->pid : 0,         //
@@ -202,14 +202,14 @@ static void x86_handle_exception(x86_stack_frame *stack)
 
             if (current)
             {
-                pr_emph("%s page fault: thread %d (%s), process %d (%s) at " PTR_FMT ", instruction " PTR_FMT, //
-                        is_user ? "user" : "kernel",                                                           //
-                        current->tid,                                                                          //
-                        current->name,                                                                         //
-                        current->owner->pid,                                                                   //
-                        current->owner->name,                                                                  //
-                        fault_address,                                                                         //
-                        (uintptr_t) stack->iret_params.eip                                                     //
+                pr_emph("%s page fault: thread %ld (%s), process %ld (%s) at " PTR_FMT ", instruction " PTR_FMT, //
+                        is_user ? "user" : "kernel",                                                             //
+                        current->tid,                                                                            //
+                        current->name,                                                                           //
+                        current->owner->pid,                                                                     //
+                        current->owner->name,                                                                    //
+                        fault_address,                                                                           //
+                        (uintptr_t) stack->iret_params.eip                                                       //
                 );
                 bool result = cow_handle_page_fault(fault_address, present, is_write, is_user, is_exec);
 
@@ -297,7 +297,7 @@ void x86_handle_interrupt(u32 esp)
 
     if (likely(current))
     {
-        MOS_ASSERT_X(current->state == THREAD_STATE_RUNNING, "Thread %d is not in 'running' state", current->tid);
+        MOS_ASSERT_X(current->state == THREAD_STATE_RUNNING, "thread %ld is not in 'running' state", current->tid);
 
         // flags may have been changed by platform_arch_syscall
         x86_process_options_t *options = current->owner->platform_options;

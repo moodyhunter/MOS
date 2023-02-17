@@ -68,11 +68,11 @@ static size_t ipc_conn_read(io_t *io, void *buf, size_t size)
     spinlock_acquire(&readbuf->lock);
     while (ring_buffer_pos_is_empty(&readbuf->pos))
     {
-        mos_debug(ipc, "tid %d buffer empty, rescheduling", current_thread->tid);
+        mos_debug(ipc, "tid %ld buffer empty, rescheduling", current_thread->tid);
         spinlock_release(&readbuf->lock);
         reschedule_for_wait_condition(wc_wait_for_buffer_ready_read(&readbuf->pos));
         spinlock_acquire(&readbuf->lock);
-        mos_debug(ipc, "tid %d rescheduled", current_thread->tid);
+        mos_debug(ipc, "tid %ld rescheduled", current_thread->tid);
     }
     size_t read = ring_buffer_pos_pop_front(ipc_node->read_buffer, &readbuf->pos, buf, size);
     spinlock_release(&readbuf->lock);

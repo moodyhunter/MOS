@@ -8,7 +8,7 @@ int main(void)
     int pid = syscall_fork();
     if (pid == 0)
     {
-        printf("Child process: pid = %d\n", syscall_get_pid());
+        printf("Child process: pid = %ld\n", syscall_get_pid());
         syscall_fork();
         syscall_fork();
         syscall_fork();
@@ -16,11 +16,11 @@ int main(void)
         syscall_fork();
         syscall_fork();
 
-        printf("after so many forks: pid = %d\n", syscall_get_pid());
+        printf("after so many forks: pid = %ld\n", syscall_get_pid());
     }
     else
     {
-        printf("Parent process: pid = %d, child pid = %d\n", syscall_get_pid(), pid);
+        printf("Parent process: pid = %ld, child pid = %d\n", syscall_get_pid(), pid);
         while (1)
             ;
     }

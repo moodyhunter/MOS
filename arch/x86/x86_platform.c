@@ -95,7 +95,7 @@ void x86_kpanic_hook(void)
 
     if (current_thread)
     {
-        pr_emph("Current task: %s (tid: %d, pid: %d)", current_process->name, current_thread->tid, current_process->pid);
+        pr_emph("Current task: %s (tid: %ld, pid: %ld)", current_process->name, current_thread->tid, current_process->pid);
         pr_emph("Task Page Table:");
         spinlock_acquire(current_process->pagetable.pgd_lock);
         x86_mm_dump_page_table(x86_get_pg_infra(current_process->pagetable));
