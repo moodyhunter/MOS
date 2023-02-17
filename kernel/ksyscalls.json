@@ -200,6 +200,12 @@
             "name": "vfs_list_dir",
             "return": "size_t",
             "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "char *", "arg": "buffer" }, { "type": "size_t", "arg": "buffer_size" } ]
+        },
+        {
+            "number": 30,
+            "name": "vfs_fstat",
+            "return": "bool",
+            "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "file_stat_t *", "arg": "stat" } ]
         }
     ]
 }

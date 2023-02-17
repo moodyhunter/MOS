@@ -338,3 +338,11 @@ size_t define_syscall(vfs_list_dir)(fd_t fd, char *buffer, size_t buffer_size)
         return false;
     return vfs_list_dir(io, buffer, buffer_size);
 }
+
+bool define_syscall(vfs_fstat)(fd_t fd, file_stat_t *statbuf)
+{
+    io_t *io = process_get_fd(current_process, fd);
+    if (io == NULL)
+        return false;
+    return vfs_fstat(io, statbuf);
+}

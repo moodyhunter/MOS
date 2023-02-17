@@ -218,6 +218,21 @@ bool vfs_stat(const char *path, file_stat_t *restrict stat)
     return true;
 }
 
+bool vfs_fstat(io_t *io, file_stat_t *restrict stat)
+{
+    file_t *file = container_of(io, file_t, io);
+    if (file == NULL)
+        return false;
+
+    MOS_ASSERT_X(file->dentry == NULL, "A file without a backing dentry?");
+
+    if (file->dentry->inode == NULL)
+        return false;
+
+    *stat = file->dentry->inode->stat;
+    return true;
+}
+
 size_t vfs_readlink(const char *path, char *buf, size_t size)
 {
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);

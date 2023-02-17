@@ -42,24 +42,18 @@ elf_verify_result elf_verify_header(elf_header_t *header)
 
 process_t *elf_create_process(const char *path, process_t *parent, terminal_t *term, uid_t effective_uid, argv_t argv)
 {
-    file_stat_t stat;
-    if (!vfs_stat(path, &stat))
-    {
-        mos_warn("failed to stat '%s'", path);
-        return NULL;
-    }
-
-    if (stat.type != FILE_TYPE_REGULAR)
-    {
-        mos_warn("'%s' is not a regular file", path);
-        return NULL;
-    }
-
-    file_t *f = vfs_open(path, OPEN_READ);
+    file_t *f = vfs_open(path, OPEN_READ | OPEN_EXECUTE);
     if (!f)
     {
         mos_warn("failed to open '%s'", path);
         goto bail_out_1;
+    }
+
+    file_stat_t stat;
+    if (!vfs_fstat(&f->io, &stat))
+    {
+        mos_warn("failed to stat '%s'", path);
+        return NULL;
     }
 
     size_t npage_required = ALIGN_UP_TO_PAGE(stat.size) / MOS_PAGE_SIZE;

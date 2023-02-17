@@ -39,12 +39,22 @@ file_t *vfs_openat(int fd, const char *path, open_flags flags);
 /**
  * @brief Stat a file
  *
- * @param path
- * @param stat
+ * @param path The path to the file
+ * @param stat The stat struct to store the file information in
  * @return true
  * @return false
  */
 bool vfs_stat(const char *path, file_stat_t *restrict stat);
+
+/**
+ * @brief Stat an opened file
+ *
+ * @param io_t The io object of a file_t
+ * @param stat The stat struct to store the file information in
+ * @return true
+ * @return false
+ */
+bool vfs_fstat(io_t *io, file_stat_t *restrict stat);
 
 /**
  * @brief Read a symbolic link
