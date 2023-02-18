@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Attach to qemu",
+            "name": "Attach to qemu - MOS Multiboot Kernel",
             "type": "cppdbg",
             "request": "launch",
             "cwd": "${workspaceFolder}",
@@ -49,7 +49,7 @@
                 {
                     // !! May need to change the addresses
                     "description": "Setup UEFI Relocation",
-                    "text": "add-symbol-file ${workspaceRoot}/build/arch/x86_64/boot/uefi/mos_uefi_loader.debug 0xBE36B000 -s .data 0xBE370000",
+                    "text": "add-symbol-file ${workspaceRoot}/build/arch/x86_64/boot/uefi/mos_uefi_loader.efi.debug 0xBE369000 -s .data 0xBE36F000",
                 },
                 {
                     "description": "Enable pretty-printing for gdb",

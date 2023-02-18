@@ -116,7 +116,7 @@
                 "${workspaceFolder}/build/arch/x86_64/boot/uefi/mos_uefi_loader.efi",
                 "--",
                 "-m",
-                "4G",
+                "16G",
                 "-chardev",
                 "stdio,id=serial_log,logfile=serial_log.log,signal=off",
                 "-serial",
