@@ -13,6 +13,17 @@
             }
         },
         {
+            "label": "compile_uefi_loader",
+            "type": "shell",
+            "options": { "cwd": "${workspaceFolder}/build" },
+            "command": "cmake --build ${workspaceFolder}/build --target mos_uefi_loader",
+            "group": "build",
+            "presentation": {
+                "reveal": "silent",
+                // "close": true
+            }
+        },
+        {
             "label": "kill_mos",
             "type": "shell",
             "command": "tmux kill-session -t mos_kernel_debug || true",
@@ -86,6 +97,41 @@
                 "${workspaceFolder}/.github/workflows/Doxyfile"
             ],
             "problemMatcher": [ ]
+        },
+        {
+            "label": "start_uefi_loader",
+            "type": "process",
+            "command": "tmux",
+            "options": {
+                "cwd": "${workspaceFolder}/build",
+            },
+            "args": [
+                "new",
+                "-s",
+                "mos_kernel_debug",
+                "-d",
+                "uefi-run",
+                "-b",
+                "/usr/share/edk2/x64/OVMF.fd",
+                "${workspaceFolder}/build/arch/x86_64/boot/uefi/mos_uefi_loader.efi",
+                "--",
+                "-m",
+                "4G",
+                "-chardev",
+                "stdio,id=serial_log,logfile=serial_log.log,signal=off",
+                "-serial",
+                "chardev:serial_log",
+                "-display",
+                "gtk,show-tabs=on",
+                "-s",
+                "-S",
+            ],
+            "problemMatcher": [ ],
+            "group": "none",
+            "dependsOn": [
+                "kill_mos",
+                "compile_uefi_loader"
+            ],
         }
     ]
 }
