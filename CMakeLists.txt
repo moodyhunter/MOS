@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 cmake_minimum_required(VERSION 3.20)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 include(cmake/kconfig.cmake)
 include(cmake/mos_target_setup.cmake)
 include(mos_config.cmake)
