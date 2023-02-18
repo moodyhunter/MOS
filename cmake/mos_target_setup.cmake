@@ -2,8 +2,10 @@
 
 set(CMAKE_SYSTEM_NAME Linux) # "MOS" ?
 
-set(CMAKE_C_FLAGS "-Werror=div-by-zero -Wstrict-prototypes")
-set(CMAKE_CXX_FLAGS "-Werror=div-by-zero -fno-rtti -fno-exceptions")
+set(MOS_CX_FLAGS "${MOS_CX_FLAGS} -Wall -Wextra -Wpedantic -pedantic -Werror=div-by-zero")
+
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${MOS_CX_FLAGS} -Wstrict-prototypes")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MOS_CX_FLAGS} -fno-rtti -fno-exceptions")
 
 set(CMAKE_C_FLAGS_DEBUG "-ggdb3")
 set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3")
