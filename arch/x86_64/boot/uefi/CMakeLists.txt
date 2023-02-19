@@ -24,14 +24,16 @@ set_target_properties(gnuefi PROPERTIES
 )
 
 add_library(mos_uefi_loader SHARED
+    elf.c
+    loader.c
     main.c
     dump_mem.c
     read_file.c
 )
 
 target_compile_options(mos_uefi_loader PRIVATE -Wno-strict-prototypes -Wno-pedantic) # GNU-EFI produces warnings
-target_compile_definitions(mos_uefi_loader PRIVATE MOS_LOADER_DEBUG)
 target_link_libraries(mos_uefi_loader gnuefi)
+target_include_directories(mos_uefi_loader PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 set(UEFI_LOADER_BINARY ${CMAKE_CURRENT_BINARY_DIR}/mos_uefi_loader.efi)
 

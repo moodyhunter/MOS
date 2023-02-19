@@ -2,7 +2,7 @@
 
 #include "common.h"
 
-EFI_STATUS bl_load_cmdline(EFI_HANDLE image, CHAR16 **cmdline, const CHAR16 *const file_name)
+EFI_STATUS bl_load_cmdline_from_file(EFI_HANDLE image, CHAR16 **cmdline, const CHAR16 *const file_name)
 {
     EFI_LOADED_IMAGE *loaded_image = NULL;
     EFI_STATUS status = uefi_call_wrapper(BS->OpenProtocol, 6, image, &LoadedImageProtocol, &loaded_image, image, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
@@ -40,7 +40,7 @@ EFI_STATUS bl_load_cmdline(EFI_HANDLE image, CHAR16 **cmdline, const CHAR16 *con
     status = uefi_call_wrapper(root_dir->Open, 5, root_dir, &file, file_name, EFI_FILE_MODE_READ, 0);
     if (EFI_ERROR(status))
     {
-        Log("Failed to open the config file: %r", status);
+        Log("Failed to open the file: %r", status);
         goto cleanup_close_root_dir;
     }
 

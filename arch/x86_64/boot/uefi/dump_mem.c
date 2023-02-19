@@ -16,61 +16,8 @@ const CHAR16 *const memtypes[] = {
     L"ACPI MemoryNVS",     //
 };
 
-EFI_STATUS bl_dump_memmap(void)
+void dump_mmap(efi_memory_map_info_t *map)
 {
-    // dump the memory map
-    EFI_MEMORY_DESCRIPTOR *map = NULL;
-    UINTN map_size = 0, map_key = 0, desc_size = 0;
-    UINT32 desc_version = 0;
-    EFI_STATUS status = uefi_call_wrapper(BS->GetMemoryMap, 5, &map_size, map, &map_key, &desc_size, &desc_version);
-    if (status != EFI_BUFFER_TOO_SMALL)
-    {
-        Log("Failed to get memory map size: %r", status);
-        return status;
-    }
-
-    Log("Memory map size: %ld, map key: %ld, desc size: %ld, desc version: %d", map_size, map_key, desc_size, desc_version);
-
-    status = uefi_call_wrapper(BS->AllocatePool, 3, EfiLoaderData, map_size, &map);
-    if (EFI_ERROR(status))
-    {
-        Log("Failed to allocate memory for memory map: %r", status);
-        return status;
-    }
-
-    status = uefi_call_wrapper(BS->GetMemoryMap, 5, &map_size, map, &map_key, &desc_size, &desc_version);
-    if (EFI_ERROR(status))
-    {
-        if (status == EFI_BUFFER_TOO_SMALL)
-        {
-            // reallocate the memory map
-            status = uefi_call_wrapper(BS->FreePool, 1, map);
-            if (EFI_ERROR(status))
-                return status;
-
-            status = uefi_call_wrapper(BS->AllocatePool, 3, EfiLoaderData, map_size, &map);
-            if (EFI_ERROR(status))
-            {
-                Log("Failed to allocate memory for memory map: %r", status);
-                return status;
-            }
-
-            status = uefi_call_wrapper(BS->GetMemoryMap, 5, &map_size, map, &map_key, &desc_size, &desc_version);
-            if (EFI_ERROR(status))
-            {
-                Log("Failed to get memory map: %r, map_size=%ld", status, map_size);
-                return status;
-            }
-
-            goto success;
-        }
-
-        Log("Failed to get memory map: %r, map_size=%ld", status, map_size);
-        return status;
-    }
-
-success:;
-
     Log("Memory map:");
 
     CHAR16 *cache_type = NULL, *memprotection = NULL;
@@ -78,12 +25,12 @@ success:;
     uefi_call_wrapper(BS->AllocatePool, 3, EfiLoaderData, 64, &cache_type);
     uefi_call_wrapper(BS->AllocatePool, 3, EfiLoaderData, 64, &memprotection);
 
-    for (UINTN i = 0; i < map_size / desc_size; i++)
+    for (UINTN i = 0; i < map->size / map->descriptor_size; i++)
     {
         cache_type[0] = L'\0';
         memprotection[0] = L'\0';
 
-        const EFI_MEMORY_DESCRIPTOR *d = (EFI_MEMORY_DESCRIPTOR *) ((UINT8 *) map + i * desc_size);
+        const EFI_MEMORY_DESCRIPTOR *d = (EFI_MEMORY_DESCRIPTOR *) ((UINT8 *) map->mapptr + i * map->descriptor_size);
         const UINT64 pbegin = d->PhysicalStart;
         const UINT64 pend = d->PhysicalStart + d->NumberOfPages * EFI_PAGE_SIZE;
         const UINT64 vbegin = d->VirtualStart;
@@ -124,11 +71,4 @@ success:;
 
     uefi_call_wrapper(BS->FreePool, 1, cache_type);
     uefi_call_wrapper(BS->FreePool, 1, memprotection);
-
-    // deallocate the memory map
-    status = uefi_call_wrapper(BS->FreePool, 1, map);
-    if (EFI_ERROR(status))
-        return status;
-
-    return EFI_SUCCESS;
 }
