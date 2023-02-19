@@ -2,9 +2,8 @@
 
 target_sources(mos_kernel PRIVATE ${CMAKE_CURRENT_LIST_DIR}/startup.c)
 
-prepare_bootable_kernel_binary(multiboot
-    LOADER_ASM ${CMAKE_CURRENT_LIST_DIR}/multiboot.asm
-    LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/multiboot.ld)
+add_executable(multiboot ${CMAKE_CURRENT_LIST_DIR}/multiboot.asm)
+prepare_bootable_kernel_binary(multiboot LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/multiboot.ld)
 
 add_custom_command(TARGET multiboot
     POST_BUILD
