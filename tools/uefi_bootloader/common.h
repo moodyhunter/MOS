@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
+#include "boot_info.h"
 #include "elf.h"
 
 #include <efi/efi.h>
@@ -10,22 +11,6 @@
 #define MOS_LOADER_DEBUG 0
 
 #define Log(fmt, ...) Print(L"" fmt "\n", ##__VA_ARGS__)
-
-typedef struct
-{
-    EFI_MEMORY_DESCRIPTOR *mapptr;
-    UINTN key;
-    UINTN size;
-    UINTN descriptor_size;
-    UINT32 version;
-} efi_memory_map_info_t;
-
-typedef struct
-{
-    efi_memory_map_info_t memory_map;
-    CHAR16 *kernel;
-    CHAR16 *cmdline;
-} boot_info_t;
 
 typedef void (*kernel_entry_t)(boot_info_t *boot_info);
 

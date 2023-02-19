@@ -70,6 +70,7 @@ include(${MOS_ARCH_CONFIG})
 
 add_subdirectory(userspace)
 add_subdirectory(tests)
+add_subdirectory(tools)
 
 generate_kconfig()
 

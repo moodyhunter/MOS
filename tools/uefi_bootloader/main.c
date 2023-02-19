@@ -139,19 +139,17 @@ EFI_STATUS bl_get_params(IN EFI_HANDLE image, OUT CHAR16 **kernel_path, OUT CHAR
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 {
     InitializeLib(ImageHandle, SystemTable);
-    ST = SystemTable;
-    BS = SystemTable->BootServices;
-    RT = SystemTable->RuntimeServices;
-
-    Log("MOS Loader '" __DATE__ " " __TIME__ "'");
 
     extern char _data, _text;
-
     Log("MOS UEFI Bootloader '" __DATE__ "-" __TIME__ "', built with GCC '" __VERSION__ "'");
     Log("====================");
     Log("Use the following command to attach a debugger:");
-    Log("add-symbol-file build/arch/x86_64/boot/uefi/mos_uefi_loader.debug 0x%lx -s .data 0x%lx", &_text, &_data);
+    Log("add-symbol-file mos_uefi_loader.efi.debug 0x%lx -s .data 0x%lx", &_text, &_data);
     Log("====================");
+
+    ST = SystemTable;
+    BS = SystemTable->BootServices;
+    RT = SystemTable->RuntimeServices;
 
     EFI_STATUS status;
     status = uefi_call_wrapper(BS->SetWatchdogTimer, 4, 0, 0, 0, NULL);

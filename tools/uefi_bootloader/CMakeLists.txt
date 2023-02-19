@@ -4,6 +4,7 @@ project(mos_uefi_bootloader C ASM)
 
 find_program(SYSTEM_GCC gcc REQUIRED)
 set(CMAKE_C_COMPILER ${SYSTEM_GCC})
+set(CMAKE_C_FLAGS "-Wall -Wextra")
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -32,6 +33,7 @@ add_library(mos_uefi_loader SHARED
 )
 
 target_compile_options(mos_uefi_loader PRIVATE -Wno-strict-prototypes -Wno-pedantic) # GNU-EFI produces warnings
+target_compile_definitions(mos_uefi_loader PRIVATE -DMOS_EFI_LOADER)
 target_link_libraries(mos_uefi_loader gnuefi)
 target_include_directories(mos_uefi_loader PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
