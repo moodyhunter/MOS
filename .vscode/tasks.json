@@ -13,6 +13,17 @@
             }
         },
         {
+            "label": "compile_x86_64_uefi",
+            "type": "shell",
+            "options": { "cwd": "${workspaceFolder}/build" },
+            "command": "cmake --build ${workspaceFolder}/build --target mos_uefi_loader mos_uefi_entry mos_userspace_programs mos_initrd",
+            "group": "build",
+            "presentation": {
+                "reveal": "silent",
+                // "close": true
+            }
+        },
+        {
             "label": "compile_uefi_loader",
             "type": "shell",
             "options": { "cwd": "${workspaceFolder}/build" },
@@ -113,7 +124,7 @@
                 "uefi-run",
                 "-b",
                 "/usr/share/edk2/x64/OVMF.fd",
-                "${workspaceFolder}/build/arch/x86_64/boot/uefi/mos_uefi_loader.efi",
+                "${workspaceFolder}/build/tools/uefi_bootloader/mos_uefi_loader.efi",
                 "--",
                 "-m",
                 "16G",
@@ -132,6 +143,50 @@
                 "kill_mos",
                 "compile_uefi_loader"
             ],
-        }
+        },
+        {
+            "label": "start_os_x86_64_uefi",
+            "type": "process",
+            "command": "tmux",
+            "options": {
+                "cwd": "${workspaceFolder}/build",
+            },
+            "args": [
+                "new",
+                "-s",
+                "mos_kernel_debug",
+                "-d",
+                "uefi-run",
+                "-f",
+                "${workspaceFolder}/build/boot.dir/mos_uefi_entry:mos_kernel.elf",
+                "-f",
+                "/dev/null:mos_cmdline.txt",
+                "-b",
+                "/usr/share/edk2/x64/OVMF.fd",
+                "${workspaceFolder}/build/tools/uefi_bootloader/mos_uefi_loader.efi",
+                "--",
+                "-m",
+                "16G",
+                "-chardev",
+                "stdio,id=serial_log,logfile=serial_log.log,signal=off",
+                "-serial",
+                "chardev:serial_log",
+                "-display",
+                "gtk,show-tabs=on",
+                "-s",
+                "-S",
+            ],
+            "problemMatcher": [ ],
+            "group": "none",
+            "dependsOn": [
+                "kill_mos",
+                "compile_x86_64_uefi"
+            ],
+            "presentation": {
+                "reveal": "silent",
+                "close": true
+            },
+            "detail": "Start MOS and wait for the debugger to connect."
+        },
     ]
 }

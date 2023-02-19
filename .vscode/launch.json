@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceRoot}/build/mos_multiboot.bin",
+            "program": "${workspaceFolder}/build/mos_multiboot.bin",
             "MIMode": "gdb",
             "miDebuggerPath": "/usr/bin/i686-elf-gdb",
             "miDebuggerServerAddress": "localhost:1234",
@@ -40,7 +40,7 @@
             "type": "cppdbg",
             "request": "launch",
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceRoot}/build/arch/x86_64/boot/uefi/mos_uefi_loader.efi",
+            "program": "${workspaceFolder}/build/tools/uefi_bootloader/mos_uefi_loader.efi",
             "MIMode": "gdb",
             "miDebuggerPath": "/usr/bin/gdb",
             "miDebuggerServerAddress": "localhost:1234",
@@ -49,7 +49,41 @@
                 {
                     // !! May need to change the addresses
                     "description": "Setup UEFI Relocation",
-                    "text": "add-symbol-file ${workspaceRoot}/build/arch/x86_64/boot/uefi/mos_uefi_loader.efi.debug 0xBE364000 -s .data 0xBE36B000",
+                    "text": "add-symbol-file ${workspaceFolder}/build/tools/uefi_bootloader/mos_uefi_loader.efi.debug 0xBE365000 -s .data 0xBE36C000",
+                },
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                },
+            ],
+            "sourceFileMap": {
+                "${workspaceFolder}": {
+                    "editorPath": "${workspaceFolder}",
+                    "useForBreakpoints": "true"
+                }
+            },
+        },
+        {
+            "name": "Attach to qemu - MOS x86_64 UEFI Kernel",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/build/boot.dir/mos_uefi_entry",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/x86_64-elf-gdb",
+            "miDebuggerServerAddress": "localhost:1234",
+            "preLaunchTask": "start_os_x86_64_uefi",
+            "setupCommands": [
+                {
+                    // load gdbinit
+                    // "description": "Load gdbinit",
+                    // "text": "source ${workspaceFolder}/build/gdbinit",
                 },
                 {
                     "description": "Enable pretty-printing for gdb",
