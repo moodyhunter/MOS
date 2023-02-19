@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 set(MOS_COMPILER_PREFIX "x86_64-elf-")
+set(MOS_CX_FLAGS "${MOS_CX_FLAGS} -mcmodel=large")
 set(MOS_BITS 64)
 
 add_summary_section(ARCH_X86_64 "x86 Architecture")
