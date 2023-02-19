@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+if (NOT "${MOS_ARCH}" STREQUAL "x86_64")
+    message(STATUS "EFI bootloader is only supported on x86_64")
+    return()
+endif()
+
 project(mos_uefi_bootloader C ASM)
 
 find_program(SYSTEM_GCC gcc REQUIRED)
