@@ -4,7 +4,6 @@
 
 #include "mos/compiler.h"
 
-#include <limits.h>
 #include <stdnoreturn.h>
 
 #define __aligned(x)    __attribute__((__aligned__(x)))

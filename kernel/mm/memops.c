@@ -19,7 +19,7 @@ void mos_kernel_mm_init(void)
     memzero((void *) zero_block.vaddr, MOS_PAGE_SIZE);
 
     liballoc_init();
-#if MOS_MM_LIBALLOC_DEBUG
+#if MOS_DEBUG_FEATURE(liballoc)
     mos_install_kpanic_hook(liballoc_dump);
 #endif
 }

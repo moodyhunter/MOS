@@ -11,6 +11,7 @@
 #include "mos/mm/shm.h"
 #include "mos/printk.h"
 #include "mos/tasks/schedule.h"
+#include "mos/tasks/task_types.h"
 #include "mos/tasks/wait.h"
 
 #define IPCSHM_BILLBOARD_HASHMAP_SIZE 64
@@ -175,7 +176,7 @@ bool ipcshm_request(const char *name, size_t buffer_size, void **read_buf, void 
 
     // step 1
     {
-        shm->client_write_shm = shm_allocate(shm->buffer_size / MOS_PAGE_SIZE, MMAP_PRIVATE, VM_USER_RW);
+        shm->client_write_shm = shm_allocate(shm->buffer_size / MOS_PAGE_SIZE, VMBLOCK_FORK_PRIVATE, VM_USER_RW);
         *write_buf = (void *) shm->client_write_shm.block.vaddr;
         shm->data = data;
     }
@@ -257,7 +258,7 @@ bool ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_buf, v
     // shm->lock is already held
     {
         // step 1
-        shm->server_write_shm = shm_allocate(shm->buffer_size / MOS_PAGE_SIZE, MMAP_PRIVATE, VM_USER_RW);
+        shm->server_write_shm = shm_allocate(shm->buffer_size / MOS_PAGE_SIZE, VMBLOCK_FORK_PRIVATE, VM_USER_RW);
         *write_buf = (void *) shm->server_write_shm.block.vaddr;
 
         // step 2

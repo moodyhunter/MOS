@@ -29,28 +29,30 @@ process_t *process_handle_fork(process_t *parent)
     for (int i = 0; i < parent->mmaps_count; i++)
     {
         proc_vmblock_t block = parent->mmaps[i];
-        if (block.map_flags & MMAP_PRIVATE)
+        if (block.flags == VMBLOCK_FORK_SHARED)
         {
-            pr_info2("fork %ld->%ld: private " PTR_FMT "+%zu, flags = [%x]", parent->pid, child->pid, block.vm.vaddr, block.vm.npages, block.vm.flags);
+            pr_info2("fork %ld->%ld: shared " PTR_FMT "+%zu, flags = [%x]", parent->pid, child->pid, block.blk.vaddr, block.blk.npages, block.blk.flags);
+            process_attach_mmap(child, block.blk, block.content, block.flags);
             continue;
         }
 
         vmblock_t child_vmblock;
-        if (block.type == VMTYPE_KSTACK)
+
+        if (block.content == VMTYPE_KSTACK)
         {
             // Kernel stacks are special, we need to allocate a new one (not CoW-mapped)
-            MOS_ASSERT_X(block.vm.npages == MOS_STACK_PAGES_KERNEL, "kernel stack size is not %d pages", MOS_STACK_PAGES_KERNEL);
-            child_vmblock = mm_alloc_pages(child->pagetable, block.vm.npages, PGALLOC_HINT_STACK, block.vm.flags);
-            pr_info2("fork %ld->%ld: kernel stack " PTR_FMT "+%zu, flags = [%x]", parent->pid, child->pid, block.vm.vaddr, block.vm.npages, block.vm.flags);
-            process_attach_mmap(child, child_vmblock, VMTYPE_KSTACK, MMAP_DEFAULT);
+            MOS_ASSERT_X(block.blk.npages == MOS_STACK_PAGES_KERNEL, "kernel stack size is not %d pages", MOS_STACK_PAGES_KERNEL);
+            child_vmblock = mm_alloc_pages(child->pagetable, block.blk.npages, PGALLOC_HINT_STACK, block.blk.flags);
+            pr_info2("fork %ld->%ld: kernel stack " PTR_FMT "+%zu, flags = [%x]", parent->pid, child->pid, block.blk.vaddr, block.blk.npages, block.blk.flags);
+            process_attach_mmap(child, child_vmblock, VMTYPE_KSTACK, VMBLOCK_DEFAULT);
         }
         else
         {
-            parent->mmaps[i].map_flags |= MMAP_COW;
-            mm_make_process_map_cow(parent->pagetable, block.vm.vaddr, child->pagetable, block.vm.vaddr, block.vm.npages);
-            child_vmblock = parent->mmaps[i].vm; // do not use the return value from mm_make_process_map_cow
-            pr_info2("fork %ld->%ld: CoW " PTR_FMT "+%zu, flags = [%x]", parent->pid, child->pid, block.vm.vaddr, block.vm.npages, block.vm.flags);
-            process_attach_mmap(child, child_vmblock, block.type, MMAP_COW);
+            parent->mmaps[i].flags |= VMBLOCK_COW_COPY_ON_WRITE;
+            mm_make_process_map_cow(parent->pagetable, block.blk.vaddr, child->pagetable, block.blk.vaddr, block.blk.npages);
+            child_vmblock = parent->mmaps[i].blk; // do not use the return value from mm_make_process_map_cow
+            pr_info2("fork %ld->%ld: CoW " PTR_FMT "+%zu, flags = [%x]", parent->pid, child->pid, block.blk.vaddr, block.blk.npages, block.blk.flags);
+            process_attach_mmap(child, child_vmblock, block.content, VMBLOCK_COW_COPY_ON_WRITE);
         }
     }
 

@@ -66,7 +66,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
         proc_vmblock_t *mmap = &current_proc->mmaps[i];
         spinlock_acquire(&mmap->lock);
 
-        const vmblock_t *vm = &mmap->vm;
+        const vmblock_t *vm = &mmap->blk;
         uintptr_t block_start = vm->vaddr;
         uintptr_t block_end = vm->vaddr + vm->npages * MOS_PAGE_SIZE;
 
@@ -76,8 +76,8 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
             continue;
         }
 
-        const bool is_cow = mmap->map_flags & MMAP_COW;
-        const bool is_zero_on_demand = mmap->map_flags & MMAP_ZERO_ON_DEMAND;
+        const bool is_cow = mmap->flags & VMBLOCK_COW_ZERO_ON_DEMAND;
+        const bool is_zero_on_demand = mmap->flags & VMBLOCK_COW_ZERO_ON_DEMAND;
         mos_debug(cow, "fault_addr=" PTR_FMT ", vmblock=" PTR_FMT "-" PTR_FMT, fault_addr, vm->vaddr, vm->vaddr + vm->npages * MOS_PAGE_SIZE);
 
         if (is_zero_on_demand)
@@ -87,7 +87,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
             mm_unmap_pages(current_proc->pagetable, vm->vaddr, vm->npages);
             mm_alloc_pages_at(current_proc->pagetable, vm->vaddr, vm->npages, vm->flags);
             memzero((void *) vm->vaddr, MOS_PAGE_SIZE * vm->npages);
-            mmap->map_flags &= ~MMAP_ZERO_ON_DEMAND;
+            mmap->flags &= ~VMBLOCK_COW_ZERO_ON_DEMAND;
             spinlock_release(&mmap->lock);
             mos_debug(cow, "ZoD resolved");
             return true;
@@ -98,7 +98,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
             // TODO: only copy the page where the fault happened
             copy_cow_pages_inplace(vm->vaddr, vm->npages);
             platform_mm_flag_pages(current_proc->pagetable, vm->vaddr, vm->npages, vm->flags);
-            mmap->map_flags &= ~MMAP_COW;
+            mmap->flags &= ~VMBLOCK_COW_COPY_ON_WRITE;
             spinlock_release(&mmap->lock);
             mos_debug(cow, "CoW resolved");
             return true;

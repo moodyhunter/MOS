@@ -21,22 +21,44 @@ typedef enum
 
 typedef enum
 {
-    MMAP_DEFAULT = 0 << 0,        // default flags
-    MMAP_COW = 1 << 0,            // this block is currently copy-on-write-mapped
-    MMAP_PRIVATE = 1 << 1,        // this block is private, and should not be shared when forked
-    MMAP_SHAREDMEM = 1 << 2,      // this block is shared, and should be shared when forked (aka, two processes can write to the same block)
-    MMAP_ZERO_ON_DEMAND = 1 << 3, // this block should be zeroed on demand
-} mmap_flags;
+    VMTYPE_CODE,   // code
+    VMTYPE_DATA,   // data
+    VMTYPE_ZERO,   // zeroed pages (typically bss)
+    VMTYPE_HEAP,   // heap
+    VMTYPE_STACK,  // stack (user)
+    VMTYPE_KSTACK, // stack (kernel)
+    VMTYPE_SHARED, // shared memory (e.g., IPC)
+    VMTYPE_FILE,   // file mapping
+    VMTYPE_MMAP,   // mmap mapping
+} vmblock_content_t;
+
+typedef enum
+{
+    // bit 0 is reserved
+
+    // bit 1: fork behavior
+    VMBLOCK_FORK_PRIVATE = 0 << 1, // child has its own copy of the page
+    VMBLOCK_FORK_SHARED = 1 << 1,  // child shares the same physical pages with parent
+
+    // bit 2, 3: CoW enabled, CoW behavior
+    VMBLOCK_COW_NONE = 0 << 2,                                 // no COW
+    VMBLOCK_COW_ENABLED = 1 << 2,                              // COW enabled
+    VMBLOCK_COW_COPY_ON_WRITE = VMBLOCK_COW_ENABLED | 0 << 3,  // copy-on-write
+    VMBLOCK_COW_ZERO_ON_DEMAND = VMBLOCK_COW_ENABLED | 1 << 3, // zero-on-demand
+
+    VMBLOCK_DEFAULT = VMBLOCK_FORK_PRIVATE | VMBLOCK_COW_COPY_ON_WRITE,
+} vmblock_flags_t;
 
 typedef struct
 {
-    vmblock_t vm;
-    vm_type type;
+    vmblock_content_t content;
+    vmblock_t blk;
 
-    // if MMAP_COW is set, then the flags in vm contains 'original' flags
+    // if any of the vmblock_cow_t is set, then the flags in vm contains 'original' flags
     // of this block. Which means if there're no VM_WRITE flag, then the block
     // should not be writable.
-    mmap_flags map_flags;
+    vmblock_flags_t flags;
+
     spinlock_t lock;
 } proc_vmblock_t;
 

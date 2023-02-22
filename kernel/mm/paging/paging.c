@@ -43,10 +43,10 @@ static void pagemap_mark_used(page_map_t *map, uintptr_t vaddr, size_t n_pages)
     for (size_t i = 0; i < n_pages; i++)
     {
         bool is_set = bitmap_get(pagemap, pagemap_size_lines, pagemap_index + i);
-        MOS_ASSERT_X(!is_set, "page " PTR_FMT " is already allocated", (pagemap_index + i) * MOS_PAGE_SIZE + pagemap_base);
+        MOS_ASSERT_X(!is_set, "page " PTR_FMT " is already allocated", pagemap_base + (pagemap_index + i) * MOS_PAGE_SIZE);
         bitmap_set(pagemap, pagemap_size_lines, pagemap_index + i);
         is_set = bitmap_get(pagemap, pagemap_size_lines, pagemap_index + i);
-        MOS_ASSERT_X(is_set, "page " PTR_FMT " is not set", (pagemap_index + i) * MOS_PAGE_SIZE + pagemap_base);
+        MOS_ASSERT_X(is_set, "page " PTR_FMT " is not set", pagemap_base + (pagemap_index + i) * MOS_PAGE_SIZE);
     }
     spinlock_release(lock);
 }
@@ -70,7 +70,7 @@ static void pagemap_mark_free(page_map_t *map, uintptr_t vaddr, size_t n_pages)
     for (size_t i = 0; i < n_pages; i++)
     {
         bool is_set = bitmap_get(pagemap, pagemap_size_lines, pagemap_index + i);
-        MOS_ASSERT_X(is_set, "page " PTR_FMT " is already free", (pagemap_index + i) * MOS_PAGE_SIZE + pagemap_base);
+        MOS_ASSERT_X(is_set, "page " PTR_FMT " is already free", (uintptr_t) (pagemap_index + i) * MOS_PAGE_SIZE + pagemap_base);
         bitmap_clear(pagemap, pagemap_size_lines, pagemap_index + i);
     }
     spinlock_release(lock);

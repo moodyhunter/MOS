@@ -6,13 +6,14 @@
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
+#include "mos/tasks/task_types.h"
 
 void shm_init(void)
 {
     pr_info("Initializing shared memory subsystem...");
 }
 
-shm_block_t shm_allocate(size_t npages, mmap_flags flags, vm_flags vmflags)
+shm_block_t shm_allocate(size_t npages, vmblock_flags_t flags, vm_flags vmflags)
 {
     process_t *owner = current_process;
     // TODO: add tracking of shared memory blocks
@@ -24,7 +25,7 @@ shm_block_t shm_allocate(size_t npages, mmap_flags flags, vm_flags vmflags)
         return (shm_block_t){ 0 };
     }
 
-    process_attach_mmap(owner, block, VMTYPE_SHM, flags);
+    process_attach_mmap(owner, block, VMTYPE_SHARED, flags);
     return (shm_block_t){ .block = block, .address_space = owner->pagetable };
 }
 
@@ -41,6 +42,6 @@ vmblock_t shm_map_shared_block(shm_block_t source)
     vmblock_t block = mm_get_free_pages(owner->pagetable, source.block.npages, PGALLOC_HINT_MMAP);
     block = mm_copy_maps(source.address_space, source.block.vaddr, owner->pagetable, block.vaddr, source.block.npages);
 
-    process_attach_mmap(owner, block, VMTYPE_SHM, MMAP_PRIVATE);
+    process_attach_mmap(owner, block, VMTYPE_SHARED, VMBLOCK_FORK_PRIVATE);
     return block;
 }

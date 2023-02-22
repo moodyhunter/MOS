@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "lib/string.h"
+#include "lib/structures/bitmap.h"
 #include "mos/elf/elf.h"
 #include "mos/filesystem/fs_types.h"
 #include "mos/filesystem/vfs.h"
 #include "mos/ipc/ipc.h"
 #include "mos/locks/futex.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/mm/mm_types.h"
+#include "mos/mm/paging/paging.h"
 #include "mos/mm/shm.h"
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
@@ -190,7 +193,7 @@ uintptr_t define_syscall(heap_control)(heap_control_op op, uintptr_t arg)
     proc_vmblock_t *block = NULL;
     for (int i = 0; i < process->mmaps_count; i++)
     {
-        if (process->mmaps[i].type == VMTYPE_HEAP)
+        if (process->mmaps[i].content == VMTYPE_HEAP)
         {
             block = &process->mmaps[i];
             break;
@@ -205,11 +208,11 @@ uintptr_t define_syscall(heap_control)(heap_control_op op, uintptr_t arg)
 
     switch (op)
     {
-        case HEAP_GET_BASE: return block->vm.vaddr;
-        case HEAP_GET_TOP: return block->vm.vaddr + block->vm.npages * MOS_PAGE_SIZE;
+        case HEAP_GET_BASE: return block->blk.vaddr;
+        case HEAP_GET_TOP: return block->blk.vaddr + block->blk.npages * MOS_PAGE_SIZE;
         case HEAP_SET_TOP:
         {
-            if (arg < block->vm.vaddr)
+            if (arg < block->blk.vaddr)
             {
                 mos_warn("heap_control: new top is below heap base");
                 return 0;
@@ -221,18 +224,18 @@ uintptr_t define_syscall(heap_control)(heap_control_op op, uintptr_t arg)
                 return 0;
             }
 
-            if (arg == block->vm.vaddr + block->vm.npages * MOS_PAGE_SIZE)
+            if (arg == block->blk.vaddr + block->blk.npages * MOS_PAGE_SIZE)
                 return 0; // no change
 
-            if (arg < block->vm.vaddr + block->vm.npages * MOS_PAGE_SIZE)
+            if (arg < block->blk.vaddr + block->blk.npages * MOS_PAGE_SIZE)
             {
                 mos_warn("heap_control: shrinking heap not supported yet");
                 return 0;
             }
 
-            return process_grow_heap(process, (arg - block->vm.vaddr) / MOS_PAGE_SIZE);
+            return process_grow_heap(process, (arg - block->blk.vaddr) / MOS_PAGE_SIZE);
         }
-        case HEAP_GET_SIZE: return block->vm.npages * MOS_PAGE_SIZE;
+        case HEAP_GET_SIZE: return block->blk.npages * MOS_PAGE_SIZE;
         case HEAP_GROW_PAGES:
         {
             // arg is the number of pages to grow
@@ -345,4 +348,86 @@ bool define_syscall(vfs_fstat)(fd_t fd, file_stat_t *statbuf)
     if (io == NULL)
         return false;
     return vfs_fstat(io, statbuf);
+}
+
+void *define_syscall(mmap_anonymous)(uintptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t flags)
+{
+    const bool exact = flags & MMAP_EXACT;
+    const bool shared = flags & MMAP_SHARED;   // shared when forked, otherwise
+    const bool private = flags & MMAP_PRIVATE; // copy-on-write when forked
+
+    pr_info("mmap_anonymous(" PTR_FMT ", %zd, %c%c%c, %c, %c%c)", //
+            hint_addr,                                            //
+            size,                                                 //
+            perm & MEM_PERM_READ ? 'r' : '-',                     //
+            perm & MEM_PERM_WRITE ? 'w' : '-',                    //
+            perm & MEM_PERM_EXEC ? 'x' : '-',                     //
+            exact ? 'E' : '-',                                    //
+            shared ? 's' : '-',                                   //
+            private ? 'p' : '-'                                   //
+    );
+
+    if ((shared && private) || (!shared && !private))
+    {
+        pr_warn("mmap_anonymous: shared and private are mutually exclusive, and one of them must be specified");
+        return NULL;
+    }
+
+    const vm_flags vmflags = VM_USER | (vm_flags) perm; // vm_flags shares the same values as mem_perm_t
+    const vmblock_flags_t block_flags = shared ? VMBLOCK_FORK_SHARED : VMBLOCK_FORK_PRIVATE;
+
+    if (hint_addr == 0 && exact)
+    {
+        // WTF is this? Trying to map at address 0?
+        pr_warn("mmap_anonymous: trying to map at address 0");
+        return NULL;
+    }
+    else if (hint_addr != 0 && !exact)
+    {
+        // TODO: deduce mapping based on an address
+        pr_warn("mmap_anonymous: deduced mapping based on an address is not supported yet");
+        return NULL;
+    }
+    else if (hint_addr == 0 && !exact)
+    {
+        // the kernel will choose the address
+        pr_info2("mmap_anonymous: the kernel will choose the address");
+        vmblock_t block = mm_alloc_pages(current_process->pagetable, ALIGN_DOWN_TO_PAGE(size) / MOS_PAGE_SIZE, PGALLOC_HINT_MMAP, vmflags);
+        if (block.npages == 0)
+        {
+            pr_warn("mmap_anonymous: failed to allocate memory");
+            return NULL;
+        }
+
+        pr_info2("mmap_anonymous: allocated %zd pages at " PTR_FMT, block.npages, block.vaddr);
+        process_attach_mmap(current_process, block, VMTYPE_MMAP, block_flags);
+        return (void *) block.vaddr;
+    }
+    else if (hint_addr != 0 && exact)
+    {
+        // the kernel will map at the exact address (if it's available)
+        pr_info2("mmap_anonymous: the kernel will map at the exact address " PTR_FMT, hint_addr);
+        vmblock_t block = mm_alloc_pages_at(current_process->pagetable, hint_addr, ALIGN_DOWN_TO_PAGE(size) / MOS_PAGE_SIZE, vmflags);
+        if (block.npages == 0)
+        {
+            pr_warn("mmap_anonymous: failed to allocate memory");
+            return NULL;
+        }
+
+        pr_info2("mmap_anonymous: allocated %zd pages at " PTR_FMT, block.npages, block.vaddr);
+        process_attach_mmap(current_process, block, VMTYPE_MMAP, block_flags);
+        return (void *) block.vaddr;
+    }
+    else
+    {
+        MOS_UNREACHABLE();
+    }
+
+    return NULL;
+}
+
+void *define_syscall(mmap_file)(uintptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t flags, fd_t fd, off_t offset)
+{
+    pr_info("mmap_file(" PTR_FMT ", %zd, %d, %d, %d, %ld)", hint_addr, size, perm, flags, fd, offset);
+    return NULL;
 }

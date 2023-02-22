@@ -2,16 +2,18 @@
 
 #pragma once
 
+#include "mos/mm/mm_types.h"
 #include "mos/types.h"
 
 typedef struct _io_t io_t;
 
 typedef enum
 {
-    IO_TYPE_NONE = 0,
-    IO_READABLE = 1 << 0,
-    IO_WRITABLE = 1 << 1,
-    IO_SEEKABLE = 1 << 2,
+    IO_NONE = MEM_PERM_NONE,      // 0
+    IO_READABLE = MEM_PERM_READ,  // 1 << 0
+    IO_WRITABLE = MEM_PERM_WRITE, // 1 << 1
+    // 1 << 2 is reserved for IO_EXECUTABLE
+    IO_SEEKABLE = 1 << 3,
 } io_flags_t;
 
 typedef struct

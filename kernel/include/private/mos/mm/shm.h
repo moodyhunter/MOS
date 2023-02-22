@@ -5,6 +5,20 @@
 #include "mos/mm/mm_types.h"
 #include "mos/tasks/task_types.h"
 
+/**
+ * @defgroup mm Memory Management
+ * @brief Memory management subsystem
+ * @{
+ */
+
+typedef struct
+{
+    paging_handle_t address_space;
+    vmblock_t block;
+} shm_block_t;
+
 void shm_init(void);
-shm_block_t shm_allocate(size_t npages, mmap_flags flags, vm_flags vmflags);
+shm_block_t shm_allocate(size_t npages, vmblock_flags_t flags, vm_flags vmflags);
 vmblock_t shm_map_shared_block(shm_block_t source);
+
+/** @} */

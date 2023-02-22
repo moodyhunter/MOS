@@ -255,7 +255,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
             block.flags = VM_USER_RW;
             block.paddr = X86_VIDEO_DEVICE_PADDR;
             mm_map_allocated_pages(current_thread->owner->pagetable, block);
-            process_attach_mmap(current_process, block, VMTYPE_SHM, MMAP_PRIVATE);
+            process_attach_mmap(current_process, block, VMTYPE_SHARED, VMBLOCK_FORK_SHARED);
             return block.vaddr;
         }
         default:

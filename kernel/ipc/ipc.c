@@ -114,7 +114,7 @@ io_t *ipc_create(const char *name, size_t max_pending)
     ipc_server_t *ipc_server = kzalloc(sizeof(ipc_server_t));
     ipc_server->shm_server = server;
     ipc_server->magic = IPC_SERVER_MAGIC;
-    io_init(&ipc_server->io, IO_TYPE_NONE, &ipc_server_op);
+    io_init(&ipc_server->io, IO_NONE, &ipc_server_op);
     return io_ref(&ipc_server->io);
 }
 

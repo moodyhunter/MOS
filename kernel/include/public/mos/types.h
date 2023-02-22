@@ -4,6 +4,7 @@
 
 #include "mos/mos_global.h"
 
+#include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -27,7 +28,7 @@ typedef long double f80;
 #if MOS_BITS == 32
 typedef s32 nint;
 typedef u32 nuint;
-typedef unsigned long uintptr_t;
+typedef __UINTPTR_TYPE__ uintptr_t;
 #else
 typedef s64 nint;
 typedef u64 nuint;
@@ -43,7 +44,7 @@ typedef u32 reg32_t;
 typedef u64 reg64_t;
 
 #if MOS_BITS == 32
-#define PTR_FMT "0x%8.8lx"
+#define PTR_FMT "0x%8.8x"
 #elif MOS_BITS == 64
 #define PTR_FMT "0x%16.16llx"
 #else
@@ -70,15 +71,16 @@ typedef union
 
 MOS_STATIC_ASSERT(sizeof(byte_t) == 1, "byte_t is not 1 byte");
 
-typedef signed long id_t;
-typedef id_t ssize_t;
+typedef unsigned int id_t;
+typedef signed long ssize_t;
+
+typedef int uid_t;
+typedef int pid_t;
 
 typedef id_t fd_t;
-typedef id_t uid_t;
-typedef id_t gid_t;
-typedef id_t pid_t;
+typedef int gid_t;
 typedef id_t tid_t;
-typedef id_t off_t;
+typedef signed long off_t;
 
 // clang-format off
 #define _named_opaque_type(base, name, type) typedef struct { base name; } __packed type

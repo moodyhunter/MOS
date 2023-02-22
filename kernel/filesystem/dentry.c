@@ -15,8 +15,6 @@
 #include "mos/printk.h"
 #include "mos/tasks/task_types.h"
 
-#define FD_CWD -69
-
 // A path in its string form is composed of "segments" separated
 // by a slash "/", a path may:
 //
@@ -150,15 +148,15 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve
     MOS_ASSERT_X(dentry != NULL && dentry->inode != NULL, "check before calling this function!");
     MOS_ASSERT_X(dentry->inode->stat.type == FILE_TYPE_SYMLINK, "check before calling this function!");
 
-    char *const target = kmalloc(PATH_MAX);
-    size_t read = dentry->inode->ops->readlink(dentry, target, PATH_MAX);
+    char *const target = kmalloc(MOS_PATH_MAX_LENGTH);
+    size_t read = dentry->inode->ops->readlink(dentry, target, MOS_PATH_MAX_LENGTH);
     if (read == 0)
     {
         mos_warn("symlink is empty");
         return NULL;
     }
 
-    if (read == PATH_MAX)
+    if (read == MOS_PATH_MAX_LENGTH)
     {
         mos_warn("symlink is too long");
         return NULL;

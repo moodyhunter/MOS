@@ -4,6 +4,7 @@
 
 #include "lib/sync/spinlock.h"
 #include "mos/kconfig.h"
+#include "mos/mm/mm_types.h"
 #include "mos/mos_global.h"
 #include "mos/types.h"
 
@@ -27,14 +28,15 @@ typedef struct _page_map page_map_t;
 
 typedef enum
 {
-    VM_NONE = 1 << 1,
-    VM_READ = 1 << 2,
-    VM_WRITE = 1 << 3,
-    VM_USER = 1 << 4,
-    VM_WRITE_THROUGH = 1 << 5,
-    VM_CACHE_DISABLED = 1 << 6,
-    VM_GLOBAL = 1 << 7,
-    VM_EXEC = 1 << 8,
+    VM_NONE = MEM_PERM_NONE,   // 0
+    VM_READ = MEM_PERM_READ,   // 1 << 0
+    VM_WRITE = MEM_PERM_WRITE, // 1 << 1
+    VM_EXEC = MEM_PERM_EXEC,   // 1 << 2
+
+    VM_USER = 1 << 3,
+    VM_WRITE_THROUGH = 1 << 4,
+    VM_CACHE_DISABLED = 1 << 5,
+    VM_GLOBAL = 1 << 6,
 
     // composite flags (for convenience)
     VM_RW = VM_READ | VM_WRITE,
@@ -48,18 +50,6 @@ typedef enum
     PGALLOC_HINT_STACK,
     PGALLOC_HINT_MMAP,
 } pgalloc_hints;
-
-typedef enum
-{
-    VMTYPE_APPCODE,      // '.text' section
-    VMTYPE_APPDATA,      // '.data' sections
-    VMTYPE_APPDATA_ZERO, // '.bss' sections (zeroed out)
-    VMTYPE_HEAP,         // userspace heap
-    VMTYPE_STACK,        // userspace stack
-    VMTYPE_KSTACK,       // kernel stack
-    VMTYPE_SHM,          // shared memory
-    VMTYPE_FILE,         // file mapping (mmap)
-} vm_type;
 
 typedef enum
 {

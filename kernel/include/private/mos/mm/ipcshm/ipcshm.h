@@ -4,6 +4,7 @@
 
 #include "lib/sync/mutex.h"
 #include "mos/mm/mm_types.h"
+#include "mos/mm/shm.h"
 #include "mos/tasks/task_types.h"
 
 typedef enum

@@ -2,12 +2,12 @@
 
 #pragma once
 
+#include "mos/mm/mm_types.h"
 #include "mos/types.h"
 
 #define PATH_DELIM     '/'
 #define PATH_DELIM_STR "/"
-#define PATH_MAX       1024
-#define FD_CWD         -69
+#define FD_CWD         (MOS_PROCESS_MAX_OPEN_FILES + 100)
 
 #define DIR_ITERATOR_NTH_START 2 // 0 and 1 are '.' and '..'
 
@@ -32,11 +32,12 @@ typedef enum
 
 typedef enum
 {
-    OPEN_READ = 1 << 0,  // 1 << 0
-    OPEN_WRITE = 1 << 1, // 1 << 1
-    OPEN_NO_FOLLOW = 1 << 2,
-    OPEN_CREATE = 1 << 3,
-    OPEN_EXECUTE = 1 << 4,
+    OPEN_NONE = MEM_PERM_NONE,    // 0
+    OPEN_READ = MEM_PERM_READ,    // 1 << 0
+    OPEN_WRITE = MEM_PERM_WRITE,  // 1 << 1
+    OPEN_EXECUTE = MEM_PERM_EXEC, // 1 << 2
+    OPEN_NO_FOLLOW = 1 << 3,
+    OPEN_CREATE = 1 << 4,
     OPEN_TRUNCATE = 1 << 5,
     OPEN_DIR = 1 << 6,
 } open_flags;

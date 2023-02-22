@@ -206,6 +206,30 @@
             "name": "vfs_fstat",
             "return": "bool",
             "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "file_stat_t *", "arg": "stat" } ]
+        },
+        {
+            "number": 31,
+            "name": "mmap_anonymous",
+            "return": "void *",
+            "arguments": [
+                { "type": "uintptr_t", "arg": "hint_addr" },
+                { "type": "size_t", "arg": "size" },
+                { "type": "mem_perm_t", "arg": "perm" },
+                { "type": "mmap_flags_t", "arg": "flags" }
+            ]
+        },
+        {
+            "number": 32,
+            "name": "mmap_file",
+            "return": "void *",
+            "arguments": [
+                { "type": "uintptr_t", "arg": "hint_addr" },
+                { "type": "size_t", "arg": "size" },
+                { "type": "mem_perm_t", "arg": "perm" },
+                { "type": "mmap_flags_t", "arg": "flags" },
+                { "type": "fd_t", "arg": "fd" },
+                { "type": "off_t", "arg": "offset" }
+            ]
         }
     ]
 }
