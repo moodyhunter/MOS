@@ -24,41 +24,30 @@ typedef float f32;
 typedef double f64;
 typedef long double f80;
 
-typedef __UINTPTR_TYPE__ uintptr_t;
-
 // native integer type
 #if MOS_BITS == 32
-typedef s32 nint;
-typedef u32 nuint;
+typedef s32 intn;
+typedef u32 uintn;
 #else
-typedef s64 nint;
-typedef u64 nuint;
+typedef s64 intn;
+typedef u64 uintn;
 #endif
 
 // native register type
-typedef nuint reg_t;
+typedef uintn reg_t;
 
 // reg_t represents a register value
 typedef u16 reg16_t;
 typedef u32 reg32_t;
 typedef u64 reg64_t;
 
-#ifdef MOS_COMPILER_CLANG
-#if MOS_BITS == 32
-#define PTR_FMT "0x%8.8x"
-#else
-#define PTR_FMT "0x%16.16llx"
-#endif
-#endif
-
-#ifdef MOS_COMPILER_GCC
 #if MOS_BITS == 32
 #define PTR_FMT "0x%8.8lx"
 #else
 #define PTR_FMT "0x%16.16llx"
 #endif
-#endif
 
+typedef unsigned long uintptr_t;
 MOS_STATIC_ASSERT(sizeof(uintptr_t) == sizeof(void *), "uintptr_t is not the same size as void *");
 
 typedef union
