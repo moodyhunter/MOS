@@ -20,7 +20,8 @@ void mos_kernel_mm_init(void)
 
     liballoc_init();
 #if MOS_DEBUG_FEATURE(liballoc)
-    mos_install_kpanic_hook(liballoc_dump);
+    declare_panic_hook(liballoc_dump);
+    install_panic_hook(&liballoc_dump_holder);
 #endif
 }
 
