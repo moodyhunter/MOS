@@ -80,7 +80,6 @@ typedef struct _process
     pid_t pid;
     process_t *parent;
     terminal_t *terminal; // terminal this process's stdin/stdout/stderr are connected to
-    uid_t effective_uid;  // effective user id (currently this is not used)
     paging_handle_t pagetable;
 
     argv_t argv;

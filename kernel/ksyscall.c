@@ -25,17 +25,12 @@
 void define_syscall(poweroff)(bool reboot, u32 magic)
 {
 #define POWEROFF_MAGIC MOS_FOURCC('G', 'B', 'y', 'e')
-    if (current_process->effective_uid == 0)
-    {
-        if (magic != POWEROFF_MAGIC)
-            mos_warn("poweroff syscall called with wrong magic number (0x%x)", magic);
-        if (!reboot)
-            platform_shutdown();
-        else
-            mos_warn("reboot is not implemented yet");
-    }
+    if (magic != POWEROFF_MAGIC)
+        mos_warn("poweroff syscall called with wrong magic number (0x%x)", magic);
+    if (!reboot)
+        platform_shutdown();
     else
-        mos_warn("poweroff syscall called by non-root user");
+        mos_warn("reboot is not implemented yet");
 }
 
 fd_t define_syscall(file_open)(const char *path, open_flags flags)
@@ -158,7 +153,7 @@ pid_t define_syscall(spawn)(const char *path, int argc, const char *const argv[]
         new_argv[i + 1] = strdup(argv[i]);
     new_argv[real_argc] = NULL;
 
-    process_t *process = elf_create_process(path, current, current->terminal, current->effective_uid, (argv_t){ .argc = real_argc, .argv = new_argv });
+    process_t *process = elf_create_process(path, current, current->terminal, (argv_t){ .argc = real_argc, .argv = new_argv });
     if (process == NULL)
         return -1;
 

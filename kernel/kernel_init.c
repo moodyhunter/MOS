@@ -121,7 +121,7 @@ void mos_start_kernel(const char *cmdline)
     terminal_t *init_term = terminal_create_console(init_con);
 
     const argv_t init_argv = create_argv_from_cmdline();
-    process_t *init = elf_create_process(init_path, NULL, init_term, (uid_t) 0, init_argv);
+    process_t *init = elf_create_process(init_path, NULL, init_term, init_argv);
     if (unlikely(!init))
         mos_panic("failed to create init process");
 

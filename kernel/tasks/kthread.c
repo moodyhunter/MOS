@@ -27,7 +27,7 @@ static void kthread_entry(void *arg)
 
 void kthread_init(void)
 {
-    kthreadd = process_allocate(NULL, 0, "kthreadd");
+    kthreadd = process_allocate(NULL, "kthreadd");
     MOS_ASSERT_X(kthreadd->pid == 2, "kthreadd should have pid 2");
     hashmap_put(process_table, &kthreadd->pid, kthreadd);
 }

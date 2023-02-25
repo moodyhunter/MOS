@@ -43,12 +43,11 @@ static void debug_dump_process(void)
             printk("parent %ld (%s) ", proc->parent->pid, proc->parent->name);
         else
             printk("parent <none> ");
-        printk("uid %ld ", proc->effective_uid);
         process_dump_mmaps(proc);
     }
 }
 
-process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
+process_t *process_allocate(process_t *parent, const char *name)
 {
     process_t *proc = kzalloc(sizeof(process_t));
 
@@ -72,7 +71,6 @@ process_t *process_allocate(process_t *parent, uid_t euid, const char *name)
     }
 
     proc->name = strdup(name ? name : "<unknown>");
-    proc->effective_uid = euid;
 
     if (unlikely(proc->pid == 2))
     {
@@ -108,9 +106,9 @@ void process_deinit(void)
     kfree(process_table);
 }
 
-process_t *process_new(process_t *parent, uid_t euid, const char *name, terminal_t *term, thread_entry_t entry, argv_t argv)
+process_t *process_new(process_t *parent, const char *name, terminal_t *term, thread_entry_t entry, argv_t argv)
 {
-    process_t *proc = process_allocate(parent, euid, name);
+    process_t *proc = process_allocate(parent, name);
     if (unlikely(!proc))
         return NULL;
 

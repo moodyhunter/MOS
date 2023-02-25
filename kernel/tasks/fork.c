@@ -16,7 +16,7 @@ process_t *process_handle_fork(process_t *parent)
 {
     MOS_ASSERT(process_is_valid(parent));
 
-    process_t *child = process_allocate(parent, parent->effective_uid, parent->name);
+    process_t *child = process_allocate(parent, parent->name);
     if (unlikely(!child))
     {
         pr_emerg("failed to allocate process for fork");
