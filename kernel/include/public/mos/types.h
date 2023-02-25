@@ -24,15 +24,15 @@ typedef float f32;
 typedef double f64;
 typedef long double f80;
 
+typedef __UINTPTR_TYPE__ uintptr_t;
+
 // native integer type
 #if MOS_BITS == 32
 typedef s32 nint;
 typedef u32 nuint;
-typedef __UINTPTR_TYPE__ uintptr_t;
 #else
 typedef s64 nint;
 typedef u64 nuint;
-typedef u64 uintptr_t;
 #endif
 
 // native register type
@@ -43,12 +43,20 @@ typedef u16 reg16_t;
 typedef u32 reg32_t;
 typedef u64 reg64_t;
 
+#ifdef MOS_COMPILER_CLANG
 #if MOS_BITS == 32
 #define PTR_FMT "0x%8.8x"
-#elif MOS_BITS == 64
-#define PTR_FMT "0x%16.16llx"
 #else
-#error "Invalid MOS_BITS"
+#define PTR_FMT "0x%16.16llx"
+#endif
+#endif
+
+#ifdef MOS_COMPILER_GCC
+#if MOS_BITS == 32
+#define PTR_FMT "0x%8.8lx"
+#else
+#define PTR_FMT "0x%16.16llx"
+#endif
 #endif
 
 MOS_STATIC_ASSERT(sizeof(uintptr_t) == sizeof(void *), "uintptr_t is not the same size as void *");
@@ -71,16 +79,15 @@ typedef union
 
 MOS_STATIC_ASSERT(sizeof(byte_t) == 1, "byte_t is not 1 byte");
 
-typedef unsigned int id_t;
-typedef signed long ssize_t;
-
-typedef int uid_t;
-typedef int pid_t;
-
+typedef signed long id_t;
+typedef id_t uid_t;
+typedef id_t pid_t;
 typedef id_t fd_t;
-typedef int gid_t;
+typedef id_t gid_t;
 typedef id_t tid_t;
-typedef signed long off_t;
+
+typedef signed long ssize_t;
+typedef ssize_t off_t;
 
 // clang-format off
 #define _named_opaque_type(base, name, type) typedef struct { base name; } __packed type

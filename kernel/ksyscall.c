@@ -428,6 +428,6 @@ void *define_syscall(mmap_anonymous)(uintptr_t hint_addr, size_t size, mem_perm_
 
 void *define_syscall(mmap_file)(uintptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t flags, fd_t fd, off_t offset)
 {
-    pr_info("mmap_file(" PTR_FMT ", %zd, %d, %d, %d, %ld)", hint_addr, size, perm, flags, fd, offset);
+    pr_info("mmap_file(" PTR_FMT ", %zd, %d, %d, %ld, %ld)", hint_addr, size, perm, flags, fd, offset);
     return NULL;
 }

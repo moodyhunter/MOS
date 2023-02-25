@@ -40,10 +40,10 @@ static void debug_dump_process(void)
         process_t *proc = current_process;
         printk("process %ld (%s) ", proc->pid, proc->name);
         if (proc->parent)
-            printk("parent %d (%s) ", proc->parent->pid, proc->parent->name);
+            printk("parent %ld (%s) ", proc->parent->pid, proc->parent->name);
         else
             printk("parent <none> ");
-        printk("uid %d ", proc->effective_uid);
+        printk("uid %ld ", proc->effective_uid);
         process_dump_mmaps(proc);
     }
 }
