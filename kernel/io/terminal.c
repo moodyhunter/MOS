@@ -23,7 +23,7 @@ static size_t terminal_io_write(io_t *io, const void *buffer, size_t size)
     terminal_t *terminal = container_of(io, terminal_t, io);
     switch (terminal->type)
     {
-        case TERM_TYPE_CONSOLE: return console_write(terminal->console, buffer, size);
+        case TERM_TYPE_CONSOLE: return console_write_color(terminal->console, buffer, size, LightBlue, Black);
         case TERM_TYPE_PIPE: return io_write(terminal->pipe.write, buffer, size);
         default: MOS_UNREACHABLE();
     }
