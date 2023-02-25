@@ -1,0 +1,3 @@
+[submodule "lab-tutorial"]
+	path = lab-tutorial
+	url = https://github.com/moodyhunter/MOS-labs
