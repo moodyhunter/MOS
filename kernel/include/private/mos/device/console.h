@@ -4,29 +4,8 @@
 
 #include "lib/structures/list.h"
 #include "lib/sync/spinlock.h"
+#include "mos/device/dm_types.h"
 #include "mos/types.h"
-
-#define STD_COLOR_LIGHT 0x8
-
-typedef enum
-{
-    Black = 0x0,
-    Blue = 0x1,
-    Green = 0x2,
-    Cyan = 0x3,
-    Red = 0x4,
-    Magenta = 0x5,
-    Brown = 0x6,
-    Gray = 0x7,
-    DarkGray = Black | STD_COLOR_LIGHT,
-    LightBlue = Blue | STD_COLOR_LIGHT,
-    LightGreen = Green | STD_COLOR_LIGHT,
-    LightCyan = Cyan | STD_COLOR_LIGHT,
-    LightRed = Red | STD_COLOR_LIGHT,
-    LightMagenta = Magenta | STD_COLOR_LIGHT,
-    Yellow = Brown | STD_COLOR_LIGHT,
-    White = Gray | STD_COLOR_LIGHT,
-} standard_color_t;
 
 typedef enum
 {
