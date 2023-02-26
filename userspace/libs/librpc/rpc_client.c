@@ -31,6 +31,7 @@ typedef struct rpc_call
 rpc_server_stub_t *rpc_client_create(const char *server_name)
 {
     rpc_server_stub_t *client = malloc(sizeof(rpc_server_stub_t));
+    memzero(client, sizeof(rpc_server_stub_t));
     client->fd = syscall_ipc_connect(server_name, RPC_CLIENT_SMH_SIZE);
     client->server_name = server_name;
 

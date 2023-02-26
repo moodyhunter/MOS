@@ -117,6 +117,7 @@ static void rpc_invoke_call(void *arg)
 rpc_server_t *rpc_server_create(const char *server_name, void *data)
 {
     rpc_server_t *server = malloc(sizeof(rpc_server_t));
+    memzero(server, sizeof(rpc_server_t));
     server->server_name = server_name;
     server->data = data;
     server->server_fd = -1;
