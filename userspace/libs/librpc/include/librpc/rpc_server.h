@@ -16,7 +16,7 @@ typedef struct rpc_function_info
 {
     u32 function_id;
     rpc_function_t func;
-    size_t args_count;
+    u32 args_count;
 } rpc_function_info_t;
 
 rpc_server_t *rpc_server_create(const char *server_name, void *data);
@@ -26,4 +26,6 @@ bool rpc_server_register_function(rpc_server_t *server, u32 function_id, rpc_fun
 bool rpc_server_register_functions(rpc_server_t *server, const rpc_function_info_t *functions, size_t count);
 
 const void *rpc_arg_next(rpc_args_iter_t *args, size_t *size);
+const void *rpc_arg_sized_next(rpc_args_iter_t *iter, size_t expected_size);
+
 void rpc_write_result(rpc_result_t *result, const void *data, size_t size);

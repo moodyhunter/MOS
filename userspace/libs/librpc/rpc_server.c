@@ -43,11 +43,8 @@ typedef struct rpc_call_context
 static inline rpc_function_info_t *rpc_server_get_function(rpc_server_t *server, u32 function_id)
 {
     for (size_t i = 0; i < server->functions_count; i++)
-    {
         if (server->functions[i].function_id == function_id)
             return &server->functions[i];
-    }
-
     return NULL;
 }
 
@@ -71,7 +68,7 @@ static void rpc_invoke_call(void *arg)
         rpc_request_t *request = (rpc_request_t *) msg->data;
         if (request->magic != RPC_REQUEST_MAGIC)
         {
-            dprintf(stderr, "invalid magic in rpc request\n");
+            dprintf(stderr, "invalid magic in rpc request: %x\n", request->magic);
             ipc_msg_destroy(msg);
             break;
         }
@@ -79,14 +76,14 @@ static void rpc_invoke_call(void *arg)
         rpc_function_info_t *function = rpc_server_get_function(server, request->function_id);
         if (!function)
         {
-            dprintf(stderr, "invalid function id in rpc request\n");
+            dprintf(stderr, "invalid function id in rpc request: %d\n", request->function_id);
             ipc_msg_destroy(msg);
             break;
         }
 
         if (request->args_count != function->args_count)
         {
-            dprintf(stderr, "invalid args size in rpc request\n");
+            dprintf(stderr, "invalid number if arguments in rpc request, expected %d, got %d\n", function->args_count, request->args_count);
             ipc_msg_destroy(msg);
             break;
         }
@@ -188,6 +185,15 @@ const void *rpc_arg_next(rpc_args_iter_t *args, size_t *size)
         *size = arg->size;
 
     return arg->data;
+}
+
+const void *rpc_arg_sized_next(rpc_args_iter_t *iter, size_t expected_size)
+{
+    size_t size;
+    const void *data = rpc_arg_next(iter, &size);
+    if (size != expected_size)
+        return NULL;
+    return (void *) data;
 }
 
 void rpc_write_result(rpc_result_t *result, const void *data, size_t size)
