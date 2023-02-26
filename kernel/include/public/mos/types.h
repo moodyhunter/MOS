@@ -8,6 +8,12 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+#define MOS_STATIC_ASSERT static_assert
+#else
+#define MOS_STATIC_ASSERT _Static_assert
+#endif
+
 typedef signed char s8;
 typedef signed short s16;
 typedef signed int s32;
@@ -24,31 +30,32 @@ typedef float f32;
 typedef double f64;
 typedef long double f80;
 
+#ifdef __UINTPTR_FMTx__
+#define _PTRFMTx __UINTPTR_FMTx__ // clang defines this
+#else
+#define _PTRFMTx "lx" // gcc always uses 'long' for pointers
+#endif
+
 // native integer type
 #if MOS_BITS == 32
 typedef s32 intn;
 typedef u32 uintn;
+#define PTR_FMT "0x%8.8" _PTRFMTx
 #else
 typedef s64 intn;
 typedef u64 uintn;
+#define PTR_FMT "0x%16.16" _PTRFMTx
 #endif
 
-// native register type
-typedef uintn reg_t;
+typedef __UINTPTR_TYPE__ uintptr_t;
 
-// reg_t represents a register value
-typedef u16 reg16_t;
-typedef u32 reg32_t;
-typedef u64 reg64_t;
-
-#if MOS_BITS == 32
-#define PTR_FMT "0x%8.8lx"
-#else
-#define PTR_FMT "0x%16.16llx"
-#endif
-
-typedef unsigned long uintptr_t;
+MOS_STATIC_ASSERT(sizeof(void *) == MOS_BITS / 8, "pointer size check failed");
 MOS_STATIC_ASSERT(sizeof(uintptr_t) == sizeof(void *), "uintptr_t is not the same size as void *");
+
+typedef uintn reg_t; // native register type
+typedef u16 reg16_t; // 16-bit
+typedef u32 reg32_t; // 32-bit
+typedef u64 reg64_t; // 64-bit
 
 typedef union
 {
