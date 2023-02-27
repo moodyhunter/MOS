@@ -87,6 +87,14 @@ typedef enum
     ELF_MACHINE_RISCV = 0xf3,
 } elf_machine_type;
 
+#if defined(__i386__)
+#define ELF_MACHINE_MOS_DEFAULT ELF_MACHINE_X86
+#elif defined(__x86_64__)
+#define ELF_MACHINE_MOS_DEFAULT ELF_MACHINE_X86_64
+#else
+#error "Unsupported architecture"
+#endif
+
 typedef struct
 {
     elf_identity_t identity;
