@@ -196,7 +196,7 @@ void process_attach_thread(process_t *process, thread_t *thread)
 void process_attach_mmap(process_t *process, vmblock_t block, vmblock_content_t type, vmblock_flags_t flags)
 {
     MOS_ASSERT(process_is_valid(process));
-    pr_info2("process %ld attached mmap " PTR_FMT "-" PTR_FMT, process->pid, block.vaddr, block.vaddr + block.npages * MOS_PAGE_SIZE);
+    mos_debug(process, "process %ld attached mmap " PTR_FMT "-" PTR_FMT, process->pid, block.vaddr, block.vaddr + block.npages * MOS_PAGE_SIZE);
     process->mmaps = krealloc(process->mmaps, sizeof(proc_vmblock_t) * (process->mmaps_count + 1));
     process->mmaps[process->mmaps_count++] = (proc_vmblock_t){
         .blk = block,
