@@ -29,9 +29,9 @@
 #define VFS_MOUNTPOINT_MAP_SIZE 256
 static hashmap_t vfs_mountpoint_map = { 0 }; // dentry_t -> mount_t
 
-static hash_t dentry_hash(const void *key)
+static hash_t dentry_hash(uintn key)
 {
-    return (hash_t){ .hash = (uintptr_t) (dentry_t *) key };
+    return (hash_t){ .hash = key };
 }
 // END: Mountpoint Hashmap
 
@@ -43,7 +43,7 @@ static mount_t *dentry_find_mount(dentry_t *dentry)
         return NULL;
     }
 
-    mount_t *mount = hashmap_get(&vfs_mountpoint_map, dentry);
+    mount_t *mount = hashmap_get(&vfs_mountpoint_map, (uintptr_t) dentry);
     if (mount == NULL)
     {
         mos_warn("mountpoint not found");
@@ -411,7 +411,7 @@ bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs)
     mount->fs = fs;
     mountpoint->is_mountpoint = true;
 
-    if (hashmap_put(&vfs_mountpoint_map, mountpoint, mount) != NULL)
+    if (hashmap_put(&vfs_mountpoint_map, (uintptr_t) mountpoint, mount) != NULL)
     {
         mos_warn("failed to insert mountpoint into hashmap");
         return false;

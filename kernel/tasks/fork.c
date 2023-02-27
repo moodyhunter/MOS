@@ -83,9 +83,9 @@ process_t *process_handle_fork(process_t *parent)
         platform_setup_forked_context(parent_thread->context, &child_thread->context);
 
         process_attach_thread(child, child_thread);
-        hashmap_put(thread_table, &child_thread->tid, child_thread);
+        hashmap_put(thread_table, child_thread->tid, child_thread);
     }
 
-    hashmap_put(process_table, &child->pid, child);
+    hashmap_put(process_table, child->pid, child);
     return child;
 }

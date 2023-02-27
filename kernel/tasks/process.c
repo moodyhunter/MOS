@@ -22,9 +22,9 @@
 
 hashmap_t *process_table = { 0 }; // pid_t -> process_t
 
-static hash_t process_hash(const void *key)
+static hash_t process_hash(uintn key)
 {
-    return (hash_t){ .hash = *(pid_t *) key };
+    return (hash_t){ .hash = key };
 }
 
 static pid_t new_process_id(void)
@@ -133,14 +133,14 @@ process_t *process_new(process_t *parent, const char *name, terminal_t *term, th
 
     proc->working_directory = parent ? parent->working_directory : root_dentry;
 
-    void *old_proc = hashmap_put(process_table, &proc->pid, proc);
+    void *old_proc = hashmap_put(process_table, proc->pid, proc);
     MOS_ASSERT_X(old_proc == NULL, "process already exists, go and buy yourself a lottery :)");
     return proc;
 }
 
 process_t *process_get(pid_t pid)
 {
-    process_t *p = hashmap_get(process_table, &pid);
+    process_t *p = hashmap_get(process_table, pid);
     if (p == NULL)
         mos_warn("process %ld not found", pid);
     return p;

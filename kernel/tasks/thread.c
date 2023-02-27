@@ -17,9 +17,9 @@
 
 hashmap_t *thread_table = { 0 }; // tid_t -> thread_t
 
-static hash_t hashmap_thread_hash(const void *key)
+static hash_t hashmap_thread_hash(uintn key)
 {
-    return (hash_t){ .hash = *(tid_t *) key };
+    return (hash_t){ .hash = key };
 }
 
 static tid_t new_thread_id(void)
@@ -80,14 +80,14 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
 
     platform_context_setup(t, entry, arg);
     process_attach_thread(owner, t);
-    hashmap_put(thread_table, &t->tid, t);
+    hashmap_put(thread_table, t->tid, t);
 
     return t;
 }
 
 thread_t *thread_get(tid_t tid)
 {
-    return hashmap_get(thread_table, &tid);
+    return hashmap_get(thread_table, tid);
 }
 
 void thread_handle_exit(thread_t *t)

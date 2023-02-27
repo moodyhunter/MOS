@@ -10,7 +10,7 @@
 
 typedef struct hashmap_entry
 {
-    const void *key;
+    uintptr_t key;
     void *value;
     hashmap_entry_t *next;
 } hashmap_entry_t;
@@ -56,7 +56,7 @@ void hashmap_deinit(hashmap_t *map)
     liballoc_free(map->entries);
 }
 
-void *hashmap_put(hashmap_t *map, const void *key, void *value)
+void *hashmap_put(hashmap_t *map, uintn key, void *value)
 {
     MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
     size_t index = map->hash_func(key).hash % map->capacity;
@@ -81,7 +81,7 @@ void *hashmap_put(hashmap_t *map, const void *key, void *value)
     return NULL;
 }
 
-void *hashmap_get(const hashmap_t *map, const void *key)
+void *hashmap_get(const hashmap_t *map, uintn key)
 {
     MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
     size_t index = map->hash_func(key).hash % map->capacity;
@@ -97,7 +97,7 @@ void *hashmap_get(const hashmap_t *map, const void *key)
     return NULL;
 }
 
-void *hashmap_remove(hashmap_t *map, const void *key)
+void *hashmap_remove(hashmap_t *map, uintn key)
 {
     MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
     size_t index = map->hash_func(key).hash % map->capacity;

@@ -17,17 +17,17 @@ static hash_t __pure string_hash(const char *s, const int n)
     return h;
 }
 
-hash_t __pure hashmap_hash_string(const void *key)
+hash_t __pure hashmap_hash_string(uintn key)
 {
     return string_hash((const char *) key, strlen((const char *) key));
 }
 
-int __pure hashmap_compare_string(const void *key1, const void *key2)
+int __pure hashmap_compare_string(uintn key1, uintn key2)
 {
     return strcmp((const char *) key1, (const char *) key2) == 0;
 }
 
-int __pure hashmap_simple_key_compare(const void *key1, const void *key2)
+int __pure hashmap_simple_key_compare(uintn key1, uintn key2)
 {
     return key1 == key2;
 }

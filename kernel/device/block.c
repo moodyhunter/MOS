@@ -17,29 +17,6 @@
 static hashmap_t *blockdev_map = NULL;
 
 /**
- * @brief Get the hash of a block device
- *
- * @param key The name of the block device
- * @return hash_t The hash of that name
- */
-static hash_t hashmap_blockdev_hash(const void *key)
-{
-    return hashmap_hash_string((const char *) key);
-}
-
-/**
- * @brief Compare two block devices
- *
- * @param key1 Name of the first block device
- * @param key2 Name of the second block device
- * @return int 0 if the names are equal, otherwise 1
- */
-static int hashmap_blockdev_compare(const void *key1, const void *key2)
-{
-    return hashmap_compare_string((const char *) key1, (const char *) key2);
-}
-
-/**
  * @brief Register a block device
  *
  * @param dev The block device to register
@@ -51,9 +28,9 @@ void blockdev_register(blockdev_t *dev)
         MOS_ASSERT_ONCE();
         blockdev_map = kmalloc(sizeof(hashmap_t));
         memzero(blockdev_map, sizeof(hashmap_t));
-        hashmap_init(blockdev_map, 64, hashmap_blockdev_hash, hashmap_blockdev_compare);
+        hashmap_init(blockdev_map, 64, hashmap_hash_string, hashmap_compare_string);
     }
-    blockdev_t *old = hashmap_put(blockdev_map, dev->name, dev);
+    blockdev_t *old = hashmap_put(blockdev_map, (uintptr_t) dev->name, dev);
 
     if (old != NULL)
         mos_warn("blockdev %s already registered, replacing", old->name);
@@ -69,5 +46,5 @@ blockdev_t *blockdev_find(const char *name)
 {
     if (blockdev_map == NULL)
         return NULL;
-    return hashmap_get(blockdev_map, name);
+    return hashmap_get(blockdev_map, (uintptr_t) name);
 }

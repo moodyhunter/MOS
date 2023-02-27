@@ -29,7 +29,7 @@ void kthread_init(void)
 {
     kthreadd = process_allocate(NULL, "kthreadd");
     MOS_ASSERT_X(kthreadd->pid == 2, "kthreadd should have pid 2");
-    hashmap_put(process_table, &kthreadd->pid, kthreadd);
+    hashmap_put(process_table, kthreadd->pid, kthreadd);
 }
 
 thread_t *kthread_create(thread_entry_t entry, void *arg, const char *name)

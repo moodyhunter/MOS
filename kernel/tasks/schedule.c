@@ -55,12 +55,12 @@ static bool should_schedule_to_thread(thread_t *thread)
     }
 }
 
-static bool schedule_to_thread(const void *key, void *value)
+static bool schedule_to_thread(uintn key, void *value)
 {
-    tid_t *tid = (tid_t *) key;
+    tid_t tid = key;
     thread_t *thread = (thread_t *) value;
 
-    MOS_ASSERT_X(thread->tid == *tid, "something is wrong with the thread table");
+    MOS_ASSERT_X(thread->tid == tid, "something is wrong with the thread table");
 
     spinlock_acquire(&thread->state_lock);
     if (should_schedule_to_thread(thread))
