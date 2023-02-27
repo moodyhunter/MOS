@@ -37,15 +37,6 @@ static const lock_t mutex = { .acquire = m_acquire, .release = m_release };
 static const lock_t no_lock = { .acquire = no_acquire, .release = no_release };
 // clang-format on
 
-#define thread_work()                                                                                                                                                    \
-    for (long i = 0; i < N_WORKLOAD; i++)                                                                                                                                \
-    {                                                                                                                                                                    \
-        u64 current_count = counter;                                                                                                                                     \
-        time_consuming_work();                                                                                                                                           \
-        current_count++;                                                                                                                                                 \
-        counter = current_count;                                                                                                                                         \
-    }
-
 static void time_consuming_work(void)
 {
     for (u32 i = 0; i < 100; i++)
@@ -63,26 +54,34 @@ static void thread_do_work(void *arg)
     const lock_t *lock = (const lock_t *) arg;
     printf("Thread %ld started!\n", syscall_get_tid());
     lock->acquire();
-    thread_work();
+    for (size_t i = 0; i < N_WORKLOAD; i++)
+    {
+        u64 current_count = counter;
+        time_consuming_work();
+        current_count++;
+        counter = current_count;
+    };
     lock->release();
     printf("Thread %ld finished!\n", syscall_get_tid());
 }
 
-static void run_lock_test(const char *name, const lock_t *lock)
+static void run_single_test(const char *name, const lock_t *lock)
 {
     set_console_color(Yellow, Black);
     print_to_console("%-10s: test started!\n", name);
     counter = 0;
-    u64 started = rdtsc();
-    for (u32 i = 0; i < N_THREADS; i++)
-        threads[i] = start_thread("thread", thread_do_work, (void *) lock);
 
-    for (u32 i = 0; i < N_THREADS; i++)
-        syscall_wait_for_thread(threads[i]);
-    u64 finished = rdtsc();
+    const u64 started = rdtsc(); // record a start timestamp
+    {
+        for (u32 i = 0; i < N_THREADS; i++)
+            threads[i] = start_thread("thread", thread_do_work, (void *) lock);
+
+        for (u32 i = 0; i < N_THREADS; i++)
+            syscall_wait_for_thread(threads[i]);
+    }
+    const u64 finished = rdtsc(); // record a finish timestamp
 
     const u64 expected = N_WORKLOAD * N_THREADS;
-
     if (counter != expected)
     {
         set_console_color(Red, Black);
@@ -94,8 +93,7 @@ static void run_lock_test(const char *name, const lock_t *lock)
         print_to_console("%-10s: SUCCESS: counter value: %llu\n", name, counter);
     }
 
-    u64 elapsed = finished - started;
-    elapsed /= 1000000; // in millions of cycles
+    const u64 elapsed = (finished - started) / 1000000; // in millions of cycles
 
     print_to_console("%-10s: elapsed: %llu million cycles\n", name, elapsed);
 
@@ -109,9 +107,10 @@ int main(int argc, char **argv)
     MOS_UNUSED(argv);
     open_console();
 
-    run_lock_test("No Lock", &no_lock);
-    run_lock_test("Spinlock", &spinlock);
-    run_lock_test("Mutex", &mutex);
+    run_single_test("No Lock", &no_lock);
+    run_single_test("Spinlock", &spinlock);
+    run_single_test("Mutex", &mutex);
+
     while (1)
         ;
     return 0;
