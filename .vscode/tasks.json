@@ -77,7 +77,7 @@
                 "-initrd",
                 "${workspaceFolder}/build/initrd.cpio",
                 "-smp",
-                "4",
+                "1",
                 "-append",
                 "kmsg_console=serial",
                 "-nic",
