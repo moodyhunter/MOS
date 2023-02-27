@@ -26,7 +26,7 @@ process_t *process_handle_fork(process_t *parent)
     pr_emph("process %ld forked to %ld", parent->pid, child->pid);
 
     // copy the parent's memory
-    for (int i = 0; i < parent->mmaps_count; i++)
+    for (size_t i = 0; i < parent->mmaps_count; i++)
     {
         proc_vmblock_t block = parent->mmaps[i];
         if (block.flags == VMBLOCK_FORK_SHARED)

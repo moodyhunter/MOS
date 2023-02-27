@@ -186,7 +186,7 @@ uintptr_t define_syscall(heap_control)(heap_control_op op, uintptr_t arg)
     process_t *process = current_process;
 
     proc_vmblock_t *block = NULL;
-    for (int i = 0; i < process->mmaps_count; i++)
+    for (size_t i = 0; i < process->mmaps_count; i++)
     {
         if (process->mmaps[i].content == VMTYPE_HEAP)
         {
@@ -245,7 +245,10 @@ bool define_syscall(wait_for_thread)(tid_t tid)
 {
     thread_t *target = thread_get(tid);
     if (target == NULL)
+    {
+        pr_warn("wait_for_thread(%ld) from process %ld (%s) but thread does not exist", tid, current_process->pid, current_process->name);
         return false;
+    }
 
     if (target->owner != current_process)
     {

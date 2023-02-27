@@ -196,6 +196,7 @@ void process_attach_thread(process_t *process, thread_t *thread)
 void process_attach_mmap(process_t *process, vmblock_t block, vmblock_content_t type, vmblock_flags_t flags)
 {
     MOS_ASSERT(process_is_valid(process));
+    pr_info2("process %ld attached mmap " PTR_FMT "-" PTR_FMT, process->pid, block.vaddr, block.vaddr + block.npages * MOS_PAGE_SIZE);
     process->mmaps = krealloc(process->mmaps, sizeof(proc_vmblock_t) * (process->mmaps_count + 1));
     process->mmaps[process->mmaps_count++] = (proc_vmblock_t){
         .blk = block,
@@ -203,6 +204,38 @@ void process_attach_mmap(process_t *process, vmblock_t block, vmblock_content_t 
         .flags = flags,
         .lock = SPINLOCK_INIT,
     };
+}
+
+void process_detach_mmap(process_t *process, vmblock_t block)
+{
+    MOS_ASSERT(process_is_valid(process));
+    for (size_t i = 0; i < process->mmaps_count; i++)
+    {
+        // find the mmap
+        if (process->mmaps[i].blk.vaddr == block.vaddr)
+        {
+            MOS_ASSERT(process->mmaps[i].blk.npages == block.npages);
+
+            // remove it
+            process->mmaps_count--;
+            process->mmaps[i] = process->mmaps[process->mmaps_count];
+            process->mmaps = krealloc(process->mmaps, sizeof(proc_vmblock_t) * process->mmaps_count);
+
+            if (process->mmaps[i].flags & VMBLOCK_COW_ENABLED)
+            {
+                // TODO CoW tracking
+                mm_unmap_pages(process->pagetable, block.vaddr, block.npages);
+            }
+            else
+            {
+                // free the pages
+                mm_free_pages(process->pagetable, block);
+            }
+
+            return;
+        }
+    }
+    mos_warn("process %ld tried to detach a non-existent mmap", process->pid);
 }
 
 void process_handle_exit(process_t *process, int exit_code)
@@ -252,8 +285,8 @@ void process_handle_cleanup(process_t *process)
     MOS_ASSERT(process_is_valid(process));
     MOS_ASSERT_X(current_process != process, "cannot cleanup current process");
 
-    mos_debug(process, "unmapping all %lu memory regions owned by %ld", process->mmaps_count, process->pid);
-    for (int i = 0; i < process->mmaps_count; i++)
+    mos_debug(process, "unmapping all %zu memory regions owned by %ld", process->mmaps_count, process->pid);
+    for (size_t i = 0; i < process->mmaps_count; i++)
     {
         const vmblock_flags_t flags = process->mmaps[i].flags;
         const vmblock_t block = process->mmaps[i].blk;
@@ -261,9 +294,13 @@ void process_handle_cleanup(process_t *process)
         // they will be unmapped when the last process detaches them
         // !! TODO: How to track this??
         if (flags & VMBLOCK_COW_ENABLED)
-            continue;
-
-        mm_free_pages(process->pagetable, block);
+        {
+            mm_unmap_pages(process->pagetable, block.vaddr, block.npages);
+        }
+        else
+        {
+            mm_free_pages(process->pagetable, block);
+        }
     }
 }
 
@@ -272,7 +309,7 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
     MOS_ASSERT(process_is_valid(process));
 
     proc_vmblock_t *heap = NULL;
-    for (int i = 0; i < process->mmaps_count; i++)
+    for (size_t i = 0; i < process->mmaps_count; i++)
     {
         if (process->mmaps[i].content == VMTYPE_HEAP)
         {
@@ -311,8 +348,8 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
 
 void process_dump_mmaps(const process_t *process)
 {
-    pr_info("process %ld (%s) has %lu memory regions:", process->pid, process->name, process->mmaps_count);
-    for (int i = 0; i < process->mmaps_count; i++)
+    pr_info("process %ld (%s) has %zu memory regions:", process->pid, process->name, process->mmaps_count);
+    for (size_t i = 0; i < process->mmaps_count; i++)
     {
         proc_vmblock_t block = process->mmaps[i];
         const char *typestr = "<unknown>";
@@ -330,7 +367,7 @@ void process_dump_mmaps(const process_t *process)
             default: mos_warn("unknown memory region type %x", block.content);
         };
 
-        pr_info("  %3d: " PTR_FMT ", %5zd page(s), [%c%c%c%c%c%c, %c%c%c%c]: %s",
+        pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%c%c%c%c%c%c, %c%c%c%c]: %s",
                 i,                                                    //
                 block.blk.vaddr,                                      //
                 block.blk.npages,                                     //

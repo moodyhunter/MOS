@@ -35,6 +35,9 @@ void *liballoc_alloc_page(size_t npages)
     }
 
     vmblock_t block = mm_alloc_pages(current_cpu->pagetable, npages, PGALLOC_HINT_KHEAP, VM_RW);
+    if (block.vaddr == 0)
+        return NULL;
+
     MOS_ASSERT_X(block.vaddr >= MOS_ADDR_KERNEL_HEAP, "only use this function to free kernel heap pages");
 
     if (unlikely(block.npages < npages))

@@ -95,8 +95,28 @@ void thread_handle_exit(thread_t *t)
     if (!thread_is_valid(t))
         return;
 
+    process_t *owner = t->owner;
+    vmblock_t kstack = { 0 };
+    vmblock_t ustack = { 0 };
+    for (size_t i = 0; i < owner->mmaps_count; i++)
+    {
+        proc_vmblock_t *blk = &owner->mmaps[i];
+        if (blk->content != VMTYPE_KSTACK && blk->content != VMTYPE_STACK)
+            continue;
+
+        uintptr_t kstack_start = (uintptr_t) t->k_stack.top - t->k_stack.capacity;
+        uintptr_t ustack_start = (uintptr_t) t->u_stack.top - t->u_stack.capacity;
+
+        if (blk->blk.vaddr >= kstack_start && blk->blk.vaddr < kstack_start + t->k_stack.capacity)
+            kstack = blk->blk;
+        else if (blk->blk.vaddr >= ustack_start && blk->blk.vaddr < ustack_start + t->u_stack.capacity)
+            ustack = blk->blk;
+    }
+
+    // process_detach_mmap(owner, kstack); // we are using this kernel stack, so we can't free it
+    process_detach_mmap(owner, ustack);
+
     spinlock_acquire(&t->state_lock);
     t->state = THREAD_STATE_DEAD;
     spinlock_release(&t->state_lock);
-    mos_warn("TODO");
 }

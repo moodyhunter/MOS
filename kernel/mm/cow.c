@@ -5,6 +5,7 @@
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging/paging.h"
+#include "mos/mm/paging/pmalloc.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
@@ -22,20 +23,30 @@ vmblock_t mm_make_process_map_cow(paging_handle_t from, uintptr_t fvaddr, paging
     return block;
 }
 
-static void copy_cow_pages_inplace(uintptr_t vaddr, size_t npages)
+static vmblock_t copy_cow_pages_inplace(uintptr_t vaddr, size_t npages)
 {
-    paging_handle_t pg_handle = current_process->pagetable;
-    const vm_flags flags = platform_mm_get_flags(pg_handle, vaddr); // this flags are the same for all pages (in the same proc_vmblock)
-    void *pagetmp = kmalloc(MOS_PAGE_SIZE);
+    paging_handle_t current_handle = current_process->pagetable;
+    const vm_flags flags = platform_mm_get_flags(current_handle, vaddr); // this flags are the same for all pages (in the same proc_vmblock)
+    const uintptr_t phys_start = pmalloc_alloc(npages);
+
     for (size_t j = 0; j < npages; j++)
     {
-        const uintptr_t current_page = vaddr + j * MOS_PAGE_SIZE;
-        memcpy(pagetmp, (void *) current_page, MOS_PAGE_SIZE);
-        mm_unmap_pages(pg_handle, current_page, 1);
-        mm_alloc_pages_at(pg_handle, current_page, 1, flags | VM_WRITE);
-        memcpy((void *) current_page, pagetmp, MOS_PAGE_SIZE);
+        vmblock_t stub_pblock = { .npages = 1, .flags = flags, .paddr = phys_start + j * MOS_PAGE_SIZE, .vaddr = vaddr + j * MOS_PAGE_SIZE };
+        vmblock_t stub_vblock = mm_get_free_pages(current_handle, 1, PGALLOC_HINT_KHEAP);
+        stub_pblock.vaddr = stub_vblock.vaddr;
+        stub_pblock.flags |= VM_USER_RW;
+
+        // firstly, map the phypage to a stub vaddr, then copy the data to there, then unmap the stub
+        mm_map_allocated_pages(current_handle, stub_pblock);
+        memcpy((void *) (vaddr + j * MOS_PAGE_SIZE), (void *) stub_pblock.vaddr, MOS_PAGE_SIZE);
+        mm_unmap_pages(current_handle, stub_pblock.vaddr, 1);
+
+        // then map the stub paddrs to the real vaddrs
+        stub_pblock.vaddr = vaddr + j * MOS_PAGE_SIZE;
+        mm_map_allocated_pages(current_handle, stub_pblock);
     }
-    kfree(pagetmp);
+
+    return (vmblock_t){ .flags = flags, .npages = npages, .paddr = phys_start, .vaddr = vaddr };
 }
 
 bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bool is_user, bool is_exec)
@@ -85,7 +96,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
             pr_emph("Zero-on-demand page fault in block %ld", i);
             // TODO: only allocate the page where the fault happened
             mm_unmap_pages(current_proc->pagetable, vm->vaddr, vm->npages);
-            mm_alloc_pages_at(current_proc->pagetable, vm->vaddr, vm->npages, vm->flags);
+            mmap->blk = mm_alloc_pages_at(current_proc->pagetable, vm->vaddr, vm->npages, vm->flags);
             memzero((void *) vm->vaddr, MOS_PAGE_SIZE * vm->npages);
             mmap->flags &= ~VMBLOCK_COW_ZERO_ON_DEMAND;
             spinlock_release(&mmap->lock);
@@ -96,7 +107,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
         {
             pr_emph("CoW page fault in block %ld", i);
             // TODO: only copy the page where the fault happened
-            copy_cow_pages_inplace(vm->vaddr, vm->npages);
+            mmap->blk = copy_cow_pages_inplace(vm->vaddr, vm->npages);
             platform_mm_flag_pages(current_proc->pagetable, vm->vaddr, vm->npages, vm->flags);
             mmap->flags &= ~VMBLOCK_COW_COPY_ON_WRITE;
             spinlock_release(&mmap->lock);
