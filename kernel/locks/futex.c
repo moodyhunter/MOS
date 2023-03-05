@@ -96,12 +96,12 @@ bool futex_wait(futex_word_t *futex, futex_word_t expected)
     return true;
 }
 
-bool futex_wake(futex_word_t *lock, size_t num_to_wake)
+bool futex_wake(futex_word_t *futex, size_t num_to_wake)
 {
     // https://man7.org/linux/man-pages/man2/futex.2.html
     // This operation wakes at most val of the waiters that are waiting (e.g., inside FUTEX_WAIT) on the futex word at the address uaddr.
 
-    const futex_key_t key = futex_get_key(lock);
+    const futex_key_t key = futex_get_key(futex);
     if (unlikely(num_to_wake == 0))
     {
         mos_debug(futex, "tid %ld tried to release a key=" PTR_FMT " but num_to_wake was 0", current_thread->tid, key);
