@@ -35,22 +35,32 @@ static futex_key_t futex_get_key(const futex_word_t *futex)
 
 bool futex_wait(futex_word_t *futex, futex_word_t expected)
 {
-    // https://man7.org/linux/man-pages/man2/futex.2.html
-    // This operation tests that the value at the futex word pointed to by the address uaddr still contains the expected value val.
-
-    // If so, then sleeps waiting for a FUTEX_WAKE operation on the futex word.
-    // The load of the value of the futex word is an atomic memory access
-    // If the futex value does not match val, then the call fails immediately with the error EAGAIN.
-
-    // The purpose of the comparison with the expected value is to prevent lost wake-ups.
-    // If another thread changed the value of the futex word after the calling thread decided to block based on the prior value,
-    // and if the other thread executed a FUTEX_WAKE operation (or similar wake-up) after the value change and before this FUTEX_WAIT operation,
-    // then the calling thread will observe the value change and will not start to sleep.
-
     const futex_word_t current_value = __atomic_load_n(futex, __ATOMIC_SEQ_CST);
 
     if (current_value != expected)
-        return false; // try again, this is not an error
+    {
+        //
+        // The purpose of the comparison with the expected value is to prevent lost wake-ups.
+        //
+        // if another thread changed the futex word value after the calling thread decided to block based on the prior value
+        // and, if that thread executed a FUTEX_WAKE operation (or similar wake-up) after the value change before this FUTEX_WAIT operation
+        // then, with this check, the calling thread will observe the value change and will not start to sleep.
+        //
+        //    | thread A           | thread B           |
+        //    |--------------------|--------------------|
+        //    | Check futex value  |                    |
+        //    | decide to block    |                    |
+        //    |                    | Change futex value |
+        //    |                    | Execute FUTEX_WAKE |
+        //    | system call        |                    |
+        //    |--------------------|--------------------|
+        //    | this check fails   |                    | <--- if this check was not here, thread A would block, losing a wake-up
+        //    |--------------------|--------------------|
+        //    | unblocked          |                    |
+        //    |--------------------|--------------------|
+        //
+        return false;
+    }
 
     // firstly find the futex in the list
     // if it's not there, create a new one add the current thread to the waiters list
@@ -98,9 +108,6 @@ bool futex_wait(futex_word_t *futex, futex_word_t expected)
 
 bool futex_wake(futex_word_t *futex, size_t num_to_wake)
 {
-    // https://man7.org/linux/man-pages/man2/futex.2.html
-    // This operation wakes at most val of the waiters that are waiting (e.g., inside FUTEX_WAIT) on the futex word at the address uaddr.
-
     const futex_key_t key = futex_get_key(futex);
     if (unlikely(num_to_wake == 0))
     {
