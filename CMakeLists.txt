@@ -45,7 +45,6 @@ target_include_directories(mos_kernel_include INTERFACE
     ${CMAKE_BINARY_DIR}/include                     # generated headers
     ${CMAKE_SOURCE_DIR}/kernel/include/public       # public types
     ${CMAKE_SOURCE_DIR}/lib/include                 # standard library
-    ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/include    # architecture-specific headers
 )
 add_library(mos::include ALIAS mos_kernel_include)
 
@@ -56,7 +55,7 @@ target_include_directories(mos_kernel_private_include INTERFACE
 add_library(mos::private_include ALIAS mos_kernel_private_include)
 
 add_library(mos_kernel STATIC ${MOS_STANDARD_LIBRARY_SOURCES} ${MOS_KERNEL_SOURCES})
-target_link_libraries(mos_kernel PUBLIC gcc mos::include mos::private_include)
+target_link_libraries(mos_kernel PUBLIC gcc mos::include)
 target_link_libraries(mos_kernel PRIVATE mos::private_include)
 target_compile_definitions(mos_kernel PRIVATE -D__MOS_KERNEL__)
 target_compile_options(mos_kernel PUBLIC "-ffreestanding")

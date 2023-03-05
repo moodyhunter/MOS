@@ -7,7 +7,10 @@ add_library(libuserspace OBJECT
     libs/cxa.c
 )
 
-target_include_directories(libuserspace PUBLIC ${CMAKE_SOURCE_DIR}/userspace/include)
+target_include_directories(libuserspace PUBLIC
+    ${CMAKE_SOURCE_DIR}/userspace/include
+    ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/include    # architecture-specific headers
+)
 target_link_libraries(libuserspace PUBLIC gcc mos::include)
 add_library(mos::libuserspace ALIAS libuserspace)
 add_dependencies(libuserspace mos_syscall_decl) # needs to be generated before we can compile
