@@ -8,21 +8,38 @@
 // My mutex implementation:
 // ==========================================================================
 
+/**
+ * @brief My mutex type.
+ */
 typedef struct
 {
-    futex_word_t value;
 } my_mutex_t;
 
+/**
+ * @brief Initialize the mutex.
+ *
+ * @param mutex The mutex to initialize.
+ */
 void my_mutex_init(my_mutex_t *mutex)
 {
     MOS_UNUSED(mutex);
 }
 
+/**
+ * @brief Acquire the mutex.
+ *
+ * @param mutex The mutex to acquire.
+ */
 void my_mutex_acquire(my_mutex_t *mutex)
 {
     MOS_UNUSED(mutex);
 }
 
+/**
+ * @brief Release the mutex.
+ *
+ * @param mutex The mutex to release.
+ */
 void my_mutex_release(my_mutex_t *mutex)
 {
     MOS_UNUSED(mutex);
@@ -34,8 +51,13 @@ static my_mutex_t my_lock;
 
 const u32 N_THREADS = 20;
 const size_t N_WORK = 500000;
-
 static u64 counter = 0;
+
+/**
+ * @brief The thread function, which will increment the counter N_WORK times.
+ *
+ * @param arg The number of times to increment the counter.
+ */
 static void thread_do_work(void *arg)
 {
     set_console_color(LightBlue, Black);
@@ -65,7 +87,6 @@ int main(int argc, char **argv)
     MOS_UNUSED(argv);
     // setup the console:
     open_console();
-
     print_to_console("Hello from my mutex test!\n");
 
     //
