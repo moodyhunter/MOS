@@ -108,13 +108,10 @@ bool futex_wait(futex_word_t *futex, futex_word_t expected)
 
 bool futex_wake(futex_word_t *futex, size_t num_to_wake)
 {
-    const futex_key_t key = futex_get_key(futex);
     if (unlikely(num_to_wake == 0))
-    {
-        mos_debug(futex, "tid %ld tried to release a key=" PTR_FMT " but num_to_wake was 0", current_thread->tid, key);
-        return false;
-    }
+        mos_panic("insane number of threads to wake up (?): %zd", num_to_wake);
 
+    const futex_key_t key = futex_get_key(futex);
     futex_private_t *fu = NULL;
 
     spinlock_acquire(&futex_list_lock);
@@ -131,15 +128,15 @@ bool futex_wake(futex_word_t *futex, size_t num_to_wake)
 
     if (!fu)
     {
-        mos_debug(futex, "tid %ld tried to release a lock key=" PTR_FMT " but it was already unlocked", current_thread->tid, key);
+        // no threads are waiting on this futex, or it's the first time it's being used by only one thread
         return true;
     }
 
-    const u32 num_to_wake_actual = MIN(num_to_wake, fu->num_waiters);
+    num_to_wake = MIN(num_to_wake, fu->num_waiters);
 
     // wake up the threads
-    mos_debug(futex, "tid %ld releasing a lock key=" PTR_FMT " and waking up %d threads", current_thread->tid, key, num_to_wake_actual);
-    for (u32 i = 0; i < num_to_wake_actual; i++)
+    mos_debug(futex, "tid %ld releasing a lock key=" PTR_FMT " and waking up %zd threads", current_thread->tid, key, num_to_wake);
+    for (u32 i = 0; i < num_to_wake; i++)
     {
         thread_t *t = fu->waiters[i];
         spinlock_acquire(&t->state_lock);
@@ -148,7 +145,7 @@ bool futex_wake(futex_word_t *futex, size_t num_to_wake)
         spinlock_release(&t->state_lock);
     }
 
-    if (num_to_wake_actual == fu->num_waiters)
+    if (num_to_wake == fu->num_waiters)
     {
         // do cleanup
         list_node_remove(list_node(fu));

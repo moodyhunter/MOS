@@ -34,7 +34,7 @@ void mutex_release(mutex_t *m)
     // try setting the mutex to 0 (only if it's 1)
     if (__atomic_compare_exchange_n(m, &one, 0, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST))
     {
-        bool result = futex_wake(m, INT_MAX); // TODO: Handle error
+        bool result = futex_wake(m, 1); // TODO: Handle error
         MOS_UNUSED(result);
     }
 }
