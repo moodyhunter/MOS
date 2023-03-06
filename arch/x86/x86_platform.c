@@ -27,6 +27,9 @@
 #include "mos/x86/tasks/context.h"
 #include "mos/x86/x86_interrupt.h"
 
+static size_t initrd_size = 0;
+static uintptr_t initrd_paddr = 0;
+
 static char mos_cmdline[512];
 static serial_console_t com1_console = {
     .device.port = COM1,
@@ -145,8 +148,10 @@ void x86_start_kernel(x86_startup_info *info)
     pr_info("mos_startup_info: initrd %zu bytes, mbinfo at: " PTR_FMT ", magic " PTR_FMT, info->initrd_size, (uintptr_t) info->mb_info, (uintptr_t) info->mb_magic);
 
     const multiboot_info_t *mb_info = info->mb_info;
-    const uintptr_t initrd_size = info->initrd_size;
-    const uintptr_t initrd_paddr = ((x86_pgtable_entry *) (((x86_pgdir_entry *) x86_get_cr3())[MOS_X86_INITRD_VADDR >> 22].page_table_paddr << 12))->phys_addr << 12;
+    initrd_size = info->initrd_size;
+
+    if (initrd_size)
+        initrd_paddr = ((x86_pgtable_entry *) (((x86_pgdir_entry *) x86_get_cr3())[MOS_X86_INITRD_VADDR >> 22].page_table_paddr << 12))->phys_addr << 12;
 
     x86_init_current_cpu_gdt();
     x86_idt_init();
