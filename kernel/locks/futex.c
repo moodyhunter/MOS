@@ -43,7 +43,7 @@ bool futex_wait(futex_word_t *futex, futex_word_t expected)
         // The purpose of the comparison with the expected value is to prevent lost wake-ups.
         //
         // if another thread changed the futex word value after the calling thread decided to block based on the prior value
-        // and, if that thread executed a FUTEX_WAKE operation (or similar wake-up) after the value change before this FUTEX_WAIT operation
+        // and, if that thread executed a futex_wake (or similar wake-up) after the value change before this FUTEX_WAIT operation
         // then, with this check, the calling thread will observe the value change and will not start to sleep.
         //
         //    | thread A           | thread B           |
@@ -51,7 +51,7 @@ bool futex_wait(futex_word_t *futex, futex_word_t expected)
         //    | Check futex value  |                    |
         //    | decide to block    |                    |
         //    |                    | Change futex value |
-        //    |                    | Execute FUTEX_WAKE |
+        //    |                    | Execute futex_wake |
         //    | system call        |                    |
         //    |--------------------|--------------------|
         //    | this check fails   |                    | <--- if this check was not here, thread A would block, losing a wake-up
