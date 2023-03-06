@@ -114,8 +114,9 @@ void thread_handle_exit(thread_t *t)
     }
 
     // process_detach_mmap(owner, kstack); // we are using this kernel stack, so we can't free it
+    // process_detach_mmap(owner, ustack);
     MOS_UNUSED(kstack);
-    process_detach_mmap(owner, ustack);
+    MOS_UNUSED(ustack);
 
     spinlock_acquire(&t->state_lock);
     t->state = THREAD_STATE_DEAD;
