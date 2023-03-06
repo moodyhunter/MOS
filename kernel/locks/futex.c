@@ -157,7 +157,7 @@ bool futex_wake(futex_word_t *futex, size_t num_to_wake)
     }
     else
     {
-        thread_t **new_waiters = krealloc(fu->waiters, (fu->num_waiters - num_to_wake) * sizeof(thread_t *));
+        thread_t **new_waiters = kzalloc((fu->num_waiters - num_to_wake) * sizeof(thread_t *));
 
         // copy the remaining waiters
         for (u32 i = 0; i < fu->num_waiters - num_to_wake; i++)
