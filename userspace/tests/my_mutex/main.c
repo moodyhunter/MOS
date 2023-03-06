@@ -60,7 +60,6 @@ static u64 counter = 0;
  */
 static void thread_do_work(void *arg)
 {
-    set_console_color(LightBlue, Black);
     print_to_console("-- Thread %ld started!\n", syscall_get_tid());
     my_mutex_acquire(&my_lock);
     for (long i = 0; i < (long) arg; i++)
@@ -88,6 +87,8 @@ int main(int argc, char **argv)
     // setup the console:
     open_console();
     print_to_console("Hello from my mutex test!\n");
+    print_to_console("Running...\n");
+    set_console_color(LightBlue, Black);
 
     //
     // Initialize the mutex:
