@@ -114,6 +114,7 @@ void thread_handle_exit(thread_t *t)
     }
 
     // process_detach_mmap(owner, kstack); // we are using this kernel stack, so we can't free it
+    MOS_UNUSED(kstack);
     process_detach_mmap(owner, ustack);
 
     spinlock_acquire(&t->state_lock);

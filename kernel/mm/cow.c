@@ -72,7 +72,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
     process_dump_mmaps(current_proc);
 #endif
 
-    for (ssize_t i = 0; i < current_proc->mmaps_count; i++)
+    for (size_t i = 0; i < current_proc->mmaps_count; i++)
     {
         proc_vmblock_t *mmap = &current_proc->mmaps[i];
         spinlock_acquire(&mmap->lock);
