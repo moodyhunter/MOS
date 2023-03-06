@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "../console-helpers.h"
 #include "libuserspace.h"
 #include "mos/syscall/usermode.h"
 #include "mos/types.h"
@@ -37,7 +38,8 @@ const size_t N_WORK = 500000;
 static u64 counter = 0;
 static void thread_do_work(void *arg)
 {
-    printf("-- Thread %ld started!\n", syscall_get_tid());
+    set_console_color(LightBlue, Black);
+    print_to_console("-- Thread %ld started!\n", syscall_get_tid());
     my_mutex_acquire(&my_lock);
     for (long i = 0; i < (long) arg; i++)
     {
@@ -54,14 +56,17 @@ static void thread_do_work(void *arg)
         counter = current_count;
     }
     my_mutex_release(&my_lock);
-    printf("-- Thread %2ld finished!\n", syscall_get_tid());
+    print_to_console("-- Thread %2ld finished!\n", syscall_get_tid());
 }
 
 int main(int argc, char **argv)
 {
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
-    printf("Hello from my mutex test!\n");
+    // setup the console:
+    open_console();
+
+    print_to_console("Hello from my mutex test!\n");
 
     //
     // Initialize the mutex:
@@ -83,11 +88,13 @@ int main(int argc, char **argv)
     const u64 expected = N_WORK * N_THREADS;
     if (counter != expected)
     {
-        printf("FAIL: counter value: %llu, where it should be %llu\n", counter, expected);
+        set_console_color(White, LightRed);
+        print_to_console("FAIL: counter value: %llu, where it should be %llu\n", counter, expected);
     }
     else
     {
-        printf("SUCCESS: counter value: %llu\n", counter);
+        set_console_color(White, Green);
+        print_to_console("SUCCESS: counter value: %llu\n", counter);
     }
 
     //

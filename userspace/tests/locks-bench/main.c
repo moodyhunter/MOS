@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "helpers.h"
+#include "../console-helpers.h"
 #include "lib/stdio.h"
 #include "lib/sync/mutex.h"
 #include "lib/sync/spinlock.h"
