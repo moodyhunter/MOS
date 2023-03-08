@@ -26,10 +26,6 @@ typedef unsigned int u32;
 typedef unsigned long ulong;
 typedef unsigned long long u64;
 
-typedef float f32;
-typedef double f64;
-typedef long double f80;
-
 #ifdef __UINTPTR_FMTx__
 #define _PTRFMTx __UINTPTR_FMTx__ // clang defines this
 #else
