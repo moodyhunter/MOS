@@ -45,6 +45,8 @@ static size_t ipc_conn_write(io_t *io, const void *buf, size_t size)
     spinlock_acquire(&writebuf->lock);
     size_t written = ring_buffer_pos_push_back(ipc_node->write_buffer, &writebuf->pos, buf, size);
     spinlock_release(&writebuf->lock);
+    if (written != size)
+        pr_warn("ipc_conn_write: could not write all data to buffer (written %zu, size %zu)", written, size);
     return written;
 }
 
