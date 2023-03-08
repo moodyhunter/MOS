@@ -116,6 +116,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
         {
             interp_path = buf + sh->sh_offset;
             mos_debug(elf, "interpreter path: %s", interp_path);
+            mos_panic("interpreter not supported yet");
         }
 
         if (sh->sh_size == 0)
