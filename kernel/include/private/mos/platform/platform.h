@@ -28,7 +28,6 @@ typedef struct _page_map page_map_t;
 
 typedef enum
 {
-    VM_NONE = MEM_PERM_NONE,   // 0
     VM_READ = MEM_PERM_READ,   // 1 << 0
     VM_WRITE = MEM_PERM_WRITE, // 1 << 1
     VM_EXEC = MEM_PERM_EXEC,   // 1 << 2

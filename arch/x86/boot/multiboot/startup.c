@@ -137,14 +137,14 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
     mos_startup_memzero((void *) startup_pgt, 512 KB);
 
     debug_print_step();
-    mos_startup_map_identity((uintptr_t) startup->mb_info, sizeof(multiboot_info_t), VM_NONE);
+    mos_startup_map_identity((uintptr_t) startup->mb_info, sizeof(multiboot_info_t), VM_READ);
 
     // multiboot stuff
     if (startup->mb_info->flags & MULTIBOOT_INFO_CMDLINE)
-        mos_startup_map_identity((uintptr_t) startup->mb_info->cmdline, mos_startup_strlen(startup->mb_info->cmdline), VM_NONE);
+        mos_startup_map_identity((uintptr_t) startup->mb_info->cmdline, mos_startup_strlen(startup->mb_info->cmdline), VM_READ);
 
     STARTUP_ASSERT(startup->mb_info->mmap_addr, 'm');
-    mos_startup_map_identity((uintptr_t) startup->mb_info->mmap_addr, startup->mb_info->mmap_length * sizeof(multiboot_memory_map_t), VM_NONE);
+    mos_startup_map_identity((uintptr_t) startup->mb_info->mmap_addr, startup->mb_info->mmap_length * sizeof(multiboot_memory_map_t), VM_READ);
 
     // map the VGA buffer, from 0xB8000
     mos_startup_map_bios(X86_VIDEO_DEVICE, VIDEO_WIDTH * VIDEO_HEIGHT * 2, VM_WRITE);
@@ -162,7 +162,7 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
     mos_startup_map_pages(kernel_code_vstart, kernel_code_vstart - MOS_KERNEL_START_VADDR, kernel_code_pgsize, VM_EXEC);
 
     const size_t kernel_ro_pgsize = ALIGN_UP_TO_PAGE(kernel_ro_vend - kernel_ro_vstart) / MOS_PAGE_SIZE;
-    mos_startup_map_pages(kernel_ro_vstart, kernel_ro_vstart - MOS_KERNEL_START_VADDR, kernel_ro_pgsize, VM_NONE);
+    mos_startup_map_pages(kernel_ro_vstart, kernel_ro_vstart - MOS_KERNEL_START_VADDR, kernel_ro_pgsize, VM_READ);
 
     const size_t kernel_rw_pgsize = ALIGN_UP_TO_PAGE(kernel_rw_vend - kernel_rw_vstart) / MOS_PAGE_SIZE;
     mos_startup_map_pages(kernel_rw_vstart, kernel_rw_vstart - MOS_KERNEL_START_VADDR, kernel_rw_pgsize, VM_WRITE);
@@ -172,7 +172,7 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
         multiboot_module_t *mod = (multiboot_module_t *) startup->mb_info->mods_addr;
         const size_t initrd_pgsize = ALIGN_UP_TO_PAGE(mod->mod_end - mod->mod_start) / MOS_PAGE_SIZE;
         startup->initrd_size = mod->mod_end - mod->mod_start;
-        mos_startup_map_pages(MOS_X86_INITRD_VADDR, mod->mod_start, initrd_pgsize, VM_NONE);
+        mos_startup_map_pages(MOS_X86_INITRD_VADDR, mod->mod_start, initrd_pgsize, VM_READ);
         debug_print_step();
     }
 
