@@ -32,8 +32,8 @@ rpc_server_stub_t *rpc_client_create(const char *server_name)
 {
     rpc_server_stub_t *client = malloc(sizeof(rpc_server_stub_t));
     memzero(client, sizeof(rpc_server_stub_t));
-    client->fd = syscall_ipc_connect(server_name, RPC_CLIENT_SMH_SIZE);
     client->server_name = server_name;
+    client->fd = syscall_ipc_connect(server_name, RPC_CLIENT_SMH_SIZE);
 
     if (client->fd < 0)
     {
@@ -55,7 +55,6 @@ rpc_call_t *rpc_call_create(rpc_server_stub_t *server, u32 function_id)
 {
     rpc_call_t *call = malloc(sizeof(rpc_call_t));
     memzero(call, sizeof(rpc_call_t));
-    mutex_acquire(&call->mutex);
 
     call->request = malloc(sizeof(rpc_request_t));
     memzero(call->request, sizeof(rpc_request_t));
@@ -64,7 +63,6 @@ rpc_call_t *rpc_call_create(rpc_server_stub_t *server, u32 function_id)
     call->size = sizeof(rpc_request_t);
     call->server = server;
 
-    mutex_release(&call->mutex);
     return call;
 }
 
@@ -166,4 +164,62 @@ rpc_result_code_t rpc_call_exec(rpc_call_t *call, void **result_data, size_t *da
     mutex_release(&call->server->mutex);
     mutex_release(&call->mutex);
     return result;
+}
+
+rpc_result_code_t rpc_call(rpc_server_stub_t *stub, u32 funcid, rpc_result_t *result, const char *argspec, ...)
+{
+    rpc_call_t *call = rpc_call_create(stub, funcid);
+
+    va_list args;
+    va_start(args, argspec);
+    for (const char *c = argspec; *c != '\0'; c++)
+    {
+        switch (*c)
+        {
+            case 'c':
+            {
+                u8 arg = va_arg(args, int);
+                rpc_call_arg(call, &arg, sizeof(arg));
+                break;
+            }
+            case 'i':
+            {
+                u32 arg = va_arg(args, int);
+                rpc_call_arg(call, &arg, sizeof(arg));
+                break;
+            }
+            case 'l':
+            {
+                u64 arg = va_arg(args, long long);
+                rpc_call_arg(call, &arg, sizeof(arg));
+                break;
+            }
+            case 'f':
+            {
+                double arg = va_arg(args, double);
+                rpc_call_arg(call, &arg, sizeof(arg));
+                break;
+            }
+            case 's':
+            {
+                const char *arg = va_arg(args, const char *);
+                rpc_call_arg(call, arg, strlen(arg));
+                break;
+            }
+            case 'b':
+            {
+                const void *arg = va_arg(args, const void *);
+                size_t arg_size = va_arg(args, size_t);
+                rpc_call_arg(call, arg, arg_size);
+                break;
+            }
+            default: dprintf(stderr, "rpc_call_x: invalid argspec '%c'", *c); return RPC_RESULT_CLIENT_INVALID_ARGSPEC;
+        }
+    }
+    va_end(args);
+
+    rpc_call_exec(call, &result->data, &result->size);
+    rpc_call_destroy(call);
+
+    return RPC_RESULT_OK;
 }

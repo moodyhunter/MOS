@@ -31,4 +31,4 @@ add_subdirectory(initrd)
 
 # if you want to debug a userspace program, replace the line below with the
 # target name of the program you want to debug
-add_to_gdbinit(my_mutex)
+add_to_gdbinit(rpc-test)

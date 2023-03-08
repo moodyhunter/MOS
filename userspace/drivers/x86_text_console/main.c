@@ -15,7 +15,7 @@ void x86_vga_text_mode_console_exit(void)
     syscall_arch_syscall(X86_SYSCALL_IOPL_DISABLE, 0, 0, 0, 0);
 }
 
-int x86_textmode_console_write(rpc_server_t *server, rpc_args_iter_t *args, rpc_result_t *result, void *data)
+int x86_textmode_console_write(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(result);
@@ -29,7 +29,7 @@ int x86_textmode_console_write(rpc_server_t *server, rpc_args_iter_t *args, rpc_
     return RPC_RESULT_OK;
 }
 
-int x86_textmode_console_clear(rpc_server_t *server, rpc_args_iter_t *args, rpc_result_t *result, void *data)
+int x86_textmode_console_clear(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(args);
@@ -40,7 +40,7 @@ int x86_textmode_console_clear(rpc_server_t *server, rpc_args_iter_t *args, rpc_
     return RPC_RESULT_OK;
 }
 
-int x86_textmode_console_set_color(rpc_server_t *server, rpc_args_iter_t *args, rpc_result_t *result, void *data)
+int x86_textmode_console_set_color(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(result);
@@ -58,7 +58,7 @@ int x86_textmode_console_set_color(rpc_server_t *server, rpc_args_iter_t *args, 
     return RPC_RESULT_OK;
 }
 
-int x86_textmode_console_set_cursor_pos(rpc_server_t *server, rpc_args_iter_t *args, rpc_result_t *result, void *data)
+int x86_textmode_console_set_cursor_pos(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(result);
@@ -76,7 +76,7 @@ int x86_textmode_console_set_cursor_pos(rpc_server_t *server, rpc_args_iter_t *a
     return RPC_RESULT_OK;
 }
 
-int x86_textmode_console_set_cursor_visible(rpc_server_t *server, rpc_args_iter_t *args, rpc_result_t *result, void *data)
+int x86_textmode_console_set_cursor_visible(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(result);

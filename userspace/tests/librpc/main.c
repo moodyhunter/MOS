@@ -2,6 +2,8 @@
 
 #include "lib/memory.h"
 #include "lib/stdio.h"
+#include "lib/string.h"
+#include "librpc/rpc.h"
 #include "librpc/rpc_client.h"
 #include "librpc/rpc_server.h"
 #include "mos/syscall/usermode.h"
@@ -12,7 +14,7 @@ enum
 {
     TESTSERVER_PING = 0,
     TESTSERVER_ECHO = 1,
-    TESTSERVER_CALCULATION = 2,
+    TESTSERVER_CALCULATE = 2,
 };
 
 enum
@@ -23,7 +25,7 @@ enum
     CALC_DIV = 3,
 } calculation_type_t;
 
-static int testserver_ping(rpc_server_t *server, rpc_args_iter_t *args, rpc_result_t *reply, void *data)
+static int testserver_ping(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(args);
@@ -33,7 +35,7 @@ static int testserver_ping(rpc_server_t *server, rpc_args_iter_t *args, rpc_resu
     return 0;
 }
 
-static int testserver_echo(rpc_server_t *server, rpc_args_iter_t *args, rpc_result_t *reply, void *data)
+static int testserver_echo(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(data);
@@ -46,7 +48,7 @@ static int testserver_echo(rpc_server_t *server, rpc_args_iter_t *args, rpc_resu
     return 0;
 }
 
-static int testserver_calculation(rpc_server_t *server, rpc_args_iter_t *args, rpc_result_t *reply, void *data)
+static int testserver_calculation(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(data);
@@ -79,7 +81,7 @@ void run_server(void)
     static rpc_function_info_t testserver_functions[] = {
         { TESTSERVER_PING, testserver_ping, 0 },
         { TESTSERVER_ECHO, testserver_echo, 1 },
-        { TESTSERVER_CALCULATION, testserver_calculation, 3 },
+        { TESTSERVER_CALCULATE, testserver_calculation, 3 },
     };
 
     rpc_server_t *server = rpc_server_create(RPC_TEST_SERVERNAME, NULL);
@@ -91,8 +93,13 @@ void run_server(void)
 
 void run_client(void)
 {
-    printf("rpc_client_create\n");
     rpc_server_stub_t *stub = rpc_client_create(RPC_TEST_SERVERNAME);
+
+    if (!stub)
+    {
+        printf("rpc_client_create failed\n");
+        return;
+    }
 
     // ping
     {
@@ -117,7 +124,7 @@ void run_client(void)
 
     // calculation
     {
-        rpc_call_t *calc_call = rpc_call_create(stub, TESTSERVER_CALCULATION);
+        rpc_call_t *calc_call = rpc_call_create(stub, TESTSERVER_CALCULATE);
         int a = 10;
         int b = CALC_ADD;
         int c = 5;
@@ -133,7 +140,7 @@ void run_client(void)
         printf("calculation client: received '%d'\n", *result);
         free(result);
 
-        rpc_call_t *calc_call2 = rpc_call_create(stub, TESTSERVER_CALCULATION);
+        rpc_call_t *calc_call2 = rpc_call_create(stub, TESTSERVER_CALCULATE);
         a = 10;
         b = CALC_SUB;
         c = 5;
@@ -146,6 +153,13 @@ void run_client(void)
 
         printf("calculation client: received '%d'\n", *result);
         free(result);
+    }
+
+    // calculation using argspec
+    {
+        rpc_result_t result;
+        rpc_result_code_t result_code = rpc_call(stub, TESTSERVER_CALCULATE, (void *) &result, "iii", 10, CALC_MUL, 5);
+        printf("calculation client (spec): received '%d' (result_code=%d)\n", *(int *) result.data, result_code);
     }
 
     rpc_client_destroy(stub);
@@ -162,6 +176,9 @@ int main(int argc, char *argv[])
         run_server();
     else
     {
+        syscall_fork();
+        syscall_fork();
+        syscall_fork();
         syscall_fork();
         syscall_fork();
         syscall_fork();

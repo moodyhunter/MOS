@@ -9,7 +9,7 @@
 
 typedef struct
 {
-    u64 size;
+    size_t size;
     char data[];
 } ipc_msg_t;
 

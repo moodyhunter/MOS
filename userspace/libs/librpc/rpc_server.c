@@ -13,7 +13,7 @@
 
 #define RPC_SERVER_MAX_PENDING_CALLS 32
 
-typedef struct rpc_server
+typedef struct _rpc_server
 {
     const char *server_name;
     void *data;
@@ -22,14 +22,14 @@ typedef struct rpc_server
     rpc_function_info_t *functions;
 } rpc_server_t;
 
-typedef struct rpc_args_iter
+typedef struct _rpc_args_iter
 {
     rpc_request_t *request;
     size_t next_arg_index;
     size_t next_arg_byte;
 } rpc_args_iter_t;
 
-struct rpc_result
+struct _rpc_reply_wrapper
 {
     rpc_response_t *response; // may be relocated by rpc_fill_result
 };
@@ -48,7 +48,7 @@ static inline rpc_function_info_t *rpc_server_get_function(rpc_server_t *server,
     return NULL;
 }
 
-static void rpc_invoke_call(void *arg)
+static void rpc_handle_call(void *arg)
 {
     rpc_call_context_t *context = (rpc_call_context_t *) arg;
     rpc_server_t *server = context->server;
@@ -90,8 +90,9 @@ static void rpc_invoke_call(void *arg)
 
         rpc_args_iter_t args = { request, 0, 0 };
 
-        rpc_result_t reply = { 0 };
+        rpc_reply_t reply = { 0 };
         reply.response = malloc(sizeof(rpc_response_t));
+        memzero(reply.response, sizeof(rpc_response_t));
         reply.response->magic = RPC_RESPONSE_MAGIC;
         reply.response->call_id = request->call_id;
         reply.response->result_code = function->func(server, &args, &reply, server->data);
@@ -144,7 +145,7 @@ void rpc_server_exec(rpc_server_t *server)
         rpc_call_context_t *context = malloc(sizeof(rpc_call_context_t));
         context->server = server;
         context->client_fd = client_fd;
-        start_thread("rpc-call", rpc_invoke_call, context);
+        start_thread("rpc-call", rpc_handle_call, context);
     }
 }
 
@@ -196,7 +197,7 @@ const void *rpc_arg_sized_next(rpc_args_iter_t *iter, size_t expected_size)
     return (void *) data;
 }
 
-void rpc_write_result(rpc_result_t *result, const void *data, size_t size)
+void rpc_write_result(rpc_reply_t *result, const void *data, size_t size)
 {
     result->response->data_size = size;
     result->response = realloc(result->response, sizeof(rpc_response_t) + size);
