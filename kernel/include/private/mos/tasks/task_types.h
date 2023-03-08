@@ -27,40 +27,44 @@ typedef enum
     VMTYPE_HEAP,   // heap
     VMTYPE_STACK,  // stack (user)
     VMTYPE_KSTACK, // stack (kernel)
-    VMTYPE_SHARED, // shared memory (e.g., IPC)
     VMTYPE_FILE,   // file mapping
     VMTYPE_MMAP,   // mmap mapping
 } vmblock_content_t;
 
 typedef enum
 {
-    // bit 0 is reserved
+    VMAP_FORK_PRIVATE = 1, // there will be distinct copies of the memory region in the child process
+    VMAP_FORK_SHARED = 2,  // the memory region will be shared between the parent and child processes
+    VMAP_FORK_NA = 3,      // not applicable
+} vmap_fork_mode_t;
 
-    // bit 1: fork behavior
-    VMBLOCK_FORK_PRIVATE = 0 << 1, // child has its own copy of the page
-    VMBLOCK_FORK_SHARED = 1 << 1,  // child shares the same physical pages with parent
+typedef struct
+{
+    // cow:     If the process attempts to write to a page that is marked as copy-on-write,
+    //          the kernel will copy the page and mark it as read/write. This is done
+    //          in the page fault handler.
+    bool cow : 1;
 
-    // bit 2, 3: CoW enabled, CoW behavior
-    VMBLOCK_COW_NONE = 0 << 2,                                 // no COW
-    VMBLOCK_COW_ENABLED = 1 << 2,                              // COW enabled
-    VMBLOCK_COW_COPY_ON_WRITE = VMBLOCK_COW_ENABLED | 0 << 3,  // copy-on-write
-    VMBLOCK_COW_ZERO_ON_DEMAND = VMBLOCK_COW_ENABLED | 1 << 3, // zero-on-demand
+    // Zero-on-Demand
+    bool zod : 1;
 
-    VMBLOCK_DEFAULT = VMBLOCK_FORK_PRIVATE | VMBLOCK_COW_COPY_ON_WRITE,
-} vmblock_flags_t;
+    // This flag only applies to file and anonymous mappings
+    vmap_fork_mode_t fork_mode : 2;
+} vmap_flags_t;
 
 typedef struct
 {
     vmblock_content_t content;
     vmblock_t blk;
 
-    // if any of the vmblock_cow_t is set, then the flags in vm contains 'original' flags
+    // if any of the vmap_flags_t is set, then the flags in vm contains 'original' flags
     // of this block. Which means if there're no VM_WRITE flag, then the block
     // should not be writable.
-    vmblock_flags_t flags;
+    vmap_flags_t flags;
+    // TODO: a CoW reference counter
 
     spinlock_t lock;
-} proc_vmblock_t;
+} vmap_t;
 
 typedef struct _wait_condition wait_condition_t;
 typedef struct _thread thread_t;
@@ -90,7 +94,7 @@ typedef struct _process
     thread_t *threads[MOS_PROCESS_MAX_THREADS];
 
     size_t mmaps_count;
-    proc_vmblock_t *mmaps;
+    vmap_t *mmaps;
 
     dentry_t *working_directory;
 

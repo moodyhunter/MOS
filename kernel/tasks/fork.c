@@ -6,6 +6,7 @@
 #include "mos/mm/cow.h"
 #include "mos/mm/memops.h"
 #include "mos/mm/paging/paging.h"
+#include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
@@ -28,32 +29,39 @@ process_t *process_handle_fork(process_t *parent)
     // copy the parent's memory
     for (size_t i = 0; i < parent->mmaps_count; i++)
     {
-        proc_vmblock_t block = parent->mmaps[i];
-        if (block.flags == VMBLOCK_FORK_SHARED)
+        vmap_t *block = &parent->mmaps[i];
+        vmblock_t child_vmblock;
+
+#define FORKFMT "fork %ld->%ld: %10s " PTR_FMT "+%-3zu flags [0x%x]"
+
+        if (block->content == VMTYPE_KSTACK)
         {
-            pr_info2("fork %ld->%ld: shared " PTR_FMT "+%zu, flags = [%x]", parent->pid, child->pid, block.blk.vaddr, block.blk.npages, block.blk.flags);
-            process_attach_mmap(child, block.blk, block.content, block.flags);
+            // Kernel stacks are special, we need to allocate a new one (not CoW-mapped)
+            MOS_ASSERT_X(block->blk.npages == MOS_STACK_PAGES_KERNEL, "kernel stack size is not %d pages", MOS_STACK_PAGES_KERNEL);
+            child_vmblock = mm_alloc_pages(child->pagetable, block->blk.npages, PGALLOC_HINT_STACK, block->blk.flags);
+            pr_info2(FORKFMT, parent->pid, child->pid, "kstack", block->blk.vaddr, block->blk.npages, block->blk.flags);
+            process_attach_mmap(child, child_vmblock, VMTYPE_KSTACK, (vmap_flags_t){ 0 });
             continue;
         }
 
-        vmblock_t child_vmblock;
+        if (block->content == VMTYPE_MMAP || block->content == VMTYPE_FILE)
+        {
+            MOS_ASSERT_X(block->flags.fork_mode != VMAP_FORK_NA, "invalid fork mode for mmap");
+            if (block->flags.fork_mode == VMAP_FORK_SHARED)
+            {
+                pr_info2(FORKFMT, parent->pid, child->pid, "mmap", block->blk.vaddr, block->blk.npages, block->blk.flags);
+                process_attach_mmap(child, block->blk, block->content, block->flags);
+                continue;
+            }
+        }
 
-        if (block.content == VMTYPE_KSTACK)
-        {
-            // Kernel stacks are special, we need to allocate a new one (not CoW-mapped)
-            MOS_ASSERT_X(block.blk.npages == MOS_STACK_PAGES_KERNEL, "kernel stack size is not %d pages", MOS_STACK_PAGES_KERNEL);
-            child_vmblock = mm_alloc_pages(child->pagetable, block.blk.npages, PGALLOC_HINT_STACK, block.blk.flags);
-            pr_info2("fork %ld->%ld: kernel stack " PTR_FMT "+%zu, flags = [%x]", parent->pid, child->pid, block.blk.vaddr, block.blk.npages, block.blk.flags);
-            process_attach_mmap(child, child_vmblock, VMTYPE_KSTACK, VMBLOCK_DEFAULT);
-        }
-        else
-        {
-            parent->mmaps[i].flags |= VMBLOCK_COW_COPY_ON_WRITE;
-            mm_make_process_map_cow(parent->pagetable, block.blk.vaddr, child->pagetable, block.blk.vaddr, block.blk.npages);
-            child_vmblock = parent->mmaps[i].blk; // do not use the return value from mm_make_process_map_cow
-            pr_info2("fork %ld->%ld: CoW " PTR_FMT "+%zu, flags = [%x]", parent->pid, child->pid, block.blk.vaddr, block.blk.npages, block.blk.flags);
-            process_attach_mmap(child, child_vmblock, block.content, VMBLOCK_COW_COPY_ON_WRITE);
-        }
+        if (!block->flags.zod && !block->flags.cow)
+            block->flags.cow = true; // if it's neither ZOD nor CoW, make it CoW
+
+        mm_make_process_map_cow(parent->pagetable, block->blk.vaddr, child->pagetable, block->blk.vaddr, block->blk.npages);
+        child_vmblock = parent->mmaps[i].blk; // do not use the return value from mm_make_process_map_cow
+        pr_info2(FORKFMT, parent->pid, child->pid, "CoW", block->blk.vaddr, block->blk.npages, block->blk.flags);
+        process_attach_mmap(child, child_vmblock, block->content, block->flags); // TODO check this
     }
 
     // copy the parent's files

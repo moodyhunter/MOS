@@ -219,7 +219,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
         if (sh->header_type == ELF_SH_T_NOBITS)
         {
             const vmblock_t zero_block = mm_alloc_zeroed_pages_at(proc->pagetable, first_unmapped_addr, pages_to_map, map_flags);
-            process_attach_mmap(proc, zero_block, VMTYPE_ZERO, VMBLOCK_COW_ZERO_ON_DEMAND);
+            process_attach_mmap(proc, zero_block, VMTYPE_ZERO, (vmap_flags_t){ .zod = true });
         }
         else
         {
@@ -227,7 +227,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
             vmblock_t block = mm_copy_maps(current_cpu->pagetable, file_offset, proc->pagetable, first_unmapped_addr, pages_to_map);
             block.flags = map_flags; // use the original flags
             platform_mm_flag_pages(proc->pagetable, block.vaddr, block.npages, map_flags);
-            process_attach_mmap(proc, block, map_flags & VM_EXEC ? VMTYPE_CODE : VMTYPE_DATA, VMBLOCK_DEFAULT);
+            process_attach_mmap(proc, block, map_flags & VM_EXEC ? VMTYPE_CODE : VMTYPE_DATA, (vmap_flags_t){ 0 });
         }
     }
 

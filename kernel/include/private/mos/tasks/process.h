@@ -27,7 +27,7 @@ io_t *process_get_fd(process_t *process, fd_t fd);
 bool process_detach_fd(process_t *process, fd_t fd);
 
 void process_attach_thread(process_t *process, thread_t *thread);
-void process_attach_mmap(process_t *process, vmblock_t block, vmblock_content_t type, vmblock_flags_t flags);
+void process_attach_mmap(process_t *process, vmblock_t block, vmblock_content_t type, vmap_flags_t flags);
 void process_detach_mmap(process_t *process, vmblock_t block);
 uintptr_t process_grow_heap(process_t *process, size_t npages);
 

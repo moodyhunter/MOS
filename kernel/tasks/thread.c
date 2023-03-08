@@ -63,14 +63,14 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
     const pgalloc_hints kstack_hint = (tmode == THREAD_MODE_KERNEL) ? PGALLOC_HINT_KHEAP : PGALLOC_HINT_STACK;
     const vmblock_t kstack_blk = mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_KERNEL, kstack_hint, VM_RW);
     stack_init(&t->k_stack, (void *) kstack_blk.vaddr, kstack_blk.npages * MOS_PAGE_SIZE);
-    process_attach_mmap(owner, kstack_blk, VMTYPE_KSTACK, VMBLOCK_DEFAULT);
+    process_attach_mmap(owner, kstack_blk, VMTYPE_KSTACK, (vmap_flags_t){ 0 });
 
     if (tmode == THREAD_MODE_USER)
     {
         // User stack
         const vmblock_t ustack_blk = mm_alloc_zeroed_pages(owner->pagetable, MOS_STACK_PAGES_USER, PGALLOC_HINT_STACK, VM_USER_RW);
         stack_init(&t->u_stack, (void *) ustack_blk.vaddr, MOS_STACK_PAGES_USER * MOS_PAGE_SIZE);
-        process_attach_mmap(owner, ustack_blk, VMTYPE_STACK, VMBLOCK_COW_ZERO_ON_DEMAND);
+        process_attach_mmap(owner, ustack_blk, VMTYPE_STACK, (vmap_flags_t){ .zod = true });
     }
     else
     {
@@ -100,7 +100,7 @@ void thread_handle_exit(thread_t *t)
     vmblock_t ustack = { 0 };
     for (size_t i = 0; i < owner->mmaps_count; i++)
     {
-        proc_vmblock_t *blk = &owner->mmaps[i];
+        vmap_t *blk = &owner->mmaps[i];
         if (blk->content != VMTYPE_KSTACK && blk->content != VMTYPE_STACK)
             continue;
 

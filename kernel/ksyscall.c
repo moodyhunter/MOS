@@ -185,7 +185,7 @@ uintptr_t define_syscall(heap_control)(heap_control_op op, uintptr_t arg)
 {
     process_t *process = current_process;
 
-    proc_vmblock_t *block = NULL;
+    vmap_t *block = NULL;
     for (size_t i = 0; i < process->mmaps_count; i++)
     {
         if (process->mmaps[i].content == VMTYPE_HEAP)
@@ -351,8 +351,8 @@ bool define_syscall(vfs_fstat)(fd_t fd, file_stat_t *statbuf)
 void *define_syscall(mmap_anonymous)(uintptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t flags)
 {
     const bool exact = flags & MMAP_EXACT;
-    const bool shared = flags & MMAP_SHARED;   // shared when forked, otherwise
-    const bool private = flags & MMAP_PRIVATE; // copy-on-write when forked
+    const bool shared = flags & MMAP_SHARED;   // when forked, shared between parent and child
+    const bool private = flags & MMAP_PRIVATE; // when forked, make it Copy-On-Write
 
     pr_info("mmap_anonymous(" PTR_FMT ", %zd, %c%c%c, %c, %c%c)", //
             hint_addr,                                            //
@@ -372,7 +372,7 @@ void *define_syscall(mmap_anonymous)(uintptr_t hint_addr, size_t size, mem_perm_
     }
 
     const vm_flags vmflags = VM_USER | (vm_flags) perm; // vm_flags shares the same values as mem_perm_t
-    const vmblock_flags_t block_flags = shared ? VMBLOCK_FORK_SHARED : VMBLOCK_FORK_PRIVATE;
+    const vmap_flags_t block_flags = { .fork_mode = private ? VMAP_FORK_PRIVATE : VMAP_FORK_SHARED };
 
     if (hint_addr == 0 && exact)
     {

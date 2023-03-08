@@ -22,7 +22,6 @@
 
 typedef void (*irq_handler)(u32 irq);
 
-typedef struct _downwards_stack_t downwards_stack_t;
 typedef struct _thread thread_t;
 typedef struct _page_map page_map_t;
 

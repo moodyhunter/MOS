@@ -129,7 +129,7 @@ process_t *process_new(process_t *parent, const char *name, terminal_t *term, th
     thread_new(proc, THREAD_MODE_USER, proc->name, entry, NULL);
 
     vmblock_t heap = mm_alloc_pages(proc->pagetable, 1, PGALLOC_HINT_UHEAP, VM_USER_RW);
-    process_attach_mmap(proc, heap, VMTYPE_HEAP, VMBLOCK_DEFAULT);
+    process_attach_mmap(proc, heap, VMTYPE_HEAP, (vmap_flags_t){ 0 });
 
     proc->working_directory = parent ? parent->working_directory : root_dentry;
 
@@ -193,12 +193,12 @@ void process_attach_thread(process_t *process, thread_t *thread)
     process->threads[process->threads_count++] = thread;
 }
 
-void process_attach_mmap(process_t *process, vmblock_t block, vmblock_content_t type, vmblock_flags_t flags)
+void process_attach_mmap(process_t *process, vmblock_t block, vmblock_content_t type, vmap_flags_t flags)
 {
     MOS_ASSERT(process_is_valid(process));
     mos_debug(process, "process %ld attached mmap " PTR_FMT "-" PTR_FMT, process->pid, block.vaddr, block.vaddr + block.npages * MOS_PAGE_SIZE);
-    process->mmaps = krealloc(process->mmaps, sizeof(proc_vmblock_t) * (process->mmaps_count + 1));
-    process->mmaps[process->mmaps_count++] = (proc_vmblock_t){
+    process->mmaps = krealloc(process->mmaps, sizeof(vmap_t) * (process->mmaps_count + 1));
+    process->mmaps[process->mmaps_count++] = (vmap_t){
         .blk = block,
         .content = type,
         .flags = flags,
@@ -219,9 +219,9 @@ void process_detach_mmap(process_t *process, vmblock_t block)
             // remove it
             process->mmaps_count--;
             process->mmaps[i] = process->mmaps[process->mmaps_count];
-            process->mmaps = krealloc(process->mmaps, sizeof(proc_vmblock_t) * process->mmaps_count);
+            process->mmaps = krealloc(process->mmaps, sizeof(vmap_t) * process->mmaps_count);
 
-            if (process->mmaps[i].flags & VMBLOCK_COW_ENABLED)
+            if (process->mmaps[i].flags.cow || process->mmaps[i].flags.zod)
             {
                 // TODO CoW tracking
                 mm_unmap_pages(process->pagetable, block.vaddr, block.npages);
@@ -288,12 +288,11 @@ void process_handle_cleanup(process_t *process)
     mos_debug(process, "unmapping all %zu memory regions owned by %ld", process->mmaps_count, process->pid);
     for (size_t i = 0; i < process->mmaps_count; i++)
     {
-        const vmblock_flags_t flags = process->mmaps[i].flags;
         const vmblock_t block = process->mmaps[i].blk;
 
         // they will be unmapped when the last process detaches them
         // !! TODO: How to track this??
-        if (flags & VMBLOCK_COW_ENABLED)
+        if (process->mmaps[i].flags.cow || process->mmaps[i].flags.zod)
         {
             mm_unmap_pages(process->pagetable, block.vaddr, block.npages);
         }
@@ -308,7 +307,7 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
 {
     MOS_ASSERT(process_is_valid(process));
 
-    proc_vmblock_t *heap = NULL;
+    vmap_t *heap = NULL;
     for (size_t i = 0; i < process->mmaps_count; i++)
     {
         if (process->mmaps[i].content == VMTYPE_HEAP)
@@ -323,7 +322,7 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
 
     const uintptr_t heap_top = heap->blk.vaddr + heap->blk.npages * MOS_PAGE_SIZE;
 
-    if (heap->flags & VMBLOCK_COW_ENABLED)
+    if (heap->flags.cow || heap->flags.zod)
     {
         vmblock_t zeroed = mm_alloc_zeroed_pages_at(process->pagetable, heap_top, npages, VM_USER_RW);
         MOS_ASSERT(zeroed.npages == npages);
@@ -351,7 +350,7 @@ void process_dump_mmaps(const process_t *process)
     pr_info("process %ld (%s) has %zu memory regions:", process->pid, process->name, process->mmaps_count);
     for (size_t i = 0; i < process->mmaps_count; i++)
     {
-        proc_vmblock_t block = process->mmaps[i];
+        vmap_t block = process->mmaps[i];
         const char *typestr = "<unknown>";
         switch (block.content)
         {
@@ -361,27 +360,24 @@ void process_dump_mmaps(const process_t *process)
             case VMTYPE_HEAP: typestr = "heap"; break;
             case VMTYPE_STACK: typestr = "stack"; break;
             case VMTYPE_KSTACK: typestr = "stack (kernel)"; break;
-            case VMTYPE_SHARED: typestr = "shared memory"; break;
             case VMTYPE_FILE: typestr = "file"; break;
             case VMTYPE_MMAP: typestr = "mmap"; break;
             default: mos_warn("unknown memory region type %x", block.content);
         };
 
-        pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%c%c%c%c%c%c, %c%c%c%c]: %s",
-                i,                                                    //
-                block.blk.vaddr,                                      //
-                block.blk.npages,                                     //
-                block.blk.flags & VM_READ ? 'r' : '-',                //
-                block.blk.flags & VM_WRITE ? 'w' : '-',               //
-                block.blk.flags & VM_EXEC ? 'x' : '-',                //
-                block.blk.flags & VM_GLOBAL ? 'g' : '-',              //
-                block.blk.flags & VM_USER ? 'u' : '-',                //
-                block.blk.flags & VM_CACHE_DISABLED ? 'C' : '-',      //
-                block.flags & VMBLOCK_FORK_PRIVATE ? 'p' : '-',       //
-                block.flags & VMBLOCK_FORK_SHARED ? 's' : '-',        //
-                block.flags & VMBLOCK_COW_COPY_ON_WRITE ? 'c' : '-',  //
-                block.flags & VMBLOCK_COW_ZERO_ON_DEMAND ? 'z' : '-', //
-                typestr                                               //
+        pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%c%c%c%c%c%c, %c%c]: %s",
+                i,                                                                                                      //
+                block.blk.vaddr,                                                                                        //
+                block.blk.npages,                                                                                       //
+                block.blk.flags & VM_READ ? 'r' : '-',                                                                  //
+                block.blk.flags & VM_WRITE ? 'w' : '-',                                                                 //
+                block.blk.flags & VM_EXEC ? 'x' : '-',                                                                  //
+                block.blk.flags & VM_GLOBAL ? 'g' : '-',                                                                //
+                block.blk.flags & VM_USER ? 'u' : '-',                                                                  //
+                block.blk.flags & VM_CACHE_DISABLED ? 'C' : '-',                                                        //
+                block.flags.cow ? 'c' : (block.flags.zod ? 'z' : '-'),                                                  //
+                block.flags.fork_mode == VMAP_FORK_NA ? '-' : (block.flags.fork_mode == VMAP_FORK_PRIVATE ? 'p' : 's'), //
+                typestr                                                                                                 //
         );
     }
 }

@@ -18,7 +18,7 @@ typedef struct
 } shm_block_t;
 
 void shm_init(void);
-shm_block_t shm_allocate(size_t npages, vmblock_flags_t flags, vm_flags vmflags);
-vmblock_t shm_map_shared_block(shm_block_t source);
+shm_block_t shm_allocate(size_t npages, vmap_fork_mode_t mode, vm_flags vmflags);
+vmblock_t shm_map_shared_block(shm_block_t source, vmap_fork_mode_t mode);
 
 /** @} */
