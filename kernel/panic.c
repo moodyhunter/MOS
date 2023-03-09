@@ -8,6 +8,18 @@
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 
+u64 __stack_chk_guard = 0;
+
+noreturn void __stack_chk_fail(void)
+{
+    mos_panic("Stack smashing detected!");
+}
+
+void __stack_chk_fail_local(void)
+{
+    __stack_chk_fail();
+}
+
 static list_node_t kpanic_hooks = LIST_HEAD_INIT(kpanic_hooks);
 static kmsg_handler_t *kwarn_handler = NULL;
 
