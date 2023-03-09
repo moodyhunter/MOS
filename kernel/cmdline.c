@@ -109,20 +109,20 @@ static bool cmdline_is_falsy(const char *arg)
     return strcmp(arg, "false") == 0 || strcmp(arg, "0") == 0 || strcmp(arg, "no") == 0 || strcmp(arg, "off") == 0;
 }
 
-bool cmdline_arg_get_bool(const char *s, int argc, const char **argv, bool default_value)
+bool cmdline_arg_get_bool_impl(const char *func, int argc, const char **argv, bool default_value)
 {
-    s = s ? s : "";
+    func = func ? func : "";
     if (argc == 0)
         return default_value;
     else if (argc > 1)
-        pr_warn("%s: too many arguments (%d), only the first one will be used", s, argc);
+        pr_warn("%s: too many arguments (%d), only the first one will be used", func, argc);
 
     if (cmdline_is_truthy(argv[0]))
         return true;
     else if (cmdline_is_falsy(argv[0]))
         return false;
     else
-        pr_warn("%s: invalid argument '%s', assuming %s", s, argv[0], default_value ? "true" : "false");
+        pr_warn("%s: invalid argument '%s', assuming %s", func, argv[0], default_value ? "true" : "false");
 
     return default_value;
 }

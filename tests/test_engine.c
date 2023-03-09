@@ -76,7 +76,7 @@ __setup("mos_tests_skip_prefix", mos_test_engine_setup_skip_prefix_list);
 
 static bool mos_tests_setup_halt_on_success(int argc, const char **argv)
 {
-    mos_tests_halt_on_success = cmdline_arg_get_bool("mos_tests_halt_on_success", argc, argv, true);
+    mos_tests_halt_on_success = cmdline_arg_get_bool(argc, argv, true);
     return true;
 }
 
