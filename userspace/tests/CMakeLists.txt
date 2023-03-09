@@ -3,7 +3,5 @@
 add_subdirectory(fork)
 add_subdirectory(librpc)
 add_subdirectory(ipc)
-add_subdirectory(my_mutex)
-add_subdirectory(locks-bench)
 
 add_subdirectory(cxx)
