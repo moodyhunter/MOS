@@ -28,8 +28,8 @@ macro(mos_target_setup)
         set(CMAKE_ASM_NASM_COMPILER_WORKS 1)
         message(WARNING "__MOS_HAS_NO_COMPILER is set, using true as compiler.")
     else()
-        find_program(CMAKE_C_COMPILER NAMES "${MOS_COMPILER_PREFIX}gcc" NO_CACHE "${__REQUIRES}")
-        find_program(CMAKE_CXX_COMPILER NAMES "${MOS_COMPILER_PREFIX}g++" NO_CACHE "${__REQUIRES}")
+        find_program(CMAKE_C_COMPILER NAMES "${MOS_COMPILER_PREFIX}gcc" NO_CACHE)
+        find_program(CMAKE_CXX_COMPILER NAMES "${MOS_COMPILER_PREFIX}g++" NO_CACHE)
     endif()
 
     execute_process(COMMAND ${CMAKE_C_COMPILER} "-print-file-name=crtbegin.o"
