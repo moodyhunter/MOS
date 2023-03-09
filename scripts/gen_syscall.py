@@ -1,10 +1,4 @@
-#!/bin/python
-
-"""
-#define SYSCALL_file_stat 2
-#define MOS_SYSCALL_2(X)  X(file_stat, bool, (const char *, file), (file_stat_t *, out))
-"""
-
+#!/usr/bin/env python
 
 import io
 import json
@@ -20,23 +14,36 @@ MAX_SYSCALL_NARGS = 6
 
 outfile: io.TextIOBase = None
 
-scope = 0
+
+class Scope:
+    def __init__(self):
+        self._scope = 0
+
+    def __enter__(self):
+        self._scope += 1
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._scope -= 1
 
 
-def enter_scope():
-    global scope
-    scope += 1
-
-
-def leave_scope():
-    global scope
-    scope -= 1
+scope = Scope()
 
 
 def gen(str):
-    for _ in range(scope):
+    for _ in range(scope._scope):
         outfile.write("    ")
     outfile.write(str + "\n")
+
+
+def forall_syscalls_do_gen(j, gen_func):
+    for e in j["syscalls"]:
+        gen_func(e)
+
+
+def insert_includes(j):
+    for inc in j["includes"]:
+        gen("#include \"%s\"" % inc)
+    gen("")
 
 
 def main():
@@ -73,36 +80,49 @@ def main():
     # sort the includes
     j["includes"].sort()
 
-    if gen_type != GEN_TYPE_NUMBER_HEADER:
-        for inc in j["includes"]:
-            gen("#include \"%s\"" % inc)
+    if gen_type == GEN_TYPE_USERMODE:
+        insert_includes(j)
+        # also include the 'mos/platform_syscall.h' header
+        gen("// platform syscall header")
+        gen('#include "mos/platform_syscall.h"')
         gen("")
+        forall_syscalls_do_gen(j, gen_single_usermode_wrapper)
 
-        if gen_type == GEN_TYPE_USERMODE:
-            # also include the 'mos/platform_syscall.h' header
-            gen("// platform syscall header")
-            gen("#include \"mos/platform_syscall.h\"")
+    elif gen_type == GEN_TYPE_DISPATCHER:
+        insert_includes(j)
+        gen("// syscall implementation declarations and syscall numbers")
+        gen('#include "mos/syscall/decl.h"')
+        gen('#include "mos/syscall/number.h"')
+        gen("")
+        gen("should_inline reg_t dispatch_syscall(const reg_t number, %s)" % (", ".join(["reg_t arg%d" % (i + 1) for i in range(MAX_SYSCALL_NARGS)])))
+        gen("{")
+        with scope:
+            for i in range(MAX_SYSCALL_NARGS):
+                gen("MOS_UNUSED(arg%d);" % (i + 1))
             gen("")
-            pass
+            gen("reg_t ret = 0;")
+            gen("")
+            gen("switch (number)")
+            gen("{")
+            with scope:
+                forall_syscalls_do_gen(j, gen_single_dispatcher)
+            gen("}")
+            gen("")
+            gen("return ret;")
+        gen("}")
 
-    if gen_type == GEN_TYPE_DISPATCHER:
-        gen_dispatcher(j)
-        exit(0)
-
-    for e in j["syscalls"]:
-        if gen_type == GEN_TYPE_DECL:
-            gen_kernel_impl_decl(e)
-        elif gen_type == GEN_TYPE_NUMBER_HEADER:
-            gen_number_header(e)
-        elif gen_type == GEN_TYPE_USERMODE:
-            gen_usermode(e)
-        else:
-            print("Unknown gen_type: %s" % gen_type)
-            exit(1)
-        gen("")
-
-    if gen_type == GEN_TYPE_DECL:
+    elif gen_type == GEN_TYPE_DECL:
+        insert_includes(j)
+        forall_syscalls_do_gen(j, gen_single_kernel_impl_decl)
         gen("#define define_syscall(name) impl_syscall_##name")
+
+    elif gen_type == GEN_TYPE_NUMBER_HEADER:
+        forall_syscalls_do_gen(j, gen_single_number_define)
+    else:
+        print("Unknown gen_type: %s" % gen_type)
+        exit(1)
+
+    exit(0)
 
 
 def syscall_args(e):
@@ -136,42 +156,30 @@ def syscall_name(e):
     return "syscall_" + e["name"]
 
 
-def gen_kernel_impl_decl(e):
+def gen_single_kernel_impl_decl(e):
     gen("%s%s %s(%s);" % (syscall_attr(e), syscall_return(e), "impl_" + syscall_name(e), syscall_args(e)))
 
 
-def gen_dispatcher(j):
-    gen("should_inline long dispatch_syscall(const long number, %s)" % (", ".join(["long arg%d" % (i + 1) for i in range(MAX_SYSCALL_NARGS)])))
+def gen_single_dispatcher(e):
+    nargs = len(e["arguments"])
+    syscall_arg_casted = ", ".join(["(%s) arg%d" % (e["arguments"][i]["type"], i + 1) for i in range(nargs)])
+
+    gen("case SYSCALL_%s:" % e["name"])
     gen("{")
-    enter_scope()
-    for i in range(MAX_SYSCALL_NARGS):
-        gen("(void) arg%d;" % (i + 1))
-    gen("")
-    gen("long ret = 0;")
-    for e in j["syscalls"]:
-        nargs = len(e["arguments"])
-        syscall_arg_casted = ", ".join(["(%s) arg%d" % (e["arguments"][i]["type"], i + 1) for i in range(nargs)])
-
-        gen("extern %s%s %s(%s);" % (syscall_attr(e), syscall_return(e), "impl_" + syscall_name(e), syscall_args(e)))
-        gen("if (number == %d)" % e["number"])
-        enter_scope()
+    with scope:
         gen("%s%s(%s);" % ("ret = (reg_t) " if syscall_has_return(e) else "", "impl_" + syscall_name(e), syscall_arg_casted))
-        leave_scope()
-        gen("")
-
-    gen("return ret;")
-    leave_scope()
+        gen("break;")
     gen("}")
 
 
-def gen_number_header(e):
+def gen_single_number_define(e):
     gen("#define SYSCALL_%s %d" % (e["name"], e["number"]))
     gen("#define SYSCALL_NAME_%d %s" % (e["number"], e["name"]))
 
 
-def gen_usermode(e):
+def gen_single_usermode_wrapper(e):
     syscall_nargs = len(e["arguments"])
-    syscall_conv_arg_to_long = ", ".join([str(e["number"])] + ["(reg_t) %s" % arg["arg"] for arg in e["arguments"]])
+    syscall_conv_arg_to_reg_type = ", ".join([str(e["number"])] + ["(reg_t) %s" % arg["arg"] for arg in e["arguments"]])
 
     comments = e["comments"] if "comments" in e else []
     if len(comments) > 0:
@@ -186,12 +194,11 @@ def gen_usermode(e):
 
     gen("should_inline %s %s(%s)" % (syscall_return(e), syscall_name(e), syscall_args(e)))
     gen("{")
-    enter_scope()
-    gen("%s%splatform_syscall%d(%s);" % ("return " if syscall_has_return(e) else "",
-                                         "(" + syscall_return(e) + ") " if syscall_return(e) != "void" else "",
-                                         syscall_nargs,
-                                         syscall_conv_arg_to_long))
-    leave_scope()
+    with scope:
+        gen("%s%splatform_syscall%d(%s);" % ("return " if syscall_has_return(e) else "",
+                                             "(" + syscall_return(e) + ") " if syscall_return(e) != "void" else "",
+                                             syscall_nargs,
+                                             syscall_conv_arg_to_reg_type))
     gen("}")
 
 
