@@ -38,6 +38,7 @@ def gen(str):
 def forall_syscalls_do_gen(j, gen_func):
     for e in j["syscalls"]:
         gen_func(e)
+        gen("")
 
 
 def insert_includes(j):
@@ -105,7 +106,7 @@ def main():
             gen("switch (number)")
             gen("{")
             with scope:
-                forall_syscalls_do_gen(j, gen_single_dispatcher)
+                forall_syscalls_do_gen(j, gen_single_dispatcher_case)
             gen("}")
             gen("")
             gen("return ret;")
@@ -118,6 +119,7 @@ def main():
 
     elif gen_type == GEN_TYPE_NUMBER_HEADER:
         forall_syscalls_do_gen(j, gen_single_number_define)
+
     else:
         print("Unknown gen_type: %s" % gen_type)
         exit(1)
@@ -140,34 +142,41 @@ def syscall_is_noreturn(e):
     return e["return"] is None
 
 
-def syscall_return(e) -> str:
-    return "void" if syscall_is_noreturn(e) else e["return"]
+def syscall_has_return_value(e):
+    return (not syscall_is_noreturn(e)) and (e["return"] != "void")
 
 
-def syscall_has_return(e):
-    return (not syscall_is_noreturn(e)) and (syscall_return(e) != "void")
-
-
-def syscall_attr(e):
-    return "noreturn " if syscall_is_noreturn(e) else ""
-
-
-def syscall_name(e):
+def syscall_name_with_prefix(e):
     return "syscall_" + e["name"]
 
 
+def syscall_format_return_type(e) -> str:
+    if syscall_is_noreturn(e):
+        return "void" + " "
+    elif e["return"].endswith("*"):
+        return e["return"]  # make * stick to the type
+    else:
+        return e["return"] + " "
+
+
 def gen_single_kernel_impl_decl(e):
-    gen("%s%s %s(%s);" % (syscall_attr(e), syscall_return(e), "impl_" + syscall_name(e), syscall_args(e)))
+    gen("%s%s%s(%s);" % (
+        "noreturn " if syscall_is_noreturn(e) else "",
+        syscall_format_return_type(e),
+        "impl_" + syscall_name_with_prefix(e),
+        syscall_args(e)
+    ))
 
 
-def gen_single_dispatcher(e):
+def gen_single_dispatcher_case(e):
     nargs = len(e["arguments"])
     syscall_arg_casted = ", ".join(["(%s) arg%d" % (e["arguments"][i]["type"], i + 1) for i in range(nargs)])
+    retval_assign = "ret = (reg_t) " if syscall_has_return_value(e) else ""
 
     gen("case SYSCALL_%s:" % e["name"])
     gen("{")
     with scope:
-        gen("%s%s(%s);" % ("ret = (reg_t) " if syscall_has_return(e) else "", "impl_" + syscall_name(e), syscall_arg_casted))
+        gen("%simpl_%s(%s);" % (retval_assign, syscall_name_with_prefix(e), syscall_arg_casted))
         gen("break;")
     gen("}")
 
@@ -180,25 +189,22 @@ def gen_single_number_define(e):
 def gen_single_usermode_wrapper(e):
     syscall_nargs = len(e["arguments"])
     syscall_conv_arg_to_reg_type = ", ".join([str(e["number"])] + ["(reg_t) %s" % arg["arg"] for arg in e["arguments"]])
-
     comments = e["comments"] if "comments" in e else []
+    return_stmt = "return (" + e["return"] + ") " if syscall_has_return_value(e) else ""
+
     if len(comments) > 0:
         gen("/**")
         gen(" * %s" % e["name"])
-
-    for comment in e["comments"] if "comments" in e else []:
-        gen(" * %s" % comment)
-
-    if len(comments) > 0:
+        for comment in comments:
+            gen(" * %s" % comment)
         gen(" */")
 
-    gen("should_inline %s %s(%s)" % (syscall_return(e), syscall_name(e), syscall_args(e)))
+    gen("should_inline %s%s(%s)" % (syscall_format_return_type(e), syscall_name_with_prefix(e), syscall_args(e)))
     gen("{")
     with scope:
-        gen("%s%splatform_syscall%d(%s);" % ("return " if syscall_has_return(e) else "",
-                                             "(" + syscall_return(e) + ") " if syscall_return(e) != "void" else "",
-                                             syscall_nargs,
-                                             syscall_conv_arg_to_reg_type))
+        gen("%splatform_syscall%d(%s);" % (return_stmt,
+                                           syscall_nargs,
+                                           syscall_conv_arg_to_reg_type))
     gen("}")
 
 
