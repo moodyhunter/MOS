@@ -179,9 +179,7 @@ static void liballoc_first_alloc(void)
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
         liballoc_unlock();
 #endif
-#if LIBALLOC_PRINT_DEBUG_MESSAGES
-        pr_info("liballoc: initial l_memRoot initialization failed");
-#endif
+        mos_panic("liballoc: initial l_memRoot initialization failed");
     }
 
 #if LIBALLOC_PRINT_DEBUG_MESSAGES
