@@ -28,7 +28,7 @@ int tst_printf(char *buffer, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
-    int ret = vsnprintf(buffer, 0, format, args);
+    int ret = vsnprintf(buffer, 2048, format, args);
     va_end(args);
     return ret;
 }
