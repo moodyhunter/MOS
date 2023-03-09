@@ -4,10 +4,13 @@
 
 #include "lib/stdio.h"
 #include "lib/structures/list.h"
+#include "mos/cmdline.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/setup.h"
 
+// stack smashing protector
 u64 __stack_chk_guard = 0;
 
 noreturn void __stack_chk_fail(void)
@@ -22,6 +25,15 @@ void __stack_chk_fail_local(void)
 
 static list_node_t kpanic_hooks = LIST_HEAD_INIT(kpanic_hooks);
 static kmsg_handler_t *kwarn_handler = NULL;
+static bool poweroff_on_panic = false;
+
+static bool setup_poweroff_on_panic(int argc, const char **argv)
+{
+    bool val = cmdline_arg_get_bool(argc, argv, false);
+    poweroff_on_panic = val;
+    return true;
+}
+__setup("poweroff_on_panic", setup_poweroff_on_panic);
 
 void kwarn_handler_set(kmsg_handler_t *handler)
 {
@@ -40,9 +52,15 @@ void kwarn_handler_remove(void)
 noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
 {
     static bool in_panic = false;
-    if (in_panic)
+    if (unlikely(in_panic))
     {
         pr_fatal("recursive panic detected, aborting...");
+        if (unlikely(poweroff_on_panic))
+        {
+            pr_emerg("Powering off...");
+            platform_shutdown();
+        }
+
         while (true)
             ;
     }
@@ -66,6 +84,12 @@ noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
     list_foreach(panic_hook_holder_t, holder, kpanic_hooks)
     {
         holder->hook();
+    }
+
+    if (unlikely(poweroff_on_panic))
+    {
+        pr_emerg("Powering off...");
+        platform_shutdown();
     }
 
     pr_emerg("Halting...");
