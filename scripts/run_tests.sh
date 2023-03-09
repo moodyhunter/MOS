@@ -7,7 +7,7 @@ qemu-system-i386 \
     -kernel $DIR/mos_multiboot.bin \
     -initrd $DIR/initrd.cpio \
     -m 4G \
-    -smp 2 \
+    -smp 1 \
     -monitor "unix:/tmp/monitor.sock,server,nowait" \
     -nographic \
     -chardev stdio,id=char0,logfile=test-failure.log,signal=off \
