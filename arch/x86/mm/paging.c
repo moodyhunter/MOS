@@ -17,7 +17,7 @@ static spinlock_t x86_kernel_pgd_lock = SPINLOCK_INIT;
 
 x86_pg_infra_t *const x86_kpg_infra = &x86_kpg_infra_storage;
 
-void x86_mm_paging_init()
+void x86_mm_paging_init(void)
 {
     // initialize the page directory
     memzero(x86_kpg_infra, sizeof(x86_pg_infra_t));
