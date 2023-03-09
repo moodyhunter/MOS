@@ -129,10 +129,8 @@ static bool mos_test_engine_run_tests(int argc, const char **argv)
 
     if (mos_tests_halt_on_success)
         platform_halt_cpu();
-    else
-        platform_shutdown();
 
-    MOS_UNREACHABLE();
+    return true;
 }
 
 __setup("mos_tests", mos_test_engine_run_tests);
