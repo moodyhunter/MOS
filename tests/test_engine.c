@@ -45,14 +45,14 @@ void mos_test_engine_log(standard_color_t color, char symbol, char *format, ...)
 
 static void test_engine_warning_handler(const char *func, u32 line, const char *fmt, va_list args)
 {
-    char message[PRINTK_BUFFER_SIZE] = { 0 };
+    char message[PRINTK_BUFFER_SIZE];
+    vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
     if (test_engine_n_warning_expected > 0)
     {
-        // MOS_TEST_LOG(MOS_TEST_BLUE, '\0', "expected warning: %s", msg);
+        mos_test_engine_log(LightBlue, '\0', "expected warning: %s", message);
     }
     else
     {
-        vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
         lprintk(MOS_LOG_WARN, "warning: %s", message);
         lprintk(MOS_LOG_WARN, "  in function: %s (line %u)\n", func, line);
         mos_panic("unexpected warning");
