@@ -111,7 +111,7 @@ void memzero(void *s, size_t n)
     }
 }
 
-char *strcpy(char *dest, const char *src)
+char *strcpy(char *restrict dest, const char *restrict src)
 {
     while (*src)
         *dest++ = *src++;
@@ -119,7 +119,7 @@ char *strcpy(char *dest, const char *src)
     return dest;
 }
 
-char *strcat(char *dest, const char *src)
+char *strcat(char *restrict dest, const char *restrict src)
 {
     while (*dest)
         dest++;
@@ -129,7 +129,7 @@ char *strcat(char *dest, const char *src)
     return dest;
 }
 
-char *strncpy(char *dest, const char *src, size_t n)
+char *strncpy(char *restrict dest, const char *restrict src, size_t n)
 {
     while (n > 0 && *src)
     {
@@ -142,15 +142,6 @@ char *strncpy(char *dest, const char *src, size_t n)
         n--;
     }
     return dest;
-}
-
-size_t strlcpy(char *dest, const char *src, size_t dest_size)
-{
-    size_t i;
-    for (i = 0; i < dest_size - 1 && src[i] != '\0'; i++)
-        dest[i] = src[i];
-    dest[i] = '\0';
-    return i;
 }
 
 char *strdup(const char *src)

@@ -280,7 +280,7 @@ static const inode_ops_t tmpfs_inode_file_ops = { 0 };
 static size_t tmpfs_i_readlink(dentry_t *dentry, char *buffer, size_t buflen)
 {
     tmpfs_inode_t *inode = TMPFS_INODE(dentry->inode);
-    return strlcpy(buffer, inode->symlink_target, buflen);
+    return strncpy(buffer, inode->symlink_target, buflen) - buffer;
 }
 
 static const inode_ops_t tmpfs_inode_symlink_ops = {

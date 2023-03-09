@@ -16,16 +16,15 @@ MOSAPI s32 strcmp(const char *str1, const char *str2);
 MOSAPI s32 strncmp(const char *str1, const char *str2, size_t n);
 
 // ! The memory areas must not overlap.
-MOSAPI void *memcpy(void *dest, const void *src, size_t n);
+MOSAPI void *memcpy(void *restrict dest, const void *restrict src, size_t n);
 MOSAPI void *memmove(void *dest, const void *src, size_t n);
 MOSAPI void *memset(void *s, int c, size_t n);
 MOSAPI void memzero(void *s, size_t n);
 
-MOSAPI char *strcpy(char *dest, const char *src);
-MOSAPI char *strcat(char *dest, const char *src);
+MOSAPI char *strcpy(char *restrict dest, const char *restrict src);
+MOSAPI char *strcat(char *restrict dest, const char *restrict src);
 
-MOSAPI char *strncpy(char *dest, const char *src, size_t n);
-MOSAPI size_t strlcpy(char *dest, const char *src, size_t dest_size);
+MOSAPI char *strncpy(char *restrict dest, const char *restrict src, size_t n);
 
 MOSAPI const char *duplicate_string(const char *src, size_t len);
 MOSAPI char *strdup(const char *src);
