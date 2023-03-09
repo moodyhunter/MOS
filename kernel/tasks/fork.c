@@ -61,7 +61,7 @@ process_t *process_handle_fork(process_t *parent)
         mm_make_process_map_cow(parent->pagetable, block->blk.vaddr, child->pagetable, block->blk.vaddr, block->blk.npages);
         child_vmblock = parent->mmaps[i].blk; // do not use the return value from mm_make_process_map_cow
         pr_info2(FORKFMT, parent->pid, child->pid, "CoW", block->blk.vaddr, block->blk.npages, block->blk.flags);
-        process_attach_mmap(child, child_vmblock, block->content, block->flags); // TODO check this
+        process_attach_mmap(child, child_vmblock, block->content, block->flags);
     }
 
     // copy the parent's files

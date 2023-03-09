@@ -223,7 +223,7 @@ void process_detach_mmap(process_t *process, vmblock_t block)
 
             if (process->mmaps[i].flags.cow || process->mmaps[i].flags.zod)
             {
-                // TODO CoW tracking
+                // TODO: CoW tracking
                 mm_unmap_pages(process->pagetable, block.vaddr, block.npages);
             }
             else
