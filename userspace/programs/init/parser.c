@@ -19,7 +19,7 @@ typedef struct init_config
 
 init_config_t *config_parse_file(const char *file_path)
 {
-    file_stat_t stat;
+    file_stat_t stat = { 0 };
     if (!syscall_file_stat(file_path, &stat))
         return NULL;
 

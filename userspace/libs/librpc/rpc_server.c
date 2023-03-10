@@ -190,7 +190,7 @@ const void *rpc_arg_next(rpc_args_iter_t *args, size_t *size)
 
 const void *rpc_arg_sized_next(rpc_args_iter_t *iter, size_t expected_size)
 {
-    size_t size;
+    size_t size = 0;
     const void *data = rpc_arg_next(iter, &size);
     if (size != expected_size)
         return NULL;

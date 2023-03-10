@@ -16,7 +16,7 @@ void ipc_msg_destroy(ipc_msg_t *buffer)
 
 ipc_msg_t *ipc_read_msg(fd_t fd)
 {
-    size_t size;
+    size_t size = 0;
     size_t read_size = syscall_io_read(fd, &size, sizeof(size), 0);
     if (read_size != sizeof(size))
     {
