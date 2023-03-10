@@ -117,7 +117,7 @@ io_t *ipc_create(const char *name, size_t max_pending)
     ipc_server->shm_server = server;
     ipc_server->magic = IPC_SERVER_MAGIC;
     io_init(&ipc_server->io, IO_NONE, &ipc_server_op);
-    return io_ref(&ipc_server->io);
+    return &ipc_server->io;
 }
 
 io_t *ipc_accept(io_t *server)
@@ -141,7 +141,7 @@ io_t *ipc_accept(io_t *server)
     ipc->server.write_buffer = write_buf;
 
     io_init(&ipc->server.io, IO_READABLE | IO_WRITABLE, &ipc_connection_op);
-    return io_ref(&ipc->server.io);
+    return &ipc->server.io;
 }
 
 io_t *ipc_connect(const char *name, size_t buffer_size)
