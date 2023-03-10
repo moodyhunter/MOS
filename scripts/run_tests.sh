@@ -11,22 +11,18 @@ qemu-system-i386 \
     -monitor "unix:/tmp/monitor.sock,server,nowait" \
     -nographic \
     -chardev stdio,id=char0,logfile=test-failure.log,signal=off \
-    -append "$1" \
-    -serial chardev:char0 &
+    -append "poweroff_on_panic=true $*" \
+    -serial chardev:char0
 
-pid=$!
-sleep 120
+PANIC_MARKER="!!!!! KERNEL PANIC !!!!!"
 
-ps -p $pid >/dev/null
+if grep -q "$PANIC_MARKER" test-failure.log; then
+    echo "Kernel panic detected."
+    echo "Test failed."
+    echo "See:"
+    echo " - test-failure.bin   the kernel binary"
+    echo " - test-failure.log   the serial log"
+    exit 1
+fi
 
-[ $? == 1 ] && echo "Test passed." && exit 0
-
-echo "qemu-system-i386 is still running, probably the test has failed."
-printf '%s\n' "screendump test-failure.ppm" "dump-guest-memory test-failure.dmp" "q" | nc -U /tmp/monitor.sock
-echo "Test failed."
-echo "See:"
-echo " - test-failure.bin   the kernel binary"
-echo " - test-failure.ppm   the screen dump"
-echo " - test-failure.dmp   the guest memory dump"
-echo " - test-failure.log   the serial log"
-exit 1
+echo "Test passed."

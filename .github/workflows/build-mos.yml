@@ -86,7 +86,7 @@ jobs:
           cd ${{github.workspace}}/build
           cp ${{env.BOOTABLE}} test-failure.bin
           cp initrd.cpio test-failure-initrd.cpio
-          ${{github.workspace}}/scripts/run_tests.sh "mos_tests init=/programs/shutdown"
+          ${{github.workspace}}/scripts/run_tests.sh mos_tests init=/tests/test-launcher
           tar -czf test-failure.tar.gz test-failure.*
 
       - name: Upload Test Result
