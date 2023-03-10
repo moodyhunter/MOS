@@ -28,7 +28,10 @@ void define_syscall(poweroff)(bool reboot, u32 magic)
     if (magic != POWEROFF_MAGIC)
         mos_warn("poweroff syscall called with wrong magic number (0x%x)", magic);
     if (!reboot)
+    {
+        pr_info("Meow, see ya~ :3");
         platform_shutdown();
+    }
     else
         mos_warn("reboot is not implemented yet");
 }
