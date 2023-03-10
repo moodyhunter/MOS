@@ -52,6 +52,7 @@ jobs:
           cmake \
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
             -DMOS_DEBUG_ALL=${{matrix.run_tests}} \
+            -DMOS_DEBUG_liballoc=OFF \
             -DBUILD_TESTING=${{matrix.run_tests}} \
             -DMOS_ARCH=${{matrix.arch}} \
             -B ${{github.workspace}}/build \
