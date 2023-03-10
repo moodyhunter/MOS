@@ -43,9 +43,11 @@ static ipcshm_t *ipcshm_server_get_pending(ipcshm_server_t *server)
     return pending;
 }
 
-static bool wc_ipcshm_has_pending(wait_condition_t *cond)
+static bool wc_ipcshm_pending_or_closed(wait_condition_t *cond)
 {
     ipcshm_server_t *server = cond->arg;
+    if (server->magic != IPCSHM_SERVER_MAGIC)
+        return true;
     return ipcshm_server_get_pending(server) != NULL;
 }
 
@@ -234,14 +236,14 @@ bool ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_buf, v
     if (unlikely(!shm))
     {
         mos_debug(ipc, "waiting for a pending connection");
-        reschedule_for_wait_condition(wc_wait_for(server, wc_ipcshm_has_pending, NULL));
+        reschedule_for_wait_condition(wc_wait_for(server, wc_ipcshm_pending_or_closed, NULL));
         mos_debug(ipc, "resuming after pending connection");
 
         // TODO: check if the server was closed
         shm = ipcshm_server_get_pending(server);
         if (!shm)
         {
-            pr_warn("ipcshm_accept: server was closed");
+            pr_info2("ipcshm_accept: server was closed");
             return false;
         }
         spinlock_acquire(&shm->lock);
@@ -303,6 +305,7 @@ bool ipcshm_deannounce(const char *name)
 
     kfree(server->name);
     kfree(server->pending);
+    memzero(server, sizeof(ipcshm_server_t));
     kfree(server);
     return true;
 }
