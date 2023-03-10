@@ -252,7 +252,6 @@ void x86_start_kernel(x86_startup_info *info)
     ioapic_enable_interrupt(IRQ_KEYBOARD, 0);
     ioapic_enable_interrupt(IRQ_COM1, 0);
 
-    pr_info("Starting APs...");
     current_cpu->id = x86_platform.boot_cpu_id = lapic_get_id();
     x86_smp_start_all();
 

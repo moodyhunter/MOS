@@ -57,14 +57,19 @@ static void start_ap(int apic_id)
 
 #undef wait_for
 
-void x86_smp_copy_trampoline()
+void x86_smp_copy_trampoline(void)
 {
     mos_startup_map_bytes(X86_AP_TRAMPOLINE_ADDR, X86_AP_TRAMPOLINE_ADDR, 4 KB, VM_READ | VM_WRITE | VM_EXEC);
     memcpy((void *) X86_AP_TRAMPOLINE_ADDR, x86_ap_trampoline, 4 KB);
 }
 
-void x86_smp_start_all()
+void x86_smp_start_all(void)
 {
+    if (x86_platform.num_cpus == 1)
+        return;
+
+    pr_info("Starting APs...");
+
     extern const void __MOS_KERNEL_HIGHER_STACK_TOP;
     const size_t AP_STACKS_TOP = (uintptr_t) &__MOS_KERNEL_HIGHER_STACK_TOP - MOS_X86_INITIAL_STACK_SIZE; // minus the boot cpu stack
     for (u32 i = 0; i < x86_platform.num_cpus; i++)
