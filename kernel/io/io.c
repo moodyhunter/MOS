@@ -47,11 +47,8 @@ void io_unref(io_t *io)
         return;
     }
 
-    if (io->refcount > 0)
-    {
-        io->refcount--;
+    if (--io->refcount > 0)
         return;
-    }
 
     if (unlikely(!io->ops->close))
     {
