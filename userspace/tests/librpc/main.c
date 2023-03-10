@@ -41,7 +41,7 @@ static int testserver_echo(rpc_server_t *server, rpc_args_iter_t *args, rpc_repl
     MOS_UNUSED(server);
     MOS_UNUSED(data);
 
-    size_t arg1_size;
+    size_t arg1_size = 0;
     const char *arg1 = rpc_arg_next(args, &arg1_size);
     printf("echo server: received '%.*s'\n", (int) arg1_size, arg1);
     rpc_write_result(reply, arg1, arg1_size);

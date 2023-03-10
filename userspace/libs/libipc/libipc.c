@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "lib/string.h"
 #include "libipc/ipc.h"
 
 ipc_msg_t *ipc_msg_create(size_t size)
 {
     ipc_msg_t *buffer = malloc(sizeof(ipc_msg_t) + size);
+    memzero(buffer, sizeof(ipc_msg_t) + size);
     buffer->size = size;
     return buffer;
 }
@@ -25,7 +27,7 @@ ipc_msg_t *ipc_read_msg(fd_t fd)
     }
 
     ipc_msg_t *buffer = ipc_msg_create(size);
-    read_size = syscall_io_read(fd, buffer->data, size, 0);
+    read_size = syscall_io_read(fd, buffer->data, buffer->size, 0);
     if (read_size != size)
     {
         dprintf(stderr, "failed to read data from ipc channel\n");

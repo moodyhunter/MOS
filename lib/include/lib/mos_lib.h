@@ -44,8 +44,8 @@ MOSAPI void __printf(1, 2) fatal_abort(const char *fmt, ...);
 
 #define MOS_LIB_UNIMPLEMENTED(content) fatal_abort("Unimplemented: %s", content)
 #define MOS_LIB_UNREACHABLE()          fatal_abort("Unreachable code reached")
-#define mos_warn(...)                  dprintf(stderr, __VA_ARGS__)
-#define mos_panic(...)                 fatal_abort(__VA_ARGS__)
+#define mos_warn(fmt, ...)             dprintf(stderr, fmt "\n", ##__VA_ARGS__)
+#define mos_panic(fmt, ...)            fatal_abort(fmt "\n", ##__VA_ARGS__)
 #endif
 
 /** @} */

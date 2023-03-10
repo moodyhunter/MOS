@@ -5,8 +5,10 @@
 
 #define WAITMSG "pid %ld waits for %ld\n"
 
-int main(void)
+int main(int argc, char **argv)
 {
+    MOS_UNUSED(argc);
+    MOS_UNUSED(argv);
     int pid = syscall_fork();
     if (pid == 0)
     {
