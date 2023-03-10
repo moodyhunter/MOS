@@ -15,6 +15,7 @@ enum
     TESTSERVER_PING = 0,
     TESTSERVER_ECHO = 1,
     TESTSERVER_CALCULATE = 2,
+    TESTSERVER_CLOSE = 3,
 };
 
 enum
@@ -76,19 +77,32 @@ static int testserver_calculation(rpc_server_t *server, rpc_args_iter_t *args, r
     return 0;
 }
 
+static int rpc_server_close(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
+{
+    MOS_UNUSED(server);
+    MOS_UNUSED(args);
+    MOS_UNUSED(reply);
+    MOS_UNUSED(data);
+
+    printf("rpc_server_close");
+    rpc_server_destroy(server);
+    return 0;
+}
+
 void run_server(void)
 {
     static rpc_function_info_t testserver_functions[] = {
         { TESTSERVER_PING, testserver_ping, 0 },
         { TESTSERVER_ECHO, testserver_echo, 1 },
         { TESTSERVER_CALCULATE, testserver_calculation, 3 },
+        { TESTSERVER_CLOSE, rpc_server_close, 0 },
     };
 
     rpc_server_t *server = rpc_server_create(RPC_TEST_SERVERNAME, NULL);
     rpc_server_register_functions(server, testserver_functions, MOS_ARRAY_SIZE(testserver_functions));
     rpc_server_exec(server);
 
-    printf("rpc_server_destroy");
+    printf("rpc_server_destroy\n");
 }
 
 void run_client(void)
@@ -162,6 +176,11 @@ void run_client(void)
         printf("calculation client (spec): received '%d' (result_code=%d)\n", *(int *) result.data, result_code);
     }
 
+    // close
+    {
+        rpc_call(stub, TESTSERVER_CLOSE, NULL, "");
+    }
+
     rpc_client_destroy(stub);
     printf("all done\n");
 }
@@ -173,16 +192,11 @@ int main(int argc, char *argv[])
 
     pid_t child = syscall_fork();
     if (child != 0)
+    {
         run_server();
+    }
     else
     {
-        syscall_fork();
-        syscall_fork();
-        syscall_fork();
-        syscall_fork();
-        syscall_fork();
-        syscall_fork();
-
         run_client();
     }
 
