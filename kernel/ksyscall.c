@@ -243,28 +243,7 @@ uintptr_t define_syscall(heap_control)(heap_control_op op, uintptr_t arg)
 
 bool define_syscall(wait_for_thread)(tid_t tid)
 {
-    thread_t *target = thread_get(tid);
-    if (target == NULL)
-    {
-        pr_warn("wait_for_thread(%ld) from process %ld (%s) but thread does not exist", tid, current_process->pid, current_process->name);
-        return false;
-    }
-
-    if (target->owner != current_process)
-    {
-        pr_warn("wait_for_thread(%ld) from process %ld (%s) but thread belongs to process %ld (%s)", tid, current_process->pid, current_process->name, target->owner->pid,
-                target->owner->name);
-        return false;
-    }
-
-    if (target->state == THREAD_STATE_DEAD)
-    {
-        return true; // thread is already dead, no need to wait
-    }
-
-    wait_condition_t *wc = wc_wait_for_thread(target);
-    reschedule_for_wait_condition(wc);
-    return true;
+    return thread_wait_for_tid(tid);
 }
 
 bool define_syscall(futex_wait)(futex_word_t *futex, u32 val)

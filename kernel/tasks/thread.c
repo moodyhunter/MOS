@@ -5,13 +5,16 @@
 #include "lib/string.h"
 #include "lib/structures/hashmap.h"
 #include "lib/structures/hashmap_common.h"
+#include "lib/structures/list.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/memops.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
+#include "mos/tasks/schedule.h"
 #include "mos/tasks/task_types.h"
+#include "mos/tasks/wait.h"
 
 #define THREAD_HASHTABLE_SIZE 512
 
@@ -37,6 +40,7 @@ thread_t *thread_allocate(process_t *owner, thread_mode tflags)
     t->state = THREAD_STATE_CREATED;
     t->mode = tflags;
     t->waiting = NULL;
+    waitlist_init(&t->waiters);
 
     return t;
 }
@@ -87,7 +91,38 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
 
 thread_t *thread_get(tid_t tid)
 {
-    return hashmap_get(thread_table, tid);
+    thread_t *t = hashmap_get(thread_table, tid);
+    if (thread_is_valid(t))
+        return t;
+
+    return NULL;
+}
+
+bool thread_wait_for_tid(tid_t tid)
+{
+    thread_t *target = thread_get(tid);
+    if (target == NULL)
+    {
+        pr_warn("wait_for_tid(%ld) from pid %ld (%s) but thread does not exist", tid, current_process->pid, current_process->name);
+        return false;
+    }
+
+    if (target->owner != current_process)
+    {
+        pr_warn("wait_for_tid(%ld) from pid %ld (%s) but thread belongs to pid %ld (%s)", tid, current_process->pid, current_process->name, target->owner->pid,
+                target->owner->name);
+        return false;
+    }
+
+    if (target->state == THREAD_STATE_DEAD)
+    {
+        return true; // thread is already dead, no need to wait
+    }
+
+    waitlist_wait(&target->waiters);
+    current_thread->state = THREAD_STATE_BLOCKED;
+    reschedule();
+    return true;
 }
 
 void thread_handle_exit(thread_t *t)
@@ -121,4 +156,6 @@ void thread_handle_exit(thread_t *t)
     spinlock_acquire(&t->state_lock);
     t->state = THREAD_STATE_DEAD;
     spinlock_release(&t->state_lock);
+
+    waitlist_wake(&t->waiters, INT_MAX);
 }

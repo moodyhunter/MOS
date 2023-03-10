@@ -7,8 +7,6 @@
 typedef bool (*wait_condition_verifier_t)(wait_condition_t *condition);
 typedef void (*wait_condition_cleanup_t)(wait_condition_t *condition);
 
-wait_condition_t *wc_wait_for_thread(thread_t *thread);
-
 wait_condition_t *wc_wait_for(void *arg, wait_condition_verifier_t verify, wait_condition_cleanup_t cleanup);
 
 bool wc_condition_verify(wait_condition_t *condition);

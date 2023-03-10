@@ -21,5 +21,6 @@ void thread_deinit(void);
 thread_t *thread_allocate(process_t *owner, thread_mode tflags);
 thread_t *thread_new(process_t *owner, thread_mode mode, const char *name, thread_entry_t entry, void *arg);
 thread_t *thread_get(tid_t id);
+bool thread_wait_for_tid(tid_t tid);
 
 void thread_handle_exit(thread_t *t);
