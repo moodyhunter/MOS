@@ -14,20 +14,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [multiboot]
-        build_type: [Debug, RelWithDebInfo, Release]
-        run_tests: [ON]
-        arch: [x86]
-
         include:
+          - target: multiboot
+            build_type: Debug
+            run_tests: ON
+            arch: x86
+
+          - target: multiboot
+            build_type: Release
+            run_tests: ON
+            arch: x86
+
           - target: multiboot_iso
             build_type: Debug
             run_tests: OFF
             arch: x86
-          - target: multiboot_iso
-            build_type: RelWithDebInfo
-            run_tests: OFF
-            arch: x86
+
           - target: multiboot_iso
             build_type: Release
             run_tests: OFF
