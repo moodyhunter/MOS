@@ -19,9 +19,8 @@ typedef struct
 {
     as_linked_list;
     futex_key_t key;
-    size_t num_waiters;
-    thread_t **waiters;
     spinlock_t lock;
+    waitlist_t waiters;
 } futex_private_t;
 
 static list_node_t futex_list_head = LIST_HEAD_INIT(futex_list_head);
@@ -84,14 +83,13 @@ bool futex_wait(futex_word_t *futex, futex_word_t expected)
     {
         fu = (futex_private_t *) kzalloc(sizeof(futex_private_t));
         fu->key = key;
+        waitlist_init(&fu->waiters);
         spinlock_acquire(&fu->lock);
         list_node_append(&futex_list_head, list_node(fu));
     }
     spinlock_release(&futex_list_lock);
 
-    fu->num_waiters++;
-    fu->waiters = krealloc(fu->waiters, fu->num_waiters * sizeof(thread_t *));
-    fu->waiters[fu->num_waiters - 1] = current_thread;
+    waitlist_wait(&fu->waiters);
     spinlock_release(&fu->lock);
 
     spinlock_acquire(&current_thread->state_lock);
@@ -132,38 +130,9 @@ bool futex_wake(futex_word_t *futex, size_t num_to_wake)
         return true;
     }
 
-    num_to_wake = MIN(num_to_wake, fu->num_waiters);
-
-    // wake up the threads
-    mos_debug(futex, "tid %ld releasing a lock key=" PTR_FMT " and waking up %zd threads", current_thread->tid, key, num_to_wake);
-    for (u32 i = 0; i < num_to_wake; i++)
-    {
-        thread_t *t = fu->waiters[i];
-        spinlock_acquire(&t->state_lock);
-        MOS_ASSERT_X(t->state == THREAD_STATE_BLOCKED, "thread %ld was not blocked", t->tid);
-        t->state = THREAD_STATE_READY;
-        spinlock_release(&t->state_lock);
-    }
-
-    if (num_to_wake == fu->num_waiters)
-    {
-        // do cleanup
-        list_node_remove(list_node(fu));
-        kfree(fu->waiters);
-        kfree(fu);
-    }
-    else
-    {
-        thread_t **new_waiters = kzalloc((fu->num_waiters - num_to_wake) * sizeof(thread_t *));
-
-        // copy the remaining waiters
-        for (u32 i = 0; i < fu->num_waiters - num_to_wake; i++)
-            new_waiters[i] = fu->waiters[i + num_to_wake];
-
-        kfree(fu->waiters);
-        fu->waiters = new_waiters;
-        fu->num_waiters -= num_to_wake;
-    }
+    mos_debug(futex, "waking up %zd threads on lock key=" PTR_FMT, num_to_wake, key);
+    const size_t real_wakeups = waitlist_wake(&fu->waiters, num_to_wake);
+    mos_debug(futex, "actually woke up %zd threads", real_wakeups);
 
     spinlock_release(&fu->lock);
 
