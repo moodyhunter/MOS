@@ -41,11 +41,11 @@ static void debug_dump_process(void)
     if (current_thread)
     {
         process_t *proc = current_process;
-        printk("process %ld (%s) ", proc->pid, proc->name);
+        pr_info("process %ld (%s) ", proc->pid, proc->name);
         if (proc->parent)
-            printk("parent %ld (%s) ", proc->parent->pid, proc->parent->name);
+            pr_info2("parent %ld (%s) ", proc->parent->pid, proc->parent->name);
         else
-            printk("parent <none> ");
+            pr_info2("parent <none> ");
         process_dump_mmaps(proc);
     }
 }

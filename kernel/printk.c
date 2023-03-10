@@ -11,6 +11,7 @@
 #include "mos/setup.h"
 
 static console_t *printk_console;
+bool printk_quiet;
 
 static bool printk_setup_console(int argc, const char **argv)
 {
@@ -45,6 +46,13 @@ static bool printk_setup_console(int argc, const char **argv)
 
 __setup("printk_console", printk_setup_console);
 
+static bool printk_setup_quiet(int argc, const char **argv)
+{
+    printk_quiet = cmdline_arg_get_bool(argc, argv, true);
+    return true;
+}
+__setup("quiet", printk_setup_quiet);
+
 static inline void deduce_level_color(int loglevel, standard_color_t *fg, standard_color_t *bg)
 {
     *bg = Black;
@@ -72,6 +80,10 @@ static void print_to_console(console_t *con, int loglevel, const char *message, 
 
 static void lvprintk(mos_log_level_t loglevel, const char *fmt, va_list args)
 {
+    // only print warnings and errors if quiet mode is enabled
+    if (printk_quiet && loglevel < MOS_LOG_WARN)
+        return;
+
     char message[PRINTK_BUFFER_SIZE] = { 0 };
     vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
     const size_t len = strlen(message);
