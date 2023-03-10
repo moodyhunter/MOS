@@ -66,6 +66,7 @@ MOSAPI void linked_list_init(list_node_t *head_node);
 MOSAPI bool list_is_empty(list_node_t *head);
 MOSAPI void list_node_remove(list_node_t *link);
 
+MOSAPI list_node_t *list_node_pop(list_node_t *head);
 MOSAPI void list_node_prepend(list_node_t *head, list_node_t *item);
 MOSAPI void list_node_append(list_node_t *head, list_node_t *item);
 MOSAPI void list_node_insert_before(list_node_t *element, list_node_t *item);

@@ -13,3 +13,7 @@ wait_condition_t *wc_wait_for(void *arg, wait_condition_verifier_t verify, wait_
 
 bool wc_condition_verify(wait_condition_t *condition);
 void wc_condition_cleanup(wait_condition_t *condition);
+
+void waitlist_init(waitlist_t *list);
+void waitlist_wait(waitlist_t *list);
+size_t waitlist_wake(waitlist_t *list, size_t max_wakeups);

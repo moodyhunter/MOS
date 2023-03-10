@@ -54,6 +54,13 @@ static void list_node_insert(list_node_t *prev, list_node_t *new_node, list_node
     next->prev = new_node;
 }
 
+list_node_t *list_node_pop(list_node_t *head)
+{
+    list_node_t *node = head->next;
+    list_node_remove(node);
+    return node;
+}
+
 void list_node_prepend(list_node_t *head, list_node_t *item)
 {
     list_node_insert(head, item, head->next);

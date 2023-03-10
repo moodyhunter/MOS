@@ -77,6 +77,21 @@ typedef struct _wait_condition
     void (*cleanup)(wait_condition_t *condition);
 } wait_condition_t;
 
+/**
+ * @brief The entry in the waiters list of a process, or a thread
+ */
+typedef struct
+{
+    as_linked_list;
+    tid_t waiter;
+} waitable_list_entry_t;
+
+typedef struct
+{
+    spinlock_t lock;  // protects the waiters list
+    list_node_t list; // list of threads waiting
+} waitlist_t;
+
 typedef struct _process
 {
     u32 magic;

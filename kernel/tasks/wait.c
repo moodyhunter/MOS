@@ -2,19 +2,13 @@
 
 #include "mos/tasks/wait.h"
 
+#include "lib/structures/list.h"
+#include "lib/sync/spinlock.h"
 #include "mos/mm/kmalloc.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
-
-static bool thread_is_ready(wait_condition_t *condition)
-{
-    thread_t *thread = condition->arg;
-    return thread->state == THREAD_STATE_DEAD;
-}
-
-wait_condition_t *wc_wait_for_thread(thread_t *target)
-{
-    return wc_wait_for(target, thread_is_ready, NULL);
-}
+#include "mos/tasks/task_types.h"
+#include "mos/tasks/thread.h"
 
 wait_condition_t *wc_wait_for(void *arg, wait_condition_verifier_t verify, wait_condition_cleanup_t cleanup)
 {
@@ -36,4 +30,54 @@ void wc_condition_cleanup(wait_condition_t *condition)
     if (condition->cleanup)
         condition->cleanup(condition);
     kfree(condition);
+}
+
+void waitlist_init(waitlist_t *list)
+{
+    linked_list_init(&list->list);
+    list->lock.flag = 0;
+}
+
+void waitlist_wait(waitlist_t *list)
+{
+    waitable_list_entry_t *entry = kzalloc(sizeof(waitable_list_entry_t));
+    entry->waiter = current_thread->tid;
+    spinlock_acquire(&list->lock);
+    list_node_append(&list->list, list_node(entry));
+    spinlock_release(&list->lock);
+}
+
+size_t waitlist_wake(waitlist_t *list, size_t max_wakeups)
+{
+    spinlock_acquire(&list->lock);
+
+    if (list_is_empty(&list->list))
+    {
+        spinlock_release(&list->lock);
+        return 0;
+    }
+
+    size_t wakeups = 0;
+    while (wakeups < max_wakeups && !list_is_empty(&list->list))
+    {
+        list_node_t *node = list_node_pop(&list->list);
+        waitable_list_entry_t *entry = list_entry(node, waitable_list_entry_t);
+
+        thread_t *thread = thread_get(entry->waiter);
+
+        if (thread)
+        {
+            spinlock_acquire(&thread->state_lock);
+            MOS_ASSERT(thread->state == THREAD_STATE_BLOCKED);
+            thread->state = THREAD_STATE_READY;
+            spinlock_release(&thread->state_lock);
+        }
+
+        kfree(entry);
+        wakeups++;
+    }
+
+    spinlock_release(&list->lock);
+
+    return wakeups;
 }
