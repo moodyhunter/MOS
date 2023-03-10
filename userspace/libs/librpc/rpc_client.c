@@ -168,6 +168,9 @@ rpc_result_code_t rpc_call_exec(rpc_call_t *call, void **result_data, size_t *da
 
 rpc_result_code_t rpc_call(rpc_server_stub_t *stub, u32 funcid, rpc_result_t *result, const char *argspec, ...)
 {
+    if (argspec == NULL)
+        argspec = "";
+
     rpc_call_t *call = rpc_call_create(stub, funcid);
 
     va_list args;
