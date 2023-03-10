@@ -5,5 +5,5 @@ add_executable(locks-bench
     ../console-helpers.c
 )
 
-setup_userspace_program(locks-bench /tests "Benchmarking different locks")
+setup_userspace_program(locks-bench /programs "Benchmarking different locks")
 target_link_libraries(locks-bench PRIVATE rpc)
