@@ -15,7 +15,7 @@ jobs:
       matrix:
         target: [multiboot]
         build_type: [Debug, RelWithDebInfo, Release]
-        run_tests: [ON, OFF]
+        run_tests: [ON]
         arch: [x86]
 
         include:
