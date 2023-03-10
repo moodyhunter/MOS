@@ -313,6 +313,9 @@ void dentry_unref(dentry_t *dentry)
     dentry->refcount--;
     if (dentry->refcount == 0)
     {
+        // remove from parent's children list
+        list_remove(&dentry->tree_node);
+
         if (dentry->name)
             kfree(dentry->name);
         kfree(dentry);
