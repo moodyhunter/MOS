@@ -252,7 +252,9 @@ bool process_wait_for_pid(pid_t pid)
         return false;
     }
 
-    waitlist_wait(&target->waiters);
+    if (!waitlist_wait(&target->waiters))
+        return true; // waitlist is closed, process is dead
+
     current_thread->state = THREAD_STATE_BLOCKED;
     reschedule();
     return true;
@@ -299,6 +301,7 @@ void process_handle_exit(process_t *process, int exit_code)
 
     mos_debug(process, "closed %zu/%zu files owned by %ld", files_already_closed, files_total, process->pid);
 
+    waitlist_close(&process->waiters);
     waitlist_wake(&process->waiters, INT_MAX);
 }
 

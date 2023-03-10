@@ -89,7 +89,7 @@ bool futex_wait(futex_word_t *futex, futex_word_t expected)
     }
     spinlock_release(&futex_list_lock);
 
-    waitlist_wait(&fu->waiters);
+    MOS_ASSERT_X(waitlist_wait(&fu->waiters), "waitlist_wait failed");
     spinlock_release(&fu->lock);
 
     spinlock_acquire(&current_thread->state_lock);

@@ -38,13 +38,17 @@ void waitlist_init(waitlist_t *list)
     list->lock.flag = 0;
 }
 
-void waitlist_wait(waitlist_t *list)
+bool waitlist_wait(waitlist_t *list)
 {
+    if (list->closed)
+        return false;
+
     waitable_list_entry_t *entry = kzalloc(sizeof(waitable_list_entry_t));
     entry->waiter = current_thread->tid;
     spinlock_acquire(&list->lock);
     list_node_append(&list->list, list_node(entry));
     spinlock_release(&list->lock);
+    return true;
 }
 
 size_t waitlist_wake(waitlist_t *list, size_t max_wakeups)
@@ -80,4 +84,14 @@ size_t waitlist_wake(waitlist_t *list, size_t max_wakeups)
     spinlock_release(&list->lock);
 
     return wakeups;
+}
+
+void waitlist_close(waitlist_t *list)
+{
+    spinlock_acquire(&list->lock);
+    if (list->closed)
+        pr_warn("waitlist already closed");
+
+    list->closed = true;
+    spinlock_release(&list->lock);
 }
