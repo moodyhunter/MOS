@@ -140,7 +140,7 @@ void rpc_server_exec(rpc_server_t *server)
     {
         fd_t client_fd = syscall_ipc_accept(server->server_fd);
         if (client_fd == -1)
-            continue;
+            break; // server closed
 
         rpc_call_context_t *context = malloc(sizeof(rpc_call_context_t));
         context->server = server;
