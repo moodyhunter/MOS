@@ -408,3 +408,8 @@ void *define_syscall(mmap_file)(uintptr_t hint_addr, size_t size, mem_perm_t per
     pr_info("mmap_file(" PTR_FMT ", %zd, %d, %d, %ld, %ld)", hint_addr, size, perm, flags, fd, offset);
     return NULL;
 }
+
+bool define_syscall(wait_for_process)(pid_t pid)
+{
+    return process_wait_for_pid(pid);
+}

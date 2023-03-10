@@ -230,6 +230,12 @@
                 { "type": "fd_t", "arg": "fd" },
                 { "type": "off_t", "arg": "offset" }
             ]
+        },
+        {
+            "number": 33,
+            "name": "wait_for_process",
+            "return": "bool",
+            "arguments": [ { "type": "pid_t", "arg": "pid" } ]
         }
     ]
 }

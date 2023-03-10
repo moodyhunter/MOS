@@ -5,6 +5,7 @@
 #include "lib/string.h"
 #include "lib/structures/hashmap.h"
 #include "lib/structures/hashmap_common.h"
+#include "lib/structures/list.h"
 #include "lib/sync/spinlock.h"
 #include "mos/filesystem/vfs.h"
 #include "mos/io/terminal.h"
@@ -15,8 +16,10 @@
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/tasks/schedule.h"
 #include "mos/tasks/task_types.h"
 #include "mos/tasks/thread.h"
+#include "mos/tasks/wait.h"
 
 #define PROCESS_HASHTABLE_SIZE 512
 
@@ -53,6 +56,7 @@ process_t *process_allocate(process_t *parent, const char *name)
 
     proc->magic = PROCESS_MAGIC_PROC;
     proc->pid = new_process_id();
+    waitlist_init(&proc->waiters);
 
     if (likely(parent))
     {
@@ -141,9 +145,10 @@ process_t *process_new(process_t *parent, const char *name, terminal_t *term, th
 process_t *process_get(pid_t pid)
 {
     process_t *p = hashmap_get(process_table, pid);
-    if (p == NULL)
-        mos_warn("process %ld not found", pid);
-    return p;
+    if (process_is_valid(p))
+        return p;
+
+    return NULL;
 }
 
 fd_t process_attach_ref_fd(process_t *process, io_t *file)
@@ -238,6 +243,21 @@ void process_detach_mmap(process_t *process, vmblock_t block)
     mos_warn("process %ld tried to detach a non-existent mmap", process->pid);
 }
 
+bool process_wait_for_pid(pid_t pid)
+{
+    process_t *target = process_get(pid);
+    if (target == NULL)
+    {
+        pr_warn("process %ld does not exist", pid);
+        return false;
+    }
+
+    waitlist_wait(&target->waiters);
+    current_thread->state = THREAD_STATE_BLOCKED;
+    reschedule();
+    return true;
+}
+
 void process_handle_exit(process_t *process, int exit_code)
 {
     MOS_ASSERT(process_is_valid(process));
@@ -278,6 +298,8 @@ void process_handle_exit(process_t *process, int exit_code)
     }
 
     mos_debug(process, "closed %zu/%zu files owned by %ld", files_already_closed, files_total, process->pid);
+
+    waitlist_wake(&process->waiters, INT_MAX);
 }
 
 void process_handle_cleanup(process_t *process)

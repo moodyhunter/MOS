@@ -115,6 +115,7 @@ typedef struct _process
 
     // platform per-process flags
     void *platform_options;
+    waitlist_t waiters; // list of threads waiting for this process to exit
 } process_t;
 
 typedef struct _thread

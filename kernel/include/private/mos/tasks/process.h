@@ -31,6 +31,8 @@ void process_attach_mmap(process_t *process, vmblock_t block, vmblock_content_t 
 void process_detach_mmap(process_t *process, vmblock_t block);
 uintptr_t process_grow_heap(process_t *process, size_t npages);
 
+bool process_wait_for_pid(pid_t pid);
+
 void process_handle_exit(process_t *process, int exit_code);
 process_t *process_handle_fork(process_t *process);
 
