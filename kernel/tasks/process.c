@@ -390,19 +390,31 @@ void process_dump_mmaps(const process_t *process)
             default: mos_warn("unknown memory region type %x", block.content);
         };
 
+        char forkmode = '-';
+        if (block.content == VMTYPE_FILE || block.content == VMTYPE_MMAP)
+        {
+            switch (block.flags.fork_mode)
+            {
+                case VMAP_FORK_NA: forkmode = '!'; break;
+                case VMAP_FORK_SHARED: forkmode = 's'; break;
+                case VMAP_FORK_PRIVATE: forkmode = 'p'; break;
+                default: mos_warn("unknown fork mode %x", block.flags.fork_mode);
+            }
+        }
+
         pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%c%c%c%c%c%c, %c%c]: %s",
-                i,                                                                                                      //
-                block.blk.vaddr,                                                                                        //
-                block.blk.npages,                                                                                       //
-                block.blk.flags & VM_READ ? 'r' : '-',                                                                  //
-                block.blk.flags & VM_WRITE ? 'w' : '-',                                                                 //
-                block.blk.flags & VM_EXEC ? 'x' : '-',                                                                  //
-                block.blk.flags & VM_GLOBAL ? 'g' : '-',                                                                //
-                block.blk.flags & VM_USER ? 'u' : '-',                                                                  //
-                block.blk.flags & VM_CACHE_DISABLED ? 'C' : '-',                                                        //
-                block.flags.cow ? 'c' : (block.flags.zod ? 'z' : '-'),                                                  //
-                block.flags.fork_mode == VMAP_FORK_NA ? '-' : (block.flags.fork_mode == VMAP_FORK_PRIVATE ? 'p' : 's'), //
-                typestr                                                                                                 //
+                i,                                                     //
+                block.blk.vaddr,                                       //
+                block.blk.npages,                                      //
+                block.blk.flags & VM_READ ? 'r' : '-',                 //
+                block.blk.flags & VM_WRITE ? 'w' : '-',                //
+                block.blk.flags & VM_EXEC ? 'x' : '-',                 //
+                block.blk.flags & VM_GLOBAL ? 'g' : '-',               //
+                block.blk.flags & VM_USER ? 'u' : '-',                 //
+                block.blk.flags & VM_CACHE_DISABLED ? 'C' : '-',       //
+                block.flags.cow ? 'c' : (block.flags.zod ? 'z' : '-'), //
+                forkmode,                                              //
+                typestr                                                //
         );
     }
 }
