@@ -29,7 +29,7 @@ typedef enum
     VMTYPE_KSTACK, // stack (kernel)
     VMTYPE_FILE,   // file mapping
     VMTYPE_MMAP,   // mmap mapping
-} vmblock_content_t;
+} vmap_content_t;
 
 typedef enum
 {
@@ -54,7 +54,7 @@ typedef struct
 
 typedef struct
 {
-    vmblock_content_t content;
+    vmap_content_t content;
     vmblock_t blk;
 
     // if any of the vmap_flags_t is set, then the flags in vm contains 'original' flags

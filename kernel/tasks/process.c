@@ -198,7 +198,7 @@ void process_attach_thread(process_t *process, thread_t *thread)
     process->threads[process->threads_count++] = thread;
 }
 
-void process_attach_mmap(process_t *process, vmblock_t block, vmblock_content_t type, vmap_flags_t flags)
+void process_attach_mmap(process_t *process, vmblock_t block, vmap_content_t type, vmap_flags_t flags)
 {
     MOS_ASSERT(process_is_valid(process));
     mos_debug(process, "process %ld attached mmap " PTR_FMT "-" PTR_FMT, process->pid, block.vaddr, block.vaddr + block.npages * MOS_PAGE_SIZE);
