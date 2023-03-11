@@ -13,6 +13,7 @@
  */
 typedef struct
 {
+    futex_word_t w;
 } my_mutex_t;
 
 /**
