@@ -6,9 +6,7 @@
 
 void mos_pmm_setup(void);
 
-void pmalloc_dump(void);
-
 uintptr_t pmalloc_alloc(size_t n_pages);
 
-void pmalloc_acquire_region(uintptr_t start_addr, size_t size_bytes);
-size_t pmalloc_release_region(uintptr_t start_addr, size_t size_bytes);
+void pmalloc_acquire_pages(uintptr_t start_addr, size_t npages);
+void pmalloc_release_pages(uintptr_t start_addr, size_t npages);

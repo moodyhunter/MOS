@@ -162,7 +162,7 @@ vmblock_t mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t n_pag
 void mm_free_pages(paging_handle_t table, vmblock_t block)
 {
     mm_unmap_pages(table, block.vaddr, block.npages);
-    pmalloc_release_region(block.paddr, block.npages * MOS_PAGE_SIZE);
+    pmalloc_release_pages(block.paddr, block.npages);
 }
 
 void mm_map_pages(paging_handle_t table, vmblock_t block)
@@ -173,7 +173,7 @@ void mm_map_pages(paging_handle_t table, vmblock_t block)
         return;
     }
 
-    pmalloc_acquire_region(block.paddr, block.npages * MOS_PAGE_SIZE);
+    pmalloc_acquire_pages(block.paddr, block.npages);
     mm_map_allocated_pages(table, block);
 }
 

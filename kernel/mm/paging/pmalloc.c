@@ -29,6 +29,21 @@ static size_t freelist_size(void)
     return ALIGN_UP_TO_PAGE(PMEM_FREELIST_SIZE_FOR(platform_info->mem.available));
 }
 
+static void pmm_dump(void)
+{
+    pr_info("Physical Memory Allocator dump:");
+    pmlist_node_t *this = pmlist_head;
+    while (this)
+    {
+        const uintptr_t pstart = this->paddr;
+        const uintptr_t pend = pstart + this->n_pages * MOS_PAGE_SIZE;
+        char sbuf[32];
+        format_size(sbuf, sizeof(sbuf), this->n_pages * MOS_PAGE_SIZE);
+        pr_info("  [" PTR_FMT "] entry: " PTR_FMT "-" PTR_FMT " (%zu page(s), %s)", (uintptr_t) this, pstart, pend, this->n_pages, sbuf);
+        this = this->next;
+    }
+}
+
 void mos_pmm_setup(void)
 {
     pr_info("Initializing Physical Memory Allocator");
@@ -50,32 +65,23 @@ void mos_pmm_setup(void)
             continue;
         }
 
-        size_t alignment_loss = pmalloc_release_region(r->address, r->size_bytes);
+        const uintptr_t aligned_start = ALIGN_UP_TO_PAGE(r->address);
+        const uintptr_t aligned_end = ALIGN_DOWN_TO_PAGE(r->address + r->size_bytes);
+        const size_t npages = (aligned_end - aligned_start) / MOS_PAGE_SIZE;
+        pmalloc_release_pages(aligned_start, npages);
+
+        const size_t alignment_loss = r->address - aligned_start + (r->address + r->size_bytes - aligned_end);
         if (alignment_loss)
             pr_emph("%zu bytes of memory loss due to alignment", alignment_loss);
     }
 
     pr_info("Physical Memory Allocator initialized");
-#if MOS_DEBUG_FEATURE(pmm)
-    pmalloc_dump();
-    declare_panic_hook(pmalloc_dump);
-    install_panic_hook(&pmalloc_dump_holder);
-#endif
-}
+    pmm_dump();
 
-void pmalloc_dump(void)
-{
-    pr_info("Physical Memory Allocator dump:");
-    pmlist_node_t *this = pmlist_head;
-    while (this)
-    {
-        const uintptr_t pstart = this->paddr;
-        const uintptr_t pend = pstart + this->n_pages * MOS_PAGE_SIZE;
-        char sbuf[32];
-        format_size(sbuf, sizeof(sbuf), this->n_pages * MOS_PAGE_SIZE);
-        pr_info("  [" PTR_FMT "] entry: " PTR_FMT "-" PTR_FMT " (%zu page(s), %s)", (uintptr_t) this, pstart, pend, this->n_pages, sbuf);
-        this = this->next;
-    }
+#if MOS_DEBUG_FEATURE(pmm)
+    declare_panic_hook(pmm_dump);
+    install_panic_hook(&pmm_dump_holder);
+#endif
 }
 
 uintptr_t pmalloc_alloc(size_t pages)
@@ -122,15 +128,11 @@ uintptr_t pmalloc_alloc(size_t pages)
 #define this_start (this->paddr)
 #define this_end   (this_start + this->n_pages * MOS_PAGE_SIZE)
 
-void pmalloc_acquire_region(uintptr_t start_addr, size_t size_bytes)
+void pmalloc_acquire_pages(uintptr_t start_addr, size_t pages)
 {
-    const uintptr_t end_addr = start_addr + size_bytes;
-
-    // the addresses must be aligned to page size
     MOS_ASSERT(start_addr % MOS_PAGE_SIZE == 0);
-    MOS_ASSERT(end_addr % MOS_PAGE_SIZE == 0);
 
-    const size_t pages_in_region = (end_addr - start_addr) / MOS_PAGE_SIZE;
+    const uintptr_t end_addr = start_addr + pages * MOS_PAGE_SIZE;
 
     mos_debug(pmm, "removing physical memory region " PTR_FMT "-" PTR_FMT " from freelist.", start_addr, end_addr);
 
@@ -168,8 +170,8 @@ void pmalloc_acquire_region(uintptr_t start_addr, size_t size_bytes)
             else if (part_1_size != 0 && part_2_size == 0)
             {
                 // part 2 is empty, which means we are removing the tail of part 1
-                mos_debug(pmm, "shrunk " PTR_FMT "-" PTR_FMT ": ends at " PTR_FMT, this_start, this_end, this_start + (this->n_pages - pages_in_region) * MOS_PAGE_SIZE);
-                this->n_pages -= pages_in_region;
+                mos_debug(pmm, "shrunk " PTR_FMT "-" PTR_FMT ": ends at " PTR_FMT, this_start, this_end, this_start + (this->n_pages - pages) * MOS_PAGE_SIZE);
+                this->n_pages -= pages;
             }
             else if (part_1_size == 0 && part_2_size == 0)
             {
@@ -237,14 +239,14 @@ void pmalloc_acquire_region(uintptr_t start_addr, size_t size_bytes)
     spinlock_release(&pmlist_lock);
 }
 
-size_t pmalloc_release_region(uintptr_t start_addr, size_t size_bytes)
+void pmalloc_release_pages(uintptr_t start_addr, size_t n_pages)
 {
-    const uintptr_t aligned_start = ALIGN_UP_TO_PAGE(start_addr);
-    const uintptr_t aligned_end = ALIGN_DOWN_TO_PAGE(start_addr + size_bytes);
+    MOS_ASSERT(start_addr % MOS_PAGE_SIZE == 0);
+    MOS_ASSERT(n_pages > 0);
 
-    const size_t pages_in_region = (aligned_end - aligned_start) / MOS_PAGE_SIZE;
+    const uintptr_t end_addr = start_addr + n_pages * MOS_PAGE_SIZE;
 
-    mos_debug(pmm, "adding physical memory region " PTR_FMT "-" PTR_FMT " to freelist.", aligned_start, aligned_end);
+    mos_debug(pmm, "adding physical memory region " PTR_FMT "-" PTR_FMT " to freelist.", start_addr, end_addr);
 
     spinlock_acquire(&pmlist_lock);
 
@@ -254,18 +256,18 @@ size_t pmalloc_release_region(uintptr_t start_addr, size_t size_bytes)
     while (this)
     {
         // * if the aligned start/end address is within the current region, it overlaps
-        if ((this_start <= aligned_start && aligned_start < this_end) || (this_start < aligned_end && aligned_end <= this_end))
+        if ((this_start <= start_addr && start_addr < this_end) || (this_start < end_addr && end_addr <= this_end))
         {
-            mos_panic("new pmem " PTR_FMT "-" PTR_FMT " overlaps with " PTR_FMT "-" PTR_FMT, aligned_start, aligned_end, this_start, this_end);
+            mos_panic("new pmem " PTR_FMT "-" PTR_FMT " overlaps with " PTR_FMT "-" PTR_FMT, start_addr, end_addr, this_start, this_end);
         }
 
         // prepend to 'this' region
-        if (aligned_end == this_start)
+        if (end_addr == this_start)
         {
-            uintptr_t new_end = this_start + pages_in_region * MOS_PAGE_SIZE;
+            uintptr_t new_end = this_start + n_pages * MOS_PAGE_SIZE;
             mos_debug(pmm, "enlarge range [" PTR_FMT "-" PTR_FMT "]: starts at " PTR_FMT, this_start, this_end, new_end);
-            this->paddr = aligned_start;
-            this->n_pages += pages_in_region;
+            this->paddr = start_addr;
+            this->n_pages += n_pages;
             goto end;
         }
 
@@ -278,21 +280,21 @@ size_t pmalloc_release_region(uintptr_t start_addr, size_t size_bytes)
             const uintptr_t prev_start = prev->paddr;
             const uintptr_t prev_end = prev_start + prev->n_pages * MOS_PAGE_SIZE;
 
-            if (aligned_start == prev_end)
+            if (start_addr == prev_end)
             {
-                prev->n_pages += pages_in_region;
-                const uintptr_t new_ends = prev_end + pages_in_region * MOS_PAGE_SIZE;
+                prev->n_pages += n_pages;
+                const uintptr_t new_ends = prev_end + n_pages * MOS_PAGE_SIZE;
                 mos_debug(pmm, "enlarged " PTR_FMT "-" PTR_FMT ": ends at " PTR_FMT, prev_start, prev_end, new_ends);
                 goto end;
             }
         }
 
         // same as above, we only 'prepend' the region before 'this'
-        if (aligned_end < this_start)
+        if (end_addr < this_start)
         {
             pmlist_node_t *new_range = &pmlist_storage[pmlist_count++];
-            new_range->paddr = aligned_start;
-            new_range->n_pages = pages_in_region;
+            new_range->paddr = start_addr;
+            new_range->n_pages = n_pages;
             new_range->next = this;
             if (prev)
                 prev->next = new_range;
@@ -310,14 +312,13 @@ size_t pmalloc_release_region(uintptr_t start_addr, size_t size_bytes)
     prev->next = new_range;
 
     // the freelist is in the correct order, so we can insert the new range here
-    new_range->paddr = aligned_start;
-    new_range->n_pages = pages_in_region;
+    new_range->paddr = start_addr;
+    new_range->n_pages = n_pages;
     new_range->next = NULL;
 
 end:
     spinlock_release(&pmlist_lock);
     // return the amount of memory that was lost due to alignment
-    return (aligned_start - start_addr) + ((start_addr + size_bytes) - aligned_end);
 }
 
 #undef this_start
