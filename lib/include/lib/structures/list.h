@@ -35,7 +35,7 @@ struct list_node
 /**
  * @brief Get the container struct of a list node
  */
-#define list_entry(node, type) container_of((node), type, list_node)
+#define list_entry(node, type) const_container_of((node), list_node_t, type, list_node)
 
 /**
  * @brief Get the `list_node' of a list element.
@@ -56,8 +56,8 @@ struct list_node
  * @param v Name of the variable to use for the current element (e.g. `item')
  * @param h List Head (e.g. `consoles')
  */
-#define list_foreach(t, v, h)         for (t *v = list_entry((h).next, t); list_node(v) != &(h); v = list_entry(list_node(v)->next, t))
-#define list_node_foreach(node, head) for (list_node_t *node = (head)->next; node != (head); node = node->next)
+#define list_foreach(t, v, h)   for (__typeof(list_entry(&(h), t)) v = list_entry((h).next, t); list_node(v) != &(h); v = list_entry(list_node(v)->next, t))
+#define list_node_foreach(v, h) for (__typeof(h) v = (h)->next; v != (h); v = v->next)
 
 #define list_foreach_reverse(t, v, h)         for (t *v = list_entry((h).prev, t); list_node(v) != &(h); v = list_entry(list_node(v)->prev, t))
 #define list_node_foreach_reverse(node, head) for (list_node_t *node = (head)->prev; node != (head); node = node->prev)
