@@ -50,7 +50,7 @@ struct console_t
     spinlock_t lock __aligned(8);
 };
 
-extern list_node_t consoles;
+extern list_head consoles;
 void console_register(console_t *con);
 console_t *console_get(const char *name);
 console_t *console_get_by_prefix(const char *prefix);

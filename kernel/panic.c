@@ -23,7 +23,7 @@ void __stack_chk_fail_local(void)
     __stack_chk_fail();
 }
 
-static list_node_t kpanic_hooks = LIST_HEAD_INIT(kpanic_hooks);
+static list_head kpanic_hooks = LIST_HEAD_INIT(kpanic_hooks);
 static kmsg_handler_t *kwarn_handler = NULL;
 static bool poweroff_on_panic = false;
 

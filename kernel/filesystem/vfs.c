@@ -14,7 +14,7 @@
 #include "mos/tasks/process.h"
 #include "mos/types.h"
 
-static list_node_t vfs_fs_list = LIST_HEAD_INIT(vfs_fs_list); // filesystem_t
+static list_head vfs_fs_list = LIST_HEAD_INIT(vfs_fs_list); // filesystem_t
 static spinlock_t vfs_fs_list_lock = SPINLOCK_INIT;
 
 dentry_t *root_dentry = NULL;

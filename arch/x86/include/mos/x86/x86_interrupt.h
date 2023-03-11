@@ -73,7 +73,7 @@ MOS_STATIC_ASSERT(IRQ_MAX_COUNT == IRQ_MAX, "IRQ_MAX_COUNT is not equal to IRQ_M
 void pic_remap_irq(void);
 
 // The following `extern` symbols are defined in the interrupt_handler.asm file.
-extern list_node_t irq_handlers[IRQ_MAX_COUNT];
+extern list_head irq_handlers[IRQ_MAX_COUNT];
 extern void *isr_stub_table[];
 extern void *irq_stub_table[];
 

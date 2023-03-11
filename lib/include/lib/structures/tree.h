@@ -12,7 +12,7 @@ typedef struct tree_node
 {
     as_linked_list;
     tree_node_t *parent;
-    list_node_t children;
+    list_head children;
 } tree_node_t;
 
 /**

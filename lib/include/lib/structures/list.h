@@ -13,6 +13,7 @@
  */
 
 typedef struct list_node list_node_t;
+typedef list_node_t list_head;
 
 /** @brief A node in a linked list. */
 struct list_node

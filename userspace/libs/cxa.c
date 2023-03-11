@@ -3,7 +3,7 @@
 #include "lib/structures/list.h"
 #include "libuserspace.h"
 
-static list_node_t atexit_funcs = LIST_HEAD_INIT(atexit_funcs);
+static list_head atexit_funcs = LIST_HEAD_INIT(atexit_funcs);
 void *__dso_handle = 0;
 
 typedef void (*destructor_t)(void *);

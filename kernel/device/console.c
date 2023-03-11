@@ -22,7 +22,7 @@ static console_t dummy_con = {
     .list_node = LIST_HEAD_INIT(consoles),
 };
 
-list_node_t consoles = LIST_NODE_INIT(dummy_con);
+list_head consoles = LIST_NODE_INIT(dummy_con);
 
 void console_register(console_t *con)
 {

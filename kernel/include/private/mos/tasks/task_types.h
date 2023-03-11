@@ -88,9 +88,9 @@ typedef struct
 
 typedef struct
 {
-    bool closed;      // if true, then the process is closed and should not be waited on
-    spinlock_t lock;  // protects the waiters list
-    list_node_t list; // list of threads waiting
+    bool closed;     // if true, then the process is closed and should not be waited on
+    spinlock_t lock; // protects the waiters list
+    list_head list;  // list of threads waiting
 } waitlist_t;
 
 typedef struct _process

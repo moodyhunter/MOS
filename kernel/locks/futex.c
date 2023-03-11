@@ -23,7 +23,7 @@ typedef struct
     waitlist_t waiters;
 } futex_private_t;
 
-static list_node_t futex_list_head = LIST_HEAD_INIT(futex_list_head);
+static list_head futex_list_head = LIST_HEAD_INIT(futex_list_head);
 static spinlock_t futex_list_lock = SPINLOCK_INIT;
 
 static futex_key_t futex_get_key(const futex_word_t *futex)

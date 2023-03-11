@@ -74,7 +74,7 @@ typedef struct _superblock
 {
     bool dirty;
     dentry_t *root;
-    list_node_t mounts;
+    list_head mounts;
     const superblock_ops_t *ops;
 } superblock_t;
 
@@ -107,7 +107,7 @@ typedef struct _filesystem
     as_linked_list;
     const filesystem_ops_t *ops;
     const char *name;
-    list_node_t superblocks;
+    list_head superblocks;
 } filesystem_t;
 
 typedef struct _mount
