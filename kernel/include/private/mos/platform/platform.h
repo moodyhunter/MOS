@@ -118,7 +118,7 @@ typedef struct
     struct
     {
         size_t count;
-        memregion_t regions[MOS_MAX_SUPPORTED_MEMREGION];
+        memregion_t regions[MOS_MAX_EARLY_MEMREGIONS];
     } mem_regions;
 
     struct

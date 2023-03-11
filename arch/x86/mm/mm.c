@@ -8,7 +8,7 @@
 
 static void mem_add_region(u64 phys_addr, size_t size, bool available)
 {
-    if (x86_platform.mem_regions.count >= MOS_MAX_SUPPORTED_MEMREGION)
+    if (x86_platform.mem_regions.count >= MOS_MAX_EARLY_MEMREGIONS)
         mos_panic("too many memory regions added.");
 
     memregion_t *block = &x86_platform.mem_regions.regions[x86_platform.mem_regions.count++];
