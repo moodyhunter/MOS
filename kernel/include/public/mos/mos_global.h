@@ -30,6 +30,8 @@
 
 #define container_of(ptr, type, member) ((type *) ((char *) (ptr) - (offsetof(type, member))))
 
+#define add_const(x) (*(const __typeof__(x) *) (&(x)))
+
 #define is_const_instance(ptr, ptrtype, tval, fval)    _Generic((ptr), const ptrtype * : tval, ptrtype * : fval)
 #define select_const_cast(ptr, ptrtype, obj, objtype)  is_const_instance(ptr, ptrtype, (const objtype)(obj), (objtype) (obj))
 #define const_container_of(ptr, ptrtype, type, member) (select_const_cast(ptr, ptrtype, (container_of(ptr, type, member)), type *))
