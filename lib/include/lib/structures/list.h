@@ -84,6 +84,14 @@ struct list_node
 #define list_node_foreach(v, h)         for (list_node_t *v = (h)->next, *__next = v->next; v != (h); v = __next, __next = v->next)
 #define list_node_foreach_reverse(v, h) for (list_node_t *v = (h)->prev, *__next = v->prev; v != (h); v = __next, __next = v->prev)
 
+#define list_headless_foreach(t, v, h)                                                                                                                                   \
+    for (__typeof(&(h)) v = &(h), __next = list_next_entry(v, t), __head = NULL; (v) != __head;                                                                          \
+         v = __next, __next = list_next_entry(v, t), __head = __head == NULL ? &(h) : __head)
+
+#define list_headless_foreach_reverse(t, v, h)                                                                                                                           \
+    for (__typeof(h) v = (h), __next = list_prev_entry(v, t), __head = NULL; (v) != __head;                                                                              \
+         v = __next, __next = list_prev_entry(v, t), __head = __head == NULL ? (h) : __head)
+
 MOSAPI void linked_list_init(list_node_t *head_node);
 MOSAPI bool list_is_empty(const list_node_t *head);
 MOSAPI void list_node_remove(list_node_t *link);

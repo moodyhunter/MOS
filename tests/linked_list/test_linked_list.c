@@ -216,6 +216,82 @@ MOS_TEST_CASE(test_list_foreach)
     MOS_TEST_CHECK(sum_after, 30);
 }
 
+MOS_TEST_CASE(test_list_headless_foreach)
+{
+    test_structure s1 = { 1, LIST_NODE_INIT(s1), 2 };
+    test_structure s2 = { 3, LIST_NODE_INIT(s2), 4 };
+    test_structure s3 = { 5, LIST_NODE_INIT(s3), 6 };
+    test_structure s4 = { 7, LIST_NODE_INIT(s4), 8 };
+    test_structure s5 = { 9, LIST_NODE_INIT(s5), 10 };
+    list_append(&s1, &s2); // s1 -> s2
+    list_append(&s1, &s3); // s1 -> s2 -> s3
+    list_append(&s1, &s4); // s1 -> s2 -> s3 -> s4
+    list_append(&s1, &s5); // s1 -> s2 -> s3 -> s4 -> s5
+    int i = 0;
+    test_structure *this = &s1;
+    do
+    {
+        i++;
+        this = list_next_entry(this, test_structure);
+    } while (this != &s1);
+    MOS_TEST_CHECK(i, 5);
+
+    // sum the list.
+    int sum_before = 0;
+    int sum_after = 0;
+    list_headless_foreach(test_structure, node, s1)
+    {
+        sum_before += node->value_before;
+        sum_after += node->value_after;
+    }
+    MOS_TEST_CHECK(sum_before, 25);
+    MOS_TEST_CHECK(sum_after, 30);
+
+    // sum the list, starting from s3.
+    sum_before = 0;
+    sum_after = 0;
+    list_headless_foreach(test_structure, node, s3)
+    {
+        sum_before += node->value_before;
+        sum_after += node->value_after;
+    }
+    MOS_TEST_CHECK(sum_before, 25);
+    MOS_TEST_CHECK(sum_after, 30);
+
+    // sum the list, starting from s5.
+    sum_before = 0;
+    sum_after = 0;
+    list_headless_foreach(test_structure, node, s5)
+    {
+        sum_before += node->value_before;
+        sum_after += node->value_after;
+    }
+    MOS_TEST_CHECK(sum_before, 25);
+    MOS_TEST_CHECK(sum_after, 30);
+
+    // reverse sum the list.
+    sum_before = 0;
+    sum_after = 0;
+    list_headless_foreach_reverse(test_structure, node, &s1)
+    {
+        sum_before += node->value_before;
+        sum_after += node->value_after;
+    }
+    MOS_TEST_CHECK(sum_before, 25);
+    MOS_TEST_CHECK(sum_after, 30);
+
+    // reverse sum the list, starting from s3.
+    sum_before = 0;
+    sum_after = 0;
+    list_headless_foreach_reverse(test_structure, node, &s3)
+    {
+        sum_before += node->value_before;
+        sum_after += node->value_after;
+    }
+    MOS_TEST_CHECK(sum_before, 25);
+    MOS_TEST_CHECK(sum_after, 30);
+}
+
 MOS_TEST_CASE(test_list_safe_foreach)
 {
     list_node_t list_head = LIST_HEAD_INIT(list_head);
