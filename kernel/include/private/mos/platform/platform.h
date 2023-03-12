@@ -5,6 +5,7 @@
 #include "lib/sync/spinlock.h"
 #include "mos/kconfig.h"
 #include "mos/mm/mm_types.h"
+#include "mos/mm/paging/pmalloc.h"
 #include "mos/mos_global.h"
 #include "mos/types.h"
 
@@ -95,17 +96,11 @@ typedef struct
 
 typedef struct
 {
-    uintptr_t vaddr, paddr; // virtual and physical addresses
+    uintptr_t vaddr; // virtual addresses
     size_t npages;
-    vm_flags flags; // the expected flags for the region, regardless of the copy-on-write state
+    vm_flags flags;     // the expected flags for the region, regardless of the copy-on-write state
+    pmblock_t *pblocks; // the physical memory allocation for this region, which also contains a ref counter
 } vmblock_t;
-
-typedef struct
-{
-    uintptr_t address;
-    size_t size_bytes;
-    bool available;
-} memregion_t;
 
 typedef struct
 {
@@ -115,17 +110,6 @@ typedef struct
 
     vmblock_t k_code, k_rwdata, k_rodata;
 
-    struct
-    {
-        size_t count;
-        memregion_t regions[MOS_MAX_EARLY_MEMREGIONS];
-    } mem_regions;
-
-    struct
-    {
-        size_t available;
-        size_t total;
-    } mem;
     paging_handle_t kernel_pgd;
 } mos_platform_info_t;
 

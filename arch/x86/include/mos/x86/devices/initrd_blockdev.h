@@ -7,6 +7,13 @@
 
 typedef struct
 {
+    uintptr_t address;
+    size_t size_bytes;
+    bool available;
+} memregion_t;
+
+typedef struct
+{
     memregion_t memblock;
     blockdev_t blockdev;
 } initrd_blockdev_t;

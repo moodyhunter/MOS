@@ -6,6 +6,10 @@
 #include "lib/string.h"
 #include "lib/sync/spinlock.h"
 
+#ifdef __MOS_KERNEL__
+#include "mos/platform/platform.h"
+#endif
+
 #define VERSION "1.1"
 
 // This is the byte alignment that memory must be allocated on. IMPORTANT for GTK and other stuff.
@@ -52,17 +56,27 @@ typedef char liballoc_align_t;
 #define LIBALLOC_PRINT_DEBUG_MESSAGES MOS_DEBUG_FEATURE(liballoc) && __MOS_KERNEL__ // only print debug messages in kernel mode
 
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
-static spinlock_t alloc_lock = SPINLOCK_INIT;
+static recursive_spinlock_t alloc_lock = SPINLOCK_INIT;
 
 static int liballoc_lock(void)
 {
-    spinlock_acquire(&alloc_lock);
+#ifdef __MOS_KERNEL__
+    void *owner = current_thread;
+#else
+    void *owner = NULL;
+#endif
+    recursive_spinlock_acquire(&alloc_lock, owner);
     return 0;
 }
 
 static int liballoc_unlock(void)
 {
-    spinlock_release(&alloc_lock);
+#ifdef __MOS_KERNEL__
+    void *owner = current_thread;
+#else
+    void *owner = NULL;
+#endif
+    recursive_spinlock_release(&alloc_lock, owner);
     return 0;
 }
 #endif
@@ -501,7 +515,7 @@ void liballoc_free(const void *ptr)
     if (ptr == NULL)
     {
         l_warnings += 1;
-        mos_warn("liballoc: free(NULL) called");
+        mos_panic("liballoc: free(NULL) called");
         return;
     }
 
@@ -522,16 +536,16 @@ void liballoc_free(const void *ptr)
             ((min->magic & 0xFF) == (LIBALLOC_MAGIC & 0xFF)))
         {
             l_possible_overruns += 1;
-            mos_warn("liballoc: ERROR: Possible 1-3 byte overrun for magic %x != %x", min->magic, LIBALLOC_MAGIC);
+            mos_panic("liballoc: ERROR: Possible 1-3 byte overrun for magic %x != %x", min->magic, LIBALLOC_MAGIC);
         }
 
         if (min->magic == LIBALLOC_DEAD)
         {
-            mos_warn("liballoc: multiple free() attempt on %p", ptr);
+            mos_panic("liballoc: multiple free() attempt on %p", ptr);
         }
         else
         {
-            mos_warn("liballoc: bad free(%p) called.", ptr);
+            mos_panic("liballoc: bad free(%p) called.", ptr);
         }
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
         // being lied to...
@@ -632,16 +646,16 @@ void *liballoc_realloc(void *p, size_t size)
             ((min->magic & 0xFF) == (LIBALLOC_MAGIC & 0xFF)))
         {
             l_possible_overruns += 1;
-            mos_warn("liballoc: Possible 1-3 byte overrun for magic %x != %x", min->magic, LIBALLOC_MAGIC);
+            mos_panic("liballoc: Possible 1-3 byte overrun for magic %x != %x", min->magic, LIBALLOC_MAGIC);
         }
 
         if (min->magic == LIBALLOC_DEAD)
         {
-            mos_warn("liballoc: multiple free() attempt on %p from %p.", ptr, __builtin_return_address(0));
+            mos_panic("liballoc: multiple free() attempt on %p from %p.", ptr, __builtin_return_address(0));
         }
         else
         {
-            mos_warn("liballoc: Bad free(%p) called", ptr);
+            mos_panic("liballoc: Bad free(%p) called", ptr);
         }
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
         // being lied to...

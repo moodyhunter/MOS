@@ -350,18 +350,14 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
     if (heap->flags.cow || heap->flags.zod)
     {
         vmblock_t zeroed = mm_alloc_zeroed_pages_at(process->pagetable, heap_top, npages, VM_USER_RW);
+        pr_warn("TODO: fix the physical block list of the heap");
         MOS_ASSERT(zeroed.npages == npages);
     }
     else
     {
         vmblock_t new_part = mm_alloc_pages_at(process->pagetable, heap_top, npages, VM_USER_RW);
-        if (new_part.vaddr == 0 || new_part.npages != npages)
-        {
-            mos_warn("failed to grow heap of process %ld", process->pid);
-            mm_free_pages(process->pagetable, new_part);
-            spinlock_release(&heap->lock);
-            return heap_top;
-        }
+        list_append(heap->blk.pblocks, new_part.pblocks); // merge the new pages with the old ones
+        MOS_ASSERT(new_part.npages == npages && new_part.vaddr == heap_top);
     }
 
     pr_info2("grew heap of process %ld by %zu pages", process->pid, npages);

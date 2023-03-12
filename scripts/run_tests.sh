@@ -10,7 +10,7 @@ qemu-system-i386 \
     -smp 1 \
     -monitor "unix:/tmp/monitor.sock,server,nowait" \
     -nographic \
-    -chardev stdio,id=char0,logfile=test-failure.log,signal=off \
+    -chardev stdio,id=char0,logfile=test-failure.log \
     -append "poweroff_on_panic=true $*" \
     -serial chardev:char0
 

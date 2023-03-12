@@ -27,30 +27,38 @@ static vmblock_t do_resolve_cow(uintptr_t fault_addr, size_t npages)
 {
     paging_handle_t current_handle = current_process->pagetable;
     const vm_flags flags = platform_mm_get_flags(current_handle, fault_addr) | VM_USER_RW; // this flags are the same for all pages (in the same proc_vmblock)
-    const uintptr_t phys_start = pmalloc_alloc(npages);
+    pmblock_t *pmblocks = pmm_allocate(npages);
 
-    for (size_t j = 0; j < npages; j++)
+    size_t page_i = 0;
+
+    list_headless_foreach(pmblock_t, pm, add_const(*pmblocks))
     {
-        vmblock_t stub_pblock = {
-            .vaddr = mm_get_free_pages(current_handle, 1, PGALLOC_HINT_KHEAP).vaddr,
-            .paddr = phys_start + j * MOS_PAGE_SIZE,
-            .flags = flags,
-            .npages = 1,
+        pmblock_t stub_pblock = {
+            .list_node = LIST_NODE_INIT(stub_pblock),
+            .paddr = pm->paddr,
+            .npages = pm->npages,
         };
 
-        // firstly, map the phypage to a stub vaddr
-        // then copy the data to the stub
-        // then unmap the stub
-        mm_map_allocated_pages(current_handle, stub_pblock);
-        memcpy((void *) stub_pblock.vaddr, (void *) (fault_addr + j * MOS_PAGE_SIZE), MOS_PAGE_SIZE);
-        mm_unmap_pages(current_handle, stub_pblock.vaddr, 1); // unmap the stub
+        vmblock_t stub_vblock = {
+            .vaddr = mm_get_free_pages(current_handle, pm->npages, PGALLOC_HINT_KHEAP).vaddr,
+            .flags = flags,
+            .npages = pm->npages,
+            .pblocks = &stub_pblock,
+        };
 
-        stub_pblock.vaddr = fault_addr + j * MOS_PAGE_SIZE;   // replace the stub vaddr with the real vaddr
-        mm_unmap_pages(current_handle, stub_pblock.vaddr, 1); // unmap the real vaddr, so that we can map the stub there
-        mm_map_allocated_pages(current_handle, stub_pblock);
+        const uintptr_t current_fault_addr = fault_addr + page_i * MOS_PAGE_SIZE;
+
+        mm_map_allocated_pages(current_handle, stub_vblock);                                         // 1. firstly, map the phypage to a [stub vaddr]
+        memcpy((void *) stub_vblock.vaddr, (void *) current_fault_addr, pm->npages * MOS_PAGE_SIZE); // 2. copy the data to the stub
+        mm_unmap_pages(current_handle, stub_vblock.vaddr, pm->npages);                               // 3. unmap the stub
+        mm_unmap_pages(current_handle, current_fault_addr, pm->npages);                              // 4. unmap the [real vaddr], so that we can map the stub there
+        stub_vblock.vaddr = current_fault_addr;                                                      // 5. replace the [stub vaddr] with the [real vaddr]
+        mm_map_allocated_pages(current_handle, stub_vblock);                                         // 6. map the stub to the [real vaddr]
+
+        page_i += stub_vblock.npages;
     }
 
-    return (vmblock_t){ .flags = flags, .npages = npages, .paddr = phys_start, .vaddr = fault_addr };
+    return (vmblock_t){ .flags = flags, .npages = npages, .pblocks = pmblocks, .vaddr = fault_addr };
 }
 
 bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bool is_user, bool is_exec)

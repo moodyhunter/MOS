@@ -89,15 +89,19 @@ should_inline ioapic_redirection_entry_t ioapic_read_redirection_entry(u32 irq)
     return u.entry;
 }
 
-void ioapic_init()
+void ioapic_init(void)
 {
     MOS_ASSERT_X(x86_ioapic_address != 0, "ioapic: no ioapic found in madt");
     ioapic = (u32 volatile *) x86_ioapic_address;
-    const vmblock_t ioapic_block = (vmblock_t){
+
+    STATIC_PMBLOCK(ioapic_pblock, 0, 1); // 0 is a placeholder, it will be replaced later
+    ioapic_pblock.paddr = x86_ioapic_address;
+
+    vmblock_t ioapic_block = (vmblock_t){
         .vaddr = x86_ioapic_address,
-        .paddr = x86_ioapic_address,
         .npages = 1,
         .flags = VM_RW | VM_GLOBAL | VM_CACHE_DISABLED,
+        .pblocks = &ioapic_pblock,
     };
     mm_map_allocated_pages(x86_platform.kernel_pgd, ioapic_block);
 

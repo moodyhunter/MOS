@@ -7,6 +7,7 @@
 #include "lib/sync/spinlock.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging/paging.h"
+#include "mos/mm/paging/pmalloc.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/schedule.h"
@@ -29,7 +30,18 @@ static spinlock_t futex_list_lock = SPINLOCK_INIT;
 static futex_key_t futex_get_key(const futex_word_t *futex)
 {
     const uintptr_t vaddr = (uintptr_t) futex;
-    return mm_get_block_info(current_process->pagetable, vaddr, 1).paddr + vaddr % MOS_PAGE_SIZE;
+    process_t *proc = current_process;
+    for (size_t i = 0; i < proc->mmaps_count; i++)
+    {
+        vmap_t *vmap = &proc->mmaps[i];
+        if (vaddr >= vmap->blk.vaddr && vaddr < vmap->blk.vaddr + vmap->blk.npages * MOS_PAGE_SIZE)
+        {
+            size_t page_i = ALIGN_DOWN_TO_PAGE(vaddr - vmap->blk.vaddr) / MOS_PAGE_SIZE;
+            return pmm_get_page_paddr(vmap->blk.pblocks, page_i) + (vaddr % MOS_PAGE_SIZE);
+        }
+    }
+
+    mos_panic("futex_get_key: futex not found in any vmap");
 }
 
 bool futex_wait(futex_word_t *futex, futex_word_t expected)

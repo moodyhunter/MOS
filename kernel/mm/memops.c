@@ -23,6 +23,13 @@ void mos_kernel_mm_init(void)
     declare_panic_hook(liballoc_dump);
     install_panic_hook(&liballoc_dump_holder);
 #endif
+#if MOS_DEBUG_FEATURE(pmm)
+    declare_panic_hook(pmm_dump);
+    install_panic_hook(&pmm_dump_holder);
+#endif
+
+    pmm_dump();
+    pmm_switch_to_kheap();
 }
 
 // !! This function is called by liballoc, not intended to be called by anyone else !!
@@ -85,7 +92,7 @@ vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, pgalloc_h
             .vaddr = free_pages.vaddr + i * MOS_PAGE_SIZE,
             .npages = 1,
             .flags = VM_READ | VM_USER,
-            .paddr = zero_block.paddr,
+            .pblocks = zero_block.pblocks,
         };
         mm_map_allocated_pages(handle, this_block);
     }

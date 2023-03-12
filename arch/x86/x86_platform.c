@@ -42,18 +42,16 @@ static serial_console_t com1_console = {
     .console.setup = serial_console_setup,
 };
 
-static const vmblock_t x86_bios_block = {
+static vmblock_t x86_bios_block = {
     .npages = BIOS_MEMREGION_SIZE / MOS_PAGE_SIZE,
     .vaddr = BIOS_VADDR(X86_BIOS_MEMREGION_PADDR),
     .flags = VM_READ | VM_GLOBAL | VM_CACHE_DISABLED,
-    .paddr = X86_BIOS_MEMREGION_PADDR,
 };
 
-static const vmblock_t x86_ebda_block = {
+static vmblock_t x86_ebda_block = {
     .npages = EBDA_MEMREGION_SIZE / MOS_PAGE_SIZE,
     .vaddr = BIOS_VADDR(X86_EBDA_MEMREGION_PADDR),
     .flags = VM_READ | VM_GLOBAL | VM_CACHE_DISABLED,
-    .paddr = X86_EBDA_MEMREGION_PADDR,
 };
 
 static vmblock_t x86_acpi_block = { 0 };
@@ -131,17 +129,14 @@ void x86_start_kernel(x86_startup_info *info)
 {
     x86_platform.k_code.vaddr = (uintptr_t) &__MOS_KERNEL_CODE_START;
     x86_platform.k_code.npages = (ALIGN_UP_TO_PAGE((uintptr_t) &__MOS_KERNEL_CODE_END) - ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_CODE_START)) / MOS_PAGE_SIZE;
-    x86_platform.k_code.paddr = (uintptr_t) &__MOS_KERNEL_CODE_START - MOS_KERNEL_START_VADDR;
     x86_platform.k_code.flags = VM_GLOBAL | VM_READ | VM_EXEC;
 
     x86_platform.k_rwdata.vaddr = (uintptr_t) &__MOS_KERNEL_RW_START;
     x86_platform.k_rwdata.npages = (ALIGN_UP_TO_PAGE((uintptr_t) &__MOS_KERNEL_RW_END) - ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_RW_START)) / MOS_PAGE_SIZE;
-    x86_platform.k_rwdata.paddr = (uintptr_t) &__MOS_KERNEL_RW_START - MOS_KERNEL_START_VADDR;
     x86_platform.k_rwdata.flags = VM_GLOBAL | VM_READ | VM_WRITE;
 
     x86_platform.k_rodata.vaddr = (uintptr_t) &__MOS_KERNEL_RODATA_START;
     x86_platform.k_rodata.npages = (ALIGN_UP_TO_PAGE((uintptr_t) &__MOS_KERNEL_RODATA_END) - ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_RODATA_START)) / MOS_PAGE_SIZE;
-    x86_platform.k_rodata.paddr = (uintptr_t) &__MOS_KERNEL_RODATA_START - MOS_KERNEL_START_VADDR;
     x86_platform.k_rodata.flags = VM_GLOBAL | VM_READ;
 
     console_register(&com1_console.console);
@@ -149,6 +144,8 @@ void x86_start_kernel(x86_startup_info *info)
 
     const multiboot_info_t *mb_info = info->mb_info;
     initrd_size = info->initrd_size;
+    const u32 mem_lower = mb_info->mem_lower, mem_upper = mb_info->mem_upper;
+    pr_info("mem_lower: %u KB, mem_upper: %u KB", mem_lower, mem_upper);
 
     if (initrd_size)
         initrd_paddr = ((x86_pgtable_entry *) (((x86_pgdir_entry *) x86_get_cr3())[MOS_X86_INITRD_VADDR >> 22].page_table_paddr << 12))->phys_addr << 12;
@@ -162,20 +159,21 @@ void x86_start_kernel(x86_startup_info *info)
         strncpy(mos_cmdline, mb_info->cmdline, sizeof(mos_cmdline));
 
     const u32 memregion_count = mb_info->mmap_length / sizeof(multiboot_memory_map_t);
-    x86_mem_init(mb_info->mmap_addr, memregion_count);
-    if (x86_platform.mem_regions.count != memregion_count)
-        mos_warn("x86_mem_init() did not initialize all memory regions");
-
-    mos_pmm_setup();
+    x86_pmm_region_setup(mb_info->mmap_addr, memregion_count);
 
     x86_mm_paging_init();
 
     pr_info("mapping kernel space...");
-    mm_map_pages(x86_platform.kernel_pgd, x86_platform.k_code);
-    mm_map_pages(x86_platform.kernel_pgd, x86_platform.k_rodata);
-    mm_map_pages(x86_platform.kernel_pgd, x86_platform.k_rwdata);
+    x86_platform.k_code.pblocks = pmm_acquire_usable_pages_at((uintptr_t) &__MOS_KERNEL_CODE_START - MOS_KERNEL_START_VADDR, x86_platform.k_code.npages);
+    x86_platform.k_rodata.pblocks = pmm_acquire_usable_pages_at((uintptr_t) &__MOS_KERNEL_RODATA_START - MOS_KERNEL_START_VADDR, x86_platform.k_rodata.npages);
+    x86_platform.k_rwdata.pblocks = pmm_acquire_usable_pages_at((uintptr_t) &__MOS_KERNEL_RW_START - MOS_KERNEL_START_VADDR, x86_platform.k_rwdata.npages);
+    mm_map_allocated_pages(x86_platform.kernel_pgd, x86_platform.k_code);
+    mm_map_allocated_pages(x86_platform.kernel_pgd, x86_platform.k_rodata);
+    mm_map_allocated_pages(x86_platform.kernel_pgd, x86_platform.k_rwdata);
 
     pr_info("mapping bios memory area...");
+    x86_bios_block.pblocks = pmm_acquire_reserved_pages_at(X86_BIOS_MEMREGION_PADDR, x86_bios_block.npages);
+    x86_ebda_block.pblocks = pmm_acquire_reserved_pages_at(X86_EBDA_MEMREGION_PADDR, x86_ebda_block.npages);
     mm_map_allocated_pages(x86_platform.kernel_pgd, x86_bios_block);
     mm_map_allocated_pages(x86_platform.kernel_pgd, x86_ebda_block);
 
@@ -187,13 +185,14 @@ void x86_start_kernel(x86_startup_info *info)
 
     if (initrd_size)
     {
+        size_t initrd_pgcount = ALIGN_UP_TO_PAGE(initrd_size) / MOS_PAGE_SIZE;
         const vmblock_t initrd_block = (vmblock_t){
             .vaddr = MOS_X86_INITRD_VADDR,
             .flags = VM_READ | VM_GLOBAL,
-            .paddr = initrd_paddr,
-            .npages = ALIGN_UP_TO_PAGE(initrd_size) / MOS_PAGE_SIZE,
+            .npages = initrd_pgcount,
+            .pblocks = pmm_acquire_usable_pages_at(initrd_paddr, initrd_pgcount),
         };
-        mm_map_pages(x86_platform.kernel_pgd, initrd_block);
+        mm_map_allocated_pages(x86_platform.kernel_pgd, initrd_block);
 
         initrd_blockdev_t *initrd_blockdev = kzalloc(sizeof(initrd_blockdev_t));
         initrd_blockdev->blockdev = (blockdev_t){ .name = "initrd", .read = initrd_read };
@@ -210,27 +209,34 @@ void x86_start_kernel(x86_startup_info *info)
             mos_panic("RSDP not found");
     }
 
+    if (rsdp->xsdt_addr)
+        mos_panic("XSDT not supported");
+
     // find the RSDT and map the whole region it's in
-    for (u32 i = 0; i < x86_platform.mem_regions.count; i++)
+    bool found = false;
+    list_foreach(pmblock_t, r, *pmm_free_regions)
     {
-        memregion_t *r = &x86_platform.mem_regions.regions[i];
-        if (rsdp->xsdt_addr)
-            mos_panic("XSDT not supported");
-        if (rsdp->v1.rsdt_addr >= r->address && rsdp->v1.rsdt_addr < r->address + r->size_bytes)
+        const uintptr_t start = r->paddr;
+        const uintptr_t end = r->paddr + r->npages * MOS_PAGE_SIZE;
+
+        if (rsdp->v1.rsdt_addr >= start && rsdp->v1.rsdt_addr < end)
         {
+            found = true;
             x86_acpi_block = (vmblock_t){
-                .npages = r->size_bytes / MOS_PAGE_SIZE,
-                .vaddr = BIOS_VADDR(r->address),
+                .npages = r->npages,
+                .vaddr = BIOS_VADDR(r->paddr),
                 .flags = VM_READ | VM_GLOBAL,
-                .paddr = r->address,
+                .pblocks = pmm_acquire_reserved_pages_at(r->paddr, r->npages),
             };
 
-            pr_info2("mapping ACPI tables " PTR_FMT " (+%zd pages) to vaddr=" PTR_FMT, r->address, x86_acpi_block.npages, x86_acpi_block.vaddr);
+            pr_info2("mapping ACPI tables " PTR_FMT " (+%zd pages) to vaddr=" PTR_FMT, r->paddr, r->npages, x86_acpi_block.vaddr);
             mm_map_allocated_pages(x86_platform.kernel_pgd, x86_acpi_block);
-            r->address = BIOS_VADDR(r->address);
             break;
         }
     }
+
+    if (!found)
+        mos_panic("bug in pmm: ACPI tables not in any memory region");
 
     acpi_parse_rsdt(rsdp);
 

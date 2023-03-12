@@ -147,14 +147,14 @@ vmblock_t mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t n_pag
         return (vmblock_t){ .vaddr = 0, .npages = 0 };
     }
 
-    uintptr_t paddr = pmalloc_alloc(n_pages);
-    if (unlikely(paddr == 0))
+    pmblock_t *pblocks = pmm_allocate(n_pages);
+    if (unlikely(!pblocks))
     {
         mos_warn("could not allocate %zd physical pages", n_pages);
         return (vmblock_t){ .vaddr = 0, .npages = 0 };
     }
 
-    vmblock_t block = { .vaddr = vaddr, .npages = n_pages, .paddr = paddr, .flags = flags };
+    vmblock_t block = { .vaddr = vaddr, .npages = n_pages, .pblocks = pblocks, .flags = flags };
     mm_map_allocated_pages(table, block);
     return block;
 }
@@ -162,19 +162,7 @@ vmblock_t mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t n_pag
 void mm_free_pages(paging_handle_t table, vmblock_t block)
 {
     mm_unmap_pages(table, block.vaddr, block.npages);
-    pmalloc_release_pages(block.paddr, block.npages);
-}
-
-void mm_map_pages(paging_handle_t table, vmblock_t block)
-{
-    if (unlikely(table.pgd == 0))
-    {
-        mos_warn("cannot map pages at " PTR_FMT ", pagetable is null", block.vaddr);
-        return;
-    }
-
-    pmalloc_acquire_pages(block.paddr, block.npages);
-    mm_map_allocated_pages(table, block);
+    pmm_free(block.pblocks);
 }
 
 void mm_map_allocated_pages(paging_handle_t table, vmblock_t block)
@@ -210,6 +198,11 @@ vmblock_t mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t t
     }
 
     pagemap_mark_used(to.um_page_map, tvaddr, npages);
+
+// !! TODO: Also copy the physical block list
+// !! TODO: May break a physical block list node into two, if we are copying only a part of it
+#error "TODO: Copy physical block list"
+
     vmblock_t block = platform_mm_copy_maps(PGD_FOR_VADDR(fvaddr, from), fvaddr, PGD_FOR_VADDR(tvaddr, to), tvaddr, npages);
     return block;
 }

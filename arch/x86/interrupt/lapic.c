@@ -148,13 +148,18 @@ void lapic_memory_setup(void)
         base_addr = BIOS_VADDR(base_addr);
     }
 
-    const vmblock_t lapic_block = {
+    STATIC_PMBLOCK(lapic_pblock, 0, 1); // 0 is a placeholder, will be replaced later
+    lapic_pblock.paddr = base_addr;
+
+    vmblock_t lapic_block = {
         .vaddr = base_addr,
-        .paddr = base_addr,
         .npages = 1,
         .flags = VM_RW | VM_GLOBAL | VM_CACHE_DISABLED,
+        .pblocks = &lapic_pblock,
     };
+
     mm_map_allocated_pages(x86_platform.kernel_pgd, lapic_block);
+
     lapic_regs = (u32 *) base_addr;
 }
 

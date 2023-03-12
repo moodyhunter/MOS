@@ -79,7 +79,7 @@
                 "-smp",
                 "1",
                 "-append",
-                "kmsg_console=serial init=/tests/my_mutex",
+                "init=/programs/locks-bench",
             ],
             "problemMatcher": [ ],
             "group": "none",

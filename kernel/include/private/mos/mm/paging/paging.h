@@ -88,19 +88,6 @@ vmblock_t mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t npage
 void mm_free_pages(paging_handle_t table, vmblock_t block);
 
 /**
- * @brief Map a block of virtual memory to a given block of physical memory, with the physical memory requested from the physical memory allocator.
- *
- * @param table The page table to map in.
- * @param block The block of virtual memory to map.
- *
- * @details This function maps the pages in the block, then try requesting the corresponding physical memory
- * from the physical memory allocator, if the physical memory is not available, the action will fail.
- *
- * @warning This function is rarely used directly, it's only used to map the kernel image.
- */
-void mm_map_pages(paging_handle_t table, vmblock_t block);
-
-/**
  * @brief Map a block of virtual memory to a given block of physical memory, without the interaction of the physical memory allocator.
  *
  * @param table The page table to map in.
