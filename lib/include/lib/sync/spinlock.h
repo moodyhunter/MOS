@@ -58,3 +58,46 @@ should_inline bool spinlock_is_locked(spinlock_t *lock)
 {
     return lock->flag;
 }
+
+typedef struct
+{
+    spinlock_t lock;
+    void *owner;
+    size_t count;
+} recursive_spinlock_t;
+
+// clang-format off
+#define RECURSIVE_SPINLOCK_INIT { SPINLOCK_INIT, NULL, 0 }
+// clang-format on
+
+should_inline void recursive_spinlock_acquire(recursive_spinlock_t *lock, void *owner)
+{
+    if (lock->owner == owner)
+    {
+        lock->count++;
+    }
+    else
+    {
+        spinlock_acquire(&lock->lock);
+        lock->owner = owner;
+        lock->count = 1;
+    }
+}
+
+should_inline void recursive_spinlock_release(recursive_spinlock_t *lock, void *owner)
+{
+    if (lock->owner == owner)
+    {
+        lock->count--;
+        if (lock->count == 0)
+        {
+            lock->owner = NULL;
+            spinlock_release(&lock->lock);
+        }
+    }
+}
+
+should_inline bool recursive_spinlock_is_locked(recursive_spinlock_t *lock)
+{
+    return lock->lock.flag;
+}
