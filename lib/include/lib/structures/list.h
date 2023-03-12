@@ -13,6 +13,14 @@
  */
 
 typedef struct list_node list_node_t;
+
+/**
+ * @brief A linked list head.
+ *
+ * @note The list head should be placed in the heap, not on the stack.
+ *       This is because the list head is a circular list, and the
+ *       `prev' and `next' pointers of the list head point to itself.
+ */
 typedef list_node_t list_head;
 
 /** @brief A node in a linked list. */
@@ -39,6 +47,16 @@ struct list_node
 #define list_entry(node, type) const_container_of((node), list_node_t, type, list_node)
 
 /**
+ * @brief Get the next element in a list
+ */
+#define list_prev_entry(item, type) list_entry(list_node(item)->prev, type)
+
+/**
+ * @brief Get the next element in a list
+ */
+#define list_next_entry(item, type) list_entry(list_node(item)->next, type)
+
+/**
  * @brief Get the `list_node' of a list element.
  * This is exactly the reverse of `list_entry' above.
  */
@@ -57,14 +75,17 @@ struct list_node
  * @param v Name of the variable to use for the current element (e.g. `item')
  * @param h List Head (e.g. `consoles')
  */
-#define list_foreach(t, v, h)   for (__typeof(list_entry(&(h), t)) v = list_entry((h).next, t); list_node(v) != &(h); v = list_entry(list_node(v)->next, t))
-#define list_node_foreach(v, h) for (__typeof(h) v = (h)->next; v != (h); v = v->next)
+#define list_foreach(t, v, h)                                                                                                                                            \
+    for (__typeof(list_entry(&(h), t)) v = list_entry((h).next, t), __next = list_next_entry(v, t); list_node(v) != &(h); v = __next, __next = list_next_entry(v, t))
 
-#define list_foreach_reverse(t, v, h)         for (t *v = list_entry((h).prev, t); list_node(v) != &(h); v = list_entry(list_node(v)->prev, t))
-#define list_node_foreach_reverse(node, head) for (list_node_t *node = (head)->prev; node != (head); node = node->prev)
+#define list_foreach_reverse(t, v, h)                                                                                                                                    \
+    for (__typeof(list_entry(&(h), t)) v = list_entry((h).prev, t), __next = list_prev_entry(v, t); list_node(v) != &(h); v = __next, __next = list_prev_entry(v, t))
+
+#define list_node_foreach(v, h)         for (list_node_t *v = (h)->next, *__next = v->next; v != (h); v = __next, __next = v->next)
+#define list_node_foreach_reverse(v, h) for (list_node_t *v = (h)->prev, *__next = v->prev; v != (h); v = __next, __next = v->prev)
 
 MOSAPI void linked_list_init(list_node_t *head_node);
-MOSAPI bool list_is_empty(list_node_t *head);
+MOSAPI bool list_is_empty(const list_node_t *head);
 MOSAPI void list_node_remove(list_node_t *link);
 
 MOSAPI list_node_t *list_node_pop(list_node_t *head);

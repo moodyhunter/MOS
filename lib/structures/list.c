@@ -29,7 +29,7 @@ void linked_list_init(list_node_t *node)
  * @param prev The node before the insertion point
  * @param next The node after the insertion point
  */
-bool list_is_empty(list_node_t *head)
+bool list_is_empty(const list_node_t *head)
 {
     return head->next == head;
 }

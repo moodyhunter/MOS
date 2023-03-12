@@ -215,3 +215,62 @@ MOS_TEST_CASE(test_list_foreach)
     MOS_TEST_CHECK(sum_before, 25);
     MOS_TEST_CHECK(sum_after, 30);
 }
+
+MOS_TEST_CASE(test_list_safe_foreach)
+{
+    list_node_t list_head = LIST_HEAD_INIT(list_head);
+    test_structure s1 = { 1, LIST_NODE_INIT(s1), 2 };
+    test_structure s2 = { 3, LIST_NODE_INIT(s2), 4 };
+    test_structure s3 = { 5, LIST_NODE_INIT(s3), 6 };
+    test_structure s4 = { 7, LIST_NODE_INIT(s4), 8 };
+    test_structure s5 = { 9, LIST_NODE_INIT(s5), 10 };
+    list_node_append(&list_head, &s1.list_node); // list_head -> s1
+    list_node_append(&list_head, &s2.list_node); // list_head -> s1 -> s2
+    list_node_append(&list_head, &s3.list_node); // list_head -> s1 -> s2 -> s3
+    list_node_append(&list_head, &s4.list_node); // list_head -> s1 -> s2 -> s3 -> s4
+    list_node_append(&list_head, &s5.list_node); // list_head -> s1 -> s2 -> s3 -> s4 -> s5
+
+    // count the list.
+    size_t count = 0;
+    list_node_t *node = list_head.next;
+    while (node != &list_head)
+    {
+        count++;
+        node = node->next;
+    }
+    MOS_TEST_CHECK(count, 5);
+
+    // sum the list.
+    int sum_before = 0;
+    int sum_after = 0;
+    list_foreach(test_structure, node, list_head)
+    {
+        sum_before += node->value_before;
+        sum_after += node->value_after;
+    }
+    MOS_TEST_CHECK(sum_before, 25);
+    MOS_TEST_CHECK(sum_after, 30);
+
+    // sum the list, and in the loop, remove s3.
+    sum_before = 0;
+    sum_after = 0;
+    list_foreach(test_structure, node, list_head)
+    {
+        sum_before += node->value_before;
+        sum_after += node->value_after;
+        if (node == &s3)
+        {
+            list_node_remove(&s3.list_node);
+        }
+    }
+    MOS_TEST_CHECK(sum_before, 25);
+    MOS_TEST_CHECK(sum_after, 30);
+
+    // count the list.
+    count = 0;
+    list_foreach(test_structure, node, list_head)
+    {
+        count++;
+    }
+    MOS_TEST_CHECK(count, 4);
+}
