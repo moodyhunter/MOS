@@ -201,7 +201,6 @@ vmblock_t mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t t
 
 // !! TODO: Also copy the physical block list
 // !! TODO: May break a physical block list node into two, if we are copying only a part of it
-#error "TODO: Copy physical block list"
 
     vmblock_t block = platform_mm_copy_maps(PGD_FOR_VADDR(fvaddr, from), fvaddr, PGD_FOR_VADDR(tvaddr, to), tvaddr, npages);
     return block;
