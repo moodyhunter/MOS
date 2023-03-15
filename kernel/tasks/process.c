@@ -36,7 +36,7 @@ static pid_t new_process_id(void)
     return (pid_t){ next++ };
 }
 
-static void debug_dump_process(void)
+static void dump_process(void)
 {
     if (current_thread)
     {
@@ -47,6 +47,10 @@ static void debug_dump_process(void)
         else
             pr_info2("parent <none> ");
         process_dump_mmaps(proc);
+    }
+    else
+    {
+        pr_warn("no current thread");
     }
 }
 
@@ -100,8 +104,8 @@ void process_init(void)
 {
     process_table = kzalloc(sizeof(hashmap_t));
     hashmap_init(process_table, PROCESS_HASHTABLE_SIZE, process_hash, hashmap_simple_key_compare);
-    declare_panic_hook(debug_dump_process);
-    install_panic_hook(&debug_dump_process_holder);
+    declare_panic_hook(dump_process);
+    install_panic_hook(&dump_process_holder);
 }
 
 void process_deinit(void)
@@ -225,18 +229,7 @@ void process_detach_mmap(process_t *process, vmblock_t block)
             process->mmaps_count--;
             process->mmaps[i] = process->mmaps[process->mmaps_count];
             process->mmaps = krealloc(process->mmaps, sizeof(vmap_t) * process->mmaps_count);
-
-            if (process->mmaps[i].flags.cow || process->mmaps[i].flags.zod)
-            {
-                // TODO: CoW tracking
-                mm_unmap_pages(process->pagetable, block.vaddr, block.npages);
-            }
-            else
-            {
-                // free the pages
-                mm_free_pages(process->pagetable, block);
-            }
-
+            mm_unmap_pages(process->pagetable, block.vaddr, block.npages);
             return;
         }
     }
@@ -314,17 +307,7 @@ void process_handle_cleanup(process_t *process)
     for (size_t i = 0; i < process->mmaps_count; i++)
     {
         const vmblock_t block = process->mmaps[i].blk;
-
-        // they will be unmapped when the last process detaches them
-        // !! TODO: How to track this??
-        if (process->mmaps[i].flags.cow || process->mmaps[i].flags.zod)
-        {
-            mm_unmap_pages(process->pagetable, block.vaddr, block.npages);
-        }
-        else
-        {
-            mm_free_pages(process->pagetable, block);
-        }
+        mm_unmap_pages(process->pagetable, block.vaddr, block.npages);
     }
 }
 
@@ -356,7 +339,6 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
     else
     {
         vmblock_t new_part = mm_alloc_pages_at(process->pagetable, heap_top, npages, VM_USER_RW);
-        list_append(heap->blk.pblocks, new_part.pblocks); // merge the new pages with the old ones
         MOS_ASSERT(new_part.npages == npages && new_part.vaddr == heap_top);
     }
 

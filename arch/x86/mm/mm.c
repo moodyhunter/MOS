@@ -43,6 +43,6 @@ void x86_pmm_region_setup(const multiboot_memory_map_t *map_entry, u32 count)
         }
 
         pr_info2("  %d: 0x%.8llx - 0x%.8llx: %-10s (%s)", i, region_base, region_base + region_length - 1, type_str, size_buf);
-        mos_pmm_add_region(region_base, region_length, entry->type == MULTIBOOT_MEMORY_AVAILABLE ? PMM_REGION_USEABLE : PMM_REGION_RESERVED);
+        mos_pmm_add_region(region_base, region_length, entry->type == MULTIBOOT_MEMORY_AVAILABLE ? PMM_REGION_FREE : PMM_REGION_RESERVED);
     }
 }

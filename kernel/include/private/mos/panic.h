@@ -12,9 +12,10 @@ typedef struct
 {
     as_linked_list;
     kpanic_hook_t *hook;
+    const char *const name;
 } panic_hook_holder_t;
 
-#define declare_panic_hook(fn) static panic_hook_holder_t fn##_holder = { .hook = fn, .list_node = LIST_NODE_INIT(fn##_holder) }
+#define declare_panic_hook(fn) static panic_hook_holder_t fn##_holder = { .list_node = LIST_NODE_INIT(fn##_holder), .hook = fn, .name = #fn }
 
 void install_panic_hook(panic_hook_holder_t *hook);
 void kwarn_handler_set(kmsg_handler_t *handler);

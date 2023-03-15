@@ -69,38 +69,26 @@ bool liballoc_free_page(void *vptr, size_t npages)
         return false;
     }
 
-    // TODO: this is a hack
-    vmblock_t block = mm_get_block_info(current_cpu->pagetable, (uintptr_t) vptr, npages);
-    mm_free_pages(current_cpu->pagetable, block);
+    mm_unmap_pages(current_cpu->pagetable, (uintptr_t) vptr, npages);
     return true;
 }
 
 vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, pgalloc_hints hints, vm_flags flags)
 {
-    vmblock_t free_pages = mm_get_free_pages(handle, npages, hints);
-    if (free_pages.npages < npages)
-    {
-        mos_warn("failed to allocate %zu pages", npages);
-        return (vmblock_t){ 0 };
-    }
+    const uintptr_t vaddr_base = mm_get_free_pages(handle, npages, hints);
 
     // zero fill the pages
     for (size_t i = 0; i < npages; i++)
     {
-        // actually, zero_block is always accessible, using [handle] == using [current_cpu->pagetable] as source
-        vmblock_t this_block = {
-            .vaddr = free_pages.vaddr + i * MOS_PAGE_SIZE,
-            .npages = 1,
-            .flags = VM_READ | VM_USER,
-            .pblocks = zero_block.pblocks,
-        };
-        mm_map_allocated_pages(handle, this_block);
+        const uintptr_t vaddr = vaddr_base + i * MOS_PAGE_SIZE;
+        mm_copy_mapping(handle, zero_block.vaddr, handle, vaddr, 1, MM_COPY_DEFAULT);
     }
 
     // make the pages read-only (because for now, they are mapped to zero_block)
-    platform_mm_flag_pages(handle, free_pages.vaddr, npages, VM_READ | ((flags & VM_USER) ? VM_USER : 0));
-    free_pages.flags = flags; // but set the desired flags correctly
-    return free_pages;
+    const vm_flags real_flags = VM_READ | ((flags & VM_USER) ? VM_USER : 0); // only set VM_READ and VM_USER
+    mm_flag_pages(handle, vaddr_base, npages, real_flags);
+
+    return (vmblock_t){ .vaddr = vaddr_base, .npages = npages, .flags = flags };
 }
 
 vmblock_t mm_alloc_zeroed_pages_at(paging_handle_t handle, uintptr_t vaddr, size_t npages, vm_flags flags)
@@ -115,99 +103,10 @@ vmblock_t mm_alloc_zeroed_pages_at(paging_handle_t handle, uintptr_t vaddr, size
     for (size_t i = 0; i < npages; i++)
     {
         // actually, zero_block is always accessible, using [handle] == using [current_cpu->pagetable] as source
-        mm_copy_maps(current_cpu->pagetable, zero_block.vaddr, handle, vaddr + i * MOS_PAGE_SIZE, 1);
+        mm_copy_mapping(current_cpu->pagetable, zero_block.vaddr, handle, vaddr + i * MOS_PAGE_SIZE, 1, MM_COPY_DEFAULT);
     }
 
     // make the pages read-only (because for now, they are mapped to zero_block)
-    platform_mm_flag_pages(handle, vaddr, npages, VM_READ | ((flags & VM_USER) ? VM_USER : 0));
+    mm_flag_pages(handle, vaddr, npages, VM_READ | ((flags & VM_USER) ? VM_USER : 0));
     return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags };
-}
-
-vmblock_t mm_map_proxy_space(paging_handle_t src, uintptr_t srcvaddr, size_t npages)
-{
-    const vmblock_t proxy_blk = mm_get_free_pages(current_cpu->pagetable, npages, PGALLOC_HINT_KHEAP);
-    mm_copy_maps(src, srcvaddr, current_cpu->pagetable, proxy_blk.vaddr, npages);
-    return proxy_blk;
-}
-
-void mm_unmap_proxy_space(vmblock_t proxy_blk)
-{
-    mm_unmap_pages(current_cpu->pagetable, proxy_blk.vaddr, proxy_blk.npages);
-}
-
-void mm_copy_pages(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t n_pages)
-{
-    paging_handle_t current_handle = current_cpu->pagetable;
-    if (fvaddr >= MOS_KERNEL_START_VADDR && tvaddr >= MOS_KERNEL_START_VADDR)
-    {
-        // both addresses are in kernel space
-        memcpy((void *) tvaddr, (void *) fvaddr, n_pages * MOS_PAGE_SIZE);
-    }
-    else if (fvaddr >= MOS_KERNEL_START_VADDR)
-    {
-        // from kernel space to user space
-        if (to.pgd == current_handle.pgd)
-        {
-            // if the target is the current pagetable
-            memcpy((void *) tvaddr, (void *) fvaddr, n_pages * MOS_PAGE_SIZE);
-        }
-        else
-        {
-            // otherwise, make a proxy block
-            const vmblock_t proxy_blk = mm_map_proxy_space(to, tvaddr, n_pages);
-            memcpy((void *) proxy_blk.vaddr, (void *) fvaddr, n_pages * MOS_PAGE_SIZE);
-            mm_unmap_proxy_space(proxy_blk);
-        }
-    }
-    else if (tvaddr >= MOS_KERNEL_START_VADDR)
-    {
-        // from user space to kernel space
-        if (from.pgd == current_handle.pgd)
-        {
-            // if the source is the current pagetable
-            memcpy((void *) tvaddr, (void *) fvaddr, n_pages * MOS_PAGE_SIZE);
-        }
-        else
-        {
-            // otherwise, make a proxy block
-            const vmblock_t proxy_blk = mm_map_proxy_space(from, fvaddr, n_pages);
-            memcpy((void *) tvaddr, (void *) proxy_blk.vaddr, n_pages * MOS_PAGE_SIZE);
-            mm_unmap_proxy_space(proxy_blk);
-        }
-    }
-    else
-    {
-        // both addresses are in user space
-        if (from.pgd == current_handle.pgd)
-        {
-            if (to.pgd == current_handle.pgd)
-            {
-                // although both addresses are in user space, they are both the current pagetable
-                memcpy((void *) tvaddr, (void *) fvaddr, n_pages * MOS_PAGE_SIZE);
-            }
-            else
-            {
-                // only the source is the current pagetable
-                const vmblock_t proxy_blk = mm_map_proxy_space(to, tvaddr, n_pages);
-                memcpy((void *) proxy_blk.vaddr, (void *) fvaddr, n_pages * MOS_PAGE_SIZE);
-                mm_unmap_proxy_space(proxy_blk);
-            }
-        }
-        else if (to.pgd == current_handle.pgd)
-        {
-            // only the target is the current pagetable
-            const vmblock_t proxy_blk = mm_map_proxy_space(from, fvaddr, n_pages);
-            memcpy((void *) tvaddr, (void *) proxy_blk.vaddr, n_pages * MOS_PAGE_SIZE);
-            mm_unmap_proxy_space(proxy_blk);
-        }
-        else
-        {
-            // neither is the current pagetable
-            const vmblock_t proxy_blk_from = mm_map_proxy_space(from, fvaddr, n_pages);
-            const vmblock_t proxy_blk_to = mm_map_proxy_space(to, tvaddr, n_pages);
-            memcpy((void *) proxy_blk_to.vaddr, (void *) proxy_blk_from.vaddr, n_pages * MOS_PAGE_SIZE);
-            mm_unmap_proxy_space(proxy_blk_from);
-            mm_unmap_proxy_space(proxy_blk_to);
-        }
-    }
 }

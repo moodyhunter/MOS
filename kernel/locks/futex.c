@@ -30,18 +30,7 @@ static spinlock_t futex_list_lock = SPINLOCK_INIT;
 static futex_key_t futex_get_key(const futex_word_t *futex)
 {
     const uintptr_t vaddr = (uintptr_t) futex;
-    process_t *proc = current_process;
-    for (size_t i = 0; i < proc->mmaps_count; i++)
-    {
-        vmap_t *vmap = &proc->mmaps[i];
-        if (vaddr >= vmap->blk.vaddr && vaddr < vmap->blk.vaddr + vmap->blk.npages * MOS_PAGE_SIZE)
-        {
-            size_t page_i = ALIGN_DOWN_TO_PAGE(vaddr - vmap->blk.vaddr) / MOS_PAGE_SIZE;
-            return pmm_get_page_paddr(vmap->blk.pblocks, page_i) + (vaddr % MOS_PAGE_SIZE);
-        }
-    }
-
-    mos_panic("futex_get_key: futex not found in any vmap");
+    return platform_mm_get_phys_addr(current_process->pagetable, vaddr);
 }
 
 bool futex_wait(futex_word_t *futex, futex_word_t expected)

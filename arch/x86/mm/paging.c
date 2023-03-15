@@ -17,6 +17,32 @@ static spinlock_t x86_kernel_pgd_lock = SPINLOCK_INIT;
 
 x86_pg_infra_t *const x86_kpg_infra = &x86_kpg_infra_storage;
 
+static void x86_walk_pagetable_dump_callback(const pgt_iteration_info_t *iter_info, const vmblock_t *block, uintptr_t block_paddr, void *arg)
+{
+    MOS_UNUSED(iter_info);
+    uintptr_t *prev_end_vaddr = (uintptr_t *) arg;
+    if (block->vaddr - *prev_end_vaddr > MOS_PAGE_SIZE)
+    {
+        pr_info("  VGROUP: " PTR_FMT, block->vaddr);
+    }
+
+    pr_info2("    " PTR_FMT "-" PTR_FMT " -> " PTR_FMT "-" PTR_FMT ", %5zd pages, %c%c%c, %c%c, %s", //
+             block->vaddr,                                                                           //
+             block->vaddr + block->npages * MOS_PAGE_SIZE,                                           //
+             block_paddr,                                                                            //
+             block_paddr + block->npages * MOS_PAGE_SIZE,                                            //
+             block->npages,                                                                          //
+             block->flags & VM_READ ? 'r' : '-',                                                     //
+             block->flags & VM_WRITE ? 'w' : '-',                                                    //
+             block->flags & VM_EXEC ? 'x' : '-',                                                     //
+             block->flags & VM_CACHE_DISABLED ? 'C' : '-',                                           //
+             block->flags & VM_GLOBAL ? 'G' : '-',                                                   //
+             block->flags & VM_USER ? "user" : "kernel"                                              //
+    );
+
+    *prev_end_vaddr = block->vaddr + block->npages * MOS_PAGE_SIZE;
+}
+
 void x86_mm_paging_init(void)
 {
     // initialize the page directory
@@ -34,131 +60,84 @@ void x86_mm_enable_paging(void)
     pr_info("paging: enabled");
 
 #if MOS_DEBUG_FEATURE(x86_paging)
-    x86_mm_dump_page_table(x86_kpg_infra);
+    x86_dump_pagetable(x86_platform.kernel_pgd);
 #endif
 }
 
-void page_table_dump_range(x86_pg_infra_t *kpg_infra, size_t start_page, size_t end_page)
+void x86_dump_pagetable(paging_handle_t handle)
 {
-    pr_info("  VM Group " PTR_FMT " (+%zu pages):", (uintptr_t) start_page * MOS_PAGE_SIZE, end_page - start_page);
-
-    size_t i = start_page;
-    while (true)
-    {
-        if (i >= end_page)
-            return;
-
-        x86_pgtable_entry *pgtable = kpg_infra->pgtable + i;
-        MOS_ASSERT(pgtable->present);
-
-        uintptr_t p_range_start = pgtable->phys_addr << 12;
-        uintptr_t p_range_last = p_range_start;
-
-        uintptr_t v_range_start = i * MOS_PAGE_SIZE;
-
-        bool range_begin_usermode = pgtable->usermode;
-        bool range_begin_writable = pgtable->writable;
-
-        // ! Special case: end_page - start_page == 1
-        if (end_page - start_page == 1)
-        {
-            uintptr_t v_range_end = v_range_start + MOS_PAGE_SIZE;
-            uintptr_t p_range_end = p_range_start + MOS_PAGE_SIZE;
-            pr_info("    " PTR_FMT "-" PTR_FMT " -> " PTR_FMT "-" PTR_FMT " (%s, %s)", v_range_start, v_range_end, p_range_start, p_range_end,
-                    range_begin_writable ? "rw" : "ro", range_begin_usermode ? "user" : "kernel");
-            return;
-        }
-
-        while (true)
-        {
-            i++;
-            if (i >= end_page)
-                return;
-
-            x86_pgtable_entry *this_t = kpg_infra->pgtable + i;
-            MOS_ASSERT(this_t->present);
-
-            uintptr_t p_range_current = this_t->phys_addr << 12;
-
-            bool is_last_page = i == end_page - 1;
-            bool is_continuous = p_range_current == p_range_last + MOS_PAGE_SIZE && this_t->usermode == range_begin_usermode && this_t->writable == range_begin_writable;
-
-            if (is_continuous && !is_last_page)
-            {
-                p_range_last = p_range_current;
-                continue;
-            }
-
-            uintptr_t v_range_end = i * MOS_PAGE_SIZE;
-            uintptr_t p_range_end = p_range_current + MOS_PAGE_SIZE;
-            // '!is_continuous' case : print the previous range, but add one page
-            if (!is_continuous)
-                p_range_end = p_range_last + MOS_PAGE_SIZE;
-            else
-                v_range_end += MOS_PAGE_SIZE;
-            MOS_ASSERT(p_range_end - p_range_start == v_range_end - v_range_start);
-            pr_info("    " PTR_FMT "-" PTR_FMT " -> " PTR_FMT "-" PTR_FMT " (%s, %s)", v_range_start, v_range_end, p_range_start, p_range_end,
-                    range_begin_writable ? "rw" : "ro", range_begin_usermode ? "user" : "kernel");
-            break;
-        }
-    }
+    pr_info("Page Table:");
+    uintptr_t tmp = 0;
+    x86_mm_walk_page_table(handle, 0, MOS_MAX_VADDR / MOS_PAGE_SIZE, x86_walk_pagetable_dump_callback, &tmp);
 }
 
-void x86_mm_dump_page_table(x86_pg_infra_t *pg)
+void x86_mm_walk_page_table(paging_handle_t handle, uintptr_t vaddr_start, size_t n_pages, pgt_iteration_callback_t callback, void *arg)
 {
-    pr_info("paging: dumping page table");
-    enum
-    {
-        PRESENT,
-        ABSENT
-    } current_state = pg->pgtable[0].present ? PRESENT : ABSENT;
+    uintptr_t vaddr = vaddr_start;
+    size_t n_pages_left = n_pages;
 
-    size_t current_state_begin_pg = 0;
+    const x86_pg_infra_t *pg = x86_get_pg_infra(handle);
+    const pgt_iteration_info_t info = { .address_space = handle, .vaddr_start = vaddr_start, .npages = n_pages };
 
-    for (int pgd_i = 0; pgd_i < 1024; pgd_i++)
+    uintptr_t previous_paddr = 0;
+    vm_flags previous_flags = 0;
+    bool previous_present = false;
+    vmblock_t previous_block = { .vaddr = vaddr_start, .npages = 0, .flags = 0 };
+
+    do
     {
-        x86_pgdir_entry *pgd = pg->pgdir + pgd_i;
-        if (!pgd->present)
+        const id_t pgd_i = vaddr >> 22;
+        const id_t pgt_i = (vaddr >> 12) & 0x3FF;
+
+        const x86_pgdir_entry *pgd = (vaddr >= MOS_KERNEL_START_VADDR) ? &x86_kpg_infra->pgdir[pgd_i] : &pg->pgdir[pgd_i];
+        const x86_pgtable_entry *pgt = (vaddr >= MOS_KERNEL_START_VADDR) ? &x86_kpg_infra->pgtable[pgd_i * 1024 + pgt_i] : &pg->pgtable[pgd_i * 1024 + pgt_i];
+
+        const bool present = pgd->present && pgt->present;
+        if (present == previous_present && !present)
         {
-            if (current_state == PRESENT)
+            if (!pgd->present && pgt_i == 0)
             {
-                size_t current_state_end_pg = pgd_i * 1024 + 0;
-                page_table_dump_range(pg, current_state_begin_pg, current_state_end_pg);
-                current_state = ABSENT;
-                current_state_begin_pg = current_state_end_pg;
+                vaddr += MOS_PAGE_SIZE * 1024;
+                n_pages_left = (n_pages_left > 1024) ? n_pages_left - 1024 : 0;
+            }
+            else
+            {
+                vaddr += MOS_PAGE_SIZE;
+                n_pages_left--;
             }
             continue;
         }
 
-        x86_pgtable_entry *pgtable = NULL;
-        x86_pg_infra_t *dump_pg = NULL;
-        if (pgd_i < 768) // user pages
-            pgtable = pg->pgtable, dump_pg = pg;
-        else // HACK: kernel pages
-            pgtable = x86_kpg_infra->pgtable, dump_pg = x86_kpg_infra;
+        const uintptr_t paddr = pgt->phys_addr << 12;
+        const vm_flags flags = VM_READ |                                                              //
+                               (pgd->writable && pgt->writable ? VM_WRITE : 0) |                      //
+                               (pgd->usermode && pgt->usermode ? VM_USER : 0) |                       //
+                               (pgd->cache_disabled && pgt->cache_disabled ? VM_CACHE_DISABLED : 0) | //
+                               (pgt->global ? VM_GLOBAL : 0);
 
-        for (int pte_i = 0; pte_i < 1024; pte_i++)
+        // if anything changed, call the callback
+        if (present != previous_present || paddr != previous_paddr + MOS_PAGE_SIZE || flags != previous_flags)
         {
-            x86_pgtable_entry *pte = &pgtable[pgd_i * 1024 + pte_i];
+            if (previous_block.npages > 0 && previous_present)
+                callback(&info, &previous_block, previous_paddr - (previous_block.npages - 1) * MOS_PAGE_SIZE, arg);
 
-            if (!pte->present)
-            {
-                if (current_state == PRESENT)
-                {
-                    size_t current_state_end_pg = pgd_i * 1024 + pte_i;
-                    page_table_dump_range(dump_pg, current_state_begin_pg, current_state_end_pg);
-                    current_state = ABSENT;
-                    current_state_begin_pg = current_state_end_pg;
-                }
-            }
-            else
-            {
-                if (current_state == ABSENT)
-                {
-                    current_state = PRESENT;
-                    current_state_begin_pg = pgd_i * 1024 + pte_i;
-                }
-            }
+            previous_block.vaddr = vaddr;
+            previous_block.npages = 1;
+            previous_block.flags = flags;
+            previous_paddr = paddr;
+            previous_present = present;
+            previous_flags = flags;
         }
-    }
+        else
+        {
+            previous_block.npages++;
+            previous_paddr = paddr;
+        }
+
+        vaddr += MOS_PAGE_SIZE;
+        n_pages_left--;
+    } while (n_pages_left > 0);
+
+    if (previous_block.npages > 0 && previous_present)
+        callback(&info, &previous_block, previous_paddr - (previous_block.npages - 1) * MOS_PAGE_SIZE, arg);
 }

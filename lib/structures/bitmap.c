@@ -36,7 +36,7 @@ void bitmap_clear(bitmap_line_t *bitmap, size_t bitmap_nlines, size_t index)
     bitmap[line] &= ~((bitmap_line_t) 1 << bit);
 }
 
-bool bitmap_get(bitmap_line_t *bitmap, size_t bitmap_nlines, size_t index)
+bool bitmap_get(const bitmap_line_t *bitmap, size_t bitmap_nlines, size_t index)
 {
     size_t line = index / BITMAP_LINE_BITS;
     size_t bit = index % BITMAP_LINE_BITS;

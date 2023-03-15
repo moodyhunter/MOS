@@ -89,7 +89,7 @@ paging_handle_t platform_mm_create_user_pgd(void)
     handle.pgd = (uintptr_t) infra;
 
     // physical address of kernel page table
-    const uintptr_t kpgtable_paddr = pg_page_get_mapped_paddr(x86_kpg_infra, (uintptr_t) x86_kpg_infra->pgtable);
+    const uintptr_t kpgtable_paddr = pg_get_mapped_paddr(x86_kpg_infra, (uintptr_t) x86_kpg_infra->pgtable);
 
     // this is a bit of a hack, but it's the easiest way that I can think of ...
     const int kernel_pagedir_id_start = MOS_KERNEL_START_VADDR / MOS_PAGE_SIZE / 1024; // addr / (size of page) / (# pages of a page directory)
@@ -136,94 +136,62 @@ void platform_switch_to_thread(uintptr_t *old_stack, const thread_t *new_thread,
     x86_switch_to_thread(old_stack, new_thread, switch_flags);
 }
 
-void platform_mm_map_pages(paging_handle_t table, vmblock_t block)
+void platform_mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t n_pages, vm_flags flags)
 {
-    mos_debug(x86_paging, "mapping %zu pages: " PTR_FMT "-" PTR_FMT, block.npages, block.vaddr, block.vaddr + block.npages * MOS_PAGE_SIZE);
+    MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
+
+    mos_debug(x86_paging, "mapping page: " PTR_FMT " -> " PTR_FMT " %zu pages", vaddr, paddr, n_pages);
 
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
-
-    spinlock_acquire(table.pgd_lock);
-    for (size_t i = 0; i < block.npages; i++)
-    {
-        uintptr_t paddr = pmm_get_page_paddr(block.pblocks, i);
-        pg_do_map_page(infra, block.vaddr + i * MOS_PAGE_SIZE, paddr, block.flags);
-    }
-    spinlock_release(table.pgd_lock);
-}
-
-void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr_start, size_t n_pages)
-{
-    mos_debug(x86_paging, "unmapping %zu pages: " PTR_FMT "-" PTR_FMT, n_pages, vaddr_start, vaddr_start + n_pages * MOS_PAGE_SIZE);
-
-    x86_pg_infra_t *infra = x86_get_pg_infra(table);
-    spinlock_acquire(table.pgd_lock);
     for (size_t i = 0; i < n_pages; i++)
-        pg_do_unmap_page(infra, vaddr_start + i * MOS_PAGE_SIZE);
-    spinlock_release(table.pgd_lock);
-}
-
-vmblock_t platform_mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t npages)
-{
-    mos_panic("not implemented");
-    x86_pg_infra_t *infra = x86_get_pg_infra(table);
-    spinlock_acquire(table.pgd_lock);
-    vmblock_t block;
-    block.vaddr = vaddr;
-    // block.paddr = pg_page_get_mapped_paddr(infra, vaddr);
-    block.npages = npages;
-    block.flags = pg_page_get_flags(infra, vaddr);
-    spinlock_release(table.pgd_lock);
-    return block;
-}
-
-vmblock_t platform_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages)
-{
-    x86_pg_infra_t *from_infra = x86_get_pg_infra(from);
-    x86_pg_infra_t *to_infra = x86_get_pg_infra(to);
-
-    spinlock_acquire(from.pgd_lock);
-    spinlock_acquire(to.pgd_lock);
-
-    for (size_t i = 0; i < npages; i++)
     {
-        uintptr_t from_vaddr = fvaddr + i * MOS_PAGE_SIZE;
-        uintptr_t to_vaddr = tvaddr + i * MOS_PAGE_SIZE;
-        uintptr_t paddr = pg_page_get_mapped_paddr(from_infra, from_vaddr);
-        vm_flags flags = pg_page_get_flags(from_infra, from_vaddr);
-        pg_do_map_page(to_infra, to_vaddr, paddr, flags);
+        pg_map_page(infra, vaddr, paddr, flags);
+        vaddr += MOS_PAGE_SIZE;
+        paddr += MOS_PAGE_SIZE;
     }
+}
 
-    vmblock_t block = {
-        .vaddr = tvaddr,
-        .npages = npages,
-        .flags = pg_page_get_flags(from_infra, fvaddr),
-    };
+void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t n_pages)
+{
+    MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
 
-    spinlock_release(to.pgd_lock);
-    spinlock_release(from.pgd_lock);
-    return block;
+    mos_debug(x86_paging, "unmapping page: " PTR_FMT " %zu pages", vaddr, n_pages);
+    x86_pg_infra_t *infra = x86_get_pg_infra(table);
+
+    for (size_t i = 0; i < n_pages; i++)
+    {
+        pg_unmap_page(infra, vaddr);
+        vaddr += MOS_PAGE_SIZE;
+    }
+}
+
+uintptr_t platform_mm_get_phys_addr(paging_handle_t table, uintptr_t vaddr)
+{
+    // intentionally not locked
+    x86_pg_infra_t *infra = x86_get_pg_infra(table);
+    uintptr_t p = pg_get_mapped_paddr(infra, (vaddr & ~(MOS_PAGE_SIZE - 1)));
+    p += vaddr & (MOS_PAGE_SIZE - 1);
+    return p;
+}
+
+void platform_mm_iterate_table(paging_handle_t table, uintptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg)
+{
+    MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
+    x86_mm_walk_page_table(table, vaddr, n, callback, arg);
 }
 
 void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags)
 {
-    if (unlikely(table.pgd == 0))
-    {
-        mos_warn("invalid pgd");
-        return;
-    }
-
+    MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
-    spinlock_acquire(table.pgd_lock);
-    pg_page_flag(infra, vaddr, n, flags);
-    spinlock_release(table.pgd_lock);
+    pg_flag_page(infra, vaddr, n, flags);
 }
 
 vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr)
 {
+    MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
-    spinlock_acquire(table.pgd_lock);
-    vm_flags flags = pg_page_get_flags(infra, vaddr);
-    spinlock_release(table.pgd_lock);
+    vm_flags flags = pg_get_flags(infra, vaddr);
     return flags;
 }
 
@@ -256,13 +224,8 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
         case X86_SYSCALL_MAP_VGA_MEMORY:
         {
             pr_info2("mapping VGA memory for thread %ld", current_thread->tid);
-
-            STATIC_PMBLOCK(vga_phyblock, X86_VIDEO_DEVICE_PADDR, 1);
-
-            vmblock_t block = mm_get_free_pages(current_process->pagetable, 1, PGALLOC_HINT_MMAP);
-            block.flags = VM_USER_RW;
-            block.pblocks = &vga_phyblock;
-            mm_map_allocated_pages(current_thread->owner->pagetable, block);
+            const uintptr_t vaddr = mm_get_free_pages(current_process->pagetable, 1, PGALLOC_HINT_MMAP);
+            const vmblock_t block = mm_map_pages(current_thread->owner->pagetable, vaddr, (uintptr_t){ X86_VIDEO_DEVICE_PADDR }, 1, VM_USER_RW);
             process_attach_mmap(current_process, block, VMTYPE_MMAP, (vmap_flags_t){ .fork_mode = VMAP_FORK_SHARED });
             return block.vaddr;
         }

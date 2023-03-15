@@ -93,18 +93,7 @@ void ioapic_init(void)
 {
     MOS_ASSERT_X(x86_ioapic_address != 0, "ioapic: no ioapic found in madt");
     ioapic = (u32 volatile *) x86_ioapic_address;
-
-    STATIC_PMBLOCK(ioapic_pblock, 0, 1); // 0 is a placeholder, it will be replaced later
-    ioapic_pblock.paddr = x86_ioapic_address;
-
-    vmblock_t ioapic_block = (vmblock_t){
-        .vaddr = x86_ioapic_address,
-        .npages = 1,
-        .flags = VM_RW | VM_GLOBAL | VM_CACHE_DISABLED,
-        .pblocks = &ioapic_pblock,
-    };
-    mm_map_allocated_pages(x86_platform.kernel_pgd, ioapic_block);
-
+    mm_map_pages(x86_platform.kernel_pgd, x86_ioapic_address, x86_ioapic_address, 1, VM_RW);
     const u32 ioapic_id = ioapic_read(IOAPIC_REG_ID) >> 24 & 0xf; // get the 24-27 bits
 
     const union

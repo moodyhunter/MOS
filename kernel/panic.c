@@ -90,6 +90,7 @@ noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
 
     list_foreach(panic_hook_holder_t, holder, kpanic_hooks)
     {
+        pr_emph("invoking panic hook '%s' at %p:", holder->name, (void *) holder);
         holder->hook();
     }
 
@@ -129,4 +130,5 @@ void mos_kwarn(const char *func, u32 line, const char *fmt, ...)
 void install_panic_hook(panic_hook_holder_t *hook)
 {
     list_node_append(&kpanic_hooks, list_node(hook));
+    pr_info2("installed panic hook '%s' at %p", hook->name, (void *) hook);
 }
