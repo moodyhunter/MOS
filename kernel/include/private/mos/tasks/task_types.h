@@ -44,9 +44,6 @@ typedef struct
     //          in the page fault handler.
     bool cow : 1;
 
-    // Zero-on-Demand
-    bool zod : 1;
-
     // This flag only applies to file and anonymous mappings
     vmap_fork_mode_t fork_mode : 2;
 } vmap_flags_t;

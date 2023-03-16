@@ -55,9 +55,7 @@ process_t *process_handle_fork(process_t *parent)
             }
         }
 
-        if (!block->flags.zod && !block->flags.cow)
-            block->flags.cow = true; // if it's neither ZOD nor CoW, make it CoW
-
+        block->flags.cow = true;
         pr_info2(FORKFMT, parent->pid, child->pid, "CoW", block->blk.vaddr, block->blk.npages, block->blk.flags);
         mm_make_process_map_cow(parent->pagetable, block->blk.vaddr, child->pagetable, block->blk.vaddr, block->blk.npages, block->blk.flags);
         child_vmblock = parent->mmaps[i].blk; // do not use the return value from mm_make_process_map_cow

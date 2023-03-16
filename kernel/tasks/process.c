@@ -332,10 +332,9 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
 
     const uintptr_t heap_top = heap->blk.vaddr + heap->blk.npages * MOS_PAGE_SIZE;
 
-    if (heap->flags.cow || heap->flags.zod)
+    if (heap->flags.cow)
     {
         vmblock_t zeroed = mm_alloc_zeroed_pages_at(process->pagetable, heap_top, npages, VM_USER_RW);
-        pr_warn("TODO: fix the physical block list of the heap");
         MOS_ASSERT(zeroed.npages == npages);
     }
     else
@@ -382,18 +381,18 @@ void process_dump_mmaps(const process_t *process)
         }
 
         pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%c%c%c%c%c%c, %c%c]: %s",
-                i,                                                     //
-                block.blk.vaddr,                                       //
-                block.blk.npages,                                      //
-                block.blk.flags & VM_READ ? 'r' : '-',                 //
-                block.blk.flags & VM_WRITE ? 'w' : '-',                //
-                block.blk.flags & VM_EXEC ? 'x' : '-',                 //
-                block.blk.flags & VM_GLOBAL ? 'g' : '-',               //
-                block.blk.flags & VM_USER ? 'u' : '-',                 //
-                block.blk.flags & VM_CACHE_DISABLED ? 'C' : '-',       //
-                block.flags.cow ? 'c' : (block.flags.zod ? 'z' : '-'), //
-                forkmode,                                              //
-                typestr                                                //
+                i,                                               //
+                block.blk.vaddr,                                 //
+                block.blk.npages,                                //
+                block.blk.flags & VM_READ ? 'r' : '-',           //
+                block.blk.flags & VM_WRITE ? 'w' : '-',          //
+                block.blk.flags & VM_EXEC ? 'x' : '-',           //
+                block.blk.flags & VM_GLOBAL ? 'g' : '-',         //
+                block.blk.flags & VM_USER ? 'u' : '-',           //
+                block.blk.flags & VM_CACHE_DISABLED ? 'C' : '-', //
+                block.flags.cow ? 'c' : '-',                     //
+                forkmode,                                        //
+                typestr                                          //
         );
     }
 }

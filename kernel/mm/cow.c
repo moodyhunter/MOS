@@ -12,8 +12,6 @@
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_types.h"
 
-// TODO: A global list of CoW blocks, so that we don't free them if they're still in use.
-
 vmblock_t mm_make_process_map_cow(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages, vm_flags flags)
 {
     // Note that the block returned by this function contains it's ACTRUAL flags, which may be different from the flags of the original block.
@@ -57,7 +55,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
     }
 
     if (!is_write)
-        return false;
+        return false; // we only handle write faults
 
     if (is_write && is_exec)
         mos_panic("Cannot write and execute at the same time");
@@ -91,8 +89,9 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
 
         mos_debug(cow, "fault_addr=" PTR_FMT ", vmblock=" PTR_FMT "-" PTR_FMT, fault_addr, vm->vaddr, vm->vaddr + vm->npages * MOS_PAGE_SIZE);
 
-        if (mmap->flags.zod || mmap->flags.cow)
+        if (mmap->flags.cow)
         {
+            MOS_ASSERT(mmap->blk.flags & VM_WRITE); // if the block is CoW, it must be writable
             pr_emph("CoW page fault in block %zu", i);
             do_resolve_cow(fault_addr, vm->flags);
             mos_debug(cow, "CoW resolved");
