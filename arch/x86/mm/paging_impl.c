@@ -21,7 +21,6 @@ void pg_flag_page(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags)
     MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not aligned to 4096");
     PAGING_CORRECT_PGTABLE_SANITY_CHECKS(pg, vaddr);
 
-    mos_debug(x86_paging, "setting flags [0x%x] to [" PTR_FMT "] +%zu pages (pg " PTR_FMT ")", flags, vaddr, n, (uintptr_t) pg);
     size_t start_page = vaddr / MOS_PAGE_SIZE;
     for (size_t i = 0; i < n; i++)
     {

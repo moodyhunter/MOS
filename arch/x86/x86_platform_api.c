@@ -5,7 +5,7 @@
 #include "lib/sync/spinlock.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging/paging.h"
-#include "mos/mm/paging/pmalloc.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/platform_syscall.h"
@@ -139,9 +139,6 @@ void platform_switch_to_thread(uintptr_t *old_stack, const thread_t *new_thread,
 void platform_mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t n_pages, vm_flags flags)
 {
     MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
-
-    mos_debug(x86_paging, "mapping page: " PTR_FMT " -> " PTR_FMT " %zu pages", vaddr, paddr, n_pages);
-
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
     for (size_t i = 0; i < n_pages; i++)
     {
@@ -154,10 +151,7 @@ void platform_mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t pad
 void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t n_pages)
 {
     MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
-
-    mos_debug(x86_paging, "unmapping page: " PTR_FMT " %zu pages", vaddr, n_pages);
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
-
     for (size_t i = 0; i < n_pages; i++)
     {
         pg_unmap_page(infra, vaddr);

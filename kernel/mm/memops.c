@@ -17,6 +17,7 @@ void mos_kernel_mm_init(void)
     // zero fill on demand (read-only)
     zero_block = mm_alloc_pages(current_cpu->pagetable, 1, PGALLOC_HINT_KHEAP, VM_RW);
     memzero((void *) zero_block.vaddr, MOS_PAGE_SIZE);
+    mm_flag_pages(current_cpu->pagetable, zero_block.vaddr, 1, VM_READ); // make it read-only
 
     liballoc_init();
 #if MOS_DEBUG_FEATURE(liballoc)
@@ -88,7 +89,7 @@ vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, pgalloc_h
     const vm_flags real_flags = VM_READ | ((flags & VM_USER) ? VM_USER : 0); // only set VM_READ and VM_USER
     mm_flag_pages(handle, vaddr_base, npages, real_flags);
 
-    return (vmblock_t){ .vaddr = vaddr_base, .npages = npages, .flags = flags };
+    return (vmblock_t){ .vaddr = vaddr_base, .npages = npages, .flags = flags, .address_space = handle };
 }
 
 vmblock_t mm_alloc_zeroed_pages_at(paging_handle_t handle, uintptr_t vaddr, size_t npages, vm_flags flags)
@@ -108,5 +109,5 @@ vmblock_t mm_alloc_zeroed_pages_at(paging_handle_t handle, uintptr_t vaddr, size
 
     // make the pages read-only (because for now, they are mapped to zero_block)
     mm_flag_pages(handle, vaddr, npages, VM_READ | ((flags & VM_USER) ? VM_USER : 0));
-    return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags };
+    return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags, .address_space = handle };
 }

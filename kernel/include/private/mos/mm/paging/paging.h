@@ -18,8 +18,8 @@
 
 typedef enum
 {
-    MM_COPY_DEFAULT = 0,     ///< Default copy flags.
-    MM_COPY_UNMAP_FIRST = 1, ///< Unmap the destination pages before copying.
+    MM_COPY_DEFAULT = 0,       ///< Default copy flags.
+    MM_COPY_ASSUME_MAPPED = 1, ///< Unmap the destination pages before copying.
 } mm_copy_behavior_t;
 
 /// @brief Maximum 'lines' in a page map, see also @ref bitmap_line_t.
@@ -92,6 +92,11 @@ vmblock_t mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t npage
  * @param flags Flags to set on the pages, see @ref vm_flags.
  *
  * @details This function maps the pages in the block, and will increment their reference count.
+ *
+ * @note This function is rarely used directly, you don't always know the physical address of the
+ * pages you want to map.
+ *
+ * @note You may need to reserve the physical memory before mapping it, see @ref pmm_reserve_frames.
  */
 vmblock_t mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t npages, vm_flags flags);
 

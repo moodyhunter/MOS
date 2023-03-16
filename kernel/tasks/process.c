@@ -205,6 +205,8 @@ void process_attach_thread(process_t *process, thread_t *thread)
 void process_attach_mmap(process_t *process, vmblock_t block, vmap_content_t type, vmap_flags_t flags)
 {
     MOS_ASSERT(process_is_valid(process));
+    MOS_ASSERT(block.address_space.pgd == process->pagetable.pgd);
+
     mos_debug(process, "process %ld attached mmap " PTR_FMT "-" PTR_FMT, process->pid, block.vaddr, block.vaddr + block.npages * MOS_PAGE_SIZE);
     process->mmaps = krealloc(process->mmaps, sizeof(vmap_t) * (process->mmaps_count + 1));
     process->mmaps[process->mmaps_count++] = (vmap_t){
@@ -359,7 +361,6 @@ void process_dump_mmaps(const process_t *process)
         {
             case VMTYPE_CODE: typestr = "code"; break;
             case VMTYPE_DATA: typestr = "data"; break;
-            case VMTYPE_ZERO: typestr = "data (zeroed)"; break;
             case VMTYPE_HEAP: typestr = "heap"; break;
             case VMTYPE_STACK: typestr = "stack"; break;
             case VMTYPE_KSTACK: typestr = "stack (kernel)"; break;

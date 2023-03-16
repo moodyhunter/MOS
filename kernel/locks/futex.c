@@ -7,7 +7,7 @@
 #include "lib/sync/spinlock.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging/paging.h"
-#include "mos/mm/paging/pmalloc.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/schedule.h"

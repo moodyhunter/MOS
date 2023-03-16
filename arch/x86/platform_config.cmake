@@ -21,7 +21,6 @@ macro(x86_debug feature description)
     mos_kconfig(ARCH_X86_DEBUG MOS_DEBUG_x86_${feature} ${X86_DEBUG_ALL} ${description})
 endmacro()
 
-x86_debug(paging    "x86 Paging debug log")
 x86_debug(cpu       "x86 CPU debug log")
 x86_debug(lapic     "x86 Local APIC debug log")
 x86_debug(ioapic    "x86 I/O APIC debug log")

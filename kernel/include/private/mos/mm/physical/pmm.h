@@ -24,10 +24,10 @@ extern const list_head *const pmlist_allocated;
 
 typedef enum
 {
-    PMM_REGION_UNINITIALIZED = 0, // intentionally 0
-    PMM_REGION_FREE = 1,
-    PMM_REGION_RESERVED = 2,
-    PMM_REGION_ALLOCATED = 3,
+    PM_RANGE_UNINITIALIZED = 0, // intentionally 0
+    PM_RANGE_FREE = 1,
+    PM_RANGE_RESERVED = 2,
+    PM_RANGE_ALLOCATED = 3,
 } pm_range_type_t;
 
 /**
@@ -52,13 +52,19 @@ typedef struct
 /**
  * @brief Callback function type for \ref pmm_ref_new_frames.
  *
- * @param i Index of the current block
  * @param op_state Pointer to the operation state structure, \ref pmm_op_state_t
  * @param current Pointer to the current block
  * @param arg Pointer to the argument passed to \ref pmm_ref_new_frames
  *
  */
-typedef void (*pmm_op_callback_t)(size_t i, const pmm_op_state_t *op_state, const pmrange_t *current, void *arg);
+typedef void (*pmm_op_callback_t)(const pmm_op_state_t *op_state, const pmrange_t *current, void *arg);
+
+/**
+ * @brief Switch to the kernel heap.
+ *
+ * @note This function should be called after the kernel heap has been setup, and should only be called once.
+ */
+void pmm_switch_to_kheap(void);
 
 /**
  * @brief Dump the physical memory manager's state, (i.e. the free list)
@@ -75,14 +81,7 @@ void pmm_dump(void);
  * @note The second parameter is in bytes, not pages, page-aligning will be done internally.
  *
  */
-void mos_pmm_add_region(uintptr_t start_addr, size_t nbytes, pm_range_type_t type);
-
-/**
- * @brief Switch to the kernel heap.
- *
- * @note This function should be called after the kernel heap has been setup, and should only be called once.
- */
-void pmm_switch_to_kheap(void);
+void pmm_add_region_bytes(uintptr_t start_addr, size_t nbytes, pm_range_type_t type);
 
 /**
  * @brief Allocate a list of blocks of physical memory.
@@ -92,6 +91,10 @@ void pmm_switch_to_kheap(void);
  * @param arg Argument to be passed to the callback function.
  *
  * @return true if the operation succeeded, false otherwise.
+ *
+ * @note The callback function will be called for each block of physical memory allocated.
+ * At the time of the callback, the block will have been marked as `PMM_REGION_ALLOCATED` and
+ * will have a reference count of 1.
  */
 __nodiscard bool pmm_allocate_frames(size_t n_pages, pmm_op_callback_t callback, void *arg);
 
@@ -114,25 +117,27 @@ void pmm_ref_frames(uintptr_t paddr, size_t npages);
 void pmm_unref_frames(uintptr_t paddr, size_t npages);
 
 /**
- * @brief Mark a block of physical memory as reserved.
+ * @brief Mark a range of physical memory as reserved.
  *
  * @param paddr Physical address of the block to reserve.
  * @param npages Number of pages to reserve.
+ * @return uintptr_t The paddr argument, for convenience.
  *
- * @note The memory will be marked as `PMM_REGION_RESERVED` and will be ignored by \ref pmm_allocate_frames.
+ * @note The memory will be marked as `PMM_REGION_RESERVED` and will be moved to the allocated list.
+ *
+ * @note If the requested memory cannot be found in the free list, the function will panic.
  */
-void pmm_reserve_frames(uintptr_t paddr, size_t npages);
+uintptr_t pmm_reserve_frames(uintptr_t paddr, size_t npages);
 
 /**
- * @brief Get a reserved region of physical memory.
+ * @brief Mark a block of physical memory as reserved.
  *
  * @param needle Pointer to the region to search for.
  *
- * @return pmrange_t The reserved region
+ * @return pmrange_t The region
  *
- * @note The returned region is moved from the free list to the allocated list, with a
- * reference count of 1.
+ * @note The memory will be marked as `PMM_REGION_RESERVED` and will be moved to the allocated list.
  */
-pmrange_t pmm_ref_reserved_region(uintptr_t needle);
+pmrange_t pmm_reserve_block(uintptr_t needle);
 
 /** @} */

@@ -3,7 +3,7 @@
 #include "mos/x86/mm/mm.h"
 
 #include "lib/stdlib.h"
-#include "mos/mm/paging/pmalloc.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/printk.h"
 
 void x86_pmm_region_setup(const multiboot_memory_map_t *map_entry, u32 count)
@@ -43,6 +43,6 @@ void x86_pmm_region_setup(const multiboot_memory_map_t *map_entry, u32 count)
         }
 
         pr_info2("  %d: 0x%.8llx - 0x%.8llx: %-10s (%s)", i, region_base, region_base + region_length - 1, type_str, size_buf);
-        mos_pmm_add_region(region_base, region_length, entry->type == MULTIBOOT_MEMORY_AVAILABLE ? PMM_REGION_FREE : PMM_REGION_RESERVED);
+        pmm_add_region_bytes(region_base, region_length, entry->type == MULTIBOOT_MEMORY_AVAILABLE ? PM_RANGE_FREE : PM_RANGE_RESERVED);
     }
 }

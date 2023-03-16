@@ -5,7 +5,8 @@
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging/paging.h"
-#include "mos/mm/paging/pmalloc.h"
+#include "mos/mm/physical/pmm.h"
+#include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
@@ -13,13 +14,15 @@
 
 // TODO: A global list of CoW blocks, so that we don't free them if they're still in use.
 
-vmblock_t mm_make_process_map_cow(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages)
+vmblock_t mm_make_process_map_cow(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages, vm_flags flags)
 {
     // Note that the block returned by this function contains it's ACTRUAL flags, which may be different from the flags of the original block.
     // (consider the case where we CoW-map a page that is already CoW-mapped)
+    mm_flag_pages(from, fvaddr, npages, flags & ~VM_WRITE);
+
     vmblock_t block = mm_copy_mapping(from, fvaddr, to, tvaddr, npages, MM_COPY_DEFAULT);
-    mm_flag_pages(from, fvaddr, npages, block.flags & ~VM_WRITE);
-    mm_flag_pages(to, tvaddr, npages, block.flags & ~VM_WRITE);
+    mm_flag_pages(to, tvaddr, npages, flags & ~VM_WRITE);
+    block.flags = flags;
     return block;
 }
 
@@ -34,7 +37,7 @@ static void do_resolve_cow(uintptr_t fault_addr, vm_flags original_flags)
     memcpy((void *) one_page.vaddr, (void *) fault_addr, MOS_PAGE_SIZE);
 
     // 3. replace the faulting phypage with the new one
-    mm_copy_mapping(address_space, fault_addr, address_space, fault_addr, 1, MM_COPY_UNMAP_FIRST);
+    mm_copy_mapping(address_space, fault_addr, address_space, fault_addr, 1, MM_COPY_ASSUME_MAPPED);
 
     // 4. unmap the temporary page (at the kernel heap)
     //    note at this point, the underlying physical page won't be freed, because it's still mapped to the faulting address
@@ -90,18 +93,17 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
         if (mmap->flags.zod)
         {
             pr_emph("Zero-on-demand page fault in block %zu", i);
-            mm_unmap_pages(current_proc->pagetable, fault_addr, 1);               // 1. unmap the page that caused the fault
-            mm_alloc_pages_at(current_proc->pagetable, fault_addr, 1, vm->flags); // 2. allocate a new page at the fault address
-            memzero((void *) fault_addr, MOS_PAGE_SIZE);                          // 3. zero the page
+            const uintptr_t page = ALIGN_DOWN_TO_PAGE(fault_addr);
+            mm_unmap_pages(current_proc->pagetable, page, 1);               // 1. unmap the page that caused the fault
+            mm_alloc_pages_at(current_proc->pagetable, page, 1, vm->flags); // 2. allocate a new page at the fault address
+            memzero((void *) page, MOS_PAGE_SIZE);                          // 3. zero the page
             mos_debug(cow, "ZoD resolved");
-            mmap->flags.zod = false;
         }
         else if (mmap->flags.cow)
         {
             pr_emph("CoW page fault in block %zu", i);
             do_resolve_cow(fault_addr, vm->flags);
             mos_debug(cow, "CoW resolved");
-            mmap->flags.cow = false;
         }
         else
         {

@@ -55,13 +55,9 @@ void x86_mm_paging_init(void)
 
 void x86_mm_enable_paging(void)
 {
-    mos_debug(x86_paging, "page directory vaddr at: %p", (void *) x86_kpg_infra->pgdir);
     x86_enable_paging_impl(((uintptr_t) x86_kpg_infra->pgdir) - MOS_KERNEL_START_VADDR);
     pr_info("paging: enabled");
-
-#if MOS_DEBUG_FEATURE(x86_paging)
     x86_dump_pagetable(x86_platform.kernel_pgd);
-#endif
 }
 
 void x86_dump_pagetable(paging_handle_t handle)
@@ -82,7 +78,7 @@ void x86_mm_walk_page_table(paging_handle_t handle, uintptr_t vaddr_start, size_
     uintptr_t previous_paddr = 0;
     vm_flags previous_flags = 0;
     bool previous_present = false;
-    vmblock_t previous_block = { .vaddr = vaddr_start, .npages = 0, .flags = 0 };
+    vmblock_t previous_block = { .vaddr = vaddr_start, .npages = 0, .flags = 0, .address_space = handle };
 
     do
     {

@@ -3,14 +3,19 @@
 # get the current directory
 DIR=$(pwd)
 
+QEMU_ARGS="-m 4G -smp 1"
+
+# test if MOS_TEST_SHOW_UI is set
+if [ -z "$MOS_TEST_SHOW_UI" ]; then
+    QEMU_ARGS="$QEMU_ARGS -nographic"
+fi
+
 qemu-system-i386 \
     -kernel $DIR/mos_multiboot.bin \
     -initrd $DIR/initrd.cpio \
-    -m 4G \
-    -smp 1 \
     -monitor "unix:/tmp/monitor.sock,server,nowait" \
-    -nographic \
     -chardev stdio,id=char0,logfile=test-failure.log \
+    $QEMU_ARGS \
     -append "poweroff_on_panic=true $*" \
     -serial chardev:char0
 

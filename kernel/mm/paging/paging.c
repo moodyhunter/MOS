@@ -5,9 +5,10 @@
 #include "lib/structures/bitmap.h"
 #include "lib/sync/spinlock.h"
 #include "mos/mm/kmalloc.h"
-#include "mos/mm/paging/pmalloc.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/x86/mm/paging.h"
 
 #define PGD_FOR_VADDR(_vaddr, _um) (_vaddr >= MOS_KERNEL_START_VADDR ? platform_info->kernel_pgd : _um)
 
@@ -34,6 +35,7 @@ static void pagemap_mark_used(page_map_t *map, uintptr_t vaddr, size_t n_pages)
 
     bitmap_line_t *pagemap = is_kernel ? kernel_page_map : map->ummap;
     spinlock_t *lock = is_kernel ? &kernel_page_map_lock : &map->lock;
+    MOS_ASSERT_X(pagemap && lock, "pagemap or lock is NULL");
 
     if (unlikely(pagemap_index + n_pages > pagemap_size_lines * BITMAP_LINE_BITS))
     {
@@ -61,6 +63,7 @@ static void pagemap_mark_free(page_map_t *map, uintptr_t vaddr, size_t n_pages)
 
     bitmap_line_t *pagemap = is_kernel ? kernel_page_map : map->ummap;
     spinlock_t *lock = is_kernel ? &kernel_page_map_lock : &map->lock;
+    MOS_ASSERT_X(pagemap && lock, "pagemap or lock is NULL");
 
     if (unlikely(pagemap_index + n_pages > pagemap_size_lines * BITMAP_LINE_BITS))
     {
@@ -79,36 +82,43 @@ static void pagemap_mark_free(page_map_t *map, uintptr_t vaddr, size_t n_pages)
 // ! END: PAGEMAP
 
 // ! BEGIN: CALLBACKS
-static void iterate_callback_unmap_novfree(const pgt_iteration_info_t *iter_info, const vmblock_t *block, uintptr_t block_paddr, void *arg)
+static void vmm_iterate_unmap_novfree(const pgt_iteration_info_t *iter_info, const vmblock_t *block, uintptr_t block_paddr, void *arg)
 {
+    MOS_UNUSED(iter_info);
     MOS_ASSERT(arg == NULL);
-    MOS_ASSERT(block->address_space.pgd == iter_info->address_space.pgd); // sanity check
+    mos_debug(vmm_callback, "unmapping novfree" PTR_FMT " -> " PTR_FMT " (npages: %zu)", block->vaddr, block_paddr, block->npages);
     pmm_unref_frames(block_paddr, block->npages);
     platform_mm_unmap_pages(PGD_FOR_VADDR(block->vaddr, block->address_space), block->vaddr, block->npages);
 }
 
-static void iterate_callback_unmap(const pgt_iteration_info_t *iter_info, const vmblock_t *block, uintptr_t block_paddr, void *arg)
+static void vmm_iterate_unmap(const pgt_iteration_info_t *iter_info, const vmblock_t *block, uintptr_t block_paddr, void *arg)
 {
+    MOS_UNUSED(iter_info);
     MOS_ASSERT(arg == NULL);
-    MOS_ASSERT(block->address_space.pgd == iter_info->address_space.pgd); // sanity check
+    mos_debug(vmm_callback, "unmapping " PTR_FMT " -> " PTR_FMT " (npages: %zu)", block->vaddr, block_paddr, block->npages);
     pagemap_mark_free(block->address_space.um_page_map, block->vaddr, block->npages);
-    iterate_callback_unmap_novfree(iter_info, block, block_paddr, arg);
+    pmm_unref_frames(block_paddr, block->npages);
+    platform_mm_unmap_pages(PGD_FOR_VADDR(block->vaddr, block->address_space), block->vaddr, block->npages);
 }
 
-static void iterate_callback_copymap(const pgt_iteration_info_t *iter_info, const vmblock_t *block, uintptr_t block_paddr, void *arg)
+static void vmm_iterate_copymap(const pgt_iteration_info_t *iter_info, const vmblock_t *block, uintptr_t block_paddr, void *arg)
 {
-    const vmblock_t *vblock = arg;
+    vmblock_t *vblock = arg;
+    if (!vblock->flags)
+        vblock->flags = block->flags;
+    else
+        MOS_ASSERT_X(vblock->flags == block->flags, "flags mismatch");
     const uintptr_t target_vaddr = vblock->vaddr + (block->vaddr - iter_info->vaddr_start); // we know that vaddr is contiguous, so their difference is the offset
+    mos_debug(vmm_callback, "copymapping " PTR_FMT " -> " PTR_FMT " (npages: %zu)", target_vaddr, block_paddr, block->npages);
     pmm_ref_frames(block_paddr, block->npages);
     platform_mm_map_pages(PGD_FOR_VADDR(target_vaddr, vblock->address_space), target_vaddr, block_paddr, block->npages, block->flags);
 }
 
-static void pmm_callback_alloc(size_t i, const pmm_op_state_t *op_state, const pmrange_t *current, void *arg)
+static void vmm_handle_pmalloc(const pmm_op_state_t *op_state, const pmrange_t *current, void *arg)
 {
-    MOS_UNUSED(i);
     const vmblock_t *vblock = arg;
     const uintptr_t vaddr = vblock->vaddr + op_state->pages_operated * MOS_PAGE_SIZE;
-    pmm_ref_frames(current->paddr, current->npages); // !! do we need to ref the frames here?
+    mos_debug(vmm_callback, "allocating " PTR_FMT " -> " PTR_FMT " (npages: %zu)", vaddr, current->paddr, current->npages);
     platform_mm_map_pages(PGD_FOR_VADDR(vaddr, vblock->address_space), vaddr, current->paddr, current->npages, vblock->flags);
 }
 // ! END: CALLBACKS
@@ -161,6 +171,8 @@ uintptr_t mm_get_free_pages(paging_handle_t table, size_t n_pages, pgalloc_hints
 
 vmblock_t mm_alloc_pages(paging_handle_t table, size_t npages, pgalloc_hints hints, vm_flags flags)
 {
+    MOS_ASSERT(npages > 0);
+
     if (unlikely(table.pgd == 0))
     {
         mos_warn("cannot allocate %zd pages, pagetable is null", npages);
@@ -177,24 +189,28 @@ vmblock_t mm_alloc_pages(paging_handle_t table, size_t npages, pgalloc_hints hin
     return mm_alloc_pages_at(table, vaddr_base, npages, flags);
 }
 
-vmblock_t mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t n_pages, vm_flags flags)
+vmblock_t mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t npages, vm_flags flags)
 {
-    vmblock_t block = { .address_space = table, .vaddr = vaddr, .npages = n_pages, .flags = flags };
+    MOS_ASSERT(npages > 0);
+
+    vmblock_t block = { .address_space = table, .vaddr = vaddr, .npages = npages, .flags = flags };
+
+    table = PGD_FOR_VADDR(vaddr, table);
 
     if (unlikely(table.pgd == 0))
     {
-        mos_warn("cannot allocate %zd pages at " PTR_FMT ", pagetable is null", n_pages, vaddr);
+        mos_warn("cannot allocate %zd pages at " PTR_FMT ", pagetable is null", npages, vaddr);
         return (vmblock_t){ 0 };
     }
 
     spinlock_acquire(table.pgd_lock);
-    pagemap_mark_used(table.um_page_map, vaddr, n_pages);
-    const bool result = pmm_allocate_frames(n_pages, pmm_callback_alloc, &block);
+    pagemap_mark_used(table.um_page_map, vaddr, npages);
+    const bool result = pmm_allocate_frames(npages, vmm_handle_pmalloc, &block);
     spinlock_release(table.pgd_lock);
 
     if (unlikely(!result))
     {
-        mos_warn("could not allocate %zd physical pages", n_pages);
+        mos_warn("could not allocate %zd physical pages", npages);
         return (vmblock_t){ 0 };
     }
 
@@ -203,6 +219,8 @@ vmblock_t mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t n_pag
 
 vmblock_t mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t npages, vm_flags flags)
 {
+    MOS_ASSERT(npages > 0);
+
     const vmblock_t block = { .address_space = table, .vaddr = vaddr, .npages = npages, .flags = flags };
 
     table = PGD_FOR_VADDR(vaddr, table); // after block is initialized
@@ -213,8 +231,11 @@ vmblock_t mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, 
         return (vmblock_t){ 0 };
     }
 
+    mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to " PTR_FMT, npages, vaddr, paddr);
+
     spinlock_acquire(table.pgd_lock);
     pagemap_mark_used(table.um_page_map, vaddr, npages);
+    pmm_ref_frames(paddr, npages);
     platform_mm_map_pages(table, vaddr, paddr, npages, flags);
     spinlock_release(table.pgd_lock);
 
@@ -223,24 +244,27 @@ vmblock_t mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, 
 
 void mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t npages)
 {
+    MOS_ASSERT(npages > 0);
+
     table = PGD_FOR_VADDR(vaddr, table);
     spinlock_acquire(table.pgd_lock);
-    platform_mm_iterate_table(table, vaddr, npages, iterate_callback_unmap, NULL);
+    platform_mm_iterate_table(table, vaddr, npages, vmm_iterate_unmap, NULL);
     spinlock_release(table.pgd_lock);
 }
 
 vmblock_t mm_copy_mapping(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior)
 {
+    MOS_ASSERT(npages > 0);
+
     from = PGD_FOR_VADDR(fvaddr, from);
-    to = PGD_FOR_VADDR(tvaddr, to);
+    vmblock_t result = { .address_space = to, .vaddr = tvaddr, .npages = npages };
+    to = PGD_FOR_VADDR(tvaddr, to); // after result is initialized
 
     if (unlikely(from.pgd == 0 || to.pgd == 0))
     {
         mos_warn("cannot remap pages from " PTR_FMT " to " PTR_FMT ", pagetable is null", fvaddr, tvaddr);
         return (vmblock_t){ 0 };
     }
-
-    vmblock_t result = { .address_space = to, .vaddr = tvaddr, .npages = npages };
 
     spinlock_acquire(from.pgd_lock);
     if (to.pgd_lock != from.pgd_lock)
@@ -250,9 +274,13 @@ vmblock_t mm_copy_mapping(paging_handle_t from, uintptr_t fvaddr, paging_handle_
     // 2. copy mappings from source to target
     // TODO: this operation is not atomic, so there MIGHT be a possibility that while we have "unmapped"
     // TODO: the pages, another thread issues a page fault and... idk what happens then.
-    if (unlikely(behavior == MM_COPY_UNMAP_FIRST))
-        platform_mm_iterate_table(to, tvaddr, npages, iterate_callback_unmap_novfree, NULL);
-    platform_mm_iterate_table(from, fvaddr, npages, iterate_callback_copymap, &result);
+    if (unlikely(behavior == MM_COPY_ASSUME_MAPPED))
+        platform_mm_iterate_table(to, tvaddr, npages, vmm_iterate_unmap_novfree, NULL);
+
+    platform_mm_iterate_table(from, fvaddr, npages, vmm_iterate_copymap, &result);
+
+    if (behavior == MM_COPY_DEFAULT)
+        pagemap_mark_used(to.um_page_map, tvaddr, npages);
 
     if (to.pgd_lock != from.pgd_lock)
         spinlock_release(to.pgd_lock);
@@ -280,12 +308,16 @@ bool mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr)
 
 void mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t npages, vm_flags flags)
 {
+    MOS_ASSERT(npages > 0);
+
     table = PGD_FOR_VADDR(vaddr, table);
     if (unlikely(table.pgd == 0))
     {
         mos_warn("cannot flag pages at " PTR_FMT ", pagetable is null", vaddr);
         return;
     }
+
+    mos_debug(vmm, "flagging %zd pages at " PTR_FMT " with flags %x", npages, vaddr, flags);
 
     spinlock_acquire(table.pgd_lock);
     platform_mm_flag_pages(table, vaddr, npages, flags);

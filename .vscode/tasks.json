@@ -79,7 +79,7 @@
                 "-smp",
                 "1",
                 "-append",
-                "init=/programs/locks-bench",
+                "init=/tests/fork-test",
             ],
             "problemMatcher": [ ],
             "group": "none",

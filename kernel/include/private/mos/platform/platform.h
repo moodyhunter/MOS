@@ -5,7 +5,7 @@
 #include "lib/sync/spinlock.h"
 #include "mos/kconfig.h"
 #include "mos/mm/mm_types.h"
-#include "mos/mm/paging/pmalloc.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/mos_global.h"
 #include "mos/types.h"
 
@@ -40,6 +40,7 @@ typedef enum
     // composite flags (for convenience)
     VM_RW = VM_READ | VM_WRITE,
     VM_USER_RW = VM_USER | VM_RW,
+    VM_USER_RO = VM_USER | VM_READ,
 } vm_flags;
 
 typedef enum

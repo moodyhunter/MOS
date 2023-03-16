@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/mm/paging/paging.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
@@ -148,7 +149,7 @@ void lapic_memory_setup(void)
         base_addr = BIOS_VADDR(base_addr);
     }
 
-    mm_map_pages(x86_platform.kernel_pgd, base_addr, base_addr, 1, VM_RW);
+    mm_map_pages(x86_platform.kernel_pgd, base_addr, pmm_reserve_frames(base_addr, 1), 1, VM_RW);
     lapic_regs = (u32 *) base_addr;
 }
 
