@@ -27,7 +27,7 @@ typedef struct
 
 void ipc_init(void);
 
-/*
+/**
  * @brief Create a new IPC server
  * @param name The name of the server
  * @param max_pending_connections The maximum number of pending connections to allow
@@ -37,14 +37,14 @@ void ipc_init(void);
  */
 io_t *ipc_create(const char *name, size_t max_pending_connections);
 
-/*
+/**
  * @brief Accept a new connection on an IPC server
  * @param server The server to accept a connection on
  * @return A new io_t object that represents the connection to the client, or NULL on failure
  */
 io_t *ipc_accept(io_t *server);
 
-/*
+/**
  * @brief Connect to an IPC servers
  * @param name The name of the server to connect to
  * @param flags Flags to control the connection

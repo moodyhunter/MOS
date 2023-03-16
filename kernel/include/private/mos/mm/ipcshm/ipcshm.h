@@ -37,7 +37,7 @@ typedef struct ipcshm_t
 
 void ipcshm_init(void);
 
-/*
+/**
  * @brief Announce a new IPC SHM server
  * @param name The name of the server
  * @param max_pending The maximum number of pending connections to allow for this server
@@ -45,7 +45,7 @@ void ipcshm_init(void);
  */
 ipcshm_server_t *ipcshm_announce(const char *name, size_t max_pending);
 
-/*
+/**
  * @brief Connect to an IPC SHM server
  * @param name The name announced by the server
  * @param buffer_size The size of the shared memory buffer to use for the connection
@@ -55,7 +55,7 @@ ipcshm_server_t *ipcshm_announce(const char *name, size_t max_pending);
  */
 bool ipcshm_request(const char *name, size_t buffer_size, void **server_write_buffer, void **client_write_buffer, void *data);
 
-/*
+/**
  * @brief Accept a new connection on an IPC SHM server
  * @param server The server to accept a connection on
  * @param server_write_buffer A pointer to a ipcshm_buffer_t pointer that will be filled with the server's write buffer
@@ -64,7 +64,7 @@ bool ipcshm_request(const char *name, size_t buffer_size, void **server_write_bu
  */
 bool ipcshm_accept(ipcshm_server_t *server, void **server_write_buffer, void **client_write_buffer, void **data_out);
 
-/*
+/**
  * @brief Deannounce an IPC SHM server
  * @param server The server name to deannounce
  * @return true on success, false on failure
