@@ -129,6 +129,7 @@ void pmm_add_region_bytes(uintptr_t start_addr, size_t nbytes, pm_range_type_t t
 static void pmm_internal_callback_handle_allocated_frames(const pmm_op_state_t *op_state, pmlist_node_t *node, pmm_allocate_callback_t user_callback, void *user_arg)
 {
     node->refcount = 1;
+    node->type = PM_RANGE_ALLOCATED;
     pmm_internal_add_node_to_allocated_list(node);
     if (user_callback)
         user_callback(op_state, &node->range, user_arg);

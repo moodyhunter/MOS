@@ -45,6 +45,7 @@ static void insert_node_to_list(list_head *list, pmlist_node_t *node)
 
 void pmm_internal_add_node_to_allocated_list(pmlist_node_t *node)
 {
+    MOS_ASSERT(node->type == PM_RANGE_ALLOCATED || node->type == PM_RANGE_RESERVED);
     spinlock_acquire(&pmlist_allocated_lock);
     insert_node_to_list(&pmlist_allocated_rw, node);
     spinlock_release(&pmlist_allocated_lock);
