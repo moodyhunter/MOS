@@ -107,7 +107,7 @@ void pmm_dump(void)
             pr_emerg("Invalid allocated region type %d", a->type);
 
         const char *const type = a->type == PM_RANGE_ALLOCATED ? "allocated" : "reserved";
-        pr_info("%2zd: " PTR_FMT "-" PTR_FMT " (%zu page(s), %s, %s, %lu refs)", i, a->range.paddr, end, a->range.npages, sbuf, type, a->refcount);
+        pr_info("%2zd: " PTR_FMT "-" PTR_FMT " (%zu page(s), %s, %s, %zu refs)", i, a->range.paddr, end, a->range.npages, sbuf, type, a->refcount);
         i++;
     }
 }

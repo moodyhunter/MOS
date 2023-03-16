@@ -48,8 +48,14 @@ void pmm_internal_add_node_to_allocated_list(pmlist_node_t *node)
 
 void pmm_internal_ref_range(uintptr_t start, size_t n_pages)
 {
+#pragma message "TODO: implement pmm_internal_ref_range()"
+    pr_warn("pmm_internal_ref_range(" PTR_FMT ", %zu)", start, n_pages);
 }
 
 void pmm_internal_unref_range(uintptr_t start, size_t n_pages, pmm_internal_unref_range_callback_t callback, void *arg)
 {
+#pragma message "TODO: implement pmm_internal_unref_range()"
+    MOS_UNUSED(callback);
+    MOS_UNUSED(arg);
+    pr_warn("pmm_internal_unref_range(" PTR_FMT ", %zu)", start, n_pages);
 }

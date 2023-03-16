@@ -61,8 +61,6 @@ mos_platform_info_t x86_platform = {
     .k_rwdata = { .vaddr = (uintptr_t) &__MOS_KERNEL_RW_START, .flags = VM_READ | VM_WRITE | VM_GLOBAL },
 };
 
-static vmblock_t x86_acpi_block = { 0 };
-
 void x86_keyboard_handler(u32 irq)
 {
     MOS_ASSERT(irq == IRQ_KEYBOARD);
