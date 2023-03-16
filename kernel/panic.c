@@ -68,8 +68,11 @@ noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
     platform_interrupt_disable();
 
     extern bool printk_quiet;
-    printk_quiet = false; // make sure we print the panic message
-    pr_info("quiet mode disabled, printing panic message...");
+    if (printk_quiet)
+    {
+        pr_info("quiet mode disabled, printing panic message...");
+        printk_quiet = false; // make sure we print the panic message
+    }
 
     va_list args;
     char message[PRINTK_BUFFER_SIZE] = { 0 };
