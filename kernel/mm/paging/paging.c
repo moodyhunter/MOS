@@ -255,6 +255,7 @@ void mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t npages)
 vmblock_t mm_copy_mapping(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior)
 {
     MOS_ASSERT(npages > 0);
+    mos_debug(vmm, "copying mapping from " PTR_FMT " to " PTR_FMT ", %zu pages", fvaddr, tvaddr, npages);
 
     from = PGD_FOR_VADDR(fvaddr, from);
     vmblock_t result = { .address_space = to, .vaddr = tvaddr, .npages = npages };
@@ -276,11 +277,10 @@ vmblock_t mm_copy_mapping(paging_handle_t from, uintptr_t fvaddr, paging_handle_
     // TODO: the pages, another thread issues a page fault and... idk what happens then.
     if (unlikely(behavior == MM_COPY_ASSUME_MAPPED))
         platform_mm_iterate_table(to, tvaddr, npages, vmm_iterate_unmap_novfree, NULL);
+    else
+        pagemap_mark_used(to.um_page_map, tvaddr, npages);
 
     platform_mm_iterate_table(from, fvaddr, npages, vmm_iterate_copymap, &result);
-
-    if (behavior == MM_COPY_DEFAULT)
-        pagemap_mark_used(to.um_page_map, tvaddr, npages);
 
     if (to.pgd_lock != from.pgd_lock)
         spinlock_release(to.pgd_lock);

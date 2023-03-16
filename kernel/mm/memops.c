@@ -77,19 +77,7 @@ bool liballoc_free_page(void *vptr, size_t npages)
 vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, pgalloc_hints hints, vm_flags flags)
 {
     const uintptr_t vaddr_base = mm_get_free_pages(handle, npages, hints);
-
-    // zero fill the pages
-    for (size_t i = 0; i < npages; i++)
-    {
-        const uintptr_t vaddr = vaddr_base + i * MOS_PAGE_SIZE;
-        mm_copy_mapping(handle, zero_block.vaddr, handle, vaddr, 1, MM_COPY_DEFAULT);
-    }
-
-    // make the pages read-only (because for now, they are mapped to zero_block)
-    const vm_flags real_flags = VM_READ | ((flags & VM_USER) ? VM_USER : 0); // only set VM_READ and VM_USER
-    mm_flag_pages(handle, vaddr_base, npages, real_flags);
-
-    return (vmblock_t){ .vaddr = vaddr_base, .npages = npages, .flags = flags, .address_space = handle };
+    return mm_alloc_zeroed_pages_at(handle, vaddr_base, npages, flags);
 }
 
 vmblock_t mm_alloc_zeroed_pages_at(paging_handle_t handle, uintptr_t vaddr, size_t npages, vm_flags flags)
