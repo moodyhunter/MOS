@@ -18,7 +18,8 @@ const list_head *const pmlist_free = &pmlist_free_rw;
  * @param start The start address of the range.
  * @param n_pages The number of pages in the range.
  * @param type The type of the range.
- * @return true if the range is successfully added, false otherwise.
+ * @return true if the range is successfully added, false otherwise, in which case the caller should
+ *         add the range as a new node.
  */
 static bool pmm_internal_do_add_free_frames_try_merge(uintptr_t start, size_t n_pages, pm_range_type_t type)
 {
@@ -150,7 +151,7 @@ void pmm_internal_add_free_frames_node(pmlist_node_t *node)
     spinlock_release(&pmlist_free_lock);
 }
 
-bool pmm_internal_acquire_free_frames(size_t n_pages, pmm_internal_op_callback_t callback, pmm_op_callback_t user_callback, void *user_arg)
+bool pmm_internal_acquire_free_frames(size_t n_pages, pmm_internal_op_callback_t callback, pmm_allocate_callback_t user_callback, void *user_arg)
 {
     mos_debug(pmm, "allocating %zu page(s)", n_pages);
 

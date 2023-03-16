@@ -1,4 +1,4 @@
-# librpc argument encoding specification
+# librpc: argument encoding specification
 
 This document describes the third argument to `rpc_call()`, which is the
 argument encoding specification. This is a string that describes the

@@ -6,19 +6,31 @@
 #include "mos/types.h"
 
 /**
- * @defgroup Physical Memory Manager
+ * @defgroup pmm Physical Memory Manager
  * @ingroup mm
- * @brief The physical memory manager (pmm) is responsible for managing physical memory.
+ * @brief Allocate/free the physical memory.
+ *
+ * @details
+ * The physical memory manager is responsible for allocating and freeing physical memory.
+ *
+ * PMM is initialized by the (probably) early architecture-specific code, where it calls
+ * \ref pmm_add_region_bytes to add the physical memory information provided by the bootloader.
+ *
+ * After enough (typically all) physical memory has been added, \ref pmm_allocate_frames can be
+ * called to allocate physical memory.
+ *
+ * @note The allocated physical memory is not zeroed out, in fact, it does nothing to the real memory.
+ *
  * @{
  */
 
 /**
- * @brief A read-only list of physical memory regions provided by the bootloader.
+ * @brief A read-only list of unallocated physical memory regions, sorted by the physical address.
  */
 extern const list_head *const pmlist_free;
 
 /**
- * @brief A read-only list of allocated physical memory regions.
+ * @brief A read-only list of allocated physical memory regions, sorted by the physical address.
  */
 extern const list_head *const pmlist_allocated;
 
@@ -50,14 +62,14 @@ typedef struct
 } pmm_op_state_t;
 
 /**
- * @brief Callback function type for \ref pmm_ref_new_frames.
+ * @brief Callback function type for \ref pmm_allocate_frames.
  *
  * @param op_state Pointer to the operation state structure, \ref pmm_op_state_t
  * @param current Pointer to the current block
- * @param arg Pointer to the argument passed to \ref pmm_ref_new_frames
+ * @param arg Pointer to the argument passed to \ref pmm_allocate_frames
  *
  */
-typedef void (*pmm_op_callback_t)(const pmm_op_state_t *op_state, const pmrange_t *current, void *arg);
+typedef void (*pmm_allocate_callback_t)(const pmm_op_state_t *op_state, const pmrange_t *current, void *arg);
 
 /**
  * @brief Switch to the kernel heap.
@@ -67,7 +79,7 @@ typedef void (*pmm_op_callback_t)(const pmm_op_state_t *op_state, const pmrange_
 void pmm_switch_to_kheap(void);
 
 /**
- * @brief Dump the physical memory manager's state, (i.e. the free list)
+ * @brief Dump the physical memory manager's state, (i.e. the free list and the allocated list).
  */
 void pmm_dump(void);
 
@@ -84,7 +96,7 @@ void pmm_dump(void);
 void pmm_add_region_bytes(uintptr_t start_addr, size_t nbytes, pm_range_type_t type);
 
 /**
- * @brief Allocate a list of blocks of physical memory.
+ * @brief Allocate blocks of physical memory.
  *
  * @param n_pages Number of pages to allocate.
  * @param callback Callback function to be called for each block of physical memory allocated.
@@ -93,16 +105,22 @@ void pmm_add_region_bytes(uintptr_t start_addr, size_t nbytes, pm_range_type_t t
  * @return true if the operation succeeded, false otherwise.
  *
  * @note The callback function will be called for each block of physical memory allocated.
- * At the time of the callback, the block will have been marked as `PMM_REGION_ALLOCATED` and
- * will have a reference count of 1.
+ * At the time of the callback, the block will be in the allocated list, marked as `PMM_REGION_ALLOCATED`
+ * and have a reference count of 1, so the callback does not need to increase the reference count again.
+ *
+ * @note The allocation is not guaranteed to be contiguous.
  */
-__nodiscard bool pmm_allocate_frames(size_t n_pages, pmm_op_callback_t callback, void *arg);
+__nodiscard bool pmm_allocate_frames(size_t n_pages, pmm_allocate_callback_t callback, void *arg);
 
 /**
  * @brief Increase the reference count of a list of blocks of physical memory.
  *
  * @param paddr Physical address of the block to reference.
  * @param npages Number of pages to reference.
+ *
+ * @note Only allocated blocks can be referenced, if one wants to reference a reserved block,
+ * use \ref pmm_reserve_frames or \ref pmm_reserve_block first to reserve the block, which only
+ * needs to be done once.
  *
  */
 void pmm_ref_frames(uintptr_t paddr, size_t npages);
@@ -112,6 +130,9 @@ void pmm_ref_frames(uintptr_t paddr, size_t npages);
  *
  * @param paddr Physical address of the block to unreference.
  * @param npages Number of pages to unreference.
+ *
+ * @note If the reference count of the block reaches 0, the block will be freed and ready to
+ * be re-allocated in the future.
  *
  */
 void pmm_unref_frames(uintptr_t paddr, size_t npages);
@@ -125,7 +146,9 @@ void pmm_unref_frames(uintptr_t paddr, size_t npages);
  *
  * @note The memory will be marked as `PMM_REGION_RESERVED` and will be moved to the allocated list.
  *
- * @note If the requested memory cannot be found in the free list, the function will panic.
+ * @note If the range does not exist in the free list and overlaps with an allocated block,
+ * the kernel panics.
+ *
  */
 uintptr_t pmm_reserve_frames(uintptr_t paddr, size_t npages);
 
@@ -134,7 +157,7 @@ uintptr_t pmm_reserve_frames(uintptr_t paddr, size_t npages);
  *
  * @param needle Pointer to the region to search for.
  *
- * @return pmrange_t The region
+ * @return pmrange_t The region, if found, otherwise an empty region.
  *
  * @note The memory will be marked as `PMM_REGION_RESERVED` and will be moved to the allocated list.
  */

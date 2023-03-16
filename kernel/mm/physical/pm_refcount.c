@@ -28,9 +28,13 @@ static void insert_node_to_list(list_head *list, pmlist_node_t *node)
         if (current->range.paddr < node->range.paddr)
             continue;
 
-        if (current->range.paddr == node->range.paddr)
-            mos_panic("physical memory region " PTR_FMT "-" PTR_FMT " overlaps with existing region " PTR_FMT "-" PTR_FMT, node->range.paddr,
-                      node->range.paddr + node->range.npages * MOS_PAGE_SIZE, current->range.paddr, current->range.paddr + current->range.npages * MOS_PAGE_SIZE);
+        const uintptr_t c_start = current->range.paddr;
+        const size_t c_size = current->range.npages * MOS_PAGE_SIZE;
+        const uintptr_t n_start = node->range.paddr;
+        const size_t n_size = node->range.npages * MOS_PAGE_SIZE;
+
+        if (SUBSET_RANGE(n_start, n_size, c_start, c_size) || SUBSET_RANGE(c_start, c_size, n_start, n_size))
+            mos_panic("pmm: trying to insert a node that is a subset of an existing node");
 
         list_insert_before(current, node);
         return;
