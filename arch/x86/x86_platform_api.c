@@ -213,8 +213,16 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
         case X86_SYSCALL_MAP_VGA_MEMORY:
         {
             pr_info2("mapping VGA memory for thread %ld", current_thread->tid);
+            static uintptr_t vga_paddr = X86_VIDEO_DEVICE_PADDR;
+
+            if (once())
+            {
+                pr_info2("reserving VGA memory");
+                vga_paddr = pmm_reserve_frames(vga_paddr, 1);
+            }
+
             const uintptr_t vaddr = mm_get_free_pages(current_process->pagetable, 1, PGALLOC_HINT_MMAP);
-            const vmblock_t block = mm_map_pages(current_thread->owner->pagetable, vaddr, (uintptr_t){ X86_VIDEO_DEVICE_PADDR }, 1, VM_USER_RW);
+            const vmblock_t block = mm_map_pages(current_thread->owner->pagetable, vaddr, vga_paddr, 1, VM_USER_RW);
             process_attach_mmap(current_process, block, VMTYPE_MMAP, (vmap_flags_t){ .fork_mode = VMAP_FORK_SHARED });
             return block.vaddr;
         }
