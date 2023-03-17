@@ -125,81 +125,85 @@ typedef struct
 
 typedef enum
 {
-    ELF_PH_T_NULL = 0,    // Unused entry
-    ELF_PH_T_LOAD = 1,    // Loadable segment
-    ELF_PH_T_DYNAMIC = 2, // Dynamic linking information
-    ELF_PH_T_INTERP = 3,  // Interpreter information
-    ELF_PH_T_NOTE = 4,    // Auxiliary information
-    ELF_PH_T_SHLIB = 5,   // reserved
-    ELF_PH_T_PHDR = 6,    // Segment containing program header table
-    ELF_PH_T_TLS = 7,     // Thread-local storage segment
+    ELF_PT_NULL = 0,    // Unused entry
+    ELF_PT_LOAD = 1,    // Loadable segment
+    ELF_PT_DYNAMIC = 2, // Dynamic linking information
+    ELF_PT_INTERP = 3,  // Interpreter information
+    ELF_PT_NOTE = 4,    // Auxiliary information
+    ELF_PT_SHLIB = 5,   // reserved
+    ELF_PT_PHDR = 6,    // Segment containing program header table
+    ELF_PT_TLS = 7,     // Thread-local storage segment
 
-    ELF_PH_T_OS_LOW = 0x60000000,       // reserved
-    ELF_PH_T_OS_HIGH = 0x6fffffff,      // reserved
-    ELF_PH_T_PROCESSOR_LO = 0x70000000, // reserved
-    ELF_PH_T_PROCESSOR_HI = 0x7fffffff, // reserved
+    _ELF_PT_COUNT,
+
+    ELF_PT_OS_LOW = 0x60000000,       // reserved
+    ELF_PT_OS_HIGH = 0x6fffffff,      // reserved
+    ELF_PT_PROCESSOR_LO = 0x70000000, // reserved
+    ELF_PT_PROCESSOR_HI = 0x7fffffff, // reserved
 } elf_program_header_type;
+
+extern const char *elf_program_header_type_str[_ELF_PT_COUNT];
 
 typedef enum
 {
-    ELF_PH_F_X = 1 << 0, // Executable
-    ELF_PH_F_W = 1 << 1, // Writable
-    ELF_PH_F_R = 1 << 2, // Readable
-} elf_program_header_flags;
+    ELF_PF_X = 1 << 0, // Executable
+    ELF_PF_W = 1 << 1, // Writable
+    ELF_PF_R = 1 << 2, // Readable
+} elf_ph_flags;
 
 typedef struct
 {
     elf_program_header_type header_type;
 #if MOS_BITS == 64
-    u32 p_flags; // Segment independent flags (64-bit only)
+    elf_program_header_flags p_flags; // Segment independent flags (64-bit only)
 #endif
-    uintptr_t data_offset;     // Offset of the segment in the file
-    uintptr_t vaddr;           // Virtual address of the segment
-    uintptr_t _reserved;       //  reserved
-    uintptr_t segsize_in_file; // Size of the segment in the file (may be 0)
-    uintptr_t segsize_in_mem;  // Size of the segment in memory (may be 0)
+    uintptr_t data_offset;  // Offset of the segment in the file
+    uintptr_t vaddr;        // Virtual address of the segment
+    uintptr_t _reserved;    // reserved
+    uintptr_t size_in_file; // Size of the segment in the file (may be 0)
+    uintptr_t size_in_mem;  // Size of the segment in memory (may be 0)
 #if MOS_BITS == 32
-    u32 p_flags; // Segment independent flags (32-bit only)
+    elf_ph_flags p_flags; // Segment independent flags (32-bit only)
 #endif
     uintptr_t required_alignment;
 } __packed elf_program_hdr_t;
 
 typedef enum
 {
-    ELF_SH_T_NULL = 0,           // Unused entry
-    ELF_SH_T_PROGBITS = 1,       // Program data
-    ELF_SH_T_SYMTAB = 2,         // Symbol table
-    ELF_SH_T_STRTAB = 3,         // String table
-    ELF_SH_T_RELA = 4,           // Relocation entries with addends
-    ELF_SH_T_HASH = 5,           // Symbol hash table
-    ELF_SH_T_DYNAMIC = 6,        // Dynamic linking information
-    ELF_SH_T_NOTE = 7,           // Auxiliary information
-    ELF_SH_T_NOBITS = 8,         // Data
-    ELF_SH_T_REL = 9,            // Relocation entries without addends`
-    ELF_SH_T_SHLIB = 10,         // Reserved
-    ELF_SH_T_DYNSYM = 11,        // Dynamic linker symbol table
-    ELF_SH_T_INIT_ARRAY = 14,    // Array of constructors
-    ELF_SH_T_FINI_ARRAY = 15,    // Array of destructors
-    ELF_SH_T_PREINIT_ARRAY = 16, // Array of pre-constructors
-    ELF_SH_T_GROUP = 17,         // Section group
-    ELF_SH_T_SYMTAB_SHNDX = 18,  // Extended section indeces
-    ELF_SH_T_NUM = 19,           // Number of defined types
-    ELF_SH_T_LOOS = 0x60000000,  // Start of OS-specific
+    ELF_ST_NULL = 0,           // Unused entry
+    ELF_ST_PROGBITS = 1,       // Program data
+    ELF_ST_SYMTAB = 2,         // Symbol table
+    ELF_ST_STRTAB = 3,         // String table
+    ELF_ST_RELA = 4,           // Relocation entries with addends
+    ELF_ST_HASH = 5,           // Symbol hash table
+    ELF_ST_DYNAMIC = 6,        // Dynamic linking information
+    ELF_ST_NOTE = 7,           // Auxiliary information
+    ELF_ST_NOBITS = 8,         // Data
+    ELF_ST_REL = 9,            // Relocation entries without addends`
+    ELF_ST_SHLIB = 10,         // Reserved
+    ELF_ST_DYNSYM = 11,        // Dynamic linker symbol table
+    ELF_ST_INIT_ARRAY = 14,    // Array of constructors
+    ELF_ST_FINI_ARRAY = 15,    // Array of destructors
+    ELF_ST_PREINIT_ARRAY = 16, // Array of pre-constructors
+    ELF_ST_GROUP = 17,         // Section group
+    ELF_ST_SYMTAB_SHNDX = 18,  // Extended section indeces
+    ELF_ST_NUM = 19,           // Number of defined types
+    ELF_ST_LOOS = 0x60000000,  // Start of OS-specific
 } elf_section_header_type;
 
 typedef enum
 {
-    ELF_SH_ATTR_WRITE = 1,                // Writable
-    ELF_SH_ATTR_ALLOC = 2,                // Occupies memory during execution
-    ELF_SH_ATTR_EXECINSTR = 4,            // Executable
-    ELF_SH_ATTR_MERGE = 0x10,             // Might be merged
-    ELF_SH_ATTR_STRINGS = 0x20,           // Contains nul-terminated strings
-    ELF_SH_ATTR_INFO_LINK = 0x40,         // `sh_info' contains SHT index
-    ELF_SH_ATTR_LINK_ORDER = 0x80,        // Preserve order after combining
-    ELF_SH_ATTR_OS_NONCONFORMING = 0x100, // Non-standard OS specific
-    ELF_SH_ATTR_GROUP = 0x200,            // Section is member of a group
-    ELF_SH_ATTR_TLS = 0x400,              // Section hold thread-local data
-} elf_section_attribute;
+    ELF_SF_WRITE = 1,                // Writable
+    ELF_SF_ALLOC = 2,                // Occupies memory during execution
+    ELF_SF_EXECINSTR = 4,            // Executable
+    ELF_SF_MERGE = 0x10,             // Might be merged
+    ELF_SF_STRINGS = 0x20,           // Contains nul-terminated strings
+    ELF_SF_INFO_LINK = 0x40,         // `sh_info' contains SHT index
+    ELF_SF_LINK_ORDER = 0x80,        // Preserve order after combining
+    ELF_SF_OS_NONCONFORMING = 0x100, // Non-standard OS specific
+    ELF_SF_GROUP = 0x200,            // Section is member of a group
+    ELF_SF_TLS = 0x400,              // Section hold thread-local data
+} elf_section_flags;
 
 typedef struct
 {
@@ -208,7 +212,7 @@ typedef struct
 #if MOS_BITS == 64
     u64 attributes; // sizeof(long)
 #elif MOS_BITS == 32
-    elf_section_attribute attributes;
+    elf_section_flags attributes;
 #else
 #error "Unsupported bitness"
 #endif
@@ -232,5 +236,5 @@ typedef enum
     ELF_VERIFY_INVALID_OSABI,
 } elf_verify_result;
 
-elf_verify_result elf_verify_header(elf_header_t *header);
+elf_verify_result elf_verify_header(const elf_header_t *header);
 process_t *elf_create_process(const char *path, process_t *parent, terminal_t *term, argv_t argv);
