@@ -6,6 +6,10 @@
 #include "lib/string.h"
 #include "lib/sync/spinlock.h"
 
+#ifdef __MOS_KERNEL__
+#include "mos/platform/platform.h"
+#endif
+
 #define VERSION "1.1"
 
 // This is the byte alignment that memory must be allocated on. IMPORTANT for GTK and other stuff.
@@ -52,17 +56,27 @@ typedef char liballoc_align_t;
 #define LIBALLOC_PRINT_DEBUG_MESSAGES MOS_DEBUG_FEATURE(liballoc) && __MOS_KERNEL__ // only print debug messages in kernel mode
 
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
-static spinlock_t alloc_lock = SPINLOCK_INIT;
+static recursive_spinlock_t alloc_lock = SPINLOCK_INIT;
 
 static int liballoc_lock(void)
 {
-    spinlock_acquire(&alloc_lock);
+#ifdef __MOS_KERNEL__
+    void *owner = current_thread;
+#else
+    void *owner = NULL;
+#endif
+    recursive_spinlock_acquire(&alloc_lock, owner);
     return 0;
 }
 
 static int liballoc_unlock(void)
 {
-    spinlock_release(&alloc_lock);
+#ifdef __MOS_KERNEL__
+    void *owner = current_thread;
+#else
+    void *owner = NULL;
+#endif
+    recursive_spinlock_release(&alloc_lock, owner);
     return 0;
 }
 #endif
