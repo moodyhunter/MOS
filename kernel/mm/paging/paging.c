@@ -194,7 +194,7 @@ void mm_map_allocated_pages(paging_handle_t table, vmblock_t block)
     }
 
     pagemap_mark_used(table.um_page_map, block.vaddr, block.npages);
-    platform_mm_map_pages(PGD_FOR_VADDR(block.vaddr, table), block);
+    platform_mm_map_pages(PGD_FOR_VADDR(block.vaddr, table), block.vaddr, block.paddr, block.npages, block.flags);
 }
 
 void mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t npages)

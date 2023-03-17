@@ -114,7 +114,7 @@ void x86_setup_forked_context(const thread_context_t *from, thread_context_t **t
 void x86_switch_to_thread(uintptr_t *scheduler_stack, const thread_t *to, switch_flags_t switch_flags)
 {
     per_cpu(x86_cpu_descriptor)->tss.esp0 = to->k_stack.top;
-    const uintptr_t pgd_paddr = switch_flags & SWITCH_TO_NEW_PAGE_TABLE ? pg_page_get_mapped_paddr(x86_kpg_infra, to->owner->pagetable.pgd) : 0;
+    const uintptr_t pgd_paddr = switch_flags & SWITCH_TO_NEW_PAGE_TABLE ? pg_get_mapped_paddr(x86_kpg_infra, to->owner->pagetable.pgd) : 0;
     const x86_thread_context_t *context = container_of(to->context, const x86_thread_context_t, inner);
     const switch_func_t switch_func = switch_flags & SWITCH_TO_NEW_USER_THREAD   ? x86_switch_impl_new_user_thread :
                                       switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? x86_switch_impl_new_kernel_thread :

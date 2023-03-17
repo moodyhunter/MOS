@@ -155,7 +155,7 @@ paging_handle_t platform_mm_create_user_pgd(void);
 void platform_mm_destroy_user_pgd(paging_handle_t table);
 
 // Platform Paging APIs
-void platform_mm_map_pages(paging_handle_t table, vmblock_t block);
+void platform_mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t n_pages, vm_flags flags);
 void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t n_pages);
 vmblock_t platform_mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t npages);
 vmblock_t platform_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages);

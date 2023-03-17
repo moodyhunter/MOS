@@ -87,7 +87,7 @@ paging_handle_t platform_mm_create_user_pgd(void)
     handle.pgd = (uintptr_t) infra;
 
     // physical address of kernel page table
-    const uintptr_t kpgtable_paddr = pg_page_get_mapped_paddr(x86_kpg_infra, (uintptr_t) x86_kpg_infra->pgtable);
+    const uintptr_t kpgtable_paddr = pg_get_mapped_paddr(x86_kpg_infra, (uintptr_t) x86_kpg_infra->pgtable);
 
     // this is a bit of a hack, but it's the easiest way that I can think of ...
     const int kernel_pagedir_id_start = MOS_KERNEL_START_VADDR / MOS_PAGE_SIZE / 1024; // addr / (size of page) / (# pages of a page directory)
@@ -134,15 +134,19 @@ void platform_switch_to_thread(uintptr_t *old_stack, const thread_t *new_thread,
     x86_switch_to_thread(old_stack, new_thread, switch_flags);
 }
 
-void platform_mm_map_pages(paging_handle_t table, vmblock_t block)
+void platform_mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t n_pages, vm_flags flags)
 {
-    mos_debug(x86_paging, "mapping %zu pages (" PTR_FMT "->" PTR_FMT ") @ table " PTR_FMT, block.npages, block.vaddr, block.paddr, table.pgd);
+    mos_debug(x86_paging, "mapping %zu pages (" PTR_FMT "->" PTR_FMT ") @ table " PTR_FMT, n_pages, vaddr, paddr, table.pgd);
 
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
 
     spinlock_acquire(table.pgd_lock);
-    for (size_t i = 0; i < block.npages; i++)
-        pg_do_map_page(infra, block.vaddr + i * MOS_PAGE_SIZE, block.paddr + i * MOS_PAGE_SIZE, block.flags);
+    for (size_t i = 0; i < n_pages; i++)
+    {
+        pg_map_page(infra, vaddr, paddr, flags);
+        vaddr += MOS_PAGE_SIZE;
+        paddr += MOS_PAGE_SIZE;
+    }
     spinlock_release(table.pgd_lock);
 }
 
@@ -153,7 +157,7 @@ void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr_start, size_
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
     spinlock_acquire(table.pgd_lock);
     for (size_t i = 0; i < n_pages; i++)
-        pg_do_unmap_page(infra, vaddr_start + i * MOS_PAGE_SIZE);
+        pg_unmap_page(infra, vaddr_start + i * MOS_PAGE_SIZE);
     spinlock_release(table.pgd_lock);
 }
 
@@ -163,9 +167,9 @@ vmblock_t platform_mm_get_block_info(paging_handle_t table, uintptr_t vaddr, siz
     spinlock_acquire(table.pgd_lock);
     vmblock_t block;
     block.vaddr = vaddr;
-    block.paddr = pg_page_get_mapped_paddr(infra, vaddr);
+    block.paddr = pg_get_mapped_paddr(infra, vaddr);
     block.npages = npages;
-    block.flags = pg_page_get_flags(infra, vaddr);
+    block.flags = pg_get_flags(infra, vaddr);
     spinlock_release(table.pgd_lock);
     return block;
 }
@@ -182,15 +186,15 @@ vmblock_t platform_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_h
     {
         uintptr_t from_vaddr = fvaddr + i * MOS_PAGE_SIZE;
         uintptr_t to_vaddr = tvaddr + i * MOS_PAGE_SIZE;
-        uintptr_t paddr = pg_page_get_mapped_paddr(from_infra, from_vaddr);
-        vm_flags flags = pg_page_get_flags(from_infra, from_vaddr);
-        pg_do_map_page(to_infra, to_vaddr, paddr, flags);
+        uintptr_t paddr = pg_get_mapped_paddr(from_infra, from_vaddr);
+        vm_flags flags = pg_get_flags(from_infra, from_vaddr);
+        pg_map_page(to_infra, to_vaddr, paddr, flags);
     }
 
     vmblock_t block = {
         .vaddr = tvaddr,
         .npages = npages,
-        .flags = pg_page_get_flags(from_infra, fvaddr),
+        .flags = pg_get_flags(from_infra, fvaddr),
     };
 
     spinlock_release(to.pgd_lock);
@@ -208,7 +212,7 @@ void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm
 
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
     spinlock_acquire(table.pgd_lock);
-    pg_page_flag(infra, vaddr, n, flags);
+    pg_flag_page(infra, vaddr, n, flags);
     spinlock_release(table.pgd_lock);
 }
 
@@ -216,7 +220,7 @@ vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr)
 {
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
     spinlock_acquire(table.pgd_lock);
-    vm_flags flags = pg_page_get_flags(infra, vaddr);
+    vm_flags flags = pg_get_flags(infra, vaddr);
     spinlock_release(table.pgd_lock);
     return flags;
 }
