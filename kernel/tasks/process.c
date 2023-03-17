@@ -228,7 +228,7 @@ void process_detach_mmap(process_t *process, vmblock_t block)
             process->mmaps[i] = process->mmaps[process->mmaps_count];
             process->mmaps = krealloc(process->mmaps, sizeof(vmap_t) * process->mmaps_count);
 
-            if (process->mmaps[i].flags.cow || process->mmaps[i].flags.zod)
+            if (process->mmaps[i].flags.cow)
             {
                 // TODO: CoW tracking
                 mm_unmap_pages(process->pagetable, block.vaddr, block.npages);
@@ -319,7 +319,7 @@ void process_handle_cleanup(process_t *process)
 
         // they will be unmapped when the last process detaches them
         // !! TODO: How to track this??
-        if (process->mmaps[i].flags.cow || process->mmaps[i].flags.zod)
+        if (process->mmaps[i].flags.cow)
         {
             mm_unmap_pages(process->pagetable, block.vaddr, block.npages);
         }
@@ -349,7 +349,7 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
 
     const uintptr_t heap_top = heap->blk.vaddr + heap->blk.npages * MOS_PAGE_SIZE;
 
-    if (heap->flags.cow || heap->flags.zod)
+    if (heap->flags.cow)
     {
         vmblock_t zeroed = mm_alloc_zeroed_pages_at(process->pagetable, heap_top, npages, VM_USER_RW);
         MOS_ASSERT(zeroed.npages == npages);
@@ -405,18 +405,18 @@ void process_dump_mmaps(const process_t *process)
         }
 
         pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%c%c%c%c%c%c, %c%c]: %s",
-                i,                                                     //
-                block.blk.vaddr,                                       //
-                block.blk.npages,                                      //
-                block.blk.flags & VM_READ ? 'r' : '-',                 //
-                block.blk.flags & VM_WRITE ? 'w' : '-',                //
-                block.blk.flags & VM_EXEC ? 'x' : '-',                 //
-                block.blk.flags & VM_GLOBAL ? 'g' : '-',               //
-                block.blk.flags & VM_USER ? 'u' : '-',                 //
-                block.blk.flags & VM_CACHE_DISABLED ? 'C' : '-',       //
-                block.flags.cow ? 'c' : (block.flags.zod ? 'z' : '-'), //
-                forkmode,                                              //
-                typestr                                                //
+                i,                                               //
+                block.blk.vaddr,                                 //
+                block.blk.npages,                                //
+                block.blk.flags & VM_READ ? 'r' : '-',           //
+                block.blk.flags & VM_WRITE ? 'w' : '-',          //
+                block.blk.flags & VM_EXEC ? 'x' : '-',           //
+                block.blk.flags & VM_GLOBAL ? 'g' : '-',         //
+                block.blk.flags & VM_USER ? 'u' : '-',           //
+                block.blk.flags & VM_CACHE_DISABLED ? 'C' : '-', //
+                block.flags.cow ? 'c' : '-',                     //
+                forkmode,                                        //
+                typestr                                          //
         );
     }
 }

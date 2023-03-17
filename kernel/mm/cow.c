@@ -98,17 +98,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
 
         mos_debug(cow, "fault_addr=" PTR_FMT ", vmblock=" PTR_FMT "-" PTR_FMT, fault_addr, vm->vaddr, vm->vaddr + vm->npages * MOS_PAGE_SIZE);
 
-        if (mmap->flags.zod)
-        {
-            pr_emph("Zero-on-demand page fault in block %zu", i);
-            // TODO: only allocate the page where the fault happened
-            mm_unmap_pages(current_proc->pagetable, vm->vaddr, vm->npages);
-            mmap->blk = mm_alloc_pages_at(current_proc->pagetable, vm->vaddr, vm->npages, vm->flags);
-            memzero((void *) vm->vaddr, MOS_PAGE_SIZE * vm->npages);
-            mos_debug(cow, "ZoD resolved");
-            mmap->flags.zod = false;
-        }
-        else if (mmap->flags.cow)
+        if (mmap->flags.cow)
         {
             pr_emph("CoW page fault in block %zu", i);
             // TODO: only copy the page where the fault happened

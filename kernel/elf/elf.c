@@ -219,7 +219,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
         if (sh->header_type == ELF_SH_T_NOBITS)
         {
             const vmblock_t zero_block = mm_alloc_zeroed_pages_at(proc->pagetable, first_unmapped_addr, pages_to_map, map_flags);
-            process_attach_mmap(proc, zero_block, VMTYPE_ZERO, (vmap_flags_t){ .zod = true });
+            process_attach_mmap(proc, zero_block, VMTYPE_ZERO, (vmap_flags_t){ .cow = true });
         }
         else
         {

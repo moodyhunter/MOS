@@ -74,7 +74,7 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
         // User stack
         const vmblock_t ustack_blk = mm_alloc_zeroed_pages(owner->pagetable, MOS_STACK_PAGES_USER, PGALLOC_HINT_STACK, VM_USER_RW);
         stack_init(&t->u_stack, (void *) ustack_blk.vaddr, MOS_STACK_PAGES_USER * MOS_PAGE_SIZE);
-        process_attach_mmap(owner, ustack_blk, VMTYPE_STACK, (vmap_flags_t){ .zod = true });
+        process_attach_mmap(owner, ustack_blk, VMTYPE_STACK, (vmap_flags_t){ .cow = true });
     }
     else
     {
