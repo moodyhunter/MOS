@@ -259,6 +259,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
             block.vaddr = mm_get_free_pages(current_process->pagetable, 1, PGALLOC_HINT_MMAP);
             block.flags = VM_USER_RW;
             block.paddr = X86_VIDEO_DEVICE_PADDR;
+            block.address_space = current_process->pagetable;
             mm_map_allocated_pages(current_thread->owner->pagetable, block);
             process_attach_mmap(current_process, block, VMTYPE_MMAP, (vmap_flags_t){ .fork_mode = VMAP_FORK_SHARED });
             return block.vaddr;

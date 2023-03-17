@@ -30,8 +30,8 @@ typedef struct ipcshm_t
     size_t buffer_size;
     ipcshm_state state;
     spinlock_t lock;
-    shm_block_t client_write_shm;
-    shm_block_t server_write_shm;
+    vmblock_t client_write_shm;
+    vmblock_t server_write_shm;
     void *data;
 } ipcshm_t;
 

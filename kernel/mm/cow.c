@@ -50,7 +50,7 @@ static vmblock_t do_resolve_cow(uintptr_t fault_addr, size_t npages)
         mm_map_allocated_pages(current_handle, stub_pblock);
     }
 
-    return (vmblock_t){ .flags = flags, .npages = npages, .paddr = phys_start, .vaddr = fault_addr };
+    return (vmblock_t){ .flags = flags, .npages = npages, .paddr = phys_start, .vaddr = fault_addr, .address_space = current_handle };
 }
 
 bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bool is_user, bool is_exec)

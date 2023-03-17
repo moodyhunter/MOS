@@ -162,7 +162,7 @@ vmblock_t mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t n_pag
         return (vmblock_t){ 0 };
     }
 
-    vmblock_t block = { .vaddr = vaddr, .npages = n_pages, .paddr = paddr, .flags = flags };
+    vmblock_t block = { .vaddr = vaddr, .npages = n_pages, .paddr = paddr, .flags = flags, .address_space = table };
     mm_map_allocated_pages(table, block);
     return block;
 }
@@ -215,6 +215,7 @@ vmblock_t mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t t
 
     pagemap_mark_used(to.um_page_map, tvaddr, npages);
     vmblock_t block = platform_mm_copy_maps(PGD_FOR_VADDR(fvaddr, from), fvaddr, PGD_FOR_VADDR(tvaddr, to), tvaddr, npages);
+    block.address_space = to;
     return block;
 }
 

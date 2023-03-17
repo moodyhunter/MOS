@@ -91,5 +91,5 @@ vmblock_t mm_alloc_zeroed_pages_at(paging_handle_t handle, uintptr_t vaddr, size
 
     // make the pages read-only (because for now, they are mapped to zero_block)
     platform_mm_flag_pages(handle, vaddr, npages, VM_READ | ((flags & VM_USER) ? VM_USER : 0));
-    return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags };
+    return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags, .address_space = handle };
 }

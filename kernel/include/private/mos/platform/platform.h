@@ -99,6 +99,7 @@ typedef struct
     uintptr_t vaddr, paddr; // virtual and physical addresses
     size_t npages;
     vm_flags flags; // the expected flags for the region, regardless of the copy-on-write state
+    paging_handle_t address_space;
 } vmblock_t;
 
 typedef struct
