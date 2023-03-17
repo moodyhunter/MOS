@@ -49,8 +49,8 @@ void pg_flag_page(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags)
 
 void pg_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_flags flags)
 {
-    MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not aligned to 4096");
-    MOS_ASSERT_X(paddr % MOS_PAGE_SIZE == 0, "paddr is not aligned to 4096");
+    MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not aligned to page size");
+    MOS_ASSERT_X(paddr % MOS_PAGE_SIZE == 0, "paddr is not aligned to page size");
     PAGING_CORRECT_PGTABLE_SANITY_CHECKS(pg, vaddr);
 
     const u32 pd_index = vaddr >> 22;
