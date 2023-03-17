@@ -31,11 +31,17 @@ typedef enum
     MOS_LOG_DEFAULT = MOS_LOG_INFO,
 } mos_log_level_t;
 
+#if MOS_CONFIG(MOS_DEBUG_HAS_FUNCTION_NAME)
+#define MOS_FUNCTION_NAME __func__
+#else
+#define MOS_FUNCTION_NAME ""
+#endif
+
 #define mos_debug(feat, fmt, ...)                                                                                                                                        \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
         if (MOS_DEBUG_FEATURE(feat))                                                                                                                                     \
-            pr_info2("%-10s %s: " fmt, #feat, __func__, ##__VA_ARGS__);                                                                                                  \
+            pr_info2("%-10s %s: " fmt, #feat, MOS_FUNCTION_NAME, ##__VA_ARGS__);                                                                                         \
     } while (0)
 
 #if MOS_CONFIG(MOS_PRINTK_WITH_FILENAME)

@@ -54,6 +54,7 @@ mos_kconfig(LIMITS      MOS_PATH_MAX_LENGTH             256                 "Max
 mos_kconfig(LIMITS      MOS_STACK_PAGES_KERNEL          16                  "Pages of kernel stack")
 mos_kconfig(LIMITS      MOS_STACK_PAGES_USER            32                  "Pages of user stack")
 mos_kconfig(MM          MOS_MM_LIBALLOC_LOCKS           ON                  "Enable locking support in liballoc")
+mos_kconfig(DEBUG       MOS_DEBUG_HAS_FUNCTION_NAME     ON                  "Include function name in debug log")
 
 # Debugging options
 mos_debug(thread        "Thread debug log")
