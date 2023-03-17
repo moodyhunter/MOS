@@ -13,13 +13,15 @@
 
 // TODO: A global list of CoW blocks, so that we don't free them if they're still in use.
 
-vmblock_t mm_make_process_map_cow(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages)
+vmblock_t mm_make_process_map_cow(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages, vm_flags flags)
 {
     // Note that the block returned by this function contains it's ACTRUAL flags, which may be different from the flags of the original block.
     // (consider the case where we CoW-map a page that is already CoW-mapped)
-    vmblock_t block = mm_copy_maps(from, fvaddr, to, tvaddr, npages);
-    platform_mm_flag_pages(from, fvaddr, npages, block.flags & ~VM_WRITE);
-    platform_mm_flag_pages(to, tvaddr, npages, block.flags & ~VM_WRITE);
+    mm_flag_pages(from, fvaddr, npages, flags & ~VM_WRITE);
+
+    vmblock_t block = mm_copy_maps(from, fvaddr, to, tvaddr, npages, MM_COPY_DEFAULT);
+    mm_flag_pages(to, tvaddr, npages, flags & ~VM_WRITE);
+    block.flags = flags;
     return block;
 }
 

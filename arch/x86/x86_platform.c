@@ -101,7 +101,7 @@ void x86_kpanic_hook(void)
         pr_emph("Current task: %s (tid: %ld, pid: %ld)", current_process->name, current_thread->tid, current_process->pid);
         pr_emph("Task Page Table:");
         spinlock_acquire(current_process->pagetable.pgd_lock);
-        x86_mm_dump_page_table(x86_get_pg_infra(current_process->pagetable));
+        x86_dump_pagetable(current_process->pagetable);
         spinlock_release(current_process->pagetable.pgd_lock);
         if (current_cpu->pagetable.pgd == current_process->pagetable.pgd)
             cpu_pagetable_source = "Current Process";
@@ -109,7 +109,7 @@ void x86_kpanic_hook(void)
     else
     {
         pr_emph("Kernel Page Table:");
-        x86_mm_dump_page_table(x86_kpg_infra);
+        x86_dump_pagetable(platform_info->kernel_pgd);
     }
 
     if (cpu_pagetable_source)
@@ -120,7 +120,7 @@ void x86_kpanic_hook(void)
     {
         pr_emph("CPU Page Table:");
         spinlock_acquire(current_cpu->pagetable.pgd_lock);
-        x86_mm_dump_page_table(x86_get_pg_infra(current_cpu->pagetable));
+        x86_dump_pagetable(current_cpu->pagetable);
         spinlock_release(current_cpu->pagetable.pgd_lock);
     }
 

@@ -136,29 +136,22 @@ void platform_switch_to_thread(uintptr_t *old_stack, const thread_t *new_thread,
 
 void platform_mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t n_pages, vm_flags flags)
 {
-    mos_debug(x86_paging, "mapping %zu pages (" PTR_FMT "->" PTR_FMT ") @ table " PTR_FMT, n_pages, vaddr, paddr, table.pgd);
-
+    MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
-
-    spinlock_acquire(table.pgd_lock);
     for (size_t i = 0; i < n_pages; i++)
     {
         pg_map_page(infra, vaddr, paddr, flags);
         vaddr += MOS_PAGE_SIZE;
         paddr += MOS_PAGE_SIZE;
     }
-    spinlock_release(table.pgd_lock);
 }
 
 void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr_start, size_t n_pages)
 {
-    mos_debug(x86_paging, "unmapping %zu pages starting at " PTR_FMT " @ table " PTR_FMT, n_pages, vaddr_start, table.pgd);
-
+    MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
-    spinlock_acquire(table.pgd_lock);
     for (size_t i = 0; i < n_pages; i++)
         pg_unmap_page(infra, vaddr_start + i * MOS_PAGE_SIZE);
-    spinlock_release(table.pgd_lock);
 }
 
 vmblock_t platform_mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t npages)
@@ -174,55 +167,33 @@ vmblock_t platform_mm_get_block_info(paging_handle_t table, uintptr_t vaddr, siz
     return block;
 }
 
-vmblock_t platform_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages)
+void platform_mm_iterate_table(paging_handle_t table, uintptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg)
 {
-    x86_pg_infra_t *from_infra = x86_get_pg_infra(from);
-    x86_pg_infra_t *to_infra = x86_get_pg_infra(to);
-
-    spinlock_acquire(from.pgd_lock);
-    spinlock_acquire(to.pgd_lock);
-
-    for (size_t i = 0; i < npages; i++)
-    {
-        uintptr_t from_vaddr = fvaddr + i * MOS_PAGE_SIZE;
-        uintptr_t to_vaddr = tvaddr + i * MOS_PAGE_SIZE;
-        uintptr_t paddr = pg_get_mapped_paddr(from_infra, from_vaddr);
-        vm_flags flags = pg_get_flags(from_infra, from_vaddr);
-        pg_map_page(to_infra, to_vaddr, paddr, flags);
-    }
-
-    vmblock_t block = {
-        .vaddr = tvaddr,
-        .npages = npages,
-        .flags = pg_get_flags(from_infra, fvaddr),
-    };
-
-    spinlock_release(to.pgd_lock);
-    spinlock_release(from.pgd_lock);
-    return block;
+    MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
+    x86_mm_walk_page_table(table, vaddr, n, callback, arg);
 }
 
 void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags)
 {
-    if (unlikely(table.pgd == 0))
-    {
-        mos_warn("invalid pgd");
-        return;
-    }
-
+    MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
-    spinlock_acquire(table.pgd_lock);
     pg_flag_page(infra, vaddr, n, flags);
-    spinlock_release(table.pgd_lock);
 }
 
 vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr)
 {
+    // intentionally not locked
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
-    spinlock_acquire(table.pgd_lock);
-    vm_flags flags = pg_get_flags(infra, vaddr);
-    spinlock_release(table.pgd_lock);
-    return flags;
+    return pg_get_flags(infra, vaddr);
+}
+
+uintptr_t platform_mm_get_phys_addr(paging_handle_t table, uintptr_t vaddr)
+{
+    // intentionally not locked
+    x86_pg_infra_t *infra = x86_get_pg_infra(table);
+    uintptr_t p = pg_get_mapped_paddr(infra, (vaddr & ~(MOS_PAGE_SIZE - 1)));
+    p += vaddr & (MOS_PAGE_SIZE - 1);
+    return p;
 }
 
 u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unused arg2, u64 __maybe_unused arg3, u64 __maybe_unused arg4)

@@ -16,6 +16,12 @@
  * @{
  */
 
+typedef enum
+{
+    MM_COPY_DEFAULT = 0,       ///< Default copy flags.
+    MM_COPY_ASSUME_MAPPED = 1, ///< Unmap the destination pages before copying.
+} mm_copy_behavior_t;
+
 /// @brief Maximum 'lines' in a page map, see also @ref bitmap_line_t.
 #define MOS_PAGEMAP_MAX_LINES BITMAP_LINE_COUNT((uintptr_t) ~0 / MOS_PAGE_SIZE)
 
@@ -131,20 +137,23 @@ void mm_map_allocated_pages(paging_handle_t table, vmblock_t block);
 void mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t npages);
 
 /**
- * @brief Copy a block of virtual memory from one page table to another.
+ * @brief Remap a block of virtual memory from one page table to another, i.e. copy the mappings.
  *
  * @param from The page table to copy from.
  * @param fvaddr The virtual address to copy from.
  * @param to The page table to copy to.
  * @param tvaddr The virtual address to copy to.
  * @param npages The number of pages to copy.
+ * @param clear_dest Whether to clear the destination page table before copying.
  *
- * @details This function copies the pages mappings, including the flags and physical addresses, from one page
- * table to another.
+ * @details This function firstly unmaps the pages in the destination page table, then copies the pages
+ * mappings, including the flags and physical addresses, the physical page reference count is updated
+ * accordingly.
  *
- * @note This function does not copy the actual data, it's used intensively by CoW, Zero-on-Demand and shared memory.
+ * @note If clear_dest is set to true, then the destination page table is cleared before copying, otherwise
+ * the function assumes that there are no existing mappings in the destination page table.
  */
-vmblock_t mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages);
+vmblock_t mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior);
 
 /**
  * @brief Get if a virtual address is mapped in a page table.
@@ -164,6 +173,18 @@ bool mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr);
  * @warning vaddr will be rounded down to the nearest page boundary if it's not page-aligned.
  */
 vmblock_t mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t n_pages);
+
+/**
+ * @brief Update the flags of a block of virtual memory.
+ *
+ * @param table The page table to update the flags in.
+ * @param vaddr The virtual address to update the flags of.
+ * @param npages The number of pages to update the flags of.
+ * @param flags The flags to set on the pages, see @ref vm_flags.
+ *
+ * @note This function is just a wrapper around @ref platform_mm_flag_pages, with correct locking.
+ */
+void mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t npages, vm_flags flags);
 
 /**
  * @brief Create a user-mode platform-dependent page table.

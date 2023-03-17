@@ -86,10 +86,10 @@ vmblock_t mm_alloc_zeroed_pages_at(paging_handle_t handle, uintptr_t vaddr, size
     for (size_t i = 0; i < npages; i++)
     {
         // actually, zero_block is always accessible, using [handle] == using [current_cpu->pagetable] as source
-        mm_copy_maps(current_cpu->pagetable, zero_block.vaddr, handle, vaddr + i * MOS_PAGE_SIZE, 1);
+        mm_copy_maps(current_cpu->pagetable, zero_block.vaddr, handle, vaddr + i * MOS_PAGE_SIZE, 1, MM_COPY_DEFAULT);
     }
 
     // make the pages read-only (because for now, they are mapped to zero_block)
-    platform_mm_flag_pages(handle, vaddr, npages, VM_READ | ((flags & VM_USER) ? VM_USER : 0));
+    mm_flag_pages(handle, vaddr, npages, VM_READ | ((flags & VM_USER) ? VM_USER : 0));
     return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags, .address_space = handle };
 }

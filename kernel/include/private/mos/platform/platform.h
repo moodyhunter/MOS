@@ -109,6 +109,32 @@ typedef struct
     bool available;
 } memregion_t;
 
+/**
+ * @brief Information about a page table iteration
+ */
+typedef struct
+{
+    paging_handle_t address_space;
+    uintptr_t vaddr_start;
+    size_t npages;
+} pgt_iteration_info_t;
+
+/**
+ * @brief Callback for platform_mm_iterate_table
+ *
+ * @param vaddr_start The virtual address of the page
+ * @param paddr_start The physical address of the page
+ * @param n_pages The number of pages in the range
+ * @param flags The flags of the page, (e.g. permissions)
+ * @param arg The argument passed to platform_mm_iterate_phys_addr
+ *
+ * @note For saving CPU cycles, the callback should be called for each contiguous range of pages,
+ * instead of each page individually, where the n_pages parameter indicates the number of pages
+ * in the range.
+ *
+ */
+typedef void (*pgt_iteration_callback_t)(const pgt_iteration_info_t *iter_info, const vmblock_t *block, uintptr_t block_paddr, void *arg);
+
 typedef struct
 {
     u32 num_cpus;
@@ -159,7 +185,7 @@ void platform_mm_destroy_user_pgd(paging_handle_t table);
 void platform_mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t n_pages, vm_flags flags);
 void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t n_pages);
 vmblock_t platform_mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t npages);
-vmblock_t platform_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages);
+void platform_mm_iterate_table(paging_handle_t table, uintptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg);
 void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
 vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr);
 

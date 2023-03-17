@@ -224,9 +224,9 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
         else
         {
             uintptr_t file_offset = ALIGN_DOWN_TO_PAGE((uintptr_t) buf + sh->sh_offset) + mapped_pages_n * MOS_PAGE_SIZE;
-            vmblock_t block = mm_copy_maps(current_cpu->pagetable, file_offset, proc->pagetable, first_unmapped_addr, pages_to_map);
+            vmblock_t block = mm_copy_maps(current_cpu->pagetable, file_offset, proc->pagetable, first_unmapped_addr, pages_to_map, MM_COPY_DEFAULT);
             block.flags = map_flags; // use the original flags
-            platform_mm_flag_pages(proc->pagetable, block.vaddr, block.npages, map_flags);
+            mm_flag_pages(proc->pagetable, block.vaddr, block.npages, map_flags);
             process_attach_mmap(proc, block, map_flags & VM_EXEC ? VMTYPE_CODE : VMTYPE_DATA, (vmap_flags_t){ 0 });
         }
     }

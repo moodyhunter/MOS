@@ -63,6 +63,7 @@ mos_debug(scheduler     "Scheduler debug log")
 mos_debug(syscall       "Syscall debug log")
 mos_debug(pmm           "Physical memory manager debug log")
 mos_debug(vmm           "Virtual memory manager debug log")
+mos_debug(vmm_callback  "VMM callback debug log") # very verbose, so annoying
 mos_debug(mmap          "Memory mapping debug log")
 mos_debug(shm           "Shared memory debug log")
 mos_debug(cow           "Copy-on-write debug log")
