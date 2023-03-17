@@ -27,14 +27,14 @@ void operator delete[](void *ptr) noexcept
     free(ptr);
 }
 
-void operator delete(void *, long unsigned int) noexcept
+void operator delete(void *ptr, long unsigned int) noexcept
 {
-    // Do nothing
+    free(ptr);
 }
 
-void operator delete[](void *, long unsigned int) noexcept
+void operator delete[](void *ptr, long unsigned int) noexcept
 {
-    // Do nothing
+    free(ptr);
 }
 
 namespace mos
