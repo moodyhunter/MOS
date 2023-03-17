@@ -92,7 +92,7 @@ typedef struct liballoc_part
 static liballoc_block_t *l_memroot = NULL; // The root memory block acquired from the system.
 static liballoc_block_t *l_bestbet = NULL; // The major with the most free memory.
 
-static size_t l_alloc_n_page_once = 0; // The number of pages to request per chunk. Set up in liballoc_init.
+static const size_t l_alloc_n_page_once = 8; // The number of pages to request per chunk. Set up in liballoc_init.
 
 static size_t l_mem_allocated = 0;     // Running total of allocated memory.
 static size_t l_mem_inuse = 0;         // Running total of used memory.
@@ -192,11 +192,9 @@ void liballoc_init(void)
     l_memroot = NULL;
     l_bestbet = NULL;
     MOS_LIB_ASSERT_X(l_memroot == NULL, "liballoc_init() called twice");
-    l_alloc_n_page_once = 8;
 #if LIBALLOC_PRINT_DEBUG_MESSAGES
     pr_info("liballoc: initialization of liballoc " VERSION "");
 #endif
-
     liballoc_first_alloc();
 }
 
