@@ -197,7 +197,7 @@ void x86_start_kernel(x86_startup_info *info)
 
         initrd_blockdev_t *initrd_blockdev = kzalloc(sizeof(initrd_blockdev_t));
         initrd_blockdev->blockdev = (blockdev_t){ .name = "initrd", .read = initrd_read };
-        initrd_blockdev->memblock = (memregion_t){ .available = true, .address = MOS_X86_INITRD_VADDR, .size_bytes = initrd_size };
+        initrd_blockdev->vmblock = initrd_block;
         blockdev_register(&initrd_blockdev->blockdev);
     }
 

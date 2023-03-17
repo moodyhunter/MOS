@@ -7,8 +7,8 @@
 
 typedef struct
 {
-    memregion_t memblock;
     blockdev_t blockdev;
+    vmblock_t vmblock;
 } initrd_blockdev_t;
 
 size_t initrd_read(blockdev_t *dev, void *buf, size_t size, size_t bytes_read);
