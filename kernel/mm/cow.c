@@ -86,7 +86,7 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
             continue;
         }
 
-        mos_debug(cow, "fault_addr=" PTR_FMT ", vmblock=" PTR_FMT "-" PTR_FMT, fault_addr, vm->vaddr, vm->vaddr + vm->npages * MOS_PAGE_SIZE);
+        mos_debug(cow, "fault_addr=" PTR_FMT ", vmblock=" PTR_RANGE, fault_addr, vm->vaddr, vm->vaddr + vm->npages * MOS_PAGE_SIZE);
 
         if (mmap->flags.cow)
         {

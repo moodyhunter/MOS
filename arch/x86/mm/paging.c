@@ -26,7 +26,7 @@ static void x86_walk_pagetable_dump_callback(const pgt_iteration_info_t *iter_in
         pr_info("  VGROUP: " PTR_FMT, block->vaddr);
     }
 
-    pr_info2("    " PTR_FMT "-" PTR_FMT " -> " PTR_FMT "-" PTR_FMT ", %5zd pages, %c%c%c, %c%c, %s", //
+    pr_info2("    " PTR_RANGE " -> " PTR_RANGE ", %5zd pages, %c%c%c, %c%c, %s", //
              block->vaddr,                                                                           //
              block->vaddr + block->npages * MOS_PAGE_SIZE,                                           //
              block_paddr,                                                                            //

@@ -17,7 +17,7 @@ bool pmm_use_kernel_heap = false;
 
 pmlist_node_t *pmm_internal_list_node_create(uintptr_t start, size_t n_pages, pm_range_type_t type)
 {
-    MOS_ASSERT_X(type != PM_RANGE_UNINITIALIZED, "pmm_alloc_new_block() called with type == PMM_REGION_UNINITIALIZED");
+    MOS_ASSERT_X(type != PM_RANGE_UNINITIALIZED, "pmm_internal_list_node_create() called with type == PM_RANGE_UNINITIALIZED");
     pmlist_node_t *node = NULL;
     if (likely(pmm_use_kernel_heap))
     {
@@ -92,7 +92,7 @@ void pmm_dump(void)
             pr_emerg("Invalid refcount %zu", r->refcount);
 
         const char *const type = r->type == PM_RANGE_FREE ? "available" : "reserved";
-        pr_info("%2zd: " PTR_FMT "-" PTR_FMT " (%zu page(s), %s, %s)", i, r->range.paddr, end, r->range.npages, sbuf, type);
+        pr_info("%2zd: " PTR_RANGE " (%zu page(s), %s, %s)", i, r->range.paddr, end, r->range.npages, sbuf, type);
         i++;
     }
 
@@ -107,7 +107,7 @@ void pmm_dump(void)
             pr_emerg("Invalid allocated region type %d", a->type);
 
         const char *const type = a->type == PM_RANGE_ALLOCATED ? "allocated" : "reserved";
-        pr_info("%2zd: " PTR_FMT "-" PTR_FMT " (%zu page(s), %s, %s, %zu refs)", i, a->range.paddr, end, a->range.npages, sbuf, type, a->refcount);
+        pr_info("%2zd: " PTR_RANGE " (%zu page(s), %s, %s, %zu refs)", i, a->range.paddr, end, a->range.npages, sbuf, type, a->refcount);
         i++;
     }
 }
@@ -120,7 +120,7 @@ void pmm_add_region_bytes(uintptr_t start_addr, size_t nbytes, pm_range_type_t t
 
     const size_t loss = (start - start_addr) + (end - (start_addr + nbytes));
     if (unlikely(loss))
-        pr_warn("physical memory region " PTR_FMT "-" PTR_FMT " is not page-aligned, losing %zu bytes", start_addr, start_addr + nbytes, loss);
+        pr_warn("physical memory region " PTR_RANGE " is not page-aligned, losing %zu bytes", start_addr, start_addr + nbytes, loss);
 
     pmm_internal_add_free_frames(start, n_pages, type);
 }

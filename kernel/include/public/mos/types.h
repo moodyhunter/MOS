@@ -43,6 +43,8 @@ typedef u64 uintn;
 #define PTR_FMT "0x%16.16" _PTRFMTx
 #endif
 
+#define PTR_RANGE "[" PTR_FMT " - " PTR_FMT "]"
+
 typedef __UINTPTR_TYPE__ uintptr_t;
 
 MOS_STATIC_ASSERT(sizeof(void *) == MOS_BITS / 8, "pointer size check failed");

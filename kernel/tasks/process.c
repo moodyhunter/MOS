@@ -207,7 +207,7 @@ void process_attach_mmap(process_t *process, vmblock_t block, vmap_content_t typ
     MOS_ASSERT(process_is_valid(process));
     MOS_ASSERT(block.address_space.pgd == process->pagetable.pgd);
 
-    mos_debug(process, "process %ld attached mmap " PTR_FMT "-" PTR_FMT, process->pid, block.vaddr, block.vaddr + block.npages * MOS_PAGE_SIZE);
+    mos_debug(process, "process %ld attached mmap " PTR_RANGE, process->pid, block.vaddr, block.vaddr + block.npages * MOS_PAGE_SIZE);
     process->mmaps = krealloc(process->mmaps, sizeof(vmap_t) * (process->mmaps_count + 1));
     process->mmaps[process->mmaps_count++] = (vmap_t){
         .blk = block,
