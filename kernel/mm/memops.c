@@ -6,6 +6,7 @@
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging/paging.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
@@ -24,6 +25,13 @@ void mos_kernel_mm_init(void)
     declare_panic_hook(liballoc_dump);
     install_panic_hook(&liballoc_dump_holder);
 #endif
+#if MOS_DEBUG_FEATURE(pmm)
+    declare_panic_hook(pmm_dump);
+    install_panic_hook(&pmm_dump_holder);
+#endif
+
+    pmm_dump();
+    pmm_switch_to_kheap();
 }
 
 // !! This function is called by liballoc, not intended to be called by anyone else !!

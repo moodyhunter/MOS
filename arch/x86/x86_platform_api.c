@@ -4,6 +4,7 @@
 #include "lib/sync/spinlock.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging/paging.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/mos_global.h"
 #include "mos/platform/platform.h"
 #include "mos/platform_syscall.h"
@@ -212,13 +213,8 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
         case X86_SYSCALL_MAP_VGA_MEMORY:
         {
             pr_info2("mapping VGA memory for thread %ld", current_thread->tid);
-
-            vmblock_t block = { 0 };
-            block.vaddr = mm_get_free_pages(current_process->pagetable, 1, PGALLOC_HINT_MMAP);
-            block.flags = VM_USER_RW;
-            block.paddr = X86_VIDEO_DEVICE_PADDR;
-            block.address_space = current_process->pagetable;
-            mm_map_allocated_pages(current_thread->owner->pagetable, block);
+            const uintptr_t vaddr = mm_get_free_pages(current_process->pagetable, 1, PGALLOC_HINT_MMAP);
+            const vmblock_t block = mm_map_pages(current_thread->owner->pagetable, vaddr, (uintptr_t){ X86_VIDEO_DEVICE_PADDR }, 1, VM_USER_RW);
             process_attach_mmap(current_process, block, VMTYPE_MMAP, (vmap_flags_t){ .fork_mode = VMAP_FORK_SHARED });
             return block.vaddr;
         }

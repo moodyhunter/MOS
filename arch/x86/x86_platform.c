@@ -5,7 +5,7 @@
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging/paging.h"
-#include "mos/mm/paging/pmalloc.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/mos_global.h"
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
@@ -42,21 +42,24 @@ static serial_console_t com1_console = {
     .console.setup = serial_console_setup,
 };
 
-static const vmblock_t x86_bios_block = {
+static vmblock_t x86_bios_block = {
     .npages = BIOS_MEMREGION_SIZE / MOS_PAGE_SIZE,
     .vaddr = BIOS_VADDR(X86_BIOS_MEMREGION_PADDR),
     .flags = VM_READ | VM_GLOBAL | VM_CACHE_DISABLED,
-    .paddr = X86_BIOS_MEMREGION_PADDR,
 };
 
-static const vmblock_t x86_ebda_block = {
+static vmblock_t x86_ebda_block = {
     .npages = EBDA_MEMREGION_SIZE / MOS_PAGE_SIZE,
     .vaddr = BIOS_VADDR(X86_EBDA_MEMREGION_PADDR),
     .flags = VM_READ | VM_GLOBAL | VM_CACHE_DISABLED,
-    .paddr = X86_EBDA_MEMREGION_PADDR,
 };
 
-static vmblock_t x86_acpi_block = { 0 };
+mos_platform_info_t *const platform_info = &x86_platform;
+mos_platform_info_t x86_platform = {
+    .k_code = { .vaddr = (uintptr_t) &__MOS_KERNEL_CODE_START, .flags = VM_READ | VM_EXEC | VM_GLOBAL },
+    .k_rodata = { .vaddr = (uintptr_t) &__MOS_KERNEL_RODATA_START, .flags = VM_READ | VM_GLOBAL },
+    .k_rwdata = { .vaddr = (uintptr_t) &__MOS_KERNEL_RW_START, .flags = VM_READ | VM_WRITE | VM_GLOBAL },
+};
 
 void x86_keyboard_handler(u32 irq)
 {
@@ -100,9 +103,7 @@ void x86_kpanic_hook(void)
     {
         pr_emph("Current task: %s (tid: %ld, pid: %ld)", current_process->name, current_thread->tid, current_process->pid);
         pr_emph("Task Page Table:");
-        spinlock_acquire(current_process->pagetable.pgd_lock);
         x86_dump_pagetable(current_process->pagetable);
-        spinlock_release(current_process->pagetable.pgd_lock);
         if (current_cpu->pagetable.pgd == current_process->pagetable.pgd)
             cpu_pagetable_source = "Current Process";
     }
@@ -119,9 +120,7 @@ void x86_kpanic_hook(void)
     else
     {
         pr_emph("CPU Page Table:");
-        spinlock_acquire(current_cpu->pagetable.pgd_lock);
         x86_dump_pagetable(current_cpu->pagetable);
-        spinlock_release(current_cpu->pagetable.pgd_lock);
     }
 
     do_backtrace(20);
@@ -129,21 +128,6 @@ void x86_kpanic_hook(void)
 
 void x86_start_kernel(x86_startup_info *info)
 {
-    x86_platform.k_code.vaddr = (uintptr_t) &__MOS_KERNEL_CODE_START;
-    x86_platform.k_code.npages = (ALIGN_UP_TO_PAGE((uintptr_t) &__MOS_KERNEL_CODE_END) - ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_CODE_START)) / MOS_PAGE_SIZE;
-    x86_platform.k_code.paddr = (uintptr_t) &__MOS_KERNEL_CODE_START - MOS_KERNEL_START_VADDR;
-    x86_platform.k_code.flags = VM_GLOBAL | VM_READ | VM_EXEC;
-
-    x86_platform.k_rwdata.vaddr = (uintptr_t) &__MOS_KERNEL_RW_START;
-    x86_platform.k_rwdata.npages = (ALIGN_UP_TO_PAGE((uintptr_t) &__MOS_KERNEL_RW_END) - ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_RW_START)) / MOS_PAGE_SIZE;
-    x86_platform.k_rwdata.paddr = (uintptr_t) &__MOS_KERNEL_RW_START - MOS_KERNEL_START_VADDR;
-    x86_platform.k_rwdata.flags = VM_GLOBAL | VM_READ | VM_WRITE;
-
-    x86_platform.k_rodata.vaddr = (uintptr_t) &__MOS_KERNEL_RODATA_START;
-    x86_platform.k_rodata.npages = (ALIGN_UP_TO_PAGE((uintptr_t) &__MOS_KERNEL_RODATA_END) - ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_RODATA_START)) / MOS_PAGE_SIZE;
-    x86_platform.k_rodata.paddr = (uintptr_t) &__MOS_KERNEL_RODATA_START - MOS_KERNEL_START_VADDR;
-    x86_platform.k_rodata.flags = VM_GLOBAL | VM_READ;
-
     console_register(&com1_console.console);
     declare_panic_hook(x86_kpanic_hook);
     install_panic_hook(&x86_kpanic_hook_holder);
@@ -167,22 +151,43 @@ void x86_start_kernel(x86_startup_info *info)
         strncpy(mos_cmdline, mb_info->cmdline, sizeof(mos_cmdline));
 
     const u32 memregion_count = mb_info->mmap_length / sizeof(multiboot_memory_map_t);
-    x86_mem_init(mb_info->mmap_addr, memregion_count);
-    if (x86_platform.mem_regions.count != memregion_count)
-        mos_warn("x86_mem_init() did not initialize all memory regions");
-
-    mos_pmm_setup();
+    x86_pmm_region_setup(mb_info->mmap_addr, memregion_count);
 
     x86_mm_paging_init();
 
     pr_info("mapping kernel space...");
-    mm_map_pages(x86_platform.kernel_pgd, x86_platform.k_code);
-    mm_map_pages(x86_platform.kernel_pgd, x86_platform.k_rodata);
-    mm_map_pages(x86_platform.kernel_pgd, x86_platform.k_rwdata);
+    x86_platform.k_code.npages = (ALIGN_UP_TO_PAGE((uintptr_t) &__MOS_KERNEL_CODE_END) - ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_CODE_START)) / MOS_PAGE_SIZE;
+    x86_platform.k_code = mm_map_pages(                                                                     //
+        x86_platform.kernel_pgd,                                                                            //
+        x86_platform.k_code.vaddr,                                                                          //
+        pmm_reserve_frames(x86_platform.k_code.vaddr - MOS_KERNEL_START_VADDR, x86_platform.k_code.npages), //
+        x86_platform.k_code.npages,                                                                         //
+        x86_platform.k_code.flags                                                                           //
+    );
+
+    x86_platform.k_rodata.npages = (ALIGN_UP_TO_PAGE((uintptr_t) &__MOS_KERNEL_RODATA_END) - ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_RODATA_START)) / MOS_PAGE_SIZE;
+    x86_platform.k_rodata = mm_map_pages(                                                                       //
+        x86_platform.kernel_pgd,                                                                                //
+        x86_platform.k_rodata.vaddr,                                                                            //
+        pmm_reserve_frames(x86_platform.k_rodata.vaddr - MOS_KERNEL_START_VADDR, x86_platform.k_rodata.npages), //
+        x86_platform.k_rodata.npages,                                                                           //
+        x86_platform.k_rodata.flags                                                                             //
+    );
+
+    x86_platform.k_rwdata.npages = (ALIGN_UP_TO_PAGE((uintptr_t) &__MOS_KERNEL_RW_END) - ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_RW_START)) / MOS_PAGE_SIZE;
+    x86_platform.k_rwdata = mm_map_pages(                                                                       //
+        x86_platform.kernel_pgd,                                                                                //
+        x86_platform.k_rwdata.vaddr,                                                                            //
+        pmm_reserve_frames(x86_platform.k_rwdata.vaddr - MOS_KERNEL_START_VADDR, x86_platform.k_rwdata.npages), //
+        x86_platform.k_rwdata.npages,                                                                           //
+        x86_platform.k_rwdata.flags                                                                             //
+    );
 
     pr_info("mapping bios memory area...");
-    mm_map_allocated_pages(x86_platform.kernel_pgd, x86_bios_block);
-    mm_map_allocated_pages(x86_platform.kernel_pgd, x86_ebda_block);
+    pmm_reserve_frames(X86_BIOS_MEMREGION_PADDR, x86_bios_block.npages);
+    pmm_reserve_frames(X86_EBDA_MEMREGION_PADDR, x86_ebda_block.npages);
+    x86_bios_block = mm_map_pages(x86_platform.kernel_pgd, x86_bios_block.vaddr, X86_BIOS_MEMREGION_PADDR, x86_bios_block.npages, VM_RW);
+    x86_ebda_block = mm_map_pages(x86_platform.kernel_pgd, x86_ebda_block.vaddr, X86_EBDA_MEMREGION_PADDR, x86_ebda_block.npages, VM_RW);
 
     pr_info("reserving memory for AP boot...");
     x86_smp_copy_trampoline();
@@ -192,13 +197,9 @@ void x86_start_kernel(x86_startup_info *info)
 
     if (initrd_size)
     {
-        const vmblock_t initrd_block = (vmblock_t){
-            .vaddr = MOS_X86_INITRD_VADDR,
-            .flags = VM_READ | VM_GLOBAL,
-            .paddr = initrd_paddr,
-            .npages = ALIGN_UP_TO_PAGE(initrd_size) / MOS_PAGE_SIZE,
-        };
-        mm_map_pages(x86_platform.kernel_pgd, initrd_block);
+        const size_t initrd_pgcount = ALIGN_UP_TO_PAGE(initrd_size) / MOS_PAGE_SIZE;
+        pmm_reserve_frames(initrd_paddr, initrd_pgcount);
+        const vmblock_t initrd_block = mm_map_pages(x86_platform.kernel_pgd, MOS_X86_INITRD_VADDR, initrd_paddr, initrd_pgcount, VM_READ | VM_GLOBAL);
 
         initrd_blockdev_t *initrd_blockdev = kzalloc(sizeof(initrd_blockdev_t));
         initrd_blockdev->blockdev = (blockdev_t){ .name = "initrd", .read = initrd_read };
@@ -215,27 +216,11 @@ void x86_start_kernel(x86_startup_info *info)
             mos_panic("RSDP not found");
     }
 
-    // find the RSDT and map the whole region it's in
-    for (u32 i = 0; i < x86_platform.mem_regions.count; i++)
-    {
-        memregion_t *r = &x86_platform.mem_regions.regions[i];
-        if (rsdp->xsdt_addr)
-            mos_panic("XSDT not supported");
-        if (rsdp->v1.rsdt_addr >= r->address && rsdp->v1.rsdt_addr < r->address + r->size_bytes)
-        {
-            x86_acpi_block = (vmblock_t){
-                .npages = r->size_bytes / MOS_PAGE_SIZE,
-                .vaddr = BIOS_VADDR(r->address),
-                .flags = VM_READ | VM_GLOBAL,
-                .paddr = r->address,
-            };
+    if (rsdp->xsdt_addr)
+        mos_panic("XSDT not supported");
 
-            pr_info2("mapping ACPI tables " PTR_FMT " (+%zd pages) to vaddr=" PTR_FMT, r->address, x86_acpi_block.npages, x86_acpi_block.vaddr);
-            mm_map_allocated_pages(x86_platform.kernel_pgd, x86_acpi_block);
-            r->address = BIOS_VADDR(r->address);
-            break;
-        }
-    }
+    const pmrange_t acpi_region = pmm_reserve_block(rsdp->v1.rsdt_addr);
+    mm_map_pages(x86_platform.kernel_pgd, BIOS_VADDR(acpi_region.paddr), acpi_region.paddr, acpi_region.npages, VM_READ | VM_GLOBAL);
 
     acpi_parse_rsdt(rsdp);
 
@@ -259,6 +244,3 @@ void x86_start_kernel(x86_startup_info *info)
 
     mos_start_kernel(mos_cmdline);
 }
-
-mos_platform_info_t x86_platform;
-mos_platform_info_t *const platform_info = &x86_platform;

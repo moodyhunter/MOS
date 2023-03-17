@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/mm/paging/paging.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/x86/acpi/madt.h"
@@ -89,18 +90,11 @@ should_inline ioapic_redirection_entry_t ioapic_read_redirection_entry(u32 irq)
     return u.entry;
 }
 
-void ioapic_init()
+void ioapic_init(void)
 {
     MOS_ASSERT_X(x86_ioapic_address != 0, "ioapic: no ioapic found in madt");
     ioapic = (u32 volatile *) x86_ioapic_address;
-    const vmblock_t ioapic_block = (vmblock_t){
-        .vaddr = x86_ioapic_address,
-        .paddr = x86_ioapic_address,
-        .npages = 1,
-        .flags = VM_RW | VM_GLOBAL | VM_CACHE_DISABLED,
-    };
-    mm_map_allocated_pages(x86_platform.kernel_pgd, ioapic_block);
-
+    mm_map_pages(x86_platform.kernel_pgd, x86_ioapic_address, pmm_reserve_frames(x86_ioapic_address, 1), 1, VM_RW);
     const u32 ioapic_id = ioapic_read(IOAPIC_REG_ID) >> 24 & 0xf; // get the 24-27 bits
 
     const union

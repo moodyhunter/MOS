@@ -5,13 +5,11 @@
 #include "lib/string.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging/paging.h"
-#include "mos/mm/paging/pmalloc.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_types.h"
-
-// TODO: A global list of CoW blocks, so that we don't free them if they're still in use.
 
 vmblock_t mm_make_process_map_cow(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages, vm_flags flags)
 {
@@ -25,34 +23,23 @@ vmblock_t mm_make_process_map_cow(paging_handle_t from, uintptr_t fvaddr, paging
     return block;
 }
 
-static vmblock_t do_resolve_cow(uintptr_t fault_addr, size_t npages)
+static void do_resolve_cow(uintptr_t fault_addr, vm_flags original_flags)
 {
+    fault_addr = ALIGN_DOWN_TO_PAGE(fault_addr);
     paging_handle_t current_handle = current_process->pagetable;
-    const vm_flags flags = platform_mm_get_flags(current_handle, fault_addr) | VM_USER_RW; // this flags are the same for all pages (in the same proc_vmblock)
-    const uintptr_t phys_start = pmalloc_alloc(npages);
 
-    for (size_t j = 0; j < npages; j++)
-    {
-        vmblock_t stub_pblock = {
-            .vaddr = mm_get_free_pages(current_handle, 1, PGALLOC_HINT_KHEAP),
-            .paddr = phys_start + j * MOS_PAGE_SIZE,
-            .flags = flags,
-            .npages = 1,
-        };
+    // 1. create a new read-write page
+    vmblock_t one_page = mm_alloc_pages(current_handle, 1, PGALLOC_HINT_KHEAP, original_flags);
 
-        // firstly, map the phypage to a stub vaddr
-        // then copy the data to the stub
-        // then unmap the stub
-        mm_map_allocated_pages(current_handle, stub_pblock);
-        memcpy((void *) stub_pblock.vaddr, (void *) (fault_addr + j * MOS_PAGE_SIZE), MOS_PAGE_SIZE);
-        mm_unmap_pages(current_handle, stub_pblock.vaddr, 1); // unmap the stub
+    // 2. copy the data from the faulting address to the new page
+    memcpy((void *) one_page.vaddr, (void *) fault_addr, MOS_PAGE_SIZE);
 
-        stub_pblock.vaddr = fault_addr + j * MOS_PAGE_SIZE;   // replace the stub vaddr with the real vaddr
-        mm_unmap_pages(current_handle, stub_pblock.vaddr, 1); // unmap the real vaddr, so that we can map the stub there
-        mm_map_allocated_pages(current_handle, stub_pblock);
-    }
+    // 3. replace the faulting phypage with the new one
+    mm_copy_maps(current_handle, one_page.vaddr, current_handle, fault_addr, 1, MM_COPY_ASSUME_MAPPED);
 
-    return (vmblock_t){ .flags = flags, .npages = npages, .paddr = phys_start, .vaddr = fault_addr, .address_space = current_handle };
+    // 4. unmap the temporary page (at the kernel heap)
+    //    note at this point, the underlying physical page won't be freed, because it's still mapped to the faulting address
+    mm_unmap_pages(current_handle, one_page.vaddr, 1);
 }
 
 bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bool is_user, bool is_exec)
@@ -66,14 +53,17 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
         return false;
     }
 
-    if (!present)
-        return false;
-
     if (!is_write)
-        return false;
+        return false; // we only handle write faults
 
     if (is_write && is_exec)
         mos_panic("Cannot write and execute at the same time");
+
+    if (!present)
+    {
+        // TODO
+        return false;
+    }
 
     process_t *current_proc = current_process;
     MOS_ASSERT_X(current_proc->pagetable.pgd == current_cpu->pagetable.pgd, "Page fault in a process that is not the current process?!");
@@ -100,11 +90,10 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
 
         if (mmap->flags.cow)
         {
+            MOS_ASSERT(mmap->blk.flags & VM_WRITE); // if the block is CoW, it must be writable
             pr_emph("CoW page fault in block %zu", i);
-            // TODO: only copy the page where the fault happened
-            mmap->blk = do_resolve_cow(vm->vaddr, vm->npages);
+            do_resolve_cow(fault_addr, vm->flags);
             mos_debug(cow, "CoW resolved");
-            mmap->flags.cow = false;
         }
         else
         {

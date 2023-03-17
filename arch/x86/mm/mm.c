@@ -3,55 +3,33 @@
 #include "mos/x86/mm/mm.h"
 
 #include "lib/stdlib.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/printk.h"
-#include "mos/x86/x86_platform.h"
 
-static void mem_add_region(u64 phys_addr, size_t size, bool available)
+void x86_pmm_region_setup(const multiboot_memory_map_t *map_entry, u32 count)
 {
-    if (x86_platform.mem_regions.count >= MOS_MAX_EARLY_MEMREGIONS)
-        mos_panic("too many memory regions added.");
-
-    memregion_t *block = &x86_platform.mem_regions.regions[x86_platform.mem_regions.count++];
-    block->address = phys_addr;
-    block->size_bytes = size;
-    block->available = available;
-
-    if (available)
-        x86_platform.mem.available += size;
-    x86_platform.mem.available += size;
-}
-
-void x86_mem_init(const multiboot_memory_map_t *map_entry, u32 count)
-{
-    x86_platform.mem_regions.count = 0;
-    x86_platform.mem.total = 0;
-    x86_platform.mem.available = 0;
-
     pr_info("Multiboot memory map:");
     for (u32 i = 0; i < count; i++)
     {
         char size_buf[32];
         const multiboot_memory_map_t *entry = map_entry + i;
 
-        u64 region_length = entry->len;
-        u64 region_base = entry->phys_addr;
+        const u64 region_length = entry->len;
+        const u64 region_base = entry->phys_addr;
 
         format_size(size_buf, sizeof(size_buf), region_length);
 
         if (region_base > MOS_MAX_VADDR)
         {
-            pr_warn("ignoring a %s long memory region starting at 0x%llx", size_buf, region_base);
+            pr_warn("ignoring a %s high memory region starting at 0x%llx", size_buf, region_base);
             continue;
         }
 
         if (region_base + region_length > (u64) MOS_MAX_VADDR + 1)
         {
-            region_length = MOS_MAX_VADDR - region_base;
-            format_size(size_buf, sizeof(size_buf), region_length);
             pr_warn("truncating memory region at 0x%llx, it extends beyond the maximum address " PTR_FMT, region_base, MOS_MAX_VADDR);
+            continue;
         }
-
-        mem_add_region(region_base, region_length, entry->type == MULTIBOOT_MEMORY_AVAILABLE);
 
         char *type_str = "";
         switch (entry->type)
@@ -65,14 +43,6 @@ void x86_mem_init(const multiboot_memory_map_t *map_entry, u32 count)
         }
 
         pr_info2("  %d: 0x%.8llx - 0x%.8llx: %-10s (%s)", i, region_base, region_base + region_length - 1, type_str, size_buf);
+        pmm_add_region_bytes(region_base, region_length, entry->type == MULTIBOOT_MEMORY_AVAILABLE ? PM_RANGE_FREE : PM_RANGE_RESERVED);
     }
-
-#define SIZE_BUF_LEN 32
-    char buf[SIZE_BUF_LEN];
-    char buf_available[SIZE_BUF_LEN];
-    char buf_unavailable[SIZE_BUF_LEN];
-    format_size(buf, sizeof(buf), x86_platform.mem.total);
-    format_size(buf_available, sizeof(buf_available), x86_platform.mem.available);
-    format_size(buf_unavailable, sizeof(buf_unavailable), x86_platform.mem.total - x86_platform.mem.available);
-    pr_info("Total Memory: %s (%s available, %s unavailable)", buf, buf_available, buf_unavailable);
 }
