@@ -5,6 +5,8 @@
 #include "libuserspace++.hpp"
 #include "mos/types.h"
 
+void *__dso_handle = 0;
+
 void *operator new(size_t sz) noexcept
 {
     return malloc(sz);

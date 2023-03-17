@@ -4,7 +4,6 @@
 #include "libuserspace.h"
 
 static list_head atexit_funcs = LIST_HEAD_INIT(atexit_funcs);
-void *__dso_handle = 0;
 
 typedef void (*destructor_t)(void *);
 
@@ -18,11 +17,10 @@ typedef struct
 
 MOSAPI int __cxa_atexit(destructor_t f, void *objptr, void *dso)
 {
-    atexit_func_entry_t *node = malloc(sizeof(atexit_func_entry_t));
+    atexit_func_entry_t *node = calloc(sizeof(atexit_func_entry_t), 1);
     if (!node)
         return -1; // TODO: Set errno to ENOMEM
 
-    linked_list_init(list_node(node));
     node->destructor_func = f;
     node->obj_ptr = objptr;
     node->dso_handle = dso;
@@ -34,31 +32,14 @@ MOSAPI int __cxa_atexit(destructor_t f, void *objptr, void *dso)
 
 MOSAPI void __cxa_finalize(destructor_t f)
 {
-    if (f == NULL)
+    list_foreach(atexit_func_entry_t, node, atexit_funcs)
     {
-        while (!list_is_empty(&atexit_funcs))
+        if (f == NULL || f == node->destructor_func)
         {
-            atexit_func_entry_t *next = list_entry(atexit_funcs.next, atexit_func_entry_t);
-            next->destructor_func(next->obj_ptr);
-            list_remove(next);
-            free(next);
+            node->destructor_func(node->obj_ptr);
+            list_remove(node);
+            free(node);
         }
-
-        return;
-    }
-
-    while (!list_is_empty(&atexit_funcs))
-    {
-        // call all destructors on the list in reverse order of their registration
-        atexit_func_entry_t *last = list_entry(atexit_funcs.prev, atexit_func_entry_t);
-        if (last->destructor_func == f)
-        {
-            last->destructor_func(last->obj_ptr);
-            list_remove(last);
-            free(last);
-        }
-
-        return;
     }
 }
 
