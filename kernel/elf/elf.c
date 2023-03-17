@@ -162,12 +162,12 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
                 const uintptr_t A_vaddr = ALIGN_DOWN_TO_PAGE(ph->vaddr);
                 const size_t A_hole = ph->vaddr - A_vaddr;
                 const size_t A_size = ALIGN_DOWN_TO_PAGE(A_hole + ph->size_in_file);
-                const uintptr_t A_file_offset = ph->data_offset - A_hole;
+                const ptrdiff_t A_file_offset = ph->data_offset - A_hole;
                 const size_t A_npages = A_size / MOS_PAGE_SIZE;
 
                 if (A_npages)
                 {
-                    pr_info("elf: copying %zu pages from " PTR_FMT " to " PTR_FMT, A_npages, A_file_offset, A_vaddr);
+                    mos_debug(elf, "copying %zu pages from " PTR_FMT " to address " PTR_FMT, A_npages, (uintptr_t) buf + A_file_offset, A_vaddr);
                     vmblock_t block = mm_copy_maps(current_cpu->pagetable, (uintptr_t) buf + A_file_offset, proc->pagetable, A_vaddr, A_npages, MM_COPY_DEFAULT);
                     block.flags = flags;
                     mm_flag_pages(proc->pagetable, block.vaddr, block.npages, flags);
@@ -192,7 +192,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
                     memcpy((void *) stub.vaddr, buf + B_file_offset, B_file_size);
 
                     // copy mapping for the leftover memory
-                    pr_info("elf: copying leftover %zu bytes from " PTR_FMT " to " PTR_FMT, ph->size_in_file - A_npages * MOS_PAGE_SIZE, stub.vaddr, B_vaddr);
+                    mos_debug(elf, "elf: copying leftover %zu bytes from " PTR_FMT " to " PTR_FMT, ph->size_in_file - A_npages * MOS_PAGE_SIZE, stub.vaddr, B_vaddr);
                     vmblock_t block = mm_copy_maps(current_cpu->pagetable, stub.vaddr, proc->pagetable, B_vaddr, 1, MM_COPY_DEFAULT);
                     block.flags = flags;
                     mm_flag_pages(proc->pagetable, block.vaddr, block.npages, flags);
@@ -208,7 +208,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
                 {
                     const uintptr_t C_vaddr = ALIGN_UP_TO_PAGE(ph->vaddr + ph->size_in_file);
 
-                    pr_info("elf: allocating %zu zero pages at " PTR_FMT, C_npages, C_vaddr);
+                    mos_debug(elf, "elf: allocating %zu zero pages at " PTR_FMT, C_npages, C_vaddr);
                     vmblock_t block = mm_alloc_zeroed_pages_at(proc->pagetable, C_vaddr, C_npages, VM_RW);
                     block.flags = flags;
                     process_attach_mmap(proc, block, content, (vmap_flags_t){ 0 });
