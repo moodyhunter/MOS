@@ -251,7 +251,8 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
         {
             pr_info2("mapping VGA memory for thread %ld", current_thread->tid);
 
-            vmblock_t block = mm_get_free_pages(current_process->pagetable, 1, PGALLOC_HINT_MMAP);
+            vmblock_t block = { 0 };
+            block.vaddr = mm_get_free_pages(current_process->pagetable, 1, PGALLOC_HINT_MMAP);
             block.flags = VM_USER_RW;
             block.paddr = X86_VIDEO_DEVICE_PADDR;
             mm_map_allocated_pages(current_thread->owner->pagetable, block);

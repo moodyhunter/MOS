@@ -37,7 +37,7 @@ typedef struct _page_map
  * @param table The page table to allocate from.
  * @param npages The number of pages to allocate.
  * @param hints Allocation hints, see @ref pgalloc_hints.
- * @return vmblock_t The determined block of virtual memory.
+ * @return uintptr_t The virtual address of the block of virtual memory.
  *
  * @note This function neither allocates nor maps the pages, it only
  * determines the block of virtual memory that can be used to allocate
@@ -48,7 +48,7 @@ typedef struct _page_map
  * nor the flags of the pages.
  */
 
-vmblock_t mm_get_free_pages(paging_handle_t table, size_t npages, pgalloc_hints hints);
+uintptr_t mm_get_free_pages(paging_handle_t table, size_t npages, pgalloc_hints hints);
 
 /**
  * @brief Allocate npages pages from a page table.

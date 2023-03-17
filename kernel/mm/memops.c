@@ -70,30 +70,8 @@ bool liballoc_free_page(void *vptr, size_t npages)
 
 vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, pgalloc_hints hints, vm_flags flags)
 {
-    vmblock_t free_pages = mm_get_free_pages(handle, npages, hints);
-    if (free_pages.npages < npages)
-    {
-        mos_warn("failed to allocate %zu pages", npages);
-        return (vmblock_t){ 0 };
-    }
-
-    // zero fill the pages
-    for (size_t i = 0; i < npages; i++)
-    {
-        // actually, zero_block is always accessible, using [handle] == using [current_cpu->pagetable] as source
-        vmblock_t this_block = {
-            .vaddr = free_pages.vaddr + i * MOS_PAGE_SIZE,
-            .npages = 1,
-            .flags = VM_READ | VM_USER,
-            .paddr = zero_block.paddr,
-        };
-        mm_map_allocated_pages(handle, this_block);
-    }
-
-    // make the pages read-only (because for now, they are mapped to zero_block)
-    platform_mm_flag_pages(handle, free_pages.vaddr, npages, VM_READ | ((flags & VM_USER) ? VM_USER : 0));
-    free_pages.flags = flags; // but set the desired flags correctly
-    return free_pages;
+    const uintptr_t vaddr_base = mm_get_free_pages(handle, npages, hints);
+    return mm_alloc_zeroed_pages_at(handle, vaddr_base, npages, flags);
 }
 
 vmblock_t mm_alloc_zeroed_pages_at(paging_handle_t handle, uintptr_t vaddr, size_t npages, vm_flags flags)

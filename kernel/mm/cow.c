@@ -32,7 +32,7 @@ static vmblock_t do_resolve_cow(uintptr_t fault_addr, size_t npages)
     for (size_t j = 0; j < npages; j++)
     {
         vmblock_t stub_pblock = {
-            .vaddr = mm_get_free_pages(current_handle, 1, PGALLOC_HINT_KHEAP).vaddr,
+            .vaddr = mm_get_free_pages(current_handle, 1, PGALLOC_HINT_KHEAP),
             .paddr = phys_start + j * MOS_PAGE_SIZE,
             .flags = flags,
             .npages = 1,

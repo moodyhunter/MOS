@@ -80,7 +80,7 @@ static void pagemap_mark_free(page_map_t *map, uintptr_t vaddr, size_t n_pages)
 }
 // ! END: PAGEMAP
 
-vmblock_t mm_get_free_pages(paging_handle_t table, size_t n_pages, pgalloc_hints hints)
+uintptr_t mm_get_free_pages(paging_handle_t table, size_t n_pages, pgalloc_hints hints)
 {
     static const uintptr_t limits[] = {
         [PGALLOC_HINT_KHEAP] = MOS_ADDR_KERNEL_HEAP,
@@ -104,7 +104,7 @@ vmblock_t mm_get_free_pages(paging_handle_t table, size_t n_pages, pgalloc_hints
     {
         spinlock_release(lock);
         pr_warn("no contiguous %zu pages found in pagemap", n_pages);
-        return (vmblock_t){ .vaddr = 0, .npages = 0 };
+        return 0;
     }
 
     const bool is_set = bitmap_get(pagemap, pagemap_size_lines, page_i);
@@ -123,7 +123,7 @@ vmblock_t mm_get_free_pages(paging_handle_t table, size_t n_pages, pgalloc_hints
         MOS_ASSERT_X(!begins_in_kernel && !ends_in_kernel, "incorrect allocation, expected in user space");
     }
 
-    return (vmblock_t){ .vaddr = vaddr, .npages = n_pages };
+    return vaddr;
 }
 
 vmblock_t mm_alloc_pages(paging_handle_t table, size_t npages, pgalloc_hints hints, vm_flags flags)
@@ -136,13 +136,13 @@ vmblock_t mm_alloc_pages(paging_handle_t table, size_t npages, pgalloc_hints hin
         return (vmblock_t){ 0 };
     }
 
-    vmblock_t block = mm_get_free_pages(table, npages, hints);
-    if (unlikely(block.vaddr == 0))
+    const uintptr_t vaddr_base = mm_get_free_pages(table, npages, hints);
+    if (unlikely(vaddr_base == 0))
     {
         mos_warn("could not find free %zd pages", npages);
         return (vmblock_t){ 0 };
     }
-    return mm_alloc_pages_at(table, block.vaddr, block.npages, flags);
+    return mm_alloc_pages_at(table, vaddr_base, npages, flags);
 }
 
 vmblock_t mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t n_pages, vm_flags flags)

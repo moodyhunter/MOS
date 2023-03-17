@@ -39,9 +39,9 @@ vmblock_t shm_map_shared_block(shm_block_t source, vmap_fork_mode_t mode)
 
     process_t *owner = current_process;
     mos_debug(shm, "sharing %zu pages from address space " PTR_FMT " to address space " PTR_FMT, source.block.npages, source.address_space.pgd, owner->pagetable.pgd);
-    vmblock_t block = mm_get_free_pages(owner->pagetable, source.block.npages, PGALLOC_HINT_MMAP);
-    block = mm_copy_maps(source.address_space, source.block.vaddr, owner->pagetable, block.vaddr, source.block.npages);
+    const uintptr_t vaddr_base = mm_get_free_pages(owner->pagetable, source.block.npages, PGALLOC_HINT_MMAP);
 
+    const vmblock_t block = mm_copy_maps(source.address_space, source.block.vaddr, owner->pagetable, vaddr_base, source.block.npages);
     process_attach_mmap(owner, block, VMTYPE_MMAP, (vmap_flags_t){ .fork_mode = mode });
     return block;
 }
