@@ -85,7 +85,7 @@ static void vmm_iterate_unmap_novfree(const pgt_iteration_info_t *iter_info, con
 {
     MOS_UNUSED(iter_info);
     MOS_ASSERT(arg == NULL);
-    mos_debug(vmm_callback, "unmapping novfree" PTR_FMT " -> " PTR_FMT " (npages: %zu)", block->vaddr, block_paddr, block->npages);
+    mos_debug(vmm_impl, "unmapping novfree" PTR_FMT " -> " PTR_FMT " (npages: %zu)", block->vaddr, block_paddr, block->npages);
     pmm_unref_frames(block_paddr, block->npages);
     platform_mm_unmap_pages(PGD_FOR_VADDR(block->vaddr, block->address_space), block->vaddr, block->npages);
 }
@@ -94,7 +94,7 @@ static void vmm_iterate_unmap(const pgt_iteration_info_t *iter_info, const vmblo
 {
     MOS_UNUSED(iter_info);
     MOS_ASSERT(arg == NULL);
-    mos_debug(vmm_callback, "unmapping " PTR_FMT " -> " PTR_FMT " (npages: %zu)", block->vaddr, block_paddr, block->npages);
+    mos_debug(vmm_impl, "unmapping " PTR_FMT " -> " PTR_FMT " (npages: %zu)", block->vaddr, block_paddr, block->npages);
     pagemap_mark_free(block->address_space.um_page_map, block->vaddr, block->npages);
     pmm_unref_frames(block_paddr, block->npages);
     platform_mm_unmap_pages(PGD_FOR_VADDR(block->vaddr, block->address_space), block->vaddr, block->npages);
@@ -108,7 +108,7 @@ static void vmm_iterate_copymap(const pgt_iteration_info_t *iter_info, const vmb
     else
         MOS_ASSERT_X(vblock->flags == block->flags, "flags mismatch");
     const uintptr_t target_vaddr = vblock->vaddr + (block->vaddr - iter_info->vaddr_start); // we know that vaddr is contiguous, so their difference is the offset
-    mos_debug(vmm_callback, "copymapping " PTR_FMT " -> " PTR_FMT " (npages: %zu)", target_vaddr, block_paddr, block->npages);
+    mos_debug(vmm_impl, "copymapping " PTR_FMT " -> " PTR_FMT " (npages: %zu)", target_vaddr, block_paddr, block->npages);
     pmm_ref_frames(block_paddr, block->npages);
     platform_mm_map_pages(PGD_FOR_VADDR(target_vaddr, vblock->address_space), target_vaddr, block_paddr, block->npages, block->flags);
 }
@@ -117,7 +117,7 @@ static void vmm_handle_pmalloc(const pmm_op_state_t *op_state, const pmrange_t *
 {
     const vmblock_t *vblock = arg;
     const uintptr_t vaddr = vblock->vaddr + op_state->pages_operated * MOS_PAGE_SIZE;
-    mos_debug(vmm_callback, "allocating " PTR_FMT " -> " PTR_FMT " (npages: %zu)", vaddr, current->paddr, current->npages);
+    mos_debug(vmm_impl, "allocating " PTR_FMT " -> " PTR_FMT " (npages: %zu)", vaddr, current->paddr, current->npages);
     platform_mm_map_pages(PGD_FOR_VADDR(vaddr, vblock->address_space), vaddr, current->paddr, current->npages, vblock->flags);
 }
 // ! END: CALLBACKS

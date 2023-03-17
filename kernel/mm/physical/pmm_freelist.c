@@ -146,6 +146,8 @@ void pmm_internal_add_free_frames_node(pmlist_node_t *node)
     else
     {
         // merging succeeded, so we can delete the node for sure
+        MOS_ASSERT(node->type == PM_RANGE_FREE || node->type == PM_RANGE_RESERVED);
+        MOS_ASSERT(node->refcount == 0);
         pmm_internal_list_node_delete(node);
     }
     spinlock_release(&pmlist_free_lock);
@@ -153,8 +155,6 @@ void pmm_internal_add_free_frames_node(pmlist_node_t *node)
 
 bool pmm_internal_acquire_free_frames(size_t n_pages, pmm_internal_op_callback_t callback, pmm_allocate_callback_t user_callback, void *user_arg)
 {
-    mos_debug(pmm, "allocating %zu page(s)", n_pages);
-
     pmm_op_state_t state = { .pages_operated = 0, .pages_requested = n_pages };
 
     spinlock_acquire(&pmlist_free_lock);
@@ -174,7 +174,7 @@ bool pmm_internal_acquire_free_frames(size_t n_pages, pmm_internal_op_callback_t
         if (current_n_pages <= n_pages - state.pages_operated)
         {
             MOS_ASSERT_X(c->refcount == 0, "allocated a region with refcount != 0");
-            mos_debug(pmm, "  %8s: " PTR_RANGE " (%zu page(s))", "whole", c->range.paddr, c->range.paddr + current_n_pages * MOS_PAGE_SIZE, current_n_pages);
+            mos_debug(pmm_impl, "  %8s: " PTR_RANGE " (%zu page(s))", "whole", c->range.paddr, c->range.paddr + current_n_pages * MOS_PAGE_SIZE, current_n_pages);
 
             list_remove(c);
             callback(&state, c, user_callback, user_arg);
@@ -185,7 +185,7 @@ bool pmm_internal_acquire_free_frames(size_t n_pages, pmm_internal_op_callback_t
         // break the current region into two parts
         const size_t n_left = n_pages - state.pages_operated; // number of pages left to allocate
         pmlist_node_t *n = pmm_internal_list_node_create(c->range.paddr, n_left, PM_RANGE_ALLOCATED);
-        mos_debug(pmm, "  %8s: " PTR_RANGE " (%zu page(s))", "partial", n->range.paddr, n->range.paddr + n->range.npages * MOS_PAGE_SIZE, n->range.npages);
+        mos_debug(pmm_impl, "  %8s: " PTR_RANGE " (%zu page(s))", "partial", n->range.paddr, n->range.paddr + n->range.npages * MOS_PAGE_SIZE, n->range.npages);
 
         c->range.paddr += n_left * MOS_PAGE_SIZE;
         c->range.npages -= n_left;
@@ -207,7 +207,6 @@ bool pmm_internal_acquire_free_frames(size_t n_pages, pmm_internal_op_callback_t
 pmlist_node_t *pmm_internal_acquire_free_frames_at(uintptr_t start_addr, size_t npages)
 {
     const uintptr_t end_addr = start_addr + npages * MOS_PAGE_SIZE;
-    mos_debug(pmm, "looking for region " PTR_RANGE, start_addr, end_addr);
 
     list_foreach(pmlist_node_t, this, pmlist_free_rw)
     {
@@ -233,20 +232,20 @@ pmlist_node_t *pmm_internal_acquire_free_frames_at(uintptr_t start_addr, size_t 
         if (part_1_size == 0 && part_2_size != 0)
         {
             // CASE 1: part 1 is empty, which means we are removing from the front of the region
-            mos_debug(pmm, "  case 1: split " PTR_RANGE ": new_start=" PTR_FMT, this_start(), this_end(), this_start() + npages * MOS_PAGE_SIZE);
+            mos_debug(pmm_impl, "  case 1: split " PTR_RANGE ": new_start=" PTR_FMT, this_start(), this_end(), this_start() + npages * MOS_PAGE_SIZE);
             this->range.paddr = end_addr;
             this->range.npages = part_2_size / MOS_PAGE_SIZE;
         }
         else if (part_1_size != 0 && part_2_size == 0)
         {
             // CASE 2: part 2 is empty, which means we are removing the tail of part 1
-            mos_debug(pmm, "  case 2: split " PTR_RANGE ": new_end=" PTR_FMT, this_start(), this_end(), this_end() - npages * MOS_PAGE_SIZE);
+            mos_debug(pmm_impl, "  case 2: split " PTR_RANGE ": new_end=" PTR_FMT, this_start(), this_end(), this_end() - npages * MOS_PAGE_SIZE);
             this->range.npages -= npages;
         }
         else if (part_1_size != 0 && part_2_size != 0)
         {
             // CASE 3: neither part 1 nor part 2 is empty, so we have to allocate a new entry for part 2
-            mos_debug(pmm, "  case 3: split " PTR_RANGE ": new_end=" PTR_FMT, this_start(), this_end(), this_end() - npages * MOS_PAGE_SIZE);
+            mos_debug(pmm_impl, "  case 3: split " PTR_RANGE ": new_end=" PTR_FMT, this_start(), this_end(), this_end() - npages * MOS_PAGE_SIZE);
             this->range.npages = part_1_size / MOS_PAGE_SIZE;
             pmlist_node_t *part2 = pmm_internal_list_node_create(end_addr, part_2_size / MOS_PAGE_SIZE, this->type);
             list_insert_after(this, part2);
@@ -254,7 +253,7 @@ pmlist_node_t *pmm_internal_acquire_free_frames_at(uintptr_t start_addr, size_t 
         else
         {
             // CASE 4: both part 1 and part 2 are empty, which means we are removing the whole region
-            mos_debug(pmm, "  case 4: whole block " PTR_RANGE, this_start(), this_end());
+            mos_debug(pmm_impl, "  case 4: whole block " PTR_RANGE, this_start(), this_end());
             list_remove(this);
             return this;
         }

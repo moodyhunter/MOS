@@ -189,27 +189,27 @@ pmlist_node_t *pmm_internal_find_and_acquire_block(uintptr_t needle, pm_range_ty
 void pmm_internal_add_node_to_allocated_list(pmlist_node_t *node);
 
 /**
- * @brief Increment the reference count of a block.
+ * @brief Action to perform on the reference count of a block.
  *
- * @param start Physical address of the start of the block
- * @param n_pages Number of pages in the block
  */
-void pmm_internal_ref_range(uintptr_t start, size_t n_pages);
+typedef enum
+{
+    OP_REF,
+    OP_UNREF,
+} refcount_operation_t;
 
-typedef void (*pmm_internal_unref_range_callback_t)(pmlist_node_t *node, void *arg);
+typedef void (*pmm_internal_unref_callback_t)(pmlist_node_t *node, void *arg);
 
 /**
- * @brief Decrement the reference count of a block.
+ * @brief Iterate over the allocated list, and perform an operation on the reference count of each block.
  *
  * @param start Physical address of the start of the block
- * @param n_pages Number of pages in the block
- * @param callback Callback function to call for each block which the reference count reaches 0
+ * @param npages Number of pages in the block
+ * @param op Operation to perform on the reference count
+ * @param callback Callback function to call when the reference count reaches zero
  * @param arg Argument to pass to the callback function
- *
- * @note The callback function will be called with the node removed from the allocated list.
  */
-void pmm_internal_unref_range(uintptr_t start, size_t n_pages, pmm_internal_unref_range_callback_t callback, void *arg);
-
+void pmm_internal_iterate_allocated_list_range(uintptr_t start, size_t npages, refcount_operation_t op, pmm_internal_unref_callback_t callback, void *arg);
 /** @} */
 
 /** @} */

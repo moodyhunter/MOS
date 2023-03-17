@@ -81,7 +81,7 @@ void pmm_switch_to_kheap(void);
 /**
  * @brief Dump the physical memory manager's state, (i.e. the free list and the allocated list).
  */
-void pmm_dump(void);
+void pmm_dump_lists(void);
 
 /**
  * @brief Add a region of physical memory to the physical memory manager.

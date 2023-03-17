@@ -39,7 +39,7 @@ pmlist_node_t *pmm_internal_list_node_create(uintptr_t start, size_t n_pages, pm
 
     MOS_ASSERT_X(node, "MOS_PMM_EARLY_MEMREGIONS (%d) is too small!", MOS_PMM_EARLY_MEMREGIONS);
 
-    memzero(node, sizeof(pmrange_t));
+    memzero(node, sizeof(*node));
     linked_list_init(list_node(node));
     node->range.paddr = start;
     node->range.npages = n_pages;
@@ -74,15 +74,13 @@ void pmm_switch_to_kheap(void)
     pr_info("pmm: switched to kernel heap");
 }
 
-void pmm_dump(void)
+void pmm_dump_lists(void)
 {
     pr_info("Physical Memory Manager dump:");
-    char sbuf[32];
 
     size_t i = 0;
     list_foreach(pmlist_node_t, r, *pmlist_free)
     {
-        format_size(sbuf, sizeof(sbuf), r->range.npages * MOS_PAGE_SIZE);
         const uintptr_t end = r->range.paddr + r->range.npages * MOS_PAGE_SIZE - 1;
 
         if (unlikely(r->type != PM_RANGE_FREE && r->type != PM_RANGE_RESERVED))
@@ -91,8 +89,8 @@ void pmm_dump(void)
         if (unlikely(r->refcount != 0))
             pr_emerg("Invalid refcount %zu", r->refcount);
 
-        const char *const type = r->type == PM_RANGE_FREE ? "available" : "reserved";
-        pr_info("%2zd: " PTR_RANGE " (%zu page(s), %s, %s)", i, r->range.paddr, end, r->range.npages, sbuf, type);
+        const char *const type = r->type == PM_RANGE_FREE ? "free" : "reserved";
+        pr_info2("%5zd: " PTR_RANGE " (%10zu page(s), %s)", i, r->range.paddr, end, r->range.npages, type);
         i++;
     }
 
@@ -100,14 +98,13 @@ void pmm_dump(void)
     pr_info("Allocated regions:");
     list_foreach(pmlist_node_t, a, *pmlist_allocated)
     {
-        format_size(sbuf, sizeof(sbuf), a->range.npages * MOS_PAGE_SIZE);
         const uintptr_t end = a->range.paddr + a->range.npages * MOS_PAGE_SIZE - 1;
 
         if (unlikely(a->type != PM_RANGE_ALLOCATED && a->type != PM_RANGE_RESERVED))
             pr_emerg("Invalid allocated region type %d", a->type);
 
-        const char *const type = a->type == PM_RANGE_ALLOCATED ? "allocated" : "reserved";
-        pr_info("%2zd: " PTR_RANGE " (%zu page(s), %s, %s, %zu refs)", i, a->range.paddr, end, a->range.npages, sbuf, type, a->refcount);
+        const char *const type = a->type == PM_RANGE_ALLOCATED ? "alloc" : "reserved";
+        pr_info2("%5zd: " PTR_RANGE " (%10zu page(s), %4zu refs, %s)", i, a->range.paddr, end, a->range.npages, a->refcount, type);
         i++;
     }
 }
@@ -137,27 +134,35 @@ static void pmm_internal_callback_handle_allocated_frames(const pmm_op_state_t *
 
 bool pmm_allocate_frames(size_t n_pages, pmm_allocate_callback_t callback, void *arg)
 {
+    mos_debug(pmm, "allocating %zu page(s)", n_pages);
     return pmm_internal_acquire_free_frames(n_pages, pmm_internal_callback_handle_allocated_frames, callback, arg);
 }
 
-void pmm_ref_frames(uintptr_t paddr, size_t npages)
+static void pmm_internal_callback_free_frames(pmlist_node_t *node, void *arg)
 {
-    pmm_internal_ref_range(paddr, npages);
-}
-
-void pmm_internal_callback_free_frames(pmlist_node_t *node, void *arg)
-{
+    MOS_ASSERT(node->refcount == 0 && node->type == PM_RANGE_ALLOCATED);
+    list_remove(node);
     MOS_UNUSED(arg);
+    node->type = PM_RANGE_FREE;
+    mos_debug(pmm_impl, "refcount drops to zero, freeing " PTR_RANGE, node->range.paddr, node->range.paddr + node->range.npages * MOS_PAGE_SIZE);
     pmm_internal_add_free_frames_node(node);
 }
 
-void pmm_unref_frames(uintptr_t paddr, size_t npages)
+void pmm_ref_frames(uintptr_t start, size_t n_pages)
 {
-    pmm_internal_unref_range(paddr, npages, pmm_internal_callback_free_frames, NULL);
+    mos_debug(pmm, "ref range: " PTR_RANGE, start, start + n_pages * MOS_PAGE_SIZE);
+    pmm_internal_iterate_allocated_list_range(start, n_pages, OP_REF, NULL, NULL);
+}
+
+void pmm_unref_frames(uintptr_t start, size_t n_pages)
+{
+    mos_debug(pmm, "unref range: " PTR_RANGE, start, start + n_pages * MOS_PAGE_SIZE);
+    pmm_internal_iterate_allocated_list_range(start, n_pages, OP_UNREF, pmm_internal_callback_free_frames, NULL);
 }
 
 uintptr_t pmm_reserve_frames(uintptr_t paddr, size_t npages)
 {
+    mos_debug(pmm, "looking for region " PTR_RANGE, paddr, paddr + npages * MOS_PAGE_SIZE);
     pmlist_node_t *node = pmm_internal_acquire_free_frames_at(paddr, npages);
     if (unlikely(!node))
     {

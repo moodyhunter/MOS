@@ -26,11 +26,11 @@ void mos_kernel_mm_init(void)
     install_panic_hook(&liballoc_dump_holder);
 #endif
 #if MOS_DEBUG_FEATURE(pmm)
-    declare_panic_hook(pmm_dump);
-    install_panic_hook(&pmm_dump_holder);
+    declare_panic_hook(pmm_dump_lists);
+    install_panic_hook(&pmm_dump_lists_holder);
 #endif
 
-    pmm_dump();
+    pmm_dump_lists();
     pmm_switch_to_kheap();
 }
 
