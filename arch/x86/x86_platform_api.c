@@ -154,19 +154,6 @@ void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr_start, size_
         pg_unmap_page(infra, vaddr_start + i * MOS_PAGE_SIZE);
 }
 
-vmblock_t platform_mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t npages)
-{
-    x86_pg_infra_t *infra = x86_get_pg_infra(table);
-    spinlock_acquire(table.pgd_lock);
-    vmblock_t block;
-    block.vaddr = vaddr;
-    block.paddr = pg_get_mapped_paddr(infra, vaddr);
-    block.npages = npages;
-    block.flags = pg_get_flags(infra, vaddr);
-    spinlock_release(table.pgd_lock);
-    return block;
-}
-
 void platform_mm_iterate_table(paging_handle_t table, uintptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg)
 {
     MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
