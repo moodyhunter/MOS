@@ -17,6 +17,7 @@ void mos_kernel_mm_init(void)
     // zero fill on demand (read-only)
     zero_block = mm_alloc_pages(current_cpu->pagetable, 1, PGALLOC_HINT_KHEAP, VM_RW);
     memzero((void *) zero_block.vaddr, MOS_PAGE_SIZE);
+    mm_flag_pages(current_cpu->pagetable, zero_block.vaddr, 1, VM_READ); // make it read-only after zeroing
 
     liballoc_init();
 #if MOS_DEBUG_FEATURE(liballoc)
