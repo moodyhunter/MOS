@@ -9,9 +9,7 @@
 /**
  * @defgroup paging Paging
  * @ingroup mm
- * @brief This module provides a platform-independent interface to interact
- * with the paging subsystem, such as allocating and freeing pages, and
- * mapping and unmapping them.
+ * @brief A platform-independent interface to map/unmap virtual memory to physical memory.
  *
  * @{
  */
