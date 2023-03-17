@@ -296,7 +296,7 @@ bool vfs_symlink(const char *path, const char *target)
 bool vfs_mkdir(const char *path)
 {
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
-    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_CREATE_ONLY);
+    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_CREATE_ONLY | RESOLVE_EXPECT_DIR);
     if (dentry == NULL)
         return false;
 

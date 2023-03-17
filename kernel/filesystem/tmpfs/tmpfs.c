@@ -120,7 +120,7 @@ static dentry_t *tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char 
         return NULL;
     }
 
-    if (strlen(options) != 0 && strcmp(options, "defaults") != 0)
+    if (options && strlen(options) != 0 && strcmp(options, "defaults") != 0)
     {
         mos_warn("tmpfs: options '%s' not supported", options);
         return NULL;

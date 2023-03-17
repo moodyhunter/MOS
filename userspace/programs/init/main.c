@@ -13,7 +13,7 @@ static pid_t start_device_manager(void)
 {
     const char *dm_path = config_get(config, "device_manager.path");
     if (!dm_path)
-        dm_path = "/programs/device_manager";
+        dm_path = "/initrd/programs/device_manager";
 
     size_t dm_args_count;
     const char **dm_args = config_get_all(config, "device_manager.args", &dm_args_count);
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
 
-    config = config_parse_file("/config/init.conf");
+    config = config_parse_file("/initrd/config/init.conf");
     if (!config)
         return DYN_ERROR_CODE;
 
@@ -82,8 +82,8 @@ int main(int argc, char *argv[])
     if (dm_pid <= 0)
         return DYN_ERROR_CODE;
 
-    const char *ls_path = "/programs/";
-    syscall_spawn("/programs/ls", 1, &ls_path);
+    const char *ls_path = "/ipc/";
+    syscall_spawn("/initrd/programs/ls", 1, &ls_path);
 
     while (1)
         ;

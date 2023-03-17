@@ -20,7 +20,7 @@ static void thread_work(void *arg)
 static void file_api(void)
 {
     file_stat_t stat = { 0 };
-    if (syscall_file_stat("/assets/msg.txt", &stat))
+    if (syscall_file_stat("/initrd/assets/msg.txt", &stat))
     {
         printf("File size: %zd bytes\n", stat.size);
         printf("Owner: %ld:%ld\n", stat.uid, stat.gid);
@@ -37,7 +37,7 @@ static void file_api(void)
             printf("[STICKY]");
         printf("\n");
 
-        int fd = syscall_file_open("/assets/msg.txt", OPEN_READ);
+        int fd = syscall_file_open("/initrd/assets/msg.txt", OPEN_READ);
         if (fd >= 0)
         {
             size_t read = syscall_io_read(fd, file_content, 512, 0);
@@ -46,12 +46,12 @@ static void file_api(void)
         }
         else
         {
-            printf("Failed to open /assets/msg.txt\n");
+            printf("Failed to open /initrd/assets/msg.txt\n");
         }
     }
     else
     {
-        printf("Failed to stat /assets/msg.txt");
+        printf("Failed to stat /initrd/assets/msg.txt");
     }
 
     fd_t dirfd = syscall_file_open("/", OPEN_READ | OPEN_DIR);
@@ -99,10 +99,10 @@ int main(int argc, char *argv[])
     printf("My PID: %ld\n", my_pid);
 
     const char *kmsg_ping_pong_argv[] = { "kmsg-ping-pong-ipc", NULL };
-    pid_t ping_pid = syscall_spawn("/programs/kmsg-ping", 2, kmsg_ping_pong_argv);
+    pid_t ping_pid = syscall_spawn("/initrd/programs/kmsg-ping", 2, kmsg_ping_pong_argv);
     printf("ping pid: %ld\n", ping_pid);
 
-    pid_t locks_pid = syscall_spawn("/programs/locks", 0, NULL);
+    pid_t locks_pid = syscall_spawn("/initrd/programs/locks", 0, NULL);
     printf("locks pid: %ld\n", locks_pid);
 
     value = 3456787;

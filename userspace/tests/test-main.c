@@ -8,9 +8,9 @@ struct
     const char *name;
     const char *executable;
 } const tests[] = {
-    { "fork", "/tests/fork-test" },
-    { "cxx", "/tests/cxx_test" },
-    { "rpc", "/tests/rpc-test" },
+    { "fork", "/initrd/tests/fork-test" },
+    { "cxx", "/initrd/tests/cxx_test" },
+    { "rpc", "/initrd/tests/rpc-test" },
     { 0 },
 };
 
@@ -37,7 +37,7 @@ int main(int argc, char **argv)
         printf("OK\n");
     }
 
-    pid_t p = syscall_spawn("/programs/shutdown", 0, NULL);
+    pid_t p = syscall_spawn("/initrd/programs/shutdown", 0, NULL);
     syscall_wait_for_process(p);
     return 0;
 }

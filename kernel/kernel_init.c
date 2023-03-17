@@ -19,7 +19,7 @@
 
 extern filesystem_t fs_tmpfs;
 extern filesystem_t fs_cpiofs;
-const char *init_path = "/programs/init";
+const char *init_path = "/initrd/programs/init";
 
 bool setup_init_path(int argc, const char **argv)
 {
@@ -105,9 +105,14 @@ void mos_start_kernel(const char *cmdline)
     vfs_register_filesystem(&fs_tmpfs);
     vfs_register_filesystem(&fs_cpiofs);
 
-    bool mounted = vfs_mount("initrd", "/", "cpiofs", NULL);
+    bool mounted = vfs_mount("none", "/", "tmpfs", NULL);
     if (!mounted)
         mos_panic("failed to mount rootfs");
+
+    vfs_mkdir("/initrd");
+    bool mounted_initrd = vfs_mount("initrd", "/initrd/", "cpiofs", NULL);
+    if (!mounted_initrd)
+        mos_panic("failed to mount initrd");
 
     shm_init();
     ipc_init();

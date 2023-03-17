@@ -66,7 +66,7 @@ static mount_t *dentry_find_mount(dentry_t *dentry)
  */
 static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, const char *original_path, char **last_seg_out)
 {
-    MOS_ASSERT(base_dir != NULL && root_dir != NULL && original_path != NULL);
+    MOS_ASSERT_X(base_dir && root_dir && original_path, "Invalid VFS lookup parameters");
     char *saveptr;
     char *path = strdup(original_path);
 
