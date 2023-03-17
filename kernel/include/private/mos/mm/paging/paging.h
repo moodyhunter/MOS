@@ -91,7 +91,7 @@ vmblock_t mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t npage
  * @details This function unmaps and frees the pages in the block, it returns the corresponding physical memory
  * back to the allocator.
  */
-void mm_free_pages(paging_handle_t table, vmblock_t block);
+__attribute__((deprecated("will be removed soon"))) void mm_free_pages(paging_handle_t table, vmblock_t block);
 
 /**
  * @brief Map a block of virtual memory to a given block of physical memory, with the physical memory requested from the physical memory allocator.
@@ -163,16 +163,6 @@ vmblock_t mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t t
  * @return bool True if the virtual address is mapped, false otherwise.
  */
 bool mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr);
-
-/**
- * @brief Get the block info of a virtual address in a page table.
- *
- * @param table The page table to get the physical address from.
- * @param vaddr The virtual address to get the physical address of.
- * @return vmblock_t The block info of the virtual address.
- * @warning vaddr will be rounded down to the nearest page boundary if it's not page-aligned.
- */
-vmblock_t mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t n_pages);
 
 /**
  * @brief Update the flags of a block of virtual memory.

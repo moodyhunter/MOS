@@ -184,10 +184,10 @@ void platform_mm_destroy_user_pgd(paging_handle_t table);
 // Platform Paging APIs
 void platform_mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t n_pages, vm_flags flags);
 void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t n_pages);
-vmblock_t platform_mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t npages);
 void platform_mm_iterate_table(paging_handle_t table, uintptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg);
 void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
 vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr);
+uintptr_t platform_mm_get_phys_addr(paging_handle_t table, uintptr_t vaddr);
 
 // Platform Thread / Process APIs
 void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg);

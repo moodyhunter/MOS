@@ -29,7 +29,7 @@ static spinlock_t futex_list_lock = SPINLOCK_INIT;
 static futex_key_t futex_get_key(const futex_word_t *futex)
 {
     const uintptr_t vaddr = (uintptr_t) futex;
-    return mm_get_block_info(current_process->pagetable, vaddr, 1).paddr + vaddr % MOS_PAGE_SIZE;
+    return platform_mm_get_phys_addr(current_process->pagetable, vaddr);
 }
 
 bool futex_wait(futex_word_t *futex, futex_word_t expected)
