@@ -499,7 +499,7 @@ void liballoc_free(const void *ptr)
     if (ptr == NULL)
     {
         l_warnings += 1;
-        mos_warn("liballoc: free(NULL) called");
+        mos_panic("liballoc: free(NULL) called");
         return;
     }
 
@@ -520,16 +520,16 @@ void liballoc_free(const void *ptr)
             ((min->magic & 0xFF) == (LIBALLOC_MAGIC & 0xFF)))
         {
             l_possible_overruns += 1;
-            mos_warn("liballoc: ERROR: Possible 1-3 byte overrun for magic %x != %x", min->magic, LIBALLOC_MAGIC);
+            mos_panic("liballoc: ERROR: Possible 1-3 byte overrun for magic %x != %x", min->magic, LIBALLOC_MAGIC);
         }
 
         if (min->magic == LIBALLOC_DEAD)
         {
-            mos_warn("liballoc: multiple free() attempt on %p", ptr);
+            mos_panic("liballoc: multiple free() attempt on %p", ptr);
         }
         else
         {
-            mos_warn("liballoc: bad free(%p) called.", ptr);
+            mos_panic("liballoc: bad free(%p) called.", ptr);
         }
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
         // being lied to...
@@ -630,16 +630,16 @@ void *liballoc_realloc(void *p, size_t size)
             ((min->magic & 0xFF) == (LIBALLOC_MAGIC & 0xFF)))
         {
             l_possible_overruns += 1;
-            mos_warn("liballoc: Possible 1-3 byte overrun for magic %x != %x", min->magic, LIBALLOC_MAGIC);
+            mos_panic("liballoc: Possible 1-3 byte overrun for magic %x != %x", min->magic, LIBALLOC_MAGIC);
         }
 
         if (min->magic == LIBALLOC_DEAD)
         {
-            mos_warn("liballoc: multiple free() attempt on %p from %p.", ptr, __builtin_return_address(0));
+            mos_panic("liballoc: multiple free() attempt on %p from %p.", ptr, __builtin_return_address(0));
         }
         else
         {
-            mos_warn("liballoc: Bad free(%p) called", ptr);
+            mos_panic("liballoc: Bad free(%p) called", ptr);
         }
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
         // being lied to...
