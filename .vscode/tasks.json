@@ -79,7 +79,7 @@
                 "-smp",
                 "1",
                 "-append",
-                "kmsg_console=serial init=/tests/my_mutex",
+                "kmsg_console=serial init=/tests/fork-test",
             ],
             "problemMatcher": [ ],
             "group": "none",
