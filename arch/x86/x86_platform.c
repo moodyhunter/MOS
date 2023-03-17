@@ -145,10 +145,15 @@ void x86_start_kernel(x86_startup_info *info)
     x86_platform.k_rodata.flags = VM_GLOBAL | VM_READ;
 
     console_register(&com1_console.console);
+    declare_panic_hook(x86_kpanic_hook);
+    install_panic_hook(&x86_kpanic_hook_holder);
+
     pr_info("mos_startup_info: initrd %zu bytes, mbinfo at: " PTR_FMT ", magic " PTR_FMT, info->initrd_size, (uintptr_t) info->mb_info, (uintptr_t) info->mb_magic);
 
     const multiboot_info_t *mb_info = info->mb_info;
     initrd_size = info->initrd_size;
+    const u32 mem_lower = mb_info->mem_lower, mem_upper = mb_info->mem_upper;
+    pr_info("mem_lower: %u KB, mem_upper: %u KB", mem_lower, mem_upper);
 
     if (initrd_size)
         initrd_paddr = ((x86_pgtable_entry *) (((x86_pgdir_entry *) x86_get_cr3())[MOS_X86_INITRD_VADDR >> 22].page_table_paddr << 12))->phys_addr << 12;
@@ -240,9 +245,6 @@ void x86_start_kernel(x86_startup_info *info)
     lapic_enable();
     pic_remap_irq();
     ioapic_init();
-
-    declare_panic_hook(x86_kpanic_hook);
-    install_panic_hook(&x86_kpanic_hook_holder);
 
     x86_install_interrupt_handler(IRQ_TIMER, x86_timer_handler);
     x86_install_interrupt_handler(IRQ_KEYBOARD, x86_keyboard_handler);
