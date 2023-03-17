@@ -34,9 +34,10 @@ static void invoke_init(void)
 {
     typedef void (*func_ptr)(void);
     extern char __init_array_start, __init_array_end;
-    for (func_ptr *func = (void *) &__init_array_start; func != (void *) &__init_array_end; func++)
-        if (func)
-            (*func)();
+
+    // if anything goes wrong here, it must be a bug in the ELF loader
+    for (func_ptr *func = (func_ptr *) &__init_array_start; func != (func_ptr *) &__init_array_end; func++)
+        (*func)();
 }
 
 static void __attribute__((constructor)) __liballoc_userspace_init(void)
