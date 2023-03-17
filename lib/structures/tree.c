@@ -19,14 +19,6 @@ void tree_add_child(tree_node_t *parent, tree_node_t *child)
     list_node_append(&parent->children, &child->list_node);
 }
 
-void tree_remove_if(tree_node_t *node, bool (*predicate)(const tree_node_t *node))
-{
-    MOS_LIB_ASSERT(node != NULL);
-    MOS_LIB_ASSERT(predicate != NULL);
-    // TODO
-    MOS_LIB_UNIMPLEMENTED("tree_remove_if");
-}
-
 const tree_node_t *tree_find_child_by_name(tree_op_t *op, const tree_node_t *node, const char *name, size_t name_len)
 {
     if (node == NULL)

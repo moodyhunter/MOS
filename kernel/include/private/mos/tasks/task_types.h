@@ -57,8 +57,6 @@ typedef struct
     // of this block. Which means if there're no VM_WRITE flag, then the block
     // should not be writable.
     vmap_flags_t flags;
-    // TODO: a CoW reference counter
-
     spinlock_t lock;
 } vmap_t;
 
