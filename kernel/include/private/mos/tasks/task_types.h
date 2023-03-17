@@ -23,7 +23,6 @@ typedef enum
 {
     VMTYPE_CODE,   // code
     VMTYPE_DATA,   // data
-    VMTYPE_ZERO,   // zeroed pages (typically bss)
     VMTYPE_HEAP,   // heap
     VMTYPE_STACK,  // stack (user)
     VMTYPE_KSTACK, // stack (kernel)
