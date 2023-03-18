@@ -18,19 +18,17 @@ static const file_perm_t ipcfs_default_perm = {
     .owner = { .read = true, .write = true, .execute = true },
 };
 
-typedef struct
-{
-    inode_t fs_inode;
-} ipcfs_inode_t;
-
 static dentry_t *ipcfs_root_dir;
 
 static inode_t *ipcfs_create_inode(superblock_t *sb, file_type_t type, file_perm_t perm)
 {
-    ipcfs_inode_t *inode = kzalloc(sizeof(ipcfs_inode_t));
-    inode->fs_inode.stat.type = type;
-    inode->fs_inode.stat.perm = perm;
-    inode->fs_inode.superblock = sb;
+    static size_t ipcfs_inode_count;
+
+    inode_t *inode = kzalloc(sizeof(inode_t));
+    inode->stat.type = type;
+    inode->stat.perm = perm;
+    inode->superblock = sb;
+    inode->ino = ipcfs_inode_count++;
 
     switch (type)
     {
@@ -48,7 +46,7 @@ static inode_t *ipcfs_create_inode(superblock_t *sb, file_type_t type, file_perm
         }
     }
 
-    return &inode->fs_inode;
+    return inode;
 }
 
 dentry_t *ipcfs_mount(filesystem_t *fs, const char *dev, const char *options)
