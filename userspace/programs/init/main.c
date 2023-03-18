@@ -22,6 +22,23 @@ static pid_t start_device_manager(void)
     return syscall_spawn(dm_path, dm_args_count, dm_args); // TODO: check if the dm_args are valid
 }
 
+static bool create_directories(void)
+{
+    size_t num_dirs;
+    const char **dirs = config_get_all(config, "mkdir", &num_dirs);
+    if (!dirs)
+        return false;
+
+    for (size_t i = 0; i < num_dirs; i++)
+    {
+        const char *dir = dirs[i];
+        if (!syscall_vfs_mkdir(dir))
+            return false;
+    }
+
+    return true;
+}
+
 static bool mount_filesystems(void)
 {
     size_t num_mounts;
@@ -75,6 +92,9 @@ int main(int argc, char *argv[])
     if (!config)
         return DYN_ERROR_CODE;
 
+    if (!create_directories())
+        return DYN_ERROR_CODE;
+
     if (!mount_filesystems())
         return DYN_ERROR_CODE;
 
@@ -82,8 +102,9 @@ int main(int argc, char *argv[])
     if (dm_pid <= 0)
         return DYN_ERROR_CODE;
 
-    const char *ls_path = "/ipc/";
-    syscall_spawn("/initrd/programs/ls", 1, &ls_path);
+    const char *ls_path = "/";
+    pid_t pid = syscall_spawn("/initrd/programs/ls", 1, &ls_path);
+    syscall_wait_for_process(pid);
 
     while (1)
         ;

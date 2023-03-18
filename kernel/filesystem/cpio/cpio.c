@@ -179,7 +179,6 @@ typedef struct
     blockdev_t *dev;
 } cpio_superblock_t;
 
-static const superblock_ops_t cpio_superblock_ops;
 static const inode_ops_t cpio_dir_inode_ops;
 static const inode_ops_t cpio_file_inode_ops;
 static const file_ops_t cpio_file_ops;
@@ -244,7 +243,6 @@ static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *
     cpio_inode_t *i = cpio_inode_create(sb, &header);
     dentry_t *root = dentry_create(NULL, NULL); // root dentry has no name, this "feature" is used by cpio_i_lookup
     root->inode = &i->inode;
-    sb->sb.ops = &cpio_superblock_ops;
     sb->sb.root = root;
     sb->dev = dev;
     root->superblock = i->inode.superblock = &sb->sb;
@@ -287,7 +285,7 @@ static bool cpio_i_lookup(inode_t *parent_dir, dentry_t *dentry)
     return true;
 }
 
-static size_t cpio_i_iterate_dir(inode_t *dir, dir_iterator_state_t *state, dentry_iterator_op *op)
+static size_t cpio_i_iterate_dir(inode_t *dir, dir_iterator_state_t *state, dentry_iterator_op op)
 {
     cpio_inode_t *i = CPIO_INODE(dir);
     cpio_superblock_t *sb = CPIO_SB(dir->superblock);
@@ -378,12 +376,6 @@ static size_t cpio_i_readlink(dentry_t *dentry, char *buffer, size_t buflen)
     size_t read = dev->read(dev, buffer, MIN(buflen, metadata.data_length), metadata.data_offset);
     return read;
 }
-
-static const superblock_ops_t cpio_superblock_ops = {
-    .write_inode = NULL,
-    .inode_dirty = NULL,
-    .release_superblock = NULL,
-};
 
 static const inode_ops_t cpio_dir_inode_ops = {
     .lookup = cpio_i_lookup,

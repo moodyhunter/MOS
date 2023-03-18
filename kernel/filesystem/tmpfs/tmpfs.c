@@ -13,11 +13,6 @@
 
 typedef struct
 {
-    superblock_t fs_superblock;
-} tmpfs_superblock_t;
-
-typedef struct
-{
     inode_t real_inode;
 
     union
@@ -32,15 +27,9 @@ typedef struct
     };
 } tmpfs_inode_t;
 
-tmpfs_inode_t *TMPFS_INODE(inode_t *inode)
-{
-    return container_of(inode, tmpfs_inode_t, real_inode);
-}
-
-static const superblock_ops_t superblock_ops;
+#define TMPFS_INODE(inode) container_of(inode, tmpfs_inode_t, real_inode)
 
 static const inode_ops_t tmpfs_inode_dir_ops;
-static const inode_ops_t tmpfs_inode_file_ops;
 static const inode_ops_t tmpfs_inode_symlink_ops;
 
 static const file_ops_t tmpfs_file_ops;
@@ -84,7 +73,6 @@ inode_t *tmpfs_create_inode(superblock_t *sb, file_type_t type, file_perm_t perm
         case FILE_TYPE_REGULAR:
             // regular files, char devices, block devices, named pipes and sockets
             mos_debug(tmpfs, "tmpfs: creating a file inode");
-            inode->real_inode.ops = &tmpfs_inode_file_ops;
             inode->real_inode.file_ops = &tmpfs_file_ops;
             break;
 
@@ -126,43 +114,16 @@ static dentry_t *tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char 
         return NULL;
     }
 
-    tmpfs_superblock_t *sb = kzalloc(sizeof(tmpfs_superblock_t));
-    sb->fs_superblock.ops = &superblock_ops;
+    superblock_t *sb = kzalloc(sizeof(superblock_t));
 
     dentry_t *root = dentry_create(NULL, NULL);
-    root->inode = tmpfs_create_inode(&sb->fs_superblock, FILE_TYPE_DIRECTORY, tmpfs_default_mode);
+    sb->root = root;
+    root->inode = tmpfs_create_inode(sb, FILE_TYPE_DIRECTORY, tmpfs_default_mode);
     root->inode->stat.type = FILE_TYPE_DIRECTORY;
-    root->superblock = &sb->fs_superblock;
+    root->superblock = sb;
 
     return root;
 }
-
-static void tmpfs_release_superblock(superblock_t *sb)
-{
-    kfree(sb);
-}
-
-static bool tmpfs_sb_write_inode(inode_t *inode, bool sync)
-{
-    // tmpfs doesn't need to write anything to disk
-    MOS_UNUSED(inode);
-    MOS_UNUSED(sync);
-    return true;
-}
-
-static bool tmpfs_sb_inode_dirty(inode_t *inode, int flags)
-{
-    // tmpfs doesn't need to write anything to disk
-    MOS_UNUSED(inode);
-    MOS_UNUSED(flags);
-    return true;
-}
-
-static const superblock_ops_t superblock_ops = {
-    .write_inode = tmpfs_sb_write_inode,
-    .inode_dirty = tmpfs_sb_inode_dirty,
-    .release_superblock = tmpfs_release_superblock,
-};
 
 // create a new node in the directory
 static bool tmpfs_mknod_impl(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm, dev_t dev)
@@ -171,14 +132,6 @@ static bool tmpfs_mknod_impl(inode_t *dir, dentry_t *dentry, file_type_t type, f
     dentry->inode = inode;
     TMPFS_INODE(inode)->dev = dev;
     return true;
-}
-
-static bool tmpfs_i_lookup(inode_t *dir, dentry_t *dentry)
-{
-    // Hm, if a dentry doesn't exist in the dcache, it doesn't exist in the filesystem
-    MOS_UNUSED(dir);
-    MOS_UNUSED(dentry);
-    return false;
 }
 
 static bool tmpfs_i_create(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm)
@@ -264,7 +217,7 @@ static bool tmpfs_i_rename(inode_t *old_dir, dentry_t *old_dentry, inode_t *new_
 }
 
 static const inode_ops_t tmpfs_inode_dir_ops = {
-    .lookup = tmpfs_i_lookup,
+    .lookup = NULL, // use kernel's default in-memory lookup
     .newfile = tmpfs_i_create,
     .hardlink = tmpfs_i_link,
     .symlink = tmpfs_i_symlink,
@@ -274,8 +227,6 @@ static const inode_ops_t tmpfs_inode_dir_ops = {
     .mknode = tmpfs_i_mknod,
     .rename = tmpfs_i_rename,
 };
-
-static const inode_ops_t tmpfs_inode_file_ops = { 0 };
 
 static size_t tmpfs_i_readlink(dentry_t *dentry, char *buffer, size_t buflen)
 {

@@ -254,6 +254,9 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
 
     if (child->inode->stat.type == FILE_TYPE_DIRECTORY)
     {
+        if (child->is_mountpoint)
+            child = dentry_find_mount(child)->root;
+
         if (!(flags & RESOLVE_EXPECT_DIR))
         {
             mos_warn("got a directory, didn't expect it");
@@ -326,6 +329,7 @@ dentry_t *dentry_create(dentry_t *parent, const char *name)
 {
     dentry_t *dentry = kzalloc(sizeof(dentry_t));
     linked_list_init(&tree_node(dentry)->children);
+    linked_list_init(&tree_node(dentry)->list_node);
 
     if (name)
         dentry->name = strdup(name);
@@ -365,20 +369,20 @@ dentry_t *dentry_get_child(dentry_t *parent, const char *name)
     if (parent->inode == NULL)
         return NULL;
 
-    if (parent->inode->ops->lookup == NULL)
+    dentry_t *target = dentry_create(parent, name);
+
+    bool result = false;
+
+    if (parent->inode->ops->lookup)
+        result = parent->inode->ops->lookup(parent->inode, target);
+
+    if (unlikely(!result))
     {
-        mos_warn("inode does not support lookup");
+        dentry_unref(target);
         return NULL;
     }
 
-    dentry_t *target = dentry_create(parent, name);
-    bool result = parent->inode->ops->lookup(parent->inode, target);
-
-    if (result)
-        return target;
-
-    dentry_unref(target);
-    return NULL;
+    return target;
 }
 
 dentry_t *dentry_get(dentry_t *base_dir, dentry_t *root_dir, const char *path, lastseg_resolve_flags_t flags)
@@ -423,6 +427,27 @@ bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs)
     return true;
 }
 
+static size_t dentry_default_iterate(const dentry_t *dir, dir_iterator_state_t *state, dentry_iterator_op op)
+{
+    size_t written = 0;
+
+    size_t i = DIR_ITERATOR_NTH_START;
+    tree_foreach_child(dentry_t, child, dir)
+    {
+        if (state->dir_nth == i)
+        {
+            size_t w = op(state, child->inode->ino, child->name, strlen(child->name), child->inode->stat.type);
+            if (w == 0)
+                return written;
+            written += w;
+        }
+
+        i++;
+    }
+
+    return written;
+}
+
 size_t dentry_list(dentry_t *dir, dir_iterator_state_t *state)
 {
     size_t written = 0;
@@ -450,14 +475,12 @@ size_t dentry_list(dentry_t *dir, dir_iterator_state_t *state)
         written += w;
     }
 
-    if (dir->inode->ops->iterate_dir == NULL)
-    {
-        mos_warn("inode does not support list");
-        return 0;
-    }
-
     // this call may not write all the entries, because the buffer may not be big enough
-    written += dir->inode->ops->iterate_dir(dir->inode, state, dentry_add_dir);
+    if (dir->inode->ops->iterate_dir == NULL)
+        written += dentry_default_iterate(dir, state, dentry_add_dir);
+    else
+        written += dir->inode->ops->iterate_dir(dir->inode, state, dentry_add_dir);
+
     MOS_ASSERT(written <= state->buf_capacity); // we should never write more than the buffer can hold
 
     return written;

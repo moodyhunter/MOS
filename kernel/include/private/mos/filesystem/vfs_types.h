@@ -31,34 +31,33 @@ typedef size_t(dentry_iterator_op)(dir_iterator_state_t *state, u64 ino, const c
 
 typedef struct
 {
-    bool (*write_inode)(inode_t *, bool should_sync); // write inode to disk
-
-    // this method is called by the VFS when an inode is marked dirty. This is specifically for the inode itself being marked dirty, not its data. If
-    // the update needs to be persisted by fdatasync(), then I_DIRTY_DATASYNC will be set in the flags argument. I_DIRTY_TIME will be set in the flags
-    // in case lazytime is enabled and inode_t has times updated since the last ->dirty_inode call.
-    bool (*inode_dirty)(inode_t *, int flags);
-    void (*release_superblock)(superblock_t *); // "called when the VFS wishes to free the superblock (i.e. unmount). This is called with the superblock lock held"
-} superblock_ops_t;
-
-typedef struct
-{
-    bool (*lookup)(inode_t *dir, dentry_t *dentry);                                                    // lookup a file in a directory
-    bool (*newfile)(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm);               // create a new file
-    bool (*hardlink)(dentry_t *old_dentry, inode_t *dir, dentry_t *new_dentry);                        // create a hard link
-    bool (*symlink)(inode_t *dir, dentry_t *dentry, const char *symname);                              // create a symbolic link
-    bool (*unlink)(inode_t *dir, dentry_t *dentry);                                                    // remove a file
-    bool (*mkdir)(inode_t *dir, dentry_t *dentry, file_perm_t perm);                                   // create a new directory
-    bool (*rmdir)(inode_t *dir, dentry_t *dentry);                                                     // remove a directory
-    bool (*mknode)(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm, dev_t dev);     // create a new device file
-    bool (*rename)(inode_t *old_dir, dentry_t *old_dentry, inode_t *new_dir, dentry_t *new_dentry);    // rename a file
-    size_t (*readlink)(dentry_t *dentry, char *buffer, size_t buflen);                                 // read the contents of a symbolic link
-    size_t (*iterate_dir)(inode_t *dir, dir_iterator_state_t *iterator_state, dentry_iterator_op *op); // iterate over the contents of a directory
+    /// lookup a file in a directory, if it's unset for a directory, the VFS will use the default lookup
+    bool (*lookup)(inode_t *dir, dentry_t *dentry);
+    /// create a new file
+    bool (*newfile)(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm);
+    /// create a hard link
+    bool (*hardlink)(dentry_t *old_dentry, inode_t *dir, dentry_t *new_dentry);
+    /// create a symbolic link
+    bool (*symlink)(inode_t *dir, dentry_t *dentry, const char *symname);
+    /// remove a file
+    bool (*unlink)(inode_t *dir, dentry_t *dentry);
+    /// create a new directory
+    bool (*mkdir)(inode_t *dir, dentry_t *dentry, file_perm_t perm);
+    /// remove a directory
+    bool (*rmdir)(inode_t *dir, dentry_t *dentry);
+    /// create a new device file
+    bool (*mknode)(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm, dev_t dev);
+    /// rename a file
+    bool (*rename)(inode_t *old_dir, dentry_t *old_dentry, inode_t *new_dir, dentry_t *new_dentry);
+    /// read the contents of a symbolic link
+    size_t (*readlink)(dentry_t *dentry, char *buffer, size_t buflen);
+    /// iterate over the contents of a directory
+    size_t (*iterate_dir)(inode_t *dir, dir_iterator_state_t *iterator_state, dentry_iterator_op op);
 } inode_ops_t;
 
 typedef struct
 {
     dentry_t *(*mount)(filesystem_t *fs, const char *dev_name, const char *mount_options);
-    // void (*release_superblock)(superblock_t *sb);
 } filesystem_ops_t;
 
 typedef struct
@@ -75,7 +74,6 @@ typedef struct _superblock
     bool dirty;
     dentry_t *root;
     list_head mounts;
-    const superblock_ops_t *ops;
 } superblock_t;
 
 typedef struct _dentry
