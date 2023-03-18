@@ -7,6 +7,7 @@
 #include "lib/structures/hashmap.h"
 #include "lib/structures/hashmap_common.h"
 #include "lib/sync/spinlock.h"
+#include "mos/filesystem/ipcfs/ipcfs.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/shm.h"
 #include "mos/printk.h"
@@ -103,6 +104,7 @@ ipcshm_server_t *ipcshm_announce(const char *name, size_t max_pending)
     spinlock_acquire(&billboard_lock);
     hashmap_put(ipcshm_billboard, (uintptr_t) server->name, server);
     spinlock_release(&billboard_lock);
+    ipcfs_register_server(server);
     return server;
 }
 
@@ -296,6 +298,8 @@ bool ipcshm_deannounce(const char *name)
         pr_warn("ipcshm_deannounce: server magic is invalid (0x%x)", server->magic);
         return false;
     }
+
+    ipcfs_unregister_server(server);
 
     for (size_t i = 0; i < server->max_pending; i++)
     {

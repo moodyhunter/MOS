@@ -3,6 +3,7 @@
 #include "mos/ipc/ipc.h"
 
 #include "lib/structures/ring_buffer.h"
+#include "mos/filesystem/ipcfs/ipcfs.h"
 #include "mos/io/io.h"
 #include "mos/mm/ipcshm/ipcshm.h"
 #include "mos/mm/kmalloc.h"
@@ -104,6 +105,7 @@ static const io_op_t ipc_connection_op = {
 void ipc_init(void)
 {
     pr_info2("initializing IPC subsystem");
+    ipcfs_init();
     ipcshm_init();
 }
 

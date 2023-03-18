@@ -476,10 +476,10 @@ size_t dentry_list(dentry_t *dir, dir_iterator_state_t *state)
     }
 
     // this call may not write all the entries, because the buffer may not be big enough
-    if (dir->inode->ops->iterate_dir == NULL)
-        written += dentry_default_iterate(dir, state, dentry_add_dir);
-    else
+    if (dir->inode->ops && dir->inode->ops->iterate_dir)
         written += dir->inode->ops->iterate_dir(dir->inode, state, dentry_add_dir);
+    else
+        written += dentry_default_iterate(dir, state, dentry_add_dir);
 
     MOS_ASSERT(written <= state->buf_capacity); // we should never write more than the buffer can hold
 

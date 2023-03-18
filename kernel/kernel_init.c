@@ -4,6 +4,7 @@
 #include "mos/device/console.h"
 #include "mos/device/device_manager.h"
 #include "mos/elf/elf.h"
+#include "mos/filesystem/fs_types.h"
 #include "mos/filesystem/vfs.h"
 #include "mos/io/terminal.h"
 #include "mos/ipc/ipc.h"
@@ -19,6 +20,7 @@
 
 extern filesystem_t fs_tmpfs;
 extern filesystem_t fs_cpiofs;
+extern filesystem_t fs_ipcfs;
 const char *init_path = "/initrd/programs/init";
 
 bool setup_init_path(int argc, const char **argv)
@@ -104,6 +106,7 @@ void mos_start_kernel(const char *cmdline)
     vfs_init();
     vfs_register_filesystem(&fs_tmpfs);
     vfs_register_filesystem(&fs_cpiofs);
+    vfs_register_filesystem(&fs_ipcfs);
 
     bool mounted = vfs_mount("none", "/", "tmpfs", NULL);
     if (!mounted)
