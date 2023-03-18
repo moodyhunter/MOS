@@ -396,8 +396,5 @@ filesystem_t fs_cpiofs = {
     .list_node = LIST_HEAD_INIT(fs_cpiofs.list_node),
     .superblocks = LIST_HEAD_INIT(fs_cpiofs.superblocks),
     .name = "cpiofs",
-    .ops =
-        &(filesystem_ops_t){
-            .mount = cpio_mount,
-        },
+    .mount = cpio_mount,
 };

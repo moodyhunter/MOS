@@ -159,7 +159,7 @@ bool vfs_mount(const char *device, const char *path, const char *fs, const char 
     {
         // special case: mount root filesystem
         MOS_ASSERT(strcmp(path, "/") == 0);
-        root_dentry = real_fs->ops->mount(real_fs, device, options);
+        root_dentry = real_fs->mount(real_fs, device, options);
         if (root_dentry == NULL)
         {
             mos_warn("failed to mount root filesystem");
@@ -177,7 +177,7 @@ bool vfs_mount(const char *device, const char *path, const char *fs, const char 
         return false;
     }
 
-    dentry_t *mounted_root = real_fs->ops->mount(real_fs, device, options);
+    dentry_t *mounted_root = real_fs->mount(real_fs, device, options);
     if (mounted_root == NULL)
     {
         mos_warn("failed to mount filesystem");

@@ -315,12 +315,8 @@ static const file_ops_t tmpfs_file_ops = {
     .mmap = NULL, // TODO: use a generic mmap
 };
 
-static const filesystem_ops_t fs_tmpfs_ops = {
-    .mount = tmpfs_fsop_mount,
-};
-
 filesystem_t fs_tmpfs = {
     .list_node = LIST_HEAD_INIT(fs_tmpfs.list_node),
     .name = "tmpfs",
-    .ops = &fs_tmpfs_ops,
+    .mount = tmpfs_fsop_mount,
 };

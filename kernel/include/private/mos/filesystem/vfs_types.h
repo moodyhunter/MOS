@@ -57,11 +57,6 @@ typedef struct
 
 typedef struct
 {
-    dentry_t *(*mount)(filesystem_t *fs, const char *dev_name, const char *mount_options);
-} filesystem_ops_t;
-
-typedef struct
-{
     bool (*open)(inode_t *inode, file_t *file);
     ssize_t (*read)(file_t *file, void *buf, size_t size);
     ssize_t (*write)(file_t *file, const void *buf, size_t size);
@@ -103,9 +98,9 @@ typedef struct _inode
 typedef struct _filesystem
 {
     as_linked_list;
-    const filesystem_ops_t *ops;
     const char *name;
     list_head superblocks;
+    dentry_t *(*mount)(filesystem_t *fs, const char *dev_name, const char *mount_options);
 } filesystem_t;
 
 typedef struct _mount
