@@ -1,13 +1,13 @@
 [bits 32]
 
-constants:
-    MB_MAGIC    equ 0x1BADB002      ; 'magic number' lets bootloader find the header
-    FLAG_ALIGN  equ 1 << 0          ; 4KB alignment for the bootloader
-    FLAG_MEM    equ 1 << 1          ; provide memory map
-    FLAG_VIDEO  equ 1 << 2          ; provide video mode information
 
-    MB_FLAGS    equ FLAG_ALIGN | FLAG_MEM
-    MB_CHECKSUM equ -(MB_MAGIC + MB_FLAGS)
+%define MB_MAGIC    0x1BADB002      ; 'magic number' lets bootloader find the header
+%define FLAG_ALIGN  1 << 0          ; 4KB alignment for the bootloader
+%define FLAG_MEM    1 << 1          ; provide memory map
+%define FLAG_VIDEO  1 << 2          ; provide video mode information
+
+%define MB_FLAGS    FLAG_ALIGN | FLAG_MEM
+%define MB_CHECKSUM -(MB_MAGIC + MB_FLAGS)
 
 section .multiboot.data
     align   4

@@ -7,12 +7,11 @@
 [extern ap_pgd_addr]
 [extern ap_begin_exec]
 
-X86_AP_TRAMPOLINE_ADDR  equ 0x8000
-X86_KERNEL_VADDR        equ 0xc0000000
-
-AP_STATUS_BSP_STARTUP_SENT          equ 1
-AP_STATUS_START_REQUEST             equ 2
-AP_STATUS_START                     equ 3
+%define X86_AP_TRAMPOLINE_ADDR      0x8000
+%define X86_KERNEL_VADDR            0xc0000000
+%define AP_STATUS_BSP_STARTUP_SENT  1
+%define AP_STATUS_START_REQUEST     2
+%define AP_STATUS_START             3
 
 begin:
 x86_ap_trampoline:
