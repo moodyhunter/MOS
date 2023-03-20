@@ -401,8 +401,12 @@ dentry_t *dentry_get(dentry_t *base_dir, dentry_t *root_dir, const char *path, l
         // path is a single "/"
         mos_debug(vfs, "path '%s' is a single '/'", path);
         MOS_ASSERT(parent == root_dir);
-        // TODO: ensure that flags expect a directory
-        mos_warn("TODO: ensure that flags expect a directory");
+        if (!(flags & RESOLVE_EXPECT_DIR))
+        {
+            mos_warn("RESOLVE_EXPECT_DIR flag not set, but path is the root directory");
+            return NULL;
+        }
+
         return dentry_ref(parent);
     }
 
@@ -474,6 +478,8 @@ size_t dentry_list(dentry_t *dir, dir_iterator_state_t *state)
             return written;
         written += w;
     }
+
+    MOS_ASSERT(dir->inode && dir->inode->ops);
 
     // this call may not write all the entries, because the buffer may not be big enough
     if (dir->inode->ops && dir->inode->ops->iterate_dir)
