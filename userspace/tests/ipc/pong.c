@@ -25,10 +25,10 @@ int main(int argc, char **argv)
 
     // client read
     char client_buf[150];
-    size_t read_size = syscall_io_read(client, client_buf, 150, 0);
+    size_t read_size = syscall_io_read(client, client_buf, 150);
     printf("Client: Received '%.*s'\n", (int) read_size, client_buf);
 
-    size_t written = syscall_io_write(client, "Nice Fox!", 10, 0);
+    size_t written = syscall_io_write(client, "Nice Fox!", 10);
 
     if (written != 10)
     {

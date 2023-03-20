@@ -20,7 +20,14 @@ static void thread_work(void *arg)
 static void file_api(void)
 {
     file_stat_t stat = { 0 };
-    if (syscall_file_stat("/initrd/assets/msg.txt", &stat))
+    fd_t fd = syscall_vfs_open("/initrd/assets/msg.txt", OPEN_READ);
+    if (fd < 0)
+    {
+        printf("Failed to open /initrd/assets/msg.txt\n");
+        return;
+    }
+
+    if (syscall_vfs_fstat(fd, &stat))
     {
         printf("File size: %zd bytes\n", stat.size);
         printf("Owner: %ld:%ld\n", stat.uid, stat.gid);
@@ -37,24 +44,16 @@ static void file_api(void)
             printf("[STICKY]");
         printf("\n");
 
-        int fd = syscall_file_open("/initrd/assets/msg.txt", OPEN_READ);
-        if (fd >= 0)
-        {
-            size_t read = syscall_io_read(fd, file_content, 512, 0);
-            syscall_io_write(stdout, file_content, read, 0);
-            syscall_io_close(fd);
-        }
-        else
-        {
-            printf("Failed to open /initrd/assets/msg.txt\n");
-        }
+        size_t read = syscall_io_read(fd, file_content, 512);
+        syscall_io_write(stdout, file_content, read);
+        syscall_io_close(fd);
     }
     else
     {
         printf("Failed to stat /initrd/assets/msg.txt");
     }
 
-    fd_t dirfd = syscall_file_open("/", OPEN_READ | OPEN_DIR);
+    fd_t dirfd = syscall_vfs_open("/", OPEN_READ | OPEN_DIR);
     if (dirfd < 0)
         return;
 
@@ -82,14 +81,6 @@ static void file_api(void)
 int main(int argc, char *argv[])
 {
     file_api();
-
-    // char buf[256] = { 0 };
-    // long read = syscall_io_read(stdin, buf, 256, 0);
-    // if (read > 0)
-    // {
-    //     printf("Read %d bytes from stdin", read);
-    //     syscall_io_write(stdout, buf, read, 0);
-    // }
 
     printf("init called with %d arguments:\n", argc);
     for (int i = 0; i < argc; i++)

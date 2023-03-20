@@ -63,7 +63,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
     }
 
     const size_t npage_required = ALIGN_UP_TO_PAGE(stat.size) / MOS_PAGE_SIZE;
-    const vmblock_t buf_block = mm_alloc_pages(current_cpu->pagetable, npage_required, PGALLOC_HINT_KHEAP, VM_RW);
+    const vmblock_t buf_block = mm_alloc_pages(current_cpu->pagetable, npage_required, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
     char *const buf = (char *) buf_block.vaddr;
 
     size_t size = io_read(&f->io, buf, stat.size);
@@ -185,7 +185,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
                     const uintptr_t B_file_offset = ph->data_offset + ph->size_in_file - B_file_size;
 
                     // allocate one page
-                    const vmblock_t stub = mm_alloc_pages(proc->pagetable, 1, PGALLOC_HINT_KHEAP, VM_RW);
+                    const vmblock_t stub = mm_alloc_pages(proc->pagetable, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
                     memzero((void *) stub.vaddr, MOS_PAGE_SIZE);
 
                     // copy the leftover memory
@@ -209,7 +209,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
                     const uintptr_t C_vaddr = ALIGN_UP_TO_PAGE(ph->vaddr + ph->size_in_file);
 
                     mos_debug(elf, "elf: allocating %zu zero pages at " PTR_FMT, C_npages, C_vaddr);
-                    vmblock_t block = mm_alloc_zeroed_pages_at(proc->pagetable, C_vaddr, C_npages, VM_RW);
+                    vmblock_t block = mm_alloc_zeroed_pages(proc->pagetable, C_npages, C_vaddr, VALLOC_DEFAULT, VM_RW);
                     block.flags = flags;
                     process_attach_mmap(proc, block, content, (vmap_flags_t){ 0 });
                 }

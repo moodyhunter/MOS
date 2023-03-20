@@ -21,16 +21,6 @@
 static hashmap_t *ipcshm_billboard;
 static spinlock_t billboard_lock;
 
-static hash_t ipcshm_server_hash(uintn key)
-{
-    return hashmap_hash_string(key);
-}
-
-static int ipcshm_server_compare(uintn a, uintn b)
-{
-    return strcmp((const char *) a, (const char *) b) == 0;
-}
-
 static ipcshm_t *ipcshm_server_get_pending(ipcshm_server_t *server)
 {
     ipcshm_t *pending = NULL;
@@ -77,7 +67,7 @@ void ipcshm_init(void)
 {
     pr_info("initializing shared-memory IPC backend");
     ipcshm_billboard = kzalloc(sizeof(hashmap_t));
-    hashmap_init(ipcshm_billboard, IPCSHM_BILLBOARD_HASHMAP_SIZE, ipcshm_server_hash, ipcshm_server_compare);
+    hashmap_init(ipcshm_billboard, IPCSHM_BILLBOARD_HASHMAP_SIZE, hashmap_hash_string, hashmap_compare_string);
 }
 
 ipcshm_server_t *ipcshm_announce(const char *name, size_t max_pending)
@@ -108,7 +98,7 @@ ipcshm_server_t *ipcshm_announce(const char *name, size_t max_pending)
     return server;
 }
 
-bool ipcshm_request(const char *name, size_t buffer_size, void **read_buf, void **write_buf, void *data)
+ipcshm_t *ipcshm_request(const char *name, size_t buffer_size, void **read_buf, void **write_buf, void *data)
 {
     pr_info("ipc: connecting to channel '%s'", name);
     buffer_size = ALIGN_UP(buffer_size, MOS_PAGE_SIZE);
@@ -127,13 +117,7 @@ bool ipcshm_request(const char *name, size_t buffer_size, void **read_buf, void 
         server = hashmap_get(ipcshm_billboard, (uintptr_t) name);
         spinlock_release(&billboard_lock);
 
-        if (unlikely(!server))
-        {
-            pr_warn("server for channel '%s' disappeared after it was found", name);
-            return false;
-        }
-
-        mos_debug(ipc, "server for channel '%s' found", name);
+        MOS_ASSERT(server);
     }
 
     mos_debug(ipc, "connecting to channel '%s'", name);
@@ -142,8 +126,8 @@ bool ipcshm_request(const char *name, size_t buffer_size, void **read_buf, void 
 
     if (server->magic != IPCSHM_SERVER_MAGIC)
     {
-        pr_warn("ipcshm_request: server magic is invalid (0x%x)", server->magic);
-        return false;
+        pr_warn("server magic is invalid (0x%x)", server->magic);
+        return NULL;
     }
 
     // find a free pending connection slot, or fail if there are none
@@ -157,8 +141,7 @@ bool ipcshm_request(const char *name, size_t buffer_size, void **read_buf, void 
             shm->state = IPCSHM_PENDING;
             shm->server = server;
             shm->buffer_size = buffer_size;
-            // keep the lock held intentionally
-            break;
+            break; // keep the shm lock held intentionally
         }
         spinlock_release(&server->pending[i]->lock);
     }
@@ -166,10 +149,10 @@ bool ipcshm_request(const char *name, size_t buffer_size, void **read_buf, void 
 
     if (unlikely(!shm))
     {
-        pr_warn("ipcshm_request: no pending connection slots available");
+        pr_warn("no pending connection slots available");
         *read_buf = NULL;
         *write_buf = NULL;
-        return false;
+        return NULL;
     }
 
     // there are 3 steps for a client to connect to a server:
@@ -205,10 +188,10 @@ bool ipcshm_request(const char *name, size_t buffer_size, void **read_buf, void 
         *read_buf = (void *) block.vaddr;
     }
     spinlock_release(&shm->lock);
-    return true;
+    return shm;
 }
 
-bool ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_buf, void **data_out)
+ipcshm_t *ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_buf, void **data_out)
 {
     // find a pending connection and attach to it
     ipcshm_t *shm = NULL;
@@ -216,7 +199,7 @@ bool ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_buf, v
     if (server->magic != IPCSHM_SERVER_MAGIC)
     {
         pr_warn("ipcshm_accept: server magic is invalid (0x%x)", server->magic);
-        return false;
+        return NULL;
     }
 
     spinlock_acquire(&server->pending_lock);
@@ -241,7 +224,6 @@ bool ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_buf, v
         reschedule_for_wait_condition(wc_wait_for(server, wc_ipcshm_pending_or_closed, NULL));
         mos_debug(ipc, "resuming after pending connection");
 
-        // TODO: check if the server was closed
         shm = ipcshm_server_get_pending(server);
         if (!shm)
         {
@@ -277,25 +259,24 @@ bool ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_buf, v
     }
     spinlock_release(&shm->lock);
 
-    return true;
+    return shm;
 }
 
-bool ipcshm_deannounce(const char *name)
+bool ipcshm_deannounce(ipcshm_server_t *server)
 {
     spinlock_acquire(&billboard_lock);
-    ipcshm_server_t *server = hashmap_remove(ipcshm_billboard, (uintptr_t) name);
+    ipcshm_server_t *removed_server = hashmap_remove(ipcshm_billboard, (uintptr_t) server->name);
     spinlock_release(&billboard_lock);
 
-    if (!server)
+    if (removed_server != server)
     {
-        pr_warn("server %s was not announced", name);
-        spinlock_release(&billboard_lock);
+        pr_warn("the given server instance was not found in the billboard");
         return false;
     }
 
     if (server->magic != IPCSHM_SERVER_MAGIC)
     {
-        pr_warn("ipcshm_deannounce: server magic is invalid (0x%x)", server->magic);
+        pr_warn("server magic is invalid (0x%x)", server->magic);
         return false;
     }
 
@@ -304,7 +285,9 @@ bool ipcshm_deannounce(const char *name)
     for (size_t i = 0; i < server->max_pending; i++)
     {
         // free all pending connections
-        kfree(server->pending[i]);
+        ipcshm_t *shm = server->pending[i];
+        spinlock_acquire(&shm->lock); // lock the connection
+        kfree(shm);
     }
 
     kfree(server->name);

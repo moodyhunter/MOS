@@ -29,13 +29,13 @@ static void do_resolve_cow(uintptr_t fault_addr, vm_flags original_flags)
     paging_handle_t current_handle = current_process->pagetable;
 
     // 1. create a new read-write page
-    vmblock_t one_page = mm_alloc_pages(current_handle, 1, PGALLOC_HINT_KHEAP, original_flags);
+    vmblock_t one_page = mm_alloc_pages(current_handle, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, original_flags);
 
     // 2. copy the data from the faulting address to the new page
     memcpy((void *) one_page.vaddr, (void *) fault_addr, MOS_PAGE_SIZE);
 
     // 3. replace the faulting phypage with the new one
-    mm_copy_maps(current_handle, one_page.vaddr, current_handle, fault_addr, 1, MM_COPY_ASSUME_MAPPED);
+    mm_copy_maps(current_handle, one_page.vaddr, current_handle, fault_addr, 1, MM_COPY_NEED_UNMAP);
 
     // 4. unmap the temporary page (at the kernel heap)
     //    note at this point, the underlying physical page won't be freed, because it's still mapped to the faulting address

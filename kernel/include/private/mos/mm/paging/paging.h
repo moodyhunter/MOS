@@ -16,9 +16,16 @@
 
 typedef enum
 {
-    MM_COPY_DEFAULT = 0,       ///< Default copy flags.
-    MM_COPY_ASSUME_MAPPED = 1, ///< Unmap the destination pages before copying.
+    MM_COPY_DEFAULT = 0,    ///< Default copy flags.
+    MM_COPY_NEED_UNMAP = 1, ///< Unmap the destination pages before copying.
+    MM_COPY_ALLOCATED = 2,  ///< The destination pages are already allocated (e.g. by @ref mm_get_free_pages)
 } mm_copy_behavior_t;
+
+typedef enum
+{
+    VALLOC_DEFAULT = 0,    ///< Default allocation flags.
+    VALLOC_EXACT = 1 << 0, ///< Allocate pages at the exact address.
+} valloc_flags;
 
 /// @brief Maximum 'lines' in a page map, see also @ref bitmap_line_t.
 #define MOS_PAGEMAP_MAX_LINES BITMAP_LINE_COUNT((uintptr_t) ~0 / MOS_PAGE_SIZE)
@@ -40,7 +47,8 @@ typedef struct _page_map
  *
  * @param table The page table to allocate from.
  * @param npages The number of pages to allocate.
- * @param hints Allocation hints, see @ref pgalloc_hints.
+ * @param base_vaddr The base virtual address to allocate at.
+ * @param flags Flags to set on the pages, see @ref valloc_flags.
  * @return uintptr_t The virtual address of the block of virtual memory.
  *
  * @note This function neither allocates nor maps the pages, it only
@@ -52,14 +60,15 @@ typedef struct _page_map
  * nor the flags of the pages.
  */
 
-uintptr_t mm_get_free_pages(paging_handle_t table, size_t npages, pgalloc_hints hints);
+uintptr_t mm_get_free_pages(paging_handle_t table, size_t n_pages, uintptr_t base_vaddr, valloc_flags flags);
 
 /**
  * @brief Allocate npages pages from a page table.
  *
  * @param table The page table to allocate from.
  * @param npages The number of pages to allocate.
- * @param hints Allocation hints, see @ref pgalloc_hints.
+ * @param hint_vaddr The virtual address to allocate at, as a hint.
+ * @param allocation_flags Allocation flags, see @ref valloc_flags.
  * @param flags Flags to set on the pages, see @ref vm_flags.
  * @return vmblock_t The allocated block of virtual memory, with the
  * number of pages, physical addresses and flags set.
@@ -67,18 +76,7 @@ uintptr_t mm_get_free_pages(paging_handle_t table, size_t npages, pgalloc_hints 
  * @details This function first finds a block of virtual memory using
  * @ref mm_get_free_pages, then allocates and maps the pages.
  */
-vmblock_t mm_alloc_pages(paging_handle_t table, size_t npages, pgalloc_hints hints, vm_flags flags);
-
-/**
- * @brief Allocate npages pages from a page table at a specific virtual address.
- *
- * @param table The page table to allocate from.
- * @param vaddr The virtual address to allocate at.
- * @param npages The number of pages to allocate.
- * @param flags Flags to set on the pages, see @ref vm_flags.
- * @return vmblock_t The allocated block of virtual memory, with the number of pages, physical addresses and flags set.
- */
-vmblock_t mm_alloc_pages_at(paging_handle_t table, uintptr_t vaddr, size_t npages, vm_flags flags);
+vmblock_t mm_alloc_pages(paging_handle_t table, size_t n_pages, uintptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags);
 
 /**
  * @brief Map a block of virtual memory to a block of physical memory.

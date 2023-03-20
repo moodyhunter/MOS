@@ -84,7 +84,7 @@ static int rpc_server_close(rpc_server_t *server, rpc_args_iter_t *args, rpc_rep
     MOS_UNUSED(reply);
     MOS_UNUSED(data);
 
-    printf("rpc_server_close");
+    printf("rpc_server_close\n");
     rpc_server_destroy(server);
     return 0;
 }

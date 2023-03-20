@@ -89,7 +89,7 @@ int vdprintf(int fd, const char *fmt, va_list ap)
 {
     char buf[256];
     int len = vsnprintf(buf, sizeof(buf), fmt, ap);
-    syscall_io_write(fd, buf, len, 0);
+    syscall_io_write(fd, buf, len);
     return len;
 }
 

@@ -16,11 +16,11 @@ static void thread_main(void *arg)
     char buf[150];
     size_t sz = sprintf(buf, "Welcome to the server, client fd %ld!", client_fd);
 
-    size_t written = syscall_io_write(client_fd, buf, sz, 0);
+    size_t written = syscall_io_write(client_fd, buf, sz);
     if (written != sz)
         printf("Server: failed to write to ipc channel\n");
 
-    size_t read_size = syscall_io_read(client_fd, buf, 150, 0);
+    size_t read_size = syscall_io_read(client_fd, buf, 150);
     printf("Server: Received '%.*s' from client %ld\n", (int) read_size, buf, client_fd);
 
     syscall_io_close(client_fd);

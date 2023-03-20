@@ -31,8 +31,9 @@ static void ipc_server_close(io_t *io)
         pr_warn("ipc_server_close: invalid magic");
         return;
     }
+
     ipcshm_server_t *shm_server = ipc_server->shm_server;
-    ipcshm_deannounce(shm_server->name); // shm_server is freed by ipcshm_deannounce
+    ipcshm_deannounce(shm_server); // shm_server is freed by ipcshm_deannounce
     kfree(ipc_server);
     // existing connections are not closed (they have their own io_t)
 }
@@ -157,8 +158,8 @@ io_t *ipc_connect(const char *name, size_t buffer_size)
     ring_buffer_pos_init(&ipc->server_nodebuf.pos, buffer_size);
     ring_buffer_pos_init(&ipc->client_nodebuf.pos, buffer_size);
 
-    bool connected = ipcshm_request(name, buffer_size, &ipc->client.read_buffer, &ipc->client.write_buffer, ipc);
-    if (!connected)
+    ipcshm_t *shm = ipcshm_request(name, buffer_size, &ipc->client.read_buffer, &ipc->client.write_buffer, ipc);
+    if (!shm)
     {
         kfree(ipc);
         return NULL;

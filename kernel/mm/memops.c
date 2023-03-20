@@ -16,7 +16,7 @@ static vmblock_t zero_block;
 void mos_kernel_mm_init(void)
 {
     // zero fill on demand (read-only)
-    zero_block = mm_alloc_pages(current_cpu->pagetable, 1, PGALLOC_HINT_KHEAP, VM_RW);
+    zero_block = mm_alloc_pages(current_cpu->pagetable, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
     memzero((void *) zero_block.vaddr, MOS_PAGE_SIZE);
     mm_flag_pages(current_cpu->pagetable, zero_block.vaddr, 1, VM_READ); // make it read-only after zeroing
 
@@ -37,13 +37,7 @@ void mos_kernel_mm_init(void)
 // !! This function is called by liballoc, not intended to be called by anyone else !!
 void *liballoc_alloc_page(size_t npages)
 {
-    if (unlikely(npages <= 0))
-    {
-        mos_warn("allocating negative or zero pages");
-        return NULL;
-    }
-
-    vmblock_t block = mm_alloc_pages(current_cpu->pagetable, npages, PGALLOC_HINT_KHEAP, VM_RW);
+    const vmblock_t block = mm_alloc_pages(current_cpu->pagetable, npages, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
     if (block.vaddr == 0)
         return NULL;
 
@@ -75,26 +69,13 @@ bool liballoc_free_page(void *vptr, size_t npages)
     return true;
 }
 
-vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, pgalloc_hints hints, vm_flags flags)
+vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, uintptr_t vaddr, valloc_flags allocation_flags, vm_flags flags)
 {
-    const uintptr_t vaddr_base = mm_get_free_pages(handle, npages, hints);
-    return mm_alloc_zeroed_pages_at(handle, vaddr_base, npages, flags);
-}
-
-vmblock_t mm_alloc_zeroed_pages_at(paging_handle_t handle, uintptr_t vaddr, size_t npages, vm_flags flags)
-{
-    if (mm_get_is_mapped(handle, vaddr))
-    {
-        mos_warn("failed to allocate %zu pages at %p: already mapped", npages, (void *) vaddr);
-        return (vmblock_t){ 0 };
-    }
+    vaddr = mm_get_free_pages(handle, npages, vaddr, allocation_flags);
 
     // zero fill the pages
     for (size_t i = 0; i < npages; i++)
-    {
-        // actually, zero_block is always accessible, using [handle] == using [current_cpu->pagetable] as source
-        mm_copy_maps(current_cpu->pagetable, zero_block.vaddr, handle, vaddr + i * MOS_PAGE_SIZE, 1, MM_COPY_DEFAULT);
-    }
+        mm_copy_maps(handle, zero_block.vaddr, handle, vaddr + i * MOS_PAGE_SIZE, 1, MM_COPY_ALLOCATED);
 
     // make the pages read-only (because for now, they are mapped to zero_block)
     mm_flag_pages(handle, vaddr, npages, VM_READ | ((flags & VM_USER) ? VM_USER : 0));

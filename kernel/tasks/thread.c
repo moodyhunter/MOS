@@ -64,15 +64,15 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
     t->name = strdup(name);
 
     // Kernel stack
-    const pgalloc_hints kstack_hint = (tmode == THREAD_MODE_KERNEL) ? PGALLOC_HINT_KHEAP : PGALLOC_HINT_STACK;
-    const vmblock_t kstack_blk = mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_KERNEL, kstack_hint, VM_RW);
+    const uintptr_t kstack_hint_addr = (tmode == THREAD_MODE_KERNEL) ? MOS_ADDR_KERNEL_HEAP : MOS_ADDR_USER_STACK;
+    const vmblock_t kstack_blk = mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_KERNEL, kstack_hint_addr, VALLOC_DEFAULT, VM_RW);
     stack_init(&t->k_stack, (void *) kstack_blk.vaddr, kstack_blk.npages * MOS_PAGE_SIZE);
     process_attach_mmap(owner, kstack_blk, VMTYPE_KSTACK, (vmap_flags_t){ 0 });
 
     if (tmode == THREAD_MODE_USER)
     {
         // User stack
-        const vmblock_t ustack_blk = mm_alloc_zeroed_pages(owner->pagetable, MOS_STACK_PAGES_USER, PGALLOC_HINT_STACK, VM_USER_RW);
+        const vmblock_t ustack_blk = mm_alloc_zeroed_pages(owner->pagetable, MOS_STACK_PAGES_USER, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, VM_USER_RW);
         stack_init(&t->u_stack, (void *) ustack_blk.vaddr, MOS_STACK_PAGES_USER * MOS_PAGE_SIZE);
         process_attach_mmap(owner, ustack_blk, VMTYPE_STACK, (vmap_flags_t){ .cow = true });
     }

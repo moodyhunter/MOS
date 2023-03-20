@@ -18,22 +18,30 @@ void bitmap_zero(bitmap_line_t *bitmap, size_t bitmap_nlines)
     memzero(bitmap, bitmap_nlines * sizeof(bitmap_line_t));
 }
 
-void bitmap_set(bitmap_line_t *bitmap, size_t bitmap_nlines, size_t index)
+bool bitmap_set(bitmap_line_t *bitmap, size_t bitmap_nlines, size_t index)
 {
     size_t line = index / BITMAP_LINE_BITS;
     size_t bit = index % BITMAP_LINE_BITS;
     if (line >= bitmap_nlines)
-        return;
+        return false;
+
+    bool original = bitmap_get(bitmap, bitmap_nlines, index);
     bitmap[line] |= ((bitmap_line_t) 1 << bit);
+
+    return original == false;
 }
 
-void bitmap_clear(bitmap_line_t *bitmap, size_t bitmap_nlines, size_t index)
+bool bitmap_clear(bitmap_line_t *bitmap, size_t bitmap_nlines, size_t index)
 {
     size_t line = index / BITMAP_LINE_BITS;
     size_t bit = index % BITMAP_LINE_BITS;
     if (line >= bitmap_nlines)
-        return;
+        return false;
+
+    bool original = bitmap_get(bitmap, bitmap_nlines, index);
     bitmap[line] &= ~((bitmap_line_t) 1 << bit);
+
+    return original == true;
 }
 
 bool bitmap_get(const bitmap_line_t *bitmap, size_t bitmap_nlines, size_t index)

@@ -44,14 +44,6 @@ typedef enum
 
 typedef enum
 {
-    PGALLOC_HINT_KHEAP,
-    PGALLOC_HINT_UHEAP,
-    PGALLOC_HINT_STACK,
-    PGALLOC_HINT_MMAP,
-} pgalloc_hints;
-
-typedef enum
-{
     THREAD_STATE_CREATED, // created or forked, but not ever started
     THREAD_STATE_READY,   // thread can be scheduled
     THREAD_STATE_RUNNING, // thread is currently running

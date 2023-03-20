@@ -36,7 +36,7 @@ void define_syscall(poweroff)(bool reboot, u32 magic)
         mos_warn("reboot is not implemented yet");
 }
 
-fd_t define_syscall(file_open)(const char *path, open_flags flags)
+fd_t define_syscall(vfs_open)(const char *path, open_flags flags)
 {
     if (path == NULL)
         return -1;
@@ -47,7 +47,7 @@ fd_t define_syscall(file_open)(const char *path, open_flags flags)
     return process_attach_ref_fd(current_process, &f->io);
 }
 
-bool define_syscall(file_stat)(const char *path, file_stat_t *stat)
+bool define_syscall(vfs_stat)(const char *path, file_stat_t *stat)
 {
     if (path == NULL || stat == NULL)
         return false;
@@ -55,33 +55,26 @@ bool define_syscall(file_stat)(const char *path, file_stat_t *stat)
     return vfs_stat(path, stat);
 }
 
-size_t define_syscall(io_read)(fd_t fd, void *buf, size_t count, size_t offset)
+size_t define_syscall(io_read)(fd_t fd, void *buf, size_t count)
 {
     if (fd < 0 || buf == NULL)
         return -1;
-    if (offset)
-    {
-        mos_warn("offset is not supported yet");
-        return -1;
-    }
+
     io_t *io = process_get_fd(current_process, fd);
     if (!io)
         return -1;
+
     return io_read(io, buf, count);
 }
 
-size_t define_syscall(io_write)(fd_t fd, const void *buf, size_t count, size_t offset)
+size_t define_syscall(io_write)(fd_t fd, const void *buf, size_t count)
 {
     if (fd < 0 || buf == NULL)
     {
-        pr_warn("io_write called with invalid arguments (fd=%ld, buf=%p, count=%zd, offset=%zd)", fd, buf, count, offset);
+        pr_warn("io_write called with invalid arguments (fd=%ld, buf=%p, count=%zd)", fd, buf, count);
         return -1;
     }
-    if (offset)
-    {
-        mos_warn("offset is not supported yet");
-        return -1;
-    }
+
     io_t *io = process_get_fd(current_process, fd);
     if (!io)
     {
@@ -362,7 +355,10 @@ void *define_syscall(mmap_anonymous)(uintptr_t hint_addr, size_t size, mem_perm_
         pr_warn("mmap_anonymous: trying to map at address 0");
         return NULL;
     }
-    else if (hint_addr != 0 && !exact)
+
+    vmblock_t block;
+
+    if (hint_addr != 0 && !exact)
     {
         // TODO: deduce mapping based on an address
         pr_warn("mmap_anonymous: deduced mapping based on an address is not supported yet");
@@ -372,38 +368,28 @@ void *define_syscall(mmap_anonymous)(uintptr_t hint_addr, size_t size, mem_perm_
     {
         // the kernel will choose the address
         pr_info2("mmap_anonymous: the kernel will choose the address");
-        vmblock_t block = mm_alloc_pages(current_process->pagetable, ALIGN_DOWN_TO_PAGE(size) / MOS_PAGE_SIZE, PGALLOC_HINT_MMAP, vmflags);
-        if (block.npages == 0)
-        {
-            pr_warn("mmap_anonymous: failed to allocate memory");
-            return NULL;
-        }
-
-        pr_info2("mmap_anonymous: allocated %zd pages at " PTR_FMT, block.npages, block.vaddr);
-        process_attach_mmap(current_process, block, VMTYPE_MMAP, block_flags);
-        return (void *) block.vaddr;
+        block = mm_alloc_pages(current_process->pagetable, ALIGN_DOWN_TO_PAGE(size) / MOS_PAGE_SIZE, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT, vmflags);
     }
     else if (hint_addr != 0 && exact)
     {
         // the kernel will map at the exact address (if it's available)
         pr_info2("mmap_anonymous: the kernel will map at the exact address " PTR_FMT, hint_addr);
-        vmblock_t block = mm_alloc_pages_at(current_process->pagetable, hint_addr, ALIGN_DOWN_TO_PAGE(size) / MOS_PAGE_SIZE, vmflags);
-        if (block.npages == 0)
-        {
-            pr_warn("mmap_anonymous: failed to allocate memory");
-            return NULL;
-        }
-
-        pr_info2("mmap_anonymous: allocated %zd pages at " PTR_FMT, block.npages, block.vaddr);
-        process_attach_mmap(current_process, block, VMTYPE_MMAP, block_flags);
-        return (void *) block.vaddr;
+        block = mm_alloc_pages(current_process->pagetable, ALIGN_DOWN_TO_PAGE(size) / MOS_PAGE_SIZE, hint_addr, VALLOC_EXACT, vmflags);
     }
     else
     {
         MOS_UNREACHABLE();
     }
 
-    return NULL;
+    if (unlikely(block.npages == 0))
+    {
+        pr_warn("mmap_anonymous: failed to allocate memory");
+        return NULL;
+    }
+
+    pr_info2("mmap_anonymous: allocated %zd pages at " PTR_FMT, block.npages, block.vaddr);
+    process_attach_mmap(current_process, block, VMTYPE_MMAP, block_flags);
+    return (void *) block.vaddr;
 }
 
 void *define_syscall(mmap_file)(uintptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t flags, fd_t fd, off_t offset)

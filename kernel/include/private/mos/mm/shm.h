@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "mos/mm/mm_types.h"
 #include "mos/tasks/task_types.h"
 
 /**
@@ -10,12 +9,6 @@
  * @brief Memory management subsystem
  * @{
  */
-
-/**
- * @brief Initialize the shared memory subsystem
- *
- */
-void shm_init(void);
 
 /**
  * @brief Allocate a new shared memory block

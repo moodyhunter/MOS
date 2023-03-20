@@ -15,13 +15,13 @@
         },
         {
             "number": 1,
-            "name": "file_open",
+            "name": "vfs_open",
             "return": "fd_t",
             "arguments": [ { "type": "const char *", "arg": "file_path" }, { "type": "open_flags", "arg": "flags" } ]
         },
         {
             "number": 2,
-            "name": "file_stat",
+            "name": "vfs_stat",
             "return": "bool",
             "arguments": [ { "type": "const char *", "arg": "file_path" }, { "type": "file_stat_t *", "arg": "stat" } ]
         },
@@ -29,13 +29,13 @@
             "number": 3,
             "name": "io_read",
             "return": "size_t",
-            "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "void *", "arg": "buffer" }, { "type": "size_t", "arg": "size" }, { "type": "size_t", "arg": "offset" } ]
+            "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "void *", "arg": "buffer" }, { "type": "size_t", "arg": "size" } ]
         },
         {
             "number": 4,
             "name": "io_write",
             "return": "size_t",
-            "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "const void *", "arg": "buffer" }, { "type": "size_t", "arg": "size" }, { "type": "size_t", "arg": "offset" } ]
+            "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "const void *", "arg": "buffer" }, { "type": "size_t", "arg": "size" } ]
         },
         {
             "number": 5,

@@ -20,16 +20,17 @@ typedef struct init_config
 init_config_t *config_parse_file(const char *file_path)
 {
     file_stat_t stat = { 0 };
-    if (!syscall_file_stat(file_path, &stat))
+
+    fd_t fd = syscall_vfs_open(file_path, OPEN_READ);
+    if (fd <= 0)
         return NULL;
 
-    fd_t fd = syscall_file_open(file_path, OPEN_READ);
-    if (fd <= 0)
+    if (!syscall_vfs_fstat(fd, &stat))
         return NULL;
 
     char *file_content = malloc(stat.size);
 
-    size_t read = syscall_io_read(fd, file_content, stat.size, 0);
+    size_t read = syscall_io_read(fd, file_content, stat.size);
     if (read != stat.size)
         return NULL;
 

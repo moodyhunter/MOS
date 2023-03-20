@@ -6,7 +6,7 @@
 #include "mos/mm/ipcshm/ipcshm.h"
 #include "mos/tasks/task_types.h"
 
-typedef struct
+typedef struct ipc_t
 {
     // srv.w == cli.r == server_writebuf ([server] is writing, or [client] is reading)
     // srv.r == cli.w == client_writebuf ([client] is writing, or [server] is reading)

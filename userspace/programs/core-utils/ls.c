@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     // argv[1] may contain the path to list
     const char *path = argc > 1 ? argv[1] : ".";
 
-    fd_t dirfd = syscall_file_open(path, OPEN_READ | OPEN_DIR);
+    fd_t dirfd = syscall_vfs_open(path, OPEN_READ | OPEN_DIR);
     if (dirfd < 0)
     {
         dprintf(stderr, "failed to open directory '%s'", path);

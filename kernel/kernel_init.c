@@ -117,7 +117,6 @@ void mos_start_kernel(const char *cmdline)
     if (!mounted_initrd)
         mos_panic("failed to mount initrd");
 
-    shm_init();
     ipc_init();
     process_init();
     thread_init();

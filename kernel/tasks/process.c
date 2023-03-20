@@ -137,7 +137,7 @@ process_t *process_new(process_t *parent, const char *name, terminal_t *term, th
 
     thread_new(proc, THREAD_MODE_USER, proc->name, entry, NULL);
 
-    vmblock_t heap = mm_alloc_pages(proc->pagetable, 1, PGALLOC_HINT_UHEAP, VM_USER_RW);
+    vmblock_t heap = mm_alloc_pages(proc->pagetable, 1, MOS_ADDR_USER_HEAP, VALLOC_DEFAULT, VM_USER_RW);
     process_attach_mmap(proc, heap, VMTYPE_HEAP, (vmap_flags_t){ 0 });
 
     proc->working_directory = parent ? parent->working_directory : root_dentry;
@@ -335,12 +335,12 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
 
     if (heap->flags.cow)
     {
-        vmblock_t zeroed = mm_alloc_zeroed_pages_at(process->pagetable, heap_top, npages, VM_USER_RW);
+        vmblock_t zeroed = mm_alloc_zeroed_pages(process->pagetable, npages, heap_top, VALLOC_EXACT, VM_USER_RW);
         MOS_ASSERT(zeroed.npages == npages);
     }
     else
     {
-        vmblock_t new_part = mm_alloc_pages_at(process->pagetable, heap_top, npages, VM_USER_RW);
+        vmblock_t new_part = mm_alloc_pages(process->pagetable, npages, heap_top, VALLOC_EXACT, VM_USER_RW);
         MOS_ASSERT(new_part.npages == npages);
     }
 

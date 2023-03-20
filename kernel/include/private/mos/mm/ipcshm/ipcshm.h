@@ -51,22 +51,22 @@ ipcshm_server_t *ipcshm_announce(const char *name, size_t max_pending);
  * @param buffer_size The size of the shared memory buffer to use for the connection
  * @param server_write_buffer A pointer to a void pointer that will be filled with the server's write buffer
  * @param client_write_buffer A pointer to a void pointer that will be filled with the client's write buffer
- * @return true on success, false on failure
+ * @return A new ipcshm_t object that represents the connection, or NULL on failure
  */
-bool ipcshm_request(const char *name, size_t buffer_size, void **server_write_buffer, void **client_write_buffer, void *data);
+ipcshm_t *ipcshm_request(const char *name, size_t buffer_size, void **server_write_buffer, void **client_write_buffer, void *data);
 
 /**
  * @brief Accept a new connection on an IPC SHM server
  * @param server The server to accept a connection on
  * @param server_write_buffer A pointer to a ipcshm_buffer_t pointer that will be filled with the server's write buffer
  * @param client_write_buffer A pointer to a ipcshm_buffer_t pointer that will be filled with the client's write buffer
- * @return true on success, false on failure
+ * @return A new ipcshm_t object that represents the connection, or NULL on failure
  */
-bool ipcshm_accept(ipcshm_server_t *server, void **server_write_buffer, void **client_write_buffer, void **data_out);
+ipcshm_t *ipcshm_accept(ipcshm_server_t *server, void **server_write_buffer, void **client_write_buffer, void **data_out);
 
 /**
  * @brief Deannounce an IPC SHM server
  * @param server The server name to deannounce
  * @return true on success, false on failure
  */
-bool ipcshm_deannounce(const char *server);
+bool ipcshm_deannounce(ipcshm_server_t *server);

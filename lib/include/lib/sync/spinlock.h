@@ -54,7 +54,7 @@ typedef struct
 #define spinlock_acquire_nodebug(lock) _spinlock_real_acquire(lock)
 #define spinlock_release_nodebug(lock) _spinlock_real_release(lock)
 
-should_inline bool spinlock_is_locked(spinlock_t *lock)
+should_inline bool spinlock_is_locked(const spinlock_t *lock)
 {
     return lock->flag;
 }

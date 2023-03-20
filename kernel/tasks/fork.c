@@ -38,7 +38,7 @@ process_t *process_handle_fork(process_t *parent)
         {
             // Kernel stacks are special, we need to allocate a new one (not CoW-mapped)
             MOS_ASSERT_X(block->blk.npages == MOS_STACK_PAGES_KERNEL, "kernel stack size is not %d pages", MOS_STACK_PAGES_KERNEL);
-            child_vmblock = mm_alloc_pages(child->pagetable, block->blk.npages, PGALLOC_HINT_STACK, block->blk.flags);
+            child_vmblock = mm_alloc_pages(child->pagetable, block->blk.npages, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, block->blk.flags);
             pr_info2(FORKFMT, parent->pid, child->pid, "kstack", block->blk.vaddr, block->blk.npages, block->blk.flags);
             process_attach_mmap(child, child_vmblock, VMTYPE_KSTACK, (vmap_flags_t){ 0 });
             continue;
