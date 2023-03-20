@@ -32,7 +32,7 @@ typedef enum
 /**
  * @brief Initialize the dentry cache and mountpoint map
  */
-void dentry_init(void);
+void dentry_cache_init(void);
 
 /**
  * @brief Check if a path is absolute

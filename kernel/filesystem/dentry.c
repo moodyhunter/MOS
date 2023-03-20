@@ -296,7 +296,7 @@ static size_t dentry_add_dir(dir_iterator_state_t *state, u64 ino, const char *n
     return this_record_size;
 }
 
-void dentry_init(void)
+void dentry_cache_init(void)
 {
     pr_info2("initializing dentry cache...");
     hashmap_init(&vfs_mountpoint_map, VFS_MOUNTPOINT_MAP_SIZE, dentry_hash, hashmap_simple_key_compare);
