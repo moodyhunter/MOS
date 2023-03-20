@@ -14,25 +14,22 @@
 
 extern const char _mos_startup_START;
 extern const char _mos_startup_END;
-
 extern const char __MOS_KERNEL_CODE_START;
 extern const char __MOS_KERNEL_CODE_END;
 extern const char __MOS_KERNEL_RODATA_START;
 extern const char __MOS_KERNEL_RODATA_END;
 extern const char __MOS_KERNEL_RW_START;
 extern const char __MOS_KERNEL_RW_END;
-
 extern const char __MOS_KERNEL_END;
 
-__startup_rodata static const uintptr_t startup_start = (uintptr_t) &_mos_startup_START;
-__startup_rodata static const uintptr_t startup_end = (uintptr_t) &_mos_startup_END;
-
-__startup_rodata static const uintptr_t kernel_code_vstart = (uintptr_t) &__MOS_KERNEL_CODE_START;
-__startup_rodata static const uintptr_t kernel_code_vend = (uintptr_t) &__MOS_KERNEL_CODE_END;
-__startup_rodata static const uintptr_t kernel_ro_vstart = (uintptr_t) &__MOS_KERNEL_RODATA_START;
-__startup_rodata static const uintptr_t kernel_ro_vend = (uintptr_t) &__MOS_KERNEL_RODATA_END;
-__startup_rodata static const uintptr_t kernel_rw_vstart = (uintptr_t) &__MOS_KERNEL_RW_START;
-__startup_rodata static const uintptr_t kernel_rw_vend = (uintptr_t) &__MOS_KERNEL_RW_END;
+#define startup_start      ((uintptr_t) &_mos_startup_START)
+#define startup_end        ((uintptr_t) &_mos_startup_END)
+#define kernel_code_vstart ((uintptr_t) &__MOS_KERNEL_CODE_START)
+#define kernel_code_vend   ((uintptr_t) &__MOS_KERNEL_CODE_END)
+#define kernel_ro_vstart   ((uintptr_t) &__MOS_KERNEL_RODATA_START)
+#define kernel_ro_vend     ((uintptr_t) &__MOS_KERNEL_RODATA_END)
+#define kernel_rw_vstart   ((uintptr_t) &__MOS_KERNEL_RW_START)
+#define kernel_rw_vend     ((uintptr_t) &__MOS_KERNEL_RW_END)
 
 // 768 KB of pages gives us 768 MB of virtual memory
 __startup_rwdata x86_pgdir_entry startup_pgd[1024] __aligned(MOS_PAGE_SIZE) = { 0 };
