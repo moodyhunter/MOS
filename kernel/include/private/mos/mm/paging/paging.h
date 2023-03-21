@@ -109,6 +109,18 @@ vmblock_t mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, 
 void mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t npages);
 
 /**
+ * @brief Fill a block of virtual memory with a block of physical memory.
+ *
+ * @param table The page table to fill.
+ * @param vaddr The virtual address to fill.
+ * @param paddr The physical address to fill with.
+ * @param npages The number of pages to fill.
+ * @param flags Flags to set on the pages, see @ref vm_flags.
+ * @return vmblock_t The filled block of virtual memory, with the number of pages.
+ */
+vmblock_t mm_fill_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t npages, vm_flags flags);
+
+/**
  * @brief Remap a block of virtual memory from one page table to another, i.e. copy the mappings.
  *
  * @param from The page table to copy from.

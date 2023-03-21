@@ -116,6 +116,30 @@ void mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t npages)
     spinlock_release(table.pgd_lock);
 }
 
+vmblock_t mm_fill_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t npages, vm_flags flags)
+{
+    MOS_ASSERT(npages > 0);
+
+    const vmblock_t block = { .address_space = table, .vaddr = vaddr, .npages = npages, .flags = flags };
+
+    table = PGD_FOR_VADDR(vaddr, table); // after block is initialized
+
+    if (unlikely(table.pgd == 0))
+    {
+        mos_warn("cannot fill pages at " PTR_FMT ", pagetable is null", vaddr);
+        return (vmblock_t){ 0 };
+    }
+
+    mos_debug(vmm, "filling %zd pages at " PTR_FMT " with " PTR_FMT, npages, vaddr, paddr);
+
+    spinlock_acquire(table.pgd_lock);
+    pmm_ref_frames(paddr, npages);
+    platform_mm_map_pages(table, vaddr, paddr, npages, flags);
+    spinlock_release(table.pgd_lock);
+
+    return block;
+}
+
 vmblock_t mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior)
 {
     MOS_ASSERT(npages > 0);
