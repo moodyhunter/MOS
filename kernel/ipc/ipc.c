@@ -118,7 +118,7 @@ io_t *ipc_create(const char *name, size_t max_pending)
     ipc_server_t *ipc_server = kzalloc(sizeof(ipc_server_t));
     ipc_server->shm_server = server;
     ipc_server->magic = IPC_SERVER_MAGIC;
-    io_init(&ipc_server->io, IO_NONE, &ipc_server_op);
+    io_init(&ipc_server->io, IO_IPC, IO_NONE, &ipc_server_op);
     return &ipc_server->io;
 }
 
@@ -142,7 +142,7 @@ io_t *ipc_accept(io_t *server)
     ipc->server.read_buffer = read_buf;
     ipc->server.write_buffer = write_buf;
 
-    io_init(&ipc->server.io, IO_READABLE | IO_WRITABLE, &ipc_connection_op);
+    io_init(&ipc->server.io, IO_IPC, IO_READABLE | IO_WRITABLE, &ipc_connection_op);
     return &ipc->server.io;
 }
 
@@ -164,6 +164,6 @@ io_t *ipc_connect(const char *name, size_t buffer_size)
         return NULL;
     }
 
-    io_init(&ipc->client.io, IO_READABLE | IO_WRITABLE, &ipc_connection_op);
+    io_init(&ipc->client.io, IO_IPC, IO_READABLE | IO_WRITABLE, &ipc_connection_op);
     return io_ref(&ipc->client.io);
 }

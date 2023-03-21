@@ -9,6 +9,13 @@ typedef struct _io_t io_t;
 
 typedef enum
 {
+    IO_FILE = 1, // the io is a file
+    IO_TERMINAL, // the io is a terminal
+    IO_IPC,      // the io is an IPC channel
+} io_type_t;
+
+typedef enum
+{
     IO_NONE = MEM_PERM_NONE,      // 0
     IO_READABLE = MEM_PERM_READ,  // 1 << 0
     IO_WRITABLE = MEM_PERM_WRITE, // 1 << 1
@@ -28,10 +35,11 @@ typedef struct _io_t
     bool closed;
     atomic_t refcount;
     io_flags_t flags;
+    io_type_t type;
     const io_op_t *ops;
 } io_t;
 
-void io_init(io_t *io, io_flags_t flags, const io_op_t *ops);
+void io_init(io_t *io, io_type_t type, io_flags_t flags, const io_op_t *ops);
 
 io_t *io_ref(io_t *io);
 void io_unref(io_t *io);

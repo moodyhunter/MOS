@@ -113,7 +113,7 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
     file->dentry = entry;
 
     io_flags_t io_flags = (flags & OPEN_READ ? IO_READABLE : 0) | (flags & OPEN_WRITE ? IO_WRITABLE : 0) | IO_SEEKABLE;
-    io_init(&file->io, io_flags, &fs_io_ops);
+    io_init(&file->io, IO_FILE, io_flags, &fs_io_ops);
 
     const file_ops_t *ops = file_get_ops(file);
     if (ops && ops->open)
