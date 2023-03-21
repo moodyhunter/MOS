@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/mos_global.h"
-#include "mos/platform/platform.h"
+#include <mos/mos_global.h>
+#include <mos/platform/platform.h>
 
 static u64 rdtsc(void)
 {

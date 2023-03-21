@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "lib/sync/spinlock.h"
-#include "mos/kconfig.h"
-#include "mos/mm/mm_types.h"
-#include "mos/mos_global.h"
-#include "mos/types.h"
+#include <mos/kconfig.h>
+#include <mos/lib/sync/spinlock.h>
+#include <mos/mm/mm_types.h>
+#include <mos/mos_global.h>
+#include <mos/types.h>
 
 #define PER_CPU_DECLARE(type, name)                                                                                                                                      \
     struct name                                                                                                                                                          \

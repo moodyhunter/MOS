@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "mos/device/dm_types.h"
-#include "mos/mos_global.h"
+#include <mos/device/dm_types.h>
+#include <mos/mos_global.h>
 
 void open_console(void);
 __printf(1, 2) void print_to_console(const char *fmt, ...);

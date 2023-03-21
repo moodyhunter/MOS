@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/mm/paging.h"
-
-#include "lib/string.h"
-#include "mos/mm/paging/paging.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/x86/mm/paging_impl.h"
-#include "mos/x86/x86_platform.h"
+#include <mos/mm/paging/paging.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/x86/mm/paging.h>
+#include <mos/x86/mm/paging_impl.h>
+#include <mos/x86/x86_platform.h>
+#include <string.h>
 
 // defined in enable_paging.asm
 extern void x86_enable_paging_impl(uintptr_t page_dir);
@@ -27,17 +26,17 @@ static void x86_walk_pagetable_dump_callback(const pgt_iteration_info_t *iter_in
     }
 
     pr_info2("    " PTR_RANGE " -> " PTR_RANGE ", %5zd pages, %c%c%c, %c%c, %s", //
-             block->vaddr,                                                                           //
-             block->vaddr + block->npages * MOS_PAGE_SIZE,                                           //
-             block_paddr,                                                                            //
-             block_paddr + block->npages * MOS_PAGE_SIZE,                                            //
-             block->npages,                                                                          //
-             block->flags & VM_READ ? 'r' : '-',                                                     //
-             block->flags & VM_WRITE ? 'w' : '-',                                                    //
-             block->flags & VM_EXEC ? 'x' : '-',                                                     //
-             block->flags & VM_CACHE_DISABLED ? 'C' : '-',                                           //
-             block->flags & VM_GLOBAL ? 'G' : '-',                                                   //
-             block->flags & VM_USER ? "user" : "kernel"                                              //
+             block->vaddr,                                                       //
+             block->vaddr + block->npages * MOS_PAGE_SIZE,                       //
+             block_paddr,                                                        //
+             block_paddr + block->npages * MOS_PAGE_SIZE,                        //
+             block->npages,                                                      //
+             block->flags & VM_READ ? 'r' : '-',                                 //
+             block->flags & VM_WRITE ? 'w' : '-',                                //
+             block->flags & VM_EXEC ? 'x' : '-',                                 //
+             block->flags & VM_CACHE_DISABLED ? 'C' : '-',                       //
+             block->flags & VM_GLOBAL ? 'G' : '-',                               //
+             block->flags & VM_USER ? "user" : "kernel"                          //
     );
 
     *prev_end_vaddr = block->vaddr + block->npages * MOS_PAGE_SIZE;

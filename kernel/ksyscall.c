@@ -1,26 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/string.h"
-#include "lib/structures/bitmap.h"
-#include "mos/elf/elf.h"
-#include "mos/filesystem/fs_types.h"
-#include "mos/filesystem/vfs.h"
-#include "mos/ipc/ipc.h"
-#include "mos/locks/futex.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/mm/mm_types.h"
-#include "mos/mm/paging/paging.h"
-#include "mos/mm/shm.h"
-#include "mos/mos_global.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/syscall/decl.h"
-#include "mos/tasks/process.h"
-#include "mos/tasks/schedule.h"
-#include "mos/tasks/task_types.h"
-#include "mos/tasks/thread.h"
-#include "mos/tasks/wait.h"
-#include "mos/types.h"
+#include <mos/elf/elf.h>
+#include <mos/filesystem/fs_types.h>
+#include <mos/filesystem/vfs.h>
+#include <mos/ipc/ipc.h>
+#include <mos/lib/structures/bitmap.h>
+#include <mos/locks/futex.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/mm/mm_types.h>
+#include <mos/mm/paging/paging.h>
+#include <mos/mm/shm.h>
+#include <mos/mos_global.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/syscall/decl.h>
+#include <mos/tasks/process.h>
+#include <mos/tasks/schedule.h>
+#include <mos/tasks/task_types.h>
+#include <mos/tasks/thread.h>
+#include <mos/tasks/wait.h>
+#include <mos/types.h>
+#include <string.h>
 
 void define_syscall(poweroff)(bool reboot, u32 magic)
 {

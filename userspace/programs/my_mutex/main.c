@@ -2,8 +2,9 @@
 
 #include "../console-helpers.h"
 #include "libuserspace.h"
-#include "mos/syscall/usermode.h"
-#include "mos/types.h"
+
+#include <mos/syscall/usermode.h>
+#include <mos/types.h>
 
 // My mutex implementation:
 // ==========================================================================

@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "libuserspace.h"
-#include "mos/filesystem/fs_types.h"
-#include "mos/syscall/usermode.h"
-#include "mos/types.h"
+
+#include <mos/filesystem/fs_types.h>
+#include <mos/syscall/usermode.h>
+#include <mos/types.h>
 
 #define BUFSIZE 256
 

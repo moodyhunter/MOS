@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/structures/list.h"
+#include <mos/lib/structures/list.h>
 
 // Note: The nullability of each parameter is not checked, because results will be the same no matter what.
 // (i.e. kernel panic / process termination)
@@ -40,7 +40,6 @@ void list_node_remove(list_node_t *node)
     node->next->prev = node->prev;
 
     // detach the node from the list
-    // ! Is this really necessary?
     node->next = node;
     node->prev = node;
 }

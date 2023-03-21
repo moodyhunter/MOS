@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "libuserspace++.hpp"
-#include "mos/types.h"
+
+#include <mos/types.h>
 
 struct cdtor_test
 {

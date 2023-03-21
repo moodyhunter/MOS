@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/memory.h"
-#include "lib/string.h"
 #include "libuserspace.h"
-#include "mos/device/dm_types.h"
-#include "mos/filesystem/fs_types.h"
-#include "mos/syscall/usermode.h"
+
+#include <memory.h>
+#include <mos/device/dm_types.h>
+#include <mos/filesystem/fs_types.h>
+#include <mos/syscall/usermode.h>
+#include <string.h>
 
 static char file_content[4 KB] = { 0 };
 static int value = 0;

@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "mos/device/block.h"
-#include "mos/platform/platform.h"
+#include <mos/device/block.h>
+#include <mos/platform/platform.h>
 
 typedef struct
 {

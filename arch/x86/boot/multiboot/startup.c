@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/boot/startup.h"
-
-#include "lib/string.h"
-#include "mos/device/console.h"
-#include "mos/x86/boot/multiboot.h"
-#include "mos/x86/mm/paging_impl.h"
-#include "mos/x86/x86_platform.h"
+#include <mos/boot/startup.h>
+#include <mos/device/console.h>
+#include <mos/x86/mm/paging_impl.h>
+#include <mos/x86/x86_platform.h>
 
 #define X86_VIDEO_DEVICE 0xb8000
 #define VIDEO_WIDTH      80

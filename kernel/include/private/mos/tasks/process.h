@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/tasks/task_types.h"
+#include <mos/tasks/task_types.h>
 
 #define PROCESS_MAGIC_PROC MOS_FOURCC('P', 'R', 'O', 'C')
 

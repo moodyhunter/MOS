@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/string.h"
-#include "mos/device/console.h"
-#include "mos/device/device_manager.h"
-#include "mos/elf/elf.h"
-#include "mos/filesystem/fs_types.h"
-#include "mos/filesystem/vfs.h"
-#include "mos/io/terminal.h"
-#include "mos/ipc/ipc.h"
-#include "mos/kallsyms.h"
-#include "mos/kconfig.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/mm/shm.h"
-#include "mos/printk.h"
-#include "mos/setup.h"
-#include "mos/tasks/kthread.h"
-#include "mos/tasks/process.h"
-#include "mos/tasks/schedule.h"
-#include "mos/tasks/thread.h"
+#include <mos/device/console.h>
+#include <mos/device/device_manager.h>
+#include <mos/elf/elf.h>
+#include <mos/filesystem/fs_types.h>
+#include <mos/filesystem/vfs.h>
+#include <mos/io/terminal.h>
+#include <mos/ipc/ipc.h>
+#include <mos/kallsyms.h>
+#include <mos/kconfig.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/mm/shm.h>
+#include <mos/printk.h>
+#include <mos/setup.h>
+#include <mos/tasks/kthread.h>
+#include <mos/tasks/process.h>
+#include <mos/tasks/schedule.h>
+#include <mos/tasks/thread.h>
+#include <string.h>
 
 extern filesystem_t fs_tmpfs;
 extern filesystem_t fs_cpiofs;

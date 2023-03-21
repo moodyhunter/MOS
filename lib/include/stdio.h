@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
-#include "lib/mos_lib.h"
-#include "mos/mos_global.h"
-
+#include <mos/lib/lib.h>
+#include <mos/mos_global.h>
 #include <stdarg.h>
 #include <stddef.h>
 

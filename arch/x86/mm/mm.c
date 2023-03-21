@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/mm/mm.h"
-
-#include "lib/stdlib.h"
-#include "mos/mm/physical/pmm.h"
-#include "mos/printk.h"
+#include <mos/mm/physical/pmm.h>
+#include <mos/printk.h>
+#include <mos/x86/mm/mm.h>
+#include <stdlib.h>
 
 void x86_pmm_region_setup(const multiboot_memory_map_t *map_entry, u32 count)
 {

@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "lib/structures/list.h"
-#include "mos/mos_global.h"
-#include "mos/types.h"
+#include <mos/lib/structures/list.h>
+#include <mos/mos_global.h>
+#include <mos/types.h>
 
 #define IRQ_BASE 0x20
 

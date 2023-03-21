@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/structures/stack.h"
-#include "mos/mm/kmalloc.h"
 #include "test_engine.h"
+
+#include <mos/lib/structures/stack.h>
+#include <mos/mm/kmalloc.h>
 
 MOS_TEST_CASE(stack_init_deinit)
 {

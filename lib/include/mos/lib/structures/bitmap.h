@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "lib/mos_lib.h"
-#include "mos/types.h"
+#include <mos/lib/lib.h>
+#include <mos/types.h>
 
 typedef u32 bitmap_line_t;
 

@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/devices/initrd_blockdev.h"
-
-#include "lib/stdlib.h"
-#include "lib/string.h"
+#include <mos/x86/devices/initrd_blockdev.h>
+#include <stdlib.h>
+#include <string.h>
 
 size_t initrd_read(blockdev_t *dev, void *buf, size_t size, size_t offset)
 {

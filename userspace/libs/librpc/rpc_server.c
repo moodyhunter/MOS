@@ -2,14 +2,15 @@
 
 #include "librpc/rpc_server.h"
 
-#include "lib/memory.h"
-#include "lib/string.h"
 #include "libipc/ipc.h"
 #include "librpc/internal.h"
 #include "librpc/rpc.h"
 #include "libuserspace.h"
-#include "mos/syscall/usermode.h"
-#include "mos/types.h"
+
+#include <memory.h>
+#include <mos/syscall/usermode.h>
+#include <mos/types.h>
+#include <string.h>
 
 #define RPC_SERVER_MAX_PENDING_CALLS 32
 

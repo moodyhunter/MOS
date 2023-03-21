@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/io/io.h"
+#include <mos/io/io.h>
 
 typedef struct console_t console_t;
 

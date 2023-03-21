@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
-#include "lib/mos_lib.h"
-#include "mos/types.h"
+#include <mos/lib/lib.h>
+#include <mos/types.h>
 
 /**
  * @defgroup libs_std_string libs.String

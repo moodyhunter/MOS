@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include "lib/structures/list.h"
-#include "lib/structures/tree.h"
-#include "lib/sync/mutex.h"
-#include "mos/filesystem/fs_types.h"
-#include "mos/io/io.h"
-#include "mos/platform/platform.h"
-#include "mos/types.h"
+#include <mos/filesystem/fs_types.h>
+#include <mos/io/io.h>
+#include <mos/lib/structures/list.h>
+#include <mos/lib/structures/tree.h>
+#include <mos/lib/sync/mutex.h>
+#include <mos/platform/platform.h>
+#include <mos/types.h>
 
 typedef struct _dentry dentry_t;
 typedef struct _inode inode_t;

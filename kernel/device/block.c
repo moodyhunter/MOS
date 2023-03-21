@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/device/block.h"
-
-#include "lib/string.h"
-#include "lib/structures/hashmap.h"
-#include "lib/structures/hashmap_common.h"
-#include "lib/structures/list.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/printk.h"
-#include "mos/types.h"
+#include <mos/device/block.h>
+#include <mos/lib/structures/hashmap.h>
+#include <mos/lib/structures/hashmap_common.h>
+#include <mos/lib/structures/list.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/printk.h>
+#include <mos/types.h>
+#include <string.h>
 
 /**
  * @brief The hashmap of all registered block devices.

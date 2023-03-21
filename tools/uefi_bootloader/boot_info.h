@@ -3,7 +3,7 @@
 #pragma once
 
 #ifndef MOS_EFI_LOADER
-#include "mos/types.h"
+#include <mos/types.h>
 #define CHAR16 u16
 #define UINT32 u32
 #define UINTN  nuint

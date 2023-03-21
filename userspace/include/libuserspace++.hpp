@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "lib/sync/mutex.h"
-#include "mos/types.h"
+#include <mos/lib/sync/mutex.h>
+#include <mos/types.h>
 
 #define MOS_DISABLE_COPY_AND_MOVE(classname)                                                                                                                             \
     classname(const classname &) = delete;                                                                                                                               \

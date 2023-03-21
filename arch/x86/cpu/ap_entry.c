@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/tasks/schedule.h"
-#include "mos/x86/cpu/cpuid.h"
-#include "mos/x86/descriptors/descriptor_types.h"
-#include "mos/x86/interrupt/apic.h"
-#include "mos/x86/interrupt/idt.h"
-#include "mos/x86/mm/paging.h"
-#include "mos/x86/x86_platform.h"
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/tasks/schedule.h>
+#include <mos/x86/cpu/cpuid.h>
+#include <mos/x86/descriptors/descriptor_types.h>
+#include <mos/x86/interrupt/apic.h>
+#include <mos/x86/interrupt/idt.h>
+#include <mos/x86/mm/paging.h>
+#include <mos/x86/x86_platform.h>
 
 noreturn void ap_begin_exec(void)
 {

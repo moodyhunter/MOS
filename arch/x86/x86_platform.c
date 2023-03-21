@@ -1,32 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/x86_platform.h"
-
-#include "lib/string.h"
-#include "mos/kallsyms.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/mm/paging/paging.h"
-#include "mos/mm/physical/pmm.h"
-#include "mos/mos_global.h"
-#include "mos/panic.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/x86/acpi/acpi.h"
-#include "mos/x86/acpi/madt.h"
-#include "mos/x86/cpu/cpu.h"
-#include "mos/x86/cpu/cpuid.h"
-#include "mos/x86/cpu/smp.h"
-#include "mos/x86/descriptors/descriptor_types.h"
-#include "mos/x86/devices/initrd_blockdev.h"
-#include "mos/x86/devices/port.h"
-#include "mos/x86/devices/serial_console.h"
-#include "mos/x86/interrupt/apic.h"
-#include "mos/x86/interrupt/idt.h"
-#include "mos/x86/mm/mm.h"
-#include "mos/x86/mm/paging.h"
-#include "mos/x86/mm/paging_impl.h"
-#include "mos/x86/tasks/context.h"
-#include "mos/x86/x86_interrupt.h"
+#include <mos/kallsyms.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/mm/paging/paging.h>
+#include <mos/mm/physical/pmm.h>
+#include <mos/mos_global.h>
+#include <mos/panic.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/x86/acpi/acpi.h>
+#include <mos/x86/acpi/madt.h>
+#include <mos/x86/cpu/cpu.h>
+#include <mos/x86/cpu/cpuid.h>
+#include <mos/x86/cpu/smp.h>
+#include <mos/x86/descriptors/descriptor_types.h>
+#include <mos/x86/devices/initrd_blockdev.h>
+#include <mos/x86/devices/port.h>
+#include <mos/x86/devices/serial_console.h>
+#include <mos/x86/interrupt/apic.h>
+#include <mos/x86/interrupt/idt.h>
+#include <mos/x86/mm/mm.h>
+#include <mos/x86/mm/paging.h>
+#include <mos/x86/mm/paging_impl.h>
+#include <mos/x86/tasks/context.h>
+#include <mos/x86/x86_interrupt.h>
+#include <mos/x86/x86_platform.h>
+#include <string.h>
 
 static size_t initrd_size = 0;
 static uintptr_t initrd_paddr = 0;

@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "mos/device/dm_types.h"
-#include "mos/types.h"
+#include <mos/device/dm_types.h>
+#include <mos/types.h>
 
 bool screen_get_size(u32 *width, u32 *height);
 bool screen_get_cursor_pos(u32 *x, u32 *y);

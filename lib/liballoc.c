@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "lib/liballoc.h"
+#include "liballoc.h"
 
-#include "lib/mos_lib.h"
-#include "lib/string.h"
-#include "lib/sync/spinlock.h"
+#include <mos/lib/lib.h>
+#include <mos/lib/sync/spinlock.h>
+#include <string.h>
 
 #ifdef __MOS_KERNEL__
-#include "mos/platform/platform.h"
+#include <mos/platform/platform.h>
 #endif
 
 #define VERSION "1.1"

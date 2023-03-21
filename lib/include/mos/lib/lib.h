@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/types.h"
+#include <mos/types.h>
 
 /**
  * @defgroup libs MOS Libraries
@@ -11,7 +11,7 @@
  */
 
 #ifdef __MOS_KERNEL__ // ! Kernel
-#include "mos/printk.h"
+#include <mos/printk.h>
 #define MOS_LIB_ASSERT(cond)             MOS_ASSERT(cond)
 #define MOS_LIB_ASSERT_X(cond, msg, ...) MOS_ASSERT_X(cond, msg, ##__VA_ARGS__)
 #define MOS_LIB_UNIMPLEMENTED(content)   MOS_UNIMPLEMENTED(content)

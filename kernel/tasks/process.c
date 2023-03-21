@@ -1,25 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/tasks/process.h"
-
-#include "lib/string.h"
-#include "lib/structures/hashmap.h"
-#include "lib/structures/hashmap_common.h"
-#include "lib/structures/list.h"
-#include "lib/sync/spinlock.h"
-#include "mos/filesystem/vfs.h"
-#include "mos/io/terminal.h"
-#include "mos/mm/cow.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/mm/memops.h"
-#include "mos/mm/paging/paging.h"
-#include "mos/panic.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/tasks/schedule.h"
-#include "mos/tasks/task_types.h"
-#include "mos/tasks/thread.h"
-#include "mos/tasks/wait.h"
+#include <mos/filesystem/vfs.h>
+#include <mos/io/terminal.h>
+#include <mos/lib/structures/hashmap.h>
+#include <mos/lib/structures/hashmap_common.h>
+#include <mos/lib/structures/list.h>
+#include <mos/lib/sync/spinlock.h>
+#include <mos/mm/cow.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/mm/memops.h>
+#include <mos/mm/paging/paging.h>
+#include <mos/panic.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/tasks/process.h>
+#include <mos/tasks/schedule.h>
+#include <mos/tasks/task_types.h>
+#include <mos/tasks/thread.h>
+#include <mos/tasks/wait.h>
+#include <string.h>
 
 #define PROCESS_HASHTABLE_SIZE 512
 

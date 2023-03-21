@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/structures/tree.h"
+#include "liballoc.h"
 
-#include "lib/liballoc.h"
-#include "lib/mos_lib.h"
-#include "lib/string.h"
-#include "lib/structures/list.h"
+#include <mos/lib/lib.h>
+#include <mos/lib/structures/list.h>
+#include <mos/lib/structures/tree.h>
+#include <string.h>
 
 void tree_add_child(tree_node_t *parent, tree_node_t *child)
 {

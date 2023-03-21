@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/tasks/task_types.h"
+#include <mos/tasks/task_types.h>
 
 /**
  * @defgroup mm Memory Management

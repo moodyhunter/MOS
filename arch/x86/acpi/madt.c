@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/acpi/madt.h"
-
-#include "mos/printk.h"
-#include "mos/x86/acpi/acpi.h"
-#include "mos/x86/acpi/acpi_types.h"
-#include "mos/x86/x86_platform.h"
+#include <mos/printk.h>
+#include <mos/x86/acpi/acpi.h>
+#include <mos/x86/acpi/acpi_types.h>
+#include <mos/x86/acpi/madt.h>
+#include <mos/x86/x86_platform.h>
 
 acpi_madt_t *x86_acpi_madt = NULL;
 u32 x86_cpu_lapic[MOS_MAX_CPU_COUNT] = { 0 };

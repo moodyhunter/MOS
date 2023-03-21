@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/string.h"
-#include "lib/sync/spinlock.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/mm/paging/paging.h"
-#include "mos/mm/physical/pmm.h"
-#include "mos/mos_global.h"
-#include "mos/platform/platform.h"
-#include "mos/platform_syscall.h"
-#include "mos/printk.h"
-#include "mos/tasks/process.h"
-#include "mos/tasks/task_types.h"
-#include "mos/x86/cpu/cpu.h"
-#include "mos/x86/delays.h"
-#include "mos/x86/descriptors/descriptor_types.h"
-#include "mos/x86/devices/port.h"
-#include "mos/x86/mm/paging.h"
-#include "mos/x86/mm/paging_impl.h"
-#include "mos/x86/tasks/context.h"
-#include "mos/x86/x86_interrupt.h"
-#include "mos/x86/x86_platform.h"
+#include <mos/lib/sync/spinlock.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/mm/paging/paging.h>
+#include <mos/mm/physical/pmm.h>
+#include <mos/mos_global.h>
+#include <mos/platform/platform.h>
+#include <mos/platform_syscall.h>
+#include <mos/printk.h>
+#include <mos/tasks/process.h>
+#include <mos/tasks/task_types.h>
+#include <mos/x86/cpu/cpu.h>
+#include <mos/x86/delays.h>
+#include <mos/x86/descriptors/descriptor_types.h>
+#include <mos/x86/devices/port.h>
+#include <mos/x86/mm/paging.h>
+#include <mos/x86/mm/paging_impl.h>
+#include <mos/x86/tasks/context.h>
+#include <mos/x86/x86_interrupt.h>
+#include <mos/x86/x86_platform.h>
+#include <string.h>
 
 noreturn void platform_shutdown(void)
 {

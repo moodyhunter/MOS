@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/platform/platform.h"
+#include <mos/platform/platform.h>
 
 void pagemap_mark_used(page_map_t *map, uintptr_t vaddr, size_t n_pages);
 void pagemap_mark_free(page_map_t *map, uintptr_t vaddr, size_t n_pages);

@@ -43,7 +43,7 @@ def forall_syscalls_do_gen(j, gen_func):
 
 def insert_includes(j):
     for inc in j["includes"]:
-        gen("#include \"%s\"" % inc)
+        gen("#include <%s>" % inc)
     gen("")
 
 
@@ -85,15 +85,15 @@ def main():
         insert_includes(j)
         # also include the 'mos/platform_syscall.h' header
         gen("// platform syscall header")
-        gen('#include "mos/platform_syscall.h"')
+        gen('#include <mos/platform_syscall.h>')
         gen("")
         forall_syscalls_do_gen(j, gen_single_usermode_wrapper)
 
     elif gen_type == GEN_TYPE_DISPATCHER:
         insert_includes(j)
         gen("// syscall implementation declarations and syscall numbers")
-        gen('#include "mos/syscall/decl.h"')
-        gen('#include "mos/syscall/number.h"')
+        gen('#include <mos/syscall/decl.h>')
+        gen('#include <mos/syscall/number.h>')
         gen("")
         gen("should_inline reg_t dispatch_syscall(const reg_t number, %s)" % (", ".join(["reg_t arg%d" % (i + 1) for i in range(MAX_SYSCALL_NARGS)])))
         gen("{")

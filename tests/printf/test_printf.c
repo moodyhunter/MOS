@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/stdio.h"
 #include "test_engine.h"
+
+#include <stdio.h>
 
 static char buffer[2048] = { 0 };
 
@@ -12,16 +13,16 @@ MOS_TEST_DEFINE_CONDITION(printf_tests_enable_oxX, "o, x, X tests") = true;
 
 int tst_printf(char *buffer, const char *format, ...) __attribute__((format(printf, 2, 3)));
 
-#define PRINTF_TEST(expected, format, ...)                                                                                                      \
-    do                                                                                                                                          \
-    {                                                                                                                                           \
-        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                      \
-        {                                                                                                                                       \
-            MOS_TEST_SKIP();                                                                                                                    \
-            break;                                                                                                                              \
-        }                                                                                                                                       \
-        tst_printf(buffer, format __VA_OPT__(, ) __VA_ARGS__);                                                                                  \
-        MOS_TEST_CHECK_STRING(buffer, expected);                                                                                                \
+#define PRINTF_TEST(expected, format, ...)                                                                                                                               \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                                               \
+        {                                                                                                                                                                \
+            MOS_TEST_SKIP();                                                                                                                                             \
+            break;                                                                                                                                                       \
+        }                                                                                                                                                                \
+        tst_printf(buffer, format __VA_OPT__(, ) __VA_ARGS__);                                                                                                           \
+        MOS_TEST_CHECK_STRING(buffer, expected);                                                                                                                         \
     } while (0)
 
 int tst_printf(char *buffer, const char *format, ...)
@@ -53,9 +54,8 @@ MOS_TEST_CASE(simple_string)
 {
     PRINTF_TEST("a", "a", );
     PRINTF_TEST("very long string", "very long string", );
-    PRINTF_TEST(
-        "d6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880",
-        "d6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880", );
+    PRINTF_TEST("d6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880",
+                "d6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880-464eeed9541cd6c40101-371d-473e-8880", );
 }
 
 MOS_TEST_CASE(integer_no_precision)

@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "lib/mos_lib.h"
-#include "lib/structures/list.h"
-#include "mos/types.h"
+#include <mos/lib/lib.h>
+#include <mos/lib/structures/list.h>
+#include <mos/types.h>
 
 typedef struct tree_node tree_node_t;
 

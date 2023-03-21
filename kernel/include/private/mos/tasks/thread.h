@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/tasks/task_types.h"
+#include <mos/tasks/task_types.h>
 
 #define THREAD_MAGIC_THRD MOS_FOURCC('T', 'H', 'R', 'D')
 

@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/interrupt/idt.h"
-
-#include "mos/x86/descriptors/descriptor_types.h"
-#include "mos/x86/x86_interrupt.h"
-#include "mos/x86/x86_platform.h"
+#include <mos/x86/descriptors/descriptor_types.h>
+#include <mos/x86/interrupt/idt.h>
+#include <mos/x86/x86_interrupt.h>
+#include <mos/x86/x86_platform.h>
 
 static idt_entry32_t idt[IDT_ENTRY_COUNT] __aligned(16) = { 0 };
 static idtr32_t idtr;

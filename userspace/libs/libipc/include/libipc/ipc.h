@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include "lib/memory.h"
 #include "libuserspace.h"
-#include "mos/syscall/usermode.h"
-#include "mos/types.h"
+
+#include <memory.h>
+#include <mos/syscall/usermode.h>
+#include <mos/types.h>
 
 /**
  * @brief An IPC message.

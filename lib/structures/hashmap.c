@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/structures/hashmap.h"
+#include "liballoc.h"
 
-#include "lib/liballoc.h"
-#include "lib/mos_lib.h"
-#include "lib/string.h"
+#include <mos/lib/lib.h>
+#include <mos/lib/structures/hashmap.h>
+#include <string.h>
 
 #define HASHMAP_MAGIC MOS_FOURCC('H', 'M', 'a', 'p')
 

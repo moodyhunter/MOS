@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/x86/acpi/acpi_types.h"
+#include <mos/x86/acpi/acpi_types.h>
 
 extern acpi_madt_t *x86_acpi_madt;
 extern uintptr_t x86_ioapic_address;

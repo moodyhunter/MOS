@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/mos_global.h"
-#include "mos/types.h"
+#include <mos/mos_global.h>
+#include <mos/types.h>
 
 should_inline reg_t platform_syscall0(reg_t number)
 {

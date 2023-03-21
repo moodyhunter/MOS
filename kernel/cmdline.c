@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/cmdline.h"
-
-#include "lib/string.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/printk.h"
+#include <mos/cmdline.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/printk.h>
+#include <string.h>
 
 cmdline_t *mos_cmdline = NULL;
 

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/cmdline.h"
+#include <mos/cmdline.h>
 
 typedef struct
 {

@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/printk.h"
-
-#include "lib/stdio.h"
-#include "lib/string.h"
-#include "lib/structures/list.h"
-#include "lib/sync/spinlock.h"
-#include "mos/cmdline.h"
-#include "mos/device/console.h"
-#include "mos/setup.h"
+#include <mos/cmdline.h>
+#include <mos/device/console.h>
+#include <mos/lib/structures/list.h>
+#include <mos/lib/sync/spinlock.h>
+#include <mos/printk.h>
+#include <mos/setup.h>
+#include <stdio.h>
+#include <string.h>
 
 static console_t *printk_console;
 bool printk_quiet;

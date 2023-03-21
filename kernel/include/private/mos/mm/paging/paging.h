@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "lib/structures/bitmap.h"
-#include "lib/sync/spinlock.h"
-#include "mos/platform/platform.h"
+#include <mos/lib/structures/bitmap.h>
+#include <mos/lib/sync/spinlock.h>
+#include <mos/platform/platform.h>
 
 /**
  * @defgroup paging Paging

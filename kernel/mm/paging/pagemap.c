@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/mm/paging/pagemap.h"
-
-#include "mos/mm/paging/paging.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
+#include <mos/mm/paging/pagemap.h>
+#include <mos/mm/paging/paging.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
 
 static bitmap_line_t kernel_page_map[MOS_PAGEMAP_KERNEL_LINES] = { 0 };
 static spinlock_t kernel_page_map_lock = SPINLOCK_INIT;

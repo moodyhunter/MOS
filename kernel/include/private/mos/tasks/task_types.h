@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include "lib/structures/stack.h"
-#include "lib/sync/spinlock.h"
-#include "mos/filesystem/fs_types.h"
-#include "mos/filesystem/vfs.h"
-#include "mos/io/io.h"
-#include "mos/kconfig.h"
-#include "mos/mm/mm_types.h"
-#include "mos/platform/platform.h"
-#include "mos/types.h"
+#include <mos/filesystem/fs_types.h>
+#include <mos/filesystem/vfs.h>
+#include <mos/io/io.h>
+#include <mos/kconfig.h>
+#include <mos/lib/structures/stack.h>
+#include <mos/lib/sync/spinlock.h>
+#include <mos/mm/mm_types.h>
+#include <mos/platform/platform.h>
+#include <mos/types.h>
 
 typedef struct _terminal terminal_t;
 

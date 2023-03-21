@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/io/terminal.h"
-
-#include "mos/device/console.h"
-#include "mos/io/io.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/printk.h"
+#include <mos/device/console.h>
+#include <mos/io/io.h>
+#include <mos/io/terminal.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/printk.h>
 
 static size_t terminal_io_read(io_t *io, void *buffer, size_t size)
 {

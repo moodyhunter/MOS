@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "lib/mos_lib.h"
-#include "mos/types.h"
+#include <mos/lib/lib.h>
+#include <mos/types.h>
 
 typedef futex_word_t mutex_t;
 #define MUTEX_INIT 0

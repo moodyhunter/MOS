@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/acpi/acpi.h"
-
-#include "lib/string.h"
-#include "mos/boot/startup.h"
-#include "mos/mos_global.h"
-#include "mos/printk.h"
-#include "mos/x86/acpi/madt.h"
-#include "mos/x86/boot/multiboot.h"
-#include "mos/x86/cpu/cpu.h"
-#include "mos/x86/devices/port.h"
-#include "mos/x86/x86_interrupt.h"
-#include "mos/x86/x86_platform.h"
+#include <mos/boot/startup.h>
+#include <mos/mos_global.h>
+#include <mos/printk.h>
+#include <mos/x86/acpi/acpi.h>
+#include <mos/x86/acpi/madt.h>
+#include <mos/x86/boot/multiboot.h>
+#include <mos/x86/cpu/cpu.h>
+#include <mos/x86/devices/port.h>
+#include <mos/x86/x86_interrupt.h>
+#include <mos/x86/x86_platform.h>
+#include <string.h>
 
 const acpi_rsdt_t *x86_acpi_rsdt;
 const acpi_hpet_t *x86_acpi_hpet;

@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/cpu/smp.h"
-
-#include "lib/string.h"
-#include "mos/boot/startup.h"
-#include "mos/mm/paging/paging.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/x86/acpi/madt.h"
-#include "mos/x86/delays.h"
-#include "mos/x86/interrupt/apic.h"
-#include "mos/x86/mm/paging_impl.h"
-#include "mos/x86/x86_platform.h"
+#include <mos/boot/startup.h>
+#include <mos/mm/paging/paging.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/x86/acpi/madt.h>
+#include <mos/x86/cpu/smp.h>
+#include <mos/x86/delays.h>
+#include <mos/x86/interrupt/apic.h>
+#include <mos/x86/mm/paging_impl.h>
+#include <mos/x86/x86_platform.h>
+#include <string.h>
 
 volatile enum
 {

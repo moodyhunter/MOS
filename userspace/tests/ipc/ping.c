@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/memory.h"
-#include "lib/stdio.h"
-#include "lib/string.h"
 #include "libuserspace.h"
-#include "mos/syscall/usermode.h"
+
+#include <memory.h>
+#include <mos/syscall/usermode.h>
+#include <stdio.h>
+#include <string.h>
 
 const char *data = "The quick brown fox jumps over the lazy dog.";
 const size_t data_size = 43;

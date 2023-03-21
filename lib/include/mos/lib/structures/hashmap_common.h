@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "lib/mos_lib.h"
-#include "mos/types.h"
+#include <mos/lib/lib.h>
+#include <mos/types.h>
 
 /**
  * @defgroup libs_hashmap_commonfuncs libs.HashMap.Common

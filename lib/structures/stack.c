@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/structures/stack.h"
-
-#include "lib/mos_lib.h"
-#include "lib/string.h"
+#include <mos/lib/lib.h>
+#include <mos/lib/structures/stack.h>
+#include <string.h>
 
 void stack_init(downwards_stack_t *stack, void *mem_region_bottom, size_t size)
 {

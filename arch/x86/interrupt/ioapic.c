@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/mm/paging/paging.h"
-#include "mos/mm/physical/pmm.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/x86/acpi/madt.h"
-#include "mos/x86/interrupt/apic.h"
-#include "mos/x86/x86_interrupt.h"
-#include "mos/x86/x86_platform.h"
+#include <mos/mm/paging/paging.h>
+#include <mos/mm/physical/pmm.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/x86/acpi/madt.h>
+#include <mos/x86/interrupt/apic.h>
+#include <mos/x86/x86_interrupt.h>
+#include <mos/x86/x86_platform.h>
 
 // +-------+     +-------+     +-------+
 // |       |     |       |     |       |

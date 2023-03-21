@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/tasks/wait.h"
-
-#include "lib/structures/list.h"
-#include "lib/sync/spinlock.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/tasks/task_types.h"
-#include "mos/tasks/thread.h"
+#include <mos/lib/structures/list.h>
+#include <mos/lib/sync/spinlock.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/tasks/task_types.h>
+#include <mos/tasks/thread.h>
+#include <mos/tasks/wait.h>
 
 wait_condition_t *wc_wait_for(void *arg, wait_condition_verifier_t verify, wait_condition_cleanup_t cleanup)
 {

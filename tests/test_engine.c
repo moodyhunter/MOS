@@ -2,16 +2,17 @@
 
 #include "test_engine.h"
 
-#include "lib/stdio.h"
-#include "lib/string.h"
-#include "lib/structures/list.h"
-#include "mos/cmdline.h"
-#include "mos/device/console.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/panic.h"
-#include "mos/printk.h"
-#include "mos/setup.h"
 #include "test_engine_impl.h"
+
+#include <mos/cmdline.h>
+#include <mos/device/console.h>
+#include <mos/lib/structures/list.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/panic.h>
+#include <mos/printk.h>
+#include <mos/setup.h>
+#include <stdio.h>
+#include <string.h>
 
 s32 test_engine_n_warning_expected = 0;
 

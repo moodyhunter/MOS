@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/types.h"
+#include <mos/types.h>
 
 /**
  * @defgroup device_manager.common Device Manager Common Types

@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "mos/platform/platform.h"
-#include "mos/types.h"
+#include <mos/platform/platform.h>
+#include <mos/types.h>
 
 #define GDT_NULL    0x00
 #define GDT_SEGMENT 0x10

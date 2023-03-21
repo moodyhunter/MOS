@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/string.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/x86/descriptors/descriptor_types.h"
-#include "mos/x86/x86_platform.h"
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/x86/descriptors/descriptor_types.h>
+#include <mos/x86/x86_platform.h>
+#include <string.h>
 
 struct x86_cpu_descriptor x86_cpu_descriptor = { 0 };
 

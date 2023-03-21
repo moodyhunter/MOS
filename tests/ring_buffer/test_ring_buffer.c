@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/structures/ring_buffer.h"
 #include "test_engine.h"
 
+#include <mos/lib/structures/ring_buffer.h>
 #include <stddef.h>
 
 MOS_TEST_CASE(ringbuffer_creation_and_destruction)

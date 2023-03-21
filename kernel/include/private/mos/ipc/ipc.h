@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "lib/structures/ring_buffer.h"
-#include "mos/mm/ipcshm/ipcshm.h"
-#include "mos/tasks/task_types.h"
+#include <mos/lib/structures/ring_buffer.h>
+#include <mos/mm/ipcshm/ipcshm.h>
+#include <mos/tasks/task_types.h>
 
 typedef struct ipc_t
 {

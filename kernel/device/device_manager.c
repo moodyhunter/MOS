@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/device/device_manager.h"
-
-#include "mos/ipc/ipc.h"
-#include "mos/printk.h"
-#include "mos/tasks/kthread.h"
+#include <mos/device/device_manager.h>
+#include <mos/ipc/ipc.h>
+#include <mos/printk.h>
+#include <mos/tasks/kthread.h>
 
 static io_t *server_io = NULL;
 

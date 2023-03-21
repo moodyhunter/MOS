@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/ipc/ipc.h"
-
-#include "lib/structures/ring_buffer.h"
-#include "mos/filesystem/ipcfs/ipcfs.h"
-#include "mos/io/io.h"
-#include "mos/mm/ipcshm/ipcshm.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/mos_global.h"
-#include "mos/printk.h"
-#include "mos/tasks/schedule.h"
-#include "mos/tasks/task_types.h"
-#include "mos/tasks/wait.h"
+#include <mos/filesystem/ipcfs/ipcfs.h>
+#include <mos/io/io.h>
+#include <mos/ipc/ipc.h>
+#include <mos/lib/structures/ring_buffer.h>
+#include <mos/mm/ipcshm/ipcshm.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/mos_global.h>
+#include <mos/printk.h>
+#include <mos/tasks/schedule.h>
+#include <mos/tasks/task_types.h>
+#include <mos/tasks/wait.h>
 
 #define IPC_CHANNEL_HASHMAP_SIZE 64
 #define IPC_SERVER_MAGIC         MOS_FOURCC('I', 'P', 'C', 'S')

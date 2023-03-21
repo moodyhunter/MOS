@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/memory.h"
-#include "lib/stdio.h"
-#include "lib/string.h"
 #include "librpc/rpc.h"
 #include "librpc/rpc_client.h"
 #include "librpc/rpc_server.h"
-#include "mos/syscall/usermode.h"
+
+#include <memory.h>
+#include <mos/syscall/usermode.h>
+#include <stdio.h>
+#include <string.h>
 
 #define RPC_TEST_SERVERNAME "testserver"
 

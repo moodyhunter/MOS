@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/structures/list.h"
-#include "mos/types.h"
-
+#include <mos/lib/structures/list.h>
+#include <mos/types.h>
 #include <stdarg.h>
 
 typedef void(kmsg_handler_t)(const char *func, u32 line, const char *fmt, va_list args);

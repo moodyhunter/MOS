@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "../console-helpers.h"
-#include "lib/stdio.h"
-#include "lib/sync/mutex.h"
-#include "lib/sync/spinlock.h"
 #include "librpc/rpc_client.h"
 #include "libuserspace.h"
-#include "mos/device/dm_types.h"
-#include "mos/syscall/usermode.h"
-#include "mos/types.h"
-#include "mos/x86/delays.h"
+
+#include <mos/device/dm_types.h>
+#include <mos/lib/sync/mutex.h>
+#include <mos/lib/sync/spinlock.h>
+#include <mos/syscall/usermode.h>
+#include <mos/types.h>
+#include <mos/x86/delays.h>
+#include <stdio.h>
 
 #define N_THREADS  10
 #define N_WORKLOAD 50000

@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/tasks/schedule.h"
-
-#include "lib/structures/hashmap.h"
-#include "lib/sync/spinlock.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/tasks/process.h"
-#include "mos/tasks/task_types.h"
-#include "mos/tasks/thread.h"
-#include "mos/tasks/wait.h"
+#include <mos/lib/structures/hashmap.h>
+#include <mos/lib/sync/spinlock.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/tasks/process.h>
+#include <mos/tasks/schedule.h>
+#include <mos/tasks/task_types.h>
+#include <mos/tasks/thread.h>
+#include <mos/tasks/wait.h>
 
 static const char thread_state_str[] = {
     [THREAD_STATE_CREATED] = 'C', //

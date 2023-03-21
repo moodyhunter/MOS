@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/cpu/cpuid.h"
-
-#include "mos/printk.h"
+#include <mos/printk.h>
+#include <mos/x86/cpu/cpuid.h>
 
 const char *const cpuid_type_str[] = {
     [CPUID_T_OEM] = "OEM",

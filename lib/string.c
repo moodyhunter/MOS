@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/string.h"
+#include "liballoc.h"
 
-#include "lib/liballoc.h"
-#include "lib/mos_lib.h"
+#include <mos/lib/lib.h>
+#include <string.h>
 
 size_t strlen(const char *str)
 {

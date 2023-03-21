@@ -2,10 +2,11 @@
 
 #include "librpc/rpc_server.h"
 #include "libuserspace.h"
-#include "mos/device/dm_types.h"
-#include "mos/platform_syscall.h"
-#include "mos/syscall/usermode.h"
 #include "text_mode_console.h"
+
+#include <mos/device/dm_types.h>
+#include <mos/platform_syscall.h>
+#include <mos/syscall/usermode.h>
 
 static rpc_server_t *screen_server;
 

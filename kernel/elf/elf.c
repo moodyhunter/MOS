@@ -1,18 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/elf/elf.h"
-
-#include "lib/string.h"
-#include "mos/filesystem/vfs.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/mm/memops.h"
-#include "mos/mm/paging/paging.h"
-#include "mos/mos_global.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/tasks/process.h"
-#include "mos/tasks/task_types.h"
-#include "mos/types.h"
+#include <mos/elf/elf.h>
+#include <mos/filesystem/vfs.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/mm/memops.h>
+#include <mos/mm/paging/paging.h>
+#include <mos/mos_global.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/tasks/process.h>
+#include <mos/tasks/task_types.h>
+#include <mos/types.h>
+#include <string.h>
 
 MOS_STATIC_ASSERT(sizeof(elf_header_t) == (MOS_BITS == 32 ? 0x34 : 0x40), "elf_header has wrong size");
 MOS_STATIC_ASSERT(sizeof(elf_program_hdr_t) == (MOS_BITS == 32 ? 0x20 : 0x38), "elf_program_header has wrong size");

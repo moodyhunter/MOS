@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/structures/hashmap_common.h"
-
-#include "lib/string.h"
+#include <mos/lib/structures/hashmap_common.h>
+#include <string.h>
 
 static hash_t __pure string_hash(const char *s, const int n)
 {

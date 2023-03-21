@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/io/io.h"
-
-#include "mos/mos_global.h"
-#include "mos/printk.h"
+#include <mos/io/io.h>
+#include <mos/mos_global.h>
+#include <mos/printk.h>
 
 void io_init(io_t *io, io_flags_t flags, const io_op_t *ops)
 {

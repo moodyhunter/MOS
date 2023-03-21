@@ -2,10 +2,9 @@
 
 #pragma once
 
-#include "lib/mos_lib.h"
-#include "mos/types.h"
-
 #include <limits.h>
+#include <mos/lib/lib.h>
+#include <mos/types.h>
 #include <stddef.h>
 
 /**

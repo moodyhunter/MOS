@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/mos_lib.h"
-#include "mos/types.h"
+#include <mos/lib/lib.h>
+#include <mos/types.h>
 
 /**
  * @defgroup libs_hashmap libs.HashMap

@@ -12,7 +12,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
 endif()
 
 project(MOS LANGUAGES CXX C ASM_NASM VERSION 0.1)
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_EXTENSIONS ON)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 
@@ -41,7 +41,7 @@ file(GLOB_RECURSE MOS_STANDARD_LIBRARY_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_
 file(GLOB_RECURSE MOS_KERNEL_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/kernel/*.c)
 
 add_library(mos_kernel_include INTERFACE)
-target_include_directories(mos_kernel_include INTERFACE
+target_include_directories(mos_kernel_include SYSTEM INTERFACE
     ${CMAKE_BINARY_DIR}/include                     # generated headers
     ${CMAKE_SOURCE_DIR}/kernel/include/public       # public types
     ${CMAKE_SOURCE_DIR}/lib/include                 # standard library
@@ -49,7 +49,7 @@ target_include_directories(mos_kernel_include INTERFACE
 add_library(mos::include ALIAS mos_kernel_include)
 
 add_library(mos_kernel_private_include INTERFACE)
-target_include_directories(mos_kernel_private_include INTERFACE
+target_include_directories(mos_kernel_private_include SYSTEM INTERFACE
     ${CMAKE_SOURCE_DIR}/kernel/include/private
 )
 add_library(mos::private_include ALIAS mos_kernel_private_include)

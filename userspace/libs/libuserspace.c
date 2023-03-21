@@ -2,13 +2,13 @@
 
 #include "libuserspace.h"
 
-#include "lib/liballoc.h"
-#include "lib/memory.h"
-#include "lib/stdio.h"
-#include "lib/string.h"
-#include "mos/syscall/usermode.h"
+#include "liballoc.h"
 
+#include <memory.h>
+#include <mos/syscall/usermode.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
 typedef struct thread_start_args
 {

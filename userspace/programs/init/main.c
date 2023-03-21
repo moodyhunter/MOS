@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/memory.h"
-#include "lib/string.h"
 #include "libuserspace.h"
-#include "mos/filesystem/fs_types.h"
-#include "mos/syscall/usermode.h"
 #include "parser.h"
+
+#include <memory.h>
+#include <mos/filesystem/fs_types.h>
+#include <mos/syscall/usermode.h>
+#include <string.h>
 
 static init_config_t *config;
 

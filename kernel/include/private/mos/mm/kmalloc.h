@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "lib/liballoc.h"
-#include "mos/types.h"
+#include "liballoc.h"
+
+#include <mos/types.h>
 
 should_inline __malloc void *kmalloc(size_t size)
 {

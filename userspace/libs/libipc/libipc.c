@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/string.h"
 #include "libipc/ipc.h"
+
+#include <string.h>
 
 ipc_msg_t *ipc_msg_create(size_t size)
 {

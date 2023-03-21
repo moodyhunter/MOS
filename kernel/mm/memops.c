@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/mm/memops.h"
+#include "liballoc.h"
 
-#include "lib/liballoc.h"
-#include "lib/string.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/mm/paging/paging.h"
-#include "mos/mm/physical/pmm.h"
-#include "mos/panic.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
+#include <mos/mm/kmalloc.h>
+#include <mos/mm/memops.h>
+#include <mos/mm/paging/paging.h>
+#include <mos/mm/physical/pmm.h>
+#include <mos/panic.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <string.h>
 
 static vmblock_t zero_block;
 

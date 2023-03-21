@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/printk.h"
-#include "mos/types.h"
 #include "uefi_boot_info.h"
+
+#include <mos/printk.h>
+#include <mos/types.h>
 
 static char cmdline[1024];
 

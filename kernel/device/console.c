@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/device/console.h"
-
-#include "lib/string.h"
-#include "lib/structures/list.h"
-#include "mos/printk.h"
+#include <mos/device/console.h>
+#include <mos/lib/structures/list.h>
+#include <mos/printk.h>
+#include <string.h>
 
 static int dummy_write_to_console(console_t *console, const char *message, size_t length)
 {

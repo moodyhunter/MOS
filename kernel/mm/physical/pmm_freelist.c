@@ -2,11 +2,11 @@
 
 #define mos_pmm_impl
 
-#include "lib/string.h"
-#include "lib/structures/list.h"
-#include "lib/sync/spinlock.h"
-#include "mos/mm/physical/pmm.h"
-#include "mos/mm/physical/pmm_internal.h"
+#include <mos/lib/structures/list.h>
+#include <mos/lib/sync/spinlock.h>
+#include <mos/mm/physical/pmm.h>
+#include <mos/mm/physical/pmm_internal.h>
+#include <string.h>
 
 static list_head pmlist_free_rw = LIST_HEAD_INIT(pmlist_free_rw);
 static spinlock_t pmlist_free_lock = SPINLOCK_INIT;

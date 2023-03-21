@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/stdio.h"
-
 #include <limits.h>
+#include <stdio.h>
 
 int sprintf(char *restrict str, const char *restrict format, ...)
 {

@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include "lib/structures/list.h"
-#include "lib/sync/spinlock.h"
-#include "mos/device/dm_types.h"
-#include "mos/types.h"
+#include <mos/device/dm_types.h>
+#include <mos/lib/structures/list.h>
+#include <mos/lib/sync/spinlock.h>
+#include <mos/types.h>
 
 typedef enum
 {

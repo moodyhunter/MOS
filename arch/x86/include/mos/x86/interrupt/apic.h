@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/types.h"
+#include <mos/types.h>
 
 #define APIC_REG_LAPIC_ID 0x20
 typedef enum

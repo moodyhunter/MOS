@@ -4,7 +4,8 @@
 #pragma once
 
 #include "librpc/rpc.h"
-#include "mos/types.h"
+
+#include <mos/types.h>
 
 typedef struct _rpc_server rpc_server_t;
 typedef struct _rpc_args_iter rpc_args_iter_t;

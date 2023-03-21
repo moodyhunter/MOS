@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/locks/futex.h"
-
-#include "lib/stdlib.h"
-#include "lib/structures/list.h"
-#include "lib/sync/spinlock.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/mm/paging/paging.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/tasks/schedule.h"
-#include "mos/tasks/wait.h"
-#include "mos/types.h"
+#include <mos/lib/structures/list.h>
+#include <mos/lib/sync/spinlock.h>
+#include <mos/locks/futex.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/mm/paging/paging.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/tasks/schedule.h>
+#include <mos/tasks/wait.h>
+#include <mos/types.h>
+#include <stdlib.h>
 
 typedef uintptr_t futex_key_t;
 

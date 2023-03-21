@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/setup.h"
-
-#include "lib/string.h"
-#include "mos/printk.h"
+#include <mos/printk.h>
+#include <mos/setup.h>
+#include <string.h>
 
 static cmdline_option_t *cmdline_get_option(const char *option_name)
 {

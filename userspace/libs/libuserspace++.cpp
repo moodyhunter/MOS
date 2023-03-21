@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/memory.h"
-#include "lib/sync/mutex.h"
 #include "libuserspace++.hpp"
-#include "mos/types.h"
+
+#include <memory.h>
+#include <mos/lib/sync/mutex.h>
+#include <mos/types.h>
 
 void *__dso_handle = 0;
 

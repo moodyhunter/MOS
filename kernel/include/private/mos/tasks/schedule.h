@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/tasks/task_types.h"
+#include <mos/tasks/task_types.h>
 
 void unblock_scheduler(void);
 noreturn void scheduler(void);

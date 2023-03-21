@@ -2,14 +2,14 @@
 
 #define mos_pmm_impl
 
-#include "lib/stdlib.h"
-#include "lib/string.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/mm/physical/pmm.h"
-#include "mos/mm/physical/pmm_internal.h"
-#include "mos/panic.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
+#include <mos/mm/kmalloc.h>
+#include <mos/mm/physical/pmm.h>
+#include <mos/mm/physical/pmm_internal.h>
+#include <mos/panic.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <stdlib.h>
+#include <string.h>
 
 static list_head pmlist_allocated_rw = LIST_HEAD_INIT(pmlist_allocated_rw);
 static spinlock_t pmlist_allocated_lock = SPINLOCK_INIT;

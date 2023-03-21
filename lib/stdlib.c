@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/stdlib.h"
-
-#include "lib/stdio.h"
-#include "mos/types.h"
+#include <mos/types.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 static int isspace(int _c)
 {

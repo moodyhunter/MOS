@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "mos/mm/mm_types.h"
-#include "mos/types.h"
+#include <mos/mm/mm_types.h>
+#include <mos/types.h>
 
 typedef struct _io_t io_t;
 

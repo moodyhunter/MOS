@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/sync/mutex.h"
+#include <mos/lib/sync/mutex.h>
 
 #ifdef __MOS_KERNEL__
-#include "mos/locks/futex.h"
+#include <mos/locks/futex.h>
 #else
-#include "mos/syscall/usermode.h"
+#include <mos/syscall/usermode.h>
 #define futex_wait(futex, val) syscall_futex_wait(futex, val)
 #define futex_wake(futex, val) syscall_futex_wake(futex, val)
 #endif

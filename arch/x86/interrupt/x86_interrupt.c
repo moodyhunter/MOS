@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "mos/x86/x86_interrupt.h"
-
-#include "mos/mm/cow.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/syscall/dispatcher.h"
-#include "mos/x86/devices/port.h"
-#include "mos/x86/interrupt/apic.h"
-#include "mos/x86/tasks/context.h"
-#include "mos/x86/x86_platform.h"
+#include <mos/mm/cow.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/syscall/dispatcher.h>
+#include <mos/x86/devices/port.h>
+#include <mos/x86/interrupt/apic.h>
+#include <mos/x86/tasks/context.h>
+#include <mos/x86/x86_interrupt.h>
+#include <mos/x86/x86_platform.h>
 
 static const char *const x86_exception_names[EXCEPTION_COUNT] = {
     "Divide-By-Zero Error",

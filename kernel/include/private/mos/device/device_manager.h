@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "mos/device/dm_types.h"
-#include "mos/types.h"
+#include <mos/device/dm_types.h>
+#include <mos/types.h>
 
 /**
  * @defgroup device_manager Device Manager

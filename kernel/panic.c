@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/panic.h"
-
-#include "lib/stdio.h"
-#include "lib/structures/list.h"
-#include "mos/cmdline.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/setup.h"
+#include <mos/cmdline.h>
+#include <mos/lib/structures/list.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/panic.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/setup.h>
+#include <stdio.h>
 
 // stack smashing protector
 u64 __stack_chk_guard = 0;

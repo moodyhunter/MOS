@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/mm/paging_impl.h"
-
-#include "mos/printk.h"
-#include "mos/x86/cpu/cpu.h"
-#include "mos/x86/mm/paging.h"
-#include "mos/x86/x86_platform.h"
+#include <mos/printk.h>
+#include <mos/x86/cpu/cpu.h>
+#include <mos/x86/mm/paging.h>
+#include <mos/x86/mm/paging_impl.h>
+#include <mos/x86/x86_platform.h>
 
 #define PAGING_CORRECT_PGTABLE_SANITY_CHECKS(_pg, _vaddr)                                                                                                                \
     do                                                                                                                                                                   \

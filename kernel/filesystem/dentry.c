@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/filesystem/dentry.h"
-
-#include "lib/string.h"
-#include "lib/structures/hashmap.h"
-#include "lib/structures/hashmap_common.h"
-#include "lib/structures/list.h"
-#include "lib/structures/tree.h"
-#include "mos/filesystem/fs_types.h"
-#include "mos/filesystem/vfs.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/mos_global.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/tasks/task_types.h"
+#include <mos/filesystem/dentry.h>
+#include <mos/filesystem/fs_types.h>
+#include <mos/filesystem/vfs.h>
+#include <mos/lib/structures/hashmap.h>
+#include <mos/lib/structures/hashmap_common.h>
+#include <mos/lib/structures/list.h>
+#include <mos/lib/structures/tree.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/mos_global.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/tasks/task_types.h>
+#include <string.h>
 
 // A path in its string form is composed of "segments" separated
 // by a slash "/", a path may:

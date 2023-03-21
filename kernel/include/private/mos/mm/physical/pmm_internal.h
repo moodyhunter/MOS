@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "lib/structures/list.h"
-#include "mos/mm/physical/pmm.h"
+#include <mos/lib/structures/list.h>
+#include <mos/mm/physical/pmm.h>
 
 #ifndef mos_pmm_impl
 #error "This file should only be used by the physical memory manager implementation."

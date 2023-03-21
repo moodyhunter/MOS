@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "mos/mos_global.h"
-#include "mos/types.h"
+#include <mos/mos_global.h>
+#include <mos/types.h>
 
 typedef u16 x86_port_t;
 

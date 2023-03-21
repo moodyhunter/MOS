@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "mos/mos_global.h"
-#include "mos/platform/platform.h"
-#include "mos/types.h"
+#include <mos/mos_global.h>
+#include <mos/platform/platform.h>
+#include <mos/types.h>
 
 #define __startup_code   __section(".mos.startup.text")
 #define __startup_rodata __section(".mos.startup.rodata")

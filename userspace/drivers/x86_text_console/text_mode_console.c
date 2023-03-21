@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/string.h"
-#include "mos/device/dm_types.h"
-#include "mos/x86/devices/port.h"
+#include <mos/device/dm_types.h>
+#include <mos/x86/devices/port.h>
+#include <string.h>
 
 #define VIDEO_WIDTH  80
 #define VIDEO_HEIGHT 25

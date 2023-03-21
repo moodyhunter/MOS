@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "mos/mos_global.h"
-#include "mos/types.h"
+#include <mos/mos_global.h>
+#include <mos/types.h>
 
 always_inline u64 rdtsc(void)
 {

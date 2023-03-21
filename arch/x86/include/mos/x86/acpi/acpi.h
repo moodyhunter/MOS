@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "mos/types.h"
-#include "mos/x86/acpi/acpi_types.h"
+#include <mos/types.h>
+#include <mos/x86/acpi/acpi_types.h>
 
 extern const acpi_rsdt_t *x86_acpi_rsdt;
 extern const acpi_hpet_t *x86_acpi_hpet;

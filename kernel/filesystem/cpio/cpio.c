@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/stdlib.h"
-#include "lib/string.h"
-#include "lib/structures/list.h"
-#include "lib/structures/tree.h"
-#include "mos/device/block.h"
-#include "mos/filesystem/dentry.h"
-#include "mos/filesystem/fs_types.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/mos_global.h"
-#include "mos/printk.h"
-#include "mos/setup.h"
+#include <mos/device/block.h>
+#include <mos/filesystem/dentry.h>
+#include <mos/filesystem/fs_types.h>
+#include <mos/lib/structures/list.h>
+#include <mos/lib/structures/tree.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/mos_global.h>
+#include <mos/printk.h>
+#include <mos/setup.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define CPIO_MODE_FILE_TYPE 0170000 // This masks the file type bits.
 #define CPIO_MODE_SOCKET    0140000 // File type value for sockets.

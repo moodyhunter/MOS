@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/kconfig.h"
+#include <mos/kconfig.h>
 
 #define MOS_DO_PRAGMA(x) _Pragma(#x)
 

@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/mm/shm.h"
-
-#include "mos/mm/paging/paging.h"
-#include "mos/tasks/process.h"
+#include <mos/mm/paging/paging.h>
+#include <mos/mm/shm.h>
+#include <mos/tasks/process.h>
 
 vmblock_t shm_allocate(size_t npages, vmap_fork_mode_t mode, vm_flags vmflags)
 {

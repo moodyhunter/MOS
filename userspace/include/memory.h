@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include "lib/liballoc.h"
-#include "lib/mos_lib.h"
+#include "liballoc.h"
 #include "libuserspace.h"
-#include "mos/mos_global.h"
+
+#include <mos/lib/lib.h>
+#include <mos/mos_global.h>
 
 MOSAPI __malloc void *malloc(size_t size);
 MOSAPI void free(void *ptr);

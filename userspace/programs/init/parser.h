@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/types.h"
+#include <mos/types.h>
 
 typedef struct init_config init_config_t;
 

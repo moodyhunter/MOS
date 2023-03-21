@@ -21,8 +21,8 @@
 
 #pragma once
 
-#include "mos/mos_global.h"
-#include "mos/types.h"
+#include <mos/mos_global.h>
+#include <mos/types.h>
 
 // How many bytes from the start of the file we search for the header.
 #define MULTIBOOT_SEARCH       8192

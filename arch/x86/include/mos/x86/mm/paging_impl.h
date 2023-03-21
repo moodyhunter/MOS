@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/platform/platform.h"
+#include <mos/platform/platform.h>
 
 typedef volatile struct
 {

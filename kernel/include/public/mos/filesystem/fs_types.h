@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "mos/mm/mm_types.h"
-#include "mos/types.h"
+#include <mos/mm/mm_types.h>
+#include <mos/types.h>
 
 #define PATH_DELIM     '/'
 #define PATH_DELIM_STR "/"

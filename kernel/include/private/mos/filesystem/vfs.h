@@ -3,10 +3,10 @@
 
 #pragma once
 
-#include "lib/sync/mutex.h"
-#include "mos/filesystem/fs_types.h"
-#include "mos/filesystem/vfs_types.h"
-#include "mos/types.h"
+#include <mos/filesystem/fs_types.h>
+#include <mos/filesystem/vfs_types.h>
+#include <mos/lib/sync/mutex.h>
+#include <mos/types.h>
 
 typedef struct _process process_t; // forward declaration
 

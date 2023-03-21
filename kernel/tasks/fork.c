@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/string.h"
-#include "lib/structures/hashmap.h"
-#include "lib/structures/stack.h"
-#include "mos/mm/cow.h"
-#include "mos/mm/memops.h"
-#include "mos/mm/paging/paging.h"
-#include "mos/mos_global.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/tasks/process.h"
-#include "mos/tasks/task_types.h"
-#include "mos/tasks/thread.h"
+#include <mos/lib/structures/hashmap.h>
+#include <mos/lib/structures/stack.h>
+#include <mos/mm/cow.h>
+#include <mos/mm/memops.h>
+#include <mos/mm/paging/paging.h>
+#include <mos/mos_global.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/tasks/process.h>
+#include <mos/tasks/task_types.h>
+#include <mos/tasks/thread.h>
+#include <string.h>
 
 process_t *process_handle_fork(process_t *parent)
 {

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/tasks/task_types.h"
+#include <mos/tasks/task_types.h>
 
 typedef bool (*wait_condition_verifier_t)(wait_condition_t *condition);
 typedef void (*wait_condition_cleanup_t)(wait_condition_t *condition);

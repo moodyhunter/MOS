@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/structures/bitmap.h"
+#include "liballoc.h"
 
-#include "lib/liballoc.h"
-#include "lib/string.h"
+#include <mos/lib/structures/bitmap.h>
+#include <string.h>
 
 bitmap_line_t *bitmap_create(size_t size)
 {

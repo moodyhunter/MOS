@@ -2,13 +2,14 @@
 
 #include "librpc/rpc_client.h"
 
-#include "lib/memory.h"
-#include "lib/string.h"
-#include "lib/sync/mutex.h"
 #include "libipc/ipc.h"
 #include "librpc/internal.h"
 #include "librpc/rpc.h"
-#include "mos/syscall/usermode.h"
+
+#include <memory.h>
+#include <mos/lib/sync/mutex.h>
+#include <mos/syscall/usermode.h>
+#include <string.h>
 
 #define RPC_CLIENT_SMH_SIZE MOS_PAGE_SIZE
 

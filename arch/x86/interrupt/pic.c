@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/types.h"
-#include "mos/x86/devices/port.h"
-#include "mos/x86/x86_platform.h"
+#include <mos/types.h>
+#include <mos/x86/devices/port.h>
+#include <mos/x86/x86_platform.h>
 
 // Reinitialize the PIC controllers.
 // Giving them specified vector offsets rather than 8h and 70h, as configured by default

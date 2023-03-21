@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "mos/platform/platform.h"
-#include "mos/x86/boot/multiboot.h"
+#include <mos/platform/platform.h>
+#include <mos/x86/boot/multiboot.h>
 
 #define X86_BIOS_MEMREGION_PADDR 0xf0000
 #define BIOS_MEMREGION_SIZE      0x10000

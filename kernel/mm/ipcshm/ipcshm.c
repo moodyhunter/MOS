@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/mm/ipcshm/ipcshm.h"
-
-#include "lib/stdlib.h"
-#include "lib/string.h"
-#include "lib/structures/hashmap.h"
-#include "lib/structures/hashmap_common.h"
-#include "lib/sync/spinlock.h"
-#include "mos/filesystem/ipcfs/ipcfs.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/mm/shm.h"
-#include "mos/printk.h"
-#include "mos/tasks/schedule.h"
-#include "mos/tasks/task_types.h"
-#include "mos/tasks/wait.h"
+#include <mos/filesystem/ipcfs/ipcfs.h>
+#include <mos/lib/structures/hashmap.h>
+#include <mos/lib/structures/hashmap_common.h>
+#include <mos/lib/sync/spinlock.h>
+#include <mos/mm/ipcshm/ipcshm.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/mm/shm.h>
+#include <mos/printk.h>
+#include <mos/tasks/schedule.h>
+#include <mos/tasks/task_types.h>
+#include <mos/tasks/wait.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define IPCSHM_BILLBOARD_HASHMAP_SIZE 64
 #define IPCSHM_SERVER_MAGIC           MOS_FOURCC('I', 'S', 'H', 'M')

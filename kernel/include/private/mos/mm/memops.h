@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "mos/mm/paging/paging.h"
-#include "mos/platform/platform.h"
+#include <mos/mm/paging/paging.h>
+#include <mos/platform/platform.h>
 
 /**
  * @brief Allocate zero-on-demand pages at a specific address

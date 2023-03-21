@@ -5,7 +5,7 @@ set(CMAKE_SYSTEM_NAME Linux) # "MOS" ?
 macro(mos_target_setup)
     set(MOS_CX_FLAGS "${MOS_CX_FLAGS} -Wall -Wextra -Wpedantic -pedantic -Werror=div-by-zero")
 
-    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${MOS_CX_FLAGS} -Wstrict-prototypes")
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${MOS_CX_FLAGS} -Wstrict-prototypes -Wold-style-definition")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MOS_CX_FLAGS} -fno-rtti -fno-exceptions")
 
     set(CMAKE_C_FLAGS_DEBUG "-ggdb3")

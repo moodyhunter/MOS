@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "lib/structures/list.h"
-#include "mos/types.h"
+#include <mos/lib/structures/list.h>
+#include <mos/types.h>
 
 /**
  * @defgroup pmm Physical Memory Manager

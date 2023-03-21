@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "mos/kconfig.h"
-#include "mos/mos_global.h"
-#include "mos/types.h"
+#include <mos/kconfig.h>
+#include <mos/mos_global.h>
+#include <mos/types.h>
 
 #define PRINTK_BUFFER_SIZE 1024
 

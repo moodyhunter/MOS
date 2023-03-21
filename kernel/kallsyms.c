@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/kallsyms.h"
+#include <mos/kallsyms.h>
 
 const kallsyms_t *kallsyms_get_symbol_name(uintptr_t addr)
 {

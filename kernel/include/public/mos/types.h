@@ -2,9 +2,8 @@
 
 #pragma once
 
-#include "mos/mos_global.h"
-
 #include <limits.h>
+#include <mos/mos_global.h>
 #include <stdbool.h>
 #include <stddef.h>
 

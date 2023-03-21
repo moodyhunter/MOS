@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/mm/cow.h"
-
-#include "lib/string.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/mm/paging/paging.h"
-#include "mos/mm/physical/pmm.h"
-#include "mos/platform/platform.h"
-#include "mos/printk.h"
-#include "mos/tasks/process.h"
-#include "mos/tasks/task_types.h"
+#include <mos/mm/cow.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/mm/paging/paging.h>
+#include <mos/mm/physical/pmm.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/tasks/process.h>
+#include <mos/tasks/task_types.h>
+#include <string.h>
 
 vmblock_t mm_make_process_map_cow(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages, vm_flags flags)
 {

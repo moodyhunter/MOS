@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/mos_lib.h"
-#include "lib/stdio.h"
-#include "lib/stdlib.h"
-#include "lib/string.h"
-#include "mos/mos_global.h"
+#include <mos/lib/lib.h>
+#include <mos/mos_global.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 typedef enum
 {

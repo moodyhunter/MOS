@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/cmdline.h"
 #include "test_engine.h"
+
+#include <mos/cmdline.h>
 
 MOS_TEST_CASE(simple_cmdline)
 {

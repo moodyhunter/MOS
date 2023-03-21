@@ -3,13 +3,12 @@
 
 #define mos_pmm_impl
 
-#include "mos/mm/physical/pmm.h"
-
-#include "lib/stdlib.h"
-#include "lib/string.h"
-#include "lib/sync/spinlock.h"
-#include "mos/mm/kmalloc.h"
-#include "mos/mm/physical/pmm_internal.h"
+#include <mos/lib/sync/spinlock.h>
+#include <mos/mm/kmalloc.h>
+#include <mos/mm/physical/pmm.h>
+#include <mos/mm/physical/pmm_internal.h>
+#include <stdlib.h>
+#include <string.h>
 
 static pmlist_node_t pmm_early_storage[MOS_PMM_EARLY_MEMREGIONS] = { 0 };
 static spinlock_t pmm_early_storage_lock = SPINLOCK_INIT;

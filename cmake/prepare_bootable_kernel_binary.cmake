@@ -10,7 +10,7 @@ make_directory(${KALLSYMS_DIR})
 set(STUB_KALLSYMS_C [=[
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/kallsyms.h"
+#include <mos/kallsyms.h>
 
 const kallsyms_t mos_kallsyms[] = {
     { .address = 0, .name = "stub" },

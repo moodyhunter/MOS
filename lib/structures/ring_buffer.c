@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/structures/ring_buffer.h"
+#include "liballoc.h"
 
-#include "lib/liballoc.h"
-#include "lib/mos_lib.h"
-#include "lib/stdlib.h"
-#include "lib/string.h"
+#include <mos/lib/lib.h>
+#include <mos/lib/structures/ring_buffer.h>
+#include <stdlib.h>
+#include <string.h>
 
 static u8 ring_buffer_get(u8 *data, ring_buffer_pos_t *pos, size_t index)
 {

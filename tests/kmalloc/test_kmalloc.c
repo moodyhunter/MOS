@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lib/string.h"
-#include "mos/mm/kmalloc.h"
 #include "test_engine.h"
+
+#include <mos/mm/kmalloc.h>
+#include <string.h>
 
 MOS_TEST_CASE(kmalloc_single)
 {

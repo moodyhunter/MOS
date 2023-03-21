@@ -2,10 +2,9 @@
 
 #pragma once
 
-#include "lib/mos_lib.h"
-#include "mos/mos_global.h"
-#include "mos/types.h"
-
+#include <mos/lib/lib.h>
+#include <mos/mos_global.h>
+#include <mos/types.h>
 #include <stdarg.h>
 
 MOSAPI int __printf(1, 2) printf(const char *fmt, ...);

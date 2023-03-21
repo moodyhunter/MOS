@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/devices/serial.h"
-
-#include "mos/printk.h"
-#include "mos/x86/devices/port.h"
-#include "mos/x86/x86_interrupt.h"
+#include <mos/printk.h>
+#include <mos/x86/devices/port.h>
+#include <mos/x86/devices/serial.h>
+#include <mos/x86/x86_interrupt.h>
 
 static inline char serial_irq_read_char(serial_port_t port)
 {
