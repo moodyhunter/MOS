@@ -32,5 +32,9 @@ macro(add_mos_library)
     target_link_libraries(${ADD_MOS_LIBRARY_NAME} PRIVATE ${ADD_MOS_LIBRARY_LINK_LIBRARIES})
     target_link_libraries(${ADD_MOS_LIBRARY_NAME} PRIVATE gcc mos::include) # standard include directory
 
+    # TODO: Remove this once we have a proper userspace libc
+    target_compile_options(${ADD_MOS_LIBRARY_NAME} PUBLIC "-ffreestanding")
+    target_link_options(${ADD_MOS_LIBRARY_NAME} PUBLIC "-nostdlib")
+
     add_library(mos::${ADD_MOS_LIBRARY_NAME} ALIAS ${ADD_MOS_LIBRARY_NAME})
 endmacro()
