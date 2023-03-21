@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e # exit on error
+
 # get the current directory
 DIR=$(pwd)
 
