@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <mos/lib/lib.h>
 #include <mos/lib/structures/list.h>
+#include <mos/moslib_global.h>
 #include <mos/types.h>
 
 typedef struct tree_node tree_node_t;

@@ -2,8 +2,8 @@
 
 #include "liballoc.h"
 
-#include <mos/lib/lib.h>
 #include <mos/lib/sync/spinlock.h>
+#include <mos/moslib_global.h>
 #include <string.h>
 
 #ifdef __MOS_KERNEL__

@@ -2,8 +2,8 @@
 
 #include "liballoc.h"
 
-#include <mos/lib/lib.h>
 #include <mos/lib/structures/hashmap.h>
+#include <mos/moslib_global.h>
 #include <string.h>
 
 #define HASHMAP_MAGIC MOS_FOURCC('H', 'M', 'a', 'p')

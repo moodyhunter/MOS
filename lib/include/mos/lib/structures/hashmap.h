@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/lib/lib.h>
+#include <mos/moslib_global.h>
 #include <mos/types.h>
 
 /**

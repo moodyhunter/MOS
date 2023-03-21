@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <mos/lib/lib.h>
+#include <mos/moslib_global.h>
 #include <mos/types.h>
 
 typedef futex_word_t mutex_t;

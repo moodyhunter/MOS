@@ -2,8 +2,8 @@
 
 #include "liballoc.h"
 
-#include <mos/lib/lib.h>
 #include <mos/lib/structures/ring_buffer.h>
+#include <mos/moslib_global.h>
 #include <stdlib.h>
 #include <string.h>
 

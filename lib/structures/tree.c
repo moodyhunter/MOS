@@ -2,9 +2,9 @@
 
 #include "liballoc.h"
 
-#include <mos/lib/lib.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/structures/tree.h>
+#include <mos/moslib_global.h>
 #include <string.h>
 
 void tree_add_child(tree_node_t *parent, tree_node_t *child)

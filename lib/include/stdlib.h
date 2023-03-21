@@ -3,7 +3,7 @@
 #pragma once
 
 #include <limits.h>
-#include <mos/lib/lib.h>
+#include <mos/moslib_global.h>
 #include <mos/types.h>
 #include <stddef.h>
 

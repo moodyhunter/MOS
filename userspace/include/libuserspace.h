@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <mos/lib/lib.h>
 #include <mos/mos_global.h>
+#include <mos/moslib_global.h>
 #include <mos/types.h>
 #include <stdarg.h>
 

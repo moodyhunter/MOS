@@ -2,7 +2,7 @@
 
 #include "liballoc.h"
 
-#include <mos/lib/lib.h>
+#include <mos/moslib_global.h>
 #include <string.h>
 
 size_t strlen(const char *str)
