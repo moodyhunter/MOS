@@ -8,6 +8,7 @@
 #include "mos/filesystem/vfs.h"
 #include "mos/io/io.h"
 #include "mos/kconfig.h"
+#include "mos/mm/mm_types.h"
 #include "mos/platform/platform.h"
 #include "mos/types.h"
 
@@ -15,8 +16,8 @@ typedef struct _terminal terminal_t;
 
 typedef enum
 {
-    THREAD_MODE_KERNEL = 0 << 0,
-    THREAD_MODE_USER = 1 << 0,
+    THREAD_MODE_KERNEL,
+    THREAD_MODE_USER,
 } thread_mode;
 
 typedef enum
@@ -32,9 +33,9 @@ typedef enum
 
 typedef enum
 {
-    VMAP_FORK_PRIVATE = 1, // there will be distinct copies of the memory region in the child process
-    VMAP_FORK_SHARED = 2,  // the memory region will be shared between the parent and child processes
-    VMAP_FORK_NA = 3,      // not applicable
+    VMAP_FORK_NA = 0,                 // not applicable
+    VMAP_FORK_PRIVATE = MMAP_PRIVATE, // there will be distinct copies of the memory region in the child process
+    VMAP_FORK_SHARED = MMAP_SHARED,   // the memory region will be shared between the parent and child processes
 } vmap_fork_mode_t;
 
 typedef struct
@@ -45,7 +46,7 @@ typedef struct
     bool cow : 1;
 
     // This flag only applies to file and anonymous mappings
-    vmap_fork_mode_t fork_mode : 2;
+    vmap_fork_mode_t fork_mode;
 } vmap_flags_t;
 
 typedef struct

@@ -23,8 +23,8 @@ typedef enum
 
 typedef enum
 {
-    VALLOC_DEFAULT = 0,    ///< Default allocation flags.
-    VALLOC_EXACT = 1 << 0, ///< Allocate pages at the exact address.
+    VALLOC_DEFAULT = 0,        ///< Default allocation flags.
+    VALLOC_EXACT = MMAP_EXACT, ///< Allocate pages at the exact address.
 } valloc_flags;
 
 /// @brief Maximum 'lines' in a page map, see also @ref bitmap_line_t.
