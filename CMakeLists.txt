@@ -56,7 +56,7 @@ add_library(mos::private_include ALIAS mos_kernel_private_include)
 
 # The Kernel
 file(GLOB_RECURSE MOS_KERNEL_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/kernel/*.c)
-add_library(mos_kernel STATIC ${MOS_KERNEL_SOURCES})
+add_library(mos_kernel OBJECT ${MOS_KERNEL_SOURCES})
 target_link_libraries(mos_kernel PUBLIC gcc mos::include)
 target_link_libraries(mos_kernel PRIVATE mos::private_include)
 target_compile_definitions(mos_kernel PRIVATE -D__MOS_KERNEL__)
