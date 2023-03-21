@@ -11,3 +11,5 @@ typedef struct
 } kallsyms_t;
 
 extern const kallsyms_t mos_kallsyms[];
+
+const kallsyms_t *kallsyms_get_symbol_name(uintptr_t addr);

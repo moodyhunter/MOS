@@ -3,6 +3,7 @@
 #include "mos/x86/x86_platform.h"
 
 #include "lib/string.h"
+#include "mos/kallsyms.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/mm/physical/pmm.h"
@@ -90,7 +91,19 @@ void do_backtrace(u32 max)
     __asm__("movl %%ebp,%1" : "=r"(frame) : "r"(frame));
     for (u32 i = 0; frame && i < max; i++)
     {
-        pr_warn("  " PTR_FMT, frame->eip);
+        if (frame->eip >= MOS_KERNEL_START_VADDR)
+        {
+            const kallsyms_t *kallsyms = kallsyms_get_symbol_name(frame->eip);
+            if (kallsyms)
+                pr_warn("  " PTR_FMT ": %s (+0x%lx)", frame->eip, kallsyms->name, frame->eip - kallsyms->address);
+            else
+                pr_warn("  " PTR_FMT ": <unknown>", frame->eip);
+        }
+        else
+        {
+            pr_warn("  " PTR_FMT ": <userspace>", frame->eip);
+        }
+
         frame = frame->ebp;
     }
 }

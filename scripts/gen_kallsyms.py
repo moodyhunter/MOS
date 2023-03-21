@@ -46,10 +46,20 @@ def main():
     gen("")
     gen("const kallsyms_t mos_kallsyms[] = {")
 
+    should_skip = True
+
     for l in lines:
         l = l.strip()
 
         (addr, type, name) = l.split(" ", 2)
+
+        # Skip everything before __MOS_KERNEL_CODE_START, because we don't need
+        # to export symbols from the bootloader.
+        if name == "__MOS_KERNEL_CODE_START":
+            should_skip = False
+
+        if should_skip:
+            continue
 
         if type == "t" or type == 'T':
             gen("    { .address = 0x%s, .name = %s }," % (addr, "\"" + name + "\""))

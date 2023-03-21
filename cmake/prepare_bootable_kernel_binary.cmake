@@ -19,7 +19,6 @@ const kallsyms_t mos_kallsyms[] = {
 ]=])
 
 file(WRITE ${CMAKE_BINARY_DIR}/stub_kallsyms.c ${STUB_KALLSYMS_C})
-set_source_files_properties(${CMAKE_BINARY_DIR}/stub_kallsyms.c PROPERTIES GENERATED TRUE)
 
 function(do_kallsyms TARGET_NAME LINKER_SCRIPT KALLSYMS_C LAUNCHER_ASM)
     add_executable(${TARGET_NAME} ${KALLSYMS_C} ${LAUNCHER_ASM})
