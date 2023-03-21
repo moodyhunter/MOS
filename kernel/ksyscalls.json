@@ -236,6 +236,12 @@
             "name": "wait_for_process",
             "return": "bool",
             "arguments": [ { "type": "pid_t", "arg": "pid" } ]
+        },
+        {
+            "number": 34,
+            "name": "munmap",
+            "return": "bool",
+            "arguments": [ { "type": "void *", "arg": "addr" }, { "type": "size_t", "arg": "size" } ]
         }
     ]
 }

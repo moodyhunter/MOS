@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <mos/elf/elf.h>
-#include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/ipc/ipc.h>
-#include <mos/lib/structures/bitmap.h>
 #include <mos/locks/futex.h>
 #include <mos/mm/kmalloc.h>
-#include <mos/mm/mm_types.h>
+#include <mos/mm/mmap.h>
 #include <mos/mm/paging/paging.h>
-#include <mos/mm/shm.h>
-#include <mos/mos_global.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
 #include <mos/syscall/decl.h>
@@ -18,8 +14,6 @@
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
-#include <mos/tasks/wait.h>
-#include <mos/types.h>
 #include <string.h>
 
 void define_syscall(poweroff)(bool reboot, u32 magic)
@@ -325,80 +319,32 @@ bool define_syscall(vfs_fstat)(fd_t fd, file_stat_t *statbuf)
 
 void *define_syscall(mmap_anonymous)(uintptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t flags)
 {
-    const bool exact = flags & MMAP_EXACT;
-    const bool shared = flags & MMAP_SHARED;   // when forked, shared between parent and child
-    const bool private = flags & MMAP_PRIVATE; // when forked, make it Copy-On-Write
-
-    pr_info("mmap_anonymous(" PTR_FMT ", %zd, %c%c%c, %c, %c%c)", //
-            hint_addr,                                            //
-            size,                                                 //
-            perm & MEM_PERM_READ ? 'r' : '-',                     //
-            perm & MEM_PERM_WRITE ? 'w' : '-',                    //
-            perm & MEM_PERM_EXEC ? 'x' : '-',                     //
-            exact ? 'E' : '-',                                    //
-            shared ? 's' : '-',                                   //
-            private ? 'p' : '-'                                   //
-    );
-
-    if ((shared && private) || (!shared && !private))
-    {
-        pr_warn("mmap_anonymous: shared and private are mutually exclusive, and one of them must be specified");
-        return NULL;
-    }
-
     const vm_flags vmflags = VM_USER | (vm_flags) perm; // vm_flags shares the same values as mem_perm_t
-    const vmap_flags_t block_flags = { .fork_mode = private ? VMAP_FORK_PRIVATE : VMAP_FORK_SHARED };
+    const size_t n_pages = ALIGN_DOWN_TO_PAGE(size) / MOS_PAGE_SIZE;
 
-    if (hint_addr == 0 && exact)
-    {
-        // WTF is this? Trying to map at address 0?
-        pr_warn("mmap_anonymous: trying to map at address 0");
-        return NULL;
-    }
-
-    vmblock_t block;
-
-    if (hint_addr != 0 && !exact)
-    {
-        // TODO: deduce mapping based on an address
-        pr_warn("mmap_anonymous: deduced mapping based on an address is not supported yet");
-        return NULL;
-    }
-    else if (hint_addr == 0 && !exact)
-    {
-        // the kernel will choose the address
-        pr_info2("mmap_anonymous: the kernel will choose the address");
-        block = mm_alloc_pages(current_process->pagetable, ALIGN_DOWN_TO_PAGE(size) / MOS_PAGE_SIZE, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT, vmflags);
-    }
-    else if (hint_addr != 0 && exact)
-    {
-        // the kernel will map at the exact address (if it's available)
-        pr_info2("mmap_anonymous: the kernel will map at the exact address " PTR_FMT, hint_addr);
-        block = mm_alloc_pages(current_process->pagetable, ALIGN_DOWN_TO_PAGE(size) / MOS_PAGE_SIZE, hint_addr, VALLOC_EXACT, vmflags);
-    }
-    else
-    {
-        MOS_UNREACHABLE();
-    }
-
-    if (unlikely(block.npages == 0))
-    {
-        pr_warn("mmap_anonymous: failed to allocate memory");
-        return NULL;
-    }
-
-    pr_info2("mmap_anonymous: allocated %zd pages at " PTR_FMT, block.npages, block.vaddr);
-    process_attach_mmap(current_process, block, VMTYPE_MMAP, block_flags);
-    return (void *) block.vaddr;
+    uintptr_t result = mmap_anonymous(hint_addr, flags, vmflags, n_pages);
+    return (void *) result;
 }
 
-void *define_syscall(mmap_file)(uintptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t flags, fd_t fd, off_t offset)
+void *define_syscall(mmap_file)(uintptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t mmap_flags, fd_t fd, off_t offset)
 {
-    pr_info("mmap_file(" PTR_FMT ", %zd, %d, %d, %ld, %ld)", hint_addr, size, perm, flags, fd, offset);
-    return NULL;
+    const vm_flags vmflags = VM_USER | (vm_flags) perm; // vm_flags shares the same values as mem_perm_t
+    const size_t n_pages = ALIGN_DOWN_TO_PAGE(size) / MOS_PAGE_SIZE;
+
+    io_t *io = process_get_fd(current_process, fd);
+    if (io == NULL)
+        return NULL;
+
+    uintptr_t result = mmap_file(hint_addr, mmap_flags, vmflags, n_pages, io, offset);
+    return (void *) result;
 }
 
 bool define_syscall(wait_for_process)(pid_t pid)
 {
     return process_wait_for_pid(pid);
+}
+
+bool define_syscall(munmap)(void *addr, size_t size)
+{
+    return munmap((uintptr_t) addr, size);
 }
