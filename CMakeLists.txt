@@ -65,7 +65,7 @@ add_library(mos::kernel ALIAS mos_kernel)
 # Configure architecture-specific stuff
 include(add_kernel_source)
 include(add_bootable_target)
-
+include(prepare_bootable_kernel_binary)
 include(${MOS_ARCH_CONFIG})
 
 add_subdirectory(userspace)

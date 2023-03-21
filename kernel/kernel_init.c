@@ -8,6 +8,7 @@
 #include "mos/filesystem/vfs.h"
 #include "mos/io/terminal.h"
 #include "mos/ipc/ipc.h"
+#include "mos/kallsyms.h"
 #include "mos/kconfig.h"
 #include "mos/mm/kmalloc.h"
 #include "mos/mm/shm.h"

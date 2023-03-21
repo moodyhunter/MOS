@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-include(prepare_bootable_kernel_binary)
 add_bootable_target(boot/multiboot)
 add_bootable_target(boot/multiboot_iso)
 
