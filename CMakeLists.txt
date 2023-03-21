@@ -37,24 +37,26 @@ mos_kconfig(MISC MOS_KERNEL_REVISION_STRING "\"${REVISION}\"" "Kernel revision s
 include(generate_syscall_headers)
 generate_syscall_headers(${CMAKE_SOURCE_DIR}/kernel/ksyscalls.json)
 
-file(GLOB_RECURSE MOS_STANDARD_LIBRARY_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/lib/*.c)
-file(GLOB_RECURSE MOS_KERNEL_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/kernel/*.c)
-
+# Public includes interface target
 add_library(mos_kernel_include INTERFACE)
 target_include_directories(mos_kernel_include SYSTEM INTERFACE
-    ${CMAKE_BINARY_DIR}/include                     # generated headers
-    ${CMAKE_SOURCE_DIR}/kernel/include/public       # public types
-    ${CMAKE_SOURCE_DIR}/lib/include                 # standard library
+    ${CMAKE_BINARY_DIR}/include                         # generated headers
+    ${CMAKE_SOURCE_DIR}/kernel/include/public           # public types
+    ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/include/public # public arch (e.g. syscall)
 )
 add_library(mos::include ALIAS mos_kernel_include)
 
+# Private includes interface target
 add_library(mos_kernel_private_include INTERFACE)
 target_include_directories(mos_kernel_private_include SYSTEM INTERFACE
     ${CMAKE_SOURCE_DIR}/kernel/include/private
+    ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/include/private
 )
 add_library(mos::private_include ALIAS mos_kernel_private_include)
 
-add_library(mos_kernel STATIC ${MOS_STANDARD_LIBRARY_SOURCES} ${MOS_KERNEL_SOURCES})
+# The Kernel
+file(GLOB_RECURSE MOS_KERNEL_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/kernel/*.c)
+add_library(mos_kernel STATIC ${MOS_KERNEL_SOURCES})
 target_link_libraries(mos_kernel PUBLIC gcc mos::include)
 target_link_libraries(mos_kernel PRIVATE mos::private_include)
 target_compile_definitions(mos_kernel PRIVATE -D__MOS_KERNEL__)
@@ -62,8 +64,12 @@ target_compile_options(mos_kernel PUBLIC "-ffreestanding")
 add_dependencies(mos_kernel mos_syscall_decl)
 add_library(mos::kernel ALIAS mos_kernel)
 
-# Configure architecture-specific stuff
+# Libraries
 include(add_kernel_source)
+include(add_mos_library)
+add_subdirectory(libs)
+
+# Configure architecture-specific stuff
 include(add_bootable_target)
 include(prepare_bootable_kernel_binary)
 include(${MOS_ARCH_CONFIG})

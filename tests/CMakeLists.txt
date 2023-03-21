@@ -11,16 +11,10 @@ target_include_directories(mos_kernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 macro(mos_add_test TEST_NAME TEST_DESCRIPTION)
     set(TEST_TARGET _test_${TEST_NAME})
-
-    add_library(${TEST_TARGET} OBJECT ${CMAKE_CURRENT_LIST_DIR}/${TEST_NAME}/test_${TEST_NAME}.c)
-    target_compile_definitions(${TEST_TARGET} PRIVATE -D__MOS_KERNEL__)
-    target_include_directories(${TEST_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-    target_link_libraries(${TEST_TARGET} PRIVATE mos::include mos::private_include)
-
-    mos_kconfig(TESTS   TEST_${TEST_NAME} ${BUILD_TESTING} "Enable ${TEST_DESCRIPTION} test")
+    mos_kconfig(TESTS TEST_${TEST_NAME} ${BUILD_TESTING} "Enable ${TEST_DESCRIPTION} test")
 
     if (TEST_${TEST_NAME})
-        target_link_libraries(mos_kernel PRIVATE $<TARGET_OBJECTS:${TEST_TARGET}>)
+        add_kernel_source(SOURCES ${CMAKE_CURRENT_LIST_DIR}/${TEST_NAME}/test_${TEST_NAME}.c)
     endif()
 endmacro()
 

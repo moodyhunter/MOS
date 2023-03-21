@@ -87,6 +87,10 @@ def main():
         gen("// platform syscall header")
         gen('#include <mos/platform_syscall.h>')
         gen("")
+        gen("#ifdef __MOS_KERNEL__")
+        gen("#error \"This file should not be included in the kernel!\"")
+        gen("#endif")
+        gen("")
         forall_syscalls_do_gen(j, gen_single_usermode_wrapper)
 
     elif gen_type == GEN_TYPE_DISPATCHER:

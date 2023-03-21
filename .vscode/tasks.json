@@ -79,7 +79,7 @@
                 "-smp",
                 "1",
                 "-append",
-                "init=/initrd/tests/test-launcher",
+                "init=/initrd/drivers/x86_console_driver",
             ],
             "problemMatcher": [ ],
             "group": "none",

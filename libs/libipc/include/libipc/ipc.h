@@ -2,10 +2,6 @@
 
 #pragma once
 
-#include "libuserspace.h"
-
-#include <memory.h>
-#include <mos/syscall/usermode.h>
 #include <mos/types.h>
 
 /**

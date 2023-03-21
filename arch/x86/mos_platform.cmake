@@ -5,7 +5,8 @@ add_bootable_target(boot/multiboot_iso)
 
 add_kernel_source(
     INCLUDE_DIRECTORIES
-        ${CMAKE_CURRENT_LIST_DIR}/include
+        ${CMAKE_CURRENT_LIST_DIR}/include/private
+        ${CMAKE_CURRENT_LIST_DIR}/include/public
     RELATIVE_SOURCES
         cpu/ap_init.asm
         interrupt/interrupt.asm

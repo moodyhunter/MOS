@@ -16,7 +16,9 @@ static void do_print_to_console(const char *buf, size_t size)
 
 void open_console(void)
 {
-    syscall_spawn("/drivers/x86_console_driver", 0, NULL); // TODO: remove this once init spawns the console driver
+    pid_t pid = syscall_spawn("/initrd/drivers/x86_console_driver", 0, NULL); // TODO: remove this once init spawns the console driver
+    if (pid < 0)
+        fatal_abort("Failed to spawn console driver.\n");
 
     console_server = rpc_client_create("drivers.x86_text_console");
     rpc_call(console_server, DM_CONSOLE_CLEAR, NULL, "");
