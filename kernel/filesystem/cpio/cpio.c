@@ -235,7 +235,7 @@ static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *
     cpio_metadata_t header;
     const bool found = cpio_read_metadata(dev, ".", &header);
     if (!found)
-        return false; // not found
+        return NULL; // not found
 
     mos_debug(cpio, "cpio header: %.6s", header.header.magic);
 

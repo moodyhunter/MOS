@@ -178,7 +178,7 @@ ipcshm_t *ipcshm_request(const char *name, size_t buffer_size, void **read_buf, 
             pr_warn("connection was closed before it was accepted");
             *read_buf = NULL;
             *write_buf = NULL;
-            return false;
+            return NULL;
         }
         mos_debug(ipc, "resuming after connection was accepted");
     }
@@ -228,7 +228,7 @@ ipcshm_t *ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_b
         if (!shm)
         {
             pr_info2("ipcshm_accept: server was closed");
-            return false;
+            return NULL;
         }
         spinlock_acquire(&shm->lock);
     }
