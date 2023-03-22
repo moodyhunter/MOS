@@ -7,7 +7,7 @@ add_mos_library(
         ${CMAKE_CURRENT_LIST_DIR}/include-common
     RELATIVE_SOURCES
         rpc_client.c
-    LINK_LIBRARIES
+    USERSPACE_LINK_LIBRARIES
         mos::libuserspace mos::libipc
 )
 
@@ -19,7 +19,7 @@ add_mos_library(
         ${CMAKE_CURRENT_LIST_DIR}/include-common
     RELATIVE_SOURCES
         rpc_server.c
-    LINK_LIBRARIES
+    USERSPACE_LINK_LIBRARIES
         mos::libuserspace mos::libipc
 )
 

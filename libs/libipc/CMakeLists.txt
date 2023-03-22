@@ -6,6 +6,6 @@ add_mos_library(
         ${CMAKE_CURRENT_LIST_DIR}/include
     RELATIVE_SOURCES
         libipc.c
-    LINK_LIBRARIES
+    USERSPACE_LINK_LIBRARIES
         mos::libuserspace
 )

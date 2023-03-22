@@ -3,7 +3,7 @@
 macro(add_mos_library)
     set(options USERSPACE_ONLY)
     set(oneValueArgs NAME)
-    set(multiValueArgs SOURCES RELATIVE_SOURCES PUBLIC_INCLUDE_DIRECTORIES PRIVATE_INCLUDE_DIRECTORIES LINK_LIBRARIES)
+    set(multiValueArgs SOURCES RELATIVE_SOURCES PUBLIC_INCLUDE_DIRECTORIES PRIVATE_INCLUDE_DIRECTORIES USERSPACE_LINK_LIBRARIES)
     cmake_parse_arguments(ADD_MOS_LIBRARY "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     if (NOT ADD_MOS_LIBRARY_NAME)
@@ -29,7 +29,7 @@ macro(add_mos_library)
     add_library(${ADD_MOS_LIBRARY_NAME} ${ADD_MOS_LIBRARY_SOURCES} ${ADD_MOS_LIBRARY_RELATIVE_SOURCES})
     target_include_directories(${ADD_MOS_LIBRARY_NAME} PUBLIC ${ADD_MOS_LIBRARY_PUBLIC_INCLUDE_DIRECTORIES})
     target_include_directories(${ADD_MOS_LIBRARY_NAME} PRIVATE ${ADD_MOS_LIBRARY_PRIVATE_INCLUDE_DIRECTORIES})
-    target_link_libraries(${ADD_MOS_LIBRARY_NAME} PRIVATE ${ADD_MOS_LIBRARY_LINK_LIBRARIES})
+    target_link_libraries(${ADD_MOS_LIBRARY_NAME} PRIVATE ${ADD_MOS_LIBRARY_USERSPACE_LINK_LIBRARIES})
     target_link_libraries(${ADD_MOS_LIBRARY_NAME} PRIVATE gcc mos::include) # standard include directory
 
     # TODO: Remove this once we have a proper userspace libc
