@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../console-helpers.h"
+#include "console-client.h"
 #include "libuserspace.h"
 
 #include <mos/syscall/usermode.h>

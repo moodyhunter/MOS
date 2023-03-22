@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../console-helpers.h"
-#include "librpc/rpc_client.h"
+#include "console-client.h"
 #include "libuserspace.h"
 
 #include <mos/device/dm_types.h>

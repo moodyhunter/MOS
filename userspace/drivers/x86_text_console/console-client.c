@@ -26,7 +26,7 @@ void open_console(void)
 
 void print_to_console(const char *fmt, ...)
 {
-    char buf[4 KB];
+    char buf[1 KB];
 
     va_list args;
     va_start(args, fmt);
