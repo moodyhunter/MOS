@@ -10,6 +10,7 @@
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/mm_types.h>
 #include <mos/platform/platform.h>
+#include <mos/tasks/wait.h>
 #include <mos/types.h>
 
 typedef struct _terminal terminal_t;
@@ -61,32 +62,8 @@ typedef struct
     spinlock_t lock;
 } vmap_t;
 
-typedef struct _wait_condition wait_condition_t;
 typedef struct _thread thread_t;
 typedef struct _process process_t;
-
-typedef struct _wait_condition
-{
-    void *arg;
-    bool (*verify)(wait_condition_t *condition); // return true if condition is met
-    void (*cleanup)(wait_condition_t *condition);
-} wait_condition_t;
-
-/**
- * @brief The entry in the waiters list of a process, or a thread
- */
-typedef struct
-{
-    as_linked_list;
-    tid_t waiter;
-} waitable_list_entry_t;
-
-typedef struct
-{
-    bool closed;     // if true, then the process is closed and should not be waited on
-    spinlock_t lock; // protects the waiters list
-    list_head list;  // list of threads waiting
-} waitlist_t;
 
 typedef struct _process
 {

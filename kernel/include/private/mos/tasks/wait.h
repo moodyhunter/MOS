@@ -2,7 +2,34 @@
 
 #pragma once
 
-#include <mos/tasks/task_types.h>
+#include <mos/lib/structures/list.h>
+#include <mos/lib/sync/spinlock.h>
+#include <mos/mos_global.h>
+
+typedef struct _wait_condition wait_condition_t;
+
+typedef struct _wait_condition
+{
+    void *arg;
+    bool (*verify)(wait_condition_t *condition); // return true if condition is met
+    void (*cleanup)(wait_condition_t *condition);
+} wait_condition_t;
+
+/**
+ * @brief The entry in the waiters list of a process, or a thread
+ */
+typedef struct
+{
+    as_linked_list;
+    tid_t waiter;
+} waitable_list_entry_t;
+
+typedef struct
+{
+    bool closed;     // if true, then the process is closed and should not be waited on
+    spinlock_t lock; // protects the waiters list
+    list_head list;  // list of threads waiting
+} waitlist_t;
 
 typedef bool (*wait_condition_verifier_t)(wait_condition_t *condition);
 typedef void (*wait_condition_cleanup_t)(wait_condition_t *condition);
