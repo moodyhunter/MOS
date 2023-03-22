@@ -24,7 +24,7 @@ io_t *io_ref(io_t *io)
 
     if (unlikely(io->closed))
     {
-        mos_warn("io_write: %p is already closed", (void *) io);
+        mos_warn("%p is already closed", (void *) io);
         return 0;
     }
 
