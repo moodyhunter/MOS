@@ -80,6 +80,12 @@ add_subdirectory(userspace)
 add_subdirectory(tests)
 add_subdirectory(tools)
 
+# include custom configuration
+if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
+    message(STATUS "Including custom configuration from ${CMAKE_SOURCE_DIR}/config.cmake")
+    include(${CMAKE_SOURCE_DIR}/config.cmake)
+endif()
+
 generate_kconfig()
 
 # Configure installation targets
@@ -109,7 +115,6 @@ install(
     COMPONENT mos-api-headers
     EXCLUDE_FROM_ALL
 )
-
 
 add_custom_target(mos_print_summary COMMAND ${CMAKE_COMMAND} -E cat ${CMAKE_BINARY_DIR}/summary.txt USES_TERMINAL)
 add_summary_item(UTILITY "mos_print_summary" "" "Print Configuration Summary")
