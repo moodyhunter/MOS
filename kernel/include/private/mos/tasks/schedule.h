@@ -4,6 +4,7 @@
 
 #include <mos/tasks/task_types.h>
 
+void tasks_init();
 void unblock_scheduler(void);
 noreturn void scheduler(void);
 

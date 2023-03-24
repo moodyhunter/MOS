@@ -20,37 +20,12 @@
 #include <mos/tasks/wait.h>
 #include <string.h>
 
-#define PROCESS_HASHTABLE_SIZE 512
-
-hashmap_t *process_table = { 0 }; // pid_t -> process_t
-
-static hash_t process_hash(uintn key)
-{
-    return (hash_t){ .hash = key };
-}
+hashmap_t *process_table = NULL; // pid_t -> process_t
 
 static pid_t new_process_id(void)
 {
     static pid_t next = 1;
     return (pid_t){ next++ };
-}
-
-static void dump_process(void)
-{
-    if (current_thread)
-    {
-        process_t *proc = current_process;
-        pr_info("process %ld (%s) ", proc->pid, proc->name);
-        if (proc->parent)
-            pr_info2("parent %ld (%s) ", proc->parent->pid, proc->parent->name);
-        else
-            pr_info2("parent <none> ");
-        process_dump_mmaps(proc);
-    }
-    else
-    {
-        pr_warn("no current thread");
-    }
 }
 
 process_t *process_allocate(process_t *parent, const char *name)
@@ -97,20 +72,6 @@ process_t *process_allocate(process_t *parent, const char *name)
     }
 
     return proc;
-}
-
-void process_init(void)
-{
-    process_table = kzalloc(sizeof(hashmap_t));
-    hashmap_init(process_table, PROCESS_HASHTABLE_SIZE, process_hash, hashmap_simple_key_compare);
-    declare_panic_hook(dump_process);
-    install_panic_hook(&dump_process_holder);
-}
-
-void process_deinit(void)
-{
-    hashmap_deinit(process_table);
-    kfree(process_table);
 }
 
 process_t *process_new(process_t *parent, const char *name, terminal_t *term, thread_entry_t entry, argv_t argv)

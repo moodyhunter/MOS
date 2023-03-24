@@ -14,9 +14,7 @@
 #include <mos/printk.h>
 #include <mos/setup.h>
 #include <mos/tasks/kthread.h>
-#include <mos/tasks/process.h>
 #include <mos/tasks/schedule.h>
-#include <mos/tasks/thread.h>
 #include <string.h>
 
 extern filesystem_t fs_tmpfs;
@@ -119,8 +117,7 @@ void mos_start_kernel(const char *cmdline)
         mos_panic("failed to mount initrd");
 
     ipc_init();
-    process_init();
-    thread_init();
+    tasks_init();
 
     console_t *init_con = console_get("serial_com1");
     if (init_con->caps & CONSOLE_CAP_CLEAR)

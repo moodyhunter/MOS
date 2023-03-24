@@ -10,9 +10,6 @@ typedef struct _hashmap hashmap_t;
 typedef struct _terminal terminal_t;
 extern hashmap_t *process_table;
 
-void process_init(void);
-void process_deinit(void);
-
 should_inline bool process_is_valid(process_t *process)
 {
     return process != NULL && process->magic == PROCESS_MAGIC_PROC;

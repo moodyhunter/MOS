@@ -15,14 +15,7 @@
 #include <mos/tasks/wait.h>
 #include <string.h>
 
-#define THREAD_HASHTABLE_SIZE 512
-
-hashmap_t *thread_table = { 0 }; // tid_t -> thread_t
-
-static hash_t hashmap_thread_hash(uintn key)
-{
-    return (hash_t){ .hash = key };
-}
+hashmap_t *thread_table = NULL; // tid_t -> thread_t
 
 static tid_t new_thread_id(void)
 {
@@ -42,18 +35,6 @@ thread_t *thread_allocate(process_t *owner, thread_mode tflags)
     waitlist_init(&t->waiters);
 
     return t;
-}
-
-void thread_init(void)
-{
-    thread_table = kzalloc(sizeof(hashmap_t));
-    hashmap_init(thread_table, THREAD_HASHTABLE_SIZE, hashmap_thread_hash, hashmap_simple_key_compare);
-}
-
-void thread_deinit(void)
-{
-    hashmap_deinit(thread_table);
-    kfree(thread_table);
 }
 
 thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thread_entry_t entry, void *arg)
