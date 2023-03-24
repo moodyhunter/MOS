@@ -22,6 +22,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
+include(GNUInstallDirs)
+
 execute_process(
     COMMAND git describe --long --tags --all --dirty
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -79,6 +81,30 @@ add_subdirectory(tests)
 add_subdirectory(tools)
 
 generate_kconfig()
+
+# Configure installation targets
+install(
+    DIRECTORY
+        ${CMAKE_SOURCE_DIR}/kernel/include/public/mos
+        ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/include/public/mos
+    TYPE INCLUDE
+    COMPONENT mos-api-headers
+    EXCLUDE_FROM_ALL
+)
+
+install(
+    # We cannot just install the ${CMAKE_BINARY_DIR}/include because it contains
+    # the generated syscall headers, which MAY NOT be generated at the time of
+    # installation.
+    # So we explicitly list the files we want to install here.
+    FILES
+        ${CMAKE_BINARY_DIR}/include/mos/kconfig.h
+        ${MOS_SYSCALL_FILES}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mos
+    COMPONENT mos-api-headers
+    EXCLUDE_FROM_ALL
+)
+
 
 add_custom_target(mos_print_summary COMMAND ${CMAKE_COMMAND} -E cat ${CMAKE_BINARY_DIR}/summary.txt USES_TERMINAL)
 add_summary_item(UTILITY "mos_print_summary" "" "Print Configuration Summary")
