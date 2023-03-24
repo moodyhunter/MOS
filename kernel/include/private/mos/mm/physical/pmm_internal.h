@@ -128,7 +128,7 @@ void pmm_internal_add_free_frames(uintptr_t start, size_t n_pages, pm_range_type
  * @note The node must not be in any list, it also may be freed due to the merge
  * that occurs when adding it to the free list.
  */
-void pmm_internal_add_free_frames_node(pmlist_node_t *node);
+void pmm_internal_add_free_frames_node_unlocked(pmlist_node_t *node);
 
 /**
  * @brief Callback function type for \ref pmm_internal_acquire_free_frames.

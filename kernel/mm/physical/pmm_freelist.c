@@ -9,7 +9,7 @@
 #include <string.h>
 
 static list_head pmlist_free_rw = LIST_HEAD_INIT(pmlist_free_rw);
-static spinlock_t pmlist_free_lock = SPINLOCK_INIT;
+spinlock_t pmlist_free_lock = SPINLOCK_INIT;
 const list_head *const pmlist_free = &pmlist_free_rw;
 
 /**
@@ -135,9 +135,8 @@ void pmm_internal_add_free_frames(uintptr_t start, size_t n_pages, pm_range_type
     }
 }
 
-void pmm_internal_add_free_frames_node(pmlist_node_t *node)
+void pmm_internal_add_free_frames_node_unlocked(pmlist_node_t *node)
 {
-    spinlock_acquire(&pmlist_free_lock);
     if (!pmm_internal_do_add_free_frames_try_merge(node->range.paddr, node->range.npages, node->type))
     {
         // merging failed, so we have to insert the new region at the end of the list
@@ -150,7 +149,6 @@ void pmm_internal_add_free_frames_node(pmlist_node_t *node)
         MOS_ASSERT(node->refcount == 0);
         pmm_internal_list_node_delete(node);
     }
-    spinlock_release(&pmlist_free_lock);
 }
 
 bool pmm_internal_acquire_free_frames(size_t n_pages, pmm_internal_op_callback_t callback, pmm_allocate_callback_t user_callback, void *user_arg)

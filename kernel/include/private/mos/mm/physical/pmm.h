@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "mos/lib/sync/spinlock.h"
+
 #include <mos/lib/structures/list.h>
 #include <mos/types.h>
 
@@ -28,6 +30,8 @@
  * @brief A read-only list of unallocated physical memory regions, sorted by the physical address.
  */
 extern const list_head *const pmlist_free;
+
+extern spinlock_t pmlist_free_lock;
 
 /**
  * @brief A read-only list of allocated physical memory regions, sorted by the physical address.

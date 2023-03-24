@@ -137,14 +137,14 @@ bool pmm_allocate_frames(size_t n_pages, pmm_allocate_callback_t callback, void 
     return pmm_internal_acquire_free_frames(n_pages, pmm_internal_callback_handle_allocated_frames, callback, arg);
 }
 
-static void pmm_internal_callback_free_frames(pmlist_node_t *n, void *arg)
+static void pmm_internal_callback_free_frames_unlocked(pmlist_node_t *n, void *arg)
 {
     MOS_ASSERT(n->refcount == 0 && n->type == PM_RANGE_ALLOCATED);
     list_remove(n);
     MOS_UNUSED(arg);
     n->type = PM_RANGE_FREE;
     mos_debug(pmm_impl, "refcount drops to zero, freeing " PTR_RANGE ", %zu pages", n->range.paddr, n->range.paddr + n->range.npages * MOS_PAGE_SIZE, n->range.npages);
-    pmm_internal_add_free_frames_node(n);
+    pmm_internal_add_free_frames_node_unlocked(n);
 }
 
 void pmm_ref_frames(uintptr_t start, size_t n_pages)
@@ -156,7 +156,9 @@ void pmm_ref_frames(uintptr_t start, size_t n_pages)
 void pmm_unref_frames(uintptr_t start, size_t n_pages)
 {
     mos_debug(pmm, "unref range: " PTR_RANGE ", %zu pages", start, start + n_pages * MOS_PAGE_SIZE, n_pages);
-    pmm_internal_iterate_allocated_list_range(start, n_pages, OP_UNREF, pmm_internal_callback_free_frames, NULL);
+    spinlock_acquire(&pmlist_free_lock);
+    pmm_internal_iterate_allocated_list_range(start, n_pages, OP_UNREF, pmm_internal_callback_free_frames_unlocked, NULL);
+    spinlock_release(&pmlist_free_lock);
 }
 
 uintptr_t pmm_reserve_frames(uintptr_t paddr, size_t npages)
