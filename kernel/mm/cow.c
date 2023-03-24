@@ -34,7 +34,15 @@ static void do_resolve_cow(uintptr_t fault_addr, vm_flags original_flags)
     memcpy((void *) one_page.vaddr, (void *) fault_addr, MOS_PAGE_SIZE);
 
     // 3. replace the faulting phypage with the new one
-    mm_copy_maps(current_handle, one_page.vaddr, current_handle, fault_addr, 1, MM_COPY_NEED_UNMAP);
+    // mm_copy_maps(current_handle, one_page.vaddr, current_handle, fault_addr, 1, MM_COPY_REMAP);
+    const uintptr_t new_paddr = platform_mm_get_phys_addr(platform_info->kernel_pgd, one_page.vaddr);
+    const uintptr_t current_paddr = platform_mm_get_phys_addr(current_handle, fault_addr);
+
+    pmm_ref_frames(new_paddr, 1);
+    spinlock_acquire(current_handle.pgd_lock);
+    platform_mm_map_pages(current_handle, fault_addr, new_paddr, 1, one_page.flags);
+    spinlock_release(current_handle.pgd_lock);
+    pmm_unref_frames(current_paddr, 1);
 
     // 4. unmap the temporary page (at the kernel heap)
     //    note at this point, the underlying physical page won't be freed, because it's still mapped to the faulting address

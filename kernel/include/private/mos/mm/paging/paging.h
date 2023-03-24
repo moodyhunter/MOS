@@ -16,9 +16,8 @@
 
 typedef enum
 {
-    MM_COPY_DEFAULT = 0,    ///< Default copy flags.
-    MM_COPY_NEED_UNMAP = 1, ///< Unmap the destination pages before copying.
-    MM_COPY_ALLOCATED = 2,  ///< The destination pages are already allocated (e.g. by @ref mm_get_free_pages)
+    MM_COPY_DEFAULT = 0,   ///< Default copy flags.
+    MM_COPY_ALLOCATED = 2, ///< The destination pages are already allocated (e.g. by @ref mm_get_free_pages)
 } mm_copy_behavior_t;
 
 typedef enum

@@ -74,8 +74,6 @@ void pg_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_flags 
         }
     }
 
-    MOS_ASSERT_X(this_table->present == false, "page " PTR_FMT " already mapped", vaddr);
-
     this_table->present = true;
     this_table->phys_addr = (uintptr_t) paddr >> 12;
 
@@ -104,7 +102,7 @@ void pg_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr)
     x86_pgdir_entry *page_dir = &pg->pgdir[pd_index];
     if (unlikely(!page_dir->present))
     {
-        mos_panic("vmem " PTR_FMT " not mapped", vaddr);
+        mos_warn("vmem " PTR_FMT " not mapped", vaddr);
         return;
     }
 
@@ -148,10 +146,10 @@ vm_flags pg_get_flags(x86_pg_infra_t *pg, uintptr_t vaddr)
         page_dir = x86_kpg_infra->pgdir + page_dir_index, page_table = x86_kpg_infra->pgtable + page_dir_index * 1024 + page_table_index;
 
     if (unlikely(!page_dir->present))
-        mos_panic("page directory for address " PTR_FMT " not mapped", vaddr);
+        mos_warn("page directory for address " PTR_FMT " not mapped", vaddr);
 
     if (unlikely(!page_table->present))
-        mos_panic("vmem " PTR_FMT " not mapped", vaddr);
+        mos_warn("vmem " PTR_FMT " not mapped", vaddr);
 
     vm_flags flags = VM_READ;
     flags |= (page_dir->writable && page_table->writable) ? VM_WRITE : 0;
