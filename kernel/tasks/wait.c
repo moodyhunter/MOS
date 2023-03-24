@@ -39,12 +39,15 @@ void waitlist_init(waitlist_t *list)
 
 bool waitlist_wait(waitlist_t *list)
 {
+    spinlock_acquire(&list->lock);
     if (list->closed)
+    {
+        spinlock_release(&list->lock);
         return false;
+    }
 
     waitable_list_entry_t *entry = kzalloc(sizeof(waitable_list_entry_t));
     entry->waiter = current_thread->tid;
-    spinlock_acquire(&list->lock);
     list_node_append(&list->list, list_node(entry));
     spinlock_release(&list->lock);
     return true;
