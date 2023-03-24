@@ -1,21 +1,26 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
+set(MOS_SYSCALL_DIR ${CMAKE_BINARY_DIR}/include/mos/syscall)
+set(MOS_SYSCALL_FILES
+    ${MOS_SYSCALL_DIR}/decl.h
+    ${MOS_SYSCALL_DIR}/dispatcher.h
+    ${MOS_SYSCALL_DIR}/number.h
+    ${MOS_SYSCALL_DIR}/usermode.h
+)
 
-find_program(PYTHON "python3" NAMES "python3 python" REQUIRED)
 
-function(generate_syscall_headers  SYSCALL_JSON)
-    make_directory("${CMAKE_BINARY_DIR}/include/mos/syscall/")
+function(generate_syscall_headers SYSCALL_JSON)
+    find_program(PYTHON "python3" NAMES "python3 python" REQUIRED)
+    make_directory("${MOS_SYSCALL_DIR}")
 
-    foreach(TYPE decl dispatcher number usermode)
-        set(OUTPUT_FILE ${CMAKE_BINARY_DIR}/include/mos/syscall/${TYPE}.h)
-        add_custom_command(OUTPUT ${OUTPUT_FILE}
-            MAIN_DEPENDENCY ${SYSCALL_JSON}
-            BYPRODUCTS
-            DEPENDS ${CMAKE_SOURCE_DIR}/scripts/gen_syscall.py
-            COMMAND ${PYTHON} ${CMAKE_SOURCE_DIR}/scripts/gen_syscall.py gen-${TYPE} ${SYSCALL_JSON} ${OUTPUT_FILE}
-            VERBATIM
-        )
-        list(APPEND GENERATED_HEADERS ${OUTPUT_FILE})
-    endforeach()
-    add_custom_target(mos_syscall_decl DEPENDS ${GENERATED_HEADERS})
+    add_custom_command(
+        OUTPUT ${MOS_SYSCALL_FILES}
+        MAIN_DEPENDENCY ${SYSCALL_JSON}
+        BYPRODUCTS
+        DEPENDS ${CMAKE_SOURCE_DIR}/scripts/gen_syscall.py
+        COMMAND ${PYTHON} ${CMAKE_SOURCE_DIR}/scripts/gen_syscall.py ${SYSCALL_JSON} ${MOS_SYSCALL_DIR}
+        VERBATIM
+    )
+
+    add_custom_target(mos_syscall_decl DEPENDS ${MOS_SYSCALL_FILES})
     add_summary_item(UTILITY mos_syscall_decl "" "Generate syscall headers")
 endfunction()
