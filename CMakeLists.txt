@@ -92,15 +92,20 @@ install(
     EXCLUDE_FROM_ALL
 )
 
+# We cannot just install the ${CMAKE_BINARY_DIR}/include because it contains
+# the generated syscall headers, which MAY NOT be generated at the time of
+# installation.
+# So we explicitly list the files we want to install here.
 install(
-    # We cannot just install the ${CMAKE_BINARY_DIR}/include because it contains
-    # the generated syscall headers, which MAY NOT be generated at the time of
-    # installation.
-    # So we explicitly list the files we want to install here.
-    FILES
-        ${CMAKE_BINARY_DIR}/include/mos/kconfig.h
-        ${MOS_SYSCALL_FILES}
+    FILES ${CMAKE_BINARY_DIR}/include/mos/kconfig.h
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mos
+    COMPONENT mos-api-headers
+    EXCLUDE_FROM_ALL
+)
+
+install(
+    FILES ${MOS_SYSCALL_FILES}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mos/syscalls
     COMPONENT mos-api-headers
     EXCLUDE_FROM_ALL
 )
