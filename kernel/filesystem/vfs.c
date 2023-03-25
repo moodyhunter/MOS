@@ -190,6 +190,9 @@ bool vfs_mount(const char *device, const char *path, const char *fs, const char 
         return false;
     }
 
+    MOS_ASSERT(tree_parent(mounted_root, dentry_t) == NULL);
+    tree_node(mounted_root)->parent = tree_node(tree_parent(mount_point, dentry_t));
+
     pr_info2("mounted filesystem '%s' on '%s'", fs, path);
     return true;
 }

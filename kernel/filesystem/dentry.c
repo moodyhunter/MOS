@@ -90,6 +90,16 @@ static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, co
     while (true)
     {
         char *next = strtok_r(NULL, PATH_DELIM_STR, &saveptr);
+        if (strcmp(current_seg, ".") == 0 || strcmp(current_seg, "./") == 0)
+            return dentry_ref(current_dir);
+
+        if (strcmp(current_seg, "..") == 0 || strcmp(current_seg, "../") == 0)
+        {
+            if (current_dir == root_dir || current_dir == base_dir)
+                return dentry_ref(current_dir);
+            return dentry_ref(tree_parent(current_dir, dentry_t));
+        }
+
         if (next == NULL)
         {
             // "current_seg" is the last segment of the path
@@ -109,14 +119,6 @@ static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, co
             return current_dir;
         }
 
-        // if (name_len == 0)
-        //     return NULL;
-
-        // if (name_len == 1 && name[0] == '.')
-        //     return (dentry_t *) parent;
-
-        // if (name_len == 2 && name[0] == '.' && name[1] == '.')
-        //     return tree_entry(tree_node(parent)->parent, dentry_t);
 
         dentry_t *child = dentry_get_child(current_dir, current_seg);
         if (child == NULL)
@@ -221,7 +223,7 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
             return child;
         }
 
-        mos_warn("file does not exist");
+        mos_debug(vfs, "file does not exist, but we expected it to not exist");
         return NULL;
     }
 
@@ -391,7 +393,7 @@ dentry_t *dentry_get(dentry_t *base_dir, dentry_t *root_dir, const char *path, l
     dentry_t *parent = dentry_lookup_parent(base_dir, root_dir, path, &last_segment);
     if (parent == NULL)
     {
-        mos_warn("file does not exist");
+        mos_debug(vfs, "failed to resolve parent of '%s', file not found", path);
         return NULL;
     }
 
