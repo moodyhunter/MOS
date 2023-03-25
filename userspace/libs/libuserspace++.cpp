@@ -2,9 +2,9 @@
 
 #include "libuserspace++.hpp"
 
-#include <memory.h>
 #include <mos/lib/sync/mutex.h>
 #include <mos/types.h>
+#include <stdlib.h>
 
 void *__dso_handle = 0;
 

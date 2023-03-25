@@ -2,9 +2,9 @@
 
 #include "parser.h"
 
-#include <memory.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/syscall/usermode.h>
+#include <stdlib.h>
 #include <string.h>
 
 typedef struct init_config

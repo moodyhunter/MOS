@@ -2,10 +2,10 @@
 
 #include "libuserspace.h"
 
-#include <memory.h>
 #include <mos/device/dm_types.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/syscall/usermode.h>
+#include <stdlib.h>
 #include <string.h>
 
 static char file_content[4 KB] = { 0 };

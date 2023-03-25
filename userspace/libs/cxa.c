@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "libuserspace.h"
 
-#include <memory.h>
 #include <mos/lib/structures/list.h>
+#include <stdlib.h>
 
 static list_head atexit_funcs = LIST_HEAD_INIT(atexit_funcs);
 

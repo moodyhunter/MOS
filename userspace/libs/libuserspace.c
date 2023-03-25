@@ -4,7 +4,6 @@
 
 #include "liballoc.h"
 
-#include <memory.h>
 #include <mos/syscall/usermode.h>
 #include <stdarg.h>
 #include <stdio.h>

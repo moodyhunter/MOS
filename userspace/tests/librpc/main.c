@@ -4,9 +4,9 @@
 #include "librpc/rpc_client.h"
 #include "librpc/rpc_server.h"
 
-#include <memory.h>
 #include <mos/syscall/usermode.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define RPC_TEST_SERVERNAME "testserver"

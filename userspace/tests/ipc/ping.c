@@ -2,7 +2,6 @@
 
 #include "libuserspace.h"
 
-#include <memory.h>
 #include <mos/syscall/usermode.h>
 #include <stdio.h>
 #include <string.h>
