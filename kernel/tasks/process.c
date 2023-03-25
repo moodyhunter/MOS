@@ -211,7 +211,9 @@ bool process_wait_for_pid(pid_t pid)
     if (!waitlist_wait(&target->waiters))
         return true; // waitlist is closed, process is dead
 
+    spinlock_acquire(&current_thread->state_lock);
     current_thread->state = THREAD_STATE_BLOCKED;
+    spinlock_release(&current_thread->state_lock);
     reschedule();
     return true;
 }

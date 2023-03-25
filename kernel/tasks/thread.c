@@ -29,7 +29,7 @@ thread_t *thread_allocate(process_t *owner, thread_mode tflags)
     t->magic = THREAD_MAGIC_THRD;
     t->tid = new_thread_id();
     t->owner = owner;
-    t->state = THREAD_STATE_CREATED;
+    t->state = THREAD_STATE_CREATING;
     t->mode = tflags;
     t->waiting = NULL;
     waitlist_init(&t->waiters);
@@ -69,6 +69,18 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
     return t;
 }
 
+thread_t *thread_setup_complete(thread_t *thread)
+{
+    if (!thread_is_valid(thread))
+        return NULL;
+
+    MOS_ASSERT(thread->state == THREAD_STATE_CREATING);
+    spinlock_acquire(&thread->state_lock);
+    thread->state = THREAD_STATE_CREATED;
+    spinlock_release(&thread->state_lock);
+    return thread;
+}
+
 thread_t *thread_get(tid_t tid)
 {
     thread_t *t = hashmap_get(thread_table, tid);
@@ -102,7 +114,9 @@ bool thread_wait_for_tid(tid_t tid)
     if (!waitlist_wait(&target->waiters))
         return true; // waitlist closed, thread is dead
 
+    spinlock_acquire(&target->state_lock);
     current_thread->state = THREAD_STATE_BLOCKED;
+    spinlock_release(&target->state_lock);
     reschedule();
     return true;
 }

@@ -10,6 +10,7 @@
 #include <mos/printk.h>
 #include <mos/tasks/process.h>
 #include <mos/tasks/task_types.h>
+#include <mos/tasks/thread.h>
 #include <mos/types.h>
 #include <string.h>
 
@@ -228,6 +229,8 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
 
     // unmap the buffer from kernel pages
     mm_unmap_pages(current_cpu->pagetable, buf_block.vaddr, buf_block.npages);
+
+    thread_setup_complete(proc->threads[0]);
 
     return proc;
 

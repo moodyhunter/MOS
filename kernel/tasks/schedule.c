@@ -11,11 +11,12 @@
 #include <mos/tasks/wait.h>
 
 static const char thread_state_str[] = {
-    [THREAD_STATE_CREATED] = 'C', //
-    [THREAD_STATE_READY] = 'R',   //
-    [THREAD_STATE_RUNNING] = 'r', //
-    [THREAD_STATE_BLOCKED] = 'B', //
-    [THREAD_STATE_DEAD] = 'D',    //
+    [THREAD_STATE_CREATING] = 'c', //
+    [THREAD_STATE_CREATED] = 'C',  //
+    [THREAD_STATE_READY] = 'R',    //
+    [THREAD_STATE_RUNNING] = 'r',  //
+    [THREAD_STATE_BLOCKED] = 'B',  //
+    [THREAD_STATE_DEAD] = 'D',     //
 };
 
 static bool scheduler_ready = false;
@@ -43,6 +44,7 @@ static bool should_schedule_to_thread(thread_t *thread)
             return true;
         }
         case THREAD_STATE_DEAD:
+        case THREAD_STATE_CREATING:
         case THREAD_STATE_RUNNING:
         {
             return false;
@@ -61,37 +63,34 @@ static bool schedule_to_thread(uintn key, void *value)
 
     MOS_ASSERT_X(thread->tid == tid, "something is wrong with the thread table");
 
+    switch_flags_t switch_flags = 0;
     spinlock_acquire(&thread->state_lock);
-    if (should_schedule_to_thread(thread))
+    if (!should_schedule_to_thread(thread))
     {
-        switch_flags_t switch_flags = 0;
-        if (thread->state == THREAD_STATE_CREATED)
-            switch_flags |= thread->mode == THREAD_MODE_KERNEL ? SWITCH_TO_NEW_KERNEL_THREAD : SWITCH_TO_NEW_USER_THREAD;
-
-        if (thread->owner->pagetable.pgd != current_cpu->pagetable.pgd)
-            switch_flags |= SWITCH_TO_NEW_PAGE_TABLE;
-
-        thread->state = THREAD_STATE_RUNNING;
-
-        mos_debug(scheduler, "cpu %d: switching to thread %ld -> %ld, flags: %c%c%c", //
-                  current_cpu->id,                                                    //
-                  current_thread ? current_thread->tid : 0,                           //
-                  thread->tid,                                                        //
-                  switch_flags & SWITCH_TO_NEW_PAGE_TABLE ? 'P' : '-',                //
-                  switch_flags & SWITCH_TO_NEW_USER_THREAD ? 'U' : '-',               //
-                  switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? 'K' : '-'              //
-        );
-
-        current_thread = thread;
-        current_cpu->pagetable = thread->owner->pagetable;
         spinlock_release(&thread->state_lock);
-
-        platform_switch_to_thread(&current_cpu->scheduler_stack, thread, switch_flags);
+        return true;
     }
     else
     {
+        if (thread->state == THREAD_STATE_CREATED)
+            switch_flags |= thread->mode == THREAD_MODE_KERNEL ? SWITCH_TO_NEW_KERNEL_THREAD : SWITCH_TO_NEW_USER_THREAD;
+        thread->state = THREAD_STATE_RUNNING;
         spinlock_release(&thread->state_lock);
     }
+
+    cpu_t *cpu = current_cpu;
+    mos_debug(scheduler, "cpu %d: switching to thread %ld -> %ld, flags: %c%c", //
+              cpu->id,                                                          //
+              current_thread ? current_thread->tid : 0,                         //
+              thread->tid,                                                      //
+              switch_flags & SWITCH_TO_NEW_USER_THREAD ? 'U' : '-',             //
+              switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? 'K' : '-'            //
+    );
+
+    cpu->thread = thread;
+    cpu->pagetable = thread->owner->pagetable;
+
+    platform_switch_to_thread(&cpu->scheduler_stack, thread, switch_flags);
     return true;
 }
 

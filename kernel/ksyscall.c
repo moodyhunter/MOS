@@ -156,6 +156,7 @@ tid_t define_syscall(create_thread)(const char *name, thread_entry_t entry, void
     if (thread == NULL)
         return -1;
 
+    thread_setup_complete(thread);
     return thread->tid;
 }
 
