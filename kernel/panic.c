@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <mos/cmdline.h>
+#include <mos/interrupt/ipi.h>
 #include <mos/lib/structures/list.h>
 #include <mos/mm/kmalloc.h>
 #include <mos/panic.h>
@@ -50,6 +51,9 @@ void kwarn_handler_remove(void)
 
 noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
 {
+    platform_interrupt_disable();
+    ipi_send_all(IPI_TYPE_HALT);
+
     static bool in_panic = false;
     if (unlikely(in_panic))
     {
@@ -64,7 +68,6 @@ noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
             ;
     }
     in_panic = true;
-    platform_interrupt_disable();
 
     extern bool printk_quiet;
     if (printk_quiet)

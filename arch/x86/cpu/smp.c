@@ -35,17 +35,17 @@ static void start_ap(int apic_id)
 {
     ap_state = AP_STATUS_INVALID;
 
-    lapic_interrupt_full(0, apic_id, APIC_DELIVER_MODE_INIT, APIC_DEST_MODE_PHYSICAL, true, true, APIC_SHORTHAND_NONE);
+    lapic_interrupt_full(0, apic_id, APIC_DELIVER_MODE_INIT, LAPIC_DEST_MODE_PHYSICAL, true, true, LAPIC_SHORTHAND_NONE);
     mdelay(50);
-    lapic_interrupt_full(0, apic_id, APIC_DELIVER_MODE_INIT_DEASSERT, APIC_DEST_MODE_PHYSICAL, false, true, APIC_SHORTHAND_NONE);
+    lapic_interrupt_full(0, apic_id, APIC_DELIVER_MODE_INIT_DEASSERT, LAPIC_DEST_MODE_PHYSICAL, false, true, LAPIC_SHORTHAND_NONE);
 
     ap_state = AP_STATUS_BSP_STARTUP_SENT;
     mos_debug(x86_cpu, "bsp sent startup to cpu %u", apic_id);
 
     mdelay(50);
-    lapic_interrupt(X86_AP_TRAMPOLINE_ADDR >> 12, apic_id, APIC_DELIVER_MODE_STARTUP, APIC_DEST_MODE_PHYSICAL, APIC_SHORTHAND_NONE);
+    lapic_interrupt(X86_AP_TRAMPOLINE_ADDR >> 12, apic_id, APIC_DELIVER_MODE_STARTUP, LAPIC_DEST_MODE_PHYSICAL, LAPIC_SHORTHAND_NONE);
     mdelay(50);
-    lapic_interrupt(X86_AP_TRAMPOLINE_ADDR >> 12, apic_id, APIC_DELIVER_MODE_STARTUP, APIC_DEST_MODE_PHYSICAL, APIC_SHORTHAND_NONE);
+    lapic_interrupt(X86_AP_TRAMPOLINE_ADDR >> 12, apic_id, APIC_DELIVER_MODE_STARTUP, LAPIC_DEST_MODE_PHYSICAL, LAPIC_SHORTHAND_NONE);
 
     wait_for(AP_STATUS_START_REQUEST);
     mos_debug(x86_cpu, "cpu %u received start request", apic_id);

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <mos/interrupt/ipi.h>
 #include <mos/mm/cow.h>
 #include <mos/mm/kmalloc.h>
 #include <mos/mm/paging/paging.h>
@@ -47,6 +48,8 @@ static void do_resolve_cow(uintptr_t fault_addr, vm_flags original_flags)
     // 4. unmap the temporary page (at the kernel heap)
     //    note at this point, the underlying physical page won't be freed, because it's still mapped to the faulting address
     mm_unmap_pages(current_handle, one_page.vaddr, 1);
+
+    ipi_send_all(IPI_TYPE_INVALIDATE_TLB);
 }
 
 bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bool is_user, bool is_exec)

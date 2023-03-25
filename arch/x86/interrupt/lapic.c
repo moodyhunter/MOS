@@ -165,10 +165,10 @@ void lapic_enable(void)
     // to actually enable the APIC
     lapic_write32(APIC_REG_SPURIOUS_INTR_VEC, lapic_read32(APIC_REG_SPURIOUS_INTR_VEC) | (1 << 8));
 
-    u32 current_cpu_id = lapic_get_id();
-    u32 version_reg = lapic_read32(APIC_REG_LAPIC_VERSION);
-    u32 max_lvt_entry = (version_reg >> 16) & 0xff;
-    u32 version_id = version_reg & 0xff;
+    const u32 current_cpu_id = lapic_get_id();
+    const u32 version_reg = lapic_read32(APIC_REG_LAPIC_VERSION);
+    const u32 max_lvt_entry = (version_reg >> 16) & 0xff;
+    const u32 version_id = version_reg & 0xff;
     pr_info("LAPIC{%d}: version: %x, max LVT entry: %x", current_cpu_id, version_id, max_lvt_entry);
 }
 

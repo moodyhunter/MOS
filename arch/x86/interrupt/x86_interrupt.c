@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#include <mos/interrupt/ipi.h>
 #include <mos/mm/cow.h>
 #include <mos/mm/kmalloc.h>
 #include <mos/platform/platform.h>
@@ -282,17 +283,14 @@ void x86_handle_interrupt(u32 esp)
 
     if (frame->interrupt_number < IRQ_BASE)
         x86_handle_exception(frame);
-    else if (frame->interrupt_number < MOS_SYSCALL_INTR)
+    else if (frame->interrupt_number >= IRQ_BASE && frame->interrupt_number < IRQ_BASE + IRQ_MAX)
         x86_handle_irq(frame);
+    else if (frame->interrupt_number >= IPI_BASE && frame->interrupt_number < IPI_BASE + IPI_TYPE_MAX)
+        ipi_do_handle((ipi_type_t) (frame->interrupt_number - IPI_BASE));
     else if (frame->interrupt_number == MOS_SYSCALL_INTR)
-    {
-        MOS_ASSERT_X(current, "syscall expects a current thread");
-        frame->eax = (reg32_t) dispatch_syscall(frame->eax, frame->ebx, frame->ecx, frame->edx, frame->esi, frame->edi, frame->ebp);
-    }
+        frame->eax = dispatch_syscall(frame->eax, frame->ebx, frame->ecx, frame->edx, frame->esi, frame->edi, frame->ebp);
     else
-    {
         pr_warn("Unknown interrupt number: %d", frame->interrupt_number);
-    }
 
     if (likely(current))
     {

@@ -5,6 +5,7 @@
 #include <mos/elf/elf.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
+#include <mos/interrupt/ipi.h>
 #include <mos/io/terminal.h>
 #include <mos/ipc/ipc.h>
 #include <mos/kallsyms.h>
@@ -134,6 +135,8 @@ void mos_start_kernel(const char *cmdline)
 
     kthread_init(); // must be called after creating the first init process
     device_manager_init();
+
+    ipi_init();
 
     pr_info("starting scheduler");
     unblock_scheduler();

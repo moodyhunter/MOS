@@ -59,6 +59,21 @@ typedef enum
     SWITCH_TO_NEW_KERNEL_THREAD = 1 << 2,
 } switch_flags_t;
 
+#define TARGET_CPU_ALL 0xFF
+
+/**
+ * @brief The type of IPI to send
+ *
+ */
+typedef enum
+{
+    IPI_TYPE_HALT = 0,       // halt the CPU
+    IPI_TYPE_INVALIDATE_TLB, // TLB shootdown
+    IPI_TYPE_MAX,
+} ipi_type_t;
+
+MOS_STATIC_ASSERT(IPI_TYPE_MAX <= (u8) 0xFF, "IPI_TYPE_MAX must fit in a u8");
+
 typedef struct
 {
     size_t argc; // size of argv, does not include the terminating NULL
@@ -141,6 +156,7 @@ noreturn void platform_shutdown(void);
 
 // Platform CPU APIs
 noreturn void platform_halt_cpu(void);
+void platform_invalidate_tlb(void);
 u32 platform_current_cpu_id(void);
 void platform_msleep(u64 ms);
 void platform_usleep(u64 us);
@@ -173,3 +189,6 @@ void platform_switch_to_scheduler(uintptr_t *old_stack, uintptr_t new_stack);
 
 // Platform-Specific syscall APIs
 u64 platform_arch_syscall(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64 arg4);
+
+// Platform-Specific IPI (Inter-Processor Interrupt) APIs
+void platform_ipi_send(u8 target_cpu, ipi_type_t type);

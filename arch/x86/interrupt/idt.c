@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <mos/platform/platform.h>
 #include <mos/x86/descriptors/descriptor_types.h>
 #include <mos/x86/interrupt/idt.h>
 #include <mos/x86/x86_interrupt.h>
@@ -45,6 +46,9 @@ void x86_idt_init()
 
     // system calls
     idt_set_descriptor(MOS_SYSCALL_INTR, isr_stub_table[MOS_SYSCALL_INTR], true, true);
+
+    for (u8 ipi_n = 0; ipi_n < IPI_TYPE_MAX; ipi_n++)
+        idt_set_descriptor(ipi_n + IPI_BASE, isr_stub_table[ipi_n + IPI_BASE], false, false);
 
     idtr.base = &idt[0];
     idtr.limit = (u16) sizeof(idt_entry32_t) * IDT_ENTRY_COUNT - 1;

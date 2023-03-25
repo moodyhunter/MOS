@@ -7,6 +7,7 @@
 #include <mos/types.h>
 
 #define IRQ_BASE 0x20
+#define IPI_BASE 0x50
 
 #define ISR_MAX_COUNT   32
 #define IRQ_MAX_COUNT   16

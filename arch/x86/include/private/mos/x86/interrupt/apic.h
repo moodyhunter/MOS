@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Common header for LAPIC and IOAPIC
 
 #pragma once
 
@@ -18,16 +19,16 @@ typedef enum
 
 typedef enum
 {
-    APIC_DEST_MODE_PHYSICAL = 0,
-    APIC_DEST_MODE_LOGICAL = 1,
+    LAPIC_DEST_MODE_PHYSICAL = 0,
+    LAPIC_DEST_MODE_LOGICAL = 1,
 } lapic_dest_mode_t;
 
 typedef enum
 {
-    APIC_SHORTHAND_NONE = 0,
-    APIC_SHORTHAND_SELF = 1,
-    APIC_SHORTHAND_ALL = 2,
-    APIC_SHORTHAND_ALL_EXCLUDING_SELF = 3,
+    LAPIC_SHORTHAND_NONE = 0,
+    LAPIC_SHORTHAND_SELF = 1,
+    LAPIC_SHORTHAND_ALL = 2,
+    LAPIC_SHORTHAND_ALL_EXCLUDING_SELF = 3,
 } lapic_shorthand_t;
 
 void lapic_memory_setup(void);

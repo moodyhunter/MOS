@@ -14,6 +14,7 @@
 #include <mos/x86/delays.h>
 #include <mos/x86/descriptors/descriptor_types.h>
 #include <mos/x86/devices/port.h>
+#include <mos/x86/interrupt/apic.h>
 #include <mos/x86/mm/paging.h>
 #include <mos/x86/mm/paging_impl.h>
 #include <mos/x86/tasks/context.h>
@@ -33,6 +34,11 @@ noreturn void platform_shutdown(void)
 void platform_halt_cpu(void)
 {
     x86_cpu_halt();
+}
+
+void platform_invalidate_tlb(void)
+{
+    x86_cpu_invlpg_all();
 }
 
 u32 platform_current_cpu_id(void)
@@ -234,4 +240,12 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
             return -1;
         }
     }
+}
+
+void platform_ipi_send(u8 target, ipi_type_t type)
+{
+    if (target == TARGET_CPU_ALL)
+        lapic_interrupt(IPI_BASE + type, 0xff, APIC_DELIVER_MODE_NORMAL, LAPIC_DEST_MODE_PHYSICAL, LAPIC_SHORTHAND_ALL_EXCLUDING_SELF);
+    else
+        lapic_interrupt(IPI_BASE + type, target, APIC_DELIVER_MODE_NORMAL, LAPIC_DEST_MODE_PHYSICAL, LAPIC_SHORTHAND_NONE);
 }
