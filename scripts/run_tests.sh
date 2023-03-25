@@ -5,7 +5,7 @@ set -e # exit on error
 # get the current directory
 DIR=$(pwd)
 
-QEMU_ARGS="-m 4G -smp 1"
+QEMU_ARGS="-m 4G -smp 2"
 
 # test if MOS_TEST_SHOW_UI is set
 if [ -z "$MOS_TEST_SHOW_UI" ]; then
