@@ -146,3 +146,8 @@ tid_t start_thread(const char *name, thread_entry_t entry, void *arg)
     thread_start_args->arg = arg;
     return syscall_create_thread(name, thread_start, thread_start_args);
 }
+
+void exit(int status)
+{
+    syscall_exit(status);
+}
