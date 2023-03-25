@@ -94,7 +94,7 @@ void do_backtrace(u32 max)
         {
             const kallsyms_t *kallsyms = kallsyms_get_symbol_name(frame->eip);
             if (kallsyms)
-                pr_warn("  " PTR_FMT ": %s (+0x%lx)", frame->eip, kallsyms->name, frame->eip - kallsyms->address);
+                pr_warn("  " PTR_FMT ": %s (+" PTR_FMT ")", frame->eip, kallsyms->name, frame->eip - kallsyms->address);
             else
                 pr_warn("  " PTR_FMT ": <unknown>", frame->eip);
         }
@@ -198,8 +198,8 @@ void x86_start_kernel(x86_startup_info *info)
     pr_info("mapping bios memory area...");
     pmm_reserve_frames(X86_BIOS_MEMREGION_PADDR, x86_bios_block.npages);
     pmm_reserve_frames(X86_EBDA_MEMREGION_PADDR, x86_ebda_block.npages);
-    x86_bios_block = mm_map_pages(x86_platform.kernel_pgd, x86_bios_block.vaddr, X86_BIOS_MEMREGION_PADDR, x86_bios_block.npages, VM_RW);
-    x86_ebda_block = mm_map_pages(x86_platform.kernel_pgd, x86_ebda_block.vaddr, X86_EBDA_MEMREGION_PADDR, x86_ebda_block.npages, VM_RW);
+    x86_bios_block = mm_map_pages(x86_platform.kernel_pgd, x86_bios_block.vaddr, X86_BIOS_MEMREGION_PADDR, x86_bios_block.npages, x86_bios_block.flags);
+    x86_ebda_block = mm_map_pages(x86_platform.kernel_pgd, x86_ebda_block.vaddr, X86_EBDA_MEMREGION_PADDR, x86_ebda_block.npages, x86_ebda_block.flags);
 
     pr_info("reserving memory for AP boot...");
     x86_smp_copy_trampoline();

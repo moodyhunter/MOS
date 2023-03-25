@@ -5,6 +5,7 @@
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
 #include <mos/syscall/dispatcher.h>
+#include <mos/x86/cpu/cpu.h>
 #include <mos/x86/devices/port.h>
 #include <mos/x86/interrupt/apic.h>
 #include <mos/x86/tasks/context.h>
@@ -72,6 +73,7 @@ void x86_enable_interrupts(void)
 
 bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
 {
+    MOS_ASSERT(irq < IRQ_MAX_COUNT);
     x86_irq_handler_t *desc = kmalloc(sizeof(x86_irq_handler_t));
     desc->handler = handler;
     list_node_append(&irq_handlers[irq], list_node(desc));
@@ -223,7 +225,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
             }
 
             if (is_user && !is_write && present)
-                pr_warn("'%s' privilege violation?", current_process->name);
+                pr_warn("'%s' trying to read kernel memory?", current_process->name);
             x86_dump_registers(stack);
             mos_panic("Page Fault: %s code at " PTR_FMT " is trying to %s a %s address " PTR_FMT, //
                       is_user ? "Userspace" : "Kernel",                                           //
@@ -275,10 +277,10 @@ void x86_handle_interrupt(u32 esp)
     thread_t *current = current_thread;
     if (likely(current))
     {
-        current->context->stack = frame->iret_params.esp;
         x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
         context->regs = *frame;
         context->inner.instruction = frame->iret_params.eip;
+        context->inner.stack = frame->iret_params.esp;
     }
 
     if (frame->interrupt_number < IRQ_BASE)
