@@ -213,7 +213,8 @@ bool vfs_stat(const char *path, file_stat_t *restrict stat)
     if (file == NULL)
         return false;
 
-    *stat = file->inode->stat;
+    if (stat)
+        *stat = file->inode->stat;
     return true;
 }
 
