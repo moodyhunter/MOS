@@ -21,16 +21,15 @@ int main(int argc, char *argv[])
     fd_t dirfd = syscall_vfs_open(path, OPEN_READ | OPEN_DIR);
     if (dirfd < 0)
     {
-        dprintf(stderr, "failed to open directory '%s'", path);
+        dprintf(stderr, "failed to open directory '%s'\n", path);
         return 1;
     }
-
-    char buffer[BUFSIZE];
 
     printf("Directory listing of '%s':\n", path);
     printf("\n");
     printf("%-10s %-10s %-10s\n", "Inode", "Type", "Name");
 
+    char buffer[BUFSIZE];
     do
     {
         size_t sz = syscall_vfs_list_dir(dirfd, buffer, BUFSIZE);
@@ -38,11 +37,9 @@ int main(int argc, char *argv[])
             break;
 
 #define dirent_next(d) ((dir_entry_t *) ((char *) d + d->next_offset))
-
         for (const dir_entry_t *dirent = (dir_entry_t *) buffer; (char *) dirent < buffer + sz; dirent = dirent_next(dirent))
-        {
             printf("%-10llu %-10s %-10s\n", dirent->ino, type_to_string[dirent->type], dirent->name);
-        }
+
     } while (true);
 
     syscall_io_close(dirfd);
