@@ -5,28 +5,10 @@
 #include <mos/x86/devices/serial.h>
 #include <mos/x86/x86_interrupt.h>
 
-static inline char serial_irq_read_char(serial_port_t port)
-{
-    u8 status = port_inb(port + 5);
-    if (status & 0x01)
-        return port_inb(port);
-    return 0;
-}
-
 void serial_irq_handler(u32 irq)
 {
-    if (irq == IRQ_COM1)
-    {
-        char c = serial_irq_read_char(COM1);
-        pr_info("COM1: (%2d) %c", c, c);
-    }
-    else if (irq == IRQ_COM2)
-    {
-    }
-    else
-    {
-        pr_warn("Unknown serial IRQ: %d", irq);
-    }
+    // todo wake up the thread waiting for input
+    MOS_UNUSED(irq);
 }
 
 void set_baudrate_divisor(int com, serial_baud_rate divisor)
