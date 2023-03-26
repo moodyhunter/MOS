@@ -70,7 +70,7 @@ typedef struct
 {
     u64 ino;
     u64 next_offset; // sizeof(dir_entry_t) + name_len + 1
-    u32 type;
+    file_type_t type;
     u32 name_len; // not including the null terminator
     char name[];
 } dir_entry_t;

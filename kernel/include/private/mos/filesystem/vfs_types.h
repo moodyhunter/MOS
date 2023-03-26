@@ -6,7 +6,7 @@
 #include <mos/io/io.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/structures/tree.h>
-#include <mos/lib/sync/mutex.h>
+#include <mos/lib/sync/spinlock.h>
 #include <mos/platform/platform.h>
 #include <mos/types.h>
 
@@ -58,8 +58,8 @@ typedef struct
 typedef struct
 {
     bool (*open)(inode_t *inode, file_t *file);
-    ssize_t (*read)(file_t *file, void *buf, size_t size);
-    ssize_t (*write)(file_t *file, const void *buf, size_t size);
+    ssize_t (*read)(const file_t *file, void *buf, size_t size, off_t offset);
+    ssize_t (*write)(const file_t *file, const void *buf, size_t size, off_t offset);
     int (*flush)(file_t *file);
     int (*mmap)(file_t *file, void *addr, size_t size, vmblock_t *vmblock);
 } file_ops_t;
@@ -117,6 +117,6 @@ typedef struct _file
 {
     io_t io; // refcount is tracked by the io_t
     dentry_t *dentry;
-    mutex_t offset_lock; // protects the offset field
-    size_t offset;       // tracks the current position in the file
+    spinlock_t offset_lock; // protects the offset field
+    size_t offset;          // tracks the current position in the file
 } file_t;

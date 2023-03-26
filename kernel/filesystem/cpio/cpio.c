@@ -3,6 +3,7 @@
 #include <mos/device/block.h>
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/fs_types.h>
+#include <mos/kconfig.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/structures/tree.h>
 #include <mos/mm/kmalloc.h>
@@ -249,32 +250,27 @@ static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *
     return root;
 }
 
-static ssize_t cpio_f_read(file_t *file, void *buf, size_t size)
+static ssize_t cpio_f_read(const file_t *file, void *buf, size_t size, off_t offset)
 {
     cpio_metadata_t metadata = CPIO_INODE(file->dentry->inode)->metadata;
     blockdev_t *dev = CPIO_SB(file->dentry->inode->superblock)->dev;
 
-    size_t read = dev->read(dev, buf, MIN(size, metadata.data_length), metadata.data_offset);
+    if (offset >= (long) metadata.data_length)
+        return 0; // EOF
+
+    const size_t bytes_to_read = MIN(size, metadata.data_length - offset);
+    size_t read = dev->read(dev, buf, bytes_to_read, metadata.data_offset + offset);
     return read;
 }
 
 static bool cpio_i_lookup(inode_t *parent_dir, dentry_t *dentry)
 {
     // keep prepending the path with the parent path, until we reach the root
-    char *path = strdup(dentry->name);
-
-    for (dentry_t *current = tree_parent(dentry, dentry_t); current != parent_dir->superblock->root; current = tree_parent(current, dentry_t))
-    {
-        char *newpath = kmalloc(strlen(current->name) + 1 + strlen(path) + 1);
-        strcpy(newpath, current->name);
-        strcat(newpath, "/");
-        strcat(newpath, path);
-        kfree(path);
-        path = newpath;
-    }
+    char pathbuf[MOS_PATH_MAX_LENGTH] = { 0 };
+    dentry_path(dentry, parent_dir->superblock->root, pathbuf, sizeof(pathbuf));
+    const char *path = pathbuf + 1; // skip the first slash
 
     cpio_superblock_t *sb = CPIO_SB(parent_dir->superblock);
-
     cpio_metadata_t metadata;
     const bool found = cpio_read_metadata(sb->dev, path, &metadata);
     if (!found)

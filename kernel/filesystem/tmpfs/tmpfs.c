@@ -238,22 +238,21 @@ static const inode_ops_t tmpfs_inode_symlink_ops = {
     .readlink = tmpfs_i_readlink,
 };
 
-static ssize_t tmpfs_f_read(file_t *file, void *buffer, size_t buflen)
+static ssize_t tmpfs_f_read(const file_t *file, void *buffer, size_t buflen, off_t offset)
 {
-    if (unlikely(file->offset >= file->dentry->inode->stat.size))
+    if (unlikely(offset >= (long) file->dentry->inode->stat.size))
         return 0; // read past the end of the file
 
     tmpfs_inode_t *inode = TMPFS_INODE(file->dentry->inode);
-    const size_t bytes_to_read = MIN(buflen, inode->file.block_size - file->offset);
+    const size_t bytes_to_read = MIN(buflen, inode->file.block_size - offset);
     memcpy(buffer, inode->file.data + file->offset, bytes_to_read);
-    file->offset += bytes_to_read;
     return bytes_to_read;
 }
 
-static ssize_t tmpfs_f_write(file_t *file, const void *buffer, size_t buflen)
+static ssize_t tmpfs_f_write(const file_t *file, const void *buffer, size_t buflen, off_t offset)
 {
     tmpfs_inode_t *inode = TMPFS_INODE(file->dentry->inode);
-    const size_t new_size = MAX(file->offset + buflen, inode->file.block_size); // users may have seeked before writing
+    const size_t new_size = MAX(offset + buflen, inode->file.block_size); // users may have seeked before writing
 
     if (unlikely(inode->file.block_size == 0))
     {
@@ -269,7 +268,6 @@ static ssize_t tmpfs_f_write(file_t *file, const void *buffer, size_t buflen)
 
         // copy the data into the file
         memcpy(inode->file.data, buffer, buflen);
-        file->offset += buflen;
         return buflen;
     }
 
@@ -277,8 +275,7 @@ static ssize_t tmpfs_f_write(file_t *file, const void *buffer, size_t buflen)
     {
         // copy the data into the file (aka, no need to grow the file)
         mos_debug(tmpfs, "writing %zu bytes to file of size %zu", buflen, inode->file.block_size);
-        memcpy(inode->file.data + file->offset, buffer, buflen);
-        file->offset += buflen;
+        memcpy(inode->file.data + offset, buffer, buflen);
         return buflen;
     }
     else
@@ -302,7 +299,6 @@ static ssize_t tmpfs_f_write(file_t *file, const void *buffer, size_t buflen)
 
         // copy the data into the file
         memcpy(inode->file.data + file->offset, buffer, buflen);
-        file->offset += buflen;
         return buflen;
     }
 }
