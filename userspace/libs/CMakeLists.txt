@@ -10,3 +10,5 @@ target_include_directories(libuserspace PUBLIC ${CMAKE_SOURCE_DIR}/userspace/inc
 target_link_libraries(libuserspace PUBLIC gcc mos::include mos::stdlib)
 add_dependencies(libuserspace mos_syscall_decl) # needs to be generated before we can compile
 add_library(mos::libuserspace ALIAS libuserspace)
+
+add_subdirectory(argparse)
