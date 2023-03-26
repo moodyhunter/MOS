@@ -12,3 +12,4 @@ add_dependencies(libuserspace mos_syscall_decl) # needs to be generated before w
 add_library(mos::libuserspace ALIAS libuserspace)
 
 add_subdirectory(argparse)
+add_subdirectory(readline)
