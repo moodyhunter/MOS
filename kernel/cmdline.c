@@ -37,10 +37,43 @@ cmdline_t *cmdline_create(const char *cmdline)
 
             // an option ends with a space or a comma
             const char *const start = cmdline;
-            while (*cmdline && *cmdline != ' ' && *cmdline != ',')
-                cmdline++;
 
-            opt->argv[opt->argc++] = duplicate_string(start, cmdline - start);
+            while (*cmdline && *cmdline != ' ' && *cmdline != ',')
+            {
+                if (*cmdline == '"')
+                {
+                    cmdline++;
+                    while (*cmdline && *cmdline != '"')
+                        cmdline++;
+                    if (*cmdline == '"')
+                        cmdline++;
+                }
+                else if (*cmdline == '\'')
+                {
+                    cmdline++;
+                    while (*cmdline && *cmdline != '\'')
+                        cmdline++;
+                    if (*cmdline == '\'')
+                        cmdline++;
+                }
+                else
+                {
+                    cmdline++;
+                }
+            }
+
+            if (*start == '"' && *(cmdline - 1) == '"')
+            {
+                opt->argv[opt->argc++] = duplicate_string(start + 1, cmdline - start - 2); // remove quotes
+            }
+            else if (*start == '\'' && *(cmdline - 1) == '\'')
+            {
+                opt->argv[opt->argc++] = duplicate_string(start + 1, cmdline - start - 2); // remove quotes
+            }
+            else
+            {
+                opt->argv[opt->argc++] = duplicate_string(start, cmdline - start); // no quotes
+            }
 
             MOS_ASSERT(*cmdline == ' ' || *cmdline == ',' || *cmdline == '\0');
 

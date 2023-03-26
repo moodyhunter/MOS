@@ -151,6 +151,14 @@ char *strdup(const char *src)
     return dst;
 }
 
+char *strndup(const char *src, size_t len)
+{
+    char *dst = liballoc_malloc(len + 1);
+    strncpy(dst, src, len);
+    dst[len] = '\0';
+    return dst;
+}
+
 const char *duplicate_string(const char *src, size_t len)
 {
     char *dst = liballoc_malloc(len + 1);

@@ -79,7 +79,7 @@
                 "-smp",
                 "1",
                 "-append",
-                "init=/initrd/drivers/x86_console_driver",
+                "init=/initrd/programs/init init_args='-c /initrd/assets/self-test.msh'",
             ],
             "problemMatcher": [ ],
             "group": "none",

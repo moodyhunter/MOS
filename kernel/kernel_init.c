@@ -21,7 +21,9 @@
 extern filesystem_t fs_tmpfs;
 extern filesystem_t fs_cpiofs;
 extern filesystem_t fs_ipcfs;
+
 const char *init_path = "/initrd/programs/init";
+argv_t init_argv = { 0 };
 
 bool setup_init_path(int argc, const char **argv)
 {
@@ -40,47 +42,29 @@ bool setup_init_path(int argc, const char **argv)
 
 __setup("init", setup_init_path);
 
-argv_t create_argv_from_cmdline(void)
+bool setup_init_args(int argc, const char **argv)
 {
-    argv_t init_argv = {
-        .argc = mos_cmdline->options_count + 1,
-        .argv = kmalloc(sizeof(char *) * (mos_cmdline->options_count + 2)), // +1 for init path, +1 for NULL
-    };
-
-    init_argv.argv[0] = strdup(init_path);
-
-    for (u32 i = 0; i < mos_cmdline->options_count; i++)
+    MOS_ASSERT(argc == 1);
+    init_argv.argc = 1;
+    init_argv.argv = kmalloc(sizeof(char *));
+    init_argv.argv[0] = "<to-be-set>";
+    const char *start = argv[0];
+    while (*start)
     {
-        const cmdline_option_t *option = mos_cmdline->options[i];
+        const char *end = strchr(start, ' ');
+        if (!end)
+            end = start + strlen(start);
 
-        // concatenate all arguments into a single string
-        size_t len = strlen(option->name) + 1; // +1 for '='
-        for (u32 j = 0; j < option->argc; j++)
-            len += strlen(option->argv[j]) + 1; // +1 for ',' (or '\0' for last argument)
-
-        char *str = kmalloc(len);
-        size_t offset = 0;
-        strcpy(str, option->name);
-        offset += strlen(option->name);
-
-        if (option->argc)
-        {
-            str[offset++] = '=';
-            for (u32 j = 0; j < option->argc; j++)
-            {
-                strcpy(str + offset, option->argv[j]);
-                offset += strlen(option->argv[j]);
-                if (j != option->argc - 1)
-                    str[offset++] = ',';
-            }
-        }
-        str[offset] = '\0'; // null-terminate the string
-        init_argv.argv[i + 1] = str;
+        init_argv.argv = krealloc(init_argv.argv, sizeof(char *) * (init_argv.argc + 1));
+        init_argv.argv[init_argv.argc++] = strndup(start, end - start);
+        start = end;
+        if (*start)
+            start++;
     }
-
-    init_argv.argv[init_argv.argc] = NULL;
-    return init_argv;
+    return true;
 }
+
+__setup("init_args", setup_init_args);
 
 void mos_start_kernel(const char *cmdline)
 {
@@ -124,9 +108,9 @@ void mos_start_kernel(const char *cmdline)
     if (init_con->caps & CONSOLE_CAP_CLEAR)
         init_con->clear(init_con);
 
-    terminal_t *init_term = terminal_create_console(init_con);
+    init_argv.argv[0] = init_path;
 
-    const argv_t init_argv = create_argv_from_cmdline();
+    terminal_t *init_term = terminal_create_console(init_con);
     process_t *init = elf_create_process(init_path, NULL, init_term, init_argv);
     if (unlikely(!init))
         mos_panic("failed to create init process");
