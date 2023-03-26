@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "argparse/libargparse.h"
 #include "libuserspace.h"
 #include "parser.h"
 
 #include <mos/filesystem/fs_types.h>
 #include <mos/syscall/usermode.h>
+#include <stdlib.h>
 #include <string.h>
 
 static init_config_t *config;
@@ -83,12 +85,34 @@ static bool mount_filesystems(void)
 
 #define DYN_ERROR_CODE (__COUNTER__ + 1)
 
-int main(int argc, char *argv[])
+static const argparse_arg_t longopts[] = {
+    { "config", 'c', ARGPARSE_REQUIRED }, // configuration file, default: /initrd/config/init.conf
+    { "shell", 's', ARGPARSE_REQUIRED },  // the shell or another program to launch
+    { 0 },
+};
+
+int main(int argc, const char *argv[])
 {
     MOS_UNUSED(argc);
-    MOS_UNUSED(argv);
 
-    config = config_parse_file("/initrd/config/init.conf");
+    const char *config_file = "/initrd/config/init.conf";
+    const char *shell = "/initrd/programs/mossh";
+    argparse_state_t options;
+    argparse_init(&options, argv);
+    while (true)
+    {
+        const int option = argparse_long(&options, longopts, NULL);
+        if (option == -1)
+            break;
+
+        switch (option)
+        {
+            case 'c': config_file = options.optarg; break;
+            case 's': shell = options.optarg; break;
+        }
+    }
+
+    config = config_parse_file(config_file);
     if (!config)
         return DYN_ERROR_CODE;
 
@@ -102,11 +126,23 @@ int main(int argc, char *argv[])
     if (dm_pid <= 0)
         return DYN_ERROR_CODE;
 
-    const char *ls_path = "/";
-    pid_t pid = syscall_spawn("/initrd/programs/ls", 1, &ls_path);
-    syscall_wait_for_process(pid);
+    // start the shell
+    const char **shell_argv = NULL;
+    int shell_argc = 0;
 
-    while (1)
-        ;
+    const char *arg;
+    while ((arg = argparse_arg(&options)))
+    {
+        shell_argc++;
+        shell_argv = realloc(shell_argv, shell_argc * sizeof(char *));
+        shell_argv[shell_argc - 1] = arg;
+    }
+
+    // TODO: use exec() ?
+    pid_t shell_pid = syscall_spawn(shell, shell_argc, shell_argv);
+    if (shell_pid <= 0)
+        return DYN_ERROR_CODE;
+
+    syscall_wait_for_process(shell_pid);
     return 0;
 }
