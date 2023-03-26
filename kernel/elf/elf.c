@@ -52,14 +52,16 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
     if (!f)
     {
         mos_warn("failed to open '%s'", path);
-        goto bail_out_1;
+        return NULL;
     }
+
+    io_ref(&f->io);
 
     file_stat_t stat;
     if (!vfs_fstat(&f->io, &stat))
     {
         mos_warn("failed to stat '%s'", path);
-        return NULL;
+        goto bail_out_1;
     }
 
     const size_t npage_required = ALIGN_UP_TO_PAGE(stat.size) / MOS_PAGE_SIZE;
@@ -225,13 +227,10 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
         };
     }
 
-    process_attach_ref_fd(proc, &f->io); // do we need this?
-
     // unmap the buffer from kernel pages
     mm_unmap_pages(current_cpu->pagetable, buf_block.vaddr, buf_block.npages);
-
     thread_setup_complete(proc->threads[0]);
-
+    io_unref(&f->io); // close the file, we should have the file's refcount == 0 here
     return proc;
 
 bail_out:
