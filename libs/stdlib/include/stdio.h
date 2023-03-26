@@ -25,4 +25,8 @@ MOSAPI int vsprintf(char *restrict str, const char *restrict format, va_list ap)
 // defined in stdio_impl.c
 MOSAPI int vsnprintf(char *restrict buf, size_t size, const char *restrict format, va_list args);
 
+#ifndef __MOS_KERNEL__ // for userspace only
+MOSAPI int getchar(void);
+#endif
+
 /** @} */

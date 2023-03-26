@@ -150,3 +150,10 @@ void exit(int status)
 {
     syscall_exit(status);
 }
+
+int getchar(void)
+{
+    char c;
+    syscall_io_read(stdin, &c, 1);
+    return c;
+}
