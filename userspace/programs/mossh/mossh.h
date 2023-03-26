@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <mos/types.h>
+
 void do_help(int argc, const char *argv[]);
 void do_version(int argc, const char *argv[]);
 void do_exit(int argc, const char *argv[]);
@@ -18,3 +20,6 @@ extern const command_t builtin_commands[];
 extern const char *PATH[];
 
 const char *locate_program(const char *prog);
+
+bool do_builtin(const char *command, int argc, const char **argv);
+bool do_program(const char *command, int argc, const char **argv);

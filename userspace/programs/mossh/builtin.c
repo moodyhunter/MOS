@@ -74,6 +74,36 @@ void do_pwd(int argc, const char *argv[])
     printf("%.*s\n", (int) size, buffer);
 }
 
+void do_repeat(int argc, const char *argv[])
+{
+    switch (argc)
+    {
+        case 0:
+        case 1:
+        {
+            printf("usage: repeat <count> <command> [args...]\n");
+            break;
+        }
+        default:
+        {
+            int count = atoi(argv[0]);
+            for (int i = 0; i < count; i++)
+            {
+                const char *program = argv[1];
+                int new_argc = argc - 2;
+                const char **new_argv = &argv[2];
+
+                if (do_builtin(program, new_argc, new_argv))
+                    continue;
+
+                if (!do_program(program, new_argc, new_argv))
+                    printf("repeat: %s: command not found\n", program);
+            }
+            break;
+        }
+    }
+}
+
 void do_version(int argc, const char *argv[])
 {
     MOS_UNUSED(argc);
@@ -119,6 +149,7 @@ const command_t builtin_commands[] = {
     { .command = "echo", .action = do_echo, .description = "Echo arguments" },
     { .command = "help", .action = do_help, .description = "Show this help" },
     { .command = "pwd", .action = do_pwd, .description = "Print the current directory" },
+    { .command = "repeat", .action = do_repeat, .description = "Repeat a command a number of times" },
     { .command = "version", .action = do_version, .description = "Show version information" },
     { .command = "which", .action = do_which, .description = "Show the full path of a command" },
     { .command = NULL, .action = NULL, .description = NULL },

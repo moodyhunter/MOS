@@ -200,3 +200,37 @@ char *readline(const char *prompt)
 
     return "";
 }
+
+char *get_line(fd_t fd)
+{
+    char *line_buffer = malloc(LINE_BUFFER_SIZE);
+    if (!line_buffer)
+        return NULL;
+
+    memzero(line_buffer, LINE_BUFFER_SIZE);
+
+    char c;
+    int i = 0;
+    while (i < LINE_BUFFER_SIZE - 1)
+    {
+        size_t read = syscall_io_read(fd, &c, 1);
+
+        if (read == 0 && i == 0)
+        {
+            free(line_buffer);
+            return NULL; // EOF
+        }
+
+        if (read != 1)
+            break;
+
+        if (c == '\n')
+            break;
+
+        line_buffer[i] = c;
+        i++;
+    }
+
+    line_buffer[i] = '\0';
+    return line_buffer;
+}

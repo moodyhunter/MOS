@@ -19,7 +19,7 @@ const char *PATH[] = {
     NULL,
 };
 
-static bool do_program(const char *prog, int argc, const char **argv)
+bool do_program(const char *prog, int argc, const char **argv)
 {
     prog = locate_program(prog);
     if (!prog)
@@ -37,7 +37,7 @@ static bool do_program(const char *prog, int argc, const char **argv)
     return true;
 }
 
-static bool do_builtin(const char *command, int argc, const char **argv)
+bool do_builtin(const char *command, int argc, const char **argv)
 {
     for (int i = 0; builtin_commands[i].command; i++)
     {
@@ -77,6 +77,28 @@ static void do_execute_line(char *line)
     free(new_argv);
 }
 
+static int do_interpret_script(const char *path)
+{
+    fd_t fd = syscall_vfs_open(path, OPEN_READ);
+    if (fd < 0)
+    {
+        dprintf(stderr, "Failed to open '%s'\n", path);
+        return 1;
+    }
+
+    char *line = get_line(fd);
+    while (line)
+    {
+        printf("<script>: %s\n", line);
+        do_execute_line(line);
+        free(line);
+        line = get_line(fd);
+    }
+
+    syscall_io_close(fd);
+    return 0;
+}
+
 static const argparse_arg_t mossh_options[] = {
     { "help", 'h', ARGPARSE_NONE },
     { "version", 'v', ARGPARSE_NONE },
@@ -101,7 +123,7 @@ int main(int argc, const char **argv)
         {
             case 'h': do_execute_line("help"); return 0;
             case 'v': do_execute_line("version"); return 0;
-            case 'c': dprintf(stderr, "TODO: execute command"); return 0;
+            case 'c': return do_interpret_script(argv[2]);
             default: do_execute_line("help"); return 1;
         }
     }
