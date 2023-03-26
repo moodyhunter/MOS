@@ -134,7 +134,7 @@ bool liballoc_free_page(void *vptr, size_t npages)
 {
     MOS_UNUSED(npages);
     MOS_UNUSED(vptr);
-    dprintf(stderr, "liballoc_free_page not implemented\n");
+    syscall_munmap(vptr, npages);
     return false;
 }
 

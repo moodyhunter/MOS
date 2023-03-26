@@ -111,7 +111,5 @@ int main(int argc, char **argv)
     run_single_test("Spinlock", &spinlock);
     run_single_test("Mutex", &mutex);
 
-    while (1)
-        ;
     return 0;
 }
