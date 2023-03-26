@@ -104,3 +104,21 @@ bool vfs_mkdir(const char *path);
  * @return size_t The number of bytes read, or 0 if the end of the directory was reached
  */
 size_t vfs_list_dir(io_t *io, char *buf, size_t size);
+
+/**
+ * @brief Change the current working directory
+ *
+ * @param path The path to the new working directory
+ * @return true
+ * @return false
+ */
+bool vfs_chdir(const char *path);
+
+/**
+ * @brief Get the current working directory
+ *
+ * @param buf The buffer to store the path in
+ * @param size The size of the buffer
+ * @return ssize_t The size of the path, or 0 if the buffer was too small
+ */
+ssize_t vfs_getcwd(char *buf, size_t size);

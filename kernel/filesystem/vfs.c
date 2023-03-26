@@ -344,3 +344,28 @@ size_t vfs_list_dir(io_t *io, char *buf, size_t size)
     file->offset = state.dir_nth;
     return written;
 }
+
+bool vfs_chdir(const char *path)
+{
+    mos_debug(vfs, "vfs_chdir('%s')", path);
+    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
+    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_DIR);
+    if (dentry == NULL)
+        return false;
+
+    dentry_t *old_cwd = dentry_from_fd(FD_CWD);
+    if (old_cwd)
+        dentry_unref(old_cwd);
+
+    current_process->working_directory = dentry;
+    return true;
+}
+
+ssize_t vfs_getcwd(char *buf, size_t size)
+{
+    dentry_t *cwd = dentry_from_fd(FD_CWD);
+    if (cwd == NULL)
+        return -1;
+
+    return dentry_path(cwd, root_dentry, buf, size);
+}

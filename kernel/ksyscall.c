@@ -349,3 +349,13 @@ bool define_syscall(munmap)(void *addr, size_t size)
 {
     return munmap((uintptr_t) addr, size);
 }
+
+bool define_syscall(vfs_chdir)(const char *path)
+{
+    return vfs_chdir(path);
+}
+
+ssize_t define_syscall(vfs_getcwd)(char *buf, size_t size)
+{
+    return vfs_getcwd(buf, size);
+}

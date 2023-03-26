@@ -242,6 +242,18 @@
             "name": "munmap",
             "return": "bool",
             "arguments": [ { "type": "void *", "arg": "addr" }, { "type": "size_t", "arg": "size" } ]
+        },
+        {
+            "number": 35,
+            "name": "vfs_chdir",
+            "return": "bool",
+            "arguments": [ { "type": "const char *", "arg": "path" } ]
+        },
+        {
+            "number": 36,
+            "name": "vfs_getcwd",
+            "return": "ssize_t",
+            "arguments": [ { "type": "char *", "arg": "buf" }, { "type": "size_t", "arg": "buf_size" } ]
         }
     ]
 }

@@ -165,4 +165,15 @@ __nodiscard bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t
  */
 size_t dentry_list(dentry_t *dir, dir_iterator_state_t *state);
 
+/**
+ * @brief Get the path of a dentry
+ *
+ * @param dentry The dentry to get the path of
+ * @param root The root directory, the path will not go above this directory
+ * @param buf The buffer to write the path to
+ * @param size The size of the buffer
+ * @return ssize_t
+ */
+ssize_t dentry_path(dentry_t *dentry, dentry_t *root, char *buf, size_t size);
+
 /**@}*/
