@@ -263,7 +263,7 @@ static bool cpio_i_lookup(inode_t *parent_dir, dentry_t *dentry)
     // keep prepending the path with the parent path, until we reach the root
     char *path = strdup(dentry->name);
 
-    for (dentry_t *current = tree_parent(dentry, dentry_t); current->name != NULL; current = tree_parent(current, dentry_t))
+    for (dentry_t *current = tree_parent(dentry, dentry_t); current != parent_dir->superblock->root; current = tree_parent(current, dentry_t))
     {
         char *newpath = kmalloc(strlen(current->name) + 1 + strlen(path) + 1);
         strcpy(newpath, current->name);
