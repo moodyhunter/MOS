@@ -5,6 +5,33 @@
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs_types.h>
 
+/**
+ * @defgroup dentry Directory Entry
+ * @brief Directory entry
+ * @ingroup vfs
+ *
+ * @details
+ * A dentry is a directory entry, it is a reference to an inode.
+ *
+ * dentry cache policy: The function who references the dentry should be
+ * responsible for unrefing it.
+ *
+ * All existing files' dentries have a reference count of 0 at the start.
+ * When a file is opened, the dentry will be referenced, and the reference
+ * count will be incremented by 1.
+ *
+ * For all directories, the initial reference count is also 0, but when
+ * a directory is opened, the reference count will be incremented by 1.
+ *
+ * When mounting a filesystem, the root dentry of the filesystem is
+ * inserted into the dentry cache, and will have a reference count of 1.
+ * The mountpoint itself will have its reference count incremented by 1.
+ *
+ * For the root dentry ("/"), the reference count is 2, one for the mountpoint,
+ * and one for the dentry cache.
+ * @{
+ */
+
 typedef enum
 {
     // bit 0, 1: the operation only succeeds if the inode is a...
@@ -21,11 +48,11 @@ typedef enum
     RESOLVE_EXPECT_NONEXIST = 1 << 4,
 
     // bit 5: the operation will...
-    RESOLVE_WILL_CREATE = 1 << 5, // create the file if it doesn't exist
+    RESOLVE_MAY_CREATE = 1 << 5, // create the file if it doesn't exist
 
     // compose the flags
-    RESOLVE_CREATE_ONLY = RESOLVE_EXPECT_NONEXIST | RESOLVE_WILL_CREATE,
-    RESOLVE_CREATE_IF_NONEXIST = RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_NONEXIST | RESOLVE_WILL_CREATE,
+    RESOLVE_CREATE_ONLY = RESOLVE_EXPECT_NONEXIST | RESOLVE_MAY_CREATE,
+    RESOLVE_CREATE_IF_NONEXIST = RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_NONEXIST | RESOLVE_MAY_CREATE,
     RESOLVE_FOR_STAT = RESOLVE_EXPECT_FILE | RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST | RESOLVE_SYMLINK_NOFOLLOW,
 } lastseg_resolve_flags_t;
 
@@ -51,11 +78,16 @@ should_inline bool path_is_absolute(const char *path)
  * @param dentry The dentry to increment the reference count of
  * @return the dentry itself
  */
-should_inline dentry_t *dentry_ref(dentry_t *dentry)
-{
-    dentry->refcount++;
-    return dentry;
-}
+dentry_t *dentry_ref(dentry_t *dentry);
+
+/**
+ * @brief Increment the reference count of a dentry up to a given dentry
+ *
+ * @param dentry The dentry to increment the reference count of
+ * @param root The dentry to stop at
+ * @return dentry_t* The dentry itself
+ */
+dentry_t *dentry_ref_up_to(dentry_t *dentry, dentry_t *root);
 
 /**
  * @brief Decrement the reference count of a dentry
@@ -71,7 +103,7 @@ void dentry_unref(dentry_t *dentry);
  * @param parent The parent dentry
  *
  * @return The new dentry, or NULL if the dentry could not be created
- * @note The returned dentry will have its reference count incremented.
+ * @note The returned dentry will have its reference count of 0.
  */
 dentry_t *dentry_create(dentry_t *parent, const char *name);
 
@@ -101,7 +133,7 @@ dentry_t *dentry_get_child(dentry_t *parent, const char *name);
  * @details If the path is absolute, the base is ignored and the path starts from the root_dir
  *          If the path is relative, the base is used as the starting points
  *
- * @param base The base directory when resolving the path, this is used as a starting point when the path is relative
+ * @param starting_dir The starting directory when resolving a [relative] path
  * @param root_dir the root directory when resolving the path, the resolved path will not go above this directory
  * @param path The path to resolve, can be absolute or relative
  * @param flags Flags to control the behavior of the path resolution, see \ref lastseg_resolve_flags_t
@@ -110,7 +142,7 @@ dentry_t *dentry_get_child(dentry_t *parent, const char *name);
  *         NULL if any intermediate directory in the path does not exist.
  *
  */
-dentry_t *dentry_get(dentry_t *base, dentry_t *root_dir, const char *path, lastseg_resolve_flags_t flags);
+dentry_t *dentry_get(dentry_t *starting_dir, dentry_t *root_dir, const char *path, lastseg_resolve_flags_t flags);
 
 /**
  * @brief Mount a filesystem at a mountpoint
@@ -132,3 +164,5 @@ __nodiscard bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t
  * @return The number of bytes written to the buffer, which is contained in the state object
  */
 size_t dentry_list(dentry_t *dir, dir_iterator_state_t *state);
+
+/**@}*/

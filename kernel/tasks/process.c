@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <mos/filesystem/dentry.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/io/terminal.h>
 #include <mos/lib/structures/hashmap.h>
@@ -100,7 +101,7 @@ process_t *process_new(process_t *parent, const char *name, terminal_t *term, th
     vmblock_t heap = mm_alloc_pages(proc->pagetable, 1, MOS_ADDR_USER_HEAP, VALLOC_DEFAULT, VM_USER_RW);
     process_attach_mmap(proc, heap, VMTYPE_HEAP, (vmap_flags_t){ 0 });
 
-    proc->working_directory = parent ? parent->working_directory : root_dentry;
+    proc->working_directory = dentry_ref_up_to(parent ? parent->working_directory : root_dentry, root_dentry);
 
     void *old_proc = hashmap_put(process_table, proc->pid, proc);
     MOS_ASSERT_X(old_proc == NULL, "process already exists, go and buy yourself a lottery :)");
@@ -259,6 +260,8 @@ void process_handle_exit(process_t *process, int exit_code)
 
     mos_debug(process, "closed %zu/%zu files owned by %ld", files_already_closed, files_total, process->pid);
 
+    dentry_unref(process->working_directory);
+
     waitlist_close(&process->waiters);
     waitlist_wake(&process->waiters, INT_MAX);
 }
@@ -306,7 +309,7 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
         MOS_ASSERT(new_part.npages == npages);
     }
 
-    pr_info2("grew heap of process %ld by %zu pages", process->pid, npages);
+    mos_debug(process, "grew heap of process %ld by %zu pages", process->pid, npages);
     heap->blk.npages += npages;
     spinlock_release(&heap->lock);
     return heap_top + npages * MOS_PAGE_SIZE;

@@ -77,11 +77,13 @@ typedef struct _dentry
     spinlock_t lock;
     atomic_t refcount;
     inode_t *inode;
-    const char *name;
+    const char *name;         // for a mounted root, this is NULL
     superblock_t *superblock; // The root of the dentry tree
     bool is_mountpoint;
     void *private; // fs-specific data
 } dentry_t;
+
+#define dentry_name(dentry) ((dentry)->name ? (dentry)->name : "<NULL>")
 
 typedef struct _inode
 {

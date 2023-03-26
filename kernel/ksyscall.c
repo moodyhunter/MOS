@@ -43,7 +43,7 @@ fd_t define_syscall(vfs_open)(const char *path, open_flags flags)
 
 bool define_syscall(vfs_stat)(const char *path, file_stat_t *stat)
 {
-    if (path == NULL || stat == NULL)
+    if (!path)
         return false;
 
     return vfs_stat(path, stat);

@@ -158,24 +158,31 @@ bool vfs_mount(const char *device, const char *path, const char *fs, const char 
     {
         // special case: mount root filesystem
         MOS_ASSERT(strcmp(path, "/") == 0);
+        mos_debug(vfs, "mounting root filesystem '%s'...", fs);
         root_dentry = real_fs->mount(real_fs, device, options);
         if (root_dentry == NULL)
         {
             mos_warn("failed to mount root filesystem");
             return false;
         }
+        mos_debug(vfs, "root filesystem mounted, dentry=%p", (void *) root_dentry);
 
+        root_dentry->name = NULL;
+        dentry_ref(root_dentry); // it itself is a mount point
         return true;
     }
 
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
-    dentry_t *mount_point = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST);
-    if (unlikely(mount_point == NULL))
+    dentry_t *mountpoint = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST);
+    if (unlikely(mountpoint == NULL))
     {
         mos_warn("mount point does not exist");
         return false;
     }
 
+    // when mounting:
+    // mounted_root will have a reference of 1
+    // the mount_point will have its reference incremented by 1
     dentry_t *mounted_root = real_fs->mount(real_fs, device, options);
     if (mounted_root == NULL)
     {
@@ -183,15 +190,12 @@ bool vfs_mount(const char *device, const char *path, const char *fs, const char 
         return false;
     }
 
-    bool mounted = dentry_mount(mount_point, mounted_root, real_fs);
+    const bool mounted = dentry_mount(mountpoint, mounted_root, real_fs);
     if (unlikely(!mounted))
     {
         mos_warn("failed to mount filesystem");
         return false;
     }
-
-    MOS_ASSERT(tree_parent(mounted_root, dentry_t) == NULL);
-    tree_node(mounted_root)->parent = tree_node(tree_parent(mount_point, dentry_t));
 
     pr_info2("mounted filesystem '%s' on '%s'", fs, path);
     return true;
@@ -204,6 +208,7 @@ file_t *vfs_open(const char *path, open_flags flags)
 
 file_t *vfs_openat(int fd, const char *path, open_flags flags)
 {
+    mos_debug(vfs, "vfs_openat(fd=%d, path='%s', flags=%x)", fd, path, flags);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);
     file_t *file = vfs_do_open_relative(base, path, flags);
     return file;
@@ -211,6 +216,7 @@ file_t *vfs_openat(int fd, const char *path, open_flags flags)
 
 bool vfs_stat(const char *path, file_stat_t *restrict stat)
 {
+    mos_debug(vfs, "vfs_stat(path='%s', stat=%p)", path, (void *) stat);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
     dentry_t *file = dentry_get(base, root_dentry, path, RESOLVE_FOR_STAT);
     if (file == NULL)
@@ -218,6 +224,8 @@ bool vfs_stat(const char *path, file_stat_t *restrict stat)
 
     if (stat)
         *stat = file->inode->stat;
+
+    dentry_unref(file);
     return true;
 }
 
@@ -255,6 +263,7 @@ size_t vfs_readlink(const char *path, char *buf, size_t size)
 
 bool vfs_touch(const char *path, file_type_t type, u32 perms)
 {
+    mos_debug(vfs, "vfs_touch(path='%s', type=%d, perms=%o)", path, type, perms);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
     dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_CREATE_IF_NONEXIST);
     if (dentry == NULL)
@@ -282,6 +291,7 @@ bool vfs_touch(const char *path, file_type_t type, u32 perms)
 
 bool vfs_symlink(const char *path, const char *target)
 {
+    mos_debug(vfs, "vfs_symlink(path='%s', target='%s')", path, target);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
     dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_CREATE_ONLY);
     if (dentry == NULL)
@@ -298,6 +308,7 @@ bool vfs_symlink(const char *path, const char *target)
 
 bool vfs_mkdir(const char *path)
 {
+    mos_debug(vfs, "vfs_mkdir('%s')", path);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
     dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_CREATE_ONLY | RESOLVE_EXPECT_DIR);
     if (dentry == NULL)
@@ -314,6 +325,7 @@ bool vfs_mkdir(const char *path)
 
 size_t vfs_list_dir(io_t *io, char *buf, size_t size)
 {
+    mos_debug(vfs, "vfs_list_dir(io=%p, buf=%p, size=%zu)", (void *) io, (void *) buf, size);
     file_t *file = container_of(io, file_t, io);
     if (unlikely(file->dentry->inode->stat.type != FILE_TYPE_DIRECTORY))
     {
