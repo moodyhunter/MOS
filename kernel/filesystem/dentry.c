@@ -12,6 +12,7 @@
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
 #include <mos/tasks/task_types.h>
+#include <stdio.h>
 #include <string.h>
 
 // A path in its string form is composed of "segments" separated
