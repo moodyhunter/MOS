@@ -86,8 +86,8 @@ static bool mount_filesystems(void)
 #define DYN_ERROR_CODE (__COUNTER__ + 1)
 
 static const argparse_arg_t longopts[] = {
-    { "config", 'c', ARGPARSE_REQUIRED }, // configuration file, default: /initrd/config/init.conf
-    { "shell", 's', ARGPARSE_REQUIRED },  // the shell or another program to launch
+    { "config", 'C', ARGPARSE_REQUIRED }, // configuration file, default: /initrd/config/init.conf
+    { "shell", 'S', ARGPARSE_REQUIRED },  // the shell or another program to launch
     { 0 },
 };
 
@@ -107,8 +107,9 @@ int main(int argc, const char *argv[])
 
         switch (option)
         {
-            case 'c': config_file = options.optarg; break;
-            case 's': shell = options.optarg; break;
+            case 'C': config_file = options.optarg; break;
+            case 'S': shell = options.optarg; break;
+            default: printf("Unknown option: %c\n", option);
         }
     }
 
@@ -131,6 +132,7 @@ int main(int argc, const char *argv[])
     int shell_argc = 0;
 
     const char *arg;
+    argparse_init(&options, argv); // reset the options
     while ((arg = argparse_arg(&options)))
     {
         shell_argc++;
