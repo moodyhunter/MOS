@@ -1,6 +1,7 @@
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
+#include <mos/filesystem/vfs_types.h>
 #include <mos/io/io.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/structures/tree.h>
@@ -33,7 +34,10 @@ static size_t vfs_io_ops_read(io_t *io, void *buf, size_t count)
 {
     file_t *file = container_of(io, file_t, io);
     spinlock_acquire(&file->offset_lock);
-    size_t ret = file_get_ops(file)->read(file, buf, count, file->offset);
+    const file_ops_t *const file_ops = file_get_ops(file);
+    if (!file_ops || !file_ops->read)
+        return 0;
+    size_t ret = file_ops->read(file, buf, count, file->offset);
     file->offset += ret;
     spinlock_release(&file->offset_lock);
     return ret;
@@ -43,7 +47,10 @@ static size_t vfs_io_ops_write(io_t *io, const void *buf, size_t count)
 {
     file_t *file = container_of(io, file_t, io);
     spinlock_acquire(&file->offset_lock);
-    size_t ret = file_get_ops(file)->write(file, buf, count, file->offset);
+    const file_ops_t *const file_ops = file_get_ops(file);
+    if (!file_ops || !file_ops->write)
+        return 0;
+    size_t ret = file_ops->write(file, buf, count, file->offset);
     file->offset += ret;
     spinlock_release(&file->offset_lock);
     return ret;

@@ -12,6 +12,18 @@ typedef struct _process process_t; // forward declaration
 
 should_inline const file_ops_t *file_get_ops(file_t *file)
 {
+    if (!file)
+        return NULL;
+
+    if (!file->dentry)
+        return NULL;
+
+    if (!file->dentry->inode)
+        return NULL;
+
+    if (!file->dentry->inode->file_ops)
+        return NULL;
+
     return file->dentry->inode->file_ops;
 }
 
