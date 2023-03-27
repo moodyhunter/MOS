@@ -10,6 +10,9 @@
 #include <mos/types.h>
 #include <mos/x86/delays.h>
 #include <stdio.h>
+#include <string.h>
+
+static bool quiet = false;
 
 #define N_THREADS  10
 #define N_WORKLOAD 50000
@@ -52,7 +55,8 @@ static tid_t threads[N_THREADS] = { 0 };
 static void thread_do_work(void *arg)
 {
     const lock_t *lock = (const lock_t *) arg;
-    printf("Thread %ld started!\n", syscall_get_tid());
+    if (!quiet)
+        printf("Thread %ld started!\n", syscall_get_tid());
     lock->acquire();
     for (size_t i = 0; i < N_WORKLOAD; i++)
     {
@@ -62,7 +66,8 @@ static void thread_do_work(void *arg)
         counter = current_count;
     };
     lock->release();
-    printf("Thread %ld finished!\n", syscall_get_tid());
+    if (!quiet)
+        printf("Thread %ld finished!\n", syscall_get_tid());
 }
 
 static void run_single_test(const char *name, const lock_t *lock)
@@ -106,6 +111,9 @@ int main(int argc, char **argv)
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
     open_console();
+
+    if (argc > 1 && strcmp(argv[1], "-q") == 0)
+        quiet = true;
 
     run_single_test("No Lock", &no_lock);
     run_single_test("Spinlock", &spinlock);
