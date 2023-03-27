@@ -36,7 +36,7 @@ s32 strncmp(const char *str1, const char *str2, size_t n)
     return 0;
 }
 
-void *memcpy(void *restrict dest, const void *restrict src, size_t n)
+void *memcpy(void *__restrict dest, const void *__restrict src, size_t n)
 {
     typedef s64 largeint_t;
     largeint_t *ldest = (largeint_t *) dest;
@@ -111,7 +111,7 @@ void memzero(void *s, size_t n)
     }
 }
 
-char *strcpy(char *restrict dest, const char *restrict src)
+char *strcpy(char *__restrict dest, const char *__restrict src)
 {
     while (*src)
         *dest++ = *src++;
@@ -119,7 +119,7 @@ char *strcpy(char *restrict dest, const char *restrict src)
     return dest;
 }
 
-char *strcat(char *restrict dest, const char *restrict src)
+char *strcat(char *__restrict dest, const char *__restrict src)
 {
     while (*dest)
         dest++;
@@ -129,7 +129,7 @@ char *strcat(char *restrict dest, const char *restrict src)
     return dest;
 }
 
-char *strncpy(char *restrict dest, const char *restrict src, size_t n)
+char *strncpy(char *__restrict dest, const char *__restrict src, size_t n)
 {
     while (n > 0 && *src)
     {

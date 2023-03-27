@@ -10,19 +10,18 @@ bool do_cat_file(const char *path)
     fd_t fd = syscall_vfs_open(path, OPEN_READ);
     if (fd < 0)
     {
-        dprintf(stderr, "failed to open file '%s'\n", path);
+        fprintf(stderr, "failed to open file '%s'\n", path);
         return false;
     }
 
-    char buffer[BUFSIZE];
-
     do
     {
+        char buffer[BUFSIZE] = { 0 };
         size_t sz = syscall_io_read(fd, buffer, BUFSIZE);
         if (sz == 0)
             break;
 
-        syscall_io_write(stdout, buffer, sz);
+        fwrite(buffer, 1, sz, stdout);
     } while (true);
 
     syscall_io_close(fd);
@@ -34,7 +33,7 @@ int main(int argc, char *argv[])
 {
     if (argc < 2)
     {
-        dprintf(stderr, "usage: cat <file>...\n");
+        fputs("usage: cat <file>...\n", stderr);
         return 1;
     }
 

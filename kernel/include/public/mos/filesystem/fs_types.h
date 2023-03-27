@@ -40,6 +40,8 @@ typedef enum
     OPEN_CREATE = 1 << 4,
     OPEN_TRUNCATE = 1 << 5,
     OPEN_DIR = 1 << 6,
+    OPEN_APPEND = 1 << 7,
+    OPEN_EXCLUSIVE = 1 << 8,
 } open_flags;
 
 typedef struct

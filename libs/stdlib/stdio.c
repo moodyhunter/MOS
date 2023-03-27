@@ -3,7 +3,7 @@
 #include <limits.h>
 #include <stdio.h>
 
-int sprintf(char *restrict str, const char *restrict format, ...)
+int sprintf(char *__restrict str, const char *__restrict format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -12,7 +12,7 @@ int sprintf(char *restrict str, const char *restrict format, ...)
     return ret;
 }
 
-int snprintf(char *restrict str, size_t size, const char *restrict format, ...)
+int snprintf(char *__restrict str, size_t size, const char *__restrict format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -21,7 +21,7 @@ int snprintf(char *restrict str, size_t size, const char *restrict format, ...)
     return ret;
 }
 
-int vsprintf(char *restrict str, const char *restrict format, va_list ap)
+int vsprintf(char *__restrict str, const char *__restrict format, va_list ap)
 {
     return vsnprintf(str, INT_MAX, format, ap);
 }

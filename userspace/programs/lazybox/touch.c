@@ -7,14 +7,14 @@
 void do_touch(const char *path)
 {
     if (!syscall_vfs_touch(path, FILE_TYPE_REGULAR, 0755))
-        dprintf(stderr, "failed to touch file '%s'\n", path);
+        fprintf(stderr, "failed to touch file '%s'\n", path);
 }
 
 int main(int argc, char **argv)
 {
     if (argc < 2)
     {
-        dprintf(stderr, "usage: touch <file>...\n");
+        fputs("usage: touch <file>...\n", stderr);
         return 1;
     }
 

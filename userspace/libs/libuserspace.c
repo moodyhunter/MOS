@@ -3,10 +3,12 @@
 #include "libuserspace.h"
 
 #include "liballoc.h"
+#include "struct_file.h"
 
 #include <mos/syscall/usermode.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 typedef struct thread_start_args
@@ -44,26 +46,6 @@ static void __attribute__((constructor)) __liballoc_userspace_init(void)
     liballoc_init();
 }
 
-void *malloc(size_t size)
-{
-    return liballoc_malloc(size);
-}
-
-void free(void *ptr)
-{
-    liballoc_free(ptr);
-}
-
-void *calloc(size_t nmemb, size_t size)
-{
-    return liballoc_calloc(nmemb, size);
-}
-
-void *realloc(void *ptr, size_t size)
-{
-    return liballoc_realloc(ptr, size);
-}
-
 void _start(size_t argc, char **argv)
 {
     extern int main(int argc, char **argv);
@@ -75,6 +57,17 @@ void _start(size_t argc, char **argv)
     syscall_exit(r);
 }
 
+void fatal_abort(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    fprintf(stderr, fmt, ap);
+    va_end(ap);
+    exit(-1);
+    while (1)
+        ;
+}
+
 static void thread_start(void *_arg)
 {
     thread_entry_t entry = ((thread_start_args_t *) _arg)->entry;
@@ -84,89 +77,10 @@ static void thread_start(void *_arg)
     syscall_thread_exit();
 }
 
-int vdprintf(int fd, const char *fmt, va_list ap)
-{
-    char buf[256];
-    int len = vsnprintf(buf, sizeof(buf), fmt, ap);
-    syscall_io_write(fd, buf, len - 1); // -1 because vsnprintf includes the null terminator
-    return len;
-}
-
-int dprintf(int fd, const char *fmt, ...)
-{
-    va_list ap;
-    va_start(ap, fmt);
-    int size = vdprintf(fd, fmt, ap);
-    va_end(ap);
-    return size;
-}
-
-int printf(const char *fmt, ...)
-{
-    va_list ap;
-    va_start(ap, fmt);
-    int size = vdprintf(stdout, fmt, ap);
-    va_end(ap);
-    return size;
-}
-
-void fatal_abort(const char *fmt, ...)
-{
-    va_list ap;
-    va_start(ap, fmt);
-    vdprintf(stderr, fmt, ap);
-    va_end(ap);
-    syscall_exit(-1);
-    while (1)
-        ;
-}
-
-void *liballoc_alloc_page(size_t npages)
-{
-    uintptr_t new_top = syscall_heap_control(HEAP_GROW_PAGES, npages);
-    if (new_top == 0)
-        return NULL;
-
-    return (void *) (new_top - npages * MOS_PAGE_SIZE);
-}
-
-bool liballoc_free_page(void *vptr, size_t npages)
-{
-    MOS_UNUSED(npages);
-    MOS_UNUSED(vptr);
-    syscall_munmap(vptr, npages);
-    return false;
-}
-
 tid_t start_thread(const char *name, thread_entry_t entry, void *arg)
 {
     thread_start_args_t *thread_start_args = malloc(sizeof(thread_start_args_t));
     thread_start_args->entry = entry;
     thread_start_args->arg = arg;
     return syscall_create_thread(name, thread_start, thread_start_args);
-}
-
-void exit(int status)
-{
-    syscall_exit(status);
-}
-
-int getchar(void)
-{
-    char c;
-    syscall_io_read(stdin, &c, 1);
-    return c;
-}
-
-int putchar(int c)
-{
-    char ch = c;
-    syscall_io_write(stdout, &ch, 1);
-    return c;
-}
-
-int puts(const char *s)
-{
-    syscall_io_write(stdout, s, strlen(s));
-    return putchar('\n');
 }

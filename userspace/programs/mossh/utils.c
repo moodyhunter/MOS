@@ -17,7 +17,7 @@ const char *locate_program(const char *prog)
             if (stat.type == FILE_TYPE_SYMLINK || stat.type == FILE_TYPE_REGULAR)
                 return strdup(prog);
 
-            dprintf(stderr, "Not a file: '%s'\n", prog);
+            fprintf(stderr, "Not a file: '%s'\n", prog);
         }
 
         return NULL;
@@ -34,7 +34,7 @@ const char *locate_program(const char *prog)
             if (stat.type == FILE_TYPE_SYMLINK || stat.type == FILE_TYPE_REGULAR)
                 return path;
 
-            dprintf(stderr, "Not a file: '%s'\n", path);
+            fprintf(stderr, "Not a file: '%s'\n", path);
         }
 
         free(path);

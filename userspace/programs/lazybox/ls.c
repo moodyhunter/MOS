@@ -5,6 +5,7 @@
 #include <mos/filesystem/fs_types.h>
 #include <mos/syscall/usermode.h>
 #include <mos/types.h>
+#include <stdio.h>
 
 #define BUFSIZE 256
 
@@ -21,12 +22,11 @@ int main(int argc, char *argv[])
     fd_t dirfd = syscall_vfs_open(path, OPEN_READ | OPEN_DIR);
     if (dirfd < 0)
     {
-        dprintf(stderr, "failed to open directory '%s'\n", path);
+        fprintf(stderr, "failed to open directory '%s'\n", path);
         return 1;
     }
 
-    printf("Directory listing of '%s':\n", path);
-    printf("\n");
+    printf("Directory listing of '%s':\n\n", path);
     printf("%-10s %-10s %-10s\n", "Inode", "Type", "Name");
 
     char buffer[BUFSIZE];

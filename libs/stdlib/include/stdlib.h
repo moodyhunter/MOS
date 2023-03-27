@@ -26,11 +26,12 @@ MOSAPI void format_size(char *buf, size_t buf_size, u64 size);
 
 // defined in libuserspace
 #ifndef __MOS_KERNEL__
-MOSAPI void exit(int status);
 MOSAPI __malloc void *malloc(size_t size);
 MOSAPI void free(void *ptr);
 MOSAPI void *calloc(size_t nmemb, size_t size);
 MOSAPI void *realloc(void *ptr, size_t size);
+
+MOSAPI void exit(int status);
 #endif
 
 /** @} */

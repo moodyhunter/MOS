@@ -9,6 +9,7 @@
 #include <libipc/ipc.h>
 #include <mos/lib/sync/mutex.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 
 #ifdef __MOS_KERNEL__

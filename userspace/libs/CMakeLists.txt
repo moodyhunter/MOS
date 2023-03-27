@@ -3,6 +3,8 @@
 add_library(libuserspace OBJECT
     libuserspace.c
     libuserspace++.cpp
+    stdio.c
+    stdlib.c
     cxa.c
 )
 

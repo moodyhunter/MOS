@@ -6,14 +6,14 @@
 void do_mkdir(const char *path)
 {
     if (!syscall_vfs_mkdir(path))
-        dprintf(stderr, "failed to create directory '%s'\n", path);
+        fprintf(stderr, "failed to create directory '%s'\n", path);
 }
 
 int main(int argc, char **argv)
 {
     if (argc < 2)
     {
-        dprintf(stderr, "usage: mkdir <dir>...\n");
+        fputs("usage: mkdir <dir>...\n", stderr);
         return 1;
     }
 

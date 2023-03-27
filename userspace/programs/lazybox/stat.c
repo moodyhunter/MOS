@@ -10,7 +10,7 @@ int main(int argc, char **argv)
 {
     if (argc < 2)
     {
-        dprintf(stderr, "Usage: %s <path>...\n", argv[0]);
+        fprintf(stderr, "Usage: %s <path>...\n", argv[0]);
         return 1;
     }
 
@@ -19,7 +19,7 @@ int main(int argc, char **argv)
         file_stat_t stat;
         if (!syscall_vfs_stat(argv[i], &stat))
         {
-            dprintf(stderr, "%s: No such file or directory\n", argv[i]);
+            fprintf(stderr, "%s: No such file or directory\n", argv[i]);
             return 1;
         }
 
@@ -27,14 +27,14 @@ int main(int argc, char **argv)
         printf("File size: %zd bytes\n", stat.size);
         switch (stat.type)
         {
-            case FILE_TYPE_REGULAR: printf("Type: Regular file\n"); break;
-            case FILE_TYPE_DIRECTORY: printf("Type: Directory\n"); break;
-            case FILE_TYPE_CHAR_DEVICE: printf("Type: Character device\n"); break;
-            case FILE_TYPE_BLOCK_DEVICE: printf("Type: Block device\n"); break;
-            case FILE_TYPE_NAMED_PIPE: printf("Type: Pipe\n"); break;
-            case FILE_TYPE_SOCKET: printf("Type: Socket\n"); break;
-            case FILE_TYPE_SYMLINK: printf("Type: Symbolic link\n"); break;
-            default: printf("Type: Unknown\n"); break;
+            case FILE_TYPE_REGULAR: puts("Type: Regular file"); break;
+            case FILE_TYPE_DIRECTORY: puts("Type: Directory"); break;
+            case FILE_TYPE_CHAR_DEVICE: puts("Type: Character device"); break;
+            case FILE_TYPE_BLOCK_DEVICE: puts("Type: Block device"); break;
+            case FILE_TYPE_NAMED_PIPE: puts("Type: Pipe"); break;
+            case FILE_TYPE_SOCKET: puts("Type: Socket"); break;
+            case FILE_TYPE_SYMLINK: puts("Type: Symbolic link"); break;
+            default: puts("Type: Unknown"); break;
         }
 
         printf("Owner: %ld:%ld\n", stat.uid, stat.gid);

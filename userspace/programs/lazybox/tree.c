@@ -21,7 +21,7 @@ static void do_tree(void)
     const fd_t dirfd = syscall_vfs_open(".", OPEN_READ | OPEN_DIR);
     if (dirfd < 0)
     {
-        dprintf(stderr, "failed to open directory\n");
+        fprintf(stderr, "failed to open directory\n");
         return;
     }
 
@@ -61,13 +61,13 @@ int main(int argc, char **argv)
 {
     if (argc < 2 || argc > 3)
     {
-        dprintf(stderr, "usage: tree <dir>\n");
+        fputs("usage: tree <dir>\n", stderr);
         return 1;
     }
 
     if (!syscall_vfs_chdir(argv[1]))
     {
-        dprintf(stderr, "failed to chdir to '%s'\n", argv[1]);
+        fprintf(stderr, "failed to chdir to '%s'\n", argv[1]);
         return 1;
     }
 

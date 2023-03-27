@@ -28,7 +28,7 @@ bool do_program(const char *prog, int argc, const char **argv)
     pid_t pid = syscall_spawn(prog, argc, argv);
     if (pid == -1)
     {
-        dprintf(stderr, "Failed to execute '%s'\n", prog);
+        fprintf(stderr, "Failed to execute '%s'\n", prog);
         return false;
     }
 
@@ -72,7 +72,7 @@ static void do_execute_line(char *line)
 
     if (!do_builtin(prog, new_argc, new_argv))
         if (!do_program(prog, new_argc, new_argv))
-            dprintf(stderr, "'%s' is not recognized as an internal, operable program or batch file.\n", prog);
+            fprintf(stderr, "'%s' is not recognized as an internal, operable program or batch file.\n", prog);
 
     free(new_argv);
 }
@@ -82,7 +82,7 @@ static int do_interpret_script(const char *path)
     fd_t fd = syscall_vfs_open(path, OPEN_READ);
     if (fd < 0)
     {
-        dprintf(stderr, "Failed to open '%s'\n", path);
+        fprintf(stderr, "Failed to open '%s'\n", path);
         return 1;
     }
 
@@ -137,7 +137,7 @@ int main(int argc, const char **argv)
 
         if (sz <= 0)
         {
-            dprintf(stderr, "Failed to get current working directory.\n");
+            fputs("Failed to get current working directory.\n", stderr);
             cwdbuf[0] = '?';
             cwdbuf[1] = '\0';
         }

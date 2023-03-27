@@ -4,6 +4,7 @@
 
 #include <mos/lib/sync/spinlock.h>
 #include <mos/moslib_global.h>
+#include <stdio.h>
 #include <string.h>
 
 #ifdef __MOS_KERNEL__

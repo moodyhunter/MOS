@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "libuserspace++.hpp"
+#include "struct_file.h"
 
 #include <mos/lib/sync/mutex.h>
 #include <mos/types.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 void *__dso_handle = 0;
@@ -40,8 +42,8 @@ void operator delete[](void *ptr, long unsigned int) noexcept
 
 namespace mos
 {
-    output_stream cout(stdout);
-    output_stream cerr(stderr);
+    output_stream cout(stdout->fd);
+    output_stream cerr(stderr->fd);
 
     output_stream &endl(output_stream &os)
     {
