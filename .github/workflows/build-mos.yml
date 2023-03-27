@@ -66,9 +66,7 @@ jobs:
       - name: Build
         run: |
           cd ${{github.workspace}}/build
-          ninja ${{matrix.target}}
-          ninja mos_userspace_programs
-          ninja mos_initrd
+          ninja ${{matrix.target}} mos_userspace_programs mos_initrd
 
       - name: Upload Bootable Artifact
         if: matrix.run_tests == 'OFF'
@@ -87,8 +85,8 @@ jobs:
       - name: Run Tests
         if: matrix.run_tests == 'ON'
         id: run_tests
+        working-directory: ${{github.workspace}}/build
         run: |
-          cd ${{github.workspace}}/build
           cp ${{env.BOOTABLE}} test-failure.bin
           cp initrd.cpio test-failure-initrd.cpio
           ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh'"
@@ -100,3 +98,20 @@ jobs:
         with:
           name: MOS-${{matrix.target}}-${{matrix.build_type}}-failures.zip
           path: ${{github.workspace}}/build/test-failure.tar.gz
+
+      - name: Recompile with no debug messages
+        if: matrix.run_tests == 'ON'
+        working-directory: ${{github.workspace}}/build
+        run: |
+          cmake . -DMOS_DEBUG_ALL=OFF
+          ninja ${{matrix.target}} mos_userspace_programs mos_initrd
+
+      - name: Run Tests (no debug messages)
+        if: matrix.run_tests == 'ON'
+        working-directory: ${{github.workspace}}/build
+        run: ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh'"
+
+      - name: Run Tests (quiet)
+        if: matrix.run_tests == 'ON'
+        working-directory: ${{github.workspace}}/build
+        run: ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh' quiet"
