@@ -27,6 +27,8 @@ MOSAPI int vsnprintf(char *restrict buf, size_t size, const char *restrict forma
 
 #ifndef __MOS_KERNEL__ // for userspace only
 MOSAPI int getchar(void);
+MOSAPI int putchar(int c);
+MOSAPI int puts(const char *s);
 #endif
 
 /** @} */

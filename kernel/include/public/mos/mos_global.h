@@ -27,13 +27,18 @@
 
 #define to_union(u) __extension__(u)
 
-#define container_of(ptr, type, member) ((type *) ((char *) (ptr) - (offsetof(type, member))))
+#define __types_compatible(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
+#define do_container_of(ptr, type, member)                                                                                                                               \
+    __extension__({                                                                                                                                                      \
+        void *real_ptr = (void *) (ptr);                                                                                                                                 \
+        _Static_assert(__types_compatible(*(ptr), ((type *) 0)->member) || __types_compatible(*(ptr), void), "pointer type mismatch");                                   \
+        ((type *) (real_ptr - offsetof(type, member)));                                                                                                                  \
+    })
+
+#define container_of(ptr, type, member)                                                                                                                                  \
+    _Generic(ptr, const __typeof(*(ptr)) * : ((const type *) do_container_of(ptr, type, member)), default : ((type *) do_container_of(ptr, type, member)))
 
 #define add_const(x) (*(const __typeof__(x) *) (&(x)))
-
-#define is_const_instance(ptr, ptrtype, tval, fval)    _Generic((ptr), const ptrtype * : tval, ptrtype * : fval)
-#define select_const_cast(ptr, ptrtype, obj, objtype)  is_const_instance(ptr, ptrtype, (const objtype)(obj), (objtype) (obj))
-#define const_container_of(ptr, ptrtype, type, member) (select_const_cast(ptr, ptrtype, (container_of(ptr, type, member)), type *))
 
 #define GET_BIT(x, n)               (((x) >> (n)) & 1)
 #define MASK_BITS(value, width)     ((value) & ((1 << (width)) - 1))

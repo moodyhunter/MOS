@@ -44,7 +44,7 @@ struct list_node
 /**
  * @brief Get the container struct of a list node
  */
-#define list_entry(node, type) const_container_of((node), list_node_t, type, list_node)
+#define list_entry(node, type) container_of((node), type, list_node)
 
 /**
  * @brief Get the next element in a list

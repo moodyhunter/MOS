@@ -4,7 +4,7 @@
 
 #include <mos/x86/acpi/acpi_types.h>
 
-extern acpi_madt_t *x86_acpi_madt;
+extern const acpi_madt_t *x86_acpi_madt;
 extern uintptr_t x86_ioapic_address;
 extern u32 x86_cpu_lapic[MOS_MAX_CPU_COUNT];
 

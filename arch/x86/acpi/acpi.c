@@ -32,7 +32,7 @@ void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
     if (rsdp->xsdt_addr)
         mos_panic("XSDT not supported");
 
-    x86_acpi_rsdt = container_of(BIOS_VADDR(rsdp->v1.rsdt_addr), acpi_rsdt_t, sdt_header);
+    x86_acpi_rsdt = container_of(BIOS_VADDR_TYPE(rsdp->v1.rsdt_addr, acpi_sdt_header_t *), acpi_rsdt_t, sdt_header);
     if (!verify_sdt_checksum(&x86_acpi_rsdt->sdt_header))
         mos_panic("RSDT checksum error");
 
