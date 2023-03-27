@@ -1,0 +1,26 @@
+cd /
+repeat 5 tree /
+ls /
+ls /initrd
+cat /initrd/README.txt
+cat /initrd/summary.txt
+repeat 5 ls /
+repeat 5 ls /initrd
+mkdir a
+mkdir a/b
+mkdir a/b/c
+mkdir a/b/c/d
+mkdir a/b/c/d/e
+mkdir a/b/c/d/e/f
+mkdir a/b/c/d/e/f/g
+mkdir a/b/c/d/e/f/g/h
+mkdir a/b/c/d/e/f/g/h/i
+tree /a
+tree /a/b
+tree /a/b/c
+touch /a/b/c/d/e/f/g/h/i/j
+tree /a/b/c
+
+/initrd/tests/test-launcher
+
+shutdown

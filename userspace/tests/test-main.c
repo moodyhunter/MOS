@@ -37,7 +37,5 @@ int main(int argc, char **argv)
         printf("OK\n");
     }
 
-    pid_t p = syscall_spawn("/initrd/programs/shutdown", 0, NULL);
-    syscall_wait_for_process(p);
     return 0;
 }
