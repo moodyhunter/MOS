@@ -108,7 +108,12 @@ void mos_start_kernel(const char *cmdline)
     if (init_con->caps & CONSOLE_CAP_CLEAR)
         init_con->clear(init_con);
 
-    init_argv.argv[0] = init_path;
+    if (init_argv.argc == 0)
+    {
+        init_argv.argc = 1;
+        init_argv.argv = kmalloc(sizeof(char *));
+        init_argv.argv[0] = init_path;
+    }
 
     terminal_t *init_term = terminal_create_console(init_con);
     process_t *init = elf_create_process(init_path, NULL, init_term, init_argv);
