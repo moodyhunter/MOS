@@ -443,7 +443,6 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list _args)
 {
     va_list_ptrwrappper_t args;
     va_copy(args.real, _args);
-    va_end(_args);
 
     char *start = buf;
 
