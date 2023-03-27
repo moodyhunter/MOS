@@ -99,6 +99,11 @@ jobs:
           name: MOS-${{matrix.target}}-${{matrix.build_type}}-failures.zip
           path: ${{github.workspace}}/build/test-failure.tar.gz
 
+      - name: Run Tests (quiet)
+        if: matrix.run_tests == 'ON'
+        working-directory: ${{github.workspace}}/build
+        run: ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh' quiet"
+
       - name: Recompile with no debug messages
         if: matrix.run_tests == 'ON'
         working-directory: ${{github.workspace}}/build
@@ -111,7 +116,14 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh'"
 
-      - name: Run Tests (quiet)
+      - name: Recompile with LTO
         if: matrix.run_tests == 'ON'
         working-directory: ${{github.workspace}}/build
-        run: ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh' quiet"
+        run: |
+          cmake . -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DMOS_DEBUG_ALL=OFF
+          ninja ${{matrix.target}} mos_userspace_programs mos_initrd
+
+      - name: Run Tests (LTO)
+        if: matrix.run_tests == 'ON'
+        working-directory: ${{github.workspace}}/build
+        run: ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh'"
