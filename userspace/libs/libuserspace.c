@@ -157,3 +157,16 @@ int getchar(void)
     syscall_io_read(stdin, &c, 1);
     return c;
 }
+
+int putchar(int c)
+{
+    char ch = c;
+    syscall_io_write(stdout, &ch, 1);
+    return c;
+}
+
+int puts(const char *s)
+{
+    syscall_io_write(stdout, s, strlen(s));
+    return putchar('\n');
+}
