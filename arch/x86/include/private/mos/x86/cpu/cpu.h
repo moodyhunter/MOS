@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <cpuid.h>
 #include <mos/mos_global.h>
 #include <mos/printk.h>
 #include <mos/types.h>
@@ -31,9 +32,9 @@ should_inline reg_t x86_get_cr3(void)
 
 always_inline u32 x86_cpu_get_id(void)
 {
-    int lapic_id = 0;
-    __asm__ volatile("cpuid" : "=b"(lapic_id) : "a"(0x01), "c"(0x00) : "edx");
-    return lapic_id >> 24;
+    u32 eax = 0, ebx = 0, ecx = 0, edx = 0;
+    __cpuid(1, eax, ebx, ecx, edx);
+    return ebx >> 24;
 }
 
 should_inline void x86_cpu_set_cr3(reg_t cr3)
