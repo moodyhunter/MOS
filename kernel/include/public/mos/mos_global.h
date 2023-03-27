@@ -27,7 +27,7 @@
 
 #define to_union(u) __extension__(u)
 
-#define __types_compatible(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
+#define __types_compatible(a, b) __builtin_types_compatible_p(__typeof(a), __typeof(b))
 #define do_container_of(ptr, type, member)                                                                                                                               \
     __extension__({                                                                                                                                                      \
         void *real_ptr = (void *) (ptr);                                                                                                                                 \
