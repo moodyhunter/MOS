@@ -11,6 +11,47 @@
 
 static init_config_t *config;
 
+static bool start_device_drivers(void)
+{
+    size_t num_drivers;
+    const char **drivers = config_get_all(config, "driver", &num_drivers);
+    if (!drivers)
+        return false;
+
+    for (size_t i = 0; i < num_drivers; i++)
+    {
+        const char *driver = drivers[i];
+
+        char *dup = strdup(driver);
+        char *driver_path = strtok(dup, " ");
+        char *driver_args = strtok(NULL, " ");
+
+        if (!driver_path)
+            return false; // invalid options
+
+        size_t driver_args_count = 0;
+        const char **driver_argv = NULL;
+
+        if (driver_args)
+        {
+            char *arg = strtok(driver_args, " ");
+            while (arg)
+            {
+                driver_args_count++;
+                driver_argv = realloc(driver_argv, driver_args_count * sizeof(char *));
+                driver_argv[driver_args_count - 1] = arg;
+                arg = strtok(NULL, " ");
+            }
+        }
+
+        pid_t driver_pid = syscall_spawn(driver_path, driver_args_count, driver_argv);
+        if (driver_pid <= 0)
+            return false;
+    }
+
+    return true;
+}
+
 static pid_t start_device_manager(void)
 {
     const char *dm_path = config_get(config, "device_manager.path");
@@ -125,6 +166,10 @@ int main(int argc, const char *argv[])
 
     pid_t dm_pid = start_device_manager();
     if (dm_pid <= 0)
+        return DYN_ERROR_CODE;
+
+    bool drivers_started = start_device_drivers();
+    if (!drivers_started)
         return DYN_ERROR_CODE;
 
     // start the shell
