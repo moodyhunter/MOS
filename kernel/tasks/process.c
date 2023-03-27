@@ -233,7 +233,7 @@ void process_handle_exit(process_t *process, int exit_code)
         spinlock_acquire(&thread->state_lock);
         if (thread->state == THREAD_STATE_DEAD)
         {
-            pr_warn("thread %ld is already dead", thread->tid);
+            mos_debug(process, "thread %ld is already dead", thread->tid);
         }
         else
         {

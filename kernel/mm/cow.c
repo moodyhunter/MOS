@@ -101,7 +101,6 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
         if (mmap->flags.cow)
         {
             MOS_ASSERT(mmap->blk.flags & VM_WRITE); // if the block is CoW, it must be writable
-            pr_emph("CoW page fault in block %zu", i);
             do_resolve_cow(fault_addr, vm->flags);
             mos_debug(cow, "CoW resolved");
         }

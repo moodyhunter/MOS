@@ -204,15 +204,18 @@ static void x86_handle_exception(x86_stack_frame *stack)
 
             if (current)
             {
-                pr_emph("%s page fault: thread %ld (%s), process %ld (%s) at " PTR_FMT ", instruction " PTR_FMT, //
-                        is_user ? "user" : "kernel",                                                             //
-                        current->tid,                                                                            //
-                        current->name,                                                                           //
-                        current->owner->pid,                                                                     //
-                        current->owner->name,                                                                    //
-                        fault_address,                                                                           //
-                        (uintptr_t) stack->iret_params.eip                                                       //
-                );
+                if (MOS_DEBUG_FEATURE(cow))
+                {
+                    pr_emph("%s page fault: thread %ld (%s), process %ld (%s) at " PTR_FMT ", instruction " PTR_FMT, //
+                            is_user ? "user" : "kernel",                                                             //
+                            current->tid,                                                                            //
+                            current->name,                                                                           //
+                            current->owner->pid,                                                                     //
+                            current->owner->name,                                                                    //
+                            fault_address,                                                                           //
+                            (uintptr_t) stack->iret_params.eip                                                       //
+                    );
+                }
                 bool result = cow_handle_page_fault(fault_address, present, is_write, is_user, is_exec);
 
                 if (result)

@@ -99,7 +99,7 @@ ipcshm_server_t *ipcshm_announce(const char *name, size_t max_pending)
 
 ipcshm_t *ipcshm_request(const char *name, size_t buffer_size, void **read_buf, void **write_buf, void *data)
 {
-    pr_info("ipc: connecting to channel '%s'", name);
+    mos_debug(ipc, "ipc: connecting to channel '%s'", name);
     buffer_size = ALIGN_UP(buffer_size, MOS_PAGE_SIZE);
 
     spinlock_acquire(&billboard_lock);
@@ -232,7 +232,7 @@ ipcshm_t *ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_b
         spinlock_acquire(&shm->lock);
     }
 
-    pr_info("ipcshm_accept: accepted connection");
+    mos_debug(ipc, "accepted connection");
 
     // there are 3 steps for a client to connect to a server:
     //
