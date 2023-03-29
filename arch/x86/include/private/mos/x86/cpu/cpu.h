@@ -42,7 +42,7 @@ should_inline void x86_cpu_set_cr3(reg_t cr3)
     __asm__ volatile("mov %0, %%cr3" : : "r"(cr3));
 }
 
-should_inline void x86_cpu_invlpg(uintptr_t addr)
+should_inline void x86_cpu_invlpg(ptr_t addr)
 {
     __asm__ volatile("invlpg (%0)" : : "r"(addr) : "memory");
 }
@@ -52,9 +52,9 @@ should_inline void x86_cpu_invlpg_all(void)
     __asm__ volatile("mov %%cr3, %%eax; mov %%eax, %%cr3" : : : "eax");
 }
 
-should_inline void x86_cpu_invlpg_range(uintptr_t start, uintptr_t end)
+should_inline void x86_cpu_invlpg_range(ptr_t start, ptr_t end)
 {
-    for (uintptr_t addr = start; addr < end; addr += MOS_PAGE_SIZE)
+    for (ptr_t addr = start; addr < end; addr += MOS_PAGE_SIZE)
     {
         x86_cpu_invlpg(addr);
     }

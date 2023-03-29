@@ -105,7 +105,7 @@ int main(int argc, char **argv)
     MOS_UNUSED(argv);
 
     syscall_arch_syscall(X86_SYSCALL_IOPL_ENABLE, 0, 0, 0, 0);
-    const uintptr_t vaddr = syscall_arch_syscall(X86_SYSCALL_MAP_VGA_MEMORY, 0, 0, 0, 0);
+    const ptr_t vaddr = syscall_arch_syscall(X86_SYSCALL_MAP_VGA_MEMORY, 0, 0, 0, 0);
     x86_vga_text_mode_console_init(vaddr);
 
     screen_server = rpc_server_create("drivers.x86_text_console", NULL);

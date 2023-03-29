@@ -133,7 +133,7 @@ pid_t define_syscall(spawn)(const char *path, int argc, const char *const argv[]
 {
     process_t *current = current_process;
 
-    const char **new_argv = kmalloc(sizeof(uintptr_t) * (argc + 2)); // +1 for path, +1 for NULL
+    const char **new_argv = kmalloc(sizeof(ptr_t) * (argc + 2)); // +1 for path, +1 for NULL
     if (new_argv == NULL)
         return -1;
 
@@ -172,7 +172,7 @@ noreturn void define_syscall(thread_exit)(void)
     MOS_UNREACHABLE();
 }
 
-uintptr_t define_syscall(heap_control)(heap_control_op op, uintptr_t arg)
+ptr_t define_syscall(heap_control)(heap_control_op op, ptr_t arg)
 {
     process_t *process = current_process;
 
@@ -318,16 +318,16 @@ bool define_syscall(vfs_fstat)(fd_t fd, file_stat_t *statbuf)
     return vfs_fstat(io, statbuf);
 }
 
-void *define_syscall(mmap_anonymous)(uintptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t flags)
+void *define_syscall(mmap_anonymous)(ptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t flags)
 {
     const vm_flags vmflags = VM_USER | (vm_flags) perm; // vm_flags shares the same values as mem_perm_t
     const size_t n_pages = ALIGN_DOWN_TO_PAGE(size) / MOS_PAGE_SIZE;
 
-    uintptr_t result = mmap_anonymous(hint_addr, flags, vmflags, n_pages);
+    ptr_t result = mmap_anonymous(hint_addr, flags, vmflags, n_pages);
     return (void *) result;
 }
 
-void *define_syscall(mmap_file)(uintptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t mmap_flags, fd_t fd, off_t offset)
+void *define_syscall(mmap_file)(ptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t mmap_flags, fd_t fd, off_t offset)
 {
     const vm_flags vmflags = VM_USER | (vm_flags) perm; // vm_flags shares the same values as mem_perm_t
     const size_t n_pages = ALIGN_DOWN_TO_PAGE(size) / MOS_PAGE_SIZE;
@@ -336,7 +336,7 @@ void *define_syscall(mmap_file)(uintptr_t hint_addr, size_t size, mem_perm_t per
     if (io == NULL)
         return NULL;
 
-    uintptr_t result = mmap_file(hint_addr, mmap_flags, vmflags, n_pages, io, offset);
+    ptr_t result = mmap_file(hint_addr, mmap_flags, vmflags, n_pages, io, offset);
     return (void *) result;
 }
 
@@ -347,7 +347,7 @@ bool define_syscall(wait_for_process)(pid_t pid)
 
 bool define_syscall(munmap)(void *addr, size_t size)
 {
-    return munmap((uintptr_t) addr, size);
+    return munmap((ptr_t) addr, size);
 }
 
 bool define_syscall(vfs_chdir)(const char *path)

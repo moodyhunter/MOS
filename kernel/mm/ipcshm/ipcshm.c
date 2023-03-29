@@ -51,7 +51,7 @@ static bool wc_ipcshm_server_name_exists(wait_condition_t *cond)
 {
     const char *name = cond->arg;
     spinlock_acquire(&billboard_lock);
-    ipcshm_server_t *server = hashmap_get(ipcshm_billboard, (uintptr_t) name);
+    ipcshm_server_t *server = hashmap_get(ipcshm_billboard, (ptr_t) name);
     spinlock_release(&billboard_lock);
     return server != NULL;
 }
@@ -72,7 +72,7 @@ void ipcshm_init(void)
 ipcshm_server_t *ipcshm_announce(const char *name, size_t max_pending)
 {
     spinlock_acquire(&billboard_lock);
-    ipcshm_server_t *existing_server = hashmap_get(ipcshm_billboard, (uintptr_t) name);
+    ipcshm_server_t *existing_server = hashmap_get(ipcshm_billboard, (ptr_t) name);
     spinlock_release(&billboard_lock);
 
     if (unlikely(existing_server))
@@ -91,7 +91,7 @@ ipcshm_server_t *ipcshm_announce(const char *name, size_t max_pending)
         server->pending[i] = kzalloc(sizeof(ipcshm_t));
 
     spinlock_acquire(&billboard_lock);
-    hashmap_put(ipcshm_billboard, (uintptr_t) server->name, server);
+    hashmap_put(ipcshm_billboard, (ptr_t) server->name, server);
     spinlock_release(&billboard_lock);
     ipcfs_register_server(server);
     return server;
@@ -103,7 +103,7 @@ ipcshm_t *ipcshm_request(const char *name, size_t buffer_size, void **read_buf, 
     buffer_size = ALIGN_UP(buffer_size, MOS_PAGE_SIZE);
 
     spinlock_acquire(&billboard_lock);
-    ipcshm_server_t *server = hashmap_get(ipcshm_billboard, (uintptr_t) name);
+    ipcshm_server_t *server = hashmap_get(ipcshm_billboard, (ptr_t) name);
     spinlock_release(&billboard_lock);
 
     if (unlikely(!server))
@@ -113,7 +113,7 @@ ipcshm_t *ipcshm_request(const char *name, size_t buffer_size, void **read_buf, 
         mos_debug(ipc, "server for channel '%s' found, connecting...", name);
 
         spinlock_acquire(&billboard_lock);
-        server = hashmap_get(ipcshm_billboard, (uintptr_t) name);
+        server = hashmap_get(ipcshm_billboard, (ptr_t) name);
         spinlock_release(&billboard_lock);
 
         MOS_ASSERT(server);
@@ -264,7 +264,7 @@ ipcshm_t *ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_b
 bool ipcshm_deannounce(ipcshm_server_t *server)
 {
     spinlock_acquire(&billboard_lock);
-    ipcshm_server_t *removed_server = hashmap_remove(ipcshm_billboard, (uintptr_t) server->name);
+    ipcshm_server_t *removed_server = hashmap_remove(ipcshm_billboard, (ptr_t) server->name);
     spinlock_release(&billboard_lock);
 
     if (removed_server != server)

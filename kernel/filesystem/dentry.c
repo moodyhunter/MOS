@@ -43,7 +43,7 @@ static mount_t *dentry_get_mount(dentry_t *dentry)
         return NULL;
     }
 
-    mount_t *mount = hashmap_get(&vfs_mountpoint_map, (uintptr_t) dentry);
+    mount_t *mount = hashmap_get(&vfs_mountpoint_map, (ptr_t) dentry);
     if (mount == NULL)
     {
         mos_warn("mountpoint not found");
@@ -595,7 +595,7 @@ bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs)
     mount->mountpoint = mountpoint;
     mount->fs = fs;
 
-    if (hashmap_put(&vfs_mountpoint_map, (uintptr_t) mountpoint, mount) != NULL)
+    if (hashmap_put(&vfs_mountpoint_map, (ptr_t) mountpoint, mount) != NULL)
     {
         mos_warn("failed to insert mountpoint into hashmap");
         return false;

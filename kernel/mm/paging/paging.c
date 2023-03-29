@@ -12,7 +12,7 @@
 #define PGD_FOR_VADDR(_vaddr, _um) (_vaddr >= MOS_KERNEL_START_VADDR ? platform_info->kernel_pgd : _um)
 
 // ! BEGIN: CALLBACKS
-static void vmm_iterate_unmap(const pgt_iteration_info_t *iter_info, const vmblock_t *block, uintptr_t block_paddr, void *arg)
+static void vmm_iterate_unmap(const pgt_iteration_info_t *iter_info, const vmblock_t *block, ptr_t block_paddr, void *arg)
 {
     MOS_UNUSED(iter_info);
     MOS_ASSERT(arg == NULL);
@@ -22,14 +22,14 @@ static void vmm_iterate_unmap(const pgt_iteration_info_t *iter_info, const vmblo
     pmm_unref_frames(block_paddr, block->npages);
 }
 
-static void vmm_iterate_copymap(const pgt_iteration_info_t *iter_info, const vmblock_t *block, uintptr_t block_paddr, void *arg)
+static void vmm_iterate_copymap(const pgt_iteration_info_t *iter_info, const vmblock_t *block, ptr_t block_paddr, void *arg)
 {
     vmblock_t *vblock = arg;
     if (!vblock->flags)
         vblock->flags = block->flags;
     else
         MOS_ASSERT_X(vblock->flags == block->flags, "flags mismatch");
-    const uintptr_t target_vaddr = vblock->vaddr + (block->vaddr - iter_info->vaddr_start); // we know that vaddr is contiguous, so their difference is the offset
+    const ptr_t target_vaddr = vblock->vaddr + (block->vaddr - iter_info->vaddr_start); // we know that vaddr is contiguous, so their difference is the offset
     mos_debug(vmm_impl, "copymapping " PTR_FMT " -> " PTR_FMT " (npages: %zu)", target_vaddr, block_paddr, block->npages);
     pmm_ref_frames(block_paddr, block->npages);
     platform_mm_map_pages(PGD_FOR_VADDR(target_vaddr, vblock->address_space), target_vaddr, block_paddr, block->npages, block->flags);
@@ -38,17 +38,17 @@ static void vmm_iterate_copymap(const pgt_iteration_info_t *iter_info, const vmb
 static void vmm_handle_pmalloc(const pmm_op_state_t *op_state, const pmrange_t *current, void *arg)
 {
     const vmblock_t *vblock = arg;
-    const uintptr_t vaddr = vblock->vaddr + op_state->pages_operated * MOS_PAGE_SIZE;
+    const ptr_t vaddr = vblock->vaddr + op_state->pages_operated * MOS_PAGE_SIZE;
     mos_debug(vmm_impl, "allocating " PTR_FMT " -> " PTR_FMT " (npages: %zu)", vaddr, current->paddr, current->npages);
     platform_mm_map_pages(PGD_FOR_VADDR(vaddr, vblock->address_space), vaddr, current->paddr, current->npages, vblock->flags);
 }
 // ! END: CALLBACKS
 
-vmblock_t mm_alloc_pages(paging_handle_t table, size_t n_pages, uintptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags)
+vmblock_t mm_alloc_pages(paging_handle_t table, size_t n_pages, ptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags)
 {
     MOS_ASSERT(n_pages > 0);
 
-    const uintptr_t vaddr = mm_get_free_pages(table, n_pages, hint_vaddr, valloc_flags);
+    const ptr_t vaddr = mm_get_free_pages(table, n_pages, hint_vaddr, valloc_flags);
     if (unlikely(vaddr == 0))
     {
         mos_warn("could not find free %zd pages", n_pages);
@@ -72,7 +72,7 @@ vmblock_t mm_alloc_pages(paging_handle_t table, size_t n_pages, uintptr_t hint_v
     return block;
 }
 
-vmblock_t mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t npages, vm_flags flags)
+vmblock_t mm_map_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags)
 {
     MOS_ASSERT(npages > 0);
 
@@ -97,7 +97,7 @@ vmblock_t mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, 
     return block;
 }
 
-void mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t npages)
+void mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t npages)
 {
     MOS_ASSERT(npages > 0);
 
@@ -107,7 +107,7 @@ void mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t npages)
     spinlock_release(table.pgd_lock);
 }
 
-vmblock_t mm_fill_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t npages, vm_flags flags)
+vmblock_t mm_fill_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags)
 {
     MOS_ASSERT(npages > 0);
 
@@ -131,7 +131,7 @@ vmblock_t mm_fill_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr,
     return block;
 }
 
-vmblock_t mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior)
+vmblock_t mm_copy_maps(paging_handle_t from, ptr_t fvaddr, paging_handle_t to, ptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior)
 {
     MOS_ASSERT(npages > 0);
     mos_debug(vmm, "copying mapping from " PTR_FMT " to " PTR_FMT ", %zu pages", fvaddr, tvaddr, npages);
@@ -161,12 +161,12 @@ vmblock_t mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t t
     return result;
 }
 
-bool mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr)
+bool mm_get_is_mapped(paging_handle_t table, ptr_t vaddr)
 {
     return pagemap_get_mapped(table.um_page_map, vaddr);
 }
 
-void mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t npages, vm_flags flags)
+void mm_flag_pages(paging_handle_t table, ptr_t vaddr, size_t npages, vm_flags flags)
 {
     MOS_ASSERT(npages > 0);
 

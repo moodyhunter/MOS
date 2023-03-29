@@ -11,7 +11,7 @@
 #include <mos/tasks/task_types.h>
 #include <string.h>
 
-vmblock_t mm_make_process_map_cow(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages, vm_flags flags)
+vmblock_t mm_make_process_map_cow(paging_handle_t from, ptr_t fvaddr, paging_handle_t to, ptr_t tvaddr, size_t npages, vm_flags flags)
 {
     // Note that the block returned by this function contains it's ACTRUAL flags, which may be different from the flags of the original block.
     // (consider the case where we CoW-map a page that is already CoW-mapped)
@@ -23,7 +23,7 @@ vmblock_t mm_make_process_map_cow(paging_handle_t from, uintptr_t fvaddr, paging
     return block;
 }
 
-static void do_resolve_cow(uintptr_t fault_addr, vm_flags original_flags)
+static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)
 {
     fault_addr = ALIGN_DOWN_TO_PAGE(fault_addr);
     paging_handle_t current_handle = current_process->pagetable;
@@ -36,8 +36,8 @@ static void do_resolve_cow(uintptr_t fault_addr, vm_flags original_flags)
 
     // 3. replace the faulting phypage with the new one
     // mm_copy_maps(current_handle, one_page.vaddr, current_handle, fault_addr, 1, MM_COPY_REMAP);
-    const uintptr_t new_paddr = platform_mm_get_phys_addr(platform_info->kernel_pgd, one_page.vaddr);
-    const uintptr_t current_paddr = platform_mm_get_phys_addr(current_handle, fault_addr);
+    const ptr_t new_paddr = platform_mm_get_phys_addr(platform_info->kernel_pgd, one_page.vaddr);
+    const ptr_t current_paddr = platform_mm_get_phys_addr(current_handle, fault_addr);
 
     pmm_ref_frames(new_paddr, 1);
     spinlock_acquire(current_handle.pgd_lock);
@@ -52,7 +52,7 @@ static void do_resolve_cow(uintptr_t fault_addr, vm_flags original_flags)
     ipi_send_all(IPI_TYPE_INVALIDATE_TLB);
 }
 
-bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bool is_user, bool is_exec)
+bool cow_handle_page_fault(ptr_t fault_addr, bool present, bool is_write, bool is_user, bool is_exec)
 {
     MOS_UNUSED(is_user);
     MOS_UNUSED(present);
@@ -87,8 +87,8 @@ bool cow_handle_page_fault(uintptr_t fault_addr, bool present, bool is_write, bo
         spinlock_acquire(&mmap->lock);
 
         const vmblock_t *const vm = &mmap->blk;
-        uintptr_t block_start = vm->vaddr;
-        uintptr_t block_end = vm->vaddr + vm->npages * MOS_PAGE_SIZE;
+        ptr_t block_start = vm->vaddr;
+        ptr_t block_end = vm->vaddr + vm->npages * MOS_PAGE_SIZE;
 
         if (fault_addr < block_start || fault_addr >= block_end)
         {

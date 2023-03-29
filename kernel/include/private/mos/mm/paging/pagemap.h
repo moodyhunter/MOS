@@ -4,7 +4,7 @@
 
 #include <mos/platform/platform.h>
 
-void pagemap_mark_used(page_map_t *map, uintptr_t vaddr, size_t n_pages);
-void pagemap_mark_free(page_map_t *map, uintptr_t vaddr, size_t n_pages);
+void pagemap_mark_used(page_map_t *map, ptr_t vaddr, size_t n_pages);
+void pagemap_mark_free(page_map_t *map, ptr_t vaddr, size_t n_pages);
 
-bool pagemap_get_mapped(page_map_t *map, uintptr_t vaddr);
+bool pagemap_get_mapped(page_map_t *map, ptr_t vaddr);

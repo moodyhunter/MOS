@@ -14,8 +14,8 @@ MOS_TEST_CASE(stack_init_deinit)
     MOS_TEST_CHECK(stack.capacity, 6789);
     stack_deinit(&stack);
 
-    MOS_TEST_CHECK(stack.top, (uintptr_t) NULL);
-    MOS_TEST_CHECK(stack.head, (uintptr_t) NULL);
+    MOS_TEST_CHECK(stack.top, (ptr_t) NULL);
+    MOS_TEST_CHECK(stack.head, (ptr_t) NULL);
     MOS_TEST_CHECK(stack.capacity, 0);
 }
 
@@ -25,7 +25,7 @@ MOS_TEST_CASE(stack_push_pop_stack)
     void *addr = kmalloc(4096);
     stack_init(&stack, addr, 4096);
 
-    uintptr_t stack_bottom = (uintptr_t) addr + 4096;
+    ptr_t stack_bottom = (ptr_t) addr + 4096;
     MOS_TEST_CHECK(stack.capacity, 4096);
     MOS_TEST_CHECK(stack.head, stack_bottom);
     MOS_TEST_CHECK(stack.top, stack_bottom);

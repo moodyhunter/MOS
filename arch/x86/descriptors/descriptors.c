@@ -66,7 +66,7 @@ void x86_init_current_cpu_gdt()
     gdt32_set_entry(&this_cpu_desc->gdt[4], 0x00000000, 0xFFFFFFFF, GDT_ENTRY_DATA, GDT_RING_USER, GDT_GRAN_PAGE);
 
     // TSS segment
-    gdt_entry32_t *tss_seg = gdt32_set_entry(&this_cpu_desc->gdt[5], (uintptr_t) &this_cpu_desc->tss, sizeof(tss32_t), GDT_ENTRY_CODE, GDT_RING_KERNEL, GDT_GRAN_BYTE);
+    gdt_entry32_t *tss_seg = gdt32_set_entry(&this_cpu_desc->gdt[5], (ptr_t) &this_cpu_desc->tss, sizeof(tss32_t), GDT_ENTRY_CODE, GDT_RING_KERNEL, GDT_GRAN_BYTE);
 
     // ! Set special attributes for the TSS segment.
     tss_seg->code_data_segment = 0; // indicates TSS/LDT (see also `accessed`)

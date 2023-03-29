@@ -6,7 +6,7 @@
 %define ARG4 [ebp + 20]
 %define ARG5 [ebp + 24]
 
-; void x86_context_switch_impl(uintptr_t *old_stack, uintptr_t kernel_stack, uintptr_t pgd, uintptr_t jump_addr, uintptr_t x86_context)
+; void x86_context_switch_impl(ptr_t *old_stack, ptr_t kernel_stack, ptr_t pgd, ptr_t jump_addr, ptr_t x86_context)
 global x86_context_switch_impl:function (x86_context_switch_impl.end - x86_context_switch_impl)
 x86_context_switch_impl:
     push    ebp

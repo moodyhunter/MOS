@@ -21,13 +21,13 @@ const list_head *const pmlist_free = &pmlist_free_rw;
  * @return true if the range is successfully added, false otherwise, in which case the caller should
  *         add the range as a new node.
  */
-static bool pmm_internal_do_add_free_frames_try_merge(uintptr_t start, size_t n_pages, pm_range_type_t type)
+static bool pmm_internal_do_add_free_frames_try_merge(ptr_t start, size_t n_pages, pm_range_type_t type)
 {
-    const uintptr_t end = start + n_pages * MOS_PAGE_SIZE;
+    const ptr_t end = start + n_pages * MOS_PAGE_SIZE;
     list_foreach(pmlist_node_t, current, pmlist_free_rw)
     {
-        const uintptr_t cstart = current->range.paddr;
-        const uintptr_t cend = cstart + current->range.npages * MOS_PAGE_SIZE;
+        const ptr_t cstart = current->range.paddr;
+        const ptr_t cend = cstart + current->range.npages * MOS_PAGE_SIZE;
 
         // detect overlapping regions
         const bool start_in_cregion = cstart <= start && start < cend;
@@ -60,8 +60,8 @@ static bool pmm_internal_do_add_free_frames_try_merge(uintptr_t start, size_t n_
         }
         else
         {
-            const uintptr_t prev_start = prev->range.paddr;
-            const uintptr_t prev_end = prev_start + prev->range.npages * MOS_PAGE_SIZE;
+            const ptr_t prev_start = prev->range.paddr;
+            const ptr_t prev_end = prev_start + prev->range.npages * MOS_PAGE_SIZE;
 
             // check if we can extend previous at the end
             if (prev_end == start)
@@ -99,9 +99,9 @@ static bool pmm_internal_do_add_free_frames_try_merge(uintptr_t start, size_t n_
     return false;
 }
 
-void pmm_internal_add_free_frames(uintptr_t start, size_t n_pages, pm_range_type_t type)
+void pmm_internal_add_free_frames(ptr_t start, size_t n_pages, pm_range_type_t type)
 {
-    const uintptr_t end = start + n_pages * MOS_PAGE_SIZE;
+    const ptr_t end = start + n_pages * MOS_PAGE_SIZE;
 
     if (unlikely(n_pages == 0))
     {
@@ -202,9 +202,9 @@ bool pmm_internal_acquire_free_frames(size_t n_pages, pmm_internal_op_callback_t
     return true;
 }
 
-pmlist_node_t *pmm_internal_acquire_free_frames_at(uintptr_t start_addr, size_t npages)
+pmlist_node_t *pmm_internal_acquire_free_frames_at(ptr_t start_addr, size_t npages)
 {
-    const uintptr_t end_addr = start_addr + npages * MOS_PAGE_SIZE;
+    const ptr_t end_addr = start_addr + npages * MOS_PAGE_SIZE;
 
     list_foreach(pmlist_node_t, this, pmlist_free_rw)
     {
@@ -264,7 +264,7 @@ pmlist_node_t *pmm_internal_acquire_free_frames_at(uintptr_t start_addr, size_t 
     return NULL;
 }
 
-pmlist_node_t *pmm_internal_find_and_acquire_block(uintptr_t needle, pm_range_type_t type)
+pmlist_node_t *pmm_internal_find_and_acquire_block(ptr_t needle, pm_range_type_t type)
 {
     pmlist_node_t *node = NULL;
 

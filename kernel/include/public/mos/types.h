@@ -25,29 +25,23 @@ typedef unsigned int u32;
 typedef unsigned long ulong;
 typedef unsigned long long u64;
 
-#ifdef __UINTPTR_FMTx__
-#define _PTRFMTx __UINTPTR_FMTx__ // clang defines this
-#else
-#define _PTRFMTx "lx" // gcc always uses 'long' for pointers
-#endif
-
 // native integer type
 #if MOS_BITS == 32
 typedef s32 intn;
 typedef u32 uintn;
-#define PTR_FMT "0x%8.8" _PTRFMTx
+typedef u32 ptr_t;
+#define PTR_FMT "0x%8.8x"
 #else
 typedef s64 intn;
 typedef u64 uintn;
-#define PTR_FMT "0x%16.16" _PTRFMTx
+typedef u64 ptr_t;
+#define PTR_FMT "0x%16.16llx"
 #endif
 
 #define PTR_RANGE "[" PTR_FMT " - " PTR_FMT "]"
 
-typedef __UINTPTR_TYPE__ uintptr_t;
-
 MOS_STATIC_ASSERT(sizeof(void *) == MOS_BITS / 8, "pointer size check failed");
-MOS_STATIC_ASSERT(sizeof(uintptr_t) == sizeof(void *), "uintptr_t is not the same size as void *");
+MOS_STATIC_ASSERT(sizeof(ptr_t) == sizeof(void *), "ptr_t is not the same size as void *");
 
 typedef uintn reg_t; // native register type
 typedef u16 reg16_t; // 16-bit
@@ -87,7 +81,7 @@ typedef ssize_t off_t;
 // clang-format on
 
 #define new_opaque_type(type, name) _named_opaque_type(type, name, name##_t)
-#define new_opaque_ptr_type(name)   _named_opaque_type(uintptr_t, ptr, name)
+#define new_opaque_ptr_type(name)   _named_opaque_type(ptr_t, ptr, name)
 
 new_opaque_type(size_t, hash);
 

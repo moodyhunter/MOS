@@ -103,7 +103,7 @@ typedef struct
 
     u32 version;
 
-    uintptr_t entry_point;
+    ptr_t entry_point;
     size_t ph_offset;
     size_t sh_offset;
 
@@ -157,15 +157,15 @@ typedef struct
 #if MOS_BITS == 64
     elf_program_header_flags p_flags; // Segment independent flags (64-bit only)
 #endif
-    uintptr_t data_offset;  // Offset of the segment in the file
-    uintptr_t vaddr;        // Virtual address of the segment
-    uintptr_t _reserved;    // reserved
-    uintptr_t size_in_file; // Size of the segment in the file (may be 0)
-    uintptr_t size_in_mem;  // Size of the segment in memory (may be 0)
+    ptr_t data_offset;  // Offset of the segment in the file
+    ptr_t vaddr;        // Virtual address of the segment
+    ptr_t _reserved;    // reserved
+    ptr_t size_in_file; // Size of the segment in the file (may be 0)
+    ptr_t size_in_mem;  // Size of the segment in memory (may be 0)
 #if MOS_BITS == 32
     elf_ph_flags p_flags; // Segment independent flags (32-bit only)
 #endif
-    uintptr_t required_alignment;
+    ptr_t required_alignment;
 } __packed elf_program_hdr_t;
 
 typedef enum
@@ -216,12 +216,12 @@ typedef struct
 #else
 #error "Unsupported bitness"
 #endif
-    uintptr_t sh_addr;   // Virtual address of the section in memory, if loaded
-    uintptr_t sh_offset; // Offset of the section in the file
-    size_t sh_size;      // Size of the section in bytes
+    ptr_t sh_addr;   // Virtual address of the section in memory, if loaded
+    ptr_t sh_offset; // Offset of the section in the file
+    size_t sh_size;  // Size of the section in bytes
     u32 sh_link;
     u32 sh_info;
-    uintptr_t sh_addralign;
+    ptr_t sh_addralign;
     size_t sh_entsize;
 } __packed elf_section_hdr_t;
 

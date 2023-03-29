@@ -279,7 +279,7 @@ void process_handle_cleanup(process_t *process)
     }
 }
 
-uintptr_t process_grow_heap(process_t *process, size_t npages)
+ptr_t process_grow_heap(process_t *process, size_t npages)
 {
     MOS_ASSERT(process_is_valid(process));
 
@@ -296,7 +296,7 @@ uintptr_t process_grow_heap(process_t *process, size_t npages)
 
     MOS_ASSERT(heap != NULL);
 
-    const uintptr_t heap_top = heap->blk.vaddr + heap->blk.npages * MOS_PAGE_SIZE;
+    const ptr_t heap_top = heap->blk.vaddr + heap->blk.npages * MOS_PAGE_SIZE;
 
     if (heap->flags.cow)
     {

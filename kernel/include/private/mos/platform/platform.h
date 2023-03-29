@@ -82,28 +82,28 @@ typedef struct
 
 typedef struct
 {
-    uintptr_t pgd;
+    ptr_t pgd;
     spinlock_t *pgd_lock;
     page_map_t *um_page_map;
 } paging_handle_t;
 
 typedef struct
 {
-    uintptr_t instruction;
-    uintptr_t stack;
+    ptr_t instruction;
+    ptr_t stack;
 } __packed thread_context_t;
 
 typedef struct
 {
     u32 id;
     thread_t *thread;
-    uintptr_t scheduler_stack;
+    ptr_t scheduler_stack;
     paging_handle_t pagetable;
 } cpu_t;
 
 typedef struct
 {
-    uintptr_t vaddr; // virtual addresses
+    ptr_t vaddr; // virtual addresses
     size_t npages;
     vm_flags flags; // the expected flags for the region, regardless of the copy-on-write state
     paging_handle_t address_space;
@@ -115,7 +115,7 @@ typedef struct
 typedef struct
 {
     paging_handle_t address_space;
-    uintptr_t vaddr_start;
+    ptr_t vaddr_start;
     size_t npages;
 } pgt_iteration_info_t;
 
@@ -133,7 +133,7 @@ typedef struct
  * in the range.
  *
  */
-typedef void (*pgt_iteration_callback_t)(const pgt_iteration_info_t *iter_info, const vmblock_t *block, uintptr_t block_paddr, void *arg);
+typedef void (*pgt_iteration_callback_t)(const pgt_iteration_info_t *iter_info, const vmblock_t *block, ptr_t block_paddr, void *arg);
 
 typedef struct
 {
@@ -172,20 +172,20 @@ paging_handle_t platform_mm_create_user_pgd(void);
 void platform_mm_destroy_user_pgd(paging_handle_t table);
 
 // Platform Paging APIs
-void platform_mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t n_pages, vm_flags flags);
-void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t n_pages);
-void platform_mm_iterate_table(paging_handle_t table, uintptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg);
-void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags);
-vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr);
-uintptr_t platform_mm_get_phys_addr(paging_handle_t table, uintptr_t vaddr);
+void platform_mm_map_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t n_pages, vm_flags flags);
+void platform_mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t n_pages);
+void platform_mm_iterate_table(paging_handle_t table, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg);
+void platform_mm_flag_pages(paging_handle_t table, ptr_t vaddr, size_t n, vm_flags flags);
+vm_flags platform_mm_get_flags(paging_handle_t table, ptr_t vaddr);
+ptr_t platform_mm_get_phys_addr(paging_handle_t table, ptr_t vaddr);
 
 // Platform Thread / Process APIs
 void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg);
 void platform_setup_forked_context(const thread_context_t *from, thread_context_t **to);
 
 // Platform Context Switching APIs
-void platform_switch_to_thread(uintptr_t *old_stack, const thread_t *new_thread, switch_flags_t switch_flags);
-void platform_switch_to_scheduler(uintptr_t *old_stack, uintptr_t new_stack);
+void platform_switch_to_thread(ptr_t *old_stack, const thread_t *new_thread, switch_flags_t switch_flags);
+void platform_switch_to_scheduler(ptr_t *old_stack, ptr_t new_stack);
 
 // Platform-Specific syscall APIs
 u64 platform_arch_syscall(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64 arg4);

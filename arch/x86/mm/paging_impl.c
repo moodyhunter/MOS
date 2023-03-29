@@ -15,7 +15,7 @@
             MOS_ASSERT_X(_vaddr < MOS_KERNEL_START_VADDR, "operating with [kernel address] in the [userspace page] table");                                              \
     } while (0)
 
-void pg_flag_page(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags)
+void pg_flag_page(x86_pg_infra_t *pg, ptr_t vaddr, size_t n, vm_flags flags)
 {
     MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not aligned to 4096");
     PAGING_CORRECT_PGTABLE_SANITY_CHECKS(pg, vaddr);
@@ -46,7 +46,7 @@ void pg_flag_page(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags)
     }
 }
 
-void pg_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_flags flags)
+void pg_map_page(x86_pg_infra_t *pg, ptr_t vaddr, ptr_t paddr, vm_flags flags)
 {
     MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not aligned to page size");
     MOS_ASSERT_X(paddr % MOS_PAGE_SIZE == 0, "paddr is not aligned to page size");
@@ -66,16 +66,16 @@ void pg_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_flags 
         {
             // kernel page tables are identity mapped, directly subtract the kernel start address
             // chicken and egg problem: get the physical address of the very first page table
-            this_dir->page_table_paddr = ((uintptr_t) &pg->pgtable[pd_index * 1024] - MOS_KERNEL_START_VADDR) >> 12;
+            this_dir->page_table_paddr = ((ptr_t) &pg->pgtable[pd_index * 1024] - MOS_KERNEL_START_VADDR) >> 12;
         }
         else
         {
-            this_dir->page_table_paddr = pg_get_mapped_paddr(x86_kpg_infra, (uintptr_t) this_table) >> 12;
+            this_dir->page_table_paddr = pg_get_mapped_paddr(x86_kpg_infra, (ptr_t) this_table) >> 12;
         }
     }
 
     this_table->present = true;
-    this_table->phys_addr = (uintptr_t) paddr >> 12;
+    this_table->phys_addr = (ptr_t) paddr >> 12;
 
     this_dir->writable |= flags & VM_WRITE;
     this_table->writable = flags & VM_WRITE;
@@ -91,7 +91,7 @@ void pg_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_flags 
     x86_cpu_invlpg(vaddr);
 }
 
-void pg_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr)
+void pg_unmap_page(x86_pg_infra_t *pg, ptr_t vaddr)
 {
     MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not aligned to 4096");
     PAGING_CORRECT_PGTABLE_SANITY_CHECKS(pg, vaddr);
@@ -111,7 +111,7 @@ void pg_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr)
 }
 
 // !! TODO: read real address instead of assuming memory layout = x86_pg_infra_t
-uintptr_t pg_get_mapped_paddr(x86_pg_infra_t *pg, uintptr_t vaddr)
+ptr_t pg_get_mapped_paddr(x86_pg_infra_t *pg, ptr_t vaddr)
 {
     PAGING_CORRECT_PGTABLE_SANITY_CHECKS(pg, vaddr);
 
@@ -132,7 +132,7 @@ uintptr_t pg_get_mapped_paddr(x86_pg_infra_t *pg, uintptr_t vaddr)
     return (page_table->phys_addr << 12) + (vaddr & 0xfff);
 }
 
-vm_flags pg_get_flags(x86_pg_infra_t *pg, uintptr_t vaddr)
+vm_flags pg_get_flags(x86_pg_infra_t *pg, ptr_t vaddr)
 {
     MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not aligned to 4096");
     PAGING_CORRECT_PGTABLE_SANITY_CHECKS(pg, vaddr);

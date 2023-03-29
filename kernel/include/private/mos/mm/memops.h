@@ -15,4 +15,4 @@
  * @param flags VM flags to use
  * @return vmblock_t The allocated block
  */
-vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, uintptr_t vaddr, valloc_flags hints, vm_flags flags);
+vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, ptr_t vaddr, valloc_flags hints, vm_flags flags);

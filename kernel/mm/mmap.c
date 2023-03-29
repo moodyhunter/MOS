@@ -13,7 +13,7 @@
  * @param hint_addr The hint address
  * @param mmap_flags The mmap flags
  */
-static bool mmap_check(uintptr_t hint_addr, mmap_flags_t mmap_flags)
+static bool mmap_check(ptr_t hint_addr, mmap_flags_t mmap_flags)
 {
     const bool shared = mmap_flags & MMAP_SHARED;   // when forked, shared between parent and child
     const bool private = mmap_flags & MMAP_PRIVATE; // when forked, make it Copy-On-Write
@@ -34,7 +34,7 @@ static bool mmap_check(uintptr_t hint_addr, mmap_flags_t mmap_flags)
     return true;
 }
 
-uintptr_t mmap_anonymous(uintptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages)
+ptr_t mmap_anonymous(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages)
 {
     if (!mmap_check(hint_addr, flags))
         return 0;
@@ -50,7 +50,7 @@ uintptr_t mmap_anonymous(uintptr_t hint_addr, mmap_flags_t flags, vm_flags vm_fl
     return block.vaddr;
 }
 
-uintptr_t mmap_file(uintptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages, io_t *io, off_t offset)
+ptr_t mmap_file(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages, io_t *io, off_t offset)
 {
     if (!mmap_check(hint_addr, flags))
         return 0;
@@ -63,11 +63,11 @@ uintptr_t mmap_file(uintptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, 
     return 0;
 }
 
-bool munmap(uintptr_t addr, size_t size)
+bool munmap(ptr_t addr, size_t size)
 {
     // will unmap all pages containing the range, even if they are not fully contained
-    const uintptr_t range_start = ALIGN_DOWN_TO_PAGE(addr);
-    const uintptr_t range_end = ALIGN_UP_TO_PAGE(addr + size);
+    const ptr_t range_start = ALIGN_DOWN_TO_PAGE(addr);
+    const ptr_t range_end = ALIGN_UP_TO_PAGE(addr + size);
     const size_t n_pages = (range_end - range_start) / MOS_PAGE_SIZE;
 
     mm_unmap_pages(current_process->pagetable, range_start, n_pages);

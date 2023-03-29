@@ -147,7 +147,7 @@ bool screen_clear(void)
     return true;
 }
 
-void x86_vga_text_mode_console_init(uintptr_t video_buffer_addr)
+void x86_vga_text_mode_console_init(ptr_t video_buffer_addr)
 {
     video_buffer = (video_buffer_t *) video_buffer_addr;
 }

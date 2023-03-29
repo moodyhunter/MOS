@@ -28,7 +28,7 @@
 #include <string.h>
 
 static size_t initrd_size = 0;
-static uintptr_t initrd_paddr = 0;
+static ptr_t initrd_paddr = 0;
 
 static char mos_cmdline[512];
 static serial_console_t com1_console = {
@@ -56,9 +56,9 @@ static vmblock_t x86_ebda_block = {
 
 mos_platform_info_t *const platform_info = &x86_platform;
 mos_platform_info_t x86_platform = {
-    .k_code = { .vaddr = (uintptr_t) &__MOS_KERNEL_CODE_START, .flags = VM_READ | VM_EXEC | VM_GLOBAL },
-    .k_rodata = { .vaddr = (uintptr_t) &__MOS_KERNEL_RODATA_START, .flags = VM_READ | VM_GLOBAL },
-    .k_rwdata = { .vaddr = (uintptr_t) &__MOS_KERNEL_RW_START, .flags = VM_READ | VM_WRITE | VM_GLOBAL },
+    .k_code = { .vaddr = (ptr_t) &__MOS_KERNEL_CODE_START, .flags = VM_READ | VM_EXEC | VM_GLOBAL },
+    .k_rodata = { .vaddr = (ptr_t) &__MOS_KERNEL_RODATA_START, .flags = VM_READ | VM_GLOBAL },
+    .k_rwdata = { .vaddr = (ptr_t) &__MOS_KERNEL_RW_START, .flags = VM_READ | VM_WRITE | VM_GLOBAL },
 };
 
 void x86_keyboard_handler(u32 irq)
@@ -84,7 +84,7 @@ void do_backtrace(u32 max)
     struct frame_t
     {
         struct frame_t *ebp;
-        uintptr_t eip;
+        ptr_t eip;
     } *frame = NULL;
 
     __asm__("movl %%ebp,%1" : "=r"(frame) : "r"(frame));
@@ -109,7 +109,7 @@ void do_backtrace(u32 max)
 
 void x86_kpanic_hook(void)
 {
-    const char *cpu_pagetable_source = current_cpu->pagetable.pgd == (uintptr_t) x86_kpg_infra ? "Kernel" : NULL;
+    const char *cpu_pagetable_source = current_cpu->pagetable.pgd == (ptr_t) x86_kpg_infra ? "Kernel" : NULL;
 
     if (current_thread)
     {
@@ -144,7 +144,7 @@ void x86_start_kernel(x86_startup_info *info)
     declare_panic_hook(x86_kpanic_hook);
     install_panic_hook(&x86_kpanic_hook_holder);
 
-    pr_info("mos_startup_info: initrd %zu bytes, mbinfo at: " PTR_FMT ", magic " PTR_FMT, info->initrd_size, (uintptr_t) info->mb_info, (uintptr_t) info->mb_magic);
+    pr_info("mos_startup_info: initrd %zu bytes, mbinfo at: " PTR_FMT ", magic " PTR_FMT, info->initrd_size, (ptr_t) info->mb_info, (ptr_t) info->mb_magic);
 
     const multiboot_info_t *mb_info = info->mb_info;
     initrd_size = info->initrd_size;
@@ -168,7 +168,7 @@ void x86_start_kernel(x86_startup_info *info)
     x86_mm_paging_init();
 
     pr_info("mapping kernel space...");
-    x86_platform.k_code.npages = (ALIGN_UP_TO_PAGE((uintptr_t) &__MOS_KERNEL_CODE_END) - ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_CODE_START)) / MOS_PAGE_SIZE;
+    x86_platform.k_code.npages = (ALIGN_UP_TO_PAGE((ptr_t) &__MOS_KERNEL_CODE_END) - ALIGN_DOWN_TO_PAGE((ptr_t) &__MOS_KERNEL_CODE_START)) / MOS_PAGE_SIZE;
     x86_platform.k_code = mm_map_pages(                                                                     //
         x86_platform.kernel_pgd,                                                                            //
         x86_platform.k_code.vaddr,                                                                          //
@@ -177,7 +177,7 @@ void x86_start_kernel(x86_startup_info *info)
         x86_platform.k_code.flags                                                                           //
     );
 
-    x86_platform.k_rodata.npages = (ALIGN_UP_TO_PAGE((uintptr_t) &__MOS_KERNEL_RODATA_END) - ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_RODATA_START)) / MOS_PAGE_SIZE;
+    x86_platform.k_rodata.npages = (ALIGN_UP_TO_PAGE((ptr_t) &__MOS_KERNEL_RODATA_END) - ALIGN_DOWN_TO_PAGE((ptr_t) &__MOS_KERNEL_RODATA_START)) / MOS_PAGE_SIZE;
     x86_platform.k_rodata = mm_map_pages(                                                                       //
         x86_platform.kernel_pgd,                                                                                //
         x86_platform.k_rodata.vaddr,                                                                            //
@@ -186,7 +186,7 @@ void x86_start_kernel(x86_startup_info *info)
         x86_platform.k_rodata.flags                                                                             //
     );
 
-    x86_platform.k_rwdata.npages = (ALIGN_UP_TO_PAGE((uintptr_t) &__MOS_KERNEL_RW_END) - ALIGN_DOWN_TO_PAGE((uintptr_t) &__MOS_KERNEL_RW_START)) / MOS_PAGE_SIZE;
+    x86_platform.k_rwdata.npages = (ALIGN_UP_TO_PAGE((ptr_t) &__MOS_KERNEL_RW_END) - ALIGN_DOWN_TO_PAGE((ptr_t) &__MOS_KERNEL_RW_START)) / MOS_PAGE_SIZE;
     x86_platform.k_rwdata = mm_map_pages(                                                                       //
         x86_platform.kernel_pgd,                                                                                //
         x86_platform.k_rwdata.vaddr,                                                                            //

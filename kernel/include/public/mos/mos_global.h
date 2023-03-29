@@ -67,11 +67,11 @@
 #define MOS_FOURCC(a, b, c, d) ((u32) (a) | ((u32) (b) << 8) | ((u32) (c) << 16) | ((u32) (d) << 24))
 #define MOS_ARRAY_SIZE(x)      (sizeof(x) / sizeof(x[0]))
 
-#define MOS_MAX_VADDR ((uintptr_t) ~0)
+#define MOS_MAX_VADDR ((ptr_t) ~0)
 
 #define MOS_SYSCALL_INTR             0x88
 #define BIOS_VADDR_MASK              0xF0000000
-#define BIOS_VADDR(paddr)            (BIOS_VADDR_MASK | ((uintptr_t) (paddr)))
+#define BIOS_VADDR(paddr)            (BIOS_VADDR_MASK | ((ptr_t) (paddr)))
 #define BIOS_VADDR_TYPE(paddr, type) ((type) BIOS_VADDR((paddr)))
 
 // clang-format off

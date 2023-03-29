@@ -29,12 +29,12 @@ MOS_TEST_CASE(hashmap_put_single)
 
     MOS_TEST_CHECK(map.capacity, 135);
     MOS_TEST_CHECK(map.size, 0);
-    void *old = hashmap_put(&map, (uintptr_t) "foo", "bar");
+    void *old = hashmap_put(&map, (ptr_t) "foo", "bar");
     MOS_TEST_CHECK(old, NULL);
     MOS_TEST_CHECK(map.capacity, 135);
     MOS_TEST_CHECK(map.size, 1);
 
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, (uintptr_t) "foo"), "bar");
+    MOS_TEST_CHECK_STRING(hashmap_get(&map, (ptr_t) "foo"), "bar");
     hashmap_deinit(&map);
 }
 
@@ -46,20 +46,20 @@ MOS_TEST_CASE(hashmap_get_function)
     MOS_TEST_CHECK(map.capacity, 1);
     MOS_TEST_CHECK(map.size, 0);
 
-    hashmap_put(&map, (uintptr_t) "foo", "foo1");
+    hashmap_put(&map, (ptr_t) "foo", "foo1");
     MOS_TEST_CHECK(map.capacity, 1);
     MOS_TEST_CHECK(map.size, 1);
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, (uintptr_t) "foo"), "foo1");
+    MOS_TEST_CHECK_STRING(hashmap_get(&map, (ptr_t) "foo"), "foo1");
 
-    hashmap_put(&map, (uintptr_t) "bar", "bar1");
+    hashmap_put(&map, (ptr_t) "bar", "bar1");
     MOS_TEST_CHECK(map.capacity, 1);
     MOS_TEST_CHECK(map.size, 2);
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, (uintptr_t) "bar"), "bar1");
+    MOS_TEST_CHECK_STRING(hashmap_get(&map, (ptr_t) "bar"), "bar1");
 
-    hashmap_put(&map, (uintptr_t) "bar", "bar2");
+    hashmap_put(&map, (ptr_t) "bar", "bar2");
     MOS_TEST_CHECK(map.capacity, 1);
     MOS_TEST_CHECK(map.size, 2);
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, (uintptr_t) "bar"), "bar2");
+    MOS_TEST_CHECK_STRING(hashmap_get(&map, (ptr_t) "bar"), "bar2");
 
     hashmap_deinit(&map);
 }
@@ -73,31 +73,31 @@ MOS_TEST_CASE(hashmap_put_multiple)
     MOS_TEST_CHECK(map.capacity, 135);
     MOS_TEST_CHECK(map.size, 0);
 
-    old = hashmap_put(&map, (uintptr_t) "foo", "foo1");
+    old = hashmap_put(&map, (ptr_t) "foo", "foo1");
     MOS_TEST_CHECK(old, NULL);
     MOS_TEST_CHECK(map.capacity, 135);
     MOS_TEST_CHECK(map.size, 1);
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, (uintptr_t) "foo"), "foo1");
+    MOS_TEST_CHECK_STRING(hashmap_get(&map, (ptr_t) "foo"), "foo1");
 
-    old = hashmap_put(&map, (uintptr_t) "foo", "foo2");
+    old = hashmap_put(&map, (ptr_t) "foo", "foo2");
     MOS_TEST_CHECK(map.capacity, 135);
     MOS_TEST_CHECK(map.size, 1);
     MOS_TEST_CHECK_STRING(old, "foo1");
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, (uintptr_t) "foo"), "foo2");
+    MOS_TEST_CHECK_STRING(hashmap_get(&map, (ptr_t) "foo"), "foo2");
 
-    old = hashmap_put(&map, (uintptr_t) "bar", "bar1");
+    old = hashmap_put(&map, (ptr_t) "bar", "bar1");
     MOS_TEST_CHECK(old, NULL);
     MOS_TEST_CHECK(map.capacity, 135);
     MOS_TEST_CHECK(map.size, 2);
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, (uintptr_t) "bar"), "bar1");
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, (uintptr_t) "foo"), "foo2");
+    MOS_TEST_CHECK_STRING(hashmap_get(&map, (ptr_t) "bar"), "bar1");
+    MOS_TEST_CHECK_STRING(hashmap_get(&map, (ptr_t) "foo"), "foo2");
 
-    old = hashmap_put(&map, (uintptr_t) "bar", "bar2");
+    old = hashmap_put(&map, (ptr_t) "bar", "bar2");
     MOS_TEST_CHECK(map.capacity, 135);
     MOS_TEST_CHECK(map.size, 2);
     MOS_TEST_CHECK_STRING(old, "bar1");
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, (uintptr_t) "bar"), "bar2");
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, (uintptr_t) "foo"), "foo2");
+    MOS_TEST_CHECK_STRING(hashmap_get(&map, (ptr_t) "bar"), "bar2");
+    MOS_TEST_CHECK_STRING(hashmap_get(&map, (ptr_t) "foo"), "foo2");
     hashmap_deinit(&map);
 }
 
@@ -110,25 +110,25 @@ MOS_TEST_CASE(hashmap_put_overflow)
     MOS_TEST_CHECK(map.capacity, 1);
     MOS_TEST_CHECK(map.size, 0);
 
-    old = hashmap_put(&map, (uintptr_t) "foo", "foo1");
+    old = hashmap_put(&map, (ptr_t) "foo", "foo1");
     MOS_TEST_CHECK(old, NULL);
     MOS_TEST_CHECK(map.capacity, 1);
     MOS_TEST_CHECK(map.size, 1);
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, (uintptr_t) "foo"), "foo1");
+    MOS_TEST_CHECK_STRING(hashmap_get(&map, (ptr_t) "foo"), "foo1");
 
-    old = hashmap_put(&map, (uintptr_t) "bar", "bar1");
+    old = hashmap_put(&map, (ptr_t) "bar", "bar1");
     MOS_TEST_CHECK(old, NULL);
     MOS_TEST_CHECK(map.capacity, 1);
     MOS_TEST_CHECK(map.size, 2);
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, (uintptr_t) "bar"), "bar1");
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, (uintptr_t) "foo"), "foo1");
+    MOS_TEST_CHECK_STRING(hashmap_get(&map, (ptr_t) "bar"), "bar1");
+    MOS_TEST_CHECK_STRING(hashmap_get(&map, (ptr_t) "foo"), "foo1");
 
-    old = hashmap_put(&map, (uintptr_t) "bar", "bar2");
+    old = hashmap_put(&map, (ptr_t) "bar", "bar2");
     MOS_TEST_CHECK_STRING(old, "bar1");
     MOS_TEST_CHECK(map.capacity, 1);
     MOS_TEST_CHECK(map.size, 2);
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, (uintptr_t) "bar"), "bar2");
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, (uintptr_t) "foo"), "foo1");
+    MOS_TEST_CHECK_STRING(hashmap_get(&map, (ptr_t) "bar"), "bar2");
+    MOS_TEST_CHECK_STRING(hashmap_get(&map, (ptr_t) "foo"), "foo1");
 
     hashmap_deinit(&map);
 }
@@ -142,25 +142,25 @@ MOS_TEST_CASE(hashmap_remove_function)
     MOS_TEST_CHECK(map.capacity, 10);
     MOS_TEST_CHECK(map.size, 0);
 
-    old = hashmap_put(&map, (uintptr_t) "foo", "foo1");
+    old = hashmap_put(&map, (ptr_t) "foo", "foo1");
     MOS_TEST_CHECK(map.capacity, 10);
     MOS_TEST_CHECK(map.size, 1);
     MOS_TEST_CHECK(old, NULL);
-    MOS_TEST_CHECK_STRING(hashmap_get(&map, (uintptr_t) "foo"), "foo1");
+    MOS_TEST_CHECK_STRING(hashmap_get(&map, (ptr_t) "foo"), "foo1");
 
-    old = hashmap_remove(&map, (uintptr_t) "foo");
+    old = hashmap_remove(&map, (ptr_t) "foo");
     MOS_TEST_CHECK(map.capacity, 10);
     MOS_TEST_CHECK(map.size, 0);
     MOS_TEST_CHECK_STRING(old, "foo1");
-    const char *nothing = hashmap_get(&map, (uintptr_t) "foo");
+    const char *nothing = hashmap_get(&map, (ptr_t) "foo");
     MOS_TEST_CHECK(nothing, NULL);
 
-    old = hashmap_remove(&map, (uintptr_t) "foo");
+    old = hashmap_remove(&map, (ptr_t) "foo");
     MOS_TEST_CHECK(old, NULL);
     MOS_TEST_CHECK(map.capacity, 10);
     MOS_TEST_CHECK(map.size, 0);
 
-    MOS_TEST_CHECK(hashmap_get(&map, (uintptr_t) "foo"), NULL);
+    MOS_TEST_CHECK(hashmap_get(&map, (ptr_t) "foo"), NULL);
     hashmap_deinit(&map);
 }
 
@@ -190,18 +190,18 @@ MOS_TEST_CASE(hashmap_foreach_function)
     MOS_TEST_CHECK(map.magic, HASHMAP_MAGIC);
     MOS_TEST_CHECK(map.capacity, 10);
     MOS_TEST_CHECK(map.size, 0);
-    hashmap_put(&map, (uintptr_t) "foo", "foo1");
-    hashmap_put(&map, (uintptr_t) "bar", "bar1");
-    hashmap_put(&map, (uintptr_t) "baz", "baz1");
-    hashmap_put(&map, (uintptr_t) "qux", "qux1");
-    hashmap_put(&map, (uintptr_t) "quux", "quux1");
-    hashmap_put(&map, (uintptr_t) "corge", "corge1");
-    hashmap_put(&map, (uintptr_t) "grault", "grault1");
-    hashmap_put(&map, (uintptr_t) "garply", "garply1");
-    hashmap_put(&map, (uintptr_t) "waldo", "waldo1");
-    hashmap_put(&map, (uintptr_t) "fred", "fred1");
-    hashmap_put(&map, (uintptr_t) "plugh", "plugh1");
-    hashmap_put(&map, (uintptr_t) "xyzzy", "xyzzy1");
+    hashmap_put(&map, (ptr_t) "foo", "foo1");
+    hashmap_put(&map, (ptr_t) "bar", "bar1");
+    hashmap_put(&map, (ptr_t) "baz", "baz1");
+    hashmap_put(&map, (ptr_t) "qux", "qux1");
+    hashmap_put(&map, (ptr_t) "quux", "quux1");
+    hashmap_put(&map, (ptr_t) "corge", "corge1");
+    hashmap_put(&map, (ptr_t) "grault", "grault1");
+    hashmap_put(&map, (ptr_t) "garply", "garply1");
+    hashmap_put(&map, (ptr_t) "waldo", "waldo1");
+    hashmap_put(&map, (ptr_t) "fred", "fred1");
+    hashmap_put(&map, (ptr_t) "plugh", "plugh1");
+    hashmap_put(&map, (ptr_t) "xyzzy", "xyzzy1");
 
     test_hashmap_foreach_count = 0;
     hashmap_foreach(&map, test_foreach_function);

@@ -10,7 +10,7 @@
 
 typedef struct hashmap_entry
 {
-    uintptr_t key;
+    ptr_t key;
     void *value;
     hashmap_entry_t *next;
 } hashmap_entry_t;

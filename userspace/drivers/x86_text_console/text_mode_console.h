@@ -14,4 +14,4 @@ bool screen_get_color(standard_color_t *fg, standard_color_t *bg);
 bool screen_set_color(standard_color_t fg, standard_color_t bg);
 int screen_print_string(const char *str, size_t limit);
 bool screen_clear(void);
-void x86_vga_text_mode_console_init(uintptr_t video_buffer_addr);
+void x86_vga_text_mode_console_init(ptr_t video_buffer_addr);

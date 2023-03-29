@@ -236,4 +236,4 @@ typedef struct
     bool valid;
 } s_dsdt;
 
-acpi_rsdp_t *acpi_find_rsdp(uintptr_t start, size_t size);
+acpi_rsdp_t *acpi_find_rsdp(ptr_t start, size_t size);

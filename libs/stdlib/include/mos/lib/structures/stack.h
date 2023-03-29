@@ -13,8 +13,8 @@
  */
 typedef struct _downwards_stack_t
 {
-    uintptr_t top;
-    uintptr_t head;
+    ptr_t top;
+    ptr_t head;
     size_t capacity;
 } downwards_stack_t;
 

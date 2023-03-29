@@ -27,7 +27,7 @@ typedef enum
 } valloc_flags;
 
 /// @brief Maximum 'lines' in a page map, see also @ref bitmap_line_t.
-#define MOS_PAGEMAP_MAX_LINES BITMAP_LINE_COUNT((uintptr_t) ~0 / MOS_PAGE_SIZE)
+#define MOS_PAGEMAP_MAX_LINES BITMAP_LINE_COUNT((ptr_t) ~0 / MOS_PAGE_SIZE)
 
 /// @brief Number of lines in the page map for user space.
 #define MOS_PAGEMAP_USER_LINES BITMAP_LINE_COUNT(MOS_KERNEL_START_VADDR / MOS_PAGE_SIZE)
@@ -48,7 +48,7 @@ typedef struct _page_map
  * @param npages The number of pages to allocate.
  * @param base_vaddr The base virtual address to allocate at.
  * @param flags Flags to set on the pages, see @ref valloc_flags.
- * @return uintptr_t The virtual address of the block of virtual memory.
+ * @return ptr_t The virtual address of the block of virtual memory.
  *
  * @note This function neither allocates nor maps the pages, it only
  * determines the block of virtual memory that can be used to allocate
@@ -59,7 +59,7 @@ typedef struct _page_map
  * nor the flags of the pages.
  */
 
-uintptr_t mm_get_free_pages(paging_handle_t table, size_t n_pages, uintptr_t base_vaddr, valloc_flags flags);
+ptr_t mm_get_free_pages(paging_handle_t table, size_t n_pages, ptr_t base_vaddr, valloc_flags flags);
 
 /**
  * @brief Allocate npages pages from a page table.
@@ -75,7 +75,7 @@ uintptr_t mm_get_free_pages(paging_handle_t table, size_t n_pages, uintptr_t bas
  * @details This function first finds a block of virtual memory using
  * @ref mm_get_free_pages, then allocates and maps the pages.
  */
-vmblock_t mm_alloc_pages(paging_handle_t table, size_t n_pages, uintptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags);
+vmblock_t mm_alloc_pages(paging_handle_t table, size_t n_pages, ptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags);
 
 /**
  * @brief Map a block of virtual memory to a block of physical memory.
@@ -93,7 +93,7 @@ vmblock_t mm_alloc_pages(paging_handle_t table, size_t n_pages, uintptr_t hint_v
  *
  * @note You may need to reserve the physical memory before mapping it, see @ref pmm_reserve_frames.
  */
-vmblock_t mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t npages, vm_flags flags);
+vmblock_t mm_map_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags);
 
 /**
  * @brief Unmap and possibly free a block of virtual memory.
@@ -105,7 +105,7 @@ vmblock_t mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, 
  * @details This function unmaps the pages in the block, and returns the corresponding physical memory
  * back to the allocator if their reference count reaches zero.
  */
-void mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t npages);
+void mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t npages);
 
 /**
  * @brief Fill a block of virtual memory with a block of physical memory.
@@ -117,7 +117,7 @@ void mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t npages);
  * @param flags Flags to set on the pages, see @ref vm_flags.
  * @return vmblock_t The filled block of virtual memory, with the number of pages.
  */
-vmblock_t mm_fill_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t npages, vm_flags flags);
+vmblock_t mm_fill_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags);
 
 /**
  * @brief Remap a block of virtual memory from one page table to another, i.e. copy the mappings.
@@ -136,7 +136,7 @@ vmblock_t mm_fill_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr,
  * @note If clear_dest is set to true, then the destination page table is cleared before copying, otherwise
  * the function assumes that there are no existing mappings in the destination page table.
  */
-vmblock_t mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior);
+vmblock_t mm_copy_maps(paging_handle_t from, ptr_t fvaddr, paging_handle_t to, ptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior);
 
 /**
  * @brief Get if a virtual address is mapped in a page table.
@@ -145,7 +145,7 @@ vmblock_t mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t t
  * @param vaddr The virtual address to get the physical address of.
  * @return bool True if the virtual address is mapped, false otherwise.
  */
-bool mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr);
+bool mm_get_is_mapped(paging_handle_t table, ptr_t vaddr);
 
 /**
  * @brief Update the flags of a block of virtual memory.
@@ -157,7 +157,7 @@ bool mm_get_is_mapped(paging_handle_t table, uintptr_t vaddr);
  *
  * @note This function is just a wrapper around @ref platform_mm_flag_pages, with correct locking.
  */
-void mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t npages, vm_flags flags);
+void mm_flag_pages(paging_handle_t table, ptr_t vaddr, size_t npages, vm_flags flags);
 
 /**
  * @brief Create a user-mode platform-dependent page table.

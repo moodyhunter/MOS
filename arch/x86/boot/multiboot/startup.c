@@ -19,20 +19,20 @@ extern const char __MOS_KERNEL_RW_START;
 extern const char __MOS_KERNEL_RW_END;
 extern const char __MOS_KERNEL_END;
 
-#define startup_start      ((uintptr_t) &_mos_startup_START)
-#define startup_end        ((uintptr_t) &_mos_startup_END)
-#define kernel_code_vstart ((uintptr_t) &__MOS_KERNEL_CODE_START)
-#define kernel_code_vend   ((uintptr_t) &__MOS_KERNEL_CODE_END)
-#define kernel_ro_vstart   ((uintptr_t) &__MOS_KERNEL_RODATA_START)
-#define kernel_ro_vend     ((uintptr_t) &__MOS_KERNEL_RODATA_END)
-#define kernel_rw_vstart   ((uintptr_t) &__MOS_KERNEL_RW_START)
-#define kernel_rw_vend     ((uintptr_t) &__MOS_KERNEL_RW_END)
+#define startup_start      ((ptr_t) &_mos_startup_START)
+#define startup_end        ((ptr_t) &_mos_startup_END)
+#define kernel_code_vstart ((ptr_t) &__MOS_KERNEL_CODE_START)
+#define kernel_code_vend   ((ptr_t) &__MOS_KERNEL_CODE_END)
+#define kernel_ro_vstart   ((ptr_t) &__MOS_KERNEL_RODATA_START)
+#define kernel_ro_vend     ((ptr_t) &__MOS_KERNEL_RODATA_END)
+#define kernel_rw_vstart   ((ptr_t) &__MOS_KERNEL_RW_START)
+#define kernel_rw_vend     ((ptr_t) &__MOS_KERNEL_RW_END)
 
 // 768 KB of pages gives us 768 MB of virtual memory
 __startup_rwdata x86_pgdir_entry startup_pgd[1024] __aligned(MOS_PAGE_SIZE) = { 0 };
 __startup_rwdata x86_pgtable_entry startup_pgt[768 KB / 4] __aligned(MOS_PAGE_SIZE) = { 0 };
 
-__startup_rwdata uintptr_t video_device_address = X86_VIDEO_DEVICE;
+__startup_rwdata ptr_t video_device_address = X86_VIDEO_DEVICE;
 
 #define STARTUP_ASSERT(cond, type)                                                                                                                                       \
     do                                                                                                                                                                   \
@@ -59,17 +59,17 @@ __startup_code should_inline void print_debug_info(char a, char b, char color1, 
 
 __startup_code should_inline void startup_setup_pgd(int pgdid, x86_pgtable_entry *pgtable)
 {
-    STARTUP_ASSERT(pgdid < 1024, 'r');                    // pgdid must be less than 1024
-    STARTUP_ASSERT(pgtable != NULL, 't');                 // pgtable must not be NULL
-    STARTUP_ASSERT((uintptr_t) pgtable % 4096 == 0, 'a'); // pgtable must be aligned to 4096
-    STARTUP_ASSERT(!startup_pgd[pgdid].present, 'p');     // pgdir entry already present
+    STARTUP_ASSERT(pgdid < 1024, 'r');                // pgdid must be less than 1024
+    STARTUP_ASSERT(pgtable != NULL, 't');             // pgtable must not be NULL
+    STARTUP_ASSERT((ptr_t) pgtable % 4096 == 0, 'a'); // pgtable must be aligned to 4096
+    STARTUP_ASSERT(!startup_pgd[pgdid].present, 'p'); // pgdir entry already present
 
     mos_startup_memzero((void *) (startup_pgd + pgdid), sizeof(x86_pgdir_entry));
     startup_pgd[pgdid].present = true;
-    startup_pgd[pgdid].page_table_paddr = (uintptr_t) pgtable >> 12;
+    startup_pgd[pgdid].page_table_paddr = (ptr_t) pgtable >> 12;
 }
 
-__startup_code void mos_startup_map_single_page(uintptr_t vaddr, uintptr_t paddr, vm_flags flags)
+__startup_code void mos_startup_map_single_page(ptr_t vaddr, ptr_t paddr, vm_flags flags)
 {
     const size_t dir_index = vaddr >> 22;
     const size_t table_index = (vaddr >> 12) & 0x3FF;
@@ -104,7 +104,7 @@ __startup_code void mos_startup_map_single_page(uintptr_t vaddr, uintptr_t paddr
     }
     mos_startup_memzero((void *) this_table, sizeof(x86_pgtable_entry));
     this_table->present = true;
-    this_table->phys_addr = (uintptr_t) paddr >> 12;
+    this_table->phys_addr = (ptr_t) paddr >> 12;
     this_table->writable = flags & VM_WRITE;
     this_table->global = flags & VM_GLOBAL;
     this_table->cache_disabled = flags & VM_CACHE_DISABLED;
@@ -131,14 +131,14 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
     mos_startup_memzero((void *) startup_pgt, 512 KB);
 
     debug_print_step();
-    mos_startup_map_identity((uintptr_t) startup->mb_info, sizeof(multiboot_info_t), VM_READ);
+    mos_startup_map_identity((ptr_t) startup->mb_info, sizeof(multiboot_info_t), VM_READ);
 
     // multiboot stuff
     if (startup->mb_info->flags & MULTIBOOT_INFO_CMDLINE)
-        mos_startup_map_identity((uintptr_t) startup->mb_info->cmdline, mos_startup_strlen(startup->mb_info->cmdline), VM_READ);
+        mos_startup_map_identity((ptr_t) startup->mb_info->cmdline, mos_startup_strlen(startup->mb_info->cmdline), VM_READ);
 
     STARTUP_ASSERT(startup->mb_info->mmap_addr, 'm');
-    mos_startup_map_identity((uintptr_t) startup->mb_info->mmap_addr, startup->mb_info->mmap_length * sizeof(multiboot_memory_map_t), VM_READ);
+    mos_startup_map_identity((ptr_t) startup->mb_info->mmap_addr, startup->mb_info->mmap_length * sizeof(multiboot_memory_map_t), VM_READ);
 
     // map the VGA buffer, from 0xB8000
     mos_startup_map_bios(X86_VIDEO_DEVICE, VIDEO_WIDTH * VIDEO_HEIGHT * 2, VM_WRITE);

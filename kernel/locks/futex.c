@@ -12,7 +12,7 @@
 #include <mos/types.h>
 #include <stdlib.h>
 
-typedef uintptr_t futex_key_t;
+typedef ptr_t futex_key_t;
 
 typedef struct
 {
@@ -27,7 +27,7 @@ static spinlock_t futex_list_lock = SPINLOCK_INIT;
 
 static futex_key_t futex_get_key(const futex_word_t *futex)
 {
-    const uintptr_t vaddr = (uintptr_t) futex;
+    const ptr_t vaddr = (ptr_t) futex;
     return platform_mm_get_phys_addr(current_process->pagetable, vaddr);
 }
 

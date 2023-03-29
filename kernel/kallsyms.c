@@ -2,7 +2,7 @@
 
 #include <mos/kallsyms.h>
 
-const kallsyms_t *kallsyms_get_symbol_name(uintptr_t addr)
+const kallsyms_t *kallsyms_get_symbol_name(ptr_t addr)
 {
     // kallsyms are sorted by address
     const kallsyms_t *ks = mos_kallsyms;

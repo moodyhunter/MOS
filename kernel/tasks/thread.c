@@ -44,7 +44,7 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
     t->name = strdup(name);
 
     // Kernel stack
-    const uintptr_t kstack_hint_addr = (tmode == THREAD_MODE_KERNEL) ? MOS_ADDR_KERNEL_HEAP : MOS_ADDR_USER_STACK;
+    const ptr_t kstack_hint_addr = (tmode == THREAD_MODE_KERNEL) ? MOS_ADDR_KERNEL_HEAP : MOS_ADDR_USER_STACK;
     const vmblock_t kstack_blk = mm_alloc_pages(owner->pagetable, MOS_STACK_PAGES_KERNEL, kstack_hint_addr, VALLOC_DEFAULT, VM_RW);
     stack_init(&t->k_stack, (void *) kstack_blk.vaddr, kstack_blk.npages * MOS_PAGE_SIZE);
     process_attach_mmap(owner, kstack_blk, VMTYPE_KSTACK, (vmap_flags_t){ 0 });
@@ -135,8 +135,8 @@ void thread_handle_exit(thread_t *t)
         if (blk->content != VMTYPE_KSTACK && blk->content != VMTYPE_STACK)
             continue;
 
-        uintptr_t kstack_start = (uintptr_t) t->k_stack.top - t->k_stack.capacity;
-        uintptr_t ustack_start = (uintptr_t) t->u_stack.top - t->u_stack.capacity;
+        ptr_t kstack_start = (ptr_t) t->k_stack.top - t->k_stack.capacity;
+        ptr_t ustack_start = (ptr_t) t->u_stack.top - t->u_stack.capacity;
 
         if (blk->blk.vaddr >= kstack_start && blk->blk.vaddr < kstack_start + t->k_stack.capacity)
             kstack = blk->blk;

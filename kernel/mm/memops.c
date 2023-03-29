@@ -65,11 +65,11 @@ bool liballoc_free_page(void *vptr, size_t npages)
         return false;
     }
 
-    mm_unmap_pages(current_cpu->pagetable, (uintptr_t) vptr, npages);
+    mm_unmap_pages(current_cpu->pagetable, (ptr_t) vptr, npages);
     return true;
 }
 
-vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, uintptr_t vaddr, valloc_flags allocation_flags, vm_flags flags)
+vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, ptr_t vaddr, valloc_flags allocation_flags, vm_flags flags)
 {
     vaddr = mm_get_free_pages(handle, npages, vaddr, allocation_flags);
 

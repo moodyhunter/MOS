@@ -93,7 +93,7 @@ extern bool pmm_use_kernel_heap;
  * @param type Type of the block, see \ref pm_range_type_t
  * @return pmlist_node_t*
  */
-pmlist_node_t *pmm_internal_list_node_create(uintptr_t start, size_t n_pages, pm_range_type_t type);
+pmlist_node_t *pmm_internal_list_node_create(ptr_t start, size_t n_pages, pm_range_type_t type);
 
 /**
  * @brief Delete a pmlist_node_t.
@@ -118,7 +118,7 @@ void pmm_internal_list_node_delete(pmlist_node_t *node);
  * @param n_pages Number of pages in the block
  * @param type Type of the block, see \ref pm_range_type_t
  */
-void pmm_internal_add_free_frames(uintptr_t start, size_t n_pages, pm_range_type_t type);
+void pmm_internal_add_free_frames(ptr_t start, size_t n_pages, pm_range_type_t type);
 
 /**
  * @brief Add a new free block to the free list.
@@ -156,7 +156,7 @@ bool pmm_internal_acquire_free_frames(size_t n_pages, pmm_internal_op_callback_t
  *
  * @note The resulting node will be removed from the free list.
  */
-pmlist_node_t *pmm_internal_acquire_free_frames_at(uintptr_t start, size_t n_pages);
+pmlist_node_t *pmm_internal_acquire_free_frames_at(ptr_t start, size_t n_pages);
 
 /**
  * @brief Find a free block of physical memory.
@@ -167,7 +167,7 @@ pmlist_node_t *pmm_internal_acquire_free_frames_at(uintptr_t start, size_t n_pag
  *
  * @note The resulting node will be removed from the free list.
  */
-pmlist_node_t *pmm_internal_find_and_acquire_block(uintptr_t needle, pm_range_type_t type);
+pmlist_node_t *pmm_internal_find_and_acquire_block(ptr_t needle, pm_range_type_t type);
 
 /** @} */
 
@@ -209,7 +209,7 @@ typedef void (*pmm_internal_unref_callback_t)(pmlist_node_t *node, void *arg);
  * @param callback Callback function to call when the reference count reaches zero
  * @param arg Argument to pass to the callback function
  */
-void pmm_internal_iterate_allocated_list_range(uintptr_t start, size_t npages, refcount_operation_t op, pmm_internal_unref_callback_t callback, void *arg);
+void pmm_internal_iterate_allocated_list_range(ptr_t start, size_t npages, refcount_operation_t op, pmm_internal_unref_callback_t callback, void *arg);
 /** @} */
 
 /** @} */

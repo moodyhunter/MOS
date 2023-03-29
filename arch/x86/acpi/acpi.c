@@ -15,7 +15,7 @@
 const acpi_rsdt_t *x86_acpi_rsdt;
 const acpi_hpet_t *x86_acpi_hpet;
 const acpi_fadt_t *x86_acpi_fadt;
-uintptr_t x86_acpi_dsdt = 0;
+ptr_t x86_acpi_dsdt = 0;
 
 should_inline bool verify_sdt_checksum(const acpi_sdt_header_t *tableHeader)
 {
@@ -39,7 +39,7 @@ void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
     if (strncmp(x86_acpi_rsdt->sdt_header.signature, "RSDT", 4) != 0)
         mos_panic("RSDT signature mismatch");
 
-    const size_t num_headers = (x86_acpi_rsdt->sdt_header.length - sizeof(acpi_sdt_header_t)) / sizeof(u32); // TODO: uintptr_t?
+    const size_t num_headers = (x86_acpi_rsdt->sdt_header.length - sizeof(acpi_sdt_header_t)) / sizeof(u32); // TODO: ptr_t?
     for (size_t i = 0; i < num_headers; i++)
     {
         const acpi_sdt_header_t *const header = BIOS_VADDR_TYPE(x86_acpi_rsdt->sdts[i], acpi_sdt_header_t *);
@@ -55,7 +55,7 @@ void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
             if (!verify_sdt_checksum(dsdt))
                 mos_panic("DSDT checksum error");
             pr_info2("acpi: DSDT at %p", (void *) dsdt);
-            x86_acpi_dsdt = (uintptr_t) dsdt;
+            x86_acpi_dsdt = (ptr_t) dsdt;
         }
         else if (strncmp(header->signature, ACPI_SIGNATURE_MADT, 4) == 0)
         {
@@ -81,9 +81,9 @@ void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
     }
 }
 
-acpi_rsdp_t *acpi_find_rsdp(uintptr_t start, size_t size)
+acpi_rsdp_t *acpi_find_rsdp(ptr_t start, size_t size)
 {
-    for (uintptr_t addr = start; addr < start + size; addr += 0x10)
+    for (ptr_t addr = start; addr < start + size; addr += 0x10)
     {
         if (strncmp((const char *) addr, ACPI_SIGNATURE_RSDP, 8) == 0)
         {

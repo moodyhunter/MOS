@@ -55,7 +55,7 @@ typedef enum
  */
 typedef struct
 {
-    uintptr_t paddr;
+    ptr_t paddr;
     size_t npages;
 } pmrange_t;
 
@@ -97,7 +97,7 @@ void pmm_dump_lists(void);
  * @note The second parameter is in bytes, not pages, page-aligning will be done internally.
  *
  */
-void pmm_add_region_bytes(uintptr_t start_addr, size_t nbytes, pm_range_type_t type);
+void pmm_add_region_bytes(ptr_t start_addr, size_t nbytes, pm_range_type_t type);
 
 /**
  * @brief Allocate blocks of physical memory.
@@ -127,7 +127,7 @@ __nodiscard bool pmm_allocate_frames(size_t n_pages, pmm_allocate_callback_t cal
  * needs to be done once.
  *
  */
-void pmm_ref_frames(uintptr_t paddr, size_t npages);
+void pmm_ref_frames(ptr_t paddr, size_t npages);
 
 /**
  * @brief Unreference a list of blocks of physical memory.
@@ -139,14 +139,14 @@ void pmm_ref_frames(uintptr_t paddr, size_t npages);
  * be re-allocated in the future.
  *
  */
-void pmm_unref_frames(uintptr_t paddr, size_t npages);
+void pmm_unref_frames(ptr_t paddr, size_t npages);
 
 /**
  * @brief Mark a range of physical memory as reserved.
  *
  * @param paddr Physical address of the block to reserve.
  * @param npages Number of pages to reserve.
- * @return uintptr_t The paddr argument, for convenience.
+ * @return ptr_t The paddr argument, for convenience.
  *
  * @note The memory will be marked as `PMM_REGION_RESERVED` and will be moved to the allocated list.
  *
@@ -154,7 +154,7 @@ void pmm_unref_frames(uintptr_t paddr, size_t npages);
  * the kernel panics.
  *
  */
-uintptr_t pmm_reserve_frames(uintptr_t paddr, size_t npages);
+ptr_t pmm_reserve_frames(ptr_t paddr, size_t npages);
 
 /**
  * @brief Mark a block of physical memory as reserved.
@@ -165,6 +165,6 @@ uintptr_t pmm_reserve_frames(uintptr_t paddr, size_t npages);
  *
  * @note The memory will be marked as `PMM_REGION_RESERVED` and will be moved to the allocated list.
  */
-pmrange_t pmm_reserve_block(uintptr_t needle);
+pmrange_t pmm_reserve_block(ptr_t needle);
 
 /** @} */

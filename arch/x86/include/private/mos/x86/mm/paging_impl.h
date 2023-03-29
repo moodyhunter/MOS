@@ -57,9 +57,9 @@ always_inline x86_pg_infra_t *x86_get_pg_infra(paging_handle_t table)
     return (x86_pg_infra_t *) table.pgd;
 }
 
-void pg_flag_page(x86_pg_infra_t *pg, uintptr_t vaddr, size_t n, vm_flags flags);
-uintptr_t pg_get_mapped_paddr(x86_pg_infra_t *pg, uintptr_t vaddr);
-vm_flags pg_get_flags(x86_pg_infra_t *pg, uintptr_t vaddr);
+void pg_flag_page(x86_pg_infra_t *pg, ptr_t vaddr, size_t n, vm_flags flags);
+ptr_t pg_get_mapped_paddr(x86_pg_infra_t *pg, ptr_t vaddr);
+vm_flags pg_get_flags(x86_pg_infra_t *pg, ptr_t vaddr);
 
-void pg_map_page(x86_pg_infra_t *pg, uintptr_t vaddr, uintptr_t paddr, vm_flags flags);
-void pg_unmap_page(x86_pg_infra_t *pg, uintptr_t vaddr);
+void pg_map_page(x86_pg_infra_t *pg, ptr_t vaddr, ptr_t paddr, vm_flags flags);
+void pg_unmap_page(x86_pg_infra_t *pg, ptr_t vaddr);

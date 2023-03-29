@@ -21,10 +21,10 @@ extern void x86_switch_impl_new_user_thread(void);
 extern void x86_switch_impl_new_kernel_thread(void);
 extern void x86_switch_impl_normal(void);
 
-extern asmlinkage void x86_context_switch_impl(uintptr_t *old_stack, uintptr_t new_kstack, uintptr_t pgd, switch_func_t switcher, const x86_thread_context_t *context);
+extern asmlinkage void x86_context_switch_impl(ptr_t *old_stack, ptr_t new_kstack, ptr_t pgd, switch_func_t switcher, const x86_thread_context_t *context);
 
 // called from assembly
-asmlinkage uintptr_t x86_switch_impl_setup_user_thread(void)
+asmlinkage ptr_t x86_switch_impl_setup_user_thread(void)
 {
     thread_t *current = current_thread;
     x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
@@ -72,8 +72,8 @@ asmlinkage uintptr_t x86_switch_impl_setup_user_thread(void)
 
         stack_push(&current->u_stack, &real_argv, sizeof(char *) * (argc + 1)); // the argv vector
 
-        const uintptr_t argv_ptr = current->u_stack.head; // stack_push changes head, so we need to save it
-        stack_push(&current->u_stack, &argv_ptr, sizeof(uintptr_t));
+        const ptr_t argv_ptr = current->u_stack.head; // stack_push changes head, so we need to save it
+        stack_push(&current->u_stack, &argv_ptr, sizeof(ptr_t));
         stack_push(&current->u_stack, &argc, sizeof(size_t));
     }
     else
@@ -81,8 +81,8 @@ asmlinkage uintptr_t x86_switch_impl_setup_user_thread(void)
         stack_push(&current->u_stack, &context->arg, sizeof(void *));
     }
 
-    const uintptr_t zero = 0;
-    stack_push(&current->u_stack, &zero, sizeof(uintptr_t)); // return address
+    const ptr_t zero = 0;
+    stack_push(&current->u_stack, &zero, sizeof(ptr_t)); // return address
 
     context->inner.stack = current->u_stack.head; // update the stack pointer
 
@@ -94,7 +94,7 @@ void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
 {
     x86_process_options_t *options = thread->owner->platform_options;
     x86_thread_context_t *context = kzalloc(sizeof(x86_thread_context_t));
-    context->inner.instruction = (uintptr_t) entry;
+    context->inner.instruction = (ptr_t) entry;
     context->inner.stack = thread->mode == THREAD_MODE_KERNEL ? thread->k_stack.head : thread->u_stack.head;
     context->arg = arg;
     context->is_forked = false;
@@ -111,10 +111,10 @@ void x86_setup_forked_context(const thread_context_t *from, thread_context_t **t
     to_ctx->is_forked = true;
 }
 
-void x86_switch_to_thread(uintptr_t *scheduler_stack, const thread_t *to, switch_flags_t switch_flags)
+void x86_switch_to_thread(ptr_t *scheduler_stack, const thread_t *to, switch_flags_t switch_flags)
 {
     per_cpu(x86_cpu_descriptor)->tss.esp0 = to->k_stack.top;
-    const uintptr_t pgd_paddr = pg_get_mapped_paddr(x86_kpg_infra, to->owner->pagetable.pgd);
+    const ptr_t pgd_paddr = pg_get_mapped_paddr(x86_kpg_infra, to->owner->pagetable.pgd);
     const x86_thread_context_t *context = container_of(to->context, const x86_thread_context_t, inner);
     const switch_func_t switch_func = switch_flags & SWITCH_TO_NEW_USER_THREAD   ? x86_switch_impl_new_user_thread :
                                       switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? x86_switch_impl_new_kernel_thread :
@@ -122,7 +122,7 @@ void x86_switch_to_thread(uintptr_t *scheduler_stack, const thread_t *to, switch
     x86_context_switch_impl(scheduler_stack, to->k_stack.head, pgd_paddr, switch_func, context);
 }
 
-void x86_switch_to_scheduler(uintptr_t *old_stack, uintptr_t scheduler_stack)
+void x86_switch_to_scheduler(ptr_t *old_stack, ptr_t scheduler_stack)
 {
     // pgd = 0 so that we don't switch to a different page table
     x86_context_switch_impl(old_stack, scheduler_stack, 0, x86_switch_impl_normal, NULL);

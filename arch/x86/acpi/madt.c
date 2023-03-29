@@ -8,7 +8,7 @@
 
 const acpi_madt_t *x86_acpi_madt = NULL;
 u32 x86_cpu_lapic[MOS_MAX_CPU_COUNT] = { 0 };
-uintptr_t x86_ioapic_address = 0;
+ptr_t x86_ioapic_address = 0;
 
 #define IOAPIC_IRQ_OVERRIDE_MAX 255 // u8 can hold up to 255
 static u32 ioapic_irq_override[IOAPIC_IRQ_OVERRIDE_MAX] = { 0 };

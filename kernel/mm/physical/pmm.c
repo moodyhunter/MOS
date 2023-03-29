@@ -14,7 +14,7 @@ static pmlist_node_t pmm_early_storage[MOS_PMM_EARLY_MEMREGIONS] = { 0 };
 static spinlock_t pmm_early_storage_lock = SPINLOCK_INIT;
 bool pmm_use_kernel_heap = false;
 
-pmlist_node_t *pmm_internal_list_node_create(uintptr_t start, size_t n_pages, pm_range_type_t type)
+pmlist_node_t *pmm_internal_list_node_create(ptr_t start, size_t n_pages, pm_range_type_t type)
 {
     MOS_ASSERT_X(type != PM_RANGE_UNINITIALIZED, "pmm_internal_list_node_create() called with type == PM_RANGE_UNINITIALIZED");
     pmlist_node_t *node = NULL;
@@ -80,7 +80,7 @@ void pmm_dump_lists(void)
     size_t i = 0;
     list_foreach(pmlist_node_t, r, *pmlist_free)
     {
-        const uintptr_t end = r->range.paddr + r->range.npages * MOS_PAGE_SIZE - 1;
+        const ptr_t end = r->range.paddr + r->range.npages * MOS_PAGE_SIZE - 1;
 
         if (unlikely(r->type != PM_RANGE_FREE && r->type != PM_RANGE_RESERVED))
             pr_emerg("Invalid freelist region type %d", r->type);
@@ -97,7 +97,7 @@ void pmm_dump_lists(void)
     pr_info("Allocated regions:");
     list_foreach(pmlist_node_t, a, *pmlist_allocated)
     {
-        const uintptr_t end = a->range.paddr + a->range.npages * MOS_PAGE_SIZE - 1;
+        const ptr_t end = a->range.paddr + a->range.npages * MOS_PAGE_SIZE - 1;
 
         if (unlikely(a->type != PM_RANGE_ALLOCATED && a->type != PM_RANGE_RESERVED))
             pr_emerg("Invalid allocated region type %d", a->type);
@@ -108,15 +108,15 @@ void pmm_dump_lists(void)
     }
 }
 
-void pmm_add_region_bytes(uintptr_t start_addr, size_t nbytes, pm_range_type_t type)
+void pmm_add_region_bytes(ptr_t start_addr, size_t nbytes, pm_range_type_t type)
 {
-    const uintptr_t start = ALIGN_UP_TO_PAGE(start_addr);
-    const uintptr_t end = ALIGN_UP_TO_PAGE(start_addr + nbytes);
+    const ptr_t start = ALIGN_UP_TO_PAGE(start_addr);
+    const ptr_t end = ALIGN_UP_TO_PAGE(start_addr + nbytes);
     const size_t n_pages = (end - start) / MOS_PAGE_SIZE;
 
     const size_t loss = (start - start_addr) + (end - (start_addr + nbytes));
     if (unlikely(loss))
-        pr_warn("physical memory region " PTR_RANGE " is not page-aligned, losing %zu bytes", start_addr, start_addr + nbytes, loss);
+        pr_warn("physical memory region " PTR_RANGE " is not page-aligned, losing %zu bytes", start_addr, (ptr_t) (start_addr + nbytes), loss);
 
     pmm_internal_add_free_frames(start, n_pages, type);
 }
@@ -147,13 +147,13 @@ static void pmm_internal_callback_free_frames_unlocked(pmlist_node_t *n, void *a
     pmm_internal_add_free_frames_node_unlocked(n);
 }
 
-void pmm_ref_frames(uintptr_t start, size_t n_pages)
+void pmm_ref_frames(ptr_t start, size_t n_pages)
 {
     mos_debug(pmm, "ref range: " PTR_RANGE ", %zu pages", start, start + n_pages * MOS_PAGE_SIZE, n_pages);
     pmm_internal_iterate_allocated_list_range(start, n_pages, OP_REF, NULL, NULL);
 }
 
-void pmm_unref_frames(uintptr_t start, size_t n_pages)
+void pmm_unref_frames(ptr_t start, size_t n_pages)
 {
     mos_debug(pmm, "unref range: " PTR_RANGE ", %zu pages", start, start + n_pages * MOS_PAGE_SIZE, n_pages);
     spinlock_acquire(&pmlist_free_lock);
@@ -161,7 +161,7 @@ void pmm_unref_frames(uintptr_t start, size_t n_pages)
     spinlock_release(&pmlist_free_lock);
 }
 
-uintptr_t pmm_reserve_frames(uintptr_t paddr, size_t npages)
+ptr_t pmm_reserve_frames(ptr_t paddr, size_t npages)
 {
     mos_debug(pmm, "looking for region " PTR_RANGE, paddr, paddr + npages * MOS_PAGE_SIZE);
     pmlist_node_t *node = pmm_internal_acquire_free_frames_at(paddr, npages);
@@ -178,7 +178,7 @@ uintptr_t pmm_reserve_frames(uintptr_t paddr, size_t npages)
     return node->range.paddr;
 }
 
-pmrange_t pmm_reserve_block(uintptr_t needle)
+pmrange_t pmm_reserve_block(ptr_t needle)
 {
     pmlist_node_t *node = pmm_internal_find_and_acquire_block(needle, PM_RANGE_RESERVED);
     if (unlikely(!node))

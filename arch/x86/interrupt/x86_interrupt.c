@@ -178,7 +178,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
         {
             intr_type = "page fault";
 
-            uintptr_t fault_address;
+            ptr_t fault_address;
             __asm__ volatile("mov %%cr2, %0" : "=r"(fault_address));
 
             bool present = (stack->error_code & 0x1) != 0;
@@ -198,7 +198,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
                           current ? current->owner->name : "<none>", //
                           is_user ? "User" : "Kernel",               //
                           fault_address,                             //
-                          (uintptr_t) stack->iret_params.eip         //
+                          (ptr_t) stack->iret_params.eip             //
                 );
             }
 
@@ -213,7 +213,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
                             current->owner->pid,                                                                     //
                             current->owner->name,                                                                    //
                             fault_address,                                                                           //
-                            (uintptr_t) stack->iret_params.eip                                                       //
+                            (ptr_t) stack->iret_params.eip                                                           //
                     );
                 }
                 bool result = cow_handle_page_fault(fault_address, present, is_write, is_user, is_exec);
@@ -232,7 +232,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
             x86_dump_registers(stack);
             mos_panic("Page Fault: %s code at " PTR_FMT " is trying to %s a %s address " PTR_FMT, //
                       is_user ? "Userspace" : "Kernel",                                           //
-                      (uintptr_t) stack->iret_params.eip,                                         //
+                      (ptr_t) stack->iret_params.eip,                                             //
                       is_write ? "write into" : "read from",                                      //
                       present ? "present" : "non-present",                                        //
                       fault_address);

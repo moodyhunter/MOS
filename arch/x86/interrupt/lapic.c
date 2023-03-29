@@ -55,7 +55,7 @@ static volatile u32 *lapic_regs = NULL;
 #define IA32_APIC_BASE_MSR        0x1B
 #define IA32_APIC_BASE_MSR_ENABLE 0x800
 
-void lapic_set_base_addr(uintptr_t base_addr)
+void lapic_set_base_addr(ptr_t base_addr)
 {
     u32 edx = 0;
     u32 eax = (base_addr & 0xfffff0000) | IA32_APIC_BASE_MSR_ENABLE;
@@ -140,10 +140,10 @@ void lapic_memory_setup(void)
     if (!info.edx.msr)
         mos_panic("MSR is not present");
 
-    uintptr_t base_addr = x86_acpi_madt->lapic_addr;
+    ptr_t base_addr = x86_acpi_madt->lapic_addr;
     pr_info("LAPIC: base address: " PTR_FMT, base_addr);
 
-    if ((uintptr_t) base_addr != BIOS_VADDR(base_addr))
+    if ((ptr_t) base_addr != BIOS_VADDR(base_addr))
     {
         pr_info("LAPIC: remapping it to " PTR_FMT, BIOS_VADDR(base_addr));
         base_addr = BIOS_VADDR(base_addr);
@@ -155,7 +155,7 @@ void lapic_memory_setup(void)
 
 void lapic_enable(void)
 {
-    lapic_set_base_addr((uintptr_t) lapic_regs);
+    lapic_set_base_addr((ptr_t) lapic_regs);
 
     // (https://wiki.osdev.org/APIC#Local_APIC_configuration)
     // To enable the Local APIC to receive interrupts it is necessary to configure the "Spurious Interrupt Vector Register".

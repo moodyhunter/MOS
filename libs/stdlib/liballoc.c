@@ -32,23 +32,23 @@ typedef char liballoc_align_t;
 #define LIBALLOC_ALIGN_PTR(ptr)                                                                                                                                          \
     if (ALIGNMENT > 1)                                                                                                                                                   \
     {                                                                                                                                                                    \
-        uintptr_t diff;                                                                                                                                                  \
-        ptr = (void *) ((uintptr_t) ptr + ALIGN_INFO);                                                                                                                   \
-        diff = (uintptr_t) ptr & (ALIGNMENT - 1);                                                                                                                        \
+        ptr_t diff;                                                                                                                                                      \
+        ptr = (void *) ((ptr_t) ptr + ALIGN_INFO);                                                                                                                       \
+        diff = (ptr_t) ptr & (ALIGNMENT - 1);                                                                                                                            \
         if (diff != 0)                                                                                                                                                   \
         {                                                                                                                                                                \
             diff = ALIGNMENT - diff;                                                                                                                                     \
-            ptr = (void *) ((uintptr_t) ptr + diff);                                                                                                                     \
+            ptr = (void *) ((ptr_t) ptr + diff);                                                                                                                         \
         }                                                                                                                                                                \
-        *((liballoc_align_t *) ((uintptr_t) ptr - ALIGN_INFO)) = diff + ALIGN_INFO;                                                                                      \
+        *((liballoc_align_t *) ((ptr_t) ptr - ALIGN_INFO)) = diff + ALIGN_INFO;                                                                                          \
     }
 
 #define LIBALLOC_UNALIGN_PTR(ptr)                                                                                                                                        \
     if (ALIGNMENT > 1)                                                                                                                                                   \
     {                                                                                                                                                                    \
-        uintptr_t diff = *((liballoc_align_t *) ((uintptr_t) ptr - ALIGN_INFO));                                                                                         \
+        ptr_t diff = *((liballoc_align_t *) ((ptr_t) ptr - ALIGN_INFO));                                                                                                 \
         if (diff < (ALIGNMENT + ALIGN_INFO))                                                                                                                             \
-            ptr = (void *) ((uintptr_t) ptr - diff);                                                                                                                     \
+            ptr = (void *) ((ptr_t) ptr - diff);                                                                                                                         \
     }
 
 #define LIBALLOC_MAGIC MOS_FOURCC('A', 'L', 'O', 'C')
@@ -310,7 +310,7 @@ void *liballoc_malloc(size_t req_size)
         // CASE 2: It's a brand new block.
         if (block->first == NULL)
         {
-            block->first = (liballoc_part_t *) ((uintptr_t) block + sizeof(liballoc_block_t));
+            block->first = (liballoc_part_t *) ((ptr_t) block + sizeof(liballoc_block_t));
 
             block->first->magic = LIBALLOC_MAGIC;
             block->first->prev = NULL;
@@ -322,7 +322,7 @@ void *liballoc_malloc(size_t req_size)
 
             l_mem_inuse += size;
 
-            void *p = (void *) ((uintptr_t) (block->first) + sizeof(liballoc_part_t));
+            void *p = (void *) ((ptr_t) (block->first) + sizeof(liballoc_part_t));
 
             LIBALLOC_ALIGN_PTR(p);
 
@@ -341,13 +341,13 @@ void *liballoc_malloc(size_t req_size)
         // CASE 3: Block in use and enough space at the start of the block.
 #if USE_CASE3
         {
-            size_t diff = (uintptr_t) block->first - (uintptr_t) block;
+            size_t diff = (ptr_t) block->first - (ptr_t) block;
             diff -= sizeof(liballoc_block_t);
 
             if (diff >= (size + sizeof(liballoc_part_t)))
             {
                 // Yes, space in front. Squeeze in.
-                block->first->prev = (liballoc_part_t *) ((uintptr_t) block + sizeof(liballoc_block_t));
+                block->first->prev = (liballoc_part_t *) ((ptr_t) block + sizeof(liballoc_block_t));
                 block->first->prev->next = block->first;
                 block->first = block->first->prev;
 
@@ -360,7 +360,7 @@ void *liballoc_malloc(size_t req_size)
 
                 l_mem_inuse += size;
 
-                void *p = (void *) ((uintptr_t) (block->first) + sizeof(liballoc_part_t));
+                void *p = (void *) ((ptr_t) (block->first) + sizeof(liballoc_part_t));
                 LIBALLOC_ALIGN_PTR(p);
 
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
@@ -386,14 +386,14 @@ void *liballoc_malloc(size_t req_size)
             {
                 // the rest of this block is free...  is it big enough?
                 size_t size_left = block->size;                       // size of the block
-                size_left -= (uintptr_t) section - (uintptr_t) block; // minus the area before this section
+                size_left -= (ptr_t) section - (ptr_t) block;         // minus the area before this section
                 size_left -= sizeof(liballoc_part_t) + section->size; // minus this section
 
                 // if there's still enough space
                 if (size_left >= sizeof(liballoc_part_t) + size)
                 {
                     // yay....
-                    section->next = (liballoc_part_t *) ((uintptr_t) section + sizeof(liballoc_part_t) + section->size);
+                    section->next = (liballoc_part_t *) ((ptr_t) section + sizeof(liballoc_part_t) + section->size);
                     section->next->prev = section;
 
                     // go to the next section
@@ -408,7 +408,7 @@ void *liballoc_malloc(size_t req_size)
 
                     l_mem_inuse += size;
 
-                    void *p = (void *) ((uintptr_t) section + sizeof(liballoc_part_t));
+                    void *p = (void *) ((ptr_t) section + sizeof(liballoc_part_t));
                     LIBALLOC_ALIGN_PTR(p);
 
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
@@ -425,8 +425,8 @@ void *liballoc_malloc(size_t req_size)
             if (section->next != NULL)
             {
                 // is the difference between here and next big enough?
-                size_t diff = (uintptr_t) (section->next);
-                diff -= (uintptr_t) section;
+                size_t diff = (ptr_t) (section->next);
+                diff -= (ptr_t) section;
                 diff -= sizeof(liballoc_part_t);
                 diff -= section->size;
                 // minus our existing usage.
@@ -434,7 +434,7 @@ void *liballoc_malloc(size_t req_size)
                 if (diff >= (size + sizeof(liballoc_part_t)))
                 {
                     // yay......
-                    liballoc_part_t *new_min = (liballoc_part_t *) ((uintptr_t) section + sizeof(liballoc_part_t) + section->size);
+                    liballoc_part_t *new_min = (liballoc_part_t *) ((ptr_t) section + sizeof(liballoc_part_t) + section->size);
 
                     new_min->magic = LIBALLOC_MAGIC;
                     new_min->next = section->next;
@@ -448,7 +448,7 @@ void *liballoc_malloc(size_t req_size)
 
                     l_mem_inuse += size;
 
-                    void *p = (void *) ((uintptr_t) new_min + sizeof(liballoc_part_t));
+                    void *p = (void *) ((ptr_t) new_min + sizeof(liballoc_part_t));
                     LIBALLOC_ALIGN_PTR(p);
 
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
@@ -524,7 +524,7 @@ void liballoc_free(const void *ptr)
     liballoc_lock(); // lockit
 #endif
 
-    min = (liballoc_part_t *) ((uintptr_t) ptr - sizeof(liballoc_part_t));
+    min = (liballoc_part_t *) ((ptr_t) ptr - sizeof(liballoc_part_t));
 
     if (min->magic != LIBALLOC_MAGIC)
     {
@@ -633,7 +633,7 @@ void *liballoc_realloc(void *p, size_t size)
     liballoc_lock(); // lockit
 #endif
 
-    liballoc_part_t *min = (liballoc_part_t *) ((uintptr_t) ptr - sizeof(liballoc_part_t));
+    liballoc_part_t *min = (liballoc_part_t *) ((ptr_t) ptr - sizeof(liballoc_part_t));
 
     // Ensure it is a valid structure.
     if (min->magic != LIBALLOC_MAGIC)

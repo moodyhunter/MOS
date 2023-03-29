@@ -93,14 +93,14 @@ void platform_mm_map_pages(paging_handle_t table, vmblock_t block)
     MOS_UNUSED(block);
 }
 
-void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr, size_t n_pages)
+void platform_mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t n_pages)
 {
     MOS_UNUSED(table);
     MOS_UNUSED(vaddr);
     MOS_UNUSED(n_pages);
 }
 
-vmblock_t platform_mm_get_block_info(paging_handle_t table, uintptr_t vaddr, size_t npages)
+vmblock_t platform_mm_get_block_info(paging_handle_t table, ptr_t vaddr, size_t npages)
 {
     MOS_UNUSED(table);
     MOS_UNUSED(vaddr);
@@ -108,7 +108,7 @@ vmblock_t platform_mm_get_block_info(paging_handle_t table, uintptr_t vaddr, siz
     return (vmblock_t){ .vaddr = 0, .paddr = 0, .npages = 0, .flags = 0 };
 }
 
-vmblock_t platform_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_handle_t to, uintptr_t tvaddr, size_t npages)
+vmblock_t platform_mm_copy_maps(paging_handle_t from, ptr_t fvaddr, paging_handle_t to, ptr_t tvaddr, size_t npages)
 {
     MOS_UNUSED(from);
     MOS_UNUSED(fvaddr);
@@ -118,7 +118,7 @@ vmblock_t platform_mm_copy_maps(paging_handle_t from, uintptr_t fvaddr, paging_h
     return (vmblock_t){ .vaddr = 0, .paddr = 0, .npages = 0, .flags = 0 };
 }
 
-void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags)
+void platform_mm_flag_pages(paging_handle_t table, ptr_t vaddr, size_t n, vm_flags flags)
 {
     MOS_UNUSED(table);
     MOS_UNUSED(vaddr);
@@ -126,7 +126,7 @@ void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm
     MOS_UNUSED(flags);
 }
 
-vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr)
+vm_flags platform_mm_get_flags(paging_handle_t table, ptr_t vaddr)
 {
     MOS_UNUSED(table);
     MOS_UNUSED(vaddr);
@@ -150,14 +150,14 @@ void platform_setup_forked_context(const thread_context_t *from, thread_context_
 
 // Platform Context Switching APIs
 
-void platform_switch_to_thread(uintptr_t *old_stack, const thread_t *new_thread, switch_flags_t switch_flags)
+void platform_switch_to_thread(ptr_t *old_stack, const thread_t *new_thread, switch_flags_t switch_flags)
 {
     MOS_UNUSED(old_stack);
     MOS_UNUSED(new_thread);
     MOS_UNUSED(switch_flags);
 }
 
-void platform_switch_to_scheduler(uintptr_t *old_stack, uintptr_t new_stack)
+void platform_switch_to_scheduler(ptr_t *old_stack, ptr_t new_stack)
 {
     MOS_UNUSED(old_stack);
     MOS_UNUSED(new_stack);

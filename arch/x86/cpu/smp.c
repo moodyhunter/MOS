@@ -24,8 +24,8 @@ volatile enum
 
 extern char x86_ap_trampoline[];
 extern x86_pgdir_entry startup_pgd[1024];
-volatile uintptr_t ap_stack_addr = 0;
-volatile const uintptr_t ap_pgd_addr = (uintptr_t) &startup_pgd;
+volatile ptr_t ap_stack_addr = 0;
+volatile const ptr_t ap_pgd_addr = (ptr_t) &startup_pgd;
 
 // clang-format off
 #define wait_for(state) do {} while (ap_state != state)
@@ -70,7 +70,7 @@ void x86_smp_start_all(void)
     pr_info("Starting APs...");
 
     extern const void __MOS_KERNEL_HIGHER_STACK_TOP;
-    const size_t AP_STACKS_TOP = (uintptr_t) &__MOS_KERNEL_HIGHER_STACK_TOP - MOS_X86_INITIAL_STACK_SIZE; // minus the boot cpu stack
+    const size_t AP_STACKS_TOP = (ptr_t) &__MOS_KERNEL_HIGHER_STACK_TOP - MOS_X86_INITIAL_STACK_SIZE; // minus the boot cpu stack
     for (u32 i = 0; i < x86_platform.num_cpus; i++)
     {
         const u32 apic_id = x86_cpu_lapic[i];

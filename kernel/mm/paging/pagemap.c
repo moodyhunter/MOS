@@ -8,7 +8,7 @@
 static bitmap_line_t kernel_page_map[MOS_PAGEMAP_KERNEL_LINES] = { 0 };
 static spinlock_t kernel_page_map_lock = SPINLOCK_INIT;
 
-void pagemap_mark_used(page_map_t *map, uintptr_t vaddr, size_t n_pages)
+void pagemap_mark_used(page_map_t *map, ptr_t vaddr, size_t n_pages)
 {
     MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not page aligned");
 
@@ -19,7 +19,7 @@ void pagemap_mark_used(page_map_t *map, uintptr_t vaddr, size_t n_pages)
     }
 
     const bool is_kernel = vaddr >= MOS_KERNEL_START_VADDR;
-    const uintptr_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
+    const ptr_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
     const size_t pagemap_size_lines = is_kernel ? MOS_PAGEMAP_KERNEL_LINES : MOS_PAGEMAP_USER_LINES;
     const size_t pagemap_index = (vaddr - pagemap_base) / MOS_PAGE_SIZE;
 
@@ -30,14 +30,14 @@ void pagemap_mark_used(page_map_t *map, uintptr_t vaddr, size_t n_pages)
     spinlock_acquire(lock);
     for (size_t i = 0; i < n_pages; i++)
         if (!bitmap_set(pagemap, pagemap_size_lines, pagemap_index + i))
-            mos_panic("page " PTR_FMT " is already used", pagemap_base + (uintptr_t) (pagemap_index + i) * MOS_PAGE_SIZE);
+            mos_panic("page " PTR_FMT " is already used", pagemap_base + (ptr_t) (pagemap_index + i) * MOS_PAGE_SIZE);
     spinlock_release(lock);
 }
 
-void pagemap_mark_free(page_map_t *map, uintptr_t vaddr, size_t n_pages)
+void pagemap_mark_free(page_map_t *map, ptr_t vaddr, size_t n_pages)
 {
     const bool is_kernel = vaddr >= MOS_KERNEL_START_VADDR;
-    const uintptr_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
+    const ptr_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
     const size_t pagemap_size_lines = is_kernel ? MOS_PAGEMAP_KERNEL_LINES : MOS_PAGEMAP_USER_LINES;
     const size_t pagemap_index = (vaddr - pagemap_base) / MOS_PAGE_SIZE;
 
@@ -48,14 +48,14 @@ void pagemap_mark_free(page_map_t *map, uintptr_t vaddr, size_t n_pages)
     spinlock_acquire(lock);
     for (size_t i = 0; i < n_pages; i++)
         if (!bitmap_clear(pagemap, pagemap_size_lines, pagemap_index + i))
-            mos_panic("page " PTR_FMT " is already free", pagemap_base + (uintptr_t) (pagemap_index + i) * MOS_PAGE_SIZE);
+            mos_panic("page " PTR_FMT " is already free", pagemap_base + (ptr_t) (pagemap_index + i) * MOS_PAGE_SIZE);
     spinlock_release(lock);
 }
 
-uintptr_t mm_get_free_pages(paging_handle_t table, size_t n_pages, uintptr_t base_vaddr, valloc_flags flags)
+ptr_t mm_get_free_pages(paging_handle_t table, size_t n_pages, ptr_t base_vaddr, valloc_flags flags)
 {
     const bool is_kernel = base_vaddr >= MOS_KERNEL_START_VADDR;
-    const uintptr_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
+    const ptr_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
     const size_t pagemap_size_lines = is_kernel ? MOS_PAGEMAP_KERNEL_LINES : MOS_PAGEMAP_USER_LINES;
     const size_t pagemap_index = (base_vaddr - pagemap_base) / MOS_PAGE_SIZE;
 
@@ -79,16 +79,16 @@ uintptr_t mm_get_free_pages(paging_handle_t table, size_t n_pages, uintptr_t bas
 
     for (size_t i = 0; i < n_pages; i++)
         if (!bitmap_set(map, pagemap_size_lines, page_i + i))
-            mos_panic("page " PTR_FMT " is already used", pagemap_base + (uintptr_t) (page_i + i) * MOS_PAGE_SIZE);
+            mos_panic("page " PTR_FMT " is already used", pagemap_base + (ptr_t) (page_i + i) * MOS_PAGE_SIZE);
     spinlock_release(lock);
 
     return pagemap_base + page_i * MOS_PAGE_SIZE;
 }
 
-bool pagemap_get_mapped(page_map_t *map, uintptr_t vaddr)
+bool pagemap_get_mapped(page_map_t *map, ptr_t vaddr)
 {
     const bool is_kernel = vaddr >= MOS_KERNEL_START_VADDR;
-    const uintptr_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
+    const ptr_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
     const size_t pagemap_size_lines = is_kernel ? MOS_PAGEMAP_KERNEL_LINES : MOS_PAGEMAP_USER_LINES;
     const size_t pagemap_index = (vaddr - pagemap_base) / MOS_PAGE_SIZE;
 

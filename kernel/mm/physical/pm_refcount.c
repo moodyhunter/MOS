@@ -27,9 +27,9 @@ static void insert_allocated_node(pmlist_node_t *node)
         if (current->range.paddr < node->range.paddr)
             continue;
 
-        const uintptr_t c_start = current->range.paddr;
+        const ptr_t c_start = current->range.paddr;
         const size_t c_size = current->range.npages * MOS_PAGE_SIZE;
-        const uintptr_t n_start = node->range.paddr;
+        const ptr_t n_start = node->range.paddr;
         const size_t n_size = node->range.npages * MOS_PAGE_SIZE;
 
         if (SUBSET_RANGE(n_start, n_size, c_start, c_size) || SUBSET_RANGE(c_start, c_size, n_start, n_size))
@@ -42,7 +42,7 @@ static void insert_allocated_node(pmlist_node_t *node)
     list_node_append(&pmlist_allocated_rw, list_node(node));
 }
 
-void pmm_internal_iterate_allocated_list_range(uintptr_t start, size_t npages, refcount_operation_t op, pmm_internal_unref_callback_t callback, void *arg)
+void pmm_internal_iterate_allocated_list_range(ptr_t start, size_t npages, refcount_operation_t op, pmm_internal_unref_callback_t callback, void *arg)
 {
     if (op != OP_REF && op != OP_UNREF)
         mos_panic("pmm: invalid refcount operation");
@@ -52,13 +52,13 @@ void pmm_internal_iterate_allocated_list_range(uintptr_t start, size_t npages, r
 
     // start: start of the range to iterate over, will change as we iterate
     // npages: number of pages to iterate over, will change as we iterate
-    const uintptr_t end = start + npages * MOS_PAGE_SIZE;
+    const ptr_t end = start + npages * MOS_PAGE_SIZE;
 
     spinlock_acquire(&pmlist_allocated_lock);
     list_foreach(pmlist_node_t, this, pmlist_allocated_rw)
     {
-        const uintptr_t cstart = this->range.paddr;
-        const uintptr_t cend = this->range.paddr + this->range.npages * MOS_PAGE_SIZE;
+        const ptr_t cstart = this->range.paddr;
+        const ptr_t cend = this->range.paddr + this->range.npages * MOS_PAGE_SIZE;
 
         if (npages == 0)
             break;
@@ -109,8 +109,8 @@ void pmm_internal_iterate_allocated_list_range(uintptr_t start, size_t npages, r
 
         // 2. 'this' is a superset of the range, we split it into two or three nodes
 
-        const uintptr_t p1_start = cstart;
-        const uintptr_t p2_start = end;
+        const ptr_t p1_start = cstart;
+        const ptr_t p2_start = end;
 
         const size_t p1_npages = (start < cstart ? cstart - start : 0) / MOS_PAGE_SIZE;
         const size_t p2_npages = (end < cend ? cend - end : 0) / MOS_PAGE_SIZE;

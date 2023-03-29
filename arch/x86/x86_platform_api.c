@@ -91,10 +91,10 @@ paging_handle_t platform_mm_create_user_pgd(void)
     x86_pg_infra_t *infra = (x86_pg_infra_t *) block.vaddr;
     memzero(infra, sizeof(x86_pg_infra_t));
     paging_handle_t handle = { 0 };
-    handle.pgd = (uintptr_t) infra;
+    handle.pgd = (ptr_t) infra;
 
     // physical address of kernel page table
-    const uintptr_t kpgtable_paddr = pg_get_mapped_paddr(x86_kpg_infra, (uintptr_t) x86_kpg_infra->pgtable);
+    const ptr_t kpgtable_paddr = pg_get_mapped_paddr(x86_kpg_infra, (ptr_t) x86_kpg_infra->pgtable);
 
     // this is a bit of a hack, but it's the easiest way that I can think of ...
     const int kernel_pagedir_id_start = MOS_KERNEL_START_VADDR / MOS_PAGE_SIZE / 1024; // addr / (size of page) / (# pages of a page directory)
@@ -131,17 +131,17 @@ void platform_setup_forked_context(const thread_context_t *from, thread_context_
     x86_setup_forked_context(from, to);
 }
 
-void platform_switch_to_scheduler(uintptr_t *old_stack, uintptr_t new_stack)
+void platform_switch_to_scheduler(ptr_t *old_stack, ptr_t new_stack)
 {
     x86_switch_to_scheduler(old_stack, new_stack);
 }
 
-void platform_switch_to_thread(uintptr_t *old_stack, const thread_t *new_thread, switch_flags_t switch_flags)
+void platform_switch_to_thread(ptr_t *old_stack, const thread_t *new_thread, switch_flags_t switch_flags)
 {
     x86_switch_to_thread(old_stack, new_thread, switch_flags);
 }
 
-void platform_mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t paddr, size_t n_pages, vm_flags flags)
+void platform_mm_map_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t n_pages, vm_flags flags)
 {
     MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
@@ -153,7 +153,7 @@ void platform_mm_map_pages(paging_handle_t table, uintptr_t vaddr, uintptr_t pad
     }
 }
 
-void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr_start, size_t n_pages)
+void platform_mm_unmap_pages(paging_handle_t table, ptr_t vaddr_start, size_t n_pages)
 {
     MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
@@ -161,31 +161,31 @@ void platform_mm_unmap_pages(paging_handle_t table, uintptr_t vaddr_start, size_
         pg_unmap_page(infra, vaddr_start + i * MOS_PAGE_SIZE);
 }
 
-void platform_mm_iterate_table(paging_handle_t table, uintptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg)
+void platform_mm_iterate_table(paging_handle_t table, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg)
 {
     MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
     x86_mm_walk_page_table(table, vaddr, n, callback, arg);
 }
 
-void platform_mm_flag_pages(paging_handle_t table, uintptr_t vaddr, size_t n, vm_flags flags)
+void platform_mm_flag_pages(paging_handle_t table, ptr_t vaddr, size_t n, vm_flags flags)
 {
     MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
     pg_flag_page(infra, vaddr, n, flags);
 }
 
-vm_flags platform_mm_get_flags(paging_handle_t table, uintptr_t vaddr)
+vm_flags platform_mm_get_flags(paging_handle_t table, ptr_t vaddr)
 {
     // intentionally not locked
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
     return pg_get_flags(infra, vaddr);
 }
 
-uintptr_t platform_mm_get_phys_addr(paging_handle_t table, uintptr_t vaddr)
+ptr_t platform_mm_get_phys_addr(paging_handle_t table, ptr_t vaddr)
 {
     // intentionally not locked
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
-    uintptr_t p = pg_get_mapped_paddr(infra, (vaddr & ~(MOS_PAGE_SIZE - 1)));
+    ptr_t p = pg_get_mapped_paddr(infra, (vaddr & ~(MOS_PAGE_SIZE - 1)));
     p += vaddr & (MOS_PAGE_SIZE - 1);
     return p;
 }
@@ -219,7 +219,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
         case X86_SYSCALL_MAP_VGA_MEMORY:
         {
             pr_info2("mapping VGA memory for thread %ld", current_thread->tid);
-            static uintptr_t vga_paddr = X86_VIDEO_DEVICE_PADDR;
+            static ptr_t vga_paddr = X86_VIDEO_DEVICE_PADDR;
 
             if (once())
             {
@@ -229,7 +229,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
 
             paging_handle_t table = current_process->pagetable;
 
-            const uintptr_t vaddr = mm_get_free_pages(table, 1, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT);
+            const ptr_t vaddr = mm_get_free_pages(table, 1, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT);
             const vmblock_t block = mm_fill_pages(table, vaddr, vga_paddr, 1, VM_USER_RW);
             process_attach_mmap(current_process, block, VMTYPE_MMAP, (vmap_flags_t){ .fork_mode = VMAP_FORK_SHARED });
             return block.vaddr;

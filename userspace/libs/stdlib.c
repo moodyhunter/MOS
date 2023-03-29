@@ -6,7 +6,7 @@
 
 void *liballoc_alloc_page(size_t npages)
 {
-    uintptr_t new_top = syscall_heap_control(HEAP_GROW_PAGES, npages);
+    ptr_t new_top = syscall_heap_control(HEAP_GROW_PAGES, npages);
     if (new_top == 0)
         return NULL;
 
