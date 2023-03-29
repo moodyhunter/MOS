@@ -28,7 +28,7 @@ function(do_kallsyms TARGET_NAME LINKER_SCRIPT KALLSYMS_C LAUNCHER_ASM)
         EXCLUDE_FROM_ALL TRUE
         LINKER_LANGUAGE C
         LINK_DEPENDS "${LINKER_SCRIPT}"
-        LINK_OPTIONS "-T${LINKER_SCRIPT};-nostdlib")
+        LINK_OPTIONS "-T${LINKER_SCRIPT};-nostdlib;-Wl,--build-id=none")
     target_link_libraries(${TARGET_NAME} PRIVATE gcc mos::kernel mos::private_include)
     add_custom_command(
         TARGET ${TARGET_NAME}

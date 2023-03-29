@@ -76,4 +76,10 @@ SECTIONS
         __MOS_KERNEL_RW_END = .;
         __MOS_KERNEL_END = .;
     }
+
+	/DISCARD/ : {
+		*(.dynamic) *(.dynsym) *(.dynstr) *(.dynbss)
+		*(.hash) *(.gnu.hash)
+		*(.note.*)
+	}
 }
