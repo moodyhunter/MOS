@@ -131,7 +131,7 @@ static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, co
 
     mos_debug(dcache, "lookup parent of '%s'", original_path);
 
-    char *saveptr;
+    char *saveptr = NULL;
     char *path = strdup(original_path);
     const char *current_seg = strtok_r(path, PATH_DELIM_STR, &saveptr);
     if (unlikely(current_seg == NULL))
