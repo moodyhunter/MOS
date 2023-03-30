@@ -16,8 +16,66 @@
 const char *PATH[] = {
     "/programs",
     "/initrd/programs",
+    "/initrd/tests",
     NULL,
 };
+
+static const char **tokenize_line(char *line, int *argc)
+{
+    const char **argv = malloc(sizeof(char *) * 32);
+    int i = 0;
+
+    while (*line)
+    {
+        // skip whitespace
+        while (*line == ' ' || *line == '\t')
+            line++;
+
+        if (*line == '\0')
+            break;
+
+        // handle quotes
+        if (*line == '"')
+        {
+            line++;
+            argv[i++] = line;
+            while (*line && *line != '"')
+                line++;
+            if (*line == '"')
+                *line++ = '\0';
+        }
+        else if (*line == '\'')
+        {
+            line++;
+            argv[i++] = line;
+            while (*line && *line != '\'')
+                line++;
+            if (*line == '\'')
+                *line++ = '\0';
+        }
+        else if (*line == '\\')
+        {
+            line++;
+            argv[i++] = line;
+            while (*line && *line != '\\')
+                line++;
+            if (*line == '\\')
+                *line++ = '\0';
+        }
+        else
+        {
+            argv[i++] = line;
+            while (*line && *line != ' ' && *line != '\t')
+                line++;
+            if (*line == ' ' || *line == '\t')
+                *line++ = '\0';
+        }
+    }
+
+    argv[i] = NULL;
+    *argc = i;
+    return argv;
+}
 
 bool do_program(const char *prog, int argc, const char **argv)
 {
@@ -51,24 +109,10 @@ bool do_builtin(const char *command, int argc, const char **argv)
     return false;
 }
 
-static void do_execute_line(char *line)
+void do_execute(const char *prog, char *rest)
 {
-    const char *token = strtok(line, " ");
-    if (!token)
-        return;
-
-    const char *prog = token;
-    token = strtok(NULL, " ");
-
     int new_argc = 0;
-    const char **new_argv = malloc(sizeof(char *));
-    while (token)
-    {
-        new_argv = realloc(new_argv, sizeof(char *) * (new_argc + 1));
-        new_argv[new_argc] = token;
-        new_argc++;
-        token = strtok(NULL, " ");
-    }
+    const char **new_argv = tokenize_line(rest, &new_argc);
 
     if (!do_builtin(prog, new_argc, new_argv))
         if (!do_program(prog, new_argc, new_argv))
@@ -77,7 +121,55 @@ static void do_execute_line(char *line)
     free(new_argv);
 }
 
-static int do_interpret_script(const char *path)
+void do_execute_line(char *line)
+{
+    // trim leading and trailing whitespace
+    while (*line == ' ' || *line == '\t')
+        line++;
+
+    char *end = line + strlen(line) - 1;
+    while (end > line && (*end == ' ' || *end == '\t'))
+        end--;
+    end[1] = '\0';
+
+    if (*line == '\0')
+        return;
+
+    // filter comments
+    char *comment = strchr(line, '#');
+    if (comment)
+        *comment = '\0';
+
+    if (*line == '\0')
+        return;
+
+    const char *prog = strtok(line, " ");
+    char *rest = line + strlen(prog) + 1; // skip the program name
+
+    // possibly replace the line with an alias
+    for (size_t i = 0; i < alias_count; i++)
+    {
+        if (strcmp(prog, alias_list[i].name) == 0)
+        {
+            char *line_dup = malloc(strlen(alias_list[i].command + strlen(rest) + 2)); // +2 for space and null terminator
+            strcpy(line_dup, alias_list[i].command);
+            strcat(line_dup, " ");
+            strcat(line_dup, rest);
+
+            rest = line_dup;
+            prog = strtok(rest, " ");
+            rest += strlen(prog) + 1; // skip the program name
+
+            do_execute(prog, rest);
+            free(line_dup);
+            return;
+        }
+    }
+
+    do_execute(prog, rest);
+}
+
+int do_interpret_script(const char *path)
 {
     fd_t fd = syscall_vfs_open(path, OPEN_READ);
     if (fd < 0)
@@ -102,7 +194,8 @@ static int do_interpret_script(const char *path)
 static const argparse_arg_t mossh_options[] = {
     { "help", 'h', ARGPARSE_NONE },
     { "version", 'v', ARGPARSE_NONE },
-    { NULL, 'c', ARGPARSE_REQUIRED }, // command to execute
+    { "init", 'i', ARGPARSE_REQUIRED }, // initial script to execute
+    { NULL, 'c', ARGPARSE_REQUIRED },   // command to execute
     { 0 },
 };
 
@@ -123,6 +216,14 @@ int main(int argc, const char **argv)
         {
             case 'h': do_execute_line("help"); return 0;
             case 'v': do_execute_line("version"); return 0;
+            case 'i':
+                printf("Loading initial script '%s'\n", state.optarg);
+                if (do_interpret_script(state.optarg) != 0)
+                {
+                    printf("Failed to execute '%s'\n", state.optarg);
+                    return 1;
+                }
+                break;
             case 'c': return do_interpret_script(argv[2]);
             default: do_execute_line("help"); return 1;
         }

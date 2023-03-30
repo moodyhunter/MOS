@@ -1,10 +1,73 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mossh.h"
+#include "string.h"
 
+#include <mos/mos_global.h>
 #include <mos/syscall/usermode.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+alias_t *alias_list;
+size_t alias_count;
+
+void do_alias(int argc, const char *argv[])
+{
+    if (argc == 0)
+    {
+        for (size_t i = 0; i < alias_count; i++)
+            printf("alias: '%s' -> '%s'\n", alias_list[i].name, alias_list[i].command);
+        return;
+    }
+
+    if (argc != 2)
+    {
+        printf("alias: wrong number of arguments\n");
+        printf("Usage: alias <name> <value>\n");
+        return;
+    }
+
+    const char *name = argv[0];
+    const char *value = argv[1];
+
+    if (strcmp(name, "-c") == 0)
+    {
+        // remove 'value' alias if it exists
+        for (size_t i = 0; i < alias_count; i++)
+        {
+            if (strcmp(value, alias_list[i].name) == 0)
+            {
+                free(alias_list[i].name);
+                free(alias_list[i].command);
+                alias_count--;
+                for (size_t j = i; j < alias_count; j++)
+                    alias_list[j] = alias_list[j + 1];
+                return;
+            }
+        }
+        printf("alias: '%s' not found\n", value);
+        return;
+    }
+
+    for (size_t i = 0; i < alias_count; i++)
+    {
+        if (strcmp(name, alias_list[i].name) == 0)
+        {
+            if (strcmp(value, alias_list[i].command) == 0)
+                return; // no change
+            printf("replace alias '%s': '%s' -> '%s'\n", name, alias_list[i].command, value);
+            free(alias_list[i].command);
+            alias_list[i].command = strdup(value);
+            return;
+        }
+    }
+
+    printf("alias: '%s' -> '%s'\n", argv[0], argv[1]);
+    alias_list = realloc(alias_list, sizeof(alias_t) * (alias_count + 1));
+    alias_list[alias_count].name = strdup(argv[0]);
+    alias_list[alias_count].command = strdup(argv[1]);
+    alias_count++;
+}
 
 void do_cd(int argc, const char *argv[])
 {
@@ -12,7 +75,8 @@ void do_cd(int argc, const char *argv[])
     {
         case 0:
         {
-            printf("cd: missing argument\n");
+            if (!syscall_vfs_chdir("/"))
+                printf("cd: /: Unexpected error\n");
             break;
         }
         case 1:
@@ -87,6 +151,12 @@ void do_repeat(int argc, const char *argv[])
         default:
         {
             int count = atoi(argv[0]);
+            if (count <= 0)
+            {
+                printf("repeat: invalid count: '%s'\n", argv[0]);
+                break;
+            }
+
             for (int i = 0; i < count; i++)
             {
                 const char *program = argv[1];
@@ -102,6 +172,28 @@ void do_repeat(int argc, const char *argv[])
             break;
         }
     }
+}
+
+void do_show_path(int argc, const char *argv[])
+{
+    MOS_UNUSED(argc);
+    MOS_UNUSED(argv);
+
+    puts("Program search path:");
+    for (int i = 0; PATH[i]; i++)
+        printf("%2d: %s\n", i, PATH[i]);
+}
+
+void do_source(int argc, const char *argv[])
+{
+    if (argc != 1)
+    {
+        printf("source: wrong number of arguments\n");
+        printf("Usage: source <file>\n");
+        return;
+    }
+
+    do_interpret_script(argv[0]);
 }
 
 void do_version(int argc, const char *argv[])
@@ -143,6 +235,7 @@ void do_which(int argc, const char *argv[])
 }
 
 const command_t builtin_commands[] = {
+    { .command = "alias", .action = do_alias, .description = "Create an alias" },
     { .command = "cd", .action = do_cd, .description = "Change the current directory" },
     { .command = "clear", .action = do_clear, .description = "Clear the screen" },
     { .command = "exit", .action = do_exit, .description = "Exit the shell" },
@@ -150,6 +243,8 @@ const command_t builtin_commands[] = {
     { .command = "help", .action = do_help, .description = "Show this help" },
     { .command = "pwd", .action = do_pwd, .description = "Print the current directory" },
     { .command = "repeat", .action = do_repeat, .description = "Repeat a command a number of times" },
+    { .command = "show-path", .action = do_show_path, .description = "Show the search path for programs" },
+    { .command = "source", .action = do_source, .description = "Execute a script" },
     { .command = "version", .action = do_version, .description = "Show version information" },
     { .command = "which", .action = do_which, .description = "Show the full path of a command" },
     { .command = NULL, .action = NULL, .description = NULL },

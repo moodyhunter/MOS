@@ -16,6 +16,14 @@ typedef struct
     const char *description;
 } command_t;
 
+typedef struct
+{
+    char *name;
+    char *command;
+} alias_t;
+extern alias_t *alias_list;
+extern size_t alias_count;
+
 extern const command_t builtin_commands[];
 extern const char *PATH[];
 
@@ -23,3 +31,4 @@ const char *locate_program(const char *prog);
 
 bool do_builtin(const char *command, int argc, const char **argv);
 bool do_program(const char *command, int argc, const char **argv);
+int do_interpret_script(const char *path);
