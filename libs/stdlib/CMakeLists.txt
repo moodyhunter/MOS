@@ -19,3 +19,5 @@ add_mos_library(
         structures/tree.c
         sync/mutex.c
 )
+
+add_dependencies(stdlib mos_syscall_decl) # needs to be generated before we can compile

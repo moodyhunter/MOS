@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "libuserspace.h"
-
 #include <mos/syscall/usermode.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 const char *data = "The quick brown fox jumps over the lazy dog.";

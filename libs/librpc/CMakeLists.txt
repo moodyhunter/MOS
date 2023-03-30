@@ -8,7 +8,7 @@ add_mos_library(
     RELATIVE_SOURCES
         rpc_client.c
     USERSPACE_LINK_LIBRARIES
-        mos::libuserspace mos::libipc
+        mos::libipc
 )
 
 add_mos_library(
@@ -20,6 +20,6 @@ add_mos_library(
     RELATIVE_SOURCES
         rpc_server.c
     USERSPACE_LINK_LIBRARIES
-        mos::libuserspace mos::libipc
+        mos::libipc
 )
 

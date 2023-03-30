@@ -24,13 +24,16 @@ macro(add_mos_library)
         set_source_files_properties(${ADD_MOS_LIBRARY_SOURCES} PROPERTIES INCLUDE_DIRECTORIES "${ADD_MOS_LIBRARY_PRIVATE_INCLUDE_DIRECTORIES}")
     endif()
 
-
     # Create a userspace library
-    add_library(${ADD_MOS_LIBRARY_NAME} ${ADD_MOS_LIBRARY_SOURCES} ${ADD_MOS_LIBRARY_RELATIVE_SOURCES})
+    add_library(${ADD_MOS_LIBRARY_NAME} STATIC ${ADD_MOS_LIBRARY_SOURCES} ${ADD_MOS_LIBRARY_RELATIVE_SOURCES})
     target_include_directories(${ADD_MOS_LIBRARY_NAME} PUBLIC ${ADD_MOS_LIBRARY_PUBLIC_INCLUDE_DIRECTORIES})
     target_include_directories(${ADD_MOS_LIBRARY_NAME} PRIVATE ${ADD_MOS_LIBRARY_PRIVATE_INCLUDE_DIRECTORIES})
-    target_link_libraries(${ADD_MOS_LIBRARY_NAME} PRIVATE ${ADD_MOS_LIBRARY_USERSPACE_LINK_LIBRARIES})
-    target_link_libraries(${ADD_MOS_LIBRARY_NAME} PRIVATE gcc mos::include) # standard include directory
+    target_link_libraries(${ADD_MOS_LIBRARY_NAME} PUBLIC ${ADD_MOS_LIBRARY_USERSPACE_LINK_LIBRARIES})
+    target_link_libraries(${ADD_MOS_LIBRARY_NAME} PUBLIC gcc mos::include) # standard include directory
+
+    if (NOT "${ADD_MOS_LIBRARY_NAME}" STREQUAL "stdlib")
+        target_link_libraries(${ADD_MOS_LIBRARY_NAME} PUBLIC mos::stdlib)
+    endif()
 
     # TODO: Remove this once we have a proper userspace libc
     target_compile_options(${ADD_MOS_LIBRARY_NAME} PUBLIC "-ffreestanding")

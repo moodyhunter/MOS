@@ -8,13 +8,13 @@
 
 #include "librpc/internal.h"
 #include "librpc/rpc.h"
-#include "libuserspace.h"
 
 #include <liballoc.h>
 #include <libipc/ipc.h>
 #include <mos/syscall/usermode.h>
 #include <mos/types.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define RPC_SERVER_MAX_PENDING_CALLS 32

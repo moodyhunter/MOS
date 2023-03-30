@@ -8,13 +8,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct FILE __stdin = { .fd = 0 };
-struct FILE __stdout = { .fd = 1 };
-struct FILE __stderr = { .fd = 2 };
+struct _FILE __stdin = { .fd = 0 };
+struct _FILE __stdout = { .fd = 1 };
+struct _FILE __stderr = { .fd = 2 };
 
-struct FILE *stdin = &__stdin;
-struct FILE *stdout = &__stdout;
-struct FILE *stderr = &__stderr;
+FILE *stdin = &__stdin;
+FILE *stdout = &__stdout;
+FILE *stderr = &__stderr;
 
 int printf(const char *fmt, ...)
 {
@@ -25,7 +25,7 @@ int printf(const char *fmt, ...)
     return size;
 }
 
-int fprintf(struct FILE *stream, const char *fmt, ...)
+int fprintf(FILE *stream, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
@@ -48,7 +48,7 @@ int vprintf(const char *fmt, va_list ap)
     return vdprintf(stdout->fd, fmt, ap);
 }
 
-int vfprintf(struct FILE *stream, const char *fmt, va_list ap)
+int vfprintf(FILE *stream, const char *fmt, va_list ap)
 {
     return vdprintf(stream->fd, fmt, ap);
 }
@@ -81,35 +81,35 @@ int puts(const char *s)
     return putchar('\n');
 }
 
-int fputs(const char *__restrict s, struct FILE *__restrict file)
+int fputs(const char *__restrict s, FILE *__restrict file)
 {
     return syscall_io_write(file->fd, s, strlen(s));
 }
 
-int fputc(int c, struct FILE *file)
+int fputc(int c, FILE *file)
 {
     char ch = c;
     return syscall_io_write(file->fd, &ch, 1);
 }
 
-int fgetc(struct FILE *file)
+int fgetc(FILE *file)
 {
     char c;
     syscall_io_read(file->fd, &c, 1);
     return c;
 }
 
-size_t fread(void *__restrict ptr, size_t size, size_t nmemb, struct FILE *__restrict stream)
+size_t fread(void *__restrict ptr, size_t size, size_t nmemb, FILE *__restrict stream)
 {
     return syscall_io_read(stream->fd, ptr, size * nmemb) / size;
 }
 
-size_t fwrite(const void *__restrict ptr, size_t size, size_t nmemb, struct FILE *__restrict stream)
+size_t fwrite(const void *__restrict ptr, size_t size, size_t nmemb, FILE *__restrict stream)
 {
     return syscall_io_write(stream->fd, ptr, size * nmemb) / size;
 }
 
-struct FILE *fopen(const char *path, const char *mode)
+FILE *fopen(const char *path, const char *mode)
 {
     int flags = 0;
     if (strchr(mode, 'r'))
@@ -150,12 +150,12 @@ struct FILE *fopen(const char *path, const char *mode)
     if (fd < 0)
         return NULL;
 
-    struct FILE *file = malloc(sizeof(struct FILE));
+    FILE *file = malloc(sizeof(FILE));
     file->fd = fd;
     return file;
 }
 
-int fclose(struct FILE *stream)
+int fclose(FILE *stream)
 {
     int ret = syscall_io_close(stream->fd);
     free(stream);

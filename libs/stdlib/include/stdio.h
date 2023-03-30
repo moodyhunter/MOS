@@ -21,10 +21,10 @@ MOSAPI int vsnprintf(char *__restrict buf, size_t size, const char *__restrict f
 
 #ifndef __MOS_KERNEL__ // for userspace only
 
-struct FILE;
-MOSAPI struct FILE *stdin;
-MOSAPI struct FILE *stdout;
-MOSAPI struct FILE *stderr;
+typedef struct _FILE FILE;
+MOSAPI FILE *stdin;
+MOSAPI FILE *stdout;
+MOSAPI FILE *stderr;
 
 // C standard says they are macros, make them happy.
 #define stdin  stdin
@@ -36,22 +36,22 @@ MOSAPI struct FILE *stderr;
 #define STDERR_FILENO 2
 
 MOSAPI int __printf(1, 2) printf(const char *__restrict format, ...);
-MOSAPI int __printf(2, 3) fprintf(struct FILE *__restrict file, const char *__restrict format, ...);
+MOSAPI int __printf(2, 3) fprintf(FILE *__restrict file, const char *__restrict format, ...);
 MOSAPI int __printf(2, 3) dprintf(int fd, const char *__restrict format, ...);
 MOSAPI int vprintf(const char *__restrict format, va_list ap);
-MOSAPI int vfprintf(struct FILE *__restrict file, const char *__restrict format, va_list ap);
+MOSAPI int vfprintf(FILE *__restrict file, const char *__restrict format, va_list ap);
 MOSAPI int vdprintf(int fd, const char *__restrict format, va_list ap);
 
 MOSAPI int getchar(void);
 MOSAPI int putchar(int c);
 MOSAPI int puts(const char *s);
 
-MOSAPI int fputs(const char *__restrict s, struct FILE *__restrict file);
-MOSAPI int fputc(int c, struct FILE *file);
-MOSAPI int fgetc(struct FILE *file);
+MOSAPI int fputs(const char *__restrict s, FILE *__restrict file);
+MOSAPI int fputc(int c, FILE *file);
+MOSAPI int fgetc(FILE *file);
 
-size_t fread(void *__restrict ptr, size_t size, size_t nmemb, struct FILE *__restrict stream);
-size_t fwrite(const void *__restrict ptr, size_t size, size_t nmemb, struct FILE *__restrict stream);
+size_t fread(void *__restrict ptr, size_t size, size_t nmemb, FILE *__restrict stream);
+size_t fwrite(const void *__restrict ptr, size_t size, size_t nmemb, FILE *__restrict stream);
 #endif
 
 /** @} */

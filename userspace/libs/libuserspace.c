@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "libuserspace.h"
-
 #include "liballoc.h"
 #include "struct_file.h"
 

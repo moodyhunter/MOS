@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-add_library(libuserspace OBJECT
+target_sources(stdlib PRIVATE
     libuserspace.c
     libuserspace++.cpp
     stdio.c
@@ -8,10 +8,7 @@ add_library(libuserspace OBJECT
     cxa.c
 )
 
-target_include_directories(libuserspace PUBLIC ${CMAKE_SOURCE_DIR}/userspace/include)
-target_link_libraries(libuserspace PUBLIC gcc mos::include mos::stdlib)
-add_dependencies(libuserspace mos_syscall_decl) # needs to be generated before we can compile
-add_library(mos::libuserspace ALIAS libuserspace)
+target_include_directories(stdlib PUBLIC ${CMAKE_SOURCE_DIR}/userspace/include)
 
 add_subdirectory(argparse)
 add_subdirectory(readline)

@@ -2,7 +2,7 @@
 
 #pragma once
 
-struct FILE
+struct _FILE
 {
     int fd;
 };

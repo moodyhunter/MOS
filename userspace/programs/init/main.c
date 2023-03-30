@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "argparse/libargparse.h"
-#include "libuserspace.h"
 #include "parser.h"
 
 #include <mos/filesystem/fs_types.h>
 #include <mos/syscall/usermode.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 

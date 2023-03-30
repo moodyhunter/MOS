@@ -107,7 +107,7 @@ macro(setup_userspace_program TARGET INITRD_PATH DESCRIPTION)
     add_dependencies(mos_userspace_programs ${TARGET})
 
     set_target_properties(${TARGET} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
-    target_link_libraries(${TARGET} PRIVATE mos::libuserspace)
+    target_link_libraries(${TARGET} PRIVATE mos::stdlib)
     target_compile_definitions(${TARGET} PRIVATE -DPROGRAM="${TARGET}")
 
     add_to_initrd(TARGET ${TARGET} ${INITRD_PATH})

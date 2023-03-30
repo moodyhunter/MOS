@@ -24,7 +24,6 @@ MOSAPI void format_size(char *buf, size_t buf_size, u64 size);
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-// defined in libuserspace
 #ifndef __MOS_KERNEL__
 MOSAPI __malloc void *malloc(size_t size);
 MOSAPI void free(void *ptr);
@@ -32,6 +31,8 @@ MOSAPI void *calloc(size_t nmemb, size_t size);
 MOSAPI void *realloc(void *ptr, size_t size);
 
 MOSAPI void exit(int status);
+MOSAPI int atexit(void (*func)(void));
+MOSAPI tid_t start_thread(const char *name, thread_entry_t entry, void *arg);
 #endif
 
 /** @} */
