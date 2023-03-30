@@ -150,7 +150,7 @@ int main(int argc, const char *argv[])
         {
             case 'C': config_file = options.optarg; break;
             case 'S': shell = options.optarg; break;
-            default: printf("Unknown option: %c\n", option);
+            default: break;
         }
     }
 

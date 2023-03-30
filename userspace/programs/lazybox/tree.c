@@ -59,19 +59,23 @@ static void do_tree(void)
 
 int main(int argc, char **argv)
 {
-    if (argc < 2 || argc > 3)
+    if (argc > 2)
     {
-        fputs("usage: tree <dir>\n", stderr);
+        fprintf(stderr, "too many arguments\n");
+        fprintf(stderr, "usage: %s [path]\n", argv[0]);
         return 1;
     }
 
-    if (!syscall_vfs_chdir(argv[1]))
+    // argv[1] may contain the path to list
+    const char *path = argc > 1 ? argv[1] : ".";
+
+    if (!syscall_vfs_chdir(path))
     {
-        fprintf(stderr, "failed to chdir to '%s'\n", argv[1]);
+        fprintf(stderr, "failed to chdir to '%s'\n", path);
         return 1;
     }
 
-    printf("%s\n", argv[1]);
+    printf("%s\n", path);
     do_tree();
     return 0;
 }

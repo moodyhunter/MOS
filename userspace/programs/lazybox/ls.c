@@ -14,6 +14,13 @@ static const char *type_to_string[] = {
 
 int main(int argc, char *argv[])
 {
+    if (argc > 2)
+    {
+        fprintf(stderr, "too many arguments\n");
+        fprintf(stderr, "usage: %s [path]\n", argv[0]);
+        return 1;
+    }
+
     // argv[1] may contain the path to list
     const char *path = argc > 1 ? argv[1] : ".";
 
