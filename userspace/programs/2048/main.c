@@ -19,8 +19,7 @@ should_inline u32 rand(void)
 {
     u32 result;
     __asm__ volatile("rdtsc" : "=a"(result) : : "edx");
-    result ^= (u32) &result;
-    __asm__ volatile("mov %%ebp, %%eax" : "=a"(result) : : "edx");
+    result ^= (ptr_t) &result;
     return result;
 }
 
