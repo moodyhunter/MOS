@@ -302,60 +302,13 @@ static void addRandom(u16 board[SIZE][SIZE])
     }
 }
 
-static int test(void)
-{
-    u16 array[SIZE];
-    u16 data[] = { 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 2, 2, 4, 0, 0, 0, 0, 2, 0, 2, 4, 0, 0, 0, 2, 0, 0, 2, 4, 0, 0, 0, 2, 0, 2,
-                   0, 4, 0, 0, 0, 2, 2, 2, 0, 4, 2, 0, 0, 2, 0, 2, 2, 4, 2, 0, 0, 2, 2, 0, 2, 4, 2, 0, 0, 2, 2, 2, 2, 4, 4,
-                   0, 0, 4, 4, 2, 2, 8, 4, 0, 0, 2, 2, 4, 4, 4, 8, 0, 0, 8, 0, 2, 2, 8, 4, 0, 0, 4, 0, 2, 2, 4, 4, 0, 0 };
-    u16 *in, *out;
-    u16 t, tests;
-    int i;
-    bool success = true;
-
-    tests = (sizeof(data) / sizeof(data[0])) / (2 * SIZE);
-    for (t = 0; t < tests; t++)
-    {
-        in = data + t * 2 * SIZE;
-        out = in + SIZE;
-        for (i = 0; i < SIZE; i++)
-            array[i] = in[i];
-        slideArray(array);
-        for (i = 0; i < SIZE; i++)
-        {
-            if (array[i] != out[i])
-                success = false;
-        }
-        if (!success)
-        {
-            for (i = 0; i < SIZE; i++)
-                printf("%d ", in[i]);
-            printf(" = > ");
-            for (i = 0; i < SIZE; i++)
-                printf("%d ", array[i]);
-            printf("expected ");
-            for (i = 0; i < SIZE; i++)
-                printf("%d ", in[i]);
-            printf(" = > ");
-            for (i = 0; i < SIZE; i++)
-                printf("%d ", out[i]);
-            printf("\n");
-            break;
-        }
-    }
-    if (success)
-        printf("All %u tests executed successfully\n", tests);
-
-    return !success;
-}
-
 int main(int argc, char *argv[])
 {
+    MOS_UNUSED(argc);
+    MOS_UNUSED(argv);
+
     u16 board[SIZE][SIZE];
     bool success;
-
-    if (argc == 2 && strcmp(argv[1], "test") == 0)
-        return test();
 
     score = 0;
 
