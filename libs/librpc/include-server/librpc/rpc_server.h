@@ -20,6 +20,29 @@ typedef struct rpc_function_info
     u32 args_count;
 } rpc_function_info_t;
 
+// clang-format off
+#define DECLARE_FUNCTION_INFO(fid, _, function, nargs) { .function_id = fid, .func = function, .args_count = nargs },
+#define DECLARE_FUNCTION_FORWARDS(_, _2, _func, ...)   static int _func(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data);
+// clang-format on
+
+/**
+ * @brief Declare the RPC functions and required types for a server
+ *
+ * @param name The name of the server
+ * @param X_MACRO A macro to use to declare the functions, the macro should take 4 arguments:
+ *                - The function ID
+ *                - The number for the function ID
+ *                - The function name
+ *                - The number of arguments the function takes
+ *
+ * @details This macro will declare the following types:
+ *          - name_function_id_t: An enum containing the function IDs
+ *          - name_functions: An array of rpc_function_info_t structures containing the function info
+ */
+#define DECLARE_RPC_SERVER_PROTOTYPES(name, X_MACRO)                                                                                                                     \
+    X_MACRO(DECLARE_FUNCTION_FORWARDS)                                                                                                                                   \
+    static const rpc_function_info_t name##_functions[] = { X_MACRO(DECLARE_FUNCTION_INFO) };
+
 /**
  * @brief Create a new RPC server
  *

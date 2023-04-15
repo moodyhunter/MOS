@@ -2,7 +2,6 @@
 
 add_subdirectory(init)
 add_subdirectory(lazybox)
-add_subdirectory(device-manager)
 add_subdirectory(my_mutex)
 add_subdirectory(locks-bench)
 add_subdirectory(mossh)

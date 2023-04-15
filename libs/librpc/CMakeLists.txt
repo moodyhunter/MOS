@@ -11,6 +11,8 @@ add_mos_library(
         mos::libipc
 )
 
+add_library(librpc::client ALIAS librpc-client)
+
 add_mos_library(
     NAME librpc-server
     USERSPACE_ONLY  # The current code needs to be reworked to work in kernel space
@@ -23,3 +25,4 @@ add_mos_library(
         mos::libipc
 )
 
+add_library(librpc::server ALIAS librpc-server)

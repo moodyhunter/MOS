@@ -3,4 +3,4 @@
 add_executable(locks-bench main.c)
 
 setup_userspace_program(locks-bench /programs "Benchmarking different locks")
-target_link_libraries(locks-bench PRIVATE x86_console-client mos::private_include)
+target_link_libraries(locks-bench PRIVATE x86-console::client mos::private_include)

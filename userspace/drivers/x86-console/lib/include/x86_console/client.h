@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "common.h"
+
 #include <mos/device/dm_types.h>
 #include <mos/mos_global.h>
 

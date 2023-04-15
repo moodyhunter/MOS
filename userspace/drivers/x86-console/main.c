@@ -1,22 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "librpc/rpc_server.h"
 #include "text_mode_console.h"
+#include "x86_console/common.h"
 
-#include <mos/device/dm_types.h>
-#include <mos/platform_syscall.h>
-#include <mos/syscall/usermode.h>
+#include <librpc/rpc_server.h>
 #include <stdlib.h>
 
-static rpc_server_t *screen_server;
+DECLARE_RPC_SERVER_PROTOTYPES(console, CONSOLE_RPCS)
 
-void x86_vga_text_mode_console_exit(void)
-{
-    rpc_server_destroy(screen_server);
-    syscall_arch_syscall(X86_SYSCALL_IOPL_DISABLE, 0, 0, 0, 0);
-}
-
-int x86_textmode_console_write(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
+static int x86_textmode_console_write(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(result);
@@ -30,7 +22,7 @@ int x86_textmode_console_write(rpc_server_t *server, rpc_args_iter_t *args, rpc_
     return RPC_RESULT_OK;
 }
 
-int x86_textmode_console_clear(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
+static int x86_textmode_console_clear(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(args);
@@ -41,7 +33,7 @@ int x86_textmode_console_clear(rpc_server_t *server, rpc_args_iter_t *args, rpc_
     return RPC_RESULT_OK;
 }
 
-int x86_textmode_console_set_color(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
+static int x86_textmode_console_set_color(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(result);
@@ -59,7 +51,7 @@ int x86_textmode_console_set_color(rpc_server_t *server, rpc_args_iter_t *args, 
     return RPC_RESULT_OK;
 }
 
-int x86_textmode_console_set_cursor_pos(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
+static int x86_textmode_console_set_cursor_pos(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(result);
@@ -77,7 +69,7 @@ int x86_textmode_console_set_cursor_pos(rpc_server_t *server, rpc_args_iter_t *a
     return RPC_RESULT_OK;
 }
 
-int x86_textmode_console_set_cursor_visible(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
+static int x86_textmode_console_set_cursor_visible(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(result);
@@ -91,14 +83,6 @@ int x86_textmode_console_set_cursor_visible(rpc_server_t *server, rpc_args_iter_
     return RPC_RESULT_OK;
 }
 
-static const rpc_function_info_t console_functions[] = {
-    { DM_CONSOLE_WRITE, x86_textmode_console_write, 1 },                           // arg: buffer
-    { DM_CONSOLE_CLEAR, x86_textmode_console_clear, 0 },                           // arg: none
-    { DM_CONSOLE_SET_COLOR, x86_textmode_console_set_color, 2 },                   // arg: foreground, background
-    { DM_CONSOLE_SET_CURSOR_POS, x86_textmode_console_set_cursor_pos, 2 },         // arg: x, y
-    { DM_CONSOLE_SET_CURSOR_VISIBLE, x86_textmode_console_set_cursor_visible, 1 }, // arg: visible
-};
-
 int main(int argc, char **argv)
 {
     MOS_UNUSED(argc);
@@ -108,10 +92,8 @@ int main(int argc, char **argv)
     const ptr_t vaddr = syscall_arch_syscall(X86_SYSCALL_MAP_VGA_MEMORY, 0, 0, 0, 0);
     x86_vga_text_mode_console_init(vaddr);
 
-    screen_server = rpc_server_create("drivers.x86_text_console", NULL);
+    rpc_server_t *screen_server = rpc_server_create("drivers.x86_text_console", NULL);
     rpc_server_register_functions(screen_server, console_functions, MOS_ARRAY_SIZE(console_functions));
     rpc_server_exec(screen_server);
-
-    atexit(x86_vga_text_mode_console_exit);
     return 0;
 }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "librpc/rpc_client.h"
+#include "x86_console/common.h"
 
 #include <mos/device/dm_types.h>
 #include <mos/syscall/usermode.h>
@@ -11,7 +12,7 @@ static rpc_server_stub_t *console_server;
 
 static void do_print_to_console(const char *buf, size_t size)
 {
-    rpc_call(console_server, DM_CONSOLE_WRITE, NULL, "b", buf, size);
+    rpc_call(console_server, CONSOLE_WRITE, NULL, "b", buf, size);
 }
 
 void open_console(void)

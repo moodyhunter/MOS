@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "console-client.h"
-
 #include <mos/syscall/usermode.h>
 #include <mos/types.h>
 #include <stdlib.h>
+#include <x86_console/client.h>
 
 // My mutex implementation:
 // ==========================================================================

@@ -6,6 +6,10 @@
 // _X(CLASS, SUBCLASS, PROGIF, NAME)
 // do note that the values are in hex, not decimal, although the '0x' prefix is not present
 
+#ifndef _X
+#error "pci_classes.h must be included with _X defined"
+#endif
+
 _X(00, 00, 00, "Unclassified device")
 _X(00, 01, 00, "VGA compatible device")
 _X(01, 00, 00, "SCSI bus controller")

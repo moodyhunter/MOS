@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "console-client.h"
-
 #include <mos/device/dm_types.h>
 #include <mos/lib/sync/mutex.h>
 #include <mos/lib/sync/spinlock.h>
@@ -11,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <x86_console/client.h>
 
 static bool quiet = false;
 

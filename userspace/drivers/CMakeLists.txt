@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-add_subdirectory(pci)
-add_subdirectory(x86_text_console)
+add_subdirectory(device-manager)
+add_subdirectory(pci-daemon)
+add_subdirectory(x86-console)

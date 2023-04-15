@@ -25,7 +25,7 @@ enum
     CALC_SUB = 1,
     CALC_MUL = 2,
     CALC_DIV = 3,
-} calculation_type_t;
+};
 
 static int testserver_ping(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
 {
@@ -92,7 +92,7 @@ static int rpc_server_close(rpc_server_t *server, rpc_args_iter_t *args, rpc_rep
 
 void run_server(void)
 {
-    static rpc_function_info_t testserver_functions[] = {
+    static const rpc_function_info_t testserver_functions[] = {
         { TESTSERVER_PING, testserver_ping, 0 },
         { TESTSERVER_ECHO, testserver_echo, 1 },
         { TESTSERVER_CALCULATE, testserver_calculation, 3 },

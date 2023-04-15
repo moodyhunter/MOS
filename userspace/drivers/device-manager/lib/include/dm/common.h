@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <librpc/rpc.h>
+#include <mos/device/dm_types.h>
+
 #pragma once
 
-#include <mos/device/dm_types.h>
-#include <mos/types.h>
+#define DM_RPC(_X)                                                                                                                                                       \
+    _X(REGISTER_DEVICE, 1, register_device, 1)                                                                                                                           \
+    _X(REGISTER_DRIVER, 2, register_driver, 1)
 
-/**
- * @defgroup device_manager Device Manager
- * @brief Device Manager
- * @{
- */
+DECLARE_FUNCTION_ID_ENUM(dm, DM_RPC)
 
 /**
  * @brief IPC service name for the device manager
@@ -34,7 +34,3 @@ typedef struct device_t
     device_type_t type;
     device_driver_t *driver;
 } device_t;
-
-void device_manager_init(void);
-
-/** @} */

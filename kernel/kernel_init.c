@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <mos/device/console.h>
-#include <mos/device/device_manager.h>
 #include <mos/elf/elf.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
@@ -123,7 +122,6 @@ void mos_start_kernel(const char *cmdline)
     pr_info("created init process: %s", init->name);
 
     kthread_init(); // must be called after creating the first init process
-    device_manager_init();
 
     ipi_init();
 
