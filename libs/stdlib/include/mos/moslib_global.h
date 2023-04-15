@@ -27,6 +27,9 @@
 #define MOSAPI extern
 #endif
 
+#include <mos/platform_syscall.h>
+#include <mos/syscall/usermode.h>
+
 #define MOS_LIB_ASSERT_X(cond, msg, ...)                                                                                                                                 \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
