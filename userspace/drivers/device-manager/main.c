@@ -1,39 +1,104 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "dm/common.h"
-#include "librpc/rpc_server.h"
 
+#include <argparse/libargparse.h>
+#include <libconfig/libconfig.h>
+#include <librpc/rpc_server.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-DECLARE_RPC_SERVER_PROTOTYPES(dm, DM_RPC)
+extern void dm_run_server(rpc_server_t *server);
 
-static int register_device(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
+static bool start_device_drivers(config_t *config)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(args);
-    MOS_UNUSED(reply);
-    MOS_UNUSED(data);
+    size_t num_drivers;
+    const char **drivers = config_get_all(config, "load", &num_drivers);
+    if (!drivers)
+        return true; // no drivers to start
 
-    rpc_result_code_t result = RPC_RESULT_OK;
-    return result;
+    for (size_t i = 0; i < num_drivers; i++)
+    {
+        const char *driver = drivers[i];
+
+        char *dup = strdup(driver);
+        char *saveptr;
+        char *driver_path = strtok_r(dup, " ", &saveptr);
+        char *driver_args = strtok_r(NULL, " ", &saveptr);
+
+        driver_path = string_trim(driver_path);
+        driver_args = string_trim(driver_args);
+
+        if (!driver_path)
+            return false; // invalid options
+
+        size_t driver_args_count = 0;
+        const char **driver_argv = NULL;
+
+        if (driver_args)
+        {
+            char *saveptr;
+            char *arg = strtok_r(driver_args, " ", &saveptr);
+            while (arg)
+            {
+                driver_args_count++;
+                driver_argv = realloc(driver_argv, driver_args_count * sizeof(char *));
+                driver_argv[driver_args_count - 1] = arg;
+                arg = strtok_r(NULL, " ", &saveptr);
+            }
+        }
+
+        pid_t driver_pid = syscall_spawn(driver_path, driver_args_count, driver_argv);
+        if (driver_pid <= 0)
+            return false;
+    }
+
+    return true;
 }
 
-static int register_driver(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
-{
-    MOS_UNUSED(server);
-    MOS_UNUSED(args);
-    MOS_UNUSED(reply);
-    MOS_UNUSED(data);
+static const argparse_arg_t dm_args[] = {
+    { "help", 'h', ARGPARSE_NONE, "show this help message and exit" },
+    { "config", 'c', ARGPARSE_REQUIRED, "path to the config file" },
+    { 0 },
+};
 
-    rpc_result_code_t result = RPC_RESULT_OK;
-    return result;
-}
-
-int main(void)
+int main(int argc, const char *argv[])
 {
+    MOS_UNUSED(argc);
+    argparse_state_t arg_state;
+    argparse_init(&arg_state, argv);
+
+    const char *config_path = "/initrd/config/dm.conf";
+    while (true)
+    {
+        const int option = argparse_long(&arg_state, dm_args, NULL);
+        if (option == -1)
+            break;
+
+        switch (option)
+        {
+            case 'c': config_path = arg_state.optarg; break;
+            case 'h': argparse_usage(&arg_state, dm_args, "device manager"); return 0;
+            default: break;
+        }
+    }
+
+    config_t *dm_config = config_parse_file(config_path);
+    if (!dm_config)
+    {
+        fprintf(stderr, "Failed to parse config file: %s\n", config_path);
+        return 1;
+    }
+
     rpc_server_t *server = rpc_server_create(MOS_DEVICE_MANAGER_SERVICE_NAME, NULL);
-    rpc_server_register_functions(server, dm_functions, MOS_ARRAY_SIZE(dm_functions));
-    rpc_server_exec(server);
-    fputs("device_manager: server exited\n", stderr);
+
+    if (!start_device_drivers(dm_config))
+    {
+        fputs("Failed to start device drivers\n", stderr);
+        return 2;
+    }
+
+    dm_run_server(server);
     return 0;
 }

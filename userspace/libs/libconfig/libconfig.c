@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "parser.h"
+#include "libconfig/libconfig.h"
 
 #include <mos/filesystem/fs_types.h>
 #include <mos/syscall/usermode.h>
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct init_config
+typedef struct struct_config
 {
     size_t count;
     struct _entry
@@ -15,9 +15,9 @@ typedef struct init_config
         const char *key;
         const char *value;
     } *entries;
-} init_config_t;
+} config_t;
 
-init_config_t *config_parse_file(const char *file_path)
+config_t *config_parse_file(const char *file_path)
 {
     file_stat_t stat = { 0 };
 
@@ -34,7 +34,7 @@ init_config_t *config_parse_file(const char *file_path)
     if (read != stat.size)
         return NULL;
 
-    init_config_t *config = malloc(sizeof(init_config_t));
+    config_t *config = malloc(sizeof(config_t));
     config->count = 0;
     config->entries = NULL;
 
@@ -99,7 +99,7 @@ init_config_t *config_parse_file(const char *file_path)
     return config;
 }
 
-const char *config_get(init_config_t *config, const char *key)
+const char *config_get(config_t *config, const char *key)
 {
     for (size_t i = 0; i < config->count; i++)
     {
@@ -110,7 +110,7 @@ const char *config_get(init_config_t *config, const char *key)
     return NULL;
 }
 
-const char **config_get_all(init_config_t *config, const char *key, size_t *count_out)
+const char **config_get_all(config_t *config, const char *key, size_t *count_out)
 {
     size_t count = 0;
     for (size_t i = 0; i < config->count; i++)

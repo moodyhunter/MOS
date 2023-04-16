@@ -2,4 +2,9 @@
 
 #pragma once
 
-void open_dm(void);
+#include "common.h"
+
+#include <librpc/rpc_client.h>
+#include <stdio.h>
+
+RPC_CLIENT_DEFINE_SIMPLECALL(dm, DM_RPCS_X)

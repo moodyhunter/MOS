@@ -1,19 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#pragma once
+
 #include <librpc/rpc.h>
 #include <mos/device/dm_types.h>
 
-#pragma once
+#define DM_RPCS_X(X, arg)                                                                                                                                                \
+    X(arg, 1, register_device, REGISTER_DEVICE, "iiis", ARG(u32, vendor), ARG(u32, devid), ARG(u32, location), ARG(const char *, server))                                \
+    X(arg, 2, register_driver, REGISTER_DRIVER, "v")
 
-#define DM_RPC(_X)                                                                                                                                                       \
-    _X(REGISTER_DEVICE, 1, register_device, 1)                                                                                                                           \
-    _X(REGISTER_DRIVER, 2, register_driver, 1)
+RPC_DEFINE_ENUMS(dm, DM, DM_RPCS_X)
 
-DECLARE_FUNCTION_ID_ENUM(dm, DM_RPC)
-
-/**
- * @brief IPC service name for the device manager
- */
 #define MOS_DEVICE_MANAGER_SERVICE_NAME "mos.device_manager"
 
 typedef struct device_t device_t;
