@@ -269,6 +269,7 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve
     {
         mos_warn("symlink target does not exist");
         dentry_unref(parent_ref);
+        kfree(last_segment);
         return NULL;
     }
 
