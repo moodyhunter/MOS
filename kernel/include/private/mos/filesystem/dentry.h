@@ -37,7 +37,7 @@ typedef enum
     // bit 0, 1: the operation only succeeds if the inode is a...
     RESOLVE_EXPECT_FILE = 1 << 0,
     RESOLVE_EXPECT_DIR = 1 << 1,
-    RESOLVE_ANY = RESOLVE_EXPECT_FILE | RESOLVE_EXPECT_DIR,
+    RESOLVE_EXPECT_ANY_TYPE = RESOLVE_EXPECT_FILE | RESOLVE_EXPECT_DIR,
 
     // bit 2: follow symlinks?
     // only for the last segment, (if it is a symlink)
@@ -46,13 +46,9 @@ typedef enum
     // bit 3, 4: the operation only succeeds if...
     RESOLVE_EXPECT_EXIST = 1 << 3,
     RESOLVE_EXPECT_NONEXIST = 1 << 4,
-
-    // bit 5: the operation will...
-    RESOLVE_MAY_CREATE = 1 << 5, // create the file if it doesn't exist
+    RESOLVE_EXPECT_ANY_EXIST = RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_NONEXIST,
 
     // compose the flags
-    RESOLVE_CREATE_ONLY = RESOLVE_EXPECT_NONEXIST | RESOLVE_MAY_CREATE,
-    RESOLVE_CREATE_IF_NONEXIST = RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_NONEXIST | RESOLVE_MAY_CREATE,
     RESOLVE_FOR_STAT = RESOLVE_EXPECT_FILE | RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST | RESOLVE_SYMLINK_NOFOLLOW,
 } lastseg_resolve_flags_t;
 
@@ -117,13 +113,13 @@ dentry_t *dentry_create(dentry_t *parent, const char *name);
 dentry_t *dentry_from_fd(fd_t fd);
 
 /**
- * @brief  Get a child dentry from a parent dentry
+ * @brief Get a child dentry from a parent dentry
  *
  * @param parent The parent dentry
  * @param name The name of the child dentry
  *
- * @return The child dentry, or NULL if the child dentry does not exist
- * @note The returned dentry will have its reference count incremented.
+ * @return The child dentry, always non-NULL, even if the child dentry does not exist in the filesystem
+ * @note The returned dentry will have its reference count incremented, even if it does not exist.
  */
 dentry_t *dentry_get_child(dentry_t *parent, const char *name);
 

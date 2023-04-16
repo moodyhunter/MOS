@@ -109,9 +109,9 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
     const bool expect_dir = flags & OPEN_DIR;
     const bool truncate = flags & OPEN_TRUNCATE;
 
-    lastseg_resolve_flags_t resolve_flags = RESOLVE_EXPECT_FILE |                                              //
-                                            (no_follow ? 0 : RESOLVE_SYMLINK_NOFOLLOW) |                       //
-                                            (may_create ? RESOLVE_CREATE_IF_NONEXIST : RESOLVE_EXPECT_EXIST) | //
+    lastseg_resolve_flags_t resolve_flags = RESOLVE_EXPECT_FILE |                                            //
+                                            (no_follow ? RESOLVE_SYMLINK_NOFOLLOW : 0) |                     //
+                                            (may_create ? RESOLVE_EXPECT_ANY_EXIST : RESOLVE_EXPECT_EXIST) | //
                                             (expect_dir ? RESOLVE_EXPECT_DIR : 0);
     dentry_t *entry = dentry_get(base, root_dentry, path, resolve_flags);
 
@@ -267,12 +267,17 @@ size_t vfs_readlink(const char *path, char *buf, size_t size)
         return 0;
 
     if (dentry->inode->stat.type != FILE_TYPE_SYMLINK)
+    {
+        dentry_unref(dentry);
         return 0;
+    }
 
     const size_t len = dentry->inode->ops->readlink(dentry, buf, size);
+
+    dentry_unref(dentry);
+
     if (len >= size) // buffer too small
         return 0;
-
     return len;
 }
 
@@ -280,13 +285,18 @@ bool vfs_touch(const char *path, file_type_t type, u32 perms)
 {
     mos_debug(vfs, "vfs_touch(path='%s', type=%d, perms=%o)", path, type, perms);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
-    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_CREATE_IF_NONEXIST);
+    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_ANY_EXIST | RESOLVE_EXPECT_ANY_TYPE);
     if (dentry == NULL)
         return false;
 
     dentry_t *parentdir = tree_parent(dentry, dentry_t);
-    if (parentdir == NULL)
+
+    if (!(parentdir && parentdir->inode && parentdir->inode->ops && parentdir->inode->ops->newfile))
+    {
+        mos_debug(vfs, "vfs_touch: parent directory does not support newfile() operation");
+        dentry_unref(dentry);
         return false;
+    }
 
     file_perm_t perms_obj = {
         .owner.read = perms & 0400,
@@ -308,7 +318,7 @@ bool vfs_symlink(const char *path, const char *target)
 {
     mos_debug(vfs, "vfs_symlink(path='%s', target='%s')", path, target);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
-    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_CREATE_ONLY);
+    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_NONEXIST);
     if (dentry == NULL)
         return false;
 
@@ -325,7 +335,7 @@ bool vfs_mkdir(const char *path)
 {
     mos_debug(vfs, "vfs_mkdir('%s')", path);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
-    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_CREATE_ONLY | RESOLVE_EXPECT_DIR);
+    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_NONEXIST);
     if (dentry == NULL)
         return false;
 

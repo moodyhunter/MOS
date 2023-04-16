@@ -196,12 +196,12 @@ static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, co
         }
 
         dentry_t *const child_ref = dentry_get_child(parent_ref, current_seg);
-        if (child_ref == NULL)
+        if (child_ref->inode == NULL)
         {
             *last_seg_out = NULL;
             kfree(path);
-            dentry_unref(parent_ref);
-            return NULL; // non-existent file?
+            // negative dentry doesn't need to be unref'd
+            return NULL;
         }
 
         if (child_ref->is_mountpoint)
@@ -309,29 +309,16 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
 
     dentry_t *child_ref = dentry_get_child(parent, leaf); // now we have a reference to the child
 
-    if (unlikely(child_ref == NULL))
+    if (unlikely(child_ref->inode == NULL))
     {
-        if (!(flags & RESOLVE_EXPECT_NONEXIST))
+        if (flags & RESOLVE_EXPECT_NONEXIST)
         {
-            // file does not exist, but we expected it to
-            dentry_unref(parent);
-            return NULL;
-        }
-
-        if (flags & RESOLVE_MAY_CREATE)
-        {
-            dentry_t *child = dentry_create(parent, leaf);
-            if (unlikely(child == NULL))
-            {
-                mos_warn("failed to create dentry");
-                return NULL;
-            }
-
-            return child; // it's not been opened by anyone, do not refcount
+            // do not use dentry_ref, because it checks for an inode
+            child_ref->refcount++;
+            return child_ref;
         }
 
         mos_debug(dcache, "file does not exist");
-        dentry_unref(parent);
         return NULL;
     }
 
@@ -339,12 +326,6 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
     {
         mos_warn("file already exists");
         dentry_unref(child_ref);
-        return NULL;
-    }
-
-    if (child_ref->inode == NULL)
-    {
-        dentry_unref(child_ref); // fake cache entry (not backed by any inode)
         return NULL;
     }
 
@@ -422,6 +403,7 @@ void dentry_cache_init(void)
 
 dentry_t *dentry_ref(dentry_t *dentry)
 {
+    MOS_ASSERT(dentry->inode);
     dentry->refcount++;
     mos_debug(dcache_ref, "dentry %p '%s' increased refcount to %zu", (void *) dentry, dentry_name(dentry), dentry->refcount);
     return dentry;
@@ -467,6 +449,10 @@ void dentry_unref(dentry_t *dentry)
     if (dentry->refcount < expected_refcount)
     {
         mos_warn("dentry %p refcount %zu is less than expected refcount %zu", (void *) dentry, dentry->refcount, expected_refcount);
+        tree_foreach_child(dentry_t, child, dentry)
+        {
+            pr_warn("  child %p '%s' has %zu references", (void *) child, dentry_name(child), child->refcount);
+        }
         mos_panic("don't know how to handle this");
     }
     else if (dentry->refcount - expected_refcount)
@@ -527,35 +513,51 @@ dentry_t *dentry_get_child(dentry_t *parent, const char *name)
 
     mos_debug(dcache, "looking for dentry '%s' in '%s'", name, dentry_name(parent));
 
+    dentry_t *dentry = NULL;
+
     // firstly check if it's in the cache
     tree_foreach_child(dentry_t, c, parent)
     {
         if (strcmp(c->name, name) == 0)
         {
-            mos_debug(dcache, "found dentry '%s' in cache", name);
-            return dentry_ref(c);
+            if (c->inode != NULL)
+            {
+                mos_debug(dcache, "found dentry '%s' in cache", name);
+                return dentry_ref(c);
+            }
+            else
+            {
+                mos_debug(dcache, "found dentry '%s' in cache, but it's not backed by an inode, try looking up", name);
+                dentry = c;
+                break;
+            }
         }
     }
+
+    // regardless of whether we found it in the real FS or not, we leave it in the cache
+    if (dentry == NULL)
+        dentry = dentry_create(parent, name);
+
+    if (dentry->inode)
+        return dentry_ref(dentry);
 
     // not in the cache, try to find it in the filesystem
     if (parent->inode == NULL || parent->inode->ops == NULL || parent->inode->ops->lookup == NULL)
     {
-        mos_debug(dcache, "filesystem doesn't support lookup, returning NULL");
-        return NULL;
+        mos_debug(dcache, "filesystem doesn't support lookup");
+        return dentry;
     }
 
-    mos_debug(dcache, "dentry '%s' not found in cache, looking in the filesystem", name);
-    dentry_t *target = dentry_create(parent, name);
-
-    if (!parent->inode->ops->lookup(parent->inode, target))
+    if (parent->inode->ops->lookup(parent->inode, dentry))
+    {
+        mos_debug(dcache, "dentry '%s' found in the filesystem", name);
+        return dentry_ref(dentry);
+    }
+    else
     {
         mos_debug(dcache, "dentry '%s' not found in the filesystem", name);
-        // TODO: currently we are leaving the dentry in the cache
-        return NULL;
+        return dentry;
     }
-
-    mos_debug(dcache, "dentry '%s' found in the filesystem", name);
-    return dentry_ref(target);
 }
 
 dentry_t *dentry_get(dentry_t *starting_dir, dentry_t *root_dir, const char *path, lastseg_resolve_flags_t flags)
@@ -618,15 +620,17 @@ static size_t dentry_default_iterate(const dentry_t *dir, dir_iterator_state_t *
     size_t i = DIR_ITERATOR_NTH_START;
     tree_foreach_child(dentry_t, child, dir)
     {
-        if (state->dir_nth == i)
-        {
-            size_t w = op(state, child->inode->ino, child->name, strlen(child->name), child->inode->stat.type);
-            if (w == 0)
-                return written;
-            written += w;
-        }
+        if (child->inode == NULL)
+            continue;
 
-        i++;
+        // skip entries until we reach the nth one
+        if (state->dir_nth != i++)
+            continue;
+
+        size_t w = op(state, child->inode->ino, child->name, strlen(child->name), child->inode->stat.type);
+        if (w == 0)
+            break;
+        written += w;
     }
 
     return written;
