@@ -123,17 +123,7 @@ void do_execute(const char *prog, char *rest)
 
 void do_execute_line(char *line)
 {
-    // trim leading and trailing whitespace
-    while (*line == ' ' || *line == '\t')
-        line++;
-
-    char *end = line + strlen(line) - 1;
-    while (end > line && (*end == ' ' || *end == '\t'))
-        end--;
-    end[1] = '\0';
-
-    if (*line == '\0')
-        return;
+    line = string_trim(line);
 
     // filter comments
     char *comment = strchr(line, '#');

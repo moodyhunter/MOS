@@ -103,19 +103,10 @@ static bool mount_filesystems(void)
         if (!device || !mount_point || !filesystem || !options)
             return false; // invalid options
 
-#define remove_leading_trailing_spaces(str)                                                                                                                              \
-    do                                                                                                                                                                   \
-    {                                                                                                                                                                    \
-        while (*str == ' ')                                                                                                                                              \
-            str++;                                                                                                                                                       \
-        while (str[strlen(str) - 1] == ' ')                                                                                                                              \
-            str[strlen(str) - 1] = '\0';                                                                                                                                 \
-    } while (0)
-
-        remove_leading_trailing_spaces(device);
-        remove_leading_trailing_spaces(mount_point);
-        remove_leading_trailing_spaces(filesystem);
-        remove_leading_trailing_spaces(options);
+        device = string_trim(device);
+        mount_point = string_trim(mount_point);
+        filesystem = string_trim(filesystem);
+        options = string_trim(options);
 
         if (!syscall_vfs_mount(device, mount_point, filesystem, options))
             return false;

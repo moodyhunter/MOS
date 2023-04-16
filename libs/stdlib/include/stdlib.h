@@ -20,6 +20,7 @@ MOSAPI s64 llabs(s64 x);
 MOSAPI s32 atoi(const char *nptr);
 
 MOSAPI void format_size(char *buf, size_t buf_size, u64 size);
+MOSAPI char *string_trim(char *in);
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))

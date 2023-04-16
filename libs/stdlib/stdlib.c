@@ -3,6 +3,7 @@
 #include <mos/types.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static int isspace(int _c)
 {
@@ -71,4 +72,28 @@ void format_size(char *buf, size_t buf_size, u64 size)
     {
         snprintf(buf, buf_size, "%llu %s + %zu %s", size, units[i], diff, units[i - 1]);
     }
+}
+
+char *string_trim(char *in)
+{
+    if (in == NULL)
+        return NULL;
+
+    char *end;
+
+    // Trim leading space
+    while (*in == ' ')
+        in++;
+
+    if (*in == 0) // All spaces?
+        return in;
+
+    // Trim trailing space
+    end = in + strlen(in) - 1;
+    while (end > in && *end == ' ')
+        end--;
+
+    // Write new null terminator
+    *(end + 1) = '\0';
+    return in;
 }
