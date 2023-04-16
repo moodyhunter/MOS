@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include "librpc/rpc.h"
-
+#include <librpc/rpc.h>
 #include <mos/types.h>
+#include <stdarg.h>
 
 typedef struct rpc_server_stub rpc_server_stub_t;
 typedef struct rpc_call rpc_call_t;
@@ -45,7 +45,19 @@ void rpc_client_destroy(rpc_server_stub_t *server);
  *
  * @note This function is a simple wrapper around rpc_call_create, rpc_call_arg, rpc_call_exec and rpc_call_destroy.
  */
-rpc_result_code_t rpc_call(rpc_server_stub_t *stub, u32 funcid, rpc_result_t *result, const char *argspec, ...);
+rpc_result_code_t rpc_simple_call(rpc_server_stub_t *stub, u32 funcid, rpc_result_t *result, const char *argspec, ...);
+
+/**
+ * @brief Call a function on the server
+ *
+ * @param stub The server stub to call
+ * @param funcid The function ID to call
+ * @param result A pointer to a result structure, or NULL if no result is expected
+ * @param argspec An argument specification string, see spec.md for details
+ * @param args The arguments to the function
+ * @return rpc_result_code_t The result code of the call
+ */
+rpc_result_code_t rpc_simple_callv(rpc_server_stub_t *stub, u32 funcid, rpc_result_t *result, const char *argspec, va_list args);
 
 /**
  * @brief Manually create a new RPC call

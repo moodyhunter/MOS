@@ -4,9 +4,11 @@
 
 #include "common.h"
 
+#include <librpc/rpc_client.h>
 #include <mos/device/dm_types.h>
-#include <mos/mos_global.h>
+#include <stdio.h>
 
-void open_console(void);
+RPC_CLIENT_DEFINE_SIMPLECALL(console_simple, CONSOLE_RPCS_X)
+
+rpc_server_stub_t *open_console(void);
 __printf(1, 2) void print_to_console(const char *fmt, ...);
-void set_console_color(standard_color_t fg, standard_color_t bg);

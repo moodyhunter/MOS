@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "librpc/rpc_client.h"
+
 #include <mos/device/dm_types.h>
 #include <mos/lib/sync/mutex.h>
 #include <mos/lib/sync/spinlock.h>
@@ -11,6 +13,7 @@
 #include <string.h>
 #include <x86_console/client.h>
 
+static rpc_server_stub_t *console_server;
 static bool quiet = false;
 
 #define N_THREADS  10
@@ -71,7 +74,7 @@ static void thread_do_work(void *arg)
 
 static void run_single_test(const char *name, const lock_t *lock)
 {
-    set_console_color(Yellow, Black);
+    console_simple_set_color(console_server, Yellow, Black);
     print_to_console("%-10s: test started!\n", name);
     counter = 0;
 
@@ -88,12 +91,12 @@ static void run_single_test(const char *name, const lock_t *lock)
     const u64 expected = N_WORKLOAD * N_THREADS;
     if (counter != expected)
     {
-        set_console_color(Red, Black);
+        console_simple_set_color(console_server, Red, Black);
         print_to_console("%-10s: FAIL: counter value: %llu, where it should be %llu\n", name, counter, expected);
     }
     else
     {
-        set_console_color(Green, Black);
+        console_simple_set_color(console_server, Green, Black);
         print_to_console("%-10s: SUCCESS: counter value: %llu\n", name, counter);
     }
 
@@ -101,7 +104,7 @@ static void run_single_test(const char *name, const lock_t *lock)
 
     print_to_console("%-10s: elapsed: %llu million cycles\n", name, elapsed);
 
-    set_console_color(White, Black);
+    console_simple_set_color(console_server, White, Black);
     print_to_console("\n");
 }
 
@@ -109,7 +112,7 @@ int main(int argc, char **argv)
 {
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
-    open_console();
+    console_server = open_console();
 
     if (argc > 1 && strcmp(argv[1], "-q") == 0)
         quiet = true;

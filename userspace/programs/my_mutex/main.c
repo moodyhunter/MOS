@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "librpc/rpc_client.h"
+
 #include <mos/syscall/usermode.h>
 #include <mos/types.h>
 #include <stdlib.h>
@@ -86,10 +88,10 @@ int main(int argc, char **argv)
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
     // setup the console:
-    open_console();
+    rpc_server_stub_t *console = open_console();
     print_to_console("Hello from my mutex test!\n");
     print_to_console("Running...\n");
-    set_console_color(LightBlue, Black);
+    console_simple_set_color(console, LightBlue, Black);
 
     //
     // Initialize the mutex:
@@ -111,12 +113,12 @@ int main(int argc, char **argv)
     const u64 expected = N_WORK * N_THREADS;
     if (counter != expected)
     {
-        set_console_color(White, LightRed);
+        console_simple_set_color(console, White, LightRed);
         print_to_console("FAIL: counter value: %llu, where it should be %llu\n", counter, expected);
     }
     else
     {
-        set_console_color(White, Green);
+        console_simple_set_color(console, White, Green);
         print_to_console("SUCCESS: counter value: %llu\n", counter);
     }
 

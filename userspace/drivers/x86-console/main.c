@@ -6,7 +6,7 @@
 #include <librpc/rpc_server.h>
 #include <stdlib.h>
 
-DECLARE_RPC_SERVER_PROTOTYPES(console, CONSOLE_RPCS)
+DECLARE_RPC_SERVER_PROTOTYPES(x86_textmode_console, CONSOLE_RPCS_X)
 
 static int x86_textmode_console_write(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
 {
@@ -41,11 +41,11 @@ static int x86_textmode_console_set_color(rpc_server_t *server, rpc_args_iter_t 
 
     const standard_color_t *foreground = rpc_arg_sized_next(args, sizeof(standard_color_t));
     if (foreground == NULL)
-        return RPC_RESULT_SERVER_INVALID_ARG;
+        return RPC_RESULT_INVALID_ARG;
 
     const standard_color_t *background = rpc_arg_sized_next(args, sizeof(standard_color_t));
     if (background == NULL)
-        return RPC_RESULT_SERVER_INVALID_ARG;
+        return RPC_RESULT_INVALID_ARG;
 
     screen_set_color(*foreground, *background);
     return RPC_RESULT_OK;
@@ -59,17 +59,17 @@ static int x86_textmode_console_set_cursor_pos(rpc_server_t *server, rpc_args_it
 
     const u32 *x = rpc_arg_sized_next(args, sizeof(u32));
     if (x == NULL)
-        return RPC_RESULT_SERVER_INVALID_ARG;
+        return RPC_RESULT_INVALID_ARG;
 
     const u32 *y = rpc_arg_sized_next(args, sizeof(u32));
     if (y == NULL)
-        return RPC_RESULT_SERVER_INVALID_ARG;
+        return RPC_RESULT_INVALID_ARG;
 
     screen_set_cursor_pos(*x, *y);
     return RPC_RESULT_OK;
 }
 
-static int x86_textmode_console_set_cursor_visible(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
+static int x86_textmode_console_set_cursor_visibility(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *result, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(result);
@@ -77,7 +77,7 @@ static int x86_textmode_console_set_cursor_visible(rpc_server_t *server, rpc_arg
 
     const bool *visible = rpc_arg_sized_next(args, sizeof(bool));
     if (visible == NULL)
-        return RPC_RESULT_SERVER_INVALID_ARG;
+        return RPC_RESULT_INVALID_ARG;
 
     screen_enable_cursur(*visible);
     return RPC_RESULT_OK;
@@ -92,8 +92,8 @@ int main(int argc, char **argv)
     const ptr_t vaddr = syscall_arch_syscall(X86_SYSCALL_MAP_VGA_MEMORY, 0, 0, 0, 0);
     x86_vga_text_mode_console_init(vaddr);
 
-    rpc_server_t *screen_server = rpc_server_create("drivers.x86_text_console", NULL);
-    rpc_server_register_functions(screen_server, console_functions, MOS_ARRAY_SIZE(console_functions));
+    rpc_server_t *screen_server = rpc_server_create(X86_CONSOLE_SERVER_NAME, NULL);
+    rpc_server_register_functions(screen_server, x86_textmode_console_functions, MOS_ARRAY_SIZE(x86_textmode_console_functions));
     rpc_server_exec(screen_server);
     return 0;
 }

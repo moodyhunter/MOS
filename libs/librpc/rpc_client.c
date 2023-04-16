@@ -4,6 +4,7 @@
 
 #include "librpc/internal.h"
 #include "librpc/rpc.h"
+#include "mos/moslib_global.h"
 
 #include <liballoc.h>
 #include <libipc/ipc.h>
@@ -176,15 +177,36 @@ rpc_result_code_t rpc_call_exec(rpc_call_t *call, void **result_data, size_t *da
     return result;
 }
 
-rpc_result_code_t rpc_call(rpc_server_stub_t *stub, u32 funcid, rpc_result_t *result, const char *argspec, ...)
+rpc_result_code_t rpc_simple_call(rpc_server_stub_t *stub, u32 funcid, rpc_result_t *result, const char *argspec, ...)
 {
-    if (argspec == NULL)
-        argspec = "";
+    va_list args;
+    va_start(args, argspec);
+    rpc_result_code_t code = rpc_simple_callv(stub, funcid, result, argspec, args);
+    va_end(args);
+    return code;
+}
+
+rpc_result_code_t rpc_simple_callv(rpc_server_stub_t *stub, u32 funcid, rpc_result_t *result, const char *argspec, va_list args)
+{
+    if (unlikely(!argspec))
+    {
+        mos_warn("argspec is NULL");
+        return RPC_RESULT_CLIENT_INVALID_ARGSPEC;
+    }
 
     rpc_call_t *call = rpc_call_create(stub, funcid);
 
-    va_list args;
-    va_start(args, argspec);
+    if (*argspec == 'v')
+    {
+        if (*++argspec != '\0')
+        {
+            mos_warn("argspec is not empty after 'v' (void) (argspec='%s')", argspec);
+            rpc_call_destroy(call);
+            return RPC_RESULT_CLIENT_INVALID_ARGSPEC;
+        }
+        goto exec;
+    }
+
     for (const char *c = argspec; *c != '\0'; c++)
     {
         switch (*c)
@@ -216,21 +238,14 @@ rpc_result_code_t rpc_call(rpc_server_stub_t *stub, u32 funcid, rpc_result_t *re
             case 's':
             {
                 const char *arg = va_arg(args, const char *);
-                rpc_call_arg(call, arg, strlen(arg));
+                rpc_call_arg(call, arg, strlen(arg) + 1); // also send the null terminator
                 break;
             }
-            case 'b':
-            {
-                const void *arg = va_arg(args, const void *);
-                size_t arg_size = va_arg(args, size_t);
-                rpc_call_arg(call, arg, arg_size);
-                break;
-            }
-            default: mos_warn("rpc_call_x: invalid argspec '%c'", *c); return RPC_RESULT_CLIENT_INVALID_ARGSPEC;
+            default: mos_warn("rpc_call: invalid argspec '%c'", *c); return RPC_RESULT_CLIENT_INVALID_ARGSPEC;
         }
     }
-    va_end(args);
 
+exec:
     rpc_call_exec(call, &result->data, &result->size);
     rpc_call_destroy(call);
 

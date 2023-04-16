@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "librpc/rpc.h"
-
+#include <librpc/rpc.h>
 #include <mos/types.h>
 
 #define RPC_REQUEST_MAGIC  MOS_FOURCC('R', 'P', 'C', '>')

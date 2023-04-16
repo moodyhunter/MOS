@@ -173,13 +173,13 @@ void run_client(void)
     // calculation using argspec
     {
         rpc_result_t result;
-        rpc_result_code_t result_code = rpc_call(stub, TESTSERVER_CALCULATE, (void *) &result, "iii", 10, CALC_MUL, 5);
+        rpc_result_code_t result_code = rpc_simple_call(stub, TESTSERVER_CALCULATE, (void *) &result, "iii", 10, CALC_MUL, 5);
         printf("calculation client (spec): received '%d' (result_code=%d)\n", *(int *) result.data, result_code);
     }
 
     // close
     {
-        rpc_call(stub, TESTSERVER_CLOSE, NULL, "");
+        rpc_simple_call(stub, TESTSERVER_CLOSE, NULL, "");
     }
 
     rpc_client_destroy(stub);
