@@ -109,6 +109,7 @@ void do_backtrace(u32 max)
 
 void x86_kpanic_hook(void)
 {
+#if MOS_DEBUG_FEATURE(vmm)
     const char *cpu_pagetable_source = current_cpu->pagetable.pgd == (ptr_t) x86_kpg_infra ? "Kernel" : NULL;
 
     if (current_thread)
@@ -134,6 +135,7 @@ void x86_kpanic_hook(void)
         pr_emph("CPU Page Table:");
         x86_dump_pagetable(current_cpu->pagetable);
     }
+#endif
 
     do_backtrace(20);
 }
