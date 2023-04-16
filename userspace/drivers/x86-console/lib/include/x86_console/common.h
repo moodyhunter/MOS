@@ -13,3 +13,5 @@
     _X(CONSOLE_SET_CURSOR_VISIBLE, DM_CONSOLE_SET_CURSOR_VISIBLE, x86_textmode_console_set_cursor_visible, 1)
 
 DECLARE_FUNCTION_ID_ENUM(console, CONSOLE_RPCS)
+#define X86_CONSOLE_SERVER_NAME "drivers.x86_text_console"
+
