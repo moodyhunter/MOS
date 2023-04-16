@@ -11,6 +11,7 @@
 #include <mos/mos_global.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
+#include <mos/tasks/process.h>
 #include <mos/tasks/task_types.h>
 #include <stdio.h>
 #include <string.h>
@@ -509,8 +510,13 @@ dentry_t *dentry_from_fd(fd_t fd)
 {
     if (fd == FD_CWD)
         return current_process->working_directory;
-    else
-        MOS_UNIMPLEMENTED("dentry_from_fd for a non-FD_CWD fd");
+
+    io_t *io = process_get_fd(current_process, fd);
+    if (io == NULL)
+        return NULL;
+
+    file_t *file = container_of(io, file_t, io);
+    return file->dentry;
 }
 
 dentry_t *dentry_get_child(dentry_t *parent, const char *name)
