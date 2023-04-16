@@ -21,9 +21,9 @@
         },
         {
             "number": 2,
-            "name": "vfs_stat",
+            "name": "vfs_statat",
             "return": "bool",
-            "arguments": [ { "type": "const char *", "arg": "file_path" }, { "type": "file_stat_t *", "arg": "stat" } ]
+            "arguments": [ { "type": "fd_t", "arg": "dirfd" }, { "type": "const char *", "arg": "file_path" }, { "type": "file_stat_t *", "arg": "stat" } ]
         },
         {
             "number": 3,
@@ -169,9 +169,10 @@
         },
         {
             "number": 25,
-            "name": "vfs_readlink",
+            "name": "vfs_readlinkat",
             "return": "ssize_t",
             "arguments": [
+                { "type": "fd_t", "arg": "dirfd" },
                 { "type": "const char *", "arg": "path" },
                 { "type": "char *", "arg": "buf" },
                 { "type": "size_t", "arg": "buf_size" }

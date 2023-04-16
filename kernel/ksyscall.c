@@ -41,12 +41,12 @@ fd_t define_syscall(vfs_open)(const char *path, open_flags flags)
     return process_attach_ref_fd(current_process, &f->io);
 }
 
-bool define_syscall(vfs_stat)(const char *path, file_stat_t *stat)
+bool define_syscall(vfs_statat)(fd_t dirfd, const char *path, file_stat_t *stat)
 {
     if (!path)
         return false;
 
-    return vfs_stat(path, stat);
+    return vfs_statat(dirfd, path, stat);
 }
 
 size_t define_syscall(io_read)(fd_t fd, void *buf, size_t count)
@@ -282,9 +282,9 @@ bool define_syscall(vfs_mount)(const char *device, const char *mountpoint, const
     return vfs_mount(device, mountpoint, fs_type, options);
 }
 
-ssize_t define_syscall(vfs_readlink)(const char *path, char *buf, size_t buflen)
+ssize_t define_syscall(vfs_readlinkat)(fd_t dirfd, const char *path, char *buf, size_t buflen)
 {
-    return vfs_readlink(path, buf, buflen);
+    return vfs_readlinkat(dirfd, path, buf, buflen);
 }
 
 bool define_syscall(vfs_touch)(const char *path, file_type_t type, u32 mode)

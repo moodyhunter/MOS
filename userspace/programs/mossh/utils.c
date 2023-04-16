@@ -12,7 +12,7 @@ const char *locate_program(const char *prog)
     if (strchr(prog, '/'))
     {
         file_stat_t stat = { 0 };
-        if (syscall_vfs_stat(prog, &stat))
+        if (syscall_vfs_statat(FD_CWD, prog, &stat))
         {
             if (stat.type == FILE_TYPE_SYMLINK || stat.type == FILE_TYPE_REGULAR)
                 return strdup(prog);
@@ -29,7 +29,7 @@ const char *locate_program(const char *prog)
         sprintf(path, "%s/%s", PATH[i], prog);
 
         file_stat_t stat = { 0 };
-        if (syscall_vfs_stat(path, &stat))
+        if (syscall_vfs_statat(FD_CWD, path, &stat))
         {
             if (stat.type == FILE_TYPE_SYMLINK || stat.type == FILE_TYPE_REGULAR)
                 return path;

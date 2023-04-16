@@ -17,7 +17,7 @@ static void do_print_to_console(const char *buf, size_t size)
 
 void open_console(void)
 {
-    if (!syscall_vfs_stat("/ipc/drivers.x86_text_console", NULL))
+    if (!syscall_vfs_statat(FD_CWD, "/ipc/" X86_CONSOLE_SERVER_NAME, NULL))
     {
         printf("Spawning console driver...\n");
         pid_t pid = syscall_spawn("/initrd/drivers/x86_console_driver", 0, NULL);

@@ -17,7 +17,7 @@ int main(int argc, char **argv)
     for (int i = 1; i < argc; i++)
     {
         file_stat_t stat;
-        if (!syscall_vfs_stat(argv[i], &stat))
+        if (!syscall_vfs_statat(FD_CWD, argv[i], &stat))
         {
             fprintf(stderr, "%s: No such file or directory\n", argv[i]);
             return 1;

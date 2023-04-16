@@ -229,10 +229,10 @@ file_t *vfs_openat(int fd, const char *path, open_flags flags)
     return file;
 }
 
-bool vfs_stat(const char *path, file_stat_t *restrict stat)
+bool vfs_statat(fd_t dirfd, const char *path, file_stat_t *restrict stat)
 {
     mos_debug(vfs, "vfs_stat(path='%s', stat=%p)", path, (void *) stat);
-    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
+    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(dirfd);
     dentry_t *file = dentry_get(base, root_dentry, path, RESOLVE_FOR_STAT);
     if (file == NULL)
         return false;
@@ -259,9 +259,9 @@ bool vfs_fstat(io_t *io, file_stat_t *restrict stat)
     return true;
 }
 
-size_t vfs_readlink(const char *path, char *buf, size_t size)
+size_t vfs_readlinkat(fd_t dirfd, const char *path, char *buf, size_t size)
 {
-    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
+    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(dirfd);
     dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_SYMLINK_NOFOLLOW | RESOLVE_EXPECT_EXIST);
     if (dentry == NULL)
         return 0;

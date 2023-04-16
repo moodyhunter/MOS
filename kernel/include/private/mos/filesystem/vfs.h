@@ -51,12 +51,13 @@ file_t *vfs_openat(int fd, const char *path, open_flags flags);
 /**
  * @brief Stat a file
  *
+ * @param dirfd The file descriptor of the directory containing the file
  * @param path The path to the file
  * @param stat The stat struct to store the file information in
  * @return true
  * @return false
  */
-bool vfs_stat(const char *path, file_stat_t *restrict stat);
+bool vfs_statat(fd_t dirfd, const char *path, file_stat_t *restrict stat);
 
 /**
  * @brief Stat an opened file
@@ -71,12 +72,13 @@ bool vfs_fstat(io_t *io, file_stat_t *restrict stat);
 /**
  * @brief Read a symbolic link
  *
+ * @param dirfd The file descriptor of the directory containing the symbolic link
  * @param path The path to the symbolic link
  * @param buf The buffer to store the link in
  * @param size The size of the buffer
  * @return size_t The size of the link, or 0 if the link could not be read, or the buffer was too small
  */
-size_t vfs_readlink(const char *path, char *buf, size_t size);
+size_t vfs_readlinkat(fd_t dirfd, const char *path, char *buf, size_t size);
 
 /**
  * @brief Create a new file
