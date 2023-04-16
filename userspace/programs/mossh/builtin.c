@@ -124,7 +124,7 @@ void do_help(int argc, const char *argv[])
     printf("The following commands are built-in:\n");
     printf("\n");
     for (int i = 0; builtin_commands[i].command; i++)
-        printf("  %-8s  %s\n", builtin_commands[i].command, builtin_commands[i].description);
+        printf("  %-10s  %s\n", builtin_commands[i].command, builtin_commands[i].description);
     printf("\n");
     printf("Happy hacking!\n");
 }

@@ -14,9 +14,10 @@
 
 // We don't support environment variables yet, so we hardcode the path
 const char *PATH[] = {
-    "/programs",
-    "/initrd/programs",
-    "/initrd/tests",
+    "/programs",        // (currently unused)
+    "/initrd/programs", // programs in the initrd
+    "/initrd/games",    // games in the initrd
+    "/initrd/tests",    // userspace tests
     NULL,
 };
 
@@ -161,7 +162,7 @@ void do_execute_line(char *line)
 
 int do_interpret_script(const char *path)
 {
-    fd_t fd = syscall_vfs_open(path, OPEN_READ);
+    const fd_t fd = syscall_vfs_open(path, OPEN_READ);
     if (fd < 0)
     {
         fprintf(stderr, "Failed to open '%s'\n", path);
