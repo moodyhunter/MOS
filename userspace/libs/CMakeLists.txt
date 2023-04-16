@@ -11,4 +11,5 @@ target_sources(stdlib PRIVATE
 target_include_directories(stdlib PUBLIC ${CMAKE_SOURCE_DIR}/userspace/include)
 
 add_subdirectory(argparse)
+add_subdirectory(libconfig)
 add_subdirectory(readline)
