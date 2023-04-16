@@ -1,32 +1,34 @@
 #include "argparse/libargparse.h"
 
+#include <stdio.h>
+
 #define ARGPARSE_MSG_INVALID "invalid option"
 #define ARGPARSE_MSG_MISSING "option requires an argument"
 #define ARGPARSE_MSG_TOOMANY "option takes no arguments"
 
-static int argparse_error(argparse_state_t *options, const char *msg, const char *data)
+static int argparse_error(argparse_state_t *state, const char *msg, const char *data)
 {
     unsigned p = 0;
     const char *sep = " -- '";
     while (*msg)
-        options->errmsg[p++] = *msg++;
+        state->errmsg[p++] = *msg++;
     while (*sep)
-        options->errmsg[p++] = *sep++;
-    while (p < sizeof(options->errmsg) - 2 && *data)
-        options->errmsg[p++] = *data++;
-    options->errmsg[p++] = '\'';
-    options->errmsg[p++] = '\0';
+        state->errmsg[p++] = *sep++;
+    while (p < sizeof(state->errmsg) - 2 && *data)
+        state->errmsg[p++] = *data++;
+    state->errmsg[p++] = '\'';
+    state->errmsg[p++] = '\0';
     return '?';
 }
 
-void argparse_init(argparse_state_t *options, const char **argv)
+void argparse_init(argparse_state_t *state, const char *argv[])
 {
-    options->argv = argv;
-    options->permute = 1;
-    options->optind = argv[0] != 0;
-    options->subopt = 0;
-    options->optarg = 0;
-    options->errmsg[0] = '\0';
+    state->argv = argv;
+    state->permute = 1;
+    state->optind = argv[0] != 0;
+    state->subopt = 0;
+    state->optarg = 0;
+    state->errmsg[0] = '\0';
 }
 
 static int argparse_is_dashdash(const char *arg)
@@ -44,13 +46,13 @@ static int argparse_is_longopt(const char *arg)
     return arg != 0 && arg[0] == '-' && arg[1] == '-' && arg[2] != '\0';
 }
 
-static void argparse_permute(argparse_state_t *options, int index)
+static void argparse_permute(argparse_state_t *state, int index)
 {
-    const char *nonoption = options->argv[index];
+    const char *nonoption = state->argv[index];
     int i;
-    for (i = index; i < options->optind - 1; i++)
-        options->argv[i] = options->argv[i + 1];
-    options->argv[options->optind - 1] = nonoption;
+    for (i = index; i < state->optind - 1; i++)
+        state->argv[i] = state->argv[i + 1];
+    state->argv[state->optind - 1] = nonoption;
 }
 
 static int argparse_get_argtype(const char *optstring, char c)
@@ -67,31 +69,31 @@ static int argparse_get_argtype(const char *optstring, char c)
     return count;
 }
 
-int argparse(argparse_state_t *options, const char *optstring)
+int argparse(argparse_state_t *state, const char *optstring)
 {
     int type;
     const char *next;
-    const char *option = options->argv[options->optind];
-    options->errmsg[0] = '\0';
-    options->optopt = 0;
-    options->optarg = 0;
+    const char *option = state->argv[state->optind];
+    state->errmsg[0] = '\0';
+    state->optopt = 0;
+    state->optarg = 0;
     if (option == 0)
     {
         return -1;
     }
     else if (argparse_is_dashdash(option))
     {
-        options->optind++; /* consume "--" */
+        state->optind++; /* consume "--" */
         return -1;
     }
     else if (!argparse_is_shortopt(option))
     {
-        if (options->permute)
+        if (state->permute)
         {
-            int index = options->optind++;
-            int r = argparse(options, optstring);
-            argparse_permute(options, index);
-            options->optind--;
+            int index = state->optind++;
+            int r = argparse(state, optstring);
+            argparse_permute(state, index);
+            state->optind--;
             return r;
         }
         else
@@ -99,57 +101,57 @@ int argparse(argparse_state_t *options, const char *optstring)
             return -1;
         }
     }
-    option += options->subopt + 1;
-    options->optopt = option[0];
+    option += state->subopt + 1;
+    state->optopt = option[0];
     type = argparse_get_argtype(optstring, option[0]);
-    next = options->argv[options->optind + 1];
+    next = state->argv[state->optind + 1];
     switch (type)
     {
         case -1:
         {
             char str[2] = { 0, 0 };
             str[0] = option[0];
-            options->optind++;
-            return argparse_error(options, ARGPARSE_MSG_INVALID, str);
+            state->optind++;
+            return argparse_error(state, ARGPARSE_MSG_INVALID, str);
         }
         case ARGPARSE_NONE:
             if (option[1])
             {
-                options->subopt++;
+                state->subopt++;
             }
             else
             {
-                options->subopt = 0;
-                options->optind++;
+                state->subopt = 0;
+                state->optind++;
             }
             return option[0];
         case ARGPARSE_REQUIRED:
-            options->subopt = 0;
-            options->optind++;
+            state->subopt = 0;
+            state->optind++;
             if (option[1])
             {
-                options->optarg = option + 1;
+                state->optarg = option + 1;
             }
             else if (next != 0)
             {
-                options->optarg = next;
-                options->optind++;
+                state->optarg = next;
+                state->optind++;
             }
             else
             {
                 char str[2] = { 0, 0 };
                 str[0] = option[0];
-                options->optarg = 0;
-                return argparse_error(options, ARGPARSE_MSG_MISSING, str);
+                state->optarg = 0;
+                return argparse_error(state, ARGPARSE_MSG_MISSING, str);
             }
             return option[0];
         case ARGPARSE_OPTIONAL:
-            options->subopt = 0;
-            options->optind++;
+            state->subopt = 0;
+            state->optind++;
             if (option[1])
-                options->optarg = option + 1;
+                state->optarg = option + 1;
             else
-                options->optarg = 0;
+                state->optarg = 0;
             return option[0];
     }
     return 0;
@@ -298,4 +300,36 @@ int argparse_long(argparse_state_t *options, const argparse_arg_t *longopts, int
         }
     }
     return argparse_error(options, ARGPARSE_MSG_INVALID, option);
+}
+
+void argparse_usage(argparse_state_t *options, const argparse_arg_t *args, const char *usage)
+{
+    fprintf(stderr, "Usage: %s, %s\n", options->argv[0], usage);
+    static const int help_indent = 24;
+
+    for (int i = 0; !argparse_longopts_end(args, i); i++)
+    {
+        const char *name = args[i].full;
+        const char abbr = args[i].abbr;
+        const char *help = args[i].help ? args[i].help : "";
+        const char *arg = args[i].argtype == ARGPARSE_NONE ? "" : args[i].argtype == ARGPARSE_REQUIRED ? " ARG" : " [ARG]";
+
+        int printed = 0;
+        if (abbr)
+            printed += fprintf(stderr, "  -%c", abbr);
+
+        if (name)
+            printed += fprintf(stderr, ", --%s%s", name, arg);
+        else
+            printed++;
+
+        if (printed < help_indent)
+            fprintf(stderr, "%*s", help_indent - printed, "");
+        else
+            fprintf(stderr, "\n%*s", help_indent, "");
+
+        fprintf(stderr, "%s\n", help);
+    }
+
+    fprintf(stderr, "\n");
 }

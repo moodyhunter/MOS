@@ -182,10 +182,10 @@ int do_interpret_script(const char *path)
 }
 
 static const argparse_arg_t mossh_options[] = {
-    { "help", 'h', ARGPARSE_NONE },
-    { "version", 'v', ARGPARSE_NONE },
-    { "init", 'i', ARGPARSE_REQUIRED }, // initial script to execute
-    { NULL, 'c', ARGPARSE_REQUIRED },   // command to execute
+    { NULL, 'c', ARGPARSE_REQUIRED, "MOS shell script file" },
+    { "help", 'h', ARGPARSE_NONE, "Show this help message" },
+    { "init", 'i', ARGPARSE_REQUIRED, "The initial script to execute" },
+    { "version", 'v', ARGPARSE_NONE, "Show the version" },
     { 0 },
 };
 
@@ -204,8 +204,6 @@ int main(int argc, const char **argv)
 
         switch (option)
         {
-            case 'h': do_execute_line("help"); return 0;
-            case 'v': do_execute_line("version"); return 0;
             case 'i':
                 printf("Loading initial script '%s'\n", state.optarg);
                 if (do_interpret_script(state.optarg) != 0)
@@ -215,7 +213,9 @@ int main(int argc, const char **argv)
                 }
                 break;
             case 'c': return do_interpret_script(argv[2]);
-            default: do_execute_line("help"); return 1;
+            case 'v': do_execute_line(strdup("version")); return 0;
+            case 'h': argparse_usage(&state, mossh_options, "the MOS shell"); return 0;
+            default: argparse_usage(&state, mossh_options, "the MOS shell"); return 1;
         }
     }
 

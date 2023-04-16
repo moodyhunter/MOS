@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "argparse/libargparse.h"
 #include "parser.h"
 
 #include <mos/filesystem/fs_types.h>
 #include <mos/syscall/usermode.h>
+#include <argparse/libargparse.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -118,8 +118,9 @@ static bool mount_filesystems(void)
 #define DYN_ERROR_CODE (__COUNTER__ + 1)
 
 static const argparse_arg_t longopts[] = {
-    { "config", 'C', ARGPARSE_REQUIRED }, // configuration file, default: /initrd/config/init.conf
-    { "shell", 'S', ARGPARSE_REQUIRED },  // the shell or another program to launch
+    { "help", 'h', ARGPARSE_NONE, "show this help" },
+    { "config", 'C', ARGPARSE_REQUIRED, "configuration file, default: /initrd/config/init.conf" },
+    { "shell", 'S', ARGPARSE_REQUIRED, "shell to start, default: /initrd/programs/mossh" },
     { 0 },
 };
 
@@ -129,18 +130,19 @@ int main(int argc, const char *argv[])
 
     const char *config_file = "/initrd/config/init.conf";
     const char *shell = "/initrd/programs/mossh";
-    argparse_state_t options;
-    argparse_init(&options, argv);
+    argparse_state_t state;
+    argparse_init(&state, argv);
     while (true)
     {
-        const int option = argparse_long(&options, longopts, NULL);
+        const int option = argparse_long(&state, longopts, NULL);
         if (option == -1)
             break;
 
         switch (option)
         {
-            case 'C': config_file = options.optarg; break;
-            case 'S': shell = options.optarg; break;
+            case 'C': config_file = state.optarg; break;
+            case 'S': shell = state.optarg; break;
+            case 'h': argparse_usage(&state, longopts, "the init program"); return 0;
             default: break;
         }
     }
@@ -168,8 +170,8 @@ int main(int argc, const char *argv[])
     int shell_argc = 0;
 
     const char *arg;
-    argparse_init(&options, argv); // reset the options
-    while ((arg = argparse_arg(&options)))
+    argparse_init(&state, argv); // reset the options
+    while ((arg = argparse_arg(&state)))
     {
         shell_argc++;
         shell_argv = realloc(shell_argv, shell_argc * sizeof(char *));

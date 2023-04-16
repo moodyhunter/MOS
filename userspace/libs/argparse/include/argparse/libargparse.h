@@ -68,12 +68,13 @@ typedef struct
     const char *full;
     char abbr;
     argparse_argtype argtype;
+    const char *help;
 } argparse_arg_t;
 
 /**
  * Initializes the parser state.
  */
-MOSAPI void argparse_init(argparse_state_t *options, const char **argv);
+MOSAPI void argparse_init(argparse_state_t *options, const char *argv[]);
 
 /**
  * Read the next option in the argv array.
@@ -104,3 +105,13 @@ MOSAPI int argparse_long(argparse_state_t *options, const argparse_arg_t *longop
  * ignore the value of optind.
  */
 MOSAPI const char *argparse_arg(argparse_state_t *options);
+
+/**
+ * @brief Print usage information
+ *
+ * @param options argparse_state_t
+ * @param args argparse_arg_t
+ * @param usage program usage string
+ * @return MOSAPI
+ */
+MOSAPI void argparse_usage(argparse_state_t *options, const argparse_arg_t *args, const char *usage);
