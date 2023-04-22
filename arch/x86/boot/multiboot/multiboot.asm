@@ -6,7 +6,7 @@
 %define FLAG_MEM    1 << 1          ; provide memory map
 %define FLAG_VIDEO  1 << 2          ; provide video mode information
 
-MB_FLAGS    equ FLAG_ALIGN | FLAG_MEM | FLAG_VIDEO
+MB_FLAGS    equ FLAG_ALIGN | FLAG_MEM
 MB_CHECKSUM equ -(MB_MAGIC + MB_FLAGS)
 
 section .multiboot.data

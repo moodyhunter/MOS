@@ -130,7 +130,7 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
     mos_startup_memzero((void *) startup_pgd, sizeof(x86_pgdir_entry) * 1024);
     mos_startup_memzero((void *) startup_pgt, 512 KB);
 
-    debug_print_step();
+    debug_print_step(); // a
     mos_startup_map_identity((ptr_t) startup->mb_info, sizeof(multiboot_info_t), VM_READ);
 
     // multiboot stuff
@@ -151,7 +151,7 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
     // ! this page directory will be removed as soon as the kernel is loaded, it shouldn't be a problem.
     mos_startup_map_identity(startup_start, startup_end - startup_start, VM_RW | VM_EXEC);
 
-    debug_print_step();
+    debug_print_step(); // b
     const size_t kernel_code_pgsize = ALIGN_UP_TO_PAGE(kernel_code_vend - kernel_code_vstart) / MOS_PAGE_SIZE;
     mos_startup_map_pages(kernel_code_vstart, kernel_code_vstart - MOS_KERNEL_START_VADDR, kernel_code_pgsize, VM_EXEC);
 
@@ -167,15 +167,19 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
         const size_t initrd_pgsize = ALIGN_UP_TO_PAGE(mod->mod_end - mod->mod_start) / MOS_PAGE_SIZE;
         startup->initrd_size = mod->mod_end - mod->mod_start;
         mos_startup_map_pages(MOS_X86_INITRD_VADDR, mod->mod_start, initrd_pgsize, VM_READ);
-        debug_print_step();
+        debug_print_step(); // c
+    }
+    else
+    {
+        step++;
     }
 
     __asm__ volatile("mov %0, %%cr3" ::"r"(startup_pgd));
-    debug_print_step();
+    debug_print_step(); // d
 
     __asm__ volatile("mov %%cr0, %%eax; or $0x80000000, %%eax; mov %%eax, %%cr0" ::: "eax");
     video_device_address = BIOS_VADDR(X86_VIDEO_DEVICE);
-    debug_print_step();
+    debug_print_step(); // e
 
     print_debug_info('O', 'k', Green, Green);
 }
