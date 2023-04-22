@@ -34,9 +34,8 @@ pmlist_node_t *pmm_internal_list_node_create(ptr_t start, size_t n_pages, pm_ran
             break;
         }
         spinlock_release(&pmm_early_storage_lock);
+        MOS_ASSERT_X(node, "MOS_PMM_EARLY_MEMREGIONS (%d) is too small!", MOS_PMM_EARLY_MEMREGIONS);
     }
-
-    MOS_ASSERT_X(node, "MOS_PMM_EARLY_MEMREGIONS (%d) is too small!", MOS_PMM_EARLY_MEMREGIONS);
 
     memzero(node, sizeof(*node));
     linked_list_init(list_node(node));
