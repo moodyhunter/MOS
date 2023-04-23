@@ -52,7 +52,7 @@ static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)
     ipi_send_all(IPI_TYPE_INVALIDATE_TLB);
 }
 
-bool cow_handle_page_fault(ptr_t fault_addr, bool present, bool is_write, bool is_user, bool is_exec)
+bool mm_handle_pgfault(ptr_t fault_addr, bool present, bool is_write, bool is_user, bool is_exec)
 {
     MOS_UNUSED(is_user);
     MOS_UNUSED(present);

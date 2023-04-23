@@ -216,7 +216,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
                             (ptr_t) stack->iret_params.eip                                                           //
                     );
                 }
-                bool result = cow_handle_page_fault(fault_address, present, is_write, is_user, is_exec);
+                bool result = mm_handle_pgfault(fault_address, present, is_write, is_user, is_exec);
 
                 if (result)
                     return;
