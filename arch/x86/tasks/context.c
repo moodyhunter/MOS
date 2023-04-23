@@ -104,7 +104,7 @@ void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
 
 void x86_setup_forked_context(const thread_context_t *from, thread_context_t **to)
 {
-    const x86_thread_context_t *from_ctx = container_of(from, const x86_thread_context_t, inner);
+    const x86_thread_context_t *from_ctx = container_of(from, x86_thread_context_t, inner);
     x86_thread_context_t *to_ctx = kzalloc(sizeof(x86_thread_context_t));
     *to = &to_ctx->inner;
     *to_ctx = *from_ctx; // copy everything
@@ -115,7 +115,7 @@ void x86_switch_to_thread(ptr_t *scheduler_stack, const thread_t *to, switch_fla
 {
     per_cpu(x86_cpu_descriptor)->tss.esp0 = to->k_stack.top;
     const ptr_t pgd_paddr = pg_get_mapped_paddr(x86_kpg_infra, to->owner->pagetable.pgd);
-    const x86_thread_context_t *context = container_of(to->context, const x86_thread_context_t, inner);
+    const x86_thread_context_t *context = container_of(to->context, x86_thread_context_t, inner);
     const switch_func_t switch_func = switch_flags & SWITCH_TO_NEW_USER_THREAD   ? x86_switch_impl_new_user_thread :
                                       switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? x86_switch_impl_new_kernel_thread :
                                                                                    x86_switch_impl_normal;
