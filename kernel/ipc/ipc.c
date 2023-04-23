@@ -12,8 +12,7 @@
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/wait.h>
 
-#define IPC_CHANNEL_HASHMAP_SIZE 64
-#define IPC_SERVER_MAGIC         MOS_FOURCC('I', 'P', 'C', 'S')
+#define IPC_SERVER_MAGIC MOS_FOURCC('I', 'P', 'C', 'S')
 
 typedef struct
 {
