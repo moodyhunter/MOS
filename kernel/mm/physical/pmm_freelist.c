@@ -46,12 +46,10 @@ static bool pmm_internal_do_add_free_frames_try_merge(ptr_t start, size_t n_page
 #define insert_before_current()   list_insert_before(current, pmm_internal_list_node_create(start, n_pages, type))
 
         // ! Now we have found the insertion point (i.e., before `current`)
-        pmlist_node_t *prev = list_prev_entry(current, pmlist_node_t);
-        if (list_node(prev) == &pmlist_free_rw)
+        list_node_t *prev_node = list_node(current)->prev;
+        if (prev_node == &pmlist_free_rw)
         {
             // we are at the first element.
-            prev = NULL;
-
             // check if we can extend current at the start
             if (cstart == end)
                 extend_current_at_start();
@@ -60,6 +58,7 @@ static bool pmm_internal_do_add_free_frames_try_merge(ptr_t start, size_t n_page
         }
         else
         {
+            pmlist_node_t *prev = list_entry(prev_node, pmlist_node_t);
             const ptr_t prev_start = prev->range.paddr;
             const ptr_t prev_end = prev_start + prev->range.npages * MOS_PAGE_SIZE;
 
