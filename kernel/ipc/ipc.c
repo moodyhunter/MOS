@@ -22,7 +22,7 @@ typedef struct
     ipcshm_server_t *shm_server;
 } ipc_server_t;
 
-static void ipc_server_close(io_t *io)
+static void ipc_server_io_close(io_t *io)
 {
     ipc_server_t *ipc_server = container_of(io, ipc_server_t, io);
     if (ipc_server->magic != IPC_SERVER_MAGIC)
@@ -37,7 +37,7 @@ static void ipc_server_close(io_t *io)
     // existing connections are not closed (they have their own io_t)
 }
 
-static size_t ipc_conn_write(io_t *io, const void *buf, size_t size)
+static size_t ipc_io_write(io_t *io, const void *buf, size_t size)
 {
     struct _ipc_node *ipc_node = container_of(io, struct _ipc_node, io);
     struct _ipc_node_buf *writebuf = ipc_node->writebuf_obj;
@@ -61,7 +61,7 @@ static wait_condition_t *wc_wait_for_buffer_ready_read(ring_buffer_pos_t *pos)
     return wc_wait_for(pos, buffer_pos_ready_for_read, NULL);
 }
 
-static size_t ipc_conn_read(io_t *io, void *buf, size_t size)
+static size_t ipc_io_read(io_t *io, void *buf, size_t size)
 {
     struct _ipc_node *ipc_node = container_of(io, struct _ipc_node, io);
     struct _ipc_node_buf *readbuf = ipc_node->readbuf_obj;
@@ -82,7 +82,7 @@ static size_t ipc_conn_read(io_t *io, void *buf, size_t size)
     return read;
 }
 
-static void ipc_conn_close(io_t *io)
+static void ipc_io_close(io_t *io)
 {
     // the refcount drops to 0, so these are definitely okay to be freed
     struct _ipc_node *ipc_node = container_of(io, struct _ipc_node, io);
@@ -93,13 +93,13 @@ static void ipc_conn_close(io_t *io)
 static const io_op_t ipc_server_op = {
     .read = NULL,
     .write = NULL,
-    .close = ipc_server_close,
+    .close = ipc_server_io_close,
 };
 
 static const io_op_t ipc_connection_op = {
-    .read = ipc_conn_read,
-    .write = ipc_conn_write,
-    .close = ipc_conn_close,
+    .read = ipc_io_read,
+    .write = ipc_io_write,
+    .close = ipc_io_close,
 };
 
 void ipc_init(void)
