@@ -121,5 +121,9 @@ int main(int argc, char **argv)
     run_single_test("Spinlock", &spinlock);
     run_single_test("Mutex", &mutex);
 
-    return 0;
+    if (syscall_get_pid() != 1)
+        syscall_exit(0);
+
+    while (1)
+        ;
 }
