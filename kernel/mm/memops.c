@@ -12,6 +12,7 @@
 #include <string.h>
 
 static vmblock_t zero_block;
+static ptr_t zero_paddr;
 
 void mos_kernel_mm_init(void)
 {
@@ -19,6 +20,7 @@ void mos_kernel_mm_init(void)
     zero_block = mm_alloc_pages(current_cpu->pagetable, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
     memzero((void *) zero_block.vaddr, MOS_PAGE_SIZE);
     mm_flag_pages(current_cpu->pagetable, zero_block.vaddr, 1, VM_READ); // make it read-only after zeroing
+    zero_paddr = platform_mm_get_phys_addr(current_cpu->pagetable, zero_block.vaddr);
 
     liballoc_init();
 #if MOS_DEBUG_FEATURE(liballoc)
@@ -75,9 +77,8 @@ vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, ptr_t vad
 
     // zero fill the pages
     for (size_t i = 0; i < npages; i++)
-        mm_copy_maps(handle, zero_block.vaddr, handle, vaddr + i * MOS_PAGE_SIZE, 1, MM_COPY_ALLOCATED);
+        mm_fill_pages(handle, vaddr + i * MOS_PAGE_SIZE, zero_paddr, 1, VM_READ | ((flags & VM_USER) ? VM_USER : 0));
 
     // make the pages read-only (because for now, they are mapped to zero_block)
-    mm_flag_pages(handle, vaddr, npages, VM_READ | ((flags & VM_USER) ? VM_USER : 0));
     return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags, .address_space = handle };
 }
