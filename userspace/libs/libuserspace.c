@@ -32,10 +32,10 @@ void __stack_chk_fail_local(void)
 static void invoke_init(void)
 {
     typedef void (*func_ptr)(void);
-    extern char __init_array_start, __init_array_end;
+    extern func_ptr __init_array_start[], __init_array_end;
 
     // if anything goes wrong here, it must be a bug in the ELF loader
-    for (func_ptr *func = (func_ptr *) &__init_array_start; func != (func_ptr *) &__init_array_end; func++)
+    for (func_ptr *func = __init_array_start; func != &__init_array_end; func++)
         (*func)();
 }
 
