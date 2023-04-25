@@ -78,7 +78,6 @@ include(${MOS_ARCH_CONFIG})
 
 add_subdirectory(userspace)
 add_subdirectory(tests)
-add_subdirectory(tools)
 
 # include custom configuration
 if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)

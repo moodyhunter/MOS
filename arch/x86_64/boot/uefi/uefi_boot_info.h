@@ -1,1 +1,0 @@
-../../../../tools/uefi_bootloader/boot_info.h
