@@ -11,6 +11,11 @@
 #include <mos/tasks/task_types.h>
 #include <string.h>
 
+vmblock_t mm_make_cow_block(paging_handle_t target_handle, vmblock_t src_block)
+{
+    return mm_make_cow(src_block.address_space, src_block.vaddr, target_handle, src_block.vaddr, src_block.npages, src_block.flags);
+}
+
 vmblock_t mm_make_cow(paging_handle_t from, ptr_t fvaddr, paging_handle_t to, ptr_t tvaddr, size_t npages, vm_flags flags)
 {
     // Note that the block returned by this function contains it's ACTRUAL flags, which may be different from the flags of the original block.
