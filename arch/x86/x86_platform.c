@@ -71,8 +71,6 @@ void x86_keyboard_handler(u32 irq)
         buf[i] = '0' + (scancode & 1);
         scancode >>= 1;
     }
-
-    pr_info("scancode: 0b%s", buf);
 }
 
 void do_backtrace(u32 max)
