@@ -76,12 +76,11 @@ process_t *process_handle_fork(process_t *parent)
     for (int i = 0; i < MOS_PROCESS_MAX_OPEN_FILES; i++)
     {
         io_t *file = parent->files[i];
-        if (!file || file->closed)
-            continue; // skip empty slots and closed files
-        child_p->files[i] = io_ref(file);
+        if (io_valid(file))
+            child_p->files[i] = io_ref(file);
     }
 
-    // copy the parent's threads
+    // copy the thread
     const thread_t *parent_thread = current_thread;
     thread_t *child_t = thread_allocate(child_p, parent_thread->mode);
     child_t->u_stack = parent_thread->u_stack;

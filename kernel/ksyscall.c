@@ -2,6 +2,7 @@
 
 #include <mos/elf/elf.h>
 #include <mos/filesystem/vfs.h>
+#include <mos/io/io.h>
 #include <mos/ipc/ipc.h>
 #include <mos/locks/futex.h>
 #include <mos/mm/kmalloc.h>
@@ -358,4 +359,20 @@ bool define_syscall(vfs_chdir)(const char *path)
 ssize_t define_syscall(vfs_getcwd)(char *buf, size_t size)
 {
     return vfs_getcwd(buf, size);
+}
+
+off_t define_syscall(io_seek)(fd_t fd, off_t offset, io_seek_whence_t whence)
+{
+    io_t *io = process_get_fd(current_process, fd);
+    if (io == NULL)
+        return -1;
+    return io_seek(io, offset, whence);
+}
+
+off_t define_syscall(io_tell)(fd_t fd)
+{
+    io_t *io = process_get_fd(current_process, fd);
+    if (io == NULL)
+        return -1;
+    return io_tell(io);
 }

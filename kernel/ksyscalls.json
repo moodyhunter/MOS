@@ -2,6 +2,7 @@
     "$schema": "../assets/syscalls.schema.json",
     "includes": [
         "mos/filesystem/fs_types.h",
+        "mos/io/io_types.h",
         "mos/mm/heap_ops.h",
         "mos/mos_global.h",
         "mos/types.h"
@@ -255,6 +256,18 @@
             "name": "vfs_getcwd",
             "return": "ssize_t",
             "arguments": [ { "type": "char *", "arg": "buf" }, { "type": "size_t", "arg": "buf_size" } ]
+        },
+        {
+            "number": 37,
+            "name": "io_seek",
+            "return": "off_t",
+            "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "off_t", "arg": "offset" }, { "type": "io_seek_whence_t", "arg": "whence" } ]
+        },
+        {
+            "number": 38,
+            "name": "io_tell",
+            "return": "off_t",
+            "arguments": [ { "type": "fd_t", "arg": "fd" } ]
         }
     ]
 }

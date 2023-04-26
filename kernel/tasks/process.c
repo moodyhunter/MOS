@@ -245,22 +245,21 @@ void process_handle_exit(process_t *process, int exit_code)
     }
 
     size_t files_total = 0;
-    size_t files_already_closed = 0;
+    size_t files_closed = 0;
     for (int i = 0; i < MOS_PROCESS_MAX_OPEN_FILES; i++)
     {
-        if (process->files[i])
+        io_t *file = process->files[i];
+        process->files[i] = NULL;
+
+        if (io_valid(file))
         {
             files_total++;
-            if (!process->files[i]->closed)
-            {
-                files_already_closed++;
-                io_unref(process->files[i]);
-            }
-            process->files[i] = NULL;
+            if (io_unref(file) == NULL)
+                files_closed++;
         }
     }
 
-    mos_debug(process, "closed %zu/%zu files owned by %ld", files_already_closed, files_total, process->pid);
+    mos_debug(process, "closed %zu/%zu files owned by %ld", files_closed, files_total, process->pid);
 
     dentry_unref(process->working_directory);
 

@@ -3,6 +3,7 @@
 #include "struct_file.h"
 
 #include <mos/filesystem/fs_types.h>
+#include <mos/io/io_types.h>
 #include <mos/syscall/usermode.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -107,6 +108,16 @@ size_t fread(void *__restrict ptr, size_t size, size_t nmemb, FILE *__restrict s
 size_t fwrite(const void *__restrict ptr, size_t size, size_t nmemb, FILE *__restrict stream)
 {
     return syscall_io_write(stream->fd, ptr, size * nmemb) / size;
+}
+
+int fseek(FILE *stream, long offset, io_seek_whence_t whence)
+{
+    return syscall_io_seek(stream->fd, offset, whence);
+}
+
+off_t ftell(FILE *stream)
+{
+    return syscall_io_tell(stream->fd);
 }
 
 FILE *fopen(const char *path, const char *mode)

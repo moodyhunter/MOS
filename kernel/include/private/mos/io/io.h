@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <mos/io/io_types.h>
 #include <mos/mm/mm_types.h>
 #include <mos/types.h>
 
@@ -28,6 +29,7 @@ typedef struct
     size_t (*read)(io_t *io, void *buf, size_t count);
     size_t (*write)(io_t *io, const void *buf, size_t count);
     void (*close)(io_t *io);
+    off_t (*seek)(io_t *io, off_t offset, io_seek_whence_t whence);
 } io_op_t;
 
 typedef struct _io_t
@@ -42,7 +44,10 @@ typedef struct _io_t
 void io_init(io_t *io, io_type_t type, io_flags_t flags, const io_op_t *ops);
 
 io_t *io_ref(io_t *io);
-void io_unref(io_t *io);
+io_t *io_unref(io_t *io);
+__nodiscard bool io_valid(io_t *io);
 
 size_t io_read(io_t *io, void *buf, size_t count);
 size_t io_write(io_t *io, const void *buf, size_t count);
+off_t io_seek(io_t *io, off_t offset, io_seek_whence_t whence);
+off_t io_tell(io_t *io);

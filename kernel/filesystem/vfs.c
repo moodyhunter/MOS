@@ -33,25 +33,97 @@ static void vfs_io_ops_close(io_t *io)
 static size_t vfs_io_ops_read(io_t *io, void *buf, size_t count)
 {
     file_t *file = container_of(io, file_t, io);
-    spinlock_acquire(&file->offset_lock);
     const file_ops_t *const file_ops = file_get_ops(file);
     if (!file_ops || !file_ops->read)
         return 0;
+
+    spinlock_acquire(&file->offset_lock);
     size_t ret = file_ops->read(file, buf, count, file->offset);
     file->offset += ret;
     spinlock_release(&file->offset_lock);
+
     return ret;
 }
 
 static size_t vfs_io_ops_write(io_t *io, const void *buf, size_t count)
 {
     file_t *file = container_of(io, file_t, io);
-    spinlock_acquire(&file->offset_lock);
     const file_ops_t *const file_ops = file_get_ops(file);
     if (!file_ops || !file_ops->write)
         return 0;
+
+    spinlock_acquire(&file->offset_lock);
     size_t ret = file_ops->write(file, buf, count, file->offset);
     file->offset += ret;
+    spinlock_release(&file->offset_lock);
+
+    return ret;
+}
+
+static off_t vfs_io_ops_seek(io_t *io, off_t offset, io_seek_whence_t whence)
+{
+    file_t *file = container_of(io, file_t, io);
+    spinlock_acquire(&file->offset_lock);
+
+    off_t ret = 0;
+    switch (whence)
+    {
+        case IO_SEEK_SET:
+        {
+            if (unlikely(offset < 0))
+            {
+                ret = 0;
+                break;
+            }
+
+            if ((size_t) offset > file->dentry->inode->stat.size)
+                ret = file->dentry->inode->stat.size; // beyond the end of the file
+            else
+                ret = offset;
+
+            file->offset = ret;
+            break;
+        }
+        case IO_SEEK_CURRENT:
+        {
+            if (offset < 0)
+            {
+                if (file->offset < (size_t) -offset)
+                    ret = 0; // before the beginning of the file
+                else
+                    ret = file->offset + offset;
+            }
+            else
+            {
+                if (file->offset + offset > file->dentry->inode->stat.size)
+                    ret = file->dentry->inode->stat.size; // beyond the end of the file
+                else
+                    ret = file->offset + offset;
+            }
+
+            file->offset = ret;
+            break;
+        }
+        case IO_SEEK_END:
+        {
+            if (offset < 0)
+            {
+                if (file->dentry->inode->stat.size < (size_t) -offset)
+                    ret = 0; // before the beginning of the file
+                else
+                    ret = file->dentry->inode->stat.size + offset;
+            }
+            else
+            {
+                // don't allow seeking past the end of the file, (yet)
+                pr_warn("vfs: seeking past the end of the file is not supported yet");
+            }
+
+            file->offset = ret;
+            break;
+        }
+    };
+
     spinlock_release(&file->offset_lock);
     return ret;
 }
@@ -60,6 +132,7 @@ static io_op_t fs_io_ops = {
     .read = vfs_io_ops_read,
     .write = vfs_io_ops_write,
     .close = vfs_io_ops_close,
+    .seek = vfs_io_ops_seek,
 };
 // END: filesystem's io_t operations
 
