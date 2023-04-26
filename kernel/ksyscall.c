@@ -42,12 +42,12 @@ fd_t define_syscall(vfs_open)(const char *path, open_flags flags)
     return process_attach_ref_fd(current_process, &f->io);
 }
 
-bool define_syscall(vfs_statat)(fd_t dirfd, const char *path, file_stat_t *stat)
+bool define_syscall(vfs_fstatat)(fd_t fd, const char *path, file_stat_t *stat_buf, fstatat_flags flags)
 {
-    if (!path)
+    if (fd < 0)
         return false;
 
-    return vfs_statat(dirfd, path, stat);
+    return vfs_fstatat(fd, path, stat_buf, flags);
 }
 
 size_t define_syscall(io_read)(fd_t fd, void *buf, size_t count)
@@ -309,14 +309,6 @@ size_t define_syscall(vfs_list_dir)(fd_t fd, char *buffer, size_t buffer_size)
     if (io == NULL)
         return false;
     return vfs_list_dir(io, buffer, buffer_size);
-}
-
-bool define_syscall(vfs_fstat)(fd_t fd, file_stat_t *statbuf)
-{
-    io_t *io = process_get_fd(current_process, fd);
-    if (io == NULL)
-        return false;
-    return vfs_fstat(io, statbuf);
 }
 
 void *define_syscall(mmap_anonymous)(ptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t flags)

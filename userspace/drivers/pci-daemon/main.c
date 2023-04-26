@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 static rpc_server_stub_t *dm;
 
@@ -30,7 +31,7 @@ int main(int argc, char **argv)
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
 
-    if (!syscall_vfs_statat(FD_CWD, "/ipc/" MOS_DEVICE_MANAGER_SERVICE_NAME, NULL))
+    if (!stat("/ipc/" MOS_DEVICE_MANAGER_SERVICE_NAME, NULL))
         fatal_abort("pci-daemon: device manager is not running\n");
 
     dm = rpc_client_create(MOS_DEVICE_MANAGER_SERVICE_NAME);

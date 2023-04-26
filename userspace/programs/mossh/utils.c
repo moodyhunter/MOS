@@ -6,15 +6,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 const char *locate_program(const char *prog)
 {
     if (strchr(prog, '/'))
     {
-        file_stat_t stat = { 0 };
-        if (syscall_vfs_statat(FD_CWD, prog, &stat))
+        file_stat_t statbuf = { 0 };
+        if (stat(prog, &statbuf))
         {
-            if (stat.type == FILE_TYPE_SYMLINK || stat.type == FILE_TYPE_REGULAR)
+            if (statbuf.type == FILE_TYPE_SYMLINK || statbuf.type == FILE_TYPE_REGULAR)
                 return strdup(prog);
 
             fprintf(stderr, "Not a file: '%s'\n", prog);
@@ -28,10 +29,10 @@ const char *locate_program(const char *prog)
         char *path = malloc(strlen(PATH[i]) + strlen(prog) + 2);
         sprintf(path, "%s/%s", PATH[i], prog);
 
-        file_stat_t stat = { 0 };
-        if (syscall_vfs_statat(FD_CWD, path, &stat))
+        file_stat_t statbuf = { 0 };
+        if (stat(path, &statbuf))
         {
-            if (stat.type == FILE_TYPE_SYMLINK || stat.type == FILE_TYPE_REGULAR)
+            if (statbuf.type == FILE_TYPE_SYMLINK || statbuf.type == FILE_TYPE_REGULAR)
                 return path;
 
             fprintf(stderr, "Not a file: '%s'\n", path);

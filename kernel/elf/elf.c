@@ -57,13 +57,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
 
     io_ref(&f->io);
 
-    file_stat_t stat;
-    if (!vfs_fstat(&f->io, &stat))
-    {
-        mos_warn("failed to stat '%s'", path);
-        goto bail_out_1;
-    }
-
+    const file_stat_t stat = f->dentry->inode->stat;
     const size_t npage_required = ALIGN_UP_TO_PAGE(stat.size) / MOS_PAGE_SIZE;
     const vmblock_t buf_block = mm_alloc_pages(current_cpu->pagetable, npage_required, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
     char *const buf = (char *) buf_block.vaddr;
@@ -242,7 +236,7 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
 bail_out:
     if (buf)
         mm_unmap_pages(current_cpu->pagetable, buf_block.vaddr, buf_block.npages);
-bail_out_1:
+
     if (f)
         io_unref(&f->io); // close the file, we should have the file's refcount == 0 here
 

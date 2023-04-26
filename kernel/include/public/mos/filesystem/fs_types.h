@@ -44,6 +44,13 @@ typedef enum
     OPEN_EXCLUSIVE = 1 << 8,
 } open_flags;
 
+typedef enum
+{
+    FSTATAT_NONE = 0,
+    FSTATAT_NOFOLLOW = 1 << 1, // lstat, operates on the link itself
+    FSTATAT_FILE = 1 << 2,     // the fd is a file, not a directory
+} fstatat_flags;
+
 typedef struct
 {
     bool read, write, execute;

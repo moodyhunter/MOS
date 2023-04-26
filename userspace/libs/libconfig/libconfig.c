@@ -6,6 +6,7 @@
 #include <mos/syscall/usermode.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 typedef struct struct_config
 {
@@ -25,7 +26,7 @@ config_t *config_parse_file(const char *file_path)
     if (fd <= 0)
         return NULL;
 
-    if (!syscall_vfs_fstat(fd, &stat))
+    if (!fstat(fd, &stat))
         return NULL;
 
     char *file_content = malloc(stat.size);

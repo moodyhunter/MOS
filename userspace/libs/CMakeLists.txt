@@ -6,9 +6,10 @@ target_sources(stdlib PRIVATE
     stdio.c
     stdlib.c
     cxa.c
+    sys-stat.c
 )
 
-target_include_directories(stdlib PUBLIC ${CMAKE_SOURCE_DIR}/userspace/include)
+target_include_directories(stdlib SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/userspace/include)
 
 add_subdirectory(argparse)
 add_subdirectory(libconfig)

@@ -51,23 +51,19 @@ file_t *vfs_openat(int fd, const char *path, open_flags flags);
 /**
  * @brief Stat a file
  *
- * @param dirfd The file descriptor of the directory containing the file
+ * @param fd The directory, or a file if FSTATAT_FILE is set
  * @param path The path to the file
+ * @param flags fstat_flags flags
  * @param stat The stat struct to store the file information in
- * @return true
- * @return false
- */
-bool vfs_statat(fd_t dirfd, const char *path, file_stat_t *restrict stat);
-
-/**
- * @brief Stat an opened file
  *
- * @param io_t The io object of a file_t
- * @param stat The stat struct to store the file information in
- * @return true
- * @return false
+ * @details
+ * If the FSTATAT_FILE is set, the fd is a file, and the path will be ignored.
+ * If it is not set:
+ *     If the path is absolute, the fd will be ignored.
+ *     If the path is relative, the fd will be used as the directory to resolve the path from.
+ * If FSTATAT_NOFOLLOW is set, when the path is used, symlinks will not be followed.
  */
-bool vfs_fstat(io_t *io, file_stat_t *restrict stat);
+bool vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict stat, fstatat_flags flags);
 
 /**
  * @brief Read a symbolic link

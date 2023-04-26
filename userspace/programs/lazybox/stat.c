@@ -5,6 +5,7 @@
 #include <mos/filesystem/fs_types.h>
 #include <mos/syscall/usermode.h>
 #include <stdio.h>
+#include <sys/stat.h>
 
 int main(int argc, char **argv)
 {
@@ -16,16 +17,16 @@ int main(int argc, char **argv)
 
     for (int i = 1; i < argc; i++)
     {
-        file_stat_t stat;
-        if (!syscall_vfs_statat(FD_CWD, argv[i], &stat))
+        file_stat_t statbuf;
+        if (!stat(argv[i], &statbuf))
         {
             fprintf(stderr, "%s: No such file or directory\n", argv[i]);
             return 1;
         }
 
         printf("File: %s\n", argv[i]);
-        printf("File size: %zd bytes\n", stat.size);
-        switch (stat.type)
+        printf("File size: %zd bytes\n", statbuf.size);
+        switch (statbuf.type)
         {
             case FILE_TYPE_REGULAR: puts("Type: Regular file"); break;
             case FILE_TYPE_DIRECTORY: puts("Type: Directory"); break;
@@ -37,17 +38,17 @@ int main(int argc, char **argv)
             default: puts("Type: Unknown"); break;
         }
 
-        printf("Owner: %ld:%ld\n", stat.uid, stat.gid);
+        printf("Owner: %ld:%ld\n", statbuf.uid, statbuf.gid);
 
         char buf[16] = { 0 };
-        file_format_perm(stat.perm, buf);
+        file_format_perm(statbuf.perm, buf);
         printf("Permissions: %.9s", buf);
 
-        if (stat.suid)
+        if (statbuf.suid)
             printf("[SUID]");
-        if (stat.sgid)
+        if (statbuf.sgid)
             printf("[SGID]");
-        if (stat.sticky)
+        if (statbuf.sticky)
             printf("[STICKY]");
         printf("\n");
     }

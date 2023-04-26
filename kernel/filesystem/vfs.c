@@ -302,33 +302,39 @@ file_t *vfs_openat(int fd, const char *path, open_flags flags)
     return file;
 }
 
-bool vfs_statat(fd_t dirfd, const char *path, file_stat_t *restrict stat)
+bool vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstatat_flags flags)
 {
-    mos_debug(vfs, "vfs_stat(path='%s', stat=%p)", path, (void *) stat);
-    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(dirfd);
-    dentry_t *file = dentry_get(base, root_dentry, path, RESOLVE_FOR_STAT);
+    mos_debug(vfs, "vfs_fstatat(fd=%ld, path='%s', stat=%p, flags=%x)", fd, path, (void *) statbuf, flags);
+
+    if (flags & FSTATAT_FILE)
+    {
+        io_t *io = process_get_fd(current_process, fd);
+        if (!io_valid(io))
+            return false;
+
+        file_t *file = container_of(io, file_t, io);
+        if (file == NULL)
+            return false;
+
+        if (statbuf)
+            *statbuf = file->dentry->inode->stat;
+
+        return true;
+    }
+
+    dentry_t *basedir = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);
+    lastseg_resolve_flags_t resolve_flags = RESOLVE_EXPECT_FILE | RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST;
+    if (flags & FSTATAT_NOFOLLOW)
+        resolve_flags |= RESOLVE_SYMLINK_NOFOLLOW;
+
+    dentry_t *file = dentry_get(basedir, root_dentry, path, resolve_flags);
     if (file == NULL)
         return false;
 
-    if (stat)
-        *stat = file->inode->stat;
+    if (statbuf)
+        *statbuf = file->inode->stat;
 
     dentry_unref(file);
-    return true;
-}
-
-bool vfs_fstat(io_t *io, file_stat_t *restrict stat)
-{
-    file_t *file = container_of(io, file_t, io);
-    if (file == NULL)
-        return false;
-
-    MOS_ASSERT_X(file->dentry, "A file without a backing dentry?");
-
-    if (file->dentry->inode == NULL)
-        return false;
-
-    *stat = file->dentry->inode->stat;
     return true;
 }
 

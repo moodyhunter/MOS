@@ -23,9 +23,14 @@
         },
         {
             "number": 2,
-            "name": "vfs_statat",
+            "name": "vfs_fstatat",
             "return": "bool",
-            "arguments": [ { "type": "fd_t", "arg": "dirfd" }, { "type": "const char *", "arg": "file_path" }, { "type": "file_stat_t *", "arg": "stat" } ]
+            "arguments": [
+                { "type": "fd_t", "arg": "dirfd" },
+                { "type": "const char *", "arg": "file_path" },
+                { "type": "file_stat_t *", "arg": "stat_buf" },
+                { "type": "fstatat_flags", "arg": "flags" }
+            ]
         },
         {
             "number": 3,
@@ -203,12 +208,6 @@
             "name": "vfs_list_dir",
             "return": "size_t",
             "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "char *", "arg": "buffer" }, { "type": "size_t", "arg": "buffer_size" } ]
-        },
-        {
-            "number": 30,
-            "name": "vfs_fstat",
-            "return": "bool",
-            "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "file_stat_t *", "arg": "stat" } ]
         },
         {
             "number": 31,

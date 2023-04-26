@@ -7,12 +7,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 static rpc_server_stub_t *console_server;
 
 rpc_server_stub_t *open_console(void)
 {
-    if (!syscall_vfs_statat(FD_CWD, "/ipc/" X86_CONSOLE_SERVER_NAME, NULL))
+    if (!stat("/ipc/" X86_CONSOLE_SERVER_NAME, NULL))
     {
         printf("Spawning console driver...\n");
         pid_t pid = syscall_spawn("/initrd/drivers/x86_console_driver", 0, NULL);

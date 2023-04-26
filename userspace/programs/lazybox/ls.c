@@ -4,6 +4,7 @@
 #include <mos/syscall/usermode.h>
 #include <mos/types.h>
 #include <stdio.h>
+#include <sys/stat.h>
 
 #define BUFSIZE 256
 
@@ -44,16 +45,16 @@ int main(int argc, char *argv[])
 #define dirent_next(d) ((dir_entry_t *) ((char *) d + d->next_offset))
         for (const dir_entry_t *dirent = (dir_entry_t *) buffer; (char *) dirent < buffer + sz; dirent = dirent_next(dirent))
         {
-            file_stat_t stat = { 0 };
-            if (!syscall_vfs_statat(dirfd, dirent->name, &stat))
+            file_stat_t statbuf = { 0 };
+            if (!statat(dirfd, dirent->name, &statbuf))
             {
                 fprintf(stderr, "failed to stat '%s'\n", dirent->name);
                 continue;
             }
 
             char perm[10] = "---------";
-            file_format_perm(stat.perm, perm);
-            printf("%-10llu %-15s %-5ld %-5ld %-8zu %-10s %-10s", dirent->ino, perm, stat.uid, stat.gid, stat.size, type_to_string[dirent->type], dirent->name);
+            file_format_perm(statbuf.perm, perm);
+            printf("%-10llu %-15s %-5ld %-5ld %-8zu %-10s %-10s", dirent->ino, perm, statbuf.uid, statbuf.gid, statbuf.size, type_to_string[dirent->type], dirent->name);
 
             if (dirent->type == FILE_TYPE_SYMLINK)
             {
