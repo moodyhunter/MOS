@@ -40,50 +40,37 @@ static bool pmm_internal_do_add_free_frames_try_merge(ptr_t start, size_t n_page
         if (cstart <= start)
             continue;
 
-// some helper macros to avoid code duplication
-#define extend_previous_at_end()  prev->range.npages += n_pages
-#define extend_current_at_start() current->range.paddr = start, current->range.npages += n_pages
-#define insert_before_current()   list_insert_before(current, pmm_internal_list_node_create(start, n_pages, type))
-
         // ! Now we have found the insertion point (i.e., before `current`)
         list_node_t *prev_node = list_node(current)->prev;
-        if (prev_node == &pmlist_free_rw)
+
+        const bool has_prev = prev_node != &pmlist_free_rw;
+        pmlist_node_t *const prev = has_prev ? list_entry(prev_node, pmlist_node_t) : NULL;
+
+        // check if we can extend previous at the end
+        if (has_prev && (prev->range.paddr + prev->range.npages * MOS_PAGE_SIZE) == start)
         {
-            // we are at the first element.
-            // check if we can extend current at the start
+            // if so, extend the previous region
+            prev->range.npages += n_pages;
+
+            // continue check if we can connect the previous and current region
             if (cstart == end)
-                extend_current_at_start();
-            else
-                insert_before_current(); // otherwise insert a new region before current
+            {
+                // if so, extend the previous region to include the current region
+                prev->range.npages += current->range.npages;
+                list_remove(current); // remove current from the list
+                pmm_internal_list_node_delete(current);
+            }
+        }
+        else if (cstart == end)
+        {
+            // extend the current region
+            current->range.paddr = start, current->range.npages += n_pages;
         }
         else
         {
-            pmlist_node_t *prev = list_entry(prev_node, pmlist_node_t);
-            const ptr_t prev_start = prev->range.paddr;
-            const ptr_t prev_end = prev_start + prev->range.npages * MOS_PAGE_SIZE;
-
-            // check if we can extend previous at the end
-            if (prev_end == start)
-            {
-                extend_previous_at_end();
-
-                // continue check if we can connect the previous and current region
-                if (cstart == end)
-                {
-                    // if so, extend the previous region to include the current region
-                    prev->range.npages += current->range.npages;
-                    list_remove(current); // remove current from the list
-                    pmm_internal_list_node_delete(current);
-                }
-            }
-            else
-            {
-                // check if we can extend current at the start
-                if (cstart == end)
-                    extend_current_at_start();
-                else
-                    insert_before_current(); // otherwise insert a new region before current
-            }
+            // otherwise insert a new region before current
+            pmlist_node_t *node = pmm_internal_list_node_create(start, n_pages, type);
+            list_insert_before(current, node);
         }
 
 #undef extend_previous_at_end
