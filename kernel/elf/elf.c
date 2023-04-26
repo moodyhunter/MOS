@@ -88,6 +88,12 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
 
     process_t *proc = process_new(parent, f->dentry->name, term, (thread_entry_t) elf->entry_point, argv);
 
+    if (!proc)
+    {
+        mos_warn("failed to create process for '%s'", path);
+        goto bail_out;
+    }
+
     for (int i = 0; i < elf->ph.count; i++)
     {
         const elf_program_hdr_t *ph = (elf_program_hdr_t *) (buf + elf->ph_offset + i * elf->ph.entry_size);

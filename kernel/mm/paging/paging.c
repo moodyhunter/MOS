@@ -187,22 +187,28 @@ void mm_flag_pages(paging_handle_t table, ptr_t vaddr, size_t npages, vm_flags f
 paging_handle_t mm_create_user_pgd(void)
 {
     paging_handle_t table = platform_mm_create_user_pgd();
-    table.um_page_map = (page_map_t *) kzalloc(sizeof(page_map_t));
-    table.pgd_lock = (spinlock_t *) kzalloc(sizeof(spinlock_t));
+    if (unlikely(table.pgd == 0))
+        goto bail;
 
-    if (unlikely(table.pgd == 0 || table.um_page_map == 0 || table.pgd_lock == 0))
-    {
-        mos_warn("cannot create user pgd");
-        if (table.um_page_map != 0)
-            kfree(table.um_page_map);
-        if (table.pgd_lock != 0)
-            kfree(table.pgd_lock);
-        if (table.pgd != 0)
-            mm_destroy_user_pgd(table);
-        return (paging_handle_t){ 0 };
-    }
+    table.um_page_map = (page_map_t *) kzalloc(sizeof(page_map_t));
+    if (unlikely(table.um_page_map == 0))
+        goto bail;
+
+    table.pgd_lock = (spinlock_t *) kzalloc(sizeof(spinlock_t));
+    if (unlikely(table.pgd_lock == 0))
+        goto bail;
 
     return table;
+
+bail:
+    mos_warn("cannot create user pgd");
+    if (table.um_page_map != 0)
+        kfree(table.um_page_map);
+    if (table.pgd_lock != 0)
+        kfree(table.pgd_lock);
+    if (table.pgd != 0)
+        mm_destroy_user_pgd(table);
+    return (paging_handle_t){ 0 };
 }
 
 void mm_destroy_user_pgd(paging_handle_t table)

@@ -78,6 +78,9 @@ process_t *process_allocate(process_t *parent, const char *name)
 process_t *process_new(process_t *parent, const char *name, terminal_t *term, thread_entry_t entry, argv_t argv)
 {
     process_t *proc = process_allocate(parent, name);
+    if (unlikely(!proc))
+        return NULL;
+
     pr_info("creating process %ld (%s)", proc->pid, proc->name);
     if (unlikely(!proc))
         return NULL;
