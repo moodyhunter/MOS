@@ -245,7 +245,7 @@ static ssize_t tmpfs_f_read(const file_t *file, void *buffer, size_t buflen, off
 
     tmpfs_inode_t *inode = TMPFS_INODE(file->dentry->inode);
     const size_t bytes_to_read = MIN(buflen, inode->file.block_size - offset);
-    memcpy(buffer, inode->file.data + file->offset, bytes_to_read);
+    memcpy(buffer, inode->file.data + offset, bytes_to_read);
     return bytes_to_read;
 }
 
@@ -285,7 +285,7 @@ static ssize_t tmpfs_f_write(const file_t *file, const void *buffer, size_t bufl
         while (new_block_size < new_size)
             new_block_size *= 2;
 
-        mos_debug(tmpfs, "growing file from %zu to %zu bytes for %zu bytes to be written at offset %zu", inode->file.block_size, new_block_size, buflen, file->offset);
+        mos_debug(tmpfs, "growing file from %zu to %zu bytes for %zu bytes to be written at offset %ld", inode->file.block_size, new_block_size, buflen, offset);
 
         void *new_data_block = krealloc(inode->file.data, new_block_size); // will copy the old data
         if (!new_data_block)
@@ -298,7 +298,7 @@ static ssize_t tmpfs_f_write(const file_t *file, const void *buffer, size_t bufl
             inode->real_inode.stat.size = new_size;
 
         // copy the data into the file
-        memcpy(inode->file.data + file->offset, buffer, buflen);
+        memcpy(inode->file.data + offset, buffer, buflen);
         return buflen;
     }
 }
