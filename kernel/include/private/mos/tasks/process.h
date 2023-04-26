@@ -34,3 +34,5 @@ void process_handle_exit(process_t *process, int exit_code);
 process_t *process_handle_fork(process_t *process);
 
 void process_dump_mmaps(const process_t *process);
+
+bool process_register_signal_handler(process_t *process, signal_t sig, signal_action_t *sigaction);

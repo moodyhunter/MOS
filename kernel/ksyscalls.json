@@ -5,6 +5,7 @@
         "mos/io/io_types.h",
         "mos/mm/heap_ops.h",
         "mos/mos_global.h",
+        "mos/tasks/signal_types.h",
         "mos/types.h"
     ],
     "syscalls": [
@@ -268,6 +269,31 @@
             "name": "io_tell",
             "return": "off_t",
             "arguments": [ { "type": "fd_t", "arg": "fd" } ]
+        },
+        {
+            "number": 39,
+            "name": "signal_register",
+            "return": "bool",
+            "arguments": [ { "type": "signal_t", "arg": "signum" }, { "type": "signal_action_t *", "arg": "action" } ]
+        },
+        {
+            "number": 40,
+            "name": "signal",
+            "return": "bool",
+            "arguments": [ { "type": "pid_t", "arg": "pid" }, { "type": "signal_t", "arg": "signum" } ],
+            "comments": [
+                "Send a signal to a process, an arbitrary thread in the target process",
+                "will be selected to receive the signal."
+            ]
+        },
+        {
+            "number": 41,
+            "name": "signal_thread",
+            "return": "bool",
+            "arguments": [ { "type": "pid_t", "arg": "pid" }, { "type": "tid_t", "arg": "tid" }, { "type": "signal_t", "arg": "signum" } ],
+            "comments": [
+                "Send a signal to a specific thread in a process."
+            ]
         }
     ]
 }

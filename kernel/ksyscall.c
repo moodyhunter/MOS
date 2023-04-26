@@ -376,3 +376,25 @@ off_t define_syscall(io_tell)(fd_t fd)
         return -1;
     return io_tell(io);
 }
+
+bool define_syscall(signal_register)(signal_t sig, signal_action_t *action)
+{
+    return process_register_signal_handler(current_process, sig, action);
+}
+
+bool define_syscall(signal)(pid_t pid, signal_t sig)
+{
+    // stub
+    MOS_UNUSED(pid);
+    MOS_UNUSED(sig);
+    return false;
+}
+
+bool define_syscall(signal_thread)(pid_t pid, tid_t tid, signal_t sig)
+{
+    // stub
+    MOS_UNUSED(pid);
+    MOS_UNUSED(tid);
+    MOS_UNUSED(sig);
+    return false;
+}

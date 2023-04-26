@@ -10,6 +10,7 @@
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/mm_types.h>
 #include <mos/platform/platform.h>
+#include <mos/tasks/signal_types.h>
 #include <mos/tasks/wait.h>
 #include <mos/types.h>
 
@@ -89,6 +90,9 @@ typedef struct _process
     // platform per-process flags
     void *platform_options;
     waitlist_t waiters; // list of threads waiting for this process to exit
+
+    // signal handling
+    signal_action_t signal_handlers[_SIGNAL_CATCHABLE_MAX];
 } process_t;
 
 typedef struct _thread

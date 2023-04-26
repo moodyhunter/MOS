@@ -229,8 +229,7 @@ void process_handle_exit(process_t *process, int exit_code)
     mos_debug(process, "terminating all %lu threads owned by %ld", process->threads_count, process->pid);
     for (int i = 0; i < process->threads_count; i++)
     {
-        // TODO: if a thread is being executed, we should wait for it to finish
-        // TODO: if a thread holds a lock, we should release it?
+        // TODO: support signals for proper thread termination
         thread_t *thread = process->threads[i];
         spinlock_acquire(&thread->state_lock);
         if (thread->state == THREAD_STATE_DEAD)
@@ -362,4 +361,13 @@ void process_dump_mmaps(const process_t *process)
                 typestr                                          //
         );
     }
+}
+
+bool process_register_signal_handler(process_t *process, signal_t sig, signal_action_t *sigaction)
+{
+    // stub
+    MOS_UNUSED(process);
+    MOS_UNUSED(sig);
+    MOS_UNUSED(sigaction);
+    return false;
 }
