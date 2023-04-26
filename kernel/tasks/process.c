@@ -9,7 +9,6 @@
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/cow.h>
 #include <mos/mm/kmalloc.h>
-#include <mos/mm/memops.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/panic.h>
 #include <mos/platform/platform.h>

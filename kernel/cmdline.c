@@ -5,8 +5,6 @@
 #include <mos/printk.h>
 #include <string.h>
 
-cmdline_t *mos_cmdline = NULL;
-
 cmdline_t *cmdline_create(const char *cmdline)
 {
     cmdline_t *cmd = kzalloc(sizeof(cmdline_t));

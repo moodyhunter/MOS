@@ -4,13 +4,12 @@
 #include <mos/setup.h>
 #include <string.h>
 
-static cmdline_option_t *cmdline_get_option(const char *option_name)
+static cmdline_option_t *cmdline_get_option(cmdline_t *cmdline, const char *option_name)
 {
-    MOS_ASSERT(mos_cmdline);
-    for (u32 i = 0; i < mos_cmdline->options_count; i++)
+    for (u32 i = 0; i < cmdline->options_count; i++)
     {
-        if (strcmp(mos_cmdline->options[i]->name, option_name) == 0)
-            return mos_cmdline->options[i];
+        if (strcmp(cmdline->options[i]->name, option_name) == 0)
+            return cmdline->options[i];
     }
     return NULL;
 }
@@ -22,7 +21,7 @@ void invoke_setup_functions(cmdline_t *cmdline)
 
     for (const setup_func_t *func = __MOS_SETUP_START; func < __MOS_SETUP_END; func++)
     {
-        cmdline_option_t *option = cmdline_get_option(func->name);
+        cmdline_option_t *option = cmdline_get_option(cmdline, func->name);
 
         if (unlikely(!option))
         {

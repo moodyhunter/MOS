@@ -3,8 +3,8 @@
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/structures/hashmap_common.h>
 #include <mos/lib/structures/list.h>
+#include <mos/mm/cow.h>
 #include <mos/mm/kmalloc.h>
-#include <mos/mm/memops.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>

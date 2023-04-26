@@ -65,12 +65,7 @@ void x86_keyboard_handler(u32 irq)
 {
     MOS_ASSERT(irq == IRQ_KEYBOARD);
     int scancode = port_inb(0x60);
-    char buf[9] = { 0 };
-    for (int i = 7; i >= 0; i--)
-    {
-        buf[i] = '0' + (scancode & 1);
-        scancode >>= 1;
-    }
+    MOS_UNUSED(scancode);
 }
 
 void do_backtrace(u32 max)

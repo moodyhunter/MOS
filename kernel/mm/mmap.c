@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/mm/memops.h>
+#include <mos/mm/cow.h>
 #include <mos/mm/mm_types.h>
 #include <mos/mm/mmap.h>
 #include <mos/mm/paging/paging.h>

@@ -67,7 +67,7 @@ __setup("init_args", setup_init_args);
 
 void mos_start_kernel(const char *cmdline)
 {
-    mos_cmdline = cmdline_create(cmdline);
+    cmdline_t *mos_cmdline = cmdline_create(cmdline);
 
     pr_info("Welcome to MOS!");
     pr_emph("MOS %s (%s)", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION_STRING);

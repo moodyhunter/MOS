@@ -3,7 +3,6 @@
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/structures/stack.h>
 #include <mos/mm/cow.h>
-#include <mos/mm/memops.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/mos_global.h>
 #include <mos/platform/platform.h>
