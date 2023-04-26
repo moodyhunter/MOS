@@ -11,6 +11,18 @@
 #include <mos/tasks/task_types.h>
 #include <string.h>
 
+static vmblock_t zero_block;
+static ptr_t zero_paddr;
+
+void mm_cow_init(void)
+{
+    // zero fill on demand (read-only)
+    zero_block = mm_alloc_pages(current_cpu->pagetable, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
+    memzero((void *) zero_block.vaddr, MOS_PAGE_SIZE);
+    mm_flag_pages(current_cpu->pagetable, zero_block.vaddr, 1, VM_READ); // make it read-only after zeroing
+    zero_paddr = platform_mm_get_phys_addr(current_cpu->pagetable, zero_block.vaddr);
+}
+
 vmblock_t mm_make_cow_block(paging_handle_t target_handle, vmblock_t src_block)
 {
     return mm_make_cow(src_block.address_space, src_block.vaddr, target_handle, src_block.vaddr, src_block.npages, src_block.flags);
@@ -26,6 +38,18 @@ vmblock_t mm_make_cow(paging_handle_t from, ptr_t fvaddr, paging_handle_t to, pt
     mm_flag_pages(to, tvaddr, npages, flags & ~VM_WRITE);
     block.flags = flags;
     return block;
+}
+
+vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, ptr_t vaddr, valloc_flags allocation_flags, vm_flags flags)
+{
+    vaddr = mm_get_free_pages(handle, npages, vaddr, allocation_flags);
+
+    // zero fill the pages
+    for (size_t i = 0; i < npages; i++)
+        mm_fill_pages(handle, vaddr + i * MOS_PAGE_SIZE, zero_paddr, 1, VM_READ | ((flags & VM_USER) ? VM_USER : 0));
+
+    // make the pages read-only (because for now, they are mapped to zero_block)
+    return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags, .address_space = handle };
 }
 
 static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)

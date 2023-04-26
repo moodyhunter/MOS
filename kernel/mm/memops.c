@@ -2,25 +2,13 @@
 
 #include "liballoc.h"
 
-#include <mos/mm/kmalloc.h>
-#include <mos/mm/memops.h>
-#include <mos/mm/paging/paging.h>
+#include <mos/mm/cow.h>
 #include <mos/mm/physical/pmm.h>
 #include <mos/panic.h>
-#include <mos/platform/platform.h>
-#include <mos/printk.h>
-#include <string.h>
-
-static vmblock_t zero_block;
-static ptr_t zero_paddr;
 
 void mos_kernel_mm_init(void)
 {
-    // zero fill on demand (read-only)
-    zero_block = mm_alloc_pages(current_cpu->pagetable, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
-    memzero((void *) zero_block.vaddr, MOS_PAGE_SIZE);
-    mm_flag_pages(current_cpu->pagetable, zero_block.vaddr, 1, VM_READ); // make it read-only after zeroing
-    zero_paddr = platform_mm_get_phys_addr(current_cpu->pagetable, zero_block.vaddr);
+    mm_cow_init();
 
     liballoc_init();
 #if MOS_DEBUG_FEATURE(liballoc)
@@ -30,9 +18,9 @@ void mos_kernel_mm_init(void)
 #if MOS_DEBUG_FEATURE(pmm)
     declare_panic_hook(pmm_dump_lists);
     install_panic_hook(&pmm_dump_lists_holder);
+    pmm_dump_lists();
 #endif
 
-    pmm_dump_lists();
     pmm_switch_to_kheap();
 }
 
@@ -69,16 +57,4 @@ bool liballoc_free_page(void *vptr, size_t npages)
 
     mm_unmap_pages(current_cpu->pagetable, (ptr_t) vptr, npages);
     return true;
-}
-
-vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, ptr_t vaddr, valloc_flags allocation_flags, vm_flags flags)
-{
-    vaddr = mm_get_free_pages(handle, npages, vaddr, allocation_flags);
-
-    // zero fill the pages
-    for (size_t i = 0; i < npages; i++)
-        mm_fill_pages(handle, vaddr + i * MOS_PAGE_SIZE, zero_paddr, 1, VM_READ | ((flags & VM_USER) ? VM_USER : 0));
-
-    // make the pages read-only (because for now, they are mapped to zero_block)
-    return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags, .address_space = handle };
 }
