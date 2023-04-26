@@ -88,7 +88,7 @@ bool do_program(const char *prog, int argc, const char **argv)
     if (pid == -1)
     {
         fprintf(stderr, "Failed to execute '%s'\n", prog);
-        return false;
+        return true;
     }
 
     syscall_wait_for_process(pid);
