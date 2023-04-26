@@ -2,8 +2,8 @@
 
 #include <mos/elf/elf.h>
 #include <mos/filesystem/vfs.h>
+#include <mos/mm/cow.h>
 #include <mos/mm/kmalloc.h>
-#include <mos/mm/memops.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/mos_global.h>
 #include <mos/platform/platform.h>
@@ -18,7 +18,7 @@ MOS_STATIC_ASSERT(sizeof(elf_header_t) == (MOS_BITS == 32 ? 0x34 : 0x40), "elf_h
 MOS_STATIC_ASSERT(sizeof(elf_program_hdr_t) == (MOS_BITS == 32 ? 0x20 : 0x38), "elf_program_header has wrong size");
 MOS_STATIC_ASSERT(sizeof(elf_section_hdr_t) == (MOS_BITS == 32 ? 0x28 : 0x40), "elf_section_header has wrong size");
 
-const char *elf_program_header_type_str[_ELF_PT_COUNT] = {
+static const char *elf_program_header_type_str[_ELF_PT_COUNT] = {
     [ELF_PT_NULL] = "NULL", [ELF_PT_LOAD] = "LOAD",   [ELF_PT_DYNAMIC] = "DYNAMIC", [ELF_PT_INTERP] = "INTERP",
     [ELF_PT_NOTE] = "NOTE", [ELF_PT_SHLIB] = "SHLIB", [ELF_PT_PHDR] = "PHDR",       [ELF_PT_TLS] = "TLS",
 };
@@ -115,12 +115,6 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
         switch (ph->header_type)
         {
             case ELF_PT_NULL: break; // ignore
-            case ELF_PT_INTERP:
-            {
-                const char *const interp_path = buf + ph->data_offset;
-                mos_debug(elf, "interpreter: %s", interp_path);
-                break;
-            }
             case ELF_PT_LOAD:
             {
                 //
@@ -228,8 +222,14 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
             case ELF_PT_NOTE:
             case ELF_PT_PHDR:
             case ELF_PT_TLS:
-            case ELF_PT_SHLIB: mos_debug(elf, "ignoring program header type 0x%x", ph->header_type); break;
-            default: mos_warn("unknown program header type 0x%x", ph->header_type); break;
+            case ELF_PT_SHLIB:
+            {
+                if (ph->header_type == ELF_PT_INTERP)
+                    pr_info("elf interpreter: %s", buf + ph->data_offset);
+                pr_warn("ignoring unsupported program header type %s", elf_program_header_type_str[ph->header_type]);
+                break;
+            }
+            default: pr_warn("unknown program header type 0x%x", ph->header_type); break;
         };
     }
 

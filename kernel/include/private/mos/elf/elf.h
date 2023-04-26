@@ -142,8 +142,6 @@ typedef enum
     ELF_PT_PROCESSOR_HI = 0x7fffffff, // reserved
 } elf_program_header_type;
 
-extern const char *elf_program_header_type_str[_ELF_PT_COUNT];
-
 typedef enum
 {
     ELF_PF_X = 1 << 0, // Executable
