@@ -216,6 +216,10 @@ static void x86_handle_exception(x86_stack_frame *stack)
                             (ptr_t) stack->iret_params.eip                                                           //
                     );
                 }
+
+                if (is_write && is_exec)
+                    mos_panic("Cannot write and execute at the same time");
+
                 bool result = mm_handle_pgfault(fault_address, present, is_write, is_user, is_exec);
 
                 if (result)

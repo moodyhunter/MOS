@@ -83,20 +83,15 @@ static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)
 
 bool mm_handle_pgfault(ptr_t fault_addr, bool present, bool is_write, bool is_user, bool is_exec)
 {
+    MOS_UNUSED(is_write);
     MOS_UNUSED(is_user);
-    MOS_UNUSED(present);
+    MOS_UNUSED(is_exec);
 
     if (!current_thread)
     {
         pr_warn("There shouldn't be a page fault before the scheduler is initialized!");
         return false;
     }
-
-    if (!is_write)
-        return false; // we only handle write faults
-
-    if (is_write && is_exec)
-        mos_panic("Cannot write and execute at the same time");
 
     if (!present)
     {
