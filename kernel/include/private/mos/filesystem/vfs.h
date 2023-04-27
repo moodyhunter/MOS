@@ -8,8 +8,6 @@
 #include <mos/lib/sync/mutex.h>
 #include <mos/types.h>
 
-typedef struct _process process_t; // forward declaration
-
 should_inline const file_ops_t *file_get_ops(file_t *file)
 {
     if (!file)
