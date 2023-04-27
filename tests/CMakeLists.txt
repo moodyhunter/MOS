@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-mos_kconfig(TESTS   BUILD_TESTING   OFF "Kernel Unit Tests")
+mos_kconfig(TESTS   BUILD_TESTING   ON "Kernel Unit Tests")
 
 if (BUILD_TESTING)
     message(STATUS "MOS kernel unit tests are enabled")
