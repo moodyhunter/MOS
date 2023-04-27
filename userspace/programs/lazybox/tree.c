@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <fcntl.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/syscall/usermode.h>
 #include <stdio.h>
@@ -18,7 +19,7 @@ static void print_entry(const dir_entry_t *dirent)
 
 static void do_tree(void)
 {
-    const fd_t dirfd = syscall_vfs_open(".", OPEN_READ | OPEN_DIR);
+    const fd_t dirfd = open(".", OPEN_READ | OPEN_DIR);
     if (dirfd < 0)
     {
         fprintf(stderr, "failed to open directory\n");

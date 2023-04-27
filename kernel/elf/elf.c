@@ -48,7 +48,7 @@ elf_verify_result elf_verify_header(const elf_header_t *header)
 
 process_t *elf_create_process(const char *path, process_t *parent, terminal_t *term, argv_t argv)
 {
-    file_t *f = vfs_open(path, OPEN_READ | OPEN_EXECUTE);
+    file_t *f = vfs_openat(FD_CWD, path, OPEN_READ | OPEN_EXECUTE);
     if (!f)
     {
         mos_warn("failed to open '%s'", path);

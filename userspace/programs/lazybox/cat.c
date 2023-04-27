@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <fcntl.h>
 #include <mos/syscall/usermode.h>
 #include <stdio.h>
 
@@ -7,7 +8,7 @@
 
 bool do_cat_file(const char *path)
 {
-    fd_t fd = syscall_vfs_open(path, OPEN_READ);
+    fd_t fd = open(path, OPEN_READ);
     if (fd < 0)
     {
         fprintf(stderr, "failed to open file '%s'\n", path);

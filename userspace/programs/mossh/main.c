@@ -4,6 +4,7 @@
 #include "mossh.h"
 #include "readline/libreadline.h"
 
+#include <fcntl.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/kconfig.h>
 #include <mos/mos_global.h>
@@ -162,7 +163,7 @@ void do_execute_line(char *line)
 
 int do_interpret_script(const char *path)
 {
-    const fd_t fd = syscall_vfs_open(path, OPEN_READ);
+    const fd_t fd = open(path, OPEN_READ);
     if (fd < 0)
     {
         fprintf(stderr, "Failed to open '%s'\n", path);

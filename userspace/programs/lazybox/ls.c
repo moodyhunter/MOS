@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <fcntl.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/syscall/usermode.h>
 #include <mos/types.h>
@@ -25,7 +26,7 @@ int main(int argc, char *argv[])
     // argv[1] may contain the path to list
     const char *path = argc > 1 ? argv[1] : ".";
 
-    fd_t dirfd = syscall_vfs_open(path, OPEN_READ | OPEN_DIR);
+    fd_t dirfd = open(path, OPEN_READ | OPEN_DIR);
     if (dirfd < 0)
     {
         fprintf(stderr, "failed to open directory '%s'\n", path);

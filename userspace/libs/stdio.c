@@ -2,6 +2,7 @@
 
 #include "struct_file.h"
 
+#include <fcntl.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/io/io_types.h>
 #include <mos/syscall/usermode.h>
@@ -157,7 +158,7 @@ FILE *fopen(const char *path, const char *mode)
         return NULL;
     }
 
-    fd_t fd = syscall_vfs_open(path, flags);
+    fd_t fd = open(path, flags);
     if (fd < 0)
         return NULL;
 

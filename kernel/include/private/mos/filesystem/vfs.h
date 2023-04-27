@@ -43,7 +43,14 @@ void vfs_register_filesystem(filesystem_t *fs);
  */
 bool vfs_mount(const char *device, const char *path, const char *fs, const char *options);
 
-file_t *vfs_open(const char *path, open_flags flags);
+/**
+ * @brief Open a file at a given path
+ *
+ * @param fd The fd of an open directory, or AT_FDCWD to use the current working directory
+ * @param path The path to the file, can be absolute or relative
+ * @param flags open_flags flags
+ * @return file_t* The file, or NULL if the file could not be opened
+ */
 file_t *vfs_openat(int fd, const char *path, open_flags flags);
 
 /**

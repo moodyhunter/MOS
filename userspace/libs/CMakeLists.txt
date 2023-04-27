@@ -7,6 +7,7 @@ target_sources(stdlib PRIVATE
     stdlib.c
     cxa.c
     sys-stat.c
+    fcntl.c
 )
 
 target_include_directories(stdlib SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/userspace/include)

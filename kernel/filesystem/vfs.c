@@ -306,11 +306,6 @@ bool vfs_mount(const char *device, const char *path, const char *fs, const char 
     return true;
 }
 
-file_t *vfs_open(const char *path, open_flags flags)
-{
-    return vfs_openat(FD_CWD, path, flags);
-}
-
 file_t *vfs_openat(int fd, const char *path, open_flags flags)
 {
     mos_debug(vfs, "vfs_openat(fd=%d, path='%s', flags=%x)", fd, path, flags);

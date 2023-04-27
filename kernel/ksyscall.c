@@ -31,12 +31,12 @@ void define_syscall(poweroff)(bool reboot, u32 magic)
         mos_warn("reboot is not implemented yet");
 }
 
-fd_t define_syscall(vfs_open)(const char *path, open_flags flags)
+fd_t define_syscall(vfs_openat)(fd_t dirfd, const char *path, open_flags flags)
 {
     if (path == NULL)
         return -1;
 
-    file_t *f = vfs_open(path, flags);
+    file_t *f = vfs_openat(dirfd, path, flags);
     if (!f)
         return -1;
     return process_attach_ref_fd(current_process, &f->io);

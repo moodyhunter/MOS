@@ -17,9 +17,13 @@
         },
         {
             "number": 1,
-            "name": "vfs_open",
+            "name": "vfs_openat",
             "return": "fd_t",
-            "arguments": [ { "type": "const char *", "arg": "file_path" }, { "type": "open_flags", "arg": "flags" } ]
+            "arguments": [
+                { "type": "fd_t", "arg": "dirfd" },
+                { "type": "const char *", "arg": "file_path" },
+                { "type": "open_flags", "arg": "flags" }
+            ]
         },
         {
             "number": 2,

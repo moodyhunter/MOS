@@ -2,6 +2,7 @@
 
 #include "libconfig/libconfig.h"
 
+#include <fcntl.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/syscall/usermode.h>
 #include <stdlib.h>
@@ -22,7 +23,7 @@ config_t *config_parse_file(const char *file_path)
 {
     file_stat_t stat = { 0 };
 
-    fd_t fd = syscall_vfs_open(file_path, OPEN_READ);
+    fd_t fd = open(file_path, OPEN_READ);
     if (fd <= 0)
         return NULL;
 
