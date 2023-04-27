@@ -63,6 +63,12 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
     const vmblock_t buf_block = mm_alloc_pages(current_cpu->pagetable, npage_required, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
     char *const buf = (char *) buf_block.vaddr;
 
+    if (buf_block.vaddr == 0)
+    {
+        mos_warn("failed to allocate %d pages for '%s'", npage_required, path);
+        goto bail_out;
+    }
+
     size_t size = io_read(&f->io, buf, file_size);
     MOS_ASSERT_X(size == file_size, "failed to read entire file '%s'", path);
 
