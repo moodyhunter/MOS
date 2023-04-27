@@ -4,10 +4,9 @@ mos_kconfig(TESTS   BUILD_TESTING   OFF "Kernel Unit Tests")
 
 if (BUILD_TESTING)
     message(STATUS "MOS kernel unit tests are enabled")
+    add_kernel_source(RELATIVE_SOURCES test_engine.c)
+    target_include_directories(mos_kernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
-
-add_kernel_source(RELATIVE_SOURCES test_engine.c)
-target_include_directories(mos_kernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 macro(mos_add_test TEST_NAME TEST_DESCRIPTION)
     set(TEST_TARGET _test_${TEST_NAME})
