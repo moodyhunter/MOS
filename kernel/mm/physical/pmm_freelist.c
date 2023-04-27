@@ -142,43 +142,47 @@ bool pmm_internal_acquire_free_frames(size_t n_pages, pmm_internal_op_callback_t
     pmm_op_state_t state = { .pages_operated = 0, .pages_requested = n_pages };
 
     spinlock_acquire(&pmlist_free_lock);
-    list_foreach(pmlist_node_t, c, pmlist_free_rw)
+    list_foreach(pmlist_node_t, curr, pmlist_free_rw)
     {
         // check if we are at the end of the list, or if we have allocated enough pages
-        if (list_node(c) == &pmlist_free_rw || n_pages == state.pages_operated)
+        if (list_node(curr) == &pmlist_free_rw || n_pages == state.pages_operated)
             break;
 
         // skip reserved regions (of course!)
-        if (c->type != PM_RANGE_FREE)
+        if (curr->type != PM_RANGE_FREE)
             continue;
 
-        const size_t current_n_pages = c->range.npages;
+        const size_t npages_current = curr->range.npages;
+        const size_t npages_left = n_pages - state.pages_operated; // number of pages left to allocate
 
-        // check if we can allocate the whole region
-        if (current_n_pages <= n_pages - state.pages_operated)
+#define ALLOC_DEBUG_FMT "  %8s: " PTR_RANGE " (%zu page(s))"
+        if (npages_left >= npages_current)
         {
-            MOS_ASSERT_X(c->refcount == 0, "allocated a region with refcount != 0");
-            mos_debug(pmm_impl, "  %8s: " PTR_RANGE " (%zu page(s))", "whole", c->range.paddr, c->range.paddr + current_n_pages * MOS_PAGE_SIZE, current_n_pages);
+            // allocate the whole region
+            MOS_ASSERT_X(curr->refcount == 0, "allocated a region with refcount != 0");
+            mos_debug(pmm_impl, ALLOC_DEBUG_FMT, "whole", curr->range.paddr, curr->range.paddr + npages_current * MOS_PAGE_SIZE, npages_current);
 
-            list_remove(c);
-            callback(&state, c, user_callback, user_arg);
-            state.pages_operated += current_n_pages;
-            continue;
+            list_remove(curr);
+            callback(&state, curr, user_callback, user_arg);
+            state.pages_operated += npages_current;
         }
+        else
+        {
+            // this branch only happens when we are at the end of the list
+            // break the current region into two parts, always allocate the first part
+            pmlist_node_t *new = pmm_internal_list_node_create(curr->range.paddr, npages_left, PM_RANGE_ALLOCATED);
+            mos_debug(pmm_impl, ALLOC_DEBUG_FMT, "partial", new->range.paddr, new->range.paddr + npages_left *MOS_PAGE_SIZE, npages_left);
 
-        // break the current region into two parts
-        const size_t n_left = n_pages - state.pages_operated; // number of pages left to allocate
-        pmlist_node_t *n = pmm_internal_list_node_create(c->range.paddr, n_left, PM_RANGE_ALLOCATED);
-        mos_debug(pmm_impl, "  %8s: " PTR_RANGE " (%zu page(s))", "partial", n->range.paddr, n->range.paddr + n->range.npages * MOS_PAGE_SIZE, n->range.npages);
+            curr->range.paddr += npages_left * MOS_PAGE_SIZE;
+            curr->range.npages -= npages_left;
 
-        c->range.paddr += n_left * MOS_PAGE_SIZE;
-        c->range.npages -= n_left;
+            callback(&state, new, user_callback, user_arg);
+            state.pages_operated += npages_left;
 
-        callback(&state, n, user_callback, user_arg);
-        state.pages_operated += n_left;
-
-        MOS_ASSERT(state.pages_operated == state.pages_requested);
-        break;
+            MOS_ASSERT(state.pages_operated == state.pages_requested);
+            break; // we MUST have allocated enough pages, so we can stop iterating
+        }
+#undef ALLOC_DEBUG_FMT
     }
     spinlock_release(&pmlist_free_lock);
 
