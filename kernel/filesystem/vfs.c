@@ -321,10 +321,9 @@ file_t *vfs_openat(int fd, const char *path, open_flags flags)
 
 bool vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstatat_flags flags)
 {
-    mos_debug(vfs, "vfs_fstatat(fd=%ld, path='%s', stat=%p, flags=%x)", fd, path, (void *) statbuf, flags);
-
     if (flags & FSTATAT_FILE)
     {
+        mos_debug(vfs, "vfs_fstatat(fd=%ld, path='%p', stat=%p, flags=%x)", fd, (void *) path, (void *) statbuf, flags);
         io_t *io = process_get_fd(current_process, fd);
         if (!io_valid(io))
             return false;
@@ -337,6 +336,7 @@ bool vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstat
         return true;
     }
 
+    mos_debug(vfs, "vfs_fstatat(fd=%ld, path='%s', stat=%p, flags=%x)", fd, path, (void *) statbuf, flags);
     dentry_t *basedir = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);
     lastseg_resolve_flags_t resolve_flags = RESOLVE_EXPECT_FILE | RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST;
     if (flags & FSTATAT_NOFOLLOW)
