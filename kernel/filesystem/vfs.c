@@ -332,7 +332,8 @@ bool vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstat
         if (file == NULL)
             return false;
 
-        vfs_copy_stat(statbuf, file->dentry->inode);
+        if (statbuf)
+            vfs_copy_stat(statbuf, file->dentry->inode);
         return true;
     }
 
@@ -346,7 +347,8 @@ bool vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstat
     if (dentry == NULL)
         return false;
 
-    vfs_copy_stat(statbuf, dentry->inode);
+    if (statbuf)
+        vfs_copy_stat(statbuf, dentry->inode);
     dentry_unref(dentry);
     return true;
 }
