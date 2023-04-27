@@ -11,15 +11,32 @@
 
 #define PGD_FOR_VADDR(_vaddr, _um) (_vaddr >= MOS_KERNEL_START_VADDR ? platform_info->kernel_pgd : _um)
 
+typedef struct
+{
+    bool do_unmap;
+    bool do_mark_free;
+    bool do_unref;
+} vmm_iterate_unmap_flags_t;
+
 // ! BEGIN: CALLBACKS
 static void vmm_iterate_unmap(const pgt_iteration_info_t *iter_info, const vmblock_t *block, ptr_t block_paddr, void *arg)
 {
     MOS_UNUSED(iter_info);
-    MOS_ASSERT(arg == NULL);
+
+    const bool do_unmap = arg ? ((vmm_iterate_unmap_flags_t *) arg)->do_unmap : true;
+    const bool do_mark_free = arg ? ((vmm_iterate_unmap_flags_t *) arg)->do_mark_free : true;
+    const bool do_unref = arg ? ((vmm_iterate_unmap_flags_t *) arg)->do_unref : true;
+
     mos_debug(vmm_impl, "unmapping " PTR_FMT " -> " PTR_FMT " (npages: %zu)", block->vaddr, block_paddr, block->npages);
-    platform_mm_unmap_pages(PGD_FOR_VADDR(block->vaddr, block->address_space), block->vaddr, block->npages);
-    pagemap_mark_free(block->address_space.um_page_map, block->vaddr, block->npages);
-    pmm_unref_frames(block_paddr, block->npages);
+
+    if (do_unmap)
+        platform_mm_unmap_pages(PGD_FOR_VADDR(block->vaddr, block->address_space), block->vaddr, block->npages);
+
+    if (do_mark_free)
+        pagemap_mark_free(block->address_space.um_page_map, block->vaddr, block->npages);
+
+    if (do_unref)
+        pmm_unref_frames(block_paddr, block->npages);
 }
 
 static void vmm_iterate_copymap(const pgt_iteration_info_t *iter_info, const vmblock_t *block, ptr_t block_paddr, void *arg)
@@ -107,7 +124,7 @@ void mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t npages)
     spinlock_release(table.pgd_lock);
 }
 
-vmblock_t mm_fill_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags)
+vmblock_t mm_replace_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags)
 {
     MOS_ASSERT(npages > 0);
 
@@ -123,8 +140,14 @@ vmblock_t mm_fill_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t 
 
     mos_debug(vmm, "filling %zd pages at " PTR_FMT " with " PTR_FMT, npages, vaddr, paddr);
 
+    // only unreference the physical frames
+    static const vmm_iterate_unmap_flags_t umflags = { .do_unmap = false, .do_mark_free = false, .do_unref = true };
+
     spinlock_acquire(table.pgd_lock);
+    // ref the frames first, so they don't get freed if we're [filling a page with itself]?
+    // weird people do weird things
     pmm_ref_frames(paddr, npages);
+    platform_mm_iterate_table(table, vaddr, npages, vmm_iterate_unmap, (void *) &umflags);
     platform_mm_map_pages(table, vaddr, paddr, npages, flags);
     spinlock_release(table.pgd_lock);
 

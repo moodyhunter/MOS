@@ -16,14 +16,19 @@
 
 typedef enum
 {
-    MM_COPY_DEFAULT = 0,   ///< Default copy flags.
-    MM_COPY_ALLOCATED = 2, ///< The destination pages are already allocated (e.g. by @ref mm_get_free_pages)
+    ///< Default copy flags.
+    MM_COPY_DEFAULT = 0,
+
+    ///< The destination pages are already allocated (e.g. by @ref mm_get_free_pages)
+    MM_COPY_ALLOCATED = 1,
 } mm_copy_behavior_t;
 
 typedef enum
 {
-    VALLOC_DEFAULT = 0,        ///< Default allocation flags.
-    VALLOC_EXACT = MMAP_EXACT, ///< Allocate pages at the exact address.
+    ///< Default allocation flags.
+    VALLOC_DEFAULT = 0,
+    ///< Allocate pages at the exact address.
+    VALLOC_EXACT = MMAP_EXACT,
 } valloc_flags;
 
 /// @brief Maximum 'lines' in a page map, see also @ref bitmap_line_t.
@@ -108,16 +113,19 @@ vmblock_t mm_map_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t n
 void mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t npages);
 
 /**
- * @brief Fill a block of virtual memory with a block of physical memory.
+ * @brief Replace the mappings of a block of virtual memory with a block of physical memory.
  *
- * @param table The page table to fill.
- * @param vaddr The virtual address to fill.
- * @param paddr The physical address to fill with.
- * @param npages The number of pages to fill.
- * @param flags Flags to set on the pages, see @ref vm_flags.
- * @return vmblock_t The filled block of virtual memory, with the number of pages.
+ * @param table The page table to replace in.
+ * @param vaddr The virtual address to replace.
+ * @param paddr The physical address to replace with.
+ * @param npages The number of pages to replace.
+ * @param flags The new flags to set on the pages.
+ * @return vmblock_t The replaced block of virtual memory, with the number of pages.
+ *
+ * @note The reference count of the physical pages will be incremented, and the reference count of the
+ * old physical pages will be decremented.
  */
-vmblock_t mm_fill_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags);
+vmblock_t mm_replace_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags);
 
 /**
  * @brief Remap a block of virtual memory from one page table to another, i.e. copy the mappings.
