@@ -30,12 +30,14 @@ typedef unsigned long long u64;
 typedef s32 intn;
 typedef u32 uintn;
 typedef u32 ptr_t;
-#define PTR_FMT "0x%8.8x"
+#define PTR_FMT   "0x%8.8x"
+#define PTR_VLFMT "0x%x"
 #else
 typedef s64 intn;
 typedef u64 uintn;
 typedef u64 ptr_t;
-#define PTR_FMT "0x%16.16llx"
+#define PTR_FMT   "0x%16.16llx"
+#define PTR_VLFMT "0x%llx"
 #endif
 
 #define PTR_RANGE "[" PTR_FMT " - " PTR_FMT "]"

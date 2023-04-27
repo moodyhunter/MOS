@@ -87,7 +87,7 @@ void do_backtrace(u32 max)
         {
             const kallsyms_t *kallsyms = kallsyms_get_symbol_name(frame->eip);
             if (kallsyms)
-                pr_warn("  " PTR_FMT ": %s (+" PTR_FMT ")", frame->eip, kallsyms->name, frame->eip - kallsyms->address);
+                pr_warn("  " PTR_FMT ": %s (+" PTR_VLFMT ")", frame->eip, kallsyms->name, frame->eip - kallsyms->address);
             else
                 pr_warn("  " PTR_FMT ": <unknown>", frame->eip);
         }
