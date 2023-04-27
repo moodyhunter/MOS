@@ -11,7 +11,7 @@ void serial_irq_handler(u32 irq)
     MOS_UNUSED(irq);
 }
 
-void set_baudrate_divisor(int com, serial_baud_rate divisor)
+static void set_baudrate_divisor(int com, serial_baud_rate divisor)
 {
     // Set the most significant bit of the Line Control Register. This is the DLAB bit, and allows access to the divisor registers.
     byte_t control = to_union(byte_t) port_inb(com + OFFSET_LINE_CONTROL);
@@ -30,35 +30,35 @@ void set_baudrate_divisor(int com, serial_baud_rate divisor)
     port_outb(com + OFFSET_LINE_CONTROL, control.byte);
 }
 
-void set_data_bits(int com, serial_char_length_t length)
+static void set_data_bits(int com, serial_char_length_t length)
 {
     char control = port_inb(com + OFFSET_LINE_CONTROL);
     control &= length;
     port_outb(com + OFFSET_LINE_CONTROL, control);
 }
 
-void set_stop_bits(int com, serial_stop_bits_t stop_bits)
+static void set_stop_bits(int com, serial_stop_bits_t stop_bits)
 {
     byte_t control = to_union(byte_t) port_inb(com + OFFSET_LINE_CONTROL);
     control.bits.b1 = stop_bits == STOP_BITS_15_OR_2;
     port_outb(com + OFFSET_LINE_CONTROL, control.byte);
 }
 
-void set_parity(int com, serial_port_parity_t parity)
+static void set_parity(int com, serial_port_parity_t parity)
 {
     u8 byte = port_inb(com + OFFSET_LINE_CONTROL);
     byte |= ((u8) parity) << 3;
     port_outb(com + OFFSET_LINE_CONTROL, byte);
 }
 
-void serial_set_interrupts(int com, int interrupts)
+static void serial_set_interrupts(int com, int interrupts)
 {
     char control = port_inb(com + OFFSET_INTTERUPT_ENABLE);
     control = interrupts;
     port_outb(com + OFFSET_INTTERUPT_ENABLE, control);
 }
 
-void serial_set_modem_options(int com, serial_modem_control_t control, bool enable)
+static void serial_set_modem_options(int com, serial_modem_control_t control, bool enable)
 {
     byte_t byte = to_union(byte_t) port_inb(com + OFFSET_MODEM_CONTROL);
     switch (control)
@@ -72,12 +72,12 @@ void serial_set_modem_options(int com, serial_modem_control_t control, bool enab
     port_outb(com + OFFSET_MODEM_CONTROL, byte.byte);
 }
 
-char serial_get_line_status(int com)
+static char serial_get_line_status(int com)
 {
     return port_inb(com + OFFSET_LINE_STATUS);
 }
 
-char serial_get_modem_status(int com)
+__maybe_unused static char serial_get_modem_status(int com)
 {
     return port_inb(com + OFFSET_MODEM_STATUS);
 }
@@ -113,14 +113,14 @@ bool serial_device_setup(serial_device_t *device)
     return true;
 }
 
-void serial_dev_wait_ready_to_read(serial_device_t *device)
+static void serial_dev_wait_ready_to_read(serial_device_t *device)
 {
     serial_port_t port = device->port;
     while (!(serial_get_line_status(port) & LINE_DATA_READY))
         ;
 }
 
-void serial_dev_wait_ready_to_write(serial_device_t *device)
+static void serial_dev_wait_ready_to_write(serial_device_t *device)
 {
     serial_port_t port = device->port;
     while (!(serial_get_line_status(port) & LINE_TRANSMITR_BUF_EMPTY))
@@ -149,24 +149,5 @@ int serial_device_read(serial_device_t *device, char *data, size_t length)
         data[i] = port_inb(port);
         i++;
     }
-    return i;
-}
-
-int serial_dev_readline(serial_device_t *device, char *buffer, int max_length)
-{
-    serial_port_t port = device->port;
-    int i = 0;
-    while (i < max_length)
-    {
-        serial_dev_wait_ready_to_read(device);
-        char c = port_inb(port);
-        if (c == '\r')
-            break;
-        if (c == '\n')
-            break;
-        buffer[i] = c;
-        i++;
-    }
-    buffer[i] = '\0';
     return i;
 }

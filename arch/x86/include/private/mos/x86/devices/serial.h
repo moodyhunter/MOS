@@ -123,11 +123,5 @@ typedef struct
 void serial_irq_handler(u32 irq);
 
 bool serial_device_setup(serial_device_t *device);
-
-void serial_dev_wait_ready_to_read(serial_device_t *device);
-void serial_dev_wait_ready_to_write(serial_device_t *device);
-
 int serial_device_read(serial_device_t *device, char *data, size_t length);
-int serial_dev_readline(serial_device_t *device, char *buffer, int max_length);
-
 int serial_device_write(serial_device_t *device, const char *data, size_t length);
