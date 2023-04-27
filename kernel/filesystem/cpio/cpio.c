@@ -136,32 +136,38 @@ static bool cpio_read_metadata(blockdev_t *dev, const char *target, cpio_metadat
     MOS_UNREACHABLE();
 }
 
-static void cpio_metadata_to_stat(cpio_metadata_t *metadata, file_stat_t *stat)
+static void cpio_fill_inode(cpio_metadata_t *metadata, inode_t *inode)
 {
-    stat->size = metadata->data_length;
+    inode->size = metadata->data_length;
 
-    stat->uid = strntoll(metadata->header.uid, NULL, 16, sizeof(metadata->header.uid) / sizeof(char));
-    stat->gid = strntoll(metadata->header.gid, NULL, 16, sizeof(metadata->header.gid) / sizeof(char));
+    inode->uid = strntoll(metadata->header.uid, NULL, 16, sizeof(metadata->header.uid) / sizeof(char));
+    inode->gid = strntoll(metadata->header.gid, NULL, 16, sizeof(metadata->header.gid) / sizeof(char));
 
     //  0000777  The lower 9 bits specify read/write/execute permissions for world, group, and user following standard POSIX conventions.
     u32 modebits = strntoll(metadata->header.mode, NULL, 16, sizeof(metadata->header.mode) / sizeof(char));
-    stat->perm.others.read = modebits & 0004;
-    stat->perm.others.write = modebits & 0002;
-    stat->perm.others.execute = modebits & 0001;
+    inode->perm.others.read = modebits & 0004;
+    inode->perm.others.write = modebits & 0002;
+    inode->perm.others.execute = modebits & 0001;
 
-    stat->perm.group.read = modebits & 0040;
-    stat->perm.group.write = modebits & 0020;
-    stat->perm.group.execute = modebits & 0010;
+    inode->perm.group.read = modebits & 0040;
+    inode->perm.group.write = modebits & 0020;
+    inode->perm.group.execute = modebits & 0010;
 
-    stat->perm.owner.read = modebits & 0400;
-    stat->perm.owner.write = modebits & 0200;
-    stat->perm.owner.execute = modebits & 0100;
+    inode->perm.owner.read = modebits & 0400;
+    inode->perm.owner.write = modebits & 0200;
+    inode->perm.owner.execute = modebits & 0100;
 
-    stat->sticky = modebits & CPIO_MODE_STICKY;
-    stat->sgid = modebits & CPIO_MODE_SGID;
-    stat->suid = modebits & CPIO_MODE_SUID;
+    inode->sticky = modebits & CPIO_MODE_STICKY;
+    inode->sgid = modebits & CPIO_MODE_SGID;
+    inode->suid = modebits & CPIO_MODE_SUID;
 
-    stat->type = cpio_modebits_to_filetype(modebits & CPIO_MODE_FILE_TYPE);
+    inode->type = cpio_modebits_to_filetype(modebits & CPIO_MODE_FILE_TYPE);
+
+    const s64 ino = strntoll(metadata->header.ino, NULL, 16, sizeof(metadata->header.ino) / sizeof(char));
+    const s64 nlinks = strntoll(metadata->header.nlink, NULL, 16, sizeof(metadata->header.nlink) / sizeof(char));
+
+    inode->ino = ino;
+    inode->nlinks = nlinks;
 }
 
 // ============================================================================================================
@@ -199,19 +205,11 @@ should_inline cpio_inode_t *CPIO_INODE(inode_t *inode)
 static cpio_inode_t *cpio_inode_create(cpio_superblock_t *sb, cpio_metadata_t *metadata)
 {
     cpio_inode_t *i = kzalloc(sizeof(cpio_inode_t));
-    file_stat_t stat;
-    cpio_metadata_to_stat(metadata, &stat);
+    cpio_fill_inode(metadata, &i->inode);
 
-    const s64 ino = strntoll(metadata->header.ino, NULL, 16, sizeof(metadata->header.ino) / sizeof(char));
-    const s64 nlinks = strntoll(metadata->header.nlink, NULL, 16, sizeof(metadata->header.nlink) / sizeof(char));
-
-    i->inode.ino = ino;
-    i->inode.nlinks = nlinks;
-
-    i->inode.stat = stat;
-    i->inode.ops = stat.type == FILE_TYPE_DIRECTORY ? &cpio_dir_inode_ops : &cpio_file_inode_ops;
+    i->inode.ops = i->inode.type == FILE_TYPE_DIRECTORY ? &cpio_dir_inode_ops : &cpio_file_inode_ops;
     i->inode.superblock = &sb->sb;
-    i->inode.file_ops = stat.type == FILE_TYPE_DIRECTORY ? NULL : &cpio_file_ops;
+    i->inode.file_ops = i->inode.type == FILE_TYPE_DIRECTORY ? NULL : &cpio_file_ops;
     i->metadata = *metadata;
 
     return i;

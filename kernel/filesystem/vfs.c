@@ -76,8 +76,8 @@ static off_t vfs_io_ops_seek(io_t *io, off_t offset, io_seek_whence_t whence)
                 break;
             }
 
-            if ((size_t) offset > file->dentry->inode->stat.size)
-                ret = file->dentry->inode->stat.size; // beyond the end of the file
+            if ((size_t) offset > file->dentry->inode->size)
+                ret = file->dentry->inode->size; // beyond the end of the file
             else
                 ret = offset;
 
@@ -95,8 +95,8 @@ static off_t vfs_io_ops_seek(io_t *io, off_t offset, io_seek_whence_t whence)
             }
             else
             {
-                if (file->offset + offset > file->dentry->inode->stat.size)
-                    ret = file->dentry->inode->stat.size; // beyond the end of the file
+                if (file->offset + offset > file->dentry->inode->size)
+                    ret = file->dentry->inode->size; // beyond the end of the file
                 else
                     ret = file->offset + offset;
             }
@@ -108,10 +108,10 @@ static off_t vfs_io_ops_seek(io_t *io, off_t offset, io_seek_whence_t whence)
         {
             if (offset < 0)
             {
-                if (file->dentry->inode->stat.size < (size_t) -offset)
+                if (file->dentry->inode->size < (size_t) -offset)
                     ret = 0; // before the beginning of the file
                 else
-                    ret = file->dentry->inode->stat.size + offset;
+                    ret = file->dentry->inode->size + offset;
             }
             else
             {
@@ -136,6 +136,23 @@ static io_op_t fs_io_ops = {
 };
 // END: filesystem's io_t operations
 
+static void vfs_copy_stat(file_stat_t *statbuf, inode_t *inode)
+{
+    statbuf->ino = inode->ino;
+    statbuf->type = inode->type;
+    statbuf->perm = inode->perm;
+    statbuf->size = inode->size;
+    statbuf->uid = inode->uid;
+    statbuf->gid = inode->gid;
+    statbuf->sticky = inode->sticky;
+    statbuf->suid = inode->suid;
+    statbuf->sgid = inode->sgid;
+    statbuf->nlinks = inode->nlinks;
+    statbuf->accessed = inode->accessed;
+    statbuf->modified = inode->modified;
+    statbuf->created = inode->created;
+}
+
 static filesystem_t *vfs_find_filesystem(const char *name)
 {
     filesystem_t *fs_found = NULL;
@@ -155,7 +172,7 @@ static filesystem_t *vfs_find_filesystem(const char *name)
 static bool vfs_verify_permissions(dentry_t *file_dentry, bool open, bool read, bool create, bool execute, bool write)
 {
     MOS_ASSERT(file_dentry != NULL && file_dentry->inode != NULL);
-    const file_perm_t file_perm = file_dentry->inode->stat.perm;
+    const file_perm_t file_perm = file_dentry->inode->perm;
 
     // TODO: we are treating all users as root for now, only checks for execute permission
     MOS_UNUSED(open);
@@ -316,9 +333,7 @@ bool vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstat
         if (file == NULL)
             return false;
 
-        if (statbuf)
-            *statbuf = file->dentry->inode->stat;
-
+        vfs_copy_stat(statbuf, file->dentry->inode);
         return true;
     }
 
@@ -327,14 +342,12 @@ bool vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstat
     if (flags & FSTATAT_NOFOLLOW)
         resolve_flags |= RESOLVE_SYMLINK_NOFOLLOW;
 
-    dentry_t *file = dentry_get(basedir, root_dentry, path, resolve_flags);
-    if (file == NULL)
+    dentry_t *dentry = dentry_get(basedir, root_dentry, path, resolve_flags);
+    if (dentry == NULL)
         return false;
 
-    if (statbuf)
-        *statbuf = file->inode->stat;
-
-    dentry_unref(file);
+    vfs_copy_stat(statbuf, dentry->inode);
+    dentry_unref(dentry);
     return true;
 }
 
@@ -345,7 +358,7 @@ size_t vfs_readlinkat(fd_t dirfd, const char *path, char *buf, size_t size)
     if (dentry == NULL)
         return 0;
 
-    if (dentry->inode->stat.type != FILE_TYPE_SYMLINK)
+    if (dentry->inode->type != FILE_TYPE_SYMLINK)
     {
         dentry_unref(dentry);
         return 0;
@@ -419,7 +432,7 @@ bool vfs_mkdir(const char *path)
         return false;
 
     dentry_t *parent_dir = tree_parent(dentry, dentry_t);
-    bool created = parent_dir->inode->ops->mkdir(parent_dir->inode, dentry, parent_dir->inode->stat.perm); // TODO: use umask or something else
+    bool created = parent_dir->inode->ops->mkdir(parent_dir->inode, dentry, parent_dir->inode->perm); // TODO: use umask or something else
 
     if (!created)
         mos_warn("failed to create directory '%s'", path);
@@ -431,7 +444,7 @@ size_t vfs_list_dir(io_t *io, char *buf, size_t size)
 {
     mos_debug(vfs, "vfs_list_dir(io=%p, buf=%p, size=%zu)", (void *) io, (void *) buf, size);
     file_t *file = container_of(io, file_t, io);
-    if (unlikely(file->dentry->inode->stat.type != FILE_TYPE_DIRECTORY))
+    if (unlikely(file->dentry->inode->type != FILE_TYPE_DIRECTORY))
     {
         mos_warn("not a directory");
         return 0;

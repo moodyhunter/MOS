@@ -24,8 +24,8 @@ static inode_t *ipcfs_create_inode(superblock_t *sb, file_type_t type, file_perm
     static size_t ipcfs_inode_count;
 
     inode_t *inode = kzalloc(sizeof(inode_t));
-    inode->stat.type = type;
-    inode->stat.perm = perm;
+    inode->type = type;
+    inode->perm = perm;
     inode->superblock = sb;
     inode->ino = ipcfs_inode_count++;
 
@@ -80,7 +80,7 @@ void ipcfs_init(void)
 
     ipcfs_root_dir = dentry_create(NULL, NULL);
     ipcfs_root_dir->inode = ipcfs_create_inode(sb, FILE_TYPE_DIRECTORY, ipcfs_default_perm);
-    ipcfs_root_dir->inode->stat.type = FILE_TYPE_DIRECTORY;
+    ipcfs_root_dir->inode->type = FILE_TYPE_DIRECTORY;
     ipcfs_root_dir->superblock = sb;
 }
 

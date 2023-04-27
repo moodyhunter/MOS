@@ -87,11 +87,21 @@ typedef struct _dentry
 
 typedef struct _inode
 {
-    u64 ino;                    // inode number
-    file_stat_t stat;           // type, permissions, uid, gid, sticky, suid, sgid, size
-    file_stat_time_t times;     // accessed, created, modified
+    u64 ino;
+    file_type_t type;
+    file_perm_t perm;
+    size_t size;
+    uid_t uid;
+    gid_t gid;
+    bool sticky;
+    bool suid;
+    bool sgid;
+    ssize_t nlinks; // number of hard links to this inode
+    u64 accessed;
+    u64 created;
+    u64 modified;
+
     superblock_t *superblock;   // superblock of this inode
-    ssize_t nlinks;             // number of hard links to this inode
     const inode_ops_t *ops;     // operations on this inode
     const file_ops_t *file_ops; // operations on files of this inode
     void *private;              // private data

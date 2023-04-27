@@ -11,13 +11,6 @@
 
 #define DIR_ITERATOR_NTH_START 2 // 0 and 1 are '.' and '..'
 
-typedef struct
-{
-    u64 accessed;
-    u64 created;
-    u64 modified;
-} file_stat_time_t;
-
 typedef enum
 {
     FILE_TYPE_REGULAR,
@@ -65,14 +58,19 @@ typedef struct
 
 typedef struct
 {
+    u64 ino;
     file_type_t type;
     file_perm_t perm;
+    size_t size;
     uid_t uid;
     gid_t gid;
     bool sticky;
     bool suid;
     bool sgid;
-    size_t size;
+    ssize_t nlinks;
+    u64 accessed;
+    u64 created;
+    u64 modified;
 } file_stat_t;
 
 typedef struct

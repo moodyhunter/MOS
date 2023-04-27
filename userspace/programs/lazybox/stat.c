@@ -50,6 +50,9 @@ int main(int argc, char **argv)
             printf("[SGID]");
         if (statbuf.sticky)
             printf("[STICKY]");
+
+        printf("Inode: %llu\n", statbuf.ino);
+        printf("Links: %ld\n", statbuf.nlinks);
         printf("\n");
     }
 

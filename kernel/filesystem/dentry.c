@@ -231,7 +231,7 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve
 static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve_flags_t flags)
 {
     MOS_ASSERT_X(dentry != NULL && dentry->inode != NULL, "check before calling this function!");
-    MOS_ASSERT_X(dentry->inode->stat.type == FILE_TYPE_SYMLINK, "check before calling this function!");
+    MOS_ASSERT_X(dentry->inode->type == FILE_TYPE_SYMLINK, "check before calling this function!");
 
     if (!dentry->inode->ops || !dentry->inode->ops->readlink)
         mos_panic("inode does not support readlink (symlink) operation, but it's a symlink!");
@@ -329,7 +329,7 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
         return NULL;
     }
 
-    if (child_ref->inode->stat.type == FILE_TYPE_SYMLINK)
+    if (child_ref->inode->type == FILE_TYPE_SYMLINK)
     {
         if (flags & RESOLVE_SYMLINK_NOFOLLOW)
         {
@@ -349,7 +349,7 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
         return symlink_target_ref;
     }
 
-    if (child_ref->inode->stat.type == FILE_TYPE_DIRECTORY)
+    if (child_ref->inode->type == FILE_TYPE_DIRECTORY)
     {
         if (child_ref->is_mountpoint)
             child_ref = dentry_ref(dentry_get_mount(child_ref)->root);
@@ -627,7 +627,7 @@ static size_t dentry_default_iterate(const dentry_t *dir, dir_iterator_state_t *
         if (state->dir_nth != i++)
             continue;
 
-        size_t w = op(state, child->inode->ino, child->name, strlen(child->name), child->inode->stat.type);
+        size_t w = op(state, child->inode->ino, child->name, strlen(child->name), child->inode->type);
         if (w == 0)
             break;
         written += w;

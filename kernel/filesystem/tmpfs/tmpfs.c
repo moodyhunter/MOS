@@ -48,8 +48,8 @@ inode_t *tmpfs_create_inode(superblock_t *sb, file_type_t type, file_perm_t perm
     tmpfs_inode_t *inode = kzalloc(sizeof(tmpfs_inode_t));
     inode->real_inode.superblock = sb;
 
-    inode->real_inode.stat.type = type;
-    inode->real_inode.stat.perm = perm;
+    inode->real_inode.type = type;
+    inode->real_inode.perm = perm;
 
     inode->real_inode.ino = ++tmpfs_inode_count;
     inode->real_inode.nlinks = 1;
@@ -119,7 +119,7 @@ static dentry_t *tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char 
     dentry_t *root = dentry_create(NULL, NULL);
     sb->root = root;
     root->inode = tmpfs_create_inode(sb, FILE_TYPE_DIRECTORY, tmpfs_default_mode);
-    root->inode->stat.type = FILE_TYPE_DIRECTORY;
+    root->inode->type = FILE_TYPE_DIRECTORY;
     root->superblock = sb;
 
     return root;
@@ -142,7 +142,7 @@ static bool tmpfs_i_create(inode_t *dir, dentry_t *dentry, file_type_t type, fil
 static bool tmpfs_i_link(dentry_t *old_dentry, inode_t *dir, dentry_t *new_dentry)
 {
     MOS_UNUSED(dir);
-    MOS_ASSERT_X(old_dentry->inode->stat.type != FILE_TYPE_DIRECTORY, "hard links to directories are insane");
+    MOS_ASSERT_X(old_dentry->inode->type != FILE_TYPE_DIRECTORY, "hard links to directories are insane");
     old_dentry->inode->nlinks++;
     new_dentry->inode = old_dentry->inode;
     return true;
@@ -167,13 +167,13 @@ static bool tmpfs_i_unlink(inode_t *dir, dentry_t *dentry)
     if (dentry->inode->nlinks == 0)
     {
         tmpfs_inode_t *inode = TMPFS_INODE(dentry->inode);
-        if (inode->real_inode.stat.type == FILE_TYPE_DIRECTORY)
+        if (inode->real_inode.type == FILE_TYPE_DIRECTORY)
         {
             mos_warn("tmpfs: unlinking a directory");
             return false;
         }
 
-        if (inode->real_inode.stat.type == FILE_TYPE_SYMLINK)
+        if (inode->real_inode.type == FILE_TYPE_SYMLINK)
             if (inode->symlink_target != NULL)
                 kfree(inode->symlink_target);
         kfree(inode);
@@ -192,7 +192,7 @@ static bool tmpfs_i_rmdir(inode_t *dir, dentry_t *subdir_to_remove)
 {
     // VFS will ensure that the directory is empty
     MOS_UNUSED(dir);
-    MOS_ASSERT(subdir_to_remove->inode->stat.type == FILE_TYPE_DIRECTORY);
+    MOS_ASSERT(subdir_to_remove->inode->type == FILE_TYPE_DIRECTORY);
     MOS_ASSERT(subdir_to_remove->inode->nlinks == 1); // should be the only link to the directory
 
     tmpfs_inode_t *inode = TMPFS_INODE(subdir_to_remove->inode);
@@ -240,7 +240,7 @@ static const inode_ops_t tmpfs_inode_symlink_ops = {
 
 static ssize_t tmpfs_f_read(const file_t *file, void *buffer, size_t buflen, off_t offset)
 {
-    if (unlikely(offset >= (long) file->dentry->inode->stat.size))
+    if (unlikely(offset >= (long) file->dentry->inode->size))
         return 0; // read past the end of the file
 
     tmpfs_inode_t *inode = TMPFS_INODE(file->dentry->inode);
@@ -264,7 +264,7 @@ static ssize_t tmpfs_f_write(const file_t *file, const void *buffer, size_t bufl
             return 0;
 
         inode->file.block_size = new_size;
-        inode->real_inode.stat.size = new_size;
+        inode->real_inode.size = new_size;
 
         // copy the data into the file
         memcpy(inode->file.data, buffer, buflen);
@@ -294,8 +294,8 @@ static ssize_t tmpfs_f_write(const file_t *file, const void *buffer, size_t bufl
         // update the inode
         inode->file.data = new_data_block;
         inode->file.block_size = new_block_size;
-        if (new_size > inode->real_inode.stat.size)
-            inode->real_inode.stat.size = new_size;
+        if (new_size > inode->real_inode.size)
+            inode->real_inode.size = new_size;
 
         // copy the data into the file
         memcpy(inode->file.data + offset, buffer, buflen);

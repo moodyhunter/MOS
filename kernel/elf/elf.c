@@ -57,13 +57,14 @@ process_t *elf_create_process(const char *path, process_t *parent, terminal_t *t
 
     io_ref(&f->io);
 
-    const file_stat_t stat = f->dentry->inode->stat;
-    const size_t npage_required = ALIGN_UP_TO_PAGE(stat.size) / MOS_PAGE_SIZE;
+    const size_t file_size = f->dentry->inode->size;
+
+    const size_t npage_required = ALIGN_UP_TO_PAGE(file_size) / MOS_PAGE_SIZE;
     const vmblock_t buf_block = mm_alloc_pages(current_cpu->pagetable, npage_required, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
     char *const buf = (char *) buf_block.vaddr;
 
-    size_t size = io_read(&f->io, buf, stat.size);
-    MOS_ASSERT_X(size == stat.size, "failed to read entire file '%s'", path);
+    size_t size = io_read(&f->io, buf, file_size);
+    MOS_ASSERT_X(size == file_size, "failed to read entire file '%s'", path);
 
     const elf_header_t *elf = (elf_header_t *) buf;
 
