@@ -22,6 +22,8 @@ typedef char liballoc_align_t;
 // Alignment information is stored right before the pointer. This is the number of bytes of information stored there.
 #define ALIGN_INFO (sizeof(liballoc_align_t) * 16)
 
+static const size_t ALLOCATE_N_PAGES_AT_ONCE = 8; // The number of pages to request per chunk. Set up in liballoc_init.
+
 #define USE_CASE1 1
 #define USE_CASE2 1
 #define USE_CASE3 1
@@ -107,22 +109,17 @@ typedef struct liballoc_part
 static liballoc_block_t *l_memroot = NULL; // The root memory block acquired from the system.
 static liballoc_block_t *l_bestbet = NULL; // The major with the most free memory.
 
-static const size_t l_alloc_n_page_once = 8; // The number of pages to request per chunk. Set up in liballoc_init.
+static size_t l_mem_allocated = 0; // Running total of allocated memory.
+static size_t l_mem_inuse = 0;     // Running total of used memory.
+static size_t l_warnings = 0;      // Number of warnings encountered
 
-static size_t l_mem_allocated = 0;     // Running total of allocated memory.
-static size_t l_mem_inuse = 0;         // Running total of used memory.
-static size_t l_warnings = 0;          // Number of warnings encountered
-static size_t l_errors = 0;            // Number of actual errors
-static size_t l_possible_overruns = 0; // Number of possible overruns
-
-#if LIBALLOC_PRINT_DEBUG_MESSAGES
+#if __MOS_KERNEL__
 void liballoc_dump(void)
 {
     pr_info("--------------- Memory data ---------------");
-    pr_info("Total Memory Allocated: %zu bytes", l_mem_allocated);
-    pr_info("Memory Used (malloc'ed): %zu bytes", l_mem_inuse);
-    pr_info("Possible Overruns: %zu", l_possible_overruns);
-    pr_info("emitted %zu warning(s) and %zu error(s)", l_warnings, l_errors);
+    pr_info2("  Total Memory Allocated: %zu bytes", l_mem_allocated);
+    pr_info2("  Memory Used (malloc'ed): %zu bytes", l_mem_inuse);
+    pr_info2("  Emitted %zu warning(s)", l_warnings);
 
     liballoc_block_t *maj = l_memroot;
     liballoc_part_t *min = NULL;
@@ -130,12 +127,12 @@ void liballoc_dump(void)
     pr_info("Memory Blocks:");
     while (maj != NULL)
     {
-        pr_info("  %p: total = %zu, used = %zu", (void *) maj, maj->size, maj->usage);
+        pr_info2("  %p: total = %zu, used = %zu", (void *) maj, maj->size, maj->usage);
 
         min = maj->first;
         while (min != NULL)
         {
-            pr_info("    %p: %zu bytes", (void *) min, min->size);
+            pr_info2("    %p: %zu bytes", (void *) min, min->size);
             min = min->next;
         }
 
@@ -157,8 +154,8 @@ static liballoc_block_t *allocate_new_pages_for(unsigned int size)
     // No, add the buffer.
 
     // Make sure it's >= the minimum size.
-    if (st < l_alloc_n_page_once)
-        st = l_alloc_n_page_once;
+    if (st < ALLOCATE_N_PAGES_AT_ONCE)
+        st = ALLOCATE_N_PAGES_AT_ONCE;
 
     liballoc_block_t *maj = (liballoc_block_t *) liballoc_alloc_page(st);
     if (maj == NULL)
@@ -230,8 +227,8 @@ void *liballoc_malloc(size_t req_size)
 
     if (size == 0)
     {
-        mos_warn("liballoc: liballoc_malloc(0) called.");
         l_warnings += 1;
+        mos_warn("liballoc: liballoc_malloc(0) called.");
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
         liballoc_unlock();
 #endif
@@ -331,7 +328,7 @@ void *liballoc_malloc(size_t req_size)
 #endif
 
 #if LIBALLOC_PRINT_DEBUG_MESSAGES
-            pr_info("liballoc: allocating %zu bytes at %p", size, p);
+            pr_info("liballoc: case 2 allocating %zu bytes at %p", size, p);
 #endif
             return p;
         }
@@ -367,7 +364,7 @@ void *liballoc_malloc(size_t req_size)
                 liballoc_unlock(); // release the lock
 #endif
 #if LIBALLOC_PRINT_DEBUG_MESSAGES
-                pr_info("liballoc: allocating %zu bytes at %p", size, p);
+                pr_info("liballoc: case 3 allocating %zu bytes at %p", size, p);
 #endif
                 return p;
             }
@@ -415,7 +412,7 @@ void *liballoc_malloc(size_t req_size)
                     liballoc_unlock(); // release the lock
 #endif
 #if LIBALLOC_PRINT_DEBUG_MESSAGES
-                    pr_info("liballoc: allocating %zu bytes at %p", size, p);
+                    pr_info("liballoc: case 4.1 allocating %zu bytes at %p", size, p);
 #endif
                     return p;
                 }
@@ -455,7 +452,7 @@ void *liballoc_malloc(size_t req_size)
                     liballoc_unlock(); // release the lock
 #endif
 #if LIBALLOC_PRINT_DEBUG_MESSAGES
-                    pr_info("liballoc: allocating %zu bytes at %p", size, p);
+                    pr_info("liballoc: case 4.2 allocating %zu bytes at %p", size, p);
 #endif
                     return p;
                 }
@@ -506,14 +503,14 @@ void *liballoc_malloc(size_t req_size)
     return NULL;
 }
 
-void liballoc_free(const void *ptr)
+void liballoc_free(const void *original_ptr)
 {
     liballoc_part_t *min;
     liballoc_block_t *maj;
 
+    const void *ptr = original_ptr;
     if (ptr == NULL)
     {
-        l_warnings += 1;
         mos_panic("liballoc: free(NULL) called");
         return;
     }
@@ -528,13 +525,15 @@ void liballoc_free(const void *ptr)
 
     if (min->magic != LIBALLOC_MAGIC)
     {
-        l_errors += 1;
+
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
+        liballoc_unlock();
+#endif
 
         // Check for overrun errors. For all bytes of LIBALLOC_MAGIC
         if (((min->magic & 0xFFFFFF) == (LIBALLOC_MAGIC & 0xFFFFFF)) || ((min->magic & 0xFFFF) == (LIBALLOC_MAGIC & 0xFFFF)) ||
             ((min->magic & 0xFF) == (LIBALLOC_MAGIC & 0xFF)))
         {
-            l_possible_overruns += 1;
             mos_panic("liballoc: ERROR: Possible 1-3 byte overrun for magic %x != %x", min->magic, LIBALLOC_MAGIC);
         }
 
@@ -546,12 +545,11 @@ void liballoc_free(const void *ptr)
         {
             mos_panic("liballoc: bad free(%p) called.", ptr);
         }
-#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
-        // being lied to...
-        liballoc_unlock(); // release the lock
-#endif
-        return;
     }
+
+#if LIBALLOC_PRINT_DEBUG_MESSAGES
+    pr_info("liballoc: freeing %p, size %zu", original_ptr, min->size);
+#endif
 
     maj = min->block;
     l_mem_inuse -= min->size;
@@ -638,13 +636,15 @@ void *liballoc_realloc(void *p, size_t size)
     // Ensure it is a valid structure.
     if (min->magic != LIBALLOC_MAGIC)
     {
-        l_errors += 1;
+
+#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
+        liballoc_unlock();
+#endif
 
         // Check for overrun errors. For all bytes of LIBALLOC_MAGIC
         if (((min->magic & 0xFFFFFF) == (LIBALLOC_MAGIC & 0xFFFFFF)) || ((min->magic & 0xFFFF) == (LIBALLOC_MAGIC & 0xFFFF)) ||
             ((min->magic & 0xFF) == (LIBALLOC_MAGIC & 0xFF)))
         {
-            l_possible_overruns += 1;
             mos_panic("liballoc: Possible 1-3 byte overrun for magic %x != %x", min->magic, LIBALLOC_MAGIC);
         }
 
@@ -656,11 +656,8 @@ void *liballoc_realloc(void *p, size_t size)
         {
             mos_panic("liballoc: Bad free(%p) called", ptr);
         }
-#if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
-        // being lied to...
-        liballoc_unlock(); // release the lock
-#endif
-        return NULL;
+
+        MOS_LIB_UNREACHABLE();
     }
 
     // Definitely a memory block.

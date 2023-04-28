@@ -76,6 +76,7 @@ filesystem_t fs_ipcfs = {
 
 void ipcfs_init(void)
 {
+    vfs_register_filesystem(&fs_ipcfs);
     superblock_t *sb = kzalloc(sizeof(superblock_t));
 
     ipcfs_root_dir = dentry_create(NULL, NULL);

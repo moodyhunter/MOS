@@ -6,24 +6,33 @@
 #include <mos/mm/paging/page_ops.h>
 #include <mos/mm/physical/pmm.h>
 #include <mos/panic.h>
+#include <mos/tasks/task_types.h>
 
 void mos_kernel_mm_init(void)
 {
-    mm_paging_ops_init();
-    mm_cow_init();
+    pr_info("initializing kernel memory management");
 
+    mm_cow_init();
     liballoc_init();
-#if MOS_DEBUG_FEATURE(liballoc)
-    declare_panic_hook(liballoc_dump);
-    install_panic_hook(&liballoc_dump_holder);
+    pmm_switch_to_kheap();
+
+#if MOS_DEBUG_FEATURE(vmm)
+    declare_panic_hook(mm_dump_current_pagetable, "Dump page table");
+    install_panic_hook(&mm_dump_current_pagetable_holder);
+    mm_dump_current_pagetable();
 #endif
+
 #if MOS_DEBUG_FEATURE(pmm)
-    declare_panic_hook(pmm_dump_lists);
+    declare_panic_hook(pmm_dump_lists, "Dump PMM lists");
     install_panic_hook(&pmm_dump_lists_holder);
     pmm_dump_lists();
 #endif
 
-    pmm_switch_to_kheap();
+#if MOS_DEBUG_FEATURE(liballoc)
+    declare_panic_hook(liballoc_dump, "Dump liballoc state");
+    install_panic_hook(&liballoc_dump_holder);
+    liballoc_dump();
+#endif
 }
 
 // !! This function is called by liballoc, not intended to be called by anyone else !!

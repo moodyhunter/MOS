@@ -43,9 +43,10 @@ static void dump_process(void)
 
 void tasks_init()
 {
+    pr_info("initializing task management subsystem");
     process_table = kzalloc(sizeof(hashmap_t));
     hashmap_init(process_table, PROCESS_HASHTABLE_SIZE, pid_hash, hashmap_simple_key_compare);
-    declare_panic_hook(dump_process);
+    declare_panic_hook(dump_process, "Dump current process");
     install_panic_hook(&dump_process_holder);
 
     thread_table = kzalloc(sizeof(hashmap_t));

@@ -57,6 +57,9 @@ always_inline x86_pg_infra_t *x86_get_pg_infra(paging_handle_t table)
     return (x86_pg_infra_t *) table.pgd;
 }
 
+// defined in enable_paging.asm
+extern void x86_enable_paging_impl(ptr_t page_dir);
+
 void pg_flag_page(x86_pg_infra_t *pg, ptr_t vaddr, size_t n, vm_flags flags);
 ptr_t pg_get_mapped_paddr(x86_pg_infra_t *pg, ptr_t vaddr);
 vm_flags pg_get_flags(x86_pg_infra_t *pg, ptr_t vaddr);

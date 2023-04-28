@@ -188,20 +188,6 @@ static void x86_handle_exception(x86_stack_frame *stack)
 
             thread_t *current = current_thread;
 
-            if (fault_address < 1 KB)
-            {
-                x86_dump_registers(stack);
-                mos_panic("thread %ld (%s), process %ld (%s), %s NULL pointer dereference at " PTR_FMT " caused by instruction " PTR_FMT,
-                          current ? current->tid : 0,                //
-                          current ? current->name : "<none>",        //
-                          current ? current->owner->pid : 0,         //
-                          current ? current->owner->name : "<none>", //
-                          is_user ? "User" : "Kernel",               //
-                          fault_address,                             //
-                          (ptr_t) stack->iret_params.eip             //
-                );
-            }
-
             if (current)
             {
                 if (MOS_DEBUG_FEATURE(cow))
@@ -231,15 +217,33 @@ static void x86_handle_exception(x86_stack_frame *stack)
                 mos_warn("early boot page fault");
             }
 
-            if (is_user && !is_write && present)
-                pr_warn("'%s' trying to read kernel memory?", current_process->name);
             x86_dump_registers(stack);
-            mos_panic("Page Fault: %s code at " PTR_FMT " is trying to %s a %s address " PTR_FMT, //
-                      is_user ? "Userspace" : "Kernel",                                           //
-                      (ptr_t) stack->iret_params.eip,                                             //
-                      is_write ? "write into" : "read from",                                      //
-                      present ? "present" : "non-present",                                        //
-                      fault_address);
+
+            if (fault_address < 1 KB)
+            {
+                pr_emerg("thread %ld (%s), process %ld (%s), %s NULL pointer dereference at " PTR_FMT " caused by instruction " PTR_FMT,
+                         current ? current->tid : 0,                //
+                         current ? current->name : "<none>",        //
+                         current ? current->owner->pid : 0,         //
+                         current ? current->owner->name : "<none>", //
+                         is_user ? "User" : "Kernel",               //
+                         fault_address,                             //
+                         (ptr_t) stack->iret_params.eip             //
+                );
+            }
+            else
+            {
+                if (is_user && !is_write && present)
+                    pr_warn("'%s' trying to read kernel memory?", current_process->name);
+                pr_emerg("Page Fault: %s code at " PTR_FMT " is trying to %s a %s address " PTR_FMT, //
+                         is_user ? "Userspace" : "Kernel",                                           //
+                         (ptr_t) stack->iret_params.eip,                                             //
+                         is_write ? "write into" : "read from",                                      //
+                         present ? "present" : "non-present",                                        //
+                         fault_address);
+            }
+
+            mos_panic("unhandled page fault");
             MOS_UNREACHABLE();
         }
 

@@ -96,6 +96,7 @@ static bool schedule_to_thread(uintn key, void *value)
 
 void __cold unblock_scheduler(void)
 {
+    pr_info("scheduler unblocked");
     mos_debug(scheduler, "unblocking scheduler");
     MOS_ASSERT_X(!scheduler_ready, "scheduler is already unblocked");
     scheduler_ready = true;

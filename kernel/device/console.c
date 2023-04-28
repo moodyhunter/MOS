@@ -36,11 +36,8 @@ void console_register(console_t *con)
     list_node_append(&consoles, list_node(con));
     pr_info("console: registered '%s'", con->name);
 
-    if (once()) // remove the dummy console
-    {
-        pr_info2("console: removing '%s'", dummy_con.name);
+    if (unlikely(once())) // remove the dummy console
         list_remove(&dummy_con);
-    }
 }
 
 console_t *console_get(const char *name)

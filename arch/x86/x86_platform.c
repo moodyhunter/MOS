@@ -69,7 +69,7 @@ void x86_keyboard_handler(u32 irq)
     MOS_UNUSED(scancode);
 }
 
-static void x86_do_backtrace(u32 max)
+static void x86_do_backtrace(void)
 {
     static bool is_tracing = false;
     if (is_tracing)
@@ -82,42 +82,35 @@ static void x86_do_backtrace(u32 max)
     } *frame = NULL;
 
     __asm__("movl %%ebp,%1" : "=r"(frame) : "r"(frame));
-    for (u32 i = 0; frame && i < max; i++)
+    for (u32 i = 0; frame; i++)
     {
         if (frame->eip >= MOS_KERNEL_START_VADDR)
         {
             const kallsyms_t *kallsyms = kallsyms_get_symbol_name(frame->eip);
             if (kallsyms)
-                pr_warn("  " PTR_FMT ": %s (+" PTR_VLFMT ")", frame->eip, kallsyms->name, frame->eip - kallsyms->address);
+                pr_warn("  %-2d" PTR_FMT ": %s (+" PTR_VLFMT ")", i, frame->eip, kallsyms->name, frame->eip - kallsyms->address);
             else
-                pr_warn("  " PTR_FMT ": <unknown>", frame->eip);
+                pr_warn("  %-2d" PTR_FMT ": <unknown>", i, frame->eip);
         }
         else
         {
-            pr_warn("  " PTR_FMT ": <userspace>", frame->eip);
+            pr_warn("  %-2d" PTR_FMT ": <userspace?>", i, frame->eip);
         }
 
         frame = frame->ebp;
     }
 }
 
-void x86_kpanic_hook(void)
-{
-    x86_do_backtrace(20);
-}
-
 void x86_start_kernel(x86_startup_info *info)
 {
     console_register(&com1_console.console);
-    declare_panic_hook(x86_kpanic_hook);
-    install_panic_hook(&x86_kpanic_hook_holder);
+    declare_panic_hook(x86_do_backtrace, "Backtrace");
+    install_panic_hook(&x86_do_backtrace_holder);
 
-    pr_info("mos_startup_info: initrd %zu bytes, mbinfo at: " PTR_FMT ", magic " PTR_FMT, info->initrd_size, (ptr_t) info->mb_info, (ptr_t) info->mb_magic);
+    mos_debug(x86_startup, "initrd %zu bytes, mbinfo at: " PTR_FMT ", magic " PTR_FMT, info->initrd_size, (ptr_t) info->mb_info, (ptr_t) info->mb_magic);
 
     const multiboot_info_t *mb_info = info->mb_info;
     initrd_size = info->initrd_size;
-    const u32 mem_lower = mb_info->mem_lower, mem_upper = mb_info->mem_upper;
-    pr_info("mem_lower: %u KB, mem_upper: %u KB", mem_lower, mem_upper);
 
     if (initrd_size)
         initrd_paddr = ((x86_pgtable_entry *) (((x86_pgdir_entry *) x86_get_cr3())[MOS_X86_INITRD_VADDR >> 22].page_table_paddr << 12))->phys_addr << 12;
@@ -135,7 +128,7 @@ void x86_start_kernel(x86_startup_info *info)
 
     x86_mm_paging_init();
 
-    pr_info("mapping kernel space...");
+    mos_debug(x86_startup, "mapping kernel space...");
     x86_platform.k_code.npages = (ALIGN_UP_TO_PAGE((ptr_t) &__MOS_KERNEL_CODE_END) - ALIGN_DOWN_TO_PAGE((ptr_t) &__MOS_KERNEL_CODE_START)) / MOS_PAGE_SIZE;
     x86_platform.k_code = mm_map_pages(                                                                     //
         x86_platform.kernel_pgd,                                                                            //
@@ -163,16 +156,18 @@ void x86_start_kernel(x86_startup_info *info)
         x86_platform.k_rwdata.flags                                                                             //
     );
 
-    pr_info("mapping bios memory area...");
+    mos_debug(x86_startup, "mapping bios memory area...");
     pmm_reserve_frames(X86_BIOS_MEMREGION_PADDR, x86_bios_block.npages);
     pmm_reserve_frames(X86_EBDA_MEMREGION_PADDR, x86_ebda_block.npages);
     x86_bios_block = mm_map_pages(x86_platform.kernel_pgd, x86_bios_block.vaddr, X86_BIOS_MEMREGION_PADDR, x86_bios_block.npages, x86_bios_block.flags);
     x86_ebda_block = mm_map_pages(x86_platform.kernel_pgd, x86_ebda_block.vaddr, X86_EBDA_MEMREGION_PADDR, x86_ebda_block.npages, x86_ebda_block.flags);
 
-    pr_info("reserving memory for AP boot...");
+    mos_debug(x86_startup, "copying memory for SMP boot...");
     x86_smp_copy_trampoline();
 
-    x86_mm_enable_paging();
+    x86_enable_paging_impl(((ptr_t) x86_kpg_infra->pgdir) - MOS_KERNEL_START_VADDR);
+    mos_debug(x86_startup, "paging enabled");
+
     mos_kernel_mm_init(); // since then, we can use the kernel heap (kmalloc)
 
     if (initrd_size)
@@ -187,7 +182,7 @@ void x86_start_kernel(x86_startup_info *info)
         blockdev_register(&initrd_blockdev->blockdev);
     }
 
-    pr_info("Parsing ACPI tables...");
+    mos_debug(x86_startup, "Parsing ACPI tables...");
     acpi_rsdp_t *rsdp = acpi_find_rsdp(BIOS_VADDR(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
     if (!rsdp)
     {
@@ -204,7 +199,7 @@ void x86_start_kernel(x86_startup_info *info)
 
     acpi_parse_rsdt(rsdp);
 
-    pr_info("Initializing APICs...");
+    mos_debug(x86_startup, "Initializing APICs...");
     madt_parse_table();
     lapic_memory_setup();
     lapic_enable();

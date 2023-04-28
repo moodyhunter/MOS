@@ -103,7 +103,7 @@ static const io_op_t ipc_connection_op = {
 
 void ipc_init(void)
 {
-    pr_info2("initializing IPC subsystem");
+    pr_info("initializing IPC subsystem");
     ipcfs_init();
     ipcshm_init();
 }

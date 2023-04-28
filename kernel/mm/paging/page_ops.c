@@ -32,7 +32,16 @@ static void walk_pagetable_dump_callback(const pgt_iteration_info_t *iter_info, 
     *prev_end_vaddr = block->vaddr + block->npages * MOS_PAGE_SIZE;
 }
 
-static void mm_dump_pagetable_panic_handler()
+void mm_dump_pagetable(paging_handle_t handle)
+{
+    pr_info("Page Table:");
+    ptr_t tmp = 0;
+    spinlock_acquire(handle.pgd_lock);
+    platform_mm_iterate_table(handle, 0, MOS_MAX_VADDR / MOS_PAGE_SIZE, walk_pagetable_dump_callback, &tmp);
+    spinlock_release(handle.pgd_lock);
+}
+
+void mm_dump_current_pagetable()
 {
     const char *cpu_pagetable_source = current_cpu->pagetable.pgd == platform_info->kernel_pgd.pgd ? "Kernel" : NULL;
 
@@ -59,19 +68,4 @@ static void mm_dump_pagetable_panic_handler()
         pr_emph("CPU Page Table:");
         mm_dump_pagetable(current_cpu->pagetable);
     }
-}
-
-void mm_paging_ops_init()
-{
-#if MOS_DEBUG_FEATURE(vmm)
-    declare_panic_hook(mm_dump_pagetable_panic_handler);
-    install_panic_hook(&mm_dump_pagetable_panic_handler_holder);
-#endif
-}
-
-void mm_dump_pagetable(paging_handle_t handle)
-{
-    pr_info("Page Table:");
-    ptr_t tmp = 0;
-    platform_mm_iterate_table(handle, 0, MOS_MAX_VADDR / MOS_PAGE_SIZE, walk_pagetable_dump_callback, &tmp);
 }

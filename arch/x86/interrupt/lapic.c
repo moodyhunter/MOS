@@ -141,7 +141,7 @@ void lapic_memory_setup(void)
         mos_panic("MSR is not present");
 
     ptr_t base_addr = x86_acpi_madt->lapic_addr;
-    pr_info("LAPIC: base address: " PTR_FMT, base_addr);
+    mos_debug(x86_lapic, "base address: " PTR_FMT, base_addr);
 
     if ((ptr_t) base_addr != BIOS_VADDR(base_addr))
     {
@@ -169,7 +169,7 @@ void lapic_enable(void)
     const u32 version_reg = lapic_read32(APIC_REG_LAPIC_VERSION);
     const u32 max_lvt_entry = (version_reg >> 16) & 0xff;
     const u32 version_id = version_reg & 0xff;
-    pr_info("LAPIC{%d}: version: %x, max LVT entry: %x", current_cpu_id, version_id, max_lvt_entry);
+    mos_debug(x86_lapic, "LAPIC{%d}: version: %x, max LVT entry: %x", current_cpu_id, version_id, max_lvt_entry);
 }
 
 void lapic_eoi(void)

@@ -18,7 +18,7 @@ macro(add_kernel_source)
 
     if(ARG_INCLUDE_DIRECTORIES)
         foreach(INCLUDE_DIRECTORY ${ARG_INCLUDE_DIRECTORIES})
-            target_include_directories(mos_kernel PRIVATE ${INCLUDE_DIRECTORY})
+            target_include_directories(mos_kernel SYSTEM PRIVATE ${INCLUDE_DIRECTORY})
         endforeach()
     endif()
 endmacro()

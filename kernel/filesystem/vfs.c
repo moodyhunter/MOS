@@ -237,7 +237,7 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
 
 void vfs_init(void)
 {
-    pr_info("initializing the Virtual File System (VFS) subsystem...");
+    pr_info("initializing VFS layer");
     dentry_cache_init();
 }
 

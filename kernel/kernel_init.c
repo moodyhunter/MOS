@@ -19,7 +19,6 @@
 
 extern filesystem_t fs_tmpfs;
 extern filesystem_t fs_cpiofs;
-extern filesystem_t fs_ipcfs;
 
 const char *init_path = "/initrd/programs/init";
 argv_t init_argv = { 0 };
@@ -89,7 +88,6 @@ void mos_start_kernel(const char *cmdline)
     vfs_init();
     vfs_register_filesystem(&fs_tmpfs);
     vfs_register_filesystem(&fs_cpiofs);
-    vfs_register_filesystem(&fs_ipcfs);
 
     bool mounted = vfs_mount("none", "/", "tmpfs", NULL);
     if (!mounted)
@@ -125,7 +123,6 @@ void mos_start_kernel(const char *cmdline)
 
     ipi_init();
 
-    pr_info("starting scheduler");
     unblock_scheduler();
     scheduler();
     MOS_UNREACHABLE();

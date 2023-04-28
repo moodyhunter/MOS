@@ -8,6 +8,7 @@
 #include <mos/x86/interrupt/apic.h>
 #include <mos/x86/interrupt/idt.h>
 #include <mos/x86/mm/paging.h>
+#include <mos/x86/mm/paging_impl.h>
 #include <mos/x86/x86_platform.h>
 
 noreturn void ap_begin_exec(void)
@@ -15,7 +16,8 @@ noreturn void ap_begin_exec(void)
     x86_init_current_cpu_gdt();
     x86_init_current_cpu_tss();
     x86_idt_flush();
-    x86_mm_enable_paging();
+    x86_enable_paging_impl(((ptr_t) x86_kpg_infra->pgdir) - MOS_KERNEL_START_VADDR);
+
     lapic_enable();
 
     processor_version_t info;

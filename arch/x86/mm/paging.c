@@ -9,9 +9,6 @@
 #include <mos/x86/x86_platform.h>
 #include <string.h>
 
-// defined in enable_paging.asm
-extern void x86_enable_paging_impl(ptr_t page_dir);
-
 static x86_pg_infra_t x86_kpg_infra_storage __aligned(MOS_PAGE_SIZE) = { 0 };
 static spinlock_t x86_kernel_pgd_lock = SPINLOCK_INIT;
 
@@ -25,13 +22,6 @@ void x86_mm_paging_init(void)
     x86_platform.kernel_pgd.um_page_map = NULL; // a kernel page table does not have a user-mode page map
     x86_platform.kernel_pgd.pgd_lock = &x86_kernel_pgd_lock;
     current_cpu->pagetable = x86_platform.kernel_pgd;
-}
-
-void x86_mm_enable_paging(void)
-{
-    x86_enable_paging_impl(((ptr_t) x86_kpg_infra->pgdir) - MOS_KERNEL_START_VADDR);
-    pr_info("paging: enabled");
-    mm_dump_pagetable(x86_platform.kernel_pgd);
 }
 
 void x86_mm_walk_page_table(paging_handle_t handle, ptr_t vaddr_start, size_t n_pages, pgt_iteration_callback_t callback, void *arg)

@@ -37,7 +37,7 @@ void madt_parse_table()
             case 0:
             {
                 acpi_madt_et0_lapic_t *lapic = container_of(entry, acpi_madt_et0_lapic_t, header);
-                pr_info2("acpi: MADT entry LAPIC [%p], id=%u, processor=%u, flags=0x%x", (void *) lapic, lapic->apic_id, lapic->processor_id, lapic->flags);
+                mos_debug(x86_acpi, "MADT entry LAPIC [%p], id=%u, processor=%u, flags=0x%x", (void *) lapic, lapic->apic_id, lapic->processor_id, lapic->flags);
 
                 if (unlikely(lapic->processor_id >= MOS_MAX_CPU_COUNT))
                     mos_panic("Too many CPUs");
@@ -52,7 +52,8 @@ void madt_parse_table()
             case 1:
             {
                 acpi_madt_et1_ioapic_t *ioapic = container_of(entry, acpi_madt_et1_ioapic_t, header);
-                pr_info2("acpi: MADT entry IOAPIC [%p], id=%u, address=%x, global_irq_base=%u", (void *) ioapic, ioapic->id, ioapic->address, ioapic->global_intr_base);
+                mos_debug(x86_acpi, "MADT entry IOAPIC [%p], id=%u, address=%x, global_irq_base=%u", (void *) ioapic, ioapic->id, ioapic->address,
+                          ioapic->global_intr_base);
                 if (unlikely(x86_ioapic_address))
                     mos_panic("Multiple IOAPICs not supported");
                 x86_ioapic_address = ioapic->address;
@@ -61,8 +62,8 @@ void madt_parse_table()
             case 2:
             {
                 acpi_madt_et2_ioapic_override_t *int_override = container_of(entry, acpi_madt_et2_ioapic_override_t, header);
-                pr_info2("acpi: MADT entry IOAPIC override [%p], bus=%u, source=%u, global_irq=%u, flags=0x%x", (void *) int_override, int_override->bus_source,
-                         int_override->irq_source, int_override->global_intr, int_override->flags);
+                mos_debug(x86_acpi, "MADT entry IOAPIC override [%p], bus=%u, source=%u, global_irq=%u, flags=0x%x", (void *) int_override, int_override->bus_source,
+                          int_override->irq_source, int_override->global_intr, int_override->flags);
 
                 if (unlikely(int_override->bus_source != 0))
                     mos_panic("IOAPIC override for non-ISA bus not supported");
@@ -79,40 +80,40 @@ void madt_parse_table()
             case 3:
             {
                 acpi_madt_et3_ioapic_nmi_t *int_override = container_of(entry, acpi_madt_et3_ioapic_nmi_t, header);
-                pr_info2("acpi: MADT entry IOAPIC NMI [%p], nmi_source=%u, global_irq=%u, flags=0x%x", (void *) int_override, int_override->nmi_source,
-                         int_override->global_irq, int_override->flags);
-                mos_warn("Unhandled MADT entry type 3 (IOAPIC NMI)");
+                mos_debug(x86_acpi, "MADT entry IOAPIC NMI [%p], nmi_source=%u, global_irq=%u, flags=0x%x", (void *) int_override, int_override->nmi_source,
+                          int_override->global_irq, int_override->flags);
+                pr_warn("Unhandled MADT entry type 3 (IOAPIC NMI)");
                 break;
             }
             case 4:
             {
                 acpi_madt_et4_lapic_nmi_t *nmi = container_of(entry, acpi_madt_et4_lapic_nmi_t, header);
-                pr_info2("acpi: MADT entry LAPIC NMI [%p], processor=%u, flags=0x%x, lint=%u", (void *) nmi, nmi->processor_id, nmi->flags, nmi->lint_number);
-                mos_warn("Unhandled MADT entry type 4 (LAPIC NMI)");
+                mos_debug(x86_acpi, "MADT entry LAPIC NMI [%p], processor=%u, flags=0x%x, lint=%u", (void *) nmi, nmi->processor_id, nmi->flags, nmi->lint_number);
+                pr_warn("Unhandled MADT entry type 4 (LAPIC NMI)");
                 break;
             }
             case 5:
             {
                 acpi_madt_et5_lapic_addr_t *local_apic_nmi = container_of(entry, acpi_madt_et5_lapic_addr_t, header);
-                pr_info2("acpi: MADT entry LAPIC address override [%p], address=%llu", (void *) local_apic_nmi, local_apic_nmi->lapic_paddr);
-                mos_warn("Unhandled MADT entry type 5 (LAPIC address override)");
+                mos_debug(x86_acpi, "MADT entry LAPIC address override [%p], address=%llu", (void *) local_apic_nmi, local_apic_nmi->lapic_paddr);
+                pr_warn("Unhandled MADT entry type 5 (LAPIC address override)");
                 break;
             }
             case 9:
             {
                 acpi_madt_et9_lx2apic_t *local_sapic_override = container_of(entry, acpi_madt_et9_lx2apic_t, header);
-                pr_info2("acpi: MADT entry local x2 SAPIC override [%p], x2apic_id=%u, flags=0x%x, acpi_id=%u", (void *) local_sapic_override,
-                         local_sapic_override->processor_lx2apic_id, local_sapic_override->flags, local_sapic_override->acpi_id);
-                mos_warn("Unhandled MADT entry type 9 (local x2 SAPIC override)");
+                mos_debug(x86_acpi, "MADT entry local x2 SAPIC override [%p], x2apic_id=%u, flags=0x%x, acpi_id=%u", (void *) local_sapic_override,
+                          local_sapic_override->processor_lx2apic_id, local_sapic_override->flags, local_sapic_override->acpi_id);
+                pr_warn("Unhandled MADT entry type 9 (local x2 SAPIC override)");
                 break;
             }
             default:
             {
-                mos_warn("Strange MADT entry type %u", entry->type);
+                pr_warn("Strange MADT entry type %u", entry->type);
             }
         }
     }
 
-    pr_info("acpi: platform has %u cpu(s)", x86_platform.num_cpus);
+    mos_debug(x86_lapic, "platform has %u cpu(s)", x86_platform.num_cpus);
     return;
 }

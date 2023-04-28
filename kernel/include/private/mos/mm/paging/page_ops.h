@@ -4,5 +4,5 @@
 
 #include <mos/platform/platform.h>
 
-void mm_paging_ops_init(void);
 void mm_dump_pagetable(paging_handle_t handle);
+void mm_dump_current_pagetable(void);

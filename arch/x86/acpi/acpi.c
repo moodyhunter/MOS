@@ -27,7 +27,7 @@ should_inline bool verify_sdt_checksum(const acpi_sdt_header_t *tableHeader)
 
 void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
 {
-    pr_info("Initializing ACPI with RSDP at %p", (void *) rsdp);
+    pr_info("initializing ACPI with RSDP at %p", (void *) rsdp);
     // !! "MUST" USE XSDT IF FOUND !!
     if (rsdp->xsdt_addr)
         mos_panic("XSDT not supported");
@@ -49,12 +49,12 @@ void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
             x86_acpi_fadt = container_of(header, acpi_fadt_t, sdt_header);
             if (!verify_sdt_checksum(&x86_acpi_fadt->sdt_header))
                 mos_panic("FADT checksum error");
-            pr_info2("acpi: FADT at %p", (void *) x86_acpi_fadt);
+            mos_debug(x86_acpi, "FADT at %p", (void *) x86_acpi_fadt);
 
             acpi_sdt_header_t *dsdt = BIOS_VADDR_TYPE(x86_acpi_fadt->dsdt, acpi_sdt_header_t *);
             if (!verify_sdt_checksum(dsdt))
                 mos_panic("DSDT checksum error");
-            pr_info2("acpi: DSDT at %p", (void *) dsdt);
+            mos_debug(x86_acpi, "DSDT at %p", (void *) dsdt);
             x86_acpi_dsdt = (ptr_t) dsdt;
         }
         else if (strncmp(header->signature, ACPI_SIGNATURE_MADT, 4) == 0)
@@ -62,7 +62,7 @@ void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
             x86_acpi_madt = container_of(header, acpi_madt_t, sdt_header);
             if (!verify_sdt_checksum(&x86_acpi_madt->sdt_header))
                 mos_panic("MADT checksum error");
-            pr_info2("acpi: MADT at %p", (void *) x86_acpi_madt);
+            mos_debug(x86_acpi, "MADT at %p", (void *) x86_acpi_madt);
         }
         else if (strncmp(header->signature, ACPI_SIGNATURE_HPET, 4) == 0)
         {
@@ -72,7 +72,7 @@ void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
             if (!verify_sdt_checksum(&x86_acpi_hpet->header))
                 mos_panic("HPET checksum error");
             MOS_WARNING_POP
-            pr_info2("acpi: HPET at %p", (void *) x86_acpi_hpet);
+            mos_debug(x86_acpi, "HPET at %p", (void *) x86_acpi_hpet);
         }
         else
         {
@@ -87,7 +87,7 @@ acpi_rsdp_t *acpi_find_rsdp(ptr_t start, size_t size)
     {
         if (strncmp((const char *) addr, ACPI_SIGNATURE_RSDP, 8) == 0)
         {
-            pr_info2("ACPI: RSDP magic at %p", (void *) addr);
+            mos_debug(x86_acpi, "ACPI: RSDP magic at %p", (void *) addr);
             acpi_rsdp_t *rsdp = (acpi_rsdp_t *) addr;
 
             // check the checksum
@@ -100,8 +100,7 @@ acpi_rsdp_t *acpi_find_rsdp(ptr_t start, size_t size)
                 pr_info2("ACPI: RSDP checksum failed");
                 continue;
             }
-            pr_info2("ACPI: RSDP checksum ok");
-            pr_info("ACPI: oem: '%s', revision: %d", rsdp->v1.oem_id, rsdp->v1.revision);
+            mos_debug(x86_acpi, "ACPI: oem: '%s', revision: %d", rsdp->v1.oem_id, rsdp->v1.revision);
 
             if (rsdp->v1.revision != 0)
                 mos_panic("ACPI: RSDP revision %d not supported", rsdp->v1.revision);

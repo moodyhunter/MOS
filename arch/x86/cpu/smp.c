@@ -21,6 +21,8 @@ volatile enum
 } ap_state;
 
 #define X86_AP_TRAMPOLINE_ADDR 0x8000
+MOS_STATIC_ASSERT(X86_AP_TRAMPOLINE_ADDR % MOS_PAGE_SIZE == 0);
+MOS_STATIC_ASSERT(X86_AP_TRAMPOLINE_ADDR < 1 MB, "trampoline must be in low memory, otherwise PMM will overwrite it");
 
 extern char x86_ap_trampoline[];
 extern x86_pgdir_entry startup_pgd[1024];
