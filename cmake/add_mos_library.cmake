@@ -26,7 +26,11 @@ macro(add_mos_library)
 
     # Create a userspace library
     add_library(${ADD_MOS_LIBRARY_NAME} STATIC ${ADD_MOS_LIBRARY_SOURCES} ${ADD_MOS_LIBRARY_RELATIVE_SOURCES})
-    target_include_directories(${ADD_MOS_LIBRARY_NAME} PUBLIC ${ADD_MOS_LIBRARY_PUBLIC_INCLUDE_DIRECTORIES})
+
+    # only define the public include directories as SYSTEM for users, not the library itself
+    target_include_directories(${ADD_MOS_LIBRARY_NAME} SYSTEM INTERFACE ${ADD_MOS_LIBRARY_PUBLIC_INCLUDE_DIRECTORIES})
+    target_include_directories(${ADD_MOS_LIBRARY_NAME} PRIVATE ${ADD_MOS_LIBRARY_PUBLIC_INCLUDE_DIRECTORIES})
+
     target_include_directories(${ADD_MOS_LIBRARY_NAME} PRIVATE ${ADD_MOS_LIBRARY_PRIVATE_INCLUDE_DIRECTORIES})
     target_link_libraries(${ADD_MOS_LIBRARY_NAME} PUBLIC ${ADD_MOS_LIBRARY_USERSPACE_LINK_LIBRARIES})
     target_link_libraries(${ADD_MOS_LIBRARY_NAME} PUBLIC gcc mos::include) # standard include directory
