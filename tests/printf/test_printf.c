@@ -11,8 +11,6 @@ MOS_TEST_DEFINE_CONDITION(printf_tests_enable_floats, "floating points") = false
 MOS_TEST_DEFINE_CONDITION(printf_tests_enable_egp, "e, g, p tests") = false;
 MOS_TEST_DEFINE_CONDITION(printf_tests_enable_oxX, "o, x, X tests") = true;
 
-int tst_printf(char *buffer, const char *format, ...) __attribute__((format(printf, 2, 3)));
-
 #define PRINTF_TEST(expected, format, ...)                                                                                                                               \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
@@ -21,18 +19,9 @@ int tst_printf(char *buffer, const char *format, ...) __attribute__((format(prin
             MOS_TEST_SKIP();                                                                                                                                             \
             break;                                                                                                                                                       \
         }                                                                                                                                                                \
-        tst_printf(buffer, format __VA_OPT__(, ) __VA_ARGS__);                                                                                                           \
+        sprintf(buffer, format __VA_OPT__(, ) __VA_ARGS__);                                                                                                              \
         MOS_TEST_CHECK_STRING(buffer, expected);                                                                                                                         \
     } while (0)
-
-int tst_printf(char *buffer, const char *format, ...)
-{
-    va_list args;
-    va_start(args, format);
-    int ret = vsnprintf(buffer, 2048, format, args);
-    va_end(args);
-    return ret;
-}
 
 MOS_TEST_CASE(percent_sign)
 {
