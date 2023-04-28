@@ -240,7 +240,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
                       is_write ? "write into" : "read from",                                      //
                       present ? "present" : "non-present",                                        //
                       fault_address);
-            break;
+            MOS_UNREACHABLE();
         }
 
         case EXCEPTION_DOUBLE_FAULT:

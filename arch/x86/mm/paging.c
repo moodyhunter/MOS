@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <mos/mm/paging/page_ops.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
@@ -16,32 +17,6 @@ static spinlock_t x86_kernel_pgd_lock = SPINLOCK_INIT;
 
 x86_pg_infra_t *const x86_kpg_infra = &x86_kpg_infra_storage;
 
-static void x86_walk_pagetable_dump_callback(const pgt_iteration_info_t *iter_info, const vmblock_t *block, ptr_t block_paddr, void *arg)
-{
-    MOS_UNUSED(iter_info);
-    ptr_t *prev_end_vaddr = (ptr_t *) arg;
-    if (block->vaddr - *prev_end_vaddr > MOS_PAGE_SIZE)
-    {
-        pr_info("  VGROUP: " PTR_FMT, block->vaddr);
-    }
-
-    pr_info2("    " PTR_RANGE " -> " PTR_RANGE ", %5zd pages, %c%c%c, %c%c, %s", //
-             block->vaddr,                                                       //
-             (ptr_t) (block->vaddr + block->npages * MOS_PAGE_SIZE),             //
-             block_paddr,                                                        //
-             (ptr_t) (block_paddr + block->npages * MOS_PAGE_SIZE),              //
-             block->npages,                                                      //
-             block->flags & VM_READ ? 'r' : '-',                                 //
-             block->flags & VM_WRITE ? 'w' : '-',                                //
-             block->flags & VM_EXEC ? 'x' : '-',                                 //
-             block->flags & VM_CACHE_DISABLED ? 'C' : '-',                       //
-             block->flags & VM_GLOBAL ? 'G' : '-',                               //
-             block->flags & VM_USER ? "user" : "kernel"                          //
-    );
-
-    *prev_end_vaddr = block->vaddr + block->npages * MOS_PAGE_SIZE;
-}
-
 void x86_mm_paging_init(void)
 {
     // initialize the page directory
@@ -56,14 +31,7 @@ void x86_mm_enable_paging(void)
 {
     x86_enable_paging_impl(((ptr_t) x86_kpg_infra->pgdir) - MOS_KERNEL_START_VADDR);
     pr_info("paging: enabled");
-    x86_dump_pagetable(x86_platform.kernel_pgd);
-}
-
-void x86_dump_pagetable(paging_handle_t handle)
-{
-    pr_info("Page Table:");
-    ptr_t tmp = 0;
-    x86_mm_walk_page_table(handle, 0, MOS_MAX_VADDR / MOS_PAGE_SIZE, x86_walk_pagetable_dump_callback, &tmp);
+    mm_dump_pagetable(x86_platform.kernel_pgd);
 }
 
 void x86_mm_walk_page_table(paging_handle_t handle, ptr_t vaddr_start, size_t n_pages, pgt_iteration_callback_t callback, void *arg)

@@ -3,11 +3,13 @@
 #include "liballoc.h"
 
 #include <mos/mm/cow.h>
+#include <mos/mm/paging/page_ops.h>
 #include <mos/mm/physical/pmm.h>
 #include <mos/panic.h>
 
 void mos_kernel_mm_init(void)
 {
+    mm_paging_ops_init();
     mm_cow_init();
 
     liballoc_init();

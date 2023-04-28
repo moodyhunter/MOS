@@ -2,6 +2,7 @@
 
 #include <mos/kallsyms.h>
 #include <mos/mm/kmalloc.h>
+#include <mos/mm/paging/page_ops.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/mm/physical/pmm.h>
 #include <mos/mos_global.h>
@@ -68,7 +69,7 @@ void x86_keyboard_handler(u32 irq)
     MOS_UNUSED(scancode);
 }
 
-void do_backtrace(u32 max)
+static void x86_do_backtrace(u32 max)
 {
     static bool is_tracing = false;
     if (is_tracing)
@@ -102,35 +103,7 @@ void do_backtrace(u32 max)
 
 void x86_kpanic_hook(void)
 {
-#if MOS_DEBUG_FEATURE(vmm)
-    const char *cpu_pagetable_source = current_cpu->pagetable.pgd == (ptr_t) x86_kpg_infra ? "Kernel" : NULL;
-
-    if (current_thread)
-    {
-        pr_emph("Current task: %s (tid: %ld, pid: %ld)", current_process->name, current_thread->tid, current_process->pid);
-        pr_emph("Task Page Table:");
-        x86_dump_pagetable(current_process->pagetable);
-        if (current_cpu->pagetable.pgd == current_process->pagetable.pgd)
-            cpu_pagetable_source = "Current Process";
-    }
-    else
-    {
-        pr_emph("Kernel Page Table:");
-        x86_dump_pagetable(platform_info->kernel_pgd);
-    }
-
-    if (cpu_pagetable_source)
-    {
-        pr_emph("CPU Page Table: %s", cpu_pagetable_source);
-    }
-    else
-    {
-        pr_emph("CPU Page Table:");
-        x86_dump_pagetable(current_cpu->pagetable);
-    }
-#endif
-
-    do_backtrace(20);
+    x86_do_backtrace(20);
 }
 
 void x86_start_kernel(x86_startup_info *info)
