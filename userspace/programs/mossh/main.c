@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 // We don't support environment variables yet, so we hardcode the path
 const char *PATH[] = {
@@ -105,6 +106,27 @@ bool do_builtin(const char *command, int argc, const char **argv)
         {
             builtin_commands[i].action(argc, argv);
             return true;
+        }
+    }
+
+    // if the command ends with / and such directory exists, cd into it
+
+    bool may_be_directory = command[strlen(command) - 1] == '/';
+    may_be_directory |= strcmp(command, "..") == 0;
+    may_be_directory |= command[0] == '.' && command[1] == '.';
+    may_be_directory |= command[0] == '/';
+    may_be_directory |= command[0] == '.' && command[1] == '/';
+
+    if (may_be_directory)
+    {
+        file_stat_t statbuf = { 0 };
+        if (stat(command, &statbuf))
+        {
+            if (statbuf.type == FILE_TYPE_DIRECTORY)
+            {
+                syscall_vfs_chdir(command);
+                return true;
+            }
         }
     }
 
