@@ -12,4 +12,7 @@ typedef struct
 
 extern const kallsyms_t mos_kallsyms[];
 
-const kallsyms_t *kallsyms_get_symbol_name(ptr_t addr);
+#define mos_caller (kallsyms_get_symbol_name((ptr_t) __builtin_return_address(0)))
+
+const kallsyms_t *kallsyms_get_symbol(ptr_t addr);
+const char *kallsyms_get_symbol_name(ptr_t addr);

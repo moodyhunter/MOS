@@ -86,7 +86,7 @@ static void x86_do_backtrace(void)
     {
         if (frame->eip >= MOS_KERNEL_START_VADDR)
         {
-            const kallsyms_t *kallsyms = kallsyms_get_symbol_name(frame->eip);
+            const kallsyms_t *kallsyms = kallsyms_get_symbol(frame->eip);
             if (kallsyms)
                 pr_warn("  %-2d" PTR_FMT ": %s (+" PTR_VLFMT ")", i, frame->eip, kallsyms->name, frame->eip - kallsyms->address);
             else
