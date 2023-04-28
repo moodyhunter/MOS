@@ -393,7 +393,7 @@ MOS_TEST_CASE(integer_extreme_case)
 }
 
 // https://github.com/BartMassey/printf-tests/blob/master/drivers/c/testcases.c
-// Licensed under the GPLv2.
+// Licensed under the GPLv2 or later.
 MOS_WARNING_PUSH
 MOS_WARNING_DISABLE("-Wformat")
 MOS_WARNING_DISABLE("-Wformat-extra-args")
