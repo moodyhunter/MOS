@@ -162,8 +162,10 @@ void x86_start_kernel(x86_startup_info *info)
     x86_bios_block = mm_map_pages(x86_platform.kernel_pgd, x86_bios_block.vaddr, X86_BIOS_MEMREGION_PADDR, x86_bios_block.npages, x86_bios_block.flags);
     x86_ebda_block = mm_map_pages(x86_platform.kernel_pgd, x86_ebda_block.vaddr, X86_EBDA_MEMREGION_PADDR, x86_ebda_block.npages, x86_ebda_block.flags);
 
+#if MOS_CONFIG(MOS_SMP)
     mos_debug(x86_startup, "copying memory for SMP boot...");
     x86_smp_copy_trampoline();
+#endif
 
     x86_enable_paging_impl(((ptr_t) x86_kpg_infra->pgdir) - MOS_KERNEL_START_VADDR);
     mos_debug(x86_startup, "paging enabled");
@@ -215,7 +217,10 @@ void x86_start_kernel(x86_startup_info *info)
     ioapic_enable_interrupt(IRQ_COM1, 0);
 
     current_cpu->id = x86_platform.boot_cpu_id = lapic_get_id();
+
+#if MOS_CONFIG(MOS_SMP)
     x86_smp_start_all();
+#endif
 
     mos_start_kernel(mos_cmdline);
 }

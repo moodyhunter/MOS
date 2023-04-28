@@ -8,6 +8,7 @@
 #include <mos/mos_global.h>
 #include <mos/types.h>
 
+#if MOS_CONFIG(MOS_SMP)
 #define PER_CPU_DECLARE(type, name)                                                                                                                                      \
     struct name                                                                                                                                                          \
     {                                                                                                                                                                    \
@@ -15,6 +16,15 @@
     } name
 
 #define per_cpu(var) (&(var.percpu_value[platform_current_cpu_id()]))
+#else
+#define PER_CPU_DECLARE(type, name)                                                                                                                                      \
+    struct name                                                                                                                                                          \
+    {                                                                                                                                                                    \
+        type percpu_value;                                                                                                                                               \
+    } name
+
+#define per_cpu(var) (&(var.percpu_value))
+#endif
 
 #define current_cpu     per_cpu(platform_info->cpu)
 #define current_thread  (current_cpu->thread)

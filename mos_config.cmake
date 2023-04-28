@@ -56,6 +56,8 @@ mos_kconfig(LIMITS      MOS_STACK_PAGES_USER            32                  "Pag
 mos_kconfig(MM          MOS_MM_LIBALLOC_LOCKS           ON                  "Enable locking support in liballoc")
 mos_kconfig(DEBUG       MOS_DEBUG_HAS_FUNCTION_NAME     ON                  "Include function name in debug log")
 
+mos_kconfig(KERNEL      MOS_SMP                         OFF                 "Enable Experimental SMP support")
+
 # Debugging options
 mos_debug(thread        "Thread debug log")
 mos_debug(process       "Process debug log")
