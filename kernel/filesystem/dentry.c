@@ -586,7 +586,9 @@ dentry_t *dentry_get(dentry_t *starting_dir, dentry_t *root_dir, const char *pat
         return parent_ref;
     }
 
-    return dentry_resolve_handle_last_segment(parent_ref, last_segment, flags);
+    dentry_t *child_ref = dentry_resolve_handle_last_segment(parent_ref, last_segment, flags);
+    kfree(last_segment);
+    return child_ref;
 }
 
 bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs)
