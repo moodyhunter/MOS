@@ -21,14 +21,20 @@ void define_syscall(poweroff)(bool reboot, u32 magic)
 {
 #define POWEROFF_MAGIC MOS_FOURCC('G', 'B', 'y', 'e')
     if (magic != POWEROFF_MAGIC)
+    {
         mos_warn("poweroff syscall called with wrong magic number (0x%x)", magic);
+        return;
+    }
+
     if (!reboot)
     {
         pr_info("Meow, see ya~ :3");
         platform_shutdown();
     }
     else
+    {
         mos_warn("reboot is not implemented yet");
+    }
 }
 
 fd_t define_syscall(vfs_openat)(fd_t dirfd, const char *path, open_flags flags)

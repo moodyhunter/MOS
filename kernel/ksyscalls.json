@@ -10,12 +10,6 @@
     ],
     "syscalls": [
         {
-            "number": 0,
-            "name": "poweroff",
-            "return": "void",
-            "arguments": [ { "type": "bool", "arg": "reboot" }, { "type": "u32", "arg": "magic" } ]
-        },
-        {
             "number": 1,
             "name": "vfs_openat",
             "return": "fd_t",
@@ -297,6 +291,12 @@
             "comments": [
                 "Send a signal to a specific thread in a process."
             ]
+        },
+        {
+            "number": 42,
+            "name": "poweroff",
+            "return": "void",
+            "arguments": [ { "type": "bool", "arg": "reboot" }, { "type": "u32", "arg": "magic" } ]
         }
     ]
 }

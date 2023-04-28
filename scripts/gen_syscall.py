@@ -136,6 +136,7 @@ class UsermodeWrapperGenerator(BaseAbstractGenerator):
         # also include the 'mos/platform_syscall.h' header
         self.gen("// platform syscall header")
         self.gen('#include <mos/platform_syscall.h>')
+        self.gen('#include <mos/syscall/number.h>')
         self.gen("")
         self.gen("#ifdef __MOS_KERNEL__")
         self.gen("#error \"This file should not be included in the kernel!\"")
@@ -178,6 +179,9 @@ class SyscallNumberGenerator(BaseAbstractGenerator):
         pass
 
     def generate_prologue(self):
+        self.gen("// expand to 1 if syscall is defined, 0 otherwise")
+        self.gen("#define SYSCALL_DEFINED(name) (SYSCALL_##name > 0)")
+        self.gen("")
         pass
 
     def generate_single(self, e):
