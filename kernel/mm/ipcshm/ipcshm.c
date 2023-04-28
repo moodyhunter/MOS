@@ -23,6 +23,9 @@ static spinlock_t billboard_lock;
 static ipcshm_t *ipcshm_server_get_pending(ipcshm_server_t *server)
 {
     ipcshm_t *pending = NULL;
+    if (server->magic != IPCSHM_SERVER_MAGIC)
+        return NULL;
+
     spinlock_acquire(&server->pending_lock);
     for (size_t i = 0; i < server->max_pending; i++)
     {
