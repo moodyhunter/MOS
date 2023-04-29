@@ -99,7 +99,7 @@ __startup_code void mos_startup_map_single_page(ptr_t vaddr, ptr_t paddr, vm_fla
     x86_pgtable_entry *this_table = (x86_pgtable_entry *) (this_dir->page_table_paddr << 12) + table_index;
     if (this_table->present)
     {
-        STARTUP_ASSERT(this_table->phys_addr == (paddr >> 12), 'd'); // page already mapped to different physical address
+        STARTUP_ASSERT(this_table->phys_addr == (paddr >> 12), 'd'); // fail if the page is mapped to different physical address
         return;
     }
     mos_startup_memzero((void *) this_table, sizeof(x86_pgtable_entry));
@@ -117,8 +117,6 @@ __startup_code void mos_startup_map_single_page(ptr_t vaddr, ptr_t paddr, vm_fla
 // 1. Identity map the VGA buffer to kvirt address space
 // 2. Identity map the code section '.mos.startup*'
 // 3. Map the kernel code, rodata, data, bss and kpage tables
-// 4. Find the initrd and map it
-// 5. Find a possible location for the kernel stack and map it
 // 4. Enable paging
 __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
 {
@@ -140,6 +138,9 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
     STARTUP_ASSERT(startup->mb_info->mmap_addr, 'm');
     mos_startup_map_identity((ptr_t) startup->mb_info->mmap_addr, startup->mb_info->mmap_length * sizeof(multiboot_memory_map_t), VM_READ);
 
+    if (startup->mb_info->mods_addr)
+        mos_startup_map_identity((ptr_t) startup->mb_info->mods_addr, startup->mb_info->mods_count * sizeof(multiboot_module_t), VM_READ);
+
     // map the VGA buffer, from 0xB8000
     mos_startup_map_bios(X86_VIDEO_DEVICE, VIDEO_WIDTH * VIDEO_HEIGHT * 2, VM_WRITE);
 
@@ -147,39 +148,29 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
     mos_startup_map_bios(X86_BIOS_MEMREGION_PADDR, BIOS_MEMREGION_SIZE, VM_READ);
     mos_startup_map_bios(X86_EBDA_MEMREGION_PADDR, EBDA_MEMREGION_SIZE, VM_READ);
 
-    // ! we do not separate the startup code and data to simplify the setup.
+    // ! we do [not] separate the startup part into [code, rodata, data] for simplicity
     // ! this page directory will be removed as soon as the kernel is loaded, it shouldn't be a problem.
     mos_startup_map_identity(startup_start, startup_end - startup_start, VM_RW | VM_EXEC);
-
     debug_print_step(); // b
+
     const size_t kernel_code_pgsize = ALIGN_UP_TO_PAGE(kernel_code_vend - kernel_code_vstart) / MOS_PAGE_SIZE;
     mos_startup_map_pages(kernel_code_vstart, kernel_code_vstart - MOS_KERNEL_START_VADDR, kernel_code_pgsize, VM_EXEC);
+    debug_print_step(); // c
 
     const size_t kernel_ro_pgsize = ALIGN_UP_TO_PAGE(kernel_ro_vend - kernel_ro_vstart) / MOS_PAGE_SIZE;
     mos_startup_map_pages(kernel_ro_vstart, kernel_ro_vstart - MOS_KERNEL_START_VADDR, kernel_ro_pgsize, VM_READ);
+    debug_print_step(); // d
 
     const size_t kernel_rw_pgsize = ALIGN_UP_TO_PAGE(kernel_rw_vend - kernel_rw_vstart) / MOS_PAGE_SIZE;
     mos_startup_map_pages(kernel_rw_vstart, kernel_rw_vstart - MOS_KERNEL_START_VADDR, kernel_rw_pgsize, VM_WRITE);
-
-    if (startup->mb_info->flags & MULTIBOOT_INFO_MODS && startup->mb_info->mods_count != 0)
-    {
-        multiboot_module_t *mod = (multiboot_module_t *) startup->mb_info->mods_addr;
-        const size_t initrd_pgsize = ALIGN_UP_TO_PAGE(mod->mod_end - mod->mod_start) / MOS_PAGE_SIZE;
-        startup->initrd_size = mod->mod_end - mod->mod_start;
-        mos_startup_map_pages(MOS_X86_INITRD_VADDR, mod->mod_start, initrd_pgsize, VM_READ);
-        debug_print_step(); // c
-    }
-    else
-    {
-        step++;
-    }
+    debug_print_step(); // e
 
     __asm__ volatile("mov %0, %%cr3" ::"r"(startup_pgd));
-    debug_print_step(); // d
+    debug_print_step(); // f
 
     __asm__ volatile("mov %%cr0, %%eax; or $0x80000000, %%eax; mov %%eax, %%cr0" ::: "eax");
     video_device_address = BIOS_VADDR(X86_VIDEO_DEVICE);
-    debug_print_step(); // e
+    debug_print_step(); // g
 
     print_debug_info('O', 'k', Green, Green);
 }

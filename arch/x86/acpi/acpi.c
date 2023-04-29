@@ -27,7 +27,7 @@ should_inline bool verify_sdt_checksum(const acpi_sdt_header_t *tableHeader)
 
 void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
 {
-    pr_info("initializing ACPI with RSDP at %p", (void *) rsdp);
+    mos_debug(x86_acpi, "initializing ACPI with RSDP at %p", (void *) rsdp);
     // !! "MUST" USE XSDT IF FOUND !!
     if (rsdp->xsdt_addr)
         mos_panic("XSDT not supported");

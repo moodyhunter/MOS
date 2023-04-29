@@ -28,9 +28,6 @@
 #include <mos/x86/x86_platform.h>
 #include <string.h>
 
-static size_t initrd_size = 0;
-static ptr_t initrd_paddr = 0;
-
 static char mos_cmdline[512];
 static serial_console_t com1_console = {
     .device.port = COM1,
@@ -106,14 +103,19 @@ void x86_start_kernel(x86_startup_info *info)
     console_register(&com1_console.console);
     declare_panic_hook(x86_do_backtrace, "Backtrace");
     install_panic_hook(&x86_do_backtrace_holder);
-
-    mos_debug(x86_startup, "initrd %zu bytes, mbinfo at: " PTR_FMT ", magic " PTR_FMT, info->initrd_size, (ptr_t) info->mb_info, (ptr_t) info->mb_magic);
-
     const multiboot_info_t *mb_info = info->mb_info;
-    initrd_size = info->initrd_size;
+    size_t initrd_size = 0;
+    ptr_t initrd_paddr = 0;
 
-    if (initrd_size)
-        initrd_paddr = ((x86_pgtable_entry *) (((x86_pgdir_entry *) x86_get_cr3())[MOS_X86_INITRD_VADDR >> 22].page_table_paddr << 12))->phys_addr << 12;
+    if (mb_info->flags & MULTIBOOT_INFO_MODS && mb_info->mods_count != 0)
+    {
+        multiboot_module_t *mod = (multiboot_module_t *) mb_info->mods_addr;
+        mos_debug(x86_startup, "initrd at " PTR_FMT ", size %zu", mod->mod_start, mod->mod_end - mod->mod_start);
+        initrd_size = mod->mod_end - mod->mod_start;
+        initrd_paddr = mod->mod_start;
+    }
+
+
 
     x86_init_current_cpu_gdt();
     x86_idt_init();

@@ -27,7 +27,6 @@ mos_x86_multiboot_start:
     popf
 
     ; on-stack struct x86_startup_info
-    push    0                           ; Push initrd size
     push    ebx                         ; Push multiboot2 header pointer
     push    eax                         ; Push multiboot2 magic value
 
@@ -37,7 +36,6 @@ mos_x86_multiboot_start:
     mov     eax, esp                    ; save the pointer to the struct x86_startup_info
 
     mov     esp, __MOS_KERNEL_HIGHER_STACK_TOP ; paging has been enabled, switch to higher stack
-    push    dword [eax + 8]             ; Push initrd size
     push    dword [eax + 4]             ; Push multiboot2 header pointer
     push    dword [eax]                 ; Push multiboot2 magic value
     push    esp                         ; Push [struct x86_startup_info] pointer
