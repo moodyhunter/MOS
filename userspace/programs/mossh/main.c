@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/kconfig.h>
+#include <mos/lib/cmdline.h>
 #include <mos/mos_global.h>
 #include <mos/syscall/usermode.h>
 #include <stdio.h>
@@ -22,63 +23,6 @@ const char *PATH[] = {
     "/initrd/tests",    // userspace tests
     NULL,
 };
-
-static const char **tokenize_line(char *line, int *argc)
-{
-    const char **argv = malloc(sizeof(char *) * 32);
-    int i = 0;
-
-    while (*line)
-    {
-        // skip whitespace
-        while (*line == ' ' || *line == '\t')
-            line++;
-
-        if (*line == '\0')
-            break;
-
-        // handle quotes
-        if (*line == '"')
-        {
-            line++;
-            argv[i++] = line;
-            while (*line && *line != '"')
-                line++;
-            if (*line == '"')
-                *line++ = '\0';
-        }
-        else if (*line == '\'')
-        {
-            line++;
-            argv[i++] = line;
-            while (*line && *line != '\'')
-                line++;
-            if (*line == '\'')
-                *line++ = '\0';
-        }
-        else if (*line == '\\')
-        {
-            line++;
-            argv[i++] = line;
-            while (*line && *line != '\\')
-                line++;
-            if (*line == '\\')
-                *line++ = '\0';
-        }
-        else
-        {
-            argv[i++] = line;
-            while (*line && *line != ' ' && *line != '\t')
-                line++;
-            if (*line == ' ' || *line == '\t')
-                *line++ = '\0';
-        }
-    }
-
-    argv[i] = NULL;
-    *argc = i;
-    return argv;
-}
 
 bool do_program(const char *prog, int argc, const char **argv)
 {
@@ -135,14 +79,22 @@ bool do_builtin(const char *command, int argc, const char **argv)
 
 void do_execute(const char *prog, char *rest)
 {
-    int new_argc = 0;
-    const char **new_argv = tokenize_line(rest, &new_argc);
+    size_t argc = 0;
+    const char **argv = cmdline_parse(NULL, rest, strlen(rest), &argc);
 
-    if (!do_builtin(prog, new_argc, new_argv))
-        if (!do_program(prog, new_argc, new_argv))
+    for (size_t i = 0; i < argc; i++)
+        string_unquote((char *) argv[i]);
+
+    if (!do_builtin(prog, argc, argv))
+        if (!do_program(prog, argc, argv))
             fprintf(stderr, "'%s' is not recognized as an internal, operable program or batch file.\n", prog);
 
-    free(new_argv);
+    if (argc)
+    {
+        for (size_t i = 0; i < argc; i++)
+            free((void *) argv[i]);
+        free(argv);
+    }
 }
 
 void do_execute_line(char *line)

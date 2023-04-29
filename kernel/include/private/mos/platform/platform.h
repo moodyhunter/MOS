@@ -158,7 +158,7 @@ typedef struct
 
 extern mos_platform_info_t *const platform_info;
 
-extern void mos_start_kernel(const char *cmdline);
+extern void mos_start_kernel(void);
 extern void mos_kernel_mm_init(void);
 
 // Platform Machine APIs

@@ -1,133 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <mos/cmdline.h>
+#include <mos/kallsyms.h>
+#include <mos/lib/cmdline.h>
 #include <mos/mm/kmalloc.h>
 #include <mos/printk.h>
 #include <string.h>
 
-cmdline_t *cmdline_create(const char *cmdline)
-{
-    cmdline_t *cmd = kzalloc(sizeof(cmdline_t));
-
-    while (*cmdline)
-    {
-        if (*cmdline == ' ')
-            cmdline++;
-
-        cmd->options = krealloc(cmd->options, sizeof(cmdline_option_t *) * (cmd->options_count + 1));
-        cmdline_option_t *opt = cmd->options[cmd->options_count++] = kzalloc(sizeof(cmdline_option_t));
-
-        // an arg name ends with an '=' (has parameters) or a space
-        {
-            const char *const start = cmdline;
-            while (*cmdline && !((*cmdline) == ' ' || (*cmdline) == '='))
-                cmdline++;
-            opt->name = duplicate_string(start, cmdline - start);
-        }
-
-        // the option has more arguments
-        if (*cmdline && *cmdline++ != '=')
-            continue;
-
-        while (*cmdline && *cmdline != ' ')
-        {
-            opt->argv = krealloc(opt->argv, sizeof(const char *) * (opt->argc + 1));
-
-            // an option ends with a space or a comma
-            const char *const start = cmdline;
-
-            while (*cmdline && *cmdline != ' ' && *cmdline != ',')
-            {
-                if (*cmdline == '"')
-                {
-                    cmdline++;
-                    while (*cmdline && *cmdline != '"')
-                        cmdline++;
-                    if (*cmdline == '"')
-                        cmdline++;
-                }
-                else if (*cmdline == '\'')
-                {
-                    cmdline++;
-                    while (*cmdline && *cmdline != '\'')
-                        cmdline++;
-                    if (*cmdline == '\'')
-                        cmdline++;
-                }
-                else
-                {
-                    cmdline++;
-                }
-            }
-
-            if (*start == '"' && *(cmdline - 1) == '"')
-            {
-                opt->argv[opt->argc++] = duplicate_string(start + 1, cmdline - start - 2); // remove quotes
-            }
-            else if (*start == '\'' && *(cmdline - 1) == '\'')
-            {
-                opt->argv[opt->argc++] = duplicate_string(start + 1, cmdline - start - 2); // remove quotes
-            }
-            else
-            {
-                opt->argv[opt->argc++] = duplicate_string(start, cmdline - start); // no quotes
-            }
-
-            MOS_ASSERT(*cmdline == ' ' || *cmdline == ',' || *cmdline == '\0');
-
-            // we have another argument
-            if (*cmdline == ',')
-                cmdline++;
-
-            // we have another option
-            if (*cmdline == ' ')
-            {
-                cmdline++;
-                break;
-            }
-        }
-    }
-
-    return cmd;
-}
-
-static void cmdline_free_option(cmdline_option_t *opt)
-{
-    kfree(opt->name);
-    for (u32 i = 0; i < opt->argc; i++)
-        kfree(opt->argv[i]);
-    if (opt->argc > 0)
-        kfree(opt->argv);
-    kfree(opt);
-}
-
-bool cmdline_remove_option(cmdline_t *cmdline, const char *arg)
-{
-    for (u32 i = 0; i < cmdline->options_count; i++)
-    {
-        if (strcmp(cmdline->options[i]->name, arg) == 0)
-        {
-            cmdline_free_option(cmdline->options[i]);
-            cmdline->options_count--;
-
-            for (u32 j = i; j < cmdline->options_count; j++)
-                cmdline->options[j] = cmdline->options[j + 1]; // shift the array to the left by one
-
-            cmdline->options = krealloc(cmdline->options, sizeof(cmdline_option_t *) * cmdline->options_count);
-            return true;
-        }
-    }
-    return false;
-}
-
-void cmdline_destroy(cmdline_t *cmdline)
-{
-    for (u32 i = 0; i < cmdline->options_count; i++)
-        cmdline_free_option(cmdline->options[i]);
-
-    kfree(cmdline->options);
-    kfree(cmdline);
-}
+size_t mos_cmdlines_count = 0;
+cmdline_option_t mos_cmdlines[MOS_MAX_CMDLINE_COUNT] = { 0 };
 
 static bool cmdline_is_truthy(const char *arg)
 {
@@ -139,20 +20,119 @@ static bool cmdline_is_falsy(const char *arg)
     return strcmp(arg, "false") == 0 || strcmp(arg, "0") == 0 || strcmp(arg, "no") == 0 || strcmp(arg, "off") == 0;
 }
 
-bool cmdline_arg_get_bool_impl(const char *func, int argc, const char **argv, bool default_value)
+static cmdline_option_t *cmdline_get_option(const char *option_name)
 {
-    func = func ? func : "";
-    if (argc == 0)
-        return default_value;
-    else if (argc > 1)
-        pr_warn("%s: too many arguments (%d), only the first one will be used", func, argc);
+    for (u32 i = 0; i < mos_cmdlines_count; i++)
+    {
+        if (strcmp(mos_cmdlines[i].name, option_name) == 0)
+        {
+            return &mos_cmdlines[i];
+        }
+    }
+    return NULL;
+}
 
-    if (cmdline_is_truthy(argv[0]))
+void mos_cmdline_parse(const char *cmdline)
+{
+    // must be static so that it doesn't get freed
+    static char cmdline_buf[PRINTK_BUFFER_SIZE] = { 0 };
+
+    if (!cmdline)
+        return;
+
+    const size_t cmdline_length = strlen(cmdline);
+    memcpy(cmdline_buf, cmdline, cmdline_length);
+    cmdline_buf[cmdline_length] = '\0'; // ensure null terminator
+
+    mos_debug(setup, "cmdline: %s", cmdline_buf);
+
+    char *cmdlines_tmp[MOS_MAX_CMDLINE_COUNT] = { 0 };
+    bool result = cmdline_parse_inplace(cmdline_buf, cmdline_length, MOS_MAX_CMDLINE_COUNT, &mos_cmdlines_count, cmdlines_tmp);
+    if (!result)
+        pr_warn("cmdline_parse: too many cmdlines");
+
+    for (size_t i = 0; i < mos_cmdlines_count; i++)
+    {
+        mos_debug(setup, "cmdline: %s", cmdlines_tmp[i]);
+        mos_cmdlines[i].name = cmdlines_tmp[i];
+
+        // find the = sign
+        char *equal_sign = strchr(cmdlines_tmp[i], '=');
+        if (!equal_sign)
+            continue;
+
+        *equal_sign = '\0';
+        mos_cmdlines[i].arg = equal_sign + 1;
+    }
+}
+
+bool string_truthiness(const char *arg, bool default_value)
+{
+    const char *func = mos_caller;
+    func = func ? func : "";
+
+    if (unlikely(!arg))
+        return default_value;
+
+    if (cmdline_is_truthy(arg))
         return true;
-    else if (cmdline_is_falsy(argv[0]))
+    else if (cmdline_is_falsy(arg))
         return false;
     else
-        pr_warn("%s: invalid argument '%s', assuming %s", func, argv[0], default_value ? "true" : "false");
+        return default_value;
+}
 
-    return default_value;
+void mos_cmdline_do_setup(void)
+{
+    extern const setup_func_t __MOS_SETUP_START[]; // defined in linker script
+    extern const setup_func_t __MOS_SETUP_END[];
+
+    for (const setup_func_t *func = __MOS_SETUP_START; func < __MOS_SETUP_END; func++)
+    {
+        cmdline_option_t *option = cmdline_get_option(func->name);
+
+        if (unlikely(!option))
+        {
+            mos_debug(setup, "no option given for '%s'", func->name);
+            continue;
+        }
+
+        if (unlikely(option->used))
+        {
+            pr_warn("option '%s' already used", func->name);
+            continue;
+        }
+
+        mos_debug(setup, "invoking setup function for '%s'", func->name);
+        if (unlikely(!func->setup_fn(option->arg)))
+        {
+            pr_warn("setup function for '%s' failed", func->name);
+            continue;
+        }
+
+        option->used = true;
+    }
+}
+
+void mos_cmdline_do_early_setup(void)
+{
+    extern const setup_func_t __MOS_EARLY_SETUP_START[]; // defined in linker script
+    extern const setup_func_t __MOS_EARLY_SETUP_END[];
+
+    for (const setup_func_t *func = __MOS_EARLY_SETUP_START; func < __MOS_EARLY_SETUP_END; func++)
+    {
+        mos_debug(setup, "invoking early setup function for '%s'", func->name);
+        cmdline_option_t *option = cmdline_get_option(func->name);
+
+        if (unlikely(!option))
+        {
+            mos_debug(setup, "no option given for '%s'", func->name);
+            continue;
+        }
+
+        if (unlikely(!func->setup_fn(option->arg)))
+            pr_warn("early setup function for '%s' failed", func->name);
+
+        option->used = true;
+    }
 }

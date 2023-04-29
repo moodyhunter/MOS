@@ -82,7 +82,15 @@ static const argparse_arg_t longopts[] = {
 
 int main(int argc, const char *argv[])
 {
-    MOS_UNUSED(argc);
+    if (syscall_get_pid() != 1)
+    {
+        printf("init: not running as PID 1\n");
+
+        for (int i = 0; i < argc; i++)
+            printf("argv[%d] = %s\n", i, argv[i]);
+
+        return DYN_ERROR_CODE;
+    }
 
     const char *config_file = "/initrd/config/init.conf";
     const char *shell = "/initrd/programs/mossh";

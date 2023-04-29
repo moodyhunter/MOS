@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <mos/cmdline.h>
 #include <mos/device/console.h>
 #include <mos/elf/elf.h>
 #include <mos/filesystem/fs_types.h>
@@ -7,12 +8,11 @@
 #include <mos/interrupt/ipi.h>
 #include <mos/io/terminal.h>
 #include <mos/ipc/ipc.h>
-#include <mos/kallsyms.h>
 #include <mos/kconfig.h>
+#include <mos/lib/cmdline.h>
 #include <mos/mm/kmalloc.h>
 #include <mos/mm/shm.h>
 #include <mos/printk.h>
-#include <mos/setup.h>
 #include <mos/tasks/kthread.h>
 #include <mos/tasks/schedule.h>
 #include <string.h>
@@ -20,69 +20,63 @@
 extern filesystem_t fs_tmpfs;
 extern filesystem_t fs_cpiofs;
 
-const char *init_path = "/initrd/programs/init";
-argv_t init_argv = { 0 };
+#define DEFAULT_INIT_PATH "/initrd/programs/init"
+// const char *init_path = DEFAULT_INIT_PATH;
+// const char **init_argv = NULL;
 
-bool setup_init_path(int argc, const char **argv)
+static argv_t init_argv = { 0 };
+
+static bool setup_init_path(const char *arg)
 {
-    if (argc != 1)
+    if (!arg)
     {
-        pr_warn("setup_init_path: expected 1 argument, got %d", argc);
-        for (int i = 0; i < argc; i++)
-            pr_warn("  %d: %s", i, argv[i]);
+        pr_warn("init path not specified");
         return false;
     }
 
-    init_path = strdup(argv[0]);
-    pr_emph("init path set to '%s'", init_path);
+    if (init_argv.argv)
+        kfree(init_argv.argv[0]); // free the old init path
+
+    init_argv.argv[0] = strdup(arg);
     return true;
 }
-
 __setup("init", setup_init_path);
 
-bool setup_init_args(int argc, const char **argv)
+static bool setup_init_args(const char *arg)
 {
-    MOS_ASSERT(argc == 1);
-    init_argv.argc = 1;
-    init_argv.argv = kmalloc(sizeof(char *));
-    init_argv.argv[0] = "<to-be-set>";
-    const char *start = argv[0];
-    while (*start)
-    {
-        const char *end = strchr(start, ' ');
-        if (!end)
-            end = start + strlen(start);
-
-        init_argv.argv = krealloc(init_argv.argv, sizeof(char *) * (init_argv.argc + 1));
-        init_argv.argv[init_argv.argc++] = strndup(start, end - start);
-        start = end;
-        if (*start)
-            start++;
-    }
+    char *var_arg = strdup(arg);
+    string_unquote(var_arg);
+    init_argv.argv = cmdline_parse(init_argv.argv, var_arg, strlen(var_arg), &init_argv.argc);
+    kfree(var_arg);
     return true;
 }
-
 __setup("init_args", setup_init_args);
 
-void mos_start_kernel(const char *cmdline)
+void mos_start_kernel(void)
 {
-    cmdline_t *mos_cmdline = cmdline_create(cmdline);
-
     pr_info("Welcome to MOS!");
     pr_emph("MOS %s (%s)", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION_STRING);
 
-    if (mos_cmdline->options_count)
+    if (mos_cmdlines_count)
         pr_emph("MOS Kernel cmdline");
 
-    for (u32 i = 0; i < mos_cmdline->options_count; i++)
+    for (u32 i = 0; i < mos_cmdlines_count; i++)
     {
-        cmdline_option_t *option = mos_cmdline->options[i];
-        pr_info("%2d: %s", i + 1, option->name);
-        for (u32 j = 0; j < option->argc; j++)
-            pr_info2("  %2d: %s", j + 1, option->argv[j]);
+        const cmdline_option_t *opt = &mos_cmdlines[i];
+        if (opt->arg)
+            pr_info2("  %-2d: %-10s = %s", i, opt->name, opt->arg);
+        else
+            pr_info2("  %-2d: %s", i, opt->name);
     }
 
-    invoke_setup_functions(mos_cmdline);
+    init_argv.argc = 1;
+    init_argv.argv = kcalloc(1, sizeof(char *)); // init_argv[0] is the init path
+    init_argv.argv[0] = strdup(DEFAULT_INIT_PATH);
+    mos_cmdline_do_setup();
+
+    pr_emph("init path: %s", init_argv.argv[0]);
+    for (u32 i = 1; i < init_argv.argc; i++)
+        pr_emph("init arg %d: %s", i, init_argv.argv[i]);
 
     // register builtin filesystems
     vfs_init();
@@ -105,15 +99,8 @@ void mos_start_kernel(const char *cmdline)
     if (init_con->caps & CONSOLE_CAP_CLEAR)
         init_con->clear(init_con);
 
-    if (init_argv.argc == 0)
-    {
-        init_argv.argc = 1;
-        init_argv.argv = kmalloc(sizeof(char *));
-        init_argv.argv[0] = init_path;
-    }
-
     terminal_t *init_term = terminal_create_console(init_con);
-    process_t *init = elf_create_process(init_path, NULL, init_term, init_argv);
+    process_t *init = elf_create_process(init_argv.argv[0], NULL, init_term, init_argv);
     if (unlikely(!init))
         mos_panic("failed to create init process");
 

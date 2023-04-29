@@ -7,7 +7,6 @@
 #include <mos/mm/kmalloc.h>
 #include <mos/mos_global.h>
 #include <mos/printk.h>
-#include <mos/setup.h>
 #include <stdlib.h>
 #include <string.h>
 

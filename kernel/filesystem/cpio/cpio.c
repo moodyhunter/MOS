@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <mos/cmdline.h>
 #include <mos/device/block.h>
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/fs_types.h>
@@ -9,7 +10,6 @@
 #include <mos/mm/kmalloc.h>
 #include <mos/mos_global.h>
 #include <mos/printk.h>
-#include <mos/setup.h>
 #include <stdlib.h>
 #include <string.h>
 

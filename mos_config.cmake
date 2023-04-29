@@ -47,6 +47,7 @@ mos_target_setup()
 
 mos_kconfig(KERNEL      MOS_BITS                        ${MOS_BITS}         "ISA Bits")
 mos_kconfig(LIMITS      MOS_MAX_CPU_COUNT               16                  "Max supported number of CPUs")
+mos_kconfig(LIMITS      MOS_MAX_CMDLINE_COUNT           64                  "Max supported number of command line arguments")
 mos_kconfig(LIMITS      MOS_PMM_EARLY_MEMREGIONS        64                  "Pre-allocated PMM list nodes")
 mos_kconfig(LIMITS      MOS_PROCESS_MAX_OPEN_FILES      256                 "Max open files per process")
 mos_kconfig(LIMITS      MOS_PROCESS_MAX_THREADS         64                  "Max threads per process")

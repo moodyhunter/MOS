@@ -10,7 +10,6 @@
 #include <mos/mm/kmalloc.h>
 #include <mos/panic.h>
 #include <mos/printk.h>
-#include <mos/setup.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -65,19 +64,33 @@ static void test_engine_warning_handler(const char *func, u32 line, const char *
 static const char **test_engine_skip_prefix_list = NULL;
 static bool mos_tests_halt_on_success = false;
 
-static bool mos_test_engine_setup_skip_prefix_list(int argc, const char **argv)
+static bool mos_test_engine_setup_skip_prefix_list(const char *arg)
 {
+    // split the argument into a list of strings
+    int argc = 1;
+    for (int i = 0; arg[i]; i++)
+        if (arg[i] == ',')
+            argc++;
+
     test_engine_skip_prefix_list = kmalloc(sizeof(char *) * argc);
-    for (int i = 0; i < argc; i++)
-        test_engine_skip_prefix_list[i] = strdup(argv[i]);
+
+    int i = 0;
+    char *token = strtok((char *) arg, ",");
+    while (token)
+    {
+        test_engine_skip_prefix_list[i] = token;
+        token = strtok(NULL, ",");
+        i++;
+    }
+
     return true;
 }
 
 __setup("mos_tests_skip_prefix", mos_test_engine_setup_skip_prefix_list);
 
-static bool mos_tests_setup_halt_on_success(int argc, const char **argv)
+static bool mos_tests_setup_halt_on_success(const char *arg)
 {
-    mos_tests_halt_on_success = cmdline_arg_get_bool(argc, argv, true);
+    mos_tests_halt_on_success = string_truthiness(arg, true);
     return true;
 }
 
@@ -97,10 +110,9 @@ static bool mos_test_engine_should_skip(const char *test_name)
     return false;
 }
 
-static bool mos_test_engine_run_tests(int argc, const char **argv)
+static bool mos_test_engine_run_tests(const char *arg)
 {
-    MOS_UNUSED(argc);
-    MOS_UNUSED(argv);
+    MOS_UNUSED(arg);
     kwarn_handler_set(test_engine_warning_handler);
 
     mos_test_result_t result = { 0 };

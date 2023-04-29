@@ -8,19 +8,29 @@
 typedef struct
 {
     const char *name;
-    u32 argc;
-    const char **argv;
+    const char *arg;
+    bool used;
 } cmdline_option_t;
 
 typedef struct
 {
-    size_t options_count;
-    cmdline_option_t **options;
-} cmdline_t;
+    const char *const name;
+    bool (*setup_fn)(const char *arg);
+} setup_func_t;
 
-cmdline_t *cmdline_create(const char *kcmdline);
-bool cmdline_remove_option(cmdline_t *cmdline, const char *arg);
-void cmdline_destroy(cmdline_t *cmdline);
+#define __do_setup(_param, _fn, _section)                                                                                                                                \
+    static bool _fn(const char *arg);                                                                                                                                    \
+    static const setup_func_t __used __setup_##_fn __section(_section) = { .name = _param, .setup_fn = _fn }
 
-#define cmdline_arg_get_bool(argc, argv, def) cmdline_arg_get_bool_impl(__func__, argc, argv, def)
-bool cmdline_arg_get_bool_impl(const char *func, int argc, const char **argv, bool default_value);
+#define __setup(_param, _fn)       __do_setup(_param, _fn, ".mos.setup")
+#define __early_setup(_param, _fn) __do_setup(_param, _fn, ".mos.early_setup")
+
+extern size_t mos_cmdlines_count;
+extern cmdline_option_t mos_cmdlines[MOS_MAX_CMDLINE_COUNT];
+
+void mos_cmdline_parse(const char *bootloader_cmdline);
+
+bool string_truthiness(const char *arg, bool default_value);
+
+void mos_cmdline_do_setup(void);
+void mos_cmdline_do_early_setup(void);

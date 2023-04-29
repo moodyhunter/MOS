@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <mos/cmdline.h>
 #include <mos/kallsyms.h>
 #include <mos/mm/kmalloc.h>
 #include <mos/mm/paging/page_ops.h>
@@ -28,7 +29,6 @@
 #include <mos/x86/x86_platform.h>
 #include <string.h>
 
-static char mos_cmdline[512];
 static serial_console_t com1_console = {
     .device.port = COM1,
     .device.baud_rate = BAUD_RATE_115200,
@@ -59,7 +59,7 @@ mos_platform_info_t x86_platform = {
     .k_rwdata = { .vaddr = (ptr_t) &__MOS_KERNEL_RW_START, .flags = VM_READ | VM_WRITE | VM_GLOBAL },
 };
 
-void x86_keyboard_handler(u32 irq)
+static void x86_keyboard_handler(u32 irq)
 {
     MOS_ASSERT(irq == IRQ_KEYBOARD);
     int scancode = port_inb(0x60);
@@ -101,8 +101,6 @@ static void x86_do_backtrace(void)
 void x86_start_kernel(x86_startup_info *info)
 {
     console_register(&com1_console.console);
-    declare_panic_hook(x86_do_backtrace, "Backtrace");
-    install_panic_hook(&x86_do_backtrace_holder);
     const multiboot_info_t *mb_info = info->mb_info;
     size_t initrd_size = 0;
     ptr_t initrd_paddr = 0;
@@ -115,15 +113,16 @@ void x86_start_kernel(x86_startup_info *info)
         initrd_paddr = mod->mod_start;
     }
 
+    mos_cmdline_parse(mb_info->cmdline);
+    mos_cmdline_do_early_setup();
 
+    declare_panic_hook(x86_do_backtrace, "Backtrace");
+    install_panic_hook(&x86_do_backtrace_holder);
 
     x86_init_current_cpu_gdt();
     x86_idt_init();
     x86_init_current_cpu_tss();
     x86_irq_handler_init();
-
-    if (mb_info->flags & MULTIBOOT_INFO_CMDLINE)
-        strncpy(mos_cmdline, mb_info->cmdline, sizeof(mos_cmdline));
 
     const u32 memregion_count = mb_info->mmap_length / sizeof(multiboot_memory_map_t);
     x86_pmm_region_setup(mb_info->mmap_addr, memregion_count);
@@ -224,5 +223,5 @@ void x86_start_kernel(x86_startup_info *info)
     x86_smp_start_all();
 #endif
 
-    mos_start_kernel(mos_cmdline);
+    mos_start_kernel();
 }

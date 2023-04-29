@@ -10,6 +10,7 @@ add_mos_library(
         stdio_impl.c
         stdlib.c
         string.c
+        cmdline.c
         structures/bitmap.c
         structures/hashmap.c
         structures/hashmap_common.c

@@ -5,22 +5,19 @@
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/printk.h>
-#include <mos/setup.h>
 #include <stdio.h>
 #include <string.h>
 
 static console_t *printk_console;
 bool printk_quiet;
 
-static bool printk_setup_console(int argc, const char **argv)
+static bool printk_setup_console(const char *kcon_name)
 {
-    if (argc != 1)
+    if (!kcon_name || !strlen(kcon_name))
     {
-        pr_warn("printk_setup_console: expected 1 argument, got %d", argc);
+        pr_warn("No console name given for printk");
         return false;
     }
-
-    const char *const kcon_name = argv[0];
 
     console_t *console = console_get(kcon_name);
     if (console)
@@ -45,12 +42,12 @@ static bool printk_setup_console(int argc, const char **argv)
 
 __setup("printk_console", printk_setup_console);
 
-static bool printk_setup_quiet(int argc, const char **argv)
+static bool printk_setup_quiet(const char *arg)
 {
-    printk_quiet = cmdline_arg_get_bool(argc, argv, true);
+    printk_quiet = string_truthiness(arg, true);
     return true;
 }
-__setup("quiet", printk_setup_quiet);
+__early_setup("quiet", printk_setup_quiet);
 
 static inline void deduce_level_color(int loglevel, standard_color_t *fg, standard_color_t *bg)
 {

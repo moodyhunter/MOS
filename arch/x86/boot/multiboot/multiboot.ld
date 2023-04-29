@@ -54,6 +54,10 @@ SECTIONS
         *(.mos.setup);
         __MOS_SETUP_END = .;
 
+        __MOS_EARLY_SETUP_START = .;
+        *(.mos.early_setup);
+        __MOS_EARLY_SETUP_END = .;
+
         __MOS_TEST_CASES_START = .;
         *(.mos.test_cases);
         __MOS_TEST_CASES_END = .;
