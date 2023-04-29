@@ -109,15 +109,26 @@ void pmm_dump_lists(void)
 
 void pmm_add_region_bytes(ptr_t start_addr, size_t nbytes, pm_range_type_t type)
 {
-    const ptr_t start = ALIGN_UP_TO_PAGE(start_addr);
-    const ptr_t end = ALIGN_UP_TO_PAGE(start_addr + nbytes);
-    const size_t n_pages = (end - start) / MOS_PAGE_SIZE;
+    ptr_t end_addr = start_addr + nbytes;
+    const ptr_t up_start = ALIGN_UP_TO_PAGE(start_addr);
+    const ptr_t up_end = ALIGN_UP_TO_PAGE(end_addr);
+    const ptr_t down_start = ALIGN_DOWN_TO_PAGE(start_addr);
+    const ptr_t down_end = ALIGN_DOWN_TO_PAGE(end_addr);
 
-    const size_t loss = (start - start_addr) + (end - (start_addr + nbytes));
-    if (unlikely(loss))
-        pr_warn("physical memory region " PTR_RANGE " is not page-aligned, losing %zu bytes", start_addr, (ptr_t) (start_addr + nbytes), loss);
+    if (type == PM_RANGE_RESERVED && (start_addr != down_start || end_addr != up_end))
+    {
+        pr_info("pmm: expanding non-page-aligned reserved region " PTR_RANGE " to " PTR_RANGE, start_addr, end_addr, down_start, up_end);
+        start_addr = down_start;
+        end_addr = up_end;
+    }
+    else if (type == PM_RANGE_FREE && (start_addr != up_start || end_addr != down_end))
+    {
+        pr_info("pmm: shrinking non-page-aligned free region " PTR_RANGE " to " PTR_RANGE, start_addr, end_addr, up_start, down_end);
+        start_addr = up_start;
+        end_addr = down_end;
+    }
 
-    pmm_internal_add_free_frames(start, n_pages, type);
+    pmm_internal_add_free_frames(start_addr, (end_addr - start_addr) / MOS_PAGE_SIZE, type);
 }
 
 // * Callback for pmm_allocate_frames (i.e. pmm_internal_acquire_free_frames)
