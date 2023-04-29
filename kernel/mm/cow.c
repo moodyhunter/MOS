@@ -52,7 +52,7 @@ vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, ptr_t vad
 
     // zero fill the pages
     for (size_t i = 0; i < npages; i++)
-        mm_replace_pages(handle, vaddr + i * MOS_PAGE_SIZE, zero_paddr, 1, ro_flags);
+        mm_replace_mapping(handle, vaddr + i * MOS_PAGE_SIZE, zero_paddr, 1, ro_flags);
 
     return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags, .address_space = handle };
 }
@@ -74,7 +74,7 @@ static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)
     // 3. replace the faulting phypage with the new one
     //    this will increment the refcount of the new page, ...
     //    ...and also decrement the refcount of the old page
-    mm_replace_pages(current_handle, fault_addr, proxy_paddr, 1, original_flags);
+    mm_replace_mapping(current_handle, fault_addr, proxy_paddr, 1, original_flags);
 
     // 4. unmap the temporary page (at the kernel heap)
     mm_unmap_pages(current_handle, proxy, 1);

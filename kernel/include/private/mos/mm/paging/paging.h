@@ -125,7 +125,7 @@ void mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t npages);
  * @note The reference count of the physical pages will be incremented, and the reference count of the
  * old physical pages will be decremented.
  */
-vmblock_t mm_replace_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags);
+vmblock_t mm_replace_mapping(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags);
 
 /**
  * @brief Remap a block of virtual memory from one page table to another, i.e. copy the mappings.

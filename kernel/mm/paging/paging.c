@@ -124,7 +124,7 @@ void mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t npages)
     spinlock_release(table.pgd_lock);
 }
 
-vmblock_t mm_replace_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags)
+vmblock_t mm_replace_mapping(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags)
 {
     MOS_ASSERT(npages > 0);
 

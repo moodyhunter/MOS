@@ -230,7 +230,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
             paging_handle_t table = current_process->pagetable;
 
             const ptr_t vaddr = mm_get_free_pages(table, 1, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT);
-            const vmblock_t block = mm_replace_pages(table, vaddr, vga_paddr, 1, VM_USER_RW);
+            const vmblock_t block = mm_replace_mapping(table, vaddr, vga_paddr, 1, VM_USER_RW);
             process_attach_mmap(current_process, block, VMTYPE_MMAP, (vmap_flags_t){ .fork_mode = VMAP_FORK_SHARED });
             return block.vaddr;
         }
