@@ -51,6 +51,8 @@ int main(int argc, char **argv)
         if (statbuf.sticky)
             printf("[STICKY]");
 
+        printf("\n");
+
         printf("Inode: %llu\n", statbuf.ino);
         printf("Links: %ld\n", statbuf.nlinks);
         printf("\n");
