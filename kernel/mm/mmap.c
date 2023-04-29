@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <mos/kconfig.h>
 #include <mos/mm/cow.h>
 #include <mos/mm/mm_types.h>
 #include <mos/mm/mmap.h>
@@ -13,7 +14,7 @@
  * @param hint_addr The hint address
  * @param mmap_flags The mmap flags
  */
-static bool mmap_check(ptr_t hint_addr, mmap_flags_t mmap_flags)
+static bool mmap_check(ptr_t *hint_addr, mmap_flags_t mmap_flags)
 {
     const bool shared = mmap_flags & MMAP_SHARED;   // when forked, shared between parent and child
     const bool private = mmap_flags & MMAP_PRIVATE; // when forked, make it Copy-On-Write
@@ -24,26 +25,29 @@ static bool mmap_check(ptr_t hint_addr, mmap_flags_t mmap_flags)
         return NULL;
     }
 
-    if ((hint_addr == 0) && (mmap_flags & MMAP_EXACT))
+    if ((*hint_addr == 0) && (mmap_flags & MMAP_EXACT))
     {
         // WTF is this? Trying to map at address 0?
         pr_warn("mmap_anonymous: trying to map at address 0");
         return false;
     }
 
+    if (*hint_addr == 0)
+        *hint_addr = MOS_ADDR_USER_MMAP;
+
     return true;
 }
 
 ptr_t mmap_anonymous(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages)
 {
-    if (!mmap_check(hint_addr, flags))
+    if (!mmap_check(&hint_addr, flags))
         return 0;
 
     const vmap_fork_mode_t fork_mode = (flags & MMAP_SHARED) ? VMAP_FORK_SHARED : VMAP_FORK_PRIVATE;
     const valloc_flags valloc_flags = (flags & MMAP_EXACT) ? VALLOC_EXACT : VALLOC_DEFAULT;
 
     const vmblock_t block = mm_alloc_zeroed_pages(current_process->pagetable, n_pages, hint_addr, valloc_flags, vm_flags);
-    pr_info2("mmap_anonymous: allocated %zd pages at " PTR_FMT, block.npages, block.vaddr);
+    mos_debug(mmap, "allocated %zd pages at " PTR_FMT, block.npages, block.vaddr);
 
     process_attach_mmap(current_process, block, VMTYPE_MMAP, (vmap_flags_t){ .cow = true, .fork_mode = fork_mode });
 
@@ -52,7 +56,7 @@ ptr_t mmap_anonymous(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, siz
 
 ptr_t mmap_file(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages, io_t *io, off_t offset)
 {
-    if (!mmap_check(hint_addr, flags))
+    if (!mmap_check(&hint_addr, flags))
         return 0;
 
     MOS_UNUSED(vm_flags);
