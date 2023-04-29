@@ -195,7 +195,7 @@ int main(int argc, const char **argv)
         }
     }
 
-    printf("Welcome to Mosh!\n");
+    printf("Welcome to MOS-sh!\n");
     char cwdbuf[MOS_PATH_MAX_LENGTH] = { 0 };
 
     while (1)
