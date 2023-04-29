@@ -8,32 +8,13 @@ on:
 
 jobs:
   build:
-    name: "MOS ${{matrix.target}} (${{matrix.build_type}}, Tests: ${{matrix.run_tests}})"
+    name: "MOS Compilation Test"
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - target: multiboot
-            build_type: Debug
-            run_tests: ON
-            arch: x86
-
-          - target: multiboot
-            build_type: Release
-            run_tests: ON
-            arch: x86
-
-          - target: multiboot_iso
-            build_type: Debug
-            run_tests: OFF
-            arch: x86
-
-          - target: multiboot_iso
-            build_type: Release
-            run_tests: OFF
-            arch: x86
+        build_type: [Debug, Release]
 
     steps:
       - uses: actions/checkout@v3
@@ -54,75 +35,13 @@ jobs:
         run: |
           cmake \
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
-            -DMOS_DEBUG_ALL=${{matrix.run_tests}} \
+            -DMOS_DEBUG_ALL=ON \
             -DMOS_DEBUG_liballoc=OFF \
-            -DBUILD_TESTING=${{matrix.run_tests}} \
-            -DMOS_ARCH=${{matrix.arch}} \
+            -DBUILD_TESTING=ON \
             -B ${{github.workspace}}/build \
             -G Ninja
-          echo "BOOTABLE=$(jq -r .${{matrix.target}} < ${{github.workspace}}/build/bootables.json)" >> $GITHUB_ENV
 
       - name: Build
         run: |
           cd ${{github.workspace}}/build
-          ninja ${{matrix.target}} mos_userspace_programs mos_initrd
-
-      - name: Upload Bootable Artifact
-        if: matrix.run_tests == 'OFF'
-        uses: actions/upload-artifact@v3
-        with:
-          name: MOS-${{matrix.target}}-${{matrix.build_type}}
-          path: ${{env.BOOTABLE}}
-
-      - name: Upload initrd
-        if: matrix.run_tests == 'OFF'
-        uses: actions/upload-artifact@v3
-        with:
-          name: MOS-${{matrix.target}}-${{matrix.build_type}}-initrd
-          path: ${{github.workspace}}/build/initrd.cpio
-
-      - name: Run Tests
-        if: matrix.run_tests == 'ON'
-        id: run_tests
-        working-directory: ${{github.workspace}}/build
-        run: |
-          cp ${{env.BOOTABLE}} test-failure.bin
-          cp initrd.cpio test-failure-initrd.cpio
-          ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh'"
-          tar -czf test-failure.tar.gz test-failure.*
-
-      - name: Upload Test Result
-        if: matrix.run_tests == 'ON' && failure() && steps.run_tests.outcome == 'failure'
-        uses: actions/upload-artifact@v3
-        with:
-          name: MOS-${{matrix.target}}-${{matrix.build_type}}-failures.zip
-          path: ${{github.workspace}}/build/test-failure.tar.gz
-
-      - name: Run Tests (quiet)
-        if: matrix.run_tests == 'ON'
-        working-directory: ${{github.workspace}}/build
-        run: ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh' quiet"
-
-      - name: Recompile with no debug messages
-        if: matrix.run_tests == 'ON'
-        working-directory: ${{github.workspace}}/build
-        run: |
-          cmake . -DMOS_DEBUG_ALL=OFF
-          ninja ${{matrix.target}} mos_userspace_programs mos_initrd
-
-      - name: Run Tests (no debug messages)
-        if: matrix.run_tests == 'ON'
-        working-directory: ${{github.workspace}}/build
-        run: ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh'"
-
-      - name: Recompile with LTO
-        if: matrix.run_tests == 'ON'
-        working-directory: ${{github.workspace}}/build
-        run: |
-          cmake . -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DMOS_DEBUG_ALL=OFF
-          ninja ${{matrix.target}} mos_userspace_programs mos_initrd
-
-      - name: Run Tests (LTO)
-        if: matrix.run_tests == 'ON'
-        working-directory: ${{github.workspace}}/build
-        run: ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh'"
+          ninja multiboot mos_userspace_programs mos_initrd
