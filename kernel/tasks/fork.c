@@ -51,7 +51,10 @@ process_t *process_handle_fork(process_t *parent)
                 if (vmap->flags.fork_mode == VMAP_FORK_SHARED)
                 {
                     pr_info2(FORKFMT, parent->pid, child_p->pid, "mmap", vmap->blk.vaddr, vmap->blk.npages, vmap->blk.flags);
-                    process_attach_mmap(child_p, vmap->blk, vmap->content, vmap->flags);
+                    vmblock_t block = vmap->blk;
+                    block.address_space = child_p->pagetable;
+                    mm_copy_maps(parent->pagetable, block.vaddr, child_p->pagetable, block.vaddr, block.npages, MM_COPY_DEFAULT);
+                    process_attach_mmap(child_p, block, vmap->content, vmap->flags);
                     break;
                 }
 
