@@ -73,3 +73,6 @@ __printf(1, 2) void printk(const char *format, ...);
 __printf(2, 3) void lprintk(mos_log_level_t loglevel, const char *format, ...);
 __printf(3, 4) void mos_kwarn(const char *func, u32 line, const char *fmt, ...);
 noreturn __printf(3, 4) void mos_kpanic(const char *func, u32 line, const char *fmt, ...);
+
+bool printk_unquiet(void);
+void printk_set_quiet(bool quiet);

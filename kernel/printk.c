@@ -97,6 +97,18 @@ static void lvprintk(mos_log_level_t loglevel, const char *fmt, va_list args)
     }
 }
 
+bool printk_unquiet(void)
+{
+    bool was_quiet = printk_quiet;
+    printk_quiet = false;
+    return was_quiet;
+}
+
+void printk_set_quiet(bool quiet)
+{
+    printk_quiet = quiet;
+}
+
 void lprintk(mos_log_level_t loglevel, const char *format, ...)
 {
     va_list args;
