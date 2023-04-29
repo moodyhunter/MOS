@@ -58,7 +58,6 @@ jobs:
             -DMOS_DEBUG_liballoc=OFF \
             -DBUILD_TESTING=${{matrix.run_tests}} \
             -DMOS_ARCH=${{matrix.arch}} \
-            -DMOS_DEBUG_HAS_FUNCTION_NAME=OFF \
             -B ${{github.workspace}}/build \
             -G Ninja
           echo "BOOTABLE=$(jq -r .${{matrix.target}} < ${{github.workspace}}/build/bootables.json)" >> $GITHUB_ENV

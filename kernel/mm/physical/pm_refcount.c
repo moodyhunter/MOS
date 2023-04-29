@@ -42,7 +42,7 @@ static void insert_allocated_node(pmlist_node_t *node)
     list_node_append(&pmlist_allocated_rw, list_node(node));
 }
 
-void pmm_internal_iterate_allocated_list_range(ptr_t start, size_t npages, refcount_operation_t op, pmm_internal_unref_callback_t callback, void *arg)
+void pmm_impl_walk_alloclist(ptr_t start, size_t npages, refcount_operation_t op, pmm_internal_unref_callback_t callback, void *arg)
 {
     if (op != OP_REF && op != OP_UNREF)
         mos_panic("pmm: invalid refcount operation");
@@ -163,7 +163,7 @@ void pmm_internal_iterate_allocated_list_range(ptr_t start, size_t npages, refco
     if (npages != 0)
         mos_panic("pmm: tried to iterate over a range that is not allocated");
 }
-void pmm_internal_add_node_to_allocated_list(pmlist_node_t *node)
+void pmm_impl_add_allocated_node(pmlist_node_t *node)
 {
     MOS_ASSERT(node->type == PM_RANGE_ALLOCATED || node->type == PM_RANGE_RESERVED);
     spinlock_acquire(&pmlist_allocated_lock);

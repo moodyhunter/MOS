@@ -118,7 +118,7 @@ void pmm_internal_list_node_delete(pmlist_node_t *node);
  * @param n_pages Number of pages in the block
  * @param type Type of the block, see \ref pm_range_type_t
  */
-void pmm_internal_add_free_frames(ptr_t start, size_t n_pages, pm_range_type_t type);
+void pmm_impl_add_free_frames(ptr_t start, size_t n_pages, pm_range_type_t type);
 
 /**
  * @brief Add a new free block to the free list.
@@ -128,10 +128,10 @@ void pmm_internal_add_free_frames(ptr_t start, size_t n_pages, pm_range_type_t t
  * @note The node must not be in any list, it also may be freed due to the merge
  * that occurs when adding it to the free list.
  */
-void pmm_internal_add_free_frames_node_unlocked(pmlist_node_t *node);
+void pmm_impl_add_free_node_unlocked(pmlist_node_t *node);
 
 /**
- * @brief Callback function type for \ref pmm_internal_acquire_free_frames.
+ * @brief Callback function type for \ref pmm_impl_get_free_frames.
  */
 typedef void (*pmm_internal_op_callback_t)(const pmm_op_state_t *op_state, pmlist_node_t *node, pmm_allocate_callback_t user_callback, void *user_arg);
 
@@ -145,7 +145,7 @@ typedef void (*pmm_internal_op_callback_t)(const pmm_op_state_t *op_state, pmlis
  * @return true if the allocation was successful
  * @return false if the allocation failed
  */
-bool pmm_internal_acquire_free_frames(size_t n_pages, pmm_internal_op_callback_t callback, pmm_allocate_callback_t user_callback, void *user_arg);
+bool pmm_impl_get_free_frames(size_t n_pages, pmm_internal_op_callback_t callback, pmm_allocate_callback_t user_callback, void *user_arg);
 
 /**
  * @brief Allocate a new block of physical memory at a specific address.
@@ -156,7 +156,7 @@ bool pmm_internal_acquire_free_frames(size_t n_pages, pmm_internal_op_callback_t
  *
  * @note The resulting node will be removed from the free list.
  */
-pmlist_node_t *pmm_internal_acquire_free_frames_at(ptr_t start, size_t n_pages);
+pmlist_node_t *pmm_impl_get_free_frames_at(ptr_t start, size_t n_pages);
 
 /**
  * @brief Find a free block of physical memory.
@@ -167,7 +167,7 @@ pmlist_node_t *pmm_internal_acquire_free_frames_at(ptr_t start, size_t n_pages);
  *
  * @note The resulting node will be removed from the free list.
  */
-pmlist_node_t *pmm_internal_find_and_acquire_block(ptr_t needle, pm_range_type_t type);
+pmlist_node_t *pmm_impl_find_and_acquire_block(ptr_t needle, pm_range_type_t type);
 
 /** @} */
 
@@ -186,7 +186,7 @@ pmlist_node_t *pmm_internal_find_and_acquire_block(ptr_t needle, pm_range_type_t
  *
  * @param node The node to add
  */
-void pmm_internal_add_node_to_allocated_list(pmlist_node_t *node);
+void pmm_impl_add_allocated_node(pmlist_node_t *node);
 
 /**
  * @brief Action to perform on the reference count of a block.
@@ -209,7 +209,7 @@ typedef void (*pmm_internal_unref_callback_t)(pmlist_node_t *node, void *arg);
  * @param callback Callback function to call when the reference count reaches zero
  * @param arg Argument to pass to the callback function
  */
-void pmm_internal_iterate_allocated_list_range(ptr_t start, size_t npages, refcount_operation_t op, pmm_internal_unref_callback_t callback, void *arg);
+void pmm_impl_walk_alloclist(ptr_t start, size_t npages, refcount_operation_t op, pmm_internal_unref_callback_t callback, void *arg);
 /** @} */
 
 /** @} */

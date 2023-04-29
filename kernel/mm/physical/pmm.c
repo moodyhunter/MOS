@@ -128,15 +128,15 @@ void pmm_add_region_bytes(ptr_t start_addr, size_t nbytes, pm_range_type_t type)
         end_addr = down_end;
     }
 
-    pmm_internal_add_free_frames(start_addr, (end_addr - start_addr) / MOS_PAGE_SIZE, type);
+    pmm_impl_add_free_frames(start_addr, (end_addr - start_addr) / MOS_PAGE_SIZE, type);
 }
 
 // * Callback for pmm_allocate_frames (i.e. pmm_internal_acquire_free_frames)
-static void pmm_internal_callback_handle_allocated_frames(const pmm_op_state_t *op_state, pmlist_node_t *node, pmm_allocate_callback_t user_callback, void *user_arg)
+static void pmm_cb_allocate_frames(const pmm_op_state_t *op_state, pmlist_node_t *node, pmm_allocate_callback_t user_callback, void *user_arg)
 {
     node->refcount = 1;
     node->type = PM_RANGE_ALLOCATED;
-    pmm_internal_add_node_to_allocated_list(node);
+    pmm_impl_add_allocated_node(node);
     if (user_callback)
         user_callback(op_state, &node->range, user_arg);
 }
@@ -144,37 +144,37 @@ static void pmm_internal_callback_handle_allocated_frames(const pmm_op_state_t *
 bool pmm_allocate_frames(size_t n_pages, pmm_allocate_callback_t callback, void *arg)
 {
     mos_debug(pmm, "allocating %zu page(s)", n_pages);
-    return pmm_internal_acquire_free_frames(n_pages, pmm_internal_callback_handle_allocated_frames, callback, arg);
+    return pmm_impl_get_free_frames(n_pages, pmm_cb_allocate_frames, callback, arg);
 }
 
-static void pmm_internal_callback_free_frames_unlocked(pmlist_node_t *n, void *arg)
+static void pmm_cb_unref_frames_unlocked(pmlist_node_t *n, void *arg)
 {
     MOS_ASSERT(n->refcount == 0 && n->type == PM_RANGE_ALLOCATED);
     list_remove(n);
     MOS_UNUSED(arg);
     n->type = PM_RANGE_FREE;
     mos_debug(pmm_impl, "refcount drops to zero, freeing " PTR_RANGE ", %zu pages", n->range.paddr, n->range.paddr + n->range.npages * MOS_PAGE_SIZE, n->range.npages);
-    pmm_internal_add_free_frames_node_unlocked(n);
+    pmm_impl_add_free_node_unlocked(n);
 }
 
 void pmm_ref_frames(ptr_t start, size_t n_pages)
 {
     mos_debug(pmm, "ref range: " PTR_RANGE ", %zu pages", start, start + n_pages * MOS_PAGE_SIZE, n_pages);
-    pmm_internal_iterate_allocated_list_range(start, n_pages, OP_REF, NULL, NULL);
+    pmm_impl_walk_alloclist(start, n_pages, OP_REF, NULL, NULL);
 }
 
 void pmm_unref_frames(ptr_t start, size_t n_pages)
 {
     mos_debug(pmm, "unref range: " PTR_RANGE ", %zu pages", start, start + n_pages * MOS_PAGE_SIZE, n_pages);
     spinlock_acquire(&pmlist_free_lock);
-    pmm_internal_iterate_allocated_list_range(start, n_pages, OP_UNREF, pmm_internal_callback_free_frames_unlocked, NULL);
+    pmm_impl_walk_alloclist(start, n_pages, OP_UNREF, pmm_cb_unref_frames_unlocked, NULL);
     spinlock_release(&pmlist_free_lock);
 }
 
 ptr_t pmm_reserve_frames(ptr_t paddr, size_t npages)
 {
     mos_debug(pmm, "looking for region " PTR_RANGE, paddr, paddr + npages * MOS_PAGE_SIZE);
-    pmlist_node_t *node = pmm_internal_acquire_free_frames_at(paddr, npages);
+    pmlist_node_t *node = pmm_impl_get_free_frames_at(paddr, npages);
     if (unlikely(!node))
     {
         // This is not a problem: the physical memory in question may be
@@ -184,13 +184,13 @@ ptr_t pmm_reserve_frames(ptr_t paddr, size_t npages)
     }
 
     node->type = PM_RANGE_RESERVED;
-    pmm_internal_add_node_to_allocated_list(node);
+    pmm_impl_add_allocated_node(node);
     return node->range.paddr;
 }
 
 pmrange_t pmm_reserve_block(ptr_t needle)
 {
-    pmlist_node_t *node = pmm_internal_find_and_acquire_block(needle, PM_RANGE_RESERVED);
+    pmlist_node_t *node = pmm_impl_find_and_acquire_block(needle, PM_RANGE_RESERVED);
     if (unlikely(!node))
     {
         mos_warn("pmm_reserve_block(): failed to reserve block at " PTR_FMT, needle);
@@ -198,6 +198,6 @@ pmrange_t pmm_reserve_block(ptr_t needle)
     }
 
     node->type = PM_RANGE_RESERVED;
-    pmm_internal_add_node_to_allocated_list(node);
+    pmm_impl_add_allocated_node(node);
     return node->range;
 }

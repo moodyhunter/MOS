@@ -85,7 +85,7 @@ static bool pmm_internal_do_add_free_frames_try_merge(ptr_t start, size_t n_page
     return false;
 }
 
-void pmm_internal_add_free_frames(ptr_t start, size_t n_pages, pm_range_type_t type)
+void pmm_impl_add_free_frames(ptr_t start, size_t n_pages, pm_range_type_t type)
 {
     const ptr_t end = start + n_pages * MOS_PAGE_SIZE;
 
@@ -121,7 +121,7 @@ void pmm_internal_add_free_frames(ptr_t start, size_t n_pages, pm_range_type_t t
     }
 }
 
-void pmm_internal_add_free_frames_node_unlocked(pmlist_node_t *node)
+void pmm_impl_add_free_node_unlocked(pmlist_node_t *node)
 {
     if (!pmm_internal_do_add_free_frames_try_merge(node->range.paddr, node->range.npages, node->type))
     {
@@ -137,7 +137,7 @@ void pmm_internal_add_free_frames_node_unlocked(pmlist_node_t *node)
     }
 }
 
-bool pmm_internal_acquire_free_frames(size_t n_pages, pmm_internal_op_callback_t callback, pmm_allocate_callback_t user_callback, void *user_arg)
+bool pmm_impl_get_free_frames(size_t n_pages, pmm_internal_op_callback_t callback, pmm_allocate_callback_t user_callback, void *user_arg)
 {
     pmm_op_state_t state = { .pages_operated = 0, .pages_requested = n_pages };
 
@@ -192,7 +192,7 @@ bool pmm_internal_acquire_free_frames(size_t n_pages, pmm_internal_op_callback_t
     return true;
 }
 
-pmlist_node_t *pmm_internal_acquire_free_frames_at(ptr_t start_addr, size_t npages)
+pmlist_node_t *pmm_impl_get_free_frames_at(ptr_t start_addr, size_t npages)
 {
     const ptr_t end_addr = start_addr + npages * MOS_PAGE_SIZE;
 
@@ -254,7 +254,7 @@ pmlist_node_t *pmm_internal_acquire_free_frames_at(ptr_t start_addr, size_t npag
     return NULL;
 }
 
-pmlist_node_t *pmm_internal_find_and_acquire_block(ptr_t needle, pm_range_type_t type)
+pmlist_node_t *pmm_impl_find_and_acquire_block(ptr_t needle, pm_range_type_t type)
 {
     pmlist_node_t *node = NULL;
 
