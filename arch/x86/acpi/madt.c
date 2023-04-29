@@ -82,21 +82,27 @@ void madt_parse_table()
                 acpi_madt_et3_ioapic_nmi_t *int_override = container_of(entry, acpi_madt_et3_ioapic_nmi_t, header);
                 mos_debug(x86_acpi, "MADT entry IOAPIC NMI [%p], nmi_source=%u, global_irq=%u, flags=0x%x", (void *) int_override, int_override->nmi_source,
                           int_override->global_irq, int_override->flags);
+#if MOS_DEBUG_FEATURE(x86_acpi)
                 pr_warn("Unhandled MADT entry type 3 (IOAPIC NMI)");
+#endif
                 break;
             }
             case 4:
             {
                 acpi_madt_et4_lapic_nmi_t *nmi = container_of(entry, acpi_madt_et4_lapic_nmi_t, header);
                 mos_debug(x86_acpi, "MADT entry LAPIC NMI [%p], processor=%u, flags=0x%x, lint=%u", (void *) nmi, nmi->processor_id, nmi->flags, nmi->lint_number);
+#if MOS_DEBUG_FEATURE(x86_acpi)
                 pr_warn("Unhandled MADT entry type 4 (LAPIC NMI)");
+#endif
                 break;
             }
             case 5:
             {
                 acpi_madt_et5_lapic_addr_t *local_apic_nmi = container_of(entry, acpi_madt_et5_lapic_addr_t, header);
                 mos_debug(x86_acpi, "MADT entry LAPIC address override [%p], address=%llu", (void *) local_apic_nmi, local_apic_nmi->lapic_paddr);
+#if MOS_DEBUG_FEATURE(x86_acpi)
                 pr_warn("Unhandled MADT entry type 5 (LAPIC address override)");
+#endif
                 break;
             }
             case 9:
@@ -104,7 +110,9 @@ void madt_parse_table()
                 acpi_madt_et9_lx2apic_t *local_sapic_override = container_of(entry, acpi_madt_et9_lx2apic_t, header);
                 mos_debug(x86_acpi, "MADT entry local x2 SAPIC override [%p], x2apic_id=%u, flags=0x%x, acpi_id=%u", (void *) local_sapic_override,
                           local_sapic_override->processor_lx2apic_id, local_sapic_override->flags, local_sapic_override->acpi_id);
+#if MOS_DEBUG_FEATURE(x86_acpi)
                 pr_warn("Unhandled MADT entry type 9 (local x2 SAPIC override)");
+#endif
                 break;
             }
             default:

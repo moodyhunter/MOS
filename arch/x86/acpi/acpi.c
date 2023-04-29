@@ -76,7 +76,9 @@ void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
         }
         else
         {
+#if MOS_DEBUG_FEATURE(x86_acpi)
             pr_warn("acpi: unknown entry %.4s", header->signature);
+#endif
         }
     }
 }
