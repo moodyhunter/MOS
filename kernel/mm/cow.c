@@ -131,6 +131,7 @@ bool mm_handle_pgfault(ptr_t fault_addr, bool present, bool is_write, bool is_us
         }
 
         // if the block is CoW, it must be writable
+        mos_debug(cow, "page fault in block %zu", i);
         MOS_ASSERT_X(mmap->blk.flags & VM_WRITE, "CoW fault in a non-writable block");
         do_resolve_cow(fault_addr, vm->flags);
         mos_debug(cow, "CoW resolved");
