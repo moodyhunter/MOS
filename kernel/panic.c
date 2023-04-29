@@ -28,7 +28,7 @@ static bool poweroff_on_panic = false;
 
 static bool setup_poweroff_on_panic(const char *arg)
 {
-    poweroff_on_panic = string_truthiness(arg, false);
+    poweroff_on_panic = string_truthiness(arg, true);
     return true;
 }
 __setup("poweroff_on_panic", setup_poweroff_on_panic);
