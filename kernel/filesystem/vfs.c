@@ -207,7 +207,7 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
 
     if (entry == NULL)
     {
-        pr_warn("failed to resolve path '%s', c=%d, r=%d, e=%d, n=%d, d=%d, t=%d", path, may_create, read, execute, no_follow, expect_dir, truncate);
+        pr_warn("failed to resolve '%s', create=%d, read=%d, exec=%d, nfollow=%d, dir=%d, trun=%d", path, may_create, read, execute, no_follow, expect_dir, truncate);
         return NULL;
     }
 

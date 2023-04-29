@@ -496,7 +496,15 @@ dentry_t *dentry_create(dentry_t *parent, const char *name)
 dentry_t *dentry_from_fd(fd_t fd)
 {
     if (fd == FD_CWD)
-        return current_process->working_directory;
+    {
+        if (current_thread)
+            return current_process->working_directory;
+        else
+            return root_dentry; // no current process, so cwd is always root
+    }
+
+    // sanity check: fd != FD_CWD, no current process
+    MOS_ASSERT(current_thread);
 
     io_t *io = process_get_fd(current_process, fd);
     if (io == NULL)
