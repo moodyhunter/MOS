@@ -25,8 +25,7 @@ void blockdev_register(blockdev_t *dev)
     if (unlikely(blockdev_map == NULL))
     {
         MOS_ASSERT_ONCE();
-        blockdev_map = kmalloc(sizeof(hashmap_t));
-        memzero(blockdev_map, sizeof(hashmap_t));
+        blockdev_map = kzalloc(sizeof(hashmap_t));
         hashmap_init(blockdev_map, 64, hashmap_hash_string, hashmap_compare_string);
     }
     blockdev_t *old = hashmap_put(blockdev_map, (ptr_t) dev->name, dev);

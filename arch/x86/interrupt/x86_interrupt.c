@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include <mos/interrupt/ipi.h>
+#include <mos/lib/structures/list.h>
 #include <mos/mm/cow.h>
 #include <mos/mm/kmalloc.h>
 #include <mos/platform/platform.h>
@@ -74,7 +75,8 @@ void x86_enable_interrupts(void)
 bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
 {
     MOS_ASSERT(irq < IRQ_MAX_COUNT);
-    x86_irq_handler_t *desc = kmalloc(sizeof(x86_irq_handler_t));
+    x86_irq_handler_t *desc = kzalloc(sizeof(x86_irq_handler_t));
+    linked_list_init(list_node(desc));
     desc->handler = handler;
     list_node_append(&irq_handlers[irq], list_node(desc));
     return true;
