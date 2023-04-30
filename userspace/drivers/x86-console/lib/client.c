@@ -22,6 +22,7 @@ rpc_server_stub_t *open_console(void)
     }
 
     console_server = rpc_client_create(X86_CONSOLE_SERVER_NAME);
+    console_simple_set_color(console_server, White, Black);
     console_simple_clear(console_server);
     return console_server;
 }
