@@ -1,0 +1,40 @@
+diff --git a/kernel/ksyscall.c b/kernel/ksyscall.c
+index 710cbff..a241f5e 100644
+--- a/kernel/ksyscall.c
++++ b/kernel/ksyscall.c
+@@ -7,6 +7,7 @@
+ #include <mos/locks/futex.h>
+ #include <mos/mm/kmalloc.h>
+ #include <mos/mm/mmap.h>
++#include <mos/mm/paging/page_ops.h>
+ #include <mos/mm/paging/paging.h>
+ #include <mos/platform/platform.h>
+ #include <mos/printk.h>
+@@ -396,3 +397,10 @@ bool define_syscall(signal_thread)(pid_t pid, tid_t tid, signal_t sig)
+     MOS_UNUSED(sig);
+     return false;
+ }
++
++void define_syscall(dump_pagetable)(void)
++{
++    bool was_quiet = printk_unquiet();
++    mm_dump_current_pagetable();
++    printk_set_quiet(was_quiet);
++}
+diff --git a/kernel/ksyscalls.json b/kernel/ksyscalls.json
+index 93cbccb..03df0ed 100644
+--- a/kernel/ksyscalls.json
++++ b/kernel/ksyscalls.json
+@@ -297,6 +297,12 @@
+             "name": "poweroff",
+             "return": "void",
+             "arguments": [ { "type": "bool", "arg": "reboot" }, { "type": "u32", "arg": "magic" } ]
++        },
++        {
++            "number": 99,
++            "name": "dump_pagetable",
++            "return": "void",
++            "arguments": [ ]
+         }
+     ]
+ }

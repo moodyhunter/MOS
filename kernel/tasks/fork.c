@@ -50,11 +50,7 @@ process_t *process_handle_fork(process_t *parent)
                 MOS_ASSERT_X(vmap->flags.fork_mode != VMAP_FORK_NA, "invalid fork mode for mmap");
                 if (vmap->flags.fork_mode == VMAP_FORK_SHARED)
                 {
-                    pr_info2(FORKFMT, parent->pid, child_p->pid, "mmap", vmap->blk.vaddr, vmap->blk.npages, vmap->blk.flags);
-                    vmblock_t block = vmap->blk;
-                    block.address_space = child_p->pagetable;
-                    mm_copy_maps(parent->pagetable, block.vaddr, child_p->pagetable, block.vaddr, block.npages, MM_COPY_DEFAULT);
-                    process_attach_mmap(child_p, block, vmap->content, vmap->flags);
+                    // TODO: shared mmap, just process_attach_mmap() if
                     break;
                 }
 
@@ -66,7 +62,9 @@ process_t *process_handle_fork(process_t *parent)
             case VMTYPE_STACK:
             {
                 vmap->flags.cow = true;
-                const vmblock_t block = mm_make_cow_block(child_p->pagetable, vmap->blk);
+                const vmblock_t block = { 0 };
+
+                // TODO: make the block as CoW using mm_make_cow_block()
 
                 pr_info2(FORKFMT, parent->pid, child_p->pid, "CoW", vmap->blk.vaddr, vmap->blk.npages, vmap->blk.flags);
                 process_attach_mmap(child_p, block, vmap->content, vmap->flags);
@@ -78,9 +76,9 @@ process_t *process_handle_fork(process_t *parent)
     // copy the parent's files
     for (int i = 0; i < MOS_PROCESS_MAX_OPEN_FILES; i++)
     {
-        io_t *file = parent->files[i];
-        if (io_valid(file))
-            child_p->files[i] = io_ref(file);
+        // check if the io_t is valid using io_valid()
+        // if it is valid, then we io_ref() it and put it in the child's file table
+        // AT THE SAME OFFSET
     }
 
     // copy the thread

@@ -7,6 +7,9 @@ add_subdirectory(drivers)
 add_subdirectory(programs)
 add_subdirectory(tests)
 
+# labs
+add_subdirectory(labs)
+
 # initrd resources
 add_subdirectory(initrd)
 
