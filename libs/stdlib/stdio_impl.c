@@ -29,15 +29,15 @@ typedef enum
 
 typedef struct
 {
-    bool left_aligned : 1;      // -
-    bool show_sign : 1;         // +
-    bool space_if_positive : 1; // prepend space if positive
-    bool pad_with_zero : 1;     // padding with zero
+    bool left_aligned;      // -
+    bool show_sign;         // +
+    bool space_if_positive; // prepend space if positive
+    bool pad_with_zero;     // padding with zero
 
     // For g and G types, trailing zeros are not removed.
     // For f, F, e, E, g, G types, the output always contains a decimal point.
     // For o, x, X types, the text 0, 0x, 0X, respectively, is prepended to non-zero numbers.
-    bool hash : 1;
+    bool hash;
 
     // POSIX extension '\'' not implemented
     // glibc 2.2 extension 'I' not implemented
@@ -47,24 +47,17 @@ typedef struct
     // A negative field width is taken as a '-' flag followed by a positive field width.
     // In no case does a nonexistent or small field width cause truncation of a field;
     // if the result of a conversion is wider than the field width, the field is expanded to contain the conversion result.
-    s32 minimum_width : 24;
+    s32 minimum_width;
 
-    bool has_explicit_precision : 1;
+    bool has_explicit_precision;
     // `d, i, o, u, x, X` -> The minimum number of digits to appear;
     // `a, A, e, E, f, F` -> The number of digits to appear after the radix character;
     // `g, G`             -> The maximum number of significant digits;
     // `s, S`             -> The maximum number of characters to be printed from a string;
-    s32 precision : 16;
+    s32 precision;
 
-    length_modifier_t length : 8;
+    length_modifier_t length;
 } printf_flags_t;
-
-typedef enum
-{
-    BASE_8 = 8,
-    BASE_10 = 10,
-    BASE_16 = 16,
-} base_t;
 
 typedef struct
 {
@@ -215,7 +208,12 @@ static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char con
         }
     }
 
-    base_t base = BASE_10;
+    enum
+    {
+        BASE_8 = 8,
+        BASE_10 = 10,
+        BASE_16 = 16,
+    } base = BASE_10;
     bool upper_case = false;
     const char *hex_digits = NULL;
 
@@ -262,114 +260,112 @@ static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char con
 
     char *start = buf;
 
+    char num_prefix_buf[5] = { 0 };
+    char num_content_buf[32] = { 0 };
+
+    // Setup prefixes.
+    if (base == BASE_10 && !is_unsigned_ouxX)
     {
-        char num_prefix_buf[5] = { 0 };
-        char num_content_buf[32] = { 0 };
-
-        // Setup prefixes.
-        if (base == BASE_10 && !is_unsigned_ouxX)
+        bool is_negative = ((s64) number) < 0;
+        if (is_negative)
+            number = -(s64) number, num_prefix_buf[0] = '-';
+        else if (pflags->show_sign)
+            num_prefix_buf[0] = '+'; // 0 is positive too !!!!!
+        else if (pflags->space_if_positive)
+            num_prefix_buf[0] = ' ';
+    }
+    else if (base == BASE_16 && pflags->hash)
+    {
+        // '#' flag turns on prefix '0x' or '0X' for hexadecimal conversions.
+        // For x and X conversions, a nonzero result has the string "0x" (or "0X" for X conversions) prepended to it.
+        if (number != 0)
         {
-            bool is_negative = ((s64) number) < 0;
-            if (is_negative)
-                number = -(s64) number, num_prefix_buf[0] = '-';
-            else if (pflags->show_sign)
-                num_prefix_buf[0] = '+'; // 0 is positive too !!!!!
-            else if (pflags->space_if_positive)
-                num_prefix_buf[0] = ' ';
+            num_prefix_buf[0] = '0';
+            num_prefix_buf[1] = upper_case ? 'X' : 'x';
         }
-        else if (base == BASE_16 && pflags->hash)
-        {
-            // '#' flag turns on prefix '0x' or '0X' for hexadecimal conversions.
-            // For x and X conversions, a nonzero result has the string "0x" (or "0X" for X conversions) prepended to it.
-            if (number != 0)
-            {
-                num_prefix_buf[0] = '0';
-                num_prefix_buf[1] = upper_case ? 'X' : 'x';
-            }
-        }
-        else if (base == BASE_8 && pflags->hash)
-        {
-            // ! BEGIN SPECIAL CASE for base 8 + '#' flag
-            // to be handled later, when we are printing the number
-            // ! END SPECIAL CASE
-        }
-
-        // Print the number.
-        if (number == 0)
-        {
-            // When 0 is printed with an explicit precision 0, the output is empty.
-            // so only print a '0' if the precision is **not** 0.
-            if (pflags->precision != 0)
-                num_content_buf[0] = '0';
-        }
-        else
-        {
-            char *pnumberbuf = num_content_buf;
-            switch (base)
-            {
-                case BASE_8:
-                case BASE_10:
-                    while (number > 0)
-                        buf_putchar(&pnumberbuf, '0' + (char) (number % base), size_left), number /= base;
-                    break;
-                case BASE_16:
-                    while (number > 0)
-                        buf_putchar(&pnumberbuf, hex_digits[number % 16], size_left), number /= 16;
-                    break;
-                default: MOS_LIB_UNREACHABLE();
-            }
-        }
-
-        s32 n_digits = strlen(num_content_buf);
-
+    }
+    else if (base == BASE_8 && pflags->hash)
+    {
         // ! BEGIN SPECIAL CASE for base 8 + '#' flag
-        if (base == BASE_8 && pflags->hash)
-        {
-            // if there's no padding needed, we'll have to add the '0' prefix
-            if (pflags->precision - n_digits <= 0 && num_content_buf[0] != '0')
-                num_prefix_buf[0] = '0';
-        }
+        // to be handled later, when we are printing the number
         // ! END SPECIAL CASE
+    }
 
-        s32 precision_padding = MAX(pflags->precision - n_digits, 0);
-        s32 width_to_pad = MAX(pflags->minimum_width - strlen(num_prefix_buf) - precision_padding - n_digits, 0);
-
-        char *pnum_prefix = num_prefix_buf;
-        char *pnum_content = num_content_buf + n_digits;
-        if (pflags->left_aligned)
+    // Print the number.
+    if (number == 0)
+    {
+        // When 0 is printed with an explicit precision 0, the output is empty.
+        // so only print a '0' if the precision is **not** 0.
+        if (pflags->precision != 0)
+            num_content_buf[0] = '0';
+    }
+    else
+    {
+        char *pnumberbuf = num_content_buf;
+        switch (base)
         {
+            case BASE_8:
+            case BASE_10:
+                while (number > 0)
+                    buf_putchar(&pnumberbuf, '0' + (char) (number % base), size_left), number /= base;
+                break;
+            case BASE_16:
+                while (number > 0)
+                    buf_putchar(&pnumberbuf, hex_digits[number % 16], size_left), number /= 16;
+                break;
+            default: MOS_LIB_UNREACHABLE();
+        }
+    }
+
+    s32 n_digits = strlen(num_content_buf);
+
+    // ! BEGIN SPECIAL CASE for base 8 + '#' flag
+    if (base == BASE_8 && pflags->hash)
+    {
+        // if there's no padding needed, we'll have to add the '0' prefix
+        if (pflags->precision - n_digits <= 0 && num_content_buf[0] != '0')
+            num_prefix_buf[0] = '0';
+    }
+    // ! END SPECIAL CASE
+
+    s32 precision_padding = MAX(pflags->precision - n_digits, 0);
+    s32 width_to_pad = MAX(pflags->minimum_width - strlen(num_prefix_buf) - precision_padding - n_digits, 0);
+
+    char *pnum_prefix = num_prefix_buf;
+    char *pnum_content = num_content_buf + n_digits;
+    if (pflags->left_aligned)
+    {
+        while (*pnum_prefix)
+            buf_putchar(&buf, *pnum_prefix++, size_left);
+        while (precision_padding-- > 0)
+            buf_putchar(&buf, '0', size_left);
+        while (pnum_content > num_content_buf)
+            buf_putchar(&buf, *--pnum_content, size_left);
+        while (width_to_pad-- > 0)
+            buf_putchar(&buf, ' ', size_left);
+    }
+    else
+    {
+        if (pflags->pad_with_zero)
+        {
+            // zero should be after the sign
             while (*pnum_prefix)
                 buf_putchar(&buf, *pnum_prefix++, size_left);
-            while (precision_padding-- > 0)
-                buf_putchar(&buf, '0', size_left);
-            while (pnum_content > num_content_buf)
-                buf_putchar(&buf, *--pnum_content, size_left);
             while (width_to_pad-- > 0)
-                buf_putchar(&buf, ' ', size_left);
+                buf_putchar(&buf, '0', size_left);
         }
         else
         {
-            if (pflags->pad_with_zero)
-            {
-                // zero should be after the sign
-                while (*pnum_prefix)
-                    buf_putchar(&buf, *pnum_prefix++, size_left);
-                while (width_to_pad-- > 0)
-                    buf_putchar(&buf, '0', size_left);
-            }
-            else
-            {
-                // space should be before the sign
-                while (width_to_pad-- > 0)
-                    buf_putchar(&buf, ' ', size_left);
-                while (*pnum_prefix)
-                    buf_putchar(&buf, *pnum_prefix++, size_left);
-            }
-            while (precision_padding-- > 0)
-                buf_putchar(&buf, '0', size_left);
-            while (pnum_content > num_content_buf)
-                buf_putchar(&buf, *--pnum_content, size_left);
+            // space should be before the sign
+            while (width_to_pad-- > 0)
+                buf_putchar(&buf, ' ', size_left);
+            while (*pnum_prefix)
+                buf_putchar(&buf, *pnum_prefix++, size_left);
         }
+        while (precision_padding-- > 0)
+            buf_putchar(&buf, '0', size_left);
+        while (pnum_content > num_content_buf)
+            buf_putchar(&buf, *--pnum_content, size_left);
     }
     return buf - start;
 }
