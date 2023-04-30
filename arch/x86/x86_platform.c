@@ -81,6 +81,12 @@ static void x86_do_backtrace(void)
     __asm__("movl %%ebp,%1" : "=r"(frame) : "r"(frame));
     for (u32 i = 0; frame; i++)
     {
+        bool mapped = mm_get_is_mapped(current_cpu->pagetable, (ptr_t) frame);
+        if (!mapped)
+        {
+            pr_warn("  %-2d" PTR_FMT ": <corrupted>, aborting backtrace", i, (ptr_t) frame);
+            break;
+        }
         if (frame->eip >= MOS_KERNEL_START_VADDR)
         {
             const kallsyms_t *kallsyms = kallsyms_get_symbol(frame->eip);
