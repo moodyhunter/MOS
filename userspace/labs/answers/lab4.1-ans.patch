@@ -17,9 +17,9 @@ index 710cbff..a241f5e 100644
 +
 +void define_syscall(dump_pagetable)(void)
 +{
-+    bool was_quiet = printk_unquiet();
++    bool was_quiet = printk_unquiet(); // un-quiet printk if it was quiet
 +    mm_dump_current_pagetable();
-+    printk_set_quiet(was_quiet);
++    printk_set_quiet(was_quiet); // restore quietness
 +}
 diff --git a/kernel/ksyscalls.json b/kernel/ksyscalls.json
 index 93cbccb..03df0ed 100644
