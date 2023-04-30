@@ -2,6 +2,7 @@
 
 #include <mos/mm/mm_types.h>
 #include <stdio.h>
+
 int main(void)
 {
     puts("Lab 4 Test Utility - Part 3");
