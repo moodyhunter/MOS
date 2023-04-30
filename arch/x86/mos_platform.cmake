@@ -8,7 +8,6 @@ add_kernel_source(
         ${CMAKE_CURRENT_LIST_DIR}/include/private
         ${CMAKE_CURRENT_LIST_DIR}/include/public
     RELATIVE_SOURCES
-        cpu/ap_init.asm
         interrupt/interrupt.asm
         mm/enable_paging.asm
         tasks/context_switch.asm
@@ -17,7 +16,6 @@ add_kernel_source(
         acpi/acpi.c
         acpi/madt.c
         cpu/cpuid.c
-        cpu/smp.c
         cpu/ap_entry.c
         devices/initrd_blockdev.c
         devices/serial.c
@@ -35,3 +33,11 @@ add_kernel_source(
         x86_platform.c
         x86_platform_api.c
 )
+
+if(MOS_SMP)
+    add_kernel_source(
+        RELATIVE_SOURCES
+            cpu/ap_init.asm
+            cpu/smp.c
+    )
+endif()
