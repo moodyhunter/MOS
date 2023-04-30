@@ -43,22 +43,22 @@ void get_ansi_color(char *buf, standard_color_t fg, standard_color_t bg)
 {
     MOS_UNUSED(bg);
     static const char *g_ansi_colors[] = {
-        [Black] = "" ANSI_COLOR(black),
-        [Blue] = "" ANSI_COLOR(blue),
-        [Green] = "" ANSI_COLOR(green),
-        [Cyan] = "" ANSI_COLOR(cyan),
-        [Red] = "" ANSI_COLOR(red),
-        [Magenta] = "" ANSI_COLOR(magenta),
-        [Brown] = "" ANSI_COLOR(yellow),
-        [Gray] = "" ANSI_COLOR(white, bright),
-        [DarkGray] = "" ANSI_COLOR(white),
-        [LightBlue] = "" ANSI_COLOR(blue, bright),
-        [LightGreen] = "" ANSI_COLOR(green, bright),
-        [LightCyan] = "" ANSI_COLOR(cyan, bright),
-        [LightRed] = "" ANSI_COLOR(red, bright),
-        [LightMagenta] = "" ANSI_COLOR(magenta, bright),
-        [Yellow] = "" ANSI_COLOR(yellow, bright),
-        [White] = "" ANSI_COLOR(white, bright),
+        [Black] = ANSI_COLOR(black),
+        [Blue] = ANSI_COLOR(blue),
+        [Green] = ANSI_COLOR(green),
+        [Cyan] = ANSI_COLOR(cyan),
+        [Red] = ANSI_COLOR(red),
+        [Magenta] = ANSI_COLOR(magenta),
+        [Brown] = ANSI_COLOR(yellow),
+        [Gray] = ANSI_COLOR(white, bright),
+        [DarkGray] = ANSI_COLOR(white),
+        [LightBlue] = ANSI_COLOR(blue, bright),
+        [LightGreen] = ANSI_COLOR(green, bright),
+        [LightCyan] = ANSI_COLOR(cyan, bright),
+        [LightRed] = ANSI_COLOR(red, bright),
+        [LightMagenta] = ANSI_COLOR(magenta, bright),
+        [Yellow] = ANSI_COLOR(yellow, bright),
+        [White] = ANSI_COLOR(white, bright),
     };
 
     const char *color = g_ansi_colors[fg];
