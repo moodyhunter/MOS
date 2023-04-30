@@ -129,6 +129,13 @@ void do_help(int argc, const char *argv[])
     printf("Happy hacking!\n");
 }
 
+void do_pid(int argc, const char *argv[])
+{
+    MOS_UNUSED(argc);
+    MOS_UNUSED(argv);
+    printf("pid: %ld\n", syscall_get_pid());
+}
+
 void do_pwd(int argc, const char *argv[])
 {
     MOS_UNUSED(argc);
@@ -241,6 +248,7 @@ const command_t builtin_commands[] = {
     { .command = "exit", .action = do_exit, .description = "Exit the shell" },
     { .command = "echo", .action = do_echo, .description = "Echo arguments" },
     { .command = "help", .action = do_help, .description = "Show this help" },
+    { .command = "pid", .action = do_pid, .description = "Show the current process ID" },
     { .command = "pwd", .action = do_pwd, .description = "Print the current directory" },
     { .command = "repeat", .action = do_repeat, .description = "Repeat a command a number of times" },
     { .command = "show-path", .action = do_show_path, .description = "Show the search path for programs" },
