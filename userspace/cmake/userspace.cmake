@@ -43,7 +43,7 @@ macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
             WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
             COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${SOURCE_ITEM}> ${OUTPUT_DIR}
             COMMENT "Copying target ${SOURCE_ITEM} to initrd"
-            DEPENDS ${SOURCE_ITEM} mos_cleanup_initrd
+            DEPENDS ${SOURCE_ITEM}
             BYPRODUCTS ${OUTPUT_DIR}/${SOURCE_ITEM}
         )
     else()
@@ -65,7 +65,7 @@ macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
                 WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
                 COMMAND ${CMAKE_COMMAND} -E copy ${SOURCE_ITEM_FULL} ${OUTPUT_DIR}
                 COMMENT "Copying file ${SOURCE_ITEM_PRETTY} to initrd"
-                DEPENDS ${SOURCE_ITEM_FULL} mos_cleanup_initrd
+                DEPENDS ${SOURCE_ITEM_FULL}
                 BYPRODUCTS ${OUTPUT_DIR}/${FILE_NAME}
             )
         elseif("${ITEM_TYPE}" STREQUAL "DIRECTORY")
@@ -88,7 +88,7 @@ macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
                 WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
                 COMMAND cp -rT ${SOURCE_ITEM} ${OUTPUT_DIR} # see https://gitlab.kitware.com/cmake/cmake/-/issues/14609
                 COMMENT "Copying directory ${SOURCE_ITEM} to initrd"
-                DEPENDS ${SOURCE_ITEM} mos_cleanup_initrd
+                DEPENDS ${SOURCE_ITEM}
                 BYPRODUCTS ${DEST_FILES}
             )
         else()
