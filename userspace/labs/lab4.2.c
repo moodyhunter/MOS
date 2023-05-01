@@ -22,5 +22,13 @@ int main(void)
     int *x = (int *) stackptr;
     *x = 0;
 
+    puts("Some random page fault, this will cause a kernel panic");
+    int *y = (int *) 0xdeadbeef;
+    *y = 0;
+
+    // unreachable
+    if (syscall_get_pid() == 1)
+        syscall_poweroff(false, MOS_FOURCC('G', 'B', 'y', 'e'));
+
     return 0;
 }
