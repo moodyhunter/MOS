@@ -111,7 +111,7 @@ install(
 
 install(
     FILES ${MOS_SYSCALL_FILES}
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mos/syscalls
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mos/syscall
     COMPONENT mos-api-headers
     EXCLUDE_FROM_ALL
 )
