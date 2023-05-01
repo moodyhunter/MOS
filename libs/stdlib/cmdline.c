@@ -76,12 +76,15 @@ static bool cmdline_parse_generic(char *start, size_t length, size_t cmdline_max
 
         if (*c == '\0')
         {
-            const char **args = insert(*out_cmdlines, cmdline_max, start, out_count);
-            if (!args)
-                return false;
+            if (strlen(start) > 0)
+            {
+                const char **args = insert(*out_cmdlines, cmdline_max, start, out_count);
+                *out_cmdlines = args;
+                if (!args)
+                    return false;
+            }
 
             start = c + 1;
-            *out_cmdlines = args;
         }
     }
 
