@@ -29,7 +29,8 @@ add_custom_target(mos_cleanup_initrd
 add_summary_item(UTILITY mos_cleanup_initrd "" "Cleanup Initrd")
 
 macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
-    set(OUTPUT_DIR "${INITRD_DIR}${PATH}")
+    set(OUTPUT_DIR "${INITRD_DIR}${PATH}/")
+    make_directory(${OUTPUT_DIR})
 
     # append a slash to the path if there's none
     string(REGEX REPLACE "(.*[^\\/])$" "\\1/" OUTPUT_DIR_PRETTY "${PATH}")
