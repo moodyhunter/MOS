@@ -55,7 +55,7 @@ __setup("init_args", setup_init_args);
 void mos_start_kernel(void)
 {
     pr_info("Welcome to MOS!");
-    pr_emph("MOS %s (%s)", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION_STRING);
+    pr_emph("MOS %s (%s), compiler version %s, on %s", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION_STRING, __VERSION__, __DATE__);
 
     if (mos_cmdlines_count)
         pr_emph("MOS Kernel cmdline");
