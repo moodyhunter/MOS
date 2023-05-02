@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "string.h"
-
 #include <mos/types.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static const struct
 {
@@ -13,7 +12,7 @@ static const struct
     u8 prog_if;
     const char *name;
 } known_classes[] = {
-#define _X(x, y, z, name) { 0x##x, 0x##y, 0x##z, name },
+#define _X(x, y, z, name) { x, y, z, name },
 #include "builtin.h"
 #undef _X
 };
