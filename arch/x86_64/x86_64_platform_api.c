@@ -13,7 +13,6 @@ static u64 rdtsc(void)
 // Platform Machine APIs
 noreturn void platform_shutdown(void)
 {
-    __asm__ volatile("cli; hlt");
     while (1)
         ;
 }
@@ -87,10 +86,13 @@ void platform_mm_destroy_user_pgd(paging_handle_t table)
 
 // Platform Paging APIs
 
-void platform_mm_map_pages(paging_handle_t table, vmblock_t block)
+void platform_mm_map_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t n_pages, vm_flags flags)
 {
     MOS_UNUSED(table);
-    MOS_UNUSED(block);
+    MOS_UNUSED(vaddr);
+    MOS_UNUSED(paddr);
+    MOS_UNUSED(n_pages);
+    MOS_UNUSED(flags);
 }
 
 void platform_mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t n_pages)
@@ -100,12 +102,11 @@ void platform_mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t n_pages)
     MOS_UNUSED(n_pages);
 }
 
-vmblock_t platform_mm_get_block_info(paging_handle_t table, ptr_t vaddr, size_t npages)
+ptr_t platform_mm_get_phys_addr(paging_handle_t table, ptr_t vaddr)
 {
     MOS_UNUSED(table);
     MOS_UNUSED(vaddr);
-    MOS_UNUSED(npages);
-    return (vmblock_t){ .vaddr = 0, .paddr = 0, .npages = 0, .flags = 0 };
+    return 0;
 }
 
 vmblock_t platform_mm_copy_maps(paging_handle_t from, ptr_t fvaddr, paging_handle_t to, ptr_t tvaddr, size_t npages)
@@ -115,7 +116,7 @@ vmblock_t platform_mm_copy_maps(paging_handle_t from, ptr_t fvaddr, paging_handl
     MOS_UNUSED(to);
     MOS_UNUSED(tvaddr);
     MOS_UNUSED(npages);
-    return (vmblock_t){ .vaddr = 0, .paddr = 0, .npages = 0, .flags = 0 };
+    return (vmblock_t){ 0 };
 }
 
 void platform_mm_flag_pages(paging_handle_t table, ptr_t vaddr, size_t n, vm_flags flags)
@@ -172,4 +173,23 @@ u64 platform_arch_syscall(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64 arg4)
     MOS_UNUSED(arg3);
     MOS_UNUSED(arg4);
     return -1;
+}
+
+void platform_mm_iterate_table(paging_handle_t table, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg)
+{
+    MOS_UNUSED(table);
+    MOS_UNUSED(vaddr);
+    MOS_UNUSED(n);
+    MOS_UNUSED(callback);
+    MOS_UNUSED(arg);
+}
+
+void platform_invalidate_tlb()
+{
+}
+
+void platform_ipi_send(u8 target_cpu, ipi_type_t type)
+{
+    MOS_UNUSED(target_cpu);
+    MOS_UNUSED(type);
 }

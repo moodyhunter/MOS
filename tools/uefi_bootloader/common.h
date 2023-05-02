@@ -8,7 +8,7 @@
 #include <efi/efilib.h>
 #include <stdbool.h>
 
-#define MOS_LOADER_DEBUG 0
+#define MOS_LOADER_DEBUG 1
 
 #define Log(fmt, ...) Print(L"" fmt "\n", ##__VA_ARGS__)
 

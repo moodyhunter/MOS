@@ -153,7 +153,7 @@ typedef struct
 {
     elf_program_header_type header_type;
 #if MOS_BITS == 64
-    elf_program_header_flags p_flags; // Segment independent flags (64-bit only)
+    elf_ph_flags p_flags; // Segment independent flags (64-bit only)
 #endif
     ptr_t data_offset;  // Offset of the segment in the file
     ptr_t vaddr;        // Virtual address of the segment

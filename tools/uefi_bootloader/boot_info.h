@@ -6,13 +6,13 @@
 #include <mos/types.h>
 #define CHAR16 u16
 #define UINT32 u32
-#define UINTN  nuint
+#define UINTN  uintn
 typedef struct
 {
     u32 Type;
     u32 Pad;
-    uintptr_t PhysicalStart;
-    uintptr_t VirtualStart;
+    ptr_t PhysicalStart;
+    ptr_t VirtualStart;
     u64 NumberOfPages;
     u64 Attribute;
 } EFI_MEMORY_DESCRIPTOR;

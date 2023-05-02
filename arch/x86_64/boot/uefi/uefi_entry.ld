@@ -36,6 +36,10 @@ SECTIONS
         *(.mos.setup);
         __MOS_SETUP_END = .;
 
+        __MOS_EARLY_SETUP_START = .;
+        *(.mos.early_setup);
+        __MOS_EARLY_SETUP_END = .;
+
         __MOS_KERNEL_RODATA_END = .;
     }
 

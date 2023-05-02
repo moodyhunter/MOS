@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+if (NOT MOS_ARCH STREQUAL "x86")
+    return()
+endif()
+
 add_executable(pci_daemon
     main.c
     pci_scan.c
