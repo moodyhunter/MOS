@@ -7,6 +7,7 @@
 #include <mos/panic.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
+#include <mos/setup.h>
 #include <stdio.h>
 
 // stack smashing protector
@@ -28,10 +29,10 @@ static bool poweroff_on_panic = false;
 
 static bool setup_poweroff_on_panic(const char *arg)
 {
-    poweroff_on_panic = string_truthiness(arg, true);
+    poweroff_on_panic = cmdline_string_truthiness(arg, true);
     return true;
 }
-__setup("poweroff_on_panic", setup_poweroff_on_panic);
+MOS_SETUP("poweroff_on_panic", setup_poweroff_on_panic);
 
 void kwarn_handler_set(kmsg_handler_t *handler)
 {

@@ -10,6 +10,7 @@
 #include <mos/panic.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
+#include <mos/setup.h>
 #include <mos/x86/acpi/acpi.h>
 #include <mos/x86/acpi/madt.h>
 #include <mos/x86/cpu/cpu.h>
@@ -120,7 +121,7 @@ void x86_start_kernel(x86_startup_info *info)
     }
 
     mos_cmdline_parse(mb_info->cmdline);
-    mos_cmdline_do_early_setup();
+    setup_invoke_earlysetup();
 
     declare_panic_hook(x86_do_backtrace, "Backtrace");
     install_panic_hook(&x86_do_backtrace_holder);

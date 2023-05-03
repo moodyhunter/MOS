@@ -7,6 +7,7 @@
 #include <mos/mm/kmalloc.h>
 #include <mos/mos_global.h>
 #include <mos/printk.h>
+#include <mos/setup.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -35,7 +36,7 @@ static const file_ops_t tmpfs_file_ops;
 
 static atomic_t tmpfs_inode_count = 0;
 
-extern filesystem_t fs_tmpfs;
+static filesystem_t fs_tmpfs;
 
 should_inline tmpfs_inode_t *INODE(inode_t *inode)
 {
@@ -310,8 +311,15 @@ static const file_ops_t tmpfs_file_ops = {
     .mmap = NULL, // TODO: use a generic mmap
 };
 
-filesystem_t fs_tmpfs = {
+static filesystem_t fs_tmpfs = {
     .list_node = LIST_HEAD_INIT(fs_tmpfs.list_node),
     .name = "tmpfs",
     .mount = tmpfs_fsop_mount,
 };
+
+static void register_tmpfs(void)
+{
+    vfs_register_filesystem(&fs_tmpfs);
+}
+
+MOS_INIT(VFS, register_tmpfs);

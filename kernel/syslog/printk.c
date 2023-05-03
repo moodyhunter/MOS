@@ -5,6 +5,7 @@
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/printk.h>
+#include <mos/setup.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -39,15 +40,14 @@ static bool printk_setup_console(const char *kcon_name)
     printk_console = NULL;
     return false;
 }
-
-__setup("printk_console", printk_setup_console);
+MOS_SETUP("printk_console", printk_setup_console);
 
 static bool printk_setup_quiet(const char *arg)
 {
-    printk_quiet = string_truthiness(arg, true);
+    printk_quiet = cmdline_string_truthiness(arg, true);
     return true;
 }
-__early_setup("quiet", printk_setup_quiet);
+MOS_EARLY_SETUP("quiet", printk_setup_quiet);
 
 static inline void deduce_level_color(int loglevel, standard_color_t *fg, standard_color_t *bg)
 {
@@ -64,7 +64,7 @@ static inline void deduce_level_color(int loglevel, standard_color_t *fg, standa
     }
 }
 
-static void print_to_console(console_t *con, int loglevel, const char *message, size_t len)
+static void print_to_console(console_t *con, mos_log_level_t loglevel, const char *message, size_t len)
 {
     if (!con)
         return;

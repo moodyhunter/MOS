@@ -20,7 +20,7 @@ static bool cmdline_is_falsy(const char *arg)
     return strcmp(arg, "false") == 0 || strcmp(arg, "0") == 0 || strcmp(arg, "no") == 0 || strcmp(arg, "off") == 0;
 }
 
-static cmdline_option_t *cmdline_get_option(const char *option_name)
+cmdline_option_t *cmdline_get_option(const char *option_name)
 {
     for (u32 i = 0; i < mos_cmdlines_count; i++)
     {
@@ -66,7 +66,7 @@ void mos_cmdline_parse(const char *cmdline)
     }
 }
 
-bool string_truthiness(const char *arg, bool default_value)
+bool cmdline_string_truthiness(const char *arg, bool default_value)
 {
     const char *func = mos_caller;
     func = func ? func : "";
@@ -80,59 +80,4 @@ bool string_truthiness(const char *arg, bool default_value)
         return false;
     else
         return default_value;
-}
-
-void mos_cmdline_do_setup(void)
-{
-    extern const setup_func_t __MOS_SETUP_START[]; // defined in linker script
-    extern const setup_func_t __MOS_SETUP_END[];
-
-    for (const setup_func_t *func = __MOS_SETUP_START; func < __MOS_SETUP_END; func++)
-    {
-        cmdline_option_t *option = cmdline_get_option(func->name);
-
-        if (unlikely(!option))
-        {
-            mos_debug(setup, "no option given for '%s'", func->name);
-            continue;
-        }
-
-        if (unlikely(option->used))
-        {
-            pr_warn("option '%s' already used", func->name);
-            continue;
-        }
-
-        mos_debug(setup, "invoking setup function for '%s'", func->name);
-        if (unlikely(!func->setup_fn(option->arg)))
-        {
-            pr_warn("setup function for '%s' failed", func->name);
-            continue;
-        }
-
-        option->used = true;
-    }
-}
-
-void mos_cmdline_do_early_setup(void)
-{
-    extern const setup_func_t __MOS_EARLY_SETUP_START[]; // defined in linker script
-    extern const setup_func_t __MOS_EARLY_SETUP_END[];
-
-    for (const setup_func_t *func = __MOS_EARLY_SETUP_START; func < __MOS_EARLY_SETUP_END; func++)
-    {
-        mos_debug(setup, "invoking early setup function for '%s'", func->name);
-        cmdline_option_t *option = cmdline_get_option(func->name);
-
-        if (unlikely(!option))
-        {
-            mos_debug(setup, "no option given for '%s'", func->name);
-            continue;
-        }
-
-        if (unlikely(!func->setup_fn(option->arg)))
-            pr_warn("early setup function for '%s' failed", func->name);
-
-        option->used = true;
-    }
 }

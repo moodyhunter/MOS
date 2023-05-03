@@ -33,7 +33,7 @@ void kthread_init(void)
 
 thread_t *kthread_create(thread_entry_t entry, void *arg, const char *name)
 {
-    pr_info2("creating kernel thread %s", name);
+    pr_info2("creating kernel thread '%s'", name);
     kthread_arg_t *kthread_arg = kzalloc(sizeof(kthread_arg_t));
     kthread_arg->entry = entry;
     kthread_arg->arg = arg;

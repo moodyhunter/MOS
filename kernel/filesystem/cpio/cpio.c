@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/cmdline.h>
 #include <mos/device/block.h>
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/fs_types.h>
+#include <mos/filesystem/vfs.h>
 #include <mos/kconfig.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/structures/tree.h>
 #include <mos/mm/kmalloc.h>
 #include <mos/mos_global.h>
 #include <mos/printk.h>
+#include <mos/setup.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -172,7 +173,7 @@ static void cpio_fill_inode(cpio_metadata_t *metadata, inode_t *inode)
 
 // ============================================================================================================
 
-extern filesystem_t fs_cpiofs;
+static filesystem_t fs_cpiofs;
 
 typedef struct
 {
@@ -386,9 +387,16 @@ static const file_ops_t cpio_file_ops = {
     .mmap = NULL,
 };
 
-filesystem_t fs_cpiofs = {
+static filesystem_t fs_cpiofs = {
     .list_node = LIST_HEAD_INIT(fs_cpiofs.list_node),
     .superblocks = LIST_HEAD_INIT(fs_cpiofs.superblocks),
     .name = "cpiofs",
     .mount = cpio_mount,
 };
+
+static void register_cpiofs(void)
+{
+    vfs_register_filesystem(&fs_cpiofs);
+}
+
+MOS_INIT(VFS, register_cpiofs);

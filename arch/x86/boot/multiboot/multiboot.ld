@@ -48,20 +48,27 @@ SECTIONS
         *(.rodata.*);
     }
 
-    .mos.info ALIGN(4K) : AT (ADDR(.mos.info) - 0xC0000000)
+    .mos_info ALIGN(4K) : AT (ADDR(.mos_info) - 0xC0000000)
     {
-        __MOS_SETUP_START = .;
-        *(.mos.setup);
-        __MOS_SETUP_END = .;
-
-        __MOS_EARLY_SETUP_START = .;
-        *(.mos.early_setup);
-        __MOS_EARLY_SETUP_END = .;
+        __MOS_KERNEL_MOS_INFO_START = .;
 
         __MOS_TEST_CASES_START = .;
         *(.mos.test_cases);
         __MOS_TEST_CASES_END = .;
 
+        __MOS_EARLY_SETUP_START = .;
+        *(.mos.early_setup);
+        __MOS_EARLY_SETUP_END = .;
+
+        __MOS_SETUP_START = .;
+        *(.mos.setup);
+        __MOS_SETUP_END = .;
+
+        __MOS_INIT_START = .;
+        *(.mos.init);
+        __MOS_INIT_END = .;
+
+        __MOS_KERNEL_MOS_INFO_END = .;
         __MOS_KERNEL_RODATA_END = .;
     }
 

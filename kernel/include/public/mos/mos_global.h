@@ -100,3 +100,5 @@
             __seen = true, ret = true;                                                                                                                                   \
         ret;                                                                                                                                                             \
     })
+
+#define MOS_PUT_IN_SECTION(_section, _struct, _var, ...) static const _struct _var __used __section(_section) = __VA_ARGS__

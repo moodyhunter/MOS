@@ -10,6 +10,7 @@
 #include <mos/mm/kmalloc.h>
 #include <mos/panic.h>
 #include <mos/printk.h>
+#include <mos/setup.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -86,15 +87,15 @@ static bool mos_test_engine_setup_skip_prefix_list(const char *arg)
     return true;
 }
 
-__setup("mos_tests_skip_prefix", mos_test_engine_setup_skip_prefix_list);
+MOS_SETUP("mos_tests_skip_prefix", mos_test_engine_setup_skip_prefix_list);
 
 static bool mos_tests_setup_halt_on_success(const char *arg)
 {
-    mos_tests_halt_on_success = string_truthiness(arg, true);
+    mos_tests_halt_on_success = cmdline_string_truthiness(arg, true);
     return true;
 }
 
-__setup("mos_tests_halt_on_success", mos_tests_setup_halt_on_success);
+MOS_SETUP("mos_tests_halt_on_success", mos_tests_setup_halt_on_success);
 
 static bool mos_test_engine_should_skip(const char *test_name)
 {
@@ -146,4 +147,4 @@ static bool mos_test_engine_run_tests(const char *arg)
     return true;
 }
 
-__setup("mos_tests", mos_test_engine_run_tests);
+MOS_SETUP("mos_tests", mos_test_engine_run_tests);

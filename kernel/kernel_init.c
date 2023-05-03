@@ -3,26 +3,22 @@
 #include <mos/cmdline.h>
 #include <mos/device/console.h>
 #include <mos/elf/elf.h>
-#include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/interrupt/ipi.h>
 #include <mos/io/terminal.h>
 #include <mos/ipc/ipc.h>
-#include <mos/kconfig.h>
 #include <mos/lib/cmdline.h>
 #include <mos/mm/kmalloc.h>
-#include <mos/mm/shm.h>
+#include <mos/platform/platform.h>
 #include <mos/printk.h>
+#include <mos/setup.h>
 #include <mos/tasks/kthread.h>
 #include <mos/tasks/schedule.h>
 #include <string.h>
 
-extern filesystem_t fs_tmpfs;
-extern filesystem_t fs_cpiofs;
-
 #define DEFAULT_INIT_PATH "/initrd/programs/init"
-// const char *init_path = DEFAULT_INIT_PATH;
-// const char **init_argv = NULL;
+
+typedef void (*init_function_t)(void);
 
 static argv_t init_argv = { 0 };
 
@@ -40,7 +36,7 @@ static bool setup_init_path(const char *arg)
     init_argv.argv[0] = strdup(arg);
     return true;
 }
-__setup("init", setup_init_path);
+MOS_SETUP("init", setup_init_path);
 
 static bool setup_init_args(const char *arg)
 {
@@ -50,7 +46,7 @@ static bool setup_init_args(const char *arg)
     kfree(var_arg);
     return true;
 }
-__setup("init_args", setup_init_args);
+MOS_SETUP("init_args", setup_init_args);
 
 void mos_start_kernel(void)
 {
@@ -72,7 +68,8 @@ void mos_start_kernel(void)
     init_argv.argc = 1;
     init_argv.argv = kcalloc(1, sizeof(char *)); // init_argv[0] is the init path
     init_argv.argv[0] = strdup(DEFAULT_INIT_PATH);
-    mos_cmdline_do_setup();
+    setup_invoke_setup();
+    setup_reach_init_target(INIT_TARGET_EARLY);
 
     pr_emph("init path: %s", init_argv.argv[0]);
     for (u32 i = 1; i < init_argv.argc; i++)
@@ -80,8 +77,7 @@ void mos_start_kernel(void)
 
     // register builtin filesystems
     vfs_init();
-    vfs_register_filesystem(&fs_tmpfs);
-    vfs_register_filesystem(&fs_cpiofs);
+    setup_reach_init_target(INIT_TARGET_VFS);
 
     bool mounted = vfs_mount("none", "/", "tmpfs", NULL);
     if (!mounted)
@@ -107,6 +103,7 @@ void mos_start_kernel(void)
     pr_info("created init process: %s", init->name);
 
     kthread_init(); // must be called after creating the first init process
+    setup_reach_init_target(INIT_TARGET_KTHREAD);
 
     ipi_init();
 
