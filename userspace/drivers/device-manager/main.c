@@ -11,7 +11,7 @@
 
 extern void dm_run_server(rpc_server_t *server);
 
-static bool start_device_drivers(config_t *config)
+static bool start_device_drivers(const config_t *config)
 {
     size_t num_drivers;
     const char **drivers = config_get_all(config, "load", &num_drivers);
@@ -84,7 +84,7 @@ int main(int argc, const char *argv[])
         }
     }
 
-    config_t *dm_config = config_parse_file(config_path);
+    const config_t *dm_config = config_parse_file(config_path);
     if (!dm_config)
     {
         fprintf(stderr, "Failed to parse config file: %s\n", config_path);

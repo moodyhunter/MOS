@@ -19,7 +19,7 @@ typedef struct struct_config
     } *entries;
 } config_t;
 
-config_t *config_parse_file(const char *file_path)
+const config_t *config_parse_file(const char *file_path)
 {
     file_stat_t stat = { 0 };
 
@@ -101,7 +101,7 @@ config_t *config_parse_file(const char *file_path)
     return config;
 }
 
-const char *config_get(config_t *config, const char *key)
+const char *config_get(const config_t *config, const char *key)
 {
     for (size_t i = 0; i < config->count; i++)
     {
@@ -112,7 +112,7 @@ const char *config_get(config_t *config, const char *key)
     return NULL;
 }
 
-const char **config_get_all(config_t *config, const char *key, size_t *count_out)
+const char **config_get_all(const config_t *config, const char *key, size_t *count_out)
 {
     size_t count = 0;
     for (size_t i = 0; i < config->count; i++)

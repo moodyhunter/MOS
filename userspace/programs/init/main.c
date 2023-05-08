@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static config_t *config;
+static const config_t *config;
 
 static pid_t start_device_manager(void)
 {
