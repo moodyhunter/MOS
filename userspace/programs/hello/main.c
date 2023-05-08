@@ -2,10 +2,16 @@
 
 #include <x86_console/client.h>
 
-int main(void)
+int main(int argc, char **argv)
 {
     rpc_server_stub_t *stub = open_console();
-    console_simple_write(stub, "Hello, World!\n");
+
+    print_to_console("Hello, World!\n");
+    print_to_console("You passed %d arguments:\n", argc);
+
+    for (int i = 1; i < argc; i++)
+        print_to_console("  %s\n", argv[i]);
+
     rpc_client_destroy(stub);
     return 0;
 }
