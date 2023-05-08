@@ -21,4 +21,4 @@ thread_t *thread_setup_complete(thread_t *thread);
 thread_t *thread_get(tid_t id);
 bool thread_wait_for_tid(tid_t tid);
 
-void thread_handle_exit(thread_t *t);
+noreturn void thread_handle_exit(thread_t *t);

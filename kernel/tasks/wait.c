@@ -37,7 +37,7 @@ void waitlist_init(waitlist_t *list)
     list->lock.flag = 0;
 }
 
-bool waitlist_wait(waitlist_t *list)
+bool waitlist_append_only(waitlist_t *list)
 {
     spinlock_acquire(&list->lock);
     if (list->closed)

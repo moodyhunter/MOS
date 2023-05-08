@@ -250,6 +250,9 @@ void process_handle_exit(process_t *process, int exit_code)
 
     waitlist_close(&process->waiters);
     waitlist_wake(&process->waiters, INT_MAX);
+
+    reschedule();
+    MOS_UNREACHABLE();
 }
 
 void process_handle_cleanup(process_t *process)

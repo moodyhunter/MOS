@@ -120,7 +120,7 @@ bool thread_wait_for_tid(tid_t tid)
 void thread_handle_exit(thread_t *t)
 {
     if (!thread_is_valid(t))
-        return;
+        mos_panic("thread_handle_exit() called on invalid thread");
 
     process_t *owner = t->owner;
     vmblock_t kstack = { 0 };
@@ -151,4 +151,7 @@ void thread_handle_exit(thread_t *t)
 
     waitlist_close(&t->waiters);
     waitlist_wake(&t->waiters, INT_MAX);
+
+    reschedule();
+    MOS_UNREACHABLE();
 }

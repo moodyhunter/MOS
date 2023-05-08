@@ -13,7 +13,7 @@ static void idle_task(void *arg)
         platform_cpu_idle();
 }
 
-void create_idle_task()
+static void create_idle_task()
 {
     pr_info2("creating the idle task...");
     kthread_create(idle_task, NULL, "idle");

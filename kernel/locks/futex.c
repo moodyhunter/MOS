@@ -18,7 +18,6 @@ typedef struct
 {
     as_linked_list;
     futex_key_t key;
-    spinlock_t lock;
     waitlist_t waiters;
 } futex_private_t;
 
@@ -73,7 +72,6 @@ bool futex_wait(futex_word_t *futex, futex_word_t expected)
         if (f->key == key)
         {
             fu = f;
-            spinlock_acquire(&fu->lock);
             break;
         }
     }
@@ -83,21 +81,14 @@ bool futex_wait(futex_word_t *futex, futex_word_t expected)
         fu = (futex_private_t *) kzalloc(sizeof(futex_private_t));
         fu->key = key;
         waitlist_init(&fu->waiters);
-        spinlock_acquire(&fu->lock);
         list_node_append(&futex_list_head, list_node(fu));
     }
     spinlock_release(&futex_list_lock);
 
-    MOS_ASSERT_X(waitlist_wait(&fu->waiters), "waitlist_wait failed");
-    spinlock_release(&fu->lock);
-
-    spinlock_acquire(&current_thread->state_lock);
-    current_thread->state = THREAD_STATE_BLOCKED;
-    spinlock_release(&current_thread->state_lock);
-
     mos_debug(futex, "tid %ld waiting on lock key=" PTR_FMT, current_thread->tid, key);
 
-    reschedule();
+    bool ok = reschedule_for_waitlist(&fu->waiters);
+    MOS_ASSERT(ok);
 
     mos_debug(futex, "tid %ld woke up", current_thread->tid);
     return true;
@@ -117,7 +108,6 @@ bool futex_wake(futex_word_t *futex, size_t num_to_wake)
         if (f->key == key)
         {
             fu = f;
-            spinlock_acquire(&fu->lock);
             break;
         }
     }
@@ -132,8 +122,6 @@ bool futex_wake(futex_word_t *futex, size_t num_to_wake)
     mos_debug(futex, "waking up %zd threads on lock key=" PTR_FMT, num_to_wake, key);
     const size_t real_wakeups = waitlist_wake(&fu->waiters, num_to_wake);
     mos_debug(futex, "actually woke up %zd threads", real_wakeups);
-
-    spinlock_release(&fu->lock);
 
     return true;
 }

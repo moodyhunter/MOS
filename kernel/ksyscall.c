@@ -100,8 +100,6 @@ noreturn void define_syscall(exit)(u32 exit_code)
         mos_panic("init process exited with code %d", exit_code);
 
     process_handle_exit(current_process, exit_code);
-    reschedule();
-    MOS_UNREACHABLE();
 }
 
 void define_syscall(yield_cpu)(void)
@@ -176,8 +174,6 @@ tid_t define_syscall(get_tid)(void)
 noreturn void define_syscall(thread_exit)(void)
 {
     thread_handle_exit(current_thread);
-    reschedule();
-    MOS_UNREACHABLE();
 }
 
 ptr_t define_syscall(heap_control)(heap_control_op op, ptr_t arg)
