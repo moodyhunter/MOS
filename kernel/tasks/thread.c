@@ -111,13 +111,9 @@ bool thread_wait_for_tid(tid_t tid)
         return true; // thread is already dead, no need to wait
     }
 
-    if (!waitlist_wait(&target->waiters))
-        return true; // waitlist closed, thread is dead
+    bool ok = reschedule_for_waitlist(&target->waiters);
+    MOS_UNUSED(ok);
 
-    spinlock_acquire(&target->state_lock);
-    current_thread->state = THREAD_STATE_BLOCKED;
-    spinlock_release(&target->state_lock);
-    reschedule();
     return true;
 }
 

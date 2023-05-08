@@ -9,4 +9,6 @@ void unblock_scheduler(void);
 noreturn void scheduler(void);
 
 void reschedule_for_wait_condition(wait_condition_t *wait_condition);
+__nodiscard bool reschedule_for_waitlist(waitlist_t *waitlist);
+
 void reschedule(void);
