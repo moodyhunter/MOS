@@ -56,6 +56,11 @@ void platform_usleep(u64 us)
     udelay(us);
 }
 
+void platform_cpu_idle(void)
+{
+    __asm__ volatile("hlt");
+}
+
 void platform_interrupt_enable(void)
 {
     x86_enable_interrupts();
