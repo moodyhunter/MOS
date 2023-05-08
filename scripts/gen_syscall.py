@@ -45,7 +45,7 @@ def syscall_name_with_prefix(e):
 
 def syscall_format_return_type(e) -> str:
     if syscall_is_noreturn(e):
-        return "void" + " "
+        return "noreturn void" + " "
     elif e["return"].endswith("*"):
         return e["return"]  # make * stick to the type
     else:
@@ -112,9 +112,6 @@ class KernelDeclGenerator(BaseAbstractGenerator):
 
     def generate_single(self, e):
         line = ""
-        if syscall_is_noreturn(e):
-            line += "noreturn "
-
         line += syscall_format_return_type(e)
         line += "impl_" + syscall_name_with_prefix(e)
         line += "(" + syscall_args(e) + ");"
@@ -145,7 +142,7 @@ class UsermodeWrapperGenerator(BaseAbstractGenerator):
 
     def generate_single(self, e):
         syscall_nargs = len(e["arguments"])
-        syscall_conv_arg_to_reg_type = ", ".join([str(e["number"])] + ["(reg_t) %s" % arg["arg"] for arg in e["arguments"]])
+        syscall_conv_arg_to_reg_type = ", ".join(["SYSCALL_" + str(e["name"])] + ["(reg_t) %s" % arg["arg"] for arg in e["arguments"]])
         comments = e["comments"] if "comments" in e else []
         return_stmt = "return (" + e["return"] + ") " if syscall_has_return_value(e) else ""
 
@@ -162,6 +159,8 @@ class UsermodeWrapperGenerator(BaseAbstractGenerator):
             self.gen("%splatform_syscall%d(%s);" % (return_stmt,
                                                     syscall_nargs,
                                                     syscall_conv_arg_to_reg_type))
+            if syscall_is_noreturn(e):
+                self.gen("__builtin_unreachable();")
         self.gen("}")
 
     def generate_epilogue(self):

@@ -5,6 +5,10 @@
 #include <mos/compiler.h>
 #include <stdnoreturn.h>
 
+#ifndef __noreturn_is_defined
+#define noreturn __attribute__((noreturn))
+#endif
+
 #define __aligned(x)    __attribute__((__aligned__(x)))
 #define __cold          __attribute__((__cold__))
 #define __malloc        __attribute__((__malloc__))
