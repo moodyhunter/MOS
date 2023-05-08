@@ -457,7 +457,7 @@ void dentry_unref(dentry_t *dentry)
     }
     else if (dentry->refcount - expected_refcount)
     {
-        mos_debug(dcache_ref, "  dentry %p '%s' %zu has direct references", (void *) dentry, dentry_name(dentry), dentry->refcount - expected_refcount);
+        mos_debug(dcache_ref, "  dentry %p '%s' has %zu direct references", (void *) dentry, dentry_name(dentry), dentry->refcount - expected_refcount);
     }
 
     dentry_unref(tree_parent(dentry, dentry_t));
