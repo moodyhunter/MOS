@@ -131,11 +131,11 @@ bool reschedule_for_waitlist(waitlist_t *waitlist)
     thread_t *t = current_cpu->thread;
     MOS_ASSERT_X(t->state != THREAD_STATE_BLOCKED, "thread %ld is already blocked", t->tid);
     MOS_ASSERT_X(t->waiting == NULL, "thread %ld is already waiting for something else", t->tid);
-    spinlock_acquire(&t->state_lock);
 
-    if (!waitlist_wait(waitlist))
+    if (!waitlist_append_only(waitlist))
         return false; // waitlist is closed, process is dead
 
+    spinlock_release(&t->state_lock);
     t->state = THREAD_STATE_BLOCKED;
     mos_debug(scheduler, "cpu %d: thread %ld is now blocked", current_cpu->id, t->tid);
     spinlock_release(&t->state_lock);
