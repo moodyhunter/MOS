@@ -142,12 +142,12 @@ int serial_device_write(serial_device_t *device, const char *data, size_t length
 int serial_device_read(serial_device_t *device, char *data, size_t length)
 {
     serial_port_t port = device->port;
-    size_t i = 0;
-    while (i < length)
+
+    for (size_t i = 0; i < length; i++)
     {
         serial_dev_wait_ready_to_read(device);
         data[i] = port_inb(port);
-        i++;
     }
-    return i;
+
+    return length;
 }
