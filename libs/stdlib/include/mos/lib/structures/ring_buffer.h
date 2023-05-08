@@ -59,8 +59,8 @@ should_inline u8 ring_buffer_pos_pop_front_byte(u8 *buffer, ring_buffer_pos_t *p
 should_inline bool ring_buffer_pos_is_full(ring_buffer_pos_t *pos) { return pos->size == pos->capacity; }
 should_inline bool ring_buffer_pos_is_empty(ring_buffer_pos_t *pos) { return pos->size == 0; }
 
-should_inline size_t ring_buffer_pos_push_back_byte(ring_buffer_t *buffer, u8 byte) { return ring_buffer_pos_push_back(buffer->data, &buffer->pos, &byte, 1); }
-should_inline size_t ring_buffer_pos_push_front_byte(ring_buffer_t *buffer, u8 byte) { return ring_buffer_pos_push_front(buffer->data, &buffer->pos, &byte, 1); }
+should_inline size_t ring_buffer_pos_push_back_byte(u8 *buffer, ring_buffer_pos_t *pos, u8 data) { return ring_buffer_pos_push_back(buffer, pos, &data, 1); }
+should_inline size_t ring_buffer_pos_push_front_byte(u8 *buffer, ring_buffer_pos_t *pos,  u8 data) { return ring_buffer_pos_push_front(buffer, pos, &data, 1); }
 
 // ring_buffer_t wrapper functions.
 
@@ -73,9 +73,9 @@ should_inline size_t ring_buffer_pop_back(ring_buffer_t *buffer, u8 *buf, size_t
 should_inline size_t ring_buffer_push_front(ring_buffer_t *buffer, const u8 *data, size_t size) { return ring_buffer_pos_push_front(buffer->data, &buffer->pos, data, size); }
 should_inline size_t ring_buffer_pop_front(ring_buffer_t *buffer, u8 *buf, size_t size) { return ring_buffer_pos_pop_front(buffer->data, &buffer->pos, buf, size); }
 
-should_inline size_t ring_buffer_push_front_byte(ring_buffer_t *buffer, u8 byte) { return ring_buffer_pos_push_front_byte(buffer, byte); }
+should_inline size_t ring_buffer_push_front_byte(ring_buffer_t *buffer, u8 byte) { return ring_buffer_pos_push_front_byte(buffer->data, &buffer->pos, byte); }
 
-should_inline size_t ring_buffer_push_back_byte(ring_buffer_t *buffer, u8 byte) { return ring_buffer_pos_push_back_byte(buffer, byte); }
+should_inline size_t ring_buffer_push_back_byte(ring_buffer_t *buffer, u8 byte) { return ring_buffer_pos_push_back_byte(buffer->data, &buffer->pos, byte); }
 should_inline u8 ring_buffer_pop_back_byte(ring_buffer_t *buffer) { return ring_buffer_pos_pop_back_byte(buffer->data, &buffer->pos); }
 should_inline u8 ring_buffer_pop_front_byte(ring_buffer_t *buffer) { return ring_buffer_pos_pop_front_byte(buffer->data, &buffer->pos); }
 // clang-format on
