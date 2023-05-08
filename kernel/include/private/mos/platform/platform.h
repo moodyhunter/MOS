@@ -170,6 +170,7 @@ void platform_invalidate_tlb(void);
 u32 platform_current_cpu_id(void);
 void platform_msleep(u64 ms);
 void platform_usleep(u64 us);
+void platform_cpu_idle(void);
 
 // Platform Interrupt APIs
 void platform_interrupt_enable(void);
