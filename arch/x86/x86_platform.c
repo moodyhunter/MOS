@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <mos/cmdline.h>
+#include <mos/device/console.h>
+#include <mos/device/dm_types.h>
 #include <mos/kallsyms.h>
 #include <mos/mm/kmalloc.h>
 #include <mos/mm/paging/page_ops.h>
@@ -30,15 +32,28 @@
 #include <mos/x86/x86_platform.h>
 #include <string.h>
 
+static u8 com1_buf[MOS_PAGE_SIZE] __aligned(MOS_PAGE_SIZE) = { 0 };
+
 static serial_console_t com1_console = {
-    .device.port = COM1,
-    .device.baud_rate = BAUD_RATE_115200,
-    .device.char_length = CHAR_LENGTH_8,
-    .device.stop_bits = STOP_BITS_1,
-    .device.parity = PARITY_EVEN,
-    .console.name = "serial_com1",
-    .console.caps = CONSOLE_CAP_SETUP | CONSOLE_CAP_COLOR,
-    .console.setup = serial_console_setup,
+    .device =
+        &(serial_device_t){
+            .port = COM1,
+            .baud_rate = BAUD_RATE_115200,
+            .char_length = CHAR_LENGTH_8,
+            .stop_bits = STOP_BITS_1,
+            .parity = PARITY_EVEN,
+        },
+    .con = {
+        .ops =
+            &(console_ops_t){
+                .extra_setup = serial_console_setup,
+            },
+        .name = "serial_com1",
+        .caps = CONSOLE_CAP_EXTRA_SETUP,
+        .read.buf = com1_buf,
+    },
+    .fg = LightBlue,
+    .bg = Black,
 };
 
 static vmblock_t x86_bios_block = {
@@ -64,7 +79,16 @@ static void x86_keyboard_handler(u32 irq)
 {
     MOS_ASSERT(irq == IRQ_KEYBOARD);
     int scancode = port_inb(0x60);
-    MOS_UNUSED(scancode);
+
+    pr_info("Keyboard scancode: %x", scancode);
+}
+
+static void x86_com1_handler(u32 irq)
+{
+    MOS_ASSERT(irq == IRQ_COM1);
+    char c = '\0';
+    serial_device_read(com1_console.device, &c, 1);
+    console_putc(&com1_console.con, c);
 }
 
 static void x86_do_backtrace(void)
@@ -107,7 +131,7 @@ static void x86_do_backtrace(void)
 
 void x86_start_kernel(x86_startup_info *info)
 {
-    console_register(&com1_console.console);
+    console_register(&com1_console.con, MOS_PAGE_SIZE);
     const multiboot_info_t *mb_info = info->mb_info;
     size_t initrd_size = 0;
     ptr_t initrd_paddr = 0;
@@ -218,7 +242,7 @@ void x86_start_kernel(x86_startup_info *info)
 
     x86_install_interrupt_handler(IRQ_TIMER, x86_timer_handler);
     x86_install_interrupt_handler(IRQ_KEYBOARD, x86_keyboard_handler);
-    x86_install_interrupt_handler(IRQ_COM1, serial_irq_handler);
+    x86_install_interrupt_handler(IRQ_COM1, x86_com1_handler);
 
     ioapic_enable_interrupt(IRQ_TIMER, 0);
     ioapic_enable_interrupt(IRQ_KEYBOARD, 0);

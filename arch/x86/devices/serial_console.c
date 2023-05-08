@@ -8,35 +8,31 @@
 #include <mos/x86/devices/serial_console.h>
 #include <string.h>
 
-const char *ansi_reset = ANSI_COLOR_RESET;
+const char ansi_reset[] = ANSI_COLOR_RESET;
 
 bool serial_console_setup(console_t *console)
 {
-    console->write_impl = serial_console_write;
-    console->read_impl = serial_console_read;
-    console->caps |= CONSOLE_CAP_READ;
-    if (console->caps & CONSOLE_CAP_COLOR)
-    {
-        console->set_color = serial_console_set_color;
-        console->get_color = serial_console_get_color;
-    }
+    if (!console->ops->write)
+        console->ops->write = serial_console_write;
+
+    console->caps |= CONSOLE_CAP_COLOR;
+    if (!console->ops->set_color)
+        console->ops->set_color = serial_console_set_color;
+    if (!console->ops->get_color)
+        console->ops->get_color = serial_console_get_color;
+
+    console->caps |= CONSOLE_CAP_CLEAR;
+    if (!console->ops->clear)
+        console->ops->clear = serial_console_clear;
     linked_list_init(list_node(console));
-    serial_console_t *serial_console = container_of(console, serial_console_t, console);
-    return serial_device_setup(&serial_console->device);
+    serial_console_t *serial_con = container_of(console, serial_console_t, con);
+    return serial_device_setup(serial_con->device);
 }
 
-int serial_console_write(console_t *console, const char *str, size_t len)
+size_t serial_console_write(console_t *console, const char *str, size_t len)
 {
-    serial_console_t *serial_console = container_of(console, serial_console_t, console);
-    int x = serial_device_write(&serial_console->device, str, len);
-    serial_device_write(&serial_console->device, ansi_reset, strlen(ansi_reset));
-    return x;
-}
-
-int serial_console_read(console_t *console, char *str, size_t len)
-{
-    serial_console_t *serial_console = container_of(console, serial_console_t, console);
-    return serial_device_read(&serial_console->device, str, len);
+    serial_console_t *serial_con = container_of(console, serial_console_t, con);
+    return serial_device_write(serial_con->device, str, len);
 }
 
 void get_ansi_color(char *buf, standard_color_t fg, standard_color_t bg)
@@ -72,19 +68,27 @@ void get_ansi_color(char *buf, standard_color_t fg, standard_color_t bg)
 
 bool serial_console_set_color(console_t *device, standard_color_t fg, standard_color_t bg)
 {
-    serial_console_t *serial_console = container_of(device, serial_console_t, console);
-    serial_console->fg = fg;
-    serial_console->bg = bg;
+    serial_console_t *serial_con = container_of(device, serial_console_t, con);
+    serial_con->fg = fg;
+    serial_con->bg = bg;
     char buf[64] = { 0 };
     get_ansi_color(buf, fg, bg);
-    serial_device_write(&serial_console->device, buf, strlen(buf));
+    serial_device_write(serial_con->device, ansi_reset, sizeof(ansi_reset));
+    serial_device_write(serial_con->device, buf, strlen(buf));
     return true;
 }
 
 bool serial_console_get_color(console_t *device, standard_color_t *fg, standard_color_t *bg)
 {
-    serial_console_t *serial_console = container_of(device, serial_console_t, console);
-    *fg = serial_console->fg;
-    *bg = serial_console->bg;
+    serial_console_t *serial_con = container_of(device, serial_console_t, con);
+    *fg = serial_con->fg;
+    *bg = serial_con->bg;
+    return true;
+}
+
+bool serial_console_clear(console_t *device)
+{
+    serial_console_t *serial_con = container_of(device, serial_console_t, con);
+    serial_device_write(serial_con->device, "\033[2J", 4);
     return true;
 }

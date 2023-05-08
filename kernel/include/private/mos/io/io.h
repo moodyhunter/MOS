@@ -10,9 +10,10 @@ typedef struct _io_t io_t;
 
 typedef enum
 {
-    IO_FILE = 1, // the io is a file
-    IO_TERMINAL, // the io is a terminal
-    IO_IPC,      // the io is an IPC channel
+    IO_NULL,    // null io port
+    IO_FILE,    // a file
+    IO_IPC,     // an IPC channel
+    IO_CONSOLE, // a console
 } io_type_t;
 
 typedef enum
@@ -40,6 +41,8 @@ typedef struct _io_t
     io_type_t type;
     const io_op_t *ops;
 } io_t;
+
+extern io_t *const io_null;
 
 void io_init(io_t *io, io_type_t type, io_flags_t flags, const io_op_t *ops);
 

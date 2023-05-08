@@ -5,12 +5,6 @@
 #include <mos/x86/devices/serial.h>
 #include <mos/x86/x86_interrupt.h>
 
-void serial_irq_handler(u32 irq)
-{
-    // todo wake up the thread waiting for input
-    MOS_UNUSED(irq);
-}
-
 static void set_baudrate_divisor(int com, serial_baud_rate divisor)
 {
     // Set the most significant bit of the Line Control Register. This is the DLAB bit, and allows access to the divisor registers.

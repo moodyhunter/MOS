@@ -5,7 +5,6 @@
 #include <mos/elf/elf.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/interrupt/ipi.h>
-#include <mos/io/terminal.h>
 #include <mos/ipc/ipc.h>
 #include <mos/lib/cmdline.h>
 #include <mos/mm/kmalloc.h>
@@ -92,11 +91,8 @@ void mos_start_kernel(void)
     tasks_init();
 
     console_t *init_con = console_get("serial_com1");
-    if (init_con->caps & CONSOLE_CAP_CLEAR)
-        init_con->clear(init_con);
-
-    terminal_t *init_term = terminal_create_console(init_con);
-    process_t *init = elf_create_process(init_argv.argv[0], NULL, init_term, init_argv);
+    const stdio_t init_io = { .in = &init_con->io, .out = &init_con->io, .err = &init_con->io };
+    process_t *init = elf_create_process(init_argv.argv[0], NULL, init_argv, &init_io);
     if (unlikely(!init))
         mos_panic("failed to create init process");
 

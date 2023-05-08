@@ -1,43 +1,82 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <mos/device/console.h>
+#include <mos/io/io.h>
 #include <mos/lib/structures/list.h>
+#include <mos/lib/structures/ring_buffer.h>
 #include <mos/printk.h>
+#include <mos/tasks/schedule.h>
+#include <mos/tasks/wait.h>
 #include <string.h>
 
-static int dummy_write_to_console(console_t *console, const char *message, size_t length)
+list_head consoles = LIST_HEAD_INIT(consoles);
+
+static size_t console_read(io_t *io, void *data, size_t size)
 {
-    (void) console;
-    (void) message;
-    (void) length;
-    return 0;
+    console_t *con = container_of(io, console_t, io);
+
+    spinlock_acquire(&con->read.lock);
+    if (ring_buffer_pos_is_empty(&con->read.pos))
+    {
+        spinlock_release(&con->read.lock);
+        bool ok = reschedule_for_waitlist(&con->waitlist);
+        if (!ok)
+        {
+            pr_emerg("console: '%s' closed", con->name);
+            return 0;
+        }
+        spinlock_acquire(&con->read.lock);
+    }
+
+    const size_t rd = ring_buffer_pos_pop_front(con->read.buf, &con->read.pos, data, size);
+    spinlock_release(&con->read.lock);
+
+    return rd;
 }
 
-// ! This is a compile-time connected linked list.
-static console_t dummy_con = {
-    .name = "dummy",
-    .caps = CONSOLE_CAP_NONE,
-    .write_impl = dummy_write_to_console,
-    .list_node = LIST_HEAD_INIT(consoles),
+static size_t console_write(io_t *io, const void *data, size_t size)
+{
+    console_t *con = container_of(io, console_t, io);
+    return con->ops->write(con, data, size);
+}
+
+static void console_close(io_t *io)
+{
+    console_t *con = container_of(io, console_t, io);
+    con->ops->close(con);
+}
+
+static io_op_t console_io_ops = {
+    .read = console_read,
+    .write = console_write,
+    .close = console_close,
 };
 
-list_head consoles = LIST_NODE_INIT(dummy_con);
-
-void console_register(console_t *con)
+void console_register(console_t *con, size_t buf_size)
 {
-    if (con->caps & CONSOLE_CAP_SETUP)
-        con->setup(con);
+    if (con->caps & CONSOLE_CAP_EXTRA_SETUP)
+    {
+        bool result = con->ops->extra_setup(con);
+        if (!result)
+        {
+            pr_emerg("console: failed to setup '%s'", con->name);
+            return;
+        }
+    }
 
     if (con->caps & CONSOLE_CAP_CLEAR)
-        con->clear(con);
+        con->ops->clear(con);
 
-    con->lock = (spinlock_t) SPINLOCK_INIT;
+    MOS_ASSERT_X(con->read.buf, "console: '%s' has no read buffer", con->name);
 
+    con->read.lock = (spinlock_t) SPINLOCK_INIT;
+    con->write.lock = (spinlock_t) SPINLOCK_INIT;
+
+    ring_buffer_pos_init(&con->read.pos, buf_size);
+    io_init(&con->io, IO_CONSOLE, IO_READABLE | IO_WRITABLE, &console_io_ops);
     list_node_append(&consoles, list_node(con));
+    waitlist_init(&con->waitlist);
     pr_info("console: registered '%s'", con->name);
-
-    if (unlikely(once())) // remove the dummy console
-        list_remove(&dummy_con);
 }
 
 console_t *console_get(const char *name)
@@ -60,35 +99,26 @@ console_t *console_get_by_prefix(const char *prefix)
     return NULL;
 }
 
-int console_read(console_t *con, char *dest, size_t size)
-{
-    if (con->caps & CONSOLE_CAP_READ)
-        return con->read_impl(con, dest, size);
-    return -1;
-}
-
-int console_write(console_t *con, const char *data, size_t size)
-{
-    spinlock_acquire(&con->lock);
-    int sz = con->write_impl(con, data, size);
-    spinlock_release(&con->lock);
-    return sz;
-}
-
-int console_write_color(console_t *con, const char *data, size_t size, standard_color_t fg, standard_color_t bg)
+size_t console_write_color(console_t *con, const char *data, size_t size, standard_color_t fg, standard_color_t bg)
 {
     standard_color_t prev_fg, prev_bg;
-    spinlock_acquire(&con->lock);
+    spinlock_acquire(&con->write.lock);
     if (con->caps & CONSOLE_CAP_COLOR)
     {
-        con->get_color(con, &prev_fg, &prev_bg);
-        con->set_color(con, fg, bg);
+        con->ops->get_color(con, &prev_fg, &prev_bg);
+        con->ops->set_color(con, fg, bg);
     }
 
-    int ret = con->write_impl(con, data, size);
+    size_t ret = con->ops->write(con, data, size);
 
     if (con->caps & CONSOLE_CAP_COLOR)
-        con->set_color(con, prev_fg, prev_bg);
-    spinlock_release(&con->lock);
+        con->ops->set_color(con, prev_fg, prev_bg);
+    spinlock_release(&con->write.lock);
     return ret;
+}
+
+void console_putc(console_t *con, u8 c)
+{
+    ring_buffer_pos_push_back_byte(con->read.buf, &con->read.pos, c);
+    waitlist_wake(&con->waitlist, INT_MAX);
 }

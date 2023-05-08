@@ -16,6 +16,7 @@ x86_context_switch_impl:
     push    ebx
     push    edi
     push    esi
+    pushf
 
     mov     eax, ARG1       ; eax = *old_stack
     mov     [eax], esp      ; save esp
@@ -48,6 +49,7 @@ global x86_switch_impl_normal:function (x86_switch_impl_normal.end - x86_switch_
 x86_switch_impl_normal:
     ; we are now on the kernel stack
     ; restore callee-saved registers
+    popf
     pop     esi
     pop     edi
     pop     ebx

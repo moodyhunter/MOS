@@ -1,8 +1,40 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <mos/io/io.h>
+#include <mos/io/io_types.h>
 #include <mos/mos_global.h>
 #include <mos/printk.h>
+
+static size_t _null_read(io_t *io, void *buffer, size_t size)
+{
+    (void) io;
+    (void) buffer;
+    (void) size;
+    return 0;
+}
+
+static size_t _null_write(io_t *io, const void *buffer, size_t size)
+{
+    (void) io;
+    (void) buffer;
+    (void) size;
+    return 0;
+}
+
+static io_t io_null_impl = {
+    .refcount = 1, // never gets closed
+    .type = IO_NULL,
+    .flags = IO_READABLE | IO_WRITABLE,
+    .ops =
+        &(io_op_t){
+            .read = _null_read,
+            .write = _null_write,
+            .seek = NULL,
+            .close = NULL,
+        },
+};
+
+io_t *const io_null = &io_null_impl;
 
 void io_init(io_t *io, io_type_t type, io_flags_t flags, const io_op_t *ops)
 {

@@ -14,8 +14,6 @@
 #include <mos/tasks/wait.h>
 #include <mos/types.h>
 
-typedef struct _terminal terminal_t;
-
 typedef enum
 {
     THREAD_MODE_KERNEL,
@@ -72,7 +70,6 @@ typedef struct _process
     const char *name;
     pid_t pid;
     process_t *parent;
-    terminal_t *terminal; // terminal this process's stdin/stdout/stderr are connected to
     paging_handle_t pagetable;
 
     argv_t argv;

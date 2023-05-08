@@ -150,7 +150,8 @@ pid_t define_syscall(spawn)(const char *path, int argc, const char *const argv[]
         new_argv[i + 1] = strdup(argv[i]);
     new_argv[real_argc] = NULL;
 
-    process_t *process = elf_create_process(path, current, current->terminal, (argv_t){ .argc = real_argc, .argv = new_argv });
+    const stdio_t stdio = current_stdio();
+    process_t *process = elf_create_process(path, current, (argv_t){ .argc = real_argc, .argv = new_argv }, &stdio);
     if (process == NULL)
         return -1;
 

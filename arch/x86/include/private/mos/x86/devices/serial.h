@@ -120,8 +120,6 @@ typedef struct
     serial_port_parity_t parity;
 } serial_device_t;
 
-void serial_irq_handler(u32 irq);
-
 bool serial_device_setup(serial_device_t *device);
 int serial_device_read(serial_device_t *device, char *data, size_t length);
 int serial_device_write(serial_device_t *device, const char *data, size_t length);

@@ -2,7 +2,6 @@
 
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/vfs.h>
-#include <mos/io/terminal.h>
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/structures/hashmap_common.h>
 #include <mos/lib/structures/list.h>
@@ -74,7 +73,7 @@ process_t *process_allocate(process_t *parent, const char *name)
     return proc;
 }
 
-process_t *process_new(process_t *parent, const char *name, terminal_t *term, thread_entry_t entry, argv_t argv)
+process_t *process_new(process_t *parent, const char *name, const stdio_t *ios, thread_entry_t entry, argv_t argv)
 {
     process_t *proc = process_allocate(parent, name);
     if (unlikely(!proc))
@@ -84,19 +83,10 @@ process_t *process_new(process_t *parent, const char *name, terminal_t *term, th
     if (unlikely(!proc))
         return NULL;
 
-    if (unlikely(!term))
-    {
-        if (likely(parent))
-            proc->terminal = parent->terminal;
-        else
-            mos_panic("init process has no terminal");
-    }
-
     proc->argv = argv;
-    proc->terminal = term;
-    process_attach_ref_fd(proc, &term->io);
-    process_attach_ref_fd(proc, &term->io);
-    process_attach_ref_fd(proc, &term->io);
+    process_attach_ref_fd(proc, ios && ios->in ? ios->in : io_null);
+    process_attach_ref_fd(proc, ios && ios->out ? ios->out : io_null);
+    process_attach_ref_fd(proc, ios && ios->err ? ios->err : io_null);
 
     thread_new(proc, THREAD_MODE_USER, proc->name, entry, NULL);
 
