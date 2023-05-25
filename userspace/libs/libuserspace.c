@@ -19,6 +19,7 @@ u64 __stack_chk_guard = 0xdeadbeefdeadbeef;
 
 noreturn void __stack_chk_fail(void)
 {
+    fputs("stack smashing detected...", stdout);
     syscall_exit(-1);
     while (1)
         ;
