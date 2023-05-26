@@ -40,7 +40,8 @@ typedef u64 ptr_t;
 #define PTR_VLFMT "0x%llx"
 #endif
 
-#define PTR_RANGE "[" PTR_FMT " - " PTR_FMT "]"
+#define PTR_RANGE   "[" PTR_FMT " - " PTR_FMT "]"
+#define PTR_RANGE64 "[0x%.16llx - 0x%.16llx]"
 
 MOS_STATIC_ASSERT(sizeof(void *) == MOS_BITS / 8, "pointer size check failed");
 MOS_STATIC_ASSERT(sizeof(ptr_t) == sizeof(void *), "ptr_t is not the same size as void *");

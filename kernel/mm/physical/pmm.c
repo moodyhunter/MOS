@@ -107,28 +107,9 @@ void pmm_dump_lists(void)
     }
 }
 
-void pmm_add_region_bytes(ptr_t start_addr, size_t nbytes, pm_range_type_t type)
+void pmm_add_region_frames(ptr_t start_addr, size_t nframes, pm_range_type_t type)
 {
-    ptr_t end_addr = start_addr + nbytes;
-    const ptr_t up_start = ALIGN_UP_TO_PAGE(start_addr);
-    const ptr_t up_end = ALIGN_UP_TO_PAGE(end_addr);
-    const ptr_t down_start = ALIGN_DOWN_TO_PAGE(start_addr);
-    const ptr_t down_end = ALIGN_DOWN_TO_PAGE(end_addr);
-
-    if (type == PM_RANGE_RESERVED && (start_addr != down_start || end_addr != up_end))
-    {
-        pr_info("pmm: expanding non-page-aligned reserved region " PTR_RANGE " to " PTR_RANGE, start_addr, end_addr, down_start, up_end);
-        start_addr = down_start;
-        end_addr = up_end;
-    }
-    else if (type == PM_RANGE_FREE && (start_addr != up_start || end_addr != down_end))
-    {
-        pr_info("pmm: shrinking non-page-aligned free region " PTR_RANGE " to " PTR_RANGE, start_addr, end_addr, up_start, down_end);
-        start_addr = up_start;
-        end_addr = down_end;
-    }
-
-    pmm_impl_add_free_frames(start_addr, (end_addr - start_addr) / MOS_PAGE_SIZE, type);
+    pmm_impl_add_free_frames(start_addr, nframes, type);
 }
 
 // * Callback for pmm_allocate_frames (i.e. pmm_internal_acquire_free_frames)

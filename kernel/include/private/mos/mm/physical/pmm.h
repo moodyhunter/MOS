@@ -91,13 +91,11 @@ void pmm_dump_lists(void);
  * @brief Add a region of physical memory to the physical memory manager.
  *
  * @param start_addr Starting address of the region
- * @param nbytes Size of the region in bytes
+ * @param nframes Size of the region in frames
  * @param type Type of the region
  *
- * @note The second parameter is in bytes, not pages, page-aligning will be done internally.
- *
  */
-void pmm_add_region_bytes(ptr_t start_addr, size_t nbytes, pm_range_type_t type);
+void pmm_add_region_frames(ptr_t start_addr, size_t nframes, pm_range_type_t type);
 
 /**
  * @brief Allocate blocks of physical memory.
