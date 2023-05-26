@@ -83,6 +83,8 @@
 #define MB * 1024 KB
 #define GB * (u64) 1024 MB
 #define TB * (u64) 1024 GB
+#define STUB_FUNCTION(func, ...) void func(__VA_ARGS__){}
+#define STUB_FUNCTION_UNREACHABLE(func, ...) void func(__VA_ARGS__){ MOS_UNREACHABLE(); }
 // clang-format on
 
 // If the feature is enabled, the expression will be 1, otherwise -1.
