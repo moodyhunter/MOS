@@ -36,28 +36,51 @@ s32 strncmp(const char *str1, const char *str2, size_t n)
     return 0;
 }
 
-void *memcpy(void *__restrict dest, const void *__restrict src, size_t n)
+void *memcpy(void *__restrict _dst, const void *__restrict _src, size_t n)
 {
-    typedef s64 largeint_t;
-    largeint_t *ldest = (largeint_t *) dest;
-    largeint_t *lsrc = (largeint_t *) src;
+    // https://github.com/eblot/newlib/blob/master/newlib/libc/string/memcpy.c
 
-    while (n >= sizeof(largeint_t))
+#define UNALIGNED(X, Y) (((long) X & (sizeof(long) - 1)) | ((long) Y & (sizeof(long) - 1))) // Nonzero if either X or Y is not aligned on a "long" boundary.
+#define BIGBLOCKSIZE    (sizeof(long) << 2)                                                 // How many bytes are copied each iteration of the 4X unrolled loop.
+#define LITTLEBLOCKSIZE (sizeof(long))                                                      // How many bytes are copied each iteration of the word copy loop.
+#define TOO_SMALL(LEN)  ((LEN) < BIGBLOCKSIZE)                                              // Threshhold for punting to the byte copier.
+
+    char *dst = _dst;
+    const char *src = _src;
+
+    /* If the size is small, or either SRC or DST is unaligned,
+       then punt into the byte copy loop.  This should be rare.  */
+    if (!TOO_SMALL(n) && !UNALIGNED(src, dst))
     {
-        *ldest++ = *lsrc++;
-        n -= sizeof(largeint_t);
+        long *aligned_dst = (long *) dst;
+        const long *aligned_src = (long *) src;
+
+        /* Copy 4X long words at a time if possible.  */
+        while (n >= BIGBLOCKSIZE)
+        {
+            *aligned_dst++ = *aligned_src++;
+            *aligned_dst++ = *aligned_src++;
+            *aligned_dst++ = *aligned_src++;
+            *aligned_dst++ = *aligned_src++;
+            n -= BIGBLOCKSIZE;
+        }
+
+        /* Copy one long word at a time if possible.  */
+        while (n >= LITTLEBLOCKSIZE)
+        {
+            *aligned_dst++ = *aligned_src++;
+            n -= LITTLEBLOCKSIZE;
+        }
+
+        /* Pick up any residual with a byte copier.  */
+        dst = (char *) aligned_dst;
+        src = (char *) aligned_src;
     }
 
-    char *cdest = (char *) ldest;
-    char *csrc = (char *) lsrc;
+    while (n--)
+        *dst++ = *src++;
 
-    while (n > 0)
-    {
-        *cdest++ = *csrc++;
-        n--;
-    }
-
-    return dest;
+    return _dst;
 }
 
 void *memmove(void *dest, const void *source, size_t length)
