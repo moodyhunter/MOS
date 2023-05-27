@@ -25,6 +25,7 @@ MOS_STATIC_ASSERT(X86_AP_TRAMPOLINE_ADDR % MOS_PAGE_SIZE == 0);
 MOS_STATIC_ASSERT(X86_AP_TRAMPOLINE_ADDR < 1 MB, "trampoline must be in low memory, otherwise PMM will overwrite it");
 
 extern char x86_ap_trampoline[];
+extern char x86_ap_trampoline_end[];
 extern x86_pgdir_entry startup_pgd[1024];
 volatile ptr_t ap_stack_addr = 0;
 volatile const ptr_t ap_pgd_addr = (ptr_t) &startup_pgd;
@@ -61,7 +62,7 @@ static void start_ap(int apic_id)
 void x86_smp_copy_trampoline(void)
 {
     mos_startup_map_bytes(X86_AP_TRAMPOLINE_ADDR, X86_AP_TRAMPOLINE_ADDR, 4 KB, VM_READ | VM_WRITE | VM_EXEC);
-    memcpy((void *) X86_AP_TRAMPOLINE_ADDR, x86_ap_trampoline, 4 KB);
+    memcpy((void *) X86_AP_TRAMPOLINE_ADDR, x86_ap_trampoline, x86_ap_trampoline_end - x86_ap_trampoline);
 }
 
 void x86_smp_start_all(void)

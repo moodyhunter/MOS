@@ -1,6 +1,7 @@
 ; SPDX-License-Identifier: GPL-3.0-or-later
 
 [global x86_ap_trampoline]
+[global x86_ap_trampoline_end]
 
 [extern ap_state]
 [extern ap_stack_addr]
@@ -88,3 +89,5 @@ align   16
 gdt_ptr:
     dw      tmp_gdt.end - tmp_gdt - 1
     dd      tmp_gdt - begin + X86_AP_TRAMPOLINE_ADDR
+
+x86_ap_trampoline_end:
