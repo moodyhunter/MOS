@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: "MOS ${{matrix.target}} (${{matrix.build_type}}, Tests: ${{matrix.run_tests}})"
+    name: "MOS ${{matrix.target}}, SMP ${{matrix.has_smp}} (${{matrix.smp}}), ${{matrix.build_type}}"
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
