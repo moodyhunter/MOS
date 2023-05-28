@@ -8,25 +8,47 @@ on:
 
 jobs:
   build:
-    name: "MOS ${{matrix.target}}, SMP ${{matrix.has_smp}} (${{matrix.smp}}), ${{matrix.build_type}}"
+    name: "MOS ${{matrix.build_type}}, ${{matrix.config.name}}"
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        has_smp: [ON, OFF]
-        smp: [1, 2, 3, 4]
         build_type: [Debug, Release]
-        include:
-          - target: multiboot
-            arch: x86
-            target_triple: i686-elf
-        exclude:
-          - has_smp: OFF
-            smp: [2, 3, 4] # Skip SMP tests for non-SMP builds
-
+        config:
+          - {
+              "name": "x86 multiboot (no SMP)",
+              "arch": "x86",
+              "target_triple": "i686-elf",
+              "target": "multiboot",
+              "has_smp": "OFF",
+            }
+          - {
+              "name": "x86 multiboot with SMP (1 core)",
+              "arch": "x86",
+              "target_triple": "i686-elf",
+              "target": "multiboot",
+              "has_smp": "ON",
+              "smp": "1",
+            }
+          - {
+              "name": "x86 multiboot with SMP (2 cores)",
+              "arch": "x86",
+              "target_triple": "i686-elf",
+              "target": "multiboot",
+              "has_smp": "ON",
+              "smp": "2",
+            }
+          - {
+              "name": "x86 multiboot with SMP (4 cores)",
+              "arch": "x86",
+              "target_triple": "i686-elf",
+              "target": "multiboot",
+              "has_smp": "ON",
+              "smp": "4",
+            }
     env:
-      MOS_TEST_SMP_COUNT: ${{matrix.smp}}
+      MOS_TEST_SMP_COUNT: ${{matrix.config.smp}}
 
     steps:
       - uses: actions/checkout@v3
@@ -34,12 +56,12 @@ jobs:
       - name: Install packages
         run: |
           sudo apt update
-          sudo apt -y install nasm grub2-common mtools jq ninja-build qemu-system-${{matrix.arch}} cpio libgmp-dev libmpfr-dev libmpc-dev
+          sudo apt -y install nasm grub2-common mtools jq ninja-build qemu-system-${{matrix.config.arch}} cpio libgmp-dev libmpfr-dev libmpc-dev
 
       - name: Download & Extract Cross Compiler
         run: |
-          wget -q "https://github.com/moodyhunter/${{matrix.target_triple}}-prebuilt/releases/download/artifact/toolchain-${{matrix.target_triple}}.tar.gz"
-          tar -xzf toolchain-${{matrix.target_triple}}.tar.gz
+          wget -q "https://github.com/moodyhunter/${{matrix.config.target_triple}}-prebuilt/releases/download/artifact/toolchain-${{matrix.config.target_triple}}.tar.gz"
+          tar -xzf toolchain-${{matrix.config.target_triple}}.tar.gz
           mv toolchain /tmp/
           echo "PATH=$PATH:/tmp/toolchain/bin" >> $GITHUB_ENV
 
@@ -48,33 +70,33 @@ jobs:
           cmake \
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
             -DBUILD_TESTING=ON \
-            -DMOS_ARCH=${{matrix.arch}} \
-            -DMOS_SMP=${{matrix.has_smp}} \
+            -DMOS_ARCH=${{matrix.config.arch}} \
+            -DMOS_SMP=${{matrix.config.has_smp}} \
             -B ${{github.workspace}}/build \
             -G Ninja
 
       - name: Build
         working-directory: ${{github.workspace}}/build
         run: |
-          ninja ${{matrix.target}} mos_initrd
+          ninja ${{matrix.config.target}} mos_initrd
 
       - name: Upload Bootable Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: MOS-${{matrix.target}}-${{matrix.build_type}}
+          name: MOS-${{matrix.config.target}}-${{matrix.build_type}}
           path: ${{github.workspace}}/build/boot.dir/
 
       - name: Upload initrd
         uses: actions/upload-artifact@v3
         with:
-          name: MOS-${{matrix.target}}-${{matrix.build_type}}-initrd
+          name: MOS-${{matrix.config.target}}-${{matrix.build_type}}-initrd
           path: ${{github.workspace}}/build/initrd.cpio
 
       - name: Run Tests (debug all)
         working-directory: ${{github.workspace}}/build
         run: |
           cmake . -DMOS_DEBUG_ALL=ON -DMOS_DEBUG_liballoc=OFF
-          ninja ${{matrix.target}} mos_initrd
+          ninja ${{matrix.config.target}} mos_initrd
           ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh'"
 
       - name: Run Tests (quiet)
@@ -86,12 +108,12 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: |
           cmake . -DMOS_DEBUG_ALL=OFF
-          ninja ${{matrix.target}} mos_initrd
+          ninja ${{matrix.config.target}} mos_initrd
           ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh'"
 
       - name: Run Tests (LTO)
         working-directory: ${{github.workspace}}/build
         run: |
           cmake . -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DMOS_DEBUG_ALL=OFF
-          ninja ${{matrix.target}} mos_initrd
+          ninja ${{matrix.config.target}} mos_initrd
           ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh'"
