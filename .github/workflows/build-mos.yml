@@ -21,6 +21,9 @@ jobs:
           - target: multiboot
             arch: x86
             target_triple: i686-elf
+        exclude:
+          - has_smp: OFF
+            smp: [2, 3, 4] # Skip SMP tests for non-SMP builds
 
     env:
       MOS_TEST_SMP_COUNT: ${{matrix.smp}}
