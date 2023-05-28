@@ -5,7 +5,14 @@ set -e # exit on error
 # get the current directory
 DIR=$(pwd)
 
-QEMU_ARGS="-m 4G -smp 1"
+if [ -z "$MOS_TEST_SMP_COUNT" ]; then
+    SMP_COUNT=1
+else
+    SMP_COUNT=$MOS_TEST_SMP_COUNT
+    echo "Using SMP_COUNT=$SMP_COUNT"
+fi
+
+QEMU_ARGS="-m 4G -smp $SMP_COUNT"
 
 # test if MOS_TEST_SHOW_UI is set
 if [ -z "$MOS_TEST_SHOW_UI" ]; then
