@@ -4,7 +4,7 @@ add_mos_library(
     NAME stdlib
     PUBLIC_INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_LIST_DIR}/include
-    RELATIVE_SOURCES
+    SOURCES
         stdio.c
         stdio_impl.c
         stdlib.c

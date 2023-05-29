@@ -8,12 +8,11 @@ add_kernel_source(
         ${CMAKE_CURRENT_LIST_DIR}/include/private
     SYSTEM_INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_LIST_DIR}/include/public
-    RELATIVE_SOURCES
+    SOURCES
         interrupt/interrupt.asm
         mm/enable_paging.asm
         tasks/context_switch.asm
         x86_descriptor_flush.asm
-
         acpi/acpi.c
         acpi/madt.c
         cpu/cpuid.c

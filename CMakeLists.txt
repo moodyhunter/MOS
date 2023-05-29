@@ -74,7 +74,7 @@ add_subdirectory(libs)
 # Configure architecture-specific stuff
 include(add_bootable_target)
 include(prepare_bootable_kernel_binary)
-include(${MOS_ARCH_CONFIG})
+add_subdirectory(arch/${MOS_ARCH})
 
 add_subdirectory(userspace)
 add_subdirectory(tests)

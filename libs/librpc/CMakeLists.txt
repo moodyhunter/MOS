@@ -5,7 +5,7 @@ add_mos_library(
     PUBLIC_INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_LIST_DIR}/include-client
         ${CMAKE_CURRENT_LIST_DIR}/include-common
-    RELATIVE_SOURCES
+    SOURCES
         rpc_client.c
     LINK_LIBRARIES
         mos::libipc
@@ -19,7 +19,7 @@ add_mos_library(
     PUBLIC_INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_LIST_DIR}/include-server
         ${CMAKE_CURRENT_LIST_DIR}/include-common
-    RELATIVE_SOURCES
+    SOURCES
         rpc_server.c
     LINK_LIBRARIES
         mos::libipc

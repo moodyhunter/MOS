@@ -4,6 +4,6 @@ add_mos_library(
     NAME libipc
     PUBLIC_INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_LIST_DIR}/include
-    RELATIVE_SOURCES
+    SOURCES
         libipc.c
 )

@@ -12,7 +12,7 @@ endmacro()
 macro(add_mos_library)
     set(options USERSPACE_ONLY)
     set(oneValueArgs NAME)
-    set(multiValueArgs SOURCES RELATIVE_SOURCES PUBLIC_INCLUDE_DIRECTORIES PRIVATE_INCLUDE_DIRECTORIES LINK_LIBRARIES)
+    set(multiValueArgs SOURCES PUBLIC_INCLUDE_DIRECTORIES PRIVATE_INCLUDE_DIRECTORIES LINK_LIBRARIES)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     if (NOT ARG_NAME)
@@ -26,7 +26,7 @@ macro(add_mos_library)
     if (NOT ARG_USERSPACE_ONLY)
         # Create a kernel library
         set(KERNEL_LIB_NAME ${ARG_NAME}_kernel)
-        add_library(${KERNEL_LIB_NAME} STATIC ${ARG_SOURCES} ${ARG_RELATIVE_SOURCES})
+        add_library(${KERNEL_LIB_NAME} STATIC ${ARG_SOURCES})
         add_library(mos::${KERNEL_LIB_NAME} ALIAS ${KERNEL_LIB_NAME})
         add_mos_library_do_setup(${KERNEL_LIB_NAME} "__MOS_KERNEL__;__IN_MOS_LIBS__" "${ARG_PRIVATE_INCLUDE_DIRECTORIES}" "${ARG_PUBLIC_INCLUDE_DIRECTORIES}")
         target_link_libraries(${KERNEL_LIB_NAME} PRIVATE gcc mos::include mos::private_include)
@@ -42,7 +42,7 @@ macro(add_mos_library)
     endif()
 
     # Create a userspace library
-    add_library(${ARG_NAME} STATIC ${ARG_SOURCES} ${ARG_RELATIVE_SOURCES})
+    add_library(${ARG_NAME} STATIC ${ARG_SOURCES})
     add_library(mos::${ARG_NAME} ALIAS ${ARG_NAME})
 
     add_mos_library_do_setup(${ARG_NAME} "" "${ARG_PRIVATE_INCLUDE_DIRECTORIES}" "${ARG_PUBLIC_INCLUDE_DIRECTORIES}")
