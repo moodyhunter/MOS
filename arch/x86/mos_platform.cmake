@@ -6,6 +6,7 @@ add_bootable_target(boot/multiboot_iso)
 add_kernel_source(
     INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_LIST_DIR}/include/private
+    SYSTEM_INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_LIST_DIR}/include/public
     RELATIVE_SOURCES
         interrupt/interrupt.asm

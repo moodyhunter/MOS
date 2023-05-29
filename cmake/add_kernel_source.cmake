@@ -3,7 +3,7 @@
 macro(add_kernel_source)
     set(OPTIONS "")
     set(SINGLE_VALUE_OPTIONS "")
-    set(MULTI_VALUE_OPTIONS "SOURCES;RELATIVE_SOURCES;INCLUDE_DIRECTORIES")
+    set(MULTI_VALUE_OPTIONS "SOURCES;RELATIVE_SOURCES;INCLUDE_DIRECTORIES;SYSTEM_INCLUDE_DIRECTORIES")
     cmake_parse_arguments(ARG "${OPTIONS}" "${SINGLE_VALUE_OPTIONS}" "${MULTI_VALUE_OPTIONS}" ${ARGN})
 
     if(ARG_UNPARSED_ARGUMENTS)
@@ -18,7 +18,13 @@ macro(add_kernel_source)
 
     if(ARG_INCLUDE_DIRECTORIES)
         foreach(INCLUDE_DIRECTORY ${ARG_INCLUDE_DIRECTORIES})
-            target_include_directories(mos_kernel SYSTEM PRIVATE ${INCLUDE_DIRECTORY})
+            target_include_directories(mos_kernel PRIVATE ${INCLUDE_DIRECTORY})
+        endforeach()
+    endif()
+
+    if(ARG_SYSTEM_INCLUDE_DIRECTORIES)
+        foreach(SYSTEM_INCLUDE_DIRECTORY ${ARG_SYSTEM_INCLUDE_DIRECTORIES})
+            target_include_directories(mos_kernel SYSTEM PRIVATE ${SYSTEM_INCLUDE_DIRECTORY})
         endforeach()
     endif()
 endmacro()

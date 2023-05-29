@@ -50,7 +50,7 @@ add_library(mos::include ALIAS mos_kernel_include)
 
 # Private includes interface target
 add_library(mos_kernel_private_include INTERFACE)
-target_include_directories(mos_kernel_private_include SYSTEM INTERFACE
+target_include_directories(mos_kernel_private_include INTERFACE
     ${CMAKE_SOURCE_DIR}/kernel/include/private
     ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/include/private
 )
