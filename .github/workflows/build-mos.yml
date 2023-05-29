@@ -10,7 +10,7 @@ jobs:
   build:
     name: "MOS ${{matrix.build_type}}, ${{matrix.config.name}}"
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
