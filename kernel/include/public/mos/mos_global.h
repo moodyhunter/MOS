@@ -44,6 +44,8 @@
 
 #define add_const(x) (*(const __typeof__(x) *) (&(x)))
 
+#define is_aligned(ptr, alignment) (((ptr_t) ptr & (alignment - 1)) == 0)
+
 #define GET_BIT(x, n)               (((x) >> (n)) & 1)
 #define MASK_BITS(value, width)     ((value) & ((1 << (width)) - 1))
 #define SET_BITS(bit, width, value) (MASK_BITS(value, width) << (bit))
