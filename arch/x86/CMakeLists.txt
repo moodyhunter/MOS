@@ -36,7 +36,7 @@ add_kernel_source(
 
 if(MOS_SMP)
     add_kernel_source(
-        RELATIVE_SOURCES
+        SOURCES
             cpu/ap_init.asm
             cpu/smp.c
     )
