@@ -73,7 +73,7 @@ bool serial_console_set_color(console_t *device, standard_color_t fg, standard_c
     serial_con->bg = bg;
     char buf[64] = { 0 };
     get_ansi_color(buf, fg, bg);
-    serial_device_write(serial_con->device, ansi_reset, sizeof(ansi_reset));
+    serial_device_write(serial_con->device, ansi_reset, sizeof(ansi_reset) - 1);
     serial_device_write(serial_con->device, buf, strlen(buf));
     return true;
 }
