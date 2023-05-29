@@ -24,7 +24,7 @@
 
 noreturn void platform_shutdown(void)
 {
-    x86_disable_interrupts();
+    platform_interrupt_disable();
     port_outw(0x604, 0x2000);
     x86_cpu_halt();
     while (1)
@@ -63,12 +63,12 @@ void platform_cpu_idle(void)
 
 void platform_interrupt_enable(void)
 {
-    x86_enable_interrupts();
+    __asm__ volatile("sti");
 }
 
 void platform_interrupt_disable(void)
 {
-    x86_disable_interrupts();
+    __asm__ volatile("cli");
 }
 
 bool platform_irq_handler_install(u32 irq, irq_handler handler)

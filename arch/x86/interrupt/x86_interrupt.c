@@ -62,16 +62,6 @@ void x86_irq_handler_init(void)
         linked_list_init(&irq_handlers[i]);
 }
 
-void x86_disable_interrupts(void)
-{
-    __asm__ volatile("cli");
-}
-
-void x86_enable_interrupts(void)
-{
-    __asm__ volatile("sti");
-}
-
 bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
 {
     MOS_ASSERT(irq < IRQ_MAX_COUNT);
