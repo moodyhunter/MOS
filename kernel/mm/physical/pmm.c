@@ -3,6 +3,8 @@
 
 #define mos_pmm_impl
 
+#include "mos/mm/slab.h"
+
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/physical/pmm.h>
 #include <mos/mm/physical/pmm_internal.h>
@@ -12,6 +14,7 @@
 static pmlist_node_t pmm_early_storage[MOS_PMM_EARLY_MEMREGIONS] = { 0 };
 static spinlock_t pmm_early_storage_lock = SPINLOCK_INIT;
 bool pmm_use_kernel_heap = false;
+static slab_t *pmlist_node_cache = NULL;
 
 pmlist_node_t *pmm_internal_list_node_create(ptr_t start, size_t n_pages, pm_range_type_t type)
 {
@@ -19,7 +22,7 @@ pmlist_node_t *pmm_internal_list_node_create(ptr_t start, size_t n_pages, pm_ran
     pmlist_node_t *node = NULL;
     if (likely(pmm_use_kernel_heap))
     {
-        node = kmalloc(sizeof(pmlist_node_t)); // zeroed later
+        node = kmemcache_alloc(pmlist_node_cache);
     }
     else
     {
@@ -67,6 +70,7 @@ void pmm_internal_list_node_delete(pmlist_node_t *node)
 void pmm_switch_to_kheap(void)
 {
     MOS_ASSERT_X(!pmm_use_kernel_heap, "pmm_switch_to_kheap() called twice");
+    pmlist_node_cache = kmemcache_create("pmlist_node", sizeof(pmlist_node_t));
     pmm_use_kernel_heap = true;
     pr_info("pmm: switched to kernel heap");
 }
