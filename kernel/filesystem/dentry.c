@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/slab.h"
+
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
@@ -608,7 +610,7 @@ bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs)
     tree_node(root)->parent = tree_node(tree_parent(mountpoint, dentry_t));
     mountpoint->is_mountpoint = true;
 
-    mount_t *mount = kzalloc(sizeof(mount_t));
+    mount_t *mount = kmemcache_alloc(mount_cache);
     mount->root = root;
     mount->superblock = root->inode->superblock;
     mount->mountpoint = mountpoint;

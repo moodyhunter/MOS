@@ -231,11 +231,11 @@ paging_handle_t mm_create_user_pgd(void)
     if (unlikely(table.pgd == 0))
         goto bail;
 
-    table.um_page_map = (page_map_t *) kzalloc(sizeof(page_map_t));
+    table.um_page_map = kzalloc(sizeof(page_map_t));
     if (unlikely(table.um_page_map == 0))
         goto bail;
 
-    table.pgd_lock = (spinlock_t *) kzalloc(sizeof(spinlock_t));
+    table.pgd_lock = kzalloc(sizeof(spinlock_t));
     if (unlikely(table.pgd_lock == 0))
         goto bail;
 
