@@ -78,6 +78,9 @@ void pmm_impl_walk_alloclist(ptr_t start, size_t npages, refcount_operation_t op
         if (cstart == start && this->range.npages <= npages)
         {
             mos_debug(pmm_impl, "  entire node " PTR_RANGE " is within range " PTR_RANGE "", cstart, cend, start, end);
+
+            const size_t this_npages = this->range.npages;
+
             switch (op)
             {
                 case OP_REF: this->refcount++; break;
@@ -91,8 +94,8 @@ void pmm_impl_walk_alloclist(ptr_t start, size_t npages, refcount_operation_t op
             }
 
             // update iteration state
-            npages -= this->range.npages;
-            start += this->range.npages * MOS_PAGE_SIZE;
+            npages -= this_npages;
+            start += this_npages * MOS_PAGE_SIZE;
             continue;
         }
 
