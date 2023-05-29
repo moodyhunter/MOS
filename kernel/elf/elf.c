@@ -65,7 +65,7 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
 
     if (buf_block.vaddr == 0)
     {
-        mos_warn("failed to allocate %d pages for '%s'", npage_required, path);
+        mos_warn("failed to allocate %zu pages for '%s'", npage_required, path);
         goto bail_out;
     }
 

@@ -25,19 +25,19 @@ typedef unsigned int u32;
 typedef unsigned long ulong;
 typedef unsigned long long u64;
 
+typedef unsigned long ptr_t;
+
 // native integer type
 #if MOS_BITS == 32
 typedef s32 intn;
 typedef u32 uintn;
-typedef u32 ptr_t;
-#define PTR_FMT   "0x%8.8x"
-#define PTR_VLFMT "0x%x"
+#define PTR_FMT   "0x%8.8lx"
+#define PTR_VLFMT "0x%lx"
 #else
 typedef s64 intn;
 typedef u64 uintn;
-typedef u64 ptr_t;
-#define PTR_FMT   "0x%16.16llx"
-#define PTR_VLFMT "0x%llx"
+#define PTR_FMT   "0x%16.16lx"
+#define PTR_VLFMT "0x%lx"
 #endif
 
 #define PTR_RANGE   "[" PTR_FMT " - " PTR_FMT "]"

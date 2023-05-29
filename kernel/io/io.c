@@ -122,7 +122,7 @@ bool io_valid(io_t *io)
 
 size_t io_read(io_t *io, void *buf, size_t count)
 {
-    mos_debug(io, "io_read(%p, %p, %d)", (void *) io, buf, count);
+    mos_debug(io, "io_read(%p, %p, %zu)", (void *) io, buf, count);
 
     if (unlikely(io->closed))
     {
@@ -141,7 +141,7 @@ size_t io_read(io_t *io, void *buf, size_t count)
 
 size_t io_write(io_t *io, const void *buf, size_t count)
 {
-    mos_debug(io, "io_write(%p, %p, %d)", (void *) io, buf, count);
+    mos_debug(io, "io_write(%p, %p, %zu)", (void *) io, buf, count);
 
     if (unlikely(io->closed))
     {

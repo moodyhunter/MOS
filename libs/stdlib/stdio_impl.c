@@ -329,7 +329,7 @@ static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char con
     // ! END SPECIAL CASE
 
     s32 precision_padding = MAX(pflags->precision - n_digits, 0);
-    s32 width_to_pad = MAX(pflags->minimum_width - strlen(num_prefix_buf) - precision_padding - n_digits, 0);
+    s32 width_to_pad = MAX(pflags->minimum_width - strlen(num_prefix_buf) - precision_padding - n_digits, 0u);
 
     char *pnum_prefix = num_prefix_buf;
     char *pnum_content = num_content_buf + n_digits;

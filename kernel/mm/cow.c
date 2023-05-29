@@ -121,7 +121,7 @@ bool mm_handle_pgfault(ptr_t fault_addr, bool present, bool is_write, bool is_us
             continue;
         }
 
-        mos_debug(cow, "fault_addr=" PTR_FMT ", vmblock=" PTR_RANGE, fault_addr, vm->vaddr, vm->vaddr + vm->npages * MOS_PAGE_SIZE);
+        mos_debug(cow, "fault_addr=" PTR_FMT ", vmblock=" PTR_RANGE, fault_addr, block_start, block_end);
 
         if (!mmap->flags.cow)
         {
