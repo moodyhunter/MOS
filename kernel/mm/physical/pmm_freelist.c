@@ -47,7 +47,7 @@ static bool pmm_internal_do_add_free_frames_try_merge(ptr_t start, size_t n_page
         pmlist_node_t *const prev = has_prev ? list_entry(prev_node, pmlist_node_t) : NULL;
 
         // check if we can extend previous at the end
-        if (has_prev && (prev->range.paddr + prev->range.npages * MOS_PAGE_SIZE) == start)
+        if (has_prev && (prev->range.paddr + prev->range.npages * MOS_PAGE_SIZE) == start && prev->type == type)
         {
             // if so, extend the previous region
             prev->range.npages += n_pages;
@@ -61,7 +61,7 @@ static bool pmm_internal_do_add_free_frames_try_merge(ptr_t start, size_t n_page
                 pmm_internal_list_node_delete(current);
             }
         }
-        else if (cstart == end)
+        else if (cstart == end && current->type == type)
         {
             // extend the current region
             current->range.paddr = start, current->range.npages += n_pages;
