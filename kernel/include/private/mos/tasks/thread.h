@@ -8,7 +8,7 @@
 
 typedef struct _hashmap hashmap_t;
 
-extern hashmap_t *thread_table;
+extern hashmap_t thread_table;
 
 should_inline bool thread_is_valid(thread_t *thread)
 {

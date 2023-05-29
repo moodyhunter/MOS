@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-hashmap_t *thread_table = NULL; // tid_t -> thread_t
+hashmap_t thread_table = { 0 }; // tid_t -> thread_t
 
 static tid_t new_thread_id(void)
 {
@@ -25,7 +25,7 @@ static tid_t new_thread_id(void)
 
 thread_t *thread_allocate(process_t *owner, thread_mode tflags)
 {
-    thread_t *t = kzalloc(sizeof(thread_t));
+    thread_t *t = kmemcache_alloc(thread_cache);
     t->magic = THREAD_MAGIC_THRD;
     t->tid = new_thread_id();
     t->owner = owner;
@@ -64,7 +64,7 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
 
     platform_context_setup(t, entry, arg);
     process_attach_thread(owner, t);
-    hashmap_put(thread_table, t->tid, t);
+    hashmap_put(&thread_table, t->tid, t);
 
     return t;
 }
@@ -83,7 +83,7 @@ thread_t *thread_setup_complete(thread_t *thread)
 
 thread_t *thread_get(tid_t tid)
 {
-    thread_t *t = hashmap_get(thread_table, tid);
+    thread_t *t = hashmap_get(&thread_table, tid);
     if (thread_is_valid(t))
         return t;
 

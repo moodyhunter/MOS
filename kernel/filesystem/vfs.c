@@ -19,6 +19,8 @@ static spinlock_t vfs_fs_list_lock = SPINLOCK_INIT;
 
 dentry_t *root_dentry = NULL;
 
+slab_t *inode_cache = NULL, *superblock_cache = NULL, *dentry_cache = NULL, *mount_cache = NULL, *file_cache = NULL;
+
 // BEGIN: filesystem's io_t operations
 static void vfs_io_ops_close(io_t *io)
 {
@@ -214,7 +216,7 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
     if (!vfs_verify_permissions(entry, true, read, may_create, execute, write))
         return NULL;
 
-    file_t *file = kzalloc(sizeof(file_t));
+    file_t *file = kmemcache_alloc(file_cache);
     file->dentry = entry;
 
     io_flags_t io_flags = (flags & OPEN_READ ? IO_READABLE : 0) | (flags & OPEN_WRITE ? IO_WRITABLE : 0) | IO_SEEKABLE;
@@ -238,6 +240,11 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
 void vfs_init(void)
 {
     pr_info("initializing VFS layer");
+    inode_cache = kmemcache_create("inode", sizeof(inode_t));
+    superblock_cache = kmemcache_create("superblock", sizeof(superblock_t));
+    dentry_cache = kmemcache_create("dentry", sizeof(dentry_t));
+    mount_cache = kmemcache_create("mount", sizeof(mount_t));
+    file_cache = kmemcache_create("file", sizeof(file_t));
     dentry_cache_init();
 }
 

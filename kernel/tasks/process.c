@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/tasks/process.h"
+
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/lib/structures/hashmap.h>
@@ -11,7 +13,6 @@
 #include <mos/panic.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
-#include <mos/tasks/process.h>
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
@@ -19,7 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-hashmap_t *process_table = NULL; // pid_t -> process_t
+hashmap_t process_table = { 0 }; // pid_t -> process_t
 
 static pid_t new_process_id(void)
 {
@@ -29,7 +30,7 @@ static pid_t new_process_id(void)
 
 process_t *process_allocate(process_t *parent, const char *name)
 {
-    process_t *proc = kzalloc(sizeof(process_t));
+    process_t *proc = kmemcache_alloc(process_cache);
 
     proc->magic = PROCESS_MAGIC_PROC;
     proc->pid = new_process_id();
@@ -95,14 +96,14 @@ process_t *process_new(process_t *parent, const char *name, const stdio_t *ios, 
 
     proc->working_directory = dentry_ref_up_to(parent ? parent->working_directory : root_dentry, root_dentry);
 
-    void *old_proc = hashmap_put(process_table, proc->pid, proc);
+    void *old_proc = hashmap_put(&process_table, proc->pid, proc);
     MOS_ASSERT_X(old_proc == NULL, "process already exists, go and buy yourself a lottery :)");
     return proc;
 }
 
 process_t *process_get(pid_t pid)
 {
-    process_t *p = hashmap_get(process_table, pid);
+    process_t *p = hashmap_get(&process_table, pid);
     if (process_is_valid(p))
         return p;
 

@@ -471,13 +471,13 @@ void dentry_unref(dentry_t *dentry)
 
         // if (dentry->name)
         //     kfree(dentry->name);
-        // kfree(dentry);
+        // kmemcache_free(dentry_cache, dentry);
     }
 }
 
 dentry_t *dentry_create(dentry_t *parent, const char *name)
 {
-    dentry_t *dentry = kzalloc(sizeof(dentry_t));
+    dentry_t *dentry = kmemcache_alloc(dentry_cache);
     linked_list_init(&tree_node(dentry)->children);
     linked_list_init(&tree_node(dentry)->list_node);
 

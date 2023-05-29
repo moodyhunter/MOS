@@ -2,12 +2,15 @@
 
 #pragma once
 
+#include "mos/mm/slab.h"
+
 #include <mos/tasks/task_types.h>
 
 #define PROCESS_MAGIC_PROC MOS_FOURCC('P', 'R', 'O', 'C')
 
 typedef struct _hashmap hashmap_t;
-extern hashmap_t *process_table;
+
+extern hashmap_t process_table;
 
 should_inline bool process_is_valid(process_t *process)
 {

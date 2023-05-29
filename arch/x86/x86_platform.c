@@ -68,6 +68,8 @@ static vmblock_t x86_ebda_block = {
     .flags = VM_READ | VM_GLOBAL | VM_CACHE_DISABLED,
 };
 
+static initrd_blockdev_t initrd_blockdev;
+
 mos_platform_info_t *const platform_info = &x86_platform;
 mos_platform_info_t x86_platform = {
     .k_code = { .vaddr = (ptr_t) &__MOS_KERNEL_CODE_START, .flags = VM_READ | VM_EXEC | VM_GLOBAL },
@@ -208,12 +210,9 @@ void x86_start_kernel(x86_startup_info *info)
     {
         const size_t initrd_pgcount = ALIGN_UP_TO_PAGE(initrd_size) / MOS_PAGE_SIZE;
         pmm_reserve_frames(initrd_paddr, initrd_pgcount);
-        const vmblock_t initrd_block = mm_map_pages(x86_platform.kernel_pgd, MOS_X86_INITRD_VADDR, initrd_paddr, initrd_pgcount, VM_READ | VM_GLOBAL);
-
-        initrd_blockdev_t *initrd_blockdev = kzalloc(sizeof(initrd_blockdev_t));
-        initrd_blockdev->blockdev = (blockdev_t){ .name = "initrd", .read = initrd_read };
-        initrd_blockdev->vmblock = initrd_block;
-        blockdev_register(&initrd_blockdev->blockdev);
+        initrd_blockdev.blockdev = (blockdev_t){ .name = "initrd", .read = initrd_read };
+        initrd_blockdev.vmblock = mm_map_pages(x86_platform.kernel_pgd, MOS_X86_INITRD_VADDR, initrd_paddr, initrd_pgcount, VM_READ | VM_GLOBAL);
+        blockdev_register(&initrd_blockdev.blockdev);
     }
 
     mos_debug(x86_startup, "Parsing ACPI tables...");

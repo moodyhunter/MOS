@@ -28,16 +28,15 @@ static const struct
 {
     size_t size;
     const char *name;
-} slab_sizes[] = {
-    { 8, "builtin-8" },     { 16, "builtin-16" },   //
-    { 32, "builtin-32" },   { 64, "builtin-64" },   //
-    { 128, "builtin-128" }, { 256, "builtin-256" }, //
-    { 512, "builtin-512" }
+} BUILTIN_SLAB_SIZES[] = {
+    { 4, "builtin-4" },     { 8, "builtin-8" },     { 12, "builtin-12" },   { 16, "builtin-16" },     { 24, "builtin-24" },   //
+    { 32, "builtin-32" },   { 48, "builtin-48" },   { 64, "builtin-64" },   { 96, "builtin-96" },     { 128, "builtin-128" }, //
+    { 256, "builtin-256" }, { 384, "builtin-384" }, { 512, "builtin-512" }, { 1024, "builtin-1024" },
     // larger slab sizes are not required
     // they can be allocated directly by allocating pages
 };
 
-static slab_t slabs[MOS_ARRAY_SIZE(slab_sizes)] = { 0 };
+static slab_t slabs[MOS_ARRAY_SIZE(BUILTIN_SLAB_SIZES)] = { 0 };
 static list_head slabs_list = LIST_HEAD_INIT(slabs_list);
 
 static inline slab_t *slab_for(size_t size)
@@ -101,12 +100,14 @@ static void slab_allocate_mem(slab_t *slab)
     arr[max_n * fact] = NULL;
 }
 
+static void kmemcache_free(slab_t *slab, const void *addr);
+
 void slab_init(void)
 {
     pr_info("initiating the slab allocator");
-    for (size_t i = 0; i < MOS_ARRAY_SIZE(slab_sizes); i++)
+    for (size_t i = 0; i < MOS_ARRAY_SIZE(BUILTIN_SLAB_SIZES); i++)
     {
-        slab_init_one(&slabs[i], slab_sizes[i].name, slab_sizes[i].size);
+        slab_init_one(&slabs[i], BUILTIN_SLAB_SIZES[i].name, BUILTIN_SLAB_SIZES[i].size);
         slab_allocate_mem(&slabs[i]);
     }
 }
@@ -118,7 +119,7 @@ void *slab_alloc(size_t size)
         return kmemcache_alloc(slab);
 
     const size_t page_count = ALIGN_UP_TO_PAGE(size) / MOS_PAGE_SIZE;
-    const ptr_t ret = slab_impl_new_page(page_count + 1); // pmm_alloc(page_count + 1);
+    const ptr_t ret = slab_impl_new_page(page_count + 1);
     if (!ret)
         return NULL;
 
@@ -202,7 +203,7 @@ void slab_free(const void *ptr)
 
 slab_t *kmemcache_create(const char *name, size_t ent_size)
 {
-    slab_t *slab = kzalloc(sizeof(slab_t));
+    slab_t *slab = kzalloc(sizeof(slab_t)); // slab_t cache for itself?
     slab_init_one(slab, name, ent_size);
     slab_allocate_mem(slab);
     return slab;
@@ -227,7 +228,7 @@ void *kmemcache_alloc(slab_t *slab)
     return old_free;
 }
 
-void kmemcache_free(slab_t *slab, const void *addr)
+static void kmemcache_free(slab_t *slab, const void *addr)
 {
     mos_debug(slab, "freeing from slab '%s'", slab->name);
     if (!addr)

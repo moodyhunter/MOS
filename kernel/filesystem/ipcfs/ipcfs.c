@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // An IPC pseudo-filesystem that helps userspace to debug IPC
 
+#include "mos/mm/slab.h"
+
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/ipcfs/ipcfs.h>
@@ -23,7 +25,7 @@ static inode_t *ipcfs_create_inode(superblock_t *sb, file_type_t type, file_perm
 {
     static size_t ipcfs_inode_count;
 
-    inode_t *inode = kzalloc(sizeof(inode_t));
+    inode_t *inode = kmemcache_alloc(inode_cache);
     inode->type = type;
     inode->perm = perm;
     inode->superblock = sb;
@@ -77,7 +79,7 @@ filesystem_t fs_ipcfs = {
 void ipcfs_init(void)
 {
     vfs_register_filesystem(&fs_ipcfs);
-    superblock_t *sb = kzalloc(sizeof(superblock_t));
+    superblock_t *sb = kmemcache_alloc(superblock_cache);
 
     ipcfs_root_dir = dentry_create(NULL, NULL);
     ipcfs_root_dir->inode = ipcfs_create_inode(sb, FILE_TYPE_DIRECTORY, ipcfs_default_perm);

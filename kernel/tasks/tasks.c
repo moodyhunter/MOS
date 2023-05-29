@@ -13,6 +13,8 @@
 #define PROCESS_HASHTABLE_SIZE 512
 #define THREAD_HASHTABLE_SIZE  512
 
+slab_t *process_cache = NULL, *thread_cache = NULL;
+
 static hash_t pid_hash(uintn key)
 {
     return (hash_t){ .hash = key };
@@ -44,11 +46,12 @@ static void dump_process(void)
 void tasks_init()
 {
     pr_info("initializing task management subsystem");
-    process_table = kzalloc(sizeof(hashmap_t));
-    hashmap_init(process_table, PROCESS_HASHTABLE_SIZE, pid_hash, hashmap_simple_key_compare);
+    hashmap_init(&process_table, PROCESS_HASHTABLE_SIZE, pid_hash, hashmap_simple_key_compare);
+    hashmap_init(&thread_table, THREAD_HASHTABLE_SIZE, tid_hash, hashmap_simple_key_compare);
+
     declare_panic_hook(dump_process, "Dump current process");
     install_panic_hook(&dump_process_holder);
 
-    thread_table = kzalloc(sizeof(hashmap_t));
-    hashmap_init(thread_table, THREAD_HASHTABLE_SIZE, tid_hash, hashmap_simple_key_compare);
+    process_cache = kmemcache_create("process", sizeof(process_t));
+    thread_cache = kmemcache_create("thread", sizeof(thread_t));
 }

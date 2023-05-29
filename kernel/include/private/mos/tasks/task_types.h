@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "mos/mm/slab.h"
+
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/io/io.h>
@@ -107,3 +109,5 @@ typedef struct _thread
     wait_condition_t *waiting;
     waitlist_t waiters; // list of threads waiting for this thread to exit
 } thread_t;
+
+extern slab_t *process_cache, *thread_cache;

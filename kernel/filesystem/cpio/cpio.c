@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/slab.h"
+
 #include <mos/device/block.h>
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/fs_types.h>
@@ -58,6 +60,8 @@ typedef struct
 } cpio_metadata_t;
 
 MOS_STATIC_ASSERT(sizeof(cpio_newc_header_t) == 110, "cpio_newc_header has wrong size");
+
+static slab_t *cpio_inode_cache = NULL, *cpio_sb_cache = NULL;
 
 static file_type_t cpio_modebits_to_filetype(u32 modebits)
 {
@@ -204,7 +208,7 @@ should_inline cpio_inode_t *CPIO_INODE(inode_t *inode)
 
 static cpio_inode_t *cpio_inode_create(cpio_superblock_t *sb, cpio_metadata_t *metadata)
 {
-    cpio_inode_t *i = kzalloc(sizeof(cpio_inode_t));
+    cpio_inode_t *i = kmemcache_alloc(cpio_inode_cache);
     cpio_fill_inode(metadata, &i->inode);
 
     i->inode.ops = i->inode.type == FILE_TYPE_DIRECTORY ? &cpio_dir_inode_ops : &cpio_file_inode_ops;
@@ -238,7 +242,7 @@ static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *
 
     mos_debug(cpio, "cpio header: %.6s", header.header.magic);
 
-    cpio_superblock_t *sb = kzalloc(sizeof(cpio_superblock_t));
+    cpio_superblock_t *sb = kmemcache_alloc(cpio_sb_cache);
     cpio_inode_t *i = cpio_inode_create(sb, &header);
     dentry_t *root = dentry_create(NULL, NULL); // root dentry has no name, this "feature" is used by cpio_i_lookup
     root->inode = &i->inode;
@@ -395,6 +399,8 @@ static filesystem_t fs_cpiofs = {
 
 static void register_cpiofs(void)
 {
+    cpio_inode_cache = kmemcache_create("cpio_inode", sizeof(cpio_inode_t));
+    cpio_sb_cache = kmemcache_create("cpio_sb", sizeof(cpio_superblock_t));
     vfs_register_filesystem(&fs_cpiofs);
 }
 

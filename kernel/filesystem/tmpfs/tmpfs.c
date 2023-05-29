@@ -37,6 +37,8 @@ static atomic_t tmpfs_inode_count = 0;
 
 static filesystem_t fs_tmpfs;
 
+static slab_t *tmpfs_inode_cache;
+
 should_inline tmpfs_inode_t *INODE(inode_t *inode)
 {
     return container_of(inode, tmpfs_inode_t, real_inode);
@@ -44,7 +46,7 @@ should_inline tmpfs_inode_t *INODE(inode_t *inode)
 
 inode_t *tmpfs_create_inode(superblock_t *sb, file_type_t type, file_perm_t perm)
 {
-    tmpfs_inode_t *inode = kzalloc(sizeof(tmpfs_inode_t));
+    tmpfs_inode_t *inode = kmemcache_alloc(tmpfs_inode_cache);
     inode->real_inode.superblock = sb;
 
     inode->real_inode.type = type;
@@ -113,7 +115,7 @@ static dentry_t *tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char 
         return NULL;
     }
 
-    superblock_t *sb = kzalloc(sizeof(superblock_t));
+    superblock_t *sb = kmemcache_alloc(superblock_cache);
 
     dentry_t *root = dentry_create(NULL, NULL);
     sb->root = root;
@@ -318,6 +320,7 @@ static filesystem_t fs_tmpfs = {
 
 static void register_tmpfs(void)
 {
+    tmpfs_inode_cache = kmemcache_create("tmpfs_inode", sizeof(tmpfs_inode_t));
     vfs_register_filesystem(&fs_tmpfs);
 }
 

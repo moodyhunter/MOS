@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "mos/mm/slab.h"
+
 #include <mos/filesystem/fs_types.h>
 #include <mos/io/io.h>
 #include <mos/lib/structures/list.h>
@@ -130,3 +132,5 @@ typedef struct _file
     spinlock_t offset_lock; // protects the offset field
     size_t offset;          // tracks the current position in the file
 } file_t;
+
+extern slab_t *inode_cache, *superblock_cache, *dentry_cache, *mount_cache, *file_cache;

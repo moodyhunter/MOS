@@ -13,7 +13,7 @@
  * @brief The hashmap of all registered block devices.
  * @note Key: Name of the block device, Value: Pointer to the block device.
  */
-static hashmap_t *blockdev_map = NULL;
+static hashmap_t blockdev_map = { 0 };
 
 /**
  * @brief Register a block device
@@ -22,13 +22,10 @@ static hashmap_t *blockdev_map = NULL;
  */
 void blockdev_register(blockdev_t *dev)
 {
-    if (unlikely(blockdev_map == NULL))
-    {
-        MOS_ASSERT_ONCE();
-        blockdev_map = kzalloc(sizeof(hashmap_t));
-        hashmap_init(blockdev_map, 64, hashmap_hash_string, hashmap_compare_string);
-    }
-    blockdev_t *old = hashmap_put(blockdev_map, (ptr_t) dev->name, dev);
+    if (once())
+        hashmap_init(&blockdev_map, 64, hashmap_hash_string, hashmap_compare_string);
+
+    blockdev_t *old = hashmap_put(&blockdev_map, (ptr_t) dev->name, dev);
 
     if (old != NULL)
         mos_warn("blockdev %s already registered, replacing", old->name);
@@ -42,7 +39,5 @@ void blockdev_register(blockdev_t *dev)
  */
 blockdev_t *blockdev_find(const char *name)
 {
-    if (blockdev_map == NULL)
-        return NULL;
-    return hashmap_get(blockdev_map, (ptr_t) name);
+    return hashmap_get(&blockdev_map, (ptr_t) name);
 }

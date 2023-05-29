@@ -110,7 +110,7 @@ noreturn void scheduler(void)
     mos_debug(scheduler, "cpu %d: scheduler is ready", current_cpu->id);
 
     while (1)
-        hashmap_foreach(thread_table, schedule_to_thread);
+        hashmap_foreach(&thread_table, schedule_to_thread);
 }
 
 void reschedule_for_wait_condition(wait_condition_t *wait_condition)
