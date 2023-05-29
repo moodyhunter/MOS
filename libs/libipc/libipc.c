@@ -2,8 +2,8 @@
 
 #include "libipc/ipc.h"
 
-#include <liballoc.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef __MOS_KERNEL__
@@ -16,7 +16,7 @@
 
 ipc_msg_t *ipc_msg_create(size_t size)
 {
-    ipc_msg_t *buffer = liballoc_malloc(sizeof(ipc_msg_t) + size);
+    ipc_msg_t *buffer = malloc(sizeof(ipc_msg_t) + size);
     memzero(buffer, sizeof(ipc_msg_t) + size);
     buffer->size = size;
     return buffer;
@@ -24,7 +24,7 @@ ipc_msg_t *ipc_msg_create(size_t size)
 
 void ipc_msg_destroy(ipc_msg_t *buffer)
 {
-    liballoc_free(buffer);
+    free(buffer);
 }
 
 ipc_msg_t *ipc_read_msg(fd_t fd)

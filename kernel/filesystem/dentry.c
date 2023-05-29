@@ -7,13 +7,13 @@
 #include <mos/lib/structures/hashmap_common.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/structures/tree.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/mos_global.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
 #include <mos/tasks/process.h>
 #include <mos/tasks/task_types.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 // A path in its string form is composed of "segments" separated

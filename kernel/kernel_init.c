@@ -7,12 +7,12 @@
 #include <mos/interrupt/ipi.h>
 #include <mos/ipc/ipc.h>
 #include <mos/lib/cmdline.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
 #include <mos/setup.h>
 #include <mos/tasks/kthread.h>
 #include <mos/tasks/schedule.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define DEFAULT_INIT_PATH "/initrd/programs/init"

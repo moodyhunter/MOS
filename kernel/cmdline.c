@@ -3,7 +3,6 @@
 #include <mos/cmdline.h>
 #include <mos/kallsyms.h>
 #include <mos/lib/cmdline.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/printk.h>
 #include <string.h>
 

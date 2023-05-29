@@ -2,12 +2,12 @@
 
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
 #include <mos/tasks/wait.h>
+#include <stdlib.h>
 
 wait_condition_t *wc_wait_for(void *arg, wait_condition_verifier_t verify, wait_condition_cleanup_t cleanup)
 {

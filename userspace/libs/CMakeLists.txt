@@ -3,6 +3,7 @@
 target_sources(stdlib PRIVATE
     libuserspace.c
     libuserspace++.cpp
+    liballoc.c
     stdio.c
     stdlib.c
     cxa.c

@@ -2,12 +2,12 @@
 
 #include <mos/lib/structures/bitmap.h>
 #include <mos/lib/sync/spinlock.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/mm/paging/pagemap.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/mm/physical/pmm.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
+#include <stdlib.h>
 
 #define PGD_FOR_VADDR(_vaddr, _um) (_vaddr >= MOS_KERNEL_START_VADDR ? platform_info->kernel_pgd : _um)
 

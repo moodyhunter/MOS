@@ -3,7 +3,7 @@
 #include "test_engine.h"
 
 #include <mos/lib/structures/stack.h>
-#include <mos/mm/kmalloc.h>
+#include <stdlib.h>
 
 MOS_TEST_CASE(stack_init_deinit)
 {

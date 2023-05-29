@@ -5,12 +5,12 @@
 #include <mos/ipc/ipc.h>
 #include <mos/lib/structures/ring_buffer.h>
 #include <mos/mm/ipcshm/ipcshm.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/mos_global.h>
 #include <mos/printk.h>
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/wait.h>
+#include <stdlib.h>
 
 #define IPC_SERVER_MAGIC MOS_FOURCC('I', 'P', 'C', 'S')
 

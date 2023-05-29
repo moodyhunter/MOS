@@ -2,7 +2,6 @@
 
 #include <mos/interrupt/ipi.h>
 #include <mos/mm/cow.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/mm/physical/pmm.h>
 #include <mos/platform/platform.h>

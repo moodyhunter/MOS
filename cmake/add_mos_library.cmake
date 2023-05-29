@@ -1,47 +1,64 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+macro(add_mos_library_do_setup LIBNAME DEFINES PRIVATE_INCLUDE PUBLIC_INCLUDE)
+    target_compile_definitions(${LIBNAME} PRIVATE ${DEFINES})
+    target_include_directories(${LIBNAME} PRIVATE ${PRIVATE_INCLUDE})
+
+    # only define the public include directories as SYSTEM for users, not the library itself
+    target_include_directories(${LIBNAME} PRIVATE ${PUBLIC_INCLUDE})
+    target_include_directories(${LIBNAME} SYSTEM INTERFACE ${PUBLIC_INCLUDE})
+endmacro()
+
 macro(add_mos_library)
     set(options USERSPACE_ONLY)
     set(oneValueArgs NAME)
-    set(multiValueArgs SOURCES RELATIVE_SOURCES PUBLIC_INCLUDE_DIRECTORIES PRIVATE_INCLUDE_DIRECTORIES USERSPACE_LINK_LIBRARIES)
-    cmake_parse_arguments(ADD_MOS_LIBRARY "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+    set(multiValueArgs SOURCES RELATIVE_SOURCES PUBLIC_INCLUDE_DIRECTORIES PRIVATE_INCLUDE_DIRECTORIES LINK_LIBRARIES)
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    if (NOT ADD_MOS_LIBRARY_NAME)
+    if (NOT ARG_NAME)
         message(FATAL_ERROR "add_mos_library() requires a NAME")
     endif()
 
-    if (ADD_MOS_LIBRARY_UNPARSED_ARGUMENTS)
-        message(FATAL_ERROR "add_mos_library() was passed unknown arguments: ${ADD_MOS_LIBRARY_UNPARSED_ARGUMENTS}")
+    if (ARG_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "add_mos_library() was passed unknown arguments: ${ARG_UNPARSED_ARGUMENTS}")
     endif()
 
-    if (NOT ADD_MOS_LIBRARY_USERSPACE_ONLY)
-        # Add the kernel source files
-        add_kernel_source(
-            SOURCES ${ADD_MOS_LIBRARY_SOURCES}
-            RELATIVE_SOURCES ${ADD_MOS_LIBRARY_RELATIVE_SOURCES}
-            INCLUDE_DIRECTORIES ${ADD_MOS_LIBRARY_PUBLIC_INCLUDE_DIRECTORIES}
-        )
-        set_source_files_properties(${ADD_MOS_LIBRARY_SOURCES} PROPERTIES INCLUDE_DIRECTORIES "${ADD_MOS_LIBRARY_PRIVATE_INCLUDE_DIRECTORIES}")
+    if (NOT ARG_USERSPACE_ONLY)
+        # Create a kernel library
+        set(KERNEL_LIB_NAME ${ARG_NAME}_kernel)
+        add_library(${KERNEL_LIB_NAME} STATIC ${ARG_SOURCES} ${ARG_RELATIVE_SOURCES})
+        add_library(mos::${KERNEL_LIB_NAME} ALIAS ${KERNEL_LIB_NAME})
+        add_mos_library_do_setup(${KERNEL_LIB_NAME} "__MOS_KERNEL__;__IN_MOS_LIBS__" "${ARG_PRIVATE_INCLUDE_DIRECTORIES}" "${ARG_PUBLIC_INCLUDE_DIRECTORIES}")
+        target_link_libraries(${KERNEL_LIB_NAME} PRIVATE gcc mos::include mos::private_include)
+        target_link_libraries(mos_kernel PRIVATE ${KERNEL_LIB_NAME})
+
+        if (NOT "${ARG_NAME}" STREQUAL "stdlib")
+            target_link_libraries(${KERNEL_LIB_NAME} PUBLIC mos::stdlib_kernel)
+        endif()
+
+        foreach(lib ${ARG_LINK_LIBRARIES})
+            target_link_libraries(${KERNEL_LIB_NAME} PUBLIC ${lib}_kernel)
+        endforeach()
     endif()
 
     # Create a userspace library
-    add_library(${ADD_MOS_LIBRARY_NAME} STATIC ${ADD_MOS_LIBRARY_SOURCES} ${ADD_MOS_LIBRARY_RELATIVE_SOURCES})
+    add_library(${ARG_NAME} STATIC ${ARG_SOURCES} ${ARG_RELATIVE_SOURCES})
+    add_library(mos::${ARG_NAME} ALIAS ${ARG_NAME})
 
-    # only define the public include directories as SYSTEM for users, not the library itself
-    target_include_directories(${ADD_MOS_LIBRARY_NAME} SYSTEM INTERFACE ${ADD_MOS_LIBRARY_PUBLIC_INCLUDE_DIRECTORIES})
-    target_include_directories(${ADD_MOS_LIBRARY_NAME} PRIVATE ${ADD_MOS_LIBRARY_PUBLIC_INCLUDE_DIRECTORIES})
+    add_mos_library_do_setup(${ARG_NAME} "" "${ARG_PRIVATE_INCLUDE_DIRECTORIES}" "${ARG_PUBLIC_INCLUDE_DIRECTORIES}")
 
-    target_include_directories(${ADD_MOS_LIBRARY_NAME} PRIVATE ${ADD_MOS_LIBRARY_PRIVATE_INCLUDE_DIRECTORIES})
-    target_link_libraries(${ADD_MOS_LIBRARY_NAME} PUBLIC ${ADD_MOS_LIBRARY_USERSPACE_LINK_LIBRARIES})
-    target_link_libraries(${ADD_MOS_LIBRARY_NAME} PUBLIC gcc mos::include) # standard include directory
-
-    if (NOT "${ADD_MOS_LIBRARY_NAME}" STREQUAL "stdlib")
-        target_link_libraries(${ADD_MOS_LIBRARY_NAME} PUBLIC mos::stdlib)
+    if ("${ARG_NAME}" STREQUAL "stdlib")
+        # only need to add these to stdlib
+        target_link_libraries(${ARG_NAME} PUBLIC gcc mos::include)
+        if (ARG_LINK_LIBRARIES)
+            message(FATAL_ERROR "stdlib must not link to other libraries")
+        endif()
+    else()
+        target_link_libraries(${ARG_NAME} PUBLIC mos::stdlib)
+        target_link_libraries(${ARG_NAME} PUBLIC ${ARG_LINK_LIBRARIES})
     endif()
 
     # TODO: Remove this once we have a proper userspace libc
-    target_compile_options(${ADD_MOS_LIBRARY_NAME} PUBLIC "-ffreestanding")
-    target_link_options(${ADD_MOS_LIBRARY_NAME} PUBLIC "-nostdlib")
-
-    add_library(mos::${ADD_MOS_LIBRARY_NAME} ALIAS ${ADD_MOS_LIBRARY_NAME})
+    target_compile_options(${ARG_NAME} PUBLIC "-ffreestanding")
+    target_link_options(${ARG_NAME} PUBLIC "-nostdlib")
 endmacro()

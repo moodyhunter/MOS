@@ -3,7 +3,6 @@
 #include <mos/cmdline.h>
 #include <mos/interrupt/ipi.h>
 #include <mos/lib/structures/list.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/panic.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "liballoc.h"
+#include "mos/mm/slab.h"
 
 #include <mos/mm/cow.h>
 #include <mos/mm/paging/page_ops.h>
@@ -13,7 +13,7 @@ void mos_kernel_mm_init(void)
     pr_info("initializing kernel memory management");
 
     mm_cow_init();
-    liballoc_init();
+    slab_init();
     pmm_switch_to_kheap();
 
 #if MOS_DEBUG_FEATURE(vmm)

@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "liballoc.h"
-
 #include <mos/moslib_global.h>
+#include <stdlib.h>
 #include <string.h>
 
 size_t strlen(const char *str)
@@ -169,14 +168,14 @@ char *strncpy(char *__restrict dest, const char *__restrict src, size_t n)
 
 char *strdup(const char *src)
 {
-    char *dst = liballoc_malloc(strlen(src) + 1);
+    char *dst = malloc(strlen(src) + 1);
     strcpy(dst, src);
     return dst;
 }
 
 char *strndup(const char *src, size_t len)
 {
-    char *dst = liballoc_malloc(len + 1);
+    char *dst = malloc(len + 1);
     strncpy(dst, src, len);
     dst[len] = '\0';
     return dst;
@@ -184,7 +183,7 @@ char *strndup(const char *src, size_t len)
 
 const char *duplicate_string(const char *src, size_t len)
 {
-    char *dst = liballoc_malloc(len + 1);
+    char *dst = malloc(len + 1);
     strncpy(dst, src, len);
     dst[len] = '\0';
     return dst;

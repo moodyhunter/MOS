@@ -6,7 +6,7 @@
 #include <mos/filesystem/ipcfs/ipcfs.h>
 #include <mos/filesystem/vfs_types.h>
 #include <mos/mm/ipcshm/ipcshm.h>
-#include <mos/mm/kmalloc.h>
+#include <stdlib.h>
 #include <string.h>
 
 filesystem_t fs_ipcfs;

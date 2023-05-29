@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <liballoc.h>
 #include <mos/lib/cmdline.h>
+#include <stdlib.h>
 #include <string.h>
 
 // (result array, cmdline, max cmdlines) -> a new result array
@@ -20,7 +20,7 @@ static const char **cmdline_static_array_insert(const char **result, size_t resu
 static const char **cmdline_dynamic_array_insert(const char **result, size_t result_capacity, char *cmdline, size_t *result_count)
 {
     MOS_UNUSED(result_capacity); // unused because we always realloc
-    result = liballoc_realloc(result, sizeof(char *) * (*result_count + 1));
+    result = realloc(result, sizeof(char *) * (*result_count + 1));
     result[*result_count] = strdup(cmdline);
     (*result_count)++;
     return result;

@@ -7,11 +7,11 @@
 #include <mos/cmdline.h>
 #include <mos/device/console.h>
 #include <mos/lib/structures/list.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/panic.h>
 #include <mos/printk.h>
 #include <mos/setup.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 s32 test_engine_n_warning_expected = 0;

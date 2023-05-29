@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "liballoc.h"
-
 #include <mos/lib/structures/hashmap.h>
 #include <mos/moslib_global.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define HASHMAP_MAGIC MOS_FOURCC('H', 'M', 'a', 'p')
@@ -24,7 +23,7 @@ void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, has
         return;
     }
     map->magic = HASHMAP_MAGIC;
-    map->entries = liballoc_calloc(capacity, sizeof(hashmap_entry_t *));
+    map->entries = calloc(capacity, sizeof(hashmap_entry_t *));
     memset(map->entries, 0, sizeof(hashmap_entry_t *) * capacity);
     map->capacity = capacity;
     map->size = 0;
@@ -49,11 +48,11 @@ void hashmap_deinit(hashmap_t *map)
         while (entry != NULL)
         {
             hashmap_entry_t *next = entry->next;
-            liballoc_free(entry);
+            free(entry);
             entry = next;
         }
     }
-    liballoc_free(map->entries);
+    free(map->entries);
 }
 
 void *hashmap_put(hashmap_t *map, uintn key, void *value)
@@ -72,7 +71,7 @@ void *hashmap_put(hashmap_t *map, uintn key, void *value)
         }
         entry = entry->next;
     }
-    entry = liballoc_malloc(sizeof(hashmap_entry_t));
+    entry = malloc(sizeof(hashmap_entry_t));
     entry->key = key;
     entry->value = value;
     entry->next = map->entries[index];
@@ -116,7 +115,7 @@ void *hashmap_remove(hashmap_t *map, uintn key)
                 prev->next = entry->next;
             }
             void *value = entry->value;
-            liballoc_free(entry);
+            free(entry);
             map->size--;
             return value;
         }

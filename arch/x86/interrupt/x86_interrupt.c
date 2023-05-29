@@ -2,7 +2,6 @@
 #include <mos/interrupt/ipi.h>
 #include <mos/lib/structures/list.h>
 #include <mos/mm/cow.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
 #include <mos/syscall/dispatcher.h>
@@ -12,6 +11,7 @@
 #include <mos/x86/tasks/context.h>
 #include <mos/x86/x86_interrupt.h>
 #include <mos/x86/x86_platform.h>
+#include <stdlib.h>
 
 static const char *const x86_exception_names[EXCEPTION_COUNT] = {
     "Divide-By-Zero Error",

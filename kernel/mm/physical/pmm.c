@@ -4,7 +4,6 @@
 #define mos_pmm_impl
 
 #include <mos/lib/sync/spinlock.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/mm/physical/pmm.h>
 #include <mos/mm/physical/pmm_internal.h>
 #include <stdlib.h>

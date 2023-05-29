@@ -7,7 +7,6 @@
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/cow.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/panic.h>
 #include <mos/platform/platform.h>
@@ -17,6 +16,7 @@
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
 #include <mos/tasks/wait.h>
+#include <stdlib.h>
 #include <string.h>
 
 hashmap_t *process_table = NULL; // pid_t -> process_t

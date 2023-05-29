@@ -5,7 +5,6 @@
 #include <mos/io/io.h>
 #include <mos/ipc/ipc.h>
 #include <mos/locks/futex.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/mm/mmap.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/platform/platform.h>
@@ -15,6 +14,7 @@
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
+#include <stdlib.h>
 #include <string.h>
 
 void define_syscall(poweroff)(bool reboot, u32 magic)

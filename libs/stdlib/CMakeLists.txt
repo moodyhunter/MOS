@@ -5,7 +5,6 @@ add_mos_library(
     PUBLIC_INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_LIST_DIR}/include
     RELATIVE_SOURCES
-        liballoc.c
         stdio.c
         stdio_impl.c
         stdlib.c

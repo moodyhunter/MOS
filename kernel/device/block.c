@@ -4,9 +4,9 @@
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/structures/hashmap_common.h>
 #include <mos/lib/structures/list.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/printk.h>
 #include <mos/types.h>
+#include <stdlib.h>
 #include <string.h>
 
 /**

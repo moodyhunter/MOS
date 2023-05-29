@@ -2,7 +2,7 @@
 
 #include "test_engine.h"
 
-#include <mos/mm/kmalloc.h>
+#include <stdlib.h>
 #include <string.h>
 
 MOS_TEST_CASE(kmalloc_single)

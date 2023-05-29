@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "liballoc.h"
-
 #include <mos/lib/structures/bitmap.h>
+#include <stdlib.h>
 #include <string.h>
 
 bitmap_line_t *bitmap_create(size_t size)
 {
     size_t nlines = BITMAP_LINE_COUNT(size);
-    bitmap_line_t *bitmap = liballoc_malloc(nlines * sizeof(bitmap_line_t));
+    bitmap_line_t *bitmap = malloc(nlines * sizeof(bitmap_line_t));
     bitmap_zero(bitmap, nlines);
     return bitmap;
 }

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <mos/lib/structures/hashmap.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/printk.h>
 #include <mos/tasks/kthread.h>
 #include <mos/tasks/process.h>
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
+#include <stdlib.h>
 
 static process_t *kthreadd = NULL;
 

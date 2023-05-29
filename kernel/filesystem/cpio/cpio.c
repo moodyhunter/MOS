@@ -7,7 +7,6 @@
 #include <mos/kconfig.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/structures/tree.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/mos_global.h>
 #include <mos/printk.h>
 #include <mos/setup.h>

@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "liballoc.h"
-
 #include <mos/lib/structures/ring_buffer.h>
 #include <mos/moslib_global.h>
 #include <stdlib.h>
@@ -17,13 +15,13 @@ ring_buffer_t *ring_buffer_create(size_t capacity)
     if (capacity == 0)
         return NULL; // forget about it
 
-    ring_buffer_t *rb = liballoc_malloc(sizeof(ring_buffer_t));
+    ring_buffer_t *rb = malloc(sizeof(ring_buffer_t));
     if (!rb)
         return NULL;
-    rb->data = liballoc_malloc(capacity);
+    rb->data = malloc(capacity);
     if (!rb->data)
     {
-        liballoc_free(rb);
+        free(rb);
         return NULL;
     }
     ring_buffer_pos_init(&rb->pos, capacity);
@@ -35,7 +33,7 @@ ring_buffer_t *ring_buffer_create_at(void *data, size_t capacity)
     if (capacity == 0)
         return NULL; // forget about it
 
-    ring_buffer_t *rb = liballoc_malloc(sizeof(ring_buffer_t));
+    ring_buffer_t *rb = malloc(sizeof(ring_buffer_t));
     if (!rb)
         return NULL;
     rb->data = data;
@@ -53,15 +51,15 @@ void ring_buffer_pos_init(ring_buffer_pos_t *pos, size_t capacity)
 
 void ring_buffer_destroy(ring_buffer_t *buffer)
 {
-    liballoc_free(buffer->data);
-    liballoc_free(buffer);
+    free(buffer->data);
+    free(buffer);
 }
 
 bool ring_buffer_resize(ring_buffer_t *buffer, size_t new_capacity)
 {
     if (new_capacity < buffer->pos.size)
         return false;
-    void *new_data = liballoc_malloc(new_capacity);
+    void *new_data = malloc(new_capacity);
     if (!new_data)
         return false;
     size_t i = 0;
@@ -70,7 +68,8 @@ bool ring_buffer_resize(ring_buffer_t *buffer, size_t new_capacity)
         ((char *) new_data)[i] = ring_buffer_get(buffer->data, &buffer->pos, i);
         i++;
     }
-    liballoc_free(buffer->data);
+
+    free(buffer->data);
     buffer->data = new_data;
     buffer->pos.capacity = new_capacity;
     buffer->pos.head = 0;

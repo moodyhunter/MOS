@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <mos/lib/sync/spinlock.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/mm/physical/pmm.h>
 #include <mos/mos_global.h>
@@ -20,6 +19,7 @@
 #include <mos/x86/tasks/context.h>
 #include <mos/x86/x86_interrupt.h>
 #include <mos/x86/x86_platform.h>
+#include <stdlib.h>
 #include <string.h>
 
 noreturn void platform_shutdown(void)

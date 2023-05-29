@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <mos/lib/structures/stack.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
 #include <mos/tasks/schedule.h>
@@ -13,6 +12,7 @@
 #include <mos/x86/tasks/context.h>
 #include <mos/x86/x86_interrupt.h>
 #include <mos/x86/x86_platform.h>
+#include <stdlib.h>
 #include <string.h>
 
 typedef void (*switch_func_t)(void);

@@ -3,12 +3,12 @@
 
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/structures/hashmap_common.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/panic.h>
 #include <mos/platform/platform.h>
 #include <mos/tasks/process.h>
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
+#include <stdlib.h>
 
 #define PROCESS_HASHTABLE_SIZE 512
 #define THREAD_HASHTABLE_SIZE  512

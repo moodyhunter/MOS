@@ -3,7 +3,6 @@
 #include <mos/elf/elf.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/mm/cow.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/mos_global.h>
 #include <mos/platform/platform.h>

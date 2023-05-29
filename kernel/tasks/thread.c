@@ -4,7 +4,6 @@
 #include <mos/lib/structures/hashmap_common.h>
 #include <mos/lib/structures/list.h>
 #include <mos/mm/cow.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
@@ -13,6 +12,7 @@
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
 #include <mos/tasks/wait.h>
+#include <stdlib.h>
 #include <string.h>
 
 hashmap_t *thread_table = NULL; // tid_t -> thread_t

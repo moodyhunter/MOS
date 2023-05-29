@@ -4,7 +4,6 @@
 #include <mos/device/console.h>
 #include <mos/device/dm_types.h>
 #include <mos/kallsyms.h>
-#include <mos/mm/kmalloc.h>
 #include <mos/mm/paging/page_ops.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/mm/physical/pmm.h>
@@ -30,6 +29,7 @@
 #include <mos/x86/tasks/context.h>
 #include <mos/x86/x86_interrupt.h>
 #include <mos/x86/x86_platform.h>
+#include <stdlib.h>
 #include <string.h>
 
 static u8 com1_buf[MOS_PAGE_SIZE] __aligned(MOS_PAGE_SIZE) = { 0 };
