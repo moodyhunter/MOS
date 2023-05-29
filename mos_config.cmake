@@ -16,7 +16,6 @@ add_summary_section(USERSPACE   "Userspace Targets")
 add_summary_section(UTILITY     "Utility Targets")
 
 add_summary_item(DEBUG      MOS_DEBUG_ALL               OFF "Enable all debugging features")
-mos_kconfig(DEBUG           MOS_PRINTK_WITH_FILENAME    OFF "Print filename in printk")
 
 if(NOT DEFINED MOS_DEBUG_ALL)
     set(MOS_DEBUG_ALL OFF)
@@ -56,6 +55,7 @@ mos_kconfig(LIMITS      MOS_STACK_PAGES_KERNEL          16                  "Pag
 mos_kconfig(LIMITS      MOS_STACK_PAGES_USER            32                  "Pages of user stack")
 mos_kconfig(MM          MOS_MM_LIBALLOC_LOCKS           ON                  "Enable locking support in liballoc")
 mos_kconfig(DEBUG       MOS_DEBUG_HAS_FUNCTION_NAME     ON                  "Include function name in debug log")
+mos_kconfig(DEBUG       MOS_PRINTK_WITH_FILENAME        OFF                 "Print filename in printk")
 
 mos_kconfig(KERNEL      MOS_SMP                         OFF                 "Enable Experimental SMP support")
 
