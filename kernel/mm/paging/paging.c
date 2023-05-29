@@ -114,6 +114,24 @@ vmblock_t mm_map_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t n
     return block;
 }
 
+vmblock_t mm_early_map_kernel_pages(ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags)
+{
+    MOS_ASSERT(npages > 0);
+    MOS_ASSERT(vaddr >= MOS_KERNEL_START_VADDR);
+
+    paging_handle_t table = platform_info->kernel_pgd;
+    const vmblock_t block = { .address_space = table, .vaddr = vaddr, .npages = npages, .flags = flags };
+
+    mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to " PTR_FMT, npages, vaddr, paddr);
+
+    spinlock_acquire(table.pgd_lock);
+    pagemap_mark_used(table.um_page_map, vaddr, npages);
+    platform_mm_map_pages(table, vaddr, paddr, npages, flags);
+    spinlock_release(table.pgd_lock);
+
+    return block;
+}
+
 void mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t npages)
 {
     MOS_ASSERT(npages > 0);

@@ -101,6 +101,23 @@ vmblock_t mm_alloc_pages(paging_handle_t table, size_t n_pages, ptr_t hint_vaddr
 vmblock_t mm_map_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags);
 
 /**
+ * @brief Map a block of virtual memory to a block of physical memory, without incrementing the reference count.
+ *
+ * @param vaddr The virtual address to map to.
+ * @param paddr The physical address to map from.
+ * @param npages The number of pages to map.
+ * @param flags Flags to set on the pages, see @ref vm_flags.
+ *
+ * @details This function maps the pages in the block, but will not increment their reference count.
+ * this function only maps the kernel pages as-is, it is the caller's responsibility to ensure that
+ * the pages are not freed while they are mapped
+ *
+ * @warning This function is only used for very early startup code as PMM may not be available yet.
+ * Use @ref mm_map_pages instead.
+ */
+vmblock_t mm_early_map_kernel_pages(ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags);
+
+/**
  * @brief Unmap and possibly free a block of virtual memory.
  *
  * @param table The page table to free from.
