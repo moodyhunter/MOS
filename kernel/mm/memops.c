@@ -27,12 +27,6 @@ void mos_kernel_mm_init(void)
     install_panic_hook(&pmm_dump_lists_holder);
     pmm_dump_lists();
 #endif
-
-#if MOS_DEBUG_FEATURE(liballoc)
-    declare_panic_hook(liballoc_dump, "Dump liballoc state");
-    install_panic_hook(&liballoc_dump_holder);
-    liballoc_dump();
-#endif
 }
 
 // !! This function is called by liballoc, not intended to be called by anyone else !!

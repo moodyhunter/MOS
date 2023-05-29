@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <mos/lib/structures/list.h>
+#include <mos/lib/sync/spinlock.h>
 #include <stddef.h>
 
 /**
@@ -42,3 +44,16 @@ void *slab_realloc(void *addr, size_t size);
  * @param addr
  */
 void slab_free(const void *addr);
+
+typedef struct
+{
+    as_linked_list;
+    spinlock_t lock;
+    ptr_t first_free;
+    size_t ent_size;
+    const char *name;
+} slab_t;
+
+slab_t *kmemcache_create(const char *name, size_t ent_size);
+void *kmemcache_alloc(slab_t *slab);
+void kmemcache_free(slab_t *slab, const void *addr);

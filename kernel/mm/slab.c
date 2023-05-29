@@ -7,17 +7,11 @@
 #include "mos/platform/platform.h"
 
 #include <mos/kconfig.h>
+#include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mos_global.h>
 #include <stdlib.h>
 #include <string.h>
-
-typedef struct
-{
-    spinlock_t lock;
-    void **first_free;
-    size_t ent_size;
-} slab_t;
 
 typedef struct
 {
@@ -30,8 +24,21 @@ typedef struct
     size_t size;
 } slab_metadata_t;
 
-static const size_t slab_sizes[] = { 8, 16, 24, 32, 48, 64, 128, 256, 512, 1024 };
-static slab_t slabs[10];
+static const struct
+{
+    size_t size;
+    const char *name;
+} slab_sizes[] = {
+    { 8, "builtin-8" },     { 16, "builtin-16" },   //
+    { 32, "builtin-32" },   { 64, "builtin-64" },   //
+    { 128, "builtin-128" }, { 256, "builtin-256" }, //
+    { 512, "builtin-512" }
+    // larger slab sizes are not required
+    // they can be allocated directly by allocating pages
+};
+
+static slab_t slabs[MOS_ARRAY_SIZE(slab_sizes)] = { 0 };
+static list_head slabs_list = LIST_HEAD_INIT(slabs_list);
 
 static inline slab_t *slab_for(size_t size)
 {
@@ -44,88 +51,74 @@ static inline slab_t *slab_for(size_t size)
     return NULL;
 }
 
-ptr_t get_free_pages(size_t n)
+static ptr_t slab_impl_new_page(size_t n)
 {
     vmblock_t block = mm_alloc_pages(platform_info->kernel_pgd, n, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
     return block.vaddr;
 }
 
-void free_page(ptr_t page, size_t n)
+static void slab_impl_free_page(ptr_t page, size_t n)
 {
     mm_unmap_pages(platform_info->kernel_pgd, page, n);
 }
 
-static void create_slab(slab_t *slab, size_t ent_size)
+static void slab_init_one(slab_t *slab, const char *name, size_t size)
 {
+    pr_info2("slab: registering slab for '%s' with %zu bytes", name, size);
+    linked_list_init(list_node(slab));
+    list_node_append(&slabs_list, list_node(slab));
     slab->lock = (spinlock_t) SPINLOCK_INIT;
-    slab->first_free = (void **) get_free_pages(1);
-    slab->ent_size = ent_size;
+    slab->first_free = 0;
+    slab->name = name;
+    slab->ent_size = size;
+}
 
-    const size_t header_offset = ALIGN_UP(sizeof(slab_header_t), ent_size);
+static void slab_allocate_mem(slab_t *slab)
+{
+    mos_debug(slab, "renew slab for '%s' with %zu bytes", slab->name, slab->ent_size);
+    slab->first_free = slab_impl_new_page(1);
+    if (unlikely(!slab->first_free))
+    {
+        mos_panic("slab: failed to allocate memory for slab");
+        return;
+    }
+
+    const size_t header_offset = ALIGN_UP(sizeof(slab_header_t), slab->ent_size);
     const size_t available_size = MOS_PAGE_SIZE - header_offset;
 
     slab_header_t *const slab_ptr = (slab_header_t *) slab->first_free;
     slab_ptr->slab = slab;
-    slab->first_free = (void **) ((ptr_t) slab->first_free + header_offset);
+    slab->first_free = ((ptr_t) slab->first_free + header_offset);
 
     void **arr = (void **) slab->first_free;
-    size_t max = available_size / ent_size - 1;
-    size_t fact = ent_size / sizeof(void *);
+    const size_t max_n = available_size / slab->ent_size - 1;
+    const size_t fact = slab->ent_size / sizeof(void *);
 
-    for (size_t i = 0; i < max; i++)
+    for (size_t i = 0; i < max_n; i++)
     {
         arr[i * fact] = &arr[(i + 1) * fact];
     }
-    arr[max * fact] = NULL;
-}
-
-static void *alloc_from_slab(slab_t *slab)
-{
-    spinlock_acquire(&slab->lock);
-
-    if (slab->first_free == NULL)
-    {
-        create_slab(slab, slab->ent_size);
-    }
-
-    void **old_free = slab->first_free;
-    slab->first_free = *old_free;
-    memset(old_free, 0, slab->ent_size);
-
-    spinlock_release(&slab->lock);
-    return old_free;
-}
-
-static void free_in_slab(slab_t *slab, ptr_t addr)
-{
-    if (!addr)
-        return;
-
-    spinlock_acquire(&slab->lock);
-
-    void **new_head = (void **) addr;
-    *new_head = slab->first_free;
-    slab->first_free = new_head;
-
-    spinlock_release(&slab->lock);
+    arr[max_n * fact] = NULL;
 }
 
 void slab_init(void)
 {
+    pr_info("initiating the slab allocator");
     for (size_t i = 0; i < MOS_ARRAY_SIZE(slab_sizes); i++)
-        create_slab(&slabs[i], slab_sizes[i]);
+    {
+        slab_init_one(&slabs[i], slab_sizes[i].name, slab_sizes[i].size);
+        slab_allocate_mem(&slabs[i]);
+    }
 }
 
 void *slab_alloc(size_t size)
 {
     slab_t *const slab = slab_for(size);
-    if (slab != NULL)
-    {
-        return alloc_from_slab(slab);
-    }
+    if (slab)
+        return kmemcache_alloc(slab);
 
     const size_t page_count = ALIGN_UP_TO_PAGE(size) / MOS_PAGE_SIZE;
-    ptr_t ret = get_free_pages(page_count + 1); // pmm_alloc(page_count + 1);
+    const ptr_t ret = slab_impl_new_page(page_count + 1); // pmm_alloc(page_count + 1);
     if (!ret)
         return NULL;
 
@@ -177,13 +170,11 @@ void *slab_realloc(void *oldptr, size_t new_size)
     if (new_size > slab->ent_size)
     {
         void *new_addr = slab_alloc(new_size);
-        if (new_addr == NULL)
-        {
+        if (!new_addr)
             return NULL;
-        }
 
         memcpy(new_addr, oldptr, slab->ent_size);
-        free_in_slab(slab, addr);
+        kmemcache_free(slab, oldptr);
         return new_addr;
     }
 
@@ -199,10 +190,54 @@ void slab_free(const void *ptr)
     if (is_aligned(addr, MOS_PAGE_SIZE))
     {
         slab_metadata_t *metadata = (slab_metadata_t *) (addr - MOS_PAGE_SIZE);
-        free_page((ptr_t) metadata, metadata->pages + 1);
+        slab_impl_free_page((ptr_t) metadata, metadata->pages + 1);
         return;
     }
 
     const slab_header_t *header = (slab_header_t *) ALIGN_DOWN_TO_PAGE(addr);
-    free_in_slab(header->slab, addr);
+    kmemcache_free(header->slab, ptr);
+}
+
+// ======================
+
+slab_t *kmemcache_create(const char *name, size_t ent_size)
+{
+    slab_t *slab = kzalloc(sizeof(slab_t));
+    slab_init_one(slab, name, ent_size);
+    slab_allocate_mem(slab);
+    return slab;
+}
+
+void *kmemcache_alloc(slab_t *slab)
+{
+    mos_debug(slab, "allocating from slab '%s'", slab->name);
+    spinlock_acquire(&slab->lock);
+
+    if (slab->first_free == 0)
+    {
+        // renew a slab
+        slab_allocate_mem(slab);
+    }
+
+    ptr_t *old_free = (ptr_t *) slab->first_free;
+    slab->first_free = *old_free;
+    memset(old_free, 0, slab->ent_size);
+
+    spinlock_release(&slab->lock);
+    return old_free;
+}
+
+void kmemcache_free(slab_t *slab, const void *addr)
+{
+    mos_debug(slab, "freeing from slab '%s'", slab->name);
+    if (!addr)
+        return;
+
+    spinlock_acquire(&slab->lock);
+
+    ptr_t *new_head = (ptr_t *) addr;
+    *new_head = slab->first_free;
+    slab->first_free = (ptr_t) new_head;
+
+    spinlock_release(&slab->lock);
 }

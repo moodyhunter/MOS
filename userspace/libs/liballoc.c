@@ -56,29 +56,19 @@ static const size_t ALLOCATE_N_PAGES_AT_ONCE = 8; // The number of pages to requ
 #define LIBALLOC_MAGIC MOS_FOURCC('A', 'L', 'O', 'C')
 #define LIBALLOC_DEAD  MOS_FOURCC('D', 'E', 'A', 'D')
 
-#define LIBALLOC_PRINT_DEBUG_MESSAGES MOS_DEBUG_FEATURE(liballoc) && __MOS_KERNEL__ // only print debug messages in kernel mode
-
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
 static recursive_spinlock_t alloc_lock = SPINLOCK_INIT;
 
 static int liballoc_lock(void)
 {
-#ifdef __MOS_KERNEL__
-    void *owner = current_thread;
-#else
     void *owner = NULL;
-#endif
     recursive_spinlock_acquire(&alloc_lock, owner);
     return 0;
 }
 
 static int liballoc_unlock(void)
 {
-#ifdef __MOS_KERNEL__
-    void *owner = current_thread;
-#else
     void *owner = NULL;
-#endif
     recursive_spinlock_release(&alloc_lock, owner);
     return 0;
 }
@@ -174,11 +164,6 @@ static liballoc_block_t *allocate_new_pages_for(unsigned int size)
 
     l_mem_allocated += maj->size;
 
-#if LIBALLOC_PRINT_DEBUG_MESSAGES
-    pr_info("liballoc: Allocated %u pages (%zu bytes) at %p for %u bytes to be used.", st, maj->size, (void *) maj, size);
-    pr_info("liballoc: Total memory usage = %i KB", (int) ((l_mem_allocated / (1024))));
-#endif
-
     return maj;
 }
 
@@ -193,10 +178,6 @@ static void liballoc_first_alloc(void)
 #endif
         mos_panic("liballoc: initial l_memRoot initialization failed");
     }
-
-#if LIBALLOC_PRINT_DEBUG_MESSAGES
-    pr_info("liballoc: set up first memory major %p", (void *) l_memroot);
-#endif
 }
 
 void liballoc_init(void)
@@ -204,9 +185,6 @@ void liballoc_init(void)
     l_memroot = NULL;
     l_bestbet = NULL;
     MOS_LIB_ASSERT_X(l_memroot == NULL, "liballoc_init() called twice");
-#if LIBALLOC_PRINT_DEBUG_MESSAGES
-    pr_info("liballoc: initialization of liballoc " VERSION "");
-#endif
     liballoc_first_alloc();
 }
 
@@ -274,10 +252,6 @@ void *liballoc_malloc(size_t req_size)
         // CASE 1:  There is not enough space in this major block.
         if (diff < (size + sizeof(liballoc_part_t)))
         {
-#if LIBALLOC_PRINT_DEBUG_MESSAGES
-            pr_info("CASE 1: Insufficient space in block %p", (void *) block);
-#endif
-
             // Another major block next to this one?
             if (block->next != NULL)
             {
@@ -326,10 +300,6 @@ void *liballoc_malloc(size_t req_size)
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
             liballoc_unlock(); // release the lock
 #endif
-
-#if LIBALLOC_PRINT_DEBUG_MESSAGES
-            pr_info("liballoc: case 2 allocating %zu bytes at %p", size, p);
-#endif
             return p;
         }
 
@@ -362,9 +332,6 @@ void *liballoc_malloc(size_t req_size)
 
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
                 liballoc_unlock(); // release the lock
-#endif
-#if LIBALLOC_PRINT_DEBUG_MESSAGES
-                pr_info("liballoc: case 3 allocating %zu bytes at %p", size, p);
 #endif
                 return p;
             }
@@ -411,9 +378,6 @@ void *liballoc_malloc(size_t req_size)
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
                     liballoc_unlock(); // release the lock
 #endif
-#if LIBALLOC_PRINT_DEBUG_MESSAGES
-                    pr_info("liballoc: case 4.1 allocating %zu bytes at %p", size, p);
-#endif
                     return p;
                 }
             }
@@ -451,9 +415,6 @@ void *liballoc_malloc(size_t req_size)
 #if MOS_CONFIG(MOS_MM_LIBALLOC_LOCKS)
                     liballoc_unlock(); // release the lock
 #endif
-#if LIBALLOC_PRINT_DEBUG_MESSAGES
-                    pr_info("liballoc: case 4.2 allocating %zu bytes at %p", size, p);
-#endif
                     return p;
                 }
             } // min->next != NULL
@@ -467,10 +428,6 @@ void *liballoc_malloc(size_t req_size)
         // CASE 5: Block full! Ensure next block and loop.
         if (block->next == NULL)
         {
-#if LIBALLOC_PRINT_DEBUG_MESSAGES
-            pr_info("CASE 5: block full");
-#endif
-
             if (startedBet == 1)
             {
                 block = l_memroot;
@@ -495,11 +452,6 @@ void *liballoc_malloc(size_t req_size)
 #endif
 
     mos_warn("No memory available.");
-
-#if LIBALLOC_PRINT_DEBUG_MESSAGES
-    liballoc_dump();
-#endif
-
     return NULL;
 }
 
@@ -546,10 +498,6 @@ void liballoc_free(const void *original_ptr)
             mos_panic("liballoc: bad free(%p) called.", ptr);
         }
     }
-
-#if LIBALLOC_PRINT_DEBUG_MESSAGES
-    pr_info("liballoc: freeing %p, size %zu", original_ptr, min->size);
-#endif
 
     maj = min->block;
     l_mem_inuse -= min->size;
