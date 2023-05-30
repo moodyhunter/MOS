@@ -9,15 +9,15 @@
 #define VIDEO_WIDTH      80
 #define VIDEO_HEIGHT     25
 
-extern const char _mos_startup_START;
-extern const char _mos_startup_END;
-extern const char __MOS_KERNEL_CODE_START;
-extern const char __MOS_KERNEL_CODE_END;
-extern const char __MOS_KERNEL_RODATA_START;
-extern const char __MOS_KERNEL_RODATA_END;
-extern const char __MOS_KERNEL_RW_START;
-extern const char __MOS_KERNEL_RW_END;
-extern const char __MOS_KERNEL_END;
+extern const char _mos_startup_START[];
+extern const char _mos_startup_END[];
+extern const char __MOS_KERNEL_CODE_START[];
+extern const char __MOS_KERNEL_CODE_END[];
+extern const char __MOS_KERNEL_RODATA_START[];
+extern const char __MOS_KERNEL_RODATA_END[];
+extern const char __MOS_KERNEL_RW_START[];
+extern const char __MOS_KERNEL_RW_END[];
+extern const char __MOS_KERNEL_END[];
 
 #define startup_start      ((ptr_t) &_mos_startup_START)
 #define startup_end        ((ptr_t) &_mos_startup_END)
