@@ -37,8 +37,9 @@ typedef struct
 } __packed x86_startup_info;
 
 // defined in the linker script 'multiboot.ld'
-extern const char __MOS_KERNEL_CODE_START, __MOS_KERNEL_CODE_END;     // Kernel text
-extern const char __MOS_KERNEL_RODATA_START, __MOS_KERNEL_RODATA_END; // Kernel rodata
-extern const char __MOS_KERNEL_RW_START, __MOS_KERNEL_RW_END;         // Kernel read-write data
+extern const char __MOS_KERNEL_CODE_START[], __MOS_KERNEL_CODE_END[];     // Kernel text
+extern const char __MOS_KERNEL_RODATA_START[], __MOS_KERNEL_RODATA_END[]; // Kernel rodata
+extern const char __MOS_KERNEL_RW_START[], __MOS_KERNEL_RW_END[];         // Kernel read-write data
+extern const char __MOS_KERNEL_END[];                                     // Kernel end
 
 extern mos_platform_info_t x86_platform;

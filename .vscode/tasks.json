@@ -79,7 +79,7 @@
                 "-smp",
                 "1",
                 "-append",
-                "init_args='-i /initrd/assets/init.msh'",
+                "mos_tests init_args=\"-c /initrd/assets/self-test.msh\"",
             ],
             "problemMatcher": [ ],
             "group": "none",

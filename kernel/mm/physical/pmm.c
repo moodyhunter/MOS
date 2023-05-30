@@ -16,6 +16,10 @@ static spinlock_t pmm_early_storage_lock = SPINLOCK_INIT;
 bool pmm_use_kernel_heap = false;
 static slab_t *pmlist_node_cache = NULL;
 
+// array of all physical frames
+static phyframe_t *phyframes = (phyframe_t *) MOS_PHYFRAME_ARRAY_VADDR;
+static size_t phyframes_count = 0;
+
 pmlist_node_t *pmm_internal_list_node_create(ptr_t start, size_t n_pages, pm_range_type_t type)
 {
     MOS_ASSERT_X(type != PM_RANGE_UNINITIALIZED, "pmm_internal_list_node_create() called with type == PM_RANGE_UNINITIALIZED");
@@ -110,9 +114,20 @@ void pmm_dump_lists(void)
     }
 }
 
-void pmm_add_region_frames(ptr_t start_addr, size_t nframes, pm_range_type_t type)
+void pmm_register_phyframes(ptr_t start_addr, size_t nframes, pm_range_type_t type)
 {
+    pr_info2("pmm: adding region " PTR_RANGE " (%zu pages) as %s", start_addr, start_addr + nframes * MOS_PAGE_SIZE - 1, nframes,
+             type == PM_RANGE_FREE ? "free" : "reserved");
     pmm_impl_add_free_frames(start_addr, nframes, type);
+
+    // new API
+    const size_t base_pfn = start_addr / MOS_PAGE_SIZE;
+
+    // TODO: this takes years to complete, consider using a bitmap
+    for (size_t i = 0; i < nframes; i++)
+        phyframes[base_pfn + i].state = type == PM_RANGE_FREE ? PHYFRAME_FREE : PHYFRAME_RESERVED;
+
+    phyframes_count = MAX(phyframes_count, base_pfn + nframes);
 }
 
 // * Callback for pmm_allocate_frames (i.e. pmm_internal_acquire_free_frames)

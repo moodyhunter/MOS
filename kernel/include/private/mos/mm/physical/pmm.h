@@ -59,6 +59,39 @@ typedef struct
     size_t npages;
 } pmrange_t;
 
+// represents a physical frame, there will be one `phyframe_t` for each physical frame in the system
+typedef struct phyframe
+{
+    as_linked_list; // freelist or allocated list
+
+    enum phyframe_state
+    {
+        PHYFRAME_RESERVED = 0, // intentionally 0
+        PHYFRAME_FREE,
+        PHYFRAME_MAPPED,
+    } state;
+
+    union
+    {
+        struct // mapped frame
+        {
+            // number of times this frame is mapped
+            // if this drops to 0, the frame is freed
+            atomic_t mapped_count;
+        };
+
+        struct // free frame
+        {
+            int idk;
+        };
+
+        struct // reserved frame
+        {
+            int idk_2;
+        };
+    };
+} phyframe_t;
+
 typedef struct
 {
     size_t pages_requested; // number of pages requested by the user
@@ -91,11 +124,11 @@ void pmm_dump_lists(void);
  * @brief Add a region of physical memory to the physical memory manager.
  *
  * @param start_addr Starting address of the region
- * @param nframes Size of the region in frames
+ * @param nframes Size of the region, in number of frames
  * @param type Type of the region
  *
  */
-void pmm_add_region_frames(ptr_t start_addr, size_t nframes, pm_range_type_t type);
+void pmm_register_phyframes(ptr_t start_addr, size_t nframes, pm_range_type_t type);
 
 /**
  * @brief Allocate blocks of physical memory.
