@@ -80,6 +80,7 @@ vmblock_t mm_alloc_pages(paging_handle_t table, size_t n_pages, ptr_t hint_vaddr
     }
 
     pmm_ref_frames(pfn, n_pages);
+    mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, n_pages, vaddr, pfn);
     platform_mm_map_pages(table, vaddr, pfn, n_pages, flags);
 
     spinlock_release(table.pgd_lock);
