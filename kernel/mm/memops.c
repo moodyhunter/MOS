@@ -14,7 +14,6 @@ void mos_kernel_mm_init(void)
 
     mm_cow_init();
     slab_init();
-    pmm_switch_to_kheap();
 
 #if MOS_DEBUG_FEATURE(vmm)
     declare_panic_hook(mm_dump_current_pagetable, "Dump page table");

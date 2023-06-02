@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static __nodiscard s64 do_align(u64 *pstart, u64 *psize, pm_range_type_t type)
+static __nodiscard s64 do_align(u64 *pstart, size_t *psize, bool reserved)
 {
     const u64 start_addr = *pstart;
     const u64 size = *psize;
@@ -23,26 +23,23 @@ static __nodiscard s64 do_align(u64 *pstart, u64 *psize, pm_range_type_t type)
 
     u64 new_start = start_addr, new_size = size;
 
-    switch (type)
+    if (reserved)
     {
-        case PM_RANGE_FREE:
-            // it's fine to shrink a free region
-            if (start_addr != up_start || end_addr != down_end)
-            {
-                new_start = up_start;
-                new_size = down_end - up_start;
-            }
-            break;
-        case PM_RANGE_RESERVED:
-            // we can't shrink a reserved region, so just make it larger, inflate it to the nearest page boundary
-            if (start_addr != down_start || end_addr != up_end)
-            {
-                new_start = down_start;
-                new_size = up_end - down_start;
-            }
-            break;
-        case PM_RANGE_UNINITIALIZED:
-        case PM_RANGE_ALLOCATED: mos_panic("invalid range type: %d", type);
+        // we can't shrink a reserved region, so just make it larger, inflate it to the nearest page boundary
+        if (start_addr != down_start || end_addr != up_end)
+        {
+            new_start = down_start;
+            new_size = up_end - down_start;
+        }
+    }
+    else
+    {
+        // it's fine to shrink a free region
+        if (start_addr != up_start || end_addr != down_end)
+        {
+            new_start = up_start;
+            new_size = down_end - up_start;
+        }
     }
 
     *pstart = new_start;
@@ -51,32 +48,30 @@ static __nodiscard s64 do_align(u64 *pstart, u64 *psize, pm_range_type_t type)
     return new_size - size;
 }
 
-void x86_pmm_region_setup(const multiboot_memory_map_t *map_entry, u32 count, ptr_t initrd_paddr, size_t initrd_size)
+void x86_pmm_region_setup(const multiboot_memory_map_t *map_entry, u32 count, pfn_t initrd_pfn, size_t initrd_npages)
 {
-    struct range
-    {
-        u64 start, size;
-        bool usable;
-    } regions[count];
+    pmm_region_t regions[count * 2]; // ensure we have enough space for all regions
+    size_t region_count = 0;
 
-    u64 max_end = 0;
-    for (u32 i = 0; i < count; i++)
+    u64 max_end_pfn = 0;
+    u64 last_end_pfn = 0;
+    for (size_t i = 0; i < count; i++)
     {
         const multiboot_memory_map_t *entry = map_entry + i;
 
-        u64 region_length = entry->len;
-        const u64 region_base = entry->phys_addr;
+        size_t original_length = entry->len;
+        const u64 original_base = entry->phys_addr;
 
-        if (region_base > MOS_MAX_VADDR)
+        if (original_base > MOS_MAX_VADDR)
         {
-            pr_warn("ignoring a 0x%llx (+ %llu bytes) high memory region", region_base, region_base + region_length - 1);
+            pr_warn("ignoring a 0x%llx (+ %llu bytes) high memory region", original_base, original_base + original_length - 1);
             continue;
         }
 
-        if (region_base + region_length > (u64) MOS_MAX_VADDR + 1)
+        if (original_base + original_length > (u64) MOS_MAX_VADDR + 1)
         {
-            pr_warn("truncating memory region at 0x%llx, it extends beyond the maximum address " PTR_FMT, region_base, MOS_MAX_VADDR);
-            region_length = (u64) MOS_MAX_VADDR + 1 - region_base;
+            pr_warn("truncating memory region at 0x%llx, it extends beyond the maximum address " PTR_FMT, original_base, MOS_MAX_VADDR);
+            original_length = (u64) MOS_MAX_VADDR + 1 - original_base;
         }
 
         const char *type_str = "<unknown>";
@@ -90,79 +85,98 @@ void x86_pmm_region_setup(const multiboot_memory_map_t *map_entry, u32 count, pt
             default: mos_panic("unsupported memory map type: %x", entry->type);
         }
 
-        pr_info2("  %d: " PTR_RANGE64 " %-10s", i, region_base, region_base + region_length, type_str);
+        size_t aligned_length = original_length;
+        u64 aligned_base = original_base;
 
-        struct range *r = &regions[i];
-        r->start = region_base;
-        r->size = region_length;
-        r->usable = entry->type == MULTIBOOT_MEMORY_AVAILABLE;
+        const s64 loss = do_align(&aligned_base, &aligned_length, entry->type != MULTIBOOT_MEMORY_AVAILABLE);
 
-        const s64 loss = do_align(&r->start, &r->size, r->usable ? PM_RANGE_FREE : PM_RANGE_RESERVED);
+        const pfn_t region_pfn_start = aligned_base / MOS_PAGE_SIZE;
+        const pfn_t region_pfn_end = region_pfn_start + aligned_length / MOS_PAGE_SIZE;
+
+        if (last_end_pfn != aligned_base / MOS_PAGE_SIZE)
+        {
+            // there's a gap between the last region and this one
+            // we fake a reserved region to fill the gap
+            pmm_region_t *rgap = &regions[region_count];
+            rgap->reserved = true;
+            rgap->nframes = region_pfn_start - last_end_pfn;
+            rgap->pfn_start = last_end_pfn;
+            pr_info2("  %d: gap of %zu pages", region_count, rgap->nframes);
+            region_count++;
+        }
+
+        pr_info2("  %d: " PTR_RANGE64 " %-10s", region_count, original_base, original_base + original_length, type_str);
         if (loss)
-            pr_info2("     aligned to " PTR_RANGE64 ", %s %llu bytes", r->start, r->start + r->size, loss > 0 ? "gained" : "lost", llabs(loss));
+            pr_info2("     " PTR_RANGE64 " (aligned), pfn " PFN_RANGE ", %s %llu bytes", aligned_base, aligned_base + aligned_length, region_pfn_start, region_pfn_end,
+                     loss > 0 ? "gained" : "lost", llabs(loss));
 
-        max_end = MAX(max_end, r->start + r->size);
+        if (aligned_length == 0)
+        {
+            pr_info2("     aligned to " PFN_RANGE ", region is empty", region_pfn_start, region_pfn_end);
+            continue;
+        }
+
+        pmm_region_t *r = &regions[region_count];
+        r->reserved = entry->type != MULTIBOOT_MEMORY_AVAILABLE;
+        r->pfn_start = region_pfn_start;
+        r->nframes = region_pfn_end - region_pfn_start;
+        region_count++;
+
+        last_end_pfn = region_pfn_end;
+        max_end_pfn = MAX(max_end_pfn, r->pfn_start + r->nframes);
     }
 
-    MOS_ASSERT_X(max_end % MOS_PAGE_SIZE == 0, "max_end is not page aligned");
+    MOS_ASSERT_X(max_end_pfn % MOS_PAGE_SIZE == 0, "max_end is not page aligned");
 
-    const size_t phyframes_count = max_end / MOS_PAGE_SIZE;
-    pr_info("the system has %zu frames in total", phyframes_count);
+    const size_t phyframes_count = max_end_pfn;
 
-    const size_t array_memsize = phyframes_count * sizeof(phyframe_t);
-    mos_debug(pmm, "%zu bytes required for the phyframes array", array_memsize);
+    const size_t array_npages = ALIGN_UP_TO_PAGE(phyframes_count * sizeof(phyframe_t)) / MOS_PAGE_SIZE;
+    mos_debug(pmm, "%zu pages required for the phyframes array", array_npages);
 
-    struct range *rphyframes = NULL; // the region that will hold the phyframes array
+    pmm_region_t *phyframes_region = NULL; // the region that will hold the phyframes array
 
     // now we need to find contiguous memory for the phyframes array
     for (u32 i = 0; i < count; i++)
     {
-        struct range *r = &regions[i];
+        pmm_region_t *r = &regions[i];
 
-        if (!r->usable)
+        if (r->reserved)
             continue;
 
-        if (r->size < array_memsize)
+        if (r->nframes < array_npages)
             continue;
 
-        ptr_t phyaddr = r->start;
-        phyaddr = MAX((ptr_t) __MOS_KERNEL_END - MOS_KERNEL_START_VADDR, phyaddr); // don't use the kernel's memory
-        phyaddr = MAX(ALIGN_UP_TO_PAGE(initrd_paddr + initrd_size), phyaddr);      // don't use the initrd's memory
+        phyframes_region = r;
 
-        rphyframes = r;
+        pfn_t pfn = r->pfn_start;
+        pfn = MAX(((ptr_t) __MOS_KERNEL_END - MOS_KERNEL_START_VADDR) / MOS_PAGE_SIZE, pfn); // don't use the kernel's memory
+        pfn = MAX(ALIGN_UP_TO_PAGE(initrd_pfn + initrd_npages), pfn);                        // don't use the initrd's memory
 
-        pr_info2("using " PTR_RANGE " for the phyframes array", phyaddr, phyaddr + array_memsize - 1);
-        mm_early_map_kernel_pages(MOS_PHYFRAME_ARRAY_VADDR, phyaddr, array_memsize / MOS_PAGE_SIZE, VM_RW | VM_GLOBAL);
-        memzero((void *) MOS_PHYFRAME_ARRAY_VADDR, array_memsize); // zero the array
+        const pfn_t pfn_end = pfn + array_npages;
 
-        // the region with phyframes, and the rest of the region
-        if (phyaddr > r->start)
-        {
-            // before the phyframes array
-            pmm_register_phyframes(r->start, (phyaddr - r->start) / MOS_PAGE_SIZE, PM_RANGE_FREE);
-        }
+        pr_info2("using " PFN_RANGE " for the phyframes array", pfn, pfn_end);
 
-        // the phyframes array
-        pmm_register_phyframes(phyaddr, array_memsize / MOS_PAGE_SIZE, PM_RANGE_RESERVED);
-
-        if (phyaddr + array_memsize < r->start + r->size)
-        {
-            // after the phyframes array
-            pmm_register_phyframes(phyaddr + array_memsize, (r->size - array_memsize) / MOS_PAGE_SIZE, PM_RANGE_FREE);
-        }
+        // we have to map the array before doing anything else
+        mm_early_map_kernel_pages(MOS_PHYFRAME_ARRAY_VADDR, pfn, array_npages, VM_RW | VM_GLOBAL);
+        // then we zero the array
+        memzero((void *) MOS_PHYFRAME_ARRAY_VADDR, array_npages * MOS_PAGE_SIZE);
+        // then we can initialize the pmm
+        pmm_init(phyframes_count);
+        // and finally we can reserve this region
+        pmm_reserve_frames(pfn, array_npages);
         break;
     }
 
-    MOS_ASSERT_X(rphyframes, "failed to find a region for the phyframes array");
+    MOS_ASSERT_X(phyframes_region, "failed to find a region for the phyframes array");
 
     // add all the other regions
     for (u32 i = 0; i < count; i++)
     {
-        struct range *r = &regions[i];
-        if (r == rphyframes) // we already added this region
+        pmm_region_t *r = &regions[i];
+        if (r == phyframes_region)
             continue;
-        if (r->size == 0)
+        if (r->nframes == 0) // ???
             continue;
-        pmm_register_phyframes(r->start, r->size / MOS_PAGE_SIZE, r->usable ? PM_RANGE_FREE : PM_RANGE_RESERVED);
+        pmm_register_region(r->pfn_start, r->nframes, r->reserved);
     }
 }
