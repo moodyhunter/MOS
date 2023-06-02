@@ -21,6 +21,7 @@
 #define __weak_alias(x) __attribute__((weak, alias(x)))
 #define __weakref(x)    __attribute__((weakref(x)))
 #define __nodiscard     __attribute__((__warn_unused_result__))
+#define __no_instrument __attribute__((__no_instrument_function__))
 
 #define asmlinkage    __attribute__((regparm(0)))
 #define should_inline __maybe_unused static inline
