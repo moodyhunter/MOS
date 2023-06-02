@@ -149,7 +149,13 @@ void lapic_memory_setup(void)
         base_addr = BIOS_VADDR(base_addr);
     }
 
-    mm_map_pages(x86_platform.kernel_pgd, base_addr, pmm_reserve_address(base_addr), 1, VM_RW);
+    if (!pmm_find_reserved_region(base_addr))
+    {
+        pr_info("LAPIC: reserve " PTR_FMT, base_addr);
+        pmm_reserve_address(base_addr);
+    }
+
+    mm_map_pages(x86_platform.kernel_pgd, base_addr, base_addr / MOS_PAGE_SIZE, 1, VM_RW);
     lapic_regs = (u32 *) base_addr;
 }
 
