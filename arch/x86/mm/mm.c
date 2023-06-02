@@ -101,11 +101,11 @@ void x86_pmm_region_setup(const multiboot_memory_map_t *map_entry, u32 count, pf
             rgap->reserved = true;
             rgap->nframes = region_pfn_start - last_end_pfn;
             rgap->pfn_start = last_end_pfn;
-            pr_info2("  %d: gap of %zu pages", region_count, rgap->nframes);
+            pr_info2("  %zu: gap of %zu pages", region_count, rgap->nframes);
             region_count++;
         }
 
-        pr_info2("  %d: " PTR_RANGE64 " %-10s", region_count, original_base, original_base + original_length, type_str);
+        pr_info2("  %zu: " PTR_RANGE64 " %-10s", region_count, original_base, original_base + original_length, type_str);
         if (loss)
             pr_info2("     " PTR_RANGE64 " (aligned), pfn " PFN_RANGE ", %s %llu bytes", aligned_base, aligned_base + aligned_length, region_pfn_start, region_pfn_end,
                      loss > 0 ? "gained" : "lost", llabs(loss));
@@ -136,7 +136,7 @@ void x86_pmm_region_setup(const multiboot_memory_map_t *map_entry, u32 count, pf
     pmm_region_t *phyframes_region = NULL; // the region that will hold the phyframes array
 
     // now we need to find contiguous memory for the phyframes array
-    for (u32 i = 0; i < count; i++)
+    for (u32 i = 0; i < region_count; i++)
     {
         pmm_region_t *r = &regions[i];
 
@@ -170,7 +170,7 @@ void x86_pmm_region_setup(const multiboot_memory_map_t *map_entry, u32 count, pf
     MOS_ASSERT_X(phyframes_region, "failed to find a region for the phyframes array");
 
     // add all the other regions
-    for (u32 i = 0; i < count; i++)
+    for (u32 i = 0; i < region_count; i++)
     {
         pmm_region_t *r = &regions[i];
         if (r == phyframes_region)
