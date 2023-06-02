@@ -6,7 +6,7 @@
 #include <mos/printk.h>
 #include <mos/tasks/task_types.h>
 
-static void walk_pagetable_dump_callback(const pgt_iteration_info_t *iter_info, const vmblock_t *block, ptr_t block_paddr, void *arg)
+static void walk_pagetable_dump_callback(const pgt_iteration_info_t *iter_info, const vmblock_t *block, pfn_t block_pfn, void *arg)
 {
     MOS_UNUSED(iter_info);
     ptr_t *prev_end_vaddr = (ptr_t *) arg;
@@ -15,11 +15,11 @@ static void walk_pagetable_dump_callback(const pgt_iteration_info_t *iter_info, 
         pr_info("  VGROUP: " PTR_FMT, block->vaddr);
     }
 
-    pr_info2("    " PTR_RANGE " -> " PTR_RANGE ", %5zd pages, %c%c%c, %c%c, %s", //
+    pr_info2("    " PTR_RANGE " -> " PFN_RANGE ", %5zd pages, %c%c%c, %c%c, %s", //
              block->vaddr,                                                       //
              (ptr_t) (block->vaddr + block->npages * MOS_PAGE_SIZE),             //
-             block_paddr,                                                        //
-             (ptr_t) (block_paddr + block->npages * MOS_PAGE_SIZE),              //
+             block_pfn,                                                          //
+             block_pfn + block->npages * MOS_PAGE_SIZE,                          //
              block->npages,                                                      //
              block->flags & VM_READ ? 'r' : '-',                                 //
              block->flags & VM_WRITE ? 'w' : '-',                                //
