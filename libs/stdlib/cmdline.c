@@ -17,16 +17,16 @@ static const char **cmdline_static_array_insert(const char **result, size_t resu
     return result;
 }
 
-static const char **cmdline_dynamic_array_insert(const char **result, size_t result_capacity, char *cmdline, size_t *result_count)
+static const char **cmdline_dynamic_array_insert(const char **argv, size_t result_capacity, char *cmdline, size_t *result_count)
 {
     MOS_UNUSED(result_capacity); // unused because we always realloc
-    result = realloc(result, sizeof(char *) * (*result_count + 1));
-    result[*result_count] = strdup(cmdline);
+    argv = realloc(argv, sizeof(char *) * (*result_count + 1));
+    argv[*result_count] = strdup(cmdline);
     (*result_count)++;
-    return result;
+    return argv;
 }
 
-static bool cmdline_parse_generic(char *start, size_t length, size_t cmdline_max, size_t *out_count, const char ***out_cmdlines, cmdline_insert_fn_t insert)
+static bool cmdline_parse_generic(char *start, size_t length, size_t cmdline_max, size_t *out_count, const char ***argv_ptr, cmdline_insert_fn_t insert)
 {
     char *buf_start = start;
 
@@ -78,9 +78,8 @@ static bool cmdline_parse_generic(char *start, size_t length, size_t cmdline_max
         {
             if (strlen(start) > 0)
             {
-                const char **args = insert(*out_cmdlines, cmdline_max, start, out_count);
-                *out_cmdlines = args;
-                if (!args)
+                *argv_ptr = insert(*argv_ptr, cmdline_max, start, out_count);
+                if (!*argv_ptr)
                     return false;
             }
 
