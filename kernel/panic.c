@@ -31,7 +31,7 @@ static bool setup_poweroff_on_panic(const char *arg)
     poweroff_on_panic = cmdline_string_truthiness(arg, true);
     return true;
 }
-MOS_SETUP("poweroff_on_panic", setup_poweroff_on_panic);
+MOS_EARLY_SETUP("poweroff_on_panic", setup_poweroff_on_panic);
 
 void kwarn_handler_set(kmsg_handler_t *handler)
 {
