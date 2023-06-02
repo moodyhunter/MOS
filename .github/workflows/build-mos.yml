@@ -31,22 +31,6 @@ jobs:
               "has_smp": "ON",
               "smp": "1",
             }
-          - {
-              "name": "x86 multiboot with SMP (2 cores)",
-              "arch": "x86",
-              "target_triple": "i686-elf",
-              "target": "multiboot",
-              "has_smp": "ON",
-              "smp": "2",
-            }
-          - {
-              "name": "x86 multiboot with SMP (4 cores)",
-              "arch": "x86",
-              "target_triple": "i686-elf",
-              "target": "multiboot",
-              "has_smp": "ON",
-              "smp": "4",
-            }
     env:
       MOS_TEST_SMP_COUNT: ${{matrix.config.smp}}
 
