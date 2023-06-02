@@ -43,6 +43,11 @@ typedef u64 uintn;
 #define PTR_RANGE   "[" PTR_FMT " - " PTR_FMT "]"
 #define PTR_RANGE64 "[0x%.16llx - 0x%.16llx]"
 
+// physical frame number
+typedef unsigned long long pfn_t;
+#define PFN_FMT   "%llu"
+#define PFN_RANGE "[" PFN_FMT " - " PFN_FMT "]"
+
 MOS_STATIC_ASSERT(sizeof(void *) == MOS_BITS / 8, "pointer size check failed");
 MOS_STATIC_ASSERT(sizeof(ptr_t) == sizeof(void *), "ptr_t is not the same size as void *");
 
