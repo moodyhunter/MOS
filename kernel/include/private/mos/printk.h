@@ -57,6 +57,7 @@ typedef enum
 #define pr_warn(fmt, ...)  lprintk_wrapper(MOS_LOG_WARN, fmt, ##__VA_ARGS__)
 #define pr_emerg(fmt, ...) lprintk_wrapper(MOS_LOG_EMERG, fmt, ##__VA_ARGS__)
 #define pr_fatal(fmt, ...) lprintk_wrapper(MOS_LOG_FATAL, fmt, ##__VA_ARGS__)
+#define pr_cont(...)       pr_info(__VA_ARGS__) // TODO: continue printing on the same line
 
 // these two also invokes a warning/panic handler
 #define mos_warn(fmt, ...)  mos_kwarn(__func__, __LINE__, "WARN: " fmt "\r\n", ##__VA_ARGS__)
