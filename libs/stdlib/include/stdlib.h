@@ -25,6 +25,7 @@ MOSAPI char *string_trim(char *in);
 // clang-format off
 #define MIN(a, b) __extension__ ({ __extension__ __auto_type _a = (a); __auto_type _b = (b); _a < _b ? _a : _b; })
 #define MAX(a, b) __extension__ ({ __extension__ __auto_type _a = (a); __auto_type _b = (b); _a > _b ? _a : _b; })
+#define pow2(x) ((__typeof__(x)) 1 << (x))
 // clang-format on
 
 // malloc, free, calloc and realloc
