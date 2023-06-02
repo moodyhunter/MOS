@@ -92,5 +92,6 @@ SECTIONS
 		*(.dynamic) *(.dynsym) *(.dynstr) *(.dynbss)
 		*(.hash) *(.gnu.hash)
 		*(.note.*)
+        *(.eh_frame_hdr) *(.eh_frame)
 	}
 }
