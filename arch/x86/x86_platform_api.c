@@ -146,15 +146,15 @@ void platform_switch_to_thread(ptr_t *old_stack, const thread_t *new_thread, swi
     x86_switch_to_thread(old_stack, new_thread, switch_flags);
 }
 
-void platform_mm_map_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t n_pages, vm_flags flags)
+void platform_mm_map_pages(paging_handle_t table, ptr_t vaddr, pfn_t pfn, size_t n_pages, vm_flags flags)
 {
     MOS_ASSERT_X(spinlock_is_locked(table.pgd_lock), "page table operations without lock");
     x86_pg_infra_t *infra = x86_get_pg_infra(table);
     for (size_t i = 0; i < n_pages; i++)
     {
-        pg_map_page(infra, vaddr, paddr, flags);
+        pg_map_page(infra, vaddr, pfn, flags);
         vaddr += MOS_PAGE_SIZE;
-        paddr += MOS_PAGE_SIZE;
+        pfn++;
     }
 }
 
@@ -229,7 +229,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
             if (once())
             {
                 pr_info2("reserving VGA memory");
-                vga_paddr = pmm_reserve_frames(vga_paddr, 1);
+                vga_paddr = pmm_reserve_address(vga_paddr);
             }
 
             paging_handle_t table = current_process->pagetable;

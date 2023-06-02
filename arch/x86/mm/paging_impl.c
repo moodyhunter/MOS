@@ -46,10 +46,9 @@ void pg_flag_page(x86_pg_infra_t *pg, ptr_t vaddr, size_t n, vm_flags flags)
     }
 }
 
-void pg_map_page(x86_pg_infra_t *pg, ptr_t vaddr, ptr_t paddr, vm_flags flags)
+void pg_map_page(x86_pg_infra_t *pg, ptr_t vaddr, pfn_t pfn, vm_flags flags)
 {
     MOS_ASSERT_X(vaddr % MOS_PAGE_SIZE == 0, "vaddr is not aligned to page size");
-    MOS_ASSERT_X(paddr % MOS_PAGE_SIZE == 0, "paddr is not aligned to page size");
     PAGING_CORRECT_PGTABLE_SANITY_CHECKS(pg, vaddr);
 
     const u32 pd_index = vaddr >> 22;
@@ -75,7 +74,7 @@ void pg_map_page(x86_pg_infra_t *pg, ptr_t vaddr, ptr_t paddr, vm_flags flags)
     }
 
     this_table->present = true;
-    this_table->phys_addr = (ptr_t) paddr >> 12;
+    this_table->pfn = pfn;
 
     this_dir->writable |= flags & VM_WRITE;
     this_table->writable = flags & VM_WRITE;
@@ -129,7 +128,7 @@ ptr_t pg_get_mapped_paddr(x86_pg_infra_t *pg, ptr_t vaddr)
     if (unlikely(!page_table->present))
         mos_panic("vmem " PTR_FMT " not mapped", vaddr);
 
-    return (page_table->phys_addr << 12) + (vaddr & 0xfff);
+    return (page_table->pfn << 12) + (vaddr & 0xfff);
 }
 
 vm_flags pg_get_flags(x86_pg_infra_t *pg, ptr_t vaddr)

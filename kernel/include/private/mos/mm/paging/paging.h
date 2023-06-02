@@ -87,7 +87,7 @@ vmblock_t mm_alloc_pages(paging_handle_t table, size_t n_pages, ptr_t hint_vaddr
  *
  * @param table The page table to map to.
  * @param vaddr The virtual address to map to.
- * @param paddr The physical address to map from.
+ * @param pfn The physical frame to map from.
  * @param npages The number of pages to map.
  * @param flags Flags to set on the pages, see @ref vm_flags.
  *
@@ -98,13 +98,13 @@ vmblock_t mm_alloc_pages(paging_handle_t table, size_t n_pages, ptr_t hint_vaddr
  *
  * @note You may need to reserve the physical memory before mapping it, see @ref pmm_reserve_frames.
  */
-vmblock_t mm_map_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags);
+vmblock_t mm_map_pages(paging_handle_t table, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
 
 /**
  * @brief Map a block of virtual memory to a block of physical memory, without incrementing the reference count.
  *
  * @param vaddr The virtual address to map to.
- * @param paddr The physical address to map from.
+ * @param pfn The physical frame to map from.
  * @param npages The number of pages to map.
  * @param flags Flags to set on the pages, see @ref vm_flags.
  *
@@ -115,7 +115,7 @@ vmblock_t mm_map_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t n
  * @warning This function is only used for very early startup code as PMM may not be available yet.
  * Use @ref mm_map_pages instead.
  */
-vmblock_t mm_early_map_kernel_pages(ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags);
+vmblock_t mm_early_map_kernel_pages(ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
 
 /**
  * @brief Unmap and possibly free a block of virtual memory.
@@ -134,7 +134,7 @@ void mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t npages);
  *
  * @param table The page table to replace in.
  * @param vaddr The virtual address to replace.
- * @param paddr The physical address to replace with.
+ * @param pfn The physical frame to replace from.
  * @param npages The number of pages to replace.
  * @param flags The new flags to set on the pages.
  * @return vmblock_t The replaced block of virtual memory, with the number of pages.
@@ -142,7 +142,7 @@ void mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t npages);
  * @note The reference count of the physical pages will be incremented, and the reference count of the
  * old physical pages will be decremented.
  */
-vmblock_t mm_replace_mapping(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t npages, vm_flags flags);
+vmblock_t mm_replace_mapping(paging_handle_t table, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
 
 /**
  * @brief Remap a block of virtual memory from one page table to another, i.e. copy the mappings.

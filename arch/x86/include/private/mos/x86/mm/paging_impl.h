@@ -20,7 +20,7 @@ typedef volatile struct
     bool kernel_b1 : 1;
     bool kernel_b2 : 1;
 
-    u32 phys_addr : 20;
+    pfn_t pfn : 20;
 } __packed x86_pgtable_entry;
 
 MOS_STATIC_ASSERT(sizeof(x86_pgtable_entry) == 4, "page_table_entry is not 4 bytes");
@@ -64,5 +64,5 @@ void pg_flag_page(x86_pg_infra_t *pg, ptr_t vaddr, size_t n, vm_flags flags);
 ptr_t pg_get_mapped_paddr(x86_pg_infra_t *pg, ptr_t vaddr);
 vm_flags pg_get_flags(x86_pg_infra_t *pg, ptr_t vaddr);
 
-void pg_map_page(x86_pg_infra_t *pg, ptr_t vaddr, ptr_t paddr, vm_flags flags);
+void pg_map_page(x86_pg_infra_t *pg, ptr_t vaddr, pfn_t pfn, vm_flags flags);
 void pg_unmap_page(x86_pg_infra_t *pg, ptr_t vaddr);
