@@ -28,6 +28,7 @@ typedef enum
     MOS_LOG_EMPH = 3,
     MOS_LOG_INFO = 2,
     MOS_LOG_INFO2 = 1,
+    MOS_LOG_UNSET = 0,
     MOS_LOG_DEFAULT = MOS_LOG_INFO,
 } mos_log_level_t;
 
@@ -45,9 +46,9 @@ typedef enum
     } while (0)
 
 #if MOS_CONFIG(MOS_PRINTK_WITH_FILENAME)
-#define lprintk_wrapper(level, fmt, ...) lprintk(level, "%-30s | " fmt "\r\n", MOS_FILE_LOCATION, ##__VA_ARGS__)
+#define lprintk_wrapper(level, fmt, ...) lprintk(level, "\r\n%-30s | " fmt, MOS_FILE_LOCATION, ##__VA_ARGS__)
 #else
-#define lprintk_wrapper(level, fmt, ...) lprintk(level, fmt "\r\n", ##__VA_ARGS__)
+#define lprintk_wrapper(level, fmt, ...) lprintk(level, "\r\n" fmt, ##__VA_ARGS__)
 #endif
 
 // print a colored message without handler, print unconditionally without a handler
@@ -57,7 +58,7 @@ typedef enum
 #define pr_warn(fmt, ...)  lprintk_wrapper(MOS_LOG_WARN, fmt, ##__VA_ARGS__)
 #define pr_emerg(fmt, ...) lprintk_wrapper(MOS_LOG_EMERG, fmt, ##__VA_ARGS__)
 #define pr_fatal(fmt, ...) lprintk_wrapper(MOS_LOG_FATAL, fmt, ##__VA_ARGS__)
-#define pr_cont(...)       pr_info(__VA_ARGS__) // TODO: continue printing on the same line
+#define pr_cont(fmt, ...)  lprintk(MOS_LOG_UNSET, fmt, ##__VA_ARGS__)
 
 // these two also invokes a warning/panic handler
 #define mos_warn(fmt, ...)  mos_kwarn(__func__, __LINE__, "WARN: " fmt "\r\n", ##__VA_ARGS__)

@@ -69,7 +69,7 @@ static void print_to_console(console_t *con, mos_log_level_t loglevel, const cha
     if (!con)
         return;
 
-    standard_color_t fg = White, bg = Black;
+    static standard_color_t fg, bg;
     deduce_level_color(loglevel, &fg, &bg);
     console_write_color(con, message, len, fg, bg);
 }
