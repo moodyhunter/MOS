@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/misc/power.h"
+
 #include <mos/elf/elf.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/io/io.h>
@@ -29,7 +31,7 @@ void define_syscall(poweroff)(bool reboot, u32 magic)
     if (!reboot)
     {
         pr_info("Meow, see ya~ :3");
-        platform_shutdown();
+        power_shutdown();
     }
     else
     {

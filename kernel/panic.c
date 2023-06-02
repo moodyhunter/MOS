@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/misc/power.h"
+
 #include <mos/cmdline.h>
 #include <mos/interrupt/ipi.h>
 #include <mos/lib/structures/list.h>
@@ -58,7 +60,7 @@ noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
         if (unlikely(poweroff_on_panic))
         {
             pr_emerg("Powering off...");
-            platform_shutdown();
+            power_shutdown();
         }
 
         while (true)
@@ -98,7 +100,7 @@ noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
     if (unlikely(poweroff_on_panic))
     {
         pr_emerg("Powering off...");
-        platform_shutdown();
+        power_shutdown();
     }
 
     pr_emerg("Halting...");
