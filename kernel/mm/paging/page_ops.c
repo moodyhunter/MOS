@@ -19,7 +19,7 @@ static void walk_pagetable_dump_callback(const pgt_iteration_info_t *iter_info, 
              block->vaddr,                                                       //
              (ptr_t) (block->vaddr + block->npages * MOS_PAGE_SIZE),             //
              block_pfn,                                                          //
-             block_pfn + block->npages * MOS_PAGE_SIZE,                          //
+             block_pfn + block->npages,                                          //
              block->npages,                                                      //
              block->flags & VM_READ ? 'r' : '-',                                 //
              block->flags & VM_WRITE ? 'w' : '-',                                //
