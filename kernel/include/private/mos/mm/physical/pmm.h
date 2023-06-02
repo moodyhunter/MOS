@@ -26,14 +26,6 @@
  * @{
  */
 
-typedef enum
-{
-    PM_RANGE_UNINITIALIZED = 0, // intentionally 0
-    PM_RANGE_FREE = 1,
-    PM_RANGE_RESERVED = 2,
-    PM_RANGE_ALLOCATED = 3,
-} pm_range_type_t;
-
 // represents a physical frame, there will be one `phyframe_t` for each physical frame in the system
 typedef struct phyframe
 {
