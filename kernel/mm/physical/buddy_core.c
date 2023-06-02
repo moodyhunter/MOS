@@ -123,7 +123,7 @@ static void extract_range(list_head *result, pfn_t start, size_t nframes, enum p
     {
         if (last_nframes == nframes)
         {
-            pr_emerg("  infinite loop detected, aborting");
+            mos_panic("infinite loop detected");
             break;
         }
 
