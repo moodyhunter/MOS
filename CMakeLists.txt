@@ -56,13 +56,17 @@ target_include_directories(mos_kernel_private_include INTERFACE
 )
 add_library(mos::private_include ALIAS mos_kernel_private_include)
 
+add_library(mos_kernel_compile_options INTERFACE)
+target_compile_options(mos_kernel_compile_options INTERFACE -ffreestanding)
+target_compile_definitions(mos_kernel_compile_options INTERFACE -D__MOS_KERNEL__)
+target_link_options(mos_kernel_compile_options INTERFACE -nostdlib)
+target_link_libraries(mos_kernel_compile_options INTERFACE mos::include mos::private_include gcc)
+add_library(mos::kernel_compile_options ALIAS mos_kernel_compile_options)
+
 # The Kernel
 file(GLOB_RECURSE MOS_KERNEL_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/kernel/*.c)
 add_library(mos_kernel OBJECT ${MOS_KERNEL_SOURCES})
-target_link_libraries(mos_kernel PUBLIC gcc mos::include)
-target_link_libraries(mos_kernel PRIVATE mos::private_include)
-target_compile_definitions(mos_kernel PRIVATE -D__MOS_KERNEL__)
-target_compile_options(mos_kernel PUBLIC "-ffreestanding")
+target_link_libraries(mos_kernel PUBLIC mos::kernel_compile_options)
 add_dependencies(mos_kernel mos_syscall_decl)
 add_library(mos::kernel ALIAS mos_kernel)
 
