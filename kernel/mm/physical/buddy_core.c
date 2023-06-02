@@ -295,7 +295,7 @@ static void break_the_order(const size_t order)
     return true;
 }
 
-void phyframe_dump_all()
+void buddy_dump_all()
 {
     for (size_t i = 0; i < MOS_ARRAY_SIZE(freelists); i++)
         dump_list(i);

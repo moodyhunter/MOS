@@ -15,7 +15,7 @@ extern phyframe_t *phyframes; // array of all physical frames
  * @brief Dump the state of the buddy allocator.
  *
  */
-void phyframe_dump_all();
+void buddy_dump_all();
 
 /**
  * @brief Initialize the buddy allocator with the given maximum number of frames.

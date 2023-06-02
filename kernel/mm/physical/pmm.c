@@ -18,7 +18,7 @@ void pmm_init(size_t max_frames)
 void pmm_dump_lists(void)
 {
     pr_info("Physical Memory Manager dump:");
-    MOS_UNIMPLEMENTED("pmm_dump_lists");
+    buddy_dump_all();
 }
 
 pfn_t pmm_allocate_frames(size_t n_frames)
