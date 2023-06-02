@@ -34,6 +34,9 @@ macro(add_mos_library)
 
         if (NOT "${ARG_NAME}" STREQUAL "stdlib")
             target_link_libraries(${KERNEL_LIB_NAME} PUBLIC mos::stdlib_kernel)
+        else()
+            target_compile_options(${KERNEL_LIB_NAME} PUBLIC "-ffreestanding")
+            target_link_options(${KERNEL_LIB_NAME} PUBLIC "-nostdlib")
         endif()
 
         foreach(lib ${ARG_LINK_LIBRARIES})
@@ -50,6 +53,9 @@ macro(add_mos_library)
     if ("${ARG_NAME}" STREQUAL "stdlib")
         # only need to add these to stdlib
         target_link_libraries(${ARG_NAME} PUBLIC gcc mos::include)
+        # TODO: Remove this once we have a proper userspace libc
+        target_compile_options(${ARG_NAME} PUBLIC "-ffreestanding")
+        target_link_options(${ARG_NAME} PUBLIC "-nostdlib")
         if (ARG_LINK_LIBRARIES)
             message(FATAL_ERROR "stdlib must not link to other libraries")
         endif()
@@ -57,8 +63,4 @@ macro(add_mos_library)
         target_link_libraries(${ARG_NAME} PUBLIC mos::stdlib)
         target_link_libraries(${ARG_NAME} PUBLIC ${ARG_LINK_LIBRARIES})
     endif()
-
-    # TODO: Remove this once we have a proper userspace libc
-    target_compile_options(${ARG_NAME} PUBLIC "-ffreestanding")
-    target_link_options(${ARG_NAME} PUBLIC "-nostdlib")
 endmacro()
