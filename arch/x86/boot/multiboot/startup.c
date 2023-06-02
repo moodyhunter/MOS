@@ -99,12 +99,12 @@ __startup_code void mos_startup_map_single_page(ptr_t vaddr, ptr_t paddr, vm_fla
     x86_pgtable_entry *this_table = (x86_pgtable_entry *) (this_dir->page_table_paddr << 12) + table_index;
     if (this_table->present)
     {
-        STARTUP_ASSERT(this_table->phys_addr == (paddr >> 12), 'd'); // fail if the page is mapped to different physical address
+        STARTUP_ASSERT(this_table->pfn == (paddr >> 12), 'd'); // fail if the page is mapped to different physical address
         return;
     }
     mos_startup_memzero((void *) this_table, sizeof(x86_pgtable_entry));
     this_table->present = true;
-    this_table->phys_addr = (ptr_t) paddr >> 12;
+    this_table->pfn = (ptr_t) paddr >> 12;
     this_table->writable = flags & VM_WRITE;
     this_table->global = flags & VM_GLOBAL;
     this_table->cache_disabled = flags & VM_CACHE_DISABLED;

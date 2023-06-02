@@ -11,7 +11,7 @@
 #include <string.h>
 
 static vmblock_t zero_block;
-static ptr_t zero_paddr;
+static pfn_t zero_pfn;
 
 void mm_cow_init(void)
 {
@@ -19,7 +19,7 @@ void mm_cow_init(void)
     zero_block = mm_alloc_pages(current_cpu->pagetable, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
     memzero((void *) zero_block.vaddr, MOS_PAGE_SIZE);
     mm_flag_pages(current_cpu->pagetable, zero_block.vaddr, 1, VM_READ); // make it read-only after zeroing
-    zero_paddr = platform_mm_get_phys_addr(current_cpu->pagetable, zero_block.vaddr);
+    zero_pfn = platform_mm_get_phys_addr(current_cpu->pagetable, zero_block.vaddr) / MOS_PAGE_SIZE;
 }
 
 vmblock_t mm_make_cow_block(paging_handle_t target_handle, vmblock_t src_block)
@@ -51,7 +51,7 @@ vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, ptr_t vad
 
     // zero fill the pages
     for (size_t i = 0; i < npages; i++)
-        mm_replace_mapping(handle, vaddr + i * MOS_PAGE_SIZE, zero_paddr, 1, ro_flags);
+        mm_replace_mapping(handle, vaddr + i * MOS_PAGE_SIZE, zero_pfn, 1, ro_flags);
 
     return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags, .address_space = handle };
 }
@@ -65,7 +65,7 @@ static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)
     //    we are allocating the page in the kernel space
     //    so that user-space won't get confused by the new page
     const ptr_t proxy = mm_alloc_pages(current_handle, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_READ | VM_WRITE).vaddr;
-    const ptr_t proxy_paddr = platform_mm_get_phys_addr(platform_info->kernel_pgd, proxy);
+    const pfn_t proxy_pfn = platform_mm_get_phys_addr(platform_info->kernel_pgd, proxy) / MOS_PAGE_SIZE;
 
     // 2. copy the data from the faulting address to the new page
     memcpy((void *) proxy, (void *) fault_addr, MOS_PAGE_SIZE);
@@ -73,7 +73,7 @@ static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)
     // 3. replace the faulting phypage with the new one
     //    this will increment the refcount of the new page, ...
     //    ...and also decrement the refcount of the old page
-    mm_replace_mapping(current_handle, fault_addr, proxy_paddr, 1, original_flags);
+    mm_replace_mapping(current_handle, fault_addr, proxy_pfn, 1, original_flags);
 
     // 4. unmap the temporary page (at the kernel heap)
     mm_unmap_pages(current_handle, proxy, 1);

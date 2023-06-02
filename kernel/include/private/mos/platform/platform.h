@@ -152,7 +152,7 @@ typedef struct
  * in the range.
  *
  */
-typedef void (*pgt_iteration_callback_t)(const pgt_iteration_info_t *iter_info, const vmblock_t *block, ptr_t block_paddr, void *arg);
+typedef void (*pgt_iteration_callback_t)(const pgt_iteration_info_t *iter_info, const vmblock_t *block, pfn_t block_pfn, void *arg);
 
 typedef struct
 {
@@ -192,7 +192,7 @@ paging_handle_t platform_mm_create_user_pgd(void);
 void platform_mm_destroy_user_pgd(paging_handle_t table);
 
 // Platform Paging APIs
-void platform_mm_map_pages(paging_handle_t table, ptr_t vaddr, ptr_t paddr, size_t n_pages, vm_flags flags);
+void platform_mm_map_pages(paging_handle_t table, ptr_t vaddr, pfn_t pfn, size_t n_pages, vm_flags flags);
 void platform_mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t n_pages);
 void platform_mm_iterate_table(paging_handle_t table, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg);
 void platform_mm_flag_pages(paging_handle_t table, ptr_t vaddr, size_t n, vm_flags flags);

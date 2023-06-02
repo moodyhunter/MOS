@@ -150,7 +150,7 @@ __nodiscard bool pmm_allocate_frames(size_t n_pages, pmm_allocate_callback_t cal
 /**
  * @brief Increase the reference count of a list of blocks of physical memory.
  *
- * @param paddr Physical address of the block to reference.
+ * @param pfn_start Physical frame number of the block to reference.
  * @param npages Number of pages to reference.
  *
  * @note Only allocated blocks can be referenced, if one wants to reference a reserved block,
@@ -158,26 +158,26 @@ __nodiscard bool pmm_allocate_frames(size_t n_pages, pmm_allocate_callback_t cal
  * needs to be done once.
  *
  */
-void pmm_ref_frames(ptr_t paddr, size_t npages);
+void pmm_ref_frames(pfn_t pfn_start, size_t npages);
 
 /**
  * @brief Unreference a list of blocks of physical memory.
  *
- * @param paddr Physical address of the block to unreference.
+ * @param pfn_start Physical frame number of the block to unreference.
  * @param npages Number of pages to unreference.
  *
  * @note If the reference count of the block reaches 0, the block will be freed and ready to
  * be re-allocated in the future.
  *
  */
-void pmm_unref_frames(ptr_t paddr, size_t npages);
+void pmm_unref_frames(pfn_t pfn_start, size_t npages);
 
 /**
  * @brief Mark a range of physical memory as reserved.
  *
  * @param paddr Physical address of the block to reserve.
  * @param npages Number of pages to reserve.
- * @return ptr_t The paddr argument, for convenience.
+ * @return pfn_t Physical frame number of the first frame in the reserved block.
  *
  * @note The memory will be marked as `PMM_REGION_RESERVED` and will be moved to the allocated list.
  *
@@ -185,7 +185,9 @@ void pmm_unref_frames(ptr_t paddr, size_t npages);
  * the kernel panics.
  *
  */
-ptr_t pmm_reserve_frames(ptr_t paddr, size_t npages);
+pfn_t pmm_reserve_frames(pfn_t pfn, size_t npages);
+#define pmm_reserve_address(paddr)           pmm_reserve_frames(ALIGN_DOWN_TO_PAGE(paddr) / MOS_PAGE_SIZE, 1)
+#define pmm_reserve_addresses(paddr, npages) pmm_reserve_frames(ALIGN_DOWN_TO_PAGE(paddr) / MOS_PAGE_SIZE, npages)
 
 /**
  * @brief Mark a block of physical memory as reserved.

@@ -32,7 +32,7 @@ void x86_mm_walk_page_table(paging_handle_t handle, ptr_t vaddr_start, size_t n_
     const x86_pg_infra_t *pg = x86_get_pg_infra(handle);
     const pgt_iteration_info_t info = { .address_space = handle, .vaddr_start = vaddr_start, .npages = n_pages };
 
-    ptr_t previous_paddr = 0;
+    pfn_t previous_pfn = 0;
     vm_flags previous_flags = 0;
     bool previous_present = false;
     vmblock_t previous_block = { .vaddr = vaddr_start, .npages = 0, .flags = 0, .address_space = handle };
@@ -61,7 +61,7 @@ void x86_mm_walk_page_table(paging_handle_t handle, ptr_t vaddr_start, size_t n_
             continue;
         }
 
-        const ptr_t paddr = pgt->phys_addr << 12;
+        const pfn_t pfn = pgt->pfn;
         const vm_flags flags = VM_READ |                                                              //
                                (pgd->writable && pgt->writable ? VM_WRITE : 0) |                      //
                                (pgd->usermode && pgt->usermode ? VM_USER : 0) |                       //
@@ -69,22 +69,22 @@ void x86_mm_walk_page_table(paging_handle_t handle, ptr_t vaddr_start, size_t n_
                                (pgt->global ? VM_GLOBAL : 0);
 
         // if anything changed, call the callback
-        if (present != previous_present || paddr != previous_paddr + MOS_PAGE_SIZE || flags != previous_flags)
+        if (present != previous_present || pfn != previous_pfn + MOS_PAGE_SIZE || flags != previous_flags)
         {
             if (previous_block.npages > 0 && previous_present)
-                callback(&info, &previous_block, previous_paddr - (previous_block.npages - 1) * MOS_PAGE_SIZE, arg);
+                callback(&info, &previous_block, previous_pfn - (previous_block.npages - 1) * MOS_PAGE_SIZE, arg);
 
             previous_block.vaddr = vaddr;
             previous_block.npages = 1;
             previous_block.flags = flags;
-            previous_paddr = paddr;
+            previous_pfn = pfn;
             previous_present = present;
             previous_flags = flags;
         }
         else
         {
             previous_block.npages++;
-            previous_paddr = paddr;
+            previous_pfn = pfn;
         }
 
         vaddr += MOS_PAGE_SIZE;
@@ -92,5 +92,5 @@ void x86_mm_walk_page_table(paging_handle_t handle, ptr_t vaddr_start, size_t n_
     } while (n_pages_left > 0);
 
     if (previous_block.npages > 0 && previous_present)
-        callback(&info, &previous_block, previous_paddr - (previous_block.npages - 1) * MOS_PAGE_SIZE, arg);
+        callback(&info, &previous_block, previous_pfn - (previous_block.npages - 1) * MOS_PAGE_SIZE, arg);
 }
