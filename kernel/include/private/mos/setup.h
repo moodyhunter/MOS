@@ -7,9 +7,10 @@
 
 typedef enum
 {
-    INIT_TARGET_EARLY,
-    INIT_TARGET_VFS,
-    INIT_TARGET_KTHREAD,
+    INIT_TARGET_EARLY,   // Early setup
+    INIT_TARGET_POWER,   // Power management subsystem
+    INIT_TARGET_VFS,     // Virtual file system
+    INIT_TARGET_KTHREAD, // Kernel threads
 } init_target_t;
 
 typedef struct

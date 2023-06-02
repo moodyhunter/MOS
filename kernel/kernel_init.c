@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/misc/power.h"
+
 #include <mos/cmdline.h>
 #include <mos/device/console.h>
 #include <mos/elf/elf.h>
@@ -69,6 +71,9 @@ void mos_start_kernel(void)
     init_argv.argv[0] = strdup(DEFAULT_INIT_PATH);
     setup_invoke_setup();
     setup_reach_init_target(INIT_TARGET_EARLY);
+
+    power_init();
+    setup_reach_init_target(INIT_TARGET_POWER);
 
     pr_emph("init path: %s", init_argv.argv[0]);
     for (u32 i = 1; i < init_argv.argc; i++)
