@@ -194,7 +194,7 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
                     memcpy((void *) stub.vaddr, buf + B_file_offset, B_file_size);
 
                     // copy mapping for the leftover memory
-                    mos_debug(elf, "elf: copying leftover %zu bytes from " PTR_FMT " to " PTR_FMT, ph->size_in_file - A_npages * MOS_PAGE_SIZE, stub.vaddr, B_vaddr);
+                    mos_debug(elf, "elf: copying leftover %lu bytes from " PTR_FMT " to " PTR_FMT, ph->size_in_file - A_npages * MOS_PAGE_SIZE, stub.vaddr, B_vaddr);
                     vmblock_t block = mm_copy_maps(current_cpu->pagetable, stub.vaddr, proc->pagetable, B_vaddr, 1, MM_COPY_DEFAULT);
                     block.flags = flags;
                     mm_flag_pages(proc->pagetable, block.vaddr, block.npages, flags);
