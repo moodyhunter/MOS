@@ -69,9 +69,6 @@ void console_register(console_t *con, size_t buf_size)
         }
     }
 
-    if (con->caps & CONSOLE_CAP_CLEAR)
-        con->ops->clear(con);
-
     MOS_ASSERT_X(con->read.buf, "console: '%s' has no read buffer", con->name);
 
     con->read.lock = (spinlock_t) SPINLOCK_INIT;
