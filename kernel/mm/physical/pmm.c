@@ -77,18 +77,16 @@ void pmm_unref_frames(pfn_t start, size_t n_pages)
     {
         phyframe_t *head_frame = phyframe_effective_head(&phyframes[start]);
         MOS_ASSERT(head_frame->mapped_count > 0);
-        head_frame->mapped_count--;
+
+        const size_t max_unmap_size = MIN(pow2(head_frame->order), start + n_pages - i);
+        i += max_unmap_size;
+        head_frame->mapped_count -= max_unmap_size;
 
         if (head_frame->mapped_count == 0)
         {
             linked_list_init(list_node(head_frame));
             const size_t size = pow2(head_frame->order);
             buddy_free_n(phyframe_pfn(head_frame), size / MOS_PAGE_SIZE);
-            i += size;
-        }
-        else
-        {
-            i++;
         }
     }
 }
