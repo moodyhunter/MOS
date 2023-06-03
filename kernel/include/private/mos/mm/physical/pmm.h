@@ -26,12 +26,11 @@
  * @{
  */
 
+typedef struct phyframe phyframe_t;
+
 // represents a physical frame, there will be one `phyframe_t` for each physical frame in the system
 typedef struct phyframe
 {
-    as_linked_list; // freelist or allocated list
-    size_t order;   // order of the frame (2^order pages)
-
     enum phyframe_state
     {
         PHYFRAME_RESERVED = 0, // intentionally 0
@@ -39,16 +38,31 @@ typedef struct phyframe
         PHYFRAME_ALLOCATED,
     } state;
 
+    size_t order;
+
     union
     {
+        struct // free frame
+        {
+            as_linked_list;
+        };
+
         struct // mapped frame
         {
-            // number of times this frame is mapped
-            // if this drops to 0, the frame is freed
-            atomic_t mapped_count;
+            bool is_compound_tail; // whether this frame is the tail of a compound page
+            union
+            {
+                // compound head: number of times this frame is mapped, if this drops to 0, the frame is freed
+                atomic_t mapped_count;
+                // compound tail: the head of the compound page
+                phyframe_t *compound_head;
+            };
         };
     };
+
 } phyframe_t;
+
+MOS_STATIC_ASSERT(sizeof(phyframe_t) == 16, "phyframe_t size is not 16 bytes");
 
 typedef struct
 {
@@ -56,6 +70,31 @@ typedef struct
     size_t nframes;
     bool reserved;
 } pmm_region_t;
+
+typedef enum
+{
+    /// allocate normal pages
+    PMM_ALLOC_NORMAL = 0,
+    /// do not allocate as compound pages when npages > 1
+    PMM_ALLOC_NO_COMPOUND = 1 << 0,
+} pmm_allocation_flags_t;
+
+#define MOS_INVALID_PFN  ((pfn_t) -1)
+#define pfn_invalid(pfn) ((pfn) == MOS_INVALID_PFN)
+
+extern phyframe_t *phyframes; // array of all physical frames
+extern size_t buddy_max_nframes;
+
+static inline __maybe_unused pfn_t phyframe_pfn(const phyframe_t *frame)
+{
+    return frame - phyframes;
+}
+
+static inline __maybe_unused phyframe_t *phyframe_effective_head(phyframe_t *frame)
+{
+    MOS_ASSERT(frame->is_compound_tail == 0 || frame->is_compound_tail == 1);
+    return frame->is_compound_tail == true ? frame->compound_head : frame;
+}
 
 /**
  * @brief Dump the physical memory manager's state, (i.e. the free list and the allocated list).
@@ -77,7 +116,7 @@ void pmm_init(size_t max_frames);
  *
  * @note
  */
-pfn_t pmm_allocate_frames(size_t n_frames);
+pfn_t pmm_allocate_frames(size_t n_frames, pmm_allocation_flags_t flags);
 
 /**
  * @brief Increase the reference count of a list of blocks of physical memory.

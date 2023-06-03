@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/mm/physical/buddy.h"
+#include "mos/mm/physical/pmm.h"
 
+#include <mos/lib/structures/list.h>
 #include <stdlib.h>
 
 #define log2(x)                                                                                                                                                          \
@@ -14,14 +16,6 @@
 static const size_t orders[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 };
 static const size_t max_order = MOS_ARRAY_SIZE(orders) - 1;
 static list_head freelists[MOS_ARRAY_SIZE(orders)] = { 0 };
-
-size_t buddy_max_nframes = 0; // system pfn <= pfn_max
-phyframe_t *phyframes = (void *) MOS_PHYFRAME_ARRAY_VADDR;
-
-static pfn_t phyframe_pfn(const phyframe_t *frame)
-{
-    return frame - phyframes;
-}
 
 static void add_to_freelist(size_t order, phyframe_t *frame)
 {
@@ -49,13 +43,11 @@ static pfn_t get_buddy_pfn(size_t page_pfn, size_t order)
 static void dump_list(size_t order)
 {
     const list_head *head = &freelists[order];
-    pr_cont("list of order %zu: ", order);
+    pr_cont("\nlist of order %zu: ", order);
     list_foreach(phyframe_t, frame, *head)
     {
         pr_cont("\t" PFN_RANGE, phyframe_pfn(frame), phyframe_pfn(frame) + pow2(order) - 1);
     }
-
-    pr_cont("\n");
 }
 
 /**
@@ -110,21 +102,28 @@ static void break_this_pfn(pfn_t this_pfn, size_t this_order)
     add_to_freelist(this_order - 1, frame2);
 }
 
-static void extract_range(list_head *result, pfn_t start, size_t nframes, enum phyframe_state state)
+static void extract_exact_range(pfn_t start, size_t nframes, enum phyframe_state state)
 {
-    list_head stub;
-    result = result ? result : &stub;
-
-    linked_list_init(result);
-
     size_t last_nframes = 0;
 
     while (nframes)
     {
         if (last_nframes == nframes)
         {
-            mos_panic("infinite loop detected");
-            break;
+            phyframe_t *frame = &phyframes[start];
+            if (state == PHYFRAME_RESERVED && frame->state == PHYFRAME_RESERVED)
+            {
+                // XXX: A great hack, there may be overlapped reserved ranges.
+                MOS_ASSERT(frame->order == 0);
+                frame->is_compound_tail = false;
+                frame->compound_head = NULL;
+                start++;
+                nframes--;
+            }
+            else
+            {
+                mos_panic("infinite loop detected");
+            }
         }
 
         last_nframes = nframes;
@@ -157,13 +156,14 @@ static void extract_range(list_head *result, pfn_t start, size_t nframes, enum p
                     {
                         list_remove(f);
                         f->state = state;
-                        list_node_append(result, list_node(f));
+                        f->is_compound_tail = false;
+                        f->state = state;
+                        f->order = 0;
 
                         nframes -= pow2(order);
                         start += pow2(order);
 
                         mos_debug(pmm_buddy, "      done, n left: %zu, start: " PFN_FMT, nframes, start);
-
                         break; // we're done with the current order
                     }
                     else
@@ -194,13 +194,6 @@ static void extract_range(list_head *result, pfn_t start, size_t nframes, enum p
             if (nframes == 0)
                 break; // fast exit path
         }
-    }
-
-    // now we have a list of frames that we want to extract
-    list_foreach(phyframe_t, f, *result)
-    {
-        MOS_ASSERT(f->state == state);
-        mos_debug(pmm_buddy, "  extracted: " PFN_RANGE ", (order %zu)", phyframe_pfn(f), phyframe_pfn(f) + pow2(f->order) - 1, f->order);
     }
 }
 
@@ -258,11 +251,12 @@ static void break_the_order(const size_t order)
     const pfn_t buddy_pfn = get_buddy_pfn(pfn, order);
     if (buddy_pfn >= buddy_max_nframes)
     {
-        mos_debug(pmm_buddy, "  buddy pfn " PFN_FMT " is out of bounds, simply adding to order %zu", buddy_pfn, order);
-        frame->state = PHYFRAME_FREE;
-        frame->order = order;
-        add_to_freelist(order, frame);
-        return true;
+        // mos_debug(pmm_buddy, "  buddy pfn " PFN_FMT " is out of bounds, simply adding to order %zu", buddy_pfn, order);
+        // frame->state = PHYFRAME_FREE;
+        // add_to_freelist(order, frame);
+        // return true;
+
+        return false;
     }
 
     phyframe_t *const buddy = &phyframes[buddy_pfn];
@@ -311,8 +305,6 @@ void buddy_init(size_t max_nframes)
         linked_list_init(&freelists[i]);
     }
 
-    buddy_max_nframes = max_nframes;
-
     const size_t order = MIN(log2(max_nframes), orders[MOS_ARRAY_SIZE(orders) - 1]);
     populate_freelist(0, max_nframes, order);
 }
@@ -320,16 +312,16 @@ void buddy_init(size_t max_nframes)
 void buddy_reserve_n(pfn_t pfn, size_t nframes)
 {
     mos_debug(pmm_buddy, "reserving " PFN_RANGE " (%zu frames)", pfn, pfn + nframes - 1, nframes);
-    extract_range(NULL, pfn, nframes, PHYFRAME_RESERVED);
+    extract_exact_range(pfn, nframes, PHYFRAME_RESERVED);
 }
 
-pfn_t buddy_alloc_n(size_t nframes)
+phyframe_t *buddy_alloc_n_exact(size_t nframes)
 {
     const size_t order = log2_ceil(nframes);
 
     // check if this order is too large
     if (order > orders[MOS_ARRAY_SIZE(orders) - 1])
-        return MOS_INVALID_PFN;
+        return NULL;
 
     mos_debug(pmm_buddy, "allocating %zu contiguous frames (order %zu, which is %zu frames, wasting %zu frames)", nframes, order, pow2(order), pow2(order) - nframes);
 
@@ -341,23 +333,63 @@ pfn_t buddy_alloc_n(size_t nframes)
     {
         pr_emerg("no free frames of order %zu, can't break", order);
         pr_emerg("out of memory!");
-        return MOS_INVALID_PFN; // out of memory!
+        return NULL; // out of memory!
     }
 
     phyframe_t *const frame = list_entry(free->next, phyframe_t);
     const pfn_t start = phyframe_pfn(frame);
 
-    extract_range(NULL, start, nframes, PHYFRAME_ALLOCATED);
+    extract_exact_range(start, nframes, PHYFRAME_ALLOCATED); // extract the exact range from the freelists
 
     for (size_t i = 0; i < nframes; i++)
     {
         phyframe_t *const f = &phyframes[start + i];
         f->state = PHYFRAME_ALLOCATED;
-        f->order = order;
-        linked_list_init(list_node(f));
+        f->order = 0; // so that they can be freed individually
+        f->is_compound_tail = false;
+        f->compound_head = NULL;
     }
 
-    return start;
+    return frame;
+}
+
+phyframe_t *buddy_alloc_n_compound(size_t nframes)
+{
+    const size_t order = log2_ceil(nframes);
+
+    // check if this order is too large
+    if (order > orders[MOS_ARRAY_SIZE(orders) - 1])
+        return NULL;
+
+    mos_debug(pmm_buddy, "allocating %zu contiguous frames (order %zu, which is %zu frames, wasting %zu frames)", nframes, order, pow2(order), pow2(order) - nframes);
+
+    list_head *free = &freelists[order];
+    if (list_is_empty(free))
+        break_the_order(order + 1);
+
+    if (list_is_empty(free))
+    {
+        pr_emerg("no free frames of order %zu, can't break", order);
+        pr_emerg("out of memory!");
+        return NULL; // out of memory!
+    }
+
+    phyframe_t *const head_frame = list_entry(free->next, phyframe_t);
+    list_remove(head_frame); // this frame is what we want
+    head_frame->state = PHYFRAME_ALLOCATED;
+    head_frame->order = order;
+    head_frame->is_compound_tail = false;
+
+    const pfn_t head_pfn = phyframe_pfn(head_frame);
+
+    for (size_t i = head_pfn + 1; i < head_pfn + nframes; i++)
+    {
+        phyframe_t *const f = &phyframes[i];
+        f->state = PHYFRAME_ALLOCATED;
+        f->is_compound_tail = true;
+        f->compound_head = head_frame;
+    }
+    return head_frame;
 }
 
 void buddy_free_n(pfn_t pfn, size_t nframes)

@@ -51,7 +51,6 @@ static void vmm_iterate_copymap(const pgt_iteration_info_t *iter_info, const vmb
     pmm_ref_frames(block_pfn, block->npages);
     platform_mm_map_pages(PGD_FOR_VADDR(target_vaddr, vblock->address_space), target_vaddr, block_pfn, block->npages, block->flags);
 }
-
 // ! END: CALLBACKS
 
 vmblock_t mm_alloc_pages(paging_handle_t table, size_t n_pages, ptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags)
@@ -65,14 +64,14 @@ vmblock_t mm_alloc_pages(paging_handle_t table, size_t n_pages, ptr_t hint_vaddr
         return (vmblock_t){ 0 };
     }
 
-    vmblock_t block = { .address_space = table, .vaddr = vaddr, .npages = n_pages, .flags = flags };
+    const vmblock_t block = { .address_space = table, .vaddr = vaddr, .npages = n_pages, .flags = flags };
 
     table = PGD_FOR_VADDR(vaddr, table);
 
     spinlock_acquire(table.pgd_lock);
-    const pfn_t pfn = pmm_allocate_frames(n_pages);
+    const pfn_t pfn = pmm_allocate_frames(n_pages, PMM_ALLOC_NORMAL);
 
-    if (unlikely(!pfn))
+    if (unlikely(pfn_invalid(pfn)))
     {
         spinlock_release(table.pgd_lock);
         mos_warn("could not allocate %zd physical pages", n_pages);
