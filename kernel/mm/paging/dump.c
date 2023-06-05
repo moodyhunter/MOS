@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/mm/paging/page_ops.h>
+#include <mos/mm/paging/dump.h>
 #include <mos/panic.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>

@@ -3,7 +3,7 @@
 #include "mos/mm/slab.h"
 
 #include <mos/mm/cow.h>
-#include <mos/mm/paging/page_ops.h>
+#include <mos/mm/paging/dump.h>
 #include <mos/mm/physical/pmm.h>
 #include <mos/panic.h>
 #include <mos/tasks/task_types.h>
