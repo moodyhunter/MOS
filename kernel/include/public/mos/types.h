@@ -7,12 +7,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#ifdef __cplusplus
-#define MOS_STATIC_ASSERT static_assert
-#else
-#define MOS_STATIC_ASSERT _Static_assert
-#endif
-
 typedef signed char s8;
 typedef signed short s16;
 typedef signed int s32;

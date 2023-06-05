@@ -9,6 +9,12 @@
 #define noreturn __attribute__((noreturn))
 #endif
 
+#ifdef __cplusplus
+#define MOS_STATIC_ASSERT static_assert
+#else
+#define MOS_STATIC_ASSERT _Static_assert
+#endif
+
 #define __aligned(x)    __attribute__((__aligned__(x)))
 #define __cold          __attribute__((__cold__))
 #define __malloc        __attribute__((__malloc__))
