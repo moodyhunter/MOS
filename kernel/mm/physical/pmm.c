@@ -91,19 +91,16 @@ void pmm_unref_frames(pfn_t start, size_t n_pages)
     }
 }
 
-void pmm_register_region(pfn_t start, size_t nframes, bool reserved)
+void pmm_register_reserved_region(pfn_t start, size_t nframes)
 {
-    mos_debug(pmm, "registering region: " PFN_RANGE ", %zu pages", start, start + nframes - 1, nframes);
-
-    if (!reserved)
-        return;
+    mos_debug(pmm, "reserved region: " PFN_RANGE ", %zu pages", start, start + nframes - 1, nframes);
 
     // we only care about reserved regions
     MOS_ASSERT_X(reserved_regions_count < MOS_MAX_MEMREGIONS, "too many memory regions");
     pmm_region_t *r = &reserved_regions[reserved_regions_count++];
     r->pfn_start = start;
     r->nframes = nframes;
-    r->reserved = reserved;
+    r->reserved = true;
     buddy_reserve_n(start, nframes);
     reserved_regions_count++;
 }

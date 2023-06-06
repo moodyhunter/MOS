@@ -144,13 +144,12 @@ void pmm_ref_frames(pfn_t pfn_start, size_t npages);
 void pmm_unref_frames(pfn_t pfn_start, size_t npages);
 
 /**
- * @brief Add a region of physical memory to the physical memory manager.
+ * @brief Add a reserved region of physical memory to the physical memory manager.
  *
  * @param start
  * @param nframes
- * @param reserved
  */
-void pmm_register_region(pfn_t start, size_t nframes, bool reserved);
+void pmm_register_reserved_region(pfn_t start, size_t nframes);
 
 /**
  * @brief Mark a range of physical memory as reserved.

@@ -177,6 +177,7 @@ void x86_pmm_region_setup(const multiboot_memory_map_t *map_entry, u32 count, pf
             continue;
         if (r->nframes == 0) // ???
             continue;
-        pmm_register_region(r->pfn_start, r->nframes, r->reserved);
+        if (r->reserved)
+            pmm_register_reserved_region(r->pfn_start, r->nframes);
     }
 }
