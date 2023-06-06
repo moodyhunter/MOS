@@ -27,38 +27,3 @@ void mos_kernel_mm_init(void)
     pmm_dump_lists();
 #endif
 }
-
-// !! This function is called by liballoc, not intended to be called by anyone else !!
-void *liballoc_alloc_page(size_t npages)
-{
-    const vmblock_t block = mm_alloc_pages(current_cpu->pagetable, npages, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
-    if (block.vaddr == 0)
-        return NULL;
-
-    MOS_ASSERT_X(block.vaddr >= MOS_ADDR_KERNEL_HEAP, "only use this function to free kernel heap pages");
-
-    if (unlikely(block.npages < npages))
-        mos_warn("failed to allocate %zu pages", npages);
-
-    return (void *) block.vaddr;
-}
-
-// !! This function is called by liballoc, not intended to be called by anyone else !!
-bool liballoc_free_page(void *vptr, size_t npages)
-{
-    MOS_ASSERT_X(vptr >= (void *) MOS_ADDR_KERNEL_HEAP, "only use this function to free kernel heap pages");
-
-    if (unlikely(vptr == NULL))
-    {
-        mos_warn("freeing NULL pointer");
-        return false;
-    }
-    if (unlikely(npages <= 0))
-    {
-        mos_warn("freeing negative or zero pages");
-        return false;
-    }
-
-    mm_unmap_pages(current_cpu->pagetable, (ptr_t) vptr, npages);
-    return true;
-}
