@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/slab_autoinit.h"
+
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
@@ -37,7 +39,8 @@ static atomic_t tmpfs_inode_count = 0;
 
 static filesystem_t fs_tmpfs;
 
-static slab_t *tmpfs_inode_cache;
+static slab_t *tmpfs_inode_cache = NULL;
+MOS_SLAB_AUTOINIT("tmpfs_inode", tmpfs_inode_cache, tmpfs_inode_t);
 
 should_inline tmpfs_inode_t *INODE(inode_t *inode)
 {
@@ -320,7 +323,6 @@ static filesystem_t fs_tmpfs = {
 
 static void register_tmpfs(void)
 {
-    tmpfs_inode_cache = kmemcache_create("tmpfs_inode", sizeof(tmpfs_inode_t));
     vfs_register_filesystem(&fs_tmpfs);
 }
 

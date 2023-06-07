@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/mm/slab.h"
+#include "mos/mm/slab_autoinit.h"
 
 #include <mos/device/block.h>
 #include <mos/filesystem/dentry.h>
@@ -62,6 +63,8 @@ typedef struct
 MOS_STATIC_ASSERT(sizeof(cpio_newc_header_t) == 110, "cpio_newc_header has wrong size");
 
 static slab_t *cpio_inode_cache = NULL, *cpio_sb_cache = NULL;
+MOS_SLAB_AUTOINIT("cpio_inode", cpio_inode_cache, inode_t);
+MOS_SLAB_AUTOINIT("cpio_sb", cpio_sb_cache, superblock_t);
 
 static file_type_t cpio_modebits_to_filetype(u32 modebits)
 {
@@ -399,8 +402,6 @@ static filesystem_t fs_cpiofs = {
 
 static void register_cpiofs(void)
 {
-    cpio_inode_cache = kmemcache_create("cpio_inode", sizeof(cpio_inode_t));
-    cpio_sb_cache = kmemcache_create("cpio_sb", sizeof(cpio_superblock_t));
     vfs_register_filesystem(&fs_cpiofs);
 }
 

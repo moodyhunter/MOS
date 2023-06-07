@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/cmdline.h>
-#include <mos/printk.h>
-#include <mos/setup.h>
+#include "mos/setup.h"
+
+#include "mos/cmdline.h"
+#include "mos/printk.h"
 
 void setup_reach_init_target(init_target_t target)
 {

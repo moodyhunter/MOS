@@ -1,3 +1,5 @@
+#include "mos/mm/slab_autoinit.h"
+
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
@@ -20,6 +22,11 @@ static spinlock_t vfs_fs_list_lock = SPINLOCK_INIT;
 dentry_t *root_dentry = NULL;
 
 slab_t *inode_cache = NULL, *superblock_cache = NULL, *dentry_cache = NULL, *mount_cache = NULL, *file_cache = NULL;
+MOS_SLAB_AUTOINIT("inode", inode_cache, inode_t);
+MOS_SLAB_AUTOINIT("superblock", superblock_cache, superblock_t);
+MOS_SLAB_AUTOINIT("dentry", dentry_cache, dentry_t);
+MOS_SLAB_AUTOINIT("mount", mount_cache, mount_t);
+MOS_SLAB_AUTOINIT("file", file_cache, file_t);
 
 // BEGIN: filesystem's io_t operations
 static void vfs_io_ops_close(io_t *io)
@@ -240,11 +247,6 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
 void vfs_init(void)
 {
     pr_info("initializing VFS layer");
-    inode_cache = kmemcache_create("inode", sizeof(inode_t));
-    superblock_cache = kmemcache_create("superblock", sizeof(superblock_t));
-    dentry_cache = kmemcache_create("dentry", sizeof(dentry_t));
-    mount_cache = kmemcache_create("mount", sizeof(mount_t));
-    file_cache = kmemcache_create("file", sizeof(file_t));
     dentry_cache_init();
 }
 

@@ -6,11 +6,6 @@
 typedef void (*power_callback_t)(void *data);
 
 /**
- * @brief Initialize the power management subsystem.
- */
-void power_init(void);
-
-/**
  * @brief Register a callback to be called when the system is about to shut down.
  *
  * @param callback The callback to be called.

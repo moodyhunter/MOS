@@ -70,14 +70,16 @@ void mos_start_kernel(void)
     init_argv.argv = kcalloc(1, sizeof(char *)); // init_argv[0] is the init path
     init_argv.argv[0] = strdup(DEFAULT_INIT_PATH);
     setup_invoke_setup();
-    setup_reach_init_target(INIT_TARGET_EARLY);
-
-    power_init();
-    setup_reach_init_target(INIT_TARGET_POWER);
 
     pr_emph("init path: %s", init_argv.argv[0]);
     for (u32 i = 1; i < init_argv.argc; i++)
         pr_emph("init arg %d: %s", i, init_argv.argv[i]);
+
+    // slab allocator
+    setup_reach_init_target(INIT_TARGET_SLAB);
+
+    // power management
+    setup_reach_init_target(INIT_TARGET_POWER);
 
     // register builtin filesystems
     vfs_init();
