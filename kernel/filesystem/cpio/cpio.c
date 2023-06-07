@@ -62,10 +62,6 @@ typedef struct
 
 MOS_STATIC_ASSERT(sizeof(cpio_newc_header_t) == 110, "cpio_newc_header has wrong size");
 
-static slab_t *cpio_inode_cache = NULL, *cpio_sb_cache = NULL;
-MOS_SLAB_AUTOINIT("cpio_inode", cpio_inode_cache, inode_t);
-MOS_SLAB_AUTOINIT("cpio_sb", cpio_sb_cache, superblock_t);
-
 static file_type_t cpio_modebits_to_filetype(u32 modebits)
 {
     file_type_t type = FILE_TYPE_UNKNOWN;
@@ -196,6 +192,10 @@ typedef struct
 static const inode_ops_t cpio_dir_inode_ops;
 static const inode_ops_t cpio_file_inode_ops;
 static const file_ops_t cpio_file_ops;
+
+static slab_t *cpio_inode_cache = NULL, *cpio_sb_cache = NULL;
+MOS_SLAB_AUTOINIT("cpio_inode", cpio_inode_cache, cpio_inode_t);
+MOS_SLAB_AUTOINIT("cpio_sb", cpio_sb_cache, cpio_superblock_t);
 
 should_inline cpio_superblock_t *CPIO_SB(superblock_t *sb)
 {
