@@ -10,4 +10,4 @@
     {                                                                                                                                                                    \
         var = kmemcache_create(name, sizeof(type));                                                                                                                      \
     }                                                                                                                                                                    \
-    MOS_INIT(SLAB, __slab_autoinit_##var)
+    MOS_INIT(SLAB_AUTOINIT, __slab_autoinit_##var)

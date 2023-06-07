@@ -75,8 +75,9 @@ void mos_start_kernel(void)
     for (u32 i = 1; i < init_argv.argc; i++)
         pr_emph("init arg %d: %s", i, init_argv.argv[i]);
 
-    // slab allocator
-    setup_reach_init_target(INIT_TARGET_SLAB);
+    // register slab caches
+    // this must be done before any other subsystems are initialized
+    setup_reach_init_target(INIT_TARGET_SLAB_AUTOINIT);
 
     // power management
     setup_reach_init_target(INIT_TARGET_POWER);
