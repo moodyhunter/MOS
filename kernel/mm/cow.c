@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/interrupt/ipi.h>
-#include <mos/mm/cow.h>
-#include <mos/mm/paging/paging.h>
-#include <mos/mm/physical/pmm.h>
-#include <mos/platform/platform.h>
-#include <mos/printk.h>
-#include <mos/tasks/process.h>
-#include <mos/tasks/task_types.h>
+#include "mos/mm/cow.h"
+
+#include "mos/interrupt/ipi.h"
+#include "mos/mm/paging/paging.h"
+#include "mos/platform/platform.h"
+#include "mos/tasks/task_types.h"
+
 #include <string.h>
 
 static vmblock_t zero_block;
@@ -18,9 +17,11 @@ void mm_cow_init(void)
     // zero fill on demand (read-only)
     mm_context_t *current_mm = current_cpu->mm_context;
     zero_block = mm_alloc_pages(current_mm, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
+    zero_pfn = platform_mm_get_phys_addr(current_mm, zero_block.vaddr) / MOS_PAGE_SIZE;
+    if (zero_block.vaddr == 0)
+        mos_panic("failed to allocate zero block");
     memzero((void *) zero_block.vaddr, MOS_PAGE_SIZE);
     mm_flag_pages(current_mm, zero_block.vaddr, 1, VM_READ); // make it read-only after zeroing
-    zero_pfn = platform_mm_get_phys_addr(current_mm, zero_block.vaddr) / MOS_PAGE_SIZE;
 }
 
 vmblock_t mm_make_cow_block(mm_context_t *target_handle, vmblock_t src_block)
