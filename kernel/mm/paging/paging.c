@@ -2,12 +2,15 @@
 
 #include "mos/mm/slab.h"
 #include "mos/mm/slab_autoinit.h"
+#include "mos/tasks/task_types.h"
 
+#include <mos/kconfig.h>
 #include <mos/lib/structures/bitmap.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/paging/pagemap.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/mm/physical/pmm.h>
+#include <mos/mos_global.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
 #include <stdlib.h>
@@ -39,7 +42,8 @@ static void vmm_iterate_unmap(const pgt_iteration_info_t *iter_info, const vmblo
         platform_mm_unmap_pages(PGD_FOR_VADDR(block->vaddr, block->address_space), block->vaddr, block->npages);
 
     if (do_mark_free)
-        pagemap_mark_free(block->address_space->um_page_map, block->vaddr, block->npages);
+        if (block->vaddr >= MOS_KERNEL_START_VADDR)
+            kpagemap_mark_free(block->vaddr, block->npages);
 
     if (do_unref)
         pmm_unref_frames(block_pfn, block->npages);
@@ -59,27 +63,95 @@ static void vmm_iterate_copymap(const pgt_iteration_info_t *iter_info, const vmb
 }
 // ! END: CALLBACKS
 
+ptr_t mm_get_free_pages(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags)
+{
+    const bool is_kernel = base_vaddr >= MOS_KERNEL_START_VADDR;
+    if (is_kernel)
+        return kpagemap_get_free_pages(n_pages, base_vaddr, flags);
+
+    // userspace areas, we traverse the mmctx->mmaps
+    MOS_ASSERT_X(spinlock_is_locked(&mmctx->mm_lock), "insane mmctx->mm_lock state");
+
+    if (flags & VALLOC_EXACT)
+    {
+        const ptr_t end_vaddr = base_vaddr + n_pages * MOS_PAGE_SIZE;
+        // we need to find a free area that starts at base_vaddr
+        list_foreach(vmap_t, vmap, mmctx->mmaps)
+        {
+            const ptr_t this_vaddr = vmap->blk.vaddr;
+            const ptr_t this_end_vaddr = this_vaddr + vmap->blk.npages * MOS_PAGE_SIZE;
+
+            // see if this mmap overlaps with the area we want to allocate
+            if (this_vaddr < end_vaddr && this_end_vaddr > base_vaddr)
+            {
+                // this mmap overlaps with the area we want to allocate
+                // so we can't allocate here
+                return 0;
+            }
+        }
+
+        // nothing seems to overlap
+        return base_vaddr;
+    }
+    else
+    {
+        ptr_t retry_addr = base_vaddr;
+        list_foreach(vmap_t, mmap, mmctx->mmaps)
+        {
+            if (retry_addr + n_pages * MOS_PAGE_SIZE > MOS_KERNEL_START_VADDR)
+            {
+                // we've reached the end of the user address space
+                return 0;
+            }
+
+            const ptr_t this_vaddr = mmap->blk.vaddr;
+            const ptr_t this_end_vaddr = this_vaddr + mmap->blk.npages * MOS_PAGE_SIZE;
+
+            const ptr_t target_vaddr_end = retry_addr + n_pages * MOS_PAGE_SIZE;
+            if (this_vaddr < target_vaddr_end && this_end_vaddr > retry_addr)
+            {
+                // this mmap overlaps with the area we want to allocate
+                // so we can't allocate here
+                retry_addr = this_end_vaddr; // try the next area
+            }
+
+            if (retry_addr + n_pages * MOS_PAGE_SIZE <= this_vaddr)
+            {
+                // we've found a free area that is large enough
+                return retry_addr;
+            }
+        }
+
+        // empty list, or we've reached the end of the list
+        if (retry_addr + n_pages * MOS_PAGE_SIZE <= MOS_KERNEL_START_VADDR)
+            return retry_addr;
+        else
+            return 0;
+    }
+}
+
 vmblock_t mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags)
 {
     MOS_ASSERT(n_pages > 0);
 
+    mmctx = PGD_FOR_VADDR(hint_vaddr, mmctx);
+
+    spinlock_acquire(&mmctx->mm_lock);
     const ptr_t vaddr = mm_get_free_pages(mmctx, n_pages, hint_vaddr, valloc_flags);
     if (unlikely(vaddr == 0))
     {
         mos_warn("could not find free %zd pages", n_pages);
+        spinlock_release(&mmctx->mm_lock);
         return (vmblock_t){ 0 };
     }
 
     const vmblock_t block = { .address_space = mmctx, .vaddr = vaddr, .npages = n_pages, .flags = flags };
 
-    mmctx = PGD_FOR_VADDR(vaddr, mmctx);
-
-    spinlock_acquire(&mmctx->pgd_lock);
     const pfn_t pfn = pmm_allocate_frames(n_pages, PMM_ALLOC_NORMAL);
 
     if (unlikely(pfn_invalid(pfn)))
     {
-        spinlock_release(&mmctx->pgd_lock);
+        spinlock_release(&mmctx->mm_lock);
         mos_warn("could not allocate %zd physical pages", n_pages);
         return (vmblock_t){ 0 };
     }
@@ -88,13 +160,14 @@ vmblock_t mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, 
     mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, n_pages, vaddr, pfn);
     platform_mm_map_pages(mmctx, vaddr, pfn, n_pages, flags);
 
-    spinlock_release(&mmctx->pgd_lock);
+    spinlock_release(&mmctx->mm_lock);
 
     return block;
 }
 
-vmblock_t mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
+vmblock_t mm_map_pages_locked(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
 {
+    MOS_ASSERT(spinlock_is_locked(&mmctx->mm_lock));
     MOS_ASSERT(npages > 0);
 
     const vmblock_t block = { .address_space = mmctx, .vaddr = vaddr, .npages = npages, .flags = flags };
@@ -109,12 +182,19 @@ vmblock_t mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npage
 
     mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, npages, vaddr, pfn);
 
-    spinlock_acquire(&mmctx->pgd_lock);
-    pagemap_mark_used(mmctx->um_page_map, vaddr, npages);
+    if (vaddr >= MOS_KERNEL_START_VADDR)
+        kpagemap_mark_used(vaddr, npages);
+
     pmm_ref_frames(pfn, npages);
     platform_mm_map_pages(mmctx, vaddr, pfn, npages, flags);
-    spinlock_release(&mmctx->pgd_lock);
+    return block;
+}
 
+vmblock_t mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
+{
+    spinlock_acquire(&mmctx->mm_lock);
+    const vmblock_t block = mm_map_pages_locked(mmctx, vaddr, pfn, npages, flags);
+    spinlock_release(&mmctx->mm_lock);
     return block;
 }
 
@@ -128,10 +208,11 @@ vmblock_t mm_early_map_kernel_pages(ptr_t vaddr, pfn_t pfn, size_t npages, vm_fl
 
     mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to " PFN_FMT, npages, vaddr, pfn);
 
-    spinlock_acquire(&mmctx->pgd_lock);
-    pagemap_mark_used(mmctx->um_page_map, vaddr, npages);
+    spinlock_acquire(&mmctx->mm_lock);
+    if (vaddr >= MOS_KERNEL_START_VADDR)
+        kpagemap_mark_used(vaddr, npages);
     platform_mm_map_pages(mmctx, vaddr, pfn, npages, flags);
-    spinlock_release(&mmctx->pgd_lock);
+    spinlock_release(&mmctx->mm_lock);
 
     return block;
 }
@@ -141,9 +222,9 @@ void mm_unmap_pages(mm_context_t *mmctx, ptr_t vaddr, size_t npages)
     MOS_ASSERT(npages > 0);
 
     mmctx = PGD_FOR_VADDR(vaddr, mmctx);
-    spinlock_acquire(&mmctx->pgd_lock);
+    spinlock_acquire(&mmctx->mm_lock);
     platform_mm_iterate_table(mmctx, vaddr, npages, vmm_iterate_unmap, NULL);
-    spinlock_release(&mmctx->pgd_lock);
+    spinlock_release(&mmctx->mm_lock);
 }
 
 vmblock_t mm_replace_mapping(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
@@ -165,25 +246,23 @@ vmblock_t mm_replace_mapping(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t
     // only unreference the physical frames
     static const vmm_iterate_unmap_flags_t umflags = { .do_unmap = false, .do_mark_free = false, .do_unref = true };
 
-    spinlock_acquire(&mmctx->pgd_lock);
+    spinlock_acquire(&mmctx->mm_lock);
     // ref the frames first, so they don't get freed if we're [filling a page with itself]?
     // weird people do weird things
     pmm_ref_frames(pfn, npages);
     platform_mm_iterate_table(mmctx, vaddr, npages, vmm_iterate_unmap, (void *) &umflags);
     platform_mm_map_pages(mmctx, vaddr, pfn, npages, flags);
-    spinlock_release(&mmctx->pgd_lock);
+    spinlock_release(&mmctx->mm_lock);
 
     return block;
 }
 
-vmblock_t mm_copy_maps(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior)
+vmblock_t mm_copy_maps_locked(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior)
 {
     MOS_ASSERT(npages > 0);
     mos_debug(vmm, "copying mapping from " PTR_FMT " to " PTR_FMT ", %zu pages", fvaddr, tvaddr, npages);
 
-    from = PGD_FOR_VADDR(fvaddr, from);
     vmblock_t result = { .address_space = to, .vaddr = tvaddr, .npages = npages };
-    to = PGD_FOR_VADDR(tvaddr, to); // after result is initialized
 
     if (unlikely(from->pgd == 0 || to->pgd == 0))
     {
@@ -191,24 +270,40 @@ vmblock_t mm_copy_maps(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t
         return (vmblock_t){ 0 };
     }
 
-    spinlock_acquire(&from->pgd_lock);
-    if (to != from)
-        spinlock_acquire(&to->pgd_lock);
-
     if (behavior != MM_COPY_ALLOCATED)
-        pagemap_mark_used(to->um_page_map, tvaddr, npages);
+        if (tvaddr >= MOS_KERNEL_START_VADDR)
+            kpagemap_mark_used(tvaddr, npages);
     platform_mm_iterate_table(from, fvaddr, npages, vmm_iterate_copymap, &result);
 
+    return result;
+}
+
+vmblock_t mm_copy_maps(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior)
+{
+
+    spinlock_acquire(&from->mm_lock);
     if (to != from)
-        spinlock_release(&to->pgd_lock);
-    spinlock_release(&from->pgd_lock);
+        spinlock_acquire(&to->mm_lock);
+    const vmblock_t result = mm_copy_maps_locked(from, fvaddr, to, tvaddr, npages, behavior);
+    if (to != from)
+        spinlock_release(&to->mm_lock);
+    spinlock_release(&from->mm_lock);
 
     return result;
 }
 
 bool mm_get_is_mapped(mm_context_t *mmctx, ptr_t vaddr)
 {
-    return pagemap_get_mapped(mmctx->um_page_map, vaddr);
+    if (vaddr >= MOS_KERNEL_START_VADDR)
+        return kpagemap_get_mapped(vaddr);
+
+    list_foreach(vmap_t, vmap, mmctx->mmaps)
+    {
+        if (vmap->blk.vaddr <= vaddr && vaddr < vmap->blk.vaddr + vmap->blk.npages * MOS_PAGE_SIZE)
+            return true;
+    }
+
+    return false;
 }
 
 void mm_flag_pages(mm_context_t *mmctx, ptr_t vaddr, size_t npages, vm_flags flags)
@@ -224,34 +319,23 @@ void mm_flag_pages(mm_context_t *mmctx, ptr_t vaddr, size_t npages, vm_flags fla
 
     mos_debug(vmm, "flagging %zd pages at " PTR_FMT " with flags %x", npages, vaddr, flags);
 
-    spinlock_acquire(&mmctx->pgd_lock);
+    spinlock_acquire(&mmctx->mm_lock);
     platform_mm_flag_pages(mmctx, vaddr, npages, flags);
-    spinlock_release(&mmctx->pgd_lock);
+    spinlock_release(&mmctx->mm_lock);
 }
 
 mm_context_t *mm_new_context(void)
 {
     mm_context_t *mmctx = kmemcache_alloc(mm_context_cache);
     linked_list_init(&mmctx->mmaps);
-
     mmctx->pgd = platform_mm_create_user_pgd();
-
     if (unlikely(mmctx->pgd == 0))
-        goto bail;
-
-    mmctx->um_page_map = kzalloc(sizeof(page_map_t));
-    if (unlikely(mmctx->um_page_map == 0))
-        goto bail;
+    {
+        mm_destroy_user_pgd(mmctx);
+        return NULL;
+    }
 
     return mmctx;
-
-bail:
-    mos_warn("cannot create user pgd");
-    if (mmctx->um_page_map != 0)
-        kfree(mmctx->um_page_map);
-    if (mmctx->pgd != 0)
-        mm_destroy_user_pgd(mmctx);
-    return NULL;
 }
 
 void mm_destroy_user_pgd(mm_context_t *mmctx)
@@ -262,9 +346,6 @@ void mm_destroy_user_pgd(mm_context_t *mmctx)
         return;
     }
 
-    spinlock_acquire(&mmctx->pgd_lock);
-    spinlock_acquire(&mmctx->um_page_map->lock);
-
+    spinlock_acquire(&mmctx->mm_lock);
     platform_mm_destroy_user_pgd(mmctx);
-    kfree(mmctx->um_page_map);
 }

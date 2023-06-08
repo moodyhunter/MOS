@@ -44,17 +44,19 @@ vmblock_t mm_make_cow(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t 
     return block;
 }
 
-vmblock_t mm_alloc_zeroed_pages(mm_context_t *handle, size_t npages, ptr_t vaddr, valloc_flags allocflags, vm_flags flags)
+vmblock_t mm_alloc_zeroed_pages(mm_context_t *mmctx, size_t npages, ptr_t vaddr, valloc_flags allocflags, vm_flags flags)
 {
-    vaddr = mm_get_free_pages(handle, npages, vaddr, allocflags);
-
     const vm_flags ro_flags = VM_READ | ((flags & VM_USER) ? VM_USER : 0);
+
+    spinlock_acquire(&mmctx->mm_lock);
+    vaddr = mm_get_free_pages(mmctx, npages, vaddr, allocflags);
 
     // zero fill the pages
     for (size_t i = 0; i < npages; i++)
-        mm_replace_mapping(handle, vaddr + i * MOS_PAGE_SIZE, zero_pfn, 1, ro_flags);
+        mm_map_pages_locked(mmctx, vaddr + i * MOS_PAGE_SIZE, zero_pfn, 1, ro_flags);
+    spinlock_release(&mmctx->mm_lock);
 
-    return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags, .address_space = handle };
+    return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags, .address_space = mmctx };
 }
 
 static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)

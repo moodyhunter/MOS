@@ -31,21 +31,6 @@ typedef enum
     VALLOC_EXACT = MMAP_EXACT,
 } valloc_flags;
 
-/// @brief Maximum 'lines' in a page map, see also @ref bitmap_line_t.
-#define MOS_PAGEMAP_MAX_LINES BITMAP_LINE_COUNT((ptr_t) ~0 / MOS_PAGE_SIZE)
-
-/// @brief Number of lines in the page map for user space.
-#define MOS_PAGEMAP_USER_LINES BITMAP_LINE_COUNT(MOS_KERNEL_START_VADDR / MOS_PAGE_SIZE)
-
-/// @brief Number of lines in the page map for kernel space.
-#define MOS_PAGEMAP_KERNEL_LINES (MOS_PAGEMAP_MAX_LINES - MOS_PAGEMAP_USER_LINES)
-
-typedef struct _page_map
-{
-    bitmap_line_t ummap[MOS_PAGEMAP_USER_LINES];
-    spinlock_t lock;
-} page_map_t;
-
 /**
  * @brief Gets npages unmapped free pages from a page table.
  *
@@ -62,6 +47,8 @@ typedef struct _page_map
  * @note The returned @ref vmblock_t only contains the virtual address
  * and the number of pages, it does not contain any physical addresses,
  * nor the flags of the pages.
+ *
+ * @warning Should call with mmctx->mm_lock held.
  */
 
 ptr_t mm_get_free_pages(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags);
@@ -99,6 +86,7 @@ vmblock_t mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, 
  * @note You may need to reserve the physical memory before mapping it, see @ref pmm_reserve_frames.
  */
 vmblock_t mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
+vmblock_t mm_map_pages_locked(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
 
 /**
  * @brief Map a block of virtual memory to a block of physical memory, without incrementing the reference count.
@@ -162,6 +150,7 @@ vmblock_t mm_replace_mapping(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t
  * the function assumes that there are no existing mappings in the destination page table.
  */
 vmblock_t mm_copy_maps(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior);
+vmblock_t mm_copy_maps_locked(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior);
 
 /**
  * @brief Get if a virtual address is mapped in a page table.

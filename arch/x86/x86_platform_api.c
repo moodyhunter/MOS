@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/mm.h"
+
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/mm/physical/pmm.h>
@@ -147,7 +149,7 @@ void platform_switch_to_thread(ptr_t *old_stack, const thread_t *new_thread, swi
 
 void platform_mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t n_pages, vm_flags flags)
 {
-    MOS_ASSERT_X(spinlock_is_locked(&mmctx->pgd_lock), "page table operations without lock");
+    MOS_ASSERT_X(spinlock_is_locked(&mmctx->mm_lock), "page table operations without lock");
     x86_pg_infra_t *infra = x86_get_pg_infra(mmctx);
     for (size_t i = 0; i < n_pages; i++)
     {
@@ -159,7 +161,7 @@ void platform_mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t n
 
 void platform_mm_unmap_pages(mm_context_t *mmctx, ptr_t vaddr_start, size_t n_pages)
 {
-    MOS_ASSERT_X(spinlock_is_locked(&mmctx->pgd_lock), "page table operations without lock");
+    MOS_ASSERT_X(spinlock_is_locked(&mmctx->mm_lock), "page table operations without lock");
     x86_pg_infra_t *infra = x86_get_pg_infra(mmctx);
     for (size_t i = 0; i < n_pages; i++)
         pg_unmap_page(infra, vaddr_start + i * MOS_PAGE_SIZE);
@@ -167,13 +169,13 @@ void platform_mm_unmap_pages(mm_context_t *mmctx, ptr_t vaddr_start, size_t n_pa
 
 void platform_mm_iterate_table(mm_context_t *mmctx, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg)
 {
-    MOS_ASSERT_X(spinlock_is_locked(&mmctx->pgd_lock), "page table operations without lock");
+    MOS_ASSERT_X(spinlock_is_locked(&mmctx->mm_lock), "page table operations without lock");
     x86_mm_walk_page_table(mmctx, vaddr, n, callback, arg);
 }
 
 void platform_mm_flag_pages(mm_context_t *mmctx, ptr_t vaddr, size_t n, vm_flags flags)
 {
-    MOS_ASSERT_X(spinlock_is_locked(&mmctx->pgd_lock), "page table operations without lock");
+    MOS_ASSERT_X(spinlock_is_locked(&mmctx->mm_lock), "page table operations without lock");
     x86_pg_infra_t *infra = x86_get_pg_infra(mmctx);
     pg_flag_page(infra, vaddr, n, flags);
 }
@@ -236,9 +238,11 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
 
             mm_context_t *mmctx = current_process->mm;
 
+            spinlock_acquire(&mmctx->mm_lock);
             const ptr_t vaddr = mm_get_free_pages(mmctx, 1, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT);
-            const vmblock_t block = mm_replace_mapping(mmctx, vaddr, vga_paddr / MOS_PAGE_SIZE, 1, VM_USER_RW);
-            process_attach_mmap(current_process, block, VMTYPE_MMAP, (vmap_flags_t){ .fork_mode = VMAP_FORK_SHARED });
+            const vmblock_t block = mm_map_pages_locked(mmctx, vaddr, vga_paddr / MOS_PAGE_SIZE, 1, VM_USER_RW);
+            mm_attach_vmap(current_process->mm, mm_new_vmap(block, VMTYPE_MMAP, (vmap_flags_t){ .fork_mode = VMAP_FORK_SHARED }));
+            spinlock_release(&mmctx->mm_lock);
             return block.vaddr;
         }
         default:

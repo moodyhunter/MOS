@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/mm.h"
+
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/structures/stack.h>
 #include <mos/mm/cow.h>
@@ -40,7 +42,7 @@ process_t *process_handle_fork(process_t *parent)
                 const vmblock_t block = mm_alloc_pages(child_p->mm, vmap->blk.npages, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, vmap->blk.flags);
 
                 pr_info2(FORKFMT, parent->pid, child_p->pid, "kstack", vmap->blk.vaddr, vmap->blk.npages, vmap->blk.flags);
-                process_attach_mmap(child_p, block, VMTYPE_KSTACK, (vmap_flags_t){ 0 });
+                mm_attach_vmap(child_p->mm, mm_new_vmap(block, VMTYPE_KSTACK, (vmap_flags_t){ 0 }));
                 break;
             }
 
@@ -54,7 +56,7 @@ process_t *process_handle_fork(process_t *parent)
                     vmblock_t block = vmap->blk;
                     block.address_space = child_p->mm;
                     mm_copy_maps(parent->mm, block.vaddr, child_p->mm, block.vaddr, block.npages, MM_COPY_DEFAULT);
-                    process_attach_mmap(child_p, block, vmap->content, vmap->flags);
+                    mm_attach_vmap(child_p->mm, mm_new_vmap(block, vmap->content, vmap->flags));
                     break;
                 }
 
@@ -69,7 +71,7 @@ process_t *process_handle_fork(process_t *parent)
                 const vmblock_t block = mm_make_cow_block(child_p->mm, vmap->blk);
 
                 pr_info2(FORKFMT, parent->pid, child_p->pid, "CoW", vmap->blk.vaddr, vmap->blk.npages, vmap->blk.flags);
-                process_attach_mmap(child_p, block, vmap->content, vmap->flags);
+                mm_attach_vmap(child_p->mm, mm_new_vmap(block, vmap->content, vmap->flags));
                 break;
             }
         }

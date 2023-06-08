@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/mm.h"
+
 #include <mos/kconfig.h>
 #include <mos/mm/cow.h>
 #include <mos/mm/mm_types.h>
@@ -49,7 +51,7 @@ ptr_t mmap_anonymous(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, siz
     const vmblock_t block = mm_alloc_zeroed_pages(current_process->mm, n_pages, hint_addr, valloc_flags, vm_flags);
     mos_debug(mmap, "allocated %zd pages at " PTR_FMT, block.npages, block.vaddr);
 
-    process_attach_mmap(current_process, block, VMTYPE_MMAP, (vmap_flags_t){ .cow = true, .fork_mode = fork_mode });
+    mm_attach_vmap(current_process->mm, mm_new_vmap(block, VMTYPE_MMAP, (vmap_flags_t){ .cow = true, .fork_mode = fork_mode }));
 
     return block.vaddr;
 }

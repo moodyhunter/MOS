@@ -19,8 +19,7 @@ void x86_mm_paging_init(void)
     // initialize the page directory
     memzero(x86_kpg_infra, sizeof(x86_pg_infra_t));
     x86_platform.kernel_mm.pgd = (ptr_t) x86_kpg_infra;
-    x86_platform.kernel_mm.um_page_map = NULL; // a kernel page table does not have a user-mode page map
-    x86_platform.kernel_mm.pgd_lock.flag = 0;
+    x86_platform.kernel_mm.mm_lock.flag = 0;
     current_cpu->mm_context = &x86_platform.kernel_mm;
     linked_list_init(&x86_platform.kernel_mm.mmaps);
 }

@@ -35,7 +35,6 @@
 typedef void (*irq_handler)(u32 irq);
 
 typedef struct _thread thread_t;
-typedef struct _page_map page_map_t;
 
 typedef enum
 {
@@ -109,8 +108,7 @@ typedef struct
 typedef struct
 {
     ptr_t pgd;
-    spinlock_t pgd_lock;
-    page_map_t *um_page_map;
+    spinlock_t mm_lock;
     list_head mmaps;
 } mm_context_t;
 

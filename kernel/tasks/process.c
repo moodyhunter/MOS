@@ -2,6 +2,7 @@
 
 #include "mos/tasks/process.h"
 
+#include "mos/mm/mm.h"
 #include "mos/mm/slab_autoinit.h"
 
 #include <mos/filesystem/dentry.h>
@@ -23,9 +24,6 @@
 #include <string.h>
 
 hashmap_t process_table = { 0 }; // pid_t -> process_t
-
-static slab_t *vmap_cache = NULL;
-MOS_SLAB_AUTOINIT("vmap", vmap_cache, vmap_t);
 
 static pid_t new_process_id(void)
 {
@@ -98,7 +96,7 @@ process_t *process_new(process_t *parent, const char *name, const stdio_t *ios, 
     thread_new(proc, THREAD_MODE_USER, proc->name, entry, NULL);
 
     vmblock_t heap = mm_alloc_pages(proc->mm, 1, MOS_ADDR_USER_HEAP, VALLOC_DEFAULT, VM_USER_RW);
-    process_attach_mmap(proc, heap, VMTYPE_HEAP, (vmap_flags_t){ 0 });
+    mm_attach_vmap(proc->mm, mm_new_vmap(heap, VMTYPE_HEAP, (vmap_flags_t){ 0 }));
 
     proc->working_directory = dentry_ref_up_to(parent ? parent->working_directory : root_dentry, root_dentry);
 
@@ -161,41 +159,6 @@ void process_attach_thread(process_t *process, thread_t *thread)
     MOS_ASSERT(thread->owner == process);
     mos_debug(process, "process %ld attached thread %ld", process->pid, thread->tid);
     process->threads[process->threads_count++] = thread;
-}
-
-void process_attach_mmap(process_t *process, vmblock_t block, vmap_content_t type, vmap_flags_t flags)
-{
-    MOS_ASSERT(process_is_valid(process));
-    MOS_ASSERT(block.address_space->pgd == process->mm->pgd);
-
-    mos_debug(process, "process %ld attached mmap " PTR_RANGE, process->pid, block.vaddr, block.vaddr + block.npages * MOS_PAGE_SIZE);
-
-    vmap_t *map = kmemcache_alloc(vmap_cache);
-    linked_list_init(list_node(map));
-    map->blk = block;
-    map->content = type;
-    map->flags = flags;
-
-    list_node_append(&process->mm->mmaps, list_node(map));
-}
-
-void process_detach_mmap(process_t *process, vmblock_t block)
-{
-    MOS_ASSERT(process_is_valid(process));
-    list_foreach(vmap_t, map, process->mm->mmaps)
-    {
-        if (map->blk.vaddr != block.vaddr)
-            continue;
-
-        spinlock_acquire(&map->lock);
-        list_remove(map);
-        MOS_ASSERT(map->blk.npages == block.npages);
-        mm_unmap_pages(process->mm, block.vaddr, block.npages);
-        kfree(map);
-        return;
-    }
-
-    mos_warn("process %ld tried to detach a non-existent mmap", process->pid);
 }
 
 bool process_wait_for_pid(pid_t pid)

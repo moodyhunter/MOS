@@ -36,9 +36,9 @@ void mm_dump_pagetable(mm_context_t *mmctx)
 {
     pr_info("Page Table:");
     ptr_t tmp = 0;
-    spinlock_acquire(&mmctx->pgd_lock);
+    spinlock_acquire(&mmctx->mm_lock);
     platform_mm_iterate_table(mmctx, 0, MOS_MAX_VADDR / MOS_PAGE_SIZE, walk_pagetable_dump_callback, &tmp);
-    spinlock_release(&mmctx->pgd_lock);
+    spinlock_release(&mmctx->mm_lock);
 }
 
 void mm_dump_current_pagetable()

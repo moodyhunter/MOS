@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/mm.h"
+
 #include <mos/elf/elf.h>
 #include <mos/filesystem/vfs.h>
+#include <mos/kconfig.h>
 #include <mos/mm/cow.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/mos_global.h>
@@ -173,7 +176,7 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
                     vmblock_t block = mm_copy_maps(current_cpu->mm_context, (ptr_t) buf + A_file_offset, proc->mm, A_vaddr, A_npages, MM_COPY_DEFAULT);
                     block.flags = flags;
                     mm_flag_pages(proc->mm, block.vaddr, block.npages, flags);
-                    process_attach_mmap(proc, block, content, (vmap_flags_t){ 0 });
+                    mm_attach_vmap(proc->mm, mm_new_vmap(block, content, (vmap_flags_t){ 0 }));
                 }
 
                 // must only has at most one page left
@@ -198,7 +201,7 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
                     vmblock_t block = mm_copy_maps(current_cpu->mm_context, stub.vaddr, proc->mm, B_vaddr, 1, MM_COPY_DEFAULT);
                     block.flags = flags;
                     mm_flag_pages(proc->mm, block.vaddr, block.npages, flags);
-                    process_attach_mmap(proc, block, content, (vmap_flags_t){ 0 });
+                    mm_attach_vmap(proc->mm, mm_new_vmap(block, content, (vmap_flags_t){ 0 }));
 
                     // free the temporary page
                     mm_unmap_pages(proc->mm, stub.vaddr, 1);
@@ -213,7 +216,7 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
                     mos_debug(elf, "elf: allocating %zu zero pages at " PTR_FMT, C_npages, C_vaddr);
                     vmblock_t block = mm_alloc_zeroed_pages(proc->mm, C_npages, C_vaddr, VALLOC_DEFAULT, VM_RW);
                     block.flags = flags;
-                    process_attach_mmap(proc, block, content, (vmap_flags_t){ 0 });
+                    mm_attach_vmap(proc->mm, mm_new_vmap(block, content, (vmap_flags_t){ 0 }));
                 }
 
                 break;

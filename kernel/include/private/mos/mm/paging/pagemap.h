@@ -2,9 +2,11 @@
 
 #pragma once
 
+#include "mos/mm/paging/paging.h"
+
 #include <mos/platform/platform.h>
 
-void pagemap_mark_used(page_map_t *map, ptr_t vaddr, size_t n_pages);
-void pagemap_mark_free(page_map_t *map, ptr_t vaddr, size_t n_pages);
-
-bool pagemap_get_mapped(page_map_t *map, ptr_t vaddr);
+void kpagemap_mark_used(ptr_t vaddr, size_t n_pages);
+void kpagemap_mark_free(ptr_t vaddr, size_t n_pages);
+ptr_t kpagemap_get_free_pages(size_t n_pages, ptr_t base_vaddr, valloc_flags flags);
+bool kpagemap_get_mapped(ptr_t vaddr);
