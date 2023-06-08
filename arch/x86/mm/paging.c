@@ -11,7 +11,6 @@
 #include <string.h>
 
 static x86_pg_infra_t x86_kpg_infra_storage __aligned(MOS_PAGE_SIZE) = { 0 };
-static spinlock_t x86_kernel_pgd_lock = SPINLOCK_INIT;
 
 x86_pg_infra_t *const x86_kpg_infra = &x86_kpg_infra_storage;
 
@@ -19,25 +18,25 @@ void x86_mm_paging_init(void)
 {
     // initialize the page directory
     memzero(x86_kpg_infra, sizeof(x86_pg_infra_t));
-    x86_platform.kernel_mm.pagetable.pgd = (ptr_t) x86_kpg_infra;
-    x86_platform.kernel_mm.pagetable.um_page_map = NULL; // a kernel page table does not have a user-mode page map
-    x86_platform.kernel_mm.pagetable.pgd_lock = &x86_kernel_pgd_lock;
+    x86_platform.kernel_mm.pgd = (ptr_t) x86_kpg_infra;
+    x86_platform.kernel_mm.um_page_map = NULL; // a kernel page table does not have a user-mode page map
+    x86_platform.kernel_mm.pgd_lock.flag = 0;
     current_cpu->mm_context = &x86_platform.kernel_mm;
     linked_list_init(&x86_platform.kernel_mm.mmaps);
 }
 
-void x86_mm_walk_page_table(paging_handle_t handle, ptr_t vaddr_start, size_t n_pages, pgt_iteration_callback_t callback, void *arg)
+void x86_mm_walk_page_table(mm_context_t *mmctx, ptr_t vaddr_start, size_t n_pages, pgt_iteration_callback_t callback, void *arg)
 {
     ptr_t vaddr = vaddr_start;
     size_t n_pages_left = n_pages;
 
-    const x86_pg_infra_t *pg = x86_get_pg_infra(handle);
-    const pgt_iteration_info_t info = { .address_space = handle, .vaddr_start = vaddr_start, .npages = n_pages };
+    const x86_pg_infra_t *pg = x86_get_pg_infra(mmctx);
+    const pgt_iteration_info_t info = { .address_space = mmctx, .vaddr_start = vaddr_start, .npages = n_pages };
 
     pfn_t previous_pfn = 0;
     vm_flags previous_flags = 0;
     bool previous_present = false;
-    vmblock_t previous_block = { .vaddr = vaddr_start, .npages = 0, .flags = 0, .address_space = handle };
+    vmblock_t previous_block = { .vaddr = vaddr_start, .npages = 0, .flags = 0, .address_space = mmctx };
 
     do
     {

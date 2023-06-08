@@ -52,15 +52,15 @@ void pagemap_mark_free(page_map_t *map, ptr_t vaddr, size_t n_pages)
     spinlock_release(lock);
 }
 
-ptr_t mm_get_free_pages(paging_handle_t table, size_t n_pages, ptr_t base_vaddr, valloc_flags flags)
+ptr_t mm_get_free_pages(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags)
 {
     const bool is_kernel = base_vaddr >= MOS_KERNEL_START_VADDR;
     const ptr_t pagemap_base = is_kernel ? MOS_KERNEL_START_VADDR : 0;
     const size_t pagemap_size_lines = is_kernel ? MOS_PAGEMAP_KERNEL_LINES : MOS_PAGEMAP_USER_LINES;
     const size_t pagemap_index = (base_vaddr - pagemap_base) / MOS_PAGE_SIZE;
 
-    bitmap_line_t *map = is_kernel ? kernel_page_map : table.um_page_map->ummap;
-    spinlock_t *lock = is_kernel ? &kernel_page_map_lock : &table.um_page_map->lock;
+    bitmap_line_t *map = is_kernel ? kernel_page_map : mmctx->um_page_map->ummap;
+    spinlock_t *lock = is_kernel ? &kernel_page_map_lock : &mmctx->um_page_map->lock;
 
     spinlock_acquire(lock);
 

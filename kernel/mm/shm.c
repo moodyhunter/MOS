@@ -7,8 +7,8 @@
 vmblock_t shm_allocate(size_t npages, vmap_fork_mode_t mode, vm_flags vmflags)
 {
     process_t *owner = current_process;
-    mos_debug(shm, "allocating %zu SHM pages in address space " PTR_FMT, npages, owner->mm->pagetable.pgd);
-    vmblock_t block = mm_alloc_pages(owner->mm->pagetable, npages, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT, vmflags);
+    mos_debug(shm, "allocating %zu SHM pages in address space " PTR_FMT, npages, owner->mm->pgd);
+    vmblock_t block = mm_alloc_pages(owner->mm, npages, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT, vmflags);
     if (block.npages == 0)
     {
         pr_warn("failed to allocate shared memory block");
@@ -22,9 +22,9 @@ vmblock_t shm_allocate(size_t npages, vmap_fork_mode_t mode, vm_flags vmflags)
 vmblock_t shm_map_shared_block(vmblock_t source, vmap_fork_mode_t mode)
 {
     process_t *owner = current_process;
-    mos_debug(shm, "sharing %zu pages from address space " PTR_FMT " to address space " PTR_FMT, source.npages, source.address_space.pgd, owner->mm->pagetable.pgd);
-    const ptr_t vaddr = mm_get_free_pages(owner->mm->pagetable, source.npages, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT);
-    const vmblock_t block = mm_copy_maps(source.address_space, source.vaddr, owner->mm->pagetable, vaddr, source.npages, MM_COPY_ALLOCATED);
+    mos_debug(shm, "sharing %zu pages from address space " PTR_FMT " to address space " PTR_FMT, source.npages, source.address_space->pgd, owner->mm->pgd);
+    const ptr_t vaddr = mm_get_free_pages(owner->mm, source.npages, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT);
+    const vmblock_t block = mm_copy_maps(source.address_space, source.vaddr, owner->mm, vaddr, source.npages, MM_COPY_ALLOCATED);
     process_attach_mmap(owner, block, VMTYPE_MMAP, (vmap_flags_t){ .fork_mode = mode });
     return block;
 }

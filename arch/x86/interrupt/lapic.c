@@ -155,7 +155,7 @@ void lapic_memory_setup(void)
         pmm_reserve_address(base_addr);
     }
 
-    mm_map_pages(x86_platform.kernel_mm.pagetable, base_addr, base_addr / MOS_PAGE_SIZE, 1, VM_RW);
+    mm_map_pages(&x86_platform.kernel_mm, base_addr, base_addr / MOS_PAGE_SIZE, 1, VM_RW);
     lapic_regs = (u32 *) base_addr;
 }
 

@@ -24,9 +24,8 @@
 
 hashmap_t process_table = { 0 }; // pid_t -> process_t
 
-static slab_t *vmap_cache = NULL, *mm_context_cache = NULL;
+static slab_t *vmap_cache = NULL;
 MOS_SLAB_AUTOINIT("vmap", vmap_cache, vmap_t);
-MOS_SLAB_AUTOINIT("mm_context", mm_context_cache, mm_context_t);
 
 static pid_t new_process_id(void)
 {
@@ -37,14 +36,11 @@ static pid_t new_process_id(void)
 process_t *process_allocate(process_t *parent, const char *name)
 {
     process_t *proc = kmemcache_alloc(process_cache);
-    mm_context_t *mm_context = kmemcache_alloc(mm_context_cache);
 
     proc->magic = PROCESS_MAGIC_PROC;
     proc->pid = new_process_id();
-    proc->mm = mm_context;
 
     waitlist_init(&proc->waiters);
-    linked_list_init(&proc->mm->mmaps);
 
     if (likely(parent))
     {
@@ -70,10 +66,10 @@ process_t *process_allocate(process_t *parent, const char *name)
     }
     else
     {
-        proc->mm->pagetable = mm_create_user_pgd();
+        proc->mm = mm_new_context();
     }
 
-    if (unlikely(!proc->mm->pagetable.pgd))
+    if (unlikely(!proc->mm->pgd))
     {
         pr_emerg("failed to create page table for process %ld (%s)", proc->pid, proc->name);
         kfree(proc->name);
@@ -101,7 +97,7 @@ process_t *process_new(process_t *parent, const char *name, const stdio_t *ios, 
 
     thread_new(proc, THREAD_MODE_USER, proc->name, entry, NULL);
 
-    vmblock_t heap = mm_alloc_pages(proc->mm->pagetable, 1, MOS_ADDR_USER_HEAP, VALLOC_DEFAULT, VM_USER_RW);
+    vmblock_t heap = mm_alloc_pages(proc->mm, 1, MOS_ADDR_USER_HEAP, VALLOC_DEFAULT, VM_USER_RW);
     process_attach_mmap(proc, heap, VMTYPE_HEAP, (vmap_flags_t){ 0 });
 
     proc->working_directory = dentry_ref_up_to(parent ? parent->working_directory : root_dentry, root_dentry);
@@ -170,7 +166,7 @@ void process_attach_thread(process_t *process, thread_t *thread)
 void process_attach_mmap(process_t *process, vmblock_t block, vmap_content_t type, vmap_flags_t flags)
 {
     MOS_ASSERT(process_is_valid(process));
-    MOS_ASSERT(block.address_space.pgd == process->mm->pagetable.pgd);
+    MOS_ASSERT(block.address_space->pgd == process->mm->pgd);
 
     mos_debug(process, "process %ld attached mmap " PTR_RANGE, process->pid, block.vaddr, block.vaddr + block.npages * MOS_PAGE_SIZE);
 
@@ -194,7 +190,7 @@ void process_detach_mmap(process_t *process, vmblock_t block)
         spinlock_acquire(&map->lock);
         list_remove(map);
         MOS_ASSERT(map->blk.npages == block.npages);
-        mm_unmap_pages(process->mm->pagetable, block.vaddr, block.npages);
+        mm_unmap_pages(process->mm, block.vaddr, block.npages);
         kfree(map);
         return;
     }
@@ -275,7 +271,7 @@ void process_handle_cleanup(process_t *process)
         spinlock_acquire(&map->lock);
         list_remove(map);
 
-        mm_unmap_pages(process->mm->pagetable, map->blk.vaddr, map->blk.npages);
+        mm_unmap_pages(process->mm, map->blk.vaddr, map->blk.npages);
         kfree(map);
     }
 }
@@ -301,12 +297,12 @@ ptr_t process_grow_heap(process_t *process, size_t npages)
 
     if (heap->flags.cow)
     {
-        vmblock_t zeroed = mm_alloc_zeroed_pages(process->mm->pagetable, npages, heap_top, VALLOC_EXACT, VM_USER_RW);
+        vmblock_t zeroed = mm_alloc_zeroed_pages(process->mm, npages, heap_top, VALLOC_EXACT, VM_USER_RW);
         MOS_ASSERT(zeroed.npages == npages);
     }
     else
     {
-        vmblock_t new_part = mm_alloc_pages(process->mm->pagetable, npages, heap_top, VALLOC_EXACT, VM_USER_RW);
+        vmblock_t new_part = mm_alloc_pages(process->mm, npages, heap_top, VALLOC_EXACT, VM_USER_RW);
         MOS_ASSERT(new_part.npages == npages);
     }
 

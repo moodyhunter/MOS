@@ -52,9 +52,9 @@ typedef struct x86_pg_infra_t
     x86_pgtable_entry pgtable[1024 * 1024];
 } x86_pg_infra_t;
 
-always_inline x86_pg_infra_t *x86_get_pg_infra(paging_handle_t table)
+always_inline x86_pg_infra_t *x86_get_pg_infra(mm_context_t *mmctx)
 {
-    return (x86_pg_infra_t *) table.pgd;
+    return (x86_pg_infra_t *) mmctx->pgd;
 }
 
 // defined in enable_paging.asm

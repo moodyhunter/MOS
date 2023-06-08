@@ -102,20 +102,15 @@ typedef struct
 
 typedef struct
 {
-    ptr_t pgd;
-    spinlock_t *pgd_lock;
-    page_map_t *um_page_map;
-} paging_handle_t;
-
-typedef struct
-{
     ptr_t instruction;
     ptr_t stack;
 } __packed thread_context_t;
 
 typedef struct
 {
-    paging_handle_t pagetable;
+    ptr_t pgd;
+    spinlock_t pgd_lock;
+    page_map_t *um_page_map;
     list_head mmaps;
 } mm_context_t;
 
@@ -132,7 +127,7 @@ typedef struct
     ptr_t vaddr; // virtual addresses
     size_t npages;
     vm_flags flags; // the expected flags for the region, regardless of the copy-on-write state
-    paging_handle_t address_space;
+    mm_context_t *address_space;
 } vmblock_t;
 
 /**
@@ -140,7 +135,7 @@ typedef struct
  */
 typedef struct
 {
-    paging_handle_t address_space;
+    mm_context_t *address_space;
     ptr_t vaddr_start;
     size_t npages;
 } pgt_iteration_info_t;
@@ -195,16 +190,16 @@ bool platform_irq_handler_install(u32 irq, irq_handler handler);
 void platform_irq_handler_remove(u32 irq, irq_handler handler);
 
 // Platform Page Table APIs
-paging_handle_t platform_mm_create_user_pgd(void);
-void platform_mm_destroy_user_pgd(paging_handle_t table);
+ptr_t platform_mm_create_user_pgd(void);
+void platform_mm_destroy_user_pgd(mm_context_t *mmctx);
 
 // Platform Paging APIs
-void platform_mm_map_pages(paging_handle_t table, ptr_t vaddr, pfn_t pfn, size_t n_pages, vm_flags flags);
-void platform_mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t n_pages);
-void platform_mm_iterate_table(paging_handle_t table, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg);
-void platform_mm_flag_pages(paging_handle_t table, ptr_t vaddr, size_t n, vm_flags flags);
-vm_flags platform_mm_get_flags(paging_handle_t table, ptr_t vaddr);
-ptr_t platform_mm_get_phys_addr(paging_handle_t table, ptr_t vaddr);
+void platform_mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t n_pages, vm_flags flags);
+void platform_mm_unmap_pages(mm_context_t *mmctx, ptr_t vaddr, size_t n_pages);
+void platform_mm_iterate_table(mm_context_t *mmctx, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg);
+void platform_mm_flag_pages(mm_context_t *mmctx, ptr_t vaddr, size_t n, vm_flags flags);
+vm_flags platform_mm_get_flags(mm_context_t *mmctx, ptr_t vaddr);
+ptr_t platform_mm_get_phys_addr(mm_context_t *mmctx, ptr_t vaddr);
 
 // Platform Thread / Process APIs
 void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg);

@@ -64,7 +64,7 @@ typedef struct _page_map
  * nor the flags of the pages.
  */
 
-ptr_t mm_get_free_pages(paging_handle_t table, size_t n_pages, ptr_t base_vaddr, valloc_flags flags);
+ptr_t mm_get_free_pages(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags);
 
 /**
  * @brief Allocate npages pages from a page table.
@@ -80,7 +80,7 @@ ptr_t mm_get_free_pages(paging_handle_t table, size_t n_pages, ptr_t base_vaddr,
  * @details This function first finds a block of virtual memory using
  * @ref mm_get_free_pages, then allocates and maps the pages.
  */
-vmblock_t mm_alloc_pages(paging_handle_t table, size_t n_pages, ptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags);
+vmblock_t mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags);
 
 /**
  * @brief Map a block of virtual memory to a block of physical memory.
@@ -98,7 +98,7 @@ vmblock_t mm_alloc_pages(paging_handle_t table, size_t n_pages, ptr_t hint_vaddr
  *
  * @note You may need to reserve the physical memory before mapping it, see @ref pmm_reserve_frames.
  */
-vmblock_t mm_map_pages(paging_handle_t table, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
+vmblock_t mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
 
 /**
  * @brief Map a block of virtual memory to a block of physical memory, without incrementing the reference count.
@@ -127,7 +127,7 @@ vmblock_t mm_early_map_kernel_pages(ptr_t vaddr, pfn_t pfn, size_t npages, vm_fl
  * @details This function unmaps the pages in the block, and returns the corresponding physical memory
  * back to the allocator if their reference count reaches zero.
  */
-void mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t npages);
+void mm_unmap_pages(mm_context_t *mmctx, ptr_t vaddr, size_t npages);
 
 /**
  * @brief Replace the mappings of a block of virtual memory with a block of physical memory.
@@ -142,7 +142,7 @@ void mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t npages);
  * @note The reference count of the physical pages will be incremented, and the reference count of the
  * old physical pages will be decremented.
  */
-vmblock_t mm_replace_mapping(paging_handle_t table, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
+vmblock_t mm_replace_mapping(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
 
 /**
  * @brief Remap a block of virtual memory from one page table to another, i.e. copy the mappings.
@@ -161,7 +161,7 @@ vmblock_t mm_replace_mapping(paging_handle_t table, ptr_t vaddr, pfn_t pfn, size
  * @note If clear_dest is set to true, then the destination page table is cleared before copying, otherwise
  * the function assumes that there are no existing mappings in the destination page table.
  */
-vmblock_t mm_copy_maps(paging_handle_t from, ptr_t fvaddr, paging_handle_t to, ptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior);
+vmblock_t mm_copy_maps(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior);
 
 /**
  * @brief Get if a virtual address is mapped in a page table.
@@ -170,7 +170,7 @@ vmblock_t mm_copy_maps(paging_handle_t from, ptr_t fvaddr, paging_handle_t to, p
  * @param vaddr The virtual address to get the physical address of.
  * @return bool True if the virtual address is mapped, false otherwise.
  */
-bool mm_get_is_mapped(paging_handle_t table, ptr_t vaddr);
+bool mm_get_is_mapped(mm_context_t *mmctx, ptr_t vaddr);
 
 /**
  * @brief Update the flags of a block of virtual memory.
@@ -182,20 +182,20 @@ bool mm_get_is_mapped(paging_handle_t table, ptr_t vaddr);
  *
  * @note This function is just a wrapper around @ref platform_mm_flag_pages, with correct locking.
  */
-void mm_flag_pages(paging_handle_t table, ptr_t vaddr, size_t npages, vm_flags flags);
+void mm_flag_pages(mm_context_t *mmctx, ptr_t vaddr, size_t npages, vm_flags flags);
 
 /**
  * @brief Create a user-mode platform-dependent page table.
  * @return paging_handle_t The created page table.
  * @note A platform-independent page-map is also created.
  */
-paging_handle_t mm_create_user_pgd(void);
+mm_context_t *mm_new_context(void);
 
 /**
  * @brief Destroy a user-mode platform-dependent page table.
  * @param table The page table to destroy.
  * @note The platform-independent page-map is also destroyed.
  */
-void mm_destroy_user_pgd(paging_handle_t table);
+void mm_destroy_user_pgd(mm_context_t *mmctx);
 
 /** @} */
