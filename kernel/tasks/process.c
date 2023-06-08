@@ -2,6 +2,8 @@
 
 #include "mos/tasks/process.h"
 
+#include "mos/mm/slab_autoinit.h"
+
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/lib/structures/hashmap.h>
@@ -22,6 +24,9 @@
 
 hashmap_t process_table = { 0 }; // pid_t -> process_t
 
+static slab_t *vmap_cache = NULL;
+MOS_SLAB_AUTOINIT("vmap", vmap_cache, vmap_t);
+
 static pid_t new_process_id(void)
 {
     static pid_t next = 1;
@@ -35,6 +40,7 @@ process_t *process_allocate(process_t *parent, const char *name)
     proc->magic = PROCESS_MAGIC_PROC;
     proc->pid = new_process_id();
     waitlist_init(&proc->waiters);
+    linked_list_init(&proc->mmaps);
 
     if (likely(parent))
     {
@@ -163,33 +169,32 @@ void process_attach_mmap(process_t *process, vmblock_t block, vmap_content_t typ
     MOS_ASSERT(block.address_space.pgd == process->pagetable.pgd);
 
     mos_debug(process, "process %ld attached mmap " PTR_RANGE, process->pid, block.vaddr, block.vaddr + block.npages * MOS_PAGE_SIZE);
-    process->mmaps = krealloc(process->mmaps, sizeof(vmap_t) * (process->mmaps_count + 1));
-    process->mmaps[process->mmaps_count++] = (vmap_t){
-        .blk = block,
-        .content = type,
-        .flags = flags,
-        .lock = SPINLOCK_INIT,
-    };
+
+    vmap_t *map = kmemcache_alloc(vmap_cache);
+    linked_list_init(list_node(map));
+    map->blk = block;
+    map->content = type;
+    map->flags = flags;
+
+    list_node_append(&process->mmaps, list_node(map));
 }
 
 void process_detach_mmap(process_t *process, vmblock_t block)
 {
     MOS_ASSERT(process_is_valid(process));
-    for (size_t i = 0; i < process->mmaps_count; i++)
+    list_foreach(vmap_t, map, process->mmaps)
     {
-        // find the mmap
-        if (process->mmaps[i].blk.vaddr == block.vaddr)
-        {
-            MOS_ASSERT(process->mmaps[i].blk.npages == block.npages);
+        if (map->blk.vaddr != block.vaddr)
+            continue;
 
-            // remove it
-            process->mmaps_count--;
-            process->mmaps[i] = process->mmaps[process->mmaps_count];
-            process->mmaps = krealloc(process->mmaps, sizeof(vmap_t) * process->mmaps_count);
-            mm_unmap_pages(process->pagetable, block.vaddr, block.npages);
-            return;
-        }
+        spinlock_acquire(&map->lock);
+        list_remove(map);
+        MOS_ASSERT(map->blk.npages == block.npages);
+        mm_unmap_pages(process->pagetable, block.vaddr, block.npages);
+        kfree(map);
+        return;
     }
+
     mos_warn("process %ld tried to detach a non-existent mmap", process->pid);
 }
 
@@ -261,11 +266,13 @@ void process_handle_cleanup(process_t *process)
     MOS_ASSERT(process_is_valid(process));
     MOS_ASSERT_X(current_process != process, "cannot cleanup current process");
 
-    mos_debug(process, "unmapping all %zu memory regions owned by %ld", process->mmaps_count, process->pid);
-    for (size_t i = 0; i < process->mmaps_count; i++)
+    list_foreach(vmap_t, map, process->mmaps)
     {
-        const vmblock_t block = process->mmaps[i].blk;
-        mm_unmap_pages(process->pagetable, block.vaddr, block.npages);
+        spinlock_acquire(&map->lock);
+        list_remove(map);
+
+        mm_unmap_pages(process->pagetable, map->blk.vaddr, map->blk.npages);
+        kfree(map);
     }
 }
 
@@ -274,11 +281,11 @@ ptr_t process_grow_heap(process_t *process, size_t npages)
     MOS_ASSERT(process_is_valid(process));
 
     vmap_t *heap = NULL;
-    for (size_t i = 0; i < process->mmaps_count; i++)
+    list_foreach(vmap_t, mmap, process->mmaps)
     {
-        if (process->mmaps[i].content == VMTYPE_HEAP)
+        if (mmap->content == VMTYPE_HEAP)
         {
-            heap = &process->mmaps[i];
+            heap = mmap;
             spinlock_acquire(&heap->lock);
             break;
         }
@@ -307,12 +314,13 @@ ptr_t process_grow_heap(process_t *process, size_t npages)
 
 void process_dump_mmaps(const process_t *process)
 {
-    pr_info("process %ld (%s) has %zu memory regions:", process->pid, process->name, process->mmaps_count);
-    for (size_t i = 0; i < process->mmaps_count; i++)
+    pr_info("process %ld (%s):", process->pid, process->name);
+    size_t i = 0;
+    list_foreach(vmap_t, map, process->mmaps)
     {
-        vmap_t block = process->mmaps[i];
+        i++;
         const char *typestr = "<unknown>";
-        switch (block.content)
+        switch (map->content)
         {
             case VMTYPE_CODE: typestr = "code"; break;
             case VMTYPE_DATA: typestr = "data"; break;
@@ -321,36 +329,38 @@ void process_dump_mmaps(const process_t *process)
             case VMTYPE_KSTACK: typestr = "stack (kernel)"; break;
             case VMTYPE_FILE: typestr = "file"; break;
             case VMTYPE_MMAP: typestr = "mmap"; break;
-            default: mos_warn("unknown memory region type %x", block.content);
+            default: mos_warn("unknown memory region type %x", map->content);
         };
 
         char forkmode = '-';
-        if (block.content == VMTYPE_FILE || block.content == VMTYPE_MMAP)
+        if (map->content == VMTYPE_FILE || map->content == VMTYPE_MMAP)
         {
-            switch (block.flags.fork_mode)
+            switch (map->flags.fork_mode)
             {
                 case VMAP_FORK_NA: forkmode = '!'; break;
                 case VMAP_FORK_SHARED: forkmode = 's'; break;
                 case VMAP_FORK_PRIVATE: forkmode = 'p'; break;
-                default: mos_warn("unknown fork mode %x", block.flags.fork_mode);
+                default: mos_warn("unknown fork mode %x", map->flags.fork_mode);
             }
         }
 
         pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%c%c%c%c%c%c, %c%c]: %s",
-                i,                                               //
-                block.blk.vaddr,                                 //
-                block.blk.npages,                                //
-                block.blk.flags & VM_READ ? 'r' : '-',           //
-                block.blk.flags & VM_WRITE ? 'w' : '-',          //
-                block.blk.flags & VM_EXEC ? 'x' : '-',           //
-                block.blk.flags & VM_GLOBAL ? 'g' : '-',         //
-                block.blk.flags & VM_USER ? 'u' : '-',           //
-                block.blk.flags & VM_CACHE_DISABLED ? 'C' : '-', //
-                block.flags.cow ? 'c' : '-',                     //
-                forkmode,                                        //
-                typestr                                          //
+                i,                                              //
+                map->blk.vaddr,                                 //
+                map->blk.npages,                                //
+                map->blk.flags & VM_READ ? 'r' : '-',           //
+                map->blk.flags & VM_WRITE ? 'w' : '-',          //
+                map->blk.flags & VM_EXEC ? 'x' : '-',           //
+                map->blk.flags & VM_GLOBAL ? 'g' : '-',         //
+                map->blk.flags & VM_USER ? 'u' : '-',           //
+                map->blk.flags & VM_CACHE_DISABLED ? 'C' : '-', //
+                map->flags.cow ? 'c' : '-',                     //
+                forkmode,                                       //
+                typestr                                         //
         );
     }
+
+    pr_info("total: %zd memory regions", i);
 }
 
 bool process_register_signal_handler(process_t *process, signal_t sig, signal_action_t *sigaction)

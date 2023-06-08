@@ -4,6 +4,7 @@
 
 #include <mos/io/io.h>
 #include <mos/kconfig.h>
+#include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/mm_types.h>
 #include <mos/mos_global.h>

@@ -28,9 +28,9 @@ process_t *process_handle_fork(process_t *parent)
     pr_emph("process %ld forked to %ld", parent->pid, child_p->pid);
 
     // copy the parent's memory
-    for (size_t i = 0; i < parent->mmaps_count; i++)
+
+    list_foreach(vmap_t, vmap, parent->mmaps)
     {
-        vmap_t *vmap = &parent->mmaps[i];
         switch (vmap->content)
         {
             case VMTYPE_KSTACK:

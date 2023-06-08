@@ -53,6 +53,7 @@ typedef struct
 
 typedef struct
 {
+    as_linked_list;
     vmap_content_t content;
     vmblock_t blk;
 
@@ -81,8 +82,7 @@ typedef struct _process
     ssize_t threads_count;
     thread_t *threads[MOS_PROCESS_MAX_THREADS];
 
-    size_t mmaps_count;
-    vmap_t *mmaps;
+    list_head mmaps;
 
     dentry_t *working_directory;
 

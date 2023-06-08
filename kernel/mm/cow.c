@@ -105,9 +105,9 @@ bool mm_handle_pgfault(ptr_t fault_addr, bool present, bool is_write, bool is_us
     process_dump_mmaps(current_proc);
 #endif
 
-    for (size_t i = 0; i < current_proc->mmaps_count; i++)
+    process_t *const process = current_proc;
+    list_foreach(vmap_t, mmap, process->mmaps)
     {
-        vmap_t *mmap = &current_proc->mmaps[i];
         spinlock_acquire(&mmap->lock);
 
         const vmblock_t *const vm = &mmap->blk;
@@ -124,13 +124,12 @@ bool mm_handle_pgfault(ptr_t fault_addr, bool present, bool is_write, bool is_us
 
         if (!mmap->flags.cow)
         {
-            pr_warn("Page fault in a non-COW block (block %zu)", i);
+            pr_warn("Page fault in a non-COW block");
             spinlock_release(&mmap->lock);
             break;
         }
 
         // if the block is CoW, it must be writable
-        mos_debug(cow, "page fault in block %zu", i);
         MOS_ASSERT_X(mmap->blk.flags & VM_WRITE, "CoW fault in a non-writable block");
         do_resolve_cow(fault_addr, vm->flags);
         mos_debug(cow, "CoW resolved");

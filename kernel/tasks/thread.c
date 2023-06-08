@@ -125,9 +125,9 @@ void thread_handle_exit(thread_t *t)
     process_t *owner = t->owner;
     vmblock_t kstack = { 0 };
     vmblock_t ustack = { 0 };
-    for (size_t i = 0; i < owner->mmaps_count; i++)
+
+    list_foreach(vmap_t, blk, owner->mmaps)
     {
-        vmap_t *blk = &owner->mmaps[i];
         if (blk->content != VMTYPE_KSTACK && blk->content != VMTYPE_STACK)
             continue;
 

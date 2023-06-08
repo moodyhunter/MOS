@@ -183,11 +183,11 @@ ptr_t define_syscall(heap_control)(heap_control_op op, ptr_t arg)
     process_t *process = current_process;
 
     vmap_t *block = NULL;
-    for (size_t i = 0; i < process->mmaps_count; i++)
+    list_foreach(vmap_t, map, process->mmaps)
     {
-        if (process->mmaps[i].content == VMTYPE_HEAP)
+        if (map->content == VMTYPE_HEAP)
         {
-            block = &process->mmaps[i];
+            block = map;
             break;
         }
     }
