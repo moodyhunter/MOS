@@ -2,10 +2,12 @@
 
 #pragma once
 
+#include <mos/lib/structures/list.h>
 #include <mos/types.h>
 
 typedef struct _blockdev
 {
+    as_linked_list;
     const char *name;
     size_t (*read)(struct _blockdev *dev, void *buf, size_t count, size_t offset);
     size_t (*write)(struct _blockdev *dev, const void *buf, size_t count, size_t offset);

@@ -1,19 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/device/block.h>
-#include <mos/lib/structures/hashmap.h>
-#include <mos/lib/structures/hashmap_common.h>
+#include "mos/device/block.h"
+
 #include <mos/lib/structures/list.h>
-#include <mos/printk.h>
-#include <mos/types.h>
-#include <stdlib.h>
 #include <string.h>
 
-/**
- * @brief The hashmap of all registered block devices.
- * @note Key: Name of the block device, Value: Pointer to the block device.
- */
-static hashmap_t blockdev_map = { 0 };
+static list_head blockdev_list = LIST_HEAD_INIT(blockdev_list);
 
 /**
  * @brief Register a block device
@@ -22,13 +14,8 @@ static hashmap_t blockdev_map = { 0 };
  */
 void blockdev_register(blockdev_t *dev)
 {
-    if (once())
-        hashmap_init(&blockdev_map, 64, hashmap_hash_string, hashmap_compare_string);
-
-    blockdev_t *old = hashmap_put(&blockdev_map, (ptr_t) dev->name, dev);
-
-    if (old != NULL)
-        mos_warn("blockdev %s already registered, replacing", old->name);
+    linked_list_init(list_node(dev));
+    list_node_append(&blockdev_list, list_node(dev));
 }
 
 /**
@@ -39,5 +26,11 @@ void blockdev_register(blockdev_t *dev)
  */
 blockdev_t *blockdev_find(const char *name)
 {
-    return hashmap_get(&blockdev_map, (ptr_t) name);
+    list_foreach(blockdev_t, dev, blockdev_list)
+    {
+        if (strcmp(dev->name, name) == 0)
+            return dev;
+    }
+
+    return NULL;
 }
