@@ -68,7 +68,7 @@ ptr_t kpagemap_get_free_pages(size_t n_pages, ptr_t base_vaddr, valloc_flags fla
     if (!(flags & VALLOC_EXACT))
     {
         page_i = bitmap_find_first_free_n(map, pagemap_size_lines, pagemap_start_index, n_pages);
-        if (unlikely(page_i == 0))
+        if (unlikely(index == (size_t) -1))
         {
             spinlock_release(&kpagemap_lock);
             pr_warn("no contiguous %zu pages found in pagemap", n_pages);

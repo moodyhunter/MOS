@@ -61,7 +61,7 @@ size_t bitmap_find_first_free_n(bitmap_line_t *bitmap, size_t bitmap_nlines, siz
     for (size_t line_i = target_starting_line; free_bits < n_bits; line_i++)
     {
         if (line_i >= bitmap_nlines)
-            return 0;
+            return -1;
 
         bitmap_line_t line = bitmap[line_i];
 
