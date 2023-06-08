@@ -73,7 +73,6 @@ typedef struct _process
     const char *name;
     pid_t pid;
     process_t *parent;
-    paging_handle_t pagetable;
 
     argv_t argv;
 
@@ -82,8 +81,7 @@ typedef struct _process
     ssize_t threads_count;
     thread_t *threads[MOS_PROCESS_MAX_THREADS];
 
-    list_head mmaps;
-
+    mm_context_t *mm;
     dentry_t *working_directory;
 
     // platform per-process flags

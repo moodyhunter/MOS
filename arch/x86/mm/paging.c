@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <mos/lib/structures/list.h>
 #include <mos/mm/paging/dump.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/platform/platform.h>
@@ -18,10 +19,11 @@ void x86_mm_paging_init(void)
 {
     // initialize the page directory
     memzero(x86_kpg_infra, sizeof(x86_pg_infra_t));
-    x86_platform.kernel_pgd.pgd = (ptr_t) x86_kpg_infra;
-    x86_platform.kernel_pgd.um_page_map = NULL; // a kernel page table does not have a user-mode page map
-    x86_platform.kernel_pgd.pgd_lock = &x86_kernel_pgd_lock;
-    current_cpu->pagetable = x86_platform.kernel_pgd;
+    x86_platform.kernel_mm.pagetable.pgd = (ptr_t) x86_kpg_infra;
+    x86_platform.kernel_mm.pagetable.um_page_map = NULL; // a kernel page table does not have a user-mode page map
+    x86_platform.kernel_mm.pagetable.pgd_lock = &x86_kernel_pgd_lock;
+    current_cpu->mm_context = &x86_platform.kernel_mm;
+    linked_list_init(&x86_platform.kernel_mm.mmaps);
 }
 
 void x86_mm_walk_page_table(paging_handle_t handle, ptr_t vaddr_start, size_t n_pages, pgt_iteration_callback_t callback, void *arg)

@@ -97,7 +97,7 @@ static void x86_do_backtrace(void)
     __asm__("movl %%ebp,%1" : "=r"(frame) : "r"(frame));
     for (u32 i = 0; frame; i++)
     {
-        bool mapped = mm_get_is_mapped(current_cpu->pagetable, (ptr_t) frame);
+        bool mapped = mm_get_is_mapped(current_cpu->mm_context->pagetable, (ptr_t) frame);
         if (!mapped)
         {
             pr_warn("  %-2d" PTR_FMT ": <corrupted>, aborting backtrace", i, (ptr_t) frame);
@@ -194,14 +194,16 @@ void x86_start_kernel(x86_startup_info *info)
     mos_debug(x86_startup, "mapping bios memory area...");
     pmm_reserve_frames(X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages);
     pmm_reserve_frames(X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages);
-    x86_bios_block = mm_map_pages(x86_platform.kernel_pgd, x86_bios_block.vaddr, X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages, x86_bios_block.flags);
-    x86_ebda_block = mm_map_pages(x86_platform.kernel_pgd, x86_ebda_block.vaddr, X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages, x86_ebda_block.flags);
+    x86_bios_block =
+        mm_map_pages(x86_platform.kernel_mm.pagetable, x86_bios_block.vaddr, X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages, x86_bios_block.flags);
+    x86_ebda_block =
+        mm_map_pages(x86_platform.kernel_mm.pagetable, x86_ebda_block.vaddr, X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages, x86_ebda_block.flags);
 
     if (initrd_npages)
     {
         pmm_reserve_frames(initrd_pfn, initrd_npages);
         initrd_blockdev.blockdev = (blockdev_t){ .name = "initrd", .read = initrd_read };
-        initrd_blockdev.vmblock = mm_map_pages(x86_platform.kernel_pgd, MOS_X86_INITRD_VADDR, initrd_pfn, initrd_npages, VM_READ | VM_GLOBAL);
+        initrd_blockdev.vmblock = mm_map_pages(x86_platform.kernel_mm.pagetable, MOS_X86_INITRD_VADDR, initrd_pfn, initrd_npages, VM_READ | VM_GLOBAL);
     }
 
     mos_kernel_mm_init(); // we can now use the kernel heap (kmalloc)
@@ -224,7 +226,7 @@ void x86_start_kernel(x86_startup_info *info)
     const pmm_region_t *acpi_region = pmm_find_reserved_region(rsdp->v1.rsdt_addr);
     MOS_ASSERT_X(acpi_region && acpi_region->reserved, "ACPI region not found or not reserved");
     const ptr_t phyaddr = acpi_region->pfn_start * MOS_PAGE_SIZE;
-    mm_map_pages(x86_platform.kernel_pgd, BIOS_VADDR(phyaddr), acpi_region->pfn_start, acpi_region->nframes, VM_READ | VM_GLOBAL);
+    mm_map_pages(x86_platform.kernel_mm.pagetable, BIOS_VADDR(phyaddr), acpi_region->pfn_start, acpi_region->nframes, VM_READ | VM_GLOBAL);
 
     acpi_parse_rsdt(rsdp);
 

@@ -183,7 +183,7 @@ ptr_t define_syscall(heap_control)(heap_control_op op, ptr_t arg)
     process_t *process = current_process;
 
     vmap_t *block = NULL;
-    list_foreach(vmap_t, map, process->mmaps)
+    list_foreach(vmap_t, map, process->mm->mmaps)
     {
         if (map->content == VMTYPE_HEAP)
         {

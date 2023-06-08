@@ -9,7 +9,7 @@
 #include <mos/printk.h>
 #include <stdlib.h>
 
-#define PGD_FOR_VADDR(_vaddr, _um) (_vaddr >= MOS_KERNEL_START_VADDR ? platform_info->kernel_pgd : _um)
+#define PGD_FOR_VADDR(_vaddr, _um) (_vaddr >= MOS_KERNEL_START_VADDR ? platform_info->kernel_mm.pagetable : _um)
 
 typedef struct
 {
@@ -117,7 +117,7 @@ vmblock_t mm_early_map_kernel_pages(ptr_t vaddr, pfn_t pfn, size_t npages, vm_fl
     MOS_ASSERT(npages > 0);
     MOS_ASSERT(vaddr >= MOS_KERNEL_START_VADDR);
 
-    paging_handle_t table = platform_info->kernel_pgd;
+    paging_handle_t table = platform_info->kernel_mm.pagetable;
     const vmblock_t block = { .address_space = table, .vaddr = vaddr, .npages = npages, .flags = flags };
 
     mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to " PFN_FMT, npages, vaddr, pfn);

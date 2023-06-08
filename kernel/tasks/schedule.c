@@ -88,7 +88,7 @@ static bool schedule_to_thread(uintn key, void *value)
     );
 
     cpu->thread = thread;
-    cpu->pagetable = thread->owner->pagetable;
+    cpu->mm_context = thread->owner->mm;
 
     platform_switch_to_thread(&cpu->scheduler_stack, thread, switch_flags);
     return true;

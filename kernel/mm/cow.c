@@ -16,10 +16,11 @@ static pfn_t zero_pfn;
 void mm_cow_init(void)
 {
     // zero fill on demand (read-only)
-    zero_block = mm_alloc_pages(current_cpu->pagetable, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
+    mm_context_t *current_mm = current_cpu->mm_context;
+    zero_block = mm_alloc_pages(current_mm->pagetable, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
     memzero((void *) zero_block.vaddr, MOS_PAGE_SIZE);
-    mm_flag_pages(current_cpu->pagetable, zero_block.vaddr, 1, VM_READ); // make it read-only after zeroing
-    zero_pfn = platform_mm_get_phys_addr(current_cpu->pagetable, zero_block.vaddr) / MOS_PAGE_SIZE;
+    mm_flag_pages(current_mm->pagetable, zero_block.vaddr, 1, VM_READ); // make it read-only after zeroing
+    zero_pfn = platform_mm_get_phys_addr(current_mm->pagetable, zero_block.vaddr) / MOS_PAGE_SIZE;
 }
 
 vmblock_t mm_make_cow_block(paging_handle_t target_handle, vmblock_t src_block)
@@ -59,13 +60,13 @@ vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, ptr_t vad
 static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)
 {
     fault_addr = ALIGN_DOWN_TO_PAGE(fault_addr);
-    paging_handle_t current_handle = current_process->pagetable;
+    mm_context_t *mm = current_process->mm;
 
     // 1. create a new read-write page
     //    we are allocating the page in the kernel space
     //    so that user-space won't get confused by the new page
-    const ptr_t proxy = mm_alloc_pages(current_handle, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_READ | VM_WRITE).vaddr;
-    const pfn_t proxy_pfn = platform_mm_get_phys_addr(platform_info->kernel_pgd, proxy) / MOS_PAGE_SIZE;
+    const ptr_t proxy = mm_alloc_pages(mm->pagetable, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_READ | VM_WRITE).vaddr;
+    const pfn_t proxy_pfn = platform_mm_get_phys_addr(platform_info->kernel_mm.pagetable, proxy) / MOS_PAGE_SIZE;
 
     // 2. copy the data from the faulting address to the new page
     memcpy((void *) proxy, (void *) fault_addr, MOS_PAGE_SIZE);
@@ -73,10 +74,10 @@ static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)
     // 3. replace the faulting phypage with the new one
     //    this will increment the refcount of the new page, ...
     //    ...and also decrement the refcount of the old page
-    mm_replace_mapping(current_handle, fault_addr, proxy_pfn, 1, original_flags);
+    mm_replace_mapping(mm->pagetable, fault_addr, proxy_pfn, 1, original_flags);
 
     // 4. unmap the temporary page (at the kernel heap)
-    mm_unmap_pages(current_handle, proxy, 1);
+    mm_unmap_pages(mm->pagetable, proxy, 1);
 
     ipi_send_all(IPI_TYPE_INVALIDATE_TLB);
 }
@@ -100,13 +101,13 @@ bool mm_handle_pgfault(ptr_t fault_addr, bool present, bool is_write, bool is_us
     }
 
     process_t *current_proc = current_process;
-    MOS_ASSERT_X(current_proc->pagetable.pgd == current_cpu->pagetable.pgd, "Page fault in a process that is not the current process?!");
+    MOS_ASSERT_X(current_proc->mm == current_cpu->mm_context, "Page fault in a process that is not the current process?!");
 #if MOS_DEBUG_FEATURE(cow)
     process_dump_mmaps(current_proc);
 #endif
 
     process_t *const process = current_proc;
-    list_foreach(vmap_t, mmap, process->mmaps)
+    list_foreach(vmap_t, mmap, process->mm->mmaps)
     {
         spinlock_acquire(&mmap->lock);
 

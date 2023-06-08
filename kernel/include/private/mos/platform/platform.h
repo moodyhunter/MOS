@@ -115,10 +115,16 @@ typedef struct
 
 typedef struct
 {
+    paging_handle_t pagetable;
+    list_head mmaps;
+} mm_context_t;
+
+typedef struct
+{
     u32 id;
     thread_t *thread;
     ptr_t scheduler_stack;
-    paging_handle_t pagetable;
+    mm_context_t *mm_context;
 } cpu_t;
 
 typedef struct
@@ -163,7 +169,7 @@ typedef struct
 
     vmblock_t k_code, k_rwdata, k_rodata;
 
-    paging_handle_t kernel_pgd;
+    mm_context_t kernel_mm;
 } mos_platform_info_t;
 
 extern mos_platform_info_t *const platform_info;

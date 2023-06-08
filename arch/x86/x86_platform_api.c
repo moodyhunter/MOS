@@ -86,7 +86,7 @@ void platform_irq_handler_remove(u32 irq, irq_handler handler)
 paging_handle_t platform_mm_create_user_pgd(void)
 {
     const size_t npages = ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE;
-    vmblock_t block = mm_alloc_pages(x86_platform.kernel_pgd, npages, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
+    vmblock_t block = mm_alloc_pages(x86_platform.kernel_mm.pagetable, npages, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
     if (!block.vaddr)
     {
         mos_warn("failed to allocate page directory");
@@ -235,7 +235,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
                 }
             }
 
-            paging_handle_t table = current_process->pagetable;
+            paging_handle_t table = current_process->mm->pagetable;
 
             const ptr_t vaddr = mm_get_free_pages(table, 1, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT);
             const vmblock_t block = mm_replace_mapping(table, vaddr, vga_paddr / MOS_PAGE_SIZE, 1, VM_USER_RW);

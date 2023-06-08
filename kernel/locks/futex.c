@@ -26,7 +26,7 @@ static spinlock_t futex_list_lock = SPINLOCK_INIT;
 static futex_key_t futex_get_key(const futex_word_t *futex)
 {
     const ptr_t vaddr = (ptr_t) futex;
-    return platform_mm_get_phys_addr(current_process->pagetable, vaddr);
+    return platform_mm_get_phys_addr(current_process->mm->pagetable, vaddr);
 }
 
 bool futex_wait(futex_word_t *futex, futex_word_t expected)
