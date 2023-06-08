@@ -173,7 +173,7 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
                 if (A_npages)
                 {
                     mos_debug(elf, "copying %zu pages from " PTR_FMT " to address " PTR_FMT, A_npages, (ptr_t) buf + A_file_offset, A_vaddr);
-                    vmblock_t block = mm_copy_maps(current_cpu->mm_context, (ptr_t) buf + A_file_offset, proc->mm, A_vaddr, A_npages, MM_COPY_DEFAULT);
+                    vmblock_t block = mm_copy_maps(current_cpu->mm_context, (ptr_t) buf + A_file_offset, proc->mm, A_vaddr, A_npages);
                     block.flags = flags;
                     mm_flag_pages(proc->mm, block.vaddr, block.npages, flags);
                     mm_attach_vmap(proc->mm, mm_new_vmap(block, content, (vmap_flags_t){ 0 }));
@@ -198,7 +198,7 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
 
                     // copy mapping for the leftover memory
                     mos_debug(elf, "elf: copying leftover %lu bytes from " PTR_FMT " to " PTR_FMT, ph->size_in_file - A_npages * MOS_PAGE_SIZE, stub.vaddr, B_vaddr);
-                    vmblock_t block = mm_copy_maps(current_cpu->mm_context, stub.vaddr, proc->mm, B_vaddr, 1, MM_COPY_DEFAULT);
+                    vmblock_t block = mm_copy_maps(current_cpu->mm_context, stub.vaddr, proc->mm, B_vaddr, 1);
                     block.flags = flags;
                     mm_flag_pages(proc->mm, block.vaddr, block.npages, flags);
                     mm_attach_vmap(proc->mm, mm_new_vmap(block, content, (vmap_flags_t){ 0 }));

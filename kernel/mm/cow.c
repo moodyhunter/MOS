@@ -38,7 +38,7 @@ vmblock_t mm_make_cow(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t 
     // (consider the case where we CoW-map a page that is already CoW-mapped)
     mm_flag_pages(from, fvaddr, npages, flags & ~VM_WRITE);
 
-    vmblock_t block = mm_copy_maps(from, fvaddr, to, tvaddr, npages, MM_COPY_DEFAULT);
+    vmblock_t block = mm_copy_maps(from, fvaddr, to, tvaddr, npages);
     // mm_flag_pages for newly-copied pages is not needed:
     // - mm_copy_maps already copies the flags, which has been modified by mm_flag_pages above
     block.flags = flags; // set the original flags

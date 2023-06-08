@@ -251,7 +251,7 @@ vmblock_t mm_replace_mapping(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t
     return block;
 }
 
-vmblock_t mm_copy_maps_locked(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior)
+vmblock_t mm_copy_maps_locked(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages)
 {
     MOS_ASSERT(npages > 0);
     mos_debug(vmm, "copying mapping from " PTR_FMT " to " PTR_FMT ", %zu pages", fvaddr, tvaddr, npages);
@@ -269,13 +269,13 @@ vmblock_t mm_copy_maps_locked(mm_context_t *from, ptr_t fvaddr, mm_context_t *to
     return result;
 }
 
-vmblock_t mm_copy_maps(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior)
+vmblock_t mm_copy_maps(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages)
 {
 
     spinlock_acquire(&from->mm_lock);
     if (to != from)
         spinlock_acquire(&to->mm_lock);
-    const vmblock_t result = mm_copy_maps_locked(from, fvaddr, to, tvaddr, npages, behavior);
+    const vmblock_t result = mm_copy_maps_locked(from, fvaddr, to, tvaddr, npages);
     if (to != from)
         spinlock_release(&to->mm_lock);
     spinlock_release(&from->mm_lock);

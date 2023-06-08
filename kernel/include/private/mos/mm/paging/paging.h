@@ -16,15 +16,6 @@
 
 typedef enum
 {
-    ///< Default copy flags.
-    MM_COPY_DEFAULT = 0,
-
-    ///< The destination pages are already allocated (e.g. by @ref mm_get_free_pages)
-    MM_COPY_ALLOCATED = 1,
-} mm_copy_behavior_t;
-
-typedef enum
-{
     ///< Default allocation flags.
     VALLOC_DEFAULT = 0,
     ///< Allocate pages at the exact address.
@@ -149,8 +140,8 @@ vmblock_t mm_replace_mapping(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t
  * @note If clear_dest is set to true, then the destination page table is cleared before copying, otherwise
  * the function assumes that there are no existing mappings in the destination page table.
  */
-vmblock_t mm_copy_maps(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior);
-vmblock_t mm_copy_maps_locked(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages, mm_copy_behavior_t behavior);
+vmblock_t mm_copy_maps(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages);
+vmblock_t mm_copy_maps_locked(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages);
 
 /**
  * @brief Get if a virtual address is mapped in a page table.
