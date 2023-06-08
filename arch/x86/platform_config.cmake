@@ -10,9 +10,9 @@ mos_kconfig(ARCH_X86    MOS_PAGE_SIZE                   4096                "x86
 mos_kconfig(ARCH_X86    MOS_ADDR_USER_HEAP              0x40000000          "User Heap Start Address")
 mos_kconfig(ARCH_X86    MOS_ADDR_USER_STACK             0x60000000          "User Stack Start Address")
 mos_kconfig(ARCH_X86    MOS_ADDR_USER_MMAP              0x90000000          "User MMAP Start Address")
-mos_kconfig(ARCH_X86    MOS_ADDR_KERNEL_HEAP            0xD0000000          "Kernel Heap Start Address")
-mos_kconfig(ARCH_X86    MOS_X86_INITRD_VADDR            0xEC000000          "Initrd Virtual Address")
-mos_kconfig(ARCH_X86    MOS_PHYFRAME_ARRAY_VADDR        0xF0000000          "Physical Frame Array Virtual Address")
+mos_kconfig(ARCH_X86    MOS_ADDR_KERNEL_HEAP            0xC5000000          "Kernel Heap Start Address")
+mos_kconfig(ARCH_X86    MOS_X86_INITRD_VADDR            0xF8000000          "Initrd Virtual Address")
+mos_kconfig(ARCH_X86    MOS_PHYFRAME_ARRAY_VADDR        0xFA000000          "Physical Frame Array Virtual Address")
 mos_kconfig(ARCH_X86    MOS_BIOS_VMAP_ADDR              0xFC000000          "BIOS Virtual Map Address")
 mos_kconfig(ARCH_X86    MOS_X86_INITIAL_STACK_SIZE      0x100000            "Initial Stack Size")   # Update corresponding linker script if changed
 mos_kconfig(ARCH_X86    MOS_KERNEL_START_VADDR          0xC0000000          "Kernel start virtual address")
