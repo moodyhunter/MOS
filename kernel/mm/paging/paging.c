@@ -20,7 +20,6 @@
 typedef struct
 {
     bool do_unmap;
-    bool do_mark_free;
     bool do_unref;
 } vmm_iterate_unmap_flags_t;
 
@@ -33,17 +32,12 @@ static void vmm_iterate_unmap(const pgt_iteration_info_t *iter_info, const vmblo
     MOS_UNUSED(iter_info);
 
     const bool do_unmap = arg ? ((vmm_iterate_unmap_flags_t *) arg)->do_unmap : true;
-    const bool do_mark_free = arg ? ((vmm_iterate_unmap_flags_t *) arg)->do_mark_free : true;
     const bool do_unref = arg ? ((vmm_iterate_unmap_flags_t *) arg)->do_unref : true;
 
     mos_debug(vmm_impl, "unmapping " PTR_FMT " -> " PFN_FMT " (npages: %zu)", block->vaddr, block_pfn, block->npages);
 
     if (do_unmap)
         platform_mm_unmap_pages(PGD_FOR_VADDR(block->vaddr, block->address_space), block->vaddr, block->npages);
-
-    if (do_mark_free)
-        if (block->vaddr >= MOS_KERNEL_START_VADDR)
-            kpagemap_mark_free(block->vaddr, block->npages);
 
     if (do_unref)
         pmm_unref_frames(block_pfn, block->npages);
@@ -65,8 +59,7 @@ static void vmm_iterate_copymap(const pgt_iteration_info_t *iter_info, const vmb
 
 ptr_t mm_get_free_pages(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags)
 {
-    const bool is_kernel = base_vaddr >= MOS_KERNEL_START_VADDR;
-    if (is_kernel)
+    if (IS_KHEAP_VADDR(base_vaddr, n_pages))
         return kpagemap_get_free_pages(n_pages, base_vaddr, flags);
 
     // userspace areas, we traverse the mmctx->mmaps
@@ -182,7 +175,7 @@ vmblock_t mm_map_pages_locked(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_
 
     mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, npages, vaddr, pfn);
 
-    if (vaddr >= MOS_KERNEL_START_VADDR)
+    if (IS_KHEAP_VADDR(vaddr, npages))
         kpagemap_mark_used(vaddr, npages);
 
     pmm_ref_frames(pfn, npages);
@@ -209,8 +202,6 @@ vmblock_t mm_early_map_kernel_pages(ptr_t vaddr, pfn_t pfn, size_t npages, vm_fl
     mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to " PFN_FMT, npages, vaddr, pfn);
 
     spinlock_acquire(&mmctx->mm_lock);
-    if (vaddr >= MOS_KERNEL_START_VADDR)
-        kpagemap_mark_used(vaddr, npages);
     platform_mm_map_pages(mmctx, vaddr, pfn, npages, flags);
     spinlock_release(&mmctx->mm_lock);
 
@@ -244,7 +235,10 @@ vmblock_t mm_replace_mapping(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t
     mos_debug(vmm, "filling %zd pages at " PTR_FMT " with " PFN_FMT, npages, vaddr, pfn);
 
     // only unreference the physical frames
-    static const vmm_iterate_unmap_flags_t umflags = { .do_unmap = false, .do_mark_free = false, .do_unref = true };
+    static const vmm_iterate_unmap_flags_t umflags = {
+        .do_unmap = false,
+        .do_unref = true,
+    };
 
     spinlock_acquire(&mmctx->mm_lock);
     // ref the frames first, so they don't get freed if we're [filling a page with itself]?
@@ -270,9 +264,6 @@ vmblock_t mm_copy_maps_locked(mm_context_t *from, ptr_t fvaddr, mm_context_t *to
         return (vmblock_t){ 0 };
     }
 
-    if (behavior != MM_COPY_ALLOCATED)
-        if (tvaddr >= MOS_KERNEL_START_VADDR)
-            kpagemap_mark_used(tvaddr, npages);
     platform_mm_iterate_table(from, fvaddr, npages, vmm_iterate_copymap, &result);
 
     return result;
@@ -294,7 +285,7 @@ vmblock_t mm_copy_maps(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t
 
 bool mm_get_is_mapped(mm_context_t *mmctx, ptr_t vaddr)
 {
-    if (vaddr >= MOS_KERNEL_START_VADDR)
+    if (IS_KHEAP_VADDR(vaddr, 1))
         return kpagemap_get_mapped(vaddr);
 
     list_foreach(vmap_t, vmap, mmctx->mmaps)
@@ -331,10 +322,9 @@ mm_context_t *mm_new_context(void)
     mmctx->pgd = platform_mm_create_user_pgd();
     if (unlikely(mmctx->pgd == 0))
     {
-        mm_destroy_user_pgd(mmctx);
+        kfree(mmctx);
         return NULL;
     }
-
     return mmctx;
 }
 
