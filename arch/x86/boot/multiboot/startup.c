@@ -29,8 +29,8 @@ extern const char __MOS_KERNEL_END[];
 #define kernel_rw_vend     ((ptr_t) &__MOS_KERNEL_RW_END)
 
 // 768 KB of pages gives us 768 MB of virtual memory
-__startup_rwdata x86_pgdir_entry startup_pgd[1024] __aligned(MOS_PAGE_SIZE) = { 0 };
-__startup_rwdata x86_pgtable_entry startup_pgt[768 KB / 4] __aligned(MOS_PAGE_SIZE) = { 0 };
+__startup_rwdata x86_pde_t startup_pgd[1024] __aligned(MOS_PAGE_SIZE) = { 0 };
+__startup_rwdata x86_pte_t startup_pgt[768 KB / 4] __aligned(MOS_PAGE_SIZE) = { 0 };
 
 __startup_rwdata ptr_t video_device_address = X86_VIDEO_DEVICE;
 
@@ -57,14 +57,14 @@ __startup_code should_inline void print_debug_info(char a, char b, char color1, 
     *((volatile char *) video_device_address + 5) = White;
 }
 
-__startup_code should_inline void startup_setup_pgd(int pgdid, x86_pgtable_entry *pgtable)
+__startup_code should_inline void startup_setup_pgd(int pgdid, x86_pte_t *pgtable)
 {
     STARTUP_ASSERT(pgdid < 1024, 'r');                // pgdid must be less than 1024
     STARTUP_ASSERT(pgtable != NULL, 't');             // pgtable must not be NULL
     STARTUP_ASSERT((ptr_t) pgtable % 4096 == 0, 'a'); // pgtable must be aligned to 4096
     STARTUP_ASSERT(!startup_pgd[pgdid].present, 'p'); // pgdir entry already present
 
-    mos_startup_memzero((void *) (startup_pgd + pgdid), sizeof(x86_pgdir_entry));
+    mos_startup_memzero((void *) (startup_pgd + pgdid), sizeof(x86_pde_t));
     startup_pgd[pgdid].present = true;
     startup_pgd[pgdid].page_table_paddr = (ptr_t) pgtable >> 12;
 }
@@ -76,7 +76,7 @@ __startup_code void mos_startup_map_single_page(ptr_t vaddr, ptr_t paddr, vm_fla
 
     __startup_rwdata static int used_pgd = 0;
 
-    x86_pgdir_entry *this_dir = &startup_pgd[dir_index];
+    x86_pde_t *this_dir = &startup_pgd[dir_index];
     if (!this_dir->present)
     {
         size_t pagedir_entry_table_index = 0;
@@ -96,13 +96,13 @@ __startup_code void mos_startup_map_single_page(ptr_t vaddr, ptr_t paddr, vm_fla
     STARTUP_ASSERT(this_dir->present, 'm');
     this_dir->writable = flags & VM_WRITE;
 
-    x86_pgtable_entry *this_table = (x86_pgtable_entry *) (this_dir->page_table_paddr << 12) + table_index;
+    x86_pte_t *this_table = (x86_pte_t *) (this_dir->page_table_paddr << 12) + table_index;
     if (this_table->present)
     {
         STARTUP_ASSERT(this_table->pfn == (paddr >> 12), 'd'); // fail if the page is mapped to different physical address
         return;
     }
-    mos_startup_memzero((void *) this_table, sizeof(x86_pgtable_entry));
+    mos_startup_memzero((void *) this_table, sizeof(x86_pte_t));
     this_table->present = true;
     this_table->pfn = (ptr_t) paddr >> 12;
     this_table->writable = flags & VM_WRITE;
@@ -125,7 +125,7 @@ __startup_code asmlinkage void x86_startup(x86_startup_info *startup)
     STARTUP_ASSERT(startup->mb_magic == MULTIBOOT_BOOTLOADER_MAGIC, '1');
     STARTUP_ASSERT(startup->mb_info->flags & MULTIBOOT_INFO_MEM_MAP, '2');
 
-    mos_startup_memzero((void *) startup_pgd, sizeof(x86_pgdir_entry) * 1024);
+    mos_startup_memzero((void *) startup_pgd, sizeof(x86_pde_t) * 1024);
     mos_startup_memzero((void *) startup_pgt, 512 KB);
 
     debug_print_step(); // a

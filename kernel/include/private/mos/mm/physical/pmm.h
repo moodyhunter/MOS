@@ -3,6 +3,7 @@
 #pragma once
 
 #include "mos/lib/sync/spinlock.h"
+#include "mos/platform/platform_defs.h"
 
 #include <mos/lib/structures/list.h>
 #include <mos/types.h>
@@ -47,22 +48,26 @@ typedef struct phyframe
             as_linked_list;
         };
 
-        struct // mapped frame
+        struct // compound frame
         {
-            bool is_compound_tail; // whether this frame is the tail of a compound page
-            union
-            {
-                // compound head: number of times this frame is mapped, if this drops to 0, the frame is freed
-                atomic_t mapped_count;
-                // compound tail: the head of the compound page
-                phyframe_t *compound_head;
-            };
+            // whether this frame is the tail of a compound page
+            bool is_compound_tail;
+            phyframe_t *compound_head; // compound head
         };
     };
 
-} phyframe_t;
+#if MOS_CONFIG(MOS_PLATFORM_HAS_EXTRA_PHYFRAME_INFO)
+    // platform-specific information
+    struct platform_extra_phyframe_info platform_info;
+#endif
 
-MOS_STATIC_ASSERT(sizeof(phyframe_t) == 16, "phyframe_t size is not 16 bytes");
+    union
+    {
+        // number of times this frame is mapped, if this drops to 0, the frame is freed
+        atomic_t mapped_count;
+    };
+
+} phyframe_t;
 
 typedef struct
 {
@@ -92,6 +97,7 @@ static inline __maybe_unused pfn_t phyframe_pfn(const phyframe_t *frame)
 
 static inline __maybe_unused phyframe_t *phyframe_effective_head(phyframe_t *frame)
 {
+    MOS_ASSERT_X(frame->state == PHYFRAME_ALLOCATED || frame->state == PHYFRAME_RESERVED, "WRONG");
     MOS_ASSERT(frame->is_compound_tail == 0 || frame->is_compound_tail == 1);
     return frame->is_compound_tail == true ? frame->compound_head : frame;
 }

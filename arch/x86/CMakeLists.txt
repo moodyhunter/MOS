@@ -28,7 +28,6 @@ add_kernel_source(
         interrupt/pic.c
         mm/mm.c
         mm/paging.c
-        mm/paging_impl.c
         tasks/context.c
         x86_platform.c
         x86_platform_api.c

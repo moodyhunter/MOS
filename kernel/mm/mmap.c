@@ -46,7 +46,7 @@ ptr_t mmap_anonymous(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, siz
     const vmap_fork_mode_t fork_mode = (flags & MMAP_SHARED) ? VMAP_FORK_SHARED : VMAP_FORK_PRIVATE;
     const valloc_flags valloc_flags = (flags & MMAP_EXACT) ? VALLOC_EXACT : VALLOC_DEFAULT;
 
-    const vmblock_t block = mm_alloc_zeroed_pages(current_process->pagetable, n_pages, hint_addr, valloc_flags, vm_flags);
+    const vmblock_t block = mm_alloc_zeroed_pages(current_process->mm, n_pages, hint_addr, valloc_flags, vm_flags);
     mos_debug(mmap, "allocated %zd pages at " PTR_FMT, block.npages, block.vaddr);
 
     process_attach_mmap(current_process, block, VMTYPE_MMAP, (vmap_flags_t){ .cow = true, .fork_mode = fork_mode });
@@ -74,7 +74,7 @@ bool munmap(ptr_t addr, size_t size)
     const ptr_t range_end = ALIGN_UP_TO_PAGE(addr + size);
     const size_t n_pages = (range_end - range_start) / MOS_PAGE_SIZE;
 
-    mm_unmap_pages(current_process->pagetable, range_start, n_pages);
+    mm_unmap_pages(current_process->mm, range_start, n_pages);
 
     return true;
 }

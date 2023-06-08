@@ -2,13 +2,14 @@
 
 #pragma once
 
+#include "mos/mm/mm.h"
+#include "mos/mm/paging/pml_types.h"
+
 #include <mos/io/io.h>
 #include <mos/kconfig.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/mm_types.h>
-#include <mos/mos_global.h>
-#include <mos/types.h>
 
 #if MOS_CONFIG(MOS_SMP)
 #define PER_CPU_DECLARE(type, name)                                                                                                                                      \
@@ -35,7 +36,6 @@
 typedef void (*irq_handler)(u32 irq);
 
 typedef struct _thread thread_t;
-typedef struct _page_map page_map_t;
 
 typedef enum
 {
@@ -102,13 +102,6 @@ typedef struct
 
 typedef struct
 {
-    ptr_t pgd;
-    spinlock_t *pgd_lock;
-    page_map_t *um_page_map;
-} paging_handle_t;
-
-typedef struct
-{
     ptr_t instruction;
     ptr_t stack;
 } __packed thread_context_t;
@@ -118,7 +111,7 @@ typedef struct
     u32 id;
     thread_t *thread;
     ptr_t scheduler_stack;
-    paging_handle_t pagetable;
+    mm_context_t *mm_context;
 } cpu_t;
 
 typedef struct
@@ -126,7 +119,7 @@ typedef struct
     ptr_t vaddr; // virtual addresses
     size_t npages;
     vm_flags flags; // the expected flags for the region, regardless of the copy-on-write state
-    paging_handle_t address_space;
+    mm_context_t *address_space;
 } vmblock_t;
 
 /**
@@ -134,7 +127,7 @@ typedef struct
  */
 typedef struct
 {
-    paging_handle_t address_space;
+    mm_context_t *address_space;
     ptr_t vaddr_start;
     size_t npages;
 } pgt_iteration_info_t;
@@ -163,7 +156,7 @@ typedef struct
 
     vmblock_t k_code, k_rwdata, k_rodata;
 
-    paging_handle_t kernel_pgd;
+    mm_context_t *kernel_mm;
 } mos_platform_info_t;
 
 extern mos_platform_info_t *const platform_info;
@@ -189,16 +182,35 @@ bool platform_irq_handler_install(u32 irq, irq_handler handler);
 void platform_irq_handler_remove(u32 irq, irq_handler handler);
 
 // Platform Page Table APIs
-paging_handle_t platform_mm_create_user_pgd(void);
-void platform_mm_destroy_user_pgd(paging_handle_t table);
+mm_context_t platform_mm_create_user_pgd(void);
+void platform_mm_destroy_user_pgd(mm_context_t table);
+
+// Platform Page Table APIs - New
+
+pfn_t platform_pml1e_get_pfn(const pml1e_t *pml1);            // returns the physical address contained in the pmlx entry,
+void platform_pml1e_set_pfn(pml1e_t *pml1, pfn_t pfn);        // -- which can be a pfn for either a page or another page table
+bool platform_pml1e_get_present(const pml1e_t *pml1);         // returns if an entry in this page table is present
+void platform_pml1e_set_present(pml1e_t *pml1, bool present); // sets if an entry in this page table is present
+void platform_pml1e_set_flags(pml1e_t *pml1, vm_flags flags); // set bits in the flags field of the pmlx entry
+
+#if MOS_PLATFORM_PAGING_LEVELS >= 2
+pml1_t platform_pml2e_get_pml1(const pml2e_t *pml2);
+void platform_pml2e_set_pml1(pml2e_t *pml2, pml1_t pml1, pfn_t pml1_pfn);
+bool platform_pml2e_get_present(const pml2e_t *pml2);
+void platform_pml2e_set_present(pml2e_t *pml2, bool present);
+void platform_pml2e_set_flags(pml2e_t *pml2, vm_flags flags);
+#endif
+
+#if MOS_PLATFORM_PAGING_LEVELS >= 3
+pfn_t platform_pml3e_get_pml2(const pml3e_t *pml3);
+void platform_pml3e_set_pml2(pml3e_t *pml3, pml2e_t *pml2, pfn_t pml2_pfn);
+bool platform_pml3e_get_present(const pml3e_t *pml3);
+void platform_pml3e_set_present(pml3e_t *pml3, bool present);
+void platform_pml3e_set_flags(pml3e_t *pml3, vm_flags flags);
+#endif
 
 // Platform Paging APIs
-void platform_mm_map_pages(paging_handle_t table, ptr_t vaddr, pfn_t pfn, size_t n_pages, vm_flags flags);
-void platform_mm_unmap_pages(paging_handle_t table, ptr_t vaddr, size_t n_pages);
-void platform_mm_iterate_table(paging_handle_t table, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg);
-void platform_mm_flag_pages(paging_handle_t table, ptr_t vaddr, size_t n, vm_flags flags);
-vm_flags platform_mm_get_flags(paging_handle_t table, ptr_t vaddr);
-ptr_t platform_mm_get_phys_addr(paging_handle_t table, ptr_t vaddr);
+void platform_mm_iterate_table(mm_context_t *table, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg);
 
 // Platform Thread / Process APIs
 void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg);

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/paging/table_ops.h"
+
 #include <mos/cmdline.h>
 #include <mos/kallsyms.h>
 #include <mos/mm/paging/paging.h>
@@ -97,7 +99,7 @@ static void x86_do_backtrace(void)
     __asm__("movl %%ebp,%1" : "=r"(frame) : "r"(frame));
     for (u32 i = 0; frame; i++)
     {
-        bool mapped = mm_get_is_mapped(current_cpu->pagetable, (ptr_t) frame);
+        bool mapped = mm_get_is_mapped(current_cpu->mm_context, (ptr_t) frame);
         if (!mapped)
         {
             pr_warn("  %-2d" PTR_FMT ": <corrupted>, aborting backtrace", i, (ptr_t) frame);
@@ -151,57 +153,70 @@ void x86_start_kernel(x86_startup_info *info)
     x86_smp_copy_trampoline();
 #endif
 
-    x86_mm_paging_init();
-
-    mos_debug(x86_startup, "mapping kernel space...");
-
-    x86_platform.k_code = mm_early_map_kernel_pages(                                                         //
-        (ptr_t) __MOS_KERNEL_CODE_START,                                                                     //
-        ((ptr_t) __MOS_KERNEL_CODE_START - MOS_KERNEL_START_VADDR) / MOS_PAGE_SIZE,                          //
-        (ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_CODE_END) - (ptr_t) __MOS_KERNEL_CODE_START) / MOS_PAGE_SIZE, //
-        VM_READ | VM_GLOBAL                                                                                  //
-    );
-
-    x86_platform.k_rodata = mm_early_map_kernel_pages(                                                           //
-        (ptr_t) __MOS_KERNEL_RODATA_START,                                                                       //
-        ((ptr_t) __MOS_KERNEL_RODATA_START - MOS_KERNEL_START_VADDR) / MOS_PAGE_SIZE,                            //
-        (ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_RODATA_END) - (ptr_t) __MOS_KERNEL_RODATA_START) / MOS_PAGE_SIZE, //
-        VM_READ | VM_GLOBAL                                                                                      //
-    );
-
-    x86_platform.k_rwdata = mm_early_map_kernel_pages(                                                   //
-        (ptr_t) __MOS_KERNEL_RW_START,                                                                   //
-        ((ptr_t) __MOS_KERNEL_RW_START - MOS_KERNEL_START_VADDR) / MOS_PAGE_SIZE,                        //
-        (ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_RW_END) - (ptr_t) __MOS_KERNEL_RW_START) / MOS_PAGE_SIZE, //
-        VM_READ | VM_WRITE | VM_GLOBAL                                                                   //
-    );
-
     // make our own copy of the multiboot info
     // switching to our new page table will ruin the old one
     const size_t mmap_count = mb_info->mmap_length / sizeof(multiboot_memory_map_t);
     multiboot_memory_map_t mmaps[mmap_count];
     memcpy(mmaps, (void *) mb_info->mmap_addr, mb_info->mmap_length);
 
-    x86_enable_paging_impl(((ptr_t) x86_kpg_infra->pgdir) - MOS_KERNEL_START_VADDR);
-
     mos_debug(x86_startup, "setting up physical memory manager...");
     x86_pmm_region_setup(mmaps, mmap_count, initrd_pfn, initrd_npages);
 
-    pmm_reserve_addresses(x86_platform.k_code.vaddr - MOS_KERNEL_START_VADDR, x86_platform.k_code.npages);
-    pmm_reserve_addresses(x86_platform.k_rodata.vaddr - MOS_KERNEL_START_VADDR, x86_platform.k_rodata.npages);
-    pmm_reserve_addresses(x86_platform.k_rwdata.vaddr - MOS_KERNEL_START_VADDR, x86_platform.k_rwdata.npages);
+    x86_paging_setup();
 
+    mos_debug(x86_startup, "mapping kernel space...");
+
+    x86_platform.k_code.vaddr = (ptr_t) __MOS_KERNEL_CODE_START;
+    x86_platform.k_rodata.vaddr = (ptr_t) __MOS_KERNEL_RODATA_START;
+    x86_platform.k_rwdata.vaddr = (ptr_t) __MOS_KERNEL_RW_START;
+
+    x86_platform.k_code.npages = ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_CODE_END - (ptr_t) __MOS_KERNEL_CODE_START) / MOS_PAGE_SIZE;
+    x86_platform.k_rodata.npages = ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_RODATA_END - (ptr_t) __MOS_KERNEL_RODATA_START) / MOS_PAGE_SIZE;
+    x86_platform.k_rwdata.npages = ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_RW_END - (ptr_t) __MOS_KERNEL_RW_START) / MOS_PAGE_SIZE;
+
+    pmm_reserve_frames(MOS_KERNEL_PFN(x86_platform.k_code.vaddr), x86_platform.k_code.npages);
+    pmm_reserve_frames(MOS_KERNEL_PFN(x86_platform.k_rodata.vaddr), x86_platform.k_rodata.npages);
+    pmm_reserve_frames(MOS_KERNEL_PFN(x86_platform.k_rwdata.vaddr), x86_platform.k_rwdata.npages);
+
+    x86_platform.k_code = mm_map_pages(            //
+        platform_info->kernel_mm,                  //
+        x86_platform.k_code.vaddr,                 //
+        MOS_KERNEL_PFN(x86_platform.k_code.vaddr), //
+        x86_platform.k_code.npages,                //
+        VM_READ | VM_GLOBAL                        //
+    );
+
+    x86_platform.k_rodata = mm_map_pages(            //
+        platform_info->kernel_mm,                    //
+        x86_platform.k_rodata.vaddr,                 //
+        MOS_KERNEL_PFN(x86_platform.k_rodata.vaddr), //
+        x86_platform.k_rodata.npages,                //
+        VM_READ | VM_GLOBAL                          //
+    );
+
+    x86_platform.k_rwdata = mm_map_pages(            //
+        platform_info->kernel_mm,                    //
+        x86_platform.k_rwdata.vaddr,                 //
+        MOS_KERNEL_PFN(x86_platform.k_rwdata.vaddr), //
+        x86_platform.k_rwdata.npages,                //
+        VM_READ | VM_WRITE | VM_GLOBAL               //
+    );
+
+    // phygrames_pfn has been reserved at its initialization
+    mm_map_pages(platform_info->kernel_mm, MOS_PHYFRAME_ARRAY_VADDR, phyframes_pfn, phyframes_npages, VM_RW | VM_GLOBAL);
+
+    x86_enable_paging_impl(mm_pmlmax_get_pfn(x86_platform.kernel_mm->pagetable) * MOS_PAGE_SIZE);
     mos_debug(x86_startup, "mapping bios memory area...");
     pmm_reserve_frames(X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages);
     pmm_reserve_frames(X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages);
-    x86_bios_block = mm_map_pages(x86_platform.kernel_pgd, x86_bios_block.vaddr, X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages, x86_bios_block.flags);
-    x86_ebda_block = mm_map_pages(x86_platform.kernel_pgd, x86_ebda_block.vaddr, X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages, x86_ebda_block.flags);
+    x86_bios_block = mm_map_pages(x86_platform.kernel_mm, x86_bios_block.vaddr, X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages, x86_bios_block.flags);
+    x86_ebda_block = mm_map_pages(x86_platform.kernel_mm, x86_ebda_block.vaddr, X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages, x86_ebda_block.flags);
 
     if (initrd_npages)
     {
         pmm_reserve_frames(initrd_pfn, initrd_npages);
         initrd_blockdev.blockdev = (blockdev_t){ .name = "initrd", .read = initrd_read };
-        initrd_blockdev.vmblock = mm_map_pages(x86_platform.kernel_pgd, MOS_X86_INITRD_VADDR, initrd_pfn, initrd_npages, VM_READ | VM_GLOBAL);
+        initrd_blockdev.vmblock = mm_map_pages(x86_platform.kernel_mm, MOS_X86_INITRD_VADDR, initrd_pfn, initrd_npages, VM_READ | VM_GLOBAL);
     }
 
     mos_kernel_mm_init(); // we can now use the kernel heap (kmalloc)
@@ -224,7 +239,7 @@ void x86_start_kernel(x86_startup_info *info)
     const pmm_region_t *acpi_region = pmm_find_reserved_region(rsdp->v1.rsdt_addr);
     MOS_ASSERT_X(acpi_region && acpi_region->reserved, "ACPI region not found or not reserved");
     const ptr_t phyaddr = acpi_region->pfn_start * MOS_PAGE_SIZE;
-    mm_map_pages(x86_platform.kernel_pgd, BIOS_VADDR(phyaddr), acpi_region->pfn_start, acpi_region->nframes, VM_READ | VM_GLOBAL);
+    mm_map_pages(x86_platform.kernel_mm, BIOS_VADDR(phyaddr), acpi_region->pfn_start, acpi_region->nframes, VM_READ | VM_GLOBAL);
 
     acpi_parse_rsdt(rsdp);
 

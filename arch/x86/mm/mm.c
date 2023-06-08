@@ -1,14 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/x86/mm/mm.h"
+
+#include "mos/boot/startup.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/x86/x86_platform.h"
 
 #include <mos/kconfig.h>
 #include <mos/printk.h>
-#include <mos/x86/mm/mm.h>
 #include <stdlib.h>
 #include <string.h>
+
+pfn_t phyframes_pfn = 0;
+size_t phyframes_npages = 0;
 
 static __nodiscard s64 do_align(u64 *pstart, size_t *psize, bool reserved)
 {
@@ -130,8 +135,8 @@ void x86_pmm_region_setup(const multiboot_memory_map_t *map_entry, u32 count, pf
 
     const size_t phyframes_count = max_end_pfn;
 
-    const size_t array_npages = ALIGN_UP_TO_PAGE(phyframes_count * sizeof(phyframe_t)) / MOS_PAGE_SIZE;
-    mos_debug(pmm, "%zu pages required for the phyframes array", array_npages);
+    phyframes_npages = ALIGN_UP_TO_PAGE(phyframes_count * sizeof(phyframe_t)) / MOS_PAGE_SIZE;
+    mos_debug(pmm, "%zu pages required for the phyframes array", phyframes_npages);
 
     pmm_region_t *phyframes_region = NULL; // the region that will hold the phyframes array
 
@@ -143,27 +148,27 @@ void x86_pmm_region_setup(const multiboot_memory_map_t *map_entry, u32 count, pf
         if (r->reserved)
             continue;
 
-        if (r->nframes < array_npages)
+        if (r->nframes < phyframes_npages)
             continue;
 
         phyframes_region = r;
 
-        pfn_t pfn = r->pfn_start;
-        pfn = MAX(((ptr_t) __MOS_KERNEL_END - MOS_KERNEL_START_VADDR) / MOS_PAGE_SIZE, pfn); // don't use the kernel's memory
-        pfn = MAX(ALIGN_UP_TO_PAGE(initrd_pfn + initrd_npages), pfn);                        // don't use the initrd's memory
+        phyframes_pfn = r->pfn_start;
+        phyframes_pfn = MAX(MOS_KERNEL_PFN(ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_END)), phyframes_pfn); // don't use the kernel's memory
+        phyframes_pfn = MAX(ALIGN_UP_TO_PAGE(initrd_pfn + initrd_npages), phyframes_pfn);               // don't use the initrd's memory
 
-        const pfn_t pfn_end = pfn + array_npages;
+        const pfn_t pfn_end = phyframes_pfn + phyframes_npages;
 
-        pr_info2("using " PFN_RANGE " for the phyframes array", pfn, pfn_end);
+        pr_info2("using " PFN_RANGE " for the phyframes array", phyframes_pfn, pfn_end);
 
-        // we have to map the array before doing anything else
-        mm_early_map_kernel_pages(MOS_PHYFRAME_ARRAY_VADDR, pfn, array_npages, VM_RW | VM_GLOBAL);
+        // we have to map this into the startup page tables, because we don't have the kernel page tables yet
+        mos_startup_map_pages(MOS_PHYFRAME_ARRAY_VADDR, phyframes_pfn << 12, phyframes_npages, VM_RW | VM_GLOBAL);
         // then we zero the array
-        memzero((void *) MOS_PHYFRAME_ARRAY_VADDR, array_npages * MOS_PAGE_SIZE);
+        memzero((void *) MOS_PHYFRAME_ARRAY_VADDR, phyframes_npages * MOS_PAGE_SIZE);
         // then we can initialize the pmm
         pmm_init(phyframes_count);
         // and finally we can reserve this region
-        pmm_reserve_frames(pfn, array_npages);
+        pmm_reserve_frames(phyframes_pfn, phyframes_npages);
         break;
     }
 

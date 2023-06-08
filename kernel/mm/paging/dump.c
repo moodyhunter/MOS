@@ -32,31 +32,31 @@ static void walk_pagetable_dump_callback(const pgt_iteration_info_t *iter_info, 
     *prev_end_vaddr = block->vaddr + block->npages * MOS_PAGE_SIZE;
 }
 
-void mm_dump_pagetable(paging_handle_t handle)
+void mm_dump_pagetable(mm_context_t *ctx)
 {
     pr_info("Page Table:");
     ptr_t tmp = 0;
-    spinlock_acquire(handle.pgd_lock);
-    platform_mm_iterate_table(handle, 0, MOS_MAX_VADDR / MOS_PAGE_SIZE, walk_pagetable_dump_callback, &tmp);
-    spinlock_release(handle.pgd_lock);
+    spinlock_acquire(ctx->lock);
+    platform_mm_iterate_table(ctx, 0, MOS_MAX_VADDR / MOS_PAGE_SIZE, walk_pagetable_dump_callback, &tmp);
+    spinlock_release(ctx->lock);
 }
 
 void mm_dump_current_pagetable()
 {
-    const char *cpu_pagetable_source = current_cpu->pagetable.pgd == platform_info->kernel_pgd.pgd ? "Kernel" : NULL;
+    const char *cpu_pagetable_source = current_cpu->mm_context == platform_info->kernel_mm ? "Kernel" : NULL;
 
     if (current_thread)
     {
         pr_emph("Current task: %s (tid: %ld, pid: %ld)", current_process->name, current_thread->tid, current_process->pid);
         pr_emph("Task Page Table:");
-        mm_dump_pagetable(current_process->pagetable);
-        if (current_cpu->pagetable.pgd == current_process->pagetable.pgd)
+        mm_dump_pagetable(current_process->mm);
+        if (current_cpu->mm_context == current_process->mm)
             cpu_pagetable_source = "Current Process";
     }
     else
     {
         pr_emph("Kernel Page Table:");
-        mm_dump_pagetable(platform_info->kernel_pgd);
+        mm_dump_pagetable(platform_info->kernel_mm);
     }
 
     if (cpu_pagetable_source)
@@ -66,6 +66,6 @@ void mm_dump_current_pagetable()
     else
     {
         pr_emph("CPU Page Table:");
-        mm_dump_pagetable(current_cpu->pagetable);
+        mm_dump_pagetable(current_cpu->mm_context);
     }
 }

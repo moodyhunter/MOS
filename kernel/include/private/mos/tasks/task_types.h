@@ -73,7 +73,7 @@ typedef struct _process
     const char *name;
     pid_t pid;
     process_t *parent;
-    paging_handle_t pagetable;
+    mm_context_t *mm;
 
     argv_t argv;
 

@@ -37,7 +37,7 @@ process_t *process_handle_fork(process_t *parent)
             {
                 // Kernel stacks are special, we need to allocate a new one (not CoW-mapped)
                 MOS_ASSERT_X(vmap->blk.npages == MOS_STACK_PAGES_KERNEL, "kernel stack size is not %d pages", MOS_STACK_PAGES_KERNEL);
-                const vmblock_t block = mm_alloc_pages(child_p->pagetable, vmap->blk.npages, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, vmap->blk.flags);
+                const vmblock_t block = mm_alloc_pages(child_p->mm, vmap->blk.npages, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, vmap->blk.flags);
 
                 pr_info2(FORKFMT, parent->pid, child_p->pid, "kstack", vmap->blk.vaddr, vmap->blk.npages, vmap->blk.flags);
                 process_attach_mmap(child_p, block, VMTYPE_KSTACK, (vmap_flags_t){ 0 });
@@ -52,8 +52,8 @@ process_t *process_handle_fork(process_t *parent)
                 {
                     pr_info2(FORKFMT, parent->pid, child_p->pid, "mmap", vmap->blk.vaddr, vmap->blk.npages, vmap->blk.flags);
                     vmblock_t block = vmap->blk;
-                    block.address_space = child_p->pagetable;
-                    mm_copy_maps(parent->pagetable, block.vaddr, child_p->pagetable, block.vaddr, block.npages, MM_COPY_DEFAULT);
+                    block.address_space = child_p->mm;
+                    mm_copy_maps(parent->mm, block.vaddr, child_p->mm, block.vaddr, block.npages, MM_COPY_DEFAULT);
                     process_attach_mmap(child_p, block, vmap->content, vmap->flags);
                     break;
                 }
@@ -66,7 +66,7 @@ process_t *process_handle_fork(process_t *parent)
             case VMTYPE_STACK:
             {
                 vmap->flags.cow = true;
-                const vmblock_t block = mm_make_cow_block(child_p->pagetable, vmap->blk);
+                const vmblock_t block = mm_make_cow_block(child_p->mm, vmap->blk);
 
                 pr_info2(FORKFMT, parent->pid, child_p->pid, "CoW", vmap->blk.vaddr, vmap->blk.npages, vmap->blk.flags);
                 process_attach_mmap(child_p, block, vmap->content, vmap->flags);

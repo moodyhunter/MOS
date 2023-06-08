@@ -51,6 +51,8 @@
 
 #define add_const(x) (*(const __typeof__(x) *) (&(x)))
 
+#define cast_to(value, valtype, desttype) _Generic((value), valtype : (desttype) (value), const valtype : (const desttype)(value))
+
 #define is_aligned(ptr, alignment) (((ptr_t) ptr & (alignment - 1)) == 0)
 
 #define GET_BIT(x, n)               (((x) >> (n)) & 1)
@@ -80,7 +82,8 @@
 #define MOS_FOURCC(a, b, c, d) ((u32) (a) | ((u32) (b) << 8) | ((u32) (c) << 16) | ((u32) (d) << 24))
 #define MOS_ARRAY_SIZE(x)      (sizeof(x) / sizeof(x[0]))
 
-#define MOS_MAX_VADDR ((ptr_t) ~0)
+#define MOS_MAX_VADDR         ((ptr_t) ~0)
+#define MOS_KERNEL_PFN(vaddr) (((vaddr) -MOS_KERNEL_START_VADDR) / MOS_PAGE_SIZE)
 
 #define MOS_SYSCALL_INTR             0x88
 #define BIOS_VADDR(paddr)            (MOS_BIOS_VMAP_ADDR | ((ptr_t) (paddr)))

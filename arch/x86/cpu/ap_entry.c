@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/paging/table_ops.h"
+
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
 #include <mos/tasks/schedule.h>
@@ -16,7 +18,7 @@ noreturn void ap_begin_exec(void)
     x86_init_current_cpu_gdt();
     x86_init_current_cpu_tss();
     x86_idt_flush();
-    x86_enable_paging_impl(((ptr_t) x86_kpg_infra->pgdir) - MOS_KERNEL_START_VADDR);
+    x86_enable_paging_impl(mm_pmlmax_get_pfn(platform_info->kernel_mm->pagetable) * MOS_PAGE_SIZE);
 
     lapic_enable();
 
@@ -27,7 +29,7 @@ noreturn void ap_begin_exec(void)
     cpuid_print_cpu_info();
 
     per_cpu(x86_platform.cpu)->id = info.ebx.local_apic_id;
-    current_cpu->pagetable = x86_platform.kernel_pgd;
+    current_cpu->mm_context = x86_platform.kernel_mm;
 
     u8 lapic_id = lapic_get_id();
     if (lapic_id != info.ebx.local_apic_id)

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/paging/table_ops.h"
+
 #include <mos/interrupt/ipi.h>
 #include <mos/mm/cow.h>
 #include <mos/mm/paging/paging.h>
@@ -16,18 +18,18 @@ static pfn_t zero_pfn;
 void mm_cow_init(void)
 {
     // zero fill on demand (read-only)
-    zero_block = mm_alloc_pages(current_cpu->pagetable, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
+    zero_block = mm_alloc_pages(current_cpu->mm_context, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
     memzero((void *) zero_block.vaddr, MOS_PAGE_SIZE);
-    mm_flag_pages(current_cpu->pagetable, zero_block.vaddr, 1, VM_READ); // make it read-only after zeroing
-    zero_pfn = platform_mm_get_phys_addr(current_cpu->pagetable, zero_block.vaddr) / MOS_PAGE_SIZE;
+    mm_flag_pages(current_cpu->mm_context, zero_block.vaddr, 1, VM_READ); // make it read-only after zeroing
+    zero_pfn = mm_do_get_pfn(current_cpu->mm_context->pagetable, zero_block.vaddr);
 }
 
-vmblock_t mm_make_cow_block(paging_handle_t target_handle, vmblock_t src_block)
+vmblock_t mm_make_cow_block(mm_context_t *target_handle, vmblock_t src_block)
 {
     return mm_make_cow(src_block.address_space, src_block.vaddr, target_handle, src_block.vaddr, src_block.npages, src_block.flags);
 }
 
-vmblock_t mm_make_cow(paging_handle_t from, ptr_t fvaddr, paging_handle_t to, ptr_t tvaddr, size_t npages, vm_flags flags)
+vmblock_t mm_make_cow(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages, vm_flags flags)
 {
     // do not use the return value of mm_copy_maps:
     // - the block returned by this function contains it's ACTUAL flags,
@@ -43,7 +45,7 @@ vmblock_t mm_make_cow(paging_handle_t from, ptr_t fvaddr, paging_handle_t to, pt
     return block;
 }
 
-vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, ptr_t vaddr, valloc_flags allocflags, vm_flags flags)
+vmblock_t mm_alloc_zeroed_pages(mm_context_t *handle, size_t npages, ptr_t vaddr, valloc_flags allocflags, vm_flags flags)
 {
     vaddr = mm_get_free_pages(handle, npages, vaddr, allocflags);
 
@@ -59,13 +61,13 @@ vmblock_t mm_alloc_zeroed_pages(paging_handle_t handle, size_t npages, ptr_t vad
 static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)
 {
     fault_addr = ALIGN_DOWN_TO_PAGE(fault_addr);
-    paging_handle_t current_handle = current_process->pagetable;
+    mm_context_t *current_handle = current_process->mm;
 
     // 1. create a new read-write page
     //    we are allocating the page in the kernel space
     //    so that user-space won't get confused by the new page
     const ptr_t proxy = mm_alloc_pages(current_handle, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_READ | VM_WRITE).vaddr;
-    const pfn_t proxy_pfn = platform_mm_get_phys_addr(platform_info->kernel_pgd, proxy) / MOS_PAGE_SIZE;
+    const pfn_t proxy_pfn = mm_do_get_pfn(platform_info->kernel_mm->pagetable, proxy);
 
     // 2. copy the data from the faulting address to the new page
     memcpy((void *) proxy, (void *) fault_addr, MOS_PAGE_SIZE);
@@ -100,7 +102,7 @@ bool mm_handle_pgfault(ptr_t fault_addr, bool present, bool is_write, bool is_us
     }
 
     process_t *current_proc = current_process;
-    MOS_ASSERT_X(current_proc->pagetable.pgd == current_cpu->pagetable.pgd, "Page fault in a process that is not the current process?!");
+    MOS_ASSERT_X(current_proc->mm == current_cpu->mm_context, "Page fault in a process that is not the current process?!");
 #if MOS_DEBUG_FEATURE(cow)
     process_dump_mmaps(current_proc);
 #endif
