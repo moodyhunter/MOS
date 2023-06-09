@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 include(${CMAKE_CURRENT_LIST_DIR}/boot/uefi/bootable.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/boot/limine/bootable.cmake)
 
 add_kernel_source(
     INCLUDE_DIRECTORIES

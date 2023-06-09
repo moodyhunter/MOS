@@ -62,7 +62,11 @@ typedef struct phyframe
 
 } phyframe_t;
 
+#if MOS_BITS == 32
 MOS_STATIC_ASSERT(sizeof(phyframe_t) == 16, "phyframe_t size is not 16 bytes");
+#elif MOS_BITS == 64
+MOS_STATIC_ASSERT(sizeof(phyframe_t) == 32, "phyframe_t size is not 32 bytes");
+#endif
 
 typedef struct
 {

@@ -49,6 +49,11 @@ void platform_usleep(u64 us)
         ;
 }
 
+void platform_cpu_idle(void)
+{
+    __asm__ volatile("sti; hlt");
+}
+
 // Platform Interrupt APIs
 
 void platform_interrupt_enable(void)
@@ -74,42 +79,42 @@ void platform_irq_handler_remove(u32 irq, irq_handler handler)
 
 // Platform Page Table APIs
 
-paging_handle_t platform_mm_create_user_pgd(void)
+ptr_t platform_mm_create_user_pgd(void)
 {
-    return (paging_handle_t){ .pgd = 0, .pgd_lock = 0, .um_page_map = 0 };
+    return 0;
 }
 
 void platform_mm_destroy_user_pgd(mm_context_t *mmctx)
 {
-    MOS_UNUSED(table);
+    MOS_UNUSED(mmctx);
 }
 
 // Platform Paging APIs
 
-void platform_mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, ptr_t paddr, size_t n_pages, vm_flags flags)
+void platform_mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t n_pages, vm_flags flags)
 {
-    MOS_UNUSED(table);
+    MOS_UNUSED(mmctx);
     MOS_UNUSED(vaddr);
-    MOS_UNUSED(paddr);
+    MOS_UNUSED(pfn);
     MOS_UNUSED(n_pages);
     MOS_UNUSED(flags);
 }
 
 void platform_mm_unmap_pages(mm_context_t *mmctx, ptr_t vaddr, size_t n_pages)
 {
-    MOS_UNUSED(table);
+    MOS_UNUSED(mmctx);
     MOS_UNUSED(vaddr);
     MOS_UNUSED(n_pages);
 }
 
 ptr_t platform_mm_get_phys_addr(mm_context_t *mmctx, ptr_t vaddr)
 {
-    MOS_UNUSED(table);
+    MOS_UNUSED(mmctx);
     MOS_UNUSED(vaddr);
     return 0;
 }
 
-vmblock_t platform_mm_copy_maps(paging_handle_t from, ptr_t fvaddr, paging_handle_t to, ptr_t tvaddr, size_t npages)
+vmblock_t platform_mm_copy_maps(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages)
 {
     MOS_UNUSED(from);
     MOS_UNUSED(fvaddr);
@@ -121,7 +126,7 @@ vmblock_t platform_mm_copy_maps(paging_handle_t from, ptr_t fvaddr, paging_handl
 
 void platform_mm_flag_pages(mm_context_t *mmctx, ptr_t vaddr, size_t n, vm_flags flags)
 {
-    MOS_UNUSED(table);
+    MOS_UNUSED(mmctx);
     MOS_UNUSED(vaddr);
     MOS_UNUSED(n);
     MOS_UNUSED(flags);
@@ -129,7 +134,7 @@ void platform_mm_flag_pages(mm_context_t *mmctx, ptr_t vaddr, size_t n, vm_flags
 
 vm_flags platform_mm_get_flags(mm_context_t *mmctx, ptr_t vaddr)
 {
-    MOS_UNUSED(table);
+    MOS_UNUSED(mmctx);
     MOS_UNUSED(vaddr);
     return 0;
 }
@@ -177,7 +182,7 @@ u64 platform_arch_syscall(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64 arg4)
 
 void platform_mm_iterate_table(mm_context_t *mmctx, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg)
 {
-    MOS_UNUSED(table);
+    MOS_UNUSED(mmctx);
     MOS_UNUSED(vaddr);
     MOS_UNUSED(n);
     MOS_UNUSED(callback);

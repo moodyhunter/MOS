@@ -2,8 +2,6 @@ name: Build MOS
 
 on:
   push:
-    paths-ignore:
-      - "lab-tutorial/**"
   workflow_dispatch:
 
 jobs:
@@ -31,6 +29,41 @@ jobs:
               "has_smp": "ON",
               "smp": "1",
             }
+          - {
+              "name": "x86_64 UEFI (no SMP)",
+              "arch": "x86_64",
+              "target_triple": "x86_64-elf",
+              "target": "mos_uefi_entry",
+              "has_smp": "OFF",
+              "compile_only": "ON", # we don't have a working platform support for now
+            }
+          - {
+              "name": "x86_64 UEFI with SMP (1 core)",
+              "arch": "x86_64",
+              "target_triple": "x86_64-elf",
+              "target": "mos_uefi_entry",
+              "has_smp": "ON",
+              "smp": "1",
+              "compile_only": "ON",
+            }
+          - {
+              "name": "x86_64 limine (no SMP)",
+              "arch": "x86_64",
+              "target_triple": "x86_64-elf",
+              "target": "mos_limine_entry",
+              "has_smp": "OFF",
+              "compile_only": "ON",
+            }
+          - {
+              "name": "x86_64 limine with SMP (1 core)",
+              "arch": "x86_64",
+              "target_triple": "x86_64-elf",
+              "target": "mos_limine_entry",
+              "has_smp": "ON",
+              "smp": "1",
+              "compile_only": "ON",
+            }
+
     env:
       MOS_TEST_SMP_COUNT: ${{matrix.config.smp}}
 
@@ -40,7 +73,7 @@ jobs:
       - name: Install packages
         run: |
           sudo apt update
-          sudo apt -y install nasm grub2-common mtools jq ninja-build qemu-system-${{matrix.config.arch}} cpio libgmp-dev libmpfr-dev libmpc-dev
+          sudo apt -y install nasm grub2-common mtools jq ninja-build qemu-system-x86 cpio libgmp-dev libmpfr-dev libmpc-dev
 
       - name: Download & Extract Cross Compiler
         run: |
@@ -77,6 +110,7 @@ jobs:
           path: ${{github.workspace}}/build/initrd.cpio
 
       - name: Run Tests (debug all)
+        if: matrix.config.compile_only != 'ON'
         working-directory: ${{github.workspace}}/build
         run: |
           cmake . -DMOS_DEBUG_ALL=ON -DMOS_DEBUG_liballoc=OFF
@@ -84,11 +118,13 @@ jobs:
           ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh'"
 
       - name: Run Tests (quiet)
+        if: matrix.config.compile_only != 'ON'
         working-directory: ${{github.workspace}}/build
         run: |
           ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh' quiet"
 
       - name: Run Tests (no debug messages)
+        if: matrix.config.compile_only != 'ON'
         working-directory: ${{github.workspace}}/build
         run: |
           cmake . -DMOS_DEBUG_ALL=OFF
@@ -96,6 +132,7 @@ jobs:
           ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh'"
 
       - name: Run Tests (LTO)
+        if: matrix.config.compile_only != 'ON'
         working-directory: ${{github.workspace}}/build
         run: |
           cmake . -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DMOS_DEBUG_ALL=OFF

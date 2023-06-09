@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-ENTRY(mos_uefi_entry)
+ENTRY(mos_limine_entry)
 
 SECTIONS
 {

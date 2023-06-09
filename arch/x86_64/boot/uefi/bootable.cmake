@@ -6,4 +6,3 @@ create_bootable_kernel_binary(
     mos_uefi.elf
     ${CMAKE_CURRENT_LIST_DIR}/uefi_entry.c
 )
-
