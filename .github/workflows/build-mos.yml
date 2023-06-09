@@ -77,7 +77,7 @@ jobs:
 
       - name: Download & Extract Cross Compiler
         run: |
-          wget -q "https://github.com/moodyhunter/${{matrix.config.target_triple}}-prebuilt/releases/download/artifact/toolchain-${{matrix.config.target_triple}}.tar.gz"
+          wget -q "https://github.com/moodyhunter/mos-toolchain-prebuilt/releases/download/artifact/toolchain-${{matrix.config.target_triple}}.tar.gz"
           tar -xzf toolchain-${{matrix.config.target_triple}}.tar.gz
           mv toolchain /tmp/
           echo "PATH=$PATH:/tmp/toolchain/bin" >> $GITHUB_ENV
