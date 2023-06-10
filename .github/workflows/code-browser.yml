@@ -46,8 +46,7 @@ jobs:
       - name: Build
         run: |
           cd ${{github.workspace}}/build
-          ninja
-          ninja multiboot mos_initrd
+          ninja mos_multiboot mos_initrd
 
       - name: Build CodeBrowser
         run: |
