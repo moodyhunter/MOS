@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/filesystem/vfs_types.h"
 #include "mos/mm/slab.h"
 #include "mos/mm/slab_autoinit.h"
+#include "mos/platform/platform.h"
 
-#include <mos/device/block.h>
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
@@ -62,6 +63,12 @@ typedef struct
 
 MOS_STATIC_ASSERT(sizeof(cpio_newc_header_t) == 110, "cpio_newc_header has wrong size");
 
+static size_t initrd_read(void *buf, size_t size, size_t offset)
+{
+    memcpy(buf, (void *) (MOS_INITRD_VADDR + offset), size);
+    return size;
+}
+
 static file_type_t cpio_modebits_to_filetype(u32 modebits)
 {
     file_type_t type = FILE_TYPE_UNKNOWN;
@@ -80,7 +87,7 @@ static file_type_t cpio_modebits_to_filetype(u32 modebits)
     return type;
 }
 
-static bool cpio_read_metadata(blockdev_t *dev, const char *target, cpio_metadata_t *metadata)
+static bool cpio_read_metadata(const char *target, cpio_metadata_t *metadata)
 {
     if (unlikely(strcmp(target, "TRAILER!!!") == 0))
         mos_panic("what the heck are you doing?");
@@ -90,7 +97,7 @@ static bool cpio_read_metadata(blockdev_t *dev, const char *target, cpio_metadat
 
     while (true)
     {
-        dev->read(dev, &header, sizeof(cpio_newc_header_t), offset);
+        initrd_read(&header, sizeof(cpio_newc_header_t), offset);
 
         if (strncmp(header.magic, "07070", 5) != 0 || (header.magic[5] != '1' && header.magic[5] != '2'))
         {
@@ -100,10 +107,10 @@ static bool cpio_read_metadata(blockdev_t *dev, const char *target, cpio_metadat
 
         offset += sizeof(cpio_newc_header_t);
 
-        size_t filename_len = strntoll(header.namesize, NULL, 16, sizeof(header.namesize) / sizeof(char));
+        const size_t filename_len = strntoll(header.namesize, NULL, 16, sizeof(header.namesize) / sizeof(char));
 
         char filename[filename_len + 1]; // +1 for null terminator
-        dev->read(dev, filename, filename_len, offset);
+        initrd_read(filename, filename_len, offset);
         filename[filename_len] = '\0';
 
         bool found = strncmp(filename, target, filename_len) == 0;
@@ -183,24 +190,12 @@ typedef struct
     cpio_metadata_t metadata;
 } cpio_inode_t;
 
-typedef struct
-{
-    superblock_t sb;
-    blockdev_t *dev;
-} cpio_superblock_t;
-
 static const inode_ops_t cpio_dir_inode_ops;
 static const inode_ops_t cpio_file_inode_ops;
 static const file_ops_t cpio_file_ops;
 
-static slab_t *cpio_inode_cache = NULL, *cpio_sb_cache = NULL;
+static slab_t *cpio_inode_cache = NULL;
 MOS_SLAB_AUTOINIT("cpio_inode", cpio_inode_cache, cpio_inode_t);
-MOS_SLAB_AUTOINIT("cpio_sb", cpio_sb_cache, cpio_superblock_t);
-
-should_inline cpio_superblock_t *CPIO_SB(superblock_t *sb)
-{
-    return container_of(sb, cpio_superblock_t, sb);
-}
 
 should_inline cpio_inode_t *CPIO_INODE(inode_t *inode)
 {
@@ -209,13 +204,13 @@ should_inline cpio_inode_t *CPIO_INODE(inode_t *inode)
 
 // ============================================================================================================
 
-static cpio_inode_t *cpio_inode_create(cpio_superblock_t *sb, cpio_metadata_t *metadata)
+static cpio_inode_t *cpio_inode_create(superblock_t *sb, cpio_metadata_t *metadata)
 {
     cpio_inode_t *i = kmemcache_alloc(cpio_inode_cache);
     cpio_fill_inode(metadata, &i->inode);
 
     i->inode.ops = i->inode.type == FILE_TYPE_DIRECTORY ? &cpio_dir_inode_ops : &cpio_file_inode_ops;
-    i->inode.superblock = &sb->sb;
+    i->inode.superblock = sb;
     i->inode.file_ops = i->inode.type == FILE_TYPE_DIRECTORY ? NULL : &cpio_file_ops;
     i->metadata = *metadata;
 
@@ -231,40 +226,34 @@ static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *
     if (unlikely(mount_options) && strlen(mount_options) > 0)
         mos_warn("cpio: mount options are not supported");
 
-    blockdev_t *dev = blockdev_find(dev_name);
-    if (unlikely(!dev))
-    {
-        mos_warn("cpio: failed to find block device %s", dev_name);
-        return NULL;
-    }
+    if (dev_name && strlen(dev_name) > 0)
+        pr_warn("cpio: mount: dev_name is not supported");
 
     cpio_metadata_t header;
-    const bool found = cpio_read_metadata(dev, ".", &header);
+    const bool found = cpio_read_metadata(".", &header);
     if (!found)
         return NULL; // not found
 
     mos_debug(cpio, "cpio header: %.6s", header.header.magic);
 
-    cpio_superblock_t *sb = kmemcache_alloc(cpio_sb_cache);
+    superblock_t *sb = kmemcache_alloc(superblock_cache);
     cpio_inode_t *i = cpio_inode_create(sb, &header);
     dentry_t *root = dentry_create(NULL, NULL); // root dentry has no name, this "feature" is used by cpio_i_lookup
     root->inode = &i->inode;
-    sb->sb.root = root;
-    sb->dev = dev;
-    root->superblock = i->inode.superblock = &sb->sb;
+    sb->root = root;
+    root->superblock = i->inode.superblock = sb;
     return root;
 }
 
 static ssize_t cpio_f_read(const file_t *file, void *buf, size_t size, off_t offset)
 {
     cpio_metadata_t metadata = CPIO_INODE(file->dentry->inode)->metadata;
-    blockdev_t *dev = CPIO_SB(file->dentry->inode->superblock)->dev;
 
     if (offset >= (long) metadata.data_length)
         return 0; // EOF
 
     const size_t bytes_to_read = MIN(size, metadata.data_length - offset);
-    size_t read = dev->read(dev, buf, bytes_to_read, metadata.data_offset + offset);
+    size_t read = initrd_read(buf, bytes_to_read, metadata.data_offset + offset);
     return read;
 }
 
@@ -275,13 +264,12 @@ static bool cpio_i_lookup(inode_t *parent_dir, dentry_t *dentry)
     dentry_path(dentry, parent_dir->superblock->root, pathbuf, sizeof(pathbuf));
     const char *path = pathbuf + 1; // skip the first slash
 
-    cpio_superblock_t *sb = CPIO_SB(parent_dir->superblock);
     cpio_metadata_t metadata;
-    const bool found = cpio_read_metadata(sb->dev, path, &metadata);
+    const bool found = cpio_read_metadata(path, &metadata);
     if (!found)
         return false; // not found
 
-    cpio_inode_t *i = cpio_inode_create(sb, &metadata);
+    cpio_inode_t *i = cpio_inode_create(parent_dir->superblock, &metadata);
     dentry->inode = &i->inode;
     return true;
 }
@@ -289,11 +277,9 @@ static bool cpio_i_lookup(inode_t *parent_dir, dentry_t *dentry)
 static size_t cpio_i_iterate_dir(inode_t *dir, dir_iterator_state_t *state, dentry_iterator_op op)
 {
     cpio_inode_t *i = CPIO_INODE(dir);
-    cpio_superblock_t *sb = CPIO_SB(dir->superblock);
-    blockdev_t *dev = sb->dev;
 
     char path_prefix[i->metadata.name_length + 1]; // +1 for null terminator
-    dev->read(dev, path_prefix, i->metadata.name_length, i->metadata.name_offset);
+    initrd_read(path_prefix, i->metadata.name_length, i->metadata.name_offset);
     path_prefix[i->metadata.name_length] = '\0';
     size_t prefix_len = strlen(path_prefix); // +1 for the slash
 
@@ -309,7 +295,7 @@ static size_t cpio_i_iterate_dir(inode_t *dir, dir_iterator_state_t *state, dent
     size_t filtered_n = 0;
     while (true)
     {
-        dev->read(dev, &header, sizeof(cpio_newc_header_t), offset);
+        initrd_read(&header, sizeof(cpio_newc_header_t), offset);
         offset += sizeof(cpio_newc_header_t);
 
         if (strncmp(header.magic, "07070", 5) != 0 || (header.magic[5] != '1' && header.magic[5] != '2'))
@@ -318,7 +304,7 @@ static size_t cpio_i_iterate_dir(inode_t *dir, dir_iterator_state_t *state, dent
         const size_t filename_len = strntoll(header.namesize, NULL, 16, sizeof(header.namesize) / sizeof(char));
 
         char filename[filename_len + 1]; // +1 for null terminator
-        dev->read(dev, filename, filename_len, offset);
+        initrd_read(filename, filename_len, offset);
         filename[filename_len] = '\0';
 
         const bool found = strncmp(path_prefix, filename, prefix_len) == 0     // make sure the path starts with the parent path
@@ -372,10 +358,7 @@ static size_t cpio_i_iterate_dir(inode_t *dir, dir_iterator_state_t *state, dent
 static size_t cpio_i_readlink(dentry_t *dentry, char *buffer, size_t buflen)
 {
     cpio_metadata_t metadata = CPIO_INODE(dentry->inode)->metadata;
-    blockdev_t *dev = CPIO_SB(dentry->inode->superblock)->dev;
-
-    size_t read = dev->read(dev, buffer, MIN(buflen, metadata.data_length), metadata.data_offset);
-    return read;
+    return initrd_read(buffer, MIN(buflen, metadata.data_length), metadata.data_offset);
 }
 
 static const inode_ops_t cpio_dir_inode_ops = {

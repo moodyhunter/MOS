@@ -43,3 +43,4 @@ extern const char __MOS_KERNEL_RW_START[], __MOS_KERNEL_RW_END[];         // Ker
 extern const char __MOS_KERNEL_END[];                                     // Kernel end
 
 extern mos_platform_info_t x86_platform;
+extern bool x86_initrd_present;

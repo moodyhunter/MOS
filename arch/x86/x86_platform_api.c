@@ -85,6 +85,11 @@ void platform_irq_handler_remove(u32 irq, irq_handler handler)
     MOS_UNUSED(handler);
 }
 
+bool platform_initrd_present()
+{
+    return x86_initrd_present;
+}
+
 ptr_t platform_mm_create_user_pgd(void)
 {
     const size_t npages = ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE;

@@ -11,7 +11,6 @@
 #include <mos/x86/acpi/madt.h>
 #include <mos/x86/cpu/smp.h>
 #include <mos/x86/descriptors/descriptor_types.h>
-#include <mos/x86/devices/initrd_blockdev.h>
 #include <mos/x86/devices/port.h>
 #include <mos/x86/devices/serial_console.h>
 #include <mos/x86/interrupt/apic.h>
@@ -61,7 +60,7 @@ static vmblock_t x86_ebda_block = {
     .flags = VM_READ | VM_GLOBAL | VM_CACHE_DISABLED,
 };
 
-static initrd_blockdev_t initrd_blockdev;
+bool x86_initrd_present = false;
 
 mos_platform_info_t *const platform_info = &x86_platform;
 mos_platform_info_t x86_platform = { 0 };
@@ -199,15 +198,12 @@ void x86_start_kernel(x86_startup_info *info)
 
     if (initrd_npages)
     {
+        x86_initrd_present = true;
         pmm_reserve_frames(initrd_pfn, initrd_npages);
-        initrd_blockdev.blockdev = (blockdev_t){ .name = "initrd", .read = initrd_read };
-        initrd_blockdev.vmblock = mm_map_pages(&x86_platform.kernel_mm, MOS_X86_INITRD_VADDR, initrd_pfn, initrd_npages, VM_READ | VM_GLOBAL);
+        mm_map_pages(&x86_platform.kernel_mm, MOS_INITRD_VADDR, initrd_pfn, initrd_npages, VM_READ | VM_GLOBAL);
     }
 
     mos_kernel_mm_init(); // we can now use the kernel heap (kmalloc)
-
-    if (initrd_npages)
-        blockdev_register(&initrd_blockdev.blockdev); // must be done after kmalloc is initialized
 
     mos_debug(x86_startup, "Parsing ACPI tables...");
     acpi_rsdp_t *rsdp = acpi_find_rsdp(BIOS_VADDR(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
