@@ -30,7 +30,7 @@ macro(add_mos_library)
         add_library(mos::${KERNEL_LIB_NAME} ALIAS ${KERNEL_LIB_NAME})
         add_mos_library_do_setup(${KERNEL_LIB_NAME} "__MOS_KERNEL__;__IN_MOS_LIBS__" "${ARG_PRIVATE_INCLUDE_DIRECTORIES}" "${ARG_PUBLIC_INCLUDE_DIRECTORIES}")
         target_link_libraries(${KERNEL_LIB_NAME} PRIVATE gcc mos::include mos::private_include)
-        target_link_libraries(mos_kernel PRIVATE ${KERNEL_LIB_NAME})
+        target_link_libraries(mos_kernel PUBLIC ${KERNEL_LIB_NAME})
 
         if ("${ARG_NAME}" STREQUAL "stdlib")
             target_link_libraries(${KERNEL_LIB_NAME} PUBLIC mos::kernel_compile_options)
