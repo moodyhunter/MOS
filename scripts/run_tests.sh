@@ -20,7 +20,7 @@ if [ -z "$MOS_TEST_SHOW_UI" ]; then
 fi
 
 qemu-system-i386 \
-    -kernel $DIR/mos_multiboot.bin \
+    -kernel $DIR/boot.dir/multiboot.bin \
     -initrd $DIR/initrd.cpio \
     -monitor "unix:/tmp/monitor.sock,server,nowait" \
     -chardev stdio,id=char0,logfile=test-failure.log \
