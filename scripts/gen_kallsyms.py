@@ -2,7 +2,7 @@
 
 import io
 import os
-from sys import argv
+from sys import argv, stderr
 
 """
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -50,6 +50,15 @@ def main():
 
     for l in lines:
         l = l.strip()
+
+        count = l.count(" ")
+        if count != 2:
+            print("", file=stderr)
+            print("Failed to generate ELF map info:", file=stderr)
+            print("    Invalid line: '%s', expected 3 fields, got %d" % (l, count), file=stderr)
+            print("    (possibly undefined symbol?)", file=stderr)
+            print("", file=stderr)
+            exit(1)
 
         (addr, type, name) = l.split(" ", 2)
 
