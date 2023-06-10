@@ -83,7 +83,7 @@
 #define MOS_MAX_VADDR ((ptr_t) ~0)
 
 #define MOS_SYSCALL_INTR             0x88
-#define BIOS_VADDR(paddr)            (MOS_BIOS_VMAP_ADDR | ((ptr_t) (paddr)))
+#define BIOS_VADDR(paddr)            (MOS_HWMEM_VADDR | ((ptr_t) (paddr)))
 #define BIOS_VADDR_TYPE(paddr, type) ((type) BIOS_VADDR((paddr)))
 
 // clang-format off

@@ -26,6 +26,7 @@ macro(mos_debug feature description)
 endmacro()
 
 if (NOT DEFINED MOS_ARCH)
+    message(WARNING "MOS_ARCH is not defined, using x86 as default")
     set(MOS_ARCH "x86") # The only supported architecture for now
 endif()
 

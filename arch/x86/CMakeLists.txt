@@ -1,7 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-add_bootable_target(boot/multiboot)
-add_bootable_target(boot/multiboot_iso)
+if (NOT MOS_X86_64)
+    # multiboot is only available on 32-bit x86
+    add_subdirectory(boot/multiboot)
+endif()
+
+add_subdirectory(boot/limine)
 
 add_kernel_source(
     INCLUDE_DIRECTORIES

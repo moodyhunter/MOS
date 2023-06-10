@@ -4,11 +4,11 @@ ENTRY(mos_uefi_entry)
 
 SECTIONS
 {
-    . = 0xC000000000000000;
+    . = 0xFFFFFFFF80000000;
 
-    /* ! AT (ADDR(.text) - 0xf000000000000000) places the code themselves at a low address, but memory refs at the higher half */
+    /* ! AT (ADDR(.text) - 0xFFFFFFFF80000000) places the code themselves at a low address, but memory refs at the higher half */
 
-    .text ALIGN(4K) : AT (ADDR(.text) - 0xC000000000000000)
+    .text ALIGN(4K) : AT (ADDR(.text) - 0xFFFFFFFF80000000)
     {
         __MOS_KERNEL_CODE_START = .;
         *(.text);
@@ -18,7 +18,7 @@ SECTIONS
 
     . = DATA_SEGMENT_ALIGN (CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE));
 
-    .rodata ALIGN(4K) : AT (ADDR(.rodata) - 0xC000000000000000)
+    .rodata ALIGN(4K) : AT (ADDR(.rodata) - 0xFFFFFFFF80000000)
     {
         __MOS_KERNEL_RODATA_START = .;
         *(.rodata);
@@ -30,7 +30,7 @@ SECTIONS
         __MOS_TEST_CASES_END = .;
     }
 
-    .mos_info ALIGN(4K) : AT (ADDR(.mos_info) - 0xC0000000)
+    .mos_info ALIGN(4K) : AT (ADDR(.mos_info) - 0xFFFFFFFF80000000)
     {
         __MOS_KERNEL_MOS_INFO_START = .;
 
@@ -54,13 +54,13 @@ SECTIONS
         __MOS_KERNEL_RODATA_END = .;
     }
 
-    .data ALIGN(4K) : AT (ADDR(.data) - 0xC000000000000000)
+    .data ALIGN(4K) : AT (ADDR(.data) - 0xFFFFFFFF80000000)
     {
         __MOS_KERNEL_RW_START = .;
         *(.data);
     }
 
-    .bss ALIGN(4K) : AT (ADDR(.bss) - 0xC000000000000000)
+    .bss ALIGN(4K) : AT (ADDR(.bss) - 0xFFFFFFFF80000000)
     {
         *(.bss);
         . = ALIGN(4K);

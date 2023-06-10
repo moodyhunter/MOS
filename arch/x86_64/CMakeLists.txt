@@ -1,13 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-include(${CMAKE_CURRENT_LIST_DIR}/boot/uefi/bootable.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/boot/limine/bootable.cmake)
+# x86_64 shares the same platform codebase as x86, so we just include that
 
-add_kernel_source(
-    INCLUDE_DIRECTORIES
-    ${CMAKE_CURRENT_LIST_DIR}/include
-
-    SOURCES
-        x86_64_platform.c
-        x86_64_platform_api.c
-)
+add_subdirectory(../x86 x86_64)

@@ -11,7 +11,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     message(FATAL_ERROR "In-source builds are not allowed. Please create a separate build directory and run CMake from there.")
 endif()
 
-project(MOS LANGUAGES CXX C ASM_NASM VERSION 0.1)
+project(MOS LANGUAGES CXX C ASM ASM_NASM VERSION 0.1)
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_EXTENSIONS ON)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
@@ -21,8 +21,6 @@ set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-
-include(GNUInstallDirs)
 
 execute_process(
     COMMAND git describe --long --tags --all --dirty
@@ -76,8 +74,7 @@ include(add_mos_library)
 add_subdirectory(libs)
 
 # Configure architecture-specific stuff
-include(add_bootable_target)
-include(prepare_bootable_kernel_binary)
+include(create_bootable_kernel_binary)
 add_subdirectory(arch/${MOS_ARCH})
 
 add_subdirectory(userspace)
@@ -128,4 +125,3 @@ message("MOS is now configured :)")
 message("")
 
 print_summary()
-dump_bootable_targets()
