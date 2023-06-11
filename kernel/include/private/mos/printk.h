@@ -51,13 +51,17 @@ typedef enum
 #define lprintk_wrapper(level, fmt, ...) lprintk(level, "\r\n" fmt, ##__VA_ARGS__)
 #endif
 
+#ifndef pr_fmt
+#define pr_fmt(fmt) fmt // default format string
+#endif
+
 // print a colored message without handler, print unconditionally without a handler
-#define pr_info(fmt, ...)  lprintk_wrapper(MOS_LOG_INFO, fmt, ##__VA_ARGS__)
-#define pr_info2(fmt, ...) lprintk_wrapper(MOS_LOG_INFO2, fmt, ##__VA_ARGS__)
-#define pr_emph(fmt, ...)  lprintk_wrapper(MOS_LOG_EMPH, fmt, ##__VA_ARGS__)
-#define pr_warn(fmt, ...)  lprintk_wrapper(MOS_LOG_WARN, fmt, ##__VA_ARGS__)
-#define pr_emerg(fmt, ...) lprintk_wrapper(MOS_LOG_EMERG, fmt, ##__VA_ARGS__)
-#define pr_fatal(fmt, ...) lprintk_wrapper(MOS_LOG_FATAL, fmt, ##__VA_ARGS__)
+#define pr_info(fmt, ...)  lprintk_wrapper(MOS_LOG_INFO, pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_info2(fmt, ...) lprintk_wrapper(MOS_LOG_INFO2, pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_emph(fmt, ...)  lprintk_wrapper(MOS_LOG_EMPH, pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_warn(fmt, ...)  lprintk_wrapper(MOS_LOG_WARN, pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_emerg(fmt, ...) lprintk_wrapper(MOS_LOG_EMERG, pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_fatal(fmt, ...) lprintk_wrapper(MOS_LOG_FATAL, pr_fmt(fmt), ##__VA_ARGS__)
 #define pr_cont(fmt, ...)  lprintk(MOS_LOG_UNSET, fmt, ##__VA_ARGS__)
 
 // these two also invokes a warning/panic handler
