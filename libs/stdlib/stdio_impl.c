@@ -139,7 +139,15 @@ flag_parse_done:
         if (current == 'l')
             pflags->length = LM_ll, goto_next_char();
         else
+        {
+#if MOS_LP32
             pflags->length = LM__l;
+#elif MOS_LP64
+            pflags->length = LM_ll; // 64-bit long
+#else
+#error "Unknown long size"
+#endif
+        }
     }
     else if (current == 'L')
     {
