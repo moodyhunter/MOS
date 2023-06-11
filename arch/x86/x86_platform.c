@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/device/console.h"
 #include "mos/x86/descriptors/descriptors.h"
 
 #include <mos/cmdline.h>
@@ -26,7 +27,7 @@
 
 static u8 com1_buf[MOS_PAGE_SIZE] __aligned(MOS_PAGE_SIZE) = { 0 };
 
-static serial_console_t com1_console = {
+serial_console_t com1_console = {
     .device =
         &(serial_device_t){
             .port = COM1,
@@ -123,22 +124,9 @@ static void x86_do_backtrace(void)
     }
 }
 
-void x86_start_kernel(x86_startup_info *info)
+void x86_start_kernel(void)
 {
-    console_register(&com1_console.con, MOS_PAGE_SIZE);
-    const multiboot_info_t *mb_info = info->mb_info;
-    size_t initrd_npages = 0;
-    pfn_t initrd_pfn = 0;
-
-    if (mb_info->flags & MULTIBOOT_INFO_MODS && mb_info->mods_count != 0)
-    {
-        const multiboot_module_t *mod = (const multiboot_module_t *) mb_info->mods_addr;
-        initrd_npages = ALIGN_UP_TO_PAGE(mod->mod_end - mod->mod_start) / MOS_PAGE_SIZE;
-        initrd_pfn = ALIGN_DOWN_TO_PAGE(mod->mod_start) / MOS_PAGE_SIZE;
-        mos_debug(x86_startup, "initrd at " PFN_FMT ", size %zu pages", initrd_pfn, initrd_npages);
-    }
-
-    mos_cmdline_parse(mb_info->cmdline);
+    mos_debug(x86_startup, "initrd at " PFN_FMT ", size %zu pages", platform_info->initrd_pfn, platform_info->initrd_npages);
     setup_invoke_earlysetup();
 
     declare_panic_hook(x86_do_backtrace, "Backtrace");
@@ -181,14 +169,11 @@ void x86_start_kernel(x86_startup_info *info)
 
     // make our own copy of the multiboot info
     // switching to our new page table will ruin the old one
-    const size_t mmap_count = mb_info->mmap_length / sizeof(multiboot_memory_map_t);
-    multiboot_memory_map_t mmaps[mmap_count];
-    memcpy(mmaps, (void *) mb_info->mmap_addr, mb_info->mmap_length);
 
     x86_enable_paging_impl(((ptr_t) x86_kpg_infra->pgdir) - MOS_KERNEL_START_VADDR);
 
     mos_debug(x86_startup, "setting up physical memory manager...");
-    x86_pmm_region_setup(mmaps, mmap_count, initrd_pfn, initrd_npages);
+    x86_find_and_initialise_phyframes();
 
     pmm_reserve_addresses(x86_platform.k_code.vaddr - MOS_KERNEL_START_VADDR, x86_platform.k_code.npages);
     pmm_reserve_addresses(x86_platform.k_rodata.vaddr - MOS_KERNEL_START_VADDR, x86_platform.k_rodata.npages);
@@ -200,11 +185,11 @@ void x86_start_kernel(x86_startup_info *info)
     x86_bios_block = mm_map_pages(&x86_platform.kernel_mm, x86_bios_block.vaddr, X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages, x86_bios_block.flags);
     x86_ebda_block = mm_map_pages(&x86_platform.kernel_mm, x86_ebda_block.vaddr, X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages, x86_ebda_block.flags);
 
-    if (initrd_npages)
+    if (platform_info->initrd_npages)
     {
         x86_initrd_present = true;
-        pmm_reserve_frames(initrd_pfn, initrd_npages);
-        mm_map_pages(&x86_platform.kernel_mm, MOS_INITRD_VADDR, initrd_pfn, initrd_npages, VM_READ | VM_GLOBAL);
+        pmm_reserve_frames(platform_info->initrd_pfn, platform_info->initrd_npages);
+        mm_map_pages(&x86_platform.kernel_mm, MOS_INITRD_VADDR, platform_info->initrd_pfn, platform_info->initrd_npages, VM_READ | VM_GLOBAL);
     }
 
     mos_kernel_mm_init(); // we can now use the kernel heap (kmalloc)

@@ -3,6 +3,5 @@
 #pragma once
 
 #include <mos/types.h>
-#include <mos/x86/boot/multiboot.h>
 
-void x86_pmm_region_setup(const multiboot_memory_map_t *map_entry, u32 count, pfn_t initrd_pfn, size_t initrd_size);
+void x86_find_and_initialise_phyframes(void);

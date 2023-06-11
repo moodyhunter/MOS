@@ -229,3 +229,9 @@ typedef struct
     u16 cseg_16_len;
     u16 dseg_len;
 } multiboot_apm_info_t;
+
+typedef struct
+{
+    u32 mb_magic;
+    multiboot_info_t *mb_info;
+} __packed mos_x86_multiboot_startup_info;

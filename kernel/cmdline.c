@@ -31,7 +31,7 @@ cmdline_option_t *cmdline_get_option(const char *option_name)
     return NULL;
 }
 
-void mos_cmdline_parse(const char *cmdline)
+void mos_cmdline_init(const char *cmdline)
 {
     // must be static so that it doesn't get freed
     static char cmdline_buf[PRINTK_BUFFER_SIZE] = { 0 };

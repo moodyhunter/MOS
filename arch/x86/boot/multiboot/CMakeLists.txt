@@ -8,6 +8,7 @@ create_bootable_kernel_binary(
     FILENAME
         multiboot.bin
     SOURCES
+        multiboot_entry.c
         multiboot.asm
         startup.c
 )

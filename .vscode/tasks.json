@@ -5,7 +5,7 @@
             "label": "compile",
             "type": "shell",
             "options": { "cwd": "${workspaceFolder}/build" },
-            "command": "cmake --build ${workspaceFolder}/build --target multiboot mos_userspace_programs mos_initrd",
+            "command": "cmake --build ${workspaceFolder}/build --target mos_multiboot mos_userspace_programs mos_initrd",
             "group": "build",
             "presentation": {
                 "reveal": "silent",

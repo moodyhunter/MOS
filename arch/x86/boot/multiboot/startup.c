@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "multiboot.h"
+
 #include <mos/boot/startup.h>
 #include <mos/device/console.h>
 #include <mos/x86/mm/paging_impl.h>
@@ -118,7 +120,7 @@ __startup_code void mos_startup_map_single_page(ptr_t vaddr, ptr_t paddr, vm_fla
 // 2. Identity map the code section '.mos.startup*'
 // 3. Map the kernel code, rodata, data, bss and kpage tables
 // 4. Enable paging
-__startup_code asmlinkage void x86_startup(x86_startup_info *startup)
+__startup_code asmlinkage void x86_startup(mos_x86_multiboot_startup_info *startup)
 {
     char step = 'a';
 

@@ -16,7 +16,7 @@ section .multiboot.data
 section .multiboot.text
 
 extern x86_startup
-extern x86_start_kernel
+extern x86_multiboot_entry
 extern _mos_startup_stack
 extern __MOS_KERNEL_HIGHER_STACK_TOP
 
@@ -39,7 +39,7 @@ mos_x86_multiboot_start:
     push    dword [eax + 4]             ; Push multiboot2 header pointer
     push    dword [eax]                 ; Push multiboot2 magic value
     push    esp                         ; Push [struct x86_startup_info] pointer
-    call    x86_start_kernel
+    call    x86_multiboot_entry
 .hang:
     hlt
     jmp     .hang

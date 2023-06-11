@@ -2,9 +2,10 @@
 
 #pragma once
 
+#include "mos/x86/devices/serial_console.h"
+
 #include <mos/mos_global.h>
 #include <mos/platform/platform.h>
-#include <mos/x86/boot/multiboot.h>
 
 #define X86_BIOS_MEMREGION_PADDR 0xf0000
 #define BIOS_MEMREGION_SIZE      0x10000
@@ -38,12 +39,6 @@ MOS_STATIC_ASSERT(sizeof(x86_stack_frame) == 208, "x86_stack_frame has incorrect
 MOS_STATIC_ASSERT(sizeof(x86_stack_frame) == 76, "x86_stack_frame has incorrect size");
 #endif
 
-typedef struct
-{
-    u32 mb_magic;
-    multiboot_info_t *mb_info;
-} __packed x86_startup_info;
-
 // defined in the linker script 'multiboot.ld'
 extern const char __MOS_KERNEL_CODE_START[], __MOS_KERNEL_CODE_END[];     // Kernel text
 extern const char __MOS_KERNEL_RODATA_START[], __MOS_KERNEL_RODATA_END[]; // Kernel rodata
@@ -52,3 +47,6 @@ extern const char __MOS_KERNEL_END[];                                     // Ker
 
 extern mos_platform_info_t x86_platform;
 extern bool x86_initrd_present;
+extern serial_console_t com1_console;
+
+void x86_start_kernel();

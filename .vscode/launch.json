@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/build/mos_multiboot.bin",
+            "program": "${workspaceFolder}/build/boot.dir/multiboot.bin",
             "MIMode": "gdb",
             "miDebuggerPath": "/usr/bin/i686-elf-gdb",
             "miDebuggerServerAddress": "localhost:1234",

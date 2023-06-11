@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "mos/mm/physical/pmm.h"
+
 #include <mos/io/io.h>
 #include <mos/kconfig.h>
 #include <mos/lib/structures/list.h>
@@ -163,6 +165,13 @@ typedef struct
     vmblock_t k_code, k_rwdata, k_rodata;
 
     mm_context_t kernel_mm;
+
+    pfn_t initrd_pfn;
+    size_t initrd_npages;
+
+    pfn_t max_pfn;
+    pmm_region_t pmm_regions[MOS_MAX_MEMREGIONS];
+    size_t num_pmm_regions;
 } mos_platform_info_t;
 
 extern mos_platform_info_t *const platform_info;
