@@ -29,7 +29,11 @@
 #define __nodiscard     __attribute__((__warn_unused_result__))
 #define __no_instrument __attribute__((__no_instrument_function__))
 
-#define asmlinkage    __attribute__((regparm(0)))
+#if MOS_BITS == 64
+#define asmlinkage __attribute__((sysv_abi))
+#else
+#define asmlinkage __attribute__((regparm(0)))
+#endif
 #define should_inline __maybe_unused static inline
 #define always_inline should_inline __attribute__((__always_inline__))
 
