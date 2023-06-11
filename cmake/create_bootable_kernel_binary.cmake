@@ -93,14 +93,17 @@ function(create_bootable_kernel_binary)
         VERBATIM)
 
     # Step 4: Compile the kernel with the final kallsyms
-    do_kallsyms(${ARGS_TARGET} ${ARGS_LINKER_SCRIPT} ${STEP3_KALLSYMS_C})
-    add_custom_command(
-        TARGET ${ARGS_TARGET}
-        POST_BUILD
-        VERBATIM
-        BYPRODUCTS "${BOOT_DIR}/${ARGS_FILENAME}"
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${ARGS_TARGET}> "${BOOT_DIR}/${ARGS_FILENAME}"
-        DEPENDS ${ARGS_TARGET})
+    add_executable(${ARGS_TARGET} ${STEP3_KALLSYMS_C})
+    set_target_properties(${ARGS_TARGET} PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${BOOT_DIR}/
+        OUTPUT_NAME ${ARGS_FILENAME}
+        EXCLUDE_FROM_ALL TRUE
+        LINKER_LANGUAGE C
+        LINK_DEPENDS "${ARGS_LINKER_SCRIPT}"
+        LINK_OPTIONS "-T${ARGS_LINKER_SCRIPT};-nostdlib;-Wl,--build-id=none")
 
+    # link mos::kernel explicitly to ensure that all symbols from the kernel are
+    # included in the final binary (linker may strip unused symbols in ${TARGET_NAME}_loader)
+    target_link_libraries(${ARGS_TARGET} PRIVATE ${ARGS_TARGET}_loader mos::kernel)
     add_summary_item(BOOTABLE ${ARGS_TARGET} "" "${ARGS_COMMENT}")
 endfunction()
