@@ -29,9 +29,9 @@ if (MOS_X86_64)
     # hole
     mos_kconfig(ARCH_X86    MOS_INITRD_VADDR                0xFFFFC8C000000000  "Initrd Virtual Address")
     # hole
-    # 32 TiB kernel heap
-    mos_kconfig(ARCH_X86    MOS_ADDR_KERNEL_HEAP            0xFFFFC90000000000  "Kernel Heap Start Address")
-    mos_kconfig(ARCH_X86    MOS_ADDR_KERNEL_HEAP_END        0xFFFFE80000000000  "Kernel Heap End Address")
+    # 1 TiB kernel heap is way enough for now
+    mos_kconfig(ARCH_X86    MOS_ADDR_KERNEL_HEAP            0xFFFFD00000000000  "Kernel Heap Start Address")
+    mos_kconfig(ARCH_X86    MOS_ADDR_KERNEL_HEAP_END        0xFFFFD10000000000  "Kernel Heap End Address")
     # hole
     mos_kconfig(ARCH_X86    MOS_PHYFRAME_ARRAY_VADDR        0xFFFFEA0000000000  "Physical Frame Array Virtual Address")
     mos_kconfig(ARCH_X86    MOS_HWMEM_VADDR                 0xFFFFFFFFA0000000  "Hardware Virtual Map Address")
