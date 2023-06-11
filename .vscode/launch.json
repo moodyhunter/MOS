@@ -103,5 +103,39 @@
                 }
             },
         },
+        {
+            "name": "Attach to qemu - MOS Limine Kernel",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/build/boot.dir/limine_entry.elf",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/x86_64-elf-gdb",
+            "miDebuggerServerAddress": "localhost:1234",
+            "preLaunchTask": "start_os_x86_64",
+            "setupCommands": [
+                {
+                    // load gdbinit
+                    "description": "Load gdbinit",
+                    "text": "source ${workspaceFolder}/build/gdbinit",
+                },
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                },
+            ],
+            "sourceFileMap": {
+                "${workspaceFolder}": {
+                    "editorPath": "${workspaceFolder}",
+                    "useForBreakpoints": "true"
+                }
+            },
+        },
     ]
 }
