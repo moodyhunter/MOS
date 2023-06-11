@@ -37,9 +37,14 @@ add_kernel_source(
 )
 
 if(MOS_SMP)
-    add_kernel_source(
-        SOURCES
-            cpu/ap_init.asm
-            cpu/smp.c
-    )
+    if (MOS_BITS EQUAL 64)
+        message(WARNING "SMP is not supported on 64-bit x86 (yet)")
+        set(MOS_SMP OFF PARENT_SCOPE)
+    else()
+        add_kernel_source(
+            SOURCES
+                cpu/ap_init.asm
+                cpu/smp.c
+        )
+    endif()
 endif()
