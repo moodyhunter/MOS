@@ -73,6 +73,7 @@ typedef struct
     pfn_t pfn_start;
     size_t nframes;
     bool reserved;
+    u32 type; // platform-specific type
 } pmm_region_t;
 
 typedef enum
@@ -110,7 +111,7 @@ void pmm_dump_lists(void);
  *
  * @param max_frames Maximum number of frames that are addressable on the system.
  */
-void pmm_init(size_t max_frames);
+void pmm_init_regions(size_t max_frames);
 
 /**
  * @brief Allocate n_frames of contiguous physical memory.
@@ -146,14 +147,6 @@ void pmm_ref_frames(pfn_t pfn_start, size_t npages);
  *
  */
 void pmm_unref_frames(pfn_t pfn_start, size_t npages);
-
-/**
- * @brief Add a reserved region of physical memory to the physical memory manager.
- *
- * @param start
- * @param nframes
- */
-void pmm_register_reserved_region(pfn_t start, size_t nframes);
 
 /**
  * @brief Mark a range of physical memory as reserved.

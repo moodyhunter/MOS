@@ -46,7 +46,7 @@ void x86_find_and_initialise_phyframes(void)
         // then we zero the array
         memzero((void *) MOS_PHYFRAME_ARRAY_VADDR, array_npages * MOS_PAGE_SIZE);
         // then we can initialize the pmm
-        pmm_init(phyframes_count);
+        pmm_init_regions(phyframes_count);
         // and finally we can reserve this region
         pmm_reserve_frames(pfn, array_npages);
         break;
@@ -63,6 +63,6 @@ void x86_find_and_initialise_phyframes(void)
         if (r->nframes == 0) // ???
             continue;
         if (r->reserved)
-            pmm_register_reserved_region(r->pfn_start, r->nframes);
+            pmm_reserve_frames(r->pfn_start, r->nframes);
     }
 }
