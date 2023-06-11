@@ -24,7 +24,7 @@ file(WRITE ${CMAKE_BINARY_DIR}/stub_kallsyms.c ${STUB_KALLSYMS_C})
 function(do_kallsyms TARGET_NAME LINKER_SCRIPT KALLSYMS_C)
     add_executable(${TARGET_NAME} ${KALLSYMS_C})
     set_target_properties(${TARGET_NAME} PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${BOOT_DIR}
+        RUNTIME_OUTPUT_DIRECTORY ${BOOT_DIR}/kallsyms/
         OUTPUT_NAME ${TARGET_NAME}
         EXCLUDE_FROM_ALL TRUE
         LINKER_LANGUAGE C
