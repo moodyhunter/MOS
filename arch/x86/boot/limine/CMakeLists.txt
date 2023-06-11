@@ -19,8 +19,13 @@ endif()
 
 list(APPEND CMAKE_PROGRAM_PATH ${LIMINE_ROOT}/bin)
 
-find_program(LIMINE_DEPLOY limine-deploy REQUIRED)
-find_program(XORRISO xorriso REQUIRED)
+find_program(LIMINE_DEPLOY limine-deploy NO_CACHE)
+find_program(XORRISO xorriso NO_CACHE)
+
+if (NOT LIMINE_DEPLOY OR NOT XORRISO)
+    message(WARNING "limine-deploy and xorriso are required to build the limine ISO")
+    return()
+endif()
 
 set(BOOT_DIR ${CMAKE_BINARY_DIR}/boot.dir)
 set(LIMINE_BOOT_DIR ${CMAKE_BINARY_DIR}/boot.dir/iso_root/limine)
