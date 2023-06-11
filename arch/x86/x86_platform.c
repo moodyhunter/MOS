@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/x86/descriptors/descriptors.h"
+
 #include <mos/cmdline.h>
 #include <mos/kallsyms.h>
 #include <mos/mm/paging/paging.h>
@@ -10,11 +12,9 @@
 #include <mos/x86/acpi/acpi.h>
 #include <mos/x86/acpi/madt.h>
 #include <mos/x86/cpu/smp.h>
-#include <mos/x86/descriptors/descriptor_types.h>
 #include <mos/x86/devices/port.h>
 #include <mos/x86/devices/serial_console.h>
 #include <mos/x86/interrupt/apic.h>
-#include <mos/x86/interrupt/idt.h>
 #include <mos/x86/mm/mm.h>
 #include <mos/x86/mm/paging.h>
 #include <mos/x86/mm/paging_impl.h>
@@ -93,7 +93,11 @@ static void x86_do_backtrace(void)
         ptr_t eip;
     } *frame = NULL;
 
+#if MOS_BITS == 64
+    __asm__("movq %%rbp,%1" : "=r"(frame) : "r"(frame));
+#else
     __asm__("movl %%ebp,%1" : "=r"(frame) : "r"(frame));
+#endif
     for (u32 i = 0; frame; i++)
     {
         bool mapped = mm_get_is_mapped(current_cpu->mm_context, (ptr_t) frame);

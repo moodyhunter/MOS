@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/x86/descriptors/descriptors.h"
+
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
-#include <mos/x86/descriptors/descriptor_types.h>
 #include <mos/x86/x86_platform.h>
 #include <string.h>
 
@@ -28,17 +29,23 @@ typedef enum
     GDT_GRAN_PAGE = 1,
 } gdt_gran_t;
 
-static gdt_entry32_t *gdt32_set_entry(gdt_entry32_t *entry, u32 base, u32 limit, gdt_entry_type_t entry_type, gdt_ring_t dpl, gdt_gran_t gran)
+static gdt_entry_t *gdt_set_entry(gdt_entry_t *entry, ptr_t base, u32 limit, gdt_entry_type_t entry_type, gdt_ring_t dpl, gdt_gran_t gran)
 {
     entry->base_low = MASK_BITS(base, 24);
     entry->base_high = MASK_BITS((base >> 24), 8);
+#if MOS_BITS == 64
+    entry->base_veryhigh = base >> 32;
+    entry->long_mode_code = entry_type == GDT_ENTRY_CODE;
+#else
+    entry->long_mode_code = false;
+#endif
+    entry->pm32_segment = !entry->long_mode_code; // it's one or the other
+
     entry->limit_low = MASK_BITS(limit, 16);
     entry->limit_high = MASK_BITS((limit >> 16), 4);
     entry->present = 1;
     entry->available = 1;
     entry->read_write = true;
-    entry->long_mode = false;
-    entry->pm32_segment = true;
     entry->code_data_segment = true;
     entry->dpl = dpl;
     entry->executable = (entry_type == GDT_ENTRY_CODE);
@@ -60,13 +67,13 @@ void x86_init_current_cpu_gdt()
 
     // {Kernel,User}{Code,Data} Segments
     // We are using a flat memory model, so the base is 0 and the limit is all the way up to the end of the address space.
-    gdt32_set_entry(&this_cpu_desc->gdt[1], 0x00000000, 0xFFFFFFFF, GDT_ENTRY_CODE, GDT_RING_KERNEL, GDT_GRAN_PAGE);
-    gdt32_set_entry(&this_cpu_desc->gdt[2], 0x00000000, 0xFFFFFFFF, GDT_ENTRY_DATA, GDT_RING_KERNEL, GDT_GRAN_PAGE);
-    gdt32_set_entry(&this_cpu_desc->gdt[3], 0x00000000, 0xFFFFFFFF, GDT_ENTRY_CODE, GDT_RING_USER, GDT_GRAN_PAGE);
-    gdt32_set_entry(&this_cpu_desc->gdt[4], 0x00000000, 0xFFFFFFFF, GDT_ENTRY_DATA, GDT_RING_USER, GDT_GRAN_PAGE);
+    gdt_set_entry(&this_cpu_desc->gdt[1], 0x00000000, 0xFFFFFFFF, GDT_ENTRY_CODE, GDT_RING_KERNEL, GDT_GRAN_PAGE);
+    gdt_set_entry(&this_cpu_desc->gdt[2], 0x00000000, 0xFFFFFFFF, GDT_ENTRY_DATA, GDT_RING_KERNEL, GDT_GRAN_PAGE);
+    gdt_set_entry(&this_cpu_desc->gdt[3], 0x00000000, 0xFFFFFFFF, GDT_ENTRY_CODE, GDT_RING_USER, GDT_GRAN_PAGE);
+    gdt_set_entry(&this_cpu_desc->gdt[4], 0x00000000, 0xFFFFFFFF, GDT_ENTRY_DATA, GDT_RING_USER, GDT_GRAN_PAGE);
 
     // TSS segment
-    gdt_entry32_t *tss_seg = gdt32_set_entry(&this_cpu_desc->gdt[5], (ptr_t) &this_cpu_desc->tss, sizeof(tss32_t), GDT_ENTRY_CODE, GDT_RING_KERNEL, GDT_GRAN_BYTE);
+    gdt_entry_t *tss_seg = gdt_set_entry(&this_cpu_desc->gdt[5], (ptr_t) &this_cpu_desc->tss, sizeof(tss32_t), GDT_ENTRY_CODE, GDT_RING_KERNEL, GDT_GRAN_BYTE);
 
     // ! Set special attributes for the TSS segment.
     tss_seg->code_data_segment = 0; // indicates TSS/LDT (see also `accessed`)

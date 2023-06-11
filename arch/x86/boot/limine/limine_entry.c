@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/printk.h>
-#include <mos/types.h>
+#include "mos/device/console.h"
+#include "mos/x86/devices/serial_console.h"
 
-static char cmdline[1024];
+extern void x86_start_kernel(void);
 
-asmlinkage void mos_limine_entry(void)
+asmlinkage void limine_entry(void)
 {
-    pr_info("cmdline: %s", cmdline);
+    x86_start_kernel();
 }

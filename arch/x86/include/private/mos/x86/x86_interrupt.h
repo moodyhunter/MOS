@@ -79,6 +79,6 @@ extern void *isr_stub_table[];
 extern void *irq_stub_table[];
 
 void x86_irq_handler_init(void);
-void x86_handle_interrupt(u32 esp);
+void x86_handle_interrupt(ptr_t esp);
 
 bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq));

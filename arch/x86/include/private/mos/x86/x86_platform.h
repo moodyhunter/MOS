@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <mos/mos_global.h>
 #include <mos/platform/platform.h>
 #include <mos/x86/boot/multiboot.h>
 
@@ -15,20 +16,27 @@
 
 typedef struct
 {
-    reg32_t eip, cs;
-    reg32_t eflags;
-    reg32_t esp, ss;
+    reg_t ip, cs;
+    reg_t eflags;
+    reg_t sp, ss;
 } __packed x86_iret_params_t;
 
 typedef struct
 {
-    reg32_t ds, es, fs, gs;
-    reg32_t edi, esi, ebp, _esp, ebx, edx, ecx, eax; // the _esp is unused, see iret_params.esp
+    reg_t ds, es, fs, gs;
+#if MOS_BITS == 64
+    reg_t r8, r9, r10, r11, r12, r13, r14, r15;
+#endif
+    reg_t di, si, bp, _sp, bx, dx, cx, ax; // the _esp is unused, see iret_params.esp
     reg32_t interrupt_number, error_code;
     x86_iret_params_t iret_params;
 } __packed x86_stack_frame;
 
+#if MOS_BITS == 64
+MOS_STATIC_ASSERT(sizeof(x86_stack_frame) == 208, "x86_stack_frame has incorrect size");
+#else
 MOS_STATIC_ASSERT(sizeof(x86_stack_frame) == 76, "x86_stack_frame has incorrect size");
+#endif
 
 typedef struct
 {

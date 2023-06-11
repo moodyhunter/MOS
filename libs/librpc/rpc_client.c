@@ -231,8 +231,9 @@ rpc_result_code_t rpc_simple_callv(rpc_server_stub_t *stub, u32 funcid, rpc_resu
             }
             case 'f':
             {
-                double arg = va_arg(args, double);
-                rpc_call_arg(call, &arg, sizeof(arg));
+                MOS_LIB_UNREACHABLE(); // TODO: implement
+                // double arg = va_arg(args, double);
+                // rpc_call_arg(call, &arg, sizeof(arg));
                 break;
             }
             case 's':

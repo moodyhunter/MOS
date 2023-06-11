@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/x86/descriptors/descriptors.h"
+
 #include <mos/platform/platform.h>
-#include <mos/x86/descriptors/descriptor_types.h>
-#include <mos/x86/interrupt/idt.h>
 #include <mos/x86/x86_interrupt.h>
 #include <mos/x86/x86_platform.h>
 
@@ -20,8 +20,13 @@ static void idt_set_descriptor(u8 vector, void *isr, bool usermode, bool is_trap
 {
     idt_entry32_t *descriptor = &idt[vector];
 
-    descriptor->isr_low = (u32) isr & 0xFFFF;
-    descriptor->isr_high = (u32) isr >> 16;
+#if MOS_BITS == 64
+    descriptor->isr_veryhigh = (uintn) isr >> 32;
+    descriptor->reserved2 = 0;
+#endif
+
+    descriptor->isr_low = (uintn) isr & 0xFFFF;
+    descriptor->isr_high = (uintn) isr >> 16;
     descriptor->segment = GDT_SEGMENT_KCODE;
     descriptor->present = true;
     descriptor->dpl = usermode ? 3 : 0;

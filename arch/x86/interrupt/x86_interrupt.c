@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+
 #include <mos/interrupt/ipi.h>
 #include <mos/lib/structures/list.h>
 #include <mos/mm/cow.h>
@@ -75,22 +76,22 @@ bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
 static void x86_dump_registers(x86_stack_frame *frame)
 {
     pr_emph("General Purpose Registers:\n"
-            "  EAX: 0x%08x EBX: 0x%08x ECX: 0x%08x EDX: 0x%08x\n"
-            "  ESI: 0x%08x EDI: 0x%08x EBP: 0x%08x ESP: 0x%08x\n"
-            "  EIP: 0x%08x\n"
+            "  EAX: " PTR_FMT " EBX: " PTR_FMT " ECX: " PTR_FMT " EDX: " PTR_FMT "\n"
+            "  ESI: " PTR_FMT " EDI: " PTR_FMT " EBP: " PTR_FMT " ESP: " PTR_FMT "\n"
+            "  EIP: " PTR_FMT "\n"
             "Segment Registers:\n"
-            "  DS:  0x%08x ES:  0x%08x FS:  0x%08x GS:  0x%08x\n"
+            "  DS:  0x%08lx ES:  0x%08lx FS:  0x%08lx GS:  0x%08lx\n"
             "Context:\n"
-            "  EFLAGS:       0x%08x\n"
-            "  Instruction:  0x%x:%08x\n"
-            "  Stack:        0x%x:%08x",
-            frame->eax, frame->ebx, frame->ecx, frame->edx,             //
-            frame->esi, frame->edi, frame->ebp, frame->iret_params.esp, //
-            frame->iret_params.eip,                                     //
-            frame->ds, frame->es, frame->fs, frame->gs,                 //
-            frame->iret_params.eflags,                                  //
-            frame->iret_params.cs, frame->iret_params.eip,              //
-            frame->iret_params.ss, frame->iret_params.esp               //
+            "  EFLAGS:       0x%08lx\n"
+            "  Instruction:  0x%lx:%08lx\n"
+            "  Stack:        0x%lx:%08lx",
+            frame->ax, frame->bx, frame->cx, frame->dx,             //
+            frame->si, frame->di, frame->bp, frame->iret_params.sp, //
+            frame->iret_params.ip,                                  //
+            frame->ds, frame->es, frame->fs, frame->gs,             //
+            frame->iret_params.eflags,                              //
+            frame->iret_params.cs, frame->iret_params.ip,           //
+            frame->iret_params.ss, frame->iret_params.sp            //
     );
 }
 
@@ -191,7 +192,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
                             current->owner->pid,                                                                     //
                             current->owner->name,                                                                    //
                             fault_address,                                                                           //
-                            (ptr_t) stack->iret_params.eip                                                           //
+                            (ptr_t) stack->iret_params.ip                                                            //
                     );
                 }
 
@@ -220,7 +221,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
                          current ? current->owner->name : "<none>", //
                          is_user ? "User" : "Kernel",               //
                          fault_address,                             //
-                         (ptr_t) stack->iret_params.eip             //
+                         (ptr_t) stack->iret_params.ip              //
                 );
             }
             else
@@ -229,7 +230,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
                     pr_warn("'%s' trying to read kernel memory?", current_process->name);
                 pr_emerg("Page Fault: %s code at " PTR_FMT " is trying to %s a %s address " PTR_FMT, //
                          is_user ? "Userspace" : "Kernel",                                           //
-                         (ptr_t) stack->iret_params.eip,                                             //
+                         (ptr_t) stack->iret_params.ip,                                              //
                          is_write ? "write into" : "read from",                                      //
                          present ? "present" : "non-present",                                        //
                          fault_address);
@@ -273,7 +274,7 @@ static void x86_handle_irq(x86_stack_frame *frame)
         pr_warn("IRQ %d not handled!", irq);
 }
 
-void x86_handle_interrupt(u32 esp)
+void x86_handle_interrupt(ptr_t esp)
 {
     x86_stack_frame *frame = (x86_stack_frame *) esp;
 
@@ -282,8 +283,8 @@ void x86_handle_interrupt(u32 esp)
     {
         x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
         context->regs = *frame;
-        context->inner.instruction = frame->iret_params.eip;
-        context->inner.stack = frame->iret_params.esp;
+        context->inner.instruction = frame->iret_params.ip;
+        context->inner.stack = frame->iret_params.sp;
     }
 
     if (frame->interrupt_number < IRQ_BASE)
@@ -293,7 +294,7 @@ void x86_handle_interrupt(u32 esp)
     else if (frame->interrupt_number >= IPI_BASE && frame->interrupt_number < IPI_BASE + IPI_TYPE_MAX)
         ipi_do_handle((ipi_type_t) (frame->interrupt_number - IPI_BASE));
     else if (frame->interrupt_number == MOS_SYSCALL_INTR)
-        frame->eax = dispatch_syscall(frame->eax, frame->ebx, frame->ecx, frame->edx, frame->esi, frame->edi, frame->ebp);
+        frame->ax = dispatch_syscall(frame->ax, frame->bx, frame->cx, frame->dx, frame->si, frame->di, frame->bp);
     else
         pr_warn("Unknown interrupt number: %d", frame->interrupt_number);
 

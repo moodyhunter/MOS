@@ -21,15 +21,14 @@ typedef unsigned long long u64;
 
 typedef unsigned long ptr_t;
 
+typedef signed long intn;
+typedef unsigned long uintn;
+
 // native integer type
 #if MOS_BITS == 32
-typedef s32 intn;
-typedef u32 uintn;
 #define PTR_FMT   "0x%8.8lx"
 #define PTR_VLFMT "0x%lx"
 #else
-typedef s64 intn;
-typedef u64 uintn;
 #define PTR_FMT   "0x%16.16lx"
 #define PTR_VLFMT "0x%lx"
 #endif

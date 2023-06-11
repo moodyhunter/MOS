@@ -57,12 +57,11 @@ always_inline x86_pg_infra_t *x86_get_pg_infra(mm_context_t *mmctx)
     return (x86_pg_infra_t *) mmctx->pgd;
 }
 
-// defined in enable_paging.asm
-extern void x86_enable_paging_impl(ptr_t page_dir);
-
 void pg_flag_page(x86_pg_infra_t *pg, ptr_t vaddr, size_t n, vm_flags flags);
 ptr_t pg_get_mapped_paddr(x86_pg_infra_t *pg, ptr_t vaddr);
 vm_flags pg_get_flags(x86_pg_infra_t *pg, ptr_t vaddr);
 
 void pg_map_page(x86_pg_infra_t *pg, ptr_t vaddr, pfn_t pfn, vm_flags flags);
 void pg_unmap_page(x86_pg_infra_t *pg, ptr_t vaddr);
+
+void x86_enable_paging_impl(ptr_t page_dir);

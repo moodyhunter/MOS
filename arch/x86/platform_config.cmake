@@ -5,9 +5,11 @@ add_summary_section(ARCH_X86_DEBUG "x86 Debug")
 
 mos_kconfig(ARCH_X86 MOS_X86_64 OFF "x86_64 Architecture")
 
+set(MOS_CX_FLAGS "${MOS_CX_FLAGS} -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-avx")
+
 if (MOS_X86_64)
     set(MOS_COMPILER_PREFIX "x86_64-elf-")
-    set(MOS_CX_FLAGS "${MOS_CX_FLAGS} -mcmodel=large")
+    set(MOS_CX_FLAGS "${MOS_CX_FLAGS} -mcmodel=kernel")
     set(MOS_BITS 64)
 
     mos_kconfig(ARCH_X86    MOS_PAGE_SIZE                   4096                "x86_64 Page Size")

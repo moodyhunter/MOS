@@ -3,9 +3,9 @@
 if (NOT MOS_X86_64)
     # multiboot is only available on 32-bit x86
     add_subdirectory(boot/multiboot)
+else()
+    add_subdirectory(boot/limine)
 endif()
-
-add_subdirectory(boot/limine)
 
 add_kernel_source(
     INCLUDE_DIRECTORIES
@@ -13,10 +13,9 @@ add_kernel_source(
     SYSTEM_INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_LIST_DIR}/include/public
     SOURCES
-        interrupt/interrupt.asm
-        mm/enable_paging.asm
-        tasks/context_switch.asm
-        x86_descriptor_flush.asm
+        interrupt/interrupt${MOS_BITS}.asm
+        tasks/context_switch${MOS_BITS}.asm
+        descriptors/flush${MOS_BITS}.asm
         acpi/acpi.c
         acpi/madt.c
         cpu/cpuid.c

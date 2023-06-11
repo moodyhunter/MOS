@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/x86/descriptors/descriptors.h"
+
 #include <mos/lib/structures/stack.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/task_types.h>
 #include <mos/x86/cpu/cpu.h>
-#include <mos/x86/descriptors/descriptor_types.h>
 #include <mos/x86/mm/paging.h>
 #include <mos/x86/mm/paging_impl.h>
 #include <mos/x86/tasks/context.h>

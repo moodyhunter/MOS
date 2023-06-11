@@ -13,7 +13,6 @@
 #include <mos/tasks/task_types.h>
 #include <mos/x86/cpu/cpu.h>
 #include <mos/x86/delays.h>
-#include <mos/x86/descriptors/descriptor_types.h>
 #include <mos/x86/devices/port.h>
 #include <mos/x86/interrupt/apic.h>
 #include <mos/x86/mm/paging.h>
@@ -107,8 +106,8 @@ ptr_t platform_mm_create_user_pgd(void)
     const ptr_t kpgtable_paddr = pg_get_mapped_paddr(x86_kpg_infra, (ptr_t) x86_kpg_infra->pgtable);
 
     // this is a bit of a hack, but it's the easiest way that I can think of ...
-    const int kernel_pagedir_id_start = MOS_KERNEL_START_VADDR / MOS_PAGE_SIZE / 1024; // addr / (size of page) / (# pages of a page directory)
-    for (int i = kernel_pagedir_id_start; i < 1024; i++)
+    const size_t kernel_pagedir_id_start = MOS_KERNEL_START_VADDR / MOS_PAGE_SIZE / 1024; // addr / (size of page) / (# pages of a page directory)
+    for (size_t i = kernel_pagedir_id_start; i < 1024; i++)
     {
         x86_pgdir_entry *pgd = &infra->pgdir[i];
         pgd->present = true;

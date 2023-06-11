@@ -39,7 +39,7 @@ always_inline u32 x86_cpu_get_id(void)
 
 should_inline void x86_cpu_set_cr3(reg_t cr3)
 {
-    __asm__ volatile("mov %0, %%cr3" : : "r"(cr3));
+    __asm__ volatile("mov %0, %%cr3" : : "r"(cr3) : "memory");
 }
 
 should_inline void x86_cpu_invlpg(ptr_t addr)
@@ -49,7 +49,7 @@ should_inline void x86_cpu_invlpg(ptr_t addr)
 
 should_inline void x86_cpu_invlpg_all(void)
 {
-    __asm__ volatile("mov %%cr3, %%eax; mov %%eax, %%cr3" : : : "eax");
+    x86_cpu_set_cr3(x86_get_cr3());
 }
 
 should_inline void x86_cpu_invlpg_range(ptr_t start, ptr_t end)

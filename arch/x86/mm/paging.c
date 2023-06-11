@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/x86/cpu/cpu.h"
+
 #include <mos/lib/structures/list.h>
 #include <mos/mm/paging/dump.h>
 #include <mos/mm/paging/paging.h>
@@ -93,4 +95,15 @@ void x86_mm_walk_page_table(mm_context_t *mmctx, ptr_t vaddr_start, size_t n_pag
 
     if (previous_block.npages > 0 && previous_present)
         callback(&info, &previous_block, previous_pfn - (previous_block.npages - 1), arg);
+}
+
+void x86_enable_paging_impl(ptr_t phy)
+{
+    x86_cpu_set_cr3(phy);
+
+#if MOS_BITS == 64
+    __asm__ volatile("mov %%cr4, %%rax; orq $0x80, %%rax; mov %%rax, %%cr4" ::: "rax");
+#elif MOS_BITS == 32
+    __asm__ volatile("mov %%cr4, %%eax; orl $0x80, %%eax; mov %%eax, %%cr4" ::: "eax");
+#endif
 }
