@@ -82,13 +82,13 @@ void x86_init_current_cpu_gdt()
     tss_seg->executable = 1;        // For a TSS, 1 indicates 32-bit (1) or 16-bit (0).
     tss_seg->available = 0;         // 0 for a TSS
 
-    this_cpu_desc->gdt_ptr.base = &this_cpu_desc->gdt[0];
+    this_cpu_desc->gdt_ptr.base = this_cpu_desc->gdt;
     this_cpu_desc->gdt_ptr.limit = sizeof(this_cpu_desc->gdt) - 1;
-    gdt32_flush(&this_cpu_desc->gdt_ptr);
+    gdt_flush(&this_cpu_desc->gdt_ptr);
 }
 
 void x86_init_current_cpu_tss()
 {
     per_cpu(x86_cpu_descriptor)->tss.ss0 = GDT_SEGMENT_KDATA;
-    tss32_flush(GDT_SEGMENT_TSS);
+    tss_flush(GDT_SEGMENT_TSS);
 }

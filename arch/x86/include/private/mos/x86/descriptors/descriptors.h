@@ -12,13 +12,22 @@
 #define GDT_GRANULARITY_BYTE 0x40
 #define GDT_GRANULARITY_PAGE 0xC0
 
-#define GDT_SEGMENT_NULL     0x00
+#define GDT_SEGMENT_NULL 0x00
+
+#if MOS_BITS == 64
+#define GDT_SEGMENT_KCODE    0x10
+#define GDT_SEGMENT_KDATA    0x20
+#define GDT_SEGMENT_USERCODE 0x30
+#define GDT_SEGMENT_USERDATA 0x40
+#define GDT_SEGMENT_TSS      0x50
+#else
 #define GDT_SEGMENT_KCODE    0x08
 #define GDT_SEGMENT_KDATA    0x10
 #define GDT_SEGMENT_USERCODE 0x18
 #define GDT_SEGMENT_USERDATA 0x20
 #define GDT_SEGMENT_TSS      0x28
-#define GDT_ENTRY_COUNT      6
+#endif
+#define GDT_ENTRY_COUNT 6
 
 typedef struct
 {
@@ -37,7 +46,6 @@ typedef struct
     u32 pm32_segment : 1;           // 32-bit opcodes for code, uint32_t stack for data
     u32 granularity : 1;            // 1 to use 4k page addressing, 0 for byte addressing
     u32 base_high : 8;
-
 #if MOS_BITS == 64
     u32 base_veryhigh; // upper 32 bits of base address
     u32 reserved;
@@ -81,9 +89,9 @@ MOS_STATIC_ASSERT(sizeof(tss32_t) == 104, "tss32_t is not 104 bytes");
 
 typedef struct
 {
-    tss32_t tss __aligned(8);
-    gdt_entry_t gdt[GDT_ENTRY_COUNT] __aligned(8);
-    gdt_ptr_t gdt_ptr __aligned(8);
+    tss32_t tss __aligned(32);
+    gdt_entry_t gdt[GDT_ENTRY_COUNT] __aligned(32);
+    gdt_ptr_t gdt_ptr __aligned(32);
 } __packed x86_cpu_descriptor_t;
 
 extern PER_CPU_DECLARE(x86_cpu_descriptor_t, x86_cpu_descriptor);
@@ -127,6 +135,6 @@ void x86_idt_flush(void);
 void x86_idt_init(void);
 
 // The following 5 symbols are defined in the descriptor_flush.asm file.
-extern asmlinkage void gdt32_flush(gdt_ptr_t *gdt_ptr);
-extern asmlinkage void tss32_flush(u32 tss_selector);
-extern asmlinkage void gdt32_flush_only(gdt_ptr_t *gdt_ptr);
+extern void gdt_flush(gdt_ptr_t *gdt_ptr);
+extern void tss_flush(u32 tss_selector);
+extern void gdt_flush_only(gdt_ptr_t *gdt_ptr);

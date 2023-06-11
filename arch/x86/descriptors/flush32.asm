@@ -1,12 +1,12 @@
 ; SPDX-License-Identifier: GPL-3.0-or-later
 section .text
 
-global gdt32_flush:function (gdt32_flush.end - gdt32_flush)
-global idt32_flush:function (idt32_flush.end - idt32_flush)
-global tss32_flush:function (tss32_flush.end - tss32_flush)
-global gdt32_flush_only:function (gdt32_flush_only.end - gdt32_flush_only)
+global gdt_flush:function (gdt_flush.end - gdt_flush)
+global idt_flush:function (idt_flush.end - idt_flush)
+global tss_flush:function (tss_flush.end - tss_flush)
+global gdt_flush_only:function (gdt_flush_only.end - gdt_flush_only)
 
-gdt32_flush:
+gdt_flush:
     mov eax, [esp + 4]
     lgdt [eax]
     ; 0x10 is the offset in the GDT to our data segment
@@ -21,19 +21,19 @@ gdt32_flush:
     ret
 .end:
 
-idt32_flush:
+idt_flush:
     mov eax, [esp + 4]
     lidt [eax]
     ret
 .end:
 
-tss32_flush:
+tss_flush:
     mov eax, [esp + 4]
     ltr ax
     ret
 .end:
 
-gdt32_flush_only:
+gdt_flush_only:
     mov eax, [esp + 4]
     lgdt [eax]
     ret
