@@ -64,7 +64,7 @@ process_t *process_allocate(process_t *parent, const char *name)
     }
     else
     {
-        proc->mm = mm_new_context();
+        proc->mm = mm_create_context();
     }
 
     if (unlikely(!proc->mm) || unlikely(!proc->mm->pgd))

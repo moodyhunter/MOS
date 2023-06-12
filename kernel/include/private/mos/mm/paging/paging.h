@@ -169,13 +169,13 @@ void mm_flag_pages(mm_context_t *mmctx, ptr_t vaddr, size_t npages, vm_flags fla
  * @return paging_handle_t The created page table.
  * @note A platform-independent page-map is also created.
  */
-mm_context_t *mm_new_context(void);
+mm_context_t *mm_create_context(void);
 
 /**
  * @brief Destroy a user-mode platform-dependent page table.
  * @param table The page table to destroy.
  * @note The platform-independent page-map is also destroyed.
  */
-void mm_destroy_user_pgd(mm_context_t *mmctx);
+void mm_destroy_context(mm_context_t *mmctx);
 
 /** @} */

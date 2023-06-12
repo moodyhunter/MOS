@@ -315,7 +315,7 @@ void mm_flag_pages(mm_context_t *mmctx, ptr_t vaddr, size_t npages, vm_flags fla
     spinlock_release(&mmctx->mm_lock);
 }
 
-mm_context_t *mm_new_context(void)
+mm_context_t *mm_create_context(void)
 {
     mm_context_t *mmctx = kmemcache_alloc(mm_context_cache);
     linked_list_init(&mmctx->mmaps);
@@ -328,7 +328,7 @@ mm_context_t *mm_new_context(void)
     return mmctx;
 }
 
-void mm_destroy_user_pgd(mm_context_t *mmctx)
+void mm_destroy_context(mm_context_t *mmctx)
 {
     if (unlikely(mmctx->pgd == 0))
     {
