@@ -219,11 +219,19 @@ void platform_pml2e_set_flags(pml2e_t *pml2, vm_flags flags);
 #endif
 
 #if MOS_PLATFORM_PAGING_LEVELS >= 3
-pfn_t platform_pml3e_get_pml2(const pml3e_t *pml3);
-void platform_pml3e_set_pml2(pml3e_t *pml3, pml2e_t *pml2, pfn_t pml2_pfn);
+pml2_t platform_pml3e_get_pml2(const pml3e_t *pml3);
+void platform_pml3e_set_pml2(pml3e_t *pml3, pml2_t pml2, pfn_t pml2_pfn);
 bool platform_pml3e_get_present(const pml3e_t *pml3);
 void platform_pml3e_set_present(pml3e_t *pml3, bool present);
 void platform_pml3e_set_flags(pml3e_t *pml3, vm_flags flags);
+#endif
+
+#if MOS_PLATFORM_PAGING_LEVELS >= 4
+pml3_t platform_pml4e_get_pml3(const pml4e_t *pml4);
+void platform_pml4e_set_pml3(pml4e_t *pml4, pml3_t pml3, pfn_t pml3_pfn);
+bool platform_pml4e_get_present(const pml4e_t *pml4);
+void platform_pml4e_set_present(pml4e_t *pml4, bool present);
+void platform_pml4e_set_flags(pml4e_t *pml4, vm_flags flags);
 #endif
 
 // Platform Paging APIs

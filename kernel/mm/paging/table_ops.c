@@ -6,6 +6,8 @@
 #include "mos/mm/paging/pmlx/pml1.h"
 #include "mos/mm/paging/pmlx/pml2.h"
 #include "mos/mm/paging/pmlx/pml3.h"
+#include "mos/mm/paging/pmlx/pml4.h"
+#include "mos/mm/paging/pmlx/pml5.h"
 #include "mos/printk.h"
 
 struct do_map_data
@@ -38,7 +40,7 @@ void mm_do_map(pmlmax_t max, ptr_t vaddr, pfn_t pfn, size_t n_pages, vm_flags fl
 {
     pr_emph("NEWAPI: mm_do_map(" PTR_FMT ", " PFN_FMT ", %zu, 0x%x)", vaddr, pfn, n_pages, flags);
     struct do_map_data data = { .pfn = pfn, .flags = flags };
-    pml3_traverse(max.real_max, &vaddr, &n_pages, map_callbacks, &data);
+    pml5_traverse(max.real_max, &vaddr, &n_pages, map_callbacks, &data);
 }
 
 struct do_flag_data
@@ -67,7 +69,7 @@ void mm_do_flag(pmlmax_t max, ptr_t vaddr, size_t n_pages, vm_flags flags)
 {
     pr_emph("NEWAPI: mm_do_flag(" PTR_FMT ", %zu, 0x%x)", vaddr, n_pages, flags);
     struct do_flag_data data = { .flags = flags };
-    pml3_traverse(max.real_max, &vaddr, &n_pages, flag_callbacks, &data);
+    pml5_traverse(max.real_max, &vaddr, &n_pages, flag_callbacks, &data);
 }
 
 static void pml1_do_unmap_callback(pml1_t pml1, pml1e_t *e, ptr_t vaddr, void *data)
@@ -88,12 +90,28 @@ static const pagetable_walk_options_t unmap_callbacks = {
 void mm_do_unmap(pmlmax_t max, ptr_t vaddr, size_t n_pages)
 {
     pr_emph("NEWAPI: mm_do_unmap(" PTR_FMT ", %zu)", vaddr, n_pages);
-    pml3_traverse(max.real_max, &vaddr, &n_pages, unmap_callbacks, NULL);
+    pml5_traverse(max.real_max, &vaddr, &n_pages, unmap_callbacks, NULL);
 }
 
 pfn_t mm_do_get_pfn(pmlmax_t max, ptr_t vaddr)
 {
-    const pml3e_t *pml3e = pml3_entry(max.real_max, vaddr);
+    const pml5e_t *pml5e = pml5_entry(max.real_max, vaddr);
+    if (!pml5e_is_present(pml5e))
+    {
+        pr_emph("NEWAPI: mm_do_get_pfn(" PTR_FMT ") = 0", vaddr);
+        return 0;
+    }
+
+    const pml4_t pml4 = pml5e_get_pml4(pml5e);
+    const pml4e_t *pml4e = pml4_entry(pml4, vaddr);
+    if (!pml4e_is_present(pml4e))
+    {
+        pr_emph("NEWAPI: mm_do_get_pfn(" PTR_FMT ") = 0", vaddr);
+        return 0;
+    }
+
+    const pml3_t pml3 = pml4e_get_pml3(pml4e);
+    const pml3e_t *pml3e = pml3_entry(pml3, vaddr);
     if (!pml3e_is_present(pml3e))
     {
         pr_emph("NEWAPI: mm_do_get_pfn(" PTR_FMT ") = 0", vaddr);
@@ -128,6 +146,6 @@ pfn_t mm_pmlmax_get_pfn(pmlmax_t max)
 
 pmlmax_t mm_pmlmax_create(pmltop_t top, pfn_t pfn)
 {
-    pmlmax_t max = { .platform_top = top, .pfn = pfn, .real_max = { .pml2 = top } };
+    pmlmax_t max = { .platform_top = top, .pfn = pfn, .real_max = { .pml4 = top } };
     return max;
 }

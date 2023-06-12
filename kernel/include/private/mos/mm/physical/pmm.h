@@ -70,10 +70,17 @@ typedef struct phyframe
 } phyframe_t;
 
 #if MOS_BITS == 32
-#warning "XXXX"
-// MOS_STATIC_ASSERT(sizeof(phyframe_t) == 16, "phyframe_t size is not 16 bytes");
+#if MOS_CONFIG(MOS_PLATFORM_HAS_EXTRA_PHYFRAME_INFO)
+MOS_STATIC_ASSERT(sizeof(phyframe_t) == 20 + sizeof(struct platform_extra_phyframe_info));
+#else
+MOS_STATIC_ASSERT(sizeof(phyframe_t) == 20, "phyframe_t size is not 16 bytes");
+#endif
 #elif MOS_BITS == 64
-// MOS_STATIC_ASSERT(sizeof(phyframe_t) == 32, "phyframe_t size is not 32 bytes");
+#if MOS_CONFIG(MOS_PLATFORM_HAS_EXTRA_PHYFRAME_INFO)
+MOS_STATIC_ASSERT(sizeof(phyframe_t) == 40 + sizeof(struct platform_extra_phyframe_info));
+#else
+MOS_STATIC_ASSERT(sizeof(phyframe_t) == 40, "phyframe_t size is not 32 bytes");
+#endif
 #endif
 
 typedef struct

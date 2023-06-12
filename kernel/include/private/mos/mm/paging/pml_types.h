@@ -6,9 +6,9 @@
 
 #include <mos/mos_global.h>
 
-#define MOS_MAX_PAGE_LEVEL 3
+#define MOS_MAX_PAGE_LEVEL 5
 
-#if MOS_PLATFORM_PAGING_LEVELS >= 4
+#if MOS_PLATFORM_PAGING_LEVELS > 4
 #error "PML4 is not supported"
 #endif
 
@@ -50,8 +50,28 @@ new_named_opaque_type(pml2_t, pml2, pml3_t);
 typedef pml2e_t pml3e_t;
 #endif
 
+#if MOS_PLATFORM_PAGING_LEVELS >= 4
+define_pmlx(pml4);
+#if !defined(MOS_PLATFORM_PML4_SHIFT) || !defined(MOS_PLATFORM_PML4_MASK)
+#error "MOS_PLATFORM_PML4_SHIFT and MOS_PLATFORM_PML4_MASK must be defined"
+#endif
+#else
+new_named_opaque_type(pml3_t, pml3, pml4_t);
+typedef pml3e_t pml4e_t;
+#endif
+
 // pmlmax_t is the top-level paging table supported by MOS
 typedef MOS_CONCAT(MOS_CONCAT(pml, MOS_PLATFORM_PAGING_LEVELS), _t) pmltop_t;
+
+#if MOS_PLATFORM_PAGING_LEVELS >= 5
+define_pmlx(pml5);
+#if !defined(MOS_PLATFORM_PML5_SHIFT) || !defined(MOS_PLATFORM_PML5_MASK)
+#error "MOS_PLATFORM_PML5_SHIFT and MOS_PLATFORM_PML5_MASK must be defined"
+#endif
+#else
+new_named_opaque_type(pml4_t, pml4, pml5_t);
+typedef pml4e_t pml5e_t;
+#endif
 
 typedef struct
 {
@@ -105,10 +125,18 @@ should_inline size_t pml3_index(ptr_t vaddr)
 }
 #endif
 
+#if MOS_PLATFORM_PAGING_LEVELS >= 4
+should_inline size_t pml4_index(ptr_t vaddr)
+{
+    return (vaddr >> MOS_PLATFORM_PML4_SHIFT) & MOS_PLATFORM_PML4_MASK;
+}
+#endif
+
 typedef struct
 {
     bool readonly;
     void (*pml1_callback)(pml1_t pml1, pml1e_t *e, ptr_t vaddr, void *data);
     void (*pml2_callback)(pml2_t pml2, pml2e_t *e, ptr_t vaddr, void *data);
     void (*pml3_callback)(pml3_t pml3, pml3e_t *e, ptr_t vaddr, void *data);
+    void (*pml4_callback)(pml4_t pml4, pml4e_t *e, ptr_t vaddr, void *data);
 } pagetable_walk_options_t;
