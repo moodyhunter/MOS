@@ -182,14 +182,14 @@ void x86_start_kernel(void)
     mos_debug(x86_startup, "mapping bios memory area...");
     pmm_reserve_frames(X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages);
     pmm_reserve_frames(X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages);
-    x86_bios_block = mm_map_pages(&x86_platform.kernel_mm, x86_bios_block.vaddr, X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages, x86_bios_block.flags);
-    x86_ebda_block = mm_map_pages(&x86_platform.kernel_mm, x86_ebda_block.vaddr, X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages, x86_ebda_block.flags);
+    x86_bios_block = mm_map_pages(x86_platform.kernel_mm, x86_bios_block.vaddr, X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages, x86_bios_block.flags);
+    x86_ebda_block = mm_map_pages(x86_platform.kernel_mm, x86_ebda_block.vaddr, X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages, x86_ebda_block.flags);
 
     if (platform_info->initrd_npages)
     {
         x86_initrd_present = true;
         pmm_reserve_frames(platform_info->initrd_pfn, platform_info->initrd_npages);
-        mm_map_pages(&x86_platform.kernel_mm, MOS_INITRD_VADDR, platform_info->initrd_pfn, platform_info->initrd_npages, VM_READ | VM_GLOBAL);
+        mm_map_pages(x86_platform.kernel_mm, MOS_INITRD_VADDR, platform_info->initrd_pfn, platform_info->initrd_npages, VM_READ | VM_GLOBAL);
     }
 
     mos_kernel_mm_init(); // we can now use the kernel heap (kmalloc)
@@ -209,7 +209,7 @@ void x86_start_kernel(void)
     const pmm_region_t *acpi_region = pmm_find_reserved_region(rsdp->v1.rsdt_addr);
     MOS_ASSERT_X(acpi_region && acpi_region->reserved, "ACPI region not found or not reserved");
     const ptr_t phyaddr = acpi_region->pfn_start * MOS_PAGE_SIZE;
-    mm_map_pages(&x86_platform.kernel_mm, BIOS_VADDR(phyaddr), acpi_region->pfn_start, acpi_region->nframes, VM_READ | VM_GLOBAL);
+    mm_map_pages(x86_platform.kernel_mm, BIOS_VADDR(phyaddr), acpi_region->pfn_start, acpi_region->nframes, VM_READ | VM_GLOBAL);
 
     acpi_parse_rsdt(rsdp);
 

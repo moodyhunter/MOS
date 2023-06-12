@@ -27,7 +27,7 @@ noreturn void ap_begin_exec(void)
     cpuid_print_cpu_info();
 
     per_cpu(x86_platform.cpu)->id = info.ebx.local_apic_id;
-    current_cpu->mm_context = &x86_platform.kernel_mm;
+    current_cpu->mm_context = x86_platform.kernel_mm;
 
     u8 lapic_id = lapic_get_id();
     if (lapic_id != info.ebx.local_apic_id)

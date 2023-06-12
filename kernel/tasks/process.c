@@ -60,7 +60,7 @@ process_t *process_allocate(process_t *parent, const char *name)
 
     if (unlikely(proc->pid == 2))
     {
-        proc->mm = &platform_info->kernel_mm; // ! Special case: PID 2 (kthreadd) uses the kernel page table
+        proc->mm = platform_info->kernel_mm; // ! Special case: PID 2 (kthreadd) uses the kernel page table
     }
     else
     {

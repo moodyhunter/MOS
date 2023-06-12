@@ -164,7 +164,7 @@ typedef struct
 
     vmblock_t k_code, k_rwdata, k_rodata;
 
-    mm_context_t kernel_mm;
+    mm_context_t *kernel_mm;
 
     pfn_t initrd_pfn;
     size_t initrd_npages;

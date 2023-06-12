@@ -100,7 +100,7 @@ void ioapic_init(void)
         pmm_reserve_address(x86_ioapic_address);
     }
 
-    mm_map_pages(&x86_platform.kernel_mm, x86_ioapic_address, x86_ioapic_address / MOS_PAGE_SIZE, 1, VM_RW);
+    mm_map_pages(x86_platform.kernel_mm, x86_ioapic_address, x86_ioapic_address / MOS_PAGE_SIZE, 1, VM_RW);
     const u32 ioapic_id = ioapic_read(IOAPIC_REG_ID) >> 24 & 0xf; // get the 24-27 bits
 
     const union

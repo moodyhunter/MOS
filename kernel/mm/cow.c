@@ -69,7 +69,7 @@ static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)
     //    we are allocating the page in the kernel space
     //    so that user-space won't get confused by the new page
     const ptr_t proxy = mm_alloc_pages(mm, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_READ | VM_WRITE).vaddr;
-    const pfn_t proxy_pfn = platform_mm_get_phys_addr(&platform_info->kernel_mm, proxy) / MOS_PAGE_SIZE;
+    const pfn_t proxy_pfn = platform_mm_get_phys_addr(platform_info->kernel_mm, proxy) / MOS_PAGE_SIZE;
 
     // 2. copy the data from the faulting address to the new page
     memcpy((void *) proxy, (void *) fault_addr, MOS_PAGE_SIZE);

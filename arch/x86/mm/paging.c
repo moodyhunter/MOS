@@ -16,14 +16,19 @@ static x86_pg_infra_t x86_kpg_infra_storage __aligned(MOS_PAGE_SIZE) = { 0 };
 
 x86_pg_infra_t *const x86_kpg_infra = &x86_kpg_infra_storage;
 
+static mm_context_t kernel_mm = {
+    .pgd = (ptr_t) x86_kpg_infra,
+    .mm_lock = SPINLOCK_INIT,
+    .mmaps = LIST_HEAD_INIT(kernel_mm.mmaps),
+};
+
 void x86_mm_paging_init(void)
 {
     // initialize the page directory
     memzero(x86_kpg_infra, sizeof(x86_pg_infra_t));
-    x86_platform.kernel_mm.pgd = (ptr_t) x86_kpg_infra;
-    x86_platform.kernel_mm.mm_lock.flag = 0;
-    current_cpu->mm_context = &x86_platform.kernel_mm;
-    linked_list_init(&x86_platform.kernel_mm.mmaps);
+    x86_platform.kernel_mm = &kernel_mm;
+    current_cpu->mm_context = x86_platform.kernel_mm;
+    linked_list_init(&x86_platform.kernel_mm->mmaps);
 }
 
 void x86_mm_walk_page_table(mm_context_t *mmctx, ptr_t vaddr_start, size_t n_pages, pgt_iteration_callback_t callback, void *arg)

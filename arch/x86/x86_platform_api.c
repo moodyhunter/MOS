@@ -92,7 +92,7 @@ bool platform_initrd_present()
 ptr_t platform_mm_create_user_pgd(void)
 {
     const size_t npages = ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE;
-    vmblock_t block = mm_alloc_pages(&x86_platform.kernel_mm, npages, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
+    vmblock_t block = mm_alloc_pages(x86_platform.kernel_mm, npages, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
     if (!block.vaddr)
     {
         mos_warn("failed to allocate page directory");

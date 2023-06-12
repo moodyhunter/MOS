@@ -52,13 +52,13 @@ static inline slab_t *slab_for(size_t size)
 
 static ptr_t slab_impl_new_page(size_t n)
 {
-    vmblock_t block = mm_alloc_pages(&platform_info->kernel_mm, n, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
+    vmblock_t block = mm_alloc_pages(platform_info->kernel_mm, n, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
     return block.vaddr;
 }
 
 static void slab_impl_free_page(ptr_t page, size_t n)
 {
-    mm_unmap_pages(&platform_info->kernel_mm, page, n);
+    mm_unmap_pages(platform_info->kernel_mm, page, n);
 }
 
 static void slab_init_one(slab_t *slab, const char *name, size_t size)
