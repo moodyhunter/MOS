@@ -4,9 +4,18 @@
 
 #include "mos/interrupt/ipi.h"
 #include "mos/mm/paging/paging.h"
+#include "mos/mm/paging/table_ops.h"
 #include "mos/platform/platform.h"
 #include "mos/tasks/task_types.h"
 
+#include <mos/interrupt/ipi.h>
+#include <mos/mm/cow.h>
+#include <mos/mm/paging/paging.h>
+#include <mos/mm/physical/pmm.h>
+#include <mos/platform/platform.h>
+#include <mos/printk.h>
+#include <mos/tasks/process.h>
+#include <mos/tasks/task_types.h>
 #include <string.h>
 
 static vmblock_t zero_block;
@@ -15,13 +24,12 @@ static pfn_t zero_pfn;
 void mm_cow_init(void)
 {
     // zero fill on demand (read-only)
-    mm_context_t *current_mm = current_cpu->mm_context;
-    zero_block = mm_alloc_pages(current_mm, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
-    zero_pfn = platform_mm_get_phys_addr(current_mm, zero_block.vaddr) / MOS_PAGE_SIZE;
+    zero_block = mm_alloc_pages(current_cpu->mm_context, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
     if (zero_block.vaddr == 0)
         mos_panic("failed to allocate zero block");
     memzero((void *) zero_block.vaddr, MOS_PAGE_SIZE);
-    mm_flag_pages(current_mm, zero_block.vaddr, 1, VM_READ); // make it read-only after zeroing
+    mm_flag_pages(current_cpu->mm_context, zero_block.vaddr, 1, VM_READ); // make it read-only after zeroing
+    zero_pfn = mm_get_phys_addr(current_cpu->mm_context, zero_block.vaddr);
 }
 
 vmblock_t mm_make_cow_block(mm_context_t *target_handle, vmblock_t src_block)
@@ -69,7 +77,7 @@ static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)
     //    we are allocating the page in the kernel space
     //    so that user-space won't get confused by the new page
     const ptr_t proxy = mm_alloc_pages(mm, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_READ | VM_WRITE).vaddr;
-    const pfn_t proxy_pfn = platform_mm_get_phys_addr(platform_info->kernel_mm, proxy) / MOS_PAGE_SIZE;
+    const pfn_t proxy_pfn = mm_get_phys_addr(mm, proxy);
 
     // 2. copy the data from the faulting address to the new page
     memcpy((void *) proxy, (void *) fault_addr, MOS_PAGE_SIZE);

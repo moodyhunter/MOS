@@ -9,7 +9,7 @@
 vmblock_t shm_allocate(size_t npages, vmap_fork_mode_t mode, vm_flags vmflags)
 {
     process_t *owner = current_process;
-    mos_debug(shm, "allocating %zu SHM pages in address space " PTR_FMT, npages, owner->mm->pgd);
+    mos_debug(shm, "allocating %zu SHM pages in address space " PTR_FMT, npages, (ptr_t) owner->mm);
     vmblock_t block = mm_alloc_pages(owner->mm, npages, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT, vmflags);
     if (block.npages == 0)
     {

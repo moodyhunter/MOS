@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/paging/table_ops.h"
 #include "mos/mm/slab.h"
 #include "mos/mm/slab_autoinit.h"
 #include "mos/tasks/task_types.h"
@@ -37,7 +38,8 @@ static void vmm_iterate_unmap(const pgt_iteration_info_t *iter_info, const vmblo
     mos_debug(vmm_impl, "unmapping " PTR_FMT " -> " PFN_FMT " (npages: %zu)", block->vaddr, block_pfn, block->npages);
 
     if (do_unmap)
-        platform_mm_unmap_pages(PGD_FOR_VADDR(block->vaddr, block->address_space), block->vaddr, block->npages);
+        // platform_mm_unmap_pages(block->mm_context, block->vaddr, block->npages);
+        MOS_UNREACHABLE();
 
     if (do_unref)
         pmm_unref_frames(block_pfn, block->npages);
@@ -53,7 +55,9 @@ static void vmm_iterate_copymap(const pgt_iteration_info_t *iter_info, const vmb
     const ptr_t target_vaddr = vblock->vaddr + (block->vaddr - iter_info->vaddr_start); // we know that vaddr is contiguous, so their difference is the offset
     mos_debug(vmm_impl, "copymapping " PTR_FMT " -> " PFN_FMT " (npages: %zu)", target_vaddr, block_pfn, block->npages);
     pmm_ref_frames(block_pfn, block->npages);
-    platform_mm_map_pages(PGD_FOR_VADDR(target_vaddr, vblock->address_space), target_vaddr, block_pfn, block->npages, block->flags);
+    // platform_mm_map_pages(PGD_FOR_VADDR(target_vaddr, vblock->mm_context), target_vaddr, block_pfn, block->npages, block->flags);
+    // mm_do_map(vblock->mm_context.kernel_pml, target_vaddr, block_pfn, block->npages, block->flags);
+    mos_panic("WIP");
 }
 // ! END: CALLBACKS
 
@@ -151,35 +155,28 @@ vmblock_t mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, 
 
     pmm_ref_frames(pfn, n_pages);
     mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, n_pages, vaddr, pfn);
-    platform_mm_map_pages(mmctx, vaddr, pfn, n_pages, flags);
+    mm_do_map(mmctx->pgd, vaddr, pfn, n_pages, flags);
 
     spinlock_release(&mmctx->mm_lock);
 
     return block;
 }
 
-vmblock_t mm_map_pages_locked(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
+vmblock_t mm_map_pages_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
 {
-    MOS_ASSERT(spinlock_is_locked(&mmctx->mm_lock));
+    MOS_ASSERT(spinlock_is_locked(&ctx->mm_lock));
     MOS_ASSERT(npages > 0);
 
-    const vmblock_t block = { .address_space = mmctx, .vaddr = vaddr, .npages = npages, .flags = flags };
-
-    mmctx = PGD_FOR_VADDR(vaddr, mmctx); // after block is initialized
-
-    if (unlikely(mmctx->pgd == 0))
-    {
-        mos_warn("cannot map pages at " PTR_FMT ", pagetable is null", vaddr);
-        return (vmblock_t){ 0 };
-    }
+    const vmblock_t block = { .address_space = ctx, .vaddr = vaddr, .npages = npages, .flags = flags };
 
     mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, npages, vaddr, pfn);
 
+    spinlock_acquire(&ctx->mm_lock);
     if (IS_KHEAP_VADDR(vaddr, npages))
         kpagemap_mark_used(vaddr, npages);
-
     pmm_ref_frames(pfn, npages);
-    platform_mm_map_pages(mmctx, vaddr, pfn, npages, flags);
+    mm_do_map(ctx->pgd, vaddr, pfn, npages, flags);
+    spinlock_release(&ctx->mm_lock);
     return block;
 }
 
@@ -191,46 +188,21 @@ vmblock_t mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npage
     return block;
 }
 
-vmblock_t mm_early_map_kernel_pages(ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
+void mm_unmap_pages(mm_context_t *ctx, ptr_t vaddr, size_t npages)
 {
     MOS_ASSERT(npages > 0);
-    MOS_ASSERT(vaddr >= MOS_KERNEL_START_VADDR);
 
-    mm_context_t *mmctx = platform_info->kernel_mm;
-    const vmblock_t block = { .address_space = mmctx, .vaddr = vaddr, .npages = npages, .flags = flags };
-
-    mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to " PFN_FMT, npages, vaddr, pfn);
-
-    spinlock_acquire(&mmctx->mm_lock);
-    platform_mm_map_pages(mmctx, vaddr, pfn, npages, flags);
-    spinlock_release(&mmctx->mm_lock);
-
-    return block;
+    spinlock_acquire(&ctx->mm_lock);
+    mm_do_unmap(ctx->pgd, vaddr, npages);
+    // TODO: remove the page table
+    spinlock_release(&ctx->mm_lock);
 }
 
-void mm_unmap_pages(mm_context_t *mmctx, ptr_t vaddr, size_t npages)
+vmblock_t mm_replace_mapping(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
 {
     MOS_ASSERT(npages > 0);
 
-    mmctx = PGD_FOR_VADDR(vaddr, mmctx);
-    spinlock_acquire(&mmctx->mm_lock);
-    platform_mm_iterate_table(mmctx, vaddr, npages, vmm_iterate_unmap, NULL);
-    spinlock_release(&mmctx->mm_lock);
-}
-
-vmblock_t mm_replace_mapping(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
-{
-    MOS_ASSERT(npages > 0);
-
-    const vmblock_t block = { .address_space = mmctx, .vaddr = vaddr, .npages = npages, .flags = flags };
-
-    mmctx = PGD_FOR_VADDR(vaddr, mmctx); // after block is initialized
-
-    if (unlikely(mmctx->pgd == 0))
-    {
-        mos_warn("cannot fill pages at " PTR_FMT ", pagetable is null", vaddr);
-        return (vmblock_t){ 0 };
-    }
+    const vmblock_t block = { .address_space = ctx, .vaddr = vaddr, .npages = npages, .flags = flags };
 
     mos_debug(vmm, "filling %zd pages at " PTR_FMT " with " PFN_FMT, npages, vaddr, pfn);
 
@@ -240,13 +212,13 @@ vmblock_t mm_replace_mapping(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t
         .do_unref = true,
     };
 
-    spinlock_acquire(&mmctx->mm_lock);
+    spinlock_acquire(&ctx->mm_lock);
     // ref the frames first, so they don't get freed if we're [filling a page with itself]?
     // weird people do weird things
     pmm_ref_frames(pfn, npages);
-    platform_mm_iterate_table(mmctx, vaddr, npages, vmm_iterate_unmap, (void *) &umflags);
-    platform_mm_map_pages(mmctx, vaddr, pfn, npages, flags);
-    spinlock_release(&mmctx->mm_lock);
+    platform_mm_iterate_table(ctx, vaddr, npages, vmm_iterate_unmap, (void *) &umflags);
+    mm_do_map(ctx->pgd, vaddr, pfn, npages, flags);
+    spinlock_release(&ctx->mm_lock);
 
     return block;
 }
@@ -258,7 +230,7 @@ vmblock_t mm_copy_maps_locked(mm_context_t *from, ptr_t fvaddr, mm_context_t *to
 
     vmblock_t result = { .address_space = to, .vaddr = tvaddr, .npages = npages };
 
-    if (unlikely(from->pgd == 0 || to->pgd == 0))
+    if (unlikely(!from || !to))
     {
         mos_warn("cannot remap pages from " PTR_FMT " to " PTR_FMT ", pagetable is null", fvaddr, tvaddr);
         return (vmblock_t){ 0 };
@@ -297,45 +269,30 @@ bool mm_get_is_mapped(mm_context_t *mmctx, ptr_t vaddr)
     return false;
 }
 
-void mm_flag_pages(mm_context_t *mmctx, ptr_t vaddr, size_t npages, vm_flags flags)
+void mm_flag_pages(mm_context_t *ctx, ptr_t vaddr, size_t npages, vm_flags flags)
 {
     MOS_ASSERT(npages > 0);
 
-    mmctx = PGD_FOR_VADDR(vaddr, mmctx);
-    if (unlikely(mmctx->pgd == 0))
-    {
-        mos_warn("cannot flag pages at " PTR_FMT ", pagetable is null", vaddr);
-        return;
-    }
-
     mos_debug(vmm, "flagging %zd pages at " PTR_FMT " with flags %x", npages, vaddr, flags);
 
-    spinlock_acquire(&mmctx->mm_lock);
-    platform_mm_flag_pages(mmctx, vaddr, npages, flags);
-    spinlock_release(&mmctx->mm_lock);
+    spinlock_acquire(&ctx->mm_lock);
+    mm_do_flag(ctx->pgd, vaddr, npages, flags);
+    spinlock_release(&ctx->mm_lock);
 }
 
 mm_context_t *mm_create_context(void)
 {
     mm_context_t *mmctx = kmemcache_alloc(mm_context_cache);
-    linked_list_init(&mmctx->mmaps);
-    mmctx->pgd = platform_mm_create_user_pgd();
-    if (unlikely(mmctx->pgd == 0))
-    {
-        kfree(mmctx);
-        return NULL;
-    }
+    MOS_UNIMPLEMENTED("mm_create_context");
     return mmctx;
 }
 
 void mm_destroy_context(mm_context_t *mmctx)
 {
-    if (unlikely(mmctx->pgd == 0))
-    {
-        mos_warn("cannot destroy user pgd, pagetable is null");
-        return;
-    }
+    MOS_UNIMPLEMENTED("mm_destroy_context");
+}
 
-    spinlock_acquire(&mmctx->mm_lock);
-    platform_mm_destroy_user_pgd(mmctx);
+ptr_t mm_get_phys_addr(mm_context_t *ctx, ptr_t vaddr)
+{
+    return mm_do_get_pfn(ctx->pgd, vaddr) << MOS_PLATFORM_PML1_SHIFT | (vaddr & MOS_PLATFORM_PML1_MASK);
 }

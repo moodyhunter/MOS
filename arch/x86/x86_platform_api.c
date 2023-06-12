@@ -89,46 +89,36 @@ bool platform_initrd_present()
     return x86_initrd_present;
 }
 
-ptr_t platform_mm_create_user_pgd(void)
+mm_context_t platform_mm_create_user_pgd(void)
 {
-    const size_t npages = ALIGN_UP_TO_PAGE(sizeof(x86_pg_infra_t)) / MOS_PAGE_SIZE;
-    vmblock_t block = mm_alloc_pages(x86_platform.kernel_mm, npages, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
-    if (!block.vaddr)
-    {
-        mos_warn("failed to allocate page directory");
-        return 0;
-    }
+    MOS_UNREACHABLE();
 
-    x86_pg_infra_t *infra = (x86_pg_infra_t *) block.vaddr;
-    memzero(infra, sizeof(x86_pg_infra_t));
+    // // physical address of kernel page table
+    // const ptr_t kpgtable_paddr = pg_get_mapped_paddr(x86_kpg_infra, (ptr_t) x86_kpg_infra->pgtable);
 
-    // physical address of kernel page table
-    const ptr_t kpgtable_paddr = pg_get_mapped_paddr(x86_kpg_infra, (ptr_t) x86_kpg_infra->pgtable);
-
-    // this is a bit of a hack, but it's the easiest way that I can think of ...
-    const size_t kernel_pagedir_id_start = MOS_KERNEL_START_VADDR / MOS_PAGE_SIZE / 1024; // addr / (size of page) / (# pages of a page directory)
-    for (size_t i = kernel_pagedir_id_start; i < 1024; i++)
-    {
-        x86_pgdir_entry *pgd = &infra->pgdir[i];
-        pgd->present = true;
-        pgd->writable = true;
-        pgd->usermode = false;
-        // redirect it to the kernel page table
-        // use pre-allocated (pre-calculated) physical address, otherwise some newly mapped pgdirs won't be applied correctly
-        pgd->page_table_paddr = (kpgtable_paddr + i * 1024 * sizeof(x86_pgtable_entry)) >> 12;
-    }
-
-    return block.vaddr;
+    // // this is a bit of a hack, but it's the easiest way that I can think of ...
+    // const int kernel_pagedir_id_start = MOS_KERNEL_START_VADDR / MOS_PAGE_SIZE / 1024; // addr / (size of page) / (# pages of a page directory)
+    // for (int i = kernel_pagedir_id_start; i < 1024; i++)
+    // {
+    //     x86_pde_t *pgd = &infra->pgdir[i];
+    //     pgd->present = true;
+    //     pgd->writable = true;
+    //     pgd->usermode = false;
+    //     // redirect it to the kernel page table
+    //     // use pre-allocated (pre-calculated) physical address, otherwise some newly mapped pgdirs won't be applied correctly
+    //     pgd->page_table_paddr = (kpgtable_paddr + i * 1024 * sizeof(x86_pte_t)) >> 12;
+    // }
+    // return handle;
 }
 
-void platform_mm_destroy_user_pgd(mm_context_t *mmctx)
+void platform_mm_destroy_user_pgd(mm_context_t table)
 {
-    if (!mmctx->pgd)
-    {
-        mos_warn("invalid pgd");
-        return;
-    }
-    kfree((void *) mmctx->pgd);
+    // if (!table.pgd)
+    // {
+    //     mos_warn("invalid pgd");
+    //     return;
+    // }
+    // kfree((void *) table.pgd);
 }
 
 void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg)
@@ -151,53 +141,10 @@ void platform_switch_to_thread(ptr_t *old_stack, const thread_t *new_thread, swi
     x86_switch_to_thread(old_stack, new_thread, switch_flags);
 }
 
-void platform_mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t n_pages, vm_flags flags)
+void platform_mm_iterate_table(mm_context_t *table, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg)
 {
-    MOS_ASSERT_X(spinlock_is_locked(&mmctx->mm_lock), "page table operations without lock");
-    x86_pg_infra_t *infra = x86_get_pg_infra(mmctx);
-    for (size_t i = 0; i < n_pages; i++)
-    {
-        pg_map_page(infra, vaddr, pfn, flags);
-        vaddr += MOS_PAGE_SIZE;
-        pfn++;
-    }
-}
-
-void platform_mm_unmap_pages(mm_context_t *mmctx, ptr_t vaddr_start, size_t n_pages)
-{
-    MOS_ASSERT_X(spinlock_is_locked(&mmctx->mm_lock), "page table operations without lock");
-    x86_pg_infra_t *infra = x86_get_pg_infra(mmctx);
-    for (size_t i = 0; i < n_pages; i++)
-        pg_unmap_page(infra, vaddr_start + i * MOS_PAGE_SIZE);
-}
-
-void platform_mm_iterate_table(mm_context_t *mmctx, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg)
-{
-    MOS_ASSERT_X(spinlock_is_locked(&mmctx->mm_lock), "page table operations without lock");
-    x86_mm_walk_page_table(mmctx, vaddr, n, callback, arg);
-}
-
-void platform_mm_flag_pages(mm_context_t *mmctx, ptr_t vaddr, size_t n, vm_flags flags)
-{
-    MOS_ASSERT_X(spinlock_is_locked(&mmctx->mm_lock), "page table operations without lock");
-    x86_pg_infra_t *infra = x86_get_pg_infra(mmctx);
-    pg_flag_page(infra, vaddr, n, flags);
-}
-
-vm_flags platform_mm_get_flags(mm_context_t *mmctx, ptr_t vaddr)
-{
-    // intentionally not locked
-    x86_pg_infra_t *infra = x86_get_pg_infra(mmctx);
-    return pg_get_flags(infra, vaddr);
-}
-
-ptr_t platform_mm_get_phys_addr(mm_context_t *mmctx, ptr_t vaddr)
-{
-    // intentionally not locked
-    x86_pg_infra_t *infra = x86_get_pg_infra(mmctx);
-    ptr_t p = pg_get_mapped_paddr(infra, (vaddr & ~(MOS_PAGE_SIZE - 1)));
-    p += vaddr & (MOS_PAGE_SIZE - 1);
-    return p;
+    MOS_ASSERT_X(spinlock_is_locked(&table->mm_lock), "page table operations without lock");
+    x86_mm_walk_page_table(table, vaddr, n, callback, arg);
 }
 
 u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unused arg2, u64 __maybe_unused arg3, u64 __maybe_unused arg4)

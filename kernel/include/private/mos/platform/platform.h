@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/mm/paging/pml_types.h"
 #include "mos/mm/physical/pmm.h"
 
 #include <mos/io/io.h>
@@ -9,8 +10,6 @@
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/mm_types.h>
-#include <mos/mos_global.h>
-#include <mos/types.h>
 
 #if MOS_CONFIG(MOS_SMP)
 #define PER_CPU_DECLARE(type, name)                                                                                                                                      \
@@ -109,7 +108,7 @@ typedef struct
 
 typedef struct
 {
-    ptr_t pgd;
+    pmlmax_t pgd;
     spinlock_t mm_lock;
     list_head mmaps;
 } mm_context_t;
@@ -200,16 +199,35 @@ bool platform_irq_handler_install(u32 irq, irq_handler handler);
 void platform_irq_handler_remove(u32 irq, irq_handler handler);
 
 // Platform Page Table APIs
-ptr_t platform_mm_create_user_pgd(void);
-void platform_mm_destroy_user_pgd(mm_context_t *mmctx);
+mm_context_t platform_mm_create_user_pgd(void);
+void platform_mm_destroy_user_pgd(mm_context_t table);
+
+// Platform Page Table APIs - New
+
+pfn_t platform_pml1e_get_pfn(const pml1e_t *pml1);            // returns the physical address contained in the pmlx entry,
+void platform_pml1e_set_pfn(pml1e_t *pml1, pfn_t pfn);        // -- which can be a pfn for either a page or another page table
+bool platform_pml1e_get_present(const pml1e_t *pml1);         // returns if an entry in this page table is present
+void platform_pml1e_set_present(pml1e_t *pml1, bool present); // sets if an entry in this page table is present
+void platform_pml1e_set_flags(pml1e_t *pml1, vm_flags flags); // set bits in the flags field of the pmlx entry
+
+#if MOS_PLATFORM_PAGING_LEVELS >= 2
+pml1_t platform_pml2e_get_pml1(const pml2e_t *pml2);
+void platform_pml2e_set_pml1(pml2e_t *pml2, pml1_t pml1, pfn_t pml1_pfn);
+bool platform_pml2e_get_present(const pml2e_t *pml2);
+void platform_pml2e_set_present(pml2e_t *pml2, bool present);
+void platform_pml2e_set_flags(pml2e_t *pml2, vm_flags flags);
+#endif
+
+#if MOS_PLATFORM_PAGING_LEVELS >= 3
+pfn_t platform_pml3e_get_pml2(const pml3e_t *pml3);
+void platform_pml3e_set_pml2(pml3e_t *pml3, pml2e_t *pml2, pfn_t pml2_pfn);
+bool platform_pml3e_get_present(const pml3e_t *pml3);
+void platform_pml3e_set_present(pml3e_t *pml3, bool present);
+void platform_pml3e_set_flags(pml3e_t *pml3, vm_flags flags);
+#endif
 
 // Platform Paging APIs
-void platform_mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t n_pages, vm_flags flags);
-void platform_mm_unmap_pages(mm_context_t *mmctx, ptr_t vaddr, size_t n_pages);
-void platform_mm_iterate_table(mm_context_t *mmctx, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg);
-void platform_mm_flag_pages(mm_context_t *mmctx, ptr_t vaddr, size_t n, vm_flags flags);
-vm_flags platform_mm_get_flags(mm_context_t *mmctx, ptr_t vaddr);
-ptr_t platform_mm_get_phys_addr(mm_context_t *mmctx, ptr_t vaddr);
+void platform_mm_iterate_table(mm_context_t *table, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg);
 
 // Platform Thread / Process APIs
 void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg);

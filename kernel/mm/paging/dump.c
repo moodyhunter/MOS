@@ -43,7 +43,7 @@ void mm_dump_pagetable(mm_context_t *mmctx)
 
 void mm_dump_current_pagetable()
 {
-    const char *cpu_pagetable_source = current_cpu->mm_context->pgd == platform_info->kernel_mm->pgd ? "Kernel" : NULL;
+    const char *cpu_pagetable_source = current_cpu->mm_context == platform_info->kernel_mm ? "Kernel" : NULL;
 
     if (current_thread)
     {

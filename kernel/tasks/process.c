@@ -67,7 +67,7 @@ process_t *process_allocate(process_t *parent, const char *name)
         proc->mm = mm_create_context();
     }
 
-    if (unlikely(!proc->mm) || unlikely(!proc->mm->pgd))
+    if (unlikely(!proc->mm))
     {
         pr_emerg("failed to create page table for process %ld (%s)", proc->pid, proc->name);
         kfree(proc->name);

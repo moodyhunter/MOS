@@ -77,18 +77,18 @@ typedef id_t tid_t;
 typedef signed long ssize_t;
 typedef ssize_t off_t;
 
-// clang-format off
-#define _named_opaque_type(base, name, type) typedef struct { base name; } __packed type
-// clang-format on
+typedef long pte_content_t;
 
-#define new_opaque_type(type, name) _named_opaque_type(type, name, name##_t)
-#define new_opaque_ptr_type(name)   _named_opaque_type(ptr_t, ptr, name)
+#define new_named_opaque_type(base, name, type)                                                                                                                          \
+    typedef struct                                                                                                                                                       \
+    {                                                                                                                                                                    \
+        base name;                                                                                                                                                       \
+    } type
+
+#define new_opaque_type(type, name) new_named_opaque_type(type, name, name##_t)
+#define new_opaque_ptr_type(name)   new_named_opaque_type(ptr_t, ptr, name)
 
 new_opaque_type(size_t, hash);
-
-#undef _named_opaque_type
-#undef new_opaque_type
-#undef new_opaque_ptr_type
 
 typedef u32 futex_word_t;
 
