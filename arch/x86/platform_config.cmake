@@ -26,6 +26,7 @@ if (MOS_X86_64)
     mos_kconfig(ARCH_X86    MOS_KERNEL_START_VADDR          0xFFFF800000000000  "Kernel Start Virtual Address")
     # 4-level paging supports up to 64 TiB physical memory, this region goes up to 0xFFFFC88000000000
     mos_kconfig(ARCH_X86    MOS_DIRECT_MAP_VADDR            0xFFFF888000000000  "Virt->Phys 1:1 Direct Map Address")
+    mos_kconfig(ARCH_X86    MOS_DIRECT_MAP_VADDR_END        0xFFFFC88000000000  "Virt->Phys 1:1 Direct Map Address - End")
     # hole
     mos_kconfig(ARCH_X86    MOS_INITRD_VADDR                0xFFFFC8C000000000  "Initrd Virtual Address")
     # hole
