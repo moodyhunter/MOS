@@ -105,14 +105,14 @@ install(
 # So we explicitly list the files we want to install here.
 install(
     FILES ${CMAKE_BINARY_DIR}/include/mos/kconfig.h
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mos
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/include/mos
     COMPONENT mos-api-headers
     EXCLUDE_FROM_ALL
 )
 
 install(
     FILES ${MOS_SYSCALL_FILES}
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mos/syscall
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/include/mos/syscall
     COMPONENT mos-api-headers
     EXCLUDE_FROM_ALL
 )
