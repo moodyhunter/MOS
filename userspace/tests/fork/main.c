@@ -3,7 +3,7 @@
 #include <mos/syscall/usermode.h>
 #include <stdio.h>
 
-#define WAITMSG "pid %ld waits for %ld\n"
+#define WAITMSG "pid %d waits for %d\n"
 
 int main(int argc, char **argv)
 {
@@ -12,7 +12,7 @@ int main(int argc, char **argv)
     int pid = syscall_fork();
     if (pid == 0)
     {
-        printf("Child process: pid = %ld\n", syscall_get_pid());
+        printf("Child process: pid = %d\n", syscall_get_pid());
         pid_t p1 = syscall_fork();
         if (p1)
         {
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        printf("Parent process: pid = %ld, child pid = %d\n", syscall_get_pid(), pid);
+        printf("Parent process: pid = %d, child pid = %d\n", syscall_get_pid(), pid);
         syscall_wait_for_process(pid);
         printf("fork test passed\n");
     }

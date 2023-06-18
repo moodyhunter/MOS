@@ -10,17 +10,17 @@ const size_t data_size = 43;
 
 static void thread_main(void *arg)
 {
-    fd_t client_fd = (fd_t) arg;
+    fd_t client_fd = (fd_t) (long) arg;
 
     char buf[150];
-    size_t sz = sprintf(buf, "Welcome to the server, client fd %ld!", client_fd);
+    size_t sz = sprintf(buf, "Welcome to the server, client fd %d!", client_fd);
 
     size_t written = syscall_io_write(client_fd, buf, sz);
     if (written != sz)
         printf("Server: failed to write to ipc channel\n");
 
     size_t read_size = syscall_io_read(client_fd, buf, 150);
-    printf("Server: Received '%.*s' from client %ld\n", (int) read_size, buf, client_fd);
+    printf("Server: Received '%.*s' from client %d\n", (int) read_size, buf, client_fd);
 
     syscall_io_close(client_fd);
 }
@@ -56,8 +56,8 @@ int main(int argc, char **argv)
             return -1;
         }
 
-        printf("Server: Accepted fd %ld\n", client_fd);
-        start_thread("child", thread_main, (void *) client_fd);
+        printf("Server: Accepted fd %d\n", client_fd);
+        start_thread("child", thread_main, (void *) (long) client_fd);
     }
 
     return 0;

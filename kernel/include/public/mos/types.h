@@ -67,12 +67,14 @@ typedef union
 
 MOS_STATIC_ASSERT(sizeof(byte_t) == 1, "byte_t is not 1 byte");
 
-typedef signed long id_t;
-typedef id_t uid_t;
-typedef id_t pid_t;
-typedef id_t fd_t;
-typedef id_t gid_t;
-typedef id_t tid_t;
+typedef u32 id_t;
+typedef u32 uid_t;
+typedef u32 gid_t;
+
+typedef s32 pid_t;
+typedef s32 tid_t;
+
+typedef s32 fd_t;
 
 typedef signed long ssize_t;
 typedef ssize_t off_t;

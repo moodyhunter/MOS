@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 
             char perm[10] = "---------";
             file_format_perm(statbuf.perm, perm);
-            printf("%-10llu %-15s %-5ld %-5ld %-8zu %-10s %-10s", dirent->ino, perm, statbuf.uid, statbuf.gid, statbuf.size, type_to_string[dirent->type], dirent->name);
+            printf("%-10llu %-15s %-5u %-5u %-8zu %-10s %-10s", dirent->ino, perm, statbuf.uid, statbuf.gid, statbuf.size, type_to_string[dirent->type], dirent->name);
 
             if (dirent->type == FILE_TYPE_SYMLINK)
             {

@@ -29,7 +29,7 @@ int main(int argc, char **argv)
         pid_t ret = syscall_spawn(tests[i].executable, 0, NULL);
         if (ret < 0)
         {
-            printf("FAILED: cannot spawn: %ld\n", ret);
+            printf("FAILED: cannot spawn: %d\n", ret);
             continue;
         }
 

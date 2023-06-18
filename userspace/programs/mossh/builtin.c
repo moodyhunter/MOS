@@ -133,7 +133,7 @@ void do_pid(int argc, const char *argv[])
 {
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
-    printf("pid: %ld\n", syscall_get_pid());
+    printf("pid: %d\n", syscall_get_pid());
 }
 
 void do_pwd(int argc, const char *argv[])

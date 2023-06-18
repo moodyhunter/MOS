@@ -38,7 +38,7 @@ int main(int argc, char **argv)
             default: puts("Type: Unknown"); break;
         }
 
-        printf("Owner: %ld:%ld\n", statbuf.uid, statbuf.gid);
+        printf("Owner: %u:%u\n", statbuf.uid, statbuf.gid);
 
         char buf[16] = { 0 };
         file_format_perm(statbuf.perm, buf);
