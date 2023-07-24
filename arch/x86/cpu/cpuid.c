@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <cpuid.h>
 #include <mos/printk.h>
 #include <mos/x86/cpu/cpuid.h>
 
@@ -12,7 +13,7 @@ const char *const cpuid_type_str[] = {
 
 void x86_call_cpuid(u32 eax, x86_cpuid_info_t *cpuid)
 {
-    __asm__("cpuid" : "=a"(cpuid->eax), "=b"(cpuid->ebx), "=c"(cpuid->ecx), "=d"(cpuid->edx) : "0"(eax));
+    __cpuid(eax, cpuid->eax, cpuid->ebx, cpuid->ecx, cpuid->edx);
 }
 
 void cpuid_get_manufacturer(char *manufacturer)
