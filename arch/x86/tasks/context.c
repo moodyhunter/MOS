@@ -28,7 +28,7 @@ extern void x86_switch_impl_normal(void);
 extern asmlinkage void x86_context_switch_impl(ptr_t *old_stack, ptr_t new_kstack, ptr_t pgd, switch_func_t switcher, const x86_thread_context_t *context);
 
 // called from assembly
-asmlinkage ptr_t x86_switch_impl_setup_user_thread(void)
+void x86_switch_impl_setup_user_thread(void)
 {
     thread_t *current = current_thread;
     x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
@@ -37,25 +37,24 @@ asmlinkage ptr_t x86_switch_impl_setup_user_thread(void)
 
     if (is_forked)
     {
-        mos_debug(scheduler, "cpu %d: setting up forked thread (%ld) of process '%s' (%ld)", current_cpu->id, current->tid, current->owner->name, current->owner->pid);
-        // do nothing
-        goto done;
+        mos_debug(scheduler, "cpu %d: setting up forked thread (%d) of process '%s' (%d)", current_cpu->id, current->tid, current->owner->name, current->owner->pid);
+        return;
     }
 
-    // for the main thread, we have to push all argv structures onto the stack
-    // for any other threads, only a pointer specified by the user is pushed
     if (is_main_thread)
     {
+        // for the main thread, we have to push all argv structures onto the stack
+        // for any other threads, only a pointer specified by the user is passed by register RDI
         // set up the main thread of a 'new' process (not forked)
-        mos_debug(scheduler, "cpu %d: setting up main thread (%ld) of process '%s' (%ld)", current_cpu->id, current->tid, current->owner->name, current->owner->pid);
+        mos_debug(scheduler, "cpu %d: setting up main thread (%d) of process '%s' (%d)", current_cpu->id, current->tid, current->owner->name, current->owner->pid);
 
         // the main thread of a process has no arg, because it uses argv
-        MOS_ASSERT_X(context->arg == NULL, "arg should be NULL for the 'main' thread of process '%s' (%ld)", current->owner->name, current->owner->pid);
+        MOS_ASSERT_X(context->arg == NULL, "arg should be NULL for the 'main' thread of process '%s' (%d)", current->owner->name, current->owner->pid);
 
         const char *const *const src_argv = current->owner->argv.argv;
         const size_t argc = current->owner->argv.argc;
 
-        const char *real_argv[argc + 1];
+        char *real_argv[argc + 1];
         for (size_t i = 0; i < argc; i++)
         {
             if (src_argv[i] == NULL)
@@ -66,32 +65,30 @@ asmlinkage ptr_t x86_switch_impl_setup_user_thread(void)
             else
             {
                 real_argv[i] = stack_grow(&current->u_stack, strlen(src_argv[i]) + 1);
-                strcpy((char *) real_argv[i], src_argv[i]);
+                strcpy(real_argv[i], src_argv[i]);
             }
         }
         real_argv[argc] = NULL;
 
         // stack layout:
-        // | argc | argv1 | argv2 | ... | argvN | NULL | arg0 | arg1 | ... | argN | NULL |
-
+        // | argv1 | argv2 | ... | argvN | NULL | arg0 | arg1 | ... | argN | NULL |
         stack_push(&current->u_stack, &real_argv, sizeof(char *) * (argc + 1)); // the argv vector
 
         const ptr_t argv_ptr = current->u_stack.head; // stack_push changes head, so we need to save it
-        stack_push(&current->u_stack, &argv_ptr, sizeof(ptr_t));
-        stack_push(&current->u_stack, &argc, sizeof(size_t));
+
+        context->regs.di = argc;
+        context->regs.si = argv_ptr;
+        context->regs.dx = 0; // TODO: envp
     }
     else
     {
-        stack_push(&current->u_stack, &context->arg, sizeof(void *));
+        context->regs.di = (ptr_t) context->arg;
     }
 
     const ptr_t zero = 0;
     stack_push(&current->u_stack, &zero, sizeof(ptr_t)); // return address
 
     context->inner.stack = current->u_stack.head; // update the stack pointer
-
-done:
-    return context->inner.stack;
 }
 
 void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
@@ -117,8 +114,8 @@ void x86_setup_forked_context(const thread_context_t *from, thread_context_t **t
 
 void x86_switch_to_thread(ptr_t *scheduler_stack, const thread_t *to, switch_flags_t switch_flags)
 {
-    per_cpu(x86_cpu_descriptor)->tss.esp0 = to->k_stack.top;
-    const ptr_t pgd_paddr = mm_pmlmax_get_pfn(to->owner->mm->pgd);
+    per_cpu(x86_cpu_descriptor)->tss.rsp0 = to->k_stack.top;
+    const ptr_t pgd_paddr = mm_pmlmax_get_pfn(to->owner->mm->pgd) * MOS_PAGE_SIZE;
     const x86_thread_context_t *context = container_of(to->context, x86_thread_context_t, inner);
     const switch_func_t switch_func = switch_flags & SWITCH_TO_NEW_USER_THREAD   ? x86_switch_impl_new_user_thread :
                                       switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? x86_switch_impl_new_kernel_thread :
