@@ -14,21 +14,6 @@ jobs:
       matrix:
         build_type: [Debug, Release]
         config:
-          - {
-              "name": "x86 multiboot (no SMP)",
-              "arch": "x86",
-              "target_triple": "i686-elf",
-              "target": "mos_multiboot",
-              "has_smp": "OFF",
-            }
-          - {
-              "name": "x86 multiboot with SMP (1 core)",
-              "arch": "x86",
-              "target_triple": "i686-elf",
-              "target": "mos_multiboot",
-              "has_smp": "ON",
-              "smp": "1",
-            }
           #   - {
           #       "name": "x86_64 UEFI (no SMP)",
           #       "arch": "x86_64",
