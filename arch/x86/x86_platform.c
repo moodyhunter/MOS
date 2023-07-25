@@ -62,8 +62,6 @@ static vmblock_t x86_ebda_block = {
     .flags = VM_READ | VM_GLOBAL | VM_CACHE_DISABLED,
 };
 
-bool x86_initrd_present = false;
-
 mos_platform_info_t *const platform_info = &x86_platform;
 mos_platform_info_t x86_platform = { 0 };
 
@@ -201,7 +199,6 @@ void x86_start_kernel(void)
 
     if (platform_info->initrd_npages)
     {
-        x86_initrd_present = true;
         pmm_reserve_frames(platform_info->initrd_pfn, platform_info->initrd_npages);
         mm_map_pages(x86_platform.kernel_mm, MOS_INITRD_VADDR, platform_info->initrd_pfn, platform_info->initrd_npages, VM_READ | VM_GLOBAL);
     }

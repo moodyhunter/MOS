@@ -181,9 +181,6 @@ extern void mos_kernel_mm_init(void);
 // Platform Machine APIs
 noreturn void platform_shutdown(void);
 
-// Platform initial ramdisk APIs
-bool platform_initrd_present(void);
-
 // Platform CPU APIs
 noreturn void platform_halt_cpu(void);
 void platform_invalidate_tlb(void);

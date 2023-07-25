@@ -84,11 +84,6 @@ void platform_irq_handler_remove(u32 irq, irq_handler handler)
     MOS_UNUSED(handler);
 }
 
-bool platform_initrd_present()
-{
-    return x86_initrd_present;
-}
-
 mm_context_t platform_mm_create_user_pgd(void)
 {
     MOS_UNREACHABLE();
