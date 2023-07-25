@@ -16,4 +16,4 @@ extern pfn_t phyframes_pfn;
  */
 extern size_t phyframes_npages;
 
-void x86_find_and_initialise_phyframes(void);
+void x86_initialise_phyframes_array(void);

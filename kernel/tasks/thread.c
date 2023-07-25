@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/memops.h"
 #include "mos/mm/mm.h"
+#include "mos/mm/paging/table_ops.h"
 
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/structures/hashmap_common.h>
@@ -46,10 +48,11 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
     t->name = strdup(name);
 
     // Kernel stack
-    const ptr_t kstack_hint_addr = (tmode == THREAD_MODE_KERNEL) ? MOS_ADDR_KERNEL_HEAP : MOS_ADDR_USER_STACK;
-    const vmblock_t kstack_blk = mm_alloc_pages(owner->mm, MOS_STACK_PAGES_KERNEL, kstack_hint_addr, VALLOC_DEFAULT, VM_RW);
-    stack_init(&t->k_stack, (void *) kstack_blk.vaddr, kstack_blk.npages * MOS_PAGE_SIZE);
-    mm_attach_vmap(owner->mm, mm_new_vmap(kstack_blk, VMTYPE_KSTACK, (vmap_flags_t){ 0 }));
+    // const ptr_t kstack_hint_addr = (tmode == THREAD_MODE_KERNEL) ? MOS_ADDR_KERNEL_HEAP : MOS_ADDR_USER_STACK;
+    const ptr_t kstack_blk = phyframe_va(mm_get_free_pages(MOS_STACK_PAGES_KERNEL));
+    // mm_alloc_pages(owner->mm, MOS_STACK_PAGES_KERNEL, kstack_hint_addr, VALLOC_DEFAULT, VM_RW);
+    stack_init(&t->k_stack, (void *) kstack_blk, MOS_STACK_PAGES_KERNEL * MOS_PAGE_SIZE);
+    // mm_attach_vmap(owner->mm, mm_new_vmap(kstack_blk, VMTYPE_KSTACK, (vmap_flags_t){ 0 }));
 
     if (tmode == THREAD_MODE_USER)
     {

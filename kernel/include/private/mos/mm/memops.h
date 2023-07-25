@@ -2,12 +2,13 @@
 
 #pragma once
 
+#include "mos/mm/physical/pmm.h"
+
 #include <mos/types.h>
 
-typedef struct
-{
-    ptr_t v;
-    pfn_t p;
-} mm_get_one_page_result_t;
+phyframe_t *mm_get_free_page(void);
+phyframe_t *mm_get_free_page_raw(void);
 
-mm_get_one_page_result_t mm_get_one_zero_page(void);
+phyframe_t *mm_get_free_pages(size_t npages);
+
+void mm_unref_pages(phyframe_t *frame, size_t npages);

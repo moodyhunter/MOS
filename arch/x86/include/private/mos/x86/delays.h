@@ -7,17 +7,9 @@
 
 always_inline u64 rdtsc(void)
 {
-#if MOS_BITS == 32
-    u64 x;
-    __asm__ volatile("rdtsc" : "=A"(x));
-    return x;
-#elif MOS_BITS == 64
     u64 a, d;
-    __asm__ volatile("rdtsc" : "=a"(a), "=d"(d));
+    __asm__ volatile("rdtsc" : "=a"(a), "=d"(d) : : "memory");
     return (d << 32) | a;
-#else
-#error "Unsupported MOS_BITS"
-#endif
 }
 
 always_inline void mdelay(u64 ms)

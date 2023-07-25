@@ -10,4 +10,4 @@ pml2e_t *pml2_entry(pml2_t pml2, ptr_t vaddr);
 
 bool pml2e_is_present(const pml2e_t *pml2e);
 
-pml1_t pml2e_get_pml1(const pml2e_t *pml2e);
+pml1_t pml2e_get_pml1(pml2e_t *pml2e);

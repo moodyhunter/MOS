@@ -4,6 +4,7 @@
 
 #include "mos/boot/startup.h"
 #include "mos/mm/paging/paging.h"
+#include "mos/mm/paging/table_ops.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
 #include "mos/x86/x86_platform.h"
@@ -16,7 +17,7 @@
 pfn_t phyframes_pfn = 0;
 size_t phyframes_npages = 0;
 
-void x86_find_and_initialise_phyframes(void)
+void x86_initialise_phyframes_array(void)
 {
     const size_t phyframes_count = platform_info->max_pfn;
 
@@ -34,24 +35,23 @@ void x86_find_and_initialise_phyframes(void)
             continue;
 
         if (r->nframes < phyframes_npages)
-            continue;
-
-        phyframes_region = r;
+            continue; // early out if this region is too small
 
         phyframes_pfn = r->pfn_start;
-        phyframes_pfn = MAX(MOS_KERNEL_PFN(ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_END)), phyframes_pfn);                 // don't use the kernel's memory
-        phyframes_pfn = MAX(ALIGN_UP_TO_PAGE(platform_info->initrd_pfn + platform_info->initrd_npages), phyframes_pfn); // don't use the initrd's memory
+        phyframes_pfn = MAX(platform_info->initrd_pfn + platform_info->initrd_npages, phyframes_pfn); // don't use the initrd's memory
 
         const pfn_t pfn_end = phyframes_pfn + phyframes_npages;
+        if (pfn_end > r->pfn_start + r->nframes)
+            continue; // this region doesn't have enough space (after we excluded the kernel and initrd regions)
 
-        pr_info2("using " PFN_RANGE " for the phyframes array", phyframes_pfn, pfn_end);
+        phyframes_region = r;
+        mos_debug(pmm, "using " PFNADDR_RANGE " for the phyframes array", PFNADDR(phyframes_pfn, pfn_end));
+        phyframes = (void *) pfn_va(phyframes_pfn);
 
-        // we have to map this into the startup page tables, because we don't have the kernel page tables yet
-        mos_startup_map_pages(MOS_PHYFRAME_ARRAY_VADDR, phyframes_pfn << 12, phyframes_npages, VM_RW | VM_GLOBAL);
-        // then we zero the array
-        memzero((void *) MOS_PHYFRAME_ARRAY_VADDR, phyframes_npages * MOS_PAGE_SIZE);
+        // zero the array
+        memzero(phyframes, phyframes_npages * MOS_PAGE_SIZE);
         // then we can initialize the pmm
-        pmm_init_regions(phyframes_count);
+        pmm_init(phyframes_count);
         // and finally we can reserve this region
         pmm_reserve_frames(phyframes_pfn, phyframes_npages);
         break;
@@ -68,6 +68,13 @@ void x86_find_and_initialise_phyframes(void)
         if (r->nframes == 0) // ???
             continue;
         if (r->reserved)
+        {
+            if (r->pfn_start >= platform_info->max_pfn)
+                continue; // we ignore any reserved regions that are outside of the max_pfn
             pmm_reserve_frames(r->pfn_start, r->nframes);
+        }
     }
+
+    if (phyframes[0].state != PHYFRAME_RESERVED)
+        pmm_reserve_frames(0, 1); // always reserve the first frame
 }

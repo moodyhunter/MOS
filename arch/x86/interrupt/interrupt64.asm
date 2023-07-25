@@ -2,12 +2,12 @@
 
 [bits 64]
 
-%define GDT_SEGMENT_KDATA 0x10 ; as in x86.h
+%define GDT_SEGMENT_KDATA 0x20 ; as in x86.h
 %define IRQ_BASE          0x20 ; as in x86.h
 %define ISR_MAX_COUNT     255
 %define IRQ_MAX_COUNT     16
 
-%define REG_SIZE          4
+%define REG_SIZE          8
 
 extern x86_handle_interrupt
 
@@ -22,7 +22,7 @@ global isr_stub_table
 %macro ISR_handler_ec 1
 isr_stub_%+%1:
     cli
-    nop                             ; ! If the interrupt is an exception, the CPU will push an error code onto the stack, as a doubleword.
+    nop                             ; ! If the interrupt is an exception, the CPU will push an error code onto the stack, as a QWORD.
     push    %1                      ; interrupt number
     jmp     do_handle_interrupt
 %endmacro
@@ -124,7 +124,6 @@ do_handle_interrupt:
     push    rcx
     push    rdx
 
-    push    0                       ; dummy rsp
     push    rbp
     push    rsi
     push    rdi
@@ -140,19 +139,15 @@ do_handle_interrupt:
 
     push    gs                      ; save fs, gs, no more DS and ES on x86_64
     push    fs
-    cld                             ; clears the DF flag in the EFLAGS register.
+    cld                             ; clears the DF flag in the RFLAGS register.
                                     ; so that string operations increment the index registers (RSI and/or RDI).
 
     mov     ax, GDT_SEGMENT_KDATA | 0   ; set the kernel data segment (ring 0)
-    mov     ds, ax
-    mov     es, ax
     mov     fs, ax
     mov     gs, ax
 
-    mov     rax, rsp
-    push    rax                     ; the argument (stack *)
+    mov     rdi, rsp
     call    x86_handle_interrupt    ; x86_handle_interrupt(u32 rsp)
-    add     rsp, 4                  ; remove the pushed rsp parameter
 
     ; no more DS and ES for x86_64
     pop     fs
@@ -170,7 +165,6 @@ do_handle_interrupt:
     pop     rdi
     pop     rsi
     pop     rbp
-    add     rsp, 8                  ; remove the dummy rsp
 
     pop     rdx
     pop     rcx
@@ -179,5 +173,5 @@ do_handle_interrupt:
 
 
     add     rsp, 2 * REG_SIZE
-    iret
+    iretq
 .end:

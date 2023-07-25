@@ -39,7 +39,7 @@ typedef struct phyframe
         PHYFRAME_ALLOCATED,
     } state;
 
-    size_t order;
+    u8 order;
 
     union
     {
@@ -48,10 +48,10 @@ typedef struct phyframe
             as_linked_list;
         };
 
-        struct // compound frame
+        union // compound frame
         {
             // whether this frame is the tail of a compound page
-            bool is_compound_tail;
+            bool compound_tail;
             phyframe_t *compound_head; // compound head
         };
     };
@@ -64,7 +64,7 @@ typedef struct phyframe
     union
     {
         // number of times this frame is mapped, if this drops to 0, the frame is freed
-        atomic_t mapped_count;
+        atomic_t refcount;
     };
 
 } phyframe_t;
@@ -77,9 +77,9 @@ MOS_STATIC_ASSERT(sizeof(phyframe_t) == 20, "phyframe_t size is not 16 bytes");
 #endif
 #elif MOS_BITS == 64
 #if MOS_CONFIG(MOS_PLATFORM_HAS_EXTRA_PHYFRAME_INFO)
-MOS_STATIC_ASSERT(sizeof(phyframe_t) == 40 + sizeof(struct platform_extra_phyframe_info));
+MOS_STATIC_ASSERT(sizeof(phyframe_t) == 32 + sizeof(struct platform_extra_phyframe_info));
 #else
-MOS_STATIC_ASSERT(sizeof(phyframe_t) == 40, "phyframe_t size is not 32 bytes");
+MOS_STATIC_ASSERT(sizeof(phyframe_t) == 32, "phyframe_t size is not 32kunll bytes");
 #endif
 #endif
 
@@ -113,8 +113,8 @@ static inline __maybe_unused pfn_t phyframe_pfn(const phyframe_t *frame)
 static inline __maybe_unused phyframe_t *phyframe_effective_head(phyframe_t *frame)
 {
     MOS_ASSERT_X(frame->state == PHYFRAME_ALLOCATED || frame->state == PHYFRAME_RESERVED, "WRONG");
-    MOS_ASSERT(frame->is_compound_tail == 0 || frame->is_compound_tail == 1);
-    return frame->is_compound_tail == true ? frame->compound_head : frame;
+    MOS_ASSERT(frame->compound_tail == 0 || frame->compound_tail == 1);
+    return frame->compound_tail == true ? frame->compound_head : frame;
 }
 
 /**
@@ -127,17 +127,17 @@ void pmm_dump_lists(void);
  *
  * @param max_frames Maximum number of frames that are addressable on the system.
  */
-void pmm_init_regions(size_t max_frames);
+void pmm_init(size_t max_frames);
 
 /**
  * @brief Allocate n_frames of contiguous physical memory.
  *
  * @param n_frames Number of frames to allocate.
- * @return pfn_t The physical frame number of the first frame in the contiguous block.
+ * @return phyframe_t* Pointer to the first frame of the allocated block.
  *
  * @note
  */
-pfn_t pmm_allocate_frames(size_t n_frames, pmm_allocation_flags_t flags);
+phyframe_t *pmm_allocate_frames(size_t n_frames, pmm_allocation_flags_t flags);
 
 /**
  * @brief Increase the reference count of a list of blocks of physical memory.
@@ -163,6 +163,20 @@ void pmm_ref_frames(pfn_t pfn_start, size_t npages);
  *
  */
 void pmm_unref_frames(pfn_t pfn_start, size_t npages);
+
+/**
+ * @brief Reference a page of physical memory.
+ *
+ * @param frame
+ */
+phyframe_t *pmm_ref_frame(phyframe_t *frame);
+
+/**
+ * @brief Unreference a page of physical memory.
+ *
+ * @param frame
+ */
+void pmm_unref_frame(phyframe_t *frame);
 
 /**
  * @brief Mark a range of physical memory as reserved.

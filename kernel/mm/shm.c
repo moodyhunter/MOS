@@ -28,7 +28,7 @@ vmblock_t shm_map_shared_block(vmblock_t source, vmap_fork_mode_t mode)
 
     spinlock_acquire(&owner->mm->mm_lock);
     spinlock_acquire(&source.address_space->mm_lock);
-    const ptr_t vaddr = mm_get_free_pages(owner->mm, source.npages, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT);
+    const ptr_t vaddr = mm_get_free_vaddr(owner->mm, source.npages, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT);
     const vmblock_t block = mm_copy_maps_locked(source.address_space, source.vaddr, owner->mm, vaddr, source.npages);
     spinlock_release(&source.address_space->mm_lock);
     spinlock_release(&owner->mm->mm_lock);

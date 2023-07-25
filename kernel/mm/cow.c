@@ -3,6 +3,7 @@
 #include "mos/mm/cow.h"
 
 #include "mos/interrupt/ipi.h"
+#include "mos/mm/memops.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/mm/paging/table_ops.h"
 #include "mos/platform/platform.h"
@@ -18,18 +19,12 @@
 #include <mos/tasks/task_types.h>
 #include <string.h>
 
-static vmblock_t zero_block;
-static pfn_t zero_pfn;
+static phyframe_t *zero_page;
 
 void mm_cow_init(void)
 {
     // zero fill on demand (read-only)
-    zero_block = mm_alloc_pages(current_cpu->mm_context, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
-    if (zero_block.vaddr == 0)
-        mos_panic("failed to allocate zero block");
-    memzero((void *) zero_block.vaddr, MOS_PAGE_SIZE);
-    mm_flag_pages(current_cpu->mm_context, zero_block.vaddr, 1, VM_READ); // make it read-only after zeroing
-    zero_pfn = mm_get_phys_addr(current_cpu->mm_context, zero_block.vaddr);
+    zero_page = mm_get_free_page(); // already zeroed
 }
 
 vmblock_t mm_make_cow_block(mm_context_t *target_handle, vmblock_t src_block)
@@ -58,11 +53,11 @@ vmblock_t mm_alloc_zeroed_pages(mm_context_t *mmctx, size_t npages, ptr_t vaddr,
     const vm_flags ro_flags = VM_READ | ((flags & VM_USER) ? VM_USER : 0);
 
     spinlock_acquire(&mmctx->mm_lock);
-    vaddr = mm_get_free_pages(mmctx, npages, vaddr, allocflags);
+    vaddr = mm_get_free_vaddr(mmctx, npages, vaddr, allocflags);
 
     // zero fill the pages
     for (size_t i = 0; i < npages; i++)
-        mm_map_pages_locked(mmctx, vaddr + i * MOS_PAGE_SIZE, zero_pfn, 1, ro_flags);
+        mm_map_pages_locked(mmctx, vaddr + i * MOS_PAGE_SIZE, phyframe_pfn(zero_page), 1, ro_flags);
     spinlock_release(&mmctx->mm_lock);
 
     return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags, .address_space = mmctx };
@@ -73,22 +68,16 @@ static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)
     fault_addr = ALIGN_DOWN_TO_PAGE(fault_addr);
     mm_context_t *mm = current_process->mm;
 
-    // 1. create a new read-write page
-    //    we are allocating the page in the kernel space
-    //    so that user-space won't get confused by the new page
-    const ptr_t proxy = mm_alloc_pages(mm, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_READ | VM_WRITE).vaddr;
-    const pfn_t proxy_pfn = mm_get_phys_addr(mm, proxy);
+    // 1. create a new page
+    phyframe_t *frame = mm_get_free_page();
 
     // 2. copy the data from the faulting address to the new page
-    memcpy((void *) proxy, (void *) fault_addr, MOS_PAGE_SIZE);
+    memcpy((void *) phyframe_va(frame), (void *) fault_addr, MOS_PAGE_SIZE);
 
     // 3. replace the faulting phypage with the new one
     //    this will increment the refcount of the new page, ...
     //    ...and also decrement the refcount of the old page
-    mm_replace_mapping(mm, fault_addr, proxy_pfn, 1, original_flags);
-
-    // 4. unmap the temporary page (at the kernel heap)
-    mm_unmap_pages(mm, proxy, 1);
+    mm_replace_mapping(mm, fault_addr, phyframe_pfn(frame), 1, original_flags);
 
     ipi_send_all(IPI_TYPE_INVALIDATE_TLB);
 }

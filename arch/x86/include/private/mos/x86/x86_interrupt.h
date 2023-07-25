@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "mos/x86/x86_platform.h"
+
 #include <mos/lib/structures/list.h>
 #include <mos/mos_global.h>
 #include <mos/types.h>
@@ -82,3 +84,5 @@ void x86_irq_handler_init(void);
 void x86_handle_interrupt(ptr_t esp);
 
 bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq));
+
+void x86_dump_registers(x86_stack_frame *frame);

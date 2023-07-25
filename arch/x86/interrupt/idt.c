@@ -6,24 +6,22 @@
 #include <mos/x86/x86_interrupt.h>
 #include <mos/x86/x86_platform.h>
 
-static idt_entry32_t idt[IDT_ENTRY_COUNT] __aligned(16) = { 0 };
-static idtr32_t idtr;
+static idt_entry_t idt[IDT_ENTRY_COUNT] __aligned(16) = { 0 };
+static idtr_t idtr;
 
 #define IDT_FLAG_P (1 << 7)
 
 #define STS_IG32 0xE // 32-bit Interrupt Gate
 #define STS_TG32 0xF // 32-bit Trap Gate
 
-extern asmlinkage void idt_flush(idtr32_t *idtr);
+extern asmlinkage void idt_flush(idtr_t *idtr);
 
 static void idt_set_descriptor(u8 vector, void *isr, bool usermode, bool is_trap)
 {
-    idt_entry32_t *descriptor = &idt[vector];
+    idt_entry_t *descriptor = &idt[vector];
 
-#if MOS_BITS == 64
     descriptor->isr_veryhigh = (uintn) isr >> 32;
     descriptor->reserved2 = 0;
-#endif
 
     descriptor->isr_low = (uintn) isr & 0xFFFF;
     descriptor->isr_high = (uintn) isr >> 16;
@@ -31,9 +29,8 @@ static void idt_set_descriptor(u8 vector, void *isr, bool usermode, bool is_trap
     descriptor->present = true;
     descriptor->dpl = usermode ? 3 : 0;
     descriptor->type = is_trap ? STS_TG32 : STS_IG32;
-    descriptor->s = 0;
+    descriptor->zero = 0;
     descriptor->reserved = 0;
-    descriptor->args = 0;
 }
 
 void x86_idt_flush()
@@ -56,6 +53,6 @@ void x86_idt_init()
         idt_set_descriptor(ipi_n + IPI_BASE, isr_stub_table[ipi_n + IPI_BASE], false, false);
 
     idtr.base = &idt[0];
-    idtr.limit = (u16) sizeof(idt_entry32_t) * IDT_ENTRY_COUNT - 1;
+    idtr.limit = (u16) sizeof(idt_entry_t) * IDT_ENTRY_COUNT - 1;
     idt_flush(&idtr);
 }

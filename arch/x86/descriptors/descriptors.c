@@ -33,12 +33,8 @@ static gdt_entry_t *gdt_set_entry(gdt_entry_t *entry, ptr_t base, u32 limit, gdt
 {
     entry->base_low = MASK_BITS(base, 24);
     entry->base_high = MASK_BITS((base >> 24), 8);
-#if MOS_BITS == 64
     entry->base_veryhigh = base >> 32;
     entry->long_mode_code = entry_type == GDT_ENTRY_CODE;
-#else
-    entry->long_mode_code = false;
-#endif
     entry->pm32_segment = !entry->long_mode_code; // it's one or the other
 
     entry->limit_low = MASK_BITS(limit, 16);
@@ -73,7 +69,7 @@ void x86_init_current_cpu_gdt()
     gdt_set_entry(&this_cpu_desc->gdt[4], 0x00000000, 0xFFFFFFFF, GDT_ENTRY_DATA, GDT_RING_USER, GDT_GRAN_PAGE);
 
     // TSS segment
-    gdt_entry_t *tss_seg = gdt_set_entry(&this_cpu_desc->gdt[5], (ptr_t) &this_cpu_desc->tss, sizeof(tss32_t), GDT_ENTRY_CODE, GDT_RING_KERNEL, GDT_GRAN_BYTE);
+    gdt_entry_t *tss_seg = gdt_set_entry(&this_cpu_desc->gdt[5], (ptr_t) &this_cpu_desc->tss, sizeof(tss64_t), GDT_ENTRY_CODE, GDT_RING_KERNEL, GDT_GRAN_BYTE);
 
     // ! Set special attributes for the TSS segment.
     tss_seg->code_data_segment = 0; // indicates TSS/LDT (see also `accessed`)
@@ -89,6 +85,5 @@ void x86_init_current_cpu_gdt()
 
 void x86_init_current_cpu_tss()
 {
-    per_cpu(x86_cpu_descriptor)->tss.ss0 = GDT_SEGMENT_KDATA;
     tss_flush(GDT_SEGMENT_TSS);
 }

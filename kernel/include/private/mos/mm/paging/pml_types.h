@@ -9,7 +9,7 @@
 #define MOS_MAX_PAGE_LEVEL 5
 
 #if MOS_PLATFORM_PAGING_LEVELS > 4
-#error "PML4 is not supported"
+#error "more levels are not supported"
 #endif
 
 // ! platform-independent pml types
@@ -60,9 +60,6 @@ new_named_opaque_type(pml3_t, pml3, pml4_t);
 typedef pml3e_t pml4e_t;
 #endif
 
-// pmlmax_t is the top-level paging table supported by MOS
-typedef MOS_CONCAT(MOS_CONCAT(pml, MOS_PLATFORM_PAGING_LEVELS), _t) pmltop_t;
-
 #if MOS_PLATFORM_PAGING_LEVELS >= 5
 define_pmlx(pml5);
 #if !defined(MOS_PLATFORM_PML5_SHIFT) || !defined(MOS_PLATFORM_PML5_MASK)
@@ -73,12 +70,19 @@ new_named_opaque_type(pml4_t, pml4, pml5_t);
 typedef pml4e_t pml5e_t;
 #endif
 
+// pmltop_t is the top-level paging table supported by the platform
+typedef MOS_CONCAT(MOS_CONCAT(pml, MOS_PLATFORM_PAGING_LEVELS), _t) pmltop_t;
+
+#define pml_create_table(x)                                                                                                                                              \
+    __extension__({                                                                                                                                                      \
+        phyframe_t *page = mm_get_free_page();                                                                                                                           \
+        (x##_t){ .table = (void *) phyframe_va(page) };                                                                                                                  \
+    })
+
 typedef struct
 {
-    MOS_CONCAT(MOS_CONCAT(pml, MOS_MAX_PAGE_LEVEL), _t) real_max;
-    pmltop_t platform_top;
-    pfn_t pfn;
-} pmlmax_t;
+    MOS_CONCAT(MOS_CONCAT(pml, MOS_MAX_PAGE_LEVEL), _t) max;
+} pgd_t;
 
 /**
  * @brief Define stub functions for platforms that don't support the given paging level
@@ -116,6 +120,9 @@ should_inline size_t pml2_index(ptr_t vaddr)
 {
     return (vaddr >> MOS_PLATFORM_PML2_SHIFT) & MOS_PLATFORM_PML2_MASK;
 }
+#if MOS_CONFIG(MOS_PLATFORM_PML2_HUGE_CAPABLE)
+#define PML2_HUGE_MASK (MOS_PLATFORM_PML1_MASK << MOS_PLATFORM_PML1_SHIFT)
+#endif
 #endif
 
 #if MOS_PLATFORM_PAGING_LEVELS >= 3
@@ -123,6 +130,9 @@ should_inline size_t pml3_index(ptr_t vaddr)
 {
     return (vaddr >> MOS_PLATFORM_PML3_SHIFT) & MOS_PLATFORM_PML3_MASK;
 }
+#if MOS_CONFIG(MOS_PLATFORM_PML3_HUGE_CAPABLE)
+#define PML3_HUGE_MASK (PML2_HUGE_MASK | (MOS_PLATFORM_PML2_MASK << MOS_PLATFORM_PML2_SHIFT))
+#endif
 #endif
 
 #if MOS_PLATFORM_PAGING_LEVELS >= 4
@@ -130,6 +140,9 @@ should_inline size_t pml4_index(ptr_t vaddr)
 {
     return (vaddr >> MOS_PLATFORM_PML4_SHIFT) & MOS_PLATFORM_PML4_MASK;
 }
+#if MOS_CONFIG(MOS_PLATFORM_PML4_HUGE_CAPABLE)
+#define PML4_HUGE_MASK (PML3_HUGE_MASK | (MOS_PLATFORM_PML3_MASK << MOS_PLATFORM_PML3_SHIFT))
+#endif
 #endif
 
 typedef struct

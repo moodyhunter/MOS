@@ -57,14 +57,13 @@ void pml3_traverse(pml3_t pml3, ptr_t *vaddr, size_t *n_pages, pagetable_walk_op
                 continue;
             }
 
-            const mm_get_one_page_result_t result = mm_get_one_zero_page();
-            pml2.table = (void *) result.v;
-            platform_pml3e_set_pml2(pml3e, pml2, result.p);
+            pml2 = pml_create_table(pml2);
             platform_pml3e_set_present(pml3e, true);
-            platform_pml3e_set_flags(pml3e, VM_RW);
+            platform_pml3e_set_pml2(pml3e, pml2, va_pfn(pml2.table));
         }
 
-        options.pml3_callback(pml3, pml3e, *vaddr, data);
+        if (options.pml3_callback)
+            options.pml3_callback(pml3, pml3e, *vaddr, data);
         pml2_traverse(pml2, vaddr, n_pages, options, data);
     }
 }
@@ -79,8 +78,14 @@ bool pml3e_is_present(const pml3e_t *pml3e)
     return platform_pml3e_get_present(pml3e);
 }
 
-pml2_t pml3e_get_pml2(const pml3e_t *pml3e)
+pml2_t pml3e_get_pml2(pml3e_t *pml3e)
 {
-    return platform_pml3e_get_pml2(pml3e);
+    if (pml3e_is_present(pml3e))
+        return platform_pml3e_get_pml2(pml3e);
+
+    pml2_t pml2 = pml_create_table(pml2);
+    platform_pml3e_set_present(pml3e, true);
+    platform_pml3e_set_pml2(pml3e, pml2, va_pfn(pml2.table));
+    return pml2;
 }
 #endif

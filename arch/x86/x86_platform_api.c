@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/memops.h"
 #include "mos/mm/mm.h"
+#include "mos/mm/paging/pml_types.h"
+#include "mos/mm/paging/pmlx/pml4.h"
+#include "mos/mm/paging/table_ops.h"
+#include "mos/platform/platform_defs.h"
 
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/paging/paging.h>
@@ -37,9 +42,12 @@ void platform_halt_cpu(void)
     x86_cpu_halt();
 }
 
-void platform_invalidate_tlb(void)
+void platform_invalidate_tlb(ptr_t vaddr)
 {
-    x86_cpu_invlpg_all();
+    if (!vaddr)
+        x86_cpu_invlpg_all();
+    else
+        x86_cpu_invlpg(vaddr);
 }
 
 u32 platform_current_cpu_id(void)
@@ -84,30 +92,25 @@ void platform_irq_handler_remove(u32 irq, irq_handler handler)
     MOS_UNUSED(handler);
 }
 
-mm_context_t platform_mm_create_user_pgd(void)
+pgd_t platform_mm_create_user_pgd(void)
 {
-    MOS_UNREACHABLE();
+    pmltop_t top = pml_create_table(pmltop);
 
-    // // physical address of kernel page table
-    // const ptr_t kpgtable_paddr = pg_get_mapped_paddr(x86_kpg_infra, (ptr_t) x86_kpg_infra->pgtable);
+    // map the upper half of the address space to the kernel
+    for (int i = pml4_index(MOS_KERNEL_START_VADDR); i < MOS_PLATFORM_PML4_NPML3; i++)
+    {
+        const pml4e_t *kpml4e = &platform_info->kernel_mm->pgd.max.pml4.table[i];
+        pml4e_t *pml4e = &top.table[i];
+        pml4e->content = kpml4e->content;
+    }
 
-    // // this is a bit of a hack, but it's the easiest way that I can think of ...
-    // const int kernel_pagedir_id_start = MOS_KERNEL_START_VADDR / MOS_PAGE_SIZE / 1024; // addr / (size of page) / (# pages of a page directory)
-    // for (int i = kernel_pagedir_id_start; i < 1024; i++)
-    // {
-    //     x86_pde_t *pgd = &infra->pgdir[i];
-    //     pgd->present = true;
-    //     pgd->writable = true;
-    //     pgd->usermode = false;
-    //     // redirect it to the kernel page table
-    //     // use pre-allocated (pre-calculated) physical address, otherwise some newly mapped pgdirs won't be applied correctly
-    //     pgd->page_table_paddr = (kpgtable_paddr + i * 1024 * sizeof(x86_pte_t)) >> 12;
-    // }
-    // return handle;
+    return mm_pgd_create(top);
 }
 
-void platform_mm_destroy_user_pgd(mm_context_t table)
+void platform_mm_destroy_user_pgd(pgd_t max)
 {
+    MOS_UNUSED(max);
+    MOS_UNREACHABLE();
     // if (!table.pgd)
     // {
     //     mos_warn("invalid pgd");
@@ -148,7 +151,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
     {
         case X86_SYSCALL_IOPL_ENABLE:
         {
-            pr_info2("enabling IOPL for thread %ld", current_thread->tid);
+            pr_info2("enabling IOPL for thread %d", current_thread->tid);
 
             if (!current_process->platform_options)
                 current_process->platform_options = kzalloc(sizeof(x86_process_options_t));
@@ -159,7 +162,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
         }
         case X86_SYSCALL_IOPL_DISABLE:
         {
-            pr_info2("disabling IOPL for thread %ld", current_thread->tid);
+            pr_info2("disabling IOPL for thread %d", current_thread->tid);
 
             if (!current_process->platform_options)
                 current_process->platform_options = kzalloc(sizeof(x86_process_options_t));
@@ -170,7 +173,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
         }
         case X86_SYSCALL_MAP_VGA_MEMORY:
         {
-            pr_info2("mapping VGA memory for thread %ld", current_thread->tid);
+            pr_info2("mapping VGA memory for thread %d", current_thread->tid);
             static ptr_t vga_paddr = X86_VIDEO_DEVICE_PADDR;
 
             if (once())
@@ -185,7 +188,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
             mm_context_t *mmctx = current_process->mm;
 
             spinlock_acquire(&mmctx->mm_lock);
-            const ptr_t vaddr = mm_get_free_pages(mmctx, 1, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT);
+            const ptr_t vaddr = mm_get_free_vaddr(mmctx, 1, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT);
             const vmblock_t block = mm_map_pages_locked(mmctx, vaddr, vga_paddr / MOS_PAGE_SIZE, 1, VM_USER_RW);
             mm_attach_vmap(current_process->mm, mm_new_vmap(block, VMTYPE_MMAP, (vmap_flags_t){ .fork_mode = VMAP_FORK_SHARED }));
             spinlock_release(&mmctx->mm_lock);

@@ -123,6 +123,9 @@ io_t *ipc_create(const char *name, size_t max_pending)
 
 io_t *ipc_accept(io_t *server)
 {
+    if (!server)
+        return NULL;
+
     ipc_server_t *ipc_server = container_of(server, ipc_server_t, io);
     if (ipc_server->magic != IPC_SERVER_MAGIC)
     {

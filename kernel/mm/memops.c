@@ -3,6 +3,7 @@
 #include "mos/mm/memops.h"
 
 #include "mos/mm/paging/paging.h"
+#include "mos/mm/paging/table_ops.h"
 #include "mos/mm/slab.h"
 #include "mos/setup.h"
 
@@ -25,32 +26,41 @@ void mos_kernel_mm_init(void)
     install_panic_hook(&mm_dump_current_pagetable_holder);
     mm_dump_current_pagetable();
 #endif
-
-#if MOS_DEBUG_FEATURE(pmm)
-    declare_panic_hook(pmm_dump_lists, "Dump PMM lists");
-    install_panic_hook(&pmm_dump_lists_holder);
-    pmm_dump_lists();
-#endif
 }
 
-mm_get_one_page_result_t mm_get_one_zero_page(void)
+phyframe_t *mm_get_free_page_raw(void)
 {
-    const pfn_t pfn = pmm_allocate_frames(1, PMM_ALLOC_NORMAL);
-    if (pfn == 0)
+    phyframe_t *frame = pmm_allocate_frames(1, PMM_ALLOC_NORMAL);
+    if (!frame)
     {
         mos_warn("Failed to allocate a page");
-        return (mm_get_one_page_result_t){ 0 };
+        return NULL;
     }
 
-    const ptr_t vaddr = mm_get_free_pages(platform_info->kernel_mm, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT);
-    if (vaddr == 0)
-    {
-        mos_warn("Failed to allocate a page (virtual address unavailable)");
-        return (mm_get_one_page_result_t){ 0 };
-    }
+    return frame;
+}
 
-    mm_map_pages(platform_info->kernel_mm, vaddr, pfn, 1, VM_RW | VM_GLOBAL);
-
+phyframe_t *mm_get_free_page(void)
+{
+    phyframe_t *frame = mm_get_free_page_raw();
+    const ptr_t vaddr = phyframe_va(frame);
     memzero((void *) vaddr, MOS_PAGE_SIZE);
-    return (mm_get_one_page_result_t){ .v = vaddr, .p = pfn };
+    return frame;
+}
+
+phyframe_t *mm_get_free_pages(size_t npages)
+{
+    phyframe_t *frame = pmm_allocate_frames(npages, PMM_ALLOC_NORMAL);
+    if (!frame)
+    {
+        mos_warn("Failed to allocate %zd pages", npages);
+        return NULL;
+    }
+
+    return frame;
+}
+
+void mm_unref_pages(phyframe_t *frame, size_t npages)
+{
+    pmm_unref_frames(phyframe_pfn(frame), npages);
 }

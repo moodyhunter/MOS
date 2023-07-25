@@ -7,6 +7,7 @@
 #include "mos/mm/paging/pml_types.h"
 #include "mos/mm/paging/pmlx/pml3.h"
 #include "mos/mm/paging/table_ops.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
 
 #include <mos/kconfig.h>
@@ -57,14 +58,13 @@ void pml4_traverse(pml4_t pml4, ptr_t *vaddr, size_t *n_pages, pagetable_walk_op
                 continue;
             }
 
-            const mm_get_one_page_result_t result = mm_get_one_zero_page();
-            pml3.table = (void *) result.v;
-            platform_pml4e_set_pml3(pml4e, pml3, result.p);
+            pml3 = pml_create_table(pml3);
             platform_pml4e_set_present(pml4e, true);
-            platform_pml4e_set_flags(pml4e, VM_RW);
+            platform_pml4e_set_pml3(pml4e, pml3, va_pfn(pml3.table));
         }
 
-        options.pml4_callback(pml4, pml4e, *vaddr, data);
+        if (options.pml4_callback)
+            options.pml4_callback(pml4, pml4e, *vaddr, data);
         pml3_traverse(pml3, vaddr, n_pages, options, data);
     }
 }
@@ -79,8 +79,14 @@ bool pml4e_is_present(const pml4e_t *pml4e)
     return platform_pml4e_get_present(pml4e);
 }
 
-pml3_t pml4e_get_pml3(const pml4e_t *pml4e)
+pml3_t pml4e_get_pml3(pml4e_t *pml4e)
 {
-    return platform_pml4e_get_pml3(pml4e);
+    if (pml4e_is_present(pml4e))
+        return platform_pml4e_get_pml3(pml4e);
+
+    pml3_t pml3 = pml_create_table(pml3);
+    platform_pml4e_set_present(pml4e, true);
+    platform_pml4e_set_pml3(pml4e, pml3, va_pfn(pml3.table));
+    return pml3;
 }
 #endif

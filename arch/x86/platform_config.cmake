@@ -25,17 +25,9 @@ if (MOS_X86_64)
 
     # kernel memory starts at  0xFFFF800000000000
     mos_kconfig(ARCH_X86    MOS_KERNEL_START_VADDR          0xFFFF800000000000  "Kernel Start Virtual Address")
-    # 4-level paging supports up to 64 TiB physical memory, this region goes up to 0xFFFFC88000000000
-    mos_kconfig(ARCH_X86    MOS_DIRECT_MAP_VADDR            0xFFFF888000000000  "Virt->Phys 1:1 Direct Map Address")
-    mos_kconfig(ARCH_X86    MOS_DIRECT_MAP_VADDR_END        0xFFFFC88000000000  "Virt->Phys 1:1 Direct Map Address - End")
     # hole
     mos_kconfig(ARCH_X86    MOS_INITRD_VADDR                0xFFFFC8C000000000  "Initrd Virtual Address")
     # hole
-    # 1 TiB kernel heap is way enough for now
-    mos_kconfig(ARCH_X86    MOS_ADDR_KERNEL_HEAP            0xFFFFD00000000000  "Kernel Heap Start Address")
-    mos_kconfig(ARCH_X86    MOS_ADDR_KERNEL_HEAP_END        0xFFFFD10000000000  "Kernel Heap End Address")
-    # hole
-    mos_kconfig(ARCH_X86    MOS_PHYFRAME_ARRAY_VADDR        0xFFFFEA0000000000  "Physical Frame Array Virtual Address")
     mos_kconfig(ARCH_X86    MOS_HWMEM_VADDR                 0xFFFFFFFFA0000000  "Hardware Virtual Map Address")
 else()
     set(MOS_COMPILER_PREFIX "i686-elf-")
@@ -45,10 +37,7 @@ else()
     mos_kconfig(ARCH_X86    MOS_ADDR_USER_HEAP              0x40000000          "User Heap Start Address")
     mos_kconfig(ARCH_X86    MOS_ADDR_USER_STACK             0x60000000          "User Stack Start Address")
     mos_kconfig(ARCH_X86    MOS_ADDR_USER_MMAP              0x90000000          "User MMAP Start Address")
-    mos_kconfig(ARCH_X86    MOS_ADDR_KERNEL_HEAP            0xC5000000          "Kernel Heap Start Address")
-    mos_kconfig(ARCH_X86    MOS_ADDR_KERNEL_HEAP_END        0xF8000000          "Kernel Heap End Address")
     mos_kconfig(ARCH_X86    MOS_INITRD_VADDR                0xF8000000          "Initrd Virtual Address")
-    mos_kconfig(ARCH_X86    MOS_PHYFRAME_ARRAY_VADDR        0xFA000000          "Physical Frame Array Virtual Address")
     mos_kconfig(ARCH_X86    MOS_HWMEM_VADDR                 0xFC000000          "Hardware Virtual Map Address")
     mos_kconfig(ARCH_X86    MOS_X86_INITIAL_STACK_SIZE      0x100000            "Initial Stack Size")   # Update corresponding linker script if changed
     mos_kconfig(ARCH_X86    MOS_KERNEL_START_VADDR          0xC0000000          "Kernel start virtual address")

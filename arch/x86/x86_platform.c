@@ -93,30 +93,37 @@ static void x86_do_backtrace(void)
         ptr_t eip;
     } *frame = NULL;
 
-#if MOS_BITS == 64
     __asm__("movq %%rbp,%1" : "=r"(frame) : "r"(frame));
-#else
-    __asm__("movl %%ebp,%1" : "=r"(frame) : "r"(frame));
-#endif
+
+    const bool do_mapped_check = current_cpu->mm_context;
+
+    if (unlikely(!do_mapped_check))
+        pr_warn("  no mm context available, mapping checks are disabled (early-boot panic?)");
+
     for (u32 i = 0; frame; i++)
     {
-        bool mapped = mm_get_is_mapped(current_cpu->mm_context, (ptr_t) frame);
-        if (!mapped)
+#define TRACE_FMT "  %-3d [" PTR_FMT "]: "
+        if (do_mapped_check)
         {
-            pr_warn("  %-2d" PTR_FMT ": <corrupted>, aborting backtrace", i, (ptr_t) frame);
-            break;
+            const pfn_t pfn = mm_do_get_pfn(current_cpu->mm_context->pgd, (ptr_t) frame);
+            if (!pfn)
+            {
+                pr_warn(TRACE_FMT "<corrupted>, aborting backtrace", i, (ptr_t) frame);
+                break;
+            }
         }
+
         if (frame->eip >= MOS_KERNEL_START_VADDR)
         {
             const kallsyms_t *kallsyms = kallsyms_get_symbol(frame->eip);
             if (kallsyms)
-                pr_warn("  %-2d" PTR_FMT ": %s (+" PTR_VLFMT ")", i, frame->eip, kallsyms->name, frame->eip - kallsyms->address);
+                pr_warn(TRACE_FMT "%s (+" PTR_VLFMT ")", i, frame->eip, kallsyms->name, frame->eip - kallsyms->address);
             else
-                pr_warn("  %-2d" PTR_FMT ": <unknown>", i, frame->eip);
+                pr_warn(TRACE_FMT "<unknown>", i, frame->eip);
         }
         else
         {
-            pr_warn("  %-2d" PTR_FMT ": <userspace?>", i, frame->eip);
+            pr_warn(TRACE_FMT "<userspace?>", i, frame->eip);
         }
 
         frame = frame->ebp;
@@ -126,7 +133,6 @@ static void x86_do_backtrace(void)
 void x86_start_kernel(void)
 {
     mos_debug(x86_startup, "initrd at " PFN_FMT ", size %zu pages", platform_info->initrd_pfn, platform_info->initrd_npages);
-    setup_invoke_earlysetup();
 
     declare_panic_hook(x86_do_backtrace, "Backtrace");
     install_panic_hook(&x86_do_backtrace_holder);
@@ -145,52 +151,11 @@ void x86_start_kernel(void)
     // switching to our new page table will ruin the old one
 
     mos_debug(x86_startup, "setting up physical memory manager...");
-    x86_find_and_initialise_phyframes();
 
+    x86_initialise_phyframes_array();
     x86_paging_setup();
-
-    mos_debug(x86_startup, "mapping kernel space...");
-
-    x86_platform.k_code.vaddr = (ptr_t) __MOS_KERNEL_CODE_START;
-    x86_platform.k_rodata.vaddr = (ptr_t) __MOS_KERNEL_RODATA_START;
-    x86_platform.k_rwdata.vaddr = (ptr_t) __MOS_KERNEL_RW_START;
-
-    x86_platform.k_code.npages = ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_CODE_END - (ptr_t) __MOS_KERNEL_CODE_START) / MOS_PAGE_SIZE;
-    x86_platform.k_rodata.npages = ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_RODATA_END - (ptr_t) __MOS_KERNEL_RODATA_START) / MOS_PAGE_SIZE;
-    x86_platform.k_rwdata.npages = ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_RW_END - (ptr_t) __MOS_KERNEL_RW_START) / MOS_PAGE_SIZE;
-
-    pmm_reserve_frames(MOS_KERNEL_PFN(x86_platform.k_code.vaddr), x86_platform.k_code.npages);
-    pmm_reserve_frames(MOS_KERNEL_PFN(x86_platform.k_rodata.vaddr), x86_platform.k_rodata.npages);
-    pmm_reserve_frames(MOS_KERNEL_PFN(x86_platform.k_rwdata.vaddr), x86_platform.k_rwdata.npages);
-
-    x86_platform.k_code = mm_map_pages(            //
-        platform_info->kernel_mm,                  //
-        x86_platform.k_code.vaddr,                 //
-        MOS_KERNEL_PFN(x86_platform.k_code.vaddr), //
-        x86_platform.k_code.npages,                //
-        VM_READ | VM_GLOBAL                        //
-    );
-
-    x86_platform.k_rodata = mm_map_pages(            //
-        platform_info->kernel_mm,                    //
-        x86_platform.k_rodata.vaddr,                 //
-        MOS_KERNEL_PFN(x86_platform.k_rodata.vaddr), //
-        x86_platform.k_rodata.npages,                //
-        VM_READ | VM_GLOBAL                          //
-    );
-
-    x86_platform.k_rwdata = mm_map_pages(            //
-        platform_info->kernel_mm,                    //
-        x86_platform.k_rwdata.vaddr,                 //
-        MOS_KERNEL_PFN(x86_platform.k_rwdata.vaddr), //
-        x86_platform.k_rwdata.npages,                //
-        VM_READ | VM_WRITE | VM_GLOBAL               //
-    );
-
-    // phygrames_pfn has been reserved at its initialization
-    mm_map_pages(platform_info->kernel_mm, MOS_PHYFRAME_ARRAY_VADDR, phyframes_pfn, phyframes_npages, VM_RW | VM_GLOBAL);
-
     x86_enable_paging_impl(mm_pmlmax_get_pfn(x86_platform.kernel_mm->pgd) * MOS_PAGE_SIZE);
+
     mos_debug(x86_startup, "mapping bios memory area...");
     pmm_reserve_frames(X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages);
     pmm_reserve_frames(X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages);

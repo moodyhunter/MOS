@@ -5,6 +5,8 @@
 #include "mos/mm/memops.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/mm/paging/pmlx/pml1.h"
+#include "mos/mm/paging/table_ops.h"
+#include "mos/mm/physical/pmm.h"
 
 #include <string.h>
 
@@ -29,14 +31,13 @@ void pml2_traverse(pml2_t pml2, ptr_t *vaddr, size_t *n_pages, pagetable_walk_op
                 continue;
             }
 
-            const mm_get_one_page_result_t result = mm_get_one_zero_page();
-            pml1.table = (void *) result.v;
-            platform_pml2e_set_pml1(pml2e, pml1, result.p);
+            pml1 = pml_create_table(pml1);
             platform_pml2e_set_present(pml2e, true);
-            platform_pml2e_set_flags(pml2e, VM_RW);
+            platform_pml2e_set_pml1(pml2e, pml1, va_pfn(pml1.table));
         }
 
-        options.pml2_callback(pml2, pml2e, *vaddr, data);
+        if (options.pml2_callback)
+            options.pml2_callback(pml2, pml2e, *vaddr, data);
         pml1_traverse(pml1, vaddr, n_pages, options, data);
     }
 }
@@ -51,7 +52,13 @@ bool pml2e_is_present(const pml2e_t *pml2e)
     return platform_pml2e_get_present(pml2e);
 }
 
-pml1_t pml2e_get_pml1(const pml2e_t *pml2e)
+pml1_t pml2e_get_pml1(pml2e_t *pml2e)
 {
-    return platform_pml2e_get_pml1(pml2e);
+    if (pml2e_is_present(pml2e))
+        return platform_pml2e_get_pml1(pml2e);
+
+    pml1_t pml1 = pml_create_table(pml1);
+    platform_pml2e_set_present(pml2e, true);
+    platform_pml2e_set_pml1(pml2e, pml1, va_pfn(pml1.table));
+    return pml1;
 }

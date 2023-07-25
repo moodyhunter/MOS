@@ -75,7 +75,7 @@
 #define MOS_WARNING_POP           MOS_PRAGMA(diagnostic pop)
 #define MOS_WARNING_DISABLE(text) MOS_PRAGMA(diagnostic ignored text)
 
-#define ALIGN_UP(addr, size)     (((addr) + size - 1) & ~(size - 1))
+#define ALIGN_UP(addr, size)     (((addr) + (size - 1)) & ~(size - 1))
 #define ALIGN_DOWN(addr, size)   ((addr) & ~(size - 1))
 #define ALIGN_UP_TO_PAGE(addr)   ALIGN_UP(addr, MOS_PAGE_SIZE)
 #define ALIGN_DOWN_TO_PAGE(addr) ALIGN_DOWN(addr, MOS_PAGE_SIZE)
@@ -87,7 +87,7 @@
 #define MOS_ARRAY_SIZE(x)      (sizeof(x) / sizeof(x[0]))
 
 #define MOS_MAX_VADDR         ((ptr_t) ~0)
-#define MOS_KERNEL_PFN(vaddr) (((vaddr) -MOS_KERNEL_START_VADDR) / MOS_PAGE_SIZE)
+#define MOS_KERNEL_PFN(vaddr) ((ALIGN_DOWN_TO_PAGE((vaddr) -platform_info->k_basevaddr) / MOS_PAGE_SIZE) + platform_info->k_basepfn)
 
 #define MOS_SYSCALL_INTR             0x88
 #define BIOS_VADDR(paddr)            (MOS_HWMEM_VADDR | ((ptr_t) (paddr)))

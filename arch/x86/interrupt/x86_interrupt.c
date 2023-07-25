@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/kallsyms.h"
+
 #include <mos/interrupt/ipi.h>
 #include <mos/lib/structures/list.h>
 #include <mos/mm/cow.h>
@@ -73,22 +75,26 @@ bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
     return true;
 }
 
-static void x86_dump_registers(x86_stack_frame *frame)
+void x86_dump_registers(x86_stack_frame *frame)
 {
     pr_emph("General Purpose Registers:\n"
-            "  EAX: " PTR_FMT " EBX: " PTR_FMT " ECX: " PTR_FMT " EDX: " PTR_FMT "\n"
-            "  ESI: " PTR_FMT " EDI: " PTR_FMT " EBP: " PTR_FMT " ESP: " PTR_FMT "\n"
-            "  EIP: " PTR_FMT "\n"
+            "  RAX: " PTR_FMT " RBX: " PTR_FMT " RCX: " PTR_FMT " RDX: " PTR_FMT "\n"
+            "  RSI: " PTR_FMT " RDI: " PTR_FMT " RBP: " PTR_FMT " RSP: " PTR_FMT "\n"
+            "  R8:  " PTR_FMT " R9:  " PTR_FMT " R10: " PTR_FMT " R11: " PTR_FMT "\n"
+            "  R12: " PTR_FMT " R13: " PTR_FMT " R14: " PTR_FMT " R15: " PTR_FMT "\n"
+            "  IP:  " PTR_FMT "\n"
             "Segment Registers:\n"
-            "  DS:  0x%08lx ES:  0x%08lx FS:  0x%08lx GS:  0x%08lx\n"
+            "  FS:  0x%lx GS:  0x%lx\n"
             "Context:\n"
-            "  EFLAGS:       0x%08lx\n"
-            "  Instruction:  0x%lx:%08lx\n"
-            "  Stack:        0x%lx:%08lx",
+            "  EFLAGS:       " PTR_FMT "\n"
+            "  Instruction:  0x%lx:" PTR_FMT "\n"
+            "  Stack:        0x%lx:" PTR_FMT,
             frame->ax, frame->bx, frame->cx, frame->dx,             //
             frame->si, frame->di, frame->bp, frame->iret_params.sp, //
+            frame->r8, frame->r9, frame->r10, frame->r11,           //
+            frame->r12, frame->r13, frame->r14, frame->r15,         //
             frame->iret_params.ip,                                  //
-            frame->ds, frame->es, frame->fs, frame->gs,             //
+            frame->fs, frame->gs,                                   //
             frame->iret_params.eflags,                              //
             frame->iret_params.cs, frame->iret_params.ip,           //
             frame->iret_params.ss, frame->iret_params.sp            //
@@ -177,7 +183,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
             bool present = (stack->error_code & 0x1) != 0;
             bool is_write = (stack->error_code & 0x2) != 0;
             bool is_user = (stack->error_code & 0x4) != 0;
-            bool is_exec = false;
+            bool is_exec = (stack->error_code & 0x10) != 0;
 
             thread_t *current = current_thread;
 
@@ -185,14 +191,14 @@ static void x86_handle_exception(x86_stack_frame *stack)
             {
                 if (MOS_DEBUG_FEATURE(cow))
                 {
-                    pr_emph("%s page fault: thread %ld (%s), process %ld (%s) at " PTR_FMT ", instruction " PTR_FMT, //
-                            is_user ? "user" : "kernel",                                                             //
-                            current->tid,                                                                            //
-                            current->name,                                                                           //
-                            current->owner->pid,                                                                     //
-                            current->owner->name,                                                                    //
-                            fault_address,                                                                           //
-                            (ptr_t) stack->iret_params.ip                                                            //
+                    pr_emph("%s page fault: thread %d (%s), process %d (%s) at " PTR_FMT ", instruction " PTR_FMT, //
+                            is_user ? "user" : "kernel",                                                           //
+                            current->tid,                                                                          //
+                            current->name,                                                                         //
+                            current->owner->pid,                                                                   //
+                            current->owner->name,                                                                  //
+                            fault_address,                                                                         //
+                            (ptr_t) stack->iret_params.ip                                                          //
                     );
                 }
 
@@ -210,33 +216,31 @@ static void x86_handle_exception(x86_stack_frame *stack)
                 mos_warn("early boot page fault");
             }
 
-            x86_dump_registers(stack);
+            pr_emerg("Unhandled Page Fault");
+            pr_emerg("  %s mode invalid %s page %s%s at [" PTR_FMT "]", //
+                     is_user ? "User" : "Kernel",                       //
+                     present ? "present" : "non-present",               //
+                     is_write ? "write" : "read",                       //
+                     is_exec ? " (NX violation)" : "",                  //
+                     fault_address                                      //
+            );
+            pr_emerg("  instruction: " PTR_FMT, (ptr_t) stack->iret_params.ip);
+            pr_emerg("  thread: %d (%s)", current->tid, current->name);
+            pr_emerg("  process: %d (%s)", current->owner->pid, current->owner->name);
 
             if (fault_address < 1 KB)
-            {
-                pr_emerg("thread %ld (%s), process %ld (%s), %s NULL pointer dereference at " PTR_FMT " caused by instruction " PTR_FMT,
-                         current ? current->tid : 0,                //
-                         current ? current->name : "<none>",        //
-                         current ? current->owner->pid : 0,         //
-                         current ? current->owner->name : "<none>", //
-                         is_user ? "User" : "Kernel",               //
-                         fault_address,                             //
-                         (ptr_t) stack->iret_params.ip              //
-                );
-            }
-            else
-            {
-                if (is_user && !is_write && present)
-                    pr_warn("'%s' trying to read kernel memory?", current_process->name);
-                pr_emerg("Page Fault: %s code at " PTR_FMT " is trying to %s a %s address " PTR_FMT, //
-                         is_user ? "Userspace" : "Kernel",                                           //
-                         (ptr_t) stack->iret_params.ip,                                              //
-                         is_write ? "write into" : "read from",                                      //
-                         present ? "present" : "non-present",                                        //
-                         fault_address);
-            }
+                pr_emerg("  possible null pointer dereference");
 
-            mos_panic("unhandled page fault");
+            if (is_user && fault_address > MOS_KERNEL_START_VADDR)
+                pr_emerg("  kernel address dereference");
+
+            if (stack->iret_params.ip > platform_info->k_code.vaddr)
+                pr_emerg("  in kernel function '%s'", kallsyms_get_symbol_name(stack->iret_params.ip));
+
+            pr_emerg("  CR3: " PTR_FMT, (ptr_t) x86_get_cr3() + platform_info->direct_map_base);
+
+            x86_dump_registers(stack);
+            mos_panic("Unable to recover from page fault.");
             MOS_UNREACHABLE();
         }
 
@@ -254,7 +258,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
     }
 
     x86_dump_registers(stack);
-    mos_panic("x86 %s:\nInterrupt #%d ('%s', error code %d)", intr_type, stack->interrupt_number, name, stack->error_code);
+    mos_panic("x86 %s:\nInterrupt #%lu ('%s', error code %lu)", intr_type, stack->interrupt_number, name, stack->error_code);
 }
 
 static void x86_handle_irq(x86_stack_frame *frame)
@@ -274,11 +278,10 @@ static void x86_handle_irq(x86_stack_frame *frame)
         pr_warn("IRQ %d not handled!", irq);
 }
 
-void x86_handle_interrupt(ptr_t esp)
+static void x86_handle_syscall(x86_stack_frame *frame)
 {
-    x86_stack_frame *frame = (x86_stack_frame *) esp;
-
     thread_t *current = current_thread;
+
     if (likely(current))
     {
         x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
@@ -287,20 +290,11 @@ void x86_handle_interrupt(ptr_t esp)
         context->inner.stack = frame->iret_params.sp;
     }
 
-    if (frame->interrupt_number < IRQ_BASE)
-        x86_handle_exception(frame);
-    else if (frame->interrupt_number >= IRQ_BASE && frame->interrupt_number < IRQ_BASE + IRQ_MAX)
-        x86_handle_irq(frame);
-    else if (frame->interrupt_number >= IPI_BASE && frame->interrupt_number < IPI_BASE + IPI_TYPE_MAX)
-        ipi_do_handle((ipi_type_t) (frame->interrupt_number - IPI_BASE));
-    else if (frame->interrupt_number == MOS_SYSCALL_INTR)
-        frame->ax = dispatch_syscall(frame->ax, frame->bx, frame->cx, frame->dx, frame->si, frame->di, frame->bp);
-    else
-        pr_warn("Unknown interrupt number: %d", frame->interrupt_number);
+    frame->ax = dispatch_syscall(frame->ax, frame->bx, frame->cx, frame->dx, frame->si, frame->di, frame->bp);
 
     if (likely(current))
     {
-        MOS_ASSERT_X(current->state == THREAD_STATE_RUNNING, "thread %ld is not in 'running' state", current->tid);
+        MOS_ASSERT_X(current->state == THREAD_STATE_RUNNING, "thread %d is not in 'running' state", current->tid);
 
         // flags may have been changed by platform_arch_syscall
         x86_process_options_t *options = current->owner->platform_options;
@@ -313,5 +307,20 @@ void x86_handle_interrupt(ptr_t esp)
         }
     }
 
-    frame->iret_params.eflags |= 0x200; // enable interrupts
+    // frame->iret_params.eflags |= 0x200; // enable interrupts
+}
+
+void x86_handle_interrupt(ptr_t rsp)
+{
+    x86_stack_frame *frame = (x86_stack_frame *) rsp;
+    if (frame->interrupt_number < IRQ_BASE)
+        x86_handle_exception(frame);
+    else if (frame->interrupt_number >= IRQ_BASE && frame->interrupt_number < IRQ_BASE + IRQ_MAX)
+        x86_handle_irq(frame);
+    else if (frame->interrupt_number >= IPI_BASE && frame->interrupt_number < IPI_BASE + IPI_TYPE_MAX)
+        ipi_do_handle((ipi_type_t) (frame->interrupt_number - IPI_BASE));
+    else if (frame->interrupt_number == MOS_SYSCALL_INTR)
+        x86_handle_syscall(frame);
+    else
+        pr_warn("Unknown interrupt number: %lu", frame->interrupt_number);
 }

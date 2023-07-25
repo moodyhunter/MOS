@@ -42,7 +42,7 @@ typedef enum
  * @warning Should call with mmctx->mm_lock held.
  */
 
-ptr_t mm_get_free_pages(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags);
+ptr_t mm_get_free_vaddr(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags);
 
 /**
  * @brief Allocate npages pages from a page table.

@@ -14,19 +14,12 @@
 
 #define GDT_SEGMENT_NULL 0x00
 
-#if MOS_BITS == 64
 #define GDT_SEGMENT_KCODE    0x10
 #define GDT_SEGMENT_KDATA    0x20
 #define GDT_SEGMENT_USERCODE 0x30
 #define GDT_SEGMENT_USERDATA 0x40
 #define GDT_SEGMENT_TSS      0x50
-#else
-#define GDT_SEGMENT_KCODE    0x08
-#define GDT_SEGMENT_KDATA    0x10
-#define GDT_SEGMENT_USERCODE 0x18
-#define GDT_SEGMENT_USERDATA 0x20
-#define GDT_SEGMENT_TSS      0x28
-#endif
+
 #define GDT_ENTRY_COUNT 6
 
 typedef struct
@@ -46,17 +39,11 @@ typedef struct
     u32 pm32_segment : 1;           // 32-bit opcodes for code, uint32_t stack for data
     u32 granularity : 1;            // 1 to use 4k page addressing, 0 for byte addressing
     u32 base_high : 8;
-#if MOS_BITS == 64
     u32 base_veryhigh; // upper 32 bits of base address
     u32 reserved;
-#endif
 } __packed gdt_entry_t;
 
-#if MOS_BITS == 64
 MOS_STATIC_ASSERT(sizeof(gdt_entry_t) == 16, "gdt_entry_t is not 16 bytes");
-#else
-MOS_STATIC_ASSERT(sizeof(gdt_entry_t) == 8, "gdt_entry_t is not 8 bytes");
-#endif
 
 typedef struct
 {
@@ -68,28 +55,28 @@ MOS_STATIC_ASSERT(sizeof(gdt_ptr_t) == 2 + sizeof(void *), "gdt_ptr_t is not 6 b
 
 typedef struct
 {
-    u32 link;
-    u32 esp0, ss0;
-    u32 esp1, ss1;
-    u32 esp2, ss2;
-
-    u32 cr3;
-    u32 eip;
-    u32 eflags;
-
-    u32 eax, ecx, edx, ebx, esp, ebp, esi, edi;
-    u32 es, cs, ss, ds, fs, gs;
-
-    u32 ldtr;
-    u16 trap;
+    u32 reserved1;
+    u64 rsp0;
+    u64 rsp1;
+    u64 rsp2;
+    u64 reserved2;
+    u64 ist1;
+    u64 ist2;
+    u64 ist3;
+    u64 ist4;
+    u64 ist5;
+    u64 ist6;
+    u64 ist7;
+    u64 reserved3;
+    u16 reserved4;
     u16 iomap;
-} __packed tss32_t;
+} __packed tss64_t;
 
-MOS_STATIC_ASSERT(sizeof(tss32_t) == 104, "tss32_t is not 104 bytes");
+MOS_STATIC_ASSERT(sizeof(tss64_t) == 0x68, "tss64_t is not 0x68 bytes");
 
 typedef struct
 {
-    tss32_t tss __aligned(32);
+    tss64_t tss __aligned(32);
     gdt_entry_t gdt[GDT_ENTRY_COUNT] __aligned(32);
     gdt_ptr_t gdt_ptr __aligned(32);
 } __packed x86_cpu_descriptor_t;
@@ -100,33 +87,25 @@ typedef struct
 {
     u16 isr_low; // The lower 16 bits of the ISR's address
     u16 segment; // The GDT segment selector that the CPU will load into CS before calling the ISR
-    u32 args : 5;
-    u32 reserved : 3;
+    u32 reserved : 8;
     u32 type : 4; // The type of interrupt
-    u32 s : 1;
+    u32 zero : 1;
     u32 dpl : 2;
     u32 present : 1;
     u32 isr_high : 16; // The upper 16 bits of the ISR's address
-
-#if MOS_BITS == 64
-    u32 isr_veryhigh; // The upper 32 bits of the ISR's address
+    u32 isr_veryhigh;  // The upper 32 bits of the ISR's address
     u32 reserved2;
-#endif
-} __packed idt_entry32_t;
+} __packed idt_entry_t;
 
 typedef struct
 {
     u16 limit;
-    idt_entry32_t *base;
-} __packed idtr32_t;
+    idt_entry_t *base;
+} __packed idtr_t;
 
-#if MOS_BITS == 64
-MOS_STATIC_ASSERT(sizeof(idt_entry32_t) == 16, "idt_entry32_t is not 16 bytes");
-#else
-MOS_STATIC_ASSERT(sizeof(idt_entry32_t) == 8, "idt_entry32_t is not 8 bytes");
-#endif
+MOS_STATIC_ASSERT(sizeof(idt_entry_t) == 16, "idt_entry_t is not 16 bytes");
 
-MOS_STATIC_ASSERT(sizeof(idtr32_t) == 2 + sizeof(void *), "idtr32_t is not 6 bytes");
+MOS_STATIC_ASSERT(sizeof(idtr_t) == 2 + sizeof(void *), "idtr32_t is not 6 bytes");
 
 void x86_init_current_cpu_gdt(void);
 void x86_init_current_cpu_tss(void);

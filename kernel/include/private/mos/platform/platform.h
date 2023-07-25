@@ -108,7 +108,7 @@ typedef struct
 
 typedef struct
 {
-    pmlmax_t pgd;
+    pgd_t pgd;
     spinlock_t mm_lock;
     list_head mmaps;
 } mm_context_t;
@@ -162,6 +162,8 @@ typedef struct
     PER_CPU_DECLARE(cpu_t, cpu);
 
     vmblock_t k_code, k_rwdata, k_rodata;
+    pfn_t k_basepfn;
+    ptr_t k_basevaddr; // virtual address of the kernel base (i.e. the start of the kernel image)
 
     mm_context_t *kernel_mm;
 
@@ -171,6 +173,8 @@ typedef struct
     pfn_t max_pfn;
     pmm_region_t pmm_regions[MOS_MAX_MEMREGIONS];
     size_t num_pmm_regions;
+
+    ptr_t direct_map_base; // direct mapping to all physical memory
 } mos_platform_info_t;
 
 extern mos_platform_info_t *const platform_info;
@@ -183,7 +187,7 @@ noreturn void platform_shutdown(void);
 
 // Platform CPU APIs
 noreturn void platform_halt_cpu(void);
-void platform_invalidate_tlb(void);
+void platform_invalidate_tlb(ptr_t vaddr);
 u32 platform_current_cpu_id(void);
 void platform_msleep(u64 ms);
 void platform_usleep(u64 us);
@@ -196,8 +200,8 @@ bool platform_irq_handler_install(u32 irq, irq_handler handler);
 void platform_irq_handler_remove(u32 irq, irq_handler handler);
 
 // Platform Page Table APIs
-mm_context_t platform_mm_create_user_pgd(void);
-void platform_mm_destroy_user_pgd(mm_context_t table);
+pgd_t platform_mm_create_user_pgd(void);
+void platform_mm_destroy_user_pgd(pgd_t max);
 
 // Platform Page Table APIs - New
 
@@ -213,8 +217,11 @@ void platform_pml2e_set_pml1(pml2e_t *pml2, pml1_t pml1, pfn_t pml1_pfn);
 bool platform_pml2e_get_present(const pml2e_t *pml2);
 void platform_pml2e_set_present(pml2e_t *pml2, bool present);
 void platform_pml2e_set_flags(pml2e_t *pml2, vm_flags flags);
-bool platform_pml2e_get_huge(const pml2e_t *pml2);
+#if MOS_CONFIG(MOS_PLATFORM_PML2_HUGE_CAPABLE)
+bool platform_pml2e_is_huge(const pml2e_t *pml2);
 void platform_pml2e_set_huge(pml2e_t *pml2, pfn_t pfn);
+pfn_t platform_pml2e_get_huge_pfn(const pml2e_t *pml2);
+#endif
 #endif
 
 #if MOS_PLATFORM_PAGING_LEVELS >= 3
@@ -223,8 +230,11 @@ void platform_pml3e_set_pml2(pml3e_t *pml3, pml2_t pml2, pfn_t pml2_pfn);
 bool platform_pml3e_get_present(const pml3e_t *pml3);
 void platform_pml3e_set_present(pml3e_t *pml3, bool present);
 void platform_pml3e_set_flags(pml3e_t *pml3, vm_flags flags);
-bool platform_pml3e_get_huge(const pml3e_t *pml3);
+#if MOS_CONFIG(MOS_PLATFORM_PML3_HUGE_CAPABLE)
+bool platform_pml3e_is_huge(const pml3e_t *pml3);
 void platform_pml3e_set_huge(pml3e_t *pml3, pfn_t pfn);
+pfn_t platform_pml3e_get_huge_pfn(const pml3e_t *pml3);
+#endif
 #endif
 
 #if MOS_PLATFORM_PAGING_LEVELS >= 4
@@ -233,8 +243,11 @@ void platform_pml4e_set_pml3(pml4e_t *pml4, pml3_t pml3, pfn_t pml3_pfn);
 bool platform_pml4e_get_present(const pml4e_t *pml4);
 void platform_pml4e_set_present(pml4e_t *pml4, bool present);
 void platform_pml4e_set_flags(pml4e_t *pml4, vm_flags flags);
-bool platform_pml4e_get_huge(const pml4e_t *pml4);
+#if MOS_CONFIG(MOS_PLATFORM_PML4_HUGE_CAPABLE)
+bool platform_pml4e_is_huge(const pml4e_t *pml4);
 void platform_pml4e_set_huge(pml4e_t *pml4, pfn_t pfn);
+pfn_t platform_pml4e_get_huge_pfn(const pml4e_t *pml4);
+#endif
 #endif
 
 // Platform Paging APIs

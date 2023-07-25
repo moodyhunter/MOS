@@ -42,7 +42,7 @@ typedef enum
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
         if (MOS_DEBUG_FEATURE(feat))                                                                                                                                     \
-            pr_info2("%-15s %-25s: " fmt, #feat, MOS_FUNCTION_NAME, ##__VA_ARGS__);                                                                                      \
+            lprintk_wrapper(MOS_LOG_INFO2, "%-15s %-25s: " fmt, #feat, MOS_FUNCTION_NAME, ##__VA_ARGS__);                                                                \
     } while (0)
 
 #if MOS_CONFIG(MOS_PRINTK_WITH_FILENAME)
@@ -62,7 +62,7 @@ typedef enum
 #define pr_warn(fmt, ...)  lprintk_wrapper(MOS_LOG_WARN, pr_fmt(fmt), ##__VA_ARGS__)
 #define pr_emerg(fmt, ...) lprintk_wrapper(MOS_LOG_EMERG, pr_fmt(fmt), ##__VA_ARGS__)
 #define pr_fatal(fmt, ...) lprintk_wrapper(MOS_LOG_FATAL, pr_fmt(fmt), ##__VA_ARGS__)
-#define pr_cont(fmt, ...)  lprintk(MOS_LOG_UNSET, fmt, ##__VA_ARGS__)
+#define pr_cont(fmt, ...)  lprintk(MOS_LOG_UNSET, "" fmt, ##__VA_ARGS__)
 
 // these two also invokes a warning/panic handler
 #define mos_warn(fmt, ...)  mos_kwarn(__func__, __LINE__, "WARN: " fmt "\r\n", ##__VA_ARGS__)

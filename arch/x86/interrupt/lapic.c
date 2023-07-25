@@ -140,23 +140,20 @@ void lapic_memory_setup(void)
     if (!info.edx.msr)
         mos_panic("MSR is not present");
 
-    ptr_t base_addr = x86_acpi_madt->lapic_addr;
+    const ptr_t base_addr = x86_acpi_madt->lapic_addr;
     mos_debug(x86_lapic, "base address: " PTR_FMT, base_addr);
-
-    if ((ptr_t) base_addr != BIOS_VADDR(base_addr))
-    {
-        pr_info("LAPIC: remapping it to " PTR_FMT, BIOS_VADDR(base_addr));
-        base_addr = BIOS_VADDR(base_addr);
-    }
 
     if (!pmm_find_reserved_region(base_addr))
     {
         pr_info("LAPIC: reserve " PTR_FMT, base_addr);
         pmm_reserve_address(base_addr);
     }
+    ptr_t virt_addr = BIOS_VADDR(base_addr);
+    if (virt_addr != base_addr)
+        pr_info("LAPIC: remapping it to " PTR_FMT, virt_addr);
 
-    mm_map_pages(x86_platform.kernel_mm, base_addr, base_addr / MOS_PAGE_SIZE, 1, VM_RW);
-    lapic_regs = (u32 *) base_addr;
+    mm_map_pages(x86_platform.kernel_mm, virt_addr, base_addr / MOS_PAGE_SIZE, 1, VM_RW);
+    lapic_regs = (u32 *) virt_addr;
 }
 
 void lapic_enable(void)

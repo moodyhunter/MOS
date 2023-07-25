@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/memops.h"
 #include "mos/mm/mm.h"
+#include "mos/mm/paging/table_ops.h"
 
 #include <mos/elf/elf.h>
 #include <mos/filesystem/vfs.h>
@@ -62,10 +64,10 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
     const size_t file_size = f->dentry->inode->size;
 
     const size_t npage_required = ALIGN_UP_TO_PAGE(file_size) / MOS_PAGE_SIZE;
-    const vmblock_t buf_block = mm_alloc_pages(current_cpu->mm_context, npage_required, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
-    char *const buf = (char *) buf_block.vaddr;
+    phyframe_t *const buf_frames = mm_get_free_pages(npage_required);
+    char *const buf = (void *) phyframe_va(buf_frames);
 
-    if (buf_block.vaddr == 0)
+    if (!buf_frames)
     {
         mos_warn("failed to allocate %zu pages for '%s'", npage_required, path);
         goto bail_out;
@@ -173,9 +175,11 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
                 if (A_npages)
                 {
                     mos_debug(elf, "copying %zu pages from " PTR_FMT " to address " PTR_FMT, A_npages, (ptr_t) buf + A_file_offset, A_vaddr);
-                    vmblock_t block = mm_copy_maps(current_cpu->mm_context, (ptr_t) buf + A_file_offset, proc->mm, A_vaddr, A_npages);
-                    block.flags = flags;
-                    mm_flag_pages(proc->mm, block.vaddr, block.npages, flags);
+                    const pfn_t A_pfn = phyframe_pfn(buf_frames) + A_file_offset / MOS_PAGE_SIZE;
+                    vmblock_t block = mm_map_pages(proc->mm, A_vaddr, A_pfn, A_npages, flags);
+                    // vmblock_t block = mm_copy_maps(current_cpu->mm_context, (ptr_t) buf + A_file_offset, proc->mm, A_vaddr, A_npages);
+                    // block.flags = flags;
+                    // mm_flag_pages(proc->mm, block.vaddr, block.npages, flags);
                     mm_attach_vmap(proc->mm, mm_new_vmap(block, content, (vmap_flags_t){ 0 }));
                 }
 
@@ -190,21 +194,17 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
                     const ptr_t B_file_offset = ph->data_offset + ph->size_in_file - B_file_size;
 
                     // allocate one page
-                    const vmblock_t stub = mm_alloc_pages(proc->mm, 1, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
-                    memzero((void *) stub.vaddr, MOS_PAGE_SIZE);
+                    const phyframe_t *page = mm_get_free_page();
 
                     // copy the leftover memory
-                    memcpy((void *) stub.vaddr, buf + B_file_offset, B_file_size);
+                    memcpy((void *) phyframe_va(page), buf + B_file_offset, B_file_size);
 
                     // copy mapping for the leftover memory
-                    mos_debug(elf, "elf: copying leftover %lu bytes from " PTR_FMT " to " PTR_FMT, ph->size_in_file - A_npages * MOS_PAGE_SIZE, stub.vaddr, B_vaddr);
-                    vmblock_t block = mm_copy_maps(current_cpu->mm_context, stub.vaddr, proc->mm, B_vaddr, 1);
-                    block.flags = flags;
-                    mm_flag_pages(proc->mm, block.vaddr, block.npages, flags);
+                    mos_debug(elf, "elf: leftover %lu bytes from " PTR_FMT " to " PTR_FMT, ph->size_in_file - A_npages * MOS_PAGE_SIZE, phyframe_va(page), B_vaddr);
+                    vmblock_t block = mm_map_pages(proc->mm, B_vaddr, phyframe_pfn(page), 1, flags);
+                    // block.flags = flags;
+                    // mm_flag_pages(proc->mm, block.vaddr, block.npages, flags);
                     mm_attach_vmap(proc->mm, mm_new_vmap(block, content, (vmap_flags_t){ 0 }));
-
-                    // free the temporary page
-                    mm_unmap_pages(proc->mm, stub.vaddr, 1);
                 }
 
                 // allocate the remaining memory, which is not in the file (zeroed)
@@ -237,14 +237,14 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
     }
 
     // unmap the buffer from kernel pages
-    mm_unmap_pages(current_cpu->mm_context, buf_block.vaddr, buf_block.npages);
+    mm_unref_pages(buf_frames, npage_required);
     thread_setup_complete(proc->threads[0]);
     io_unref(&f->io); // close the file, we should have the file's refcount == 0 here
     return proc;
 
 bail_out:
     if (buf)
-        mm_unmap_pages(current_cpu->mm_context, buf_block.vaddr, buf_block.npages);
+        mm_unref_pages(buf_frames, npage_required);
 
     if (f)
         io_unref(&f->io); // close the file, we should have the file's refcount == 0 here
