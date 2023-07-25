@@ -56,30 +56,6 @@ should_inline reg_t platform_syscall5(reg_t number, reg_t arg1, reg_t arg2, reg_
 should_inline reg_t platform_syscall6(reg_t number, reg_t arg1, reg_t arg2, reg_t arg3, reg_t arg4, reg_t arg5, reg_t arg6)
 {
     reg_t result = 0;
-#if !MOS_CONFIG(MOS_X86_64)
-    __asm__ volatile("push %%ebx\n" // callee-saved
-                     "push %%edi\n" // callee-saved
-                     "push %%esi\n" // callee-saved
-                     "push %%ebp\n" // callee-saved
-
-                     "mov %1, %%eax\n"
-                     "mov %2, %%ebx\n"
-                     "mov %3, %%ecx\n"
-                     "mov %4, %%edx\n"
-                     "mov %5, %%esi\n"
-                     "mov %6, %%edi\n"
-                     "mov %7, %%ebp\n"
-
-                     "int $0x88\n"
-
-                     "pop %%ebp\n"
-                     "pop %%esi\n"
-                     "pop %%edi\n"
-                     "pop %%ebx\n"
-                     : "=a"(result)
-                     : "m"(number), "m"(arg1), "m"(arg2), "m"(arg3), "m"(arg4), "m"(arg5), "m"(arg6)
-                     : "memory");
-#else
     __asm__ volatile("push %%rbx\n" // callee-saved
                      "push %%rdi\n" // callee-saved
                      "push %%rsi\n" // callee-saved
@@ -102,6 +78,5 @@ should_inline reg_t platform_syscall6(reg_t number, reg_t arg1, reg_t arg2, reg_
                      : "=a"(result)
                      : "m"(number), "m"(arg1), "m"(arg2), "m"(arg3), "m"(arg4), "m"(arg5), "m"(arg6)
                      : "memory");
-#endif
     return result;
 }
