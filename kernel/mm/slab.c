@@ -3,7 +3,9 @@
 
 #include "mos/mm/slab.h"
 
+#include "mos/mm/memops.h"
 #include "mos/mm/paging/paging.h"
+#include "mos/mm/paging/table_ops.h"
 #include "mos/platform/platform.h"
 
 #include <mos/kconfig.h>
@@ -29,9 +31,10 @@ static const struct
     size_t size;
     const char *name;
 } BUILTIN_SLAB_SIZES[] = {
-    { 4, "builtin-4" },     { 8, "builtin-8" },     { 12, "builtin-12" },   { 16, "builtin-16" },     { 24, "builtin-24" },   //
-    { 32, "builtin-32" },   { 48, "builtin-48" },   { 64, "builtin-64" },   { 96, "builtin-96" },     { 128, "builtin-128" }, //
-    { 256, "builtin-256" }, { 384, "builtin-384" }, { 512, "builtin-512" }, { 1024, "builtin-1024" },
+    { 4, "builtin-4" },       { 8, "builtin-8" },     { 16, "builtin-16" },   { 24, "builtin-24" },   //
+    { 32, "builtin-32" },     { 48, "builtin-48" },   { 64, "builtin-64" },   { 96, "builtin-96" },   //
+    { 128, "builtin-128" },   { 256, "builtin-256" }, { 384, "builtin-384" }, { 512, "builtin-512" }, //
+    { 1024, "builtin-1024" },
     // larger slab sizes are not required
     // they can be allocated directly by allocating pages
 };
@@ -52,13 +55,14 @@ static inline slab_t *slab_for(size_t size)
 
 static ptr_t slab_impl_new_page(size_t n)
 {
-    vmblock_t block = mm_alloc_pages(platform_info->kernel_mm, n, MOS_ADDR_KERNEL_HEAP, VALLOC_DEFAULT, VM_RW);
-    return block.vaddr;
+    phyframe_t *pages = mm_get_free_pages(n);
+    return phyframe_va(pages);
 }
 
 static void slab_impl_free_page(ptr_t page, size_t n)
 {
-    mm_unmap_pages(platform_info->kernel_mm, page, n);
+    for (size_t i = 0; i < n; i++)
+        pmm_unref_frame(va_phyframe(page + i * MOS_PAGE_SIZE));
 }
 
 static void slab_init_one(slab_t *slab, const char *name, size_t size)
@@ -87,7 +91,8 @@ static void slab_allocate_mem(slab_t *slab)
 
     slab_header_t *const slab_ptr = (slab_header_t *) slab->first_free;
     slab_ptr->slab = slab;
-    slab->first_free = ((ptr_t) slab->first_free + header_offset);
+    mos_debug(slab, "slab header is at %p", (void *) slab_ptr);
+    slab->first_free = (ptr_t) slab->first_free + header_offset;
 
     void **arr = (void **) slab->first_free;
     const size_t max_n = available_size / slab->ent_size - 1;
@@ -220,12 +225,16 @@ void *kmemcache_alloc(slab_t *slab)
         slab_allocate_mem(slab);
     }
 
-    ptr_t *old_free = (ptr_t *) slab->first_free;
-    slab->first_free = *old_free;
-    memset(old_free, 0, slab->ent_size);
+    ptr_t *alloc = (ptr_t *) slab->first_free;
+    slab->first_free = *alloc; // next free entry
+    memset(alloc, 0, slab->ent_size);
+
+#if MOS_DEBUG_FEATURE(slab)
+    pr_cont(" -> %p", (void *) alloc);
+#endif
 
     spinlock_release(&slab->lock);
-    return old_free;
+    return alloc;
 }
 
 static void kmemcache_free(slab_t *slab, const void *addr)
