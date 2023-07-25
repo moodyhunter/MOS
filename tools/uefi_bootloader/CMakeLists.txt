@@ -5,6 +5,11 @@ if (NOT "${MOS_ARCH}" STREQUAL "x86_64")
     return()
 endif()
 
+if (NOT MOS_EFI_LOADER)
+    message(STATUS "EFI bootloader is disabled")
+    return()
+endif()
+
 project(mos_uefi_bootloader C ASM)
 
 find_program(SYSTEM_GCC gcc REQUIRED)
