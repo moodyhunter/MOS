@@ -55,7 +55,7 @@ target_include_directories(mos_kernel_private_include INTERFACE
 add_library(mos::private_include ALIAS mos_kernel_private_include)
 
 add_library(mos_kernel_compile_options INTERFACE)
-target_compile_options(mos_kernel_compile_options INTERFACE -ffreestanding)
+target_compile_options(mos_kernel_compile_options INTERFACE -ffreestanding ${MOS_KERNEL_CFLAGS})
 target_compile_definitions(mos_kernel_compile_options INTERFACE -D__MOS_KERNEL__)
 target_link_options(mos_kernel_compile_options INTERFACE -nostdlib)
 target_link_libraries(mos_kernel_compile_options INTERFACE mos::include mos::private_include gcc)

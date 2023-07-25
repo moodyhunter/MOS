@@ -6,6 +6,7 @@ add_summary_section(ARCH_X86_DEBUG "x86 Debug")
 mos_kconfig(ARCH_X86 MOS_X86_64 OFF "x86_64 Architecture")
 
 set(MOS_CX_FLAGS "${MOS_CX_FLAGS} -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-avx")
+set(MOS_KERNEL_CFLAGS "-mno-red-zone")
 
 if (MOS_X86_64)
     set(MOS_COMPILER_PREFIX "x86_64-elf-")
