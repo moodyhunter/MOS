@@ -38,7 +38,7 @@ void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
     if (strncmp(x86_acpi_rsdt->sdt_header.signature, "RSDT", 4) != 0)
         mos_panic("RSDT signature mismatch");
 
-    const size_t num_headers = (x86_acpi_rsdt->sdt_header.length - sizeof(acpi_sdt_header_t)) / sizeof(u32); // TODO: ptr_t?
+    const size_t num_headers = (x86_acpi_rsdt->sdt_header.length - sizeof(acpi_sdt_header_t)) / sizeof(ptr_t);
     for (size_t i = 0; i < num_headers; i++)
     {
         const acpi_sdt_header_t *const header = BIOS_VADDR_TYPE(x86_acpi_rsdt->sdts[i], acpi_sdt_header_t *);
