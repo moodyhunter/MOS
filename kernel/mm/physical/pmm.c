@@ -27,8 +27,8 @@ void pmm_dump_lists(void)
 
 pfn_t pmm_allocate_frames(size_t n_frames, pmm_allocation_flags_t flags)
 {
-    const bool no_compound = flags & PMM_ALLOC_NO_COMPOUND;
-    if (n_frames > 1 && !no_compound)
+    const bool compound = flags & PMM_ALLOC_COMPOUND;
+    if (n_frames > 1 && compound)
     {
         phyframe_t *frame = buddy_alloc_n_compound(n_frames);
         if (!frame)

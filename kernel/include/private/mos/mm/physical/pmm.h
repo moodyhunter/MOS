@@ -95,8 +95,8 @@ typedef enum
 {
     /// allocate normal pages
     PMM_ALLOC_NORMAL = 0,
-    /// do not allocate as compound pages when npages > 1
-    PMM_ALLOC_NO_COMPOUND = 1 << 0,
+    /// allocate compound pages when npages > 1
+    PMM_ALLOC_COMPOUND = 1 << 0,
 } pmm_allocation_flags_t;
 
 #define MOS_INVALID_PFN  ((pfn_t) -1)
