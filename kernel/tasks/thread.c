@@ -97,13 +97,13 @@ bool thread_wait_for_tid(tid_t tid)
     thread_t *target = thread_get(tid);
     if (target == NULL)
     {
-        pr_warn("wait_for_tid(%ld) from pid %ld (%s) but thread does not exist", tid, current_process->pid, current_process->name);
+        pr_warn("wait_for_tid(%d) from pid %d (%s) but thread does not exist", tid, current_process->pid, current_process->name);
         return false;
     }
 
     if (target->owner != current_process)
     {
-        pr_warn("wait_for_tid(%ld) from pid %ld (%s) but thread belongs to pid %ld (%s)", tid, current_process->pid, current_process->name, target->owner->pid,
+        pr_warn("wait_for_tid(%d) from pid %d (%s) but thread belongs to pid %d (%s)", tid, current_process->pid, current_process->name, target->owner->pid,
                 target->owner->name);
         return false;
     }

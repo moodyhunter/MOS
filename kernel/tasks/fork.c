@@ -14,7 +14,7 @@
 #include <mos/tasks/thread.h>
 #include <string.h>
 
-#define FORKFMT "fork %ld->%ld: %10s " PTR_FMT "+%-3zu flags [0x%x]"
+#define FORKFMT "fork %d->%d: %10s " PTR_FMT "+%-3zu flags [0x%x]"
 
 process_t *process_handle_fork(process_t *parent)
 {
@@ -27,7 +27,7 @@ process_t *process_handle_fork(process_t *parent)
         return NULL;
     }
 
-    pr_emph("process %ld forked to %ld", parent->pid, child_p->pid);
+    pr_emph("process %d forked to %d", parent->pid, child_p->pid);
 
     // copy the parent's memory
 
@@ -91,7 +91,7 @@ process_t *process_handle_fork(process_t *parent)
     child_t->u_stack = parent_thread->u_stack;
     child_t->k_stack = parent_thread->k_stack;
     child_t->name = strdup(parent_thread->name);
-    pr_info2("fork: thread %ld->%ld", parent_thread->tid, child_t->tid);
+    pr_info2("fork: thread %d->%d", parent_thread->tid, child_t->tid);
     platform_setup_forked_context(parent_thread->context, &child_t->context);
     process_attach_thread(child_p, child_t);
 
