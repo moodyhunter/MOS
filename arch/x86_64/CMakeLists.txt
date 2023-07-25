@@ -1,5 +1,44 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# x86_64 shares the same platform codebase as x86, so we just include that
+add_subdirectory(boot/limine)
 
-add_subdirectory(../x86 x86_64)
+add_kernel_source(
+    INCLUDE_DIRECTORIES
+        ${CMAKE_CURRENT_LIST_DIR}/include/private
+    SYSTEM_INCLUDE_DIRECTORIES
+        ${CMAKE_CURRENT_LIST_DIR}/include/public
+    SOURCES
+        interrupt/interrupt${MOS_BITS}.asm
+        tasks/context_switch${MOS_BITS}.asm
+        descriptors/flush${MOS_BITS}.asm
+        acpi/acpi.c
+        acpi/madt.c
+        cpu/cpuid.c
+        cpu/ap_entry.c
+        devices/serial.c
+        devices/serial_console.c
+        descriptors/descriptors.c
+        interrupt/lapic.c
+        interrupt/ioapic.c
+        interrupt/idt.c
+        interrupt/x86_interrupt.c
+        interrupt/pic.c
+        mm/mm.c
+        mm/paging.c
+        tasks/context.c
+        x86_platform.c
+        x86_platform_api.c
+)
+
+if(MOS_SMP)
+    if (MOS_BITS EQUAL 64)
+        message(WARNING "SMP is not supported on 64-bit x86 (yet)")
+        set(MOS_SMP OFF PARENT_SCOPE)
+    else()
+        add_kernel_source(
+            SOURCES
+                cpu/ap_init.asm
+                cpu/smp.c
+        )
+    endif()
+endif()
