@@ -264,9 +264,13 @@ fd_t define_syscall(ipc_create)(const char *name, size_t max_pending_connections
 fd_t define_syscall(ipc_accept)(fd_t listen_fd)
 {
     io_t *server = process_get_fd(current_process, listen_fd);
+    if (server == NULL)
+        return -1;
+
     io_t *client_io = ipc_accept(server);
     if (client_io == NULL)
         return -1;
+
     return process_attach_ref_fd(current_process, client_io);
 }
 
