@@ -26,8 +26,8 @@ macro(mos_debug feature description)
 endmacro()
 
 if (NOT DEFINED MOS_ARCH)
-    message(WARNING "MOS_ARCH is not defined, using x86 as default")
-    set(MOS_ARCH "x86") # The only supported architecture for now
+    message(WARNING "MOS_ARCH is not defined, using x86_64 as default")
+    set(MOS_ARCH "x86_64") # The only supported architecture for now
 endif()
 
 set(_ARCH_CONFIGURATION_FILE ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/platform_config.cmake)
