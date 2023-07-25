@@ -536,9 +536,10 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list _args)
             case 'p':
             {
                 // print a pointer
-                u64 value = (size_t) va_arg(args.real, void *);
+                ptr_t value = (size_t) va_arg(args.real, void *);
                 buf_putchar(&buf, '0', &size);
                 buf_putchar(&buf, 'x', &size);
+                flags.length = MOS_BITS == 32 ? LM__l : LM_ll;
                 int c = printf_diouxX(buf, value, &flags, 'x', &size);
                 buf += c;
                 break;
