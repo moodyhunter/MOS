@@ -1,9 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-if (NOT MOS_X86_64)
-    # multiboot is only available on 32-bit x86
-    add_subdirectory(boot/multiboot)
-else()
+if (MOS_X86_64)
     add_subdirectory(boot/limine)
 endif()
 
