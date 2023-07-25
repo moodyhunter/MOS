@@ -16,8 +16,6 @@
 #include <mos/printk.h>
 #include <stdlib.h>
 
-#define PGD_FOR_VADDR(_vaddr, _um) (_vaddr >= MOS_KERNEL_START_VADDR ? platform_info->kernel_mm : _um)
-
 typedef struct
 {
     bool do_unmap;
@@ -129,8 +127,6 @@ ptr_t mm_get_free_vaddr(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, v
 vmblock_t mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags)
 {
     MOS_ASSERT(n_pages > 0);
-
-    mmctx = PGD_FOR_VADDR(hint_vaddr, mmctx);
 
     spinlock_acquire(&mmctx->mm_lock);
     const ptr_t vaddr = mm_get_free_vaddr(mmctx, n_pages, hint_vaddr, valloc_flags);
