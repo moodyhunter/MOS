@@ -56,7 +56,6 @@ void setup_invoke_earlysetup(void)
 
     for (const mos_setup_t *func = __MOS_EARLY_SETUP_START; func < __MOS_EARLY_SETUP_END; func++)
     {
-        mos_debug(setup, "invoking early setup function for '%s'", func->param);
         cmdline_option_t *option = cmdline_get_option(func->param);
 
         if (unlikely(!option))
@@ -65,6 +64,7 @@ void setup_invoke_earlysetup(void)
             continue;
         }
 
+        mos_debug(setup, "invoking early setup function for '%s'", func->param);
         if (unlikely(!func->setup_fn(option->arg)))
             pr_warn("early setup function for '%s' failed", func->param);
 
