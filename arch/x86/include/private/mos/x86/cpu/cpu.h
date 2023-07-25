@@ -32,9 +32,9 @@ should_inline reg_t x86_get_cr3(void)
 
 always_inline u32 x86_cpu_get_id(void)
 {
-    u32 eax = 0, ebx = 0, ecx = 0, edx = 0;
-    __cpuid(1, eax, ebx, ecx, edx);
-    return ebx >> 24;
+    reg_t a = 0, b = 0, c = 0, d = 0;
+    __cpuid(1, a, b, c, d);
+    return b >> 24;
 }
 
 should_inline void x86_cpu_set_cr3(reg_t cr3)
