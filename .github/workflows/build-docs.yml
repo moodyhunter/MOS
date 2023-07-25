@@ -30,8 +30,8 @@ jobs:
 
       - name: Download & Extract Cross Compiler
         run: |
-          wget -q "https://github.com/moodyhunter/i686-elf-prebuilt/releases/download/artifact/toolchain-i686-elf.tar.gz"
-          tar -xzf toolchain-i686-elf.tar.gz
+          wget -q "https://github.com/moodyhunter/mos-toolchain-prebuilt/releases/download/artifact/toolchain-x86_64-elf.tar.gz"
+          tar -xzf toolchain-x86_64-elf.tar.gz
           mv toolchain /tmp/
           echo "PATH=$PATH:/tmp/toolchain/bin" >> $GITHUB_ENV
 
@@ -40,7 +40,7 @@ jobs:
           cmake \
             -DBUILD_TESTING=ON \
             -B ${{github.workspace}}/build \
-            -DMOS_ARCH=x86 \
+            -DMOS_ARCH=x86_64 \
             -G Ninja
 
       - name: Build
