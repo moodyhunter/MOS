@@ -2,7 +2,7 @@
 
 #include "mos/mm/paging/paging.h"
 
-#include "mos/mm/memops.h"
+#include "mos/mm/mm.h"
 #include "mos/mm/paging/pmlx/pml2.h"
 #include "mos/mm/paging/pmlx/pml3.h"
 #include "mos/mm/paging/pmlx/pml4.h"
@@ -30,8 +30,8 @@ void x86_paging_setup()
     platform_info->kernel_mm = &x86_kernel_mmctx;
     current_cpu->mm_context = &x86_kernel_mmctx;
 
-    const pmltop_t pml4 = pml_create_table(pmltop);
-    x86_kernel_mmctx.pgd = pgd_from_pmltop(pml4);
+    const pml4_t pml4 = pml_create_table(pml4);
+    x86_kernel_mmctx.pgd = pgd_create(pml4);
 
     mos_debug(x86_startup, "mapping kernel space...");
 
@@ -78,36 +78,26 @@ void x86_paging_setup()
 
     pfn_t pfn = 0;
 
-    if (gbpages)
-    {
-        const size_t GBPAGE_SIZE = 1 GB / MOS_PAGE_SIZE;
-        const size_t total_npages = ALIGN_UP(platform_info->max_pfn, GBPAGE_SIZE);
+    const size_t STEP = (gbpages ? 1 GB : 2 MB) / MOS_PAGE_SIZE;
+    const size_t total_npages = ALIGN_UP(platform_info->max_pfn, STEP);
 
-        while (pfn < total_npages)
+    while (pfn < total_npages)
+    {
+        const ptr_t vaddr = pfn_va(pfn);
+        pml4e_t *pml4e = pml4_entry(pml4, vaddr);
+        platform_pml4e_set_flags(pml4e, VM_READ | VM_WRITE | VM_GLOBAL);
+
+        if (gbpages)
         {
             // GB pages are at pml3e level
-            const ptr_t direct_map_vaddr = pfn_va(pfn);
-            pml4e_t *pml4e = pml4_entry(pml4, direct_map_vaddr);
-            platform_pml4e_set_flags(pml4e, VM_READ | VM_WRITE | VM_GLOBAL);
             const pml3_t pml3 = pml4e_get_pml3(pml4e);
-            pml3e_t *pml3e = pml3_entry(pml3, direct_map_vaddr);
+            pml3e_t *pml3e = pml3_entry(pml3, vaddr);
             platform_pml3e_set_huge(pml3e, pfn);
             platform_pml3e_set_flags(pml3e, VM_READ | VM_WRITE | VM_GLOBAL);
-            pfn += GBPAGE_SIZE;
         }
-    }
-    else
-    {
-        const size_t MBPAGE_SIZE = 2 MB / MOS_PAGE_SIZE;
-        const size_t total_npages = ALIGN_UP(platform_info->max_pfn, MBPAGE_SIZE);
-        // map the rest of the memory using 2 MiB pages
-        while (pfn < total_npages)
+        else
         {
             // 2 MiB pages are at pml2e level
-            const ptr_t vaddr = pfn_va(pfn);
-            pml4e_t *pml4e = pml4_entry(pml4, vaddr);
-            platform_pml4e_set_flags(pml4e, VM_READ | VM_WRITE | VM_GLOBAL);
-
             pml3e_t *pml3e = pml3_entry(pml4e_get_pml3(pml4e), vaddr);
             platform_pml3e_set_flags(pml3e, VM_READ | VM_WRITE | VM_GLOBAL);
 
@@ -115,8 +105,9 @@ void x86_paging_setup()
             pml2e_t *pml2e = pml2_entry(pml2, vaddr);
             platform_pml2e_set_huge(pml2e, pfn);
             platform_pml2e_set_flags(pml2e, VM_READ | VM_WRITE | VM_GLOBAL);
-            pfn += MBPAGE_SIZE;
         }
+
+        pfn += STEP;
     }
 }
 
@@ -285,6 +276,7 @@ pfn_t platform_pml3e_get_huge_pfn(const pml3e_t *pml3)
 }
 
 // PML4
+
 pml3_t platform_pml4e_get_pml3(const pml4e_t *pml4e)
 {
     const x86_pude64_t *entry = cast_to(pml4e, pml4e_t *, x86_pude64_t *);

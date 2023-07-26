@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/mm/memops.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/pml_types.h"
 #include "mos/mm/paging/pmlx/pml4.h"
@@ -92,33 +91,6 @@ void platform_irq_handler_remove(u32 irq, irq_handler handler)
     MOS_UNUSED(handler);
 }
 
-pgd_t platform_mm_create_user_pgd(void)
-{
-    pmltop_t top = pml_create_table(pmltop);
-
-    // map the upper half of the address space to the kernel
-    for (int i = pml4_index(MOS_KERNEL_START_VADDR); i < MOS_PLATFORM_PML4_NPML3; i++)
-    {
-        const pml4e_t *kpml4e = &platform_info->kernel_mm->pgd.max.pml4.table[i];
-        pml4e_t *pml4e = &top.table[i];
-        pml4e->content = kpml4e->content;
-    }
-
-    return pgd_from_pmltop(top);
-}
-
-void platform_mm_destroy_user_pgd(pgd_t max)
-{
-    MOS_UNUSED(max);
-    MOS_UNREACHABLE();
-    // if (!table.pgd)
-    // {
-    //     mos_warn("invalid pgd");
-    //     return;
-    // }
-    // kfree((void *) table.pgd);
-}
-
 void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg)
 {
     x86_setup_thread_context(thread, entry, arg);
@@ -127,6 +99,11 @@ void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg)
 void platform_setup_forked_context(const thread_context_t *from, thread_context_t **to)
 {
     x86_setup_forked_context(from, to);
+}
+
+void platform_mm_switch_pgd(pgd_t pgd)
+{
+    x86_cpu_set_cr3(pgd_pfn(pgd) * MOS_PAGE_SIZE);
 }
 
 void platform_switch_to_scheduler(ptr_t *old_stack, ptr_t new_stack)

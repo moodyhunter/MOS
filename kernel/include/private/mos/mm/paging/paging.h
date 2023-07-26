@@ -56,7 +56,7 @@ ptr_t mm_get_free_vaddr(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, v
  * number of pages, physical addresses and flags set.
  *
  * @details This function first finds a block of virtual memory using
- * @ref mm_get_free_pages, then allocates and maps the pages.
+ * @ref mm_get_free_vaddr, then allocates and maps the pages.
  */
 vmblock_t mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags);
 
@@ -109,19 +109,18 @@ vmblock_t mm_early_map_kernel_pages(ptr_t vaddr, pfn_t pfn, size_t npages, vm_fl
 void mm_unmap_pages(mm_context_t *mmctx, ptr_t vaddr, size_t npages);
 
 /**
- * @brief Replace the mappings of a block of virtual memory with a block of physical memory.
+ * @brief Replace the mappings of a page with a new physical frame.
  *
  * @param table The page table to replace in.
  * @param vaddr The virtual address to replace.
  * @param pfn The physical frame to replace from.
- * @param npages The number of pages to replace.
  * @param flags The new flags to set on the pages.
  * @return vmblock_t The replaced block of virtual memory, with the number of pages.
  *
- * @note The reference count of the physical pages will be incremented, and the reference count of the
- * old physical pages will be decremented.
+ * @note The reference count of the physical frame will be incremented, and the reference count of the
+ * old physical frame will be decremented.
  */
-vmblock_t mm_replace_mapping(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
+vmblock_t mm_replace_page(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, vm_flags flags);
 
 /**
  * @brief Remap a block of virtual memory from one page table to another, i.e. copy the mappings.

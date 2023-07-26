@@ -89,6 +89,7 @@ void pmm_unref_frames(pfn_t start, size_t n_pages)
 
         if (head_frame->refcount == 0)
         {
+            mos_debug(pmm, "freeing " PFN_FMT, phyframe_pfn(head_frame));
             linked_list_init(list_node(head_frame));
             const size_t nframes = pow2(head_frame->order);
             buddy_free_n(phyframe_pfn(head_frame), nframes);

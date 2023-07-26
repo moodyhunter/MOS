@@ -200,11 +200,6 @@ bool platform_irq_handler_install(u32 irq, irq_handler handler);
 void platform_irq_handler_remove(u32 irq, irq_handler handler);
 
 // Platform Page Table APIs
-pgd_t platform_mm_create_user_pgd(void);
-void platform_mm_destroy_user_pgd(pgd_t max);
-
-// Platform Page Table APIs - New
-
 pfn_t platform_pml1e_get_pfn(const pml1e_t *pml1);            // returns the physical address contained in the pmlx entry,
 void platform_pml1e_set_pfn(pml1e_t *pml1, pfn_t pfn);        // -- which can be a pfn for either a page or another page table
 bool platform_pml1e_get_present(const pml1e_t *pml1);         // returns if an entry in this page table is present
@@ -250,7 +245,6 @@ pfn_t platform_pml4e_get_huge_pfn(const pml4e_t *pml4);
 #endif
 #endif
 
-// Platform Paging APIs
 void platform_mm_iterate_table(mm_context_t *table, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg);
 
 // Platform Thread / Process APIs
@@ -258,6 +252,7 @@ void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg);
 void platform_setup_forked_context(const thread_context_t *from, thread_context_t **to);
 
 // Platform Context Switching APIs
+void platform_switch_pgd(pgd_t pgd);
 void platform_switch_to_thread(ptr_t *old_stack, const thread_t *new_thread, switch_flags_t switch_flags);
 void platform_switch_to_scheduler(ptr_t *old_stack, ptr_t new_stack);
 

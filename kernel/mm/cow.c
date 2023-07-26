@@ -3,7 +3,7 @@
 #include "mos/mm/cow.h"
 
 #include "mos/interrupt/ipi.h"
-#include "mos/mm/memops.h"
+#include "mos/mm/mm.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/mm/paging/table_ops.h"
 #include "mos/platform/platform.h"
@@ -77,7 +77,7 @@ static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)
     // 3. replace the faulting phypage with the new one
     //    this will increment the refcount of the new page, ...
     //    ...and also decrement the refcount of the old page
-    mm_replace_mapping(mm, fault_addr, phyframe_pfn(frame), 1, original_flags);
+    mm_replace_page(mm, fault_addr, phyframe_pfn(frame), original_flags);
 
     ipi_send_all(IPI_TYPE_INVALIDATE_TLB);
 }

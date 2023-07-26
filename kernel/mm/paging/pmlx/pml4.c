@@ -2,7 +2,7 @@
 
 #include "mos/mm/paging/pmlx/pml4.h"
 
-#include "mos/mm/memops.h"
+#include "mos/mm/mm.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/mm/paging/pml_types.h"
 #include "mos/mm/paging/pmlx/pml3.h"

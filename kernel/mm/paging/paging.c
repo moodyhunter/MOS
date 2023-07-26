@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/mm.h"
+#include "mos/mm/paging/pmlx/pml4.h"
 #include "mos/mm/paging/table_ops.h"
 #include "mos/mm/slab.h"
 #include "mos/mm/slab_autoinit.h"
@@ -189,26 +191,19 @@ void mm_unmap_pages(mm_context_t *ctx, ptr_t vaddr, size_t npages)
     spinlock_release(&ctx->mm_lock);
 }
 
-vmblock_t mm_replace_mapping(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
+vmblock_t mm_replace_page(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, vm_flags flags)
 {
-    MOS_ASSERT(npages > 0);
+    const vmblock_t block = { .address_space = ctx, .vaddr = vaddr, .flags = flags };
 
-    const vmblock_t block = { .address_space = ctx, .vaddr = vaddr, .npages = npages, .flags = flags };
-
-    mos_debug(vmm, "filling %zd pages at " PTR_FMT " with " PFN_FMT, npages, vaddr, pfn);
-
-    // only unreference the physical frames
-    static const vmm_iterate_unmap_flags_t umflags = {
-        .do_unmap = false,
-        .do_unref = true,
-    };
+    mos_debug(vmm, "filling page at " PTR_FMT " with " PFN_FMT, vaddr, pfn);
 
     spinlock_acquire(&ctx->mm_lock);
     // ref the frames first, so they don't get freed if we're [filling a page with itself]?
     // weird people do weird things
-    pmm_ref_frames(pfn, npages);
-    // platform_mm_iterate_table(ctx, vaddr, npages, vmm_iterate_unmap, (void *) &umflags);
-    mm_do_map(ctx->pgd, vaddr, pfn, npages, flags);
+    pmm_ref_frames(pfn, 1);
+    const pfn_t old_pfn = mm_do_get_pfn(ctx->pgd, vaddr);
+    mm_do_map(ctx->pgd, vaddr, pfn, 1, flags);
+    pmm_unref_frames(old_pfn, 1);
     spinlock_release(&ctx->mm_lock);
 
     return block;
@@ -272,7 +267,18 @@ mm_context_t *mm_create_context(void)
 {
     mm_context_t *mmctx = kmemcache_alloc(mm_context_cache);
     linked_list_init(&mmctx->mmaps);
-    mmctx->pgd = platform_mm_create_user_pgd();
+
+    pml4_t pml4 = pml_create_table(pml4);
+
+    // map the upper half of the address space to the kernel
+    for (int i = pml4_index(MOS_KERNEL_START_VADDR); i < MOS_PLATFORM_PML4_NPML3; i++)
+    {
+        const pml4e_t *kpml4e = &platform_info->kernel_mm->pgd.max.next.table[i];
+        pml4.table[i].content = kpml4e->content;
+    }
+
+    mmctx->pgd = pgd_create(pml4);
+
     return mmctx;
 }
 
