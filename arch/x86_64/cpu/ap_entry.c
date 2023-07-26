@@ -17,7 +17,7 @@ noreturn void ap_begin_exec(void)
     x86_init_current_cpu_gdt();
     x86_init_current_cpu_tss();
     x86_idt_flush();
-    x86_enable_paging_impl(mm_pmlmax_get_pfn(platform_info->kernel_mm->pgd) * MOS_PAGE_SIZE);
+    x86_enable_paging_impl(pgd_pfn(platform_info->kernel_mm->pgd) * MOS_PAGE_SIZE);
 
     lapic_enable();
 

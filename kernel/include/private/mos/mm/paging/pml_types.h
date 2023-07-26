@@ -71,7 +71,8 @@ typedef pml4e_t pml5e_t;
 #endif
 
 // pmltop_t is the top-level paging table supported by the platform
-typedef MOS_CONCAT(MOS_CONCAT(pml, MOS_PLATFORM_PAGING_LEVELS), _t) pmltop_t;
+#define MOS_PMLTOP_TYPE MOS_CONCAT(pml, MOS_PLATFORM_PAGING_LEVELS)
+typedef MOS_CONCAT(MOS_PMLTOP_TYPE, _t) pmltop_t;
 
 #define pml_create_table(x)                                                                                                                                              \
     __extension__({                                                                                                                                                      \

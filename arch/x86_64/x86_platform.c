@@ -154,7 +154,7 @@ void x86_start_kernel(void)
 
     x86_initialise_phyframes_array();
     x86_paging_setup();
-    x86_enable_paging_impl(mm_pmlmax_get_pfn(x86_platform.kernel_mm->pgd) * MOS_PAGE_SIZE);
+    x86_enable_paging_impl(pgd_pfn(x86_platform.kernel_mm->pgd) * MOS_PAGE_SIZE);
 
     mos_debug(x86_startup, "mapping bios memory area...");
     pmm_reserve_frames(X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages);

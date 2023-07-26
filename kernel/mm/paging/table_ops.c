@@ -136,18 +136,12 @@ pfn_t mm_do_get_pfn(pgd_t max, ptr_t vaddr)
     vaddr = ALIGN_DOWN_TO_PAGE(vaddr);
     pml5e_t *pml5e = pml5_entry(max.max, vaddr);
     if (!pml5e_is_present(pml5e))
-    {
-        pr_emph("NEWAPI: mm_do_get_pfn(" PTR_FMT ") = 0", vaddr);
         return 0;
-    }
 
     const pml4_t pml4 = pml5e_get_pml4(pml5e);
     pml4e_t *pml4e = pml4_entry(pml4, vaddr);
     if (!pml4e_is_present(pml4e))
-    {
-        pr_emph("NEWAPI: mm_do_get_pfn(" PTR_FMT ") = 0", vaddr);
         return 0;
-    }
 
 #if MOS_CONFIG(MOS_PLATFORM_PML4_HUGE_CAPABLE)
     if (platform_pml4e_is_huge(pml4e))
@@ -157,10 +151,7 @@ pfn_t mm_do_get_pfn(pgd_t max, ptr_t vaddr)
     const pml3_t pml3 = pml4e_get_pml3(pml4e);
     pml3e_t *pml3e = pml3_entry(pml3, vaddr);
     if (!pml3e_is_present(pml3e))
-    {
-        pr_emph("NEWAPI: mm_do_get_pfn(" PTR_FMT ") = 0", vaddr);
         return 0;
-    }
 
 #if MOS_CONFIG(MOS_PLATFORM_PML3_HUGE_CAPABLE)
     if (platform_pml3e_is_huge(pml3e))
@@ -170,10 +161,7 @@ pfn_t mm_do_get_pfn(pgd_t max, ptr_t vaddr)
     const pml2_t pml2 = pml3e_get_pml2(pml3e);
     pml2e_t *pml2e = pml2_entry(pml2, vaddr);
     if (!pml2e_is_present(pml2e))
-    {
-        pr_emph("NEWAPI: mm_do_get_pfn(" PTR_FMT ") = 0", vaddr);
         return 0;
-    }
 
 #if MOS_CONFIG(MOS_PLATFORM_PML2_HUGE_CAPABLE)
     if (platform_pml2e_is_huge(pml2e))
@@ -183,23 +171,7 @@ pfn_t mm_do_get_pfn(pgd_t max, ptr_t vaddr)
     const pml1_t pml1 = pml2e_get_pml1(pml2e);
     const pml1e_t *pml1e = pml1_entry(pml1, vaddr);
     if (!pml1e_is_present(pml1e))
-    {
-        pr_emerg("NEWAPI: mm_do_get_pfn(" PTR_FMT ") = 0", vaddr);
         return 0;
-    }
 
-    const pfn_t pfn = pml1e_get_pfn(pml1e);
-    pr_emph("NEWAPI: mm_do_get_pfn(" PTR_FMT ") = " PFN_FMT, vaddr, pfn);
-    return pfn;
-}
-
-pfn_t mm_pmlmax_get_pfn(pgd_t max)
-{
-    return va_pfn(max.max.pml4.table);
-}
-
-pgd_t mm_pgd_create(pmltop_t top)
-{
-    pgd_t pgd = { .max = { .pml4 = top } };
-    return pgd;
+    return pml1e_get_pfn(pml1e);
 }

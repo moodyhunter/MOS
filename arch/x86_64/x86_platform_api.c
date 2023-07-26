@@ -104,7 +104,7 @@ pgd_t platform_mm_create_user_pgd(void)
         pml4e->content = kpml4e->content;
     }
 
-    return mm_pgd_create(top);
+    return pgd_from_pmltop(top);
 }
 
 void platform_mm_destroy_user_pgd(pgd_t max)

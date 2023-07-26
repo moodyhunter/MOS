@@ -30,8 +30,8 @@ void x86_paging_setup()
     platform_info->kernel_mm = &x86_kernel_mmctx;
     current_cpu->mm_context = &x86_kernel_mmctx;
 
-    pmltop_t pml4 = pml_create_table(pmltop);
-    x86_kernel_mmctx.pgd = mm_pgd_create(pml4);
+    const pmltop_t pml4 = pml_create_table(pmltop);
+    x86_kernel_mmctx.pgd = pgd_from_pmltop(pml4);
 
     mos_debug(x86_startup, "mapping kernel space...");
 
