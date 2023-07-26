@@ -149,7 +149,6 @@ vmblock_t mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, 
     }
 
     const pfn_t pfn = phyframe_pfn(frame);
-    pmm_ref_frames(pfn, n_pages);
     mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, n_pages, vaddr, pfn);
     mm_do_map(mmctx->pgd, vaddr, pfn, n_pages, flags);
 
