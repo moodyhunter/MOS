@@ -24,7 +24,7 @@ vmblock_t shm_allocate(size_t npages, vmap_fork_mode_t mode, vm_flags vmflags)
 vmblock_t shm_map_shared_block(vmblock_t source, vmap_fork_mode_t mode)
 {
     process_t *owner = current_process;
-    mos_debug(shm, "sharing %zu pages from address space " PTR_FMT " to address space " PTR_FMT, source.npages, source.address_space->pgd, owner->mm->pgd);
+    mos_debug(shm, "sharing %zu pages from address space " PTR_FMT " to address space " PTR_FMT, source.npages, (ptr_t) source.address_space, (ptr_t) owner->mm);
 
     spinlock_acquire(&owner->mm->mm_lock);
     spinlock_acquire(&source.address_space->mm_lock);
