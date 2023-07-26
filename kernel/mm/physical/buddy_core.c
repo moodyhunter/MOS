@@ -245,11 +245,11 @@ static void break_the_order(const size_t order)
  * @return true if a buddy was found and merged to a higher order freelist
  * @return false if...
  */
-[[nodiscard]] static bool try_merge(const pfn_t pfn, size_t order)
+[[nodiscard]] static bool try_merge(const pfn_t pfn, u8 order)
 {
     if (order > orders[MOS_ARRAY_SIZE(orders) - 1])
     {
-        mos_debug(pmm_buddy, "  order %zu is too large, cannot merge", order);
+        mos_debug(pmm_buddy, "  order %hhu is too large, cannot merge", order);
         return false;
     }
 
@@ -275,14 +275,14 @@ static void break_the_order(const size_t order)
 
     if (buddy->order != order)
     {
-        mos_debug(pmm_buddy, "  buddy pfn " PFN_FMT " is not the same order (%zu != %zu) as " PFN_FMT ", not merging", buddy_pfn, buddy->order, order, pfn);
+        mos_debug(pmm_buddy, "  buddy pfn " PFN_FMT " is not the same order (%hhu != %hhu) as " PFN_FMT ", not merging", buddy_pfn, buddy->order, order, pfn);
         return false;
     }
 
     list_remove(buddy);
     frame->state = PHYFRAME_FREE;
 
-    mos_debug(pmm_buddy, "  merging order %zu, " PFN_RANGE " and " PFN_RANGE, order, pfn, pfn + pow2(order) - 1, buddy_pfn, buddy_pfn + pow2(order) - 1);
+    mos_debug(pmm_buddy, "  merging order %hhu, " PFN_RANGE " and " PFN_RANGE, order, pfn, pfn + pow2(order) - 1, buddy_pfn, buddy_pfn + pow2(order) - 1);
 
     const size_t high_order_pfn = MIN(pfn, buddy_pfn); // the lower pfn
 
@@ -336,7 +336,7 @@ phyframe_t *buddy_alloc_n_exact(size_t nframes)
     if (list_is_empty(free))
         break_the_order(order + 1);
 
-    if (list_is_empty(free))
+    if (unlikely(list_is_empty(free)))
     {
         pr_emerg("no free frames of order %zu, can't break", order);
         pr_emerg("out of memory!");
