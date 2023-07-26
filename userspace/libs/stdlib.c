@@ -15,7 +15,7 @@ void *liballoc_alloc_page(size_t npages)
 
 bool liballoc_free_page(void *vptr, size_t npages)
 {
-    syscall_munmap(vptr, npages);
+    syscall_munmap(vptr, npages * MOS_PAGE_SIZE);
     return true;
 }
 
