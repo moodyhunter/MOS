@@ -12,12 +12,12 @@
 
 void pml1_traverse(pml1_t pml1, ptr_t *vaddr, size_t *n_pages, pagetable_walk_options_t callback, void *data)
 {
-    for (size_t pml1_i = pml1_index(*vaddr); pml1_i < MOS_PLATFORM_PML1_NPAGES && *n_pages; pml1_i++)
+    for (size_t pml1_i = pml1_index(*vaddr); pml1_i < PML1_ENTRIES && *n_pages; pml1_i++)
     {
         pml1e_t *pml1e = pml1_entry(pml1, *vaddr);
-        callback.pml1_callback(pml1, pml1e, *vaddr, data);
-        (*vaddr) += MOS_PAGE_SIZE;
-        (*n_pages)--;
+        callback.pml1e_callback(pml1, pml1e, *vaddr, data);
+        (*vaddr) += PML1E_NPAGES * MOS_PAGE_SIZE;
+        (*n_pages) -= PML1E_NPAGES;
     }
 }
 

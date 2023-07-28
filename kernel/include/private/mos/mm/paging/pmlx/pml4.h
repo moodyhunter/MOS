@@ -10,4 +10,4 @@ pml4e_t *pml4_entry(pml4_t pml4, ptr_t vaddr);
 
 bool pml4e_is_present(const pml4e_t *pml4e);
 
-pml3_t pml4e_get_pml3(pml4e_t *pml4e);
+pml3_t pml4e_get_or_create_pml3(pml4e_t *pml4e);

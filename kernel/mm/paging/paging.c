@@ -18,33 +18,10 @@
 #include <mos/printk.h>
 #include <stdlib.h>
 
-typedef struct
-{
-    bool do_unmap;
-    bool do_unref;
-} vmm_iterate_unmap_flags_t;
-
 static slab_t *mm_context_cache = NULL;
 MOS_SLAB_AUTOINIT("mm_context", mm_context_cache, mm_context_t);
 
 // ! BEGIN: CALLBACKS
-static void vmm_iterate_unmap(const pgt_iteration_info_t *iter_info, const vmblock_t *block, pfn_t block_pfn, void *arg)
-{
-    MOS_UNUSED(iter_info);
-
-    const bool do_unmap = arg ? ((vmm_iterate_unmap_flags_t *) arg)->do_unmap : true;
-    const bool do_unref = arg ? ((vmm_iterate_unmap_flags_t *) arg)->do_unref : true;
-
-    mos_debug(vmm_impl, "unmapping " PTR_FMT " -> " PFN_FMT " (npages: %zu)", block->vaddr, block_pfn, block->npages);
-
-    if (do_unmap)
-        // platform_mm_unmap_pages(block->mm_context, block->vaddr, block->npages);
-        MOS_UNREACHABLE();
-
-    if (do_unref)
-        pmm_unref_frames(block_pfn, block->npages);
-}
-
 static void vmm_iterate_copymap(const pgt_iteration_info_t *iter_info, const vmblock_t *block, pfn_t block_pfn, void *arg)
 {
     vmblock_t *vblock = arg;
@@ -167,8 +144,6 @@ vmblock_t mm_map_pages_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, size_t 
     const vmblock_t block = { .address_space = ctx, .vaddr = vaddr, .npages = npages, .flags = flags };
 
     mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, npages, vaddr, pfn);
-
-    pmm_ref_frames(pfn, npages);
     mm_do_map(ctx->pgd, vaddr, pfn, npages, flags);
     return block;
 }
@@ -186,7 +161,7 @@ void mm_unmap_pages(mm_context_t *ctx, ptr_t vaddr, size_t npages)
     MOS_ASSERT(npages > 0);
 
     spinlock_acquire(&ctx->mm_lock);
-    mm_do_unmap(ctx->pgd, vaddr, npages);
+    mm_do_unmap(ctx->pgd, vaddr, npages, true);
     // TODO: remove the page table
     spinlock_release(&ctx->mm_lock);
 }
@@ -271,7 +246,7 @@ mm_context_t *mm_create_context(void)
     pml4_t pml4 = pml_create_table(pml4);
 
     // map the upper half of the address space to the kernel
-    for (int i = pml4_index(MOS_KERNEL_START_VADDR); i < MOS_PLATFORM_PML4_NPML3; i++)
+    for (int i = pml4_index(MOS_KERNEL_START_VADDR); i < PML4_ENTRIES; i++)
     {
         const pml4e_t *kpml4e = &platform_info->kernel_mm->pgd.max.next.table[i];
         pml4.table[i].content = kpml4e->content;
@@ -291,5 +266,5 @@ void mm_destroy_context(mm_context_t *mmctx)
 ptr_t mm_get_phys_addr(mm_context_t *ctx, ptr_t vaddr)
 {
     pfn_t pfn = mm_do_get_pfn(ctx->pgd, vaddr);
-    return pfn << MOS_PLATFORM_PML1_SHIFT | (vaddr % MOS_PAGE_SIZE);
+    return pfn << PML1_SHIFT | (vaddr % MOS_PAGE_SIZE);
 }

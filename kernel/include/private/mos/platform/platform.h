@@ -212,7 +212,7 @@ void platform_pml2e_set_pml1(pml2e_t *pml2, pml1_t pml1, pfn_t pml1_pfn);
 bool platform_pml2e_get_present(const pml2e_t *pml2);
 void platform_pml2e_set_present(pml2e_t *pml2, bool present);
 void platform_pml2e_set_flags(pml2e_t *pml2, vm_flags flags);
-#if MOS_CONFIG(MOS_PLATFORM_PML2_HUGE_CAPABLE)
+#if MOS_CONFIG(PML2_HUGE_CAPABLE)
 bool platform_pml2e_is_huge(const pml2e_t *pml2);
 void platform_pml2e_set_huge(pml2e_t *pml2, pfn_t pfn);
 pfn_t platform_pml2e_get_huge_pfn(const pml2e_t *pml2);
@@ -225,7 +225,7 @@ void platform_pml3e_set_pml2(pml3e_t *pml3, pml2_t pml2, pfn_t pml2_pfn);
 bool platform_pml3e_get_present(const pml3e_t *pml3);
 void platform_pml3e_set_present(pml3e_t *pml3, bool present);
 void platform_pml3e_set_flags(pml3e_t *pml3, vm_flags flags);
-#if MOS_CONFIG(MOS_PLATFORM_PML3_HUGE_CAPABLE)
+#if MOS_CONFIG(PML3_HUGE_CAPABLE)
 bool platform_pml3e_is_huge(const pml3e_t *pml3);
 void platform_pml3e_set_huge(pml3e_t *pml3, pfn_t pfn);
 pfn_t platform_pml3e_get_huge_pfn(const pml3e_t *pml3);
@@ -238,7 +238,7 @@ void platform_pml4e_set_pml3(pml4e_t *pml4, pml3_t pml3, pfn_t pml3_pfn);
 bool platform_pml4e_get_present(const pml4e_t *pml4);
 void platform_pml4e_set_present(pml4e_t *pml4, bool present);
 void platform_pml4e_set_flags(pml4e_t *pml4, vm_flags flags);
-#if MOS_CONFIG(MOS_PLATFORM_PML4_HUGE_CAPABLE)
+#if MOS_CONFIG(PML4_HUGE_CAPABLE)
 bool platform_pml4e_is_huge(const pml4e_t *pml4);
 void platform_pml4e_set_huge(pml4e_t *pml4, pfn_t pfn);
 pfn_t platform_pml4e_get_huge_pfn(const pml4e_t *pml4);

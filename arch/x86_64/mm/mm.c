@@ -32,20 +32,20 @@ void x86_initialise_phyframes_array(void)
         pmm_region_t *r = &platform_info->pmm_regions[i];
 
         if (r->reserved)
+        {
+            mos_debug(pmm, "skipping reserved region " PFNADDR_RANGE, PFNADDR(r->pfn_start, r->pfn_start + r->nframes));
             continue;
+        }
 
         if (r->nframes < phyframes_npages)
+        {
+            mos_debug(pmm, "skipping region " PFNADDR_RANGE " because it's too small", PFNADDR(r->pfn_start, r->pfn_start + r->nframes));
             continue; // early out if this region is too small
+        }
 
         phyframes_pfn = r->pfn_start;
-        phyframes_pfn = MAX(platform_info->initrd_pfn + platform_info->initrd_npages, phyframes_pfn); // don't use the initrd's memory
-
-        const pfn_t pfn_end = phyframes_pfn + phyframes_npages;
-        if (pfn_end > r->pfn_start + r->nframes)
-            continue; // this region doesn't have enough space (after we excluded the kernel and initrd regions)
-
         phyframes_region = r;
-        mos_debug(pmm, "using " PFNADDR_RANGE " for the phyframes array", PFNADDR(phyframes_pfn, pfn_end));
+        mos_debug(pmm, "using " PFNADDR_RANGE " for the phyframes array", PFNADDR(phyframes_pfn, phyframes_pfn + phyframes_npages));
         phyframes = (void *) pfn_va(phyframes_pfn);
 
         // zero the array

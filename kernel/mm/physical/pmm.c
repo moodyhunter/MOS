@@ -78,21 +78,25 @@ void pmm_unref_frames(pfn_t start, size_t n_pages)
     MOS_ASSERT_X(start + n_pages <= buddy_max_nframes, "out of bounds");
     mos_debug(pmm, "unref range: " PFN_RANGE ", %zu pages", start, start + n_pages, n_pages);
 
-    for (size_t i = start; i < start + n_pages;)
+    for (size_t ith = start; ith < start + n_pages;)
     {
-        phyframe_t *head_frame = phyframe_effective_head(&phyframes[i]);
+        phyframe_t *head_frame = phyframe_effective_head(&phyframes[ith]);
         MOS_ASSERT(head_frame->refcount > 0);
 
-        const size_t max_unmap_size = MIN(pow2((size_t) head_frame->order), start + n_pages - i);
-        i += max_unmap_size;
-        head_frame->refcount -= max_unmap_size;
+        const size_t compound_size = pow2((size_t) head_frame->order); // compound_size, or 1 for non-compound frames
+        const size_t npages_left = n_pages - (ith - start);
+
+        const size_t npages_to_unref = MIN(compound_size, npages_left);
+
+        ith += npages_to_unref;
+        head_frame->refcount -= npages_to_unref;
 
         if (head_frame->refcount == 0)
         {
-            mos_debug(pmm, "freeing " PFN_FMT, phyframe_pfn(head_frame));
-            linked_list_init(list_node(head_frame));
-            const size_t nframes = pow2(head_frame->order);
-            buddy_free_n(phyframe_pfn(head_frame), nframes);
+            const pfn_t start_pfn = phyframe_pfn(head_frame);
+            mos_debug(pmm, "freeing " PFN_RANGE, start_pfn, start_pfn + compound_size - 1);
+            linked_list_init(list_node(head_frame)); // sanitize the list node
+            buddy_free_n(phyframe_pfn(head_frame), compound_size);
         }
     }
 }

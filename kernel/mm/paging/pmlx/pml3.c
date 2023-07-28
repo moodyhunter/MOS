@@ -38,22 +38,22 @@ pml2_t pml3e_get_pml2(const pml3e_t *pml3e)
 #else
 void pml3_traverse(pml3_t pml3, ptr_t *vaddr, size_t *n_pages, pagetable_walk_options_t options, void *data)
 {
-    for (size_t i = pml3_index(*vaddr); i < MOS_PLATFORM_PML3_NPML2 && *n_pages; i++)
+    for (size_t i = pml3_index(*vaddr); i < PML3_ENTRIES && *n_pages; i++)
     {
         pml3e_t *pml3e = pml3_entry(pml3, *vaddr);
         pml2_t pml2 = { 0 };
 
         if (pml3e_is_present(pml3e))
         {
-            pml2 = pml3e_get_pml2(pml3e);
+            pml2 = pml3e_get_or_create_pml2(pml3e);
         }
         else
         {
             if (options.readonly)
             {
                 // skip to the next pml2e
-                *vaddr += MOS_PLATFORM_PML1_NPAGES * MOS_PAGE_SIZE;
-                *n_pages -= MOS_PLATFORM_PML1_NPAGES;
+                *vaddr += PML3E_NPAGES * MOS_PAGE_SIZE;
+                *n_pages -= PML3E_NPAGES;
                 continue;
             }
 
@@ -62,8 +62,8 @@ void pml3_traverse(pml3_t pml3, ptr_t *vaddr, size_t *n_pages, pagetable_walk_op
             platform_pml3e_set_pml2(pml3e, pml2, va_pfn(pml2.table));
         }
 
-        if (options.pml3_callback)
-            options.pml3_callback(pml3, pml3e, *vaddr, data);
+        if (options.pml3e_pre_traverse)
+            options.pml3e_pre_traverse(pml3, pml3e, *vaddr, data);
         pml2_traverse(pml2, vaddr, n_pages, options, data);
     }
 }
@@ -78,7 +78,7 @@ bool pml3e_is_present(const pml3e_t *pml3e)
     return platform_pml3e_get_present(pml3e);
 }
 
-pml2_t pml3e_get_pml2(pml3e_t *pml3e)
+pml2_t pml3e_get_or_create_pml2(pml3e_t *pml3e)
 {
     if (pml3e_is_present(pml3e))
         return platform_pml3e_get_pml2(pml3e);

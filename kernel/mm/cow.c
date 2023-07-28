@@ -20,11 +20,13 @@
 #include <string.h>
 
 static phyframe_t *zero_page;
+static pfn_t zero_page_pfn;
 
 void mm_cow_init(void)
 {
     // zero fill on demand (read-only)
     zero_page = mm_get_free_page(); // already zeroed
+    zero_page_pfn = phyframe_pfn(zero_page);
 }
 
 vmblock_t mm_make_cow_block(mm_context_t *target_handle, vmblock_t src_block)
@@ -57,7 +59,11 @@ vmblock_t mm_alloc_zeroed_pages(mm_context_t *mmctx, size_t npages, ptr_t vaddr,
 
     // zero fill the pages
     for (size_t i = 0; i < npages; i++)
-        mm_map_pages_locked(mmctx, vaddr + i * MOS_PAGE_SIZE, phyframe_pfn(zero_page), 1, ro_flags);
+    {
+        pmm_ref_frame(zero_page);
+        mm_map_pages_locked(mmctx, vaddr + i * MOS_PAGE_SIZE, zero_page_pfn, 1, ro_flags);
+    }
+
     spinlock_release(&mmctx->mm_lock);
 
     return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags, .address_space = mmctx };

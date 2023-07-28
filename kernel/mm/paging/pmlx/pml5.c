@@ -30,7 +30,7 @@ bool pml5e_is_present(const pml5e_t *pml5e)
     return true;
 }
 
-pml4_t pml5e_get_pml4(pml5e_t *pml5e)
+pml4_t pml5e_get_or_create_pml4(pml5e_t *pml5e)
 {
     return (pml4_t){ .table = (pml4e_t *) pml5e };
 }

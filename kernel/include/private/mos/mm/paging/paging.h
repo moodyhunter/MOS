@@ -69,12 +69,10 @@ vmblock_t mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, 
  * @param npages The number of pages to map.
  * @param flags Flags to set on the pages, see @ref vm_flags.
  *
- * @details This function maps the pages in the block, and will increment their reference count.
+ * @details This function maps the pages in the block, their reference count will NOT be incremented.
  *
  * @note This function is rarely used directly, you don't always know the physical address of the
  * pages you want to map.
- *
- * @note You may need to reserve the physical memory before mapping it, see @ref pmm_reserve_frames.
  */
 vmblock_t mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
 vmblock_t mm_map_pages_locked(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);

@@ -84,7 +84,7 @@ process_t *process_new(process_t *parent, const char *name, const stdio_t *ios, 
     if (unlikely(!proc))
         return NULL;
 
-    pr_info("creating process %d (%s)", proc->pid, proc->name);
+    mos_debug(process, "creating process %d (%s)", proc->pid, proc->name);
     if (unlikely(!proc))
         return NULL;
 
@@ -179,7 +179,7 @@ bool process_wait_for_pid(pid_t pid)
 void process_handle_exit(process_t *process, int exit_code)
 {
     MOS_ASSERT(process_is_valid(process));
-    pr_info("process %d exited with code %d", process->pid, exit_code);
+    mos_debug(process, "process %d exited with code %d", process->pid, exit_code);
 
     mos_debug(process, "terminating all %lu threads owned by %d", process->threads_count, process->pid);
     for (int i = 0; i < process->threads_count; i++)

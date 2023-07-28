@@ -10,7 +10,7 @@
 
 void mm_do_map(pgd_t top, ptr_t vaddr, pfn_t pfn, size_t n_pages, vm_flags flags);
 void mm_do_flag(pgd_t top, ptr_t vaddr, size_t n_pages, vm_flags flags);
-void mm_do_unmap(pgd_t top, ptr_t vaddr, size_t n_pages);
+void mm_do_unmap(pgd_t top, ptr_t vaddr, size_t n_pages, bool do_unref);
 
 pfn_t mm_do_get_pfn(pgd_t top, ptr_t vaddr);
 
