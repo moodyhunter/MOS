@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/filesystem/sysfs/sysfs.h"
+#include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/misc/power.h"
 
 #include <mos/cmdline.h>
@@ -14,6 +16,7 @@
 #include <mos/setup.h>
 #include <mos/tasks/kthread.h>
 #include <mos/tasks/schedule.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -22,6 +25,28 @@
 typedef void (*init_function_t)(void);
 
 static argv_t init_argv = { 0 };
+
+static bool init_sysfs_path(sysfs_file_t *file)
+{
+    sysfs_printf(file, "%s\n", init_argv.argv[0]);
+    return true;
+}
+
+static bool init_sysfs_argv(sysfs_file_t *file)
+{
+    for (u32 i = 0; i < init_argv.argc; i++)
+        sysfs_printf(file, "%s ", init_argv.argv[i]);
+    sysfs_printf(file, "\n");
+    return true;
+}
+
+static const sysfs_item_t init_items[] = {
+    SYSFS_RO_ITEM("path", init_sysfs_path),
+    SYSFS_RO_ITEM("argv", init_sysfs_argv),
+    SYSFS_END_ITEM,
+};
+
+MOS_SYSFS_AUTOREGISTER(init, init_items);
 
 static bool setup_init_path(const char *arg)
 {
@@ -85,13 +110,14 @@ void mos_start_kernel(void)
     // register builtin filesystems
     vfs_init();
     setup_reach_init_target(INIT_TARGET_VFS);
+    setup_reach_init_target(INIT_TARGET_SYSFS);
 
     bool mounted = vfs_mount("none", "/", "tmpfs", NULL);
     if (!mounted)
         mos_panic("failed to mount rootfs");
 
     vfs_mkdir("/initrd");
-    bool mounted_initrd = vfs_mount("initrd", "/initrd/", "cpiofs", NULL);
+    bool mounted_initrd = vfs_mount("none", "/initrd/", "cpiofs", NULL);
     if (!mounted_initrd)
         mos_panic("failed to mount initrd");
 

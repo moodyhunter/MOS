@@ -3,6 +3,8 @@
 
 #include "mos/mm/slab.h"
 
+#include "mos/filesystem/sysfs/sysfs.h"
+#include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/mm/paging/table_ops.h"
@@ -254,3 +256,22 @@ static void kmemcache_free(slab_t *slab, const void *addr)
 
     spinlock_release(&slab->lock);
 }
+
+// ! sysfs support
+
+static bool slab_sysfs_status(sysfs_file_t *f)
+{
+    list_foreach(slab_t, slab, slabs_list)
+    {
+        sysfs_printf(f, "%15s, ent_size=%5zu, first_free=" PTR_FMT ", %5zu objects\n", slab->name, slab->ent_size, slab->first_free, slab->nobjs);
+    }
+
+    return true;
+}
+
+static const sysfs_item_t slab_sysfs_items[] = {
+    SYSFS_RO_ITEM("status", slab_sysfs_status),
+    SYSFS_END_ITEM,
+};
+
+MOS_SYSFS_AUTOREGISTER(slab, slab_sysfs_items);

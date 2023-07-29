@@ -3,6 +3,8 @@
 
 #include "mos/mm/physical/pmm.h"
 
+#include "mos/filesystem/sysfs/sysfs.h"
+#include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/mm/physical/buddy.h"
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
@@ -150,3 +152,18 @@ pmm_region_t *pmm_find_reserved_region(ptr_t needle)
     mos_debug(pmm, "no block found");
     return NULL;
 }
+
+// ! sysfs support
+
+static bool pmm_sysfs_status(sysfs_file_t *f)
+{
+    sysfs_printf(f, "Physical Memory Manager: %zu frames\n", buddy_max_nframes);
+    return true;
+}
+
+static const sysfs_item_t pmm_items[] = {
+    SYSFS_RO_ITEM("status", pmm_sysfs_status),
+    SYSFS_END_ITEM,
+};
+
+MOS_SYSFS_AUTOREGISTER(pmm, pmm_items);

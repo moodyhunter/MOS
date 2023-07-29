@@ -1,3 +1,5 @@
+#include "mos/filesystem/sysfs/sysfs.h"
+#include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/mm/slab_autoinit.h"
 
 #include <mos/filesystem/dentry.h>
@@ -501,3 +503,22 @@ ssize_t vfs_getcwd(char *buf, size_t size)
 
     return dentry_path(cwd, root_dentry, buf, size);
 }
+
+// ! sysfs support
+
+static bool vfs_sysfs_filesystems(sysfs_file_t *f)
+{
+    list_foreach(filesystem_t, fs, vfs_fs_list)
+    {
+        sysfs_printf(f, "%s\n", fs->name);
+    }
+
+    return true;
+}
+
+static const sysfs_item_t vfs_sysfs_items[] = {
+    SYSFS_RO_ITEM("filesystems", vfs_sysfs_filesystems),
+    SYSFS_END_ITEM,
+};
+
+MOS_SYSFS_AUTOREGISTER(vfs, vfs_sysfs_items);
