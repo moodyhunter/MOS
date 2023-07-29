@@ -67,7 +67,7 @@ static mount_t *dentry_get_mount(dentry_t *dentry)
 static dentry_t *dentry_root_get_mountpoint(dentry_t *dentry)
 {
     MOS_ASSERT_X(dentry->name == NULL, "mounted root should not have a name");
-    dentry_t *parent = tree_parent(dentry, dentry_t);
+    dentry_t *parent = dentry_parent(dentry);
 
     tree_foreach_child(dentry_t, child, parent)
     {
@@ -183,7 +183,7 @@ static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, co
                 continue;
             }
 
-            dentry_t *parent = tree_parent(parent_ref, dentry_t);
+            dentry_t *parent = dentry_parent(parent_ref);
             MOS_ASSERT(dentry_unref_one(parent_ref)); // don't recurse up to the root
             parent_ref = parent;
 
@@ -257,7 +257,7 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve
     mos_debug(dcache, "symlink target: %s", target);
 
     char *last_segment = NULL;
-    dentry_t *parent_ref = dentry_lookup_parent(tree_parent(dentry, dentry_t), root_dentry, target, &last_segment);
+    dentry_t *parent_ref = dentry_lookup_parent(dentry_parent(dentry), root_dentry, target, &last_segment);
     kfree(target);
     if (parent_ref == NULL)
     {
@@ -301,7 +301,7 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
         if (parent == root_dentry)
             return parent;
 
-        dentry_t *parent_parent = tree_parent(parent, dentry_t);
+        dentry_t *parent_parent = dentry_parent(parent);
         MOS_ASSERT(dentry_unref_one(parent)); // don't recursively unref all the way to the root
 
         if (parent_parent->is_mountpoint)
@@ -414,7 +414,7 @@ dentry_t *dentry_ref(dentry_t *dentry)
 dentry_t *dentry_ref_up_to(dentry_t *dentry, dentry_t *root)
 {
     mos_debug(dcache_ref, "dentry_ref_up_to(%p, %p)", (void *) dentry, (void *) root);
-    for (dentry_t *cur = dentry; cur != root; cur = tree_parent(cur, dentry_t))
+    for (dentry_t *cur = dentry; cur != root; cur = dentry_parent(cur))
     {
         dentry_ref(cur);
         if (cur->name == NULL)
@@ -462,7 +462,7 @@ void dentry_unref(dentry_t *dentry)
         mos_debug(dcache_ref, "  dentry %p '%s' has %zu direct references", (void *) dentry, dentry_name(dentry), dentry->refcount - expected_refcount);
     }
 
-    dentry_unref(tree_parent(dentry, dentry_t));
+    dentry_unref(dentry_parent(dentry));
     const bool need_to_free = dentry->refcount == 0;
     if (need_to_free)
     {
@@ -604,10 +604,10 @@ dentry_t *dentry_get(dentry_t *starting_dir, dentry_t *root_dir, const char *pat
 bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs)
 {
     MOS_ASSERT_X(root->name == NULL, "mountpoint already has a name");
-    MOS_ASSERT_X(tree_parent(root, dentry_t) == NULL, "mountpoint already has a parent");
+    MOS_ASSERT_X(dentry_parent(root) == NULL, "mountpoint already has a parent");
 
     dentry_ref(root);
-    tree_node(root)->parent = tree_node(tree_parent(mountpoint, dentry_t));
+    tree_node(root)->parent = tree_node(dentry_parent(mountpoint));
     mountpoint->is_mountpoint = true;
 
     mount_t *mount = kmemcache_alloc(mount_cache);
@@ -664,7 +664,7 @@ size_t dentry_list(dentry_t *dir, dir_iterator_state_t *state)
 
     if (state->dir_nth == 1)
     {
-        dentry_t *parent = tree_parent(dir, dentry_t);
+        dentry_t *parent = dentry_parent(dir);
         if (parent == NULL)
             parent = root_dentry;
 
@@ -708,7 +708,7 @@ ssize_t dentry_path(dentry_t *dentry, dentry_t *root, char *buf, size_t size)
 
     char *path = strdup(dentry->name);
 
-    for (dentry_t *current = tree_parent(dentry, dentry_t); current != root; current = tree_parent(current, dentry_t))
+    for (dentry_t *current = dentry_parent(dentry); current != root; current = dentry_parent(current))
     {
         if (current->name == NULL)
             current = dentry_root_get_mountpoint(current);

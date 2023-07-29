@@ -329,7 +329,7 @@ bool vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstat
 {
     if (flags & FSTATAT_FILE)
     {
-        mos_debug(vfs, "vfs_fstatat(fd=%ld, path='%p', stat=%p, flags=%x)", fd, (void *) path, (void *) statbuf, flags);
+        mos_debug(vfs, "vfs_fstatat(fd=%d, path='%p', stat=%p, flags=%x)", fd, (void *) path, (void *) statbuf, flags);
         io_t *io = process_get_fd(current_process, fd);
         if (!io_valid(io))
             return false;
@@ -343,7 +343,7 @@ bool vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstat
         return true;
     }
 
-    mos_debug(vfs, "vfs_fstatat(fd=%ld, path='%s', stat=%p, flags=%x)", fd, path, (void *) statbuf, flags);
+    mos_debug(vfs, "vfs_fstatat(fd=%d, path='%s', stat=%p, flags=%x)", fd, path, (void *) statbuf, flags);
     dentry_t *basedir = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);
     lastseg_resolve_flags_t resolve_flags = RESOLVE_EXPECT_FILE | RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST;
     if (flags & FSTATAT_NOFOLLOW)
@@ -389,7 +389,7 @@ bool vfs_touch(const char *path, file_type_t type, u32 perms)
     if (dentry == NULL)
         return false;
 
-    dentry_t *parentdir = tree_parent(dentry, dentry_t);
+    dentry_t *parentdir = dentry_parent(dentry);
 
     if (!(parentdir && parentdir->inode && parentdir->inode->ops && parentdir->inode->ops->newfile))
     {
@@ -422,8 +422,8 @@ bool vfs_symlink(const char *path, const char *target)
     if (dentry == NULL)
         return false;
 
-    dentry_t *parent_dir = tree_parent(dentry, dentry_t);
-    bool created = parent_dir->inode->ops->symlink(parent_dir->inode, dentry, target);
+    dentry_t *parent_dir = dentry_parent(dentry);
+    const bool created = parent_dir->inode->ops->symlink(parent_dir->inode, dentry, target);
 
     if (!created)
         mos_warn("failed to create symlink '%s'", path);
@@ -439,8 +439,15 @@ bool vfs_mkdir(const char *path)
     if (dentry == NULL)
         return false;
 
-    dentry_t *parent_dir = tree_parent(dentry, dentry_t);
-    bool created = parent_dir->inode->ops->mkdir(parent_dir->inode, dentry, parent_dir->inode->perm); // TODO: use umask or something else
+    dentry_t *parent_dir = dentry_parent(dentry);
+    if (parent_dir->inode == NULL || parent_dir->inode->ops == NULL || parent_dir->inode->ops->mkdir == NULL)
+    {
+        dentry_unref(dentry);
+        return false;
+    }
+
+    // TODO: use umask or something else
+    const bool created = parent_dir->inode->ops->mkdir(parent_dir->inode, dentry, parent_dir->inode->perm);
 
     if (!created)
         mos_warn("failed to create directory '%s'", path);

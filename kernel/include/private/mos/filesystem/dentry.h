@@ -4,6 +4,7 @@
 
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs_types.h>
+#include <mos/mos_global.h>
 
 /**
  * @defgroup dentry Directory Entry
@@ -63,6 +64,11 @@ void dentry_cache_init(void);
 should_inline bool path_is_absolute(const char *path)
 {
     return path[0] == '/';
+}
+
+should_inline dentry_t *dentry_parent(const dentry_t *dentry)
+{
+    return tree_parent(dentry, dentry_t);
 }
 
 /**
