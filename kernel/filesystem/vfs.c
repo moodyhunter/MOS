@@ -35,6 +35,8 @@ static void vfs_io_ops_close(io_t *io)
     const file_ops_t *file_ops = file_get_ops(file);
     if (file_ops && file_ops->flush)
         file_ops->flush(file);
+    if (file_ops && file_ops->release)
+        file_ops->release(file);
     dentry_unref(file->dentry);
     kfree(file);
 }

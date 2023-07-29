@@ -63,6 +63,7 @@ typedef struct
     ssize_t (*read)(const file_t *file, void *buf, size_t size, off_t offset);
     ssize_t (*write)(const file_t *file, const void *buf, size_t size, off_t offset);
     int (*flush)(file_t *file);
+    void (*release)(file_t *file);
     int (*mmap)(file_t *file, void *addr, size_t size, vmblock_t *vmblock);
 } file_ops_t;
 
