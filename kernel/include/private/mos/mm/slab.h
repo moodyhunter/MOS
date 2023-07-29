@@ -52,6 +52,7 @@ typedef struct
     ptr_t first_free;
     size_t ent_size;
     const char *name;
+    size_t nobjs;
 } slab_t;
 
 slab_t *kmemcache_create(const char *name, size_t ent_size);

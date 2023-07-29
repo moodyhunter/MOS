@@ -72,6 +72,7 @@ static void slab_init_one(slab_t *slab, const char *name, size_t size)
     list_node_append(&slabs_list, list_node(slab));
     slab->lock = (spinlock_t) SPINLOCK_INIT;
     slab->first_free = 0;
+    slab->nobjs = 0;
     slab->name = name;
     slab->ent_size = size;
 }
@@ -233,6 +234,7 @@ void *kmemcache_alloc(slab_t *slab)
     pr_cont(" -> %p", (void *) alloc);
 #endif
 
+    slab->nobjs++;
     spinlock_release(&slab->lock);
     return alloc;
 }
@@ -248,6 +250,7 @@ static void kmemcache_free(slab_t *slab, const void *addr)
     ptr_t *new_head = (ptr_t *) addr;
     *new_head = slab->first_free;
     slab->first_free = (ptr_t) new_head;
+    slab->nobjs--;
 
     spinlock_release(&slab->lock);
 }
