@@ -226,7 +226,7 @@ static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *
     if (unlikely(mount_options) && strlen(mount_options) > 0)
         mos_warn("cpio: mount options are not supported");
 
-    if (dev_name && strlen(dev_name) > 0)
+    if (dev_name && strcmp(dev_name, "none") != 0)
         pr_warn("cpio: mount: dev_name is not supported");
 
     cpio_metadata_t header;
