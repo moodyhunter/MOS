@@ -2,7 +2,6 @@
 
 #include "mos/x86/mm/mm.h"
 
-#include "mos/boot/startup.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/mm/paging/table_ops.h"
 #include "mos/mm/physical/pmm.h"

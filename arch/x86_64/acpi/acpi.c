@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/boot/startup.h>
 #include <mos/mos_global.h>
 #include <mos/printk.h>
 #include <mos/x86/acpi/acpi.h>
