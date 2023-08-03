@@ -52,4 +52,11 @@ add_custom_command(
         ${LIMINE_BOOT_DIR}/limine.cfg
 )
 
-add_custom_target(mos_limine_iso DEPENDS ${BOOT_DIR}/mos_limine.iso)
+add_custom_target(mos_limine_iso DEPENDS
+    ${BOOT_DIR}/mos_limine.iso
+    mos_limine
+    mos_initrd
+    limine.cfg
+    ${LIMINE_ROOT}/limine-bios.sys
+    ${LIMINE_ROOT}/limine-bios-cd.bin
+)
