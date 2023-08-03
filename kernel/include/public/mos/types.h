@@ -95,7 +95,7 @@ typedef long pte_content_t;
 
 new_opaque_type(size_t, hash);
 
-typedef u32 futex_word_t;
+typedef s32 futex_word_t;
 
 #ifndef __cplusplus
 #define __atomic(type) _Atomic(type)
