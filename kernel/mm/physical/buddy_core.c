@@ -167,7 +167,6 @@ static void extract_exact_range(pfn_t start, size_t nframes, enum phyframe_state
                         start += pow2(order);
 
                         mos_debug(pmm_buddy, "      done, n left: %zu, start: " PFN_FMT, nframes, start);
-                        printk("<%*c>", 6, ' ');
                         break; // we're done with the current order
                     }
                     else
