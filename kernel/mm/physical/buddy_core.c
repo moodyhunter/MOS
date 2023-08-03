@@ -75,7 +75,7 @@ static void populate_freelist(const size_t start_pfn, const size_t nframes, cons
 
     for (; current + step <= start_pfn + nframes; current += step)
     {
-        phyframe_t *frame = &phyframes[current];
+        phyframe_t *frame = pfn_phyframe(current);
         linked_list_init(list_node(frame));
         frame->state = PHYFRAME_FREE; // free or reserved
 
@@ -92,7 +92,7 @@ static void populate_freelist(const size_t start_pfn, const size_t nframes, cons
 
 static void break_this_pfn(pfn_t this_pfn, size_t this_order)
 {
-    phyframe_t *const frame = &phyframes[this_pfn];
+    phyframe_t *const frame = pfn_phyframe(this_pfn);
     MOS_ASSERT(frame->state == PHYFRAME_FREE); // must be free
     list_remove(frame);
 
@@ -101,7 +101,7 @@ static void break_this_pfn(pfn_t this_pfn, size_t this_order)
     mos_debug(pmm_buddy, "  breaking order %zu" PFN_RANGE " -> " PFN_RANGE " and " PFN_RANGE, this_order, this_pfn, this_pfn + pow2(this_order) - 1, this_pfn,
               frame2_pfn - 1, frame2_pfn, frame2_pfn + pow2(this_order - 1) - 1);
 
-    phyframe_t *const frame2 = &phyframes[frame2_pfn];
+    phyframe_t *const frame2 = pfn_phyframe(frame2_pfn);
     linked_list_init(list_node(frame2)); // this must not be in any list, so we init it
     frame2->state = frame->state;        // which is PHYFRAME_FREE
 
@@ -117,13 +117,11 @@ static void extract_exact_range(pfn_t start, size_t nframes, enum phyframe_state
     {
         if (last_nframes == nframes)
         {
-            phyframe_t *frame = &phyframes[start];
+            phyframe_t *frame = pfn_phyframe(start);
             if (state == PHYFRAME_RESERVED && frame->state == PHYFRAME_RESERVED)
             {
                 // XXX: A great hack, there may be overlapped reserved ranges.
                 MOS_ASSERT(frame->order == 0);
-                frame->compound_tail = false;
-                frame->compound_head = NULL;
                 start++;
                 nframes--;
             }
@@ -163,14 +161,13 @@ static void extract_exact_range(pfn_t start, size_t nframes, enum phyframe_state
                     {
                         list_remove(f);
                         f->state = state;
-                        f->compound_tail = false;
-                        f->state = state;
                         f->order = 0;
 
                         nframes -= pow2(order);
                         start += pow2(order);
 
                         mos_debug(pmm_buddy, "      done, n left: %zu, start: " PFN_FMT, nframes, start);
+                        printk("<%*c>", 6, ' ');
                         break; // we're done with the current order
                     }
                     else
@@ -229,7 +226,7 @@ static void break_the_order(const size_t order)
     mos_debug(pmm_buddy, "  breaking order %3zu, " PFN_RANGE " -> " PFN_RANGE " and " PFN_RANGE, order, frame_pfn, frame_pfn + pow2(order) - 1, frame_pfn, frame2_pfn - 1,
               frame2_pfn, frame2_pfn + pow2(order - 1) - 1);
 
-    phyframe_t *const frame2 = &phyframes[frame2_pfn];
+    phyframe_t *const frame2 = pfn_phyframe(frame2_pfn);
     linked_list_init(list_node(frame2));
     frame2->state = PHYFRAME_FREE;
 
@@ -253,20 +250,13 @@ static void break_the_order(const size_t order)
         return false;
     }
 
-    phyframe_t *const frame = &phyframes[pfn];
+    phyframe_t *const frame = pfn_phyframe(pfn);
 
     const pfn_t buddy_pfn = get_buddy_pfn(pfn, order);
     if (buddy_pfn >= buddy_max_nframes)
-    {
-        // mos_debug(pmm_buddy, "  buddy pfn " PFN_FMT " is out of bounds, simply adding to order %zu", buddy_pfn, order);
-        // frame->state = PHYFRAME_FREE;
-        // add_to_freelist(order, frame);
-        // return true;
-
         return false;
-    }
 
-    phyframe_t *const buddy = &phyframes[buddy_pfn];
+    phyframe_t *const buddy = pfn_phyframe(buddy_pfn);
     if (buddy->state != PHYFRAME_FREE)
     {
         mos_debug(pmm_buddy, "  buddy pfn " PFN_FMT " is not free for pfn " PFN_FMT ", not merging", buddy_pfn, pfn);
@@ -288,7 +278,7 @@ static void break_the_order(const size_t order)
 
     if (!try_merge(high_order_pfn, order + 1))
     {
-        phyframe_t *const high_order_frame = &phyframes[high_order_pfn];
+        phyframe_t *const high_order_frame = pfn_phyframe(high_order_pfn);
         linked_list_init(list_node(high_order_frame));
         high_order_frame->state = PHYFRAME_FREE;
         add_to_freelist(order + 1, high_order_frame); // use the lower pfn
@@ -350,60 +340,19 @@ phyframe_t *buddy_alloc_n_exact(size_t nframes)
 
     for (size_t i = 0; i < nframes; i++)
     {
-        phyframe_t *const f = &phyframes[start + i];
+        phyframe_t *const f = pfn_phyframe(start + i);
         f->state = PHYFRAME_ALLOCATED;
         f->order = 0; // so that they can be freed individually
-        f->compound_tail = false;
-        f->compound_head = NULL;
     }
 
     return frame;
-}
-
-phyframe_t *buddy_alloc_n_compound(size_t nframes)
-{
-    const size_t order = log2_ceil(nframes);
-
-    // check if this order is too large
-    if (order > orders[MOS_ARRAY_SIZE(orders) - 1])
-        return NULL;
-
-    mos_debug(pmm_buddy, "allocating %zu contiguous frames (order %zu, which is %zu frames, wasting %zu frames)", nframes, order, pow2(order), pow2(order) - nframes);
-
-    list_head *free = &buddy.freelists[order];
-    if (list_is_empty(free))
-        break_the_order(order + 1);
-
-    if (list_is_empty(free))
-    {
-        pr_emerg("no free frames of order %zu, can't break", order);
-        pr_emerg("out of memory!");
-        return NULL; // out of memory!
-    }
-
-    phyframe_t *const head_frame = list_entry(free->next, phyframe_t);
-    list_remove(head_frame); // this frame is what we want
-    head_frame->state = PHYFRAME_ALLOCATED;
-    head_frame->order = order;
-    head_frame->compound_tail = false;
-
-    const pfn_t head_pfn = phyframe_pfn(head_frame);
-
-    for (size_t i = head_pfn + 1; i < head_pfn + nframes; i++)
-    {
-        phyframe_t *const f = &phyframes[i];
-        f->state = PHYFRAME_ALLOCATED;
-        f->compound_tail = true;
-        f->compound_head = head_frame;
-    }
-    return head_frame;
 }
 
 void buddy_free_n(pfn_t pfn, size_t nframes)
 {
     mos_debug(pmm_buddy, "freeing " PFN_RANGE " (%zu frames)", pfn, pfn + nframes - 1, nframes);
 
-    phyframe_t *const frame = &phyframes[pfn];
+    phyframe_t *const frame = pfn_phyframe(pfn);
     MOS_ASSERT(list_is_empty(list_node(frame)));
     frame->state = PHYFRAME_FREE;
 

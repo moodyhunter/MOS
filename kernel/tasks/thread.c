@@ -48,7 +48,7 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
 
     // Kernel stack
     // const ptr_t kstack_hint_addr = (tmode == THREAD_MODE_KERNEL) ? MOS_ADDR_KERNEL_HEAP : MOS_ADDR_USER_STACK;
-    const ptr_t kstack_blk = phyframe_va(mm_get_free_pages(MOS_STACK_PAGES_KERNEL));
+    const ptr_t kstack_blk = phyframe_va(mm_get_free_pages(MOS_STACK_PAGES_KERNEL, MEM_KERNEL));
     // mm_alloc_pages(owner->mm, MOS_STACK_PAGES_KERNEL, kstack_hint_addr, VALLOC_DEFAULT, VM_RW);
     stack_init(&t->k_stack, (void *) kstack_blk, MOS_STACK_PAGES_KERNEL * MOS_PAGE_SIZE);
     // mm_attach_vmap(owner->mm, mm_new_vmap(kstack_blk, VMTYPE_KSTACK, (vmap_flags_t){ 0 }));

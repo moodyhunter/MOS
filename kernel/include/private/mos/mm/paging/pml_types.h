@@ -91,4 +91,4 @@ typedef struct
     void (*pml4e_post_traverse)(pml4_t pml4, pml4e_t *e, ptr_t vaddr, void *data);
 } pagetable_walk_options_t;
 
-#define pml_create_table(x) ((x##_t){ .table = (x##e_t *) phyframe_va(mm_get_free_page()) })
+#define pml_create_table(x) ((x##_t){ .table = (x##e_t *) phyframe_va(mm_get_free_page(MEM_PAGETABLE)) })

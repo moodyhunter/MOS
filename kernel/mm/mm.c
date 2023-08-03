@@ -3,6 +3,7 @@
 #include "mos/mm/mm.h"
 
 #include "mos/mm/cow.h"
+#include "mos/mm/mmstat.h"
 #include "mos/mm/paging/dump.h"
 #include "mos/mm/paging/table_ops.h"
 #include "mos/mm/slab_autoinit.h"
@@ -29,7 +30,7 @@ void mos_kernel_mm_init(void)
 #endif
 }
 
-phyframe_t *mm_get_free_page_raw(void)
+phyframe_t *mm_get_free_page_raw(mem_type_t type)
 {
     phyframe_t *frame = pmm_allocate_frames(1, PMM_ALLOC_NORMAL);
     if (!frame)
@@ -38,18 +39,19 @@ phyframe_t *mm_get_free_page_raw(void)
         return NULL;
     }
 
+    mmstat_inc1(type);
     return frame;
 }
 
-phyframe_t *mm_get_free_page(void)
+phyframe_t *mm_get_free_page(mem_type_t type)
 {
-    phyframe_t *frame = mm_get_free_page_raw();
+    phyframe_t *frame = mm_get_free_page_raw(type);
     const ptr_t vaddr = phyframe_va(frame);
     memzero((void *) vaddr, MOS_PAGE_SIZE);
     return frame;
 }
 
-phyframe_t *mm_get_free_pages(size_t npages)
+phyframe_t *mm_get_free_pages(size_t npages, mem_type_t type)
 {
     phyframe_t *frame = pmm_allocate_frames(npages, PMM_ALLOC_NORMAL);
     if (!frame)
@@ -58,12 +60,8 @@ phyframe_t *mm_get_free_pages(size_t npages)
         return NULL;
     }
 
+    mmstat_inc(type, npages);
     return frame;
-}
-
-void mm_unref_pages(phyframe_t *frame, size_t npages)
-{
-    pmm_unref_frames(phyframe_pfn(frame), npages);
 }
 
 vmap_t *mm_new_vmap(vmblock_t block, vmap_content_t content, vmap_flags_t flags)

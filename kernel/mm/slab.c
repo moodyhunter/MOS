@@ -57,14 +57,15 @@ static inline slab_t *slab_for(size_t size)
 
 static ptr_t slab_impl_new_page(size_t n)
 {
-    phyframe_t *pages = mm_get_free_pages(n);
+    phyframe_t *pages = mm_get_free_pages(n, MEM_SLAB);
     return phyframe_va(pages);
 }
 
 static void slab_impl_free_page(ptr_t page, size_t n)
 {
+    const pfn_t pfn = va_pfn(page);
     for (size_t i = 0; i < n; i++)
-        pmm_unref_frame(va_phyframe(page + i * MOS_PAGE_SIZE));
+        pmm_unref_one(pfn + i);
 }
 
 static void slab_init_one(slab_t *slab, const char *name, size_t size)

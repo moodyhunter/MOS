@@ -12,7 +12,7 @@ static void pml1e_do_unmap_callback(pml1_t pml1, pml1e_t *e, ptr_t vaddr, void *
     struct pagetable_do_unmap_data *unmap_data = data;
     const pfn_t pfn = platform_pml1e_get_pfn(e);
     if (unmap_data->do_unref)
-        pmm_unref_frames(pfn, 1);
+        pmm_unref_one(pfn);
 
     platform_pml1e_set_present(e, false);
     platform_invalidate_tlb(vaddr);

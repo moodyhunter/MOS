@@ -25,7 +25,7 @@ static pfn_t zero_page_pfn;
 void mm_cow_init(void)
 {
     // zero fill on demand (read-only)
-    zero_page = mm_get_free_page(); // already zeroed
+    zero_page = mm_get_free_page(MEM_KERNEL); // already zeroed
     zero_page_pfn = phyframe_pfn(zero_page);
 }
 
@@ -60,7 +60,7 @@ vmblock_t mm_alloc_zeroed_pages(mm_context_t *mmctx, size_t npages, ptr_t vaddr,
     // zero fill the pages
     for (size_t i = 0; i < npages; i++)
     {
-        pmm_ref_frame(zero_page);
+        pmm_ref_one(zero_page);
         mm_map_pages_locked(mmctx, vaddr + i * MOS_PAGE_SIZE, zero_page_pfn, 1, ro_flags);
     }
 
@@ -75,7 +75,7 @@ static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)
     mm_context_t *mm = current_process->mm;
 
     // 1. create a new page
-    phyframe_t *frame = mm_get_free_page();
+    phyframe_t *frame = mm_get_free_page(MEM_USER);
 
     // 2. copy the data from the faulting address to the new page
     memcpy((void *) phyframe_va(frame), (void *) fault_addr, MOS_PAGE_SIZE);

@@ -57,9 +57,9 @@ ssize_t sysfs_printf(sysfs_file_t *file, const char *fmt, ...)
             // We need to allocate more pages
             const size_t npages = (file->buf_head + written) / MOS_PAGE_SIZE + 1;
             const size_t old_size = file->buf_npages * MOS_PAGE_SIZE;
-            const ptr_t new_buf = phyframe_va(mm_get_free_pages(npages));
+            const ptr_t new_buf = phyframe_va(mm_get_free_pages(npages, MEM_KERNEL));
             memcpy((void *) new_buf, file->buf, old_size);
-            mm_unref_pages(va_phyframe(file->buf), file->buf_npages);
+            pmm_unref(va_phyframe(file->buf), file->buf_npages);
             file->buf = (void *) new_buf;
             file->buf_npages = npages;
             continue;
@@ -74,7 +74,7 @@ static bool sysfs_fops_open(inode_t *i, file_t *file)
 {
     mos_debug(vfs, "sysfs: opening %s in %s", file->dentry->name, dentry_parent(file->dentry)->name);
     sysfs_file_t *f = i->private;
-    f->buf = (void *) phyframe_va(mm_get_free_page());
+    f->buf = (void *) phyframe_va(mm_get_free_page(MEM_KERNEL));
     f->buf_npages = 1;
     f->buf_head = 0;
     MOS_ASSERT(f->item->show);
@@ -85,7 +85,7 @@ static void sysfs_fops_release(file_t *file)
 {
     mos_debug(vfs, "sysfs: closing %s in %s", file->dentry->name, dentry_parent(file->dentry)->name);
     sysfs_file_t *f = file->dentry->inode->private;
-    mm_unref_pages(va_phyframe(f->buf), f->buf_npages);
+    pmm_unref(va_phyframe(f->buf), f->buf_npages);
 }
 
 static ssize_t sysfs_fops_read(const file_t *file, void *buf, size_t size, off_t offset)

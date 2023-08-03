@@ -2,13 +2,12 @@
 
 #pragma once
 
+#include "mos/mm/mmstat.h"
 #include "mos/tasks/task_types.h"
 
-phyframe_t *mm_get_free_page(void);
-phyframe_t *mm_get_free_page_raw(void);
-phyframe_t *mm_get_free_pages(size_t npages);
-
-void mm_unref_pages(phyframe_t *frame, size_t npages);
+phyframe_t *mm_get_free_page(mem_type_t type);
+phyframe_t *mm_get_free_page_raw(mem_type_t type);
+phyframe_t *mm_get_free_pages(size_t npages, mem_type_t type);
 
 vmap_t *mm_new_vmap(vmblock_t block, vmap_content_t content, vmap_flags_t flags);
 void mm_attach_vmap(mm_context_t *mmctx, vmap_t *vmap);

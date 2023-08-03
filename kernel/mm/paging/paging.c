@@ -31,7 +31,7 @@ static void vmm_iterate_copymap(const pgt_iteration_info_t *iter_info, const vmb
         MOS_ASSERT_X(vblock->flags == block->flags, "flags mismatch");
     const ptr_t target_vaddr = vblock->vaddr + (block->vaddr - iter_info->vaddr_start); // we know that vaddr is contiguous, so their difference is the offset
     mos_debug(vmm_impl, "copymapping " PTR_FMT " -> " PFN_FMT " (npages: %zu)", target_vaddr, block_pfn, block->npages);
-    pmm_ref_frames(block_pfn, block->npages);
+    pmm_ref(block_pfn, block->npages);
     // platform_mm_map_pages(PGD_FOR_VADDR(target_vaddr, vblock->mm_context), target_vaddr, block_pfn, block->npages, block->flags);
     // mm_do_map(vblock->mm_context.kernel_pml, target_vaddr, block_pfn, block->npages, block->flags);
     mos_panic("WIP");
@@ -118,7 +118,7 @@ vmblock_t mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, 
 
     const vmblock_t block = { .address_space = mmctx, .vaddr = vaddr, .npages = n_pages, .flags = flags };
 
-    const phyframe_t *frame = pmm_allocate_frames(n_pages, PMM_ALLOC_NORMAL);
+    const phyframe_t *frame = mm_get_free_pages(n_pages, MEM_USER);
 
     if (unlikely(!frame))
     {
@@ -175,10 +175,10 @@ vmblock_t mm_replace_page(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, vm_flags fl
     spinlock_acquire(&ctx->mm_lock);
     // ref the frames first, so they don't get freed if we're [filling a page with itself]?
     // weird people do weird things
-    pmm_ref_frames(pfn, 1);
+    pmm_ref_one(pfn);
     const pfn_t old_pfn = mm_do_get_pfn(ctx->pgd, vaddr);
     mm_do_map(ctx->pgd, vaddr, pfn, 1, flags);
-    pmm_unref_frames(old_pfn, 1);
+    pmm_unref_one(old_pfn);
     spinlock_release(&ctx->mm_lock);
 
     return block;

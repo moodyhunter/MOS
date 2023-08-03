@@ -39,18 +39,6 @@ void buddy_reserve_n(pfn_t pfn, size_t nframes);
 phyframe_t *buddy_alloc_n_exact(size_t nframes);
 
 /**
- * @brief Allocate nframes of contiguous physical memory.
- *
- * @param nframes The number of frames to allocate.
- * @return phyframe_t * The first frame in the contiguous block.
- *
- * @note nframes will be rounded up to the nearest power of 2, and the entire compound page must be freed at once.
- *       users can use the mapped_count field of the phyframe_t to keep track of the number of frames that are still
- *       in use, and free the compound page when the count drops to 0.
- */
-phyframe_t *buddy_alloc_n_compound(size_t nframes);
-
-/**
  * @brief Free nframes of contiguous physical memory.
  *
  * @param pfn The physical frame number of the first frame in the contiguous block.
