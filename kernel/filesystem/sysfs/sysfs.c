@@ -43,31 +43,29 @@ void sysfs_register(sysfs_dir_t *entry)
 
 ssize_t sysfs_printf(sysfs_file_t *file, const char *fmt, ...)
 {
-    do
+retry_printf:;
+    const size_t spaces_left = file->buf_npages * MOS_PAGE_SIZE - file->buf_head;
+
+    va_list args;
+    va_start(args, fmt);
+    ssize_t written = vsnprintf(file->buf + file->buf_head, spaces_left, fmt, args);
+    va_end(args);
+
+    if (file->buf_head + written >= file->buf_npages * MOS_PAGE_SIZE)
     {
-        const size_t spaces_left = file->buf_npages * MOS_PAGE_SIZE - file->buf_head;
+        // We need to allocate more pages
+        const size_t npages = (file->buf_head + written) / MOS_PAGE_SIZE + 1;
+        const size_t old_size = file->buf_npages * MOS_PAGE_SIZE;
+        const ptr_t new_buf = phyframe_va(mm_get_free_pages(npages, MEM_KERNEL));
+        memcpy((void *) new_buf, file->buf, old_size);
+        pmm_unref(va_phyframe(file->buf), file->buf_npages);
+        file->buf = (void *) new_buf;
+        file->buf_npages = npages;
+        goto retry_printf;
+    }
 
-        va_list args;
-        va_start(args, fmt);
-        ssize_t written = vsnprintf(file->buf + file->buf_head, spaces_left, fmt, args);
-        va_end(args);
-
-        if (file->buf_head + written >= file->buf_npages * MOS_PAGE_SIZE)
-        {
-            // We need to allocate more pages
-            const size_t npages = (file->buf_head + written) / MOS_PAGE_SIZE + 1;
-            const size_t old_size = file->buf_npages * MOS_PAGE_SIZE;
-            const ptr_t new_buf = phyframe_va(mm_get_free_pages(npages, MEM_KERNEL));
-            memcpy((void *) new_buf, file->buf, old_size);
-            pmm_unref(va_phyframe(file->buf), file->buf_npages);
-            file->buf = (void *) new_buf;
-            file->buf_npages = npages;
-            continue;
-        }
-
-        file->buf_head += written;
-        return written;
-    } while (1);
+    file->buf_head += written;
+    return written;
 }
 
 static bool sysfs_fops_open(inode_t *i, file_t *file)
