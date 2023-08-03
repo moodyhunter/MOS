@@ -275,4 +275,4 @@ static const sysfs_item_t slab_sysfs_items[] = {
     SYSFS_END_ITEM,
 };
 
-MOS_SYSFS_AUTOREGISTER(slab, slab_sysfs_items);
+SYSFS_AUTOREGISTER(slab, slab_sysfs_items);

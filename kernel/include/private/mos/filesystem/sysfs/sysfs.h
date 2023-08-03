@@ -19,6 +19,13 @@ typedef struct
 #define SYSFS_END_ITEM { 0 }
 // clang-format on
 
+#define SYSFS_ITEM_RO_STRING(name, value)                                                                                                                                \
+    static bool name(sysfs_file_t *file)                                                                                                                                 \
+    {                                                                                                                                                                    \
+        sysfs_printf(file, "%s\n", value);                                                                                                                               \
+        return true;                                                                                                                                                     \
+    }
+
 typedef struct
 {
     as_linked_list;

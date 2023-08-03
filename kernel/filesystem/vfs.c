@@ -521,4 +521,4 @@ static const sysfs_item_t vfs_sysfs_items[] = {
     SYSFS_END_ITEM,
 };
 
-MOS_SYSFS_AUTOREGISTER(vfs, vfs_sysfs_items);
+SYSFS_AUTOREGISTER(vfs, vfs_sysfs_items);

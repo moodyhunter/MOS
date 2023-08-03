@@ -4,7 +4,7 @@
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/setup.h"
 
-#define MOS_SYSFS_AUTOREGISTER(sysfs_name, sysfs_items)                                                                                                                  \
+#define SYSFS_AUTOREGISTER(sysfs_name, sysfs_items)                                                                                                                      \
     static sysfs_dir_t __sysfs_##sysfs_name = {                                                                                                                          \
         .list_node = LIST_NODE_INIT(__sysfs_##sysfs_name),                                                                                                               \
         .name = #sysfs_name,                                                                                                                                             \

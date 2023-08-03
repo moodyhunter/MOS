@@ -129,4 +129,4 @@ static const sysfs_item_t pmm_items[] = {
     SYSFS_END_ITEM,
 };
 
-MOS_SYSFS_AUTOREGISTER(pmm, pmm_items);
+SYSFS_AUTOREGISTER(pmm, pmm_items);

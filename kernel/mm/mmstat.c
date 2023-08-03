@@ -46,4 +46,4 @@ static sysfs_item_t mmstat_sysfs_items[] = {
     SYSFS_END_ITEM,
 };
 
-MOS_SYSFS_AUTOREGISTER(mmstat, mmstat_sysfs_items);
+SYSFS_AUTOREGISTER(mmstat, mmstat_sysfs_items);
