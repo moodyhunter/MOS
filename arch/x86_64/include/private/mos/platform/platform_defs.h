@@ -24,5 +24,3 @@
 #define PML4_MASK         0x1FFL // 9 bits page map level 4 offset
 #define PML4_ENTRIES      512
 #define PML4_HUGE_CAPABLE -1 // we don't support 1GiB pages (for now)
-
-#define MOS_PLATFORM_HAS_EXTRA_PHYFRAME_INFO -1

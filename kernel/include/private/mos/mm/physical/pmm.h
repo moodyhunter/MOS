@@ -56,11 +56,6 @@ typedef struct phyframe
         };
     };
 
-#if MOS_CONFIG(MOS_PLATFORM_HAS_EXTRA_PHYFRAME_INFO)
-    // platform-specific information
-    struct platform_extra_phyframe_info platform_info;
-#endif
-
     union
     {
         // number of times this frame is mapped, if this drops to 0, the frame is freed
@@ -69,19 +64,7 @@ typedef struct phyframe
 
 } phyframe_t;
 
-#if MOS_BITS == 32
-#if MOS_CONFIG(MOS_PLATFORM_HAS_EXTRA_PHYFRAME_INFO)
-MOS_STATIC_ASSERT(sizeof(phyframe_t) == 20 + sizeof(struct platform_extra_phyframe_info));
-#else
-MOS_STATIC_ASSERT(sizeof(phyframe_t) == 20, "phyframe_t size is not 16 bytes");
-#endif
-#elif MOS_BITS == 64
-#if MOS_CONFIG(MOS_PLATFORM_HAS_EXTRA_PHYFRAME_INFO)
-MOS_STATIC_ASSERT(sizeof(phyframe_t) == 32 + sizeof(struct platform_extra_phyframe_info));
-#else
-MOS_STATIC_ASSERT(sizeof(phyframe_t) == 32, "phyframe_t size is not 32kunll bytes");
-#endif
-#endif
+MOS_STATIC_ASSERT(sizeof(phyframe_t) == 32, "update phyframe_t struct size");
 
 typedef struct
 {
