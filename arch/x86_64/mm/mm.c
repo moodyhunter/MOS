@@ -65,7 +65,7 @@ void x86_initialise_phyframes_array(void)
         if (r == phyframes_region)
             continue;
         if (r->nframes == 0) // ???
-            continue;
+            mos_warn_once("region " PFN_FMT " has 0 frames", r->pfn_start);
         if (r->reserved)
         {
             if (r->pfn_start >= platform_info->max_pfn)
