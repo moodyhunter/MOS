@@ -135,6 +135,8 @@ static off_t vfs_io_ops_seek(io_t *io, off_t offset, io_seek_whence_t whence)
             file->offset = ret;
             break;
         }
+        case IO_SEEK_DATA: mos_warn("vfs: IO_SEEK_DATA is not supported"); break;
+        case IO_SEEK_HOLE: mos_warn("vfs: IO_SEEK_HOLE is not supported"); break;
     };
 
     spinlock_release(&file->offset_lock);
