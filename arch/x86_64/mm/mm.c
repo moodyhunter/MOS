@@ -74,6 +74,5 @@ void x86_initialise_phyframes_array(void)
         }
     }
 
-    if (phyframes[0].state != PHYFRAME_RESERVED)
-        pmm_reserve_frames(0, 1); // always reserve the first frame
+    MOS_ASSERT_X(phyframes[0].state == PHYFRAME_RESERVED, "phyframe 0 isn't reserved, things have gone horribly wrong");
 }
