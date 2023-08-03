@@ -200,9 +200,9 @@ void x86_start_kernel(void)
     x86_install_interrupt_handler(IRQ_KEYBOARD, x86_keyboard_handler);
     x86_install_interrupt_handler(IRQ_COM1, x86_com1_handler);
 
-    ioapic_enable_interrupt(IRQ_TIMER, 0);
-    ioapic_enable_interrupt(IRQ_KEYBOARD, 0);
-    ioapic_enable_interrupt(IRQ_COM1, 0);
+    ioapic_enable_interrupt(IRQ_TIMER, x86_platform.boot_cpu_id);
+    ioapic_enable_interrupt(IRQ_KEYBOARD, x86_platform.boot_cpu_id);
+    ioapic_enable_interrupt(IRQ_COM1, x86_platform.boot_cpu_id);
 
     current_cpu->id = x86_platform.boot_cpu_id = lapic_get_id();
 
