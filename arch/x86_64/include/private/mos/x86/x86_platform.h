@@ -26,7 +26,7 @@ typedef struct
 {
     reg_t fs, gs;
     reg_t r15, r14, r13, r12, r11, r10, r9, r8;
-    reg_t di, si, bp, dx, cx, bx, ax; // the _esp is unused, see iret_params.esp
+    reg_t di, si, bp, dx, cx, bx, ax;
     reg_t interrupt_number, error_code;
     x86_iret_params_t iret_params;
 } __packed x86_stack_frame;
