@@ -24,6 +24,8 @@ const char *PATH[] = {
     NULL,
 };
 
+static bool verbose = false;
+
 bool do_program(const char *prog, int argc, const char **argv)
 {
     prog = locate_program(prog);
@@ -147,7 +149,8 @@ int do_interpret_script(const char *path)
     char *line = get_line(fd);
     while (line)
     {
-        printf("<script>: %s\n", line);
+        if (verbose)
+            printf("<script>: %s\n", line);
         do_execute_line(line);
         free(line);
         line = get_line(fd);
@@ -161,6 +164,7 @@ static const argparse_arg_t mossh_options[] = {
     { NULL, 'c', ARGPARSE_REQUIRED, "MOS shell script file" },
     { "help", 'h', ARGPARSE_NONE, "Show this help message" },
     { "init", 'i', ARGPARSE_REQUIRED, "The initial script to execute" },
+    { "verbose", 'V', ARGPARSE_NONE, "Enable verbose output" },
     { "version", 'v', ARGPARSE_NONE, "Show the version" },
     { 0 },
 };
@@ -172,6 +176,8 @@ int main(int argc, const char **argv)
     argparse_state_t state;
     argparse_init(&state, argv);
 
+    bool has_initial_script = false;
+
     while (true)
     {
         const int option = argparse_long(&state, mossh_options, NULL);
@@ -182,6 +188,7 @@ int main(int argc, const char **argv)
         {
             case 'i':
                 printf("Loading initial script '%s'\n", state.optarg);
+                has_initial_script = true;
                 if (do_interpret_script(state.optarg) != 0)
                 {
                     printf("Failed to execute '%s'\n", state.optarg);
@@ -189,6 +196,7 @@ int main(int argc, const char **argv)
                 }
                 break;
             case 'c': return do_interpret_script(argv[2]);
+            case 'V': verbose = true; break;
             case 'v': do_execute_line(strdup("version")); return 0;
             case 'h': argparse_usage(&state, mossh_options, "the MOS shell"); return 0;
             default: argparse_usage(&state, mossh_options, "the MOS shell"); return 1;
@@ -197,6 +205,16 @@ int main(int argc, const char **argv)
 
     printf("Welcome to MOS-sh!\n");
     char cwdbuf[MOS_PATH_MAX_LENGTH] = { 0 };
+
+    if (!has_initial_script)
+    {
+        const char *init_script = "/initrd/assets/init.msh";
+        if (do_interpret_script(init_script) != 0)
+        {
+            printf("Failed to execute '%s'\n", init_script);
+            return 1;
+        }
+    }
 
     while (1)
     {
