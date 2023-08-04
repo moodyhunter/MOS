@@ -30,33 +30,18 @@ endif()
 set(BOOT_DIR ${CMAKE_BINARY_DIR}/boot.dir)
 set(LIMINE_BOOT_DIR ${CMAKE_BINARY_DIR}/boot.dir/iso_root/limine)
 
-add_custom_command(
-    OUTPUT ${BOOT_DIR}/mos_limine.iso
+add_custom_target(mos_limine_iso
     COMMAND mkdir -p ${LIMINE_BOOT_DIR}
     COMMAND cp ${LIMINE_ROOT}/limine-bios.sys ${LIMINE_ROOT}/limine-bios-cd.bin ${LIMINE_BOOT_DIR}/
     COMMAND cp $<TARGET_FILE:mos_limine> ${CMAKE_BINARY_DIR}/initrd.cpio ${CMAKE_CURRENT_LIST_DIR}/limine.cfg ${LIMINE_BOOT_DIR}/
     COMMAND ${XORRISO} -as mkisofs -b limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table --protective-msdos-label ${LIMINE_BOOT_DIR} -o ${BOOT_DIR}/mos_limine.iso
     COMMAND ${LIMINE_BIN} bios-install ${BOOT_DIR}/mos_limine.iso
+
     DEPENDS
+        ${BOOT_DIR}/mos_limine.iso
         mos_limine
         mos_initrd
         limine.cfg
         ${LIMINE_ROOT}/limine-bios.sys
         ${LIMINE_ROOT}/limine-bios-cd.bin
-    VERBATIM
-    BYPRODUCTS
-        ${LIMINE_BOOT_DIR}/limine-bios.sys
-        ${LIMINE_BOOT_DIR}/limine-bios-cd.bin
-        ${LIMINE_BOOT_DIR}/limine_entry.elf
-        ${LIMINE_BOOT_DIR}/initrd.cpio
-        ${LIMINE_BOOT_DIR}/limine.cfg
-)
-
-add_custom_target(mos_limine_iso DEPENDS
-    ${BOOT_DIR}/mos_limine.iso
-    mos_limine
-    mos_initrd
-    limine.cfg
-    ${LIMINE_ROOT}/limine-bios.sys
-    ${LIMINE_ROOT}/limine-bios-cd.bin
 )
