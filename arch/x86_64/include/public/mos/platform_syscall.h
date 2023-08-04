@@ -6,9 +6,8 @@
 
 enum
 {
-    X86_SYSCALL_IOPL_ENABLE = 0,    // enable IO operations for the current process
-    X86_SYSCALL_IOPL_DISABLE = 1,   // disable IO operations for the current process
-    X86_SYSCALL_MAP_VGA_MEMORY = 2, // map VGA memory to the current process
+    X86_SYSCALL_IOPL_ENABLE = 0,  // enable IO operations for the current process
+    X86_SYSCALL_IOPL_DISABLE = 1, // disable IO operations for the current process
 };
 
 should_inline reg_t platform_syscall0(reg_t number)

@@ -148,29 +148,6 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
             options->iopl_enabled = false;
             return 0;
         }
-        case X86_SYSCALL_MAP_VGA_MEMORY:
-        {
-            pr_info2("mapping VGA memory for thread %d", current_thread->tid);
-            static ptr_t vga_paddr = X86_VIDEO_DEVICE_PADDR;
-
-            if (once())
-            {
-                if (!pmm_find_reserved_region(vga_paddr))
-                {
-                    pr_info("reserving VGA address");
-                    pmm_reserve_address(vga_paddr);
-                }
-            }
-
-            mm_context_t *mmctx = current_process->mm;
-
-            spinlock_acquire(&mmctx->mm_lock);
-            const ptr_t vaddr = mm_get_free_vaddr(mmctx, 1, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT);
-            const vmblock_t block = mm_map_pages_locked(mmctx, vaddr, vga_paddr / MOS_PAGE_SIZE, 1, VM_USER_RW);
-            mm_attach_vmap(current_process->mm, mm_new_vmap(block, VMTYPE_MMAP, (vmap_flags_t){ .fork_mode = VMAP_FORK_SHARED }));
-            spinlock_release(&mmctx->mm_lock);
-            return block.vaddr;
-        }
         default:
         {
             pr_warn("unknown arch-specific syscall %llu", syscall);

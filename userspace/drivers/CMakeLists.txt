@@ -2,4 +2,3 @@
 
 add_subdirectory(device-manager)
 add_subdirectory(pci-daemon)
-add_subdirectory(x86-console)
