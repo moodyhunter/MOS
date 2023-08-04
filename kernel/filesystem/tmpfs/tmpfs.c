@@ -97,11 +97,7 @@ inode_t *tmpfs_create_inode(superblock_t *sb, file_type_t type, file_perm_t perm
     return &inode->real_inode;
 }
 
-static const file_perm_t tmpfs_default_mode = {
-    .owner = { 1, 1, 0 },
-    .group = { 1, 1, 0 },
-    .others = { 0, 0, 0 },
-};
+static const file_perm_t tmpfs_default_mode = PERM_READ | PERM_WRITE | PERM_EXEC; // rwxrwxrwx
 
 static dentry_t *tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char *options)
 {
@@ -119,6 +115,7 @@ static dentry_t *tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char 
     }
 
     superblock_t *sb = kmemcache_alloc(superblock_cache);
+    sb->fs = fs;
 
     dentry_t *root = dentry_create(NULL, NULL);
     sb->root = root;

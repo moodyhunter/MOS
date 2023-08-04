@@ -4,6 +4,7 @@
 
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs_types.h>
+#include <mos/lib/structures/list.h>
 #include <mos/mos_global.h>
 
 /**
@@ -70,6 +71,12 @@ should_inline dentry_t *dentry_parent(const dentry_t *dentry)
 {
     return tree_parent(dentry, dentry_t);
 }
+
+/**
+ * @brief A linked-list of all mountpoints
+ *
+ */
+extern list_head vfs_mountpoint_list;
 
 /**
  * @brief Increment the reference count of a dentry

@@ -13,11 +13,7 @@
 
 filesystem_t fs_ipcfs;
 
-static const file_perm_t ipcfs_default_perm = {
-    .group = { .read = true, .write = true, .execute = true },
-    .others = { .read = true, .write = true, .execute = true },
-    .owner = { .read = true, .write = true, .execute = true },
-};
+static const file_perm_t ipcfs_default_perm = PERM_READ; // r--r--r--
 
 static dentry_t *ipcfs_root_dir;
 
@@ -80,6 +76,7 @@ void ipcfs_init(void)
 {
     vfs_register_filesystem(&fs_ipcfs);
     superblock_t *sb = kmemcache_alloc(superblock_cache);
+    sb->fs = &fs_ipcfs;
 
     ipcfs_root_dir = dentry_create(NULL, NULL);
     ipcfs_root_dir->inode = ipcfs_create_inode(sb, FILE_TYPE_DIRECTORY, ipcfs_default_perm);

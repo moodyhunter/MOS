@@ -195,7 +195,7 @@ static bool vfs_verify_permissions(dentry_t *file_dentry, bool open, bool read, 
     MOS_UNUSED(create);
     MOS_UNUSED(write);
 
-    if (execute && !(file_perm.owner.execute || file_perm.group.execute || file_perm.others.execute))
+    if (execute && !(file_perm & PERM_EXEC))
         return false; // execute permission denied
 
     return true;
@@ -268,7 +268,7 @@ void vfs_register_filesystem(filesystem_t *fs)
 bool vfs_mount(const char *device, const char *path, const char *fs, const char *options)
 {
     filesystem_t *real_fs = vfs_find_filesystem(fs);
-    if (real_fs == NULL)
+    if (unlikely(real_fs == NULL))
     {
         mos_warn("filesystem '%s' not found", fs);
         return false;
@@ -402,19 +402,7 @@ bool vfs_touch(const char *path, file_type_t type, u32 perms)
         return false;
     }
 
-    file_perm_t perms_obj = {
-        .owner.read = perms & 0400,
-        .owner.write = perms & 0200,
-        .owner.execute = perms & 0100,
-        .group.read = perms & 0040,
-        .group.write = perms & 0020,
-        .group.execute = perms & 0010,
-        .others.read = perms & 0004,
-        .others.write = perms & 0002,
-        .others.execute = perms & 0001,
-    };
-
-    parentdir->inode->ops->newfile(parentdir->inode, dentry, type, perms_obj);
+    parentdir->inode->ops->newfile(parentdir->inode, dentry, type, perms);
     return true;
 }
 
@@ -518,8 +506,22 @@ static bool vfs_sysfs_filesystems(sysfs_file_t *f)
     return true;
 }
 
+static bool vfs_sysfs_mountpoints(sysfs_file_t *f)
+{
+    char pathbuf[MOS_PATH_MAX_LENGTH];
+    sysfs_printf(f, "%s: %s\n", "/", root_dentry->superblock->fs->name);
+    list_foreach(mount_t, mp, vfs_mountpoint_list)
+    {
+        dentry_path(mp->mountpoint, root_dentry, pathbuf, sizeof(pathbuf));
+        sysfs_printf(f, "%s: %s\n", pathbuf, mp->fs->name);
+    }
+
+    return true;
+}
+
 static const sysfs_item_t vfs_sysfs_items[] = {
     SYSFS_RO_ITEM("filesystems", vfs_sysfs_filesystems),
+    SYSFS_RO_ITEM("mount", vfs_sysfs_mountpoints),
     SYSFS_END_ITEM,
 };
 

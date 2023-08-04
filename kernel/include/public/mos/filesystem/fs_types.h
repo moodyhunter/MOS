@@ -3,6 +3,7 @@
 #pragma once
 
 #include <mos/mm/mm_types.h>
+#include <mos/mos_global.h>
 #include <mos/types.h>
 
 #define PATH_DELIM     '/'
@@ -44,17 +45,17 @@ typedef enum
     FSTATAT_FILE = 1 << 2,     // the fd is a file, not a directory
 } fstatat_flags;
 
-typedef struct
-{
-    bool read, write, execute;
-} __packed file_single_perm_t;
+typedef u16 file_perm_t;
 
-typedef struct
-{
-    file_single_perm_t owner;
-    file_single_perm_t group;
-    file_single_perm_t others;
-} file_perm_t;
+#define PERM_OWNER 0x1C0 // 111 000 000
+#define PERM_GROUP 0x38  // 000 111 000
+#define PERM_OTHER 0x7   // 000 000 111
+
+#define PERM_READ  0x49
+#define PERM_WRITE 0x92
+#define PERM_EXEC  0x124
+
+#define PERM_MASK 0777
 
 typedef struct
 {
@@ -84,14 +85,16 @@ typedef struct
 
 always_inline void file_format_perm(file_perm_t perms, char buf[10])
 {
-    buf[0] = perms.owner.read ? 'r' : '-';
-    buf[1] = perms.owner.write ? 'w' : '-';
-    buf[2] = perms.owner.execute ? 'x' : '-';
-    buf[3] = perms.group.read ? 'r' : '-';
-    buf[4] = perms.group.write ? 'w' : '-';
-    buf[5] = perms.group.execute ? 'x' : '-';
-    buf[6] = perms.others.read ? 'r' : '-';
-    buf[7] = perms.others.write ? 'w' : '-';
-    buf[8] = perms.others.execute ? 'x' : '-';
+    buf[0] = perms & (PERM_READ | PERM_OWNER) ? 'r' : '-';
+    buf[1] = perms & (PERM_WRITE | PERM_OWNER) ? 'w' : '-';
+    buf[2] = perms & (PERM_EXEC | PERM_OWNER) ? 'x' : '-';
+
+    buf[3] = perms & (PERM_READ | PERM_GROUP) ? 'r' : '-';
+    buf[4] = perms & (PERM_WRITE | PERM_GROUP) ? 'w' : '-';
+    buf[5] = perms & (PERM_EXEC | PERM_GROUP) ? 'x' : '-';
+
+    buf[6] = perms & (PERM_READ | PERM_OTHER) ? 'r' : '-';
+    buf[7] = perms & (PERM_WRITE | PERM_OTHER) ? 'w' : '-';
+    buf[8] = perms & (PERM_EXEC | PERM_OTHER) ? 'x' : '-';
     buf[9] = '\0';
 }

@@ -155,17 +155,7 @@ static void cpio_fill_inode(cpio_metadata_t *metadata, inode_t *inode)
 
     //  0000777  The lower 9 bits specify read/write/execute permissions for world, group, and user following standard POSIX conventions.
     u32 modebits = strntoll(metadata->header.mode, NULL, 16, sizeof(metadata->header.mode) / sizeof(char));
-    inode->perm.others.read = modebits & 0004;
-    inode->perm.others.write = modebits & 0002;
-    inode->perm.others.execute = modebits & 0001;
-
-    inode->perm.group.read = modebits & 0040;
-    inode->perm.group.write = modebits & 0020;
-    inode->perm.group.execute = modebits & 0010;
-
-    inode->perm.owner.read = modebits & 0400;
-    inode->perm.owner.write = modebits & 0200;
-    inode->perm.owner.execute = modebits & 0100;
+    inode->perm = modebits & PERM_MASK;
 
     inode->sticky = modebits & CPIO_MODE_STICKY;
     inode->sgid = modebits & CPIO_MODE_SGID;
@@ -237,6 +227,8 @@ static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *
     mos_debug(cpio, "cpio header: %.6s", header.header.magic);
 
     superblock_t *sb = kmemcache_alloc(superblock_cache);
+    sb->fs = fs;
+
     cpio_inode_t *i = cpio_inode_create(sb, &header);
     dentry_t *root = dentry_create(NULL, NULL); // root dentry has no name, this "feature" is used by cpio_i_lookup
     root->inode = &i->inode;

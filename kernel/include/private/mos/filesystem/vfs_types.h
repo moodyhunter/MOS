@@ -71,6 +71,7 @@ typedef struct _superblock
 {
     bool dirty;
     dentry_t *root;
+    filesystem_t *fs;
     list_head mounts;
 } superblock_t;
 
@@ -120,6 +121,7 @@ typedef struct _filesystem
 
 typedef struct _mount
 {
+    as_linked_list;
     dentry_t *root;       // root of the mounted tree
     dentry_t *mountpoint; // where the tree is mounted
     superblock_t *superblock;

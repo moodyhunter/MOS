@@ -130,17 +130,8 @@ static const file_ops_t sysfs_file_ops = {
     .read = sysfs_fops_read,
 };
 
-static const file_perm_t sysfs_file_perm = {
-    .owner = { .read = true, .write = false, .execute = false },
-    .group = { .read = true, .write = false, .execute = false },
-    .others = { .read = true, .write = false, .execute = false },
-};
-
-static const file_perm_t sysfs_dir_perm = {
-    .owner = { .read = true, .write = false, .execute = true },
-    .group = { .read = true, .write = false, .execute = true },
-    .others = { .read = true, .write = false, .execute = true },
-};
+static const file_perm_t sysfs_file_perm = PERM_READ;            // r--r--r--
+static const file_perm_t sysfs_dir_perm = PERM_READ | PERM_EXEC; // r-xr-xr-x
 
 static u64 sysfs_get_ino(void)
 {
@@ -178,6 +169,7 @@ static void register_sysfs(void)
     vfs_register_filesystem(&fs_sysfs);
 
     sysfs_sb = kmemcache_alloc(superblock_cache);
+    sysfs_sb->fs = &fs_sysfs;
 
     dentry_t *root = dentry_create(NULL, NULL);
     sysfs_sb->root = root;

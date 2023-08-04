@@ -38,6 +38,8 @@ static hash_t dentry_hash(uintn key)
 }
 // END: Mountpoint Hashmap
 
+list_head vfs_mountpoint_list = LIST_HEAD_INIT(vfs_mountpoint_list);
+
 static mount_t *dentry_get_mount(dentry_t *dentry)
 {
     if (!dentry->is_mountpoint)
@@ -611,6 +613,8 @@ bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs)
     mountpoint->is_mountpoint = true;
 
     mount_t *mount = kmemcache_alloc(mount_cache);
+    linked_list_init(list_node(mount));
+    list_node_append(&vfs_mountpoint_list, list_node(mount));
     mount->root = root;
     mount->superblock = root->inode->superblock;
     mount->mountpoint = mountpoint;
