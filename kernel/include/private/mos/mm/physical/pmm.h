@@ -72,9 +72,9 @@ typedef enum
 extern phyframe_t *phyframes; // array of all physical frames
 
 #define phyframe_pfn(frame) ((pfn_t) ((frame) -phyframes))
-#define pfn_phyframe(pfn)   (phyframes + (pfn))
+#define pfn_phyframe(pfn)   (&phyframes[(pfn)])
 
-extern size_t buddy_max_nframes;
+extern size_t pmm_total_frames, pmm_allocated_frames, pmm_reserved_frames;
 
 /**
  * @brief Dump the physical memory manager's state, (i.e. the free list and the allocated list).
@@ -96,6 +96,7 @@ void pmm_init(size_t max_frames);
  * @return phyframe_t* Pointer to the first frame of the allocated block.
  */
 phyframe_t *pmm_allocate_frames(size_t n_frames, pmm_allocation_flags_t flags);
+void pmm_free_frames(phyframe_t *start_frame, size_t n_pages);
 
 /**
  * @brief Mark a range of physical memory as reserved.

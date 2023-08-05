@@ -48,7 +48,7 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
 
     // Kernel stack
     // const ptr_t kstack_hint_addr = (tmode == THREAD_MODE_KERNEL) ? MOS_ADDR_KERNEL_HEAP : MOS_ADDR_USER_STACK;
-    const ptr_t kstack_blk = phyframe_va(mm_get_free_pages(MOS_STACK_PAGES_KERNEL, MEM_KERNEL));
+    const ptr_t kstack_blk = phyframe_va(mm_get_free_pages(MOS_STACK_PAGES_KERNEL));
     // mm_alloc_pages(owner->mm, MOS_STACK_PAGES_KERNEL, kstack_hint_addr, VALLOC_DEFAULT, VM_RW);
     stack_init(&t->k_stack, (void *) kstack_blk, MOS_STACK_PAGES_KERNEL * MOS_PAGE_SIZE);
     // mm_attach_vmap(owner->mm, mm_new_vmap(kstack_blk, VMTYPE_KSTACK, (vmap_flags_t){ 0 }));
@@ -56,9 +56,9 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
     if (tmode == THREAD_MODE_USER)
     {
         // User stack
-        const vmblock_t ustack_blk = mm_alloc_zeroed_pages(owner->mm, MOS_STACK_PAGES_USER, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, VM_USER_RW);
-        stack_init(&t->u_stack, (void *) ustack_blk.vaddr, MOS_STACK_PAGES_USER * MOS_PAGE_SIZE);
-        mm_attach_vmap(owner->mm, mm_new_vmap(ustack_blk, VMTYPE_STACK, (vmap_flags_t){ .cow = true }));
+        vmap_t *stack_vmap = cow_allocate_zeroed_pages(owner->mm, MOS_STACK_PAGES_USER, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, VM_USER_RW);
+        stack_init(&t->u_stack, (void *) stack_vmap->vaddr, MOS_STACK_PAGES_USER * MOS_PAGE_SIZE);
+        vmap_finalise_init(stack_vmap, VMAP_STACK, VMAP_FORK_PRIVATE);
     }
     else
     {
@@ -127,22 +127,8 @@ void thread_handle_exit(thread_t *t)
         mos_panic("thread_handle_exit() called on invalid thread");
 
     process_t *owner = t->owner;
-    vmblock_t kstack = { 0 };
-    vmblock_t ustack = { 0 };
-
-    list_foreach(vmap_t, blk, owner->mm->mmaps)
-    {
-        if (blk->content != VMTYPE_KSTACK && blk->content != VMTYPE_STACK)
-            continue;
-
-        ptr_t kstack_start = (ptr_t) t->k_stack.top - t->k_stack.capacity;
-        ptr_t ustack_start = (ptr_t) t->u_stack.top - t->u_stack.capacity;
-
-        if (blk->blk.vaddr >= kstack_start && blk->blk.vaddr < kstack_start + t->k_stack.capacity)
-            kstack = blk->blk;
-        else if (blk->blk.vaddr >= ustack_start && blk->blk.vaddr < ustack_start + t->u_stack.capacity)
-            ustack = blk->blk;
-    }
+    vmap_t *kstack = vmap_obtain(owner->mm, (ptr_t) t->k_stack.top, NULL);
+    vmap_t *ustack = vmap_obtain(owner->mm, (ptr_t) t->u_stack.top, NULL);
 
     // process_detach_mmap(owner, kstack); // we are using this kernel stack, so we can't free it
     // process_detach_mmap(owner, ustack);

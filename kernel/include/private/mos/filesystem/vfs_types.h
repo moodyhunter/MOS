@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/mm/mm.h"
 #include "mos/mm/slab.h"
 
 #include <mos/filesystem/fs_types.h>
@@ -64,7 +65,7 @@ typedef struct
     ssize_t (*write)(const file_t *file, const void *buf, size_t size, off_t offset);
     int (*flush)(file_t *file);
     void (*release)(file_t *file);
-    int (*mmap)(file_t *file, void *addr, size_t size, vmblock_t *vmblock);
+    int (*mmap)(file_t *file, void *addr, size_t size, vmap_t *vmblock);
 } file_ops_t;
 
 typedef struct _superblock

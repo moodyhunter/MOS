@@ -95,8 +95,8 @@ process_t *process_new(process_t *parent, const char *name, const stdio_t *ios, 
 
     thread_new(proc, THREAD_MODE_USER, proc->name, entry, NULL);
 
-    vmblock_t heap = mm_alloc_pages(proc->mm, 1, MOS_ADDR_USER_HEAP, VALLOC_DEFAULT, VM_USER_RW);
-    mm_attach_vmap(proc->mm, mm_new_vmap(heap, VMTYPE_HEAP, (vmap_flags_t){ 0 }));
+    vmap_t *heap = mm_alloc_pages(proc->mm, 1, MOS_ADDR_USER_HEAP, VALLOC_DEFAULT, VM_USER_RW);
+    vmap_finalise_init(heap, VMAP_HEAP, VMAP_FORK_PRIVATE);
 
     proc->working_directory = dentry_ref_up_to(parent ? parent->working_directory : root_dentry, root_dentry);
 
@@ -234,7 +234,7 @@ void process_handle_cleanup(process_t *process)
         spinlock_acquire(&map->lock);
         list_remove(map);
 
-        mm_unmap_pages(process->mm, map->blk.vaddr, map->blk.npages);
+        mm_unmap_pages(process->mm, map->vaddr, map->npages);
         kfree(map);
     }
 }
@@ -246,7 +246,7 @@ ptr_t process_grow_heap(process_t *process, size_t npages)
     vmap_t *heap = NULL;
     list_foreach(vmap_t, mmap, process->mm->mmaps)
     {
-        if (mmap->content == VMTYPE_HEAP)
+        if (mmap->content == VMAP_HEAP)
         {
             heap = mmap;
             spinlock_acquire(&heap->lock);
@@ -256,21 +256,10 @@ ptr_t process_grow_heap(process_t *process, size_t npages)
 
     MOS_ASSERT(heap != NULL);
 
-    const ptr_t heap_top = heap->blk.vaddr + heap->blk.npages * MOS_PAGE_SIZE;
+    const ptr_t heap_top = heap->vaddr + heap->npages * MOS_PAGE_SIZE;
 
-    if (heap->flags.cow)
-    {
-        vmblock_t zeroed = mm_alloc_zeroed_pages(process->mm, npages, heap_top, VALLOC_EXACT, VM_USER_RW);
-        MOS_ASSERT(zeroed.npages == npages);
-    }
-    else
-    {
-        vmblock_t new_part = mm_alloc_pages(process->mm, npages, heap_top, VALLOC_EXACT, VM_USER_RW);
-        MOS_ASSERT(new_part.npages == npages);
-    }
-
+    heap->npages += npages; // let the page fault handler do the rest of the allocation
     mos_debug(process, "grew heap of process %d by %zu pages", process->pid, npages);
-    heap->blk.npages += npages;
     spinlock_release(&heap->lock);
     return heap_top + npages * MOS_PAGE_SIZE;
 }
@@ -285,41 +274,39 @@ void process_dump_mmaps(const process_t *process)
         const char *typestr = "<unknown>";
         switch (map->content)
         {
-            case VMTYPE_CODE: typestr = "code"; break;
-            case VMTYPE_DATA: typestr = "data"; break;
-            case VMTYPE_HEAP: typestr = "heap"; break;
-            case VMTYPE_STACK: typestr = "stack"; break;
-            case VMTYPE_KSTACK: typestr = "stack (kernel)"; break;
-            case VMTYPE_FILE: typestr = "file"; break;
-            case VMTYPE_MMAP: typestr = "mmap"; break;
+            case VMAP_CODE: typestr = "code"; break;
+            case VMAP_DATA: typestr = "data"; break;
+            case VMAP_HEAP: typestr = "heap"; break;
+            case VMAP_STACK: typestr = "stack"; break;
+            case VMAP_KSTACK: typestr = "stack (kernel)"; break;
+            case VMAP_FILE: typestr = "file"; break;
+            case VMAP_MMAP: typestr = "mmap"; break;
             default: mos_warn("unknown memory region type %x", map->content);
         };
 
         char forkmode = '-';
-        if (map->content == VMTYPE_FILE || map->content == VMTYPE_MMAP)
+        if (map->content == VMAP_FILE || map->content == VMAP_MMAP)
         {
-            switch (map->flags.fork_mode)
+            switch (map->fork_behavior)
             {
-                case VMAP_FORK_NA: forkmode = '!'; break;
                 case VMAP_FORK_SHARED: forkmode = 's'; break;
                 case VMAP_FORK_PRIVATE: forkmode = 'p'; break;
-                default: mos_warn("unknown fork mode %x", map->flags.fork_mode);
+                default: mos_warn("unknown fork mode %x", map->fork_behavior);
             }
         }
 
-        pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%c%c%c%c%c%c, %c%c]: %s",
-                i,                                              //
-                map->blk.vaddr,                                 //
-                map->blk.npages,                                //
-                map->blk.flags & VM_READ ? 'r' : '-',           //
-                map->blk.flags & VM_WRITE ? 'w' : '-',          //
-                map->blk.flags & VM_EXEC ? 'x' : '-',           //
-                map->blk.flags & VM_GLOBAL ? 'g' : '-',         //
-                map->blk.flags & VM_USER ? 'u' : '-',           //
-                map->blk.flags & VM_CACHE_DISABLED ? 'C' : '-', //
-                map->flags.cow ? 'c' : '-',                     //
-                forkmode,                                       //
-                typestr                                         //
+        pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%c%c%c%c%c%c, %c]: %s",
+                i,                                            //
+                map->vaddr,                                   //
+                map->npages,                                  //
+                map->vmflags & VM_READ ? 'r' : '-',           //
+                map->vmflags & VM_WRITE ? 'w' : '-',          //
+                map->vmflags & VM_EXEC ? 'x' : '-',           //
+                map->vmflags & VM_GLOBAL ? 'g' : '-',         //
+                map->vmflags & VM_USER ? 'u' : '-',           //
+                map->vmflags & VM_CACHE_DISABLED ? 'C' : '-', //
+                forkmode,                                     //
+                typestr                                       //
         );
     }
 

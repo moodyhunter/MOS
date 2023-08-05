@@ -4,29 +4,30 @@
 
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/printk.h"
 
 typedef struct
 {
     size_t npages;
-} mmstat_t;
+} vmap_global_mstat_t;
 
-static mmstat_t stat[_MEM_MAX_TYPES] = { 0 };
+static vmap_global_mstat_t stat[_MEM_MAX_TYPES] = { 0 };
 
 const char *mem_type_names[_MEM_MAX_TYPES] = {
-    [MEM_PAGETABLE] = "page table",
-    [MEM_SLAB] = "slab allocator",
-    [MEM_KERNEL] = "kernel",
-    [MEM_USER] = "user",
+    [MEM_PAGETABLE] = "PageTable",
+    [MEM_SLAB] = "Slab",
+    [MEM_KERNEL] = "Kernel",
+    [MEM_USER] = "User",
 };
 
-void mmstat_inc(mem_type_t type, size_t size)
+void mmstat_inc(mmstat_type_t type, size_t size)
 {
     MOS_ASSERT(type < _MEM_MAX_TYPES);
     stat[type].npages += size;
 }
 
-void mmstat_dec(mem_type_t type, size_t size)
+void mmstat_dec(mmstat_type_t type, size_t size)
 {
     MOS_ASSERT(type < _MEM_MAX_TYPES);
     stat[type].npages -= size;
@@ -36,6 +37,10 @@ void mmstat_dec(mem_type_t type, size_t size)
 
 static bool mmstat_sysfs_stat(sysfs_file_t *f)
 {
+    sysfs_printf(f, "%-20s: %zu pages\n", "Total", pmm_total_frames);
+    sysfs_printf(f, "%-20s: %zu pages\n", "Allocated", pmm_allocated_frames);
+    sysfs_printf(f, "%-20s: %zu pages\n", "Reserved", pmm_reserved_frames);
+
     for (u32 i = 0; i < _MEM_MAX_TYPES; i++)
         sysfs_printf(f, "%-20s: %zu pages\n", mem_type_names[i], stat[i].npages);
     return true;

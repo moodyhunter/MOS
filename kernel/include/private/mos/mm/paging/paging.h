@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "mos/mm/mm.h"
+
 #include <mos/lib/structures/bitmap.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/platform/platform.h>
@@ -42,7 +44,7 @@ typedef enum
  * @warning Should call with mmctx->mm_lock held.
  */
 
-ptr_t mm_get_free_vaddr(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags);
+vmap_t *mm_get_free_vaddr_locked(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags);
 
 /**
  * @brief Allocate npages pages from a page table.
@@ -58,7 +60,7 @@ ptr_t mm_get_free_vaddr(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, v
  * @details This function first finds a block of virtual memory using
  * @ref mm_get_free_vaddr, then allocates and maps the pages.
  */
-vmblock_t mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags);
+vmap_t *mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags);
 
 /**
  * @brief Map a block of virtual memory to a block of physical memory.
@@ -76,23 +78,7 @@ vmblock_t mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, 
  */
 vmblock_t mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
 vmblock_t mm_map_pages_locked(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
-
-/**
- * @brief Map a block of virtual memory to a block of physical memory, without incrementing the reference count.
- *
- * @param vaddr The virtual address to map to.
- * @param pfn The physical frame to map from.
- * @param npages The number of pages to map.
- * @param flags Flags to set on the pages, see @ref vm_flags.
- *
- * @details This function maps the pages in the block, but will not increment their reference count.
- * this function only maps the kernel pages as-is, it is the caller's responsibility to ensure that
- * the pages are not freed while they are mapped
- *
- * @warning This function is only used for very early startup code as PMM may not be available yet.
- * Use @ref mm_map_pages instead.
- */
-vmblock_t mm_early_map_kernel_pages(ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
+vmap_t *mm_map_pages_to_user(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
 
 /**
  * @brief Unmap and possibly free a block of virtual memory.
@@ -111,14 +97,14 @@ void mm_unmap_pages(mm_context_t *mmctx, ptr_t vaddr, size_t npages);
  *
  * @param table The page table to replace in.
  * @param vaddr The virtual address to replace.
- * @param pfn The physical frame to replace from.
+ * @param pfn The physical frame to replace to.
  * @param flags The new flags to set on the pages.
  * @return vmblock_t The replaced block of virtual memory, with the number of pages.
  *
  * @note The reference count of the physical frame will be incremented, and the reference count of the
  * old physical frame will be decremented.
  */
-vmblock_t mm_replace_page(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, vm_flags flags);
+void mm_replace_page_locked(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, vm_flags flags);
 
 /**
  * @brief Remap a block of virtual memory from one page table to another, i.e. copy the mappings.
@@ -137,8 +123,8 @@ vmblock_t mm_replace_page(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, vm_flags 
  * @note If clear_dest is set to true, then the destination page table is cleared before copying, otherwise
  * the function assumes that there are no existing mappings in the destination page table.
  */
-vmblock_t mm_copy_maps(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages);
-vmblock_t mm_copy_maps_locked(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages);
+vmap_t *mm_clone_vmap(vmap_t *src_vmap, mm_context_t *dst_ctx, vmap_t *dst_vmap);
+vmap_t *mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx, vmap_t *dst_vmap);
 
 /**
  * @brief Get if a virtual address is mapped in a page table.

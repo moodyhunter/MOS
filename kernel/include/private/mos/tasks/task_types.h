@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/mm/mmstat.h"
 #include "mos/mm/slab.h"
 
 #include <mos/filesystem/fs_types.h>
@@ -21,48 +22,6 @@ typedef enum
     THREAD_MODE_KERNEL,
     THREAD_MODE_USER,
 } thread_mode;
-
-typedef enum
-{
-    VMTYPE_CODE,   // code
-    VMTYPE_DATA,   // data
-    VMTYPE_HEAP,   // heap
-    VMTYPE_STACK,  // stack (user)
-    VMTYPE_KSTACK, // stack (kernel)
-    VMTYPE_FILE,   // file mapping
-    VMTYPE_MMAP,   // mmap mapping
-} vmap_content_t;
-
-typedef enum
-{
-    VMAP_FORK_NA = 0,                 // not applicable
-    VMAP_FORK_PRIVATE = MMAP_PRIVATE, // there will be distinct copies of the memory region in the child process
-    VMAP_FORK_SHARED = MMAP_SHARED,   // the memory region will be shared between the parent and child processes
-} vmap_fork_mode_t;
-
-typedef struct
-{
-    // cow:     If the process attempts to write to a page that is marked as copy-on-write,
-    //          the kernel will copy the page and mark it as read/write. This is done
-    //          in the page fault handler.
-    bool cow : 1;
-
-    // This flag only applies to file and anonymous mappings
-    vmap_fork_mode_t fork_mode;
-} vmap_flags_t;
-
-typedef struct
-{
-    as_linked_list;
-    vmap_content_t content;
-    vmblock_t blk;
-
-    // if any of the vmap_flags_t is set, then the flags in vm contains 'original' flags
-    // of this block. Which means if there're no VM_WRITE flag, then the block
-    // should not be writable.
-    vmap_flags_t flags;
-    spinlock_t lock;
-} vmap_t;
 
 typedef struct _thread thread_t;
 typedef struct _process process_t;

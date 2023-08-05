@@ -74,14 +74,14 @@ size_t define_syscall(io_write)(fd_t fd, const void *buf, size_t count)
 {
     if (fd < 0 || buf == NULL)
     {
-        pr_warn("io_write called with invalid arguments (fd=%ld, buf=%p, count=%zd)", fd, buf, count);
+        pr_warn("io_write called with invalid arguments (fd=%d, buf=%p, count=%zd)", fd, buf, count);
         return -1;
     }
 
     io_t *io = process_get_fd(current_process, fd);
     if (!io)
     {
-        pr_warn("io_write called with invalid fd %ld", fd);
+        pr_warn("io_write called with invalid fd %d", fd);
         return -1;
     }
     return io_write(io, buf, count);
@@ -185,7 +185,7 @@ ptr_t define_syscall(heap_control)(heap_control_op op, ptr_t arg)
     vmap_t *block = NULL;
     list_foreach(vmap_t, map, process->mm->mmaps)
     {
-        if (map->content == VMTYPE_HEAP)
+        if (map->content == VMAP_HEAP)
         {
             block = map;
             break;
@@ -200,11 +200,11 @@ ptr_t define_syscall(heap_control)(heap_control_op op, ptr_t arg)
 
     switch (op)
     {
-        case HEAP_GET_BASE: return block->blk.vaddr;
-        case HEAP_GET_TOP: return block->blk.vaddr + block->blk.npages * MOS_PAGE_SIZE;
+        case HEAP_GET_BASE: return block->vaddr;
+        case HEAP_GET_TOP: return block->vaddr + block->npages * MOS_PAGE_SIZE;
         case HEAP_SET_TOP:
         {
-            if (arg < block->blk.vaddr)
+            if (arg < block->vaddr)
             {
                 mos_warn("heap_control: new top is below heap base");
                 return 0;
@@ -216,18 +216,18 @@ ptr_t define_syscall(heap_control)(heap_control_op op, ptr_t arg)
                 return 0;
             }
 
-            if (arg == block->blk.vaddr + block->blk.npages * MOS_PAGE_SIZE)
+            if (arg == block->vaddr + block->npages * MOS_PAGE_SIZE)
                 return 0; // no change
 
-            if (arg < block->blk.vaddr + block->blk.npages * MOS_PAGE_SIZE)
+            if (arg < block->vaddr + block->npages * MOS_PAGE_SIZE)
             {
                 mos_warn("heap_control: shrinking heap not supported yet");
                 return 0;
             }
 
-            return process_grow_heap(process, (arg - block->blk.vaddr) / MOS_PAGE_SIZE);
+            return process_grow_heap(process, (arg - block->vaddr) / MOS_PAGE_SIZE);
         }
-        case HEAP_GET_SIZE: return block->blk.npages * MOS_PAGE_SIZE;
+        case HEAP_GET_SIZE: return block->npages * MOS_PAGE_SIZE;
         case HEAP_GROW_PAGES:
         {
             // arg is the number of pages to grow

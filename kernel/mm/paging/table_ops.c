@@ -3,6 +3,7 @@
 #include "mos/mm/paging/table_ops.h"
 
 #include "mos/mm/mm.h"
+#include "mos/mm/mmstat.h"
 #include "mos/mm/paging/pml_types.h"
 #include "mos/mm/paging/pmlx/pml1.h"
 #include "mos/mm/paging/pmlx/pml2.h"
@@ -12,6 +13,7 @@
 #include "mos/mm/paging/table_ops/do_flag.h"
 #include "mos/mm/paging/table_ops/do_map.h"
 #include "mos/mm/paging/table_ops/do_unmap.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 
@@ -78,4 +80,16 @@ pfn_t mm_do_get_pfn(pgd_t max, ptr_t vaddr)
         return 0;
 
     return pml1e_get_pfn(pml1e);
+}
+
+void *__create_page_table(void)
+{
+    mmstat_inc1(MEM_PAGETABLE);
+    return (void *) phyframe_va(mm_get_free_page());
+}
+
+void __destroy_page_table(void *table)
+{
+    mmstat_dec1(MEM_PAGETABLE);
+    mm_free_page(va_phyframe(table));
 }

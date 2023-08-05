@@ -38,12 +38,10 @@ static void vmm_iterate_copymap(const pgt_iteration_info_t *iter_info, const vmb
 }
 // ! END: CALLBACKS
 
-ptr_t mm_get_free_vaddr(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags)
+vmap_t *mm_get_free_vaddr_locked(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags)
 {
-    MOS_ASSERT_X(base_vaddr < MOS_KERNEL_START_VADDR, "Use mm_get_free_pages instead");
-
-    // userspace areas, we traverse the mmctx->mmaps
     MOS_ASSERT_X(spinlock_is_locked(&mmctx->mm_lock), "insane mmctx->mm_lock state");
+    MOS_ASSERT_X(base_vaddr < MOS_KERNEL_START_VADDR, "Use mm_get_free_pages instead");
 
     if (flags & VALLOC_EXACT)
     {
@@ -51,34 +49,32 @@ ptr_t mm_get_free_vaddr(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, v
         // we need to find a free area that starts at base_vaddr
         list_foreach(vmap_t, vmap, mmctx->mmaps)
         {
-            const ptr_t this_vaddr = vmap->blk.vaddr;
-            const ptr_t this_end_vaddr = this_vaddr + vmap->blk.npages * MOS_PAGE_SIZE;
+            const ptr_t this_vaddr = vmap->vaddr;
+            const ptr_t this_end_vaddr = this_vaddr + vmap->npages * MOS_PAGE_SIZE;
 
-            // see if this mmap overlaps with the area we want to allocate
+            // see if this vmap overlaps with the area we want to allocate
             if (this_vaddr < end_vaddr && this_end_vaddr > base_vaddr)
             {
                 // this mmap overlaps with the area we want to allocate
                 // so we can't allocate here
-                return 0;
+                return NULL;
             }
         }
 
         // nothing seems to overlap
-        return base_vaddr;
+        return vmap_create(mmctx, base_vaddr, n_pages);
     }
     else
     {
         ptr_t retry_addr = base_vaddr;
         list_foreach(vmap_t, mmap, mmctx->mmaps)
         {
+            // we've reached the end of the user address space?
             if (retry_addr + n_pages * MOS_PAGE_SIZE > MOS_KERNEL_START_VADDR)
-            {
-                // we've reached the end of the user address space
-                return 0;
-            }
+                return NULL;
 
-            const ptr_t this_vaddr = mmap->blk.vaddr;
-            const ptr_t this_end_vaddr = this_vaddr + mmap->blk.npages * MOS_PAGE_SIZE;
+            const ptr_t this_vaddr = mmap->vaddr;
+            const ptr_t this_end_vaddr = this_vaddr + mmap->npages * MOS_PAGE_SIZE;
 
             const ptr_t target_vaddr_end = retry_addr + n_pages * MOS_PAGE_SIZE;
             if (this_vaddr < target_vaddr_end && this_end_vaddr > retry_addr)
@@ -91,49 +87,50 @@ ptr_t mm_get_free_vaddr(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, v
             if (retry_addr + n_pages * MOS_PAGE_SIZE <= this_vaddr)
             {
                 // we've found a free area that is large enough
-                return retry_addr;
+                return vmap_create(mmctx, retry_addr, n_pages);
             }
         }
 
-        // empty list, or we've reached the end of the list
+        // we've reached the end of the list, no matter it's empty or not
         if (retry_addr + n_pages * MOS_PAGE_SIZE <= MOS_KERNEL_START_VADDR)
-            return retry_addr;
+            return vmap_create(mmctx, retry_addr, n_pages);
         else
-            return 0;
+            return NULL;
     }
 }
 
-vmblock_t mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags)
+vmap_t *mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags)
 {
     MOS_ASSERT(n_pages > 0);
 
-    spinlock_acquire(&mmctx->mm_lock);
-    const ptr_t vaddr = mm_get_free_vaddr(mmctx, n_pages, hint_vaddr, valloc_flags);
-    if (unlikely(vaddr == 0))
-    {
-        mos_warn("could not find free %zd pages", n_pages);
-        spinlock_release(&mmctx->mm_lock);
-        return (vmblock_t){ 0 };
-    }
-
-    const vmblock_t block = { .address_space = mmctx, .vaddr = vaddr, .npages = n_pages, .flags = flags };
-
-    const phyframe_t *frame = mm_get_free_pages(n_pages, MEM_USER);
-
+    phyframe_t *frame = mm_get_free_pages(n_pages);
     if (unlikely(!frame))
     {
         spinlock_release(&mmctx->mm_lock);
         mos_warn("could not allocate %zd physical pages", n_pages);
-        return (vmblock_t){ 0 };
+        return NULL;
+    }
+
+    spinlock_acquire(&mmctx->mm_lock);
+    vmap_t *vmap = mm_get_free_vaddr_locked(mmctx, n_pages, hint_vaddr, valloc_flags);
+    if (unlikely(!vmap))
+    {
+        mos_warn("could not find %zd pages in the address space", n_pages);
+        spinlock_release(&mmctx->mm_lock);
+        mm_free_pages(frame, n_pages);
+        return NULL;
     }
 
     const pfn_t pfn = phyframe_pfn(frame);
-    mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, n_pages, vaddr, pfn);
-    mm_do_map(mmctx->pgd, vaddr, pfn, n_pages, flags);
+    mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, n_pages, vmap->vaddr, pfn);
 
+    vmap->vmflags = flags;
+    mm_do_map(mmctx->pgd, vmap->vaddr, pfn, n_pages, flags);
     spinlock_release(&mmctx->mm_lock);
 
-    return block;
+    // TODO: update the vmap stat
+    spinlock_release(&vmap->lock);
+    return vmap;
 }
 
 vmblock_t mm_map_pages_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
@@ -141,7 +138,7 @@ vmblock_t mm_map_pages_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, size_t 
     MOS_ASSERT(spinlock_is_locked(&ctx->mm_lock));
     MOS_ASSERT(npages > 0);
 
-    const vmblock_t block = { .address_space = ctx, .vaddr = vaddr, .npages = npages, .flags = flags };
+    const vmblock_t block = { .vaddr = vaddr, .npages = npages, .flags = flags };
 
     mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, npages, vaddr, pfn);
     mm_do_map(ctx->pgd, vaddr, pfn, npages, flags);
@@ -156,6 +153,24 @@ vmblock_t mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npage
     return block;
 }
 
+vmap_t *mm_map_pages_to_user(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
+{
+    spinlock_acquire(&mmctx->mm_lock);
+    vmap_t *vmap = mm_get_free_vaddr_locked(mmctx, npages, vaddr, VALLOC_EXACT);
+    if (unlikely(!vmap))
+    {
+        mos_warn("could not find %zd pages in the address space", npages);
+        spinlock_release(&mmctx->mm_lock);
+        return NULL;
+    }
+
+    mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, npages, vmap->vaddr, pfn);
+    vmap->vmflags = flags;
+    mm_do_map(mmctx->pgd, vmap->vaddr, pfn, npages, flags);
+    spinlock_release(&mmctx->mm_lock);
+    return vmap;
+}
+
 void mm_unmap_pages(mm_context_t *ctx, ptr_t vaddr, size_t npages)
 {
     MOS_ASSERT(npages > 0);
@@ -166,61 +181,55 @@ void mm_unmap_pages(mm_context_t *ctx, ptr_t vaddr, size_t npages)
     spinlock_release(&ctx->mm_lock);
 }
 
-vmblock_t mm_replace_page(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, vm_flags flags)
+void mm_replace_page_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, vm_flags flags)
 {
-    const vmblock_t block = { .address_space = ctx, .vaddr = vaddr, .flags = flags };
-
     mos_debug(vmm, "filling page at " PTR_FMT " with " PFN_FMT, vaddr, pfn);
 
-    spinlock_acquire(&ctx->mm_lock);
-    // ref the frames first, so they don't get freed if we're [filling a page with itself]?
-    // weird people do weird things
-    pmm_ref_one(pfn);
     const pfn_t old_pfn = mm_do_get_pfn(ctx->pgd, vaddr);
+    if (likely(old_pfn != 0))
+        pmm_unref_one(old_pfn); // unmapped
+
+    if (unlikely(old_pfn == pfn))
+        return; // nothing to do
+
+    pmm_ref_one(pfn);
     mm_do_map(ctx->pgd, vaddr, pfn, 1, flags);
-    pmm_unref_one(old_pfn);
-    spinlock_release(&ctx->mm_lock);
-
-    return block;
 }
 
-vmblock_t mm_copy_maps_locked(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages)
+vmap_t *mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx, vmap_t *dst_vmap)
 {
-    MOS_UNIMPLEMENTED("mm_copy_maps_locked is a stub");
-    MOS_ASSERT(npages > 0);
-    mos_debug(vmm, "copying mapping from " PTR_FMT " to " PTR_FMT ", %zu pages", fvaddr, tvaddr, npages);
+    // we allocate a new vmap if no existing one is provided
+    if (!dst_vmap)
+        dst_vmap = mm_get_free_vaddr_locked(dst_ctx, src_vmap->npages, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT);
+    else
+        MOS_ASSERT(dst_vmap->npages == src_vmap->npages); // the destination vmap is not large enough
 
-    vmblock_t result = { .address_space = to, .vaddr = tvaddr, .npages = npages };
+    mos_debug(vmm, "copying mapping from " PTR_FMT " to " PTR_FMT ", %zu pages", src_vmap->vaddr, dst_vmap->vaddr, src_vmap->npages);
 
-    if (unlikely(!from || !to))
-    {
-        mos_warn("cannot remap pages from " PTR_FMT " to " PTR_FMT ", pagetable is null", fvaddr, tvaddr);
-        return (vmblock_t){ 0 };
-    }
+    MOS_UNIMPLEMENTED("mm_clone_vmap_locked");
+    // platform_mm_iterate_table(from, fvaddr, npages, vmm_iterate_copymap, &result);
 
-    platform_mm_iterate_table(from, fvaddr, npages, vmm_iterate_copymap, &result);
-
-    return result;
+    return dst_vmap;
 }
 
-vmblock_t mm_copy_maps(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages)
+vmap_t *mm_clone_vmap(vmap_t *src_vmap, mm_context_t *dst_ctx, vmap_t *dst_vmap)
 {
-    spinlock_acquire(&from->mm_lock);
-    if (to != from)
-        spinlock_acquire(&to->mm_lock);
-    const vmblock_t result = mm_copy_maps_locked(from, fvaddr, to, tvaddr, npages);
-    if (to != from)
-        spinlock_release(&to->mm_lock);
-    spinlock_release(&from->mm_lock);
-
-    return result;
+    spinlock_acquire(&src_vmap->mmctx->mm_lock);
+    if (src_vmap->mmctx != dst_ctx)
+        spinlock_acquire(&dst_ctx->mm_lock);
+    vmap_t *vmap = mm_clone_vmap_locked(src_vmap, dst_ctx, dst_vmap);
+    if (src_vmap->mmctx != dst_ctx)
+        spinlock_release(&dst_ctx->mm_lock);
+    spinlock_release(&src_vmap->mmctx->mm_lock);
+    return vmap;
 }
 
 bool mm_get_is_mapped(mm_context_t *mmctx, ptr_t vaddr)
 {
+    MOS_ASSERT(spinlock_is_locked(&mmctx->mm_lock));
     list_foreach(vmap_t, vmap, mmctx->mmaps)
     {
-        if (vmap->blk.vaddr <= vaddr && vaddr < vmap->blk.vaddr + vmap->blk.npages * MOS_PAGE_SIZE)
+        if (vmap->vaddr <= vaddr && vaddr < vmap->vaddr + vmap->npages * MOS_PAGE_SIZE)
             return true;
     }
 

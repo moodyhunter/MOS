@@ -32,6 +32,7 @@
 #define current_cpu     per_cpu(platform_info->cpu)
 #define current_thread  (current_cpu->thread)
 #define current_process (current_thread->owner)
+#define current_mm      (current_process->mm)
 
 typedef void (*irq_handler)(u32 irq);
 
@@ -108,8 +109,8 @@ typedef struct
 
 typedef struct
 {
+    spinlock_t mm_lock; ///< protects [pgd] and the [mmaps] list (the list itself, not the vmap_t objects)
     pgd_t pgd;
-    spinlock_t mm_lock;
     list_head mmaps;
 } mm_context_t;
 
@@ -125,8 +126,7 @@ typedef struct
 {
     ptr_t vaddr; // virtual addresses
     size_t npages;
-    vm_flags flags; // the expected flags for the region, regardless of the copy-on-write state
-    mm_context_t *address_space;
+    vm_flags flags; // the expected flags for the region
 } vmblock_t;
 
 /**

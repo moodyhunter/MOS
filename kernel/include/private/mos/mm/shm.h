@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "mos/mm/mm.h"
+
 #include <mos/tasks/task_types.h>
 
 /**
@@ -22,7 +24,7 @@
  * memory that is not shared, this is just a convenience wrapper around
  * mm_alloc_pages.
  */
-vmblock_t shm_allocate(size_t npages, vmap_fork_mode_t mode, vm_flags vmflags);
+vmap_t *shm_allocate(size_t npages, vmap_fork_behavior_t mode, vm_flags vmflags);
 
 /**
  * @brief Map a shared memory block
@@ -35,6 +37,6 @@ vmblock_t shm_allocate(size_t npages, vmap_fork_mode_t mode, vm_flags vmflags);
  * memory that is not shared, this is just a convenience wrapper around
  * mm_copy_mapping.
  */
-vmblock_t shm_map_shared_block(vmblock_t source, vmap_fork_mode_t mode);
+vmap_t *shm_map_shared_block(vmap_t *source, vmap_fork_behavior_t mode);
 
 /** @} */

@@ -16,6 +16,13 @@
 
 #define FORKFMT "fork %d->%d: %10s " PTR_FMT "+%-3zu flags [0x%x]"
 
+static const char *fork_behavior_string[] = {
+    [VMAP_FORK_INVALID] = "invalid",
+    [VMAP_FORK_ZEROED] = "zeroed",
+    [VMAP_FORK_SHARED] = "shared",
+    [VMAP_FORK_PRIVATE] = "private",
+};
+
 process_t *process_handle_fork(process_t *parent)
 {
     MOS_ASSERT(process_is_valid(parent));
@@ -31,49 +38,34 @@ process_t *process_handle_fork(process_t *parent)
 
     // copy the parent's memory
 
-    list_foreach(vmap_t, vmap, parent->mm->mmaps)
+    list_foreach(vmap_t, vmap_p, parent->mm->mmaps)
     {
-        switch (vmap->content)
+        pr_info2(FORKFMT, parent->pid, child_p->pid, fork_behavior_string[vmap_p->fork_behavior], vmap_p->vaddr, vmap_p->npages, vmap_p->vmflags);
+        switch (vmap_p->fork_behavior)
         {
-            case VMTYPE_KSTACK:
+            case VMAP_FORK_ZEROED:
             {
                 // Kernel stacks are special, we need to allocate a new one (not CoW-mapped)
-                MOS_ASSERT_X(vmap->blk.npages == MOS_STACK_PAGES_KERNEL, "kernel stack size is not %d pages", MOS_STACK_PAGES_KERNEL);
-                const vmblock_t block = mm_alloc_pages(child_p->mm, vmap->blk.npages, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, vmap->blk.flags);
-
-                pr_info2(FORKFMT, parent->pid, child_p->pid, "kstack", vmap->blk.vaddr, vmap->blk.npages, vmap->blk.flags);
-                mm_attach_vmap(child_p->mm, mm_new_vmap(block, VMTYPE_KSTACK, (vmap_flags_t){ 0 }));
+                MOS_ASSERT(vmap_p->content == VMAP_KSTACK);
+                MOS_ASSERT_X(vmap_p->npages == MOS_STACK_PAGES_KERNEL, "kernel stack size is not %d pages", MOS_STACK_PAGES_KERNEL);
+                vmap_t *child_vmap = mm_alloc_pages(child_p->mm, vmap_p->npages, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, vmap_p->vmflags);
+                vmap_finalise_init(child_vmap, vmap_p->content, vmap_p->fork_behavior);
+                break;
+            }
+            case VMAP_FORK_SHARED:
+            {
+                vmap_t *child_vmap = mm_clone_vmap(vmap_p, child_p->mm, NULL);
+                vmap_finalise_init(child_vmap, vmap_p->content, vmap_p->fork_behavior);
+                break;
+            }
+            case VMAP_FORK_PRIVATE:
+            {
+                vmap_t *vhild_vmap = cow_clone_vmap(child_p->mm, vmap_p);
+                vmap_finalise_init(vhild_vmap, vmap_p->content, vmap_p->fork_behavior);
                 break;
             }
 
-            case VMTYPE_FILE:
-            case VMTYPE_MMAP:
-            {
-                MOS_ASSERT_X(vmap->flags.fork_mode != VMAP_FORK_NA, "invalid fork mode for mmap");
-                if (vmap->flags.fork_mode == VMAP_FORK_SHARED)
-                {
-                    pr_info2(FORKFMT, parent->pid, child_p->pid, "mmap", vmap->blk.vaddr, vmap->blk.npages, vmap->blk.flags);
-                    vmblock_t block = vmap->blk;
-                    block.address_space = child_p->mm;
-                    mm_copy_maps(parent->mm, block.vaddr, child_p->mm, block.vaddr, block.npages);
-                    mm_attach_vmap(child_p->mm, mm_new_vmap(block, vmap->content, vmap->flags));
-                    break;
-                }
-
-                [[fallthrough]]; // private mmap, fall through to CoW
-            }
-            case VMTYPE_CODE:
-            case VMTYPE_DATA:
-            case VMTYPE_HEAP:
-            case VMTYPE_STACK:
-            {
-                vmap->flags.cow = true;
-                const vmblock_t block = mm_make_cow_block(child_p->mm, vmap->blk);
-
-                pr_info2(FORKFMT, parent->pid, child_p->pid, "CoW", vmap->blk.vaddr, vmap->blk.npages, vmap->blk.flags);
-                mm_attach_vmap(child_p->mm, mm_new_vmap(block, vmap->content, vmap->flags));
-                break;
-            }
+            case VMAP_FORK_INVALID: mos_warn("unknown vmap"); break;
         }
     }
 

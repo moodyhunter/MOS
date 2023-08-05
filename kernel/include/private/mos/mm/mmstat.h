@@ -11,7 +11,19 @@ typedef enum
     MEM_USER,      // user memory (e.g. user code, data, stack)
 
     _MEM_MAX_TYPES,
-} mem_type_t;
+} mmstat_type_t;
+
+/**
+ * @brief Memory usage statistics for a specific vmap area.
+ *
+ */
+typedef struct
+{
+    // number of private/shared pages in the vmap area, and the actual # of pages in memory.
+    size_t n_private, n_private_inmem; ///< Number of private pages.
+    size_t n_shared, n_shared_inmem;   ///< Number of shared pages.
+    size_t n_cow;                      ///< Number of CoW pages (which become private pages when written to).
+} vmap_mstat_t;
 
 extern const char *mem_type_names[_MEM_MAX_TYPES];
 
@@ -21,7 +33,7 @@ extern const char *mem_type_names[_MEM_MAX_TYPES];
  * @param type The type of memory.
  * @param size The size of memory.
  */
-void mmstat_inc(mem_type_t type, size_t size);
+void mmstat_inc(mmstat_type_t type, size_t size);
 #define mmstat_inc1(type) mmstat_inc(type, 1)
 
 /**
@@ -30,5 +42,5 @@ void mmstat_inc(mem_type_t type, size_t size);
  * @param type The type of memory.
  * @param size The size of memory.
  */
-void mmstat_dec(mem_type_t type, size_t size);
+void mmstat_dec(mmstat_type_t type, size_t size);
 #define mmstat_dec1(type) mmstat_dec(type, 1)

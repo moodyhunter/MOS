@@ -133,7 +133,7 @@ static void extract_exact_range(pfn_t start, size_t nframes, enum phyframe_state
 
         last_nframes = nframes;
 
-        MOS_ASSERT_X(start <= buddy_max_nframes, "insane!");
+        MOS_ASSERT_X(start <= pmm_total_frames, "insane!");
         mos_debug(pmm_buddy, "  extracting, n left: %zu, start: " PFN_FMT, nframes, start);
 
         for (size_t order = max_order; order != (size_t) -1; order--)
@@ -252,7 +252,7 @@ static void break_the_order(const size_t order)
     phyframe_t *const frame = pfn_phyframe(pfn);
 
     const pfn_t buddy_pfn = get_buddy_pfn(pfn, order);
-    if (buddy_pfn >= buddy_max_nframes)
+    if (buddy_pfn >= pmm_total_frames)
         return false;
 
     phyframe_t *const buddy = pfn_phyframe(buddy_pfn);

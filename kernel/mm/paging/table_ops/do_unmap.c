@@ -10,6 +10,9 @@ static void pml1e_do_unmap_callback(pml1_t pml1, pml1e_t *e, ptr_t vaddr, void *
     MOS_UNUSED(vaddr);
 
     struct pagetable_do_unmap_data *unmap_data = data;
+    if (!platform_pml1e_get_present(e))
+        return; // nothing to do (page isn't mapped)
+
     const pfn_t pfn = platform_pml1e_get_pfn(e);
     if (unmap_data->do_unref)
         pmm_unref_one(pfn);

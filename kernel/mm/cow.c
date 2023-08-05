@@ -22,60 +22,19 @@
 static phyframe_t *zero_page;
 static pfn_t zero_page_pfn;
 
-void mm_cow_init(void)
+static bool cow_fault_handler(vmap_t *map, ptr_t fault_addr, const pagefault_info_t *info)
 {
-    // zero fill on demand (read-only)
-    zero_page = mm_get_free_page(MEM_KERNEL); // already zeroed
-    zero_page_pfn = phyframe_pfn(zero_page);
-}
+    if (!info->op_write)
+        return false;
 
-vmblock_t mm_make_cow_block(mm_context_t *target_handle, vmblock_t src_block)
-{
-    return mm_make_cow(src_block.address_space, src_block.vaddr, target_handle, src_block.vaddr, src_block.npages, src_block.flags);
-}
+    // if the block is CoW, it must be writable
+    if (!(map->vmflags & VM_WRITE))
+        return false;
 
-vmblock_t mm_make_cow(mm_context_t *from, ptr_t fvaddr, mm_context_t *to, ptr_t tvaddr, size_t npages, vm_flags flags)
-{
-    // do not use the return value of mm_copy_maps:
-    // - the block returned by this function contains it's ACTUAL flags,
-    // - which may be different from the flags of the original block,
-    // - and we need the original flags to be able to resolve COW faults
-    // (consider the case where we CoW-map a page that is already CoW-mapped)
-    mm_flag_pages(from, fvaddr, npages, flags & ~VM_WRITE);
-
-    vmblock_t block = mm_copy_maps(from, fvaddr, to, tvaddr, npages);
-    // mm_flag_pages for newly-copied pages is not needed:
-    // - mm_copy_maps already copies the flags, which has been modified by mm_flag_pages above
-    block.flags = flags; // set the original flags
-    return block;
-}
-
-vmblock_t mm_alloc_zeroed_pages(mm_context_t *mmctx, size_t npages, ptr_t vaddr, valloc_flags allocflags, vm_flags flags)
-{
-    const vm_flags ro_flags = VM_READ | ((flags & VM_USER) ? VM_USER : 0);
-
-    spinlock_acquire(&mmctx->mm_lock);
-    vaddr = mm_get_free_vaddr(mmctx, npages, vaddr, allocflags);
-
-    // zero fill the pages
-    for (size_t i = 0; i < npages; i++)
-    {
-        pmm_ref_one(zero_page);
-        mm_map_pages_locked(mmctx, vaddr + i * MOS_PAGE_SIZE, zero_page_pfn, 1, ro_flags);
-    }
-
-    spinlock_release(&mmctx->mm_lock);
-
-    return (vmblock_t){ .vaddr = vaddr, .npages = npages, .flags = flags, .address_space = mmctx };
-}
-
-static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)
-{
     fault_addr = ALIGN_DOWN_TO_PAGE(fault_addr);
-    mm_context_t *mm = current_process->mm;
 
     // 1. create a new page
-    phyframe_t *frame = mm_get_free_page(MEM_USER);
+    phyframe_t *frame = mm_get_free_page_raw(); // no need to zero it
 
     // 2. copy the data from the faulting address to the new page
     memcpy((void *) phyframe_va(frame), (void *) fault_addr, MOS_PAGE_SIZE);
@@ -83,68 +42,46 @@ static void do_resolve_cow(ptr_t fault_addr, vm_flags original_flags)
     // 3. replace the faulting phypage with the new one
     //    this will increment the refcount of the new page, ...
     //    ...and also decrement the refcount of the old page
-    mm_replace_page(mm, fault_addr, phyframe_pfn(frame), original_flags);
+
+    mm_context_t *mmctx = current_mm;
+    mm_replace_page_locked(mmctx, fault_addr, phyframe_pfn(frame), map->vmflags);
 
     ipi_send_all(IPI_TYPE_INVALIDATE_TLB);
+    return true;
 }
 
-bool mm_handle_pgfault(ptr_t fault_addr, bool present, bool is_write, bool is_user, bool is_exec)
+void cow_init(void)
 {
-    MOS_UNUSED(is_write);
-    MOS_UNUSED(is_user);
-    MOS_UNUSED(is_exec);
+    // zero fill on demand (read-only)
+    zero_page = mm_get_free_page(); // already zeroed
+    zero_page_pfn = phyframe_pfn(zero_page);
+}
 
-    if (!current_thread)
-    {
-        pr_warn("There shouldn't be a page fault before the scheduler is initialized!");
-        return false;
-    }
+vmap_t *cow_clone_vmap(mm_context_t *target_mmctx, vmap_t *source_vmap)
+{
+    const vm_flags original_flags = source_vmap->vmflags;
+    mm_flag_pages(source_vmap->mmctx, source_vmap->vaddr, source_vmap->npages, original_flags & ~VM_WRITE); // remove that VM_WRITE flag
+    vmap_t *vmap = mm_clone_vmap(source_vmap, target_mmctx, NULL);                                          // already flagged correctly
 
-    if (!present)
-    {
-        // TODO file-backed mmap needs to be handled here
-        return false;
-    }
+    vmap->vmflags = original_flags; // use the expected vmflag, not the one in the page table
+    return vmap;
+}
 
-    process_t *current_proc = current_process;
-    MOS_ASSERT_X(current_proc->mm == current_cpu->mm_context, "Page fault in a process that is not the current process?!");
-#if MOS_DEBUG_FEATURE(cow)
-    process_dump_mmaps(current_proc);
-#endif
+vmap_t *cow_allocate_zeroed_pages(mm_context_t *mmctx, size_t npages, ptr_t vaddr, valloc_flags allocflags, vm_flags flags)
+{
+    const vm_flags ro_flags = VM_READ | ((flags & VM_USER) ? VM_USER : 0);
 
-    process_t *const process = current_proc;
-    list_foreach(vmap_t, mmap, process->mm->mmaps)
-    {
-        spinlock_acquire(&mmap->lock);
+    spinlock_acquire(&mmctx->mm_lock);
+    vmap_t *vmap = mm_get_free_vaddr_locked(mmctx, npages, vaddr, allocflags);
 
-        const vmblock_t *const vm = &mmap->blk;
-        const ptr_t block_start = vm->vaddr;
-        const ptr_t block_end = vm->vaddr + vm->npages * MOS_PAGE_SIZE;
+    // zero fill the pages
+    // TODO: actually we don't need to map at all (we can do it in the #PF handler)
+    for (size_t i = 0; i < npages; i++)
+        mm_replace_page_locked(mmctx, vaddr + i * MOS_PAGE_SIZE, zero_page_pfn, ro_flags);
 
-        if (fault_addr < block_start || fault_addr >= block_end)
-        {
-            spinlock_release(&mmap->lock);
-            continue;
-        }
+    spinlock_release(&mmctx->mm_lock);
 
-        mos_debug(cow, "fault_addr=" PTR_FMT ", vmblock=" PTR_RANGE, fault_addr, block_start, block_end);
-
-        if (!mmap->flags.cow)
-        {
-            pr_warn("Page fault in a non-COW block");
-            spinlock_release(&mmap->lock);
-            break;
-        }
-
-        // if the block is CoW, it must be writable
-        MOS_ASSERT_X(mmap->blk.flags & VM_WRITE, "CoW fault in a non-writable block");
-        do_resolve_cow(fault_addr, vm->flags);
-        mos_debug(cow, "CoW resolved");
-
-        spinlock_release(&mmap->lock);
-        return true;
-    }
-
-    pr_emph("page fault in unmapped region: " PTR_FMT, fault_addr);
-    return false;
+    vmap->vmflags = flags;
+    vmap->on_fault = cow_fault_handler;
+    return vmap;
 }

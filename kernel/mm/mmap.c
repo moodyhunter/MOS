@@ -45,15 +45,15 @@ ptr_t mmap_anonymous(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, siz
     if (!mmap_check(&hint_addr, flags))
         return 0;
 
-    const vmap_fork_mode_t fork_mode = (flags & MMAP_SHARED) ? VMAP_FORK_SHARED : VMAP_FORK_PRIVATE;
+    const vmap_fork_behavior_t type = (flags & MMAP_SHARED) ? VMAP_FORK_SHARED : VMAP_FORK_PRIVATE;
     const valloc_flags valloc_flags = (flags & MMAP_EXACT) ? VALLOC_EXACT : VALLOC_DEFAULT;
 
-    const vmblock_t block = mm_alloc_zeroed_pages(current_process->mm, n_pages, hint_addr, valloc_flags, vm_flags);
-    mos_debug(mmap, "allocated %zd pages at " PTR_FMT, block.npages, block.vaddr);
+    vmap_t *vmap = cow_allocate_zeroed_pages(current_process->mm, n_pages, hint_addr, valloc_flags, vm_flags);
+    mos_debug(mmap, "allocated %zd pages at " PTR_FMT, vmap->npages, vmap->vaddr);
+    vmap->content = VMAP_MMAP;
+    vmap->fork_behavior = type;
 
-    mm_attach_vmap(current_process->mm, mm_new_vmap(block, VMTYPE_MMAP, (vmap_flags_t){ .cow = true, .fork_mode = fork_mode }));
-
-    return block.vaddr;
+    return vmap->vaddr;
 }
 
 ptr_t mmap_file(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages, io_t *io, off_t offset)

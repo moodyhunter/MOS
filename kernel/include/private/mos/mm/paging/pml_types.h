@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform_defs.h"
 
 #include <mos/mos_global.h>
@@ -91,4 +92,8 @@ typedef struct
     void (*pml4e_post_traverse)(pml4_t pml4, pml4e_t *e, ptr_t vaddr, void *data);
 } pagetable_walk_options_t;
 
-#define pml_create_table(x) ((x##_t){ .table = (x##e_t *) phyframe_va(mm_get_free_page(MEM_PAGETABLE)) })
+__nodiscard void *__create_page_table(void);
+void __destroy_page_table(void *table);
+
+#define pml_create_table(x)  ((x##_t){ .table = (x##e_t *) __create_page_table() })
+#define pml_destroy_table(x) __destroy_page_table(x.table)

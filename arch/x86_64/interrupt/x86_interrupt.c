@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/kallsyms.h"
+#include "mos/tasks/task_types.h"
 
 #include <mos/interrupt/ipi.h>
 #include <mos/lib/structures/list.h>
@@ -205,7 +206,13 @@ static void x86_handle_exception(x86_stack_frame *stack)
                 if (is_write && is_exec)
                     mos_panic("Cannot write and execute at the same time");
 
-                bool result = mm_handle_pgfault(fault_address, present, is_write, is_user, is_exec);
+                const pagefault_info_t info = {
+                    .op_write = is_write,
+                    .page_present = present,
+                    .userfault = is_user,
+                };
+
+                bool result = mm_handle_fault(fault_address, &info);
 
                 if (result)
                     return;

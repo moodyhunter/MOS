@@ -165,7 +165,7 @@ ipcshm_t *ipcshm_request(const char *name, size_t buffer_size, void **read_buf, 
     // step 1
     {
         shm->client_write_shm = shm_allocate(shm->buffer_size / MOS_PAGE_SIZE, VMAP_FORK_PRIVATE, VM_USER_RW);
-        *write_buf = (void *) shm->client_write_shm.vaddr;
+        *write_buf = (void *) shm->client_write_shm->vaddr;
         shm->data = data;
     }
     spinlock_release(&shm->lock); // was locked previously in the for loop
@@ -185,8 +185,8 @@ ipcshm_t *ipcshm_request(const char *name, size_t buffer_size, void **read_buf, 
     }
     // step 3
     {
-        const vmblock_t block = shm_map_shared_block(shm->server_write_shm, VMAP_FORK_PRIVATE);
-        *read_buf = (void *) block.vaddr;
+        vmap_t *client_read = shm_map_shared_block(shm->server_write_shm, VMAP_FORK_PRIVATE);
+        *read_buf = (void *) client_read->vaddr;
     }
     spinlock_release(&shm->lock);
     return shm;
@@ -246,11 +246,11 @@ ipcshm_t *ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_b
     {
         // step 1
         shm->server_write_shm = shm_allocate(shm->buffer_size / MOS_PAGE_SIZE, VMAP_FORK_PRIVATE, VM_USER_RW);
-        *write_buf = (void *) shm->server_write_shm.vaddr;
+        *write_buf = (void *) shm->server_write_shm->vaddr;
 
         // step 2
-        const vmblock_t block = shm_map_shared_block(shm->client_write_shm, VMAP_FORK_PRIVATE);
-        *read_buf = (void *) block.vaddr;
+        vmap_t *server_read = shm_map_shared_block(shm->client_write_shm, VMAP_FORK_PRIVATE);
+        *read_buf = (void *) server_read->vaddr;
 
         // step 3
         shm->state = IPCSHM_ATTACHED;

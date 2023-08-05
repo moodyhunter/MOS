@@ -56,7 +56,7 @@ retry_printf:;
         // We need to allocate more pages
         const size_t npages = (file->buf_head + written) / MOS_PAGE_SIZE + 1;
         const size_t old_size = file->buf_npages * MOS_PAGE_SIZE;
-        const ptr_t new_buf = phyframe_va(mm_get_free_pages(npages, MEM_KERNEL));
+        const ptr_t new_buf = phyframe_va(mm_get_free_pages(npages));
         memcpy((void *) new_buf, file->buf, old_size);
         pmm_unref(va_phyframe(file->buf), file->buf_npages);
         file->buf = (void *) new_buf;
@@ -72,7 +72,7 @@ static bool sysfs_fops_open(inode_t *i, file_t *file)
 {
     mos_debug(vfs, "sysfs: opening %s in %s", file->dentry->name, dentry_parent(file->dentry)->name);
     sysfs_file_t *f = i->private;
-    f->buf = (void *) phyframe_va(mm_get_free_page(MEM_KERNEL));
+    f->buf = (void *) phyframe_va(mm_get_free_page());
     f->buf_npages = 1;
     f->buf_head = 0;
     MOS_ASSERT(f->item->show);
