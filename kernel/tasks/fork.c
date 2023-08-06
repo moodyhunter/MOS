@@ -60,8 +60,8 @@ process_t *process_handle_fork(process_t *parent)
             }
             case VMAP_FORK_PRIVATE:
             {
-                vmap_t *vhild_vmap = cow_clone_vmap(child_p->mm, vmap_p);
-                vmap_finalise_init(vhild_vmap, vmap_p->content, vmap_p->fork_behavior);
+                vmap_t *child_vmap = cow_clone_vmap(child_p->mm, vmap_p);
+                vmap_finalise_init(child_vmap, vmap_p->content, vmap_p->fork_behavior);
                 break;
             }
 
