@@ -2,7 +2,7 @@
 
 #pragma once
 
-typedef enum _signal
+typedef enum
 {
     // catchable signals
     SIGNAL_TERM,

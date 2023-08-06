@@ -29,8 +29,8 @@ typedef struct _process process_t;
 typedef struct _process
 {
     u32 magic;
-    const char *name;
     pid_t pid;
+    const char *name;
     process_t *parent;
 
     argv_t argv;
