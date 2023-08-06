@@ -241,7 +241,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
             if (is_user && fault_address > MOS_KERNEL_START_VADDR)
                 pr_emerg("  kernel address dereference");
 
-            if (stack->iret_params.ip > platform_info->k_code.vaddr)
+            if (stack->iret_params.ip > MOS_KERNEL_START_VADDR)
                 pr_emerg("  in kernel function '%s'", kallsyms_get_symbol_name(stack->iret_params.ip));
 
             pr_emerg("  CR3: " PTR_FMT, (ptr_t) x86_get_cr3() + platform_info->direct_map_base);

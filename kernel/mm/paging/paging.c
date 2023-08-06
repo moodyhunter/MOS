@@ -129,28 +129,22 @@ vmap_t *mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, va
     spinlock_release(&mmctx->mm_lock);
 
     // TODO: update the vmap stat
-    spinlock_release(&vmap->lock);
     return vmap;
 }
 
-vmblock_t mm_map_pages_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
+void mm_map_pages_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
 {
     MOS_ASSERT(spinlock_is_locked(&ctx->mm_lock));
     MOS_ASSERT(npages > 0);
-
-    const vmblock_t block = { .vaddr = vaddr, .npages = npages, .flags = flags };
-
     mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, npages, vaddr, pfn);
     mm_do_map(ctx->pgd, vaddr, pfn, npages, flags);
-    return block;
 }
 
-vmblock_t mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
+void mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
 {
     spinlock_acquire(&mmctx->mm_lock);
-    const vmblock_t block = mm_map_pages_locked(mmctx, vaddr, pfn, npages, flags);
+    mm_map_pages_locked(mmctx, vaddr, pfn, npages, flags);
     spinlock_release(&mmctx->mm_lock);
-    return block;
 }
 
 vmap_t *mm_map_pages_to_user(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
@@ -200,7 +194,7 @@ vmap_t *mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx, vmap_t *ds
 {
     // we allocate a new vmap if no existing one is provided
     if (!dst_vmap)
-        dst_vmap = mm_get_free_vaddr_locked(dst_ctx, src_vmap->npages, MOS_ADDR_USER_MMAP, VALLOC_DEFAULT);
+        dst_vmap = mm_get_free_vaddr_locked(dst_ctx, src_vmap->npages, src_vmap->vaddr, VALLOC_EXACT);
     else
         MOS_ASSERT(dst_vmap->npages == src_vmap->npages); // the destination vmap is not large enough
 

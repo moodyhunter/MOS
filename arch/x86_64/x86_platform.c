@@ -159,8 +159,8 @@ void x86_start_kernel(void)
     mos_debug(x86_startup, "mapping bios memory area...");
     pmm_reserve_frames(X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages);
     pmm_reserve_frames(X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages);
-    x86_bios_block = mm_map_pages(x86_platform.kernel_mm, x86_bios_block.vaddr, X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages, x86_bios_block.flags);
-    x86_ebda_block = mm_map_pages(x86_platform.kernel_mm, x86_ebda_block.vaddr, X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages, x86_ebda_block.flags);
+    mm_map_pages(x86_platform.kernel_mm, x86_bios_block.vaddr, X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages, x86_bios_block.flags);
+    mm_map_pages(x86_platform.kernel_mm, x86_ebda_block.vaddr, X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages, x86_ebda_block.flags);
 
     if (platform_info->initrd_npages)
     {

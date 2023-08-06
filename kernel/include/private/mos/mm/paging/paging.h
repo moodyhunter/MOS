@@ -76,8 +76,8 @@ vmap_t *mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, va
  * @note This function is rarely used directly, you don't always know the physical address of the
  * pages you want to map.
  */
-vmblock_t mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
-vmblock_t mm_map_pages_locked(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
+void mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
+void mm_map_pages_locked(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
 vmap_t *mm_map_pages_to_user(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
 
 /**

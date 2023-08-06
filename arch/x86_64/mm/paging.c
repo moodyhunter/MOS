@@ -35,40 +35,32 @@ void x86_paging_setup()
 
     mos_debug(x86_startup, "mapping kernel space...");
 
-    x86_platform.k_code.vaddr = (ptr_t) __MOS_KERNEL_CODE_START;
-    x86_platform.k_rodata.vaddr = (ptr_t) __MOS_KERNEL_RODATA_START;
-    x86_platform.k_rwdata.vaddr = (ptr_t) __MOS_KERNEL_RW_START;
-
-    x86_platform.k_code.npages = ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_CODE_END - (ptr_t) __MOS_KERNEL_CODE_START) / MOS_PAGE_SIZE;
-    x86_platform.k_rodata.npages = ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_RODATA_END - (ptr_t) __MOS_KERNEL_RODATA_START) / MOS_PAGE_SIZE;
-    x86_platform.k_rwdata.npages = ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_RW_END - (ptr_t) __MOS_KERNEL_RW_START) / MOS_PAGE_SIZE;
-
     // no need to reserve the kernel space, bootloader has done this
-    x86_platform.k_code = mm_map_pages(            //
-        platform_info->kernel_mm,                  //
-        x86_platform.k_code.vaddr,                 //
-        MOS_KERNEL_PFN(x86_platform.k_code.vaddr), //
-        x86_platform.k_code.npages,                //
-        VM_READ | VM_EXEC | VM_GLOBAL              //
+    mm_map_pages(                                                                                          //
+        platform_info->kernel_mm,                                                                          //
+        (ptr_t) __MOS_KERNEL_CODE_START,                                                                   //
+        MOS_KERNEL_PFN((ptr_t) __MOS_KERNEL_CODE_START),                                                   //
+        ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_CODE_END - (ptr_t) __MOS_KERNEL_CODE_START) / MOS_PAGE_SIZE, //
+        VM_READ | VM_EXEC | VM_GLOBAL                                                                      //
     );
 
-    x86_platform.k_rodata = mm_map_pages(            //
-        platform_info->kernel_mm,                    //
-        x86_platform.k_rodata.vaddr,                 //
-        MOS_KERNEL_PFN(x86_platform.k_rodata.vaddr), //
-        x86_platform.k_rodata.npages,                //
-        VM_READ | VM_GLOBAL                          //
+    mm_map_pages(                                                                                              //
+        platform_info->kernel_mm,                                                                              //
+        (ptr_t) __MOS_KERNEL_RODATA_START,                                                                     //
+        MOS_KERNEL_PFN((ptr_t) __MOS_KERNEL_RODATA_START),                                                     //
+        ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_RODATA_END - (ptr_t) __MOS_KERNEL_RODATA_START) / MOS_PAGE_SIZE, //
+        VM_READ | VM_GLOBAL                                                                                    //
     );
 
-    x86_platform.k_rwdata = mm_map_pages(            //
-        platform_info->kernel_mm,                    //
-        x86_platform.k_rwdata.vaddr,                 //
-        MOS_KERNEL_PFN(x86_platform.k_rwdata.vaddr), //
-        x86_platform.k_rwdata.npages,                //
-        VM_READ | VM_WRITE | VM_GLOBAL               //
+    mm_map_pages(                                                                                      //
+        platform_info->kernel_mm,                                                                      //
+        (ptr_t) __MOS_KERNEL_RW_START,                                                                 //
+        MOS_KERNEL_PFN((ptr_t) __MOS_KERNEL_RW_START),                                                 //
+        ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_RW_END - (ptr_t) __MOS_KERNEL_RW_START) / MOS_PAGE_SIZE, //
+        VM_READ | VM_WRITE | VM_GLOBAL                                                                 //
     );
 
-    // map all memory to MOS_DIRECT_MAP_VADDR using 1 GiB, 2 MiB, or 4 KiB pages
+    // map all memory to MOS_DIRECT_MAP_VADDR using 1 GiB, or 2 MiB pages
     // check if 1 GiB pages are supported
     x86_cpuid_info_t cpuid = { 0 };
     x86_call_cpuid(0x80000001, &cpuid);
