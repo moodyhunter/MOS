@@ -70,7 +70,7 @@ static void slab_impl_free_page(ptr_t page, size_t n)
 
 static void slab_init_one(slab_t *slab, const char *name, size_t size)
 {
-    pr_info2("slab: registering slab for '%s' with %zu bytes", name, size);
+    mos_debug(slab, "slab: registering slab for '%s' with %zu bytes", name, size);
     linked_list_init(list_node(slab));
     list_node_append(&slabs_list, list_node(slab));
     slab->lock = (spinlock_t) SPINLOCK_INIT;
@@ -113,7 +113,7 @@ static void kmemcache_free(slab_t *slab, const void *addr);
 
 void slab_init(void)
 {
-    pr_info("initiating the slab allocator");
+    pr_info("initializing the slab allocator");
     for (size_t i = 0; i < MOS_ARRAY_SIZE(BUILTIN_SLAB_SIZES); i++)
     {
         slab_init_one(&slabs[i], BUILTIN_SLAB_SIZES[i].name, BUILTIN_SLAB_SIZES[i].size);
