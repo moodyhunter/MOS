@@ -14,7 +14,7 @@ void mm_do_unmap(pgd_t top, ptr_t vaddr, size_t n_pages, bool do_unref);
 
 pfn_t mm_do_get_pfn(pgd_t top, ptr_t vaddr);
 
-#define pfn_va(pfn)        (platform_info->direct_map_base + (pfn) *MOS_PAGE_SIZE)
+#define pfn_va(pfn)        ((ptr_t) (platform_info->direct_map_base + (pfn) *MOS_PAGE_SIZE))
 #define va_pfn(va)         ((((ptr_t) (va)) - platform_info->direct_map_base) / MOS_PAGE_SIZE)
 #define va_phyframe(va)    (&phyframes[va_pfn(va)])
 #define phyframe_va(frame) ((ptr_t) pfn_va(phyframe_pfn(frame)))
