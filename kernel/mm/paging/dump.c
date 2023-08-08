@@ -1,35 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/mm/paging/dump.h>
-#include <mos/panic.h>
-#include <mos/platform/platform.h>
-#include <mos/printk.h>
-#include <mos/tasks/task_types.h>
+#include "mos/mm/paging/dump.h"
 
-static void walk_pagetable_dump_callback(const pgt_iteration_info_t *iter_info, const vmblock_t *block, pfn_t block_pfn, void *arg)
+#include "mos/mm/paging/iterator.h"
+#include "mos/printk.h"
+#include "mos/tasks/task_types.h"
+
+static void pagetable_do_dump(ptr_t vaddr, ptr_t vaddr_end, vm_flags flags, pfn_t pfn, pfn_t pfn_end, ptr_t *prev_end_vaddr)
 {
-    MOS_UNUSED(iter_info);
-    ptr_t *prev_end_vaddr = (ptr_t *) arg;
-    if (block->vaddr - *prev_end_vaddr > MOS_PAGE_SIZE)
-    {
-        pr_info("  VGROUP: " PTR_FMT, block->vaddr);
-    }
+    if (vaddr - *prev_end_vaddr > MOS_PAGE_SIZE)
+        pr_info("  VGROUP: " PTR_FMT, vaddr);
 
     pr_info2("    " PTR_RANGE " -> " PFN_RANGE ", %5zd pages, %c%c%c, %c%c, %s", //
-             block->vaddr,                                                       //
-             (ptr_t) (block->vaddr + block->npages * MOS_PAGE_SIZE),             //
-             block_pfn,                                                          //
-             block_pfn + block->npages,                                          //
-             block->npages,                                                      //
-             block->flags & VM_READ ? 'r' : '-',                                 //
-             block->flags & VM_WRITE ? 'w' : '-',                                //
-             block->flags & VM_EXEC ? 'x' : '-',                                 //
-             block->flags & VM_CACHE_DISABLED ? 'C' : '-',                       //
-             block->flags & VM_GLOBAL ? 'G' : '-',                               //
-             block->flags & VM_USER ? "user" : "kernel"                          //
+             vaddr,                                                              //
+             vaddr_end,                                                          //
+             pfn,                                                                //
+             pfn_end,                                                            //
+             (ALIGN_UP_TO_PAGE(vaddr_end) - vaddr) / MOS_PAGE_SIZE,              //
+             flags & VM_READ ? 'r' : '-',                                        //
+             flags & VM_WRITE ? 'w' : '-',                                       //
+             flags & VM_EXEC ? 'x' : '-',                                        //
+             flags & VM_CACHE_DISABLED ? 'C' : '-',                              //
+             flags & VM_GLOBAL ? 'G' : '-',                                      //
+             flags & VM_USER ? "user" : "kernel"                                 //
     );
 
-    *prev_end_vaddr = block->vaddr + block->npages * MOS_PAGE_SIZE;
+    *prev_end_vaddr = vaddr_end;
 }
 
 void mm_dump_pagetable(mm_context_t *mmctx)
@@ -37,7 +33,20 @@ void mm_dump_pagetable(mm_context_t *mmctx)
     pr_info("Page Table:");
     ptr_t tmp = 0;
     spinlock_acquire(&mmctx->mm_lock);
-    platform_mm_iterate_table(mmctx, 0, MOS_MAX_VADDR / MOS_PAGE_SIZE, walk_pagetable_dump_callback, &tmp);
+
+    pagetable_iter_t iter = { 0 };
+    pagetable_iter_init(&iter, mmctx->pgd, 0, 0x00007fffffffffff);
+
+    pagetable_iter_range_t *range;
+    while ((range = pagetable_iter_next(&iter)))
+        if (range->present)
+            pagetable_do_dump(range->vaddr, range->vaddr_end, range->flags, range->pfn, range->pfn_end, &tmp);
+
+    pagetable_iter_init(&iter, mmctx->pgd, 0xffff800000000000, 0xffffffffffffffff);
+    while ((range = pagetable_iter_next(&iter)))
+        if (range->present)
+            pagetable_do_dump(range->vaddr, range->vaddr_end, range->flags, range->pfn, range->pfn_end, &tmp);
+
     spinlock_release(&mmctx->mm_lock);
 }
 
