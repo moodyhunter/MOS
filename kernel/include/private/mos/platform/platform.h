@@ -205,6 +205,7 @@ void platform_pml1e_set_pfn(pml1e_t *pml1, pfn_t pfn);        // -- which can be
 bool platform_pml1e_get_present(const pml1e_t *pml1);         // returns if an entry in this page table is present
 void platform_pml1e_set_present(pml1e_t *pml1, bool present); // sets if an entry in this page table is present
 void platform_pml1e_set_flags(pml1e_t *pml1, vm_flags flags); // set bits in the flags field of the pmlx entry
+vm_flags platform_pml1e_get_flags(const pml1e_t *pml1e);      // get bits in the flags field of the pmlx entry
 
 #if MOS_PLATFORM_PAGING_LEVELS >= 2
 pml1_t platform_pml2e_get_pml1(const pml2e_t *pml2);
@@ -212,6 +213,7 @@ void platform_pml2e_set_pml1(pml2e_t *pml2, pml1_t pml1, pfn_t pml1_pfn);
 bool platform_pml2e_get_present(const pml2e_t *pml2);
 void platform_pml2e_set_present(pml2e_t *pml2, bool present);
 void platform_pml2e_set_flags(pml2e_t *pml2, vm_flags flags);
+vm_flags platform_pml2e_get_flags(const pml2e_t *pml2e);
 #if MOS_CONFIG(PML2_HUGE_CAPABLE)
 bool platform_pml2e_is_huge(const pml2e_t *pml2);
 void platform_pml2e_set_huge(pml2e_t *pml2, pfn_t pfn);
@@ -225,6 +227,7 @@ void platform_pml3e_set_pml2(pml3e_t *pml3, pml2_t pml2, pfn_t pml2_pfn);
 bool platform_pml3e_get_present(const pml3e_t *pml3);
 void platform_pml3e_set_present(pml3e_t *pml3, bool present);
 void platform_pml3e_set_flags(pml3e_t *pml3, vm_flags flags);
+vm_flags platform_pml3e_get_flags(const pml3e_t *pml3e);
 #if MOS_CONFIG(PML3_HUGE_CAPABLE)
 bool platform_pml3e_is_huge(const pml3e_t *pml3);
 void platform_pml3e_set_huge(pml3e_t *pml3, pfn_t pfn);

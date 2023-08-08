@@ -68,11 +68,10 @@ void x86_paging_setup()
 
     pr_info2("mapping all memory to " PTR_FMT " using %s pages", x86_platform.direct_map_base, gbpages ? "1 GB" : "2 MB");
 
-    pfn_t pfn = 0;
-
     const size_t STEP = (gbpages ? 1 GB : 2 MB) / MOS_PAGE_SIZE;
     const size_t total_npages = ALIGN_UP(platform_info->max_pfn, STEP);
 
+    pfn_t pfn = 0;
     while (pfn < total_npages)
     {
         const ptr_t vaddr = pfn_va(pfn);
@@ -137,12 +136,25 @@ void platform_pml1e_set_present(pml1e_t *pml1e, bool present)
 void platform_pml1e_set_flags(pml1e_t *pml1e, vm_flags flags)
 {
     x86_pte64_t *entry = cast_to(pml1e, pml1e_t *, x86_pte64_t *);
-    entry->writable = flags & VM_RW;
+    entry->writable = flags & VM_WRITE;
     entry->usermode = flags & VM_USER;
     entry->write_through = flags & VM_WRITE_THROUGH;
     entry->cache_disabled = flags & VM_CACHE_DISABLED;
     entry->global = flags & VM_GLOBAL;
     entry->no_execute = !(flags & VM_EXEC);
+}
+
+vm_flags platform_pml1e_get_flags(const pml1e_t *pml1e)
+{
+    const x86_pte64_t *entry = cast_to(pml1e, pml1e_t *, x86_pte64_t *);
+    vm_flags flags = VM_READ;
+    flags |= entry->writable ? VM_WRITE : 0;
+    flags |= entry->usermode ? VM_USER : 0;
+    flags |= entry->write_through ? VM_WRITE_THROUGH : 0;
+    flags |= entry->cache_disabled ? VM_CACHE_DISABLED : 0;
+    flags |= entry->global ? VM_GLOBAL : 0;
+    flags |= entry->no_execute ? 0 : VM_EXEC;
+    return flags;
 }
 
 // PML2
@@ -182,6 +194,31 @@ void platform_pml2e_set_flags(pml2e_t *pml2e, vm_flags flags)
     entry->cache_disabled |= flags & VM_CACHE_DISABLED;
     if (flags & VM_EXEC)
         entry->no_execute = false;
+
+    if (entry->page_size)
+    {
+        entry->no_execute = !(flags & VM_EXEC);
+        x86_pde64_huge_t *huge_entry = cast_to(entry, x86_pde64_t *, x86_pde64_huge_t *);
+        huge_entry->global = flags & VM_GLOBAL;
+    }
+}
+
+vm_flags platform_pml2e_get_flags(const pml2e_t *pml2e)
+{
+    const x86_pde64_t *entry = cast_to(pml2e, pml2e_t *, x86_pde64_t *);
+    vm_flags flags = VM_READ;
+    flags |= entry->writable ? VM_WRITE : 0;
+    flags |= entry->usermode ? VM_USER : 0;
+    flags |= entry->write_through ? VM_WRITE_THROUGH : 0;
+    flags |= entry->cache_disabled ? VM_CACHE_DISABLED : 0;
+    flags |= entry->no_execute ? 0 : VM_EXEC;
+    if (entry->page_size)
+    {
+        const x86_pde64_huge_t *huge_entry = cast_to(pml2e, pml2e_t *, x86_pde64_huge_t *);
+        flags |= huge_entry->global ? VM_GLOBAL : 0;
+    }
+
+    return flags;
 }
 
 bool platform_pml2e_is_huge(const pml2e_t *pml2e)
@@ -202,7 +239,7 @@ void platform_pml2e_set_huge(pml2e_t *pml2e, pfn_t pfn)
 pfn_t platform_pml2e_get_huge_pfn(const pml2e_t *pml2)
 {
     const x86_pde64_huge_t *entry = cast_to(pml2, pml2e_t *, x86_pde64_huge_t *);
-    return entry->pfn;
+    return entry->pfn << 1; // 1 bit PAT
 }
 
 // PML3
@@ -240,10 +277,32 @@ void platform_pml3e_set_flags(pml3e_t *pml3e, vm_flags flags)
     entry->usermode |= flags & VM_USER;
     entry->write_through |= flags & VM_WRITE_THROUGH;
     entry->cache_disabled |= flags & VM_CACHE_DISABLED;
-    if (entry->page_size)
-        entry->no_execute = !(flags & VM_EXEC); // if huge, set NX bit accordingly
-    else if (flags & VM_EXEC)
+    if (flags & VM_EXEC)
         entry->no_execute = false; // if not huge, set NX bit only if exec flag is set
+
+    if (entry->page_size)
+    {
+        entry->no_execute = !(flags & VM_EXEC); // if huge, set NX bit accordingly
+        x86_pmde64_huge_t *huge_entry = cast_to(entry, x86_pmde64_t *, x86_pmde64_huge_t *);
+        huge_entry->global = flags & VM_GLOBAL;
+    }
+}
+
+vm_flags platform_pml3e_get_flags(const pml3e_t *pml3e)
+{
+    const x86_pmde64_t *entry = cast_to(pml3e, pml3e_t *, x86_pmde64_t *);
+    vm_flags flags = VM_READ;
+    flags |= entry->writable ? VM_WRITE : 0;
+    flags |= entry->usermode ? VM_USER : 0;
+    flags |= entry->write_through ? VM_WRITE_THROUGH : 0;
+    flags |= entry->cache_disabled ? VM_CACHE_DISABLED : 0;
+    flags |= entry->no_execute ? 0 : VM_EXEC;
+    if (entry->page_size)
+    {
+        const x86_pmde64_huge_t *huge_entry = cast_to(pml3e, pml3e_t *, x86_pmde64_huge_t *);
+        flags |= huge_entry->global ? VM_GLOBAL : 0;
+    }
+    return flags;
 }
 
 bool platform_pml3e_is_huge(const pml3e_t *pml3e)
@@ -264,7 +323,7 @@ void platform_pml3e_set_huge(pml3e_t *pml3e, pfn_t pfn)
 pfn_t platform_pml3e_get_huge_pfn(const pml3e_t *pml3)
 {
     const x86_pmde64_huge_t *entry = cast_to(pml3, pml3e_t *, x86_pmde64_huge_t *);
-    return entry->pfn;
+    return entry->pfn << 1; // 1 bit PAT
 }
 
 // PML4
