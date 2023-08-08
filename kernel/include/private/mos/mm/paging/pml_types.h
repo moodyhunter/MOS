@@ -25,6 +25,8 @@
         pmln##e_t *table;                                                                                                                                                \
     } pmln##_t
 
+#define pml_null(pmln) (pmln.table == NULL)
+
 // nah, your platform must have at least 1 level of paging
 define_pmlx(pml1);
 
