@@ -96,8 +96,8 @@ x86_switch_impl_new_user_thread:
 
     ; set up the iret frame
     push    0x40 | 0x3                                  ; user data (stack) segment + RPL 3
-    push    qword [r8 + 1 * REGSIZE]                    ; stack (returned by x86_switch_impl_setup_user_thread)
-    push    qword [r8 + 2 * REGSIZE + 22 * REGSIZE]     ; rflags (IF = 1)
+    push    qword [r8 + 1 * REGSIZE]                    ; stack
+    push    qword [r8 + 2 * REGSIZE + 21 * REGSIZE]     ; rflags (IF = 1)
     push    0x30 | 0x3                                  ; user code segment + RPL 3
     push    qword [r8]                                  ; ip
 
