@@ -60,10 +60,14 @@ void cow_init(void)
 vmap_t *cow_clone_vmap(mm_context_t *target_mmctx, vmap_t *source_vmap)
 {
     const vm_flags original_flags = source_vmap->vmflags;
-    mm_flag_pages(source_vmap->mmctx, source_vmap->vaddr, source_vmap->npages, original_flags & ~VM_WRITE); // remove that VM_WRITE flag
-    vmap_t *vmap = mm_clone_vmap(source_vmap, target_mmctx, NULL);                                          // already flagged correctly
+
+    mm_lock_ctx_pair(target_mmctx, source_vmap->mmctx);
+    mm_flag_pages_locked(source_vmap->mmctx, source_vmap->vaddr, source_vmap->npages, original_flags & ~VM_WRITE); // remove that VM_WRITE flag
+    vmap_t *vmap = mm_clone_vmap_locked(source_vmap, target_mmctx);                                                // already flagged correctly
+    mm_unlock_ctx_pair(target_mmctx, source_vmap->mmctx);
 
     vmap->vmflags = original_flags; // use the expected vmflag, not the one in the page table
+    vmap->on_fault = cow_fault_handler;
     return vmap;
 }
 

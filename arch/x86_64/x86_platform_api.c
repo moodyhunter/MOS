@@ -19,7 +19,6 @@
 #include <mos/x86/delays.h>
 #include <mos/x86/devices/port.h>
 #include <mos/x86/interrupt/apic.h>
-#include <mos/x86/mm/paging.h>
 #include <mos/x86/mm/paging_impl.h>
 #include <mos/x86/tasks/context.h>
 #include <mos/x86/x86_interrupt.h>
@@ -114,12 +113,6 @@ void platform_switch_to_scheduler(ptr_t *old_stack, ptr_t new_stack)
 void platform_switch_to_thread(ptr_t *old_stack, const thread_t *new_thread, switch_flags_t switch_flags)
 {
     x86_switch_to_thread(old_stack, new_thread, switch_flags);
-}
-
-void platform_mm_iterate_table(mm_context_t *table, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg)
-{
-    MOS_ASSERT_X(spinlock_is_locked(&table->mm_lock), "page table operations without lock");
-    x86_mm_walk_page_table(table, vaddr, n, callback, arg);
 }
 
 u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unused arg2, u64 __maybe_unused arg3, u64 __maybe_unused arg4)

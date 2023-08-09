@@ -11,7 +11,6 @@
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/task_types.h>
 #include <mos/x86/cpu/cpu.h>
-#include <mos/x86/mm/paging.h>
 #include <mos/x86/mm/paging_impl.h>
 #include <mos/x86/tasks/context.h>
 #include <mos/x86/x86_interrupt.h>

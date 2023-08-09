@@ -365,94 +365,14 @@ void platform_pml4e_set_flags(pml4e_t *pml4e, vm_flags flags)
         entry->no_execute = false;
 }
 
-#if MOS_BITS == 32
-struct x86_pg_infra_t
+vm_flags platform_pml4e_get_flags(const pml4e_t *pml4e)
 {
-    x86_pde32_t pgdir[1024];
-    x86_pte32_t pgtable[1024 * 1024];
-} *x86_kpg_infra;
-
-void x86_mm_walk_page_table(mm_context_t *mmctx, ptr_t vaddr_start, size_t n_pages, pgt_iteration_callback_t callback, void *arg)
-{
-    return;
-    MOS_UNREACHABLE();
-    ptr_t vaddr = vaddr_start;
-    size_t n_pages_left = n_pages;
-
-    const struct x86_pg_infra_t *pg = NULL; // handle->pagetable.table;
-    const pgt_iteration_info_t info = { .address_space = mmctx, .vaddr_start = vaddr_start, .npages = n_pages };
-
-    pfn_t previous_pfn = 0;
-    vm_flags previous_flags = 0;
-    bool previous_present = false;
-    vmblock_t previous_block = { .vaddr = vaddr_start, .npages = 0, .flags = 0, .address_space = mmctx };
-
-    do
-    {
-        const id_t pgd_i = vaddr >> 22;
-        const id_t pgt_i = (vaddr >> 12) & 0x3FF;
-
-        const x86_pde32_t *pgd = (vaddr >= MOS_KERNEL_START_VADDR) ? &x86_kpg_infra->pgdir[pgd_i] : &pg->pgdir[pgd_i];
-        const x86_pte32_t *pgt = (vaddr >= MOS_KERNEL_START_VADDR) ? &x86_kpg_infra->pgtable[pgd_i * 1024 + pgt_i] : &pg->pgtable[pgd_i * 1024 + pgt_i];
-
-        const bool present = pgd->present && pgt->present;
-        if (present == previous_present && !present)
-        {
-            if (!pgd->present && pgt_i == 0)
-            {
-                vaddr += MOS_PAGE_SIZE * 1024;
-                n_pages_left = (n_pages_left > 1024) ? n_pages_left - 1024 : 0;
-            }
-            else
-            {
-                vaddr += MOS_PAGE_SIZE;
-                n_pages_left--;
-            }
-            continue;
-        }
-
-        const pfn_t pfn = pgt->pfn;
-        const vm_flags flags = VM_READ |                                                              //
-                               (pgd->writable && pgt->writable ? VM_WRITE : 0) |                      //
-                               (pgd->usermode && pgt->usermode ? VM_USER : 0) |                       //
-                               (pgd->cache_disabled && pgt->cache_disabled ? VM_CACHE_DISABLED : 0) | //
-                               (pgt->global ? VM_GLOBAL : 0);
-
-        // if anything changed, call the callback
-        if (present != previous_present || pfn != previous_pfn + 1 || flags != previous_flags)
-        {
-            if (previous_block.npages > 0 && previous_present)
-                callback(&info, &previous_block, previous_pfn - (previous_block.npages - 1), arg);
-
-            previous_block.vaddr = vaddr;
-            previous_block.npages = 1;
-            previous_block.flags = flags;
-            previous_pfn = pfn;
-            previous_present = present;
-            previous_flags = flags;
-        }
-        else
-        {
-            previous_block.npages++;
-            previous_pfn = pfn;
-        }
-
-        vaddr += MOS_PAGE_SIZE;
-        n_pages_left--;
-    } while (n_pages_left > 0);
-
-    if (previous_block.npages > 0 && previous_present)
-        callback(&info, &previous_block, previous_pfn - (previous_block.npages - 1), arg);
+    const x86_pude64_t *entry = cast_to(pml4e, pml4e_t *, x86_pude64_t *);
+    vm_flags flags = VM_READ;
+    flags |= entry->writable ? VM_WRITE : 0;
+    flags |= entry->usermode ? VM_USER : 0;
+    flags |= entry->write_through ? VM_WRITE_THROUGH : 0;
+    flags |= entry->cache_disabled ? VM_CACHE_DISABLED : 0;
+    flags |= entry->no_execute ? 0 : VM_EXEC;
+    return flags;
 }
-#else
-void x86_mm_walk_page_table(mm_context_t *mmctx, ptr_t vaddr_start, size_t n_pages, pgt_iteration_callback_t callback, void *arg)
-{
-    MOS_UNUSED(mmctx);
-    MOS_UNUSED(vaddr_start);
-    MOS_UNUSED(n_pages);
-    MOS_UNUSED(callback);
-    MOS_UNUSED(arg);
-
-    pr_emerg("STUB STUB STUB STUB STUB");
-}
-#endif

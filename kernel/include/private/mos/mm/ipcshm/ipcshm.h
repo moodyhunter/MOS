@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <mos/lib/sync/mutex.h>
-#include <mos/mm/mm_types.h>
-#include <mos/mm/shm.h>
-#include <mos/tasks/task_types.h>
+#include "mos/mm/mm.h"
+
+#include <mos/lib/sync/spinlock.h>
+#include <mos/types.h>
 
 typedef enum
 {
@@ -30,8 +30,8 @@ typedef struct ipcshm_t
     size_t buffer_size;
     ipcshm_state state;
     spinlock_t lock;
-    vmap_t *client_write_shm;
-    vmap_t *server_write_shm;
+    phyframe_t *client_write_pages;
+    phyframe_t *server_write_pages;
     void *data;
 } ipcshm_t;
 

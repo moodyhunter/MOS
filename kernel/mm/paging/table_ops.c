@@ -10,6 +10,7 @@
 #include "mos/mm/paging/pmlx/pml3.h"
 #include "mos/mm/paging/pmlx/pml4.h"
 #include "mos/mm/paging/pmlx/pml5.h"
+#include "mos/mm/paging/table_ops/do_copy.h"
 #include "mos/mm/paging/table_ops/do_flag.h"
 #include "mos/mm/paging/table_ops/do_map.h"
 #include "mos/mm/paging/table_ops/do_unmap.h"
@@ -35,6 +36,16 @@ void mm_do_unmap(pgd_t max, ptr_t vaddr, size_t n_pages, bool do_unref)
 {
     struct pagetable_do_unmap_data data = { .do_unref = do_unref };
     pml5_traverse(max.max, &vaddr, &n_pages, pagetable_do_unmap_callbacks, &data);
+}
+
+void mm_do_copy(pgd_t src, pgd_t dst, ptr_t vaddr, size_t n_pages)
+{
+    struct pagetable_do_copy_data data = {
+        .dest_pml5 = dst.max,
+        .dest_pml5e = pml5_entry(dst.max, vaddr),
+        .dest_pml4 = pml5e_get_or_create_pml4(data.dest_pml5e),
+    };
+    pml5_traverse(src.max, &vaddr, &n_pages, pagetable_do_copy_callbacks, &data);
 }
 
 pfn_t mm_do_get_pfn(pgd_t max, ptr_t vaddr)

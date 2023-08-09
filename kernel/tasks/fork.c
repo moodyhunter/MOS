@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/mm/mm.h"
+#include "mos/mm/paging/table_ops.h"
 
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/structures/stack.h>
@@ -18,7 +19,6 @@
 
 static const char *fork_behavior_string[] = {
     [VMAP_FORK_INVALID] = "invalid",
-    [VMAP_FORK_ZEROED] = "zeroed",
     [VMAP_FORK_SHARED] = "shared",
     [VMAP_FORK_PRIVATE] = "private",
 };
@@ -43,18 +43,9 @@ process_t *process_handle_fork(process_t *parent)
         pr_info2(FORKFMT, parent->pid, child_p->pid, fork_behavior_string[vmap_p->fork_behavior], vmap_p->vaddr, vmap_p->npages, vmap_p->vmflags);
         switch (vmap_p->fork_behavior)
         {
-            case VMAP_FORK_ZEROED:
-            {
-                // Kernel stacks are special, we need to allocate a new one (not CoW-mapped)
-                MOS_ASSERT(vmap_p->content == VMAP_KSTACK);
-                MOS_ASSERT_X(vmap_p->npages == MOS_STACK_PAGES_KERNEL, "kernel stack size is not %d pages", MOS_STACK_PAGES_KERNEL);
-                vmap_t *child_vmap = mm_alloc_pages(child_p->mm, vmap_p->npages, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, vmap_p->vmflags);
-                vmap_finalise_init(child_vmap, vmap_p->content, vmap_p->fork_behavior);
-                break;
-            }
             case VMAP_FORK_SHARED:
             {
-                vmap_t *child_vmap = mm_clone_vmap(vmap_p, child_p->mm, NULL);
+                vmap_t *child_vmap = mm_clone_vmap(vmap_p, child_p->mm);
                 vmap_finalise_init(child_vmap, vmap_p->content, vmap_p->fork_behavior);
                 break;
             }
@@ -65,7 +56,7 @@ process_t *process_handle_fork(process_t *parent)
                 break;
             }
 
-            case VMAP_FORK_INVALID: mos_warn("unknown vmap"); break;
+            case VMAP_FORK_INVALID: mos_panic("unknown vmap"); break;
         }
     }
 
@@ -81,7 +72,10 @@ process_t *process_handle_fork(process_t *parent)
     const thread_t *parent_thread = current_thread;
     thread_t *child_t = thread_allocate(child_p, parent_thread->mode);
     child_t->u_stack = parent_thread->u_stack;
-    child_t->k_stack = parent_thread->k_stack;
+
+    const ptr_t kstack_blk = phyframe_va(mm_get_free_pages(MOS_STACK_PAGES_KERNEL));
+    stack_init(&child_t->k_stack, (void *) kstack_blk, MOS_STACK_PAGES_KERNEL * MOS_PAGE_SIZE);
+
     child_t->name = strdup(parent_thread->name);
     pr_info2("fork: thread %d->%d", parent_thread->tid, child_t->tid);
     platform_setup_forked_context(parent_thread->context, &child_t->context);

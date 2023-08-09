@@ -8,7 +8,6 @@
 #include <mos/tasks/schedule.h>
 #include <mos/x86/cpu/cpuid.h>
 #include <mos/x86/interrupt/apic.h>
-#include <mos/x86/mm/paging.h>
 #include <mos/x86/mm/paging_impl.h>
 #include <mos/x86/x86_platform.h>
 

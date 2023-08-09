@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // An IPC pseudo-filesystem that helps userspace to debug IPC
 
+#include "mos/filesystem/ipcfs/ipcfs.h"
+
+#include "mos/filesystem/dentry.h"
+#include "mos/filesystem/vfs.h"
 #include "mos/mm/slab.h"
 
-#include <mos/filesystem/dentry.h>
-#include <mos/filesystem/fs_types.h>
-#include <mos/filesystem/ipcfs/ipcfs.h>
-#include <mos/filesystem/vfs_types.h>
-#include <mos/mm/ipcshm/ipcshm.h>
-#include <stdlib.h>
 #include <string.h>
 
 filesystem_t fs_ipcfs;

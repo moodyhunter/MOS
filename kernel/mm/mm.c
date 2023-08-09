@@ -12,10 +12,14 @@
 #include "mos/tasks/task_types.h"
 
 #include <mos/lib/structures/list.h>
+#include <mos/lib/sync/spinlock.h>
 #include <string.h>
 
 static slab_t *vmap_cache = NULL;
 MOS_SLAB_AUTOINIT("vmap", vmap_cache, vmap_t);
+
+static slab_t *mm_context_cache = NULL;
+MOS_SLAB_AUTOINIT("mm_context", mm_context_cache, mm_context_t);
 
 void mos_kernel_mm_init(void)
 {
@@ -72,6 +76,63 @@ void mm_free_pages(phyframe_t *frame, size_t npages)
     pmm_free_frames(frame, npages);
 }
 
+mm_context_t *mm_create_context(void)
+{
+    mm_context_t *mmctx = kmemcache_alloc(mm_context_cache);
+    linked_list_init(&mmctx->mmaps);
+
+    pml4_t pml4 = pml_create_table(pml4);
+
+    // map the upper half of the address space to the kernel
+    for (int i = pml4_index(MOS_KERNEL_START_VADDR); i < PML4_ENTRIES; i++)
+    {
+        const pml4e_t *kpml4e = &platform_info->kernel_mm->pgd.max.next.table[i];
+        pml4.table[i].content = kpml4e->content;
+    }
+
+    mmctx->pgd = pgd_create(pml4);
+
+    return mmctx;
+}
+
+void mm_destroy_context(mm_context_t *mmctx)
+{
+    MOS_UNUSED(mmctx);
+    MOS_UNIMPLEMENTED("mm_destroy_context");
+}
+
+void mm_lock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2)
+{
+    if (ctx1 == ctx2)
+        spinlock_acquire(&ctx1->mm_lock);
+    else if (ctx1 < ctx2)
+    {
+        spinlock_acquire(&ctx1->mm_lock);
+        spinlock_acquire(&ctx2->mm_lock);
+    }
+    else
+    {
+        spinlock_acquire(&ctx2->mm_lock);
+        spinlock_acquire(&ctx1->mm_lock);
+    }
+}
+
+void mm_unlock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2)
+{
+    if (ctx1 == ctx2)
+        spinlock_release(&ctx1->mm_lock);
+    else if (ctx1 < ctx2)
+    {
+        spinlock_release(&ctx2->mm_lock);
+        spinlock_release(&ctx1->mm_lock);
+    }
+    else
+    {
+        spinlock_release(&ctx1->mm_lock);
+        spinlock_release(&ctx2->mm_lock);
+    }
+}
+
 static void do_attach_vmap(mm_context_t *mmctx, vmap_t *vmap)
 {
     MOS_ASSERT(spinlock_is_locked(&mmctx->mm_lock));
@@ -90,8 +151,7 @@ static void do_attach_vmap(mm_context_t *mmctx, vmap_t *vmap)
         }
     }
 
-    MOS_ASSERT(list_is_empty(&mmctx->mmaps));
-    list_node_append(&mmctx->mmaps, list_node(vmap)); // nothing?
+    list_node_append(&mmctx->mmaps, list_node(vmap)); // append at the end
 }
 
 vmap_t *vmap_create(mm_context_t *mmctx, ptr_t vaddr, size_t npages)
@@ -170,7 +230,7 @@ bool mm_handle_fault(ptr_t fault_addr, const pagefault_info_t *info)
 
     spinlock_acquire(&mm->mm_lock);
 
-    vmap_t *fault_vmap = vmap_obtain(mm, fault_addr, NULL);
+    vmap_t *fault_vmap = vmap_obtain(mm, fault_addr, NULL); // vmap is locked
     if (!fault_vmap)
     {
         pr_emph("page fault in " PTR_FMT " (not mapped)", fault_addr);
@@ -178,7 +238,8 @@ bool mm_handle_fault(ptr_t fault_addr, const pagefault_info_t *info)
         return false;
     }
 
-    mos_debug(cow, "fault_addr=" PTR_FMT ", vmblock=" PTR_RANGE, fault_addr, fault_vmap->vaddr, fault_vmap->vaddr + fault_vmap->npages * MOS_PAGE_SIZE - 1);
+    mos_debug(vmm, "pid=%d, tid=%d, fault_addr=" PTR_FMT ", vmblock=" PTR_RANGE ", handler=%s", current_thread->tid, current_process->pid, fault_addr, fault_vmap->vaddr,
+              fault_vmap->vaddr + fault_vmap->npages * MOS_PAGE_SIZE - 1, fault_vmap->on_fault ? "registered" : "fallback");
 
     bool result = fault_vmap->on_fault && fault_vmap->on_fault(fault_vmap, fault_addr, info);
 

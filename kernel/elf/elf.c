@@ -178,7 +178,7 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
                     const pfn_t A_pfn = phyframe_pfn(buf_frames) + A_file_offset / MOS_PAGE_SIZE;
                     pmm_ref(A_pfn, A_npages);
                     vmap_t *vmap = mm_map_pages_to_user(proc->mm, A_vaddr, A_pfn, A_npages, flags);
-                    vmap_finalise_init(vmap, content, VMAP_FORK_INVALID);
+                    vmap_finalise_init(vmap, content, VMAP_FORK_PRIVATE);
                 }
 
                 // must only has at most one page left
@@ -201,7 +201,7 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
                     mos_debug(elf, "elf: leftover %lu bytes from " PTR_FMT " to " PTR_FMT, ph->size_in_file - A_npages * MOS_PAGE_SIZE, phyframe_va(page), B_vaddr);
                     pmm_ref_one(page);
                     vmap_t *vmap = mm_map_pages_to_user(proc->mm, B_vaddr, phyframe_pfn(page), 1, flags);
-                    vmap_finalise_init(vmap, content, VMAP_FORK_INVALID);
+                    vmap_finalise_init(vmap, content, VMAP_FORK_PRIVATE);
                 }
 
                 // allocate the remaining memory, which is not in the file (zeroed)

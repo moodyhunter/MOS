@@ -25,7 +25,6 @@ typedef enum
 typedef enum
 {
     VMAP_FORK_INVALID = 0,            // invalid fork mode, this never happens
-    VMAP_FORK_ZEROED = 1,             // only used for kernel stack
     VMAP_FORK_PRIVATE = MMAP_PRIVATE, // there will be distinct copies of the memory region in the child process
     VMAP_FORK_SHARED = MMAP_SHARED,   // the memory region will be shared between the parent and child processes
 } vmap_fork_behavior_t;
@@ -58,6 +57,23 @@ phyframe_t *mm_get_free_pages(size_t npages);
 
 void mm_free_page(phyframe_t *frame);
 void mm_free_pages(phyframe_t *frame, size_t npages);
+
+/**
+ * @brief Create a user-mode platform-dependent page table.
+ * @return mm_context_t The created page table.
+ * @note A platform-independent page-map is also created.
+ */
+mm_context_t *mm_create_context(void);
+
+/**
+ * @brief Destroy a user-mode platform-dependent page table.
+ * @param table The page table to destroy.
+ * @note The platform-independent page-map is also destroyed.
+ */
+void mm_destroy_context(mm_context_t *table);
+
+void mm_lock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2);
+void mm_unlock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2);
 
 /**
  * @brief Create a vmap object and insert it into the address space.

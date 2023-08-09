@@ -123,8 +123,8 @@ void mm_replace_page_locked(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, vm_flag
  * @note If clear_dest is set to true, then the destination page table is cleared before copying, otherwise
  * the function assumes that there are no existing mappings in the destination page table.
  */
-vmap_t *mm_clone_vmap(vmap_t *src_vmap, mm_context_t *dst_ctx, vmap_t *dst_vmap);
-vmap_t *mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx, vmap_t *dst_vmap);
+vmap_t *mm_clone_vmap(vmap_t *src_vmap, mm_context_t *dst_ctx);
+vmap_t *mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx);
 
 /**
  * @brief Get if a virtual address is mapped in a page table.
@@ -133,7 +133,7 @@ vmap_t *mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx, vmap_t *ds
  * @param vaddr The virtual address to get the physical address of.
  * @return bool True if the virtual address is mapped, false otherwise.
  */
-bool mm_get_is_mapped(mm_context_t *mmctx, ptr_t vaddr);
+bool mm_get_is_mapped_locked(mm_context_t *mmctx, ptr_t vaddr);
 
 /**
  * @brief Update the flags of a block of virtual memory.
@@ -145,21 +145,7 @@ bool mm_get_is_mapped(mm_context_t *mmctx, ptr_t vaddr);
  *
  * @note This function is just a wrapper around @ref platform_mm_flag_pages, with correct locking.
  */
-void mm_flag_pages(mm_context_t *mmctx, ptr_t vaddr, size_t npages, vm_flags flags);
-
-/**
- * @brief Create a user-mode platform-dependent page table.
- * @return mm_context_t The created page table.
- * @note A platform-independent page-map is also created.
- */
-mm_context_t *mm_create_context(void);
-
-/**
- * @brief Destroy a user-mode platform-dependent page table.
- * @param table The page table to destroy.
- * @note The platform-independent page-map is also destroyed.
- */
-void mm_destroy_context(mm_context_t *table);
+void mm_flag_pages_locked(mm_context_t *mmctx, ptr_t vaddr, size_t npages, vm_flags flags);
 
 ptr_t mm_get_phys_addr(mm_context_t *ctx, ptr_t vaddr);
 

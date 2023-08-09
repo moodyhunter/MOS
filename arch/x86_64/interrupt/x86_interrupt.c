@@ -146,6 +146,21 @@ static void x86_handle_exception(x86_stack_frame *stack)
         }
         case EXCEPTION_DIVIDE_ERROR:
         case EXCEPTION_DEBUG:
+        {
+            ptr_t drx[6]; // DR0, DR1, DR2, DR3 and DR6, DR7
+            __asm__ volatile("mov %%dr0, %0\n"
+                             "mov %%dr1, %1\n"
+                             "mov %%dr2, %2\n"
+                             "mov %%dr3, %3\n"
+                             "mov %%dr6, %4\n"
+                             "mov %%dr7, %5\n"
+                             : "=r"(drx[0]), "=r"(drx[1]), "=r"(drx[2]), "=r"(drx[3]), "=r"(drx[4]), "=r"(drx[5]));
+
+            pr_emerg("cpu %d: %s (%lu) at " PTR_FMT " (DR0: " PTR_FMT " DR1: " PTR_FMT " DR2: " PTR_FMT " DR3: " PTR_FMT " DR6: " PTR_FMT " DR7: " PTR_FMT ")",
+                     lapic_get_id(), name, stack->interrupt_number, stack->iret_params.ip, drx[0], drx[1], drx[2], drx[3], drx[4], drx[5]);
+
+            return;
+        }
         case EXCEPTION_OVERFLOW:
         case EXCEPTION_BOUND_RANGE_EXCEEDED:
         case EXCEPTION_INVALID_OPCODE:
@@ -244,7 +259,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
             if (stack->iret_params.ip > MOS_KERNEL_START_VADDR)
                 pr_emerg("  in kernel function '%s'", kallsyms_get_symbol_name(stack->iret_params.ip));
 
-            pr_emerg("  CR3: " PTR_FMT, (ptr_t) x86_get_cr3() + platform_info->direct_map_base);
+            pr_emerg("  CR3: " PTR_FMT, x86_get_cr3() + platform_info->direct_map_base);
 
             x86_dump_registers(stack);
             mos_panic("Unable to recover from page fault.");

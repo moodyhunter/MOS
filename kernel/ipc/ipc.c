@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/slab.h"
+#include "mos/mm/slab_autoinit.h"
+
 #include <mos/filesystem/ipcfs/ipcfs.h>
 #include <mos/io/io.h>
 #include <mos/ipc/ipc.h>
@@ -13,6 +16,9 @@
 #include <stdlib.h>
 
 #define IPC_SERVER_MAGIC MOS_FOURCC('I', 'P', 'C', 'S')
+
+static slab_t *ipc_slab = NULL;
+MOS_SLAB_AUTOINIT("ipc", ipc_slab, ipc_t);
 
 typedef struct
 {
@@ -70,11 +76,11 @@ static size_t ipc_io_read(io_t *io, void *buf, size_t size)
     spinlock_acquire(&readbuf->lock);
     while (ring_buffer_pos_is_empty(&readbuf->pos))
     {
-        mos_debug(ipc, "tid %ld buffer empty, rescheduling", current_thread->tid);
+        mos_debug(ipc, "tid %d buffer empty, rescheduling", current_thread->tid);
         spinlock_release(&readbuf->lock);
         reschedule_for_wait_condition(wc_wait_for_buffer_ready_read(&readbuf->pos));
         spinlock_acquire(&readbuf->lock);
-        mos_debug(ipc, "tid %ld rescheduled", current_thread->tid);
+        mos_debug(ipc, "tid %d rescheduled", current_thread->tid);
     }
     size_t read = ring_buffer_pos_pop_front(ipc_node->read_buffer, &readbuf->pos, buf, size);
     spinlock_release(&readbuf->lock);
@@ -150,7 +156,7 @@ io_t *ipc_accept(io_t *server)
 
 io_t *ipc_connect(const char *name, size_t buffer_size)
 {
-    ipc_t *ipc = kzalloc(sizeof(ipc_t));
+    ipc_t *ipc = kmemcache_alloc(ipc_slab);
 
     // the server's write buffer is the client's read buffer and vice versa
     ipc->server.writebuf_obj = ipc->client.readbuf_obj = &ipc->server_nodebuf;

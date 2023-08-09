@@ -18,26 +18,6 @@
 #include <mos/printk.h>
 #include <stdlib.h>
 
-static slab_t *mm_context_cache = NULL;
-MOS_SLAB_AUTOINIT("mm_context", mm_context_cache, mm_context_t);
-
-// ! BEGIN: CALLBACKS
-static void vmm_iterate_copymap(const pgt_iteration_info_t *iter_info, const vmblock_t *block, pfn_t block_pfn, void *arg)
-{
-    vmblock_t *vblock = arg;
-    if (!vblock->flags)
-        vblock->flags = block->flags;
-    else
-        MOS_ASSERT_X(vblock->flags == block->flags, "flags mismatch");
-    const ptr_t target_vaddr = vblock->vaddr + (block->vaddr - iter_info->vaddr_start); // we know that vaddr is contiguous, so their difference is the offset
-    mos_debug(vmm_impl, "copymapping " PTR_FMT " -> " PFN_FMT " (npages: %zu)", target_vaddr, block_pfn, block->npages);
-    pmm_ref(block_pfn, block->npages);
-    // platform_mm_map_pages(PGD_FOR_VADDR(target_vaddr, vblock->mm_context), target_vaddr, block_pfn, block->npages, block->flags);
-    // mm_do_map(vblock->mm_context.kernel_pml, target_vaddr, block_pfn, block->npages, block->flags);
-    mos_panic("WIP");
-}
-// ! END: CALLBACKS
-
 vmap_t *mm_get_free_vaddr_locked(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags)
 {
     MOS_ASSERT_X(spinlock_is_locked(&mmctx->mm_lock), "insane mmctx->mm_lock state");
@@ -190,35 +170,31 @@ void mm_replace_page_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, vm_flags 
     mm_do_map(ctx->pgd, vaddr, pfn, 1, flags);
 }
 
-vmap_t *mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx, vmap_t *dst_vmap)
+vmap_t *mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx)
 {
     // we allocate a new vmap if no existing one is provided
-    if (!dst_vmap)
-        dst_vmap = mm_get_free_vaddr_locked(dst_ctx, src_vmap->npages, src_vmap->vaddr, VALLOC_EXACT);
-    else
-        MOS_ASSERT(dst_vmap->npages == src_vmap->npages); // the destination vmap is not large enough
+    vmap_t *dst_vmap = mm_get_free_vaddr_locked(dst_ctx, src_vmap->npages, src_vmap->vaddr, VALLOC_EXACT);
 
-    mos_debug(vmm, "copying mapping from " PTR_FMT " to " PTR_FMT ", %zu pages", src_vmap->vaddr, dst_vmap->vaddr, src_vmap->npages);
+    if (unlikely(!dst_vmap))
+    {
+        mos_warn("could not find %zd pages in the address space", src_vmap->npages);
+        return NULL;
+    }
 
-    MOS_UNIMPLEMENTED("mm_clone_vmap_locked");
-    // platform_mm_iterate_table(from, fvaddr, npages, vmm_iterate_copymap, &result);
-
+    mos_debug(vmm, "copying mapping from " PTR_FMT ", %zu pages", src_vmap->vaddr, src_vmap->npages);
+    mm_do_copy(src_vmap->mmctx->pgd, dst_vmap->mmctx->pgd, src_vmap->vaddr, src_vmap->npages);
     return dst_vmap;
 }
 
-vmap_t *mm_clone_vmap(vmap_t *src_vmap, mm_context_t *dst_ctx, vmap_t *dst_vmap)
+vmap_t *mm_clone_vmap(vmap_t *src_vmap, mm_context_t *dst_ctx)
 {
-    spinlock_acquire(&src_vmap->mmctx->mm_lock);
-    if (src_vmap->mmctx != dst_ctx)
-        spinlock_acquire(&dst_ctx->mm_lock);
-    vmap_t *vmap = mm_clone_vmap_locked(src_vmap, dst_ctx, dst_vmap);
-    if (src_vmap->mmctx != dst_ctx)
-        spinlock_release(&dst_ctx->mm_lock);
-    spinlock_release(&src_vmap->mmctx->mm_lock);
+    mm_lock_ctx_pair(src_vmap->mmctx, dst_ctx);
+    vmap_t *vmap = mm_clone_vmap_locked(src_vmap, dst_ctx);
+    mm_unlock_ctx_pair(src_vmap->mmctx, dst_ctx);
     return vmap;
 }
 
-bool mm_get_is_mapped(mm_context_t *mmctx, ptr_t vaddr)
+bool mm_get_is_mapped_locked(mm_context_t *mmctx, ptr_t vaddr)
 {
     MOS_ASSERT(spinlock_is_locked(&mmctx->mm_lock));
     list_foreach(vmap_t, vmap, mmctx->mmaps)
@@ -230,40 +206,12 @@ bool mm_get_is_mapped(mm_context_t *mmctx, ptr_t vaddr)
     return false;
 }
 
-void mm_flag_pages(mm_context_t *ctx, ptr_t vaddr, size_t npages, vm_flags flags)
+void mm_flag_pages_locked(mm_context_t *ctx, ptr_t vaddr, size_t npages, vm_flags flags)
 {
     MOS_ASSERT(npages > 0);
 
     mos_debug(vmm, "flagging %zd pages at " PTR_FMT " with flags %x", npages, vaddr, flags);
-
-    spinlock_acquire(&ctx->mm_lock);
     mm_do_flag(ctx->pgd, vaddr, npages, flags);
-    spinlock_release(&ctx->mm_lock);
-}
-
-mm_context_t *mm_create_context(void)
-{
-    mm_context_t *mmctx = kmemcache_alloc(mm_context_cache);
-    linked_list_init(&mmctx->mmaps);
-
-    pml4_t pml4 = pml_create_table(pml4);
-
-    // map the upper half of the address space to the kernel
-    for (int i = pml4_index(MOS_KERNEL_START_VADDR); i < PML4_ENTRIES; i++)
-    {
-        const pml4e_t *kpml4e = &platform_info->kernel_mm->pgd.max.next.table[i];
-        pml4.table[i].content = kpml4e->content;
-    }
-
-    mmctx->pgd = pgd_create(pml4);
-
-    return mmctx;
-}
-
-void mm_destroy_context(mm_context_t *mmctx)
-{
-    MOS_UNUSED(mmctx);
-    MOS_UNIMPLEMENTED("mm_destroy_context");
 }
 
 ptr_t mm_get_phys_addr(mm_context_t *ctx, ptr_t vaddr)

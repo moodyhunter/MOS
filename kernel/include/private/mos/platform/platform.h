@@ -129,32 +129,6 @@ typedef struct
     vm_flags flags; // the expected flags for the region
 } vmblock_t;
 
-/**
- * @brief Information about a page table iteration
- */
-typedef struct
-{
-    mm_context_t *address_space;
-    ptr_t vaddr_start;
-    size_t npages;
-} pgt_iteration_info_t;
-
-/**
- * @brief Callback for platform_mm_iterate_table
- *
- * @param vaddr_start The virtual address of the page
- * @param paddr_start The physical address of the page
- * @param n_pages The number of pages in the range
- * @param flags The flags of the page, (e.g. permissions)
- * @param arg The argument passed to platform_mm_iterate_phys_addr
- *
- * @note For saving CPU cycles, the callback should be called for each contiguous range of pages,
- * instead of each page individually, where the n_pages parameter indicates the number of pages
- * in the range.
- *
- */
-typedef void (*pgt_iteration_callback_t)(const pgt_iteration_info_t *iter_info, const vmblock_t *block, pfn_t block_pfn, void *arg);
-
 typedef struct
 {
     u32 num_cpus;
@@ -241,14 +215,13 @@ void platform_pml4e_set_pml3(pml4e_t *pml4, pml3_t pml3, pfn_t pml3_pfn);
 bool platform_pml4e_get_present(const pml4e_t *pml4);
 void platform_pml4e_set_present(pml4e_t *pml4, bool present);
 void platform_pml4e_set_flags(pml4e_t *pml4, vm_flags flags);
+vm_flags platform_pml4e_get_flags(const pml4e_t *pml4e);
 #if MOS_CONFIG(PML4_HUGE_CAPABLE)
 bool platform_pml4e_is_huge(const pml4e_t *pml4);
 void platform_pml4e_set_huge(pml4e_t *pml4, pfn_t pfn);
 pfn_t platform_pml4e_get_huge_pfn(const pml4e_t *pml4);
 #endif
 #endif
-
-void platform_mm_iterate_table(mm_context_t *table, ptr_t vaddr, size_t n, pgt_iteration_callback_t callback, void *arg);
 
 // Platform Thread / Process APIs
 void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg);

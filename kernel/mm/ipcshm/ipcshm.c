@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/mm.h"
+#include "mos/mm/paging/table_ops.h"
+
 #include <mos/filesystem/ipcfs/ipcfs.h>
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/structures/hashmap_common.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/ipcshm/ipcshm.h>
-#include <mos/mm/shm.h>
 #include <mos/printk.h>
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/task_types.h>
@@ -164,8 +166,8 @@ ipcshm_t *ipcshm_request(const char *name, size_t buffer_size, void **read_buf, 
 
     // step 1
     {
-        shm->client_write_shm = shm_allocate(shm->buffer_size / MOS_PAGE_SIZE, VMAP_FORK_PRIVATE, VM_USER_RW);
-        *write_buf = (void *) shm->client_write_shm->vaddr;
+        shm->client_write_pages = mm_get_free_pages(shm->buffer_size / MOS_PAGE_SIZE);
+        *write_buf = (void *) phyframe_va(shm->client_write_pages);
         shm->data = data;
     }
     spinlock_release(&shm->lock); // was locked previously in the for loop
@@ -183,11 +185,10 @@ ipcshm_t *ipcshm_request(const char *name, size_t buffer_size, void **read_buf, 
         }
         mos_debug(ipc, "resuming after connection was accepted");
     }
+
     // step 3
-    {
-        vmap_t *client_read = shm_map_shared_block(shm->server_write_shm, VMAP_FORK_PRIVATE);
-        *read_buf = (void *) client_read->vaddr;
-    }
+    *read_buf = (void *) phyframe_va(shm->server_write_pages);
+
     spinlock_release(&shm->lock);
     return shm;
 }
@@ -243,21 +244,19 @@ ipcshm_t *ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_b
     // 3. wake up the client
 
     // shm->lock is already held
-    {
-        // step 1
-        shm->server_write_shm = shm_allocate(shm->buffer_size / MOS_PAGE_SIZE, VMAP_FORK_PRIVATE, VM_USER_RW);
-        *write_buf = (void *) shm->server_write_shm->vaddr;
+    // step 1
+    shm->server_write_pages = mm_get_free_pages(shm->buffer_size / MOS_PAGE_SIZE);
+    *write_buf = (void *) phyframe_va(shm->server_write_pages);
 
-        // step 2
-        vmap_t *server_read = shm_map_shared_block(shm->client_write_shm, VMAP_FORK_PRIVATE);
-        *read_buf = (void *) server_read->vaddr;
+    // step 2
+    *read_buf = (void *) phyframe_va(shm->client_write_pages);
 
-        // step 3
-        shm->state = IPCSHM_ATTACHED;
+    // step 3
+    shm->state = IPCSHM_ATTACHED;
 
-        if (data_out)
-            *data_out = shm->data;
-    }
+    if (data_out)
+        *data_out = shm->data;
+
     spinlock_release(&shm->lock);
 
     return shm;
