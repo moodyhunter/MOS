@@ -13,13 +13,12 @@
 typedef enum
 {
     VMAP_UNKNOWN = 0,
-    VMAP_CODE,   // code
-    VMAP_DATA,   // data
-    VMAP_HEAP,   // heap
-    VMAP_STACK,  // stack (user)
-    VMAP_KSTACK, // stack (kernel)
-    VMAP_FILE,   // file mapping
-    VMAP_MMAP,   // mmap mapping
+    VMAP_CODE,  // code
+    VMAP_DATA,  // data
+    VMAP_HEAP,  // heap
+    VMAP_STACK, // stack (user)
+    VMAP_FILE,  // file mapping
+    VMAP_MMAP,  // mmap mapping
 } vmap_content_t;
 
 typedef enum

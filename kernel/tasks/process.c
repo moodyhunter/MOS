@@ -280,35 +280,30 @@ void process_dump_mmaps(const process_t *process)
             case VMAP_DATA: typestr = "data"; break;
             case VMAP_HEAP: typestr = "heap"; break;
             case VMAP_STACK: typestr = "stack"; break;
-            case VMAP_KSTACK: typestr = "stack (kernel)"; break;
             case VMAP_FILE: typestr = "file"; break;
             case VMAP_MMAP: typestr = "mmap"; break;
             default: mos_warn("unknown memory region type %x", map->content);
         };
 
         char forkmode = '-';
-        if (map->content == VMAP_FILE || map->content == VMAP_MMAP)
+        switch (map->fork_behavior)
         {
-            switch (map->fork_behavior)
-            {
-                case VMAP_FORK_SHARED: forkmode = 's'; break;
-                case VMAP_FORK_PRIVATE: forkmode = 'p'; break;
-                default: mos_warn("unknown fork mode %x", map->fork_behavior);
-            }
+            case VMAP_FORK_SHARED: forkmode = 's'; break;
+            case VMAP_FORK_PRIVATE: forkmode = 'p'; break;
+            default: mos_warn("unknown fork mode %x", map->fork_behavior);
         }
 
-        pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%c%c%c%c%c%c, %c]: %s",
-                i,                                            //
-                map->vaddr,                                   //
-                map->npages,                                  //
-                map->vmflags & VM_READ ? 'r' : '-',           //
-                map->vmflags & VM_WRITE ? 'w' : '-',          //
-                map->vmflags & VM_EXEC ? 'x' : '-',           //
-                map->vmflags & VM_GLOBAL ? 'g' : '-',         //
-                map->vmflags & VM_USER ? 'u' : '-',           //
-                map->vmflags & VM_CACHE_DISABLED ? 'C' : '-', //
-                forkmode,                                     //
-                typestr                                       //
+        pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%c%c%c%c%c, %c]: %s",
+                i,                                    //
+                map->vaddr,                           //
+                map->npages,                          //
+                map->vmflags & VM_READ ? 'r' : '-',   //
+                map->vmflags & VM_WRITE ? 'w' : '-',  //
+                map->vmflags & VM_EXEC ? 'x' : '-',   //
+                map->vmflags & VM_GLOBAL ? 'g' : '-', //
+                map->vmflags & VM_USER ? 'u' : '-',   //
+                forkmode,                             //
+                typestr                               //
         );
     }
 
