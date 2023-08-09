@@ -76,7 +76,7 @@ noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
     }
 
     va_list args;
-    char message[PRINTK_BUFFER_SIZE] = { 0 };
+    char message[PRINTK_BUFFER_SIZE];
     va_start(args, fmt);
     vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
     va_end(args);
@@ -121,7 +121,7 @@ void mos_kwarn(const char *func, u32 line, const char *fmt, ...)
         return;
     }
 
-    char message[PRINTK_BUFFER_SIZE] = { 0 };
+    char message[PRINTK_BUFFER_SIZE];
     va_start(args, fmt);
     vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
     va_end(args);

@@ -80,7 +80,7 @@ static void lvprintk(mos_log_level_t loglevel, const char *fmt, va_list args)
     if (printk_quiet && loglevel < MOS_LOG_WARN)
         return;
 
-    char message[PRINTK_BUFFER_SIZE] = { 0 };
+    char message[PRINTK_BUFFER_SIZE];
     vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
     const size_t len = strlen(message);
 
