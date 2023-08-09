@@ -27,6 +27,9 @@ static bool cow_fault_handler(vmap_t *map, ptr_t fault_addr, const pagefault_inf
     if (!info->op_write)
         return false;
 
+    if (!info->page_present)
+        return false;
+
     // if the block is CoW, it must be writable
     if (!(map->vmflags & VM_WRITE))
         return false;
@@ -80,7 +83,6 @@ vmap_t *cow_allocate_zeroed_pages(mm_context_t *mmctx, size_t npages, ptr_t vadd
     vmap_t *vmap = mm_get_free_vaddr_locked(mmctx, npages, vaddr, allocflags);
 
     // zero fill the pages
-    // TODO: actually we don't need to map at all (we can do it in the #PF handler)
     for (size_t i = 0; i < npages; i++)
         mm_replace_page_locked(mmctx, vmap->vaddr + i * MOS_PAGE_SIZE, zero_page_pfn, ro_flags);
 
