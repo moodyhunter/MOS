@@ -68,6 +68,7 @@ vmap_t *cow_clone_vmap(mm_context_t *target_mmctx, vmap_t *source_vmap)
 
     vmap->vmflags = original_flags; // use the expected vmflag, not the one in the page table
     vmap->on_fault = cow_fault_handler;
+    source_vmap->on_fault = cow_fault_handler;
     return vmap;
 }
 
@@ -81,7 +82,7 @@ vmap_t *cow_allocate_zeroed_pages(mm_context_t *mmctx, size_t npages, ptr_t vadd
     // zero fill the pages
     // TODO: actually we don't need to map at all (we can do it in the #PF handler)
     for (size_t i = 0; i < npages; i++)
-        mm_replace_page_locked(mmctx, vaddr + i * MOS_PAGE_SIZE, zero_page_pfn, ro_flags);
+        mm_replace_page_locked(mmctx, vmap->vaddr + i * MOS_PAGE_SIZE, zero_page_pfn, ro_flags);
 
     spinlock_release(&mmctx->mm_lock);
 
