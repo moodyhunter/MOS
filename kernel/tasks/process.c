@@ -158,6 +158,8 @@ void process_attach_thread(process_t *process, thread_t *thread)
     MOS_ASSERT(thread_is_valid(thread));
     MOS_ASSERT(thread->owner == process);
     mos_debug(process, "process %d attached thread %d", process->pid, thread->tid);
+    MOS_ASSERT(process->threads_count < MOS_PROCESS_MAX_THREADS);
+    MOS_ASSERT(process->threads[process->threads_count] == NULL);
     process->threads[process->threads_count++] = thread;
 }
 

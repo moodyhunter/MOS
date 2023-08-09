@@ -56,7 +56,7 @@ process_t *process_handle_fork(process_t *parent)
                 break;
             }
 
-            case VMAP_FORK_INVALID: mos_panic("unknown vmap"); break;
+            default: mos_panic("unknown vmap"); break;
         }
     }
 
