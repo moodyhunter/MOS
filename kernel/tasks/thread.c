@@ -46,7 +46,7 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
 
     t->name = strdup(name);
 
-    mos_debug(thread, "creating new thread %d, '%s', owner=%d", t->tid, name, owner->pid);
+    mos_debug(thread, "creating new thread %pt, owner=%pp", (void *) t, (void *) owner);
 
     // Kernel stack
     const ptr_t kstack_blk = phyframe_va(mm_get_free_pages(MOS_STACK_PAGES_KERNEL));

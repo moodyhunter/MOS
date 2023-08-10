@@ -51,6 +51,8 @@ process_t *process_allocate(process_t *parent, const char *name)
 
     waitlist_init(&proc->waiters);
 
+    proc->name = strdup(name ? name : "<unknown>");
+
     if (likely(parent))
     {
         proc->parent = parent;
@@ -58,16 +60,15 @@ process_t *process_allocate(process_t *parent, const char *name)
     else if (unlikely(proc->pid == 1) || unlikely(proc->pid == 2))
     {
         proc->parent = proc;
-        pr_emph("special process %d (%s) created", proc->pid, name);
+        pr_emph("special process %pp created", (void *) proc);
     }
     else
     {
-        pr_emerg("process %d has no parent", proc->pid);
+        pr_emerg("process %pp has no parent", (void *) proc);
+        kfree(proc->name);
         kfree(proc);
         return NULL;
     }
-
-    proc->name = strdup(name ? name : "<unknown>");
 
     if (unlikely(proc->pid == 2))
     {
@@ -80,7 +81,7 @@ process_t *process_allocate(process_t *parent, const char *name)
 
     if (unlikely(!proc->mm))
     {
-        pr_emerg("failed to create page table for process %d (%s)", proc->pid, proc->name);
+        pr_emerg("failed to create page table for process %pp", (void *) proc);
         kfree(proc->name);
         kfree(proc);
         return NULL;
@@ -95,7 +96,7 @@ process_t *process_new(process_t *parent, const char *name, const stdio_t *ios, 
     if (unlikely(!proc))
         return NULL;
 
-    mos_debug(process, "creating process %d (%s)", proc->pid, proc->name);
+    mos_debug(process, "creating process %pp", (void *) proc);
     if (unlikely(!proc))
         return NULL;
 
@@ -136,7 +137,7 @@ fd_t process_attach_ref_fd(process_t *process, io_t *file)
         fd++;
         if (fd >= MOS_PROCESS_MAX_OPEN_FILES)
         {
-            mos_warn("process %d has too many open files", process->pid);
+            mos_warn("process %pp has too many open files", (void *) process);
             return -1;
         }
     }
@@ -168,7 +169,7 @@ void process_attach_thread(process_t *process, thread_t *thread)
     MOS_ASSERT(process_is_valid(process));
     MOS_ASSERT(thread_is_valid(thread));
     MOS_ASSERT(thread->owner == process);
-    mos_debug(process, "process %d attached thread %d", process->pid, thread->tid);
+    mos_debug(process, "process %pp attached thread %pt", (void *) process, (void *) thread);
     MOS_ASSERT(process->threads_count < MOS_PROCESS_MAX_THREADS);
     MOS_ASSERT(process->threads[process->threads_count] == NULL);
     process->threads[process->threads_count++] = thread;
@@ -192,9 +193,9 @@ bool process_wait_for_pid(pid_t pid)
 void process_handle_exit(process_t *process, int exit_code)
 {
     MOS_ASSERT(process_is_valid(process));
-    mos_debug(process, "process %d exited with code %d", process->pid, exit_code);
+    mos_debug(process, "process %pp exited with code %d", (void *) process, exit_code);
 
-    mos_debug(process, "terminating all %lu threads owned by %d", process->threads_count, process->pid);
+    mos_debug(process, "terminating all %lu threads owned by %pp", process->threads_count, (void *) process);
     for (int i = 0; i < process->threads_count; i++)
     {
         // TODO: support signals for proper thread termination
@@ -202,7 +203,7 @@ void process_handle_exit(process_t *process, int exit_code)
         spinlock_acquire(&thread->state_lock);
         if (thread->state == THREAD_STATE_DEAD)
         {
-            mos_debug(process, "thread %d is already dead", thread->tid);
+            mos_debug(process, "thread %pt is already dead", (void *) thread);
         }
         else
         {
@@ -226,7 +227,7 @@ void process_handle_exit(process_t *process, int exit_code)
         }
     }
 
-    mos_debug(process, "closed %zu/%zu files owned by %d", files_closed, files_total, process->pid);
+    mos_debug(process, "closed %zu/%zu files owned by %pp", files_closed, files_total, (void *) process);
 
     dentry_unref(process->working_directory);
 
@@ -272,27 +273,25 @@ ptr_t process_grow_heap(process_t *process, size_t npages)
     const ptr_t heap_top = heap->vaddr + heap->npages * MOS_PAGE_SIZE;
 
     heap->npages += npages; // let the page fault handler do the rest of the allocation
-    mos_debug(process, "grew heap of process %d by %zu pages", process->pid, npages);
+    mos_debug(process, "grew heap of process %pp by %zu pages", (void *) process, npages);
     spinlock_release(&heap->lock);
     return heap_top + npages * MOS_PAGE_SIZE;
 }
 
 void process_dump_mmaps(const process_t *process)
 {
-    pr_info("process %d (%s):", process->pid, process->name);
+    pr_info("process %p:", (void *) process);
     size_t i = 0;
     list_foreach(vmap_t, map, process->mm->mmaps)
     {
         i++;
         const char *typestr = vmap_content_str[map->content];
         const char *forkmode = vmap_fork_behavior_str[map->fork_behavior];
-        pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%c%c%c%c%c, %s]: %s",
+        pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%pvf%c%c, %s]: %s",
                 i,                                    //
                 map->vaddr,                           //
                 map->npages,                          //
-                map->vmflags & VM_READ ? 'r' : '-',   //
-                map->vmflags & VM_WRITE ? 'w' : '-',  //
-                map->vmflags & VM_EXEC ? 'x' : '-',   //
+                (void *) &map->vmflags,               //
                 map->vmflags & VM_GLOBAL ? 'g' : '-', //
                 map->vmflags & VM_USER ? 'u' : '-',   //
                 forkmode,                             //
@@ -339,19 +338,17 @@ static bool process_sysfs_vmap_stat(sysfs_file_t *f)
     {
 #define stat_line(fmt) "   %8s: " fmt "\n"
         sysfs_printf(f,
-                     PTR_RANGE " [%c%c%c] %s%s%s\n"               //
+                     PTR_RANGE " [%pvf] %s %s%s\n"                //
                      stat_line("%s")                              //
                      stat_line("%zu pages")                       //
                      stat_line("%zu pages")                       //
                      stat_line("%zu pages"),                      //
                      vmap->vaddr,                                 //
                      vmap->vaddr + vmap->npages * MOS_PAGE_SIZE,  //
-                     vmap->vmflags & VM_READ ? 'r' : '-',         //
-                     vmap->vmflags & VM_WRITE ? 'w' : '-',        //
-                     vmap->vmflags & VM_EXEC ? 'x' : '-',         //
+                     (void *) &vmap->vmflags,                     //
                      vmap_fork_behavior_str[vmap->fork_behavior], //
-                     vmap->vmflags & VM_USER ? "" : "kernel ",    //
-                     vmap->vmflags & VM_GLOBAL ? "global " : "",  //
+                     vmap->vmflags & VM_USER ? "user" : "kernel", //
+                     vmap->vmflags & VM_GLOBAL ? " global" : "",  //
                      "Content", vmap_content_str[vmap->content],  //
                      "Total", vmap->npages,                       //
                      "InMem", vmap->stat.n_inmem,                 //

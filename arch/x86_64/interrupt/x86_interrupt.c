@@ -207,14 +207,12 @@ static void x86_handle_exception(x86_stack_frame *stack)
             {
                 if (MOS_DEBUG_FEATURE(cow))
                 {
-                    pr_emph("%s page fault: thread %d (%s), process %d (%s) at " PTR_FMT ", instruction " PTR_FMT, //
-                            is_user ? "user" : "kernel",                                                           //
-                            current->tid,                                                                          //
-                            current->name,                                                                         //
-                            current->owner->pid,                                                                   //
-                            current->owner->name,                                                                  //
-                            fault_address,                                                                         //
-                            (ptr_t) stack->iret_params.ip                                                          //
+                    pr_emph("%s page fault: thread %pt, process %pp at " PTR_FMT ", instruction " PTR_FMT, //
+                            is_user ? "user" : "kernel",                                                   //
+                            (void *) current,                                                              //
+                            (void *) current->owner,                                                       //
+                            fault_address,                                                                 //
+                            (ptr_t) stack->iret_params.ip                                                  //
                     );
                 }
 
@@ -247,8 +245,8 @@ static void x86_handle_exception(x86_stack_frame *stack)
                      fault_address                                      //
             );
             pr_emerg("  instruction: " PTR_FMT, (ptr_t) stack->iret_params.ip);
-            pr_emerg("  thread: %d (%s)", current->tid, current->name);
-            pr_emerg("  process: %d (%s)", current->owner->pid, current->owner->name);
+            pr_emerg("  thread: %pt", (void *) current);
+            pr_emerg("  process: %pp", current ? (void *) current->owner : NULL);
 
             if (fault_address < 1 KB)
                 pr_emerg("  possible null pointer dereference");
@@ -257,7 +255,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
                 pr_emerg("  kernel address dereference");
 
             if (stack->iret_params.ip > MOS_KERNEL_START_VADDR)
-                pr_emerg("  in kernel function '%s'", kallsyms_get_symbol_name(stack->iret_params.ip));
+                pr_emerg("  in kernel function %ps", (void *) stack->iret_params.ip);
 
             pr_emerg("  CR3: " PTR_FMT, x86_get_cr3() + platform_info->direct_map_base);
 
@@ -316,7 +314,7 @@ static void x86_handle_syscall(x86_stack_frame *frame)
 
     if (likely(current))
     {
-        MOS_ASSERT_X(current->state == THREAD_STATE_RUNNING, "thread %d is not in 'running' state", current->tid);
+        MOS_ASSERT_X(current->state == THREAD_STATE_RUNNING, "thread %pt is not in 'running' state", (void *) current);
 
         // flags may have been changed by platform_arch_syscall
         x86_process_options_t *options = current->owner->platform_options;

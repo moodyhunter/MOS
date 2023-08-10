@@ -11,18 +11,16 @@ static void pagetable_do_dump(ptr_t vaddr, ptr_t vaddr_end, vm_flags flags, pfn_
     if (vaddr - *prev_end_vaddr > MOS_PAGE_SIZE)
         pr_info("  VGROUP: " PTR_FMT, vaddr);
 
-    pr_info2("    " PTR_RANGE " -> " PFN_RANGE ", %5zd pages, %c%c%c, %c%c, %s", //
-             vaddr,                                                              //
-             vaddr_end,                                                          //
-             pfn,                                                                //
-             pfn_end,                                                            //
-             (ALIGN_UP_TO_PAGE(vaddr_end) - vaddr) / MOS_PAGE_SIZE,              //
-             flags & VM_READ ? 'r' : '-',                                        //
-             flags & VM_WRITE ? 'w' : '-',                                       //
-             flags & VM_EXEC ? 'x' : '-',                                        //
-             flags & VM_CACHE_DISABLED ? 'C' : '-',                              //
-             flags & VM_GLOBAL ? 'G' : '-',                                      //
-             flags & VM_USER ? "user" : "kernel"                                 //
+    pr_info2("    " PTR_RANGE " -> " PFN_RANGE ", %5zd pages, %pvf, %c%c, %s", //
+             vaddr,                                                            //
+             vaddr_end,                                                        //
+             pfn,                                                              //
+             pfn_end,                                                          //
+             (ALIGN_UP_TO_PAGE(vaddr_end) - vaddr) / MOS_PAGE_SIZE,            //
+             (void *) &flags,                                                  //
+             flags & VM_CACHE_DISABLED ? 'C' : '-',                            //
+             flags & VM_GLOBAL ? 'G' : '-',                                    //
+             flags & VM_USER ? "user" : "kernel"                               //
     );
 
     *prev_end_vaddr = vaddr_end;
@@ -56,7 +54,7 @@ void mm_dump_current_pagetable()
 
     if (current_thread)
     {
-        pr_emph("Current task: %s (tid: %d, pid: %d)", current_process->name, current_thread->tid, current_process->pid);
+        pr_emph("Current task: thread %pt, process %pp", (void *) current_thread, (void *) current_process);
         pr_emph("Task Page Table:");
         mm_dump_pagetable(current_process->mm);
         if (current_cpu->mm_context == current_process->mm)

@@ -8,3 +8,4 @@ alias ..... 'cd ../../../..'
 # show system memory usage
 alias meminfo 'cat /sys/mmstat/stat'
 alias slabinfo 'cat /sys/slab/status'
+alias vmaps 'cat /sys/current/vmaps'

@@ -81,8 +81,7 @@ static void lvprintk(mos_log_level_t loglevel, const char *fmt, va_list args)
         return;
 
     char message[PRINTK_BUFFER_SIZE];
-    vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
-    const size_t len = strlen(message);
+    const int len = vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
 
     if (likely(printk_console))
     {

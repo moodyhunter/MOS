@@ -36,7 +36,7 @@ void x86_switch_impl_setup_user_thread(void)
 
     if (is_forked)
     {
-        mos_debug(scheduler, "cpu %d: setting up forked thread (%d) of process '%s' (%d)", current_cpu->id, current->tid, current->owner->name, current->owner->pid);
+        mos_debug(scheduler, "cpu %d: setting up forked thread %pt of process %pp", current_cpu->id, (void *) current, (void *) current->owner);
         return;
     }
 
@@ -45,10 +45,10 @@ void x86_switch_impl_setup_user_thread(void)
         // for the main thread, we have to push all argv structures onto the stack
         // for any other threads, only a pointer specified by the user is passed by register RDI
         // set up the main thread of a 'new' process (not forked)
-        mos_debug(scheduler, "cpu %d: setting up main thread (%d) of process '%s' (%d)", current_cpu->id, current->tid, current->owner->name, current->owner->pid);
+        mos_debug(scheduler, "cpu %d: setting up main thread %pt of process %pp", current_cpu->id, (void *) current, (void *) current->owner);
 
         // the main thread of a process has no arg, because it uses argv
-        MOS_ASSERT_X(context->arg == NULL, "arg should be NULL for the 'main' thread of process '%s' (%d)", current->owner->name, current->owner->pid);
+        MOS_ASSERT_X(context->arg == NULL, "arg should be NULL for the 'main' thread of process %pp", (void *) current->owner);
 
         const char *const *const src_argv = current->owner->argv.argv;
         const size_t argc = current->owner->argv.argc;

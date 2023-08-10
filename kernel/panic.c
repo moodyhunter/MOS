@@ -133,5 +133,5 @@ void mos_kwarn(const char *func, u32 line, const char *fmt, ...)
 void install_panic_hook(panic_hook_holder_t *hook)
 {
     list_node_append(&kpanic_hooks, list_node(hook));
-    pr_info2("installed panic hook '%s' at %p", hook->name, (void *) hook);
+    pr_info2("installed panic hook '%s' at %ps", hook->name, (void *) hook->hook);
 }
