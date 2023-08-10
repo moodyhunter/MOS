@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/filesystem/sysfs/sysfs.h"
+#include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/mm/slab.h"
 #include "mos/mm/slab_autoinit.h"
 
-#include <mos/filesystem/ipcfs/ipcfs.h>
 #include <mos/io/io.h>
 #include <mos/ipc/ipc.h>
+#include <mos/lib/structures/list.h>
 #include <mos/lib/structures/ring_buffer.h>
 #include <mos/mm/ipcshm/ipcshm.h>
 #include <mos/mos_global.h>
@@ -17,11 +19,14 @@
 
 #define IPC_SERVER_MAGIC MOS_FOURCC('I', 'P', 'C', 'S')
 
+static list_head ipc_servers = LIST_HEAD_INIT(ipc_servers);
+
 static slab_t *ipc_slab = NULL;
 MOS_SLAB_AUTOINIT("ipc", ipc_slab, ipc_t);
 
 typedef struct
 {
+    as_linked_list;
     u32 magic;
     io_t io;
     ipcshm_server_t *shm_server;
@@ -38,6 +43,7 @@ static void ipc_server_io_close(io_t *io)
 
     ipcshm_server_t *shm_server = ipc_server->shm_server;
     ipcshm_deannounce(shm_server); // shm_server is freed by ipcshm_deannounce
+    list_remove(ipc_server);
     kfree(ipc_server);
     // existing connections are not closed (they have their own io_t)
 }
@@ -110,7 +116,6 @@ static const io_op_t ipc_connection_op = {
 void ipc_init(void)
 {
     pr_info("initializing IPC subsystem");
-    ipcfs_init();
     ipcshm_init();
 }
 
@@ -121,9 +126,11 @@ io_t *ipc_create(const char *name, size_t max_pending)
         return NULL;
 
     ipc_server_t *ipc_server = kzalloc(sizeof(ipc_server_t));
+    linked_list_init(list_node(ipc_server));
     ipc_server->shm_server = server;
     ipc_server->magic = IPC_SERVER_MAGIC;
     io_init(&ipc_server->io, IO_IPC, IO_NONE, &ipc_server_op);
+    list_node_append(&ipc_servers, list_node(ipc_server));
     return &ipc_server->io;
 }
 
@@ -175,3 +182,22 @@ io_t *ipc_connect(const char *name, size_t buffer_size)
     io_init(&ipc->client.io, IO_IPC, IO_READABLE | IO_WRITABLE, &ipc_connection_op);
     return io_ref(&ipc->client.io);
 }
+
+// ! sysfs support
+
+static bool ipc_sysfs_servers(sysfs_file_t *f)
+{
+    list_foreach(ipc_server_t, ipc, ipc_servers)
+    {
+        sysfs_printf(f, "%20s, max_pending=%zu\n", ipc->shm_server->name, ipc->shm_server->max_pending);
+    }
+
+    return true;
+}
+
+sysfs_item_t ipc_sysfs_items[] = {
+    SYSFS_RO_ITEM("servers", ipc_sysfs_servers),
+    SYSFS_END_ITEM,
+};
+
+SYSFS_AUTOREGISTER(ipc, ipc_sysfs_items);
