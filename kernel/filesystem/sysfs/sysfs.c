@@ -7,6 +7,7 @@
 #include "mos/filesystem/vfs_types.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/table_ops.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab.h"
 #include "mos/setup.h"
 
@@ -21,8 +22,8 @@ typedef struct _sysfs_file
 {
     const sysfs_item_t *item;
 
-    char *buf;
-    ssize_t buf_head;
+    phyframe_t *buf_page;
+    ssize_t buf_head_offset;
     ssize_t buf_npages;
 } sysfs_file_t;
 
@@ -44,27 +45,30 @@ void sysfs_register(sysfs_dir_t *entry)
 ssize_t sysfs_printf(sysfs_file_t *file, const char *fmt, ...)
 {
 retry_printf:;
-    const size_t spaces_left = file->buf_npages * MOS_PAGE_SIZE - file->buf_head;
+    const size_t spaces_left = file->buf_npages * MOS_PAGE_SIZE - file->buf_head_offset;
 
     va_list args;
     va_start(args, fmt);
-    ssize_t written = vsnprintf(file->buf + file->buf_head, spaces_left, fmt, args);
+    size_t written = vsnprintf((char *) phyframe_va(file->buf_page) + file->buf_head_offset, spaces_left, fmt, args);
     va_end(args);
 
-    if (file->buf_head + written >= file->buf_npages * MOS_PAGE_SIZE)
+    MOS_ASSERT_X(written <= spaces_left, "sysfs_printf: vsnprintf wrote more than it should have");
+
+    if (written == spaces_left)
     {
+        phyframe_t *oldbuf_page = file->buf_page;
+        const size_t oldbuf_npages = file->buf_npages;
+
         // We need to allocate more pages
-        const size_t npages = (file->buf_head + written) / MOS_PAGE_SIZE + 1;
-        const size_t old_size = file->buf_npages * MOS_PAGE_SIZE;
-        const ptr_t new_buf = phyframe_va(mm_get_free_pages(npages));
-        memcpy((void *) new_buf, file->buf, old_size);
-        pmm_unref(va_phyframe(file->buf), file->buf_npages);
-        file->buf = (void *) new_buf;
-        file->buf_npages = npages;
+        file->buf_npages = (file->buf_head_offset + written) / MOS_PAGE_SIZE + 1;
+        file->buf_page = mm_get_free_pages(file->buf_npages);
+
+        memcpy((char *) phyframe_va(file->buf_page), (char *) phyframe_va(oldbuf_page), oldbuf_npages * MOS_PAGE_SIZE);
+        mm_free_pages(oldbuf_page, oldbuf_npages);
         goto retry_printf;
     }
 
-    file->buf_head += written;
+    file->buf_head_offset += written;
     return written;
 }
 
@@ -72,9 +76,9 @@ static bool sysfs_fops_open(inode_t *i, file_t *file)
 {
     mos_debug(vfs, "sysfs: opening %s in %s", file->dentry->name, dentry_parent(file->dentry)->name);
     sysfs_file_t *f = i->private;
-    f->buf = (void *) phyframe_va(mm_get_free_page());
+    f->buf_page = mm_get_free_page();
     f->buf_npages = 1;
-    f->buf_head = 0;
+    f->buf_head_offset = 0;
     MOS_ASSERT(f->item->show);
     return f->item->show(f);
 }
@@ -83,20 +87,21 @@ static void sysfs_fops_release(file_t *file)
 {
     mos_debug(vfs, "sysfs: closing %s in %s", file->dentry->name, dentry_parent(file->dentry)->name);
     sysfs_file_t *f = file->dentry->inode->private;
-    pmm_unref(va_phyframe(f->buf), f->buf_npages);
+    pmm_unref(f->buf_page, f->buf_npages);
 }
 
 static ssize_t sysfs_fops_read(const file_t *file, void *buf, size_t size, off_t offset)
 {
     sysfs_file_t *f = file->dentry->inode->private;
 
-    if (offset >= f->buf_head)
+    if (offset >= f->buf_head_offset)
         return 0;
 
+    const char *const buf_va = (char *) phyframe_va(f->buf_page);
     const size_t begin = offset;
-    const size_t end = MIN(offset + size, (size_t) f->buf_head);
+    const size_t end = MIN(offset + size, (size_t) f->buf_head_offset);
 
-    memcpy((char *) buf, f->buf + begin, end - begin);
+    memcpy((char *) buf, buf_va + begin, end - begin);
     return end - begin;
 }
 
