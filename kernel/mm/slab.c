@@ -41,6 +41,8 @@ static const struct
     // they can be allocated directly by allocating pages
 };
 
+static slab_t slab_slab = { 0 };
+
 static slab_t slabs[MOS_ARRAY_SIZE(BUILTIN_SLAB_SIZES)] = { 0 };
 static list_head slabs_list = LIST_HEAD_INIT(slabs_list);
 
@@ -114,6 +116,10 @@ static void kmemcache_free(slab_t *slab, const void *addr);
 void slab_init(void)
 {
     pr_info("initializing the slab allocator");
+
+    slab_init_one(&slab_slab, "slab_t", sizeof(slab_t));
+    slab_allocate_mem(&slab_slab);
+
     for (size_t i = 0; i < MOS_ARRAY_SIZE(BUILTIN_SLAB_SIZES); i++)
     {
         slab_init_one(&slabs[i], BUILTIN_SLAB_SIZES[i].name, BUILTIN_SLAB_SIZES[i].size);
@@ -212,7 +218,7 @@ void slab_free(const void *ptr)
 
 slab_t *kmemcache_create(const char *name, size_t ent_size)
 {
-    slab_t *slab = kzalloc(sizeof(slab_t)); // slab_t cache for itself?
+    slab_t *slab = kmemcache_alloc(&slab_slab);
     slab_init_one(slab, name, ent_size);
     slab_allocate_mem(slab);
     return slab;
