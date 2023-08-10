@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/mm/mm.h"
+#include "mos/mm/mmstat.h"
 #include "mos/mm/paging/pmlx/pml4.h"
 #include "mos/mm/paging/table_ops.h"
 #include "mos/mm/slab.h"
@@ -105,25 +106,20 @@ vmap_t *mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, va
     mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, n_pages, vmap->vaddr, pfn);
 
     vmap->vmflags = flags;
-    mm_do_map(mmctx->pgd, vmap->vaddr, pfn, n_pages, flags);
+    vmap->stat.n_inmem = n_pages;
+
+    mm_do_map(mmctx->pgd, vmap->vaddr, pfn, n_pages, flags, true);
     spinlock_release(&mmctx->mm_lock);
-
-    // TODO: update the vmap stat
     return vmap;
-}
-
-void mm_map_pages_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
-{
-    MOS_ASSERT(spinlock_is_locked(&ctx->mm_lock));
-    MOS_ASSERT(npages > 0);
-    mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, npages, vaddr, pfn);
-    mm_do_map(ctx->pgd, vaddr, pfn, npages, flags);
 }
 
 void mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
 {
+    MOS_ASSERT(vaddr >= MOS_KERNEL_START_VADDR);
+    MOS_ASSERT(npages > 0);
     spinlock_acquire(&mmctx->mm_lock);
-    mm_map_pages_locked(mmctx, vaddr, pfn, npages, flags);
+    mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, npages, vaddr, pfn);
+    mm_do_map(mmctx->pgd, vaddr, pfn, npages, flags, false);
     spinlock_release(&mmctx->mm_lock);
 }
 
@@ -140,7 +136,8 @@ vmap_t *mm_map_pages_to_user(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t
 
     mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, npages, vmap->vaddr, pfn);
     vmap->vmflags = flags;
-    mm_do_map(mmctx->pgd, vmap->vaddr, pfn, npages, flags);
+    vmap->stat.n_inmem = npages;
+    mm_do_map(mmctx->pgd, vmap->vaddr, pfn, npages, flags, true);
     spinlock_release(&mmctx->mm_lock);
     return vmap;
 }
@@ -167,7 +164,7 @@ void mm_replace_page_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, vm_flags 
         return; // nothing to do
 
     pmm_ref_one(pfn);
-    mm_do_map(ctx->pgd, vaddr, pfn, 1, flags);
+    mm_do_map(ctx->pgd, vaddr, pfn, 1, flags, false);
 }
 
 vmap_t *mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx)
@@ -183,15 +180,13 @@ vmap_t *mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx)
 
     mos_debug(vmm, "copying mapping from " PTR_FMT ", %zu pages", src_vmap->vaddr, src_vmap->npages);
     mm_do_copy(src_vmap->mmctx->pgd, dst_vmap->mmctx->pgd, src_vmap->vaddr, src_vmap->npages);
-    return dst_vmap;
-}
 
-vmap_t *mm_clone_vmap(vmap_t *src_vmap, mm_context_t *dst_ctx)
-{
-    mm_lock_ctx_pair(src_vmap->mmctx, dst_ctx);
-    vmap_t *vmap = mm_clone_vmap_locked(src_vmap, dst_ctx);
-    mm_unlock_ctx_pair(src_vmap->mmctx, dst_ctx);
-    return vmap;
+    dst_vmap->stat = src_vmap->stat;
+    dst_vmap->content = src_vmap->content;
+    dst_vmap->vmflags = src_vmap->vmflags;
+    dst_vmap->fork_behavior = src_vmap->fork_behavior;
+
+    return dst_vmap;
 }
 
 bool mm_get_is_mapped_locked(mm_context_t *mmctx, ptr_t vaddr)

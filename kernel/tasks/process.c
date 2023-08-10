@@ -2,6 +2,8 @@
 
 #include "mos/tasks/process.h"
 
+#include "mos/filesystem/sysfs/sysfs.h"
+#include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/slab_autoinit.h"
 
@@ -24,6 +26,15 @@
 #include <string.h>
 
 hashmap_t process_table = { 0 }; // pid_t -> process_t
+
+static const char *vmap_content_str[] = {
+    [VMAP_UNKNOWN] = "unknown", [VMAP_CODE] = "code", [VMAP_DATA] = "data", [VMAP_HEAP] = "heap", [VMAP_STACK] = "stack", [VMAP_FILE] = "file", [VMAP_MMAP] = "mmap",
+};
+
+static const char *vmap_fork_behavior_str[] = {
+    [VMAP_FORK_SHARED] = "shared",
+    [VMAP_FORK_PRIVATE] = "private",
+};
 
 static pid_t new_process_id(void)
 {
@@ -273,27 +284,9 @@ void process_dump_mmaps(const process_t *process)
     list_foreach(vmap_t, map, process->mm->mmaps)
     {
         i++;
-        const char *typestr = "<unknown>";
-        switch (map->content)
-        {
-            case VMAP_CODE: typestr = "code"; break;
-            case VMAP_DATA: typestr = "data"; break;
-            case VMAP_HEAP: typestr = "heap"; break;
-            case VMAP_STACK: typestr = "stack"; break;
-            case VMAP_FILE: typestr = "file"; break;
-            case VMAP_MMAP: typestr = "mmap"; break;
-            default: mos_warn("unknown memory region type %x", map->content);
-        };
-
-        char forkmode = '-';
-        switch (map->fork_behavior)
-        {
-            case VMAP_FORK_SHARED: forkmode = 's'; break;
-            case VMAP_FORK_PRIVATE: forkmode = 'p'; break;
-            default: mos_warn("unknown fork mode %x", map->fork_behavior);
-        }
-
-        pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%c%c%c%c%c, %c]: %s",
+        const char *typestr = vmap_content_str[map->content];
+        const char *forkmode = vmap_fork_behavior_str[map->fork_behavior];
+        pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%c%c%c%c%c, %s]: %s",
                 i,                                    //
                 map->vaddr,                           //
                 map->npages,                          //
@@ -318,3 +311,62 @@ bool process_register_signal_handler(process_t *process, signal_t sig, signal_ac
     MOS_UNUSED(sigaction);
     return false;
 }
+
+// ! sysfs support
+
+#define do_print(fmt, name, item) sysfs_printf(f, "%-10s: " fmt "\n", name, item);
+
+static bool process_sysfs_process_stat(sysfs_file_t *f)
+{
+    do_print("%d", "pid", current_process->pid);
+    do_print("%s", "name", current_process->name);
+
+    do_print("%d", "parent", current_process->parent->pid);
+    do_print("%zd", "n_threads", current_process->threads_count);
+    return true;
+}
+
+static bool process_sysfs_thread_stat(sysfs_file_t *f)
+{
+    do_print("%d", "tid", current_thread->tid);
+    do_print("%s", "name", current_thread->name);
+    return true;
+}
+
+static bool process_sysfs_vmap_stat(sysfs_file_t *f)
+{
+    list_foreach(vmap_t, vmap, current_mm->mmaps)
+    {
+#define stat_line(fmt) "   %8s: " fmt "\n"
+        sysfs_printf(f,
+                     PTR_RANGE " [%c%c%c] %s%s%s\n"               //
+                     stat_line("%s")                              //
+                     stat_line("%zu pages")                       //
+                     stat_line("%zu pages")                       //
+                     stat_line("%zu pages"),                      //
+                     vmap->vaddr,                                 //
+                     vmap->vaddr + vmap->npages * MOS_PAGE_SIZE,  //
+                     vmap->vmflags & VM_READ ? 'r' : '-',         //
+                     vmap->vmflags & VM_WRITE ? 'w' : '-',        //
+                     vmap->vmflags & VM_EXEC ? 'x' : '-',         //
+                     vmap_fork_behavior_str[vmap->fork_behavior], //
+                     vmap->vmflags & VM_USER ? "" : "kernel ",    //
+                     vmap->vmflags & VM_GLOBAL ? "global " : "",  //
+                     "Content", vmap_content_str[vmap->content],  //
+                     "Total", vmap->npages,                       //
+                     "InMem", vmap->stat.n_inmem,                 //
+                     "CoW", vmap->stat.n_cow                      //
+        );
+#undef stat_line
+    }
+    return true;
+}
+
+static sysfs_item_t process_sysfs_items[] = {
+    SYSFS_RO_ITEM("process", process_sysfs_process_stat),
+    SYSFS_RO_ITEM("thread", process_sysfs_thread_stat),
+    SYSFS_RO_ITEM("vmaps", process_sysfs_vmap_stat),
+    SYSFS_END_ITEM,
+};
+
+SYSFS_AUTOREGISTER(current, process_sysfs_items);

@@ -176,7 +176,6 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
                 {
                     mos_debug(elf, "copying %zu pages from " PTR_FMT " to address " PTR_FMT, A_npages, (ptr_t) buf + A_file_offset, A_vaddr);
                     const pfn_t A_pfn = phyframe_pfn(buf_frames) + A_file_offset / MOS_PAGE_SIZE;
-                    pmm_ref(A_pfn, A_npages);
                     vmap_t *vmap = mm_map_pages_to_user(proc->mm, A_vaddr, A_pfn, A_npages, flags);
                     vmap_finalise_init(vmap, content, VMAP_FORK_PRIVATE);
                 }
@@ -199,7 +198,6 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
 
                     // copy mapping for the leftover memory
                     mos_debug(elf, "elf: leftover %lu bytes from " PTR_FMT " to " PTR_FMT, ph->size_in_file - A_npages * MOS_PAGE_SIZE, phyframe_va(page), B_vaddr);
-                    pmm_ref_one(page);
                     vmap_t *vmap = mm_map_pages_to_user(proc->mm, B_vaddr, phyframe_pfn(page), 1, flags);
                     vmap_finalise_init(vmap, content, VMAP_FORK_PRIVATE);
                 }
@@ -211,9 +209,8 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
                     const ptr_t C_vaddr = ALIGN_UP_TO_PAGE(ph->vaddr + ph->size_in_file);
 
                     mos_debug(elf, "elf: allocating %zu zero pages at " PTR_FMT, C_npages, C_vaddr);
-                    cow_allocate_zeroed_pages(proc->mm, C_npages, C_vaddr, VALLOC_DEFAULT, VM_RW);
-                    // block.flags = flags;
-                    // mm_attach_vmap(proc->mm, mm_new_vmap(block, content, (vmap_flags_t){ 0 }));
+                    vmap_t *vmap = cow_allocate_zeroed_pages(proc->mm, C_npages, C_vaddr, VALLOC_DEFAULT, VM_RW);
+                    vmap_finalise_init(vmap, content, VMAP_FORK_PRIVATE);
                 }
 
                 break;

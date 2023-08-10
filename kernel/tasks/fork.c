@@ -38,6 +38,7 @@ process_t *process_handle_fork(process_t *parent)
 
     // copy the parent's memory
 
+    mm_lock_ctx_pair(parent->mm, child_p->mm);
     list_foreach(vmap_t, vmap_p, parent->mm->mmaps)
     {
         pr_info2(FORKFMT, parent->pid, child_p->pid, fork_behavior_string[vmap_p->fork_behavior], vmap_p->vaddr, vmap_p->npages, vmap_p->vmflags);
@@ -45,13 +46,13 @@ process_t *process_handle_fork(process_t *parent)
         {
             case VMAP_FORK_SHARED:
             {
-                vmap_t *child_vmap = mm_clone_vmap(vmap_p, child_p->mm);
+                vmap_t *child_vmap = mm_clone_vmap_locked(vmap_p, child_p->mm);
                 vmap_finalise_init(child_vmap, vmap_p->content, vmap_p->fork_behavior);
                 break;
             }
             case VMAP_FORK_PRIVATE:
             {
-                vmap_t *child_vmap = cow_clone_vmap(child_p->mm, vmap_p);
+                vmap_t *child_vmap = cow_clone_vmap_locked(child_p->mm, vmap_p);
                 vmap_finalise_init(child_vmap, vmap_p->content, vmap_p->fork_behavior);
                 break;
             }
@@ -59,6 +60,7 @@ process_t *process_handle_fork(process_t *parent)
             default: mos_panic("unknown vmap"); break;
         }
     }
+    mm_unlock_ctx_pair(parent->mm, child_p->mm);
 
     // copy the parent's files
     for (int i = 0; i < MOS_PROCESS_MAX_OPEN_FILES; i++)

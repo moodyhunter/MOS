@@ -22,7 +22,7 @@
 static phyframe_t *zero_page;
 static pfn_t zero_page_pfn;
 
-static bool cow_fault_handler(vmap_t *map, ptr_t fault_addr, const pagefault_info_t *info)
+static bool cow_fault_handler(vmap_t *vmap, ptr_t fault_addr, const pagefault_info_t *info)
 {
     if (!info->op_write)
         return false;
@@ -31,7 +31,7 @@ static bool cow_fault_handler(vmap_t *map, ptr_t fault_addr, const pagefault_inf
         return false;
 
     // if the block is CoW, it must be writable
-    if (!(map->vmflags & VM_WRITE))
+    if (!(vmap->vmflags & VM_WRITE))
         return false;
 
     fault_addr = ALIGN_DOWN_TO_PAGE(fault_addr);
@@ -45,11 +45,11 @@ static bool cow_fault_handler(vmap_t *map, ptr_t fault_addr, const pagefault_inf
     // 3. replace the faulting phypage with the new one
     //    this will increment the refcount of the new page, ...
     //    ...and also decrement the refcount of the old page
+    mm_replace_page_locked(current_mm, fault_addr, phyframe_pfn(frame), vmap->vmflags);
 
-    mm_context_t *mmctx = current_mm;
-    mm_replace_page_locked(mmctx, fault_addr, phyframe_pfn(frame), map->vmflags);
-
+    // 4. invalidate the TLB
     ipi_send_all(IPI_TYPE_INVALIDATE_TLB);
+    vmap_mstat_dec(vmap, cow, 1);
     return true;
 }
 
@@ -60,19 +60,17 @@ void cow_init(void)
     zero_page_pfn = phyframe_pfn(zero_page);
 }
 
-vmap_t *cow_clone_vmap(mm_context_t *target_mmctx, vmap_t *source_vmap)
+vmap_t *cow_clone_vmap_locked(mm_context_t *target_mmctx, vmap_t *src_vmap)
 {
-    const vm_flags original_flags = source_vmap->vmflags;
+    // remove that VM_WRITE flag
+    mm_flag_pages_locked(src_vmap->mmctx, src_vmap->vaddr, src_vmap->npages, src_vmap->vmflags & ~VM_WRITE);
 
-    mm_lock_ctx_pair(target_mmctx, source_vmap->mmctx);
-    mm_flag_pages_locked(source_vmap->mmctx, source_vmap->vaddr, source_vmap->npages, original_flags & ~VM_WRITE); // remove that VM_WRITE flag
-    vmap_t *vmap = mm_clone_vmap_locked(source_vmap, target_mmctx);                                                // already flagged correctly
-    mm_unlock_ctx_pair(target_mmctx, source_vmap->mmctx);
+    vmap_t *dst_vmap = mm_clone_vmap_locked(src_vmap, target_mmctx);
 
-    vmap->vmflags = original_flags; // use the expected vmflag, not the one in the page table
-    vmap->on_fault = cow_fault_handler;
-    source_vmap->on_fault = cow_fault_handler;
-    return vmap;
+    dst_vmap->on_fault = src_vmap->on_fault = cow_fault_handler;
+    dst_vmap->stat.n_cow = dst_vmap->stat.n_inmem;
+    src_vmap->stat.n_cow = src_vmap->stat.n_inmem;
+    return dst_vmap;
 }
 
 vmap_t *cow_allocate_zeroed_pages(mm_context_t *mmctx, size_t npages, ptr_t vaddr, valloc_flags allocflags, vm_flags flags)
@@ -90,5 +88,8 @@ vmap_t *cow_allocate_zeroed_pages(mm_context_t *mmctx, size_t npages, ptr_t vadd
 
     vmap->vmflags = flags;
     vmap->on_fault = cow_fault_handler;
+    vmap->stat.n_cow = npages;
+    vmap->stat.n_inmem = npages;
+
     return vmap;
 }

@@ -195,7 +195,7 @@ static bool ipc_sysfs_servers(sysfs_file_t *f)
     return true;
 }
 
-sysfs_item_t ipc_sysfs_items[] = {
+static sysfs_item_t ipc_sysfs_items[] = {
     SYSFS_RO_ITEM("servers", ipc_sysfs_servers),
     SYSFS_END_ITEM,
 };

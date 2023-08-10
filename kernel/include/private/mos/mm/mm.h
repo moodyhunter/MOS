@@ -71,19 +71,43 @@ mm_context_t *mm_create_context(void);
  */
 void mm_destroy_context(mm_context_t *table);
 
+/**
+ * @brief Lock and unlock a pair of mm_context_t objects.
+ *
+ * @param ctx1 The first context
+ * @param ctx2 The second context
+ */
 void mm_lock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2);
 void mm_unlock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2);
 
 /**
  * @brief Create a vmap object and insert it into the address space.
  *
- * @param mmctx
- * @param vaddr
- * @param npages
+ * @param mmctx The address space
+ * @param vaddr Starting virtual address of the region
+ * @param npages Number of pages in the region
  * @return vmap_t* The created vmap object, with its lock held for further initialization.
  */
 vmap_t *vmap_create(mm_context_t *mmctx, ptr_t vaddr, size_t npages);
+
+/**
+ * @brief Get the vmap object for a virtual address.
+ *
+ * @param mmctx The address space to search
+ * @param vaddr The virtual address
+ * @param out_offset An optional pointer to receive the offset of the address in the vmap
+ * @return vmap_t* The vmap object, or NULL if not found, with its lock held.
+ */
 vmap_t *vmap_obtain(mm_context_t *mmctx, ptr_t vaddr, size_t *out_offset);
+
+/**
+ * @brief Finalize the initialization of a vmap object.
+ *
+ * @param vmap The vmap object
+ * @param content The content type of the region, \see vmap_content_t
+ * @param fork_behavior The fork behavior of the region, \see vmap_fork_behavior_t
+ * @note The vmap object must be locked, and will be unlocked after this function returns.
+ */
 void vmap_finalise_init(vmap_t *vmap, vmap_content_t content, vmap_fork_behavior_t fork_behavior);
 
 /**

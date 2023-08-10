@@ -19,10 +19,8 @@ typedef enum
  */
 typedef struct
 {
-    // number of private/shared pages in the vmap area, and the actual # of pages in memory.
-    size_t n_private, n_private_inmem; ///< Number of private pages.
-    size_t n_shared, n_shared_inmem;   ///< Number of shared pages.
-    size_t n_cow;                      ///< Number of CoW pages (which become private pages when written to).
+    size_t n_inmem; ///< Number of pages in memory.
+    size_t n_cow;   ///< Number of pages in copy-on-write state.
 } vmap_mstat_t;
 
 extern const char *mem_type_names[_MEM_MAX_TYPES];
@@ -44,3 +42,6 @@ void mmstat_inc(mmstat_type_t type, size_t size);
  */
 void mmstat_dec(mmstat_type_t type, size_t size);
 #define mmstat_dec1(type) mmstat_dec(type, 1)
+
+#define vmap_mstat_inc(vmap, type, size) (vmap)->stat.n_##type += (size)
+#define vmap_mstat_dec(vmap, type, size) (vmap)->stat.n_##type -= (size)

@@ -23,7 +23,7 @@ void cow_init(void);
  * @param flags VM flags to use, VM_WRITE will be ignored
  * @return vmblock_t The allocated block, but with original flags set
  */
-vmap_t *cow_clone_vmap(mm_context_t *target_mmctx, vmap_t *source_vmap);
+vmap_t *cow_clone_vmap_locked(mm_context_t *target_mmctx, vmap_t *source_vmap);
 
 /**
  * @brief Allocate zero-on-demand pages at a specific address

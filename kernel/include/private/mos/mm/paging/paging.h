@@ -77,7 +77,6 @@ vmap_t *mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, va
  * pages you want to map.
  */
 void mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
-void mm_map_pages_locked(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
 vmap_t *mm_map_pages_to_user(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
 
 /**
@@ -123,7 +122,6 @@ void mm_replace_page_locked(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, vm_flag
  * @note If clear_dest is set to true, then the destination page table is cleared before copying, otherwise
  * the function assumes that there are no existing mappings in the destination page table.
  */
-vmap_t *mm_clone_vmap(vmap_t *src_vmap, mm_context_t *dst_ctx);
 vmap_t *mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx);
 
 /**

@@ -85,10 +85,7 @@ mm_context_t *mm_create_context(void)
 
     // map the upper half of the address space to the kernel
     for (int i = pml4_index(MOS_KERNEL_START_VADDR); i < PML4_ENTRIES; i++)
-    {
-        const pml4e_t *kpml4e = &platform_info->kernel_mm->pgd.max.next.table[i];
-        pml4.table[i].content = kpml4e->content;
-    }
+        pml4.table[i] = platform_info->kernel_mm->pgd.max.next.table[i];
 
     mmctx->pgd = pgd_create(pml4);
 
@@ -162,7 +159,6 @@ vmap_t *vmap_create(mm_context_t *mmctx, ptr_t vaddr, size_t npages)
     spinlock_acquire(&map->lock);
     map->vaddr = vaddr;
     map->npages = npages;
-    map->content = VMAP_UNKNOWN;
     do_attach_vmap(mmctx, map);
     return map;
 }
@@ -189,8 +185,9 @@ vmap_t *vmap_obtain(mm_context_t *mmctx, ptr_t vaddr, size_t *out_offset)
 
 void vmap_finalise_init(vmap_t *vmap, vmap_content_t content, vmap_fork_behavior_t fork_behavior)
 {
-    MOS_ASSERT_X(vmap->content == VMAP_UNKNOWN, "vmap is already setup");
+    MOS_ASSERT(spinlock_is_locked(&vmap->lock));
     MOS_ASSERT_X(content != VMAP_UNKNOWN, "vmap content cannot be unknown");
+    MOS_ASSERT_X(vmap->content == VMAP_UNKNOWN || vmap->content == content, "vmap is already setup");
 
     vmap->content = content;
     vmap->fork_behavior = fork_behavior;
@@ -210,7 +207,8 @@ static bool fallback_fault_handler(vmap_t *vmap, ptr_t fault_addr, const pagefau
     }
 
     phyframe_t *frame = mm_get_free_page();
-    mm_map_pages_locked(vmap->mmctx, fault_addr, phyframe_pfn(frame), 1, info->userfault ? VM_USER_RW : VM_RW);
+    mm_do_map(vmap->mmctx->pgd, fault_addr, phyframe_pfn(frame), 1, info->userfault ? VM_USER_RW : VM_RW, true);
+    vmap_mstat_inc(vmap, inmem, 1);
     return true;
 }
 

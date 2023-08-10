@@ -8,7 +8,7 @@
 
 const acpi_madt_t *x86_acpi_madt = NULL;
 u32 x86_cpu_lapic[MOS_MAX_CPU_COUNT] = { 0 };
-ptr_t x86_ioapic_address = 0;
+ptr_t x86_ioapic_phyaddr = 0;
 
 #define IOAPIC_IRQ_OVERRIDE_MAX 255 // u8 can hold up to 255
 static u32 ioapic_irq_override[IOAPIC_IRQ_OVERRIDE_MAX] = { 0 };
@@ -54,9 +54,9 @@ void madt_parse_table()
                 acpi_madt_et1_ioapic_t *ioapic = container_of(entry, acpi_madt_et1_ioapic_t, header);
                 mos_debug(x86_acpi, "MADT entry IOAPIC [%p], id=%u, address=%x, global_irq_base=%u", (void *) ioapic, ioapic->id, ioapic->address,
                           ioapic->global_intr_base);
-                if (unlikely(x86_ioapic_address))
+                if (unlikely(x86_ioapic_phyaddr))
                     mos_panic("Multiple IOAPICs not supported");
-                x86_ioapic_address = ioapic->address;
+                x86_ioapic_phyaddr = ioapic->address;
                 break;
             }
             case 2:

@@ -20,9 +20,9 @@
 
 #include <mos/types.h>
 
-void mm_do_map(pgd_t pgd, ptr_t vaddr, pfn_t pfn, size_t n_pages, vm_flags flags)
+void mm_do_map(pgd_t pgd, ptr_t vaddr, pfn_t pfn, size_t n_pages, vm_flags flags, bool do_refcount)
 {
-    struct pagetable_do_map_data data = { .pfn = pfn, .flags = flags };
+    struct pagetable_do_map_data data = { .pfn = pfn, .flags = flags, .do_refcount = do_refcount };
     pml5_traverse(pgd.max, &vaddr, &n_pages, pagetable_do_map_callbacks, &data);
 }
 
