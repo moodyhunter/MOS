@@ -15,13 +15,7 @@
 #include <mos/tasks/thread.h>
 #include <string.h>
 
-#define FORKFMT "fork %d->%d: %10s " PTR_FMT "+%-3zu flags [0x%x]"
-
-static const char *fork_behavior_string[] = {
-    [VMAP_FORK_INVALID] = "invalid",
-    [VMAP_FORK_SHARED] = "shared",
-    [VMAP_FORK_PRIVATE] = "private",
-};
+extern const char *vmap_fork_behavior_str[];
 
 process_t *process_handle_fork(process_t *parent)
 {
@@ -34,14 +28,23 @@ process_t *process_handle_fork(process_t *parent)
         return NULL;
     }
 
+#if MOS_DEBUG_FEATURE(fork)
     pr_emph("process %d forked to %d", parent->pid, child_p->pid);
-
-    // copy the parent's memory
+#endif
 
     mm_lock_ctx_pair(parent->mm, child_p->mm);
     list_foreach(vmap_t, vmap_p, parent->mm->mmaps)
     {
-        pr_info2(FORKFMT, parent->pid, child_p->pid, fork_behavior_string[vmap_p->fork_behavior], vmap_p->vaddr, vmap_p->npages, vmap_p->vmflags);
+#if MOS_DEBUG_FEATURE(fork)
+        pr_info2("fork %d->%d: %10s " PTR_FMT "+%-3zu flags [0x%x]", //
+                 parent->pid,                                        //
+                 child_p->pid,                                       //
+                 vmap_fork_behavior_str[vmap_p->fork_behavior],      //
+                 vmap_p->vaddr,                                      //
+                 vmap_p->npages,                                     //
+                 vmap_p->vmflags                                     //
+        );
+#endif
         vmap_t *child_vmap = NULL;
         switch (vmap_p->fork_behavior)
         {
@@ -66,12 +69,12 @@ process_t *process_handle_fork(process_t *parent)
     const thread_t *parent_thread = current_thread;
     thread_t *child_t = thread_allocate(child_p, parent_thread->mode);
     child_t->u_stack = parent_thread->u_stack;
-
+    child_t->name = strdup(parent_thread->name);
     const ptr_t kstack_blk = phyframe_va(mm_get_free_pages(MOS_STACK_PAGES_KERNEL));
     stack_init(&child_t->k_stack, (void *) kstack_blk, MOS_STACK_PAGES_KERNEL * MOS_PAGE_SIZE);
-
-    child_t->name = strdup(parent_thread->name);
+#if MOS_DEBUG_FEATURE(fork)
     pr_info2("fork: thread %d->%d", parent_thread->tid, child_t->tid);
+#endif
     platform_setup_forked_context(parent_thread->context, &child_t->context);
     process_attach_thread(child_p, child_t);
 

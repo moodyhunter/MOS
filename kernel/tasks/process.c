@@ -31,7 +31,7 @@ static const char *vmap_content_str[] = {
     [VMAP_UNKNOWN] = "unknown", [VMAP_CODE] = "code", [VMAP_DATA] = "data", [VMAP_HEAP] = "heap", [VMAP_STACK] = "stack", [VMAP_FILE] = "file", [VMAP_MMAP] = "mmap",
 };
 
-static const char *vmap_fork_behavior_str[] = {
+const char *vmap_fork_behavior_str[] = {
     [VMAP_FORK_SHARED] = "shared",
     [VMAP_FORK_PRIVATE] = "private",
 };
