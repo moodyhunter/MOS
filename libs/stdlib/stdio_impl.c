@@ -536,7 +536,13 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list _args)
             case 'p':
             {
                 // print a pointer
-                ptr_t value = (size_t) va_arg(args.real, void *);
+                ptr_t value = (ptr_t) va_arg(args.real, void *);
+#ifdef __MOS_KERNEL__
+                // print special kernel data types
+                extern bool vsnprintf_do_pointer_kernel(char **buf, size_t *size, const char **pformat, ptr_t ptr);
+                if (vsnprintf_do_pointer_kernel(&buf, &size, &format, value))
+                    break;
+#endif
                 buf_putchar(&buf, '0', &size);
                 buf_putchar(&buf, 'x', &size);
                 flags.length = MOS_BITS == 32 ? LM__l : LM_ll;
