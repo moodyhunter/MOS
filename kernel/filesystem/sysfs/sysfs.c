@@ -25,6 +25,8 @@ typedef struct _sysfs_file
     phyframe_t *buf_page;
     ssize_t buf_head_offset;
     ssize_t buf_npages;
+
+    void *data;
 } sysfs_file_t;
 
 static list_head sysfs_dirs = LIST_HEAD_INIT(sysfs_dirs);
@@ -49,7 +51,7 @@ retry_printf:;
 
     va_list args;
     va_start(args, fmt);
-    size_t written = vsnprintf((char *) phyframe_va(file->buf_page) + file->buf_head_offset, spaces_left, fmt, args);
+    const size_t written = vsnprintf((char *) phyframe_va(file->buf_page) + file->buf_head_offset, spaces_left, fmt, args);
     va_end(args);
 
     MOS_ASSERT_X(written <= spaces_left, "sysfs_printf: vsnprintf wrote more than it should have");
@@ -72,6 +74,16 @@ retry_printf:;
     return written;
 }
 
+void sysfs_file_set_data(sysfs_file_t *file, void *data)
+{
+    file->data = data;
+}
+
+void *sysfs_file_get_data(sysfs_file_t *file)
+{
+    return file->data;
+}
+
 static bool sysfs_fops_open(inode_t *i, file_t *file)
 {
     mos_debug(vfs, "sysfs: opening %s in %s", file->dentry->name, dentry_parent(file->dentry)->name);
@@ -80,7 +92,7 @@ static bool sysfs_fops_open(inode_t *i, file_t *file)
     f->buf_npages = 1;
     f->buf_head_offset = 0;
     MOS_ASSERT(f->item->show);
-    return f->item->show(f);
+    return true;
 }
 
 static void sysfs_fops_release(file_t *file)
@@ -94,6 +106,10 @@ static ssize_t sysfs_fops_read(const file_t *file, void *buf, size_t size, off_t
 {
     sysfs_file_t *f = file->dentry->inode->private;
 
+    if (f->buf_head_offset == 0)
+        if (!f->item->show(f))
+            return -1;
+
     if (offset >= f->buf_head_offset)
         return 0;
 
@@ -104,6 +120,19 @@ static ssize_t sysfs_fops_read(const file_t *file, void *buf, size_t size, off_t
     memcpy((char *) buf, buf_va + begin, end - begin);
     return end - begin;
 }
+
+static ssize_t sysfs_fops_write(const file_t *file, const void *buf, size_t size, off_t offset)
+{
+    sysfs_file_t *f = file->dentry->inode->private;
+    return f->item->store(f, buf, size, offset);
+}
+
+static const file_ops_t sysfs_file_ops = {
+    .open = sysfs_fops_open,
+    .release = sysfs_fops_release,
+    .read = sysfs_fops_read,
+    .write = sysfs_fops_write,
+};
 
 static dentry_t *sysfs_fsop_mount(filesystem_t *fs, const char *dev, const char *options)
 {
@@ -127,12 +156,6 @@ static filesystem_t fs_sysfs = {
     .list_node = LIST_HEAD_INIT(fs_sysfs.list_node),
     .name = "sysfs",
     .mount = sysfs_fsop_mount,
-};
-
-static const file_ops_t sysfs_file_ops = {
-    .open = sysfs_fops_open,
-    .release = sysfs_fops_release,
-    .read = sysfs_fops_read,
 };
 
 static const file_perm_t sysfs_file_perm = PERM_READ;            // r--r--r--
