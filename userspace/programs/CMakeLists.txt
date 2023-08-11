@@ -2,6 +2,7 @@
 
 add_subdirectory(hello)
 add_subdirectory(init)
+add_subdirectory(kdebug)
 add_subdirectory(lazybox)
 add_subdirectory(mossh)
 
