@@ -7,6 +7,8 @@
 #include "mos/mm/physical/pmm.h"
 #include "mos/printk.h"
 
+#include <stdlib.h>
+
 typedef struct
 {
     size_t npages;
@@ -37,12 +39,21 @@ void mmstat_dec(mmstat_type_t type, size_t size)
 
 static bool mmstat_sysfs_stat(sysfs_file_t *f)
 {
-    sysfs_printf(f, "%-20s: %zu pages\n", "Total", pmm_total_frames);
-    sysfs_printf(f, "%-20s: %zu pages\n", "Allocated", pmm_allocated_frames);
-    sysfs_printf(f, "%-20s: %zu pages\n", "Reserved", pmm_reserved_frames);
+    char size_buf[32];
+    format_size(size_buf, sizeof(size_buf), pmm_total_frames * MOS_PAGE_SIZE);
+    sysfs_printf(f, "%-20s: %s, %zu pages\n", "Total", size_buf, pmm_total_frames);
+
+    format_size(size_buf, sizeof(size_buf), pmm_allocated_frames * MOS_PAGE_SIZE);
+    sysfs_printf(f, "%-20s: %s, %zu pages\n", "Allocated", size_buf, pmm_allocated_frames);
+
+    format_size(size_buf, sizeof(size_buf), pmm_reserved_frames * MOS_PAGE_SIZE);
+    sysfs_printf(f, "%-20s: %s, %zu pages\n", "Reserved", size_buf, pmm_reserved_frames);
 
     for (u32 i = 0; i < _MEM_MAX_TYPES; i++)
-        sysfs_printf(f, "%-20s: %zu pages\n", mem_type_names[i], stat[i].npages);
+    {
+        format_size(size_buf, sizeof(size_buf), stat[i].npages * MOS_PAGE_SIZE);
+        sysfs_printf(f, "%-20s: %s, %zu pages\n", mem_type_names[i], size_buf, stat[i].npages);
+    }
     return true;
 }
 

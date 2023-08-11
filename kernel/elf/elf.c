@@ -64,15 +64,14 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
     const size_t file_size = f->dentry->inode->size;
 
     const size_t npage_required = ALIGN_UP_TO_PAGE(file_size) / MOS_PAGE_SIZE;
-    phyframe_t *const buf_frames = mm_get_free_pages(npage_required);
-    char *const buf = (void *) phyframe_va(buf_frames);
-
-    if (!buf_frames)
+    phyframe_t *const buf_frame = mm_get_free_pages(npage_required);
+    if (!buf_frame)
     {
         mos_warn("failed to allocate %zu pages for '%s'", npage_required, path);
         goto bail_out;
     }
 
+    char *const buf = (void *) phyframe_va(buf_frame);
     size_t size = io_read(&f->io, buf, file_size);
     MOS_ASSERT_X(size == file_size, "failed to read entire file '%s'", path);
 
@@ -175,7 +174,7 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
                 if (A_npages)
                 {
                     mos_debug(elf, "copying %zu pages from " PTR_FMT " to address " PTR_FMT, A_npages, (ptr_t) buf + A_file_offset, A_vaddr);
-                    const pfn_t A_pfn = phyframe_pfn(buf_frames) + A_file_offset / MOS_PAGE_SIZE;
+                    const pfn_t A_pfn = phyframe_pfn(buf_frame) + A_file_offset / MOS_PAGE_SIZE;
                     vmap_t *vmap = mm_map_pages_to_user(proc->mm, A_vaddr, A_pfn, A_npages, flags);
                     vmap_finalise_init(vmap, content, VMAP_FORK_PRIVATE);
                 }
@@ -231,14 +230,14 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
     }
 
     // unmap the buffer from kernel pages
-    pmm_unref(buf_frames, npage_required);
+    pmm_unref(buf_frame, npage_required);
     thread_setup_complete(proc->threads[0]);
     io_unref(&f->io); // close the file, we should have the file's refcount == 0 here
     return proc;
 
 bail_out:
-    if (buf)
-        pmm_unref(buf_frames, npage_required);
+    if (buf_frame)
+        pmm_unref(buf_frame, npage_required);
 
     if (f)
         io_unref(&f->io); // close the file, we should have the file's refcount == 0 here

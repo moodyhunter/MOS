@@ -40,7 +40,7 @@ phyframe_t *mm_get_free_page_raw(void)
     phyframe_t *frame = pmm_allocate_frames(1, PMM_ALLOC_NORMAL);
     if (!frame)
     {
-        mos_warn("Failed to allocate a page");
+        pr_emerg("failed to allocate a page");
         return NULL;
     }
 
@@ -50,6 +50,8 @@ phyframe_t *mm_get_free_page_raw(void)
 phyframe_t *mm_get_free_page(void)
 {
     phyframe_t *frame = mm_get_free_page_raw();
+    if (!frame)
+        return NULL;
     memzero((void *) phyframe_va(frame), MOS_PAGE_SIZE);
     return frame;
 }
@@ -59,7 +61,7 @@ phyframe_t *mm_get_free_pages(size_t npages)
     phyframe_t *frame = pmm_allocate_frames(npages, PMM_ALLOC_NORMAL);
     if (!frame)
     {
-        mos_warn("Failed to allocate %zd pages", npages);
+        pr_emerg("failed to allocate %zd pages", npages);
         return NULL;
     }
 
