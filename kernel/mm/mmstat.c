@@ -57,8 +57,43 @@ static bool mmstat_sysfs_stat(sysfs_file_t *f)
     return true;
 }
 
+static bool mmstat_sysfs_phyframe_stat_show(sysfs_file_t *f)
+{
+    const pfn_t pfn = (pfn_t) sysfs_file_get_data(f);
+    if (pfn >= pmm_total_frames)
+    {
+        pr_warn("mmstat: invalid pfn %llu", pfn);
+        return false;
+    }
+
+    const phyframe_t *frame = pfn_phyframe(pfn);
+    sysfs_printf(f, "pfn: %llu\n", pfn);
+    sysfs_printf(f, "type: %s\n", frame->state == PHYFRAME_FREE ? "free" : frame->state == PHYFRAME_ALLOCATED ? "allocated" : "reserved");
+    sysfs_printf(f, "order: %u\n", frame->order);
+    if (frame->state == PHYFRAME_ALLOCATED)
+        sysfs_printf(f, "refcnt: %zu\n", frame->refcount);
+
+    return true;
+}
+
+static bool mmstat_sysfs_phyframe_stat_store(sysfs_file_t *f, const char *buf, size_t count, off_t offset)
+{
+    MOS_UNUSED(offset);
+
+    const pfn_t pfn = strntoll(buf, NULL, 10, count);
+    if (pfn >= pmm_total_frames)
+    {
+        pr_warn("mmstat: invalid pfn %llu", pfn);
+        return false;
+    }
+
+    sysfs_file_set_data(f, (void *) pfn);
+    return true;
+}
+
 static sysfs_item_t mmstat_sysfs_items[] = {
     SYSFS_RO_ITEM("stat", mmstat_sysfs_stat),
+    SYSFS_RW_ITEM("phyframe_stat", mmstat_sysfs_phyframe_stat_show, mmstat_sysfs_phyframe_stat_store),
     SYSFS_END_ITEM,
 };
 
