@@ -52,6 +52,10 @@ MOSAPI int fgetc(FILE *file);
 
 size_t fread(void *__restrict ptr, size_t size, size_t nmemb, FILE *__restrict stream);
 size_t fwrite(const void *__restrict ptr, size_t size, size_t nmemb, FILE *__restrict stream);
+int fseek(FILE *stream, long offset, io_seek_whence_t whence);
+off_t ftell(FILE *stream);
+FILE *fopen(const char *path, const char *mode);
+int fclose(FILE *stream);
 #endif
 
 /** @} */

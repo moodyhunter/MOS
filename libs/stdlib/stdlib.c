@@ -52,6 +52,41 @@ s32 atoi(const char *nptr)
     return neg ? -val : val;
 }
 
+s64 strtoll(const char *str, char **endptr, int base)
+{
+    return strntoll(str, endptr, base, strlen(str));
+}
+
+s64 strntoll(const char *str, char **endptr, int base, size_t n)
+{
+    s64 result = 0;
+    bool negative = false;
+    size_t i = 0;
+
+    if (*str == '-')
+        negative = true, str++, i++;
+    else if (*str == '+')
+        str++, i++;
+
+    while (i < n && *str)
+    {
+        char c = *str;
+        if (c >= '0' && c <= '9')
+            result *= base, result += c - '0';
+        else if (c >= 'a' && c <= 'z')
+            result *= base, result += c - 'a' + 10;
+        else if (c >= 'A' && c <= 'Z')
+            result *= base, result += c - 'A' + 10;
+        else
+            break;
+        str++;
+        i++;
+    }
+    if (endptr)
+        *endptr = (char *) str;
+    return negative ? -result : result;
+}
+
 void format_size(char *buf, size_t buf_size, u64 size)
 {
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))

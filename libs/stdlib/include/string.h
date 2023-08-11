@@ -30,9 +30,6 @@ MOSAPI const char *duplicate_string(const char *src, size_t len);
 MOSAPI char *strdup(const char *src);
 MOSAPI char *strndup(const char *src, size_t n);
 
-MOSAPI s64 strtoll(const char *str, char **endptr, int base);
-MOSAPI s64 strntoll(const char *str, char **endptr, int base, size_t n);
-
 MOSAPI char *strchr(const char *s, int c);
 
 MOSAPI size_t strspn(const char *s, const char *accept);

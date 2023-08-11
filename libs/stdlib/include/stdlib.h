@@ -19,6 +19,9 @@ MOSAPI long labs(long x);
 MOSAPI s64 llabs(s64 x);
 MOSAPI s32 atoi(const char *nptr);
 
+MOSAPI s64 strtoll(const char *str, char **endptr, int base);
+MOSAPI s64 strntoll(const char *str, char **endptr, int base, size_t n);
+
 MOSAPI void format_size(char *buf, size_t buf_size, u64 size);
 MOSAPI char *string_trim(char *in);
 
