@@ -2,17 +2,6 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "compile",
-            "type": "shell",
-            "options": { "cwd": "${workspaceFolder}/build" },
-            "command": "cmake --build ${workspaceFolder}/build --target mos_multiboot mos_userspace_programs mos_initrd",
-            "group": "build",
-            "presentation": {
-                "reveal": "silent",
-                // "close": true
-            }
-        },
-        {
             "label": "compile_x86_64_uefi",
             "type": "shell",
             "options": { "cwd": "${workspaceFolder}/build" },
@@ -56,55 +45,6 @@
                 "close": true
             }
         },
-        {
-            "label": "start_os",
-            "type": "process",
-            "command": "tmux",
-            "options": {
-                "cwd": "${workspaceFolder}/build",
-            },
-            "args": [
-                "new",
-                "-s",
-                "mos_kernel_debug",
-                "-d",
-                "qemu-system-i386",
-                "-m",
-                "4G",
-                "-display",
-                "gtk,show-tabs=on",
-                "-d",
-                "int,cpu_reset,guest_errors",
-                "-D",
-                "qemu_err.log",
-                "-kernel",
-                "${workspaceFolder}/build/mos_multiboot.bin",
-                "-s",
-                "-S",
-                "-chardev",
-                "stdio,id=serial_log,logfile=serial_log.log,signal=off",
-                "-serial",
-                "chardev:serial_log",
-                "-initrd",
-                "${workspaceFolder}/build/initrd.cpio",
-                "-smp",
-                "1",
-                "-append",
-                "mos_tests init_args=\"-c /initrd/assets/self-test.msh\"",
-            ],
-            "problemMatcher": [ ],
-            "group": "none",
-            "dependsOn": [
-                "kill_mos",
-                "compile"
-            ],
-            "presentation": {
-                "reveal": "silent",
-                "close": true
-            },
-            "detail": "Start MOS and wait for the debugger to connect."
-        },
-
         {
             "label": "start_os_x86_64",
             "type": "process",
