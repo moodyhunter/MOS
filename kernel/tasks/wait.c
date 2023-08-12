@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/slab.h"
+#include "mos/mm/slab_autoinit.h"
+
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/platform/platform.h>
@@ -8,6 +11,9 @@
 #include <mos/tasks/thread.h>
 #include <mos/tasks/wait.h>
 #include <stdlib.h>
+
+static slab_t *waitlist_listentry_slab = NULL;
+MOS_SLAB_AUTOINIT("waitlist_entry", waitlist_listentry_slab, waitable_list_entry_t);
 
 wait_condition_t *wc_wait_for(void *arg, wait_condition_verifier_t verify, wait_condition_cleanup_t cleanup)
 {
@@ -46,7 +52,7 @@ bool waitlist_append_only(waitlist_t *list)
         return false;
     }
 
-    waitable_list_entry_t *entry = kzalloc(sizeof(waitable_list_entry_t));
+    waitable_list_entry_t *entry = kmemcache_alloc(waitlist_listentry_slab);
     entry->waiter = current_thread->tid;
     list_node_append(&list->list, list_node(entry));
     spinlock_release(&list->lock);
