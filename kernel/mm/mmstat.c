@@ -4,8 +4,12 @@
 
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
+#include "mos/mm/paging/iterator.h"
 #include "mos/mm/physical/pmm.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/tasks/process.h"
+#include "mos/tasks/task_types.h"
 
 #include <stdlib.h>
 
@@ -91,9 +95,62 @@ static bool mmstat_sysfs_phyframe_stat_store(sysfs_file_t *f, const char *buf, s
     return true;
 }
 
+static bool mmstat_sysfs_pagetable_show(sysfs_file_t *f)
+{
+    const pid_t pid = (pid_t) (ptr_t) sysfs_file_get_data(f);
+    if (!pid)
+    {
+        pr_warn("mmstat: invalid pid %d", pid);
+        return false;
+    }
+
+    const process_t *proc = process_get(pid);
+    if (!proc)
+    {
+        pr_warn("mmstat: invalid pid %d", pid);
+        return false;
+    }
+
+    sysfs_printf(f, "pid: %d\n", pid);
+
+    const mm_context_t *mmctx = proc->mm;
+
+    pagetable_iter_t iter;
+    pagetable_iter_init(&iter, mmctx->pgd, 0, 0x7fffffffffff); // 4-level paging, 48-bit address space
+
+    pagetable_iter_range_t *range;
+    while ((range = pagetable_iter_next(&iter)))
+    {
+        if (!range->present)
+            continue;
+
+        sysfs_printf(f, PTR_RANGE, range->vaddr, range->vaddr_end);
+        sysfs_printf(f, " %pvf " PFN_RANGE, (void *) &range->flags, range->pfn, range->pfn_end);
+        sysfs_printf(f, "\n");
+    }
+
+    return true;
+}
+
+static bool mmstat_sysfs_pagetable_store(sysfs_file_t *f, const char *buf, size_t count, off_t offset)
+{
+    MOS_UNUSED(offset);
+
+    const pid_t pid = strntoll(buf, NULL, 10, count);
+    if (!pid)
+    {
+        pr_warn("mmstat: invalid pid %d", pid);
+        return false;
+    }
+
+    sysfs_file_set_data(f, (void *) (ptr_t) pid);
+    return true;
+}
+
 static sysfs_item_t mmstat_sysfs_items[] = {
     SYSFS_RO_ITEM("stat", mmstat_sysfs_stat),
     SYSFS_RW_ITEM("phyframe_stat", mmstat_sysfs_phyframe_stat_show, mmstat_sysfs_phyframe_stat_store),
+    SYSFS_RW_ITEM("pagetable", mmstat_sysfs_pagetable_show, mmstat_sysfs_pagetable_store),
     SYSFS_END_ITEM,
 };
 
