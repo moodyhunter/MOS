@@ -588,5 +588,5 @@ end:
     buf_putchar(&buf, 0, &size);
 
     va_end(args.real);
-    return buf - start;
+    return buf - start - 1; // exclude the null terminator
 }
