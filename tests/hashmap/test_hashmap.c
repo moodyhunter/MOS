@@ -166,16 +166,18 @@ MOS_TEST_CASE(hashmap_remove_function)
 
 static size_t test_hashmap_foreach_count = 0;
 
-bool test_foreach_function(uintn key, void *value)
+bool test_foreach_function(uintn key, void *value, void *data)
 {
     MOS_UNUSED(key);
     MOS_UNUSED(value);
+    MOS_UNUSED(data);
     test_hashmap_foreach_count++;
     return true;
 }
 
-bool test_foreach_stop_at_quux(uintn key, void *value)
+bool test_foreach_stop_at_quux(uintn key, void *value, void *data)
 {
+    MOS_UNUSED(data);
     MOS_UNUSED(value);
     test_hashmap_foreach_count++;
     if (strcmp((void *) key, "quux") == 0)
@@ -204,11 +206,11 @@ MOS_TEST_CASE(hashmap_foreach_function)
     hashmap_put(&map, (ptr_t) "xyzzy", "xyzzy1");
 
     test_hashmap_foreach_count = 0;
-    hashmap_foreach(&map, test_foreach_function);
+    hashmap_foreach(&map, test_foreach_function, NULL);
     MOS_TEST_CHECK(test_hashmap_foreach_count, map.size);
 
     test_hashmap_foreach_count = 0;
-    hashmap_foreach(&map, test_foreach_stop_at_quux);
+    hashmap_foreach(&map, test_foreach_stop_at_quux, NULL);
     MOS_TEST_CHECK(test_hashmap_foreach_count, 4);
     hashmap_deinit(&map);
 }

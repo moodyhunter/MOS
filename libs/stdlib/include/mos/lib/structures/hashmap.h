@@ -10,9 +10,9 @@
  * @{
  */
 
-typedef hash_t (*hashmap_hash_t)(const uintn key);                        /// A hashmap hash function prototype.
-typedef int (*hashmap_key_compare_t)(const uintn key1, const uintn key2); /// A hashmap key comparison function prototype.
-typedef bool (*hashmap_foreach_func_t)(const uintn key, void *value);     /// A hashmap foreach callback function prototype.
+typedef hash_t (*hashmap_hash_t)(const uintn key);                                /// A hashmap hash function prototype.
+typedef int (*hashmap_key_compare_t)(const uintn key1, const uintn key2);         /// A hashmap key comparison function prototype.
+typedef bool (*hashmap_foreach_func_t)(const uintn key, void *value, void *data); /// A hashmap foreach callback function prototype.
 
 typedef struct hashmap_entry hashmap_entry_t;
 
@@ -33,6 +33,6 @@ MOSAPI void *hashmap_put(hashmap_t *map, uintn key, void *value);
 MOSAPI void *hashmap_get(const hashmap_t *map, uintn key);
 MOSAPI void *hashmap_remove(hashmap_t *map, uintn key);
 
-MOSAPI void hashmap_foreach(hashmap_t *map, hashmap_foreach_func_t func);
+MOSAPI void hashmap_foreach(hashmap_t *map, hashmap_foreach_func_t func, void *data);
 
 /** @} */

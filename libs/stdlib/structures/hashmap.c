@@ -125,7 +125,7 @@ void *hashmap_remove(hashmap_t *map, uintn key)
     return NULL;
 }
 
-void hashmap_foreach(hashmap_t *map, hashmap_foreach_func_t func)
+void hashmap_foreach(hashmap_t *map, hashmap_foreach_func_t func, void *data)
 {
     MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
     for (size_t i = 0; i < map->capacity; i++)
@@ -133,7 +133,7 @@ void hashmap_foreach(hashmap_t *map, hashmap_foreach_func_t func)
         hashmap_entry_t *entry = map->entries[i];
         while (entry != NULL)
         {
-            if (!func(entry->key, entry->value))
+            if (!func(entry->key, entry->value, data))
                 return;
             entry = entry->next;
         }

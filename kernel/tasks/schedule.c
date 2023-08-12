@@ -56,8 +56,9 @@ static bool should_schedule_to_thread(thread_t *thread)
     }
 }
 
-static bool schedule_to_thread(uintn key, void *value)
+static bool schedule_to_thread(uintn key, void *value, void *data)
 {
+    MOS_UNUSED(data);
     tid_t tid = key;
     thread_t *thread = (thread_t *) value;
 
@@ -110,7 +111,7 @@ noreturn void scheduler(void)
     mos_debug(scheduler, "cpu %d: scheduler is ready", current_cpu->id);
 
     while (1)
-        hashmap_foreach(&thread_table, schedule_to_thread);
+        hashmap_foreach(&thread_table, schedule_to_thread, NULL);
 }
 
 void reschedule_for_wait_condition(wait_condition_t *wait_condition)
