@@ -52,6 +52,48 @@ def syscall_format_return_type(e) -> str:
         return e["return"] + " "
 
 
+def select_format(type: str) -> str:
+    select_formats = {
+        "fd_t": "%d",
+        "size_t": "%zu",
+        "off_t": "%zd",
+        "int": "%d",
+        "void *": "%p",
+        "u8": "%u", "s8": "%d",
+        "u16": "%u", "s16": "%d",
+        "u32": "%u", "s32": "%d",
+        "u64": "%llu", "s64": "%lld",
+        "const char *": "'%s'",
+        "char": "%c",
+        "uid_t": "%d", "gid_t": "%d",
+        "pid_t": "%d", "tid_t": "%d",
+        "open_flags": "%x",
+        "fstatat_flags": "%x",
+        "thread_entry_t": "%p",
+        "heap_control_op": "%d",
+        "ptr_t": "\" PTR_FMT \"",
+        "file_type_t": "%d",
+        "mem_perm_t": "%d",
+        "mmap_flags_t": "%d",
+        "io_seek_whence_t": "%d",
+        "signal_t": "%d",
+        "bool": "%d",
+    }
+    if type in select_formats:
+        return select_formats[type]
+    if type.endswith("*"):
+        return "%p"
+    raise LookupError("Unknown type: %s" % type)
+
+
+def select_format_type(type: str) -> str:
+    if type == "const char *":
+        return type
+    if type.endswith("*") or type == "thread_entry_t":
+        return "void *"
+    return type
+
+
 class BaseAbstractGenerator(ABC):
     def __init__(self):
         self.scope = Scope()
@@ -201,6 +243,9 @@ class SyscallDispatcherGenerator(BaseAbstractGenerator):
         self.gen('#include <mos/syscall/decl.h>')
         self.gen('#include <mos/syscall/number.h>')
         self.gen("")
+        self.gen("// mos_debug macro support")
+        self.gen('#include "mos/printk.h"')
+        self.gen("")
         self.gen("should_inline reg_t dispatch_syscall(const reg_t number, %s)" % (", ".join(["reg_t arg%d" % (i + 1) for i in range(MAX_SYSCALL_NARGS)])))
         self.gen("{")
         with self.scope:
@@ -222,6 +267,15 @@ class SyscallDispatcherGenerator(BaseAbstractGenerator):
                 self.gen("case SYSCALL_%s:" % e["name"])
                 self.gen("{")
                 with self.scope:
+                    fmt = 'mos_debug(syscall, "%s(' % e["name"]
+                    fmt += ", ".join(["%s=%s" % (e["arguments"][i]["arg"], select_format(e["arguments"][i]["type"])) for i in range(nargs)])
+                    fmt += ")\""
+
+                    if e["arguments"]:
+                        fmt += ", "
+                        fmt += ", ".join(["(%s) arg%d" % (select_format_type(e["arguments"][i]["type"]), i + 1) for i in range(nargs)])
+                    fmt += ");"
+                    self.gen(fmt)
                     self.gen("%simpl_%s(%s);" % (retval_assign, syscall_name_with_prefix(e), syscall_arg_casted))
                     self.gen("break;")
                 self.gen("}")
