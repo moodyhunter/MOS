@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Special processes: (pid 0: idle, pid 1: init, pid 2: kthreadd)
 
+#include "mos/filesystem/sysfs/sysfs.h"
+#include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/mm/slab_autoinit.h"
 
 #include <mos/lib/structures/hashmap.h>
@@ -34,9 +36,9 @@ static void dump_process(void)
     if (current_thread)
     {
         process_t *proc = current_process;
-        pr_info("process %ld (%s) ", proc->pid, proc->name);
+        pr_info("process %pp ", (void *) proc);
         if (proc->parent)
-            pr_info2("parent %ld (%s) ", proc->parent->pid, proc->parent->name);
+            pr_info2("parent %pp ", (void *) proc->parent);
         else
             pr_info2("parent <none> ");
         process_dump_mmaps(proc);
@@ -56,3 +58,43 @@ void tasks_init()
     declare_panic_hook(dump_process, "Dump current process");
     install_panic_hook(&dump_process_holder);
 }
+
+// ! sysfs support
+
+bool _process_do_print(uintn key, void *val, void *data)
+{
+    MOS_UNUSED(key);
+    sysfs_file_t *f = data;
+    process_t *proc = val;
+    sysfs_printf(f, "%pp\n", (void *) proc);
+    return true;
+}
+
+bool _thread_do_print(uintn key, void *val, void *data)
+{
+    MOS_UNUSED(key);
+    sysfs_file_t *f = data;
+    thread_t *thread = val;
+    sysfs_printf(f, "%pt\n", (void *) thread);
+    return true;
+}
+
+static bool tasks_sysfs_process_list(sysfs_file_t *f)
+{
+    hashmap_foreach(&process_table, _process_do_print, (void *) f);
+    return true;
+}
+
+static bool tasks_sysfs_thread_list(sysfs_file_t *f)
+{
+    hashmap_foreach(&thread_table, _thread_do_print, (void *) f);
+    return true;
+}
+
+static sysfs_item_t task_sysfs_items[] = {
+    SYSFS_RO_ITEM("process_list", tasks_sysfs_process_list),
+    SYSFS_RO_ITEM("thread_list", tasks_sysfs_thread_list),
+    SYSFS_END_ITEM,
+};
+
+SYSFS_AUTOREGISTER(tasks, task_sysfs_items);
