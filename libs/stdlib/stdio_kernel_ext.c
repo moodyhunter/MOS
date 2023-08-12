@@ -45,10 +45,11 @@ bool vsnprintf_do_pointer_kernel(char **buf, size_t *size, const char **pformat,
         }                                                                                                                                                                \
     } while (0)
 
-    switch (shift_next)
+    switch (peek_next)
     {
         case 's':
         {
+            shift_next;
             // kernel symbol address
             const kallsyms_t *sym = kallsyms_get_symbol(ptr);
             if (!sym)
@@ -66,6 +67,7 @@ bool vsnprintf_do_pointer_kernel(char **buf, size_t *size, const char **pformat,
         }
         case 't':
         {
+            shift_next;
             // thread_t
             null_check();
             const thread_t *thread = (const thread_t *) ptr;
@@ -74,6 +76,7 @@ bool vsnprintf_do_pointer_kernel(char **buf, size_t *size, const char **pformat,
         }
         case 'p':
         {
+            shift_next;
             // process_t
             null_check();
             const process_t *process = (const process_t *) ptr;
@@ -82,11 +85,14 @@ bool vsnprintf_do_pointer_kernel(char **buf, size_t *size, const char **pformat,
         }
         case 'v':
         {
+            shift_next;
+
             // vmap-related types
-            switch (shift_next)
+            switch (peek_next)
             {
                 case 'f':
                 {
+                    shift_next;
                     // vm_flags, only r/w/x are supported
                     const vm_flags flags = *(vm_flags *) ptr;
                     *buf += snprintf(*buf, *size, "%c%c%c", (flags & VM_READ) ? 'r' : '-', (flags & VM_WRITE) ? 'w' : '-', (flags & VM_EXEC) ? 'x' : '-');
