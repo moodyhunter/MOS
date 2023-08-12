@@ -33,14 +33,14 @@ void mm_dump_pagetable(mm_context_t *mmctx)
     spinlock_acquire(&mmctx->mm_lock);
 
     pagetable_iter_t iter = { 0 };
-    pagetable_iter_init(&iter, mmctx->pgd, 0, 0x00007fffffffffff);
+    pagetable_iter_init(&iter, mmctx->pgd, 0, MOS_USER_END_VADDR);
 
     pagetable_iter_range_t *range;
     while ((range = pagetable_iter_next(&iter)))
         if (range->present)
             pagetable_do_dump(range->vaddr, range->vaddr_end, range->flags, range->pfn, range->pfn_end, &tmp);
 
-    pagetable_iter_init(&iter, mmctx->pgd, 0xffff800000000000, 0xffffffffffffffff);
+    pagetable_iter_init(&iter, mmctx->pgd, MOS_KERNEL_START_VADDR, 0xffffffffffffffff);
     while ((range = pagetable_iter_next(&iter)))
         if (range->present)
             pagetable_do_dump(range->vaddr, range->vaddr_end, range->flags, range->pfn, range->pfn_end, &tmp);
