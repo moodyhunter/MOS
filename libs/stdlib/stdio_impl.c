@@ -380,6 +380,8 @@ static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char con
 
 static int printf_cs(char *buf, const char *data, printf_flags_t *pflags, char conv, size_t *size_left)
 {
+    if (data == NULL)
+        data = "(null)";
     MOS_LIB_ASSERT(conv == 'c' || conv == 's');
     MOS_LIB_ASSERT(pflags->precision >= 0);
     MOS_LIB_ASSERT(pflags->minimum_width >= 0);
