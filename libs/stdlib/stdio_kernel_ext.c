@@ -30,7 +30,7 @@ bool vsnprintf_do_pointer_kernel(char **buf, size_t *size, const char **pformat,
 {
 #define current    (**pformat)
 #define peek_next  (*(*pformat + 1))
-#define shift_next (*(++(*pformat)))
+#define shift_next ((void) ((*pformat)++))
 
     if (current != 'p')
         return false;
