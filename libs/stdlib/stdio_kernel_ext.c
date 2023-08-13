@@ -60,7 +60,7 @@ bool vsnprintf_do_pointer_kernel(char **buf, size_t *size, const char **pformat,
 
             const off_t off = ptr - sym->address;
             if (off)
-                *buf += snprintf(*buf, *size, "%s (+%zx)", sym ? sym->name : "(unknown)", off);
+                *buf += snprintf(*buf, *size, "%s (+0x%zx)", sym ? sym->name : "(unknown)", off);
             else
                 *buf += snprintf(*buf, *size, "%s", sym ? sym->name : "(unknown)");
             return true;
