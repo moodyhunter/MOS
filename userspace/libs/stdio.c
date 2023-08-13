@@ -59,7 +59,7 @@ int vdprintf(int fd, const char *fmt, va_list ap)
 {
     char buffer[256];
     int size = vsnprintf(buffer, sizeof(buffer), fmt, ap);
-    syscall_io_write(fd, buffer, size - 1); // -1 to remove the null terminator
+    syscall_io_write(fd, buffer, size);
     return size;
 }
 
