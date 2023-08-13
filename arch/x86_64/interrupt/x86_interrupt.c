@@ -313,10 +313,7 @@ void x86_handle_interrupt(ptr_t rsp)
     thread_t *current = current_thread;
 
     if (likely(current))
-    {
-        x86_thread_context_t *context = current->context;
-        context->regs = *frame;
-    }
+        ((x86_thread_context_t *) current->context)->regs = *frame;
 
     if (frame->interrupt_number < IRQ_BASE)
         x86_handle_exception(frame);
@@ -329,14 +326,17 @@ void x86_handle_interrupt(ptr_t rsp)
     else
         pr_warn("Unknown interrupt number: %lu", frame->interrupt_number);
 
-    // flags may have been changed by platform_arch_syscall
-    x86_process_options_t *options = current->owner->platform_options;
-    if (options)
+    if (likely(current))
     {
-        if (options->iopl_enabled)
-            frame->iret_params.eflags |= 0x3000; // enable IOPL
-        else
-            frame->iret_params.eflags &= ~0x3000; // disable IOPL
+        // flags may have been changed by platform_arch_syscall
+        x86_process_options_t *options = current->owner->platform_options;
+        if (options)
+        {
+            if (options->iopl_enabled)
+                frame->iret_params.eflags |= 0x3000; // enable IOPL
+            else
+                frame->iret_params.eflags &= ~0x3000; // disable IOPL
+        }
     }
 
     signal_check_and_handle();
