@@ -18,16 +18,23 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef void (*switch_func_t)(void);
+typedef void (*switch_func_t)(x86_thread_context_t *context);
 
-extern void x86_switch_impl_new_user_thread(void);
-extern void x86_switch_impl_new_kernel_thread(void);
-extern void x86_switch_impl_normal(void);
+extern void x86_jump_to_userspace(x86_thread_context_t *context);
+extern void x86_normal_switch(x86_thread_context_t *context);
 
-extern asmlinkage void x86_context_switch_impl(ptr_t *old_stack, ptr_t new_kstack, ptr_t pgd, switch_func_t switcher, const x86_thread_context_t *context);
+extern asmlinkage void x86_context_switch_impl(x86_thread_context_t *context, ptr_t *old_stack, ptr_t new_kstack, ptr_t pgd, switch_func_t switcher);
+
+static void x86_start_kernel_thread(x86_thread_context_t *ctx)
+{
+    thread_entry_t entry = (thread_entry_t) ctx->regs.iret_params.ip;
+    void *arg = ctx->arg;
+    entry(arg);
+    MOS_UNREACHABLE();
+}
 
 // called from assembly
-void x86_switch_impl_setup_user_thread(x86_thread_context_t *context)
+static void x86_start_user_thread(x86_thread_context_t *context)
 {
     thread_t *current = current_thread;
     const bool is_forked = context->is_forked;
@@ -36,10 +43,8 @@ void x86_switch_impl_setup_user_thread(x86_thread_context_t *context)
     if (is_forked)
     {
         mos_debug(scheduler, "cpu %d: setting up forked thread %pt of process %pp", current_cpu->id, (void *) current, (void *) current->owner);
-        return;
     }
-
-    if (is_main_thread)
+    else if (is_main_thread)
     {
         // for the main thread, we have to push all argv structures onto the stack
         // for any other threads, only a pointer specified by the user is passed by register RDI
@@ -77,16 +82,19 @@ void x86_switch_impl_setup_user_thread(x86_thread_context_t *context)
         context->regs.di = argc;
         context->regs.si = argv_ptr;
         context->regs.dx = 0; // TODO: envp
+        const ptr_t zero = 0;
+        stack_push(&current->u_stack, &zero, sizeof(ptr_t));  // return address
+        context->regs.iret_params.sp = current->u_stack.head; // update the stack pointer
     }
     else
     {
         context->regs.di = (ptr_t) context->arg;
+        const ptr_t zero = 0;
+        stack_push(&current->u_stack, &zero, sizeof(ptr_t));  // return address
+        context->regs.iret_params.sp = current->u_stack.head; // update the stack pointer
     }
 
-    const ptr_t zero = 0;
-    stack_push(&current->u_stack, &zero, sizeof(ptr_t)); // return address
-
-    context->regs.iret_params.sp = current->u_stack.head; // update the stack pointer
+    x86_jump_to_userspace(context);
 }
 
 void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
@@ -114,18 +122,18 @@ void x86_switch_to_thread(ptr_t *scheduler_stack, const thread_t *to, switch_fla
 {
     per_cpu(x86_cpu_descriptor)->tss.rsp0 = to->k_stack.top;
     const ptr_t pgd_paddr = pgd_pfn(to->owner->mm->pgd) * MOS_PAGE_SIZE;
-    const switch_func_t switch_func = switch_flags & SWITCH_TO_NEW_USER_THREAD   ? x86_switch_impl_new_user_thread :
-                                      switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? x86_switch_impl_new_kernel_thread :
-                                                                                   x86_switch_impl_normal;
+    const switch_func_t switch_func = switch_flags & SWITCH_TO_NEW_USER_THREAD   ? x86_start_user_thread :
+                                      switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? x86_start_kernel_thread :
+                                                                                   x86_normal_switch;
 
-    const x86_thread_context_t context = *(x86_thread_context_t *) to->context;
-    x86_context_switch_impl(scheduler_stack, to->k_stack.head, pgd_paddr, switch_func, &context);
+    x86_thread_context_t context = *(x86_thread_context_t *) to->context; // make a copy
+    x86_context_switch_impl(&context, scheduler_stack, to->k_stack.head, pgd_paddr, switch_func);
 }
 
 void x86_switch_to_scheduler(ptr_t *old_stack, ptr_t scheduler_stack)
 {
     // pgd = 0 so that we don't switch to a different page table
-    x86_context_switch_impl(old_stack, scheduler_stack, 0, x86_switch_impl_normal, NULL);
+    x86_context_switch_impl(NULL, old_stack, scheduler_stack, 0, x86_normal_switch);
 }
 
 void x86_timer_handler(u32 irq)

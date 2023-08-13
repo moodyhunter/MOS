@@ -2,7 +2,7 @@
 
 %define REGSIZE 8
 
-; void x86_context_switch_impl(ptr_t *old_stack, ptr_t kernel_stack, ptr_t pgd, ptr_t jump_addr, ptr_t x86_context)
+; void x86_context_switch_impl(ptr_t x86_context, ptr_t *old_stack, ptr_t kernel_stack, ptr_t pgd, ptr_t jump_addr)
 ; RDI, RSI, RDX, RCX, R8, R9
 global x86_context_switch_impl:function (x86_context_switch_impl.end - x86_context_switch_impl)
 x86_context_switch_impl:
@@ -21,38 +21,36 @@ x86_context_switch_impl:
     push    r14
     push    r15
 
-    ; rdi = *old_stack
-    ; rsi = kernel_stack
-    ; rdx = pgd
-    ; rcx = jump_addr
-    ; r8 = x86_context
+    ; rdi = x86_context
+    ; rsi = *old_stack
+    ; rdx = kernel_stack
+    ; rcx = pgd
+    ; r8 = jump_addr
     ; set rsp to kernel_stack
-    mov     [rdi], rsp      ; backup old stack pointer
-    mov     rsp, rsi        ; switch to kernel stack
+    mov     [rsi], rsp      ; backup old stack pointer
+    mov     rsp, rdx        ; switch to kernel stack
 
     ; set up page directory if needed
-    cmp     rdx, 0          ; if pgd == 0
+    cmp     rcx, 0          ; if pgd == 0
     je      .skip_pgd_setup ;     don't update cr3
-    mov     cr3, rdx        ; load page directory
+    mov     cr3, rcx        ; load page directory
 
 .skip_pgd_setup:
     xor     rax, rax        ; clear rax, rbx, rsi, rdi, rbp
     xor     rbx, rbx
-    xor     rdx, rdx        ; don't need rdx anymore
+    xor     rcx, rcx
+    xor     rdx, rdx
     xor     rsi, rsi
-    mov     rdi, r8         ; rdi = x86_context
-    xor     r8, r8
     xor     rbp, rbp
-    ; rcx contains jump_addr
+    ; r8 contains jump_addr
     ; rdi contains arguments for the new thread, don't clear it
     ; rdi = struct { x86_stack_frame, arg };
     ; jump to jump_addr
-    jmp     rcx
+    jmp     r8
 .end:
 
-
-global x86_switch_impl_normal:function (x86_switch_impl_normal.end - x86_switch_impl_normal)
-x86_switch_impl_normal:
+global x86_normal_switch:function (x86_normal_switch.end - x86_normal_switch)
+x86_normal_switch:
     ; we are now on the kernel stack
     ; restore callee-saved registers
     pop     r15
@@ -65,25 +63,8 @@ x86_switch_impl_normal:
     ret
 .end:
 
-global x86_switch_impl_new_kernel_thread:function (x86_switch_impl_new_kernel_thread.end - x86_switch_impl_new_kernel_thread)
-x86_switch_impl_new_kernel_thread:
-    ; we are now on the kernel stack, it's empty thus nothing to restore
-    mov     rax, [rdi + 19 * REGSIZE]   ; rax = eip
-    mov     rdi, [rdi + 24 * REGSIZE]   ; the argument
-    push    0                   ; push a dummy return address
-    jmp     rax                 ; jump to eip
-.end:
-
-[extern x86_switch_impl_setup_user_thread:function]
-
-global x86_switch_impl_new_user_thread:function (x86_switch_impl_new_user_thread.end - x86_switch_impl_new_user_thread)
-x86_switch_impl_new_user_thread:
-    ; we are now on the kernel stack of the corrrsponding thread
-    ; rdi = struct { x86_stack_frame, arg }; (size: 24, 1)
-    push    rdi
-    call    x86_switch_impl_setup_user_thread
-    pop     rdi
-
+global x86_jump_to_userspace:function (x86_jump_to_userspace.end - x86_jump_to_userspace)
+x86_jump_to_userspace:
     ; set up the iret frame
     push    0x40 | 0x3                  ; user data (stack) segment + RPL 3
     push    qword [rdi + 22 * REGSIZE]  ; stack
