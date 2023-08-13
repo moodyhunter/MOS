@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/kallsyms.h"
+#include "mos/ksyscall_entry.h"
 #include "mos/tasks/task_types.h"
 
 #include <mos/interrupt/ipi.h>
@@ -300,10 +301,10 @@ static void x86_handle_irq(x86_stack_frame *frame)
 
 static void x86_handle_syscall(x86_stack_frame *frame)
 {
+    frame->ax = ksyscall_enter(frame->ax, frame->bx, frame->cx, frame->dx, frame->si, frame->di, frame->bp);
 
     MOS_ASSERT_X(current_thread->state == THREAD_STATE_RUNNING, "thread %pt is not in 'running' state", (void *) current_thread);
 
-    frame->ax = dispatch_syscall(frame->ax, frame->bx, frame->cx, frame->dx, frame->si, frame->di, frame->bp);
     // flags may have been changed by platform_arch_syscall
     x86_process_options_t *options = current_process->platform_options;
     if (options)
