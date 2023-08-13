@@ -26,4 +26,4 @@ void x86_switch_to_scheduler(ptr_t *old_stack, ptr_t new_stack);
 
 void x86_timer_handler(u32 irq);
 
-void x86_jump_to_userspace(x86_stack_frame *context);
+noreturn void x86_jump_to_userspace(x86_stack_frame *context);

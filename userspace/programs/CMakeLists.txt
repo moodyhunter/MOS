@@ -4,5 +4,6 @@ add_subdirectory(init)
 add_subdirectory(kdebug)
 add_subdirectory(lazybox)
 add_subdirectory(mossh)
+add_subdirectory(signal)
 
 add_subdirectory(2048)

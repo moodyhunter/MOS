@@ -156,3 +156,33 @@ void platform_ipi_send(u8 target, ipi_type_t type)
     else
         lapic_interrupt(IPI_BASE + type, target, APIC_DELIVER_MODE_NORMAL, LAPIC_DEST_MODE_PHYSICAL, LAPIC_SHORTHAND_NONE);
 }
+
+void platform_jump_to_signal_handler(signal_t sig, sigaction_t *sa)
+{
+    x86_thread_context_t *ctx = current_thread->context;
+
+    // avoid x86_64 ABI red zone
+    current_thread->u_stack.head = ctx->regs.sp - 128;
+
+    // backup previous frame
+    stack_push(&current_thread->u_stack, &ctx->regs, sizeof(x86_stack_frame));
+
+    // Set up the new context
+    ctx->regs.ip = (ptr_t) sa->handler;
+    stack_push(&current_thread->u_stack, &sa->sigreturn_trampoline, sizeof(reg_t)); // the return address
+
+    ctx->regs.di = sig; // arg1
+    ctx->regs.sp = current_thread->u_stack.head;
+    x86_jump_to_userspace(&ctx->regs);
+}
+
+void platform_restore_from_signal_handler(void *sp)
+{
+    x86_thread_context_t *ctx = current_thread->context;
+    current_thread->u_stack.head = (ptr_t) sp; // skip the return address
+
+    x86_stack_frame orig;
+    stack_pop(&current_thread->u_stack, sizeof(x86_stack_frame), &orig);
+    ctx->regs = orig;
+    x86_jump_to_userspace(&ctx->regs);
+}

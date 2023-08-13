@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/misc/power.h"
+#include "mos/tasks/signal.h"
 
 #include <mos/elf/elf.h>
 #include <mos/filesystem/vfs.h>
@@ -378,7 +379,7 @@ off_t define_syscall(io_tell)(fd_t fd)
     return io_tell(io);
 }
 
-bool define_syscall(signal_register)(signal_t sig, signal_action_t *action)
+bool define_syscall(signal_register)(signal_t sig, sigaction_t *action)
 {
     return process_register_signal_handler(current_process, sig, action);
 }
@@ -391,11 +392,16 @@ bool define_syscall(signal)(pid_t pid, signal_t sig)
     return false;
 }
 
-bool define_syscall(signal_thread)(pid_t pid, tid_t tid, signal_t sig)
+bool define_syscall(signal_thread)(tid_t tid, signal_t sig)
 {
-    // stub
-    MOS_UNUSED(pid);
-    MOS_UNUSED(tid);
-    MOS_UNUSED(sig);
-    return false;
+    thread_t *thread = thread_get(tid);
+    if (thread == NULL)
+        return false;
+    signal_send_to_thread(thread, sig);
+    return true;
+}
+
+noreturn void define_syscall(signal_return)(void *sp)
+{
+    signal_return(sp);
 }

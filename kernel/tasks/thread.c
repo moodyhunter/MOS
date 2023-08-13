@@ -36,6 +36,7 @@ thread_t *thread_allocate(process_t *owner, thread_mode tflags)
     t->mode = tflags;
     t->waiting = NULL;
     waitlist_init(&t->waiters);
+    linked_list_init(&t->signal_info.pending);
 
     return t;
 }

@@ -6,6 +6,7 @@
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/slab_autoinit.h"
+#include "mos/tasks/signal.h"
 
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/vfs.h>
@@ -198,7 +199,6 @@ void process_handle_exit(process_t *process, int exit_code)
     mos_debug(process, "terminating all %lu threads owned by %pp", process->threads_count, (void *) process);
     for (int i = 0; i < process->threads_count; i++)
     {
-        // TODO: support signals for proper thread termination
         thread_t *thread = process->threads[i];
         spinlock_acquire(&thread->state_lock);
         if (thread->state == THREAD_STATE_DEAD)
@@ -207,6 +207,8 @@ void process_handle_exit(process_t *process, int exit_code)
         }
         else
         {
+            // send termination signal
+            signal_send_to_thread(thread, SIGTERM);
             thread->state = THREAD_STATE_DEAD; // cleanup will be done by the scheduler
         }
         spinlock_release(&thread->state_lock);
@@ -302,13 +304,10 @@ void process_dump_mmaps(const process_t *process)
     pr_info("total: %zd memory regions", i);
 }
 
-bool process_register_signal_handler(process_t *process, signal_t sig, signal_action_t *sigaction)
+bool process_register_signal_handler(process_t *process, signal_t sig, sigaction_t *sigaction)
 {
-    // stub
-    MOS_UNUSED(process);
-    MOS_UNUSED(sig);
-    MOS_UNUSED(sigaction);
-    return false;
+    process->signal_handlers[sig] = *sigaction;
+    return true;
 }
 
 // ! sysfs support

@@ -48,8 +48,15 @@ typedef struct _process
     waitlist_t waiters; // list of threads waiting for this process to exit
 
     // signal handling
-    signal_action_t signal_handlers[_SIGNAL_CATCHABLE_MAX];
+    sigaction_t signal_handlers[SIGNAL_MAX_N];
 } process_t;
+
+typedef struct
+{
+    spinlock_t lock;
+    list_head pending;        // list of pending signals
+    bool masks[SIGNAL_MAX_N]; // signal masks, true if the signal is masked
+} thread_signal_info_t;
 
 typedef struct _thread
 {
@@ -65,6 +72,8 @@ typedef struct _thread
     void *context;             // platform-specific context
     wait_condition_t *waiting;
     waitlist_t waiters; // list of threads waiting for this thread to exit
+
+    thread_signal_info_t signal_info;
 } thread_t;
 
 extern slab_t *process_cache, *thread_cache;

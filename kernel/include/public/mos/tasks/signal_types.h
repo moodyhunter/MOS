@@ -2,19 +2,32 @@
 
 #pragma once
 
+#include <mos/types.h>
+
 typedef enum
 {
-    // catchable signals
-    SIGNAL_TERM,
-    SIGNAL_INTERRUPT,
+    SIGINT = 2,   ///< interrupt
+    SIGILL = 4,   ///< illegal instruction
+    SIGTRAP = 5,  ///< trace/breakpoint trap
+    SIGABRT = 6,  ///< abort
+    SIGKILL = 9,  ///< kill
+    SIGSEGV = 11, ///< invalid memory reference
+    SIGTERM = 15, ///< termination
+    SIGCHLD = 17, ///< child process terminated
 
-    _SIGNAL_CATCHABLE_MAX,
-
-    // uncatchable signals
-    SIGNAL_KILL,
+    _SIGMAX_,
 } signal_t;
 
-typedef void (*signal_action_t)(signal_t signal);
+#define SIGNAL_MAX_N 32
+MOS_STATIC_ASSERT(SIGNAL_MAX_N > _SIGMAX_, "SIGNAL_MAX_N must be at least SIGSTOP + 1");
 
-#define SIGNAL_DEFAULT ((signal_action_t) 0)
-#define SIGNAL_IGNORE  ((signal_action_t) 1)
+typedef void (*sighandler)(signal_t signal);
+
+typedef struct
+{
+    sighandler handler;         // user-space signal handler
+    void *sigreturn_trampoline; // trampoline code address when returning from a signal handler
+} sigaction_t;
+
+#define SIGACT_DEF ((sigaction_t) 0)
+#define SIGACT_IGN ((sigaction_t) 1)

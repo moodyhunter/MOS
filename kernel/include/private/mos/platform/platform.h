@@ -10,6 +10,7 @@
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/mm_types.h>
+#include <mos/tasks/signal_types.h>
 
 #if MOS_CONFIG(MOS_SMP)
 #define PER_CPU_DECLARE(type, name)                                                                                                                                      \
@@ -231,3 +232,7 @@ u64 platform_arch_syscall(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64 arg4);
 
 // Platform-Specific IPI (Inter-Processor Interrupt) APIs
 void platform_ipi_send(u8 target_cpu, ipi_type_t type);
+
+// Signal Handler APIs
+void platform_jump_to_signal_handler(signal_t sig, sigaction_t *sa);
+noreturn void platform_restore_from_signal_handler(void *sp);
