@@ -92,15 +92,15 @@ void x86_dump_registers(x86_stack_frame *frame)
             "  EFLAGS:       " PTR_FMT "\n"
             "  Instruction:  0x%lx:" PTR_FMT "\n"
             "  Stack:        0x%lx:" PTR_FMT,
-            frame->ax, frame->bx, frame->cx, frame->dx,             //
-            frame->si, frame->di, frame->bp, frame->iret_params.sp, //
-            frame->r8, frame->r9, frame->r10, frame->r11,           //
-            frame->r12, frame->r13, frame->r14, frame->r15,         //
-            frame->iret_params.ip,                                  //
-            frame->fs, frame->gs,                                   //
-            frame->iret_params.eflags,                              //
-            frame->iret_params.cs, frame->iret_params.ip,           //
-            frame->iret_params.ss, frame->iret_params.sp            //
+            frame->ax, frame->bx, frame->cx, frame->dx,     //
+            frame->si, frame->di, frame->bp, frame->sp,     //
+            frame->r8, frame->r9, frame->r10, frame->r11,   //
+            frame->r12, frame->r13, frame->r14, frame->r15, //
+            frame->ip,                                      //
+            frame->fs, frame->gs,                           //
+            frame->eflags,                                  //
+            frame->cs, frame->ip,                           //
+            frame->ss, frame->sp                            //
     );
 }
 
@@ -159,7 +159,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
                              : "=r"(drx[0]), "=r"(drx[1]), "=r"(drx[2]), "=r"(drx[3]), "=r"(drx[4]), "=r"(drx[5]));
 
             pr_emerg("cpu %d: %s (%lu) at " PTR_FMT " (DR0: " PTR_FMT " DR1: " PTR_FMT " DR2: " PTR_FMT " DR3: " PTR_FMT " DR6: " PTR_FMT " DR7: " PTR_FMT ")",
-                     lapic_get_id(), name, stack->interrupt_number, stack->iret_params.ip, drx[0], drx[1], drx[2], drx[3], drx[4], drx[5]);
+                     lapic_get_id(), name, stack->interrupt_number, stack->ip, drx[0], drx[1], drx[2], drx[3], drx[4], drx[5]);
 
             return;
         }
@@ -214,7 +214,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
                             (void *) current,                                                              //
                             (void *) current->owner,                                                       //
                             fault_address,                                                                 //
-                            (ptr_t) stack->iret_params.ip                                                  //
+                            (ptr_t) stack->ip                                                              //
                     );
                 }
 
@@ -246,7 +246,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
                      is_exec ? " (NX violation)" : "",                  //
                      fault_address                                      //
             );
-            pr_emerg("  instruction: " PTR_FMT, (ptr_t) stack->iret_params.ip);
+            pr_emerg("  instruction: " PTR_FMT, (ptr_t) stack->ip);
             pr_emerg("  thread: %pt", (void *) current);
             pr_emerg("  process: %pp", current ? (void *) current->owner : NULL);
 
@@ -256,8 +256,8 @@ static void x86_handle_exception(x86_stack_frame *stack)
             if (is_user && fault_address > MOS_KERNEL_START_VADDR)
                 pr_emerg("  kernel address dereference");
 
-            if (stack->iret_params.ip > MOS_KERNEL_START_VADDR)
-                pr_emerg("  in kernel function %ps", (void *) stack->iret_params.ip);
+            if (stack->ip > MOS_KERNEL_START_VADDR)
+                pr_emerg("  in kernel function %ps", (void *) stack->ip);
 
             pr_emerg("  CR3: " PTR_FMT, x86_get_cr3() + platform_info->direct_map_base);
 
@@ -333,9 +333,9 @@ void x86_handle_interrupt(ptr_t rsp)
         if (options)
         {
             if (options->iopl_enabled)
-                frame->iret_params.eflags |= 0x3000; // enable IOPL
+                frame->eflags |= 0x3000; // enable IOPL
             else
-                frame->iret_params.eflags &= ~0x3000; // disable IOPL
+                frame->eflags &= ~0x3000; // disable IOPL
         }
     }
 

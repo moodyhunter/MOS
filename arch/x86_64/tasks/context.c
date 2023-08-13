@@ -26,7 +26,7 @@ extern asmlinkage void x86_context_switch_impl(x86_thread_context_t *context, pt
 
 static void x86_start_kernel_thread(x86_thread_context_t *ctx)
 {
-    thread_entry_t entry = (thread_entry_t) ctx->regs.iret_params.ip;
+    thread_entry_t entry = (thread_entry_t) ctx->regs.ip;
     void *arg = ctx->arg;
     entry(arg);
     MOS_UNREACHABLE();
@@ -82,15 +82,15 @@ static void x86_start_user_thread(x86_thread_context_t *context)
         context->regs.si = argv_ptr;
         context->regs.dx = 0; // TODO: envp
         const ptr_t zero = 0;
-        stack_push(&current->u_stack, &zero, sizeof(ptr_t));  // return address
-        context->regs.iret_params.sp = current->u_stack.head; // update the stack pointer
+        stack_push(&current->u_stack, &zero, sizeof(ptr_t)); // return address
+        context->regs.sp = current->u_stack.head;            // update the stack pointer
     }
     else
     {
         context->regs.di = (ptr_t) context->arg;
         const ptr_t zero = 0;
-        stack_push(&current->u_stack, &zero, sizeof(ptr_t));  // return address
-        context->regs.iret_params.sp = current->u_stack.head; // update the stack pointer
+        stack_push(&current->u_stack, &zero, sizeof(ptr_t)); // return address
+        context->regs.sp = current->u_stack.head;            // update the stack pointer
     }
 
     x86_jump_to_userspace(&context->regs);
@@ -102,11 +102,11 @@ void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
     x86_thread_context_t *context = kzalloc(sizeof(x86_thread_context_t));
     context->arg = arg;
     context->is_forked = false;
-    context->regs.iret_params.ip = (ptr_t) entry;
-    context->regs.iret_params.cs = GDT_SEGMENT_USERCODE | 3;
-    context->regs.iret_params.ss = GDT_SEGMENT_USERDATA | 3;
-    context->regs.iret_params.sp = thread->mode == THREAD_MODE_KERNEL ? thread->k_stack.top : thread->u_stack.top;
-    context->regs.iret_params.eflags = 0x202 | (options && options->iopl_enabled ? 0x3000 : 0);
+    context->regs.ip = (ptr_t) entry;
+    context->regs.cs = GDT_SEGMENT_USERCODE | 3;
+    context->regs.ss = GDT_SEGMENT_USERDATA | 3;
+    context->regs.sp = thread->mode == THREAD_MODE_KERNEL ? thread->k_stack.top : thread->u_stack.top;
+    context->regs.eflags = 0x202 | (options && options->iopl_enabled ? 0x3000 : 0);
     thread->context = context;
 }
 
