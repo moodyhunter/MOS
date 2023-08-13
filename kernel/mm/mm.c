@@ -13,6 +13,7 @@
 
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
+#include <stdlib.h>
 #include <string.h>
 
 static slab_t *vmap_cache = NULL;
@@ -163,6 +164,18 @@ vmap_t *vmap_create(mm_context_t *mmctx, ptr_t vaddr, size_t npages)
     map->npages = npages;
     do_attach_vmap(mmctx, map);
     return map;
+}
+
+void vmap_destroy(vmap_t *vmap)
+{
+    MOS_ASSERT(spinlock_is_locked(&vmap->lock));
+    mm_context_t *const mm = vmap->mmctx;
+
+    spinlock_acquire(&mm->mm_lock);
+    mm_do_unmap(mm->pgd, vmap->vaddr, vmap->npages, true);
+    list_remove(vmap);
+    spinlock_release(&mm->mm_lock);
+    kfree(vmap);
 }
 
 vmap_t *vmap_obtain(mm_context_t *mmctx, ptr_t vaddr, size_t *out_offset)

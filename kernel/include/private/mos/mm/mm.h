@@ -91,6 +91,14 @@ void mm_unlock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2);
 vmap_t *vmap_create(mm_context_t *mmctx, ptr_t vaddr, size_t npages);
 
 /**
+ * @brief Destroy a vmap object, and unmmap the region.
+ *
+ * @param vmap The vmap object
+ * @note The vmap object will be freed.
+ */
+void vmap_destroy(vmap_t *vmap);
+
+/**
  * @brief Get the vmap object for a virtual address.
  *
  * @param mmctx The address space to search

@@ -126,13 +126,7 @@ void thread_handle_exit(thread_t *t)
         mos_panic("thread_handle_exit() called on invalid thread");
 
     process_t *owner = t->owner;
-    vmap_t *kstack = vmap_obtain(owner->mm, (ptr_t) t->k_stack.top, NULL);
-    vmap_t *ustack = vmap_obtain(owner->mm, (ptr_t) t->u_stack.top, NULL);
-
-    // process_detach_mmap(owner, kstack); // we are using this kernel stack, so we can't free it
-    // process_detach_mmap(owner, ustack);
-    MOS_UNUSED(kstack);
-    MOS_UNUSED(ustack);
+    vmap_destroy(vmap_obtain(owner->mm, (ptr_t) t->u_stack.top, NULL));
 
     spinlock_acquire(&t->state_lock);
     t->state = THREAD_STATE_DEAD;
