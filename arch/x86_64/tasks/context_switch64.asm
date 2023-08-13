@@ -65,35 +65,30 @@ x86_normal_switch:
 
 global x86_jump_to_userspace:function (x86_jump_to_userspace.end - x86_jump_to_userspace)
 x86_jump_to_userspace:
-    ; set up the iret frame
-    push    0x40 | 0x3                  ; user data (stack) segment + RPL 3
-    push    qword [rdi + 22 * REGSIZE]  ; stack
-    push    qword [rdi + 21 * REGSIZE]  ; rflags (IF = 1)
-    push    0x30 | 0x3                  ; user code segment + RPL 3
-    push    qword [rdi + 19 * REGSIZE]  ; ip
+    mov     rsp, rdi
 
-    ; restore callee-saved registers (RBX, RSP, RBP, and R12-R15)
-    mov     r15, [rdi + 2 * REGSIZE]
-    mov     r14, [rdi + 3 * REGSIZE]
-    mov     r13, [rdi + 4 * REGSIZE]
-    mov     r12, [rdi + 5 * REGSIZE]
-    mov     rsi, [rdi + 11 * REGSIZE]
-    mov     rbp, [rdi + 12 * REGSIZE]
-    mov     rbx, [rdi + 15 * REGSIZE]
-    mov     rdi, [rdi + 10 * REGSIZE]
+    ; no more DS and ES for x86_64
+    pop     fs
+    pop     gs
 
-    mov     cx, 0x40 | 3    ; user data segment + RPL 3
-    mov     ds, cx
-    mov     es, cx
-    mov     fs, cx
-    mov     gs, cx
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     r11
+    pop     r10
+    pop     r9
+    pop     r8
 
-    ;! note: for process initialization, rax is 0
-    ;!       for a child process after fork, rax is also 0
-    ;!       so here we have to set rax to 0
-    xor     rax, rax        ; clear rax
-    xor     rcx, rcx        ; clear rcx
-    xor     rdx, rdx        ; clear rdx
+    pop     rdi
+    pop     rsi
+    pop     rbp
 
+    pop     rdx
+    pop     rcx
+    pop     rbx
+    pop     rax
+
+    add     rsp, 2 * REGSIZE
     iretq
 .end:

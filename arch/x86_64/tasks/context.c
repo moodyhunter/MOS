@@ -20,7 +20,6 @@
 
 typedef void (*switch_func_t)(x86_thread_context_t *context);
 
-extern void x86_jump_to_userspace(x86_thread_context_t *context);
 extern void x86_normal_switch(x86_thread_context_t *context);
 
 extern asmlinkage void x86_context_switch_impl(x86_thread_context_t *context, ptr_t *old_stack, ptr_t new_kstack, ptr_t pgd, switch_func_t switcher);
@@ -94,7 +93,7 @@ static void x86_start_user_thread(x86_thread_context_t *context)
         context->regs.iret_params.sp = current->u_stack.head; // update the stack pointer
     }
 
-    x86_jump_to_userspace(context);
+    x86_jump_to_userspace(&context->regs);
 }
 
 void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
@@ -104,6 +103,8 @@ void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
     context->arg = arg;
     context->is_forked = false;
     context->regs.iret_params.ip = (ptr_t) entry;
+    context->regs.iret_params.cs = GDT_SEGMENT_USERCODE | 3;
+    context->regs.iret_params.ss = GDT_SEGMENT_USERDATA | 3;
     context->regs.iret_params.sp = thread->mode == THREAD_MODE_KERNEL ? thread->k_stack.top : thread->u_stack.top;
     context->regs.iret_params.eflags = 0x202 | (options && options->iopl_enabled ? 0x3000 : 0);
     thread->context = context;

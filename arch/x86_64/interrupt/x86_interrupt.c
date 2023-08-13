@@ -340,4 +340,6 @@ void x86_handle_interrupt(ptr_t rsp)
     }
 
     signal_check_and_handle();
+    x86_jump_to_userspace(frame);
+    MOS_UNREACHABLE();
 }

@@ -113,17 +113,9 @@ static void x86_do_backtrace(void)
         }
 
         if (frame->eip >= MOS_KERNEL_START_VADDR)
-        {
-            const kallsyms_t *kallsyms = kallsyms_get_symbol(frame->eip);
-            if (kallsyms)
-                pr_warn(TRACE_FMT "%s (+" PTR_VLFMT ")", i, frame->eip, kallsyms->name, frame->eip - kallsyms->address);
-            else
-                pr_warn(TRACE_FMT "<unknown>", i, frame->eip);
-        }
+            pr_warn(TRACE_FMT "%ps", i, frame->eip, (void *) frame->eip);
         else
-        {
             pr_warn(TRACE_FMT "<userspace?>", i, frame->eip);
-        }
 
         frame = frame->ebp;
     }
