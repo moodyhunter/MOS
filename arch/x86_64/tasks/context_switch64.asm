@@ -44,7 +44,7 @@ x86_context_switch_impl:
     xor     rbp, rbp
     ; rcx contains jump_addr
     ; r8 contains arguments for the new thread, don't clear it
-    ; r8 = struct { eip, stack, x86_stack_frame, arg; };
+    ; r8 = struct { x86_stack_frame, arg };
     ; jump to jump_addr
     jmp     rcx
 .end:
@@ -67,8 +67,8 @@ x86_switch_impl_normal:
 global x86_switch_impl_new_kernel_thread:function (x86_switch_impl_new_kernel_thread.end - x86_switch_impl_new_kernel_thread)
 x86_switch_impl_new_kernel_thread:
     ; we are now on the kernel stack, it's empty thus nothing to restore
-    mov     rax, [r8]                   ; rax = eip
-    mov     rdi, [r8 + 26 * REGSIZE]    ; the argument
+    mov     rax, [r8 + 19 * REGSIZE]    ; rax = eip
+    mov     rdi, [r8 + 24 * REGSIZE]    ; the argument
     push    0                   ; push a dummy return address
     xor     r8, r8              ; clear r8
     jmp     rax                 ; jump to eip
@@ -79,28 +79,28 @@ x86_switch_impl_new_kernel_thread:
 global x86_switch_impl_new_user_thread:function (x86_switch_impl_new_user_thread.end - x86_switch_impl_new_user_thread)
 x86_switch_impl_new_user_thread:
     ; we are now on the kernel stack of the corrrsponding thread
-    ; r8 = struct { eip, stack, x86_stack_frame, arg; ... }; (size: 1, 1, 24, 1)
+    ; r8 = struct { x86_stack_frame, arg }; (size: 24, 1)
     push    r8
     mov     rdi, r8
     call    x86_switch_impl_setup_user_thread
     pop     r8
 
     ; restore callee-saved registers (RBX, RSP, RBP, and R12-R15)
-    mov     r15, [r8 + 2 * REGSIZE + 2 * REGSIZE]
-    mov     r14, [r8 + 2 * REGSIZE + 3 * REGSIZE]
-    mov     r13, [r8 + 2 * REGSIZE + 4 * REGSIZE]
-    mov     r12, [r8 + 2 * REGSIZE + 5 * REGSIZE]
-    mov     rdi, [r8 + 2 * REGSIZE + 10 * REGSIZE]
-    mov     rsi, [r8 + 2 * REGSIZE + 11 * REGSIZE]
-    mov     rbp, [r8 + 2 * REGSIZE + 12 * REGSIZE]
-    mov     rbx, [r8 + 2 * REGSIZE + 15 * REGSIZE]
+    mov     r15, [r8 + 2 * REGSIZE]
+    mov     r14, [r8 + 3 * REGSIZE]
+    mov     r13, [r8 + 4 * REGSIZE]
+    mov     r12, [r8 + 5 * REGSIZE]
+    mov     rdi, [r8 + 10 * REGSIZE]
+    mov     rsi, [r8 + 11 * REGSIZE]
+    mov     rbp, [r8 + 12 * REGSIZE]
+    mov     rbx, [r8 + 15 * REGSIZE]
 
     ; set up the iret frame
-    push    0x40 | 0x3                                  ; user data (stack) segment + RPL 3
-    push    qword [r8 + 1 * REGSIZE]                    ; stack
-    push    qword [r8 + 2 * REGSIZE + 21 * REGSIZE]     ; rflags (IF = 1)
-    push    0x30 | 0x3                                  ; user code segment + RPL 3
-    push    qword [r8]                                  ; ip
+    push    0x40 | 0x3                  ; user data (stack) segment + RPL 3
+    push    qword [r8 + 22 * REGSIZE]   ; stack
+    push    qword [r8 + 21 * REGSIZE]   ; rflags (IF = 1)
+    push    0x30 | 0x3                  ; user code segment + RPL 3
+    push    qword [r8 + 19 * REGSIZE]   ; ip
 
     mov     cx, 0x40 | 3    ; user data segment + RPL 3
     mov     ds, cx

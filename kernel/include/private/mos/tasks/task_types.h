@@ -62,7 +62,7 @@ typedef struct _thread
     thread_state_t state;      // thread state
     downwards_stack_t u_stack; // user-mode stack
     downwards_stack_t k_stack; // kernel-mode stack
-    thread_context_t *context; // platform-specific context
+    void *context;             // platform-specific context
     wait_condition_t *waiting;
     waitlist_t waiters; // list of threads waiting for this thread to exit
 } thread_t;

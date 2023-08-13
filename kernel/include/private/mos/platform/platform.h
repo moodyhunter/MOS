@@ -103,12 +103,6 @@ typedef struct
 
 typedef struct
 {
-    ptr_t instruction;
-    ptr_t stack;
-} __packed thread_context_t;
-
-typedef struct
-{
     spinlock_t mm_lock; ///< protects [pgd] and the [mmaps] list (the list itself, not the vmap_t objects)
     pgd_t pgd;
     list_head mmaps;
@@ -225,7 +219,7 @@ pfn_t platform_pml4e_get_huge_pfn(const pml4e_t *pml4);
 
 // Platform Thread / Process APIs
 void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg);
-void platform_setup_forked_context(const thread_context_t *from, thread_context_t **to);
+void platform_setup_forked_context(const void *from, void **to);
 
 // Platform Context Switching APIs
 void platform_switch_pgd(pgd_t pgd);

@@ -86,26 +86,26 @@ void x86_switch_impl_setup_user_thread(x86_thread_context_t *context)
     const ptr_t zero = 0;
     stack_push(&current->u_stack, &zero, sizeof(ptr_t)); // return address
 
-    context->inner.stack = current->u_stack.head; // update the stack pointer
+    context->regs.iret_params.sp = current->u_stack.head; // update the stack pointer
 }
 
 void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
 {
     x86_process_options_t *options = thread->owner->platform_options;
     x86_thread_context_t *context = kzalloc(sizeof(x86_thread_context_t));
-    context->inner.instruction = (ptr_t) entry;
-    context->inner.stack = thread->mode == THREAD_MODE_KERNEL ? thread->k_stack.head : thread->u_stack.head;
     context->arg = arg;
     context->is_forked = false;
+    context->regs.iret_params.ip = (ptr_t) entry;
+    context->regs.iret_params.sp = thread->mode == THREAD_MODE_KERNEL ? thread->k_stack.top : thread->u_stack.top;
     context->regs.iret_params.eflags = 0x202 | (options && options->iopl_enabled ? 0x3000 : 0);
-    thread->context = &context->inner;
+    thread->context = context;
 }
 
-void x86_setup_forked_context(const thread_context_t *from, thread_context_t **to)
+void x86_setup_forked_context(const void *from, void **to)
 {
-    const x86_thread_context_t *from_ctx = container_of(from, x86_thread_context_t, inner);
+    const x86_thread_context_t *from_ctx = from;
     x86_thread_context_t *to_ctx = kzalloc(sizeof(x86_thread_context_t));
-    *to = &to_ctx->inner;
+    *to = to_ctx;
     *to_ctx = *from_ctx; // copy everything
     to_ctx->is_forked = true;
 }
@@ -118,7 +118,7 @@ void x86_switch_to_thread(ptr_t *scheduler_stack, const thread_t *to, switch_fla
                                       switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? x86_switch_impl_new_kernel_thread :
                                                                                    x86_switch_impl_normal;
 
-    const x86_thread_context_t context = *container_of(to->context, x86_thread_context_t, inner);
+    const x86_thread_context_t context = *(x86_thread_context_t *) to->context;
     x86_context_switch_impl(scheduler_stack, to->k_stack.head, pgd_paddr, switch_func, &context);
 }
 

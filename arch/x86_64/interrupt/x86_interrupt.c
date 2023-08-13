@@ -2,6 +2,7 @@
 
 #include "mos/kallsyms.h"
 #include "mos/ksyscall_entry.h"
+#include "mos/tasks/signal.h"
 #include "mos/tasks/task_types.h"
 
 #include <mos/interrupt/ipi.h>
@@ -304,28 +305,17 @@ static void x86_handle_syscall(x86_stack_frame *frame)
     frame->ax = ksyscall_enter(frame->ax, frame->bx, frame->cx, frame->dx, frame->si, frame->di, frame->bp);
 
     MOS_ASSERT_X(current_thread->state == THREAD_STATE_RUNNING, "thread %pt is not in 'running' state", (void *) current_thread);
-
-    // flags may have been changed by platform_arch_syscall
-    x86_process_options_t *options = current_process->platform_options;
-    if (options)
-    {
-        if (options->iopl_enabled)
-            frame->iret_params.eflags |= 0x3000; // enable IOPL
-        else
-            frame->iret_params.eflags &= ~0x3000; // disable IOPL
-    }
 }
 
 void x86_handle_interrupt(ptr_t rsp)
 {
     x86_stack_frame *frame = (x86_stack_frame *) rsp;
+    thread_t *current = current_thread;
 
-    if (likely(current_thread))
+    if (likely(current))
     {
-        x86_thread_context_t *context = container_of(current_thread->context, x86_thread_context_t, inner);
+        x86_thread_context_t *context = current->context;
         context->regs = *frame;
-        context->inner.instruction = frame->iret_params.ip;
-        context->inner.stack = frame->iret_params.sp;
     }
 
     if (frame->interrupt_number < IRQ_BASE)
@@ -338,4 +328,16 @@ void x86_handle_interrupt(ptr_t rsp)
         x86_handle_syscall(frame);
     else
         pr_warn("Unknown interrupt number: %lu", frame->interrupt_number);
+
+    // flags may have been changed by platform_arch_syscall
+    x86_process_options_t *options = current->owner->platform_options;
+    if (options)
+    {
+        if (options->iopl_enabled)
+            frame->iret_params.eflags |= 0x3000; // enable IOPL
+        else
+            frame->iret_params.eflags &= ~0x3000; // disable IOPL
+    }
+
+    signal_check_and_handle();
 }
