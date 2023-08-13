@@ -300,39 +300,33 @@ static void x86_handle_irq(x86_stack_frame *frame)
 
 static void x86_handle_syscall(x86_stack_frame *frame)
 {
-    thread_t *current = current_thread;
 
-    if (likely(current))
-    {
-        x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
-        context->regs = *frame;
-        context->inner.instruction = frame->iret_params.ip;
-        context->inner.stack = frame->iret_params.sp;
-    }
+    MOS_ASSERT_X(current_thread->state == THREAD_STATE_RUNNING, "thread %pt is not in 'running' state", (void *) current_thread);
 
     frame->ax = dispatch_syscall(frame->ax, frame->bx, frame->cx, frame->dx, frame->si, frame->di, frame->bp);
-
-    if (likely(current))
+    // flags may have been changed by platform_arch_syscall
+    x86_process_options_t *options = current_process->platform_options;
+    if (options)
     {
-        MOS_ASSERT_X(current->state == THREAD_STATE_RUNNING, "thread %pt is not in 'running' state", (void *) current);
-
-        // flags may have been changed by platform_arch_syscall
-        x86_process_options_t *options = current->owner->platform_options;
-        if (options)
-        {
-            if (options->iopl_enabled)
-                frame->iret_params.eflags |= 0x3000; // enable IOPL
-            else
-                frame->iret_params.eflags &= ~0x3000; // disable IOPL
-        }
+        if (options->iopl_enabled)
+            frame->iret_params.eflags |= 0x3000; // enable IOPL
+        else
+            frame->iret_params.eflags &= ~0x3000; // disable IOPL
     }
-
-    // frame->iret_params.eflags |= 0x200; // enable interrupts
 }
 
 void x86_handle_interrupt(ptr_t rsp)
 {
     x86_stack_frame *frame = (x86_stack_frame *) rsp;
+
+    if (likely(current_thread))
+    {
+        x86_thread_context_t *context = container_of(current_thread->context, x86_thread_context_t, inner);
+        context->regs = *frame;
+        context->inner.instruction = frame->iret_params.ip;
+        context->inner.stack = frame->iret_params.sp;
+    }
+
     if (frame->interrupt_number < IRQ_BASE)
         x86_handle_exception(frame);
     else if (frame->interrupt_number >= IRQ_BASE && frame->interrupt_number < IRQ_BASE + IRQ_MAX)

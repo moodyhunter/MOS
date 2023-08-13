@@ -81,6 +81,7 @@ x86_switch_impl_new_user_thread:
     ; we are now on the kernel stack of the corrrsponding thread
     ; r8 = struct { eip, stack, x86_stack_frame, arg; ... }; (size: 1, 1, 24, 1)
     push    r8
+    mov     rdi, r8
     call    x86_switch_impl_setup_user_thread
     pop     r8
 

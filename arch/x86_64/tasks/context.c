@@ -27,10 +27,9 @@ extern void x86_switch_impl_normal(void);
 extern asmlinkage void x86_context_switch_impl(ptr_t *old_stack, ptr_t new_kstack, ptr_t pgd, switch_func_t switcher, const x86_thread_context_t *context);
 
 // called from assembly
-void x86_switch_impl_setup_user_thread(void)
+void x86_switch_impl_setup_user_thread(x86_thread_context_t *context)
 {
     thread_t *current = current_thread;
-    x86_thread_context_t *context = container_of(current->context, x86_thread_context_t, inner);
     const bool is_forked = context->is_forked;
     const bool is_main_thread = current == current->owner->threads[0];
 
@@ -115,11 +114,12 @@ void x86_switch_to_thread(ptr_t *scheduler_stack, const thread_t *to, switch_fla
 {
     per_cpu(x86_cpu_descriptor)->tss.rsp0 = to->k_stack.top;
     const ptr_t pgd_paddr = pgd_pfn(to->owner->mm->pgd) * MOS_PAGE_SIZE;
-    const x86_thread_context_t *context = container_of(to->context, x86_thread_context_t, inner);
     const switch_func_t switch_func = switch_flags & SWITCH_TO_NEW_USER_THREAD   ? x86_switch_impl_new_user_thread :
                                       switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? x86_switch_impl_new_kernel_thread :
                                                                                    x86_switch_impl_normal;
-    x86_context_switch_impl(scheduler_stack, to->k_stack.head, pgd_paddr, switch_func, context);
+
+    const x86_thread_context_t context = *container_of(to->context, x86_thread_context_t, inner);
+    x86_context_switch_impl(scheduler_stack, to->k_stack.head, pgd_paddr, switch_func, &context);
 }
 
 void x86_switch_to_scheduler(ptr_t *old_stack, ptr_t scheduler_stack)
