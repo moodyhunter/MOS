@@ -222,6 +222,11 @@ static bool fallback_fault_handler(vmap_t *vmap, ptr_t fault_addr, const pagefau
     }
 
     phyframe_t *frame = mm_get_free_page();
+    if (unlikely(!frame))
+    {
+        pr_emerg("Out of memory");
+        return false;
+    }
     mm_do_map(vmap->mmctx->pgd, fault_addr, phyframe_pfn(frame), 1, info->userfault ? VM_USER_RW : VM_RW, true);
     vmap_mstat_inc(vmap, inmem, 1);
     return true;
