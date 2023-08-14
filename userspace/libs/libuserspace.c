@@ -4,6 +4,7 @@
 #include "struct_file.h"
 
 #include <mos/syscall/usermode.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,7 +63,7 @@ void fatal_abort(const char *fmt, ...)
     va_start(ap, fmt);
     fprintf(stderr, fmt, ap);
     va_end(ap);
-    exit(-1);
+    abort();
     while (1)
         ;
 }
@@ -82,4 +83,10 @@ tid_t start_thread(const char *name, thread_entry_t entry, void *arg)
     thread_start_args->entry = entry;
     thread_start_args->arg = arg;
     return syscall_create_thread(name, thread_start, thread_start_args);
+}
+
+noreturn void abort()
+{
+    raise(SIGABRT);
+    exit(-1);
 }

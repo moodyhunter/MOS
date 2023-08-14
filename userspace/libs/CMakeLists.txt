@@ -9,6 +9,7 @@ target_sources(stdlib PRIVATE
     cxa.c
     sys-stat.c
     fcntl.c
+    signal.c
 )
 
 target_include_directories(stdlib SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/userspace/include)

@@ -76,9 +76,10 @@ should_inline void *kzalloc(size_t size)
 #endif
 
 #ifndef __MOS_KERNEL__
-MOSAPI void exit(int status);
+MOSAPI noreturn void exit(int status);
 MOSAPI int atexit(void (*func)(void));
 MOSAPI tid_t start_thread(const char *name, thread_entry_t entry, void *arg);
+MOSAPI noreturn void abort(void);
 #endif
 
 /** @} */
