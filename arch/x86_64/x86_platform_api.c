@@ -179,7 +179,7 @@ void platform_jump_to_signal_handler(signal_t sig, sigaction_t *sa)
 void platform_restore_from_signal_handler(void *sp)
 {
     x86_thread_context_t *ctx = current_thread->context;
-    current_thread->u_stack.head = (ptr_t) sp; // skip the return address
+    current_thread->u_stack.head = (ptr_t) sp;
 
     x86_stack_frame orig;
     stack_pop(&current_thread->u_stack, sizeof(x86_stack_frame), &orig);
