@@ -275,7 +275,7 @@
         },
         {
             "number": 40,
-            "name": "signal",
+            "name": "signal_process",
             "return": "bool",
             "arguments": [ { "type": "pid_t", "arg": "pid" }, { "type": "signal_t", "arg": "signum" } ],
             "comments": [
