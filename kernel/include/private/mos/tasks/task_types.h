@@ -9,6 +9,7 @@
 #include <mos/filesystem/vfs.h>
 #include <mos/io/io.h>
 #include <mos/kconfig.h>
+#include <mos/lib/structures/list.h>
 #include <mos/lib/structures/stack.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/mm_types.h>
@@ -32,13 +33,17 @@ typedef struct _process
     pid_t pid;
     const char *name;
     process_t *parent;
+    list_head children;      // list of children processes
+    list_node_t parent_node; // node in the parent's children list
 
     argv_t argv;
 
     io_t *files[MOS_PROCESS_MAX_OPEN_FILES];
 
-    ssize_t threads_count;
-    thread_t *threads[MOS_PROCESS_MAX_THREADS];
+    // ssize_t threads_count;
+    // thread_t *threads[MOS_PROCESS_MAX_THREADS];
+    thread_t *main_thread;
+    list_head threads;
 
     mm_context_t *mm;
     dentry_t *working_directory;
@@ -64,6 +69,7 @@ typedef struct _thread
     tid_t tid;
     const char *name;
     process_t *owner;
+    list_node_t owner_node;    // node in the process's thread list
     thread_mode mode;          // user-mode thread or kernel-mode
     spinlock_t state_lock;     // protects the thread state
     thread_state_t state;      // thread state

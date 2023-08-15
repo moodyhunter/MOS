@@ -49,6 +49,8 @@ process_t *process_allocate(process_t *parent, const char *name)
 
     proc->magic = PROCESS_MAGIC_PROC;
     proc->pid = new_process_id();
+    linked_list_init(&proc->threads);
+    linked_list_init(&proc->children);
 
     waitlist_init(&proc->waiters);
 
@@ -70,6 +72,8 @@ process_t *process_allocate(process_t *parent, const char *name)
         kfree(proc);
         return NULL;
     }
+
+    list_node_append(&proc->parent->children, &proc->parent_node);
 
     if (unlikely(proc->pid == 2))
     {
@@ -96,17 +100,14 @@ process_t *process_new(process_t *parent, const char *name, const stdio_t *ios, 
     process_t *proc = process_allocate(parent, name);
     if (unlikely(!proc))
         return NULL;
-
     mos_debug(process, "creating process %pp", (void *) proc);
-    if (unlikely(!proc))
-        return NULL;
 
     proc->argv = argv;
     process_attach_ref_fd(proc, ios && ios->in ? ios->in : io_null);
     process_attach_ref_fd(proc, ios && ios->out ? ios->out : io_null);
     process_attach_ref_fd(proc, ios && ios->err ? ios->err : io_null);
 
-    thread_new(proc, THREAD_MODE_USER, proc->name, entry, NULL);
+    proc->main_thread = thread_new(proc, THREAD_MODE_USER, proc->name, entry, NULL);
 
     vmap_t *heap = mm_alloc_pages(proc->mm, 1, MOS_ADDR_USER_HEAP, VALLOC_DEFAULT, VM_USER_RW);
     vmap_finalise_init(heap, VMAP_HEAP, VMAP_FORK_PRIVATE);
@@ -165,17 +166,6 @@ bool process_detach_fd(process_t *process, fd_t fd)
     return true;
 }
 
-void process_attach_thread(process_t *process, thread_t *thread)
-{
-    MOS_ASSERT(process_is_valid(process));
-    MOS_ASSERT(thread_is_valid(thread));
-    MOS_ASSERT(thread->owner == process);
-    mos_debug(process, "process %pp attached thread %pt", (void *) process, (void *) thread);
-    MOS_ASSERT(process->threads_count < MOS_PROCESS_MAX_THREADS);
-    MOS_ASSERT(process->threads[process->threads_count] == NULL);
-    process->threads[process->threads_count++] = thread;
-}
-
 bool process_wait_for_pid(pid_t pid)
 {
     process_t *target = process_get(pid);
@@ -191,19 +181,18 @@ bool process_wait_for_pid(pid_t pid)
     return true;
 }
 
-void process_handle_exit(process_t *process, int exit_code)
+void process_handle_exit(process_t *process, u32 exit_code)
 {
     MOS_ASSERT(process_is_valid(process));
     mos_debug(process, "process %pp exited with code %d", (void *) process, exit_code);
 
-    mos_debug(process, "terminating all %lu threads owned by %pp", process->threads_count, (void *) process);
-    for (int i = 0; i < process->threads_count; i++)
+    list_node_foreach(t, &process->threads)
     {
-        thread_t *thread = process->threads[i];
+        thread_t *thread = container_of(t, thread_t, owner_node);
         spinlock_acquire(&thread->state_lock);
         if (thread->state == THREAD_STATE_DEAD)
         {
-            mos_debug(process, "thread %pt is already dead", (void *) thread);
+            pr_warn("thread %pt is already dead", (void *) thread);
         }
         else
         {
@@ -320,7 +309,12 @@ static bool process_sysfs_process_stat(sysfs_file_t *f)
     do_print("%s", "name", current_process->name);
 
     do_print("%d", "parent", current_process->parent->pid);
-    do_print("%zd", "n_threads", current_process->threads_count);
+
+    list_node_foreach(t, &current_process->threads)
+    {
+        thread_t *thread = container_of(t, thread_t, owner_node);
+        do_print("%pt", "thread", (void *) thread);
+    }
     return true;
 }
 

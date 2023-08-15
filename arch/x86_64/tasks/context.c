@@ -37,7 +37,7 @@ static void x86_start_user_thread(x86_thread_context_t *context)
 {
     thread_t *current = current_thread;
     const bool is_forked = context->is_forked;
-    const bool is_main_thread = current == current->owner->threads[0];
+    const bool is_main_thread = current == current->owner->main_thread;
 
     if (is_forked)
     {

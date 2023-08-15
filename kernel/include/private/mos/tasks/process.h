@@ -34,12 +34,11 @@ fd_t process_attach_ref_fd(process_t *process, io_t *file);
 io_t *process_get_fd(process_t *process, fd_t fd);
 bool process_detach_fd(process_t *process, fd_t fd);
 
-void process_attach_thread(process_t *process, thread_t *thread);
 ptr_t process_grow_heap(process_t *process, size_t npages);
 
 bool process_wait_for_pid(pid_t pid);
 
-noreturn void process_handle_exit(process_t *process, int exit_code);
+noreturn void process_handle_exit(process_t *process, u32 exit_code);
 process_t *process_handle_fork(process_t *process);
 
 void process_dump_mmaps(const process_t *process);

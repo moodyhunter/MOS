@@ -37,7 +37,9 @@ thread_t *thread_allocate(process_t *owner, thread_mode tflags)
     t->waiting = NULL;
     waitlist_init(&t->waiters);
     linked_list_init(&t->signal_info.pending);
+    linked_list_init(&t->owner_node);
 
+    list_node_append(&owner->threads, &t->owner_node);
     return t;
 }
 
@@ -67,7 +69,6 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
     }
 
     platform_context_setup(t, entry, arg);
-    process_attach_thread(owner, t);
     hashmap_put(&thread_table, t->tid, t);
 
     return t;

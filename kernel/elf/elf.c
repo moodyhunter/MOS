@@ -231,7 +231,7 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
 
     // unmap the buffer from kernel pages
     pmm_unref(buf_frame, npage_required);
-    thread_setup_complete(proc->threads[0]);
+    thread_setup_complete(proc->main_thread);
     io_unref(&f->io); // close the file, we should have the file's refcount == 0 here
     return proc;
 
