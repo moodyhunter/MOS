@@ -107,6 +107,9 @@ DEFINE_SYSCALL(noreturn void, exit)(u32 exit_code)
     if (unlikely(pid == 1))
         mos_panic("init process exited with code %d", exit_code);
 
+    // only use the lower 8 bits
+    exit_code &= 0xff;
+
     process_handle_exit(current_process, exit_code);
 }
 
