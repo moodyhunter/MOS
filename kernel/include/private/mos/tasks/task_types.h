@@ -8,7 +8,6 @@
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/io/io.h>
-#include <mos/kconfig.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/structures/stack.h>
 #include <mos/lib/sync/spinlock.h>

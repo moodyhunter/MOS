@@ -8,7 +8,6 @@
 #include "mos/mm/slab_autoinit.h"
 #include "mos/tasks/task_types.h"
 
-#include <mos/kconfig.h>
 #include <mos/lib/structures/bitmap.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>

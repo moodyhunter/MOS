@@ -8,7 +8,6 @@
 #include "mos/platform/platform.h"
 #include "mos/x86/x86_platform.h"
 
-#include <mos/kconfig.h>
 #include <mos/printk.h>
 #include <stdlib.h>
 #include <string.h>

@@ -2,7 +2,6 @@
 
 #include "mos/mm/mm.h"
 
-#include <mos/kconfig.h>
 #include <mos/mm/cow.h>
 #include <mos/mm/mm_types.h>
 #include <mos/mm/mmap.h>

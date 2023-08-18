@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <mos/kconfig.h>
 #include <mos/mos_global.h>
 #include <mos/types.h>
 

@@ -8,7 +8,6 @@
 #include "mos/mm/paging/table_ops.h"
 #include "mos/platform/platform.h"
 
-#include <mos/kconfig.h>
 #include <mos/mos_global.h>
 #include <string.h>
 

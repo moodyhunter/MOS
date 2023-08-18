@@ -8,7 +8,6 @@
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
-#include <mos/kconfig.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/structures/tree.h>
 #include <mos/mos_global.h>

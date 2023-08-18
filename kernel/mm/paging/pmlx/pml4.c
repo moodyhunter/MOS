@@ -10,7 +10,6 @@
 #include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
 
-#include <mos/kconfig.h>
 #include <mos/mos_global.h>
 #include <string.h>
 

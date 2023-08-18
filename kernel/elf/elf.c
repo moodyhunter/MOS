@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/cow.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/table_ops.h"
 #include "mos/mm/physical/pmm.h"
 
 #include <mos/elf/elf.h>
 #include <mos/filesystem/vfs.h>
-#include <mos/kconfig.h>
-#include <mos/mm/cow.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/mos_global.h>
 #include <mos/platform/platform.h>
