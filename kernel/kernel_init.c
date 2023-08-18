@@ -35,7 +35,7 @@ static bool init_sysfs_argv(sysfs_file_t *file)
 }
 
 SYSFS_ITEM_RO_STRING(kernel_sysfs_version, MOS_KERNEL_VERSION)
-SYSFS_ITEM_RO_STRING(kernel_sysfs_revision, MOS_KERNEL_REVISION_STRING)
+SYSFS_ITEM_RO_STRING(kernel_sysfs_revision, MOS_KERNEL_REVISION)
 SYSFS_ITEM_RO_STRING(kernel_sysfs_build_date, __DATE__)
 SYSFS_ITEM_RO_STRING(kernel_sysfs_build_time, __TIME__)
 SYSFS_ITEM_RO_STRING(kernel_sysfs_compiler, __VERSION__)
@@ -83,7 +83,7 @@ MOS_SETUP("init_args", setup_init_args);
 void mos_start_kernel(void)
 {
     pr_info("Welcome to MOS!");
-    pr_emph("MOS %s (%s), compiler version %s, on %s", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION_STRING, __VERSION__, __DATE__);
+    pr_emph("MOS %s (%s), compiler version %s, on %s", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION, __VERSION__, __DATE__);
 
     if (mos_cmdlines_count)
         pr_emph("MOS Kernel cmdline");

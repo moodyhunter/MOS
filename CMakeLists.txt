@@ -1,17 +1,23 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 cmake_minimum_required(VERSION 3.20)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-include(cmake/kconfig.cmake)
-include(cmake/mos_target_setup.cmake)
-include(mos_config.cmake)
-
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     message(FATAL_ERROR "In-source builds are not allowed. Please create a separate build directory and run CMake from there.")
 endif()
 
-project(MOS LANGUAGES CXX C ASM ASM_NASM VERSION 0.1)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+include(mos_target_setup)
+
+project(MOS
+    LANGUAGES CXX C ASM ASM_NASM
+    VERSION 0.1
+    DESCRIPTION "MOS Kernel and Userspace"
+    HOMEPAGE_URL "https://github.com/moodyhunter/MOS"
+)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_EXTENSIONS ON)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
@@ -20,8 +26,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-
+# ! Kconfig ===================================================
 execute_process(
     COMMAND git describe --long --tags --all --dirty
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -31,16 +36,32 @@ execute_process(
     ERROR_STRIP_TRAILING_WHITESPACE
 )
 
-mos_kconfig(MISC MOS_KERNEL_VERSION "\"${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}\"" "Kernel version")
-mos_kconfig(MISC MOS_KERNEL_REVISION_STRING "\"${REVISION}\"" "Kernel revision string")
+if (NOT MOS_CONFIG)
+    set(MOS_CONFIG ${MOS_ARCH}-default)
+    message("Using default config: ${MOS_CONFIG}")
+endif()
+
+set(KCONFIG_ARCH ${MOS_ARCH})
+set(KCONFIG_PRESET_CONFIG ${CMAKE_SOURCE_DIR}/configs/${MOS_CONFIG}.conf)
+set(KCONFIG_PREFIX "MOS_") # use MOS_ prefix for all config variables
+set(KCONFIG_EXTRA_OPTIONS_BLACKLIST "MOS_ARCH;MOS_IS_TOP_LEVEL;MOS_BINARY_DIR;MOS_DESCRIPTION;MOS_SOURCE_DIR;MOS_VERSION")
+include(kconfig)
+
+# ! Configure Summary =========================================
+
+include(configure_summary)
+add_summary_section(BOOTABLE    "Bootable Targets")
+add_summary_section(INITRD      "Initrd Items")
+add_summary_section(USERSPACE   "Userspace Targets")
+add_summary_section(UTILITY     "Utility Targets")
 
 include(generate_syscall_headers)
-generate_syscall_headers(${CMAKE_SOURCE_DIR}/kernel/ksyscalls.json)
 
 # Public includes interface target
 add_library(mos_kernel_include INTERFACE)
 target_include_directories(mos_kernel_include SYSTEM INTERFACE
     ${CMAKE_BINARY_DIR}/include                         # generated headers
+    ${CMAKE_BINARY_DIR}/kconfig/include                 # generated kconfig headers
     ${CMAKE_SOURCE_DIR}/kernel/include/public           # public types
     ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/include/public # public arch (e.g. syscall)
 )
@@ -67,6 +88,7 @@ add_library(mos_kernel OBJECT ${MOS_KERNEL_SOURCES})
 target_link_libraries(mos_kernel PUBLIC mos::kernel_compile_options)
 add_dependencies(mos_kernel mos_syscall_decl)
 add_library(mos::kernel ALIAS mos_kernel)
+target_compile_definitions(mos_kernel PRIVATE MOS_KERNEL_VERSION="${CMAKE_PROJECT_VERSION}" MOS_KERNEL_REVISION="${REVISION}")
 
 # Libraries
 include(add_kernel_source)
@@ -83,11 +105,9 @@ add_subdirectory(tools)
 
 # include custom configuration
 if(EXISTS ${CMAKE_SOURCE_DIR}/config.cmake)
-    message(STATUS "Including custom configuration from ${CMAKE_SOURCE_DIR}/config.cmake")
+    message(STATUS "Importing custom configuration from ${CMAKE_SOURCE_DIR}/config.cmake")
     include(${CMAKE_SOURCE_DIR}/config.cmake)
 endif()
-
-generate_kconfig()
 
 # Configure installation targets
 install(
@@ -104,8 +124,8 @@ install(
 # installation.
 # So we explicitly list the files we want to install here.
 install(
-    FILES ${CMAKE_BINARY_DIR}/include/mos/kconfig.h
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/include/mos
+    FILES ${KCONFIG_AUTOCONF_H}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/include/generated/
     COMPONENT mos-api-headers
     EXCLUDE_FROM_ALL
 )

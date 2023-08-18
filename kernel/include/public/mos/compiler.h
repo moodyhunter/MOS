@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <mos/kconfig.h>
+#include <generated/autoconf.h>
 
 #define MOS_DO_PRAGMA(x) _Pragma(#x)
 
@@ -35,8 +35,10 @@
 // * BEGIN determine the code model
 #if defined(__ILP32__)
 #define MOS_LP32 1 // sizeof(long) == sizeof(void *) == 4
+#define MOS_BITS 32
 #elif defined(__LP64__)
 #define MOS_LP64 1 // sizeof(long) == sizeof(void *) == 8
+#define MOS_BITS 64
 #elif defined(__LLP64__)
 #error "LLP64 is not supported"
 #endif

@@ -6,7 +6,6 @@
 
 #include <fcntl.h>
 #include <mos/filesystem/fs_types.h>
-#include <mos/kconfig.h>
 #include <mos/lib/cmdline.h>
 #include <mos/mos_global.h>
 #include <mos/syscall/usermode.h>

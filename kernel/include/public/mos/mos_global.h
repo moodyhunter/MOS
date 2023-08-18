@@ -106,7 +106,11 @@
 // If the given feature is not defined, the expression will be 0, which throws a division by zero error.
 #define MOS_CONFIG(feat) (1 / feat == 1)
 
+#if MOS_CONFIG(MOS_DEBUG)
 #define MOS_DEBUG_FEATURE(feat) MOS_CONFIG(MOS_CONCAT(MOS_DEBUG_, feat))
+#else
+#define MOS_DEBUG_FEATURE(feat) 0
+#endif
 
 /**
  * @brief Returns true for the first call, false for all subsequent calls.

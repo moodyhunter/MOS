@@ -1,0 +1,135 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+menu "Kernel Configuration"
+
+config MAX_CPU_COUNT
+    int "Maximum number of CPUs"
+    default 8
+
+config MAX_CMDLINE_COUNT
+    int "Maximum number of command line arguments"
+    default 64
+
+config MAX_MEMREGIONS
+    int "Maximum number of bootloader-provided memory regions"
+    default 64
+
+config PROCESS_MAX_OPEN_FILES
+    int "Maximum number of open files per process"
+    default 64
+
+config PROCESS_MAX_THREADS
+    int "Maximum number of threads per process"
+    default 32
+
+config PATH_MAX_LENGTH
+    int "Maximum length of path"
+    default 256
+
+config STACK_PAGES_KERNEL
+    int "Number of pages for kernel stack"
+    default 16
+
+config STACK_PAGES_USER
+    int "Number of pages for user stack"
+    default 32
+
+config DEBUG_HAS_FUNCTION_NAME
+    bool "function name in debug messages"
+    default y
+
+config PRINTK_WITH_FILENAME
+    bool "filename in debug messages"
+    default y
+
+config SMP
+    bool "SMP"
+    default n
+
+# ! ============================================================
+
+menuconfig DEBUG
+    bool "Print kernel debug messages"
+
+    if DEBUG
+    config DEBUG_thread
+        bool "thread debugging"
+
+    config DEBUG_process
+        bool "process debugging"
+
+    config DEBUG_fork
+        bool "fork debugging"
+        select DEBUG_process
+
+    config DEBUG_scheduler
+        bool "scheduler debugging"
+
+    config DEBUG_syscall
+        bool "syscall debugging"
+
+    config DEBUG_pmm
+        bool "pmm debugging"
+
+    config DEBUG_pmm_buddy
+        bool "pmm_buddy debugging"
+        select DEBUG_pmm
+
+    config DEBUG_vmm
+        bool "vmm debugging"
+
+    config DEBUG_mmap
+        bool "mmap debugging"
+
+    config DEBUG_shm
+        bool "shm debugging"
+
+    config DEBUG_cow
+        bool "cow debugging"
+
+    config DEBUG_elf
+        bool "elf debugging"
+
+    config DEBUG_fs
+        bool "fs debugging"
+
+    config DEBUG_io
+        bool "io debugging"
+
+    config DEBUG_cpio
+        bool "cpio debugging"
+
+    config DEBUG_setup
+        bool "setup debugging"
+
+    config DEBUG_spinlock
+        bool "spinlock debugging"
+
+    config DEBUG_futex
+        bool "futex debugging"
+
+    config DEBUG_ipc
+        bool "ipc debugging"
+
+    config DEBUG_vfs
+        bool "vfs debugging"
+
+    config DEBUG_dcache
+        bool "dcache debugging"
+
+    config DEBUG_dcache_ref
+        bool "dcache_ref debugging"
+        select DEBUG_dcache
+
+    config DEBUG_tmpfs
+        bool "tmpfs debugging"
+
+    config DEBUG_ipi
+        bool "ipi debugging"
+
+    config DEBUG_slab
+        bool "slab debugging"
+
+    endif
+
+endmenu

@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+mainmenu "MOS Kernel Configuration"
+
+source "arch/Kconfig"
+
+source "kernel/Kconfig"
+
+source "tests/Kconfig"
+
+source "userspace/Kconfig"
