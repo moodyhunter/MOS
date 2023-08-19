@@ -18,8 +18,8 @@
 #define THREAD_HASHTABLE_SIZE  512
 
 slab_t *process_cache = NULL, *thread_cache = NULL;
-MOS_SLAB_AUTOINIT("process", process_cache, process_t);
-MOS_SLAB_AUTOINIT("thread", thread_cache, thread_t);
+SLAB_AUTOINIT("process", process_cache, process_t);
+SLAB_AUTOINIT("thread", thread_cache, thread_t);
 
 static hash_t pid_hash(uintn key)
 {

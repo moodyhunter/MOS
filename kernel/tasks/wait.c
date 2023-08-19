@@ -13,7 +13,7 @@
 #include <stdlib.h>
 
 static slab_t *waitlist_listentry_slab = NULL;
-MOS_SLAB_AUTOINIT("waitlist_entry", waitlist_listentry_slab, waitable_list_entry_t);
+SLAB_AUTOINIT("waitlist_entry", waitlist_listentry_slab, waitable_list_entry_t);
 
 wait_condition_t *wc_wait_for(void *arg, wait_condition_verifier_t verify, wait_condition_cleanup_t cleanup)
 {

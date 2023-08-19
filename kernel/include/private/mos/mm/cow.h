@@ -7,12 +7,6 @@
 #include "mos/tasks/task_types.h"
 
 /**
- * @brief Initialize copy-on-write
- *
- */
-void cow_init(void);
-
-/**
  * @brief Make a copy-on-write block
  *
  * @param from Source paging handle

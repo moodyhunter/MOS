@@ -40,7 +40,7 @@ static atomic_t tmpfs_inode_count = 0;
 static filesystem_t fs_tmpfs;
 
 static slab_t *tmpfs_inode_cache = NULL;
-MOS_SLAB_AUTOINIT("tmpfs_inode", tmpfs_inode_cache, tmpfs_inode_t);
+SLAB_AUTOINIT("tmpfs_inode", tmpfs_inode_cache, tmpfs_inode_t);
 
 should_inline tmpfs_inode_t *INODE(inode_t *inode)
 {

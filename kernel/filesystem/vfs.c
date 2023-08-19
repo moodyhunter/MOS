@@ -24,11 +24,11 @@ static spinlock_t vfs_fs_list_lock = SPINLOCK_INIT;
 dentry_t *root_dentry = NULL;
 
 slab_t *inode_cache = NULL, *superblock_cache = NULL, *dentry_cache = NULL, *mount_cache = NULL, *file_cache = NULL;
-MOS_SLAB_AUTOINIT("inode", inode_cache, inode_t);
-MOS_SLAB_AUTOINIT("superblock", superblock_cache, superblock_t);
-MOS_SLAB_AUTOINIT("dentry", dentry_cache, dentry_t);
-MOS_SLAB_AUTOINIT("mount", mount_cache, mount_t);
-MOS_SLAB_AUTOINIT("file", file_cache, file_t);
+SLAB_AUTOINIT("inode", inode_cache, inode_t);
+SLAB_AUTOINIT("superblock", superblock_cache, superblock_t);
+SLAB_AUTOINIT("dentry", dentry_cache, dentry_t);
+SLAB_AUTOINIT("mount", mount_cache, mount_t);
+SLAB_AUTOINIT("file", file_cache, file_t);
 
 // BEGIN: filesystem's io_t operations
 static void vfs_io_ops_close(io_t *io)

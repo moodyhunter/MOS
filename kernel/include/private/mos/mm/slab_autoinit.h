@@ -5,7 +5,7 @@
 #include "mos/mm/slab.h"
 #include "mos/setup.h"
 
-#define MOS_SLAB_AUTOINIT(name, var, type)                                                                                                                               \
+#define SLAB_AUTOINIT(name, var, type)                                                                                                                                   \
     static void __slab_autoinit_##var(void)                                                                                                                              \
     {                                                                                                                                                                    \
         var = kmemcache_create(name, sizeof(type));                                                                                                                      \

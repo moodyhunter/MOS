@@ -124,6 +124,8 @@ void slab_init(void)
         slab_init_one(&slabs[i], BUILTIN_SLAB_SIZES[i].name, BUILTIN_SLAB_SIZES[i].size);
         slab_allocate_mem(&slabs[i]);
     }
+
+    setup_reach_init_target(INIT_TARGET_SLAB_AUTOINIT);
 }
 
 void *slab_alloc(size_t size)

@@ -22,7 +22,7 @@
 static list_head ipc_servers = LIST_HEAD_INIT(ipc_servers);
 
 static slab_t *ipc_slab = NULL;
-MOS_SLAB_AUTOINIT("ipc", ipc_slab, ipc_t);
+SLAB_AUTOINIT("ipc", ipc_slab, ipc_t);
 
 typedef struct
 {

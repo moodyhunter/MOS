@@ -18,7 +18,7 @@ typedef struct
 
 static list_head pm_notifiers = LIST_HEAD_INIT(pm_notifiers);
 static slab_t *power_callback_cache = NULL;
-MOS_SLAB_AUTOINIT("power_callback", power_callback_cache, power_callback_entry_t);
+SLAB_AUTOINIT("power_callback", power_callback_cache, power_callback_entry_t);
 
 void power_register_shutdown_callback(power_callback_t callback, void *data)
 {

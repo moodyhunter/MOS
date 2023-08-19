@@ -19,8 +19,8 @@
 #include <mos/tasks/task_types.h>
 #include <string.h>
 
-static phyframe_t *zero_page;
-static pfn_t zero_page_pfn;
+static phyframe_t *zero_page = NULL;
+static pfn_t zero_page_pfn = 0;
 
 static bool cow_fault_handler(vmap_t *vmap, ptr_t fault_addr, const pagefault_info_t *info)
 {
@@ -55,9 +55,6 @@ static bool cow_fault_handler(vmap_t *vmap, ptr_t fault_addr, const pagefault_in
 
 void cow_init(void)
 {
-    // zero fill on demand (read-only)
-    zero_page = mm_get_free_page(); // already zeroed
-    zero_page_pfn = phyframe_pfn(zero_page);
 }
 
 vmap_t *cow_clone_vmap_locked(mm_context_t *target_mmctx, vmap_t *src_vmap)
@@ -75,6 +72,12 @@ vmap_t *cow_clone_vmap_locked(mm_context_t *target_mmctx, vmap_t *src_vmap)
 
 vmap_t *cow_allocate_zeroed_pages(mm_context_t *mmctx, size_t npages, ptr_t vaddr, valloc_flags allocflags, vm_flags flags)
 {
+    if (unlikely(!zero_page))
+    {
+        zero_page = mm_get_free_page(); // already zeroed
+        zero_page_pfn = phyframe_pfn(zero_page);
+    }
+
     const vm_flags ro_flags = VM_READ | ((flags & VM_USER) ? VM_USER : 0);
 
     spinlock_acquire(&mmctx->mm_lock);

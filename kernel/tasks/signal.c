@@ -12,7 +12,7 @@
 #include <mos/tasks/signal_types.h>
 
 static slab_t *sigpending_slab = NULL;
-MOS_SLAB_AUTOINIT("signal_pending", sigpending_slab, sigpending_t);
+SLAB_AUTOINIT("signal_pending", sigpending_slab, sigpending_t);
 
 noreturn static void signal_do_coredump(void)
 {

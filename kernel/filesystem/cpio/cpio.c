@@ -184,7 +184,7 @@ static const inode_ops_t cpio_file_inode_ops;
 static const file_ops_t cpio_file_ops;
 
 static slab_t *cpio_inode_cache = NULL;
-MOS_SLAB_AUTOINIT("cpio_inode", cpio_inode_cache, cpio_inode_t);
+SLAB_AUTOINIT("cpio_inode", cpio_inode_cache, cpio_inode_t);
 
 should_inline cpio_inode_t *CPIO_INODE(inode_t *inode)
 {

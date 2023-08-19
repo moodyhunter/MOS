@@ -17,23 +17,15 @@
 #include <string.h>
 
 static slab_t *vmap_cache = NULL;
-MOS_SLAB_AUTOINIT("vmap", vmap_cache, vmap_t);
+SLAB_AUTOINIT("vmap", vmap_cache, vmap_t);
 
 static slab_t *mm_context_cache = NULL;
-MOS_SLAB_AUTOINIT("mm_context", mm_context_cache, mm_context_t);
+SLAB_AUTOINIT("mm_context", mm_context_cache, mm_context_t);
 
 void mos_kernel_mm_init(void)
 {
     pr_info("initializing kernel memory management");
-
-    cow_init();
     slab_init();
-
-#if MOS_DEBUG_FEATURE(vmm)
-    declare_panic_hook(mm_dump_current_pagetable, "Dump page table");
-    install_panic_hook(&mm_dump_current_pagetable_holder);
-    mm_dump_current_pagetable();
-#endif
 }
 
 phyframe_t *mm_get_free_page_raw(void)
