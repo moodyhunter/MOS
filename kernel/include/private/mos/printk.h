@@ -31,21 +31,15 @@ typedef enum
     MOS_LOG_DEFAULT = MOS_LOG_INFO,
 } mos_log_level_t;
 
-#if MOS_CONFIG(MOS_DEBUG_HAS_FUNCTION_NAME)
-#define MOS_FUNCTION_NAME __func__
-#else
-#define MOS_FUNCTION_NAME ""
-#endif
-
 #define mos_debug(feat, fmt, ...)                                                                                                                                        \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
         if (MOS_DEBUG_FEATURE(feat))                                                                                                                                     \
-            lprintk_wrapper(MOS_LOG_INFO2, "%-15s %-25s: " fmt, #feat, MOS_FUNCTION_NAME, ##__VA_ARGS__);                                                                \
+            lprintk_wrapper(MOS_LOG_INFO2, "%-15s: " fmt, #feat, ##__VA_ARGS__);                                                                                         \
     } while (0)
 
 #if MOS_CONFIG(MOS_PRINTK_WITH_FILENAME)
-#define lprintk_wrapper(level, fmt, ...) lprintk(level, "\r\n%-30s | " fmt, MOS_FILE_LOCATION, ##__VA_ARGS__)
+#define lprintk_wrapper(level, fmt, ...) lprintk(level, "\r\n%-20s | " fmt, MOS_FILE_LOCATION, ##__VA_ARGS__)
 #else
 #define lprintk_wrapper(level, fmt, ...) lprintk(level, "\r\n" fmt, ##__VA_ARGS__)
 #endif

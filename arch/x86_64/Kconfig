@@ -14,9 +14,13 @@ config HWMEM_VADDR
     hex "Hardware memory virtual address"
     default 0xFFFFFFFFA0000000
 
+comment "x86 debugging disabled (global DEBUG is not set)"
+    depends on !DEBUG
+
 menuconfig DEBUG_x86_all
     bool "x86 debug"
     default n
+    depends on DEBUG
 
     if DEBUG_x86_all
 

@@ -39,8 +39,6 @@ typedef struct _process
 
     io_t *files[MOS_PROCESS_MAX_OPEN_FILES];
 
-    // ssize_t threads_count;
-    // thread_t *threads[MOS_PROCESS_MAX_THREADS];
     thread_t *main_thread;
     list_head threads;
 

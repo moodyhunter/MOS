@@ -5,6 +5,11 @@ menu "Kernel Configuration"
 config MAX_CPU_COUNT
     int "Maximum number of CPUs"
     default 8
+    help
+    This is the maximum number of CPUs that the kernel will support.
+
+    In MOS, the `per_cpu` macro uses an array to store per-CPU data.
+    This option sets the size of the array.
 
 config MAX_CMDLINE_COUNT
     int "Maximum number of command line arguments"
@@ -17,39 +22,35 @@ config MAX_MEMREGIONS
 config PROCESS_MAX_OPEN_FILES
     int "Maximum number of open files per process"
     default 64
-
-config PROCESS_MAX_THREADS
-    int "Maximum number of threads per process"
-    default 32
+    help
+    This is the maximum number of files that a process can have open at
+    once. The larger this number is, the larger `process_t` will be.
+    Please consider this tradeoff when setting the value.
 
 config PATH_MAX_LENGTH
-    int "Maximum length of path"
+    int "Maximum length of paths"
     default 256
 
 config STACK_PAGES_KERNEL
     int "Number of pages for kernel stack"
-    default 16
+    default 4
 
 config STACK_PAGES_USER
     int "Number of pages for user stack"
     default 32
-
-config DEBUG_HAS_FUNCTION_NAME
-    bool "function name in debug messages"
-    default y
 
 config PRINTK_WITH_FILENAME
     bool "filename in debug messages"
     default y
 
 config SMP
-    bool "SMP"
+    bool "SMP support"
     default n
 
 # ! ============================================================
 
 menuconfig DEBUG
-    bool "Print kernel debug messages"
+    bool "Kernel debug messages"
 
     if DEBUG
     config DEBUG_thread
