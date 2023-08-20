@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/platform/platform.h"
+
 #include <mos/cmdline.h>
 #include <mos/kallsyms.h>
 #include <mos/lib/cmdline.h>
 #include <mos/printk.h>
 #include <string.h>
-
-size_t mos_cmdlines_count = 0;
-cmdline_option_t mos_cmdlines[MOS_MAX_CMDLINE_COUNT] = { 0 };
 
 static bool cmdline_is_truthy(const char *arg)
 {
@@ -21,11 +20,11 @@ static bool cmdline_is_falsy(const char *arg)
 
 cmdline_option_t *cmdline_get_option(const char *option_name)
 {
-    for (u32 i = 0; i < mos_cmdlines_count; i++)
+    for (u32 i = 0; i < platform_info->n_cmdlines; i++)
     {
-        if (strcmp(mos_cmdlines[i].name, option_name) == 0)
+        if (strcmp(platform_info->cmdlines[i].name, option_name) == 0)
         {
-            return &mos_cmdlines[i];
+            return &platform_info->cmdlines[i];
         }
     }
     return NULL;
@@ -46,14 +45,14 @@ void mos_cmdline_init(const char *cmdline)
     mos_debug(setup, "cmdline: '%s'", cmdline_buf);
 
     const char *cmdlines_tmp[MOS_MAX_CMDLINE_COUNT] = { 0 };
-    bool result = cmdline_parse_inplace(cmdline_buf, cmdline_length, MOS_MAX_CMDLINE_COUNT, &mos_cmdlines_count, cmdlines_tmp);
+    bool result = cmdline_parse_inplace(cmdline_buf, cmdline_length, MOS_MAX_CMDLINE_COUNT, &platform_info->n_cmdlines, cmdlines_tmp);
     if (!result)
         pr_warn("cmdline_parse: too many cmdlines");
 
-    for (size_t i = 0; i < mos_cmdlines_count; i++)
+    for (size_t i = 0; i < platform_info->n_cmdlines; i++)
     {
         mos_debug(setup, "%s", cmdlines_tmp[i]);
-        mos_cmdlines[i].name = cmdlines_tmp[i];
+        platform_info->cmdlines[i].name = cmdlines_tmp[i];
 
         // find the = sign
         char *equal_sign = strchr(cmdlines_tmp[i], '=');
@@ -61,7 +60,7 @@ void mos_cmdline_init(const char *cmdline)
             continue;
 
         *equal_sign = '\0';
-        mos_cmdlines[i].arg = equal_sign + 1;
+        platform_info->cmdlines[i].arg = equal_sign + 1;
     }
 }
 

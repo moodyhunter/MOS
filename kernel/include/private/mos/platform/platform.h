@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/cmdline.h"
 #include "mos/mm/paging/pml_types.h"
 #include "mos/mm/physical/pmm.h"
 
@@ -143,6 +144,9 @@ typedef struct
     size_t num_pmm_regions;
 
     ptr_t direct_map_base; // direct mapping to all physical memory
+
+    size_t n_cmdlines;
+    cmdline_option_t cmdlines[MOS_MAX_CMDLINE_COUNT];
 } mos_platform_info_t;
 
 extern mos_platform_info_t *const platform_info;

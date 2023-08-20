@@ -85,12 +85,12 @@ void mos_start_kernel(void)
     pr_info("Welcome to MOS!");
     pr_emph("MOS %s (%s), compiler version %s, on %s", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION, __VERSION__, __DATE__);
 
-    if (mos_cmdlines_count)
+    if (platform_info->n_cmdlines)
         pr_emph("MOS Kernel cmdline");
 
-    for (u32 i = 0; i < mos_cmdlines_count; i++)
+    for (u32 i = 0; i < platform_info->n_cmdlines; i++)
     {
-        const cmdline_option_t *opt = &mos_cmdlines[i];
+        const cmdline_option_t *opt = &platform_info->cmdlines[i];
         if (opt->arg)
             pr_info2("  %-2d: %-10s = %s", i, opt->name, opt->arg);
         else
