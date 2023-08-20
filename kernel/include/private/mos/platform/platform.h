@@ -152,7 +152,11 @@ typedef struct
 extern mos_platform_info_t *const platform_info;
 
 extern void mos_start_kernel(void);
-extern void mos_kernel_mm_init(void);
+
+// Platform Startup APIs
+void platform_startup_early();
+void platform_startup_mm();
+void platform_startup_late();
 
 // Platform Machine APIs
 noreturn void platform_shutdown(void);

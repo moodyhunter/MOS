@@ -22,12 +22,6 @@ SLAB_AUTOINIT("vmap", vmap_cache, vmap_t);
 static slab_t *mm_context_cache = NULL;
 SLAB_AUTOINIT("mm_context", mm_context_cache, mm_context_t);
 
-void mos_kernel_mm_init(void)
-{
-    pr_info("initializing kernel memory management");
-    slab_init();
-}
-
 phyframe_t *mm_get_free_page_raw(void)
 {
     phyframe_t *frame = pmm_allocate_frames(1, PMM_ALLOC_NORMAL);

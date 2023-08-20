@@ -16,6 +16,7 @@ size_t phyframes_npages = 0;
 
 void x86_initialise_phyframes_array(void)
 {
+    mos_debug(x86_startup, "setting up physical memory manager...");
     const size_t phyframes_count = platform_info->max_pfn;
 
     phyframes_npages = ALIGN_UP_TO_PAGE(phyframes_count * sizeof(phyframe_t)) / MOS_PAGE_SIZE;

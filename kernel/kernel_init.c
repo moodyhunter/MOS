@@ -3,6 +3,7 @@
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/misc/power.h"
+#include "mos/mm/mm.h"
 
 #include <mos/cmdline.h>
 #include <mos/device/console.h>
@@ -85,6 +86,8 @@ void mos_start_kernel(void)
     pr_info("Welcome to MOS!");
     pr_emph("MOS %s (%s), compiler version %s, on %s", MOS_KERNEL_VERSION, MOS_KERNEL_REVISION, __VERSION__, __DATE__);
 
+    platform_startup_early();
+
     if (platform_info->n_cmdlines)
         pr_emph("MOS Kernel cmdline");
 
@@ -96,6 +99,9 @@ void mos_start_kernel(void)
         else
             pr_info2("  %-2d: %s", i, opt->name);
     }
+
+    platform_startup_mm();
+    slab_init();
 
     init_argv.argc = 1;
     init_argv.argv = kcalloc(1, sizeof(char *)); // init_argv[0] is the init path
@@ -113,6 +119,8 @@ void mos_start_kernel(void)
     vfs_init();
     setup_reach_init_target(INIT_TARGET_VFS);
     setup_reach_init_target(INIT_TARGET_SYSFS);
+
+    platform_startup_late();
 
     bool mounted = vfs_mount("none", "/", "tmpfs", NULL);
     if (!mounted)

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/device/console.h"
+#include "mos/x86/acpi/acpi_types.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/descriptors/descriptors.h"
 
@@ -51,6 +52,7 @@ serial_console_t com1_console = {
 
 mos_platform_info_t *const platform_info = &x86_platform;
 mos_platform_info_t x86_platform = { 0 };
+acpi_rsdp_t *acpi_rsdp = NULL;
 
 static void x86_keyboard_handler(u32 irq)
 {
@@ -109,7 +111,7 @@ static void x86_do_backtrace(void)
     }
 }
 
-void x86_start_kernel(void)
+void platform_startup_early()
 {
     panic_hook_declare(x86_do_backtrace, "Backtrace");
     panic_hook_install(&x86_do_backtrace_holder);
@@ -123,9 +125,10 @@ void x86_start_kernel(void)
     mos_debug(x86_startup, "copying memory for SMP boot...");
     x86_smp_copy_trampoline();
 #endif
+}
 
-    mos_debug(x86_startup, "setting up physical memory manager...");
-
+void platform_startup_mm()
+{
     x86_initialise_phyframes_array();
     x86_paging_setup();
 
@@ -139,24 +142,25 @@ void x86_start_kernel(void)
     if (platform_info->initrd_npages)
         pmm_reserve_frames(platform_info->initrd_pfn, platform_info->initrd_npages);
 
-    mos_kernel_mm_init(); // we can now use the kernel heap (kmalloc)
-
     mos_debug(x86_startup, "Parsing ACPI tables...");
-    acpi_rsdp_t *rsdp = acpi_find_rsdp(pa_va(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
-    if (!rsdp)
+    acpi_rsdp = acpi_find_rsdp(pa_va(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
+    if (!acpi_rsdp)
     {
-        rsdp = acpi_find_rsdp(pa_va(X86_BIOS_MEMREGION_PADDR), BIOS_MEMREGION_SIZE);
-        if (!rsdp)
+        acpi_rsdp = acpi_find_rsdp(pa_va(X86_BIOS_MEMREGION_PADDR), BIOS_MEMREGION_SIZE);
+        if (!acpi_rsdp)
             mos_panic("RSDP not found");
     }
 
-    if (rsdp->xsdt_addr)
+    if (acpi_rsdp->xsdt_addr)
         mos_panic("XSDT not supported");
 
-    const pmm_region_t *acpi_region = pmm_find_reserved_region(rsdp->v1.rsdt_addr);
+    const pmm_region_t *acpi_region = pmm_find_reserved_region(acpi_rsdp->v1.rsdt_addr);
     MOS_ASSERT_X(acpi_region && acpi_region->reserved, "ACPI region not found or not reserved");
+}
 
-    acpi_parse_rsdt(rsdp);
+void platform_startup_late()
+{
+    acpi_parse_rsdt(acpi_rsdp);
 
     mos_debug(x86_startup, "Initializing APICs...");
     madt_parse_table();
@@ -178,6 +182,4 @@ void x86_start_kernel(void)
 #if MOS_CONFIG(MOS_SMP)
     x86_smp_start_all();
 #endif
-
-    mos_start_kernel();
 }

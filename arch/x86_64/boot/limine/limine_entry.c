@@ -111,5 +111,5 @@ asmlinkage void limine_entry(void)
     platform_info->k_basepfn = kernel_address_response->physical_base / MOS_PAGE_SIZE;
     platform_info->k_basevaddr = kernel_address_response->virtual_base;
 
-    x86_start_kernel();
+    mos_start_kernel();
 }
