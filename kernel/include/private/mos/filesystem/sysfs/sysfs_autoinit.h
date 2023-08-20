@@ -5,11 +5,7 @@
 #include "mos/setup.h"
 
 #define SYSFS_AUTOREGISTER(sysfs_name, sysfs_items)                                                                                                                      \
-    static sysfs_dir_t __sysfs_##sysfs_name = {                                                                                                                          \
-        .list_node = LIST_NODE_INIT(__sysfs_##sysfs_name),                                                                                                               \
-        .name = #sysfs_name,                                                                                                                                             \
-        .items = sysfs_items,                                                                                                                                            \
-    };                                                                                                                                                                   \
+    SYSFS_DEFINE_DIR(sysfs_name, sysfs_items)                                                                                                                            \
     static void __sysfs_##sysfs_name##_init(void)                                                                                                                        \
     {                                                                                                                                                                    \
         sysfs_register(&__sysfs_##sysfs_name);                                                                                                                           \

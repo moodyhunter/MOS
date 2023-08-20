@@ -10,9 +10,9 @@ typedef struct _sysfs_file sysfs_file_t;
 
 typedef enum
 {
-    SYSFS_ITEM_RO,
-    SYSFS_ITEM_RW,
-    SYSFS_ITEM_WO,
+    SYSFS_RO,
+    SYSFS_RW,
+    SYSFS_WO,
 } sysfs_item_type_t;
 
 typedef struct
@@ -24,9 +24,9 @@ typedef struct
 } sysfs_item_t;
 
 // clang-format off
-#define SYSFS_RO_ITEM(_name, _show_fn) { .name = _name, .type = SYSFS_ITEM_RO, .show = _show_fn }
-#define SYSFS_RW_ITEM(_name, _show_fn, _store_fn) { .name = _name, .type = SYSFS_ITEM_RW, .show = _show_fn, .store = _store_fn }
-#define SYSFS_WO_ITEM(_name, _store_fn) { .name = _name, .type = SYSFS_ITEM_WO, .store = _store_fn }
+#define SYSFS_RO_ITEM(_name, _show_fn) { .name = _name, .type = SYSFS_RO, .show = _show_fn }
+#define SYSFS_RW_ITEM(_name, _show_fn, _store_fn) { .name = _name, .type = SYSFS_RW, .show = _show_fn, .store = _store_fn }
+#define SYSFS_WO_ITEM(_name, _store_fn) { .name = _name, .type = SYSFS_WO, .store = _store_fn }
 #define SYSFS_END_ITEM { 0 }
 // clang-format on
 
@@ -37,16 +37,27 @@ typedef struct
         return true;                                                                                                                                                     \
     }
 
+#define SYSFS_DEFINE_DIR(sysfs_name, sysfs_items)                                                                                                                        \
+    static sysfs_dir_t __sysfs_##sysfs_name = {                                                                                                                          \
+        .list_node = LIST_NODE_INIT(__sysfs_##sysfs_name),                                                                                                               \
+        .name = #sysfs_name,                                                                                                                                             \
+        .items = sysfs_items,                                                                                                                                            \
+        ._dentry = NULL,                                                                                                                                                 \
+    };
+
 typedef struct
 {
     as_linked_list;
     const char *name;
     const sysfs_item_t *const items; // must be NULL-terminated
+    dentry_t *_dentry;               // for internal use only
 } sysfs_dir_t;
 
 void sysfs_register(sysfs_dir_t *entry);
+void sysfs_register_file(sysfs_dir_t *sysfs_dir, const sysfs_item_t *item, void *data);
 
 void sysfs_file_set_data(sysfs_file_t *file, void *data);
 void *sysfs_file_get_data(sysfs_file_t *file);
 
 __printf(2, 3) ssize_t sysfs_printf(sysfs_file_t *file, const char *fmt, ...);
+ssize_t sysfs_put_data(sysfs_file_t *file, const void *data, size_t count);
