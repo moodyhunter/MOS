@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/mm.h"
+
 #include <mos/mos_global.h>
 #include <mos/printk.h>
 #include <mos/x86/acpi/acpi.h>
@@ -30,17 +32,18 @@ void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
     if (rsdp->xsdt_addr)
         mos_panic("XSDT not supported");
 
-    x86_acpi_rsdt = container_of(BIOS_VADDR_TYPE(rsdp->v1.rsdt_addr, acpi_sdt_header_t *), acpi_rsdt_t, sdt_header);
+    const acpi_sdt_header_t *rsdt_header = (acpi_sdt_header_t *) pa_va(rsdp->v1.rsdt_addr);
+    x86_acpi_rsdt = container_of(rsdt_header, acpi_rsdt_t, sdt_header);
     if (!verify_sdt_checksum(&x86_acpi_rsdt->sdt_header))
         mos_panic("RSDT checksum error");
 
     if (strncmp(x86_acpi_rsdt->sdt_header.signature, "RSDT", 4) != 0)
         mos_panic("RSDT signature mismatch");
 
-    const size_t num_headers = (x86_acpi_rsdt->sdt_header.length - sizeof(acpi_sdt_header_t)) / sizeof(ptr_t);
+    const size_t num_headers = (x86_acpi_rsdt->sdt_header.length - sizeof(acpi_sdt_header_t)) / sizeof(ptr32_t);
     for (size_t i = 0; i < num_headers; i++)
     {
-        const acpi_sdt_header_t *const header = BIOS_VADDR_TYPE(x86_acpi_rsdt->sdts[i], acpi_sdt_header_t *);
+        const acpi_sdt_header_t *const header = (acpi_sdt_header_t *) pa_va(x86_acpi_rsdt->sdts[i]);
 
         if (strncmp(header->signature, ACPI_SIGNATURE_FADT, 4) == 0)
         {
@@ -49,7 +52,7 @@ void acpi_parse_rsdt(acpi_rsdp_t *rsdp)
                 mos_panic("FADT checksum error");
             mos_debug(x86_acpi, "FADT at %p", (void *) x86_acpi_fadt);
 
-            acpi_sdt_header_t *dsdt = BIOS_VADDR_TYPE(x86_acpi_fadt->dsdt, acpi_sdt_header_t *);
+            acpi_sdt_header_t *dsdt = (acpi_sdt_header_t *) pa_va(x86_acpi_fadt->dsdt);
             if (!verify_sdt_checksum(dsdt))
                 mos_panic("DSDT checksum error");
             mos_debug(x86_acpi, "DSDT at %p", (void *) dsdt);

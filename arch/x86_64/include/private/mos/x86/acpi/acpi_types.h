@@ -43,7 +43,7 @@ typedef struct
 typedef struct
 {
     acpi_sdt_header_t sdt_header;
-    acpi_sdt_header_t *sdts[];
+    ptr32_t sdts[]; // 32-bit physical addresses of other SDTs
 } acpi_rsdt_t;
 
 #define ACPI_SIGNATURE_RSDT "RSDT" // Root System Description Table

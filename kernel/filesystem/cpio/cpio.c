@@ -58,13 +58,13 @@ typedef struct
 
     size_t data_offset;
     size_t data_length;
-} cpio_metadata_t;
+} __packed cpio_metadata_t;
 
 MOS_STATIC_ASSERT(sizeof(cpio_newc_header_t) == 110, "cpio_newc_header has wrong size");
 
 static size_t initrd_read(void *buf, size_t size, size_t offset)
 {
-    memcpy(buf, (void *) (MOS_INITRD_VADDR + offset), size);
+    memcpy(buf, (void *) (pfn_va(platform_info->initrd_pfn) + offset), size);
     return size;
 }
 

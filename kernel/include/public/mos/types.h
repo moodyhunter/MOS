@@ -20,6 +20,7 @@ typedef unsigned long ulong;
 typedef unsigned long long u64;
 
 typedef unsigned long ptr_t;
+typedef unsigned int ptr32_t;
 
 typedef signed long intn;
 typedef unsigned long uintn;

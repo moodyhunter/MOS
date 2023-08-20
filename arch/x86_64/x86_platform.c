@@ -49,18 +49,6 @@ serial_console_t com1_console = {
     .bg = Black,
 };
 
-static vmblock_t x86_bios_block = {
-    .npages = BIOS_MEMREGION_SIZE / MOS_PAGE_SIZE,
-    .vaddr = BIOS_VADDR(X86_BIOS_MEMREGION_PADDR),
-    .flags = VM_READ | VM_GLOBAL | VM_CACHE_DISABLED,
-};
-
-static vmblock_t x86_ebda_block = {
-    .npages = EBDA_MEMREGION_SIZE / MOS_PAGE_SIZE,
-    .vaddr = BIOS_VADDR(X86_EBDA_MEMREGION_PADDR),
-    .flags = VM_READ | VM_GLOBAL | VM_CACHE_DISABLED,
-};
-
 mos_platform_info_t *const platform_info = &x86_platform;
 mos_platform_info_t x86_platform = { 0 };
 
@@ -146,24 +134,32 @@ void x86_start_kernel(void)
     __asm__ volatile("mov %%cr4, %%rax; orq $0x80, %%rax; mov %%rax, %%cr4" ::: "rax"); // and enable PGE
 
     mos_debug(x86_startup, "mapping bios memory area...");
+
+    const vmblock_t x86_bios_block = {
+        .npages = BIOS_MEMREGION_SIZE / MOS_PAGE_SIZE,
+        .flags = VM_READ | VM_GLOBAL | VM_CACHE_DISABLED,
+        .vaddr = pa_va(X86_BIOS_MEMREGION_PADDR),
+    };
+
+    const vmblock_t x86_ebda_block = {
+        .npages = EBDA_MEMREGION_SIZE / MOS_PAGE_SIZE,
+        .flags = VM_READ | VM_GLOBAL | VM_CACHE_DISABLED,
+        .vaddr = pa_va(X86_EBDA_MEMREGION_PADDR),
+    };
+
     pmm_reserve_frames(X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages);
     pmm_reserve_frames(X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages);
-    mm_map_pages(x86_platform.kernel_mm, x86_bios_block.vaddr, X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages, x86_bios_block.flags);
-    mm_map_pages(x86_platform.kernel_mm, x86_ebda_block.vaddr, X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages, x86_ebda_block.flags);
 
     if (platform_info->initrd_npages)
-    {
         pmm_reserve_frames(platform_info->initrd_pfn, platform_info->initrd_npages);
-        mm_map_pages(x86_platform.kernel_mm, MOS_INITRD_VADDR, platform_info->initrd_pfn, platform_info->initrd_npages, VM_READ | VM_GLOBAL);
-    }
 
     mos_kernel_mm_init(); // we can now use the kernel heap (kmalloc)
 
     mos_debug(x86_startup, "Parsing ACPI tables...");
-    acpi_rsdp_t *rsdp = acpi_find_rsdp(BIOS_VADDR(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
+    acpi_rsdp_t *rsdp = acpi_find_rsdp(pa_va(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
     if (!rsdp)
     {
-        rsdp = acpi_find_rsdp(BIOS_VADDR(X86_BIOS_MEMREGION_PADDR), BIOS_MEMREGION_SIZE);
+        rsdp = acpi_find_rsdp(pa_va(X86_BIOS_MEMREGION_PADDR), BIOS_MEMREGION_SIZE);
         if (!rsdp)
             mos_panic("RSDP not found");
     }
@@ -173,8 +169,6 @@ void x86_start_kernel(void)
 
     const pmm_region_t *acpi_region = pmm_find_reserved_region(rsdp->v1.rsdt_addr);
     MOS_ASSERT_X(acpi_region && acpi_region->reserved, "ACPI region not found or not reserved");
-    const ptr_t phyaddr = acpi_region->pfn_start * MOS_PAGE_SIZE;
-    mm_map_pages(x86_platform.kernel_mm, BIOS_VADDR(phyaddr), acpi_region->pfn_start, acpi_region->nframes, VM_READ | VM_GLOBAL);
 
     acpi_parse_rsdt(rsdp);
 

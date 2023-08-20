@@ -6,10 +6,6 @@ config PAGE_SIZE
     int "Page size"
     default 4096
 
-config INITRD_VADDR
-    hex "Initial ramdisk virtual address"
-    default 0xFFFFC8C000000000
-
 config HWMEM_VADDR
     hex "Hardware memory virtual address"
     default 0xFFFFFFFFA0000000

@@ -148,9 +148,7 @@ void lapic_memory_setup(void)
         pmm_reserve_address(base_addr);
     }
 
-    const ptr_t virt_addr = pa_va(base_addr);
-    mm_map_pages(x86_platform.kernel_mm, virt_addr, base_addr / MOS_PAGE_SIZE, 1, VM_RW);
-    lapic_regs = (u32 *) virt_addr;
+    lapic_regs = (u32 *) pa_va(base_addr);
 }
 
 void lapic_enable(void)

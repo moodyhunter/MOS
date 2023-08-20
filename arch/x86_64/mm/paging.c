@@ -18,6 +18,7 @@
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/types.h>
+#include <stdlib.h>
 
 static mm_context_t x86_kernel_mmctx = {
     .mm_lock = SPINLOCK_INIT,
@@ -68,7 +69,7 @@ void x86_paging_setup()
     pr_info2("mapping all memory to " PTR_FMT " using %s pages", x86_platform.direct_map_base, gbpages ? "1 GB" : "2 MB");
 
     const size_t STEP = (gbpages ? 1 GB : 2 MB) / MOS_PAGE_SIZE;
-    const size_t total_npages = ALIGN_UP(platform_info->max_pfn, STEP);
+    const size_t total_npages = MAX(ALIGN_UP(platform_info->max_pfn, STEP), 4 GB / MOS_PAGE_SIZE);
 
     pfn_t pfn = 0;
     while (pfn < total_npages)
