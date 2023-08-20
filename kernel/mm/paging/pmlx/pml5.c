@@ -5,7 +5,6 @@
 #include "mos/mm/paging/paging.h"
 #include "mos/mm/paging/pml_types.h"
 #include "mos/mm/paging/pmlx/pml4.h"
-#include "mos/mm/paging/table_ops.h"
 #include "mos/platform/platform.h"
 
 #include <mos/mos_global.h>

@@ -55,8 +55,8 @@ void tasks_init()
     hashmap_init(&process_table, PROCESS_HASHTABLE_SIZE, pid_hash, hashmap_simple_key_compare);
     hashmap_init(&thread_table, THREAD_HASHTABLE_SIZE, tid_hash, hashmap_simple_key_compare);
 
-    declare_panic_hook(dump_process, "Dump current process");
-    install_panic_hook(&dump_process_holder);
+    panic_hook_declare(dump_process, "Dump current process");
+    panic_hook_install(&dump_process_holder);
 }
 
 // ! sysfs support

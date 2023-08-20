@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/mm/paging/paging.h"
-#include "mos/mm/paging/table_ops.h"
 #include "mos/platform/platform_defs.h"
 #include "mos/x86/descriptors/descriptors.h"
 

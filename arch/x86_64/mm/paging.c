@@ -6,7 +6,6 @@
 #include "mos/mm/paging/pmlx/pml2.h"
 #include "mos/mm/paging/pmlx/pml3.h"
 #include "mos/mm/paging/pmlx/pml4.h"
-#include "mos/mm/paging/table_ops.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
 #include "mos/platform/platform_defs.h"
@@ -100,12 +99,6 @@ void x86_paging_setup()
 
         pfn += STEP;
     }
-}
-
-void x86_enable_paging_impl(ptr_t phy)
-{
-    x86_cpu_set_cr3(phy);
-    __asm__ volatile("mov %%cr4, %%rax; orq $0x80, %%rax; mov %%rax, %%cr4" ::: "rax");
 }
 
 pfn_t platform_pml1e_get_pfn(const pml1e_t *pml1e)

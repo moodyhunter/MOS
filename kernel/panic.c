@@ -130,7 +130,7 @@ void mos_kwarn(const char *func, u32 line, const char *fmt, ...)
     lprintk(MOS_LOG_WARN, "  in function: %s (line %u)\n", func, line);
 }
 
-void install_panic_hook(panic_hook_holder_t *hook)
+void panic_hook_install(panic_hook_holder_t *hook)
 {
     list_node_append(&kpanic_hooks, list_node(hook));
     pr_info2("installed panic hook '%s' at %ps", hook->name, (void *) (ptr_t) hook->hook);

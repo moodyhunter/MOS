@@ -85,5 +85,7 @@ void x86_init_current_cpu_gdt()
 
 void x86_init_current_cpu_tss()
 {
+    x86_cpu_descriptor_t *this_cpu_desc = per_cpu(x86_cpu_descriptor);
+    memzero(&this_cpu_desc->tss, sizeof(tss64_t));
     tss_flush(GDT_SEGMENT_TSS);
 }

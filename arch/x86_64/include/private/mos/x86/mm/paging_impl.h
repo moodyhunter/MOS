@@ -66,6 +66,4 @@ typedef volatile struct __packed
 
 MOS_STATIC_ASSERT(sizeof(x86_pte64_t) == sizeof(pte_content_t), "x86_pde64_t differs from pte_content_t");
 
-void x86_enable_paging_impl(ptr_t page_dir);
-
 void x86_paging_setup(void);

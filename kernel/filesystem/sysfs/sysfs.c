@@ -6,7 +6,6 @@
 #include "mos/filesystem/vfs.h"
 #include "mos/filesystem/vfs_types.h"
 #include "mos/mm/mm.h"
-#include "mos/mm/paging/table_ops.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab.h"
 #include "mos/setup.h"

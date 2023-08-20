@@ -3,7 +3,6 @@
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/pml_types.h"
 #include "mos/mm/paging/pmlx/pml4.h"
-#include "mos/mm/paging/table_ops.h"
 #include "mos/platform/platform_defs.h"
 
 #include <mos/lib/sync/spinlock.h>

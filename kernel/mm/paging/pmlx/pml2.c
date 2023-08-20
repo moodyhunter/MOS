@@ -5,7 +5,6 @@
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/mm/paging/pmlx/pml1.h"
-#include "mos/mm/paging/table_ops.h"
 #include "mos/mm/physical/pmm.h"
 
 #include <string.h>

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/device/console.h"
-#include "mos/mm/paging/table_ops.h"
+#include "mos/x86/cpu/cpu.h"
 #include "mos/x86/descriptors/descriptors.h"
 
 #include <mos/cmdline.h>
@@ -104,7 +104,7 @@ static void x86_do_backtrace(void)
 #define TRACE_FMT "  %-3d [" PTR_FMT "]: "
         if (do_mapped_check)
         {
-            const pfn_t pfn = mm_do_get_pfn(current_cpu->mm_context->pgd, (ptr_t) frame);
+            const pfn_t pfn = mm_get_phys_addr(current_cpu->mm_context, (ptr_t) frame) / MOS_PAGE_SIZE;
             if (!pfn)
             {
                 pr_warn(TRACE_FMT "<corrupted>, aborting backtrace", i, (ptr_t) frame);
@@ -123,10 +123,8 @@ static void x86_do_backtrace(void)
 
 void x86_start_kernel(void)
 {
-    mos_debug(x86_startup, "initrd at " PFN_FMT ", size %zu pages", platform_info->initrd_pfn, platform_info->initrd_npages);
-
-    declare_panic_hook(x86_do_backtrace, "Backtrace");
-    install_panic_hook(&x86_do_backtrace_holder);
+    panic_hook_declare(x86_do_backtrace, "Backtrace");
+    panic_hook_install(&x86_do_backtrace_holder);
 
     x86_init_current_cpu_gdt();
     x86_idt_init();
@@ -138,14 +136,14 @@ void x86_start_kernel(void)
     x86_smp_copy_trampoline();
 #endif
 
-    // make our own copy of the multiboot info
-    // switching to our new page table will ruin the old one
-
     mos_debug(x86_startup, "setting up physical memory manager...");
 
     x86_initialise_phyframes_array();
     x86_paging_setup();
-    x86_enable_paging_impl(pgd_pfn(x86_platform.kernel_mm->pgd) * MOS_PAGE_SIZE);
+
+    // enable paging
+    x86_cpu_set_cr3(pgd_pfn(x86_platform.kernel_mm->pgd) * MOS_PAGE_SIZE);
+    __asm__ volatile("mov %%cr4, %%rax; orq $0x80, %%rax; mov %%rax, %%cr4" ::: "rax"); // and enable PGE
 
     mos_debug(x86_startup, "mapping bios memory area...");
     pmm_reserve_frames(X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages);

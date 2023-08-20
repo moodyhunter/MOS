@@ -81,6 +81,7 @@ typedef struct
 } pgd_t;
 
 #define pgd_create(top) ((pgd_t){ .max = { .next = top } })
+#define pgd_pfn(pgd)    va_pfn(pgd.max.next.table)
 
 typedef struct
 {

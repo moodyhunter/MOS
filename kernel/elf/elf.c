@@ -2,7 +2,6 @@
 
 #include "mos/mm/cow.h"
 #include "mos/mm/mm.h"
-#include "mos/mm/paging/table_ops.h"
 #include "mos/mm/physical/pmm.h"
 
 #include <mos/elf/elf.h>

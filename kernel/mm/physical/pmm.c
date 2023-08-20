@@ -25,7 +25,7 @@ void pmm_init(size_t max_nframes)
     buddy_init(max_nframes);
 
 #if MOS_DEBUG_FEATURE(pmm)
-    declare_panic_hook(pmm_dump_lists, "Dump PMM lists");
+    panic_hook_declare(pmm_dump_lists, "Dump PMM lists");
     install_panic_hook(&pmm_dump_lists_holder);
     pmm_dump_lists();
 #endif

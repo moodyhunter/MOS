@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/mm/paging/table_ops.h"
 #include "mos/x86/descriptors/descriptors.h"
 
 #include <mos/platform/platform.h>
@@ -16,7 +15,7 @@ noreturn void ap_begin_exec(void)
     x86_init_current_cpu_gdt();
     x86_init_current_cpu_tss();
     x86_idt_flush();
-    x86_enable_paging_impl(pgd_pfn(platform_info->kernel_mm->pgd) * MOS_PAGE_SIZE);
+    x86_enable_paging(pgd_pfn(platform_info->kernel_mm->pgd) * MOS_PAGE_SIZE);
 
     lapic_enable();
 

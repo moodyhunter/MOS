@@ -50,6 +50,12 @@ typedef struct _vmap_t
     bool (*on_fault)(struct _vmap_t *this_vmap, ptr_t fault_addr, const pagefault_info_t *fault_info);
 } vmap_t;
 
+#define pfn_va(pfn)        ((ptr_t) (platform_info->direct_map_base + (pfn) *MOS_PAGE_SIZE))
+#define va_pfn(va)         ((((ptr_t) (va)) - platform_info->direct_map_base) / MOS_PAGE_SIZE)
+#define va_phyframe(va)    (&phyframes[va_pfn(va)])
+#define phyframe_va(frame) ((ptr_t) pfn_va(phyframe_pfn(frame)))
+#define pa_va(pa)          ((ptr_t) (pa) + platform_info->direct_map_base)
+
 phyframe_t *mm_get_free_page(void);
 phyframe_t *mm_get_free_page_raw(void);
 phyframe_t *mm_get_free_pages(size_t npages);

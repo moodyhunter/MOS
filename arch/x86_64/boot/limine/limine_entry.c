@@ -5,7 +5,7 @@
 #include "limine.h"
 #include "mos/cmdline.h"
 #include "mos/device/console.h"
-#include "mos/mm/paging/table_ops.h"
+#include "mos/mm/mm.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
 #include "mos/setup.h"
@@ -99,9 +99,10 @@ asmlinkage void limine_entry(void)
         mos_panic("Expected exactly one module, got %zu", module_response->module_count);
 
     struct limine_file *module = module_response->modules[0];
-    pr_info("initrd: %s, " PTR_RANGE, module->path, (ptr_t) module->address, (ptr_t) module->address + module->size);
+    mos_debug(x86_startup, "initrd: %s, " PTR_RANGE, module->path, (ptr_t) module->address, (ptr_t) module->address + module->size);
     platform_info->initrd_pfn = va_pfn(module->address);
     platform_info->initrd_npages = ALIGN_UP_TO_PAGE(module->size) / MOS_PAGE_SIZE;
+    mos_debug(x86_startup, "initrd at " PFN_FMT ", size %zu pages", platform_info->initrd_pfn, platform_info->initrd_npages);
 
     if (kernel_address_request.response == NULL)
         mos_panic("No kernel address found");

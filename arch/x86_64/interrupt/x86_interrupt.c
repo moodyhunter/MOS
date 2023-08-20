@@ -60,7 +60,7 @@ typedef struct
     void (*handler)(u32 irq);
 } x86_irq_handler_t;
 
-list_head irq_handlers[IRQ_MAX_COUNT];
+static list_head irq_handlers[IRQ_MAX_COUNT];
 
 void x86_irq_handler_init(void)
 {

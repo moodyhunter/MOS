@@ -14,8 +14,8 @@ typedef struct
     const char *const name;
 } panic_hook_holder_t;
 
-#define declare_panic_hook(fn, _name) static panic_hook_holder_t fn##_holder = { .list_node = LIST_NODE_INIT(fn##_holder), .hook = fn, .name = _name }
+#define panic_hook_declare(fn, _name) static panic_hook_holder_t fn##_holder = { .list_node = LIST_NODE_INIT(fn##_holder), .hook = fn, .name = _name }
 
-void install_panic_hook(panic_hook_holder_t *hook);
+void panic_hook_install(panic_hook_holder_t *hook);
 void kwarn_handler_set(kmsg_handler_t *handler);
 void kwarn_handler_remove(void);
