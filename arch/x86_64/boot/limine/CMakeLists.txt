@@ -17,7 +17,7 @@ if (NOT LIMINE_ROOT)
     set(LIMINE_ROOT "/usr/share/limine")
 endif()
 
-list(APPEND CMAKE_PROGRAM_PATH ${LIMINE_ROOT}/bin)
+list(APPEND CMAKE_PROGRAM_PATH ${LIMINE_ROOT}/bin ${LIMINE_ROOT})
 
 find_program(LIMINE_BIN limine NO_CACHE)
 find_program(XORRISO xorriso NO_CACHE)

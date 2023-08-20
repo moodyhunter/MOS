@@ -58,7 +58,7 @@ jobs:
       - name: Install packages
         run: |
           sudo apt update
-          sudo apt -y install nasm grub2-common mtools jq ninja-build qemu-system-x86 gnu-efi cpio libgmp-dev libmpfr-dev libmpc-dev
+          sudo apt -y install nasm grub2-common mtools jq ninja-build qemu-system-x86 gnu-efi cpio libgmp-dev libmpfr-dev libmpc-dev xorriso
 
       - name: Download & Extract Cross Compiler
         run: |
@@ -67,9 +67,17 @@ jobs:
           mv toolchain /tmp/
           echo "PATH=$PATH:/tmp/toolchain/bin" >> $GITHUB_ENV
 
+      - name: Install limine bootloader
+        run: |
+          wget 'https://github.com/limine-bootloader/limine/archive/refs/tags/v5.20230819.0-binary.zip'
+          unzip ./v5.20230819.0-binary.zip
+          cd limine-5.20230819.0-binary/
+          make
+
       - name: Configure
         run: |
           cmake \
+            -DLIMINE_ROOT=$(pwd)/limine-5.20230819.0-binary/ \
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
             -DMOS_CONFIG=${{matrix.config.arch}}-debug \
             -DMOS_ARCH=${{matrix.config.arch}} \
