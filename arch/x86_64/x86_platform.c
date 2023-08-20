@@ -133,22 +133,8 @@ void x86_start_kernel(void)
     x86_cpu_set_cr3(pgd_pfn(x86_platform.kernel_mm->pgd) * MOS_PAGE_SIZE);
     __asm__ volatile("mov %%cr4, %%rax; orq $0x80, %%rax; mov %%rax, %%cr4" ::: "rax"); // and enable PGE
 
-    mos_debug(x86_startup, "mapping bios memory area...");
-
-    const vmblock_t x86_bios_block = {
-        .npages = BIOS_MEMREGION_SIZE / MOS_PAGE_SIZE,
-        .flags = VM_READ | VM_GLOBAL | VM_CACHE_DISABLED,
-        .vaddr = pa_va(X86_BIOS_MEMREGION_PADDR),
-    };
-
-    const vmblock_t x86_ebda_block = {
-        .npages = EBDA_MEMREGION_SIZE / MOS_PAGE_SIZE,
-        .flags = VM_READ | VM_GLOBAL | VM_CACHE_DISABLED,
-        .vaddr = pa_va(X86_EBDA_MEMREGION_PADDR),
-    };
-
-    pmm_reserve_frames(X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_bios_block.npages);
-    pmm_reserve_frames(X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, x86_ebda_block.npages);
+    pmm_reserve_frames(X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, BIOS_MEMREGION_SIZE / MOS_PAGE_SIZE);
+    pmm_reserve_frames(X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, EBDA_MEMREGION_SIZE / MOS_PAGE_SIZE);
 
     if (platform_info->initrd_npages)
         pmm_reserve_frames(platform_info->initrd_pfn, platform_info->initrd_npages);
