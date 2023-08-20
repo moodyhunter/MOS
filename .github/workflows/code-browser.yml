@@ -37,9 +37,8 @@ jobs:
           sed -i 's/-elf-g/-linux-gnu-g/g' cmake/mos_target_setup.cmake
           cmake \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DBUILD_TESTING=ON \
+            -DMOS_CONFIG=x86_64-debug \
             -DMOS_ARCH=x86_64 \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -B ${{github.workspace}}/build \
             -G Ninja
 

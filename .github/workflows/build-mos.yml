@@ -36,7 +36,7 @@ jobs:
               "arch": "x86_64",
               "target_triple": "x86_64-elf",
               "target": "mos_limine",
-              "has_smp": "OFF",
+              "has_smp": "n",
               "compile_only": "ON",
             }
           - {
@@ -44,7 +44,7 @@ jobs:
               "arch": "x86_64",
               "target_triple": "x86_64-elf",
               "target": "mos_limine",
-              "has_smp": "ON",
+              "has_smp": "y",
               "smp": "1",
               "compile_only": "ON",
             }
@@ -71,7 +71,7 @@ jobs:
         run: |
           cmake \
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
-            -DBUILD_TESTING=ON \
+            -DMOS_CONFIG=${{matrix.config.arch}}-debug \
             -DMOS_ARCH=${{matrix.config.arch}} \
             -DMOS_SMP=${{matrix.config.has_smp}} \
             -B ${{github.workspace}}/build \
@@ -93,14 +93,6 @@ jobs:
         with:
           name: MOS-${{matrix.config.target}}-${{matrix.build_type}}-initrd
           path: ${{github.workspace}}/build/initrd.cpio
-
-      - name: Run Tests (debug all)
-        if: matrix.config.compile_only != 'ON'
-        working-directory: ${{github.workspace}}/build
-        run: |
-          cmake . -DMOS_DEBUG_ALL=ON -DMOS_DEBUG_liballoc=OFF
-          ninja ${{matrix.config.target}} mos_initrd
-          ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh'"
 
       - name: Run Tests (quiet)
         if: matrix.config.compile_only != 'ON'

@@ -38,8 +38,8 @@ jobs:
       - name: Configure CMake
         run: |
           cmake \
-            -DBUILD_TESTING=ON \
             -B ${{github.workspace}}/build \
+            -DMOS_CONFIG=x86_64-debug \
             -DMOS_ARCH=x86_64 \
             -G Ninja
 

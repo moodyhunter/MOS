@@ -41,7 +41,7 @@ config STACK_PAGES_USER
 
 config PRINTK_WITH_FILENAME
     bool "filename in debug messages"
-    default y
+    default n
 
 config SMP
     bool "SMP support"
