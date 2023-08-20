@@ -214,7 +214,7 @@ typedef struct
 
 typedef struct
 {
-    acpi_sdt_header_t header;
+    acpi_sdt_header_t sdt_header;
     u8 hardware_rev_id;
     u8 compatible_id : 5;
     u8 counter_size : 1;
