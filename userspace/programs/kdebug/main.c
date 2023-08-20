@@ -8,43 +8,45 @@
 
 #define BUFSIZE 4096
 
-static void clear_console(void)
+void clear_console(void)
 {
     printf("\033[2J\033[1;1H");
 }
 
-void open_and_print_file(const char *path)
+static void print_file(FILE *f)
 {
-    fd_t fd = open(path, OPEN_READ);
-    if (fd < 0)
-    {
-        fprintf(stderr, "failed to open file '%s'\n", path);
-        return;
-    }
-
     do
     {
         char buffer[BUFSIZE] = { 0 };
-        size_t sz = syscall_io_read(fd, buffer, BUFSIZE);
+        size_t sz = fread(buffer, 1, BUFSIZE, f);
         if (sz == 0)
             break;
 
         fwrite(buffer, 1, sz, stdout);
     } while (true);
+}
 
-    syscall_io_close(fd);
+static void open_and_print_file(const char *path)
+{
+    FILE *f = fopen(path, "r");
+    if (!f)
+    {
+        fprintf(stderr, "failed to open file '%s'\n", path);
+        return;
+    }
+
+    print_file(f);
+    fclose(f);
 }
 
 static void do_pstat(void)
 {
-    char buffer[BUFSIZE] = { 0 };
     while (true)
     {
         char *line = readline("pfn: ");
         if (!line || strlen(line) == 0)
             return;
 
-        clear_console();
         FILE *f = fopen("/sys/mmstat/phyframe_stat", "rw");
         if (!f)
         {
@@ -54,16 +56,31 @@ static void do_pstat(void)
         }
 
         fprintf(f, "%s\n", line);
-        const size_t sz = fread(buffer, 1, BUFSIZE, f);
+        print_file(f);
         fclose(f);
+        free(line);
+    }
+}
 
-        if (sz == 0)
+static void do_pagetable(void)
+{
+    while (true)
+    {
+        char *line = readline("pid: ");
+        if (!line || strlen(line) == 0)
+            return;
+
+        FILE *f = fopen("/sys/mmstat/pagetable", "rw");
+        if (!f)
         {
+            fprintf(stderr, "failed to open 'pagetable'\n");
             free(line);
-            continue;
+            return;
         }
 
-        fwrite(buffer, 1, sz, stdout);
+        fprintf(f, "%s\n", line);
+        print_file(f);
+        fclose(f);
         free(line);
     }
 }
@@ -83,27 +100,40 @@ const struct
     const char *name;
     void (*func)(void);
 } actions[] = {
-    { "memstat", do_memstat },
-    { "leave", do_leave },
-    { "pstat", do_pstat },
-    { NULL, NULL },
+    { "memstat", do_memstat },     //
+    { "leave", do_leave },         //
+    { "pstat", do_pstat },         //
+    { "pagetable", do_pagetable }, //
+    { NULL, NULL },                //
 };
 
 int main(int argc, const char *argv[])
 {
+    MOS_UNUSED(argc);
+    MOS_UNUSED(argv);
     puts("KDebug, the MOS kernel debugger.");
 
     while (true)
     {
         const char *line = readline("kdebug> ");
+
+        bool handled = false;
         for (int i = 0; actions[i].name; i++)
         {
             if (!strcmp(line, actions[i].name))
             {
+                handled = true;
                 actions[i].func();
                 free((void *) line);
                 break;
             }
+        }
+
+        if (handled)
+        {
+            if (strlen(line))
+                puts("unknown command");
+            free((void *) line);
         }
     }
 
