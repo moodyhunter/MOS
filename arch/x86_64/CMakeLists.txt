@@ -14,7 +14,6 @@ add_kernel_source(
         acpi/acpi.c
         acpi/madt.c
         cpu/cpuid.c
-        cpu/ap_entry.c
         devices/serial.c
         devices/serial_console.c
         descriptors/descriptors.c
@@ -38,6 +37,7 @@ if(MOS_SMP)
         add_kernel_source(
             SOURCES
                 cpu/ap_init.asm
+                cpu/ap_entry.c
                 cpu/smp.c
         )
     endif()
