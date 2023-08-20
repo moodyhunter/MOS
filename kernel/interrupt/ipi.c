@@ -19,7 +19,7 @@ static void ipi_handler_invalidate_tlb(ipi_type_t type)
 {
     MOS_UNUSED(type);
     mos_debug(ipi, "Received invalidate TLB IPI");
-    platform_invalidate_tlb();
+    platform_invalidate_tlb(0);
 }
 
 static const struct
