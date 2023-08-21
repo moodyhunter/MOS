@@ -1,0 +1,3 @@
+[submodule "userspace/drivers/acpid/lai"]
+	path = userspace/drivers/acpid/lai
+	url = https://github.com/managarm/lai

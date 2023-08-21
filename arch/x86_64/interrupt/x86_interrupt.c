@@ -302,7 +302,7 @@ static void x86_handle_irq(x86_stack_frame *frame)
 
 static void x86_handle_syscall(x86_stack_frame *frame)
 {
-    frame->ax = ksyscall_enter(frame->ax, frame->bx, frame->cx, frame->dx, frame->si, frame->di, frame->bp);
+    frame->ax = ksyscall_enter(frame->ax, frame->bx, frame->cx, frame->dx, frame->si, frame->di, frame->r9);
 
     MOS_ASSERT_X(current_thread->state == THREAD_STATE_RUNNING, "thread %pt is not in 'running' state", (void *) current_thread);
 }
