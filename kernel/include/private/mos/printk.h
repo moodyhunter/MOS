@@ -38,6 +38,13 @@ typedef enum
             lprintk_wrapper(MOS_LOG_INFO2, "%-15s: " fmt, #feat, ##__VA_ARGS__);                                                                                         \
     } while (0)
 
+#define mos_debug_cont(feat, fmt, ...)                                                                                                                                   \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (MOS_DEBUG_FEATURE(feat))                                                                                                                                     \
+            lprintk(MOS_LOG_UNSET, "" fmt, ##__VA_ARGS__);                                                                                                               \
+    } while (0)
+
 #if MOS_CONFIG(MOS_PRINTK_WITH_FILENAME)
 #define lprintk_wrapper(level, fmt, ...) lprintk(level, "\r\n%-20s | " fmt, MOS_FILE_LOCATION, ##__VA_ARGS__)
 #else

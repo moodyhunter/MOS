@@ -284,6 +284,7 @@ class SyscallDispatcherGenerator(BaseAbstractGenerator):
         with self.scope:
             self.gen("}")
             self.gen("")
+            self.gen('mos_debug_cont(syscall, " = 0x%lx", ret);')
             self.gen("return ret;")
         self.gen("}")
 
