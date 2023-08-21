@@ -2,7 +2,6 @@
 
 #include "dm/client.h"
 #include "known_devices.h"
-#include "mos/moslib_global.h"
 #include "pci_scan.h"
 
 #include <librpc/rpc_client.h>
@@ -31,7 +30,7 @@ int main(int argc, char **argv)
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
 
-    if (!stat("/ipc/" MOS_DEVICE_MANAGER_SERVICE_NAME, NULL))
+    if (!stat("/sys/ipc/" MOS_DEVICE_MANAGER_SERVICE_NAME, NULL))
         fatal_abort("pci-daemon: device manager is not running\n");
 
     dm = rpc_client_create(MOS_DEVICE_MANAGER_SERVICE_NAME);

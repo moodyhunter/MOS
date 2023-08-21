@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-if (NOT MOS_ARCH STREQUAL "x86")
+if (NOT MOS_ARCH STREQUAL "x86_64")
     return()
 endif()
 
