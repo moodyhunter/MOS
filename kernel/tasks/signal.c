@@ -6,6 +6,7 @@
 #include "mos/mm/slab_autoinit.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/tasks/process.h"
 
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
@@ -17,7 +18,7 @@ SLAB_AUTOINIT("signal_pending", sigpending_slab, sigpending_t);
 noreturn static void signal_do_coredump(void)
 {
     pr_warn("coredump: WIP");
-    MOS_UNIMPLEMENTED("coredump");
+    process_handle_exit(current_process, 1);
 }
 
 noreturn static void signal_do_terminate(void)

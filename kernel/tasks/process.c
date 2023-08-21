@@ -186,6 +186,9 @@ void process_handle_exit(process_t *process, u32 exit_code)
     MOS_ASSERT(process_is_valid(process));
     mos_debug(process, "process %pp exited with code %d", (void *) process, exit_code);
 
+    if (unlikely(process->pid == 1))
+        mos_panic("init process exited with code %d", exit_code);
+
     list_node_foreach(t, &process->threads)
     {
         thread_t *thread = container_of(t, thread_t, owner_node);
