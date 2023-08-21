@@ -49,88 +49,86 @@ config SMP
 
 # ! ============================================================
 
-menuconfig DEBUG
-    bool "Kernel debug messages"
+menu "Kernel Debugging Options"
 
-    if DEBUG
-    config DEBUG_thread
-        bool "thread debugging"
+config DEBUG_thread
+    bool "thread debugging"
 
-    config DEBUG_process
-        bool "process debugging"
+config DEBUG_process
+    bool "process debugging"
 
-    config DEBUG_fork
-        bool "fork debugging"
-        select DEBUG_process
+config DEBUG_fork
+    bool "fork debugging"
+    select DEBUG_process
 
-    config DEBUG_scheduler
-        bool "scheduler debugging"
+config DEBUG_scheduler
+    bool "scheduler debugging"
 
-    config DEBUG_syscall
-        bool "syscall debugging"
+config DEBUG_syscall
+    bool "syscall debugging"
 
-    config DEBUG_pmm
-        bool "pmm debugging"
+config DEBUG_pmm
+    bool "pmm debugging"
 
-    config DEBUG_pmm_buddy
-        bool "pmm_buddy debugging"
-        select DEBUG_pmm
+config DEBUG_pmm_buddy
+    bool "pmm_buddy debugging"
+    select DEBUG_pmm
 
-    config DEBUG_vmm
-        bool "vmm debugging"
+config DEBUG_vmm
+    bool "vmm debugging"
 
-    config DEBUG_mmap
-        bool "mmap debugging"
+config DEBUG_mmap
+    bool "mmap debugging"
 
-    config DEBUG_shm
-        bool "shm debugging"
+config DEBUG_shm
+    bool "shm debugging"
 
-    config DEBUG_cow
-        bool "cow debugging"
+config DEBUG_cow
+    bool "cow debugging"
 
-    config DEBUG_elf
-        bool "elf debugging"
+config DEBUG_elf
+    bool "elf debugging"
 
-    config DEBUG_fs
-        bool "fs debugging"
+config DEBUG_fs
+    bool "fs debugging"
 
-    config DEBUG_io
-        bool "io debugging"
+config DEBUG_io
+    bool "io debugging"
 
-    config DEBUG_cpio
-        bool "cpio debugging"
+config DEBUG_cpio
+    bool "cpio debugging"
 
-    config DEBUG_setup
-        bool "setup debugging"
+config DEBUG_setup
+    bool "setup debugging"
 
-    config DEBUG_spinlock
-        bool "spinlock debugging"
+config DEBUG_spinlock
+    bool "spinlock debugging"
 
-    config DEBUG_futex
-        bool "futex debugging"
+config DEBUG_futex
+    bool "futex debugging"
 
-    config DEBUG_ipc
-        bool "ipc debugging"
+config DEBUG_ipc
+    bool "ipc debugging"
 
-    config DEBUG_vfs
-        bool "vfs debugging"
+config DEBUG_vfs
+    bool "vfs debugging"
 
-    config DEBUG_dcache
-        bool "dcache debugging"
+config DEBUG_dcache
+    bool "dcache debugging"
 
-    config DEBUG_dcache_ref
-        bool "dcache_ref debugging"
-        select DEBUG_dcache
+config DEBUG_dcache_ref
+    bool "dcache_ref debugging"
+    select DEBUG_dcache
 
-    config DEBUG_tmpfs
-        bool "tmpfs debugging"
+config DEBUG_tmpfs
+    bool "tmpfs debugging"
 
-    config DEBUG_ipi
-        bool "ipi debugging"
+config DEBUG_ipi
+    bool "ipi debugging"
 
-    config DEBUG_slab
-        bool "slab debugging"
+config DEBUG_slab
+    bool "slab debugging"
 
-    endif
+endmenu
 
 endmenu

@@ -1,34 +1,38 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-menuconfig TESTS
+config TESTS
     bool "Kernel-space unit tests"
     default n
 
-    if TESTS
+if TESTS
 
-    config TEST_printf
-        bool "Test printf"
+menu "Select tests to build"
 
-    config TEST_linked_list
-        bool "Test linked list"
+config TEST_printf
+    bool "Test printf"
 
-    config TEST_kmalloc
-        bool "Test kmalloc"
+config TEST_linked_list
+    bool "Test linked list"
 
-    config TEST_cmdline_parser
-        bool "Test cmdline parser"
+config TEST_kmalloc
+    bool "Test kmalloc"
 
-    config TEST_hashmap
-        bool "Test hashmap"
+config TEST_cmdline_parser
+    bool "Test cmdline parser"
 
-    config TEST_downwards_stack
-        bool "Test downwards stack"
+config TEST_hashmap
+    bool "Test hashmap"
 
-    config TEST_memops
-        bool "Test memory-related operations"
+config TEST_downwards_stack
+    bool "Test downwards stack"
 
-    config TEST_ring_buffer
-        bool "Test ring buffer"
+config TEST_memops
+    bool "Test memory-related operations"
 
-    endif
+config TEST_ring_buffer
+    bool "Test ring buffer"
+
+endmenu
+
+endif
 

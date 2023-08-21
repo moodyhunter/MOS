@@ -10,31 +10,22 @@ config HWMEM_VADDR
     hex "Hardware memory virtual address"
     default 0xFFFFFFFFA0000000
 
-comment "x86 debugging disabled (global DEBUG is not set)"
-    depends on !DEBUG
+menu "x86-64 debugging options"
 
-menuconfig DEBUG_x86_all
-    bool "x86 debug"
-    default n
-    depends on DEBUG
+config DEBUG_x86_cpu
+    bool "x86 CPU debug"
 
-    if DEBUG_x86_all
+config DEBUG_x86_lapic
+    bool "x86 LAPIC debug"
 
-    config DEBUG_x86_cpu
-        bool "x86 CPU debug"
+config DEBUG_x86_ioapic
+    bool "x86 IOAPIC debug"
 
-    config DEBUG_x86_lapic
-        bool "x86 LAPIC debug"
+config DEBUG_x86_startup
+    bool "x86 startup debug"
 
-    config DEBUG_x86_ioapic
-        bool "x86 IOAPIC debug"
+config DEBUG_x86_acpi
+    bool "x86 ACPI debug"
 
-    config DEBUG_x86_startup
-        bool "x86 startup debug"
-
-    config DEBUG_x86_acpi
-        bool "x86 ACPI debug"
-
-    endif
-
+endmenu
 endmenu
