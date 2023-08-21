@@ -212,8 +212,11 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
 
                 break;
             }
-            case ELF_PT_DYNAMIC:
             case ELF_PT_NOTE:
+            {
+                break; // intentionally ignored
+            }
+            case ELF_PT_DYNAMIC:
             case ELF_PT_PHDR:
             case ELF_PT_TLS:
             case ELF_PT_SHLIB:
