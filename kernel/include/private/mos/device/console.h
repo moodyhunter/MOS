@@ -47,7 +47,6 @@ typedef struct console_ops
     bool (*extra_setup)(console_t *con);
 
     size_t (*write)(console_t *con, const char *data, size_t size);
-    bool (*close)(console_t *con);
 
     bool (*get_size)(console_t *con, u32 *width, u32 *height);
 

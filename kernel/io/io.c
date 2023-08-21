@@ -46,9 +46,6 @@ void io_init(io_t *io, io_type_t type, io_flags_t flags, const io_op_t *ops)
     if (unlikely(!ops))
         mos_warn("io->ops is NULL");
 
-    if (unlikely(!ops->close))
-        mos_warn("io->ops->close is NULL");
-
     if (flags & IO_READABLE)
         if (unlikely(!ops->read))
             mos_warn("ops->read is NULL for readable io");
@@ -106,9 +103,16 @@ io_t *io_unref(io_t *io)
 
     if (io->refcount == 0)
     {
-        mos_debug(io, "closing %p", (void *) io);
-        io->closed = true;
-        io->ops->close(io);
+        if (io->ops->close)
+        {
+            mos_debug(io, "closing %p", (void *) io);
+            io->closed = true;
+            io->ops->close(io);
+        }
+        else
+        {
+            mos_debug(io, "%p is not closeable", (void *) io);
+        }
         return NULL;
     }
 

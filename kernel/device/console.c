@@ -43,18 +43,9 @@ static size_t console_write(io_t *io, const void *data, size_t size)
     return ret;
 }
 
-static void console_close(io_t *io)
-{
-    console_t *con = container_of(io, console_t, io);
-    spinlock_acquire(&con->write.lock);
-    con->ops->close(con);
-    // don't release the lock... we're closing
-}
-
-static io_op_t console_io_ops = {
+static const io_op_t console_io_ops = {
     .read = console_read,
     .write = console_write,
-    .close = console_close,
 };
 
 void console_register(console_t *con, size_t buf_size)
