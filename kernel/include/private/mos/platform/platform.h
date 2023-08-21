@@ -4,9 +4,7 @@
 
 #include "mos/cmdline.h"
 #include "mos/mm/paging/pml_types.h"
-#include "mos/mm/physical/pmm.h"
 
-#include <mos/io/io.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/mm_types.h>
@@ -93,6 +91,8 @@ typedef struct
     size_t argc; // size of argv, does not include the terminating NULL
     const char **argv;
 } argv_t;
+
+typedef struct _io io_t;
 
 /**
  * @brief A wrapper type for the standard I/O streams

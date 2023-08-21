@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/paging/paging.h"
+
 #include <mos/io/io.h>
 #include <mos/io/io_types.h>
+#include <mos/mm/mm_types.h>
 #include <mos/mos_global.h>
 #include <mos/printk.h>
 
@@ -185,4 +188,40 @@ off_t io_tell(io_t *io)
 {
     mos_debug(io, "io_tell(%p)", (void *) io);
     return io_seek(io, 0, IO_SEEK_CURRENT);
+}
+
+bool io_mmap(io_t *io, vmap_t *vmap, off_t offset)
+{
+    if (unlikely(io->closed))
+    {
+        mos_warn("%p is already closed", (void *) io);
+        return false;
+    }
+
+    if (!(io->flags & IO_MMAPABLE))
+    {
+        pr_info2("%p is not mmapable\n", (void *) io);
+        return false;
+    }
+
+    if (vmap->vmflags & VM_READ && !(io->flags & IO_READABLE))
+        return false; // can't mmap readable if io is not readable
+
+    if (vmap->vmflags & VM_WRITE && !(io->flags & IO_WRITABLE))
+        return false; // can't mmap writable if io is not writable
+
+    if (vmap->vmflags & VM_EXEC && !(io->flags & IO_EXECUTABLE))
+        return false; // can't mmap executable if io is not executable
+
+    vmap->io = io;
+    vmap->io_offset = offset;
+
+    if (!io->ops->mmap(io, vmap, offset))
+        return false;
+
+    if (unlikely(!vmap->on_fault))
+        mos_panic("vmap->on_fault is NULL, possibly buggy io->ops->mmap() implementation");
+
+    io_ref(io); // mmap increases refcount
+    return true;
 }

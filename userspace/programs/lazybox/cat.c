@@ -22,6 +22,13 @@ bool do_cat_file(const char *path)
         if (sz == 0)
             break;
 
+        if (sz == (size_t) -1)
+        {
+            fprintf(stderr, "failed to read file '%s'\n", path);
+            syscall_io_close(fd);
+            return false;
+        }
+
         fwrite(buffer, 1, sz, stdout);
     } while (true);
 

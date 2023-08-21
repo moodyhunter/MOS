@@ -1,5 +1,8 @@
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
+#include "mos/mm/mm.h"
+#include "mos/mm/paging/table_ops.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab_autoinit.h"
 
 #include <mos/filesystem/dentry.h>
@@ -52,7 +55,8 @@ static size_t vfs_io_ops_read(io_t *io, void *buf, size_t count)
 
     spinlock_acquire(&file->offset_lock);
     size_t ret = file_ops->read(file, buf, count, file->offset);
-    file->offset += ret;
+    if (ret != (size_t) -1)
+        file->offset += ret;
     spinlock_release(&file->offset_lock);
 
     return ret;
@@ -76,6 +80,10 @@ static size_t vfs_io_ops_write(io_t *io, const void *buf, size_t count)
 static off_t vfs_io_ops_seek(io_t *io, off_t offset, io_seek_whence_t whence)
 {
     file_t *file = container_of(io, file_t, io);
+
+    if (file_get_ops(file)->seek)
+        return file_get_ops(file)->seek(file, offset, whence); // use the filesystem's lseek if it exists
+
     spinlock_acquire(&file->offset_lock);
 
     off_t ret = 0;
@@ -143,11 +151,41 @@ static off_t vfs_io_ops_seek(io_t *io, off_t offset, io_seek_whence_t whence)
     return ret;
 }
 
+static bool vfs_mmap_fault_handler(vmap_t *vmap, ptr_t fault_addr, const pagefault_info_t *info)
+{
+    io_t *io = vmap->io;
+    file_t *file = container_of(io, file_t, io);
+    const file_ops_t *const file_ops = file_get_ops(file);
+
+    phyframe_t *page = mm_get_free_page();
+    const size_t fault_offset = (ALIGN_DOWN_TO_PAGE(fault_addr) - vmap->vaddr);
+    file_ops->read(file, (void *) phyframe_va(page), MOS_PAGE_SIZE, vmap->io_offset + fault_offset);
+
+    mm_do_map(vmap->mmctx->pgd, fault_addr, phyframe_pfn(page), 1, info->userfault ? VM_USER_RW : VM_RW, true);
+
+    return true;
+}
+
+static bool vfs_io_ops_mmap(io_t *io, vmap_t *vmap, off_t offset)
+{
+    file_t *file = container_of(io, file_t, io);
+    const file_ops_t *const file_ops = file_get_ops(file);
+
+    MOS_ASSERT(!vmap->on_fault); // there should be no fault handler set
+    vmap->on_fault = vfs_mmap_fault_handler;
+
+    if (file_ops->mmap)
+        return file_ops->mmap(file, vmap, offset);
+
+    return true;
+}
+
 static io_op_t fs_io_ops = {
     .read = vfs_io_ops_read,
     .write = vfs_io_ops_write,
     .close = vfs_io_ops_close,
     .seek = vfs_io_ops_seek,
+    .mmap = vfs_io_ops_mmap,
 };
 // END: filesystem's io_t operations
 
@@ -209,7 +247,7 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
     const bool may_create = flags & OPEN_CREATE;
     const bool read = flags & OPEN_READ;
     const bool write = flags & OPEN_WRITE;
-    const bool execute = flags & OPEN_EXECUTE;
+    const bool exec = flags & OPEN_EXECUTE;
     const bool no_follow = flags & OPEN_NO_FOLLOW;
     const bool expect_dir = flags & OPEN_DIR;
     const bool truncate = flags & OPEN_TRUNCATE;
@@ -222,17 +260,31 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
 
     if (entry == NULL)
     {
-        pr_warn("failed to resolve '%s', create=%d, read=%d, exec=%d, nfollow=%d, dir=%d, trun=%d", path, may_create, read, execute, no_follow, expect_dir, truncate);
+        mos_debug(vfs, "failed to resolve '%s', create=%d, read=%d, exec=%d, nfollow=%d, dir=%d, trun=%d", path, may_create, read, exec, no_follow, expect_dir, truncate);
         return NULL;
     }
 
-    if (!vfs_verify_permissions(entry, true, read, may_create, execute, write))
+    if (!vfs_verify_permissions(entry, true, read, may_create, exec, write))
         return NULL;
 
     file_t *file = kmemcache_alloc(file_cache);
     file->dentry = entry;
 
-    io_flags_t io_flags = (flags & OPEN_READ ? IO_READABLE : 0) | (flags & OPEN_WRITE ? IO_WRITABLE : 0) | IO_SEEKABLE;
+    io_flags_t io_flags = IO_SEEKABLE;
+
+    if (read)
+        io_flags |= IO_READABLE;
+
+    if (write)
+        io_flags |= IO_WRITABLE;
+
+    if (exec)
+        io_flags |= IO_EXECUTABLE;
+
+    // only regular files are mmapable
+    if (entry->inode->type == FILE_TYPE_REGULAR)
+        io_flags |= IO_MMAPABLE;
+
     io_init(&file->io, IO_FILE, io_flags, &fs_io_ops);
 
     const file_ops_t *ops = file_get_ops(file);

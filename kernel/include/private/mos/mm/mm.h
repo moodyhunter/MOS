@@ -33,7 +33,7 @@ typedef struct
     bool page_present, op_write, userfault;
 } pagefault_info_t;
 
-typedef struct _vmap_t
+typedef struct _vmap
 {
     as_linked_list;
     spinlock_t lock;
@@ -43,11 +43,14 @@ typedef struct _vmap_t
     vm_flags vmflags; // the expected flags for the region, regardless of the copy-on-write state
     mm_context_t *mmctx;
 
+    io_t *io;        // the io object that (possibly) backs this vmap
+    off_t io_offset; // the offset in the io object, page-aligned
+
     vmap_content_t content;
     vmap_fork_behavior_t fork_behavior;
     vmap_mstat_t stat;
 
-    bool (*on_fault)(struct _vmap_t *this_vmap, ptr_t fault_addr, const pagefault_info_t *fault_info);
+    bool (*on_fault)(struct _vmap *this_vmap, ptr_t fault_addr, const pagefault_info_t *fault_info);
 } vmap_t;
 
 #define pfn_va(pfn)        ((ptr_t) (platform_info->direct_map_base + (pfn) *MOS_PAGE_SIZE))

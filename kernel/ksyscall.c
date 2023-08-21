@@ -341,7 +341,7 @@ DEFINE_SYSCALL(void *, mmap_anonymous)(ptr_t hint_addr, size_t size, mem_perm_t 
 DEFINE_SYSCALL(void *, mmap_file)(ptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t mmap_flags, fd_t fd, off_t offset)
 {
     const vm_flags vmflags = VM_USER | (vm_flags) perm; // vm_flags shares the same values as mem_perm_t
-    const size_t n_pages = ALIGN_DOWN_TO_PAGE(size) / MOS_PAGE_SIZE;
+    const size_t n_pages = ALIGN_UP_TO_PAGE(size) / MOS_PAGE_SIZE;
 
     io_t *io = process_get_fd(current_process, fd);
     if (io == NULL)

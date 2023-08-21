@@ -2,6 +2,7 @@
 
 #include "mos/mm/mm.h"
 
+#include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/mm/cow.h"
 #include "mos/mm/paging/dump.h"
 #include "mos/mm/paging/table_ops.h"
@@ -89,7 +90,7 @@ void mm_destroy_context(mm_context_t *mmctx)
 
 void mm_lock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2)
 {
-    if (ctx1 == ctx2)
+    if (ctx1 == ctx2 || ctx2 == NULL)
         spinlock_acquire(&ctx1->mm_lock);
     else if (ctx1 < ctx2)
     {
@@ -105,7 +106,7 @@ void mm_lock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2)
 
 void mm_unlock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2)
 {
-    if (ctx1 == ctx2)
+    if (ctx1 == ctx2 || ctx2 == NULL)
         spinlock_release(&ctx1->mm_lock);
     else if (ctx1 < ctx2)
     {
@@ -234,7 +235,8 @@ bool mm_handle_fault(ptr_t fault_addr, const pagefault_info_t *info)
 
     spinlock_acquire(&mm->mm_lock);
 
-    vmap_t *fault_vmap = vmap_obtain(mm, fault_addr, NULL); // vmap is locked
+    size_t offset;
+    vmap_t *fault_vmap = vmap_obtain(mm, fault_addr, &offset);
     if (!fault_vmap)
     {
         pr_emph("page fault in " PTR_FMT " (not mapped)", fault_addr);
@@ -254,3 +256,22 @@ bool mm_handle_fault(ptr_t fault_addr, const pagefault_info_t *info)
     spinlock_release(&mm->mm_lock);
     return result;
 }
+
+// ! sysfs support
+
+static bool sys_mem_mmap(sysfs_file_t *f, vmap_t *vmap, off_t offset)
+{
+    MOS_UNUSED(f);
+    mm_do_map(vmap->mmctx->pgd, vmap->vaddr, offset / MOS_PAGE_SIZE, vmap->npages, vmap->vmflags, false);
+    return true;
+}
+
+static sysfs_item_t sys_mem_item = SYSFS_MEM_ITEM("mem", sys_mem_mmap);
+
+static void mm_sysfs_init()
+{
+    sys_mem_item.mem.size = platform_info->max_pfn * MOS_PAGE_SIZE;
+    sysfs_register_root_file(&sys_mem_item, NULL);
+}
+
+MOS_INIT(SYSFS, mm_sysfs_init);

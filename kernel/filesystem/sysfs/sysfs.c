@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#include <mos/io/io_types.h>
 #define pr_fmt(fmt) "sysfs: " fmt
 
-#include "mos/filesystem/sysfs/sysfs.h"
-
 #include "mos/filesystem/dentry.h"
+#include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/vfs.h"
 #include "mos/filesystem/vfs_types.h"
 #include "mos/mm/mm.h"
@@ -54,8 +54,11 @@ static void sysfs_expand_buffer(sysfs_file_t *file, size_t new_npages)
     file->buf_npages = new_npages;
     file->buf_page = mm_get_free_pages(file->buf_npages);
 
-    memcpy((char *) phyframe_va(file->buf_page), (char *) phyframe_va(oldbuf_page), oldbuf_npages * MOS_PAGE_SIZE);
-    mm_free_pages(oldbuf_page, oldbuf_npages);
+    if (oldbuf_page)
+    {
+        memcpy((char *) phyframe_va(file->buf_page), (char *) phyframe_va(oldbuf_page), oldbuf_npages * MOS_PAGE_SIZE);
+        mm_free_pages(oldbuf_page, oldbuf_npages);
+    }
 }
 
 ssize_t sysfs_printf(sysfs_file_t *file, const char *fmt, ...)
@@ -72,7 +75,7 @@ retry_printf:;
 
     if (written == spaces_left)
     {
-        sysfs_expand_buffer(file, file->buf_npages * 2); // use a power of 2 to avoid reallocating too often
+        sysfs_expand_buffer(file, file->buf_npages + 1);
         goto retry_printf;
     }
 
@@ -106,10 +109,9 @@ static bool sysfs_fops_open(inode_t *i, file_t *file)
 {
     mos_debug(vfs, "opening %s in %s", file->dentry->name, dentry_parent(file->dentry)->name);
     sysfs_file_t *f = i->private;
-    f->buf_page = mm_get_free_page();
-    f->buf_npages = 1;
+    f->buf_page = NULL;
+    f->buf_npages = 0;
     f->buf_head_offset = 0;
-    MOS_ASSERT(f->item->show);
     return true;
 }
 
@@ -117,16 +119,30 @@ static void sysfs_fops_release(file_t *file)
 {
     mos_debug(vfs, "closing %s in %s", file->dentry->name, dentry_parent(file->dentry)->name);
     sysfs_file_t *f = file->dentry->inode->private;
-    pmm_unref(f->buf_page, f->buf_npages);
+    if (f->buf_page)
+        pmm_unref(f->buf_page, f->buf_npages);
+}
+
+__nodiscard static bool sysfs_file_ensure_ready(const file_t *file)
+{
+    sysfs_file_t *f = file->dentry->inode->private;
+    if (f->buf_head_offset == 0)
+    {
+        if (!f->item->show(f))
+            return false;
+    }
+
+    return true;
 }
 
 static ssize_t sysfs_fops_read(const file_t *file, void *buf, size_t size, off_t offset)
 {
     sysfs_file_t *f = file->dentry->inode->private;
+    if (f->item->type != SYSFS_RO && f->item->type != SYSFS_RW)
+        return -1;
 
-    if (f->buf_head_offset == 0)
-        if (!f->item->show(f))
-            return -1;
+    if (!sysfs_file_ensure_ready(file))
+        return -1;
 
     if (offset >= f->buf_head_offset)
         return 0;
@@ -142,7 +158,53 @@ static ssize_t sysfs_fops_read(const file_t *file, void *buf, size_t size, off_t
 static ssize_t sysfs_fops_write(const file_t *file, const void *buf, size_t size, off_t offset)
 {
     sysfs_file_t *f = file->dentry->inode->private;
+    if (f->item->type != SYSFS_WO && f->item->type != SYSFS_RW)
+        return -1;
     return f->item->store(f, buf, size, offset);
+}
+
+static off_t sysfs_fops_seek(file_t *file, off_t offset, io_seek_whence_t whence)
+{
+    if (offset != 0)
+        return -1; // cannot change its internal buffer state
+
+    if (whence == IO_SEEK_DATA || whence == IO_SEEK_HOLE)
+        return -1; // not supported
+
+    if (whence == IO_SEEK_SET)
+        return -1;
+
+    sysfs_file_t *f = file->dentry->inode->private;
+
+    if (f->item->type == SYSFS_MEM)
+        return -1;
+
+    if (!sysfs_file_ensure_ready(file))
+        return -1;
+
+    return f->buf_head_offset;
+}
+
+bool sysfs_fops_mmap(file_t *file, vmap_t *vmap, off_t offset)
+{
+    MOS_UNUSED(vmap);
+    MOS_UNUSED(offset);
+
+    sysfs_file_t *f = file->dentry->inode->private;
+    if (f->item->type == SYSFS_MEM)
+    {
+        return f->item->mem.mmap(f, vmap, offset);
+    }
+    else
+    {
+        if (!sysfs_file_ensure_ready(file))
+            return false;
+
+        if (offset > f->buf_head_offset)
+            return false; // cannot map past the end of the file
+    }
+
+    return true;
 }
 
 static const file_ops_t sysfs_file_ops = {
@@ -150,6 +212,8 @@ static const file_ops_t sysfs_file_ops = {
     .release = sysfs_fops_release,
     .read = sysfs_fops_read,
     .write = sysfs_fops_write,
+    .seek = sysfs_fops_seek,
+    .mmap = sysfs_fops_mmap,
 };
 
 static dentry_t *sysfs_fsop_mount(filesystem_t *fs, const char *dev, const char *options)
@@ -216,12 +280,18 @@ void sysfs_register_file(sysfs_dir_t *sysfs_dir, const sysfs_item_t *item, void 
         case SYSFS_RO: file_i->perm |= PERM_READ; break;
         case SYSFS_RW: file_i->perm |= PERM_READ | PERM_WRITE; break;
         case SYSFS_WO: file_i->perm |= PERM_WRITE; break;
+        case SYSFS_MEM:
+            file_i->perm |= PERM_READ | PERM_WRITE | PERM_EXEC;
+            file_i->size = item->mem.size;
+            break;
     }
 
     if (unlikely(!item->name || strlen(item->name) == 0))
-        pr_warn("no name specified for sysfs entry '%s'", sysfs_dir->name);
-    MOS_ASSERT(sysfs_dir->_dentry);
-    dentry_create(sysfs_dir->_dentry, item->name)->inode = file_i;
+        pr_warn("no name specified for sysfs entry '%s'", sysfs_dir ? sysfs_dir->name : "/");
+
+    dentry_t *const target_dentry = sysfs_dir ? sysfs_dir->_dentry : sysfs_sb->root;
+    MOS_ASSERT_X(target_dentry, "registering sysfs entry '%s' failed", item->name);
+    dentry_create(target_dentry, item->name)->inode = file_i;
 }
 
 static void register_sysfs(void)

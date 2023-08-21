@@ -3,6 +3,7 @@
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/mm/mm.h"
+#include "mos/mm/paging/table_ops.h"
 
 #include <mos/mos_global.h>
 #include <mos/printk.h>
@@ -30,10 +31,16 @@ typedef struct
     size_t size;
 } acpi_sysfs_item_t;
 
-static bool acpi_sysfs_show(sysfs_file_t *f)
+static bool acpi_sysfs_mmap(sysfs_file_t *f, vmap_t *vmap, off_t offset)
 {
     acpi_sysfs_item_t *const item = sysfs_file_get_data(f);
-    return sysfs_put_data(f, (void *) item->vaddr, item->size) > 0;
+    const ssize_t item_npages = ALIGN_UP_TO_PAGE(item->size) / MOS_PAGE_SIZE;
+    if (offset >= item_npages)
+        return false;
+    const size_t npages = MIN((ssize_t) vmap->npages, item_npages - offset); // limit to the number of pages in the item
+
+    mm_do_map(vmap->mmctx->pgd, vmap->vaddr, va_pfn(item->vaddr), npages, vmap->vmflags, false); // no need to refcount
+    return true;
 }
 
 static void register_sysfs_acpi_node(const char table_name[4], const acpi_sdt_header_t *header)
@@ -42,8 +49,9 @@ static void register_sysfs_acpi_node(const char table_name[4], const acpi_sdt_he
     item->vaddr = (ptr_t) header;
     item->size = header->length;
     item->item.name = strndup(table_name, 4);
-    item->item.show = acpi_sysfs_show;
-    item->item.type = SYSFS_RO;
+    item->item.mem.mmap = acpi_sysfs_mmap;
+    item->item.mem.size = item->size;
+    item->item.type = SYSFS_MEM;
 
     sysfs_register_file(&__sysfs_acpi, &item->item, item);
 }

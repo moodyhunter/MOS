@@ -13,6 +13,7 @@ typedef enum
     SYSFS_RO,
     SYSFS_RW,
     SYSFS_WO,
+    SYSFS_MEM, // memory-backed file
 } sysfs_item_type_t;
 
 typedef struct
@@ -21,12 +22,19 @@ typedef struct
     sysfs_item_type_t type;
     bool (*show)(sysfs_file_t *file);
     bool (*store)(sysfs_file_t *file, const char *buf, size_t count, off_t offset);
+
+    struct
+    {
+        bool (*mmap)(sysfs_file_t *file, vmap_t *vmap, off_t offset);
+        size_t size;
+    } mem;
 } sysfs_item_t;
 
 // clang-format off
 #define SYSFS_RO_ITEM(_name, _show_fn) { .name = _name, .type = SYSFS_RO, .show = _show_fn }
 #define SYSFS_RW_ITEM(_name, _show_fn, _store_fn) { .name = _name, .type = SYSFS_RW, .show = _show_fn, .store = _store_fn }
 #define SYSFS_WO_ITEM(_name, _store_fn) { .name = _name, .type = SYSFS_WO, .store = _store_fn }
+#define SYSFS_MEM_ITEM(_name, _mmap_fn) { .name = _name, .type = SYSFS_MEM, .mem.mmap = _mmap_fn }
 #define SYSFS_END_ITEM { 0 }
 // clang-format on
 
@@ -55,6 +63,11 @@ typedef struct
 
 void sysfs_register(sysfs_dir_t *entry);
 void sysfs_register_file(sysfs_dir_t *sysfs_dir, const sysfs_item_t *item, void *data);
+
+should_inline void sysfs_register_root_file(const sysfs_item_t *item, void *data)
+{
+    sysfs_register_file(NULL, item, data);
+}
 
 void sysfs_file_set_data(sysfs_file_t *file, void *data);
 void *sysfs_file_get_data(sysfs_file_t *file);

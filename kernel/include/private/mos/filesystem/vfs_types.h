@@ -7,6 +7,7 @@
 
 #include <mos/filesystem/fs_types.h>
 #include <mos/io/io.h>
+#include <mos/io/io_types.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/structures/tree.h>
 #include <mos/lib/sync/spinlock.h>
@@ -65,7 +66,8 @@ typedef struct
     ssize_t (*write)(const file_t *file, const void *buf, size_t size, off_t offset);
     int (*flush)(file_t *file);
     void (*release)(file_t *file);
-    int (*mmap)(file_t *file, void *addr, size_t size, vmap_t *vmblock);
+    off_t (*seek)(file_t *file, off_t offset, io_seek_whence_t whence);
+    bool (*mmap)(file_t *file, vmap_t *vmap, off_t offset);
 } file_ops_t;
 
 typedef struct _superblock

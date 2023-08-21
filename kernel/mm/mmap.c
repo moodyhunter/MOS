@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/io/io.h"
 #include "mos/mm/mm.h"
+#include "mos/platform/platform.h"
 
 #include <mos/mm/cow.h>
 #include <mos/mm/mm_types.h>
@@ -15,7 +17,7 @@
  * @param hint_addr The hint address
  * @param mmap_flags The mmap flags
  */
-static bool mmap_check(ptr_t *hint_addr, mmap_flags_t mmap_flags)
+static bool mmap_verify_arguments(ptr_t *hint_addr, mmap_flags_t mmap_flags)
 {
     const bool shared = mmap_flags & MMAP_SHARED;   // when forked, shared between parent and child
     const bool private = mmap_flags & MMAP_PRIVATE; // when forked, make it Copy-On-Write
@@ -41,31 +43,41 @@ static bool mmap_check(ptr_t *hint_addr, mmap_flags_t mmap_flags)
 
 ptr_t mmap_anonymous(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages)
 {
-    if (!mmap_check(&hint_addr, flags))
+    if (!mmap_verify_arguments(&hint_addr, flags))
         return 0;
 
-    const vmap_fork_behavior_t type = (flags & MMAP_SHARED) ? VMAP_FORK_SHARED : VMAP_FORK_PRIVATE;
     const valloc_flags valloc_flags = (flags & MMAP_EXACT) ? VALLOC_EXACT : VALLOC_DEFAULT;
 
     vmap_t *vmap = cow_allocate_zeroed_pages(current_process->mm, n_pages, hint_addr, valloc_flags, vm_flags);
     mos_debug(mmap, "allocated %zd pages at " PTR_FMT, vmap->npages, vmap->vaddr);
-    vmap->content = VMAP_MMAP;
-    vmap->fork_behavior = type;
 
+    const vmap_fork_behavior_t type = (flags & MMAP_SHARED) ? VMAP_FORK_SHARED : VMAP_FORK_PRIVATE;
+    vmap_finalise_init(vmap, VMAP_MMAP, type);
     return vmap->vaddr;
 }
 
 ptr_t mmap_file(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages, io_t *io, off_t offset)
 {
-    if (!mmap_check(&hint_addr, flags))
+    if (!mmap_verify_arguments(&hint_addr, flags))
         return 0;
 
-    MOS_UNUSED(vm_flags);
-    MOS_UNUSED(n_pages);
-    MOS_UNUSED(io);
-    MOS_UNUSED(offset);
+    const valloc_flags valloc_flags = (flags & MMAP_EXACT) ? VALLOC_EXACT : VALLOC_DEFAULT;
 
-    return 0;
+    mm_lock_ctx_pair(current_mm, NULL);
+    vmap_t *vmap = mm_get_free_vaddr_locked(current_mm, n_pages, hint_addr, valloc_flags);
+    mm_unlock_ctx_pair(current_mm, NULL);
+
+    vmap->vmflags = vm_flags;
+
+    if (!io_mmap(io, vmap, offset))
+    {
+        vmap_destroy(vmap);
+        return 0;
+    }
+
+    const vmap_fork_behavior_t type = (flags & MMAP_SHARED) ? VMAP_FORK_SHARED : VMAP_FORK_PRIVATE;
+    vmap_finalise_init(vmap, VMAP_FILE, type);
+    return vmap->vaddr;
 }
 
 bool munmap(ptr_t addr, size_t size)

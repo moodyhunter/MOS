@@ -2,11 +2,14 @@
 
 #pragma once
 
+#include "mos/platform/platform.h"
+
 #include <mos/io/io_types.h>
 #include <mos/mm/mm_types.h>
 #include <mos/types.h>
 
-typedef struct _io_t io_t;
+typedef struct _io io_t;
+typedef struct _vmap vmap_t; // forward declaration
 
 typedef enum
 {
@@ -18,11 +21,12 @@ typedef enum
 
 typedef enum
 {
-    IO_NONE = MEM_PERM_NONE,      // 0
-    IO_READABLE = MEM_PERM_READ,  // 1 << 0
-    IO_WRITABLE = MEM_PERM_WRITE, // 1 << 1
-    // 1 << 2 is reserved for IO_EXECUTABLE
+    IO_NONE = MEM_PERM_NONE,       // 0
+    IO_READABLE = MEM_PERM_READ,   // 1 << 0
+    IO_WRITABLE = MEM_PERM_WRITE,  // 1 << 1
+    IO_EXECUTABLE = MEM_PERM_EXEC, // 1 << 2
     IO_SEEKABLE = 1 << 3,
+    IO_MMAPABLE = 1 << 4,
 } io_flags_t;
 
 typedef struct
@@ -31,9 +35,10 @@ typedef struct
     size_t (*write)(io_t *io, const void *buf, size_t count);
     void (*close)(io_t *io);
     off_t (*seek)(io_t *io, off_t offset, io_seek_whence_t whence);
+    bool (*mmap)(io_t *io, vmap_t *vmap, off_t offset);
 } io_op_t;
 
-typedef struct _io_t
+typedef struct _io
 {
     bool closed;
     atomic_t refcount;
@@ -54,3 +59,4 @@ size_t io_read(io_t *io, void *buf, size_t count);
 size_t io_write(io_t *io, const void *buf, size_t count);
 off_t io_seek(io_t *io, off_t offset, io_seek_whence_t whence);
 off_t io_tell(io_t *io);
+bool io_mmap(io_t *io, vmap_t *vmap, off_t offset);
