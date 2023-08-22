@@ -34,7 +34,7 @@ serial_console_t com1_console = {
             .port = COM1,
             .baud_rate = BAUD_RATE_115200,
             .char_length = CHAR_LENGTH_8,
-            .stop_bits = STOP_BITS_1,
+            .stop_bits = STOP_BITS_15_OR_2,
             .parity = PARITY_EVEN,
         },
     .con = {
