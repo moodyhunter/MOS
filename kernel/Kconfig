@@ -129,6 +129,9 @@ config DEBUG_ipi
 config DEBUG_slab
     bool "slab debugging"
 
+config DEBUG_sysfs
+    bool "sysfs debugging"
+
 endmenu
 
 endmenu
