@@ -447,6 +447,9 @@ static int printf_cs(char *buf, const char *data, printf_flags_t *pflags, char c
 
 int vsnprintf(char *buf, size_t size, const char *format, va_list _args)
 {
+    if (size == 0)
+        return 0; // nothing to do
+
     va_list_ptrwrappper_t args;
     va_copy(args.real, _args);
 
