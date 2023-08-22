@@ -18,6 +18,8 @@ MOS_STATIC_ASSERT(sizeof(acpi_rsdp_v1_t) == 20, "acpi_rsdp_v1_t is not 20 bytes"
 typedef struct
 {
     acpi_rsdp_v1_t v1;
+
+    // below fields are only available in ACPI 2.0+
     u32 length;
     u64 xsdt_addr;
     u8 checksum;
@@ -38,13 +40,19 @@ typedef struct
     u32 oem_revision;
     u32 creator_id;
     u32 creator_revision;
-} acpi_sdt_header_t;
+} __packed acpi_sdt_header_t;
 
 typedef struct
 {
     acpi_sdt_header_t sdt_header;
     ptr32_t sdts[]; // 32-bit physical addresses of other SDTs
 } acpi_rsdt_t;
+
+typedef struct
+{
+    acpi_sdt_header_t sdt_header;
+    ptr64_t sdts[]; // 64-bit physical addresses of other SDTs
+} __packed acpi_xsdt_t;
 
 #define ACPI_SIGNATURE_RSDT "RSDT" // Root System Description Table
 
@@ -235,5 +243,3 @@ typedef struct
     u8 *definition_block;
     bool valid;
 } s_dsdt;
-
-acpi_rsdp_t *acpi_find_rsdp(ptr_t start, size_t size);

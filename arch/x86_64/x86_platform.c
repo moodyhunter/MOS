@@ -4,6 +4,7 @@
 #include "mos/x86/acpi/acpi_types.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/descriptors/descriptors.h"
+#include "mos/x86/devices/serial.h"
 
 #include <mos/cmdline.h>
 #include <mos/kallsyms.h>
@@ -52,7 +53,7 @@ serial_console_t com1_console = {
 
 mos_platform_info_t *const platform_info = &x86_platform;
 mos_platform_info_t x86_platform = { 0 };
-acpi_rsdp_t *acpi_rsdp = NULL;
+const acpi_rsdp_t *acpi_rsdp = NULL;
 
 static void x86_keyboard_handler(u32 irq)
 {
@@ -153,9 +154,6 @@ void platform_startup_mm()
         if (!acpi_rsdp)
             mos_panic("RSDP not found");
     }
-
-    if (acpi_rsdp->xsdt_addr)
-        mos_panic("XSDT not supported");
 
     const pmm_region_t *acpi_region = pmm_find_reserved_region(acpi_rsdp->v1.rsdt_addr);
     MOS_ASSERT_X(acpi_region && acpi_region->reserved, "ACPI region not found or not reserved");

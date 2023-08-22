@@ -7,7 +7,6 @@
 #include <mos/x86/x86_platform.h>
 
 const acpi_madt_t *x86_acpi_madt = NULL;
-u32 x86_cpu_lapic[MOS_MAX_CPU_COUNT] = { 0 };
 ptr_t x86_ioapic_phyaddr = 0;
 
 #define IOAPIC_IRQ_OVERRIDE_MAX 255 // u8 can hold up to 255
@@ -39,13 +38,18 @@ void madt_parse_table()
                 acpi_madt_et0_lapic_t *lapic = container_of(entry, acpi_madt_et0_lapic_t, header);
                 mos_debug(x86_acpi, "MADT entry LAPIC [%p], id=%u, processor=%u, flags=0x%x", (void *) lapic, lapic->apic_id, lapic->processor_id, lapic->flags);
 
-                if (unlikely(lapic->processor_id >= MOS_MAX_CPU_COUNT))
+                bool enabled = lapic->flags & 1;        // bit 0: processor is enabled
+                bool online_capable = lapic->flags & 2; // bit 1: online-capable
+
+                // If flags bit 0 is set the CPU is able to be enabled, if it is not set you need to check bit 1. If that one is set you can still enable it, if it is not
+                // the CPU can not be enabled and the OS should not try.
+
+                if (!enabled && !online_capable)
+                    continue;
+
+                if (unlikely(x86_platform.num_cpus >= MOS_MAX_CPU_COUNT))
                     mos_panic("Too many CPUs");
 
-                if (unlikely(x86_cpu_lapic[lapic->processor_id]))
-                    mos_panic("Multiple LAPICs for the same processor not supported");
-
-                x86_cpu_lapic[lapic->processor_id] = lapic->apic_id;
                 x86_platform.num_cpus++;
                 break;
             }
