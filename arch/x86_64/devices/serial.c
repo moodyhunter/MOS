@@ -107,10 +107,15 @@ bool serial_device_setup(serial_device_t *device)
     return true;
 }
 
-static void serial_dev_wait_ready_to_read(serial_device_t *device)
+bool serial_dev_get_data_ready(serial_device_t *device)
 {
     serial_port_t port = device->port;
-    while (!(serial_get_line_status(port) & LINE_DATA_READY))
+    return serial_get_line_status(port) & LINE_DATA_READY;
+}
+
+static void serial_dev_wait_ready_to_read(serial_device_t *device)
+{
+    while (!serial_dev_get_data_ready(device))
         ;
 }
 

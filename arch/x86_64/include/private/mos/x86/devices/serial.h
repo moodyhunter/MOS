@@ -123,3 +123,4 @@ typedef struct
 bool serial_device_setup(serial_device_t *device);
 int serial_device_read(serial_device_t *device, char *data, size_t length);
 int serial_device_write(serial_device_t *device, const char *data, size_t length);
+bool serial_dev_get_data_ready(serial_device_t *device);

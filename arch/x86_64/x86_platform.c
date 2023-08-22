@@ -65,9 +65,12 @@ static void x86_keyboard_handler(u32 irq)
 static void x86_com1_handler(u32 irq)
 {
     MOS_ASSERT(irq == IRQ_COM1);
-    char c = '\0';
-    serial_device_read(com1_console.device, &c, 1);
-    console_putc(&com1_console.con, c);
+    do
+    {
+        char c = '\0';
+        serial_device_read(com1_console.device, &c, 1);
+        console_putc(&com1_console.con, c);
+    } while (serial_dev_get_data_ready(com1_console.device));
 }
 
 static void x86_do_backtrace(void)
