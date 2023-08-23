@@ -29,6 +29,9 @@ static void add_to_memmap(pfn_t start, size_t npages, bool reserved, u32 type, c
         reserved = true;
     }
 
+    if (npages == 0)
+        return;
+
     pmm_region_t *entry = &platform_info->pmm_regions[platform_info->num_pmm_regions++];
     entry->reserved = reserved;
     entry->nframes = npages;
