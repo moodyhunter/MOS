@@ -36,7 +36,7 @@
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
         if (unlikely(!(cond)))                                                                                                                                           \
-            fatal_abort("Assertion failed: %s: " msg, #cond, ##__VA_ARGS__);                                                                                             \
+            fatal_abort("Assertion failed: '%s', " msg "\n", #cond __VA_OPT__(, ) __VA_ARGS__);                                                                          \
     } while (0)
 
 MOSAPI void __printf(1, 2) fatal_abort(const char *fmt, ...);
