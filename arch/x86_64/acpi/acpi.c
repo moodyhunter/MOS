@@ -162,7 +162,7 @@ const acpi_rsdp_t *acpi_find_rsdp(ptr_t start, size_t size)
                 pr_info2("ACPI: RSDP checksum failed");
                 continue;
             }
-            mos_debug(x86_acpi, "ACPI: oem: '%s', revision: %d", rsdp->v1.oem_id, rsdp->v1.revision);
+            mos_debug(x86_acpi, "ACPI: oem: '%.6s', revision: %d", rsdp->v1.oem_id, rsdp->v1.revision);
 
             if (rsdp->v1.revision != 0 && rsdp->v1.revision != 2)
                 mos_panic("ACPI: RSDP revision %d not supported", rsdp->v1.revision);
