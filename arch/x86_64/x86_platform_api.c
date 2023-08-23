@@ -120,7 +120,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
     {
         case X86_SYSCALL_IOPL_ENABLE:
         {
-            pr_info2("enabling IOPL for thread %pt", (void *) current_thread);
+            mos_debug(syscall, "enabling IOPL for thread %pt", (void *) current_thread);
 
             if (!current_process->platform_options)
                 current_process->platform_options = kzalloc(sizeof(x86_process_options_t));
@@ -131,12 +131,12 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
         }
         case X86_SYSCALL_IOPL_DISABLE:
         {
-            pr_info2("disabling IOPL for thread %pt", (void *) current_thread);
-
-            if (!current_process->platform_options)
-                current_process->platform_options = kzalloc(sizeof(x86_process_options_t));
+            mos_debug(syscall, "disabling IOPL for thread %pt", (void *) current_thread);
 
             x86_process_options_t *options = current_process->platform_options;
+            if (!options)
+                return 0;
+
             options->iopl_enabled = false;
             return 0;
         }
