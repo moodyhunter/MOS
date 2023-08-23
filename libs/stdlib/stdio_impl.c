@@ -270,6 +270,7 @@ static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char con
 
     char num_prefix_buf[5] = { 0 };
     char num_content_buf[32] = { 0 };
+    size_t num_content_len = 32;
 
     // Setup prefixes.
     if (base == BASE_10 && !is_unsigned_ouxX)
@@ -315,11 +316,11 @@ static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char con
             case BASE_8:
             case BASE_10:
                 while (number > 0)
-                    buf_putchar(&pnumberbuf, '0' + (char) (number % base), size_left), number /= base;
+                    buf_putchar(&pnumberbuf, '0' + (char) (number % base), &num_content_len), number /= base;
                 break;
             case BASE_16:
                 while (number > 0)
-                    buf_putchar(&pnumberbuf, hex_digits[number % 16], size_left), number /= 16;
+                    buf_putchar(&pnumberbuf, hex_digits[number % 16], &num_content_len), number /= 16;
                 break;
             default: MOS_LIB_UNREACHABLE();
         }
