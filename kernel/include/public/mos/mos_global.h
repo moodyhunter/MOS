@@ -35,7 +35,6 @@
 #define asmlinkage __attribute__((regparm(0)))
 #endif
 #define should_inline __maybe_unused static inline
-#define always_inline should_inline __attribute__((__always_inline__))
 
 #define likely(x)   __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)

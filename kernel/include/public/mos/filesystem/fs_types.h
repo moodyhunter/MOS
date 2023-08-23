@@ -83,7 +83,7 @@ typedef struct
     char name[];
 } dir_entry_t;
 
-always_inline void file_format_perm(file_perm_t perms, char buf[10])
+should_inline void file_format_perm(file_perm_t perms, char buf[10])
 {
     buf[0] = perms & (PERM_READ | PERM_OWNER) ? 'r' : '-';
     buf[1] = perms & (PERM_WRITE | PERM_OWNER) ? 'w' : '-';

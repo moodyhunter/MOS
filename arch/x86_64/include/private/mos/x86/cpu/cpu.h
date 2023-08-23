@@ -30,7 +30,7 @@ should_inline reg_t x86_get_cr3(void)
     return cr3;
 }
 
-always_inline u32 x86_cpu_get_id(void)
+should_inline u32 x86_cpu_get_id(void)
 {
     reg_t a = 0, b = 0, c = 0, d = 0;
     __cpuid(1, a, b, c, d);
