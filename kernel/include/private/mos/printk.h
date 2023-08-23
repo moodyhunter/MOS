@@ -16,7 +16,7 @@
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
         if (unlikely(!(cond)))                                                                                                                                           \
-            mos_panic("Assertion failed: %s \n" msg, #cond, ##__VA_ARGS__);                                                                                              \
+            mos_panic("Assertion failed: %s\n" msg, #cond, ##__VA_ARGS__);                                                                                               \
     } while (0)
 
 typedef enum
