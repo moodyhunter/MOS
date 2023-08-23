@@ -11,7 +11,7 @@
 
 list_head consoles = LIST_HEAD_INIT(consoles);
 
-static size_t console_read(io_t *io, void *data, size_t size)
+static size_t console_io_read(io_t *io, void *data, size_t size)
 {
     console_t *con = container_of(io, console_t, io);
 
@@ -34,18 +34,20 @@ static size_t console_read(io_t *io, void *data, size_t size)
     return rd;
 }
 
-static size_t console_write(io_t *io, const void *data, size_t size)
+static size_t console_io_write(io_t *io, const void *data, size_t size)
 {
     console_t *con = container_of(io, console_t, io);
     spinlock_acquire(&con->write.lock);
+    if ((con->caps & CONSOLE_CAP_COLOR))
+        con->ops->set_color(con, con->default_fg, con->default_bg);
     size_t ret = con->ops->write(con, data, size);
     spinlock_release(&con->write.lock);
     return ret;
 }
 
 static const io_op_t console_io_ops = {
-    .read = console_read,
-    .write = console_write,
+    .read = console_io_read,
+    .write = console_io_write,
 };
 
 void console_register(console_t *con, size_t buf_size)
@@ -99,13 +101,11 @@ size_t console_write_color(console_t *con, const char *data, size_t size, standa
     if (con->caps & CONSOLE_CAP_COLOR)
     {
         con->ops->get_color(con, &prev_fg, &prev_bg);
-        con->ops->set_color(con, fg, bg);
+        if (prev_fg != fg || prev_bg != bg)
+            con->ops->set_color(con, fg, bg);
     }
 
     size_t ret = con->ops->write(con, data, size);
-
-    if (con->caps & CONSOLE_CAP_COLOR)
-        con->ops->set_color(con, prev_fg, prev_bg);
     spinlock_release(&con->write.lock);
     return ret;
 }

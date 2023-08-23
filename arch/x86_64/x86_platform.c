@@ -46,9 +46,9 @@ serial_console_t com1_console = {
         .name = "serial_com1",
         .caps = CONSOLE_CAP_EXTRA_SETUP,
         .read.buf = com1_buf,
+        .default_fg = LightBlue,
+        .default_bg = Black,
     },
-    .fg = LightBlue,
-    .bg = Black,
 };
 
 mos_platform_info_t *const platform_info = &x86_platform;

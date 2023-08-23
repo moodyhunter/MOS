@@ -40,6 +40,8 @@ typedef struct _console
     {
         spinlock_t lock;
     } write;
+
+    standard_color_t default_fg, default_bg;
 } console_t;
 
 typedef struct console_ops
