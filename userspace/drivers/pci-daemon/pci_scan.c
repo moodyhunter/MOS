@@ -58,7 +58,7 @@ void scan_function(u8 bus, u8 device, u8 function, pci_scan_callback_t callback)
     const u16 deviceID = pci_read16(bus, device, function, PCI_OFFSET_DEVICE_ID);
     const u16 vendorID = pci_read16(bus, device, function, PCI_OFFSET_VENDOR_ID);
 
-    callback(bus, device, function, deviceID, vendorID, baseClass, subClass, progIF);
+    callback(bus, device, function, vendorID, deviceID, baseClass, subClass, progIF);
 
     if ((baseClass == 0x6) && (subClass == 0x4))
     {
