@@ -7,8 +7,11 @@
 
 noreturn static __attribute__((naked)) void sigreturn_trampoline(void)
 {
-    __asm__ volatile("movq %%rsp, %%rdi\n"
-                     "call *%0\n" ::"a"(syscall_signal_return));
+#if defined(__x86_64__)
+    __asm__ volatile("movq %%rsp, %%rdi\ncall *%0\n" ::"a"(syscall_signal_return));
+#else
+#error "Unsupported architecture"
+#endif
 }
 
 int raise(signal_t sig)
