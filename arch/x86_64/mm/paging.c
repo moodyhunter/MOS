@@ -76,7 +76,7 @@ void x86_paging_setup()
     {
         const ptr_t vaddr = pfn_va(pfn);
         pml4e_t *pml4e = pml4_entry(pml4, vaddr);
-        platform_pml4e_set_flags(pml4e, VM_READ | VM_WRITE | VM_GLOBAL);
+        platform_pml4e_set_flags(pml4e, VM_READ | VM_WRITE | VM_GLOBAL | VM_CACHE_DISABLED);
 
         if (gbpages)
         {
@@ -84,18 +84,18 @@ void x86_paging_setup()
             const pml3_t pml3 = pml4e_get_or_create_pml3(pml4e);
             pml3e_t *pml3e = pml3_entry(pml3, vaddr);
             platform_pml3e_set_huge(pml3e, pfn);
-            platform_pml3e_set_flags(pml3e, VM_READ | VM_WRITE | VM_GLOBAL);
+            platform_pml3e_set_flags(pml3e, VM_READ | VM_WRITE | VM_GLOBAL | VM_CACHE_DISABLED);
         }
         else
         {
             // 2 MiB pages are at pml2e level
             pml3e_t *pml3e = pml3_entry(pml4e_get_or_create_pml3(pml4e), vaddr);
-            platform_pml3e_set_flags(pml3e, VM_READ | VM_WRITE | VM_GLOBAL);
+            platform_pml3e_set_flags(pml3e, VM_READ | VM_WRITE | VM_GLOBAL | VM_CACHE_DISABLED);
 
             const pml2_t pml2 = pml3e_get_or_create_pml2(pml3e);
             pml2e_t *pml2e = pml2_entry(pml2, vaddr);
             platform_pml2e_set_huge(pml2e, pfn);
-            platform_pml2e_set_flags(pml2e, VM_READ | VM_WRITE | VM_GLOBAL);
+            platform_pml2e_set_flags(pml2e, VM_READ | VM_WRITE | VM_GLOBAL | VM_CACHE_DISABLED);
         }
 
         pfn += STEP;
