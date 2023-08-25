@@ -11,6 +11,7 @@
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/tasks/signal_types.h>
+#include <stdlib.h>
 
 static slab_t *sigpending_slab = NULL;
 SLAB_AUTOINIT("signal_pending", sigpending_slab, sigpending_t);
