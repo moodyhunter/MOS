@@ -115,7 +115,6 @@ static const io_op_t ipc_connection_op = {
 
 void ipc_init(void)
 {
-    pr_info("initializing IPC subsystem");
     ipcshm_init();
 }
 

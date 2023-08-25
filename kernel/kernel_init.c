@@ -101,24 +101,25 @@ void mos_start_kernel(void)
     }
 
     platform_startup_mm();
-    slab_init();
+    startup_invoke_autoinit(INIT_TARGET_POST_MM);
+    startup_invoke_autoinit(INIT_TARGET_SLAB_AUTOINIT);
 
     init_argv.argc = 1;
     init_argv.argv = kcalloc(1, sizeof(char *)); // init_argv[0] is the init path
     init_argv.argv[0] = strdup(DEFAULT_INIT_PATH);
-    setup_invoke_setup();
+    startup_invoke_setup();
 
     pr_emph("init path: %s", init_argv.argv[0]);
     for (u32 i = 1; i < init_argv.argc; i++)
         pr_emph("init arg %d: %s", i, init_argv.argv[i]);
 
     // power management
-    setup_reach_init_target(INIT_TARGET_POWER);
+    startup_invoke_autoinit(INIT_TARGET_POWER);
 
     // register builtin filesystems
-    vfs_init();
-    setup_reach_init_target(INIT_TARGET_VFS);
-    setup_reach_init_target(INIT_TARGET_SYSFS);
+    startup_invoke_autoinit(INIT_TARGET_PRE_VFS);
+    startup_invoke_autoinit(INIT_TARGET_VFS);
+    startup_invoke_autoinit(INIT_TARGET_SYSFS);
 
     platform_startup_late();
 
@@ -140,10 +141,8 @@ void mos_start_kernel(void)
     if (unlikely(!init))
         mos_panic("failed to create init process");
 
-    pr_info("created init process: %s", init->name);
-
     kthread_init(); // must be called after creating the first init process
-    setup_reach_init_target(INIT_TARGET_KTHREAD);
+    startup_invoke_autoinit(INIT_TARGET_KTHREAD);
 
     ipi_init();
 

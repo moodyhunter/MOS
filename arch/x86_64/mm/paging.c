@@ -66,7 +66,7 @@ void x86_paging_setup()
     x86_call_cpuid(0x80000001, &cpuid);
     const bool gbpages = cpuid.edx & (1 << 26);
 
-    pr_info2("mapping all memory to " PTR_FMT " using %s pages", x86_platform.direct_map_base, gbpages ? "1 GB" : "2 MB");
+    mos_debug(x86_startup, "mapping all memory to " PTR_FMT " using %s pages", x86_platform.direct_map_base, gbpages ? "1 GB" : "2 MB");
 
     const size_t STEP = (gbpages ? 1 GB : 2 MB) / MOS_PAGE_SIZE;
     const size_t total_npages = MAX(ALIGN_UP(platform_info->max_pfn, STEP), 4 GB / MOS_PAGE_SIZE);

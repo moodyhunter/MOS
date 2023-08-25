@@ -5,7 +5,7 @@
 #include "mos/cmdline.h"
 #include "mos/printk.h"
 
-void setup_reach_init_target(init_target_t target)
+void startup_invoke_autoinit(init_target_t target)
 {
     extern const mos_init_t __MOS_INIT_START[];
     extern const mos_init_t __MOS_INIT_END[];
@@ -17,7 +17,7 @@ void setup_reach_init_target(init_target_t target)
     }
 }
 
-void setup_invoke_setup(void)
+void startup_invoke_setup(void)
 {
     extern const mos_setup_t __MOS_SETUP_START[]; // defined in linker script
     extern const mos_setup_t __MOS_SETUP_END[];
@@ -49,7 +49,7 @@ void setup_invoke_setup(void)
     }
 }
 
-void setup_invoke_earlysetup(void)
+void startup_invoke_earlysetup(void)
 {
     extern const mos_setup_t __MOS_EARLY_SETUP_START[]; // defined in linker script
     extern const mos_setup_t __MOS_EARLY_SETUP_END[];

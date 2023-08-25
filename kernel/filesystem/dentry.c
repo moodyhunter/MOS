@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/filesystem/vfs_types.h"
+#include "mos/filesystem/vfs_utils.h"
 #include "mos/mm/slab.h"
+#include "mos/setup.h"
 
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/fs_types.h>
@@ -37,6 +39,12 @@ static hash_t dentry_hash(uintn key)
 {
     return (hash_t){ .hash = key };
 }
+
+static void mountpoint_map_init(void)
+{
+    hashmap_init(&vfs_mountpoint_map, VFS_MOUNTPOINT_MAP_SIZE, dentry_hash, hashmap_simple_key_compare);
+}
+MOS_INIT(PRE_VFS, mountpoint_map_init);
 // END: Mountpoint Hashmap
 
 list_head vfs_mountpoint_list = LIST_HEAD_INIT(vfs_mountpoint_list);
@@ -400,12 +408,6 @@ static size_t dentry_add_dir(dir_iterator_state_t *state, u64 ino, const char *n
     return this_record_size;
 }
 
-void dentry_cache_init(void)
-{
-    pr_info2("initializing dentry cache...");
-    hashmap_init(&vfs_mountpoint_map, VFS_MOUNTPOINT_MAP_SIZE, dentry_hash, hashmap_simple_key_compare);
-}
-
 dentry_t *dentry_ref(dentry_t *dentry)
 {
     MOS_ASSERT(dentry->inode);
@@ -478,25 +480,6 @@ void dentry_unref(dentry_t *dentry)
         //     kfree(dentry->name);
         // kmemcache_free(dentry_cache, dentry);
     }
-}
-
-dentry_t *dentry_create(superblock_t *sb, dentry_t *parent, const char *name)
-{
-    dentry_t *dentry = kmalloc(dentry_cache);
-    dentry->superblock = sb;
-    linked_list_init(&tree_node(dentry)->children);
-    linked_list_init(&tree_node(dentry)->list_node);
-
-    if (name)
-        dentry->name = strdup(name);
-
-    if (parent)
-    {
-        tree_add_child(tree_node(parent), tree_node(dentry));
-        dentry->superblock = parent->superblock;
-    }
-
-    return dentry;
 }
 
 dentry_t *dentry_from_fd(fd_t fd)

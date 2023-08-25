@@ -7,8 +7,10 @@
 
 typedef enum
 {
+    INIT_TARGET_POST_MM,       // Post memory management
     INIT_TARGET_SLAB_AUTOINIT, // Slab allocator
     INIT_TARGET_POWER,         // Power management subsystem
+    INIT_TARGET_PRE_VFS,       // Pre-virtual file system
     INIT_TARGET_VFS,           // Virtual file system
     INIT_TARGET_SYSFS,         // sysfs filesystem
     INIT_TARGET_KTHREAD,       // Kernel threads
@@ -30,6 +32,6 @@ typedef struct
 #define MOS_SETUP(_param, _fn)       MOS_PUT_IN_SECTION(".mos.setup", mos_setup_t, __setup_##_fn, { .param = _param, .setup_fn = _fn })
 #define MOS_INIT(_comp, _fn)         MOS_PUT_IN_SECTION(".mos.init", mos_init_t, __init_##_fn, { .target = INIT_TARGET_##_comp, .init_fn = _fn })
 
-void setup_invoke_setup(void);
-void setup_invoke_earlysetup(void);
-void setup_reach_init_target(init_target_t target);
+void startup_invoke_setup(void);
+void startup_invoke_earlysetup(void);
+void startup_invoke_autoinit(init_target_t target);

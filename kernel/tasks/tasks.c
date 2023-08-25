@@ -51,7 +51,6 @@ static void dump_process(void)
 
 void tasks_init()
 {
-    pr_info("initializing task management subsystem");
     hashmap_init(&process_table, PROCESS_HASHTABLE_SIZE, pid_hash, hashmap_simple_key_compare);
     hashmap_init(&thread_table, THREAD_HASHTABLE_SIZE, tid_hash, hashmap_simple_key_compare);
 

@@ -26,10 +26,9 @@ static spinlock_t vfs_fs_list_lock = SPINLOCK_INIT;
 
 dentry_t *root_dentry = NULL;
 
-slab_t *superblock_cache = NULL, *dentry_cache = NULL, *mount_cache = NULL, *file_cache = NULL;
+slab_t *superblock_cache = NULL, *mount_cache = NULL, *file_cache = NULL;
 
 SLAB_AUTOINIT("superblock", superblock_cache, superblock_t);
-SLAB_AUTOINIT("dentry", dentry_cache, dentry_t);
 SLAB_AUTOINIT("mount", mount_cache, mount_t);
 SLAB_AUTOINIT("file", file_cache, file_t);
 
@@ -302,19 +301,13 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
     return file;
 }
 
-void vfs_init(void)
-{
-    pr_info("initializing VFS layer");
-    dentry_cache_init();
-}
-
 void vfs_register_filesystem(filesystem_t *fs)
 {
     spinlock_acquire(&vfs_fs_list_lock);
     list_node_append(&vfs_fs_list, list_node(fs));
     spinlock_release(&vfs_fs_list_lock);
 
-    pr_info("filesystem '%s' registered", fs->name);
+    mos_debug(vfs, "filesystem '%s' registered", fs->name);
 }
 
 bool vfs_mount(const char *device, const char *path, const char *fs, const char *options)
@@ -369,7 +362,7 @@ bool vfs_mount(const char *device, const char *path, const char *fs, const char 
         return false;
     }
 
-    pr_info2("mounted filesystem '%s' on '%s'", fs, path);
+    mos_debug(vfs, "mounted filesystem '%s' on '%s'", fs, path);
     return true;
 }
 

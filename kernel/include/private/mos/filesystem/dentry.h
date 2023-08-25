@@ -52,11 +52,6 @@ typedef enum
 } lastseg_resolve_flags_t;
 
 /**
- * @brief Initialize the dentry cache and mountpoint map
- */
-void dentry_cache_init(void);
-
-/**
  * @brief Check if a path is absolute
  *
  * @param path The path to check
@@ -101,17 +96,6 @@ dentry_t *dentry_ref_up_to(dentry_t *dentry, dentry_t *root);
  * @param dentry The dentry to decrement the reference count of
  */
 void dentry_unref(dentry_t *dentry);
-
-/**
- * @brief Create a new dentry with the given name and parent
- *
- * @param name The name of the dentry
- * @param parent The parent dentry
- *
- * @return The new dentry, or NULL if the dentry could not be created
- * @note The returned dentry will have its reference count of 0.
- */
-dentry_t *dentry_create(superblock_t *sb, dentry_t *parent, const char *name);
 
 /**
  * @brief Get the dentry from a file descriptor

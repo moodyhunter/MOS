@@ -27,8 +27,6 @@ should_inline const file_ops_t *file_get_ops(file_t *file)
 
 extern dentry_t *root_dentry;
 
-void vfs_init(void);
-
 void vfs_register_filesystem(filesystem_t *fs);
 
 /**

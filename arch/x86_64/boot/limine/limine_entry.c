@@ -51,7 +51,7 @@ asmlinkage void limine_entry(void)
         mos_panic("No kernel file found");
 
     mos_cmdline_init(kernel_file_request.response->kernel_file->cmdline);
-    setup_invoke_earlysetup();
+    startup_invoke_earlysetup();
 
     if (hhdm_request.response == NULL)
         mos_panic("No HHDM found");

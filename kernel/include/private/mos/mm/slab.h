@@ -7,12 +7,6 @@
 #include <stddef.h>
 
 /**
- * @brief Initialize the slab allocator.
- *
- */
-void slab_init(void);
-
-/**
  * @brief Allocate a block of memory from the slab allocator.
  *
  * @param size

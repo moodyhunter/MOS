@@ -66,7 +66,6 @@ static void wc_ipcshm_server_name_free(wait_condition_t *cond)
 
 void ipcshm_init(void)
 {
-    pr_info("initializing shared-memory IPC backend");
     ipcshm_billboard = kmalloc(sizeof(hashmap_t));
     hashmap_init(ipcshm_billboard, IPCSHM_BILLBOARD_HASHMAP_SIZE, hashmap_hash_string, hashmap_compare_string);
 }

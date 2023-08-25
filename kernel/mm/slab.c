@@ -8,6 +8,7 @@
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/platform/platform.h"
+#include "mos/setup.h"
 
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
@@ -109,11 +110,9 @@ static void slab_allocate_mem(slab_t *slab)
     arr[max_n * fact] = NULL;
 }
 
-static void kmemcache_free(slab_t *slab, const void *addr);
-
-void slab_init(void)
+static void slab_init(void)
 {
-    pr_info("initializing the slab allocator");
+    mos_debug(slab, "initializing the slab allocator");
 
     slab_init_one(&slab_slab, "slab_t", sizeof(slab_t));
     slab_allocate_mem(&slab_slab);
@@ -123,9 +122,11 @@ void slab_init(void)
         slab_init_one(&slabs[i], BUILTIN_SLAB_SIZES[i].name, BUILTIN_SLAB_SIZES[i].size);
         slab_allocate_mem(&slabs[i]);
     }
-
-    setup_reach_init_target(INIT_TARGET_SLAB_AUTOINIT);
 }
+
+MOS_INIT(POST_MM, slab_init);
+
+static void kmemcache_free(slab_t *slab, const void *addr);
 
 void *slab_alloc(size_t size)
 {

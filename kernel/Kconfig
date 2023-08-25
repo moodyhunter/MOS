@@ -132,6 +132,9 @@ config DEBUG_slab
 config DEBUG_sysfs
     bool "sysfs debugging"
 
+config DEBUG_panic
+    bool "kernel panic debugging"
+
 endmenu
 
 endmenu
