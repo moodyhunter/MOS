@@ -27,7 +27,7 @@ static tid_t new_thread_id(void)
 
 thread_t *thread_allocate(process_t *owner, thread_mode tflags)
 {
-    thread_t *t = kmemcache_alloc(thread_cache);
+    thread_t *t = kmalloc(thread_cache);
     t->magic = THREAD_MAGIC_THRD;
     t->tid = new_thread_id();
     t->owner = owner;

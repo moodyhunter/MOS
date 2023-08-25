@@ -159,7 +159,7 @@ static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, co
             if (last_seg_out != NULL)
             {
                 const bool ends_with_slash = original_path[strlen(original_path) - 1] == PATH_DELIM;
-                char *tmp = kzalloc(strlen(current_seg) + 2); // +2 for the null terminator and the slash
+                char *tmp = kmalloc(strlen(current_seg) + 2); // +2 for the null terminator and the slash
                 strcpy(tmp, current_seg);
                 if (ends_with_slash)
                     strcat(tmp, PATH_DELIM_STR);
@@ -481,7 +481,7 @@ void dentry_unref(dentry_t *dentry)
 
 dentry_t *dentry_create(dentry_t *parent, const char *name)
 {
-    dentry_t *dentry = kmemcache_alloc(dentry_cache);
+    dentry_t *dentry = kmalloc(dentry_cache);
     linked_list_init(&tree_node(dentry)->children);
     linked_list_init(&tree_node(dentry)->list_node);
 
@@ -612,7 +612,7 @@ bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs)
     tree_node(root)->parent = tree_node(dentry_parent(mountpoint));
     mountpoint->is_mountpoint = true;
 
-    mount_t *mount = kmemcache_alloc(mount_cache);
+    mount_t *mount = kmalloc(mount_cache);
     linked_list_init(list_node(mount));
     list_node_append(&vfs_mountpoint_list, list_node(mount));
     mount->root = root;

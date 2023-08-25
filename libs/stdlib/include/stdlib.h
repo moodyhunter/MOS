@@ -40,10 +40,7 @@ MOSAPI void *realloc(void *ptr, size_t size);
 #else
 #include "mos/mm/slab.h"
 
-should_inline __malloc void *kmalloc(size_t size)
-{
-    return slab_alloc(size);
-}
+#define kmalloc(item) _Generic((item), slab_t * : kmemcache_alloc, default : slab_alloc)(item)
 
 should_inline __malloc void *kcalloc(size_t nmemb, size_t size)
 {
@@ -60,17 +57,11 @@ should_inline void kfree(const void *ptr)
     slab_free(ptr);
 }
 
-should_inline void *kzalloc(size_t size)
-{
-    return kcalloc(1, size);
-}
-
 #ifdef __IN_MOS_LIBS__
-#define malloc(size)        kmalloc(size)
-#define calloc(nmemb, size) kcalloc(nmemb, size)
-#define realloc(ptr, size)  krealloc(ptr, size)
-#define free(ptr)           kfree(ptr)
-#define zalloc(size)        kzalloc(size)
+#define malloc(size)        slab_alloc(size)
+#define calloc(nmemb, size) slab_calloc(nmemb, size)
+#define realloc(ptr, size)  slab_realloc(ptr, size)
+#define free(ptr)           slab_free(ptr)
 #endif
 
 #endif

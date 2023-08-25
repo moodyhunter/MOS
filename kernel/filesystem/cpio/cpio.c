@@ -195,7 +195,7 @@ should_inline cpio_inode_t *CPIO_INODE(inode_t *inode)
 
 static cpio_inode_t *cpio_inode_create(superblock_t *sb, cpio_metadata_t *metadata)
 {
-    cpio_inode_t *i = kmemcache_alloc(cpio_inode_cache);
+    cpio_inode_t *i = kmalloc(cpio_inode_cache);
     cpio_fill_inode(metadata, &i->inode);
 
     i->inode.ops = i->inode.type == FILE_TYPE_DIRECTORY ? &cpio_dir_inode_ops : &cpio_file_inode_ops;
@@ -225,7 +225,7 @@ static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *
 
     mos_debug(cpio, "cpio header: %.6s", header.header.magic);
 
-    superblock_t *sb = kmemcache_alloc(superblock_cache);
+    superblock_t *sb = kmalloc(superblock_cache);
     sb->fs = fs;
 
     cpio_inode_t *i = cpio_inode_create(sb, &header);

@@ -49,7 +49,7 @@ static bool acpi_sysfs_mmap(sysfs_file_t *f, vmap_t *vmap, off_t offset)
 
 static void register_sysfs_acpi_node(const char table_name[4], const acpi_sdt_header_t *header)
 {
-    acpi_sysfs_item_t *const item = kzalloc(sizeof(acpi_sysfs_item_t));
+    acpi_sysfs_item_t *const item = kmalloc(sizeof(acpi_sysfs_item_t));
     item->size = header->length;
     item->item.name = strndup(table_name, 4);
     item->item.mem.mmap = acpi_sysfs_mmap;

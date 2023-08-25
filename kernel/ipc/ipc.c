@@ -125,7 +125,7 @@ io_t *ipc_create(const char *name, size_t max_pending)
     if (!server)
         return NULL;
 
-    ipc_server_t *ipc_server = kzalloc(sizeof(ipc_server_t));
+    ipc_server_t *ipc_server = kmalloc(sizeof(ipc_server_t));
     linked_list_init(list_node(ipc_server));
     ipc_server->shm_server = server;
     ipc_server->magic = IPC_SERVER_MAGIC;
@@ -163,7 +163,7 @@ io_t *ipc_accept(io_t *server)
 
 io_t *ipc_connect(const char *name, size_t buffer_size)
 {
-    ipc_t *ipc = kmemcache_alloc(ipc_slab);
+    ipc_t *ipc = kmalloc(ipc_slab);
 
     // the server's write buffer is the client's read buffer and vice versa
     ipc->server.writebuf_obj = ipc->client.readbuf_obj = &ipc->server_nodebuf;

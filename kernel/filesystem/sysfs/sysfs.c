@@ -250,7 +250,7 @@ static u64 sysfs_get_ino(void)
 
 static void sysfs_do_register(sysfs_dir_t *sysfs_dir)
 {
-    inode_t *dir_i = kmemcache_alloc(inode_cache);
+    inode_t *dir_i = kmalloc(inode_cache);
     dir_i->type = FILE_TYPE_DIRECTORY;
     dir_i->perm = sysfs_dir_perm;
     dir_i->ino = sysfs_get_ino();
@@ -269,7 +269,7 @@ void sysfs_register_file(sysfs_dir_t *sysfs_dir, const sysfs_item_t *item, void 
     sysfs_file->item = item;
     sysfs_file->data = data;
 
-    inode_t *file_i = kmemcache_alloc(inode_cache);
+    inode_t *file_i = kmalloc(inode_cache);
     file_i->ino = sysfs_get_ino();
     file_i->type = FILE_TYPE_REGULAR;
     file_i->file_ops = &sysfs_file_ops;
@@ -298,12 +298,12 @@ static void register_sysfs(void)
 {
     vfs_register_filesystem(&fs_sysfs);
 
-    sysfs_sb = kmemcache_alloc(superblock_cache);
+    sysfs_sb = kmalloc(superblock_cache);
     sysfs_sb->fs = &fs_sysfs;
 
     dentry_t *root = dentry_create(NULL, NULL);
     sysfs_sb->root = root;
-    root->inode = kmemcache_alloc(inode_cache);
+    root->inode = kmalloc(inode_cache);
     root->inode->type = FILE_TYPE_DIRECTORY;
     root->superblock = sysfs_sb;
 }

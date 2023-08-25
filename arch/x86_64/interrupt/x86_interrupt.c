@@ -71,7 +71,7 @@ void x86_irq_handler_init(void)
 bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
 {
     MOS_ASSERT(irq < IRQ_MAX_COUNT);
-    x86_irq_handler_t *desc = kzalloc(sizeof(x86_irq_handler_t));
+    x86_irq_handler_t *desc = kmalloc(sizeof(x86_irq_handler_t));
     linked_list_init(list_node(desc));
     desc->handler = handler;
     list_node_append(&irq_handlers[irq], list_node(desc));

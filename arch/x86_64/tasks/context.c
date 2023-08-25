@@ -98,7 +98,7 @@ static void x86_start_user_thread(x86_thread_context_t *context)
 void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
 {
     x86_process_options_t *options = thread->owner->platform_options;
-    x86_thread_context_t *context = kzalloc(sizeof(x86_thread_context_t));
+    x86_thread_context_t *context = kmalloc(sizeof(x86_thread_context_t));
     context->arg = arg;
     context->is_forked = false;
     context->regs.ip = (ptr_t) entry;
@@ -112,7 +112,7 @@ void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
 void x86_setup_forked_context(const void *from, void **to)
 {
     const x86_thread_context_t *from_ctx = from;
-    x86_thread_context_t *to_ctx = kzalloc(sizeof(x86_thread_context_t));
+    x86_thread_context_t *to_ctx = kmalloc(sizeof(x86_thread_context_t));
     *to = to_ctx;
     *to_ctx = *from_ctx; // copy everything
     to_ctx->is_forked = true;

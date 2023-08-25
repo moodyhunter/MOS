@@ -123,7 +123,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
             mos_debug(syscall, "enabling IOPL for thread %pt", (void *) current_thread);
 
             if (!current_process->platform_options)
-                current_process->platform_options = kzalloc(sizeof(x86_process_options_t));
+                current_process->platform_options = kmalloc(sizeof(x86_process_options_t));
 
             x86_process_options_t *options = current_process->platform_options;
             options->iopl_enabled = true;

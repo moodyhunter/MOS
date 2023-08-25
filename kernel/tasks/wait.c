@@ -52,7 +52,7 @@ bool waitlist_append_only(waitlist_t *list)
         return false;
     }
 
-    waitable_list_entry_t *entry = kmemcache_alloc(waitlist_listentry_slab);
+    waitable_list_entry_t *entry = kmalloc(waitlist_listentry_slab);
     entry->waiter = current_thread->tid;
     list_node_append(&list->list, list_node(entry));
     spinlock_release(&list->lock);

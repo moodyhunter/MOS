@@ -77,7 +77,7 @@ bool futex_wait(futex_word_t *futex, futex_word_t expected)
 
     if (!fu)
     {
-        fu = kzalloc(sizeof(futex_private_t));
+        fu = kmalloc(sizeof(futex_private_t));
         fu->key = key;
         waitlist_init(&fu->waiters);
         list_node_append(&futex_list_head, list_node(fu));

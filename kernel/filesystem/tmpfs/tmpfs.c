@@ -49,7 +49,7 @@ should_inline tmpfs_inode_t *INODE(inode_t *inode)
 
 inode_t *tmpfs_create_inode(superblock_t *sb, file_type_t type, file_perm_t perm)
 {
-    tmpfs_inode_t *inode = kmemcache_alloc(tmpfs_inode_cache);
+    tmpfs_inode_t *inode = kmalloc(tmpfs_inode_cache);
     inode->real_inode.superblock = sb;
 
     inode->real_inode.type = type;
@@ -114,7 +114,7 @@ static dentry_t *tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char 
         return NULL;
     }
 
-    superblock_t *sb = kmemcache_alloc(superblock_cache);
+    superblock_t *sb = kmalloc(superblock_cache);
     sb->fs = fs;
 
     dentry_t *root = dentry_create(NULL, NULL);

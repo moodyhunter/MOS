@@ -267,7 +267,7 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
     if (!vfs_verify_permissions(entry, true, read, may_create, exec, write))
         return NULL;
 
-    file_t *file = kmemcache_alloc(file_cache);
+    file_t *file = kmalloc(file_cache);
     file->dentry = entry;
 
     io_flags_t io_flags = IO_SEEKABLE;

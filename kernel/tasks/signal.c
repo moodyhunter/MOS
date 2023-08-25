@@ -45,7 +45,7 @@ void signal_send_to_thread(thread_t *target, signal_t signal)
 
     if (!has_pending)
     {
-        sigpending_t *sigdesc = kmemcache_alloc(sigpending_slab);
+        sigpending_t *sigdesc = kmalloc(sigpending_slab);
         linked_list_init(list_node(sigdesc));
         sigdesc->signal = signal;
         list_node_append(&target->signal_info.pending, list_node(sigdesc));

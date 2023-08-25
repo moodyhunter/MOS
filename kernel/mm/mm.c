@@ -68,7 +68,7 @@ void mm_free_pages(phyframe_t *frame, size_t npages)
 
 mm_context_t *mm_create_context(void)
 {
-    mm_context_t *mmctx = kmemcache_alloc(mm_context_cache);
+    mm_context_t *mmctx = kmalloc(mm_context_cache);
     linked_list_init(&mmctx->mmaps);
 
     pml4_t pml4 = pml_create_table(pml4);
@@ -144,7 +144,7 @@ static void do_attach_vmap(mm_context_t *mmctx, vmap_t *vmap)
 vmap_t *vmap_create(mm_context_t *mmctx, ptr_t vaddr, size_t npages)
 {
     MOS_ASSERT_X(mmctx != platform_info->kernel_mm, "you can't create vmaps in the kernel mmctx");
-    vmap_t *map = kmemcache_alloc(vmap_cache);
+    vmap_t *map = kmalloc(vmap_cache);
     linked_list_init(list_node(map));
     spinlock_acquire(&map->lock);
     map->vaddr = vaddr;

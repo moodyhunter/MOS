@@ -67,7 +67,7 @@ static void wc_ipcshm_server_name_free(wait_condition_t *cond)
 void ipcshm_init(void)
 {
     pr_info("initializing shared-memory IPC backend");
-    ipcshm_billboard = kzalloc(sizeof(hashmap_t));
+    ipcshm_billboard = kmalloc(sizeof(hashmap_t));
     hashmap_init(ipcshm_billboard, IPCSHM_BILLBOARD_HASHMAP_SIZE, hashmap_hash_string, hashmap_compare_string);
 }
 
@@ -84,13 +84,13 @@ ipcshm_server_t *ipcshm_announce(const char *name, size_t max_pending)
     }
 
     pr_info("ipc: channel '%s' created", name);
-    ipcshm_server_t *server = kzalloc(sizeof(ipcshm_server_t));
+    ipcshm_server_t *server = kmalloc(sizeof(ipcshm_server_t));
     server->magic = IPCSHM_SERVER_MAGIC;
     server->name = strdup(name);
     server->max_pending = max_pending;
-    server->pending = kzalloc(sizeof(ipcshm_t *) * max_pending);
+    server->pending = kmalloc(sizeof(ipcshm_t *) * max_pending);
     for (size_t i = 0; i < max_pending; i++)
-        server->pending[i] = kzalloc(sizeof(ipcshm_t));
+        server->pending[i] = kmalloc(sizeof(ipcshm_t));
 
     spinlock_acquire(&billboard_lock);
     hashmap_put(ipcshm_billboard, (ptr_t) server->name, server);
@@ -210,7 +210,7 @@ ipcshm_t *ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_b
             shm = server->pending[i];
             shm->state = IPCSHM_ATTACHED;
             // replace the pending connection with a new one
-            server->pending[i] = kzalloc(sizeof(ipcshm_t));
+            server->pending[i] = kmalloc(sizeof(ipcshm_t));
             break;
         }
         spinlock_release(&server->pending[i]->lock);

@@ -45,7 +45,7 @@ static pid_t new_process_id(void)
 
 process_t *process_allocate(process_t *parent, const char *name)
 {
-    process_t *proc = kmemcache_alloc(process_cache);
+    process_t *proc = kmalloc(process_cache);
 
     proc->magic = PROCESS_MAGIC_PROC;
     proc->pid = new_process_id();

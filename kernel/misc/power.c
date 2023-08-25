@@ -22,7 +22,7 @@ SLAB_AUTOINIT("power_callback", power_callback_cache, power_callback_entry_t);
 
 void power_register_shutdown_callback(power_callback_t callback, void *data)
 {
-    power_callback_entry_t *entry = kmemcache_alloc(power_callback_cache);
+    power_callback_entry_t *entry = kmalloc(power_callback_cache);
     linked_list_init(list_node(entry));
     entry->callback = callback;
     entry->data = data;
