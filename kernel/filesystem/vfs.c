@@ -26,8 +26,8 @@ static spinlock_t vfs_fs_list_lock = SPINLOCK_INIT;
 
 dentry_t *root_dentry = NULL;
 
-slab_t *inode_cache = NULL, *superblock_cache = NULL, *dentry_cache = NULL, *mount_cache = NULL, *file_cache = NULL;
-SLAB_AUTOINIT("inode", inode_cache, inode_t);
+slab_t *superblock_cache = NULL, *dentry_cache = NULL, *mount_cache = NULL, *file_cache = NULL;
+
 SLAB_AUTOINIT("superblock", superblock_cache, superblock_t);
 SLAB_AUTOINIT("dentry", dentry_cache, dentry_t);
 SLAB_AUTOINIT("mount", mount_cache, mount_t);

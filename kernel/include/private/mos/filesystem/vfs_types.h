@@ -139,4 +139,4 @@ typedef struct _file
     size_t offset;          // tracks the current position in the file
 } file_t;
 
-extern slab_t *inode_cache, *superblock_cache, *dentry_cache, *mount_cache, *file_cache;
+extern slab_t *superblock_cache, *dentry_cache, *mount_cache, *file_cache;

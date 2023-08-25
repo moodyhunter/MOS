@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/filesystem/vfs_utils.h"
 #include "mos/mm/slab_autoinit.h"
 
 #include <mos/filesystem/dentry.h>
@@ -50,13 +51,9 @@ should_inline tmpfs_inode_t *INODE(inode_t *inode)
 inode_t *tmpfs_create_inode(superblock_t *sb, file_type_t type, file_perm_t perm)
 {
     tmpfs_inode_t *inode = kmalloc(tmpfs_inode_cache);
-    inode->real_inode.superblock = sb;
 
-    inode->real_inode.type = type;
+    inode_init(&inode->real_inode, sb, ++tmpfs_inode_count, type);
     inode->real_inode.perm = perm;
-
-    inode->real_inode.ino = ++tmpfs_inode_count;
-    inode->real_inode.nlinks = 1;
 
     switch (type)
     {
@@ -114,16 +111,12 @@ static dentry_t *tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char 
         return NULL;
     }
 
-    superblock_t *sb = kmalloc(superblock_cache);
-    sb->fs = fs;
-
-    dentry_t *root = dentry_create(NULL, NULL);
-    sb->root = root;
-    root->inode = tmpfs_create_inode(sb, FILE_TYPE_DIRECTORY, tmpfs_default_mode);
-    root->inode->type = FILE_TYPE_DIRECTORY;
-    root->superblock = sb;
-
-    return root;
+    superblock_t *tmpfs_sb = kmalloc(superblock_cache);
+    tmpfs_sb->fs = fs;
+    tmpfs_sb->root = dentry_create(tmpfs_sb, NULL, NULL);
+    tmpfs_sb->root->inode = tmpfs_create_inode(tmpfs_sb, FILE_TYPE_DIRECTORY, tmpfs_default_mode);
+    tmpfs_sb->root->inode->type = FILE_TYPE_DIRECTORY;
+    return tmpfs_sb->root;
 }
 
 // create a new node in the directory

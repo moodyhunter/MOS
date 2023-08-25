@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/filesystem/vfs_types.h"
 #include "mos/mm/slab.h"
 
 #include <mos/filesystem/dentry.h>
@@ -479,9 +480,10 @@ void dentry_unref(dentry_t *dentry)
     }
 }
 
-dentry_t *dentry_create(dentry_t *parent, const char *name)
+dentry_t *dentry_create(superblock_t *sb, dentry_t *parent, const char *name)
 {
     dentry_t *dentry = kmalloc(dentry_cache);
+    dentry->superblock = sb;
     linked_list_init(&tree_node(dentry)->children);
     linked_list_init(&tree_node(dentry)->list_node);
 
@@ -548,7 +550,7 @@ dentry_t *dentry_get_child(dentry_t *parent, const char *name)
 
     // regardless of whether we found it in the real FS or not, we leave it in the cache
     if (dentry == NULL)
-        dentry = dentry_create(parent, name);
+        dentry = dentry_create(parent->superblock, parent, name);
 
     if (dentry->inode)
         return dentry_ref(dentry);

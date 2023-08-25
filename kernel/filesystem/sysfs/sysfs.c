@@ -1,18 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-#include <mos/io/io_types.h>
 #define pr_fmt(fmt) "sysfs: " fmt
 
-#include "mos/filesystem/dentry.h"
 #include "mos/filesystem/sysfs/sysfs.h"
+
+#include "mos/filesystem/dentry.h"
 #include "mos/filesystem/vfs.h"
 #include "mos/filesystem/vfs_types.h"
+#include "mos/filesystem/vfs_utils.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab.h"
 #include "mos/setup.h"
 
 #include <mos/filesystem/fs_types.h>
+#include <mos/io/io_types.h>
 #include <mos/lib/structures/list.h>
 #include <mos/types.h>
 #include <stdio.h>
@@ -250,12 +252,10 @@ static u64 sysfs_get_ino(void)
 
 static void sysfs_do_register(sysfs_dir_t *sysfs_dir)
 {
-    inode_t *dir_i = kmalloc(inode_cache);
-    dir_i->type = FILE_TYPE_DIRECTORY;
+    inode_t *dir_i = inode_create(sysfs_sb, sysfs_get_ino(), FILE_TYPE_DIRECTORY);
     dir_i->perm = sysfs_dir_perm;
-    dir_i->ino = sysfs_get_ino();
 
-    dentry_t *vfs_dir = dentry_create(sysfs_sb->root, sysfs_dir->name);
+    dentry_t *vfs_dir = dentry_create(sysfs_sb, sysfs_sb->root, sysfs_dir->name);
     vfs_dir->inode = dir_i;
     sysfs_dir->_dentry = vfs_dir;
 
@@ -269,9 +269,7 @@ void sysfs_register_file(sysfs_dir_t *sysfs_dir, const sysfs_item_t *item, void 
     sysfs_file->item = item;
     sysfs_file->data = data;
 
-    inode_t *file_i = kmalloc(inode_cache);
-    file_i->ino = sysfs_get_ino();
-    file_i->type = FILE_TYPE_REGULAR;
+    inode_t *file_i = inode_create(sysfs_sb, sysfs_get_ino(), FILE_TYPE_REGULAR);
     file_i->file_ops = &sysfs_file_ops;
     file_i->private = sysfs_file;
 
@@ -291,7 +289,7 @@ void sysfs_register_file(sysfs_dir_t *sysfs_dir, const sysfs_item_t *item, void 
 
     dentry_t *const target_dentry = sysfs_dir ? sysfs_dir->_dentry : sysfs_sb->root;
     MOS_ASSERT_X(target_dentry, "registering sysfs entry '%s' failed", item->name);
-    dentry_create(target_dentry, item->name)->inode = file_i;
+    dentry_create(sysfs_sb, target_dentry, item->name)->inode = file_i;
 }
 
 static void register_sysfs(void)
@@ -300,12 +298,8 @@ static void register_sysfs(void)
 
     sysfs_sb = kmalloc(superblock_cache);
     sysfs_sb->fs = &fs_sysfs;
-
-    dentry_t *root = dentry_create(NULL, NULL);
-    sysfs_sb->root = root;
-    root->inode = kmalloc(inode_cache);
-    root->inode->type = FILE_TYPE_DIRECTORY;
-    root->superblock = sysfs_sb;
+    sysfs_sb->root = dentry_create(sysfs_sb, NULL, NULL);
+    sysfs_sb->root->inode = inode_create(sysfs_sb, sysfs_get_ino(), FILE_TYPE_DIRECTORY);
 }
 
 MOS_INIT(VFS, register_sysfs);
