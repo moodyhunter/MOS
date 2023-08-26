@@ -2,6 +2,8 @@
 
 #include "mos/filesystem/vfs_types.h"
 #include "mos/filesystem/vfs_utils.h"
+#include "mos/mm/mm.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab.h"
 #include "mos/mm/slab_autoinit.h"
 #include "mos/platform/platform.h"
@@ -65,6 +67,7 @@ typedef struct
 static const inode_ops_t cpio_dir_inode_ops;
 static const inode_ops_t cpio_file_inode_ops;
 static const file_ops_t cpio_file_ops;
+static const inode_cache_ops_t cpio_icache_ops;
 
 static slab_t *cpio_inode_cache = NULL;
 SLAB_AUTOINIT("cpio_inode", cpio_inode_cache, cpio_inode_t);
@@ -193,6 +196,7 @@ static cpio_inode_t *cpio_inode_trycreate(const char *path, superblock_t *sb)
     inode->nlinks = strntoll(cpio_inode->header.nlink, NULL, 16, sizeof(cpio_inode->header.nlink) / sizeof(char));
     inode->ops = file_type == FILE_TYPE_DIRECTORY ? &cpio_dir_inode_ops : &cpio_file_inode_ops;
     inode->file_ops = file_type == FILE_TYPE_DIRECTORY ? NULL : &cpio_file_ops;
+    inode->cache.ops = &cpio_icache_ops;
 
     return cpio_inode;
 }
@@ -223,18 +227,6 @@ static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *
     sb->root->inode = &i->inode;
     sb->root->superblock = i->inode.superblock = sb;
     return sb->root;
-}
-
-static ssize_t cpio_f_read(const file_t *file, void *buf, size_t size, off_t offset)
-{
-    cpio_inode_t *inode = CPIO_INODE(file->dentry->inode);
-
-    if (offset >= (long) inode->inode.size)
-        return 0; // EOF
-
-    const size_t bytes_to_read = MIN(size, inode->inode.size - offset);
-    size_t read = initrd_read(buf, bytes_to_read, inode->data_offset + offset);
-    return read;
 }
 
 static bool cpio_i_lookup(inode_t *parent_dir, dentry_t *dentry)
@@ -350,8 +342,27 @@ static const inode_ops_t cpio_file_inode_ops = {
 
 static const file_ops_t cpio_file_ops = {
     .open = NULL,
-    .read = cpio_f_read,
-    .mmap = NULL,
+    .read = vfs_generic_read,
+    .mmap = vfs_generic_mmap,
+};
+
+static phyframe_t *cpio_fill_cache(inode_cache_t *cache, off_t pgoff)
+{
+    inode_t *i = cache->owner;
+    cpio_inode_t *cpio_i = CPIO_INODE(i);
+
+    phyframe_t *page = mm_get_free_page();
+    if (!page)
+        return NULL;
+
+    const size_t bytes_to_read = MIN((size_t) MOS_PAGE_SIZE, i->size - pgoff * MOS_PAGE_SIZE);
+    const size_t read = initrd_read((char *) phyframe_va(page), bytes_to_read, cpio_i->data_offset + pgoff * MOS_PAGE_SIZE);
+    MOS_ASSERT(read == bytes_to_read);
+    return page;
+}
+
+static const inode_cache_ops_t cpio_icache_ops = {
+    .fill_cache = cpio_fill_cache,
 };
 
 static filesystem_t fs_cpiofs = {
