@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/device/console.h"
 #include "mos/misc/power.h"
 
 #include <mos/cmdline.h>
@@ -52,6 +53,12 @@ void kwarn_handler_remove(void)
 noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
 {
     platform_interrupt_disable();
+
+    // unlock the consoles, in case we were in the middle of writing something
+    list_foreach(console_t, console, consoles)
+    {
+        spinlock_release(&console->write.lock);
+    }
 
     static bool in_panic = false;
     if (unlikely(in_panic))
