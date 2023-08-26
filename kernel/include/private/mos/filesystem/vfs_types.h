@@ -3,11 +3,13 @@
 #pragma once
 
 #include "mos/mm/mm.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab.h"
 
 #include <mos/filesystem/fs_types.h>
 #include <mos/io/io.h>
 #include <mos/io/io_types.h>
+#include <mos/lib/structures/hashmap.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/structures/tree.h>
 #include <mos/lib/sync/spinlock.h>
@@ -15,6 +17,7 @@
 #include <mos/types.h>
 
 typedef struct _dentry dentry_t;
+typedef struct _inode_cache inode_cache_t;
 typedef struct _inode inode_t;
 typedef struct _mount mount_t;
 typedef struct _superblock superblock_t;
@@ -90,7 +93,30 @@ typedef struct _dentry
     void *private; // fs-specific data
 } dentry_t;
 
-#define dentry_name(dentry) ((dentry)->name ? (dentry)->name : "<NULL>")
+#define dentry_name(dentry)                                                                                                                                              \
+    __extension__({                                                                                                                                                      \
+        const char *__name = (dentry)->name;                                                                                                                             \
+        __name ? __name : "<NULL>";                                                                                                                                      \
+    })
+
+typedef struct _inode_cache_ops
+{
+    /**
+     * @brief Read a page from the underlying storage, at file offset pgoff * MOS_PAGE_SIZE
+     *
+     */
+    phyframe_t *(*fill_cache)(inode_cache_t *cache, off_t pgoff);
+
+    bool (*page_write_begin)(inode_cache_t *cache, off_t file_offset, size_t inpage_size, phyframe_t **page_out, void **private);
+    void (*page_write_end)(inode_cache_t *cache, off_t file_offset, size_t inpage_size, phyframe_t *page, void *private);
+} inode_cache_ops_t;
+
+typedef struct _inode_cache
+{
+    inode_t *owner;
+    hashmap_t pages; // page index -> phyframe_t *
+    const inode_cache_ops_t *ops;
+} inode_cache_t;
 
 typedef struct _inode
 {
@@ -112,6 +138,7 @@ typedef struct _inode
     const inode_ops_t *ops;     // operations on this inode
     const file_ops_t *file_ops; // operations on files of this inode
     void *private;              // private data
+    inode_cache_t cache;        // page cache for this inode
 } inode_t;
 
 typedef struct _filesystem

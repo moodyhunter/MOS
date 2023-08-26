@@ -47,6 +47,10 @@ config SMP
     bool "SMP support"
     default n
 
+config INODE_CACHE_HASHMAP_SIZE
+    int "inode cache hashmap size"
+    default 256
+
 # ! ============================================================
 
 menu "Kernel Debugging Options"
