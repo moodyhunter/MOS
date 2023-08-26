@@ -7,6 +7,7 @@ typedef enum
 {
     MEM_PAGETABLE, // page table pages
     MEM_SLAB,      // slab allocator
+    MEM_PAGECACHE, // page cache
     MEM_KERNEL,    // kernel memory (e.g. kernel stack)
     MEM_USER,      // user memory (e.g. user code, data, stack)
 

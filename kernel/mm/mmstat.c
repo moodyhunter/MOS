@@ -21,10 +21,11 @@ typedef struct
 static vmap_global_mstat_t stat[_MEM_MAX_TYPES] = { 0 };
 
 const char *mem_type_names[_MEM_MAX_TYPES] = {
-    [MEM_PAGETABLE] = "PageTable",
-    [MEM_SLAB] = "Slab",
-    [MEM_KERNEL] = "Kernel",
-    [MEM_USER] = "User",
+    [MEM_PAGETABLE] = "PageTable", //
+    [MEM_SLAB] = "Slab",           //
+    [MEM_PAGECACHE] = "PageCache", //
+    [MEM_KERNEL] = "Kernel",       //
+    [MEM_USER] = "User",           //
 };
 
 void mmstat_inc(mmstat_type_t type, size_t size)
