@@ -21,11 +21,6 @@ typedef struct
     {
         char *symlink_target;
         dev_t dev;
-        struct
-        {
-            size_t block_size;
-            char *data;
-        } file;
     };
 } tmpfs_inode_t;
 
@@ -232,77 +227,10 @@ static const inode_ops_t tmpfs_inode_symlink_ops = {
     .readlink = tmpfs_i_readlink,
 };
 
-static ssize_t tmpfs_f_read(const file_t *file, void *buffer, size_t buflen, off_t offset)
-{
-    if (unlikely(offset >= (long) file->dentry->inode->size))
-        return 0; // read past the end of the file
-
-    tmpfs_inode_t *inode = TMPFS_INODE(file->dentry->inode);
-    const size_t bytes_to_read = MIN(buflen, inode->file.block_size - offset);
-    memcpy(buffer, inode->file.data + offset, bytes_to_read);
-    return bytes_to_read;
-}
-
-static ssize_t tmpfs_f_write(const file_t *file, const void *buffer, size_t buflen, off_t offset)
-{
-    tmpfs_inode_t *inode = TMPFS_INODE(file->dentry->inode);
-    const size_t new_size = MAX(offset + buflen, inode->file.block_size); // users may have seeked before writing
-
-    if (unlikely(inode->file.block_size == 0))
-    {
-        mos_debug(tmpfs, "growing file to %zu bytes", new_size);
-
-        // allocate the initial block for a new empty file
-        inode->file.data = kmalloc(new_size);
-        if (!inode->file.data)
-            return 0;
-
-        inode->file.block_size = new_size;
-        inode->real_inode.size = new_size;
-
-        // copy the data into the file
-        memcpy(inode->file.data, buffer, buflen);
-        return buflen;
-    }
-
-    if (likely(new_size < inode->file.block_size))
-    {
-        // copy the data into the file (aka, no need to grow the file)
-        mos_debug(tmpfs, "writing %zu bytes to file of size %zu", buflen, inode->file.block_size);
-        memcpy(inode->file.data + offset, buffer, buflen);
-        return buflen;
-    }
-    else
-    {
-        // grow the file
-        size_t new_block_size = inode->file.block_size;
-        while (new_block_size < new_size)
-            new_block_size *= 2;
-
-        mos_debug(tmpfs, "growing file from %zu to %zu bytes for %zu bytes to be written at offset %ld", inode->file.block_size, new_block_size, buflen, offset);
-
-        void *new_data_block = krealloc(inode->file.data, new_block_size); // will copy the old data
-        if (!new_data_block)
-            return 0;
-
-        // update the inode
-        inode->file.data = new_data_block;
-        inode->file.block_size = new_block_size;
-        if (new_size > inode->real_inode.size)
-            inode->real_inode.size = new_size;
-
-        // copy the data into the file
-        memcpy(inode->file.data + offset, buffer, buflen);
-        return buflen;
-    }
-}
-
 static const file_ops_t tmpfs_file_ops = {
-    .open = NULL, // no special open function required
-    .read = tmpfs_f_read,
-    .write = tmpfs_f_write,
-    .flush = NULL,
-    .mmap = NULL, // TODO: use a generic mmap
+    .read = vfs_generic_read,
+    .write = vfs_generic_write,
+    .mmap = vfs_generic_mmap,
 };
 
 static filesystem_t fs_tmpfs = {
