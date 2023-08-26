@@ -24,7 +24,6 @@ void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, has
     }
     map->magic = HASHMAP_MAGIC;
     map->entries = calloc(capacity, sizeof(hashmap_entry_t *));
-    memset(map->entries, 0, sizeof(hashmap_entry_t *) * capacity);
     map->capacity = capacity;
     map->size = 0;
     map->hash_func = hash_func;

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <mos/lib/structures/hashmap_common.h>
+#include <mos/types.h>
 #include <string.h>
 
 static hash_t __pure string_hash(const char *s, const int n)
@@ -29,4 +30,9 @@ int __pure hashmap_compare_string(uintn key1, uintn key2)
 int __pure hashmap_simple_key_compare(uintn key1, uintn key2)
 {
     return key1 == key2;
+}
+
+hash_t hashmap_identity_hash(uintn key)
+{
+    return (hash_t){ .hash = key };
 }

@@ -18,4 +18,5 @@ MOSAPI int __pure hashmap_compare_string(uintn key1, uintn key2);
 
 MOSAPI int __pure hashmap_simple_key_compare(uintn key1, uintn key2);
 
+MOSAPI hash_t __pure hashmap_identity_hash(uintn key);
 /** @} */

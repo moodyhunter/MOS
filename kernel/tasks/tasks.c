@@ -21,16 +21,6 @@ slab_t *process_cache = NULL, *thread_cache = NULL;
 SLAB_AUTOINIT("process", process_cache, process_t);
 SLAB_AUTOINIT("thread", thread_cache, thread_t);
 
-static hash_t pid_hash(uintn key)
-{
-    return (hash_t){ .hash = key };
-}
-
-static hash_t tid_hash(uintn key)
-{
-    return (hash_t){ .hash = key };
-}
-
 static void dump_process(void)
 {
     if (current_thread)
@@ -51,8 +41,8 @@ static void dump_process(void)
 
 void tasks_init()
 {
-    hashmap_init(&process_table, PROCESS_HASHTABLE_SIZE, pid_hash, hashmap_simple_key_compare);
-    hashmap_init(&thread_table, THREAD_HASHTABLE_SIZE, tid_hash, hashmap_simple_key_compare);
+    hashmap_init(&process_table, PROCESS_HASHTABLE_SIZE, hashmap_identity_hash, hashmap_simple_key_compare);
+    hashmap_init(&thread_table, THREAD_HASHTABLE_SIZE, hashmap_identity_hash, hashmap_simple_key_compare);
 
     panic_hook_declare(dump_process, "Dump current process");
     panic_hook_install(&dump_process_holder);
