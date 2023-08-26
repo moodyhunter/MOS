@@ -71,6 +71,7 @@ static void slab_impl_free_page(ptr_t page, size_t n)
 
 static void slab_init_one(slab_t *slab, const char *name, size_t size)
 {
+    MOS_ASSERT_X(size < MOS_PAGE_SIZE, "current slab implementation does not support slabs larger than a page");
     mos_debug(slab, "slab: registering slab for '%s' with %zu bytes", name, size);
     linked_list_init(list_node(slab));
     list_node_append(&slabs_list, list_node(slab));
@@ -131,7 +132,7 @@ static void kmemcache_free(slab_t *slab, const void *addr);
 void *slab_alloc(size_t size)
 {
     slab_t *const slab = slab_for(size);
-    if (slab)
+    if (likely(slab))
         return kmemcache_alloc(slab);
 
     const size_t page_count = ALIGN_UP_TO_PAGE(size) / MOS_PAGE_SIZE;
