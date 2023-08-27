@@ -154,8 +154,12 @@ DEFINE_SYSCALL(pid_t, spawn)(const char *path, int argc, const char *const argv[
         new_argv[i + 1] = strdup(argv[i]);
     new_argv[real_argc] = NULL;
 
+    file_t *f = vfs_openat(FD_CWD, path, OPEN_READ | OPEN_EXECUTE);
+    if (!f)
+        return -1;
+
     const stdio_t stdio = current_stdio();
-    process_t *process = elf_create_process(path, current, (argv_t){ .argc = real_argc, .argv = new_argv }, &stdio);
+    process_t *process = elf_create_process(f, current, (argv_t){ .argc = real_argc, .argv = new_argv }, &stdio);
     if (process == NULL)
         return -1;
 

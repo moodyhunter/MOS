@@ -48,51 +48,44 @@ bool elf_verify_header(const elf_header_t *header)
     return true;
 }
 
-process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, const stdio_t *ios)
+process_t *elf_create_process(file_t *file, process_t *parent, argv_t argv, const stdio_t *ios)
 {
-    file_t *f = vfs_openat(FD_CWD, path, OPEN_READ | OPEN_EXECUTE);
-    if (!f)
-    {
-        mos_warn("failed to open '%s'", path);
-        return NULL;
-    }
+    io_ref(&file->io);
 
-    io_ref(&f->io);
-
-    const size_t file_size = f->dentry->inode->size;
+    const size_t file_size = file->dentry->inode->size;
 
     const size_t npage_required = ALIGN_UP_TO_PAGE(file_size) / MOS_PAGE_SIZE;
     phyframe_t *const buf_frame = mm_get_free_pages(npage_required);
     if (!buf_frame)
     {
-        mos_warn("failed to allocate %zu pages for '%s'", npage_required, path);
+        mos_warn("failed to allocate %zu pages for '%s'", npage_required, dentry_name(file->dentry));
         goto bail_out;
     }
 
     char *const buf = (void *) phyframe_va(buf_frame);
-    size_t size = io_read(&f->io, buf, file_size);
-    MOS_ASSERT_X(size == file_size, "failed to read entire file '%s'", path);
+    size_t size = io_read(&file->io, buf, file_size);
+    MOS_ASSERT_X(size == file_size, "failed to read entire file '%s'", dentry_name(file->dentry));
 
     const elf_header_t *elf = (elf_header_t *) buf;
 
     const bool verify_result = elf_verify_header(elf);
     if (!verify_result)
     {
-        pr_emerg("failed to verify ELF header for '%s'", path);
+        pr_emerg("failed to verify ELF header for '%s'", dentry_name(file->dentry));
         goto bail_out;
     }
 
     if (elf->object_type != ELF_OBJTYPE_EXECUTABLE && elf->object_type != ELF_OBJTYPE_SHARED_OBJECT)
     {
-        pr_emerg("'%s' is not an executable", path);
+        pr_emerg("'%s' is not an executable", dentry_name(file->dentry));
         goto bail_out;
     }
 
-    process_t *proc = process_new(parent, f->dentry->name, ios, (thread_entry_t) elf->entry_point, argv);
+    process_t *proc = process_new(parent, file->dentry->name, ios, (thread_entry_t) elf->entry_point, argv);
 
     if (!proc)
     {
-        mos_warn("failed to create process for '%s'", path);
+        mos_warn("failed to create process for '%s'", dentry_name(file->dentry));
         goto bail_out;
     }
 
@@ -233,15 +226,15 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
     // unmap the buffer from kernel pages
     pmm_unref(buf_frame, npage_required);
     thread_setup_complete(proc->main_thread);
-    io_unref(&f->io); // close the file, we should have the file's refcount == 0 here
+    io_unref(&file->io); // close the file, we should have the file's refcount == 0 here
     return proc;
 
 bail_out:
     if (buf_frame)
         pmm_unref(buf_frame, npage_required);
 
-    if (f)
-        io_unref(&f->io); // close the file, we should have the file's refcount == 0 here
+    if (file)
+        io_unref(&file->io); // close the file, we should have the file's refcount == 0 here
 
     return NULL;
 }
