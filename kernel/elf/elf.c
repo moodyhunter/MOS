@@ -25,27 +25,27 @@ static const char *elf_program_header_type_str[_ELF_PT_COUNT] = {
     [ELF_PT_NOTE] = "NOTE", [ELF_PT_SHLIB] = "SHLIB", [ELF_PT_PHDR] = "PHDR",       [ELF_PT_TLS] = "TLS",
 };
 
-elf_verify_result elf_verify_header(const elf_header_t *header)
+bool elf_verify_header(const elf_header_t *header)
 {
     if (header->identity.magic[0] != '\x7f')
-        return ELF_VERIFY_INVALID_MAGIC;
+        return false;
 
     if (strncmp(&header->identity.magic[1], "ELF", 3) != 0)
-        return ELF_VERIFY_INVALID_MAGIC_ELF;
+        return false;
 
     if (header->identity.bits != ELF_BITS_MOS_DEFAULT)
-        return ELF_VERIFY_INVALID_BITS;
+        return false;
 
     if (header->identity.endianness != ELF_ENDIANNESS_MOS_DEFAULT)
-        return ELF_VERIFY_INVALID_ENDIAN;
+        return false;
 
     if (header->identity.version != ELF_VERSION_CURRENT)
-        return ELF_VERIFY_INVALID_VERSION;
+        return false;
 
     if (header->identity.osabi != ELF_OSABI_NONE)
-        return ELF_VERIFY_INVALID_OSABI;
+        return false;
 
-    return ELF_VERIFY_OK;
+    return true;
 }
 
 process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, const stdio_t *ios)
@@ -75,10 +75,10 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
 
     const elf_header_t *elf = (elf_header_t *) buf;
 
-    const elf_verify_result verify_result = elf_verify_header(elf);
-    if (verify_result != ELF_VERIFY_OK)
+    const bool verify_result = elf_verify_header(elf);
+    if (!verify_result)
     {
-        pr_emerg("failed to verify ELF header for '%s', result: %d", path, (int) verify_result);
+        pr_emerg("failed to verify ELF header for '%s'", path);
         goto bail_out;
     }
 

@@ -223,16 +223,5 @@ typedef struct
     size_t sh_entsize;
 } __packed elf_section_hdr_t;
 
-typedef enum
-{
-    ELF_VERIFY_OK = 0,
-    ELF_VERIFY_INVALID_MAGIC,
-    ELF_VERIFY_INVALID_MAGIC_ELF,
-    ELF_VERIFY_INVALID_BITS,
-    ELF_VERIFY_INVALID_ENDIAN,
-    ELF_VERIFY_INVALID_VERSION,
-    ELF_VERIFY_INVALID_OSABI,
-} elf_verify_result;
-
-elf_verify_result elf_verify_header(const elf_header_t *header);
+bool elf_verify_header(const elf_header_t *header);
 process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, const stdio_t *ios);
