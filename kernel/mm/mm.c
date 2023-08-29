@@ -120,6 +120,17 @@ void mm_unlock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2)
     }
 }
 
+mm_context_t *mm_switch_context(mm_context_t *new_ctx)
+{
+    mm_context_t *old_ctx = current_cpu->mm_context;
+    if (old_ctx == new_ctx)
+        return old_ctx;
+
+    platform_switch_mm(new_ctx);
+    current_cpu->mm_context = new_ctx;
+    return old_ctx;
+}
+
 static void do_attach_vmap(mm_context_t *mmctx, vmap_t *vmap)
 {
     MOS_ASSERT(spinlock_is_locked(&mmctx->mm_lock));

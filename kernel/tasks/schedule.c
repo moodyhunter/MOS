@@ -88,10 +88,9 @@ static bool schedule_to_thread(uintn key, void *value, void *data)
 
     const bool should_switch_mm = cpu->mm_context != thread->owner->mm;
     if (should_switch_mm)
-        platform_switch_mm(thread->owner->mm);
+        mm_switch_context(thread->owner->mm);
 
     cpu->thread = thread;
-    cpu->mm_context = thread->owner->mm;
 
     platform_switch_to_thread(&cpu->scheduler_stack, thread, switch_flags);
     return true;

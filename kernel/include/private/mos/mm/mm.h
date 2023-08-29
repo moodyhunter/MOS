@@ -89,6 +89,8 @@ void mm_destroy_context(mm_context_t *table);
 void mm_lock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2);
 void mm_unlock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2);
 
+mm_context_t *mm_switch_context(mm_context_t *new_ctx);
+
 /**
  * @brief Create a vmap object and insert it into the address space.
  *
