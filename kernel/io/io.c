@@ -124,7 +124,7 @@ io_t *io_unref(io_t *io)
 
 bool io_valid(io_t *io)
 {
-    return io && !io->closed && io->refcount > 0 && io->ops && io->ops->close;
+    return io && !io->closed && io->refcount > 0 && io->ops;
 }
 
 size_t io_read(io_t *io, void *buf, size_t count)
