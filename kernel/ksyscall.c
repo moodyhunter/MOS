@@ -168,11 +168,11 @@ DEFINE_SYSCALL(pid_t, spawn)(const char *path, int argc, const char *const argv[
 
 DEFINE_SYSCALL(tid_t, create_thread)(const char *name, thread_entry_t entry, void *arg)
 {
-    thread_t *thread = thread_new(current_process, THREAD_MODE_USER, name, entry, arg);
+    thread_t *thread = thread_new(current_process, THREAD_MODE_USER, name);
     if (thread == NULL)
         return -1;
 
-    thread_setup_complete(thread);
+    thread_setup_complete(thread, entry, arg);
     return thread->tid;
 }
 

@@ -81,7 +81,7 @@ process_t *elf_create_process(file_t *file, process_t *parent, argv_t argv, cons
         goto bail_out;
     }
 
-    process_t *proc = process_new(parent, file->dentry->name, ios, (thread_entry_t) elf->entry_point, argv);
+    process_t *proc = process_new(parent, file->dentry->name, ios, argv);
 
     if (!proc)
     {
@@ -225,7 +225,7 @@ process_t *elf_create_process(file_t *file, process_t *parent, argv_t argv, cons
 
     // unmap the buffer from kernel pages
     pmm_unref(buf_frame, npage_required);
-    thread_setup_complete(proc->main_thread);
+    thread_setup_complete(proc->main_thread, (thread_entry_t) elf->entry_point, NULL);
     io_unref(&file->io); // close the file, we should have the file's refcount == 0 here
     return proc;
 

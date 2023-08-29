@@ -27,7 +27,7 @@ should_inline stdio_t current_stdio(void)
 }
 
 process_t *process_allocate(process_t *parent, const char *name);
-process_t *process_new(process_t *parent, const char *name, const stdio_t *ios, thread_entry_t entry, argv_t argv);
+process_t *process_new(process_t *parent, const char *name, const stdio_t *ios, argv_t argv);
 process_t *process_get(pid_t pid);
 
 fd_t process_attach_ref_fd(process_t *process, io_t *file);

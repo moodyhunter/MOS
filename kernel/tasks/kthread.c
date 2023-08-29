@@ -37,7 +37,7 @@ thread_t *kthread_create(thread_entry_t entry, void *arg, const char *name)
     kthread_arg_t *kthread_arg = kmalloc(sizeof(kthread_arg_t));
     kthread_arg->entry = entry;
     kthread_arg->arg = arg;
-    thread_t *thread = thread_new(kthreadd, THREAD_MODE_KERNEL, name, kthread_entry, kthread_arg);
-    thread_setup_complete(thread);
+    thread_t *thread = thread_new(kthreadd, THREAD_MODE_KERNEL, name);
+    thread_setup_complete(thread, kthread_entry, kthread_arg);
     return thread;
 }

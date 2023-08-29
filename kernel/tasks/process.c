@@ -95,7 +95,7 @@ process_t *process_allocate(process_t *parent, const char *name)
     return proc;
 }
 
-process_t *process_new(process_t *parent, const char *name, const stdio_t *ios, thread_entry_t entry, argv_t argv)
+process_t *process_new(process_t *parent, const char *name, const stdio_t *ios, argv_t argv)
 {
     process_t *proc = process_allocate(parent, name);
     if (unlikely(!proc))
@@ -107,7 +107,7 @@ process_t *process_new(process_t *parent, const char *name, const stdio_t *ios, 
     process_attach_ref_fd(proc, ios && ios->out ? ios->out : io_null);
     process_attach_ref_fd(proc, ios && ios->err ? ios->err : io_null);
 
-    proc->main_thread = thread_new(proc, THREAD_MODE_USER, proc->name, entry, NULL);
+    proc->main_thread = thread_new(proc, THREAD_MODE_USER, proc->name);
 
     vmap_t *heap = mm_alloc_pages(proc->mm, 1, MOS_ADDR_USER_HEAP, VALLOC_DEFAULT, VM_USER_RW);
     vmap_finalise_init(heap, VMAP_HEAP, VMAP_FORK_PRIVATE);

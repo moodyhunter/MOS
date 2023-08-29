@@ -11,12 +11,11 @@
 #include <mos/tasks/wait.h>
 
 static const char thread_state_str[] = {
-    [THREAD_STATE_CREATING] = 'c', //
-    [THREAD_STATE_CREATED] = 'C',  //
-    [THREAD_STATE_READY] = 'R',    //
-    [THREAD_STATE_RUNNING] = 'r',  //
-    [THREAD_STATE_BLOCKED] = 'B',  //
-    [THREAD_STATE_DEAD] = 'D',     //
+    [THREAD_STATE_CREATED] = 'C', //
+    [THREAD_STATE_READY] = 'R',   //
+    [THREAD_STATE_RUNNING] = 'r', //
+    [THREAD_STATE_BLOCKED] = 'B', //
+    [THREAD_STATE_DEAD] = 'D',    //
 };
 
 static bool scheduler_ready = false;
@@ -44,7 +43,6 @@ static bool should_schedule_to_thread(thread_t *thread)
             return true;
         }
         case THREAD_STATE_DEAD:
-        case THREAD_STATE_CREATING:
         case THREAD_STATE_RUNNING:
         {
             return false;

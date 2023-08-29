@@ -31,7 +31,7 @@ thread_t *thread_allocate(process_t *owner, thread_mode tflags)
     t->magic = THREAD_MAGIC_THRD;
     t->tid = new_thread_id();
     t->owner = owner;
-    t->state = THREAD_STATE_CREATING;
+    t->state = THREAD_STATE_CREATED;
     t->mode = tflags;
     t->waiting = NULL;
     waitlist_init(&t->waiters);
@@ -42,7 +42,7 @@ thread_t *thread_allocate(process_t *owner, thread_mode tflags)
     return t;
 }
 
-thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thread_entry_t entry, void *arg)
+thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name)
 {
     thread_t *t = thread_allocate(owner, tmode);
 
@@ -67,21 +67,17 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, thre
         stack_init(&t->u_stack, NULL, 0);
     }
 
-    platform_context_setup(t, entry, arg);
-    hashmap_put(&thread_table, t->tid, t);
-
     return t;
 }
 
-thread_t *thread_setup_complete(thread_t *thread)
+thread_t *thread_setup_complete(thread_t *thread, thread_entry_t entry, void *arg)
 {
     if (!thread_is_valid(thread))
         return NULL;
 
-    MOS_ASSERT(thread->state == THREAD_STATE_CREATING);
-    spinlock_acquire(&thread->state_lock);
-    thread->state = THREAD_STATE_CREATED;
-    spinlock_release(&thread->state_lock);
+    if (entry)
+        platform_context_setup(thread, entry, arg);
+    hashmap_put(&thread_table, thread->tid, thread);
     return thread;
 }
 

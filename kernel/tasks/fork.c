@@ -78,6 +78,6 @@ process_t *process_handle_fork(process_t *parent)
 
     hashmap_put(&thread_table, child_t->tid, child_t);
     hashmap_put(&process_table, child_p->pid, child_p);
-    thread_setup_complete(child_t);
+    thread_setup_complete(child_t, NULL, NULL);
     return child_p;
 }
