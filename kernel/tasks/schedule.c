@@ -86,6 +86,10 @@ static bool schedule_to_thread(uintn key, void *value, void *data)
               switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? 'K' : '-'          //
     );
 
+    const bool should_switch_mm = cpu->mm_context != thread->owner->mm;
+    if (should_switch_mm)
+        platform_switch_mm(thread->owner->mm);
+
     cpu->thread = thread;
     cpu->mm_context = thread->owner->mm;
 

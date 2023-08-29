@@ -99,9 +99,9 @@ void platform_setup_forked_context(const void *from, void **to)
     x86_setup_forked_context(from, to);
 }
 
-void platform_mm_switch_pgd(pgd_t pgd)
+void platform_switch_mm(mm_context_t *mm)
 {
-    x86_cpu_set_cr3(pgd_pfn(pgd) * MOS_PAGE_SIZE);
+    x86_cpu_set_cr3(pgd_pfn(mm->pgd) * MOS_PAGE_SIZE);
 }
 
 void platform_switch_to_scheduler(ptr_t *old_stack, ptr_t new_stack)

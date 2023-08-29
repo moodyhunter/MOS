@@ -229,7 +229,7 @@ void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg);
 void platform_setup_forked_context(const void *from, void **to);
 
 // Platform Context Switching APIs
-void platform_switch_pgd(pgd_t pgd);
+void platform_switch_mm(mm_context_t *new_mm);
 void platform_switch_to_thread(ptr_t *old_stack, const thread_t *new_thread, switch_flags_t switch_flags);
 void platform_switch_to_scheduler(ptr_t *old_stack, ptr_t new_stack);
 

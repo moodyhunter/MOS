@@ -2,7 +2,7 @@
 
 %define REGSIZE 8
 
-; void x86_context_switch_impl(ptr_t x86_context, ptr_t *old_stack, ptr_t kernel_stack, ptr_t pgd, ptr_t jump_addr)
+; void x86_context_switch_impl(ptr_t x86_context, ptr_t *old_stack, ptr_t kernel_stack, ptr_t jump_addr)
 ; RDI, RSI, RDX, RCX, R8, R9
 global x86_context_switch_impl:function (x86_context_switch_impl.end - x86_context_switch_impl)
 x86_context_switch_impl:
@@ -24,29 +24,21 @@ x86_context_switch_impl:
     ; rdi = x86_context
     ; rsi = *old_stack
     ; rdx = kernel_stack
-    ; rcx = pgd
-    ; r8 = jump_addr
+    ; rcx = jump_addr
     ; set rsp to kernel_stack
     mov     [rsi], rsp      ; backup old stack pointer
     mov     rsp, rdx        ; switch to kernel stack
 
-    ; set up page directory if needed
-    cmp     rcx, 0          ; if pgd == 0
-    je      .skip_pgd_setup ;     don't update cr3
-    mov     cr3, rcx        ; load page directory
-
-.skip_pgd_setup:
     xor     rax, rax        ; clear rax, rbx, rsi, rdi, rbp
     xor     rbx, rbx
-    xor     rcx, rcx
     xor     rdx, rdx
     xor     rsi, rsi
     xor     rbp, rbp
-    ; r8 contains jump_addr
+    ; rcx contains jump_addr
     ; rdi contains arguments for the new thread, don't clear it
     ; rdi = struct { x86_stack_frame, arg };
     ; jump to jump_addr
-    jmp     r8
+    jmp     rcx
 .end:
 
 global x86_normal_switch:function (x86_normal_switch.end - x86_normal_switch)
