@@ -57,7 +57,7 @@ ptr_t mmap_anonymous(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_
     vmap_t *vmap = cow_allocate_zeroed_pages(ctx, n_pages, hint_addr, valloc_flags, vm_flags);
     mos_debug(mmap, "allocated %zd pages at " PTR_FMT, vmap->npages, vmap->vaddr);
 
-    const vmap_fork_behavior_t type = (flags & MMAP_SHARED) ? VMAP_FORK_SHARED : VMAP_FORK_PRIVATE;
+    const vmap_type_t type = (flags & MMAP_SHARED) ? VMAP_TYPE_SHARED : VMAP_TYPE_PRIVATE;
     vmap_finalise_init(vmap, VMAP_MMAP, type);
     return vmap->vaddr;
 }
@@ -74,7 +74,7 @@ ptr_t mmap_file(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags
     }
 
     const valloc_flags valloc_flags = (flags & MMAP_EXACT) ? VALLOC_EXACT : VALLOC_DEFAULT;
-    const vmap_fork_behavior_t type = (flags & MMAP_SHARED) ? VMAP_FORK_SHARED : VMAP_FORK_PRIVATE;
+    const vmap_type_t type = (flags & MMAP_SHARED) ? VMAP_TYPE_SHARED : VMAP_TYPE_PRIVATE;
 
     mm_lock_ctx_pair(ctx, NULL);
     vmap_t *vmap = mm_get_free_vaddr_locked(ctx, n_pages, hint_addr, valloc_flags);
@@ -87,7 +87,7 @@ ptr_t mmap_file(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags
     }
 
     vmap->vmflags = vm_flags;
-    vmap->fork_behavior = type;
+    vmap->type = type;
 
     if (!io_mmap(io, vmap, offset))
     {

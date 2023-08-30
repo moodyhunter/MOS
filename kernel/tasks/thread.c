@@ -59,7 +59,7 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name)
         // User stack
         vmap_t *stack_vmap = cow_allocate_zeroed_pages(owner->mm, MOS_STACK_PAGES_USER, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, VM_USER_RW);
         stack_init(&t->u_stack, (void *) stack_vmap->vaddr, MOS_STACK_PAGES_USER * MOS_PAGE_SIZE);
-        vmap_finalise_init(stack_vmap, VMAP_STACK, VMAP_FORK_PRIVATE);
+        vmap_finalise_init(stack_vmap, VMAP_STACK, VMAP_TYPE_PRIVATE);
     }
     else
     {

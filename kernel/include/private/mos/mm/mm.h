@@ -23,15 +23,27 @@ typedef enum
 
 typedef enum
 {
-    VMAP_FORK_INVALID = 0,            // invalid fork mode, this never happens
-    VMAP_FORK_PRIVATE = MMAP_PRIVATE, // there will be distinct copies of the memory region in the child process
-    VMAP_FORK_SHARED = MMAP_SHARED,   // the memory region will be shared between the parent and child processes
-} vmap_fork_behavior_t;
+    VMAP_TYPE_PRIVATE = MMAP_PRIVATE, // there will be distinct copies of the memory region in the child process
+    VMAP_TYPE_SHARED = MMAP_SHARED,   // the memory region will be shared between the parent and child processes
+} vmap_type_t;
 
 typedef struct
 {
-    bool page_present, op_write, userfault, exec;
-} pagefault_info_t;
+    bool is_present, is_write, is_user, is_exec;
+    phyframe_t *faulting_frame; ///< the frame that contains the copy-on-write data (if any)
+    phyframe_t *backing_page;   ///< the frame that contains the data for this page, the on_fault handler should set this
+} pagefault_t;
+
+typedef enum
+{
+    VMFAULT_OK,                   ///< no further action is needed, the page is correctly mapped now
+    VMFAULT_GOT_BACKING_PAGE,     ///< the handler has allocated a new frame for the page
+    VMFAULT_CANNOT_HANDLE = 0xff, ///< the handler cannot handle this fault
+} vmfault_result_t;
+
+typedef struct _vmap vmap_t;
+
+typedef vmfault_result_t (*vmfault_handler_t)(vmap_t *vmap, ptr_t fault_addr, pagefault_t *info);
 
 typedef struct _vmap
 {
@@ -47,10 +59,9 @@ typedef struct _vmap
     off_t io_offset; // the offset in the io object, page-aligned
 
     vmap_content_t content;
-    vmap_fork_behavior_t fork_behavior;
+    vmap_type_t type;
     vmap_mstat_t stat;
-
-    bool (*on_fault)(struct _vmap *this_vmap, ptr_t fault_addr, const pagefault_info_t *fault_info);
+    vmfault_handler_t on_fault;
 } vmap_t;
 
 #define pfn_va(pfn)        ((ptr_t) (platform_info->direct_map_base + (pfn) *MOS_PAGE_SIZE))
@@ -124,10 +135,10 @@ vmap_t *vmap_obtain(mm_context_t *mmctx, ptr_t vaddr, size_t *out_offset);
  *
  * @param vmap The vmap object
  * @param content The content type of the region, \see vmap_content_t
- * @param fork_behavior The fork behavior of the region, \see vmap_fork_behavior_t
+ * @param type The fork behavior of the region, \see vmap_type_t
  * @note The vmap object must be locked, and will be unlocked after this function returns.
  */
-void vmap_finalise_init(vmap_t *vmap, vmap_content_t content, vmap_fork_behavior_t fork_behavior);
+void vmap_finalise_init(vmap_t *vmap, vmap_content_t content, vmap_type_t type);
 
 /**
  * @brief Handle a page fault
@@ -136,4 +147,4 @@ void vmap_finalise_init(vmap_t *vmap, vmap_content_t content, vmap_fork_behavior
  * @param info The page fault info
  * @return true If the fault is handled
  */
-bool mm_handle_fault(ptr_t fault_addr, const pagefault_info_t *info);
+bool mm_handle_fault(ptr_t fault_addr, pagefault_t *info);

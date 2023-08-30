@@ -4,6 +4,7 @@
 
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
+#include "mos/io/io.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/slab_autoinit.h"
 #include "mos/tasks/signal.h"
@@ -23,6 +24,7 @@
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
 #include <mos/tasks/wait.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -32,9 +34,9 @@ static const char *vmap_content_str[] = {
     [VMAP_UNKNOWN] = "unknown", [VMAP_CODE] = "code", [VMAP_DATA] = "data", [VMAP_HEAP] = "heap", [VMAP_STACK] = "stack", [VMAP_FILE] = "file", [VMAP_MMAP] = "mmap",
 };
 
-const char *vmap_fork_behavior_str[] = {
-    [VMAP_FORK_SHARED] = "shared",
-    [VMAP_FORK_PRIVATE] = "private",
+const char *vmap_type_str[] = {
+    [VMAP_TYPE_SHARED] = "shared",
+    [VMAP_TYPE_PRIVATE] = "private",
 };
 
 static pid_t new_process_id(void)
@@ -110,7 +112,7 @@ process_t *process_new(process_t *parent, const char *name, const stdio_t *ios, 
     proc->main_thread = thread_new(proc, THREAD_MODE_USER, proc->name);
 
     vmap_t *heap = mm_alloc_pages(proc->mm, 1, MOS_ADDR_USER_HEAP, VALLOC_DEFAULT, VM_USER_RW);
-    vmap_finalise_init(heap, VMAP_HEAP, VMAP_FORK_PRIVATE);
+    vmap_finalise_init(heap, VMAP_HEAP, VMAP_TYPE_PRIVATE);
 
     proc->working_directory = dentry_ref_up_to(parent ? parent->working_directory : root_dentry, root_dentry);
 
@@ -283,7 +285,7 @@ void process_dump_mmaps(const process_t *process)
     {
         i++;
         const char *typestr = vmap_content_str[map->content];
-        const char *forkmode = vmap_fork_behavior_str[map->fork_behavior];
+        const char *forkmode = vmap_type_str[map->type];
         pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%pvf%c%c, %s]: %s",
                 i,                                    //
                 map->vaddr,                           //
@@ -336,24 +338,26 @@ static bool process_sysfs_vmap_stat(sysfs_file_t *f)
     list_foreach(vmap_t, vmap, current_mm->mmaps)
     {
 #define stat_line(fmt) "   %8s: " fmt "\n"
-        sysfs_printf(f,
-                     PTR_RANGE " [%pvf] %s %s%s\n"                //
-                     stat_line("%s")                              //
-                     stat_line("%zu pages")                       //
-                     stat_line("%zu pages")                       //
-                     stat_line("%zu pages"),                      //
-                     vmap->vaddr,                                 //
-                     vmap->vaddr + vmap->npages * MOS_PAGE_SIZE,  //
+        sysfs_printf(f, PTR_RANGE "\n", vmap->vaddr, vmap->vaddr + vmap->npages * MOS_PAGE_SIZE);
+        sysfs_printf(f, stat_line("[%pvf,%s%s]"), "Perms",        //
                      (void *) &vmap->vmflags,                     //
-                     vmap_fork_behavior_str[vmap->fork_behavior], //
                      vmap->vmflags & VM_USER ? "user" : "kernel", //
-                     vmap->vmflags & VM_GLOBAL ? " global" : "",  //
-                     "Content", vmap_content_str[vmap->content],  //
-                     "Total", vmap->npages,                       //
-                     "InMem", vmap->stat.n_inmem,                 //
-                     "CoW", vmap->stat.n_cow                      //
+                     vmap->vmflags & VM_GLOBAL ? " global" : ""   //
         );
+        sysfs_printf(f, stat_line("%s"), "Type", vmap_type_str[vmap->type]);
+        sysfs_printf(f, stat_line("%s"), "Content", vmap_content_str[vmap->content]);
+        if (vmap->content == VMAP_FILE)
+        {
+            char filepath[MOS_PATH_MAX_LENGTH];
+            io_get_name(vmap->io, filepath, sizeof(filepath));
+            sysfs_printf(f, stat_line("%s"), "  File", filepath);
+            sysfs_printf(f, stat_line("%zu bytes"), "  Offset", vmap->io_offset);
+        }
+        sysfs_printf(f, stat_line("%zu pages"), "Total", vmap->npages);
+        sysfs_printf(f, stat_line("%zu pages"), "InMem", vmap->stat.n_inmem);
+        sysfs_printf(f, stat_line("%zu pages"), "CoW", vmap->stat.n_cow);
 #undef stat_line
+        sysfs_printf(f, "\n");
     }
     return true;
 }

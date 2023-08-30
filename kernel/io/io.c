@@ -7,6 +7,7 @@
 #include <mos/mm/mm_types.h>
 #include <mos/mos_global.h>
 #include <mos/printk.h>
+#include <stdio.h>
 
 static size_t _null_read(io_t *io, void *buffer, size_t size)
 {
@@ -238,7 +239,7 @@ bool io_mmap(io_t *io, vmap_t *vmap, off_t offset)
 
     if (vmap->vmflags & VM_WRITE)
     {
-        const bool may_mmap_writeable = vmap->fork_behavior & VMAP_FORK_PRIVATE || io->flags & IO_WRITABLE;
+        const bool may_mmap_writeable = vmap->type & VMAP_TYPE_PRIVATE || io->flags & IO_WRITABLE;
         if (!may_mmap_writeable)
             return false; // can't mmap writable if io is not writable and not private
     }
@@ -257,4 +258,12 @@ bool io_mmap(io_t *io, vmap_t *vmap, off_t offset)
 
     io_ref(io); // mmap increases refcount
     return true;
+}
+
+void io_get_name(io_t *io, char *buf, size_t size)
+{
+    if (io->ops->get_name)
+        io->ops->get_name(io, buf, size);
+    else
+        snprintf(buf, size, "<unnamed io %p>", (void *) io);
 }

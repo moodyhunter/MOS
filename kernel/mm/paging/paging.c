@@ -183,7 +183,7 @@ vmap_t *mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx)
     dst_vmap->stat = src_vmap->stat;
     dst_vmap->content = src_vmap->content;
     dst_vmap->vmflags = src_vmap->vmflags;
-    dst_vmap->fork_behavior = src_vmap->fork_behavior;
+    dst_vmap->type = src_vmap->type;
 
     return dst_vmap;
 }

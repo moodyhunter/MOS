@@ -36,6 +36,7 @@ typedef struct
     void (*close)(io_t *io);
     off_t (*seek)(io_t *io, off_t offset, io_seek_whence_t whence);
     bool (*mmap)(io_t *io, vmap_t *vmap, off_t offset);
+    void (*get_name)(io_t *io, char *buf, size_t size);
 } io_op_t;
 
 typedef struct _io
@@ -61,3 +62,4 @@ size_t io_write(io_t *io, const void *buf, size_t count);
 off_t io_seek(io_t *io, off_t offset, io_seek_whence_t whence);
 off_t io_tell(io_t *io);
 bool io_mmap(io_t *io, vmap_t *vmap, off_t offset);
+void io_get_name(io_t *io, char *buf, size_t size);

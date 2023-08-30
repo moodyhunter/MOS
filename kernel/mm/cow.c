@@ -21,35 +21,23 @@
 static phyframe_t *zero_page = NULL;
 static pfn_t zero_page_pfn = 0;
 
-static bool cow_fault_handler(vmap_t *vmap, ptr_t fault_addr, const pagefault_info_t *info)
+static vmfault_result_t cow_fault_handler(vmap_t *vmap, ptr_t fault_addr, pagefault_t *info)
 {
-    if (!info->op_write)
-        return false;
+    if (!info->is_write)
+        return VMFAULT_CANNOT_HANDLE;
 
-    if (!info->page_present)
-        return false;
+    if (!info->is_present)
+        return VMFAULT_CANNOT_HANDLE;
 
     // if the block is CoW, it must be writable
     if (!(vmap->vmflags & VM_WRITE))
-        return false;
+        return VMFAULT_CANNOT_HANDLE;
 
-    fault_addr = ALIGN_DOWN_TO_PAGE(fault_addr);
+    MOS_UNUSED(fault_addr);
+    info->backing_page = info->faulting_frame;
 
-    // 1. create a new page
-    phyframe_t *frame = mm_get_free_page_raw(); // no need to zero it
-
-    // 2. copy the data from the faulting address to the new page
-    memcpy((void *) phyframe_va(frame), (void *) fault_addr, MOS_PAGE_SIZE);
-
-    // 3. replace the faulting phypage with the new one
-    //    this will increment the refcount of the new page, ...
-    //    ...and also decrement the refcount of the old page
-    mm_replace_page_locked(current_mm, fault_addr, phyframe_pfn(frame), vmap->vmflags);
-
-    // 4. invalidate the TLB
-    ipi_send_all(IPI_TYPE_INVALIDATE_TLB);
     vmap_mstat_dec(vmap, cow, 1);
-    return true;
+    return VMFAULT_GOT_BACKING_PAGE;
 }
 
 void cow_init(void)

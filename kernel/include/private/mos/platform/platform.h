@@ -50,8 +50,12 @@ typedef enum
 
     // composite flags (for convenience)
     VM_RW = VM_READ | VM_WRITE,
+    VM_RX = VM_READ | VM_EXEC,
+    VM_RWX = VM_READ | VM_WRITE | VM_EXEC,
     VM_USER_RW = VM_USER | VM_RW,
+    VM_USER_RX = VM_USER | VM_RX,
     VM_USER_RO = VM_USER | VM_READ,
+    VM_USER_RWX = VM_USER | VM_RWX,
 } vm_flags;
 
 typedef enum

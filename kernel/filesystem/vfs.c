@@ -151,26 +151,12 @@ static off_t vfs_io_ops_seek(io_t *io, off_t offset, io_seek_whence_t whence)
     return ret;
 }
 
-static bool vfs_mmap_fault_handler(vmap_t *vmap, ptr_t fault_addr, const pagefault_info_t *info)
+static vmfault_result_t vfs_mmap_fault_handler(vmap_t *vmap, ptr_t fault_addr, pagefault_t *info)
 {
-    MOS_UNUSED(info);
     file_t *file = container_of(vmap->io, file_t, io);
-
     const size_t fault_pgoffset = (vmap->io_offset + ALIGN_DOWN_TO_PAGE(fault_addr) - vmap->vaddr) / MOS_PAGE_SIZE;
-    phyframe_t *page = pagecache_get_page_for_read(&file->dentry->inode->cache, fault_pgoffset);
-
-    if (vmap->fork_behavior == VMAP_FORK_PRIVATE && info->op_write)
-    {
-        phyframe_t *writable_page = mm_get_free_page();
-        memcpy((void *) phyframe_va(writable_page), (void *) phyframe_va(page), MOS_PAGE_SIZE);
-        mm_do_map(vmap->mmctx->pgd, fault_addr, phyframe_pfn(writable_page), 1, vmap->vmflags, true);
-    }
-    else
-    {
-        mm_do_map(vmap->mmctx->pgd, fault_addr, phyframe_pfn(page), 1, vmap->vmflags, true);
-    }
-
-    return true;
+    info->backing_page = pagecache_get_page_for_read(&file->dentry->inode->cache, fault_pgoffset);
+    return VMFAULT_GOT_BACKING_PAGE;
 }
 
 static bool vfs_io_ops_mmap(io_t *io, vmap_t *vmap, off_t offset)
@@ -187,12 +173,19 @@ static bool vfs_io_ops_mmap(io_t *io, vmap_t *vmap, off_t offset)
     return true;
 }
 
+void vfs_op_ops_getname(io_t *io, char *buf, size_t size)
+{
+    file_t *file = container_of(io, file_t, io);
+    dentry_path(file->dentry, root_dentry, buf, size);
+}
+
 static const io_op_t fs_io_ops = {
     .read = vfs_io_ops_read,
     .write = vfs_io_ops_write,
     .close = vfs_io_ops_close,
     .seek = vfs_io_ops_seek,
     .mmap = vfs_io_ops_mmap,
+    .get_name = vfs_op_ops_getname,
 };
 // END: filesystem's io_t operations
 

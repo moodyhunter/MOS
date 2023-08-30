@@ -14,7 +14,7 @@
 #include <mos/tasks/thread.h>
 #include <string.h>
 
-extern const char *vmap_fork_behavior_str[];
+extern const char *vmap_type_str[];
 
 process_t *process_handle_fork(process_t *parent)
 {
@@ -38,20 +38,20 @@ process_t *process_handle_fork(process_t *parent)
         pr_info2("fork %d->%d: %10s " PTR_FMT "+%-3zu flags [0x%x]", //
                  parent->pid,                                        //
                  child_p->pid,                                       //
-                 vmap_fork_behavior_str[vmap_p->fork_behavior],      //
+                 vmap_type_str[vmap_p->type],                        //
                  vmap_p->vaddr,                                      //
                  vmap_p->npages,                                     //
                  vmap_p->vmflags                                     //
         );
 #endif
         vmap_t *child_vmap = NULL;
-        switch (vmap_p->fork_behavior)
+        switch (vmap_p->type)
         {
-            case VMAP_FORK_SHARED: child_vmap = mm_clone_vmap_locked(vmap_p, child_p->mm); break;
-            case VMAP_FORK_PRIVATE: child_vmap = cow_clone_vmap_locked(child_p->mm, vmap_p); break;
+            case VMAP_TYPE_SHARED: child_vmap = mm_clone_vmap_locked(vmap_p, child_p->mm); break;
+            case VMAP_TYPE_PRIVATE: child_vmap = cow_clone_vmap_locked(child_p->mm, vmap_p); break;
             default: mos_panic("unknown vmap"); break;
         }
-        vmap_finalise_init(child_vmap, vmap_p->content, vmap_p->fork_behavior);
+        vmap_finalise_init(child_vmap, vmap_p->content, vmap_p->type);
     }
 
     mm_unlock_ctx_pair(parent->mm, child_p->mm);
