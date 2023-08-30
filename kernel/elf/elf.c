@@ -41,6 +41,9 @@ static bool elf_verify_header(const elf_header_t *header)
     if (header->identity.osabi != ELF_OSABI_NONE)
         return false;
 
+    if (header->machine_type != ELF_MACHINE_MOS_DEFAULT)
+        return false;
+
     return true;
 }
 
@@ -50,39 +53,39 @@ static void elf_read_file(file_t *file, void *buf, off_t offset, size_t size)
     MOS_ASSERT(read);
 }
 
+bool elf_read_and_verify_executable(file_t *file, elf_header_t *header)
+{
+    elf_read_file(file, header, 0, sizeof(elf_header_t));
+    const bool valid = elf_verify_header(header);
+    if (!valid)
+        return false;
+
+    if (header->object_type != ELF_OBJTYPE_EXECUTABLE && header->object_type != ELF_OBJTYPE_SHARED_OBJECT)
+        return false;
+
+    return true;
+}
+
 process_t *elf_create_process(file_t *file, process_t *parent, argv_t argv, const stdio_t *ios)
 {
-    io_ref(&file->io);
-
     elf_header_t elf;
-    elf_read_file(file, &elf, 0, sizeof(elf_header_t));
-
-    const bool verify_result = elf_verify_header(&elf);
-    if (!verify_result)
+    if (!elf_read_and_verify_executable(file, &elf))
     {
         pr_emerg("failed to verify ELF header for '%s'", dentry_name(file->dentry));
-        goto bail_out;
-    }
-
-    if (elf.object_type != ELF_OBJTYPE_EXECUTABLE && elf.object_type != ELF_OBJTYPE_SHARED_OBJECT)
-    {
-        pr_emerg("'%s' is not an executable", dentry_name(file->dentry));
-        goto bail_out;
+        return NULL;
     }
 
     process_t *proc = process_new(parent, file->dentry->name, ios, argv);
-
     if (!proc)
     {
         mos_warn("failed to create process for '%s'", dentry_name(file->dentry));
-        goto bail_out;
+        return NULL;
     }
 
     mm_context_t *const prev_mm = mm_switch_context(proc->mm);
 
     for (int i = 0; i < elf.ph.count; i++)
     {
-        // const elf_program_hdr_t *ph = (elf_program_hdr_t *) (buf + elf.ph_offset + i * elf.ph.entry_size);
         elf_program_hdr_t ph;
         elf_read_file(file, &ph, elf.ph_offset + i * elf.ph.entry_size, elf.ph.entry_size);
 
@@ -151,13 +154,6 @@ process_t *elf_create_process(file_t *file, process_t *parent, argv_t argv, cons
     }
 
     thread_setup_complete(proc->main_thread, (thread_entry_t) elf.entry_point, NULL);
-    io_unref(&file->io); // close the file, we should have the file's refcount == 0 here
     mm_switch_context(prev_mm);
     return proc;
-
-bail_out:
-    if (file)
-        io_unref(&file->io); // close the file, we should have the file's refcount == 0 here
-
-    return NULL;
 }

@@ -160,6 +160,8 @@ DEFINE_SYSCALL(pid_t, spawn)(const char *path, int argc, const char *const argv[
 
     const stdio_t stdio = current_stdio();
     process_t *process = elf_create_process(f, current, (argv_t){ .argc = real_argc, .argv = new_argv }, &stdio);
+    io_unref(&f->io); // we don't need the file anymore
+
     if (process == NULL)
         return -1;
 

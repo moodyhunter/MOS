@@ -34,64 +34,6 @@ static void x86_start_kernel_thread(x86_thread_context_t *ctx)
 // called from assembly
 static void x86_start_user_thread(x86_thread_context_t *context)
 {
-    thread_t *current = current_thread;
-    const bool is_forked = context->is_forked;
-    const bool is_main_thread = current == current->owner->main_thread;
-
-    if (is_forked)
-    {
-        mos_debug(scheduler, "cpu %d: setting up forked thread %pt of process %pp", current_cpu->id, (void *) current, (void *) current->owner);
-    }
-    else if (is_main_thread)
-    {
-        // for the main thread, we have to push all argv structures onto the stack
-        // for any other threads, only a pointer specified by the user is passed by register RDI
-        // set up the main thread of a 'new' process (not forked)
-        mos_debug(scheduler, "cpu %d: setting up main thread %pt of process %pp", current_cpu->id, (void *) current, (void *) current->owner);
-
-        // the main thread of a process has no arg, because it uses argv
-        MOS_ASSERT_X(context->arg == NULL, "arg should be NULL for the 'main' thread of process %pp", (void *) current->owner);
-
-        const char *const *const src_argv = current->owner->argv.argv;
-        const size_t argc = current->owner->argv.argc;
-
-        char *real_argv[argc + 1];
-        for (size_t i = 0; i < argc; i++)
-        {
-            if (src_argv[i] == NULL)
-            {
-                pr_warn("argv[%zu] is NULL, replacing with NULL", i);
-                real_argv[i] = NULL;
-            }
-            else
-            {
-                real_argv[i] = stack_grow(&current->u_stack, strlen(src_argv[i]) + 1);
-                strcpy(real_argv[i], src_argv[i]);
-            }
-        }
-        real_argv[argc] = NULL;
-
-        // stack layout:
-        // | argv1 | argv2 | ... | argvN | NULL | arg0 | arg1 | ... | argN | NULL |
-        stack_push(&current->u_stack, &real_argv, sizeof(char *) * (argc + 1)); // the argv vector
-
-        const ptr_t argv_ptr = current->u_stack.head; // stack_push changes head, so we need to save it
-
-        context->regs.di = argc;
-        context->regs.si = argv_ptr;
-        context->regs.dx = 0; // TODO: envp
-        const ptr_t zero = 0;
-        stack_push(&current->u_stack, &zero, sizeof(ptr_t)); // return address
-        context->regs.sp = current->u_stack.head;            // update the stack pointer
-    }
-    else
-    {
-        context->regs.di = (ptr_t) context->arg;
-        const ptr_t zero = 0;
-        stack_push(&current->u_stack, &zero, sizeof(ptr_t)); // return address
-        context->regs.sp = current->u_stack.head;            // update the stack pointer
-    }
-
     x86_jump_to_userspace(&context->regs);
 }
 
@@ -107,6 +49,61 @@ void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
     context->regs.sp = thread->mode == THREAD_MODE_KERNEL ? thread->k_stack.top : thread->u_stack.top;
     context->regs.eflags = 0x202 | (options && options->iopl_enabled ? 0x3000 : 0);
     thread->context = context;
+
+    MOS_ASSERT(thread->owner->mm == current_mm);
+
+    if (thread->mode == THREAD_MODE_KERNEL)
+        return;
+
+    if (thread == thread->owner->main_thread)
+    {
+        // for the main thread, we have to push all argv structures onto the stack
+        // for any other threads, only a pointer specified by the user is passed by register RDI
+        // set up the main thread of a 'new' process (not forked)
+        mos_debug(scheduler, "cpu %d: setting up main thread %pt of process %pp", current_cpu->id, (void *) thread, (void *) thread->owner);
+
+        // the main thread of a process has no arg, because it uses argv
+        MOS_ASSERT_X(context->arg == NULL, "arg should be NULL for the 'main' thread of process %pp", (void *) thread->owner);
+
+        const char *const *const src_argv = thread->owner->argv.argv;
+        const size_t argc = thread->owner->argv.argc;
+
+        char *real_argv[argc + 1];
+        for (size_t i = 0; i < argc; i++)
+        {
+            if (src_argv[i] == NULL)
+            {
+                pr_warn("argv[%zu] is NULL, replacing with NULL", i);
+                real_argv[i] = NULL;
+            }
+            else
+            {
+                real_argv[i] = stack_grow(&thread->u_stack, strlen(src_argv[i]) + 1);
+                strcpy(real_argv[i], src_argv[i]);
+            }
+        }
+        real_argv[argc] = NULL;
+
+        // stack layout:
+        // | argv1 | argv2 | ... | argvN | NULL | arg0 | arg1 | ... | argN | NULL |
+        stack_push(&thread->u_stack, &real_argv, sizeof(char *) * (argc + 1)); // the argv vector
+
+        const ptr_t argv_ptr = thread->u_stack.head; // stack_push changes head, so we need to save it
+
+        context->regs.di = argc;
+        context->regs.si = argv_ptr;
+        context->regs.dx = 0; // TODO: envp
+        const ptr_t zero = 0;
+        stack_push(&thread->u_stack, &zero, sizeof(ptr_t)); // return address
+        context->regs.sp = thread->u_stack.head;            // update the stack pointer
+    }
+    else
+    {
+        context->regs.di = (ptr_t) context->arg;
+        const ptr_t zero = 0;
+        stack_push(&thread->u_stack, &zero, sizeof(ptr_t)); // return address
+        context->regs.sp = thread->u_stack.head;            // update the stack pointer
+    }
 }
 
 void x86_setup_forked_context(const void *from, void **to)

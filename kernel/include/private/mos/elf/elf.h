@@ -113,12 +113,7 @@ typedef struct
     struct
     {
         u16 entry_size, count;
-    } __packed ph;
-
-    struct
-    {
-        u16 entry_size, count;
-    } __packed sh;
+    } __packed ph, sh;
 
     u16 sh_strtab_index;
 } __packed elf_header_t;

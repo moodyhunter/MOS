@@ -142,6 +142,7 @@ void mos_start_kernel(void)
     if (!f)
         mos_panic("failed to open init program");
     process_t *init = elf_create_process(f, NULL, init_argv, &init_io);
+    io_unref(&f->io);
     if (unlikely(!init))
         mos_panic("failed to create init process");
 
