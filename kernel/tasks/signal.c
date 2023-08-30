@@ -16,20 +16,23 @@
 static slab_t *sigpending_slab = NULL;
 SLAB_AUTOINIT("signal_pending", sigpending_slab, sigpending_t);
 
-noreturn static void signal_do_coredump(void)
+noreturn static void signal_do_coredump(signal_t signal)
 {
+    MOS_UNUSED(signal);
     pr_warn("coredump: WIP");
     process_handle_exit(current_process, 1);
 }
 
-noreturn static void signal_do_terminate(void)
+noreturn static void signal_do_terminate(signal_t signal)
 {
+    MOS_UNUSED(signal);
     pr_warn("terminate: WIP");
     MOS_UNIMPLEMENTED("terminate");
 }
 
-static void signal_do_ignore(void)
+static void signal_do_ignore(signal_t signal)
 {
+    mos_debug(signal, "ignoring signal %d", signal);
 }
 
 void signal_send_to_thread(thread_t *target, signal_t signal)
@@ -96,7 +99,7 @@ void signal_check_and_handle(void)
     case SIGNAL:;                                                                                                                                                        \
         action = current_process->signal_handlers[SIGNAL];                                                                                                               \
         if (!action.handler)                                                                                                                                             \
-            signal_do_##OR();                                                                                                                                            \
+            signal_do_##OR(SIGNAL);                                                                                                                                      \
         break
 
         SELECT_SIGNAL_HANDLER_OR(SIGINT, terminate);

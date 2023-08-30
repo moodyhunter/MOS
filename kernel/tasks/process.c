@@ -199,8 +199,9 @@ void process_handle_exit(process_t *process, u32 exit_code)
         }
         else
         {
-            // send termination signal
-            signal_send_to_thread(thread, SIGTERM);
+            // send termination signal to all threads, except the current one
+            if (thread != current_thread)
+                signal_send_to_thread(thread, SIGTERM);
             thread->state = THREAD_STATE_DEAD; // cleanup will be done by the scheduler
         }
         spinlock_release(&thread->state_lock);
@@ -227,6 +228,8 @@ void process_handle_exit(process_t *process, u32 exit_code)
 
     waitlist_close(&process->waiters);
     waitlist_wake(&process->waiters, INT_MAX);
+
+    signal_send_to_process(process->parent, SIGCHLD);
 
     reschedule();
     MOS_UNREACHABLE();

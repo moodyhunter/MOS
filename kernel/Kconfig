@@ -139,6 +139,9 @@ config DEBUG_sysfs
 config DEBUG_panic
     bool "kernel panic debugging"
 
+config DEBUG_signal
+    bool "signal debugging"
+
 endmenu
 
 endmenu
