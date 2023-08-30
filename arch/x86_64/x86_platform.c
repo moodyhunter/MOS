@@ -30,8 +30,7 @@
 static u8 com1_buf[MOS_PAGE_SIZE] __aligned(MOS_PAGE_SIZE) = { 0 };
 
 serial_console_t com1_console = {
-    .device =
-        &(serial_device_t){
+    .device = {
             .port = COM1,
             .baud_rate = BAUD_RATE_115200,
             .char_length = CHAR_LENGTH_8,
@@ -66,12 +65,12 @@ static void x86_keyboard_handler(u32 irq)
 static void x86_com1_handler(u32 irq)
 {
     MOS_ASSERT(irq == IRQ_COM1);
-    do
+    while (serial_dev_get_data_ready(&com1_console.device))
     {
         char c = '\0';
-        serial_device_read(com1_console.device, &c, 1);
+        serial_device_read(&com1_console.device, &c, 1);
         console_putc(&com1_console.con, c);
-    } while (serial_dev_get_data_ready(com1_console.device));
+    }
 }
 
 static void x86_do_backtrace(void)

@@ -26,13 +26,13 @@ bool serial_console_setup(console_t *console)
         console->ops->clear = serial_console_clear;
     linked_list_init(list_node(console));
     serial_console_t *serial_con = container_of(console, serial_console_t, con);
-    return serial_device_setup(serial_con->device);
+    return serial_device_setup(&serial_con->device);
 }
 
 size_t serial_console_write(console_t *console, const char *str, size_t len)
 {
     serial_console_t *serial_con = container_of(console, serial_console_t, con);
-    return serial_device_write(serial_con->device, str, len);
+    return serial_device_write(&serial_con->device, str, len);
 }
 
 void get_ansi_color(char *buf, standard_color_t fg, standard_color_t bg)
@@ -66,29 +66,29 @@ void get_ansi_color(char *buf, standard_color_t fg, standard_color_t bg)
     strcat(buf, color);
 }
 
-bool serial_console_set_color(console_t *device, standard_color_t fg, standard_color_t bg)
+bool serial_console_set_color(console_t *console, standard_color_t fg, standard_color_t bg)
 {
-    serial_console_t *serial_con = container_of(device, serial_console_t, con);
+    serial_console_t *serial_con = container_of(console, serial_console_t, con);
     serial_con->fg = fg;
     serial_con->bg = bg;
     char buf[64] = { 0 };
     get_ansi_color(buf, fg, bg);
-    serial_device_write(serial_con->device, ansi_reset, sizeof(ansi_reset) - 1);
-    serial_device_write(serial_con->device, buf, strlen(buf));
+    serial_device_write(&serial_con->device, ansi_reset, sizeof(ansi_reset) - 1);
+    serial_device_write(&serial_con->device, buf, strlen(buf));
     return true;
 }
 
-bool serial_console_get_color(console_t *device, standard_color_t *fg, standard_color_t *bg)
+bool serial_console_get_color(console_t *console, standard_color_t *fg, standard_color_t *bg)
 {
-    serial_console_t *serial_con = container_of(device, serial_console_t, con);
+    serial_console_t *serial_con = container_of(console, serial_console_t, con);
     *fg = serial_con->fg;
     *bg = serial_con->bg;
     return true;
 }
 
-bool serial_console_clear(console_t *device)
+bool serial_console_clear(console_t *console)
 {
-    serial_console_t *serial_con = container_of(device, serial_console_t, con);
-    serial_device_write(serial_con->device, "\033[2J", 4);
+    serial_console_t *serial_con = container_of(console, serial_console_t, con);
+    serial_device_write(&serial_con->device, "\033[2J", 4);
     return true;
 }

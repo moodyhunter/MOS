@@ -8,7 +8,7 @@
 typedef struct
 {
     console_t con;
-    serial_device_t *device;
+    serial_device_t device;
     standard_color_t fg, bg;
 } serial_console_t;
 
