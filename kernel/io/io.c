@@ -146,6 +146,35 @@ size_t io_read(io_t *io, void *buf, size_t count)
     return io->ops->read(io, buf, count);
 }
 
+size_t io_pread(io_t *io, void *buf, size_t count, off_t offset)
+{
+    mos_debug(io, "io_pread(%p, %p, %zu, %lu)", (void *) io, buf, count, offset);
+
+    if (unlikely(io->closed))
+    {
+        mos_warn("%p is already closed", (void *) io);
+        return 0;
+    }
+
+    if (!(io->flags & IO_READABLE))
+    {
+        pr_info2("%p is not readable\n", (void *) io);
+        return 0;
+    }
+
+    if (!(io->flags & IO_SEEKABLE))
+    {
+        pr_info2("%p is not seekable\n", (void *) io);
+        return 0;
+    }
+
+    const off_t old_offset = io_tell(io);
+    io_seek(io, offset, IO_SEEK_SET);
+    const size_t ret = io_read(io, buf, count);
+    io_seek(io, old_offset, IO_SEEK_SET);
+    return ret;
+}
+
 size_t io_write(io_t *io, const void *buf, size_t count)
 {
     mos_debug(io, "io_write(%p, %p, %zu)", (void *) io, buf, count);
@@ -204,11 +233,15 @@ bool io_mmap(io_t *io, vmap_t *vmap, off_t offset)
         return false;
     }
 
-    if (vmap->vmflags & VM_READ && !(io->flags & IO_READABLE))
-        return false; // can't mmap readable if io is not readable
+    if (!(io->flags & IO_READABLE))
+        return false; // can't mmap if io is not readable
 
-    if (vmap->vmflags & VM_WRITE && !(io->flags & IO_WRITABLE))
-        return false; // can't mmap writable if io is not writable
+    if (vmap->vmflags & VM_WRITE)
+    {
+        const bool may_mmap_writeable = vmap->fork_behavior & VMAP_FORK_PRIVATE || io->flags & IO_WRITABLE;
+        if (!may_mmap_writeable)
+            return false; // can't mmap writable if io is not writable and not private
+    }
 
     if (vmap->vmflags & VM_EXEC && !(io->flags & IO_EXECUTABLE))
         return false; // can't mmap executable if io is not executable

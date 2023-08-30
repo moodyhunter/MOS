@@ -56,6 +56,7 @@ io_t *io_unref(io_t *io);
 __nodiscard bool io_valid(io_t *io);
 
 size_t io_read(io_t *io, void *buf, size_t count);
+size_t io_pread(io_t *io, void *buf, size_t count, off_t offset);
 size_t io_write(io_t *io, const void *buf, size_t count);
 off_t io_seek(io_t *io, off_t offset, io_seek_whence_t whence);
 off_t io_tell(io_t *io);
