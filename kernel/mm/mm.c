@@ -232,26 +232,22 @@ static bool fallback_fault_handler(vmap_t *vmap, ptr_t fault_addr, const pagefau
 
 bool mm_handle_fault(ptr_t fault_addr, const pagefault_info_t *info)
 {
-    if (unlikely(!current_thread))
-    {
-        pr_warn("There shouldn't be a page fault before the scheduler is initialized!");
-        return false;
-    }
-
     mm_context_t *const mm = current_mm;
-    MOS_ASSERT_X(mm == current_cpu->mm_context, "Page fault in a process that is not the current process?!");
-#if MOS_DEBUG_FEATURE(cow)
-    process_dump_mmaps(current_process);
-#endif
-
-    spinlock_acquire(&mm->mm_lock);
+    mm_lock_ctx_pair(mm, NULL);
 
     size_t offset;
     vmap_t *fault_vmap = vmap_obtain(mm, fault_addr, &offset);
     if (!fault_vmap)
     {
         pr_emph("page fault in " PTR_FMT " (not mapped)", fault_addr);
-        spinlock_release(&mm->mm_lock);
+        mm_unlock_ctx_pair(mm, NULL);
+        return false;
+    }
+
+    if (info->op_write && !(fault_vmap->vmflags & VM_WRITE))
+    {
+        pr_emph("page fault in " PTR_FMT " (read-only)", fault_addr);
+        mm_unlock_ctx_pair(mm, NULL);
         return false;
     }
 
@@ -264,7 +260,7 @@ bool mm_handle_fault(ptr_t fault_addr, const pagefault_info_t *info)
         result = fallback_fault_handler(fault_vmap, fault_addr, info);
 
     spinlock_release(&fault_vmap->lock);
-    spinlock_release(&mm->mm_lock);
+    mm_unlock_ctx_pair(mm, NULL);
     return result;
 }
 

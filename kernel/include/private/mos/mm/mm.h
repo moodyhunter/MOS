@@ -30,7 +30,7 @@ typedef enum
 
 typedef struct
 {
-    bool page_present, op_write, userfault;
+    bool page_present, op_write, userfault, exec;
 } pagefault_info_t;
 
 typedef struct _vmap

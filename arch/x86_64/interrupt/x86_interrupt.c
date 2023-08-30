@@ -198,52 +198,51 @@ static void x86_handle_exception(x86_stack_frame *stack)
             ptr_t fault_address;
             __asm__ volatile("mov %%cr2, %0" : "=r"(fault_address));
 
-            bool present = (stack->error_code & 0x1) != 0;
-            bool is_write = (stack->error_code & 0x2) != 0;
-            bool is_user = (stack->error_code & 0x4) != 0;
-            bool is_exec = (stack->error_code & 0x10) != 0;
+            const pagefault_info_t info = {
+                .op_write = (stack->error_code & 0x2) != 0,
+                .page_present = (stack->error_code & 0x1) != 0,
+                .userfault = (stack->error_code & 0x4) != 0,
+                .exec = (stack->error_code & 0x10) != 0,
+            };
 
             thread_t *current = current_thread;
 
-            if (current)
+            if (MOS_DEBUG_FEATURE(cow))
             {
-                if (MOS_DEBUG_FEATURE(cow))
+                if (current)
                 {
                     pr_emph("%s page fault: thread %pt, process %pp at " PTR_FMT ", instruction " PTR_FMT, //
-                            is_user ? "user" : "kernel",                                                   //
+                            info.userfault ? "user" : "kernel",                                            //
                             (void *) current,                                                              //
                             (void *) current->owner,                                                       //
                             fault_address,                                                                 //
                             (ptr_t) stack->ip                                                              //
                     );
                 }
-
-                if (is_write && is_exec)
-                    mos_panic("Cannot write and execute at the same time");
-
-                const pagefault_info_t info = {
-                    .op_write = is_write,
-                    .page_present = present,
-                    .userfault = is_user,
-                };
-
-                bool result = mm_handle_fault(fault_address, &info);
-
-                if (result)
-                    return;
+                else
+                {
+                    pr_emph("%s page fault: kernel thread at " PTR_FMT ", instruction " PTR_FMT, //
+                            info.userfault ? "user" : "kernel",                                  //
+                            fault_address,                                                       //
+                            (ptr_t) stack->ip                                                    //
+                    );
+                }
             }
-            else
-            {
-                // early boot page fault?
-                mos_warn("early boot page fault");
-            }
+
+            if (info.op_write && info.exec)
+                mos_panic("Cannot write and execute at the same time");
+
+            bool result = mm_handle_fault(fault_address, &info);
+
+            if (result)
+                return;
 
             pr_emerg("Unhandled Page Fault");
             pr_emerg("  %s mode invalid %s page %s%s at [" PTR_FMT "]", //
-                     is_user ? "User" : "Kernel",                       //
-                     present ? "present" : "non-present",               //
-                     is_write ? "write" : "read",                       //
-                     is_exec ? " (NX violation)" : "",                  //
+                     info.userfault ? "User" : "Kernel",                //
+                     info.page_present ? "present" : "non-present",     //
+                     info.op_write ? "write" : "read",                  //
+                     info.exec ? " (NX violation)" : "",                //
                      fault_address                                      //
             );
             pr_emerg("  instruction: " PTR_FMT, (ptr_t) stack->ip);
@@ -253,7 +252,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
             if (fault_address < 1 KB)
                 pr_emerg("  possible null pointer dereference");
 
-            if (is_user && fault_address > MOS_KERNEL_START_VADDR)
+            if (info.userfault && fault_address > MOS_KERNEL_START_VADDR)
                 pr_emerg("  kernel address dereference");
 
             if (stack->ip > MOS_KERNEL_START_VADDR)
