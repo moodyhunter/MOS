@@ -341,9 +341,7 @@ static const inode_ops_t cpio_file_inode_ops = {
 };
 
 static const file_ops_t cpio_file_ops = {
-    .open = NULL,
     .read = vfs_generic_read,
-    .mmap = vfs_generic_mmap,
 };
 
 static phyframe_t *cpio_fill_cache(inode_cache_t *cache, off_t pgoff)

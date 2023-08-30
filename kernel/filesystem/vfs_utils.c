@@ -108,12 +108,3 @@ bool vfs_simple_write_begin(inode_cache_t *icache, off_t offset, size_t size)
     MOS_UNUSED(size);
     return true;
 }
-
-bool vfs_generic_mmap(file_t *file, vmap_t *vmap, off_t offset)
-{
-    // TODO: this is currently broken
-    MOS_UNUSED(file);
-    MOS_UNUSED(vmap);
-    MOS_UNUSED(offset);
-    return true;
-}

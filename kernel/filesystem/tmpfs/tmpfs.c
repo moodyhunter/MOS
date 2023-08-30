@@ -230,7 +230,6 @@ static const inode_ops_t tmpfs_inode_symlink_ops = {
 static const file_ops_t tmpfs_file_ops = {
     .read = vfs_generic_read,
     .write = vfs_generic_write,
-    .mmap = vfs_generic_mmap,
 };
 
 static filesystem_t fs_tmpfs = {

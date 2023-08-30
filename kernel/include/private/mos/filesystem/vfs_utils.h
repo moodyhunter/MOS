@@ -22,4 +22,3 @@ ssize_t vfs_generic_read(const file_t *file, void *buf, size_t size, off_t offse
 ssize_t vfs_generic_write(const file_t *file, const void *buf, size_t size, off_t offset);
 ssize_t vfs_generic_lseek(const file_t *file, off_t offset, int whence);
 int vfs_generic_close(const file_t *file);
-bool vfs_generic_mmap(file_t *file, vmap_t *vmap, off_t offset);
