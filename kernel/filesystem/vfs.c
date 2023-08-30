@@ -1,3 +1,4 @@
+#include "mos/filesystem/page_cache.h"
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/mm/mm.h"
@@ -152,15 +153,22 @@ static off_t vfs_io_ops_seek(io_t *io, off_t offset, io_seek_whence_t whence)
 
 static bool vfs_mmap_fault_handler(vmap_t *vmap, ptr_t fault_addr, const pagefault_info_t *info)
 {
-    io_t *io = vmap->io;
-    file_t *file = container_of(io, file_t, io);
-    const file_ops_t *const file_ops = file_get_ops(file);
+    MOS_UNUSED(info);
+    file_t *file = container_of(vmap->io, file_t, io);
 
-    phyframe_t *page = mm_get_free_page();
-    const size_t fault_offset = (ALIGN_DOWN_TO_PAGE(fault_addr) - vmap->vaddr);
-    file_ops->read(file, (void *) phyframe_va(page), MOS_PAGE_SIZE, vmap->io_offset + fault_offset);
+    const size_t fault_pgoffset = (vmap->io_offset + ALIGN_DOWN_TO_PAGE(fault_addr) - vmap->vaddr) / MOS_PAGE_SIZE;
+    phyframe_t *page = pagecache_get_page_for_read(&file->dentry->inode->cache, fault_pgoffset);
 
-    mm_do_map(vmap->mmctx->pgd, fault_addr, phyframe_pfn(page), 1, info->userfault ? VM_USER_RW : VM_RW, true);
+    if (vmap->fork_behavior == VMAP_FORK_PRIVATE && info->op_write)
+    {
+        phyframe_t *writable_page = mm_get_free_page();
+        memcpy((void *) phyframe_va(writable_page), (void *) phyframe_va(page), MOS_PAGE_SIZE);
+        mm_do_map(vmap->mmctx->pgd, fault_addr, phyframe_pfn(writable_page), 1, vmap->vmflags, true);
+    }
+    else
+    {
+        mm_do_map(vmap->mmctx->pgd, fault_addr, phyframe_pfn(page), 1, vmap->vmflags, true);
+    }
 
     return true;
 }
@@ -179,7 +187,7 @@ static bool vfs_io_ops_mmap(io_t *io, vmap_t *vmap, off_t offset)
     return true;
 }
 
-static io_op_t fs_io_ops = {
+static const io_op_t fs_io_ops = {
     .read = vfs_io_ops_read,
     .write = vfs_io_ops_write,
     .close = vfs_io_ops_close,
