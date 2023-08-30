@@ -8,6 +8,7 @@
 #include <mos/mm/mm_types.h>
 #include <mos/mm/mmap.h>
 #include <mos/mm/paging/paging.h>
+#include <mos/mos_global.h>
 #include <mos/tasks/process.h>
 #include <mos/tasks/task_types.h>
 
@@ -19,6 +20,11 @@
  */
 static bool mmap_verify_arguments(ptr_t *hint_addr, mmap_flags_t mmap_flags)
 {
+    if ((*hint_addr % MOS_PAGE_SIZE) != 0)
+    {
+        pr_warn("hint address must be page-aligned");
+        return false;
+    }
     const bool shared = mmap_flags & MMAP_SHARED;   // when forked, shared between parent and child
     const bool private = mmap_flags & MMAP_PRIVATE; // when forked, make it Copy-On-Write
 
@@ -41,14 +47,14 @@ static bool mmap_verify_arguments(ptr_t *hint_addr, mmap_flags_t mmap_flags)
     return true;
 }
 
-ptr_t mmap_anonymous(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages)
+ptr_t mmap_anonymous(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages)
 {
     if (!mmap_verify_arguments(&hint_addr, flags))
         return 0;
 
     const valloc_flags valloc_flags = (flags & MMAP_EXACT) ? VALLOC_EXACT : VALLOC_DEFAULT;
 
-    vmap_t *vmap = cow_allocate_zeroed_pages(current_process->mm, n_pages, hint_addr, valloc_flags, vm_flags);
+    vmap_t *vmap = cow_allocate_zeroed_pages(ctx, n_pages, hint_addr, valloc_flags, vm_flags);
     mos_debug(mmap, "allocated %zd pages at " PTR_FMT, vmap->npages, vmap->vaddr);
 
     const vmap_fork_behavior_t type = (flags & MMAP_SHARED) ? VMAP_FORK_SHARED : VMAP_FORK_PRIVATE;
@@ -56,26 +62,40 @@ ptr_t mmap_anonymous(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, siz
     return vmap->vaddr;
 }
 
-ptr_t mmap_file(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages, io_t *io, off_t offset)
+ptr_t mmap_file(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages, io_t *io, off_t offset)
 {
     if (!mmap_verify_arguments(&hint_addr, flags))
         return 0;
 
-    const valloc_flags valloc_flags = (flags & MMAP_EXACT) ? VALLOC_EXACT : VALLOC_DEFAULT;
+    if (offset % MOS_PAGE_SIZE != 0)
+    {
+        pr_warn("mmap_file: offset must be page-aligned");
+        return 0;
+    }
 
-    mm_lock_ctx_pair(current_mm, NULL);
-    vmap_t *vmap = mm_get_free_vaddr_locked(current_mm, n_pages, hint_addr, valloc_flags);
-    mm_unlock_ctx_pair(current_mm, NULL);
+    const valloc_flags valloc_flags = (flags & MMAP_EXACT) ? VALLOC_EXACT : VALLOC_DEFAULT;
+    const vmap_fork_behavior_t type = (flags & MMAP_SHARED) ? VMAP_FORK_SHARED : VMAP_FORK_PRIVATE;
+
+    mm_lock_ctx_pair(ctx, NULL);
+    vmap_t *vmap = mm_get_free_vaddr_locked(ctx, n_pages, hint_addr, valloc_flags);
+    mm_unlock_ctx_pair(ctx, NULL);
+
+    if (unlikely(!vmap))
+    {
+        pr_warn("mmap_file: no free virtual address space");
+        return 0;
+    }
 
     vmap->vmflags = vm_flags;
+    vmap->fork_behavior = type;
 
     if (!io_mmap(io, vmap, offset))
     {
         vmap_destroy(vmap);
+        pr_warn("mmap_file: could not map the file");
         return 0;
     }
 
-    const vmap_fork_behavior_t type = (flags & MMAP_SHARED) ? VMAP_FORK_SHARED : VMAP_FORK_PRIVATE;
     vmap_finalise_init(vmap, VMAP_FILE, type);
     return vmap->vaddr;
 }

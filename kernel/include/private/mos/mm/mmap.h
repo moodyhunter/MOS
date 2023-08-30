@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "mos/platform/platform.h"
+
 #include <mos/mm/paging/paging.h>
 #include <mos/tasks/task_types.h>
 #include <mos/types.h>
@@ -15,7 +17,7 @@
  * @param n_pages Number of pages to map
  * @return ptr_t The address the page was mapped at, or 0 if the mapping failed
  */
-ptr_t mmap_anonymous(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages);
+ptr_t mmap_anonymous(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages);
 
 /**
  * @brief Map a file into the current process's address space
@@ -28,7 +30,7 @@ ptr_t mmap_anonymous(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, siz
  * @param offset The offset into the file to map, must be page aligned
  * @return ptr_t The address the page was mapped at, or 0 if the mapping failed
  */
-ptr_t mmap_file(ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages, io_t *io, off_t offset);
+ptr_t mmap_file(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages, io_t *io, off_t offset);
 
 /**
  * @brief Unmap a page from the current process's address space

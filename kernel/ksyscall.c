@@ -333,7 +333,7 @@ DEFINE_SYSCALL(void *, mmap_anonymous)(ptr_t hint_addr, size_t size, mem_perm_t 
     const vm_flags vmflags = VM_USER | (vm_flags) perm; // vm_flags shares the same values as mem_perm_t
     const size_t n_pages = ALIGN_DOWN_TO_PAGE(size) / MOS_PAGE_SIZE;
 
-    ptr_t result = mmap_anonymous(hint_addr, flags, vmflags, n_pages);
+    ptr_t result = mmap_anonymous(current_mm, hint_addr, flags, vmflags, n_pages);
     return (void *) result;
 }
 
@@ -346,7 +346,7 @@ DEFINE_SYSCALL(void *, mmap_file)(ptr_t hint_addr, size_t size, mem_perm_t perm,
     if (io == NULL)
         return NULL;
 
-    ptr_t result = mmap_file(hint_addr, mmap_flags, vmflags, n_pages, io, offset);
+    ptr_t result = mmap_file(current_mm, hint_addr, mmap_flags, vmflags, n_pages, io, offset);
     return (void *) result;
 }
 

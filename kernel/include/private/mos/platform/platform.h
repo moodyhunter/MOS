@@ -31,7 +31,7 @@
 #define current_cpu     per_cpu(platform_info->cpu)
 #define current_thread  (current_cpu->thread)
 #define current_process (current_thread->owner)
-#define current_mm      (current_process->mm)
+#define current_mm      (current_cpu->mm_context)
 
 typedef void (*irq_handler)(u32 irq);
 
