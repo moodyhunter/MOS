@@ -13,19 +13,30 @@
 #include <mos/mos_global.h>
 #include <string.h>
 
-static void pml1e_do_copy_callback(pml1_t pml1, pml1e_t *e, ptr_t vaddr, void *data)
+static void pml1e_do_copy_callback(pml1_t pml1, pml1e_t *src_e, ptr_t vaddr, void *data)
 {
     MOS_UNUSED(pml1);
     struct pagetable_do_copy_data *copy_data = data;
     copy_data->dest_pml1e = pml1_entry(copy_data->dest_pml1, vaddr);
 
-    const pfn_t pfn = platform_pml1e_get_pfn(e);
+    const pfn_t old_pfn = platform_pml1e_get_present(copy_data->dest_pml1e) ? platform_pml1e_get_pfn(copy_data->dest_pml1e) : 0;
 
-    pmm_ref_one(pfn);
+    if (platform_pml1e_get_present(src_e))
+    {
+        const pfn_t pfn = platform_pml1e_get_pfn(src_e);
+        pmm_ref_one(pfn);
 
-    platform_pml1e_set_present(copy_data->dest_pml1e, true);
-    platform_pml1e_set_flags(copy_data->dest_pml1e, platform_pml1e_get_flags(e));
-    platform_pml1e_set_pfn(copy_data->dest_pml1e, pfn);
+        platform_pml1e_set_present(copy_data->dest_pml1e, true);
+        platform_pml1e_set_flags(copy_data->dest_pml1e, platform_pml1e_get_flags(src_e));
+        platform_pml1e_set_pfn(copy_data->dest_pml1e, pfn);
+    }
+    else
+    {
+        platform_pml1e_set_present(copy_data->dest_pml1e, false);
+    }
+
+    if (old_pfn)
+        pmm_unref_one(old_pfn);
 }
 
 static void pml2e_do_copy_callback(pml2_t pml2, pml2e_t *e, ptr_t vaddr, void *data)
