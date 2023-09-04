@@ -4,6 +4,8 @@
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/misc/power.h"
 #include "mos/mm/mm.h"
+#include "mos/mm/paging/dump.h"
+#include "mos/panic.h"
 
 #include <mos/cmdline.h>
 #include <mos/device/console.h>
@@ -101,6 +103,10 @@ void mos_start_kernel(void)
     }
 
     platform_startup_mm();
+#if MOS_DEBUG_FEATURE(vmm)
+    panic_hook_declare(mm_dump_current_pagetable, "dump current pagetable");
+    panic_hook_install(&mm_dump_current_pagetable_holder);
+#endif
     startup_invoke_autoinit(INIT_TARGET_POST_MM);
     startup_invoke_autoinit(INIT_TARGET_SLAB_AUTOINIT);
 
