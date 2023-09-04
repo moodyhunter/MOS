@@ -20,8 +20,7 @@
 typedef void (*switch_func_t)(x86_thread_context_t *context);
 
 extern void x86_normal_switch(x86_thread_context_t *context);
-
-extern asmlinkage void x86_context_switch_impl(x86_thread_context_t *context, ptr_t *old_stack, ptr_t new_kstack, switch_func_t switcher);
+extern void x86_context_switch_impl(x86_thread_context_t *context, ptr_t *old_stack, ptr_t new_kstack, switch_func_t switcher);
 
 static void x86_start_kernel_thread(x86_thread_context_t *ctx)
 {
@@ -31,13 +30,12 @@ static void x86_start_kernel_thread(x86_thread_context_t *ctx)
     MOS_UNREACHABLE();
 }
 
-// called from assembly
 static void x86_start_user_thread(x86_thread_context_t *context)
 {
     x86_jump_to_userspace(&context->regs);
 }
 
-void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
+static void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
 {
     x86_process_options_t *options = thread->owner->platform_options;
     x86_thread_context_t *context = kmalloc(sizeof(x86_thread_context_t));
@@ -53,6 +51,9 @@ void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
     MOS_ASSERT(thread->owner->mm == current_mm);
 
     if (thread->mode == THREAD_MODE_KERNEL)
+        return;
+
+    if (context->is_forked)
         return;
 
     if (thread == thread->owner->main_thread)
@@ -105,17 +106,20 @@ void x86_setup_thread_context(thread_t *thread, thread_entry_t entry, void *arg)
         context->regs.sp = thread->u_stack.head;            // update the stack pointer
     }
 }
+__alias(x86_setup_thread_context, platform_context_setup);
 
-void x86_setup_forked_context(const void *from, void **to)
+static void x86_setup_forked_context(const void *from, void **to)
 {
     const x86_thread_context_t *from_ctx = from;
     x86_thread_context_t *to_ctx = kmalloc(sizeof(x86_thread_context_t));
     *to = to_ctx;
     *to_ctx = *from_ctx; // copy everything
+    to_ctx->regs.ax = 0; // return 0 for the child
     to_ctx->is_forked = true;
 }
+__alias(x86_setup_forked_context, platform_setup_forked_context);
 
-void x86_switch_to_thread(ptr_t *scheduler_stack, const thread_t *to, switch_flags_t switch_flags)
+static void x86_switch_to_thread(ptr_t *scheduler_stack, const thread_t *to, switch_flags_t switch_flags)
 {
     per_cpu(x86_cpu_descriptor)->tss.rsp0 = to->k_stack.top;
     const switch_func_t switch_func = switch_flags & SWITCH_TO_NEW_USER_THREAD   ? x86_start_user_thread :
@@ -125,12 +129,13 @@ void x86_switch_to_thread(ptr_t *scheduler_stack, const thread_t *to, switch_fla
     x86_thread_context_t context = *(x86_thread_context_t *) to->context; // make a copy
     x86_context_switch_impl(&context, scheduler_stack, to->k_stack.head, switch_func);
 }
+__alias(x86_switch_to_thread, platform_switch_to_thread);
 
-void x86_switch_to_scheduler(ptr_t *old_stack, ptr_t scheduler_stack)
+static void x86_switch_to_scheduler(ptr_t *old_stack, ptr_t scheduler_stack)
 {
-    // pgd = 0 so that we don't switch to a different page table
     x86_context_switch_impl(NULL, old_stack, scheduler_stack, x86_normal_switch);
 }
+__alias(x86_switch_to_scheduler, platform_switch_to_scheduler);
 
 void x86_timer_handler(u32 irq)
 {

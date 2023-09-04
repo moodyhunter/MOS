@@ -89,29 +89,9 @@ void platform_irq_handler_remove(u32 irq, irq_handler handler)
     MOS_UNUSED(handler);
 }
 
-void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg)
-{
-    x86_setup_thread_context(thread, entry, arg);
-}
-
-void platform_setup_forked_context(const void *from, void **to)
-{
-    x86_setup_forked_context(from, to);
-}
-
 void platform_switch_mm(mm_context_t *mm)
 {
     x86_cpu_set_cr3(pgd_pfn(mm->pgd) * MOS_PAGE_SIZE);
-}
-
-void platform_switch_to_scheduler(ptr_t *old_stack, ptr_t new_stack)
-{
-    x86_switch_to_scheduler(old_stack, new_stack);
-}
-
-void platform_switch_to_thread(ptr_t *old_stack, const thread_t *new_thread, switch_flags_t switch_flags)
-{
-    x86_switch_to_thread(old_stack, new_thread, switch_flags);
 }
 
 u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unused arg2, u64 __maybe_unused arg3, u64 __maybe_unused arg4)
