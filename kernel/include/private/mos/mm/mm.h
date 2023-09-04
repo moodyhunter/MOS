@@ -141,6 +141,16 @@ vmap_t *vmap_obtain(mm_context_t *mmctx, ptr_t vaddr, size_t *out_offset);
 void vmap_finalise_init(vmap_t *vmap, vmap_content_t content, vmap_type_t type);
 
 /**
+ * @brief Helper function to resolve a copy-on-write fault.
+ *
+ * @param vmap The vmap object
+ * @param fault_addr The fault address
+ * @param info The page fault info
+ * @return vmfault_result_t always VMFAULT_COMPLETE
+ */
+[[nodiscard("resolve completed")]] vmfault_result_t mm_resolve_cow_fault(vmap_t *vmap, ptr_t fault_addr, pagefault_t *info);
+
+/**
  * @brief Handle a page fault
  *
  * @param fault_addr The fault address

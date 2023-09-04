@@ -337,7 +337,7 @@ static bool process_sysfs_vmap_stat(sysfs_file_t *f)
 {
     list_foreach(vmap_t, vmap, current_mm->mmaps)
     {
-#define stat_line(fmt) "   %8s: " fmt "\n"
+#define stat_line(fmt) "   %9s: " fmt "\n"
         sysfs_printf(f, PTR_RANGE "\n", vmap->vaddr, vmap->vaddr + vmap->npages * MOS_PAGE_SIZE);
         sysfs_printf(f, stat_line("%pvf,%s%s"), "Perms",          //
                      (void *) &vmap->vmflags,                     //
@@ -355,7 +355,7 @@ static bool process_sysfs_vmap_stat(sysfs_file_t *f)
         }
         sysfs_printf(f, stat_line("%zu pages"), "Total", vmap->npages);
         sysfs_printf(f, stat_line("%zu pages"), "Regular", vmap->stat.regular);
-        sysfs_printf(f, stat_line("%zu pages"), "Cached", vmap->stat.cached);
+        sysfs_printf(f, stat_line("%zu pages"), "PageCache", vmap->stat.pagecache);
         sysfs_printf(f, stat_line("%zu pages"), "CoW", vmap->stat.cow);
 #undef stat_line
         sysfs_printf(f, "\n");

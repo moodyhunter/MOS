@@ -38,26 +38,18 @@ static vmfault_result_t cow_zod_fault_handler(vmap_t *vmap, ptr_t fault_addr, pa
 {
     MOS_UNUSED(fault_addr);
 
-    if (!info->is_present)
+    if (info->is_present && info->is_write)
     {
-        info->backing_page = zero_page();
-        vmap_stat_inc(vmap, cow);
-        return VMFAULT_MAP_BACKING_PAGE_RO;
-    }
-    else if (info->is_write)
-    {
-        info->backing_page = info->faulting_page;
+        vmap_stat_dec(vmap, cow); // the faulting page is a CoW page
         vmap_stat_inc(vmap, regular);
-        vmap_stat_dec(vmap, cow); // it was a COW page
-        return VMFAULT_COPY_BACKING_PAGE;
+        return mm_resolve_cow_fault(vmap, fault_addr, info);
     }
-    else // read
-    {
-        MOS_UNREACHABLE();
-        info->backing_page = info->is_present ? info->faulting_page : zero_page();
-        vmap_stat_inc(vmap, cow);
-        return VMFAULT_MAP_BACKING_PAGE_RO; // map the zero page
-    }
+
+    MOS_ASSERT(!info->is_present); // we can't have (present && !write)
+
+    info->backing_page = zero_page();
+    vmap_stat_inc(vmap, cow);
+    return VMFAULT_MAP_BACKING_PAGE_RO;
 }
 
 vmap_t *cow_clone_vmap_locked(mm_context_t *target_mmctx, vmap_t *src_vmap)

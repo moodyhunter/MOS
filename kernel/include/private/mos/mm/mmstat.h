@@ -44,13 +44,13 @@ void mmstat_dec(mmstat_type_t type, size_t size);
  *  On a page fault, the page is mapped in and the following happens:
  *
  *  Private File-backed:
- *      Read        cached++, cow++,
+ *      Read        pagecache++, cow++,
  *      Written     regular++,
- *                  if the page is already mapped, cached--, cow-- (page is not in the page cache)
- *      Forked      cow += regular, regular = 0 (regular pages now becomes cow pages, cached ones stay cached (read-only))
+ *                  if the page is already mapped, pagecache--, cow-- (page is not in the page cache)
+ *      Forked      cow += regular, regular = 0 (regular pages now becomes cow pages, pagecache ones stay pagecache (read-only))
  *  Shared File-backed:
- *      Read        cached++, regular++,
- *      Written     if the page wasn't priviously mapped, cached++, regular++ (a new page cache page is now mapped)
+ *      Read        pagecache++, regular++,
+ *      Written     if the page wasn't priviously mapped, pagecache++, regular++ (a new pagecache page is now mapped)
  *  Private Anonymous:
  *      Read        cow++,
  *                  zero page is mapped
@@ -62,9 +62,9 @@ void mmstat_dec(mmstat_type_t type, size_t size);
  */
 typedef struct
 {
-    size_t regular; ///< regular pages with no special flags being set or unset
-    size_t cached;  ///< pages that are in the page cache (file-backed only)
-    size_t cow;     ///< pages that are copy-on-write
+    size_t regular;   ///< regular pages with no special flags being set or unset
+    size_t pagecache; ///< pages that are in the page cache (file-backed only)
+    size_t cow;       ///< pages that are copy-on-write
 } vmap_stat_t;
 
 #define vmap_stat_inc(vmap, type) (vmap)->stat.type += 1

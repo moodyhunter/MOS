@@ -157,30 +157,41 @@ static vmfault_result_t vfs_fault_handler(vmap_t *vmap, ptr_t fault_addr, pagefa
     MOS_ASSERT(vmap->io);
     file_t *file = container_of(vmap->io, file_t, io);
     const size_t fault_pgoffset = (vmap->io_offset + ALIGN_DOWN_TO_PAGE(fault_addr) - vmap->vaddr) / MOS_PAGE_SIZE;
-    info->backing_page = info->is_present ? info->faulting_page : pagecache_get_page_for_read(&file->dentry->inode->cache, fault_pgoffset);
+    phyframe_t *pagecache_page = pagecache_get_page_for_read(&file->dentry->inode->cache, fault_pgoffset);
 
-    if (info->backing_page == NULL)
+    if (pagecache_page == NULL)
         return VMFAULT_CANNOT_HANDLE;
 
+    if (info->is_present && info->is_write)
+    {
+        if (pagecache_page == info->faulting_page)
+            vmap_stat_dec(vmap, pagecache); // the faulting page is a pagecache page
+        else
+            vmap_stat_dec(vmap, cow); // the faulting page is a COW page
+        vmap_stat_inc(vmap, regular);
+        return mm_resolve_cow_fault(vmap, fault_addr, info);
+    }
+
+    info->backing_page = pagecache_page;
     if (vmap->type == VMAP_TYPE_PRIVATE)
     {
         if (info->is_write)
         {
             vmap_stat_inc(vmap, regular);
-            if (info->is_present)
-                vmap_stat_inc(vmap, cached), vmap_stat_dec(vmap, cow);
-            return VMFAULT_COPY_BACKING_PAGE;
+            // present pages are handled above
+            MOS_ASSERT(!info->is_present);
+            return VMFAULT_COPY_BACKING_PAGE; // copy and (also) map the backing page
         }
         else
         {
-            vmap_stat_inc(vmap, cached);
+            vmap_stat_inc(vmap, pagecache);
             vmap_stat_inc(vmap, cow);
             return VMFAULT_MAP_BACKING_PAGE_RO;
         }
     }
     else
     {
-        vmap_stat_inc(vmap, cached);
+        vmap_stat_inc(vmap, pagecache);
         vmap_stat_inc(vmap, regular);
         return VMFAULT_MAP_BACKING_PAGE;
     }

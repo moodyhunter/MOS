@@ -216,6 +216,19 @@ void mm_copy_page(const phyframe_t *src, const phyframe_t *dst)
     memcpy((void *) phyframe_va(dst), (void *) phyframe_va(src), MOS_PAGE_SIZE);
 }
 
+vmfault_result_t mm_resolve_cow_fault(vmap_t *vmap, ptr_t fault_addr, pagefault_t *info)
+{
+    MOS_ASSERT(spinlock_is_locked(&vmap->lock));
+    MOS_ASSERT(info->is_write && info->is_present);
+
+    // fast path to handle CoW
+    phyframe_t *page = mm_get_free_page();
+    mm_copy_page(info->faulting_page, page);
+    mm_replace_page_locked(vmap->mmctx, fault_addr, phyframe_pfn(page), vmap->vmflags);
+
+    return VMFAULT_COMPLETE;
+}
+
 bool mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
 {
     mm_context_t *const mm = current_mm;
