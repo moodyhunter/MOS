@@ -184,7 +184,7 @@ void liballoc_init(void)
 {
     l_memroot = NULL;
     l_bestbet = NULL;
-    MOS_LIB_ASSERT_X(l_memroot == NULL, "liballoc_init() called twice");
+    MOS_LIB_ASSERT_X(once(), "liballoc_init() called twice");
     liballoc_first_alloc();
 }
 
