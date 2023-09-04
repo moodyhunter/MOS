@@ -7,6 +7,11 @@
 #include <mos/types.h>
 #include <stdio.h>
 
+static size_t do_print_vmflags(char *buf, size_t size, vm_flags flags)
+{
+    return snprintf(buf, size, "%c%c%c", (flags & VM_READ) ? 'r' : '-', (flags & VM_WRITE) ? 'w' : '-', (flags & VM_EXEC) ? 'x' : '-');
+}
+
 /**
  * @brief Kernel's extension to vsnprintf, '%p' format specifier.
  *
@@ -95,7 +100,18 @@ bool vsnprintf_do_pointer_kernel(char **buf, size_t *size, const char **pformat,
                     shift_next;
                     // vm_flags, only r/w/x are supported
                     const vm_flags flags = *(vm_flags *) ptr;
-                    *buf += snprintf(*buf, *size, "%c%c%c", (flags & VM_READ) ? 'r' : '-', (flags & VM_WRITE) ? 'w' : '-', (flags & VM_EXEC) ? 'x' : '-');
+                    *buf += do_print_vmflags(*buf, *size, flags);
+                    return true;
+                }
+                case 'm':
+                {
+                    shift_next;
+                    // vmap_t *, print the vmap's range and flags
+                    const vmap_t *vmap = (const vmap_t *) ptr;
+                    *buf += snprintf(*buf, *size, "{ " PTR_RANGE ", ", vmap->vaddr, vmap->vaddr + vmap->npages * MOS_PAGE_SIZE - 1);
+                    *buf += do_print_vmflags(*buf, *size, vmap->vmflags);
+                    *buf += snprintf(*buf, *size, ", on_fault=%ps", (void *) (ptr_t) vmap->on_fault);
+                    *buf += snprintf(*buf, *size, " }");
                     return true;
                 }
                 default: return false;
