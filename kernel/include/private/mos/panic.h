@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#pragma once
+
 #include <mos/lib/structures/list.h>
 #include <mos/types.h>
 #include <stdarg.h>
