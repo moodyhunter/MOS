@@ -15,6 +15,14 @@
 #define MOS_STATIC_ASSERT _Static_assert
 #endif
 
+#if MOS_COMPILER_GCC
+#define __mos_copy_attr(target) __attribute__((__copy__(target)))
+#else
+#define __mos_copy_attr(target)
+#endif
+
+#define __alias(target, func) extern __typeof__(target) func __attribute__((__alias__(#target))) __mos_copy_attr(target)
+
 #define __aligned(x)    __attribute__((__aligned__(x)))
 #define __cold          __attribute__((__cold__))
 #define __malloc        __attribute__((__malloc__))
@@ -24,8 +32,6 @@
 #define __section(S)    __attribute__((__section__(S)))
 #define __maybe_unused  __attribute__((__unused__))
 #define __used          __attribute__((__used__))
-#define __weak_alias(x) __attribute__((weak, alias(x)))
-#define __weakref(x)    __attribute__((weakref(x)))
 #define __nodiscard     __attribute__((__warn_unused_result__))
 #define __no_instrument __attribute__((__no_instrument_function__))
 
@@ -50,11 +56,11 @@
     })
 
 #define container_of(ptr, type, member)                                                                                                                                  \
-    _Generic(ptr, const __typeof(*(ptr)) * : ((const type *) do_container_of(ptr, type, member)), default : ((type *) do_container_of(ptr, type, member)))
+    _Generic(ptr, const __typeof(*(ptr)) *: ((const type *) do_container_of(ptr, type, member)), default: ((type *) do_container_of(ptr, type, member)))
 
 #define add_const(x) (*(const __typeof__(x) *) (&(x)))
 
-#define cast_to(value, valtype, desttype) _Generic((value), valtype : (desttype) (value), const valtype : (const desttype)(value))
+#define cast_to(value, valtype, desttype) _Generic((value), valtype: (desttype) (value), const valtype: (const desttype)(value))
 
 #define is_aligned(ptr, alignment) (((ptr_t) ptr & (alignment - 1)) == 0)
 
