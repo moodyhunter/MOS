@@ -31,7 +31,7 @@
 hashmap_t process_table = { 0 }; // pid_t -> process_t
 
 static const char *vmap_content_str[] = {
-    [VMAP_UNKNOWN] = "unknown", [VMAP_CODE] = "code", [VMAP_DATA] = "data", [VMAP_HEAP] = "heap", [VMAP_STACK] = "stack", [VMAP_FILE] = "file", [VMAP_MMAP] = "mmap",
+    [VMAP_UNKNOWN] = "unknown", [VMAP_HEAP] = "heap", [VMAP_STACK] = "stack", [VMAP_FILE] = "file", [VMAP_MMAP] = "mmap",
 };
 
 const char *vmap_type_str[] = {
@@ -111,7 +111,7 @@ process_t *process_new(process_t *parent, const char *name, const stdio_t *ios, 
 
     proc->main_thread = thread_new(proc, THREAD_MODE_USER, proc->name);
 
-    vmap_t *heap = mm_alloc_pages(proc->mm, 1, MOS_ADDR_USER_HEAP, VALLOC_DEFAULT, VM_USER_RW);
+    vmap_t *heap = cow_allocate_zeroed_pages(proc->mm, 1, MOS_ADDR_USER_HEAP, VALLOC_DEFAULT, VM_USER_RW);
     vmap_finalise_init(heap, VMAP_HEAP, VMAP_TYPE_PRIVATE);
 
     proc->working_directory = dentry_ref_up_to(parent ? parent->working_directory : root_dentry, root_dentry);
@@ -339,7 +339,7 @@ static bool process_sysfs_vmap_stat(sysfs_file_t *f)
     {
 #define stat_line(fmt) "   %8s: " fmt "\n"
         sysfs_printf(f, PTR_RANGE "\n", vmap->vaddr, vmap->vaddr + vmap->npages * MOS_PAGE_SIZE);
-        sysfs_printf(f, stat_line("[%pvf,%s%s]"), "Perms",        //
+        sysfs_printf(f, stat_line("%pvf,%s%s"), "Perms",          //
                      (void *) &vmap->vmflags,                     //
                      vmap->vmflags & VM_USER ? "user" : "kernel", //
                      vmap->vmflags & VM_GLOBAL ? " global" : ""   //
@@ -354,8 +354,9 @@ static bool process_sysfs_vmap_stat(sysfs_file_t *f)
             sysfs_printf(f, stat_line("%zu bytes"), "  Offset", vmap->io_offset);
         }
         sysfs_printf(f, stat_line("%zu pages"), "Total", vmap->npages);
-        sysfs_printf(f, stat_line("%zu pages"), "InMem", vmap->stat.n_inmem);
-        sysfs_printf(f, stat_line("%zu pages"), "CoW", vmap->stat.n_cow);
+        sysfs_printf(f, stat_line("%zu pages"), "Regular", vmap->stat.regular);
+        sysfs_printf(f, stat_line("%zu pages"), "Cached", vmap->stat.cached);
+        sysfs_printf(f, stat_line("%zu pages"), "CoW", vmap->stat.cow);
 #undef stat_line
         sysfs_printf(f, "\n");
     }

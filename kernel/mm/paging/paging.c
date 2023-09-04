@@ -105,7 +105,7 @@ vmap_t *mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, va
     mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, n_pages, vmap->vaddr, pfn);
 
     vmap->vmflags = flags;
-    vmap->stat.n_inmem = n_pages;
+    vmap->stat.regular = n_pages;
 
     mm_do_map(mmctx->pgd, vmap->vaddr, pfn, n_pages, flags, true);
     spinlock_release(&mmctx->mm_lock);
@@ -122,8 +122,9 @@ void mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm
     spinlock_release(&mmctx->mm_lock);
 }
 
-vmap_t *mm_map_pages_to_user(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
+vmap_t *mm_map_pages_to_user(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags, vmap_type_t type, vmap_content_t content)
 {
+    MOS_UNREACHABLE_X("why would you need this function?");
     spinlock_acquire(&mmctx->mm_lock);
     vmap_t *vmap = mm_get_free_vaddr_locked(mmctx, npages, vaddr, VALLOC_EXACT);
     if (unlikely(!vmap))
@@ -135,9 +136,10 @@ vmap_t *mm_map_pages_to_user(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t
 
     mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, npages, vmap->vaddr, pfn);
     vmap->vmflags = flags;
-    vmap->stat.n_inmem = npages;
+    vmap->stat.regular = npages;
     mm_do_map(mmctx->pgd, vmap->vaddr, pfn, npages, flags, true);
     spinlock_release(&mmctx->mm_lock);
+    vmap_finalise_init(vmap, content, type);
     return vmap;
 }
 
@@ -156,11 +158,14 @@ void mm_replace_page_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, vm_flags 
     mos_debug(vmm, "filling page at " PTR_FMT " with " PFN_FMT, vaddr, pfn);
 
     const pfn_t old_pfn = mm_do_get_pfn(ctx->pgd, vaddr);
-    if (likely(old_pfn != 0))
+    if (likely(old_pfn))
         pmm_unref_one(old_pfn); // unmapped
 
     if (unlikely(old_pfn == pfn))
-        return; // nothing to do
+    {
+        mos_warn("trying to replace page at " PTR_FMT " with the same page " PFN_FMT, vaddr, pfn);
+        return;
+    }
 
     pmm_ref_one(pfn);
     mm_do_map(ctx->pgd, vaddr, pfn, 1, flags, false);
@@ -168,7 +173,6 @@ void mm_replace_page_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, vm_flags 
 
 vmap_t *mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx)
 {
-    // we allocate a new vmap if no existing one is provided
     vmap_t *dst_vmap = mm_get_free_vaddr_locked(dst_ctx, src_vmap->npages, src_vmap->vaddr, VALLOC_EXACT);
 
     if (unlikely(!dst_vmap))
@@ -180,10 +184,13 @@ vmap_t *mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx)
     mos_debug(vmm, "copying mapping from " PTR_FMT ", %zu pages", src_vmap->vaddr, src_vmap->npages);
     mm_do_copy(src_vmap->mmctx->pgd, dst_vmap->mmctx->pgd, src_vmap->vaddr, src_vmap->npages);
 
-    dst_vmap->stat = src_vmap->stat;
-    dst_vmap->content = src_vmap->content;
     dst_vmap->vmflags = src_vmap->vmflags;
+    dst_vmap->io = src_vmap->io;
+    dst_vmap->io_offset = src_vmap->io_offset;
+    dst_vmap->content = src_vmap->content;
     dst_vmap->type = src_vmap->type;
+    dst_vmap->stat = src_vmap->stat;
+    dst_vmap->on_fault = src_vmap->on_fault;
 
     return dst_vmap;
 }
@@ -203,7 +210,7 @@ bool mm_get_is_mapped_locked(mm_context_t *mmctx, ptr_t vaddr)
 void mm_flag_pages_locked(mm_context_t *ctx, ptr_t vaddr, size_t npages, vm_flags flags)
 {
     MOS_ASSERT(npages > 0);
-
+    MOS_ASSERT(spinlock_is_locked(&ctx->mm_lock));
     mos_debug(vmm, "flagging %zd pages at " PTR_FMT " with flags %x", npages, vaddr, flags);
     mm_do_flag(ctx->pgd, vaddr, npages, flags);
 }

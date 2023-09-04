@@ -12,6 +12,7 @@
 #include "mos/mm/slab_autoinit.h"
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
+#include "mos/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_types.h"
 
@@ -210,27 +211,9 @@ void vmap_finalise_init(vmap_t *vmap, vmap_content_t content, vmap_type_t type)
     spinlock_release(&vmap->lock);
 }
 
-static bool fallback_zero_on_demand_fault_handler(vmap_t *vmap, ptr_t fault_addr, const pagefault_t *info)
+void mm_copy_page(const phyframe_t *src, const phyframe_t *dst)
 {
-    // this will be used if no pagefault handler has been registered, ie. for anonymous mappings
-    // which does not have a backing file, nor CoW pages
-
-    if (info->is_present)
-    {
-        // there is a mapping, but ATM we don't know how to handle that fault
-        // CoW fault should use cow_fault_handler()
-        return false;
-    }
-
-    phyframe_t *frame = mm_get_free_page();
-    if (unlikely(!frame))
-    {
-        pr_emerg("Out of memory");
-        return false;
-    }
-    mm_do_map(vmap->mmctx->pgd, fault_addr, phyframe_pfn(frame), 1, info->is_user ? VM_USER_RW : VM_RW, true);
-    vmap_mstat_inc(vmap, inmem, 1);
-    return true;
+    memcpy((void *) phyframe_va(dst), (void *) phyframe_va(src), MOS_PAGE_SIZE);
 }
 
 bool mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
@@ -247,71 +230,63 @@ bool mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         return false;
     }
 
+    MOS_ASSERT_X(fault_vmap->on_fault, "vmap %pvm has no fault handler", (void *) fault_vmap);
+
     if (info->is_write && !(fault_vmap->vmflags & VM_WRITE))
     {
-        pr_emph("page fault in " PTR_FMT " (read-only)", fault_addr);
+        pr_emph("page fault in read-only vmap: %pvm", (void *) fault_vmap);
         mm_unlock_ctx_pair(mm, NULL);
         return false;
     }
 
-    mos_debug(cow, "thread=%pt, fault_addr=" PTR_FMT ", handler=%ps", (void *) current_thread, fault_addr, (void *) fault_vmap->on_fault);
-
     if (info->is_present)
-        info->faulting_frame = pfn_phyframe(mm_do_get_pfn(fault_vmap->mmctx->pgd, fault_addr));
+        info->faulting_page = pfn_phyframe(mm_do_get_pfn(fault_vmap->mmctx->pgd, fault_addr));
 
-    bool result = false;
-    if (fault_vmap->on_fault)
+    static const char *const fault_result_names[] = {
+        [VMFAULT_COMPLETE] = "COMPLETE",
+        [VMFAULT_COPY_BACKING_PAGE] = "COPY_BACKING_PAGE",
+        [VMFAULT_MAP_BACKING_PAGE] = "MAP_BACKING_PAGE",
+        [VMFAULT_MAP_BACKING_PAGE_RO] = "MAP_BACKING_PAGE_RO",
+        [VMFAULT_CANNOT_HANDLE] = "CANNOT_HANDLE",
+    };
+
+    mos_debug(cow, "handler %ps", (void *) (ptr_t) fault_vmap->on_fault);
+    vmfault_result_t fault_result = fault_vmap->on_fault(fault_vmap, fault_addr, info);
+    mos_debug_cont(cow, " -> %s (%d)", fault_result_names[fault_result], fault_result);
+
+    vm_flags flags = fault_vmap->vmflags;
+    switch (fault_result)
     {
-        static const char *const fault_result_names[] = {
-            [VMFAULT_OK] = "OK",
-            [VMFAULT_GOT_BACKING_PAGE] = "GOT_BACKING_PAGE",
-            [VMFAULT_CANNOT_HANDLE] = "CANNOT_HANDLE",
-        };
-
-        vmfault_result_t fault_result = fault_vmap->on_fault(fault_vmap, fault_addr, info);
-        mos_debug(cow, "fault handler returned %s (%d)", fault_result_names[fault_result], fault_result);
-        switch (fault_result)
+        case VMFAULT_COMPLETE: break;
+        case VMFAULT_CANNOT_HANDLE: break;
+        case VMFAULT_COPY_BACKING_PAGE:
         {
-            case VMFAULT_OK: result = true; goto done;
-            case VMFAULT_CANNOT_HANDLE: goto cannot_handle;
-            case VMFAULT_GOT_BACKING_PAGE:
-            {
-                MOS_ASSERT(info->backing_page);
-
-                vm_flags flags = fault_vmap->vmflags;
-                phyframe_t *page = info->backing_page;
-
-                if (fault_vmap->type == VMAP_TYPE_PRIVATE && info->is_write)
-                {
-                    // We perform copying iff ((the page is private) AND (the user is writing to it))
-                    // If it's a private page, but the user is only reading from it, we can just map it as read-only
-                    //   so that a CoW fault can be triggered later when the user writes to it
-                    //   this saves us from copying the page unnecessarily
-                    page = mm_get_free_page();
-                    vmap_mstat_inc(fault_vmap, inmem, 1);
-                    memcpy((void *) phyframe_va(page), (void *) phyframe_va(info->backing_page), MOS_PAGE_SIZE);
-                }
-                else
-                {
-                    flags &= ~VM_WRITE;
-                }
-
-                mm_replace_page_locked(fault_vmap->mmctx, fault_addr, phyframe_pfn(page), flags);
-                ipi_send_all(IPI_TYPE_INVALIDATE_TLB);
-                result = true;
-            }
+            MOS_ASSERT(info->backing_page);
+            const phyframe_t *page = mm_get_free_page();
+            mm_copy_page(info->backing_page, page);
+            info->backing_page = page;
+            goto map_backing_page;
+        }
+        case VMFAULT_MAP_BACKING_PAGE_RO:
+        {
+            flags &= ~VM_WRITE;
+            goto map_backing_page;
+        }
+        case VMFAULT_MAP_BACKING_PAGE:
+        {
+        map_backing_page:
+            MOS_ASSERT(info->backing_page);
+            mos_debug_cont(cow, " (backing page: " PFN_FMT ")", phyframe_pfn(info->backing_page));
+            mm_replace_page_locked(fault_vmap->mmctx, fault_addr, phyframe_pfn(info->backing_page), flags);
+            fault_result = VMFAULT_COMPLETE;
         }
     }
-    else
-    {
-    cannot_handle:
-        result = fallback_zero_on_demand_fault_handler(fault_vmap, fault_addr, info);
-    }
 
-done:
+    MOS_ASSERT_X(fault_result == VMFAULT_COMPLETE || fault_result == VMFAULT_CANNOT_HANDLE, "invalid fault result %d", fault_result);
     spinlock_release(&fault_vmap->lock);
     mm_unlock_ctx_pair(mm, NULL);
-    return result;
+    ipi_send_all(IPI_TYPE_INVALIDATE_TLB);
+    return fault_result == VMFAULT_COMPLETE;
 }
 
 // ! sysfs support

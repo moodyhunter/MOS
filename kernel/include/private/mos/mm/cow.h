@@ -7,15 +7,11 @@
 #include "mos/tasks/task_types.h"
 
 /**
- * @brief Make a copy-on-write block
+ * @brief Copy-on-write a page range
  *
- * @param from Source paging handle
- * @param fvaddr Source virtual address
- * @param to Target paging handle
- * @param tvaddr Target virtual address
- * @param npages Number of pages to copy
- * @param flags VM flags to use, VM_WRITE will be ignored
- * @return vmblock_t The allocated block, but with original flags set
+ * @param target_mmctx The mm context to copy to
+ * @param source_vmap The vmap to copy from
+ * @return vmap_t* The new vmap, with the lock held
  */
 vmap_t *cow_clone_vmap_locked(mm_context_t *target_mmctx, vmap_t *source_vmap);
 

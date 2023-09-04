@@ -34,16 +34,6 @@ process_t *process_handle_fork(process_t *parent)
     mm_lock_ctx_pair(parent->mm, child_p->mm);
     list_foreach(vmap_t, vmap_p, parent->mm->mmaps)
     {
-#if MOS_DEBUG_FEATURE(fork)
-        pr_info2("fork %d->%d: %10s " PTR_FMT "+%-3zu flags [0x%x]", //
-                 parent->pid,                                        //
-                 child_p->pid,                                       //
-                 vmap_type_str[vmap_p->type],                        //
-                 vmap_p->vaddr,                                      //
-                 vmap_p->npages,                                     //
-                 vmap_p->vmflags                                     //
-        );
-#endif
         vmap_t *child_vmap = NULL;
         switch (vmap_p->type)
         {
@@ -51,6 +41,9 @@ process_t *process_handle_fork(process_t *parent)
             case VMAP_TYPE_PRIVATE: child_vmap = cow_clone_vmap_locked(child_p->mm, vmap_p); break;
             default: mos_panic("unknown vmap"); break;
         }
+#if MOS_DEBUG_FEATURE(fork)
+        pr_info2("fork %d->%d: %10s, parent vmap: %pvm, child vmap: %pvm", parent->pid, child_p->pid, vmap_type_str[vmap_p->type], (void *) vmap_p, (void *) child_vmap);
+#endif
         vmap_finalise_init(child_vmap, vmap_p->content, vmap_p->type);
     }
 

@@ -14,16 +14,6 @@ typedef enum
     _MEM_MAX_TYPES,
 } mmstat_type_t;
 
-/**
- * @brief Memory usage statistics for a specific vmap area.
- *
- */
-typedef struct
-{
-    size_t n_inmem; ///< Number of pages in memory.
-    size_t n_cow;   ///< Number of pages in copy-on-write state.
-} vmap_mstat_t;
-
 extern const char *mem_type_names[_MEM_MAX_TYPES];
 
 /**
@@ -44,5 +34,38 @@ void mmstat_inc(mmstat_type_t type, size_t size);
 void mmstat_dec(mmstat_type_t type, size_t size);
 #define mmstat_dec1(type) mmstat_dec(type, 1)
 
-#define vmap_mstat_inc(vmap, type, size) (vmap)->stat.n_##type += (size)
-#define vmap_mstat_dec(vmap, type, size) (vmap)->stat.n_##type -= (size)
+/**
+ * @brief Memory usage statistics for a specific vmap area.
+ *
+ * @details Different types of memory:
+ *  The metrics in this struct only describe what is 'mapped' in the vmap area.
+ *  Unmapped pages are not counted.
+ *
+ *  On a page fault, the page is mapped in and the following happens:
+ *
+ *  Private File-backed:
+ *      Read        cached++, cow++,
+ *      Written     regular++,
+ *                  if the page is already mapped, cached--, cow-- (page is not in the page cache)
+ *      Forked      cow += regular, regular = 0 (regular pages now becomes cow pages, cached ones stay cached (read-only))
+ *  Shared File-backed:
+ *      Read        cached++, regular++,
+ *      Written     if the page wasn't priviously mapped, cached++, regular++ (a new page cache page is now mapped)
+ *  Private Anonymous:
+ *      Read        cow++,
+ *                  zero page is mapped
+ *      Written     regular++, cow--,
+ *      Forked      cow += regular, regular = 0 (regular pages now becomes cow pages)
+ *  Shared Anonymous:
+ *      NOT IMPLEMENTED (yet)
+ *
+ */
+typedef struct
+{
+    size_t regular; ///< regular pages with no special flags being set or unset
+    size_t cached;  ///< pages that are in the page cache (file-backed only)
+    size_t cow;     ///< pages that are copy-on-write
+} vmap_stat_t;
+
+#define vmap_stat_inc(vmap, type) (vmap)->stat.type += 1
+#define vmap_stat_dec(vmap, type) (vmap)->stat.type -= 1

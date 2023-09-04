@@ -2,6 +2,7 @@
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/mm/mm.h"
+#include "mos/mm/mmstat.h"
 #include "mos/mm/paging/table_ops.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab_autoinit.h"
@@ -151,12 +152,38 @@ static off_t vfs_io_ops_seek(io_t *io, off_t offset, io_seek_whence_t whence)
     return ret;
 }
 
-static vmfault_result_t vfs_mmap_fault_handler(vmap_t *vmap, ptr_t fault_addr, pagefault_t *info)
+static vmfault_result_t vfs_fault_handler(vmap_t *vmap, ptr_t fault_addr, pagefault_t *info)
 {
+    MOS_ASSERT(vmap->io);
     file_t *file = container_of(vmap->io, file_t, io);
     const size_t fault_pgoffset = (vmap->io_offset + ALIGN_DOWN_TO_PAGE(fault_addr) - vmap->vaddr) / MOS_PAGE_SIZE;
-    info->backing_page = pagecache_get_page_for_read(&file->dentry->inode->cache, fault_pgoffset);
-    return VMFAULT_GOT_BACKING_PAGE;
+    info->backing_page = info->is_present ? info->faulting_page : pagecache_get_page_for_read(&file->dentry->inode->cache, fault_pgoffset);
+
+    if (info->backing_page == NULL)
+        return VMFAULT_CANNOT_HANDLE;
+
+    if (vmap->type == VMAP_TYPE_PRIVATE)
+    {
+        if (info->is_write)
+        {
+            vmap_stat_inc(vmap, regular);
+            if (info->is_present)
+                vmap_stat_inc(vmap, cached), vmap_stat_dec(vmap, cow);
+            return VMFAULT_COPY_BACKING_PAGE;
+        }
+        else
+        {
+            vmap_stat_inc(vmap, cached);
+            vmap_stat_inc(vmap, cow);
+            return VMFAULT_MAP_BACKING_PAGE_RO;
+        }
+    }
+    else
+    {
+        vmap_stat_inc(vmap, cached);
+        vmap_stat_inc(vmap, regular);
+        return VMFAULT_MAP_BACKING_PAGE;
+    }
 }
 
 static bool vfs_io_ops_mmap(io_t *io, vmap_t *vmap, off_t offset)
@@ -165,7 +192,7 @@ static bool vfs_io_ops_mmap(io_t *io, vmap_t *vmap, off_t offset)
     const file_ops_t *const file_ops = file_get_ops(file);
 
     MOS_ASSERT(!vmap->on_fault); // there should be no fault handler set
-    vmap->on_fault = vfs_mmap_fault_handler;
+    vmap->on_fault = vfs_fault_handler;
 
     if (file_ops->mmap)
         return file_ops->mmap(file, vmap, offset);

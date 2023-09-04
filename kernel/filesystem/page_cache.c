@@ -61,16 +61,16 @@ ssize_t vfs_write_pagecache(inode_cache_t *icache, const void *buf, size_t total
     size_t bytes_left = total_size;
     while (bytes_left > 0)
     {
-        // bytes to copy from the current page
+        // bytes to copy to the current page
         const size_t inpage_offset = offset % MOS_PAGE_SIZE;
         const size_t inpage_size = MIN(MOS_PAGE_SIZE - inpage_offset, bytes_left); // in case we're at the end of the file,
 
         void *private;
         phyframe_t *page;
-        bool can_write = ops->page_write_begin(icache, offset, inpage_size, &page, &private);
+        const bool can_write = ops->page_write_begin(icache, offset, inpage_size, &page, &private);
         if (!can_write)
         {
-            mos_debug(vfs, "page_write_begin failed");
+            pr_warn("page_write_begin failed");
             return -1;
         }
 

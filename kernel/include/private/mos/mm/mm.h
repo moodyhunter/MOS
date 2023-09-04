@@ -13,8 +13,6 @@
 typedef enum
 {
     VMAP_UNKNOWN = 0,
-    VMAP_CODE,  // code
-    VMAP_DATA,  // data
     VMAP_HEAP,  // heap
     VMAP_STACK, // stack (user)
     VMAP_FILE,  // file mapping
@@ -30,14 +28,16 @@ typedef enum
 typedef struct
 {
     bool is_present, is_write, is_user, is_exec;
-    phyframe_t *faulting_frame; ///< the frame that contains the copy-on-write data (if any)
-    phyframe_t *backing_page;   ///< the frame that contains the data for this page, the on_fault handler should set this
+    phyframe_t *faulting_page;      ///< the frame that contains the copy-on-write data (if any)
+    const phyframe_t *backing_page; ///< the frame that contains the data for this page, the on_fault handler should set this
 } pagefault_t;
 
 typedef enum
 {
-    VMFAULT_OK,                   ///< no further action is needed, the page is correctly mapped now
-    VMFAULT_GOT_BACKING_PAGE,     ///< the handler has allocated a new frame for the page
+    VMFAULT_COMPLETE,             ///< no further action is needed, the page is correctly mapped now
+    VMFAULT_MAP_BACKING_PAGE_RO,  ///< the caller should map the backing page into the faulting address, and mark it non-writable
+    VMFAULT_MAP_BACKING_PAGE,     ///< the caller should map the backing page into the faulting address
+    VMFAULT_COPY_BACKING_PAGE,    ///< the caller should copy the backing page into the faulting address
     VMFAULT_CANNOT_HANDLE = 0xff, ///< the handler cannot handle this fault
 } vmfault_result_t;
 
@@ -60,7 +60,7 @@ typedef struct _vmap
 
     vmap_content_t content;
     vmap_type_t type;
-    vmap_mstat_t stat;
+    vmap_stat_t stat;
     vmfault_handler_t on_fault;
 } vmap_t;
 
