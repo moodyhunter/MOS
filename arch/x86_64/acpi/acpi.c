@@ -15,9 +15,9 @@
 #include <mos/x86/devices/port.h>
 #include <mos/x86/x86_interrupt.h>
 #include <mos/x86/x86_platform.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 #include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
 
 ptr_t x86_acpi_dsdt = 0;
 

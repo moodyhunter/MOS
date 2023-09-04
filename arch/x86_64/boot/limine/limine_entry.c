@@ -13,7 +13,7 @@
 #include "mos/x86/x86_platform.h"
 
 #include <mos/mos_global.h>
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 static volatile struct limine_memmap_request memmap_request = { .id = LIMINE_MEMMAP_REQUEST, .revision = 0 };
 static volatile struct limine_kernel_address_request kernel_address_request = { .id = LIMINE_KERNEL_ADDRESS_REQUEST, .revision = 0 };

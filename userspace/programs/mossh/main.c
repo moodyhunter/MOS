@@ -9,9 +9,9 @@
 #include <mos/lib/cmdline.h>
 #include <mos/mos_global.h>
 #include <mos/syscall/usermode.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 #include <sys/stat.h>
 
 // We don't support environment variables yet, so we hardcode the path

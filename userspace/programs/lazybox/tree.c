@@ -3,9 +3,9 @@
 #include <fcntl.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/syscall/usermode.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 #define dirent_next(d) ((dir_entry_t *) ((char *) d + d->next_offset))
 static size_t depth = 1;

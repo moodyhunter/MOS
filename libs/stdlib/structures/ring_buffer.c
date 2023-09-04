@@ -2,8 +2,8 @@
 
 #include <mos/lib/structures/ring_buffer.h>
 #include <mos/moslib_global.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 static u8 ring_buffer_get(u8 *data, ring_buffer_pos_t *pos, size_t index)
 {

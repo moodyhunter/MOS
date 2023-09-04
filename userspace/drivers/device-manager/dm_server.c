@@ -3,7 +3,7 @@
 #include "dm/common.h"
 
 #include <librpc/rpc_server.h>
-#include <stdio.h>
+#include <mos_stdio.h>
 
 DECLARE_RPC_SERVER_PROTOTYPES(dm, DM_RPCS_X)
 

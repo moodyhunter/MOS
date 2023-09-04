@@ -18,8 +18,8 @@
 
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 static slab_t *vmap_cache = NULL;
 SLAB_AUTOINIT("vmap", vmap_cache, vmap_t);

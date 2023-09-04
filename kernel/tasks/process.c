@@ -24,9 +24,9 @@
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
 #include <mos/tasks/wait.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 hashmap_t process_table = { 0 }; // pid_t -> process_t
 

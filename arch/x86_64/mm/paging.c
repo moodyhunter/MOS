@@ -18,7 +18,7 @@
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/types.h>
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 static mm_context_t x86_kernel_mmctx = {
     .mm_lock = SPINLOCK_INIT,

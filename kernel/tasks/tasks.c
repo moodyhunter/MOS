@@ -12,7 +12,7 @@
 #include <mos/tasks/process.h>
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 #define PROCESS_HASHTABLE_SIZE 512
 #define THREAD_HASHTABLE_SIZE  512

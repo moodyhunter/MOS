@@ -3,7 +3,7 @@
 #include "test_engine.h"
 
 #include <mos/lib/structures/stack.h>
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 MOS_TEST_CASE(stack_init_deinit)
 {

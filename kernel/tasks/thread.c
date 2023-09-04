@@ -14,8 +14,8 @@
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
 #include <mos/tasks/wait.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 hashmap_t thread_table = { 0 }; // tid_t -> thread_t
 

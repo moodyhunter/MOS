@@ -10,7 +10,7 @@
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
 #include <mos/tasks/wait.h>
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 static slab_t *waitlist_listentry_slab = NULL;
 SLAB_AUTOINIT("waitlist_entry", waitlist_listentry_slab, waitable_list_entry_t);

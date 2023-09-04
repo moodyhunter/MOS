@@ -17,9 +17,9 @@
 #include <mos/io/io_types.h>
 #include <mos/lib/structures/list.h>
 #include <mos/types.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 typedef struct _sysfs_file
 {

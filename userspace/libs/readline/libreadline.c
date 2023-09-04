@@ -6,8 +6,9 @@
 #include "string.h"
 
 #include <mos/syscall/usermode.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 #define LINE_BUFFER_SIZE 1024
 

@@ -5,9 +5,9 @@
 #include <argparse/libargparse.h>
 #include <libconfig/libconfig.h>
 #include <librpc/rpc_server.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 extern void dm_run_server(rpc_server_t *server);
 

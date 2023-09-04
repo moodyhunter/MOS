@@ -9,8 +9,8 @@
 #include "mos/tasks/process.h"
 #include "mos/tasks/thread.h"
 
+#include <mos_string.h>
 #include <stddef.h>
-#include <string.h>
 
 MOS_STATIC_ASSERT(sizeof(elf_header_t) == (MOS_BITS == 32 ? 0x34 : 0x40), "elf_header has wrong size");
 MOS_STATIC_ASSERT(sizeof(elf_program_hdr_t) == (MOS_BITS == 32 ? 0x20 : 0x38), "elf_program_header has wrong size");

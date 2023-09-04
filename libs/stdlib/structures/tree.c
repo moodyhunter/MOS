@@ -3,7 +3,7 @@
 #include <mos/lib/structures/list.h>
 #include <mos/lib/structures/tree.h>
 #include <mos/moslib_global.h>
-#include <string.h>
+#include <mos_string.h>
 
 void tree_node_init(tree_node_t *node)
 {

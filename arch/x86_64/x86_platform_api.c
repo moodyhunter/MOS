@@ -22,8 +22,8 @@
 #include <mos/x86/tasks/context.h>
 #include <mos/x86/x86_interrupt.h>
 #include <mos/x86/x86_platform.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 noreturn void platform_shutdown(void)
 {

@@ -6,7 +6,7 @@
 #include <mos/tasks/process.h>
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 static process_t *kthreadd = NULL;
 

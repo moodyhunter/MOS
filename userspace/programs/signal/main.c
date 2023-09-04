@@ -2,8 +2,8 @@
 
 #include <mos/syscall/usermode.h>
 #include <mos/tasks/signal_types.h>
-#include <signal.h>
-#include <stdio.h>
+#include <mos_signal.h>
+#include <mos_stdio.h>
 
 void sigint_handler(signal_t signum)
 {

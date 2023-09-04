@@ -17,7 +17,7 @@
 #include <mos/x86/tasks/context.h>
 #include <mos/x86/x86_interrupt.h>
 #include <mos/x86/x86_platform.h>
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 static const char *const x86_exception_names[EXCEPTION_COUNT] = {
     "Divide-By-Zero Error",

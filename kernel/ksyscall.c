@@ -18,8 +18,8 @@
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 #define DEFINE_SYSCALL(ret, name)                                                                                                                                        \
     MOS_STATIC_ASSERT(SYSCALL_DEFINED(name));                                                                                                                            \

@@ -16,7 +16,7 @@
 #include <mos/mos_global.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 vmap_t *mm_get_free_vaddr_locked(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags)
 {

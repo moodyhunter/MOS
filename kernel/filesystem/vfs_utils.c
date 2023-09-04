@@ -11,8 +11,8 @@
 
 #include <mos/lib/structures/hashmap_common.h>
 #include <mos/types.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 static struct
 {

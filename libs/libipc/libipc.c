@@ -2,9 +2,9 @@
 
 #include "libipc/ipc.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 #ifdef __MOS_KERNEL__
 #include <mos/syscall/decl.h>

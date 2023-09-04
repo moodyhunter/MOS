@@ -2,7 +2,7 @@
 
 #include <fcntl.h>
 #include <mos/syscall/usermode.h>
-#include <stdio.h>
+#include <mos_stdio.h>
 
 #define BUFSIZE 256
 

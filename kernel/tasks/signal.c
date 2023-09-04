@@ -11,7 +11,7 @@
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/tasks/signal_types.h>
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 static slab_t *sigpending_slab = NULL;
 SLAB_AUTOINIT("signal_pending", sigpending_slab, sigpending_t);
@@ -111,7 +111,7 @@ void signal_check_and_handle(void)
         SELECT_SIGNAL_HANDLER_OR(SIGTERM, terminate);
         SELECT_SIGNAL_HANDLER_OR(SIGCHLD, ignore);
 
-        case _SIGMAX_: MOS_UNREACHABLE(); break;
+        default: MOS_UNREACHABLE_X("handle this signal %d", next->signal); break;
     }
 
     if (!action.handler)

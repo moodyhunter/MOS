@@ -5,8 +5,8 @@
 #include <fcntl.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/syscall/usermode.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 #include <sys/stat.h>
 
 typedef struct struct_config

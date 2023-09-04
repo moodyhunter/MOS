@@ -5,7 +5,7 @@
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
 #include <mos/x86/x86_platform.h>
-#include <string.h>
+#include <mos_string.h>
 
 struct x86_cpu_descriptor x86_cpu_descriptor = { 0 };
 

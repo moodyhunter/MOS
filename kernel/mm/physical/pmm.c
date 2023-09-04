@@ -11,7 +11,7 @@
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 phyframe_t *phyframes = NULL;
 size_t pmm_total_frames = 0; // system pfn <= pfn_max

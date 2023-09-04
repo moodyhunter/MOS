@@ -7,7 +7,7 @@
 #include "mos/platform/platform.h"
 
 #include <mos/lib/structures/list.h>
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 typedef struct
 {

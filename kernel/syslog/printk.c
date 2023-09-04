@@ -6,8 +6,8 @@
 #include <mos/lib/sync/spinlock.h>
 #include <mos/printk.h>
 #include <mos/setup.h>
-#include <stdio.h>
-#include <string.h>
+#include <mos_stdio.h>
+#include <mos_string.h>
 
 static console_t *printk_console;
 bool printk_quiet;

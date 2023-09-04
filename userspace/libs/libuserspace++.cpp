@@ -5,8 +5,8 @@
 
 #include <mos/lib/sync/mutex.h>
 #include <mos/types.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
 
 void *__dso_handle = 0;
 

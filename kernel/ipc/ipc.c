@@ -15,7 +15,7 @@
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/wait.h>
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 #define IPC_SERVER_MAGIC MOS_FOURCC('I', 'P', 'C', 'S')
 

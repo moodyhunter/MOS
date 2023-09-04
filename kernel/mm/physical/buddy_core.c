@@ -4,7 +4,7 @@
 #include "mos/mm/physical/pmm.h"
 
 #include <mos/lib/structures/list.h>
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 #define log2(x)                                                                                                                                                          \
     __extension__({                                                                                                                                                      \

@@ -2,8 +2,8 @@
 
 #include "test_engine.h"
 
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 MOS_TEST_CASE(kmalloc_single)
 {

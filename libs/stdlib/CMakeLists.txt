@@ -5,10 +5,10 @@ add_mos_library(
     PUBLIC_INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_LIST_DIR}/include
     SOURCES
-        stdio.c
-        stdio_impl.c
-        stdlib.c
-        string.c
+        mos_stdio.c
+        mos_stdio_impl.c
+        mos_stdlib.c
+        mos_string.c
         cmdline.c
         structures/bitmap.c
         structures/hashmap.c

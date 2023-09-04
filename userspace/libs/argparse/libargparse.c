@@ -1,6 +1,6 @@
 #include "argparse/libargparse.h"
 
-#include <stdio.h>
+#include <mos_stdio.h>
 
 #define ARGPARSE_MSG_INVALID "invalid option"
 #define ARGPARSE_MSG_MISSING "option requires an argument"

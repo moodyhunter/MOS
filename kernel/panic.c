@@ -10,7 +10,7 @@
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
 #include <mos/setup.h>
-#include <stdio.h>
+#include <mos_stdio.h>
 
 // stack smashing protector
 u64 __stack_chk_guard = 0;

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <mos/syscall/usermode.h>
-#include <stdio.h>
-#include <string.h>
+#include <mos_stdio.h>
+#include <mos_string.h>
 
 int main(int argc, char **argv)
 {

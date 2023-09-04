@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <mos/syscall/usermode.h>
-#include <stdio.h>
+#include <mos_stdio.h>
 
 #define WAITMSG "pid %d waits for %d\n"
 

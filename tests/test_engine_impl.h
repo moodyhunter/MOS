@@ -6,8 +6,8 @@
 #include <mos/device/console.h>
 #include <mos/mos_global.h>
 #include <mos/types.h>
+#include <mos_string.h>
 #include <stdbool.h>
-#include <string.h>
 
 extern s32 test_engine_n_warning_expected;
 extern void mos_test_engine_log(standard_color_t color, char symbol, char *format, ...);

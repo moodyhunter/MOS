@@ -11,7 +11,7 @@
 #include "mos/platform/platform.h"
 
 #include <mos/mos_global.h>
-#include <string.h>
+#include <mos_string.h>
 
 static void pml1e_do_copy_callback(pml1_t pml1, pml1e_t *src_e, ptr_t vaddr, void *data)
 {

@@ -10,8 +10,8 @@
 #include <mos/mos_global.h>
 #include <mos/printk.h>
 #include <mos/setup.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 typedef struct
 {

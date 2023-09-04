@@ -20,8 +20,8 @@
 #include <mos/printk.h>
 #include <mos/tasks/process.h>
 #include <mos/types.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 static list_head vfs_fs_list = LIST_HEAD_INIT(vfs_fs_list); // filesystem_t
 static spinlock_t vfs_fs_list_lock = SPINLOCK_INIT;

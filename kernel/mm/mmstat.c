@@ -11,7 +11,7 @@
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_types.h"
 
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 typedef struct
 {

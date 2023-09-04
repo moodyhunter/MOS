@@ -2,7 +2,7 @@
 
 #include <liballoc.h>
 #include <mos/syscall/usermode.h>
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 void *liballoc_alloc_page(size_t npages)
 {

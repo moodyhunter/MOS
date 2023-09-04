@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <mos/filesystem/fs_types.h>
-#include <stdlib.h>
+#include <mos_stdlib.h>
 #include <sys/stat.h>
 
 bool stat(const char *path, file_stat_t *buf)

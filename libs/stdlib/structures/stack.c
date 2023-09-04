@@ -2,8 +2,8 @@
 
 #include <mos/lib/structures/stack.h>
 #include <mos/moslib_global.h>
-#include <stdio.h>
-#include <string.h>
+#include <mos_stdio.h>
+#include <mos_string.h>
 
 void stack_init(downwards_stack_t *stack, void *mem_region_bottom, size_t size)
 {

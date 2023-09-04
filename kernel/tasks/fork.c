@@ -12,7 +12,7 @@
 #include <mos/tasks/process.h>
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
-#include <string.h>
+#include <mos_string.h>
 
 extern const char *vmap_type_str[];
 

@@ -2,9 +2,9 @@
 
 #include <mos/mos_global.h>
 #include <mos/moslib_global.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 typedef enum
 {

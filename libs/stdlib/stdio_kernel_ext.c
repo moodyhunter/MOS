@@ -5,7 +5,7 @@
 #include "mos/tasks/task_types.h"
 
 #include <mos/types.h>
-#include <stdio.h>
+#include <mos_stdio.h>
 
 static size_t do_print_vmflags(char *buf, size_t size, vm_flags flags)
 {

@@ -10,7 +10,7 @@
 #include <mos/x86/interrupt/apic.h>
 #include <mos/x86/mm/paging_impl.h>
 #include <mos/x86/x86_platform.h>
-#include <string.h>
+#include <mos_string.h>
 
 volatile enum
 {

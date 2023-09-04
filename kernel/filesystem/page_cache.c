@@ -6,8 +6,8 @@
 #include "mos/mm/mmstat.h"
 #include "mos/mm/physical/pmm.h"
 
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 phyframe_t *pagecache_get_page_for_read(inode_cache_t *cache, off_t pgoff)
 {

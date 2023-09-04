@@ -10,9 +10,9 @@
 #include <mos/panic.h>
 #include <mos/printk.h>
 #include <mos/setup.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 s32 test_engine_n_warning_expected = 0;
 

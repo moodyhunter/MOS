@@ -2,7 +2,7 @@
 
 #include <mos/lib/structures/hashmap_common.h>
 #include <mos/types.h>
-#include <string.h>
+#include <mos_string.h>
 
 static hash_t __pure string_hash(const char *s, const int n)
 {

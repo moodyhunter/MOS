@@ -8,8 +8,8 @@
 #include "mos/x86/x86_platform.h"
 
 #include <mos/printk.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 pfn_t phyframes_pfn = 0;
 size_t phyframes_npages = 0;

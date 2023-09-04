@@ -3,23 +3,10 @@
 #pragma once
 
 #include <mos/types.h>
+#include <signal.h>
 
-typedef enum
-{
-    SIGINT = 2,   ///< interrupt
-    SIGILL = 4,   ///< illegal instruction
-    SIGTRAP = 5,  ///< trace/breakpoint trap
-    SIGABRT = 6,  ///< abort
-    SIGKILL = 9,  ///< kill
-    SIGSEGV = 11, ///< invalid memory reference
-    SIGTERM = 15, ///< termination
-    SIGCHLD = 17, ///< child process terminated
-
-    _SIGMAX_,
-} signal_t;
-
-#define SIGNAL_MAX_N 32
-MOS_STATIC_ASSERT(SIGNAL_MAX_N > _SIGMAX_, "SIGNAL_MAX_N must be at least SIGSTOP + 1");
+#define SIGNAL_MAX_N SIGRTMAX
+typedef int signal_t;
 
 typedef void(sighandler)(signal_t signal);
 

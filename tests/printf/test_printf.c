@@ -2,7 +2,7 @@
 
 #include "test_engine.h"
 
-#include <stdio.h>
+#include <mos_stdio.h>
 
 static char buffer[2048] = { 0 };
 

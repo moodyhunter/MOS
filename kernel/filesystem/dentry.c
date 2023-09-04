@@ -17,9 +17,9 @@
 #include <mos/printk.h>
 #include <mos/tasks/process.h>
 #include <mos/tasks/task_types.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 // A path in its string form is composed of "segments" separated
 // by a slash "/", a path may:

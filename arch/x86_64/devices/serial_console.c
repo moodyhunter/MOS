@@ -6,7 +6,7 @@
 #include <mos/lib/structures/list.h>
 #include <mos/x86/devices/serial.h>
 #include <mos/x86/devices/serial_console.h>
-#include <string.h>
+#include <mos_string.h>
 
 const char ansi_reset[] = ANSI_COLOR_RESET;
 

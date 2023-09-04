@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <fcntl.h>
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 fd_t open(const char *path, open_flags flags)
 {

@@ -8,8 +8,8 @@
 #include <mos/io/io_types.h>
 #include <mos/mm/mm_types.h>
 #include <mos/moslib_global.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
 #include <sys/stat.h>
 
 void *laihost_malloc(size_t size)

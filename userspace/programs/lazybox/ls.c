@@ -4,7 +4,7 @@
 #include <mos/filesystem/fs_types.h>
 #include <mos/syscall/usermode.h>
 #include <mos/types.h>
-#include <stdio.h>
+#include <mos_stdio.h>
 #include <sys/stat.h>
 
 #define BUFSIZE 256

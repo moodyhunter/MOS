@@ -4,11 +4,10 @@
 #include "struct_file.h"
 
 #include <mos/syscall/usermode.h>
-#include <signal.h>
+#include <mos_signal.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
 #include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 typedef struct thread_start_args
 {

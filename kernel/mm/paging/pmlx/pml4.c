@@ -10,7 +10,7 @@
 #include "mos/platform/platform.h"
 
 #include <mos/mos_global.h>
-#include <string.h>
+#include <mos_string.h>
 
 #if MOS_PLATFORM_PAGING_LEVELS < 4
 void pml4_traverse(pml4_t pml4, ptr_t *vaddr, size_t *n_pages, pagetable_walk_options_t callback, void *data)

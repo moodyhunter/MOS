@@ -7,7 +7,7 @@
 #include "mos/mm/paging/pmlx/pml3.h"
 #include "mos/mm/paging/pmlx/pml4.h"
 
-#include <string.h>
+#include <mos_string.h>
 
 static void pagetable_iterator_start_current_range(pagetable_iter_t *it, pml5_t *pml5, pml4_t *pml4, pml3_t *pml3, pml2_t *pml2, pml1_t *pml1)
 {

@@ -7,7 +7,7 @@
 #include "mos/mm/paging/pmlx/pml1.h"
 #include "mos/mm/physical/pmm.h"
 
-#include <string.h>
+#include <mos_string.h>
 
 void pml2_traverse(pml2_t pml2, ptr_t *vaddr, size_t *n_pages, pagetable_walk_options_t options, void *data)
 {

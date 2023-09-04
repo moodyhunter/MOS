@@ -6,9 +6,9 @@
 #include <mos/filesystem/fs_types.h>
 #include <mos/io/io_types.h>
 #include <mos/syscall/usermode.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 
 struct _FILE __stdin = { .fd = 0 };
 struct _FILE __stdout = { .fd = 1 };

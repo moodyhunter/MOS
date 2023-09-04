@@ -6,9 +6,9 @@
 
 #include <librpc/rpc_client.h>
 #include <mos/types.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 #include <sys/stat.h>
 
 static rpc_server_stub_t *dm;

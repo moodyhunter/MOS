@@ -7,7 +7,7 @@
 #include <mos/printk.h>
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/wait.h>
-#include <string.h>
+#include <mos_string.h>
 
 list_head consoles = LIST_HEAD_INIT(consoles);
 

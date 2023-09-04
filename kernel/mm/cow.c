@@ -19,7 +19,7 @@
 #include <mos/tasks/process.h>
 #include <mos/tasks/task_types.h>
 #include <mos/types.h>
-#include <string.h>
+#include <mos_string.h>
 
 static phyframe_t *_zero_page = NULL;
 static phyframe_t *zero_page(void)

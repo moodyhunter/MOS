@@ -6,7 +6,7 @@
 #include <mos/kallsyms.h>
 #include <mos/lib/cmdline.h>
 #include <mos/printk.h>
-#include <string.h>
+#include <mos_string.h>
 
 static bool cmdline_is_truthy(const char *arg)
 {

@@ -9,7 +9,7 @@
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/wait.h>
 #include <mos/types.h>
-#include <stdlib.h>
+#include <mos_stdlib.h>
 
 typedef ptr_t futex_key_t;
 
