@@ -135,6 +135,11 @@ foreach(name ${cache_variable_names})
             continue()
         endif()
 
+        # if it's a string, quote it
+        if (NOT "${${name}}" MATCHES "^([0-9]+|y|n)$")
+            set(${name} "\"${${name}}\"")
+        endif()
+
         # It is (then) assumed to be a Kconfig symbol assignment from the CMake command line.
         set(EXTRA_KCONFIG_OPTIONS "${EXTRA_KCONFIG_OPTIONS}\n${name}=${${name}}")
         message(VERBOSE "Kconfig: Assigned ${name}=${${name}} from CMake command line")
