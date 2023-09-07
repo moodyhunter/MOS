@@ -1,69 +1,100 @@
-name: Build MOS Documentation
+name: Build MOS Documentation and CodeBrowser
 
 on:
   push:
+    branches: ["main"]
   workflow_dispatch:
-
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
 
 # Allow one concurrent deployment
 concurrency:
-  group: "pages"
+  group: "mos-docs"
   cancel-in-progress: true
 
 jobs:
   build:
+    name: Build
     runs-on: ubuntu-latest
-
+    container:
+      image: archlinux:latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - name: Install packages
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm --needed base-devel git cmake ninja clang lld nasm cpio wget python jq llvm
+
+      - uses: actions/checkout@v3
         with:
           submodules: true
 
-      - name: Install packages
+      - name: Install Toolchains
         run: |
-          sudo apt update
-          sudo apt -y install nasm grub2-common mtools jq ninja-build cpio libgmp-dev libmpfr-dev libmpc-dev
-
-      - name: Download & Extract Cross Compiler
-        run: |
-          wget -q "https://github.com/moodyhunter/mos-toolchain-prebuilt/releases/download/artifact/toolchain-x86_64-elf.tar.gz"
-          tar -xzf toolchain-x86_64-elf.tar.gz
-          mv toolchain /tmp/
-          echo "PATH=$PATH:/tmp/toolchain/bin" >> $GITHUB_ENV
+          git clone https://github.com/moodyhunter/mos-packages
+          ./mos-packages/fetch-package.sh x86_64-mos-gcc
+          ./mos-packages/fetch-package.sh x86_64-mos-mlibc
 
       - name: Configure CMake
         run: |
           cmake \
-            -B ${{github.workspace}}/build \
+            -B build \
             -DMOS_CONFIG=x86_64-debug \
             -DMOS_ARCH=x86_64 \
             -G Ninja
 
       - name: Build
         run: |
-          cd ${{github.workspace}}/build
-          ninja mos_initrd # We don't need to make a bootable kernel.
+          cd build
+          ninja mos_limine mos_initrd
 
       - name: Clone Stylesheet
         run: |
-          git clone https://github.com/jothepro/doxygen-awesome-css ${{github.workspace}}/build/doxygen-awesome-css
+          git clone https://github.com/jothepro/doxygen-awesome-css build/doxygen-awesome-css
 
       - uses: mattnotmitt/doxygen-action@v1.9.4
         with:
           doxyfile-path: ".github/workflows/Doxyfile"
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v2
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+      - name: Build CodeBrowser
+        run: |
+          cd build
+          git clone https://github.com/moodyhunter/codebrowser
+          cd codebrowser
+          mkdir build && cd build
+          cmake .. -DCLANG_BUILTIN_HEADERS_DIR=/usr/lib/clang/*/include
+          make -j2
+
+      - name: Generate CodeBrowser
+        run: |
+          cd build
+          ./codebrowser/build/generator/codebrowser_generator -d /mos-code-browser/data -b ./compile_commands.json -a -o ./docs -p MOS:..
+          ./codebrowser/build/indexgenerator/codebrowser_indexgenerator ./docs -d /mos-code-browser/data
+          cp -rv ./codebrowser/data ./docs/data
+          mv ./docs ./doxygen_output/html/source-code
+
+      - name: Fix permissions
+        run: |
+          cd build
+          chmod -c -R +rX "doxygen_output/html/" | while read line; do
+            echo "::warning title=Invalid file permissions automatically fixed::$line"
+          done
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v2
         with:
           path: "build/doxygen_output/html"
+
+  deploy:
+    needs: build
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v2
