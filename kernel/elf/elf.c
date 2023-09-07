@@ -16,11 +16,6 @@ MOS_STATIC_ASSERT(sizeof(elf_header_t) == (MOS_BITS == 32 ? 0x34 : 0x40), "elf_h
 MOS_STATIC_ASSERT(sizeof(elf_program_hdr_t) == (MOS_BITS == 32 ? 0x20 : 0x38), "elf_program_header has wrong size");
 MOS_STATIC_ASSERT(sizeof(elf_section_hdr_t) == (MOS_BITS == 32 ? 0x28 : 0x40), "elf_section_header has wrong size");
 
-static const char *elf_program_header_type_str[_ELF_PT_COUNT] = {
-    [ELF_PT_NULL] = "NULL", [ELF_PT_LOAD] = "LOAD",   [ELF_PT_DYNAMIC] = "DYNAMIC", [ELF_PT_INTERP] = "INTERP",
-    [ELF_PT_NOTE] = "NOTE", [ELF_PT_SHLIB] = "SHLIB", [ELF_PT_PHDR] = "PHDR",       [ELF_PT_TLS] = "TLS",
-};
-
 static bool elf_verify_header(const elf_header_t *header)
 {
     if (header->identity.magic[0] != '\x7f')
@@ -89,18 +84,13 @@ process_t *elf_create_process(file_t *file, process_t *parent, argv_t argv, cons
         elf_program_hdr_t ph;
         elf_read_file(file, &ph, elf.ph_offset + i * elf.ph.entry_size, elf.ph.entry_size);
 
-        if (unlikely(ph.header_type > _ELF_PT_COUNT))
-        {
-            mos_warn("invalid program header type 0x%x", ph.header_type);
-            continue;
-        }
-
-        mos_debug(elf, "program header %d: %c%c%c '%s' at " PTR_FMT, i, //
-                  ph.p_flags & ELF_PF_R ? 'r' : '-',                    //
-                  ph.p_flags & ELF_PF_W ? 'w' : '-',                    //
-                  ph.p_flags & ELF_PF_X ? 'x' : '-',                    //
-                  elf_program_header_type_str[ph.header_type],          //
-                  ph.vaddr                                              //
+        mos_debug(elf, "program header %d: %c%c%c, type '%d' at " PTR_FMT, //
+                  i,                                                       //
+                  ph.p_flags & ELF_PF_R ? 'r' : '-',                       //
+                  ph.p_flags & ELF_PF_W ? 'w' : '-',                       //
+                  ph.p_flags & ELF_PF_X ? 'x' : '-',                       //
+                  ph.header_type,                                          //
+                  ph.vaddr                                                 //
         );
 
         switch (ph.header_type)
@@ -129,7 +119,7 @@ process_t *elf_create_process(file_t *file, process_t *parent, argv_t argv, cons
                 mos_debug(elf, "  mapping %zu pages at " PTR_FMT " from offset %zu", npages, aligned_vaddr, aligned_size);
 
                 const ptr_t vaddr = mmap_file(proc->mm, aligned_vaddr, MMAP_PRIVATE | MMAP_EXACT, flags, npages, &file->io, aligned_size);
-                MOS_ASSERT_X(vaddr, "failed to map %zu pages at " PTR_FMT " from offset %zu", ph.size_in_mem / MOS_PAGE_SIZE, ph.vaddr, ph.data_offset);
+                MOS_ASSERT_X(vaddr == aligned_vaddr, "failed to map %zu pages at " PTR_FMT " from offset %zu", ph.size_in_mem / MOS_PAGE_SIZE, ph.vaddr, ph.data_offset);
 
                 if (ph.size_in_file < ph.size_in_mem)
                 {
@@ -140,16 +130,25 @@ process_t *elf_create_process(file_t *file, process_t *parent, argv_t argv, cons
                 mos_debug(elf, "  ... done");
                 break;
             }
-            case ELF_PT_NOTE: break; // intentionally ignored
-            case ELF_PT_DYNAMIC:
+            case ELF_PT_NOTE: break;    // intentionally ignored
+            case ELF_PT_DYNAMIC: break; // will be handled by the dynamic linker
             case ELF_PT_PHDR:
             case ELF_PT_TLS:
             case ELF_PT_SHLIB:
             {
-                pr_warn("ignoring unsupported program header type %s", elf_program_header_type_str[ph.header_type]);
+                pr_warn("ignoring unsupported program header type %d", ph.header_type);
                 break;
             }
-            default: pr_warn("unknown program header type 0x%x", ph.header_type); break;
+            default:
+            {
+                if (IN_RANGE(ph.header_type, ELF_PT_OS_LOW, ELF_PT_OS_HIGH))
+                    mos_debug(elf, "ignoring OS-specific program header type 0x%x", ph.header_type);
+                else if (IN_RANGE(ph.header_type, ELF_PT_PROCESSOR_LO, ELF_PT_PROCESSOR_HI))
+                    mos_debug(elf, "ignoring processor-specific program header type 0x%x", ph.header_type);
+                else
+                    pr_warn("unknown program header type 0x%x", ph.header_type);
+                break;
+            }
         };
     }
 
