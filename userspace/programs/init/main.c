@@ -2,9 +2,9 @@
 
 #include <argparse/libargparse.h>
 #include <libconfig/libconfig.h>
+#include <mos_stdio.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
-#include <stdio.h>
 
 static const config_t *config;
 

@@ -15,7 +15,7 @@ int main(int argc, const char *argv[])
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
 
-    sigaction(SIGINT, sigint_handler);
+    register_signal_handler(SIGINT, sigint_handler);
     raise(SIGINT);
 
     puts("Hello, world!");

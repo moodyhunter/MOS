@@ -27,7 +27,7 @@ int kill(pid_t pid, signal_t sig)
     return 0;
 }
 
-int sigaction(signal_t sig, sighandler *handler)
+int register_signal_handler(signal_t sig, sighandler *handler)
 {
     sigaction_t *act = malloc(sizeof(sigaction_t));
     act->handler = *handler;
