@@ -5,7 +5,7 @@
 #include <mos/types.h>
 #include <signal.h>
 
-#define SIGNAL_MAX_N SIGRTMAX
+#define SIGNAL_MAX_N NSIG
 typedef int signal_t;
 
 typedef void(sighandler)(signal_t signal);
