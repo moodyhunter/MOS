@@ -76,22 +76,22 @@ jobs:
             -DMOS_CONFIG=${{matrix.config.arch}}-debug \
             -DMOS_ARCH=${{matrix.config.arch}} \
             -DMOS_SMP=${{matrix.config.has_smp}} \
-            -B ${{github.workspace}}/build \
+            -B build \
             -G Ninja
 
       - name: Build
         run: |
-          cd ${{github.workspace}}/build
+          cd build
           ninja ${{matrix.config.target}} mos_initrd
 
       - name: Upload Bootable Artifact
         uses: actions/upload-artifact@v3
         with:
           name: MOS-${{matrix.config.target}}-${{matrix.build_type}}
-          path: ${{github.workspace}}/build/boot.dir/
+          path: build/boot.dir/
 
       - name: Upload initrd
         uses: actions/upload-artifact@v3
         with:
           name: MOS-${{matrix.config.target}}-${{matrix.build_type}}-initrd
-          path: ${{github.workspace}}/build/initrd.cpio
+          path: build/initrd.cpio
