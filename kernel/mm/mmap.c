@@ -34,15 +34,17 @@ static bool mmap_verify_arguments(ptr_t *hint_addr, mmap_flags_t mmap_flags)
         return NULL;
     }
 
-    if ((*hint_addr == 0) && (mmap_flags & MMAP_EXACT))
+    if (mmap_flags & MMAP_EXACT)
     {
-        // WTF is this? Trying to map at address 0?
-        pr_warn("mmap_anonymous: trying to map at address 0");
-        return false;
+        // always use the hint address if MMAP_EXACT is specified
+        return true;
     }
-
-    if (*hint_addr == 0)
-        *hint_addr = MOS_ADDR_USER_MMAP;
+    else
+    {
+        // if no hint address is specified, use the default
+        if (*hint_addr == 0)
+            *hint_addr = MOS_ADDR_USER_MMAP;
+    }
 
     return true;
 }
