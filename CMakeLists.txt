@@ -57,9 +57,15 @@ add_summary_section(UTILITY     "Utility Targets")
 
 include(generate_syscall_headers)
 
+# mlibc headers
+if (NOT EXISTS ${MOS_MLIBC_HEADER_DIR}/mlibc-config.h)
+    message(WARNING "mlibc-config.h not found in ${MOS_MLIBC_HEADER_DIR}. Please verify that mlibc is installed and that MOS_MLIBC_HEADER_DIR is set correctly.")
+endif()
+
 # Public includes interface target
 add_library(mos_kernel_include INTERFACE)
 target_include_directories(mos_kernel_include SYSTEM INTERFACE
+    ${MOS_MLIBC_HEADER_DIR}/                            # mlibc headers
     ${CMAKE_BINARY_DIR}/include                         # generated headers
     ${CMAKE_BINARY_DIR}/kconfig/include                 # generated kconfig headers
     ${CMAKE_SOURCE_DIR}/kernel/include/public           # public types
@@ -77,7 +83,7 @@ add_library(mos::private_include ALIAS mos_kernel_private_include)
 
 add_library(mos_kernel_compile_options INTERFACE)
 target_compile_options(mos_kernel_compile_options INTERFACE -ffreestanding ${MOS_KERNEL_CFLAGS})
-target_compile_definitions(mos_kernel_compile_options INTERFACE -D__MOS_KERNEL__)
+target_compile_definitions(mos_kernel_compile_options INTERFACE -D__MOS_KERNEL__ -D__MLIBC_ABI_ONLY)
 target_link_options(mos_kernel_compile_options INTERFACE -nostdlib)
 target_link_libraries(mos_kernel_compile_options INTERFACE mos::include mos::private_include gcc)
 add_library(mos::kernel_compile_options ALIAS mos_kernel_compile_options)

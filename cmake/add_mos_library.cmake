@@ -54,6 +54,7 @@ macro(add_mos_library)
         target_link_libraries(${ARG_NAME} PUBLIC gcc mos::include)
         # TODO: Remove this once we have a proper userspace libc
         target_compile_options(${ARG_NAME} PUBLIC "-ffreestanding")
+        target_compile_definitions(${ARG_NAME} PUBLIC "__MLIBC_ABI_ONLY")
         target_link_options(${ARG_NAME} PUBLIC "-nostdlib")
         if (ARG_LINK_LIBRARIES)
             message(FATAL_ERROR "stdlib must not link to other libraries")
