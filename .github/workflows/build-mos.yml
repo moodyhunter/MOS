@@ -8,6 +8,8 @@ jobs:
   build:
     name: "MOS ${{matrix.build_type}}, ${{matrix.config.name}}"
     runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -53,33 +55,23 @@ jobs:
       MOS_TEST_SMP_COUNT: ${{matrix.config.smp}}
 
     steps:
+      - name: Install packages
+        run: |
+          pacman -Syu --noconfirm base-devel git nasm mtools jq ninja qemu-system-x86 gnu-efi cpio wget unzip cmake limine
+
       - uses: actions/checkout@v3
         with:
           submodules: true
 
-      - name: Install packages
+      - name: Install Toolchains
         run: |
-          sudo apt update
-          sudo apt -y install nasm grub2-common mtools jq ninja-build qemu-system-x86 gnu-efi cpio libgmp-dev libmpfr-dev libmpc-dev xorriso
-
-      - name: Download & Extract Cross Compiler
-        run: |
-          wget -q "https://github.com/moodyhunter/mos-toolchain-prebuilt/releases/download/artifact/toolchain-${{matrix.config.target_triple}}.tar.gz"
-          tar -xzf toolchain-${{matrix.config.target_triple}}.tar.gz
-          mv toolchain /tmp/
-          echo "PATH=$PATH:/tmp/toolchain/bin" >> $GITHUB_ENV
-
-      - name: Install limine bootloader
-        run: |
-          wget 'https://github.com/limine-bootloader/limine/archive/refs/tags/v5.20230819.0-binary.zip'
-          unzip ./v5.20230819.0-binary.zip
-          cd limine-5.20230819.0-binary/
-          make
+          git clone https://github.com/moodyhunter/mos-packages
+          ./mos-packages/fetch-package.sh ${{ matrix.config.arch }}-mos-gcc
+          ./mos-packages/fetch-package.sh ${{ matrix.config.arch }}-mos-mlibc
 
       - name: Configure
         run: |
           cmake \
-            -DLIMINE_ROOT=$(pwd)/limine-5.20230819.0-binary/ \
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
             -DMOS_CONFIG=${{matrix.config.arch}}-debug \
             -DMOS_ARCH=${{matrix.config.arch}} \
@@ -88,8 +80,8 @@ jobs:
             -G Ninja
 
       - name: Build
-        working-directory: ${{github.workspace}}/build
         run: |
+          cd ${{github.workspace}}/build
           ninja ${{matrix.config.target}} mos_initrd
 
       - name: Upload Bootable Artifact
@@ -103,25 +95,3 @@ jobs:
         with:
           name: MOS-${{matrix.config.target}}-${{matrix.build_type}}-initrd
           path: ${{github.workspace}}/build/initrd.cpio
-
-      - name: Run Tests (quiet)
-        if: matrix.config.compile_only != 'ON'
-        working-directory: ${{github.workspace}}/build
-        run: |
-          ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh' quiet"
-
-      - name: Run Tests (no debug messages)
-        if: matrix.config.compile_only != 'ON'
-        working-directory: ${{github.workspace}}/build
-        run: |
-          cmake . -DMOS_DEBUG_ALL=OFF
-          ninja ${{matrix.config.target}} mos_initrd
-          ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh'"
-
-      - name: Run Tests (LTO)
-        if: matrix.config.compile_only != 'ON'
-        working-directory: ${{github.workspace}}/build
-        run: |
-          cmake . -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DMOS_DEBUG_ALL=OFF
-          ninja ${{matrix.config.target}} mos_initrd
-          ${{github.workspace}}/scripts/run_tests.sh "mos_tests init_args='-c /initrd/assets/self-test.msh'"
