@@ -258,7 +258,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
             if (stack->ip > MOS_KERNEL_START_VADDR)
                 pr_emerg("  in kernel function %ps", (void *) stack->ip);
 
-            pr_emerg("  CR3: " PTR_FMT, x86_get_cr3() + platform_info->direct_map_base);
+            pr_emerg("  CR3: " PTR_FMT, x86_cpu_get_cr3() + platform_info->direct_map_base);
 
             x86_dump_registers(stack);
             mos_panic("Unable to recover from page fault.");
