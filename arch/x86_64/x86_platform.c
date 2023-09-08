@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/device/console.h"
+#include "mos/tasks/schedule.h"
 #include "mos/x86/acpi/acpi_types.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/descriptors/descriptors.h"
@@ -71,6 +72,12 @@ static void x86_com1_handler(u32 irq)
         serial_device_read(&com1_console.device, &c, 1);
         console_putc(&com1_console.con, c);
     }
+}
+
+static void x86_timer_handler(u32 irq)
+{
+    MOS_ASSERT(irq == IRQ_TIMER);
+    reschedule();
 }
 
 static void x86_do_backtrace(void)

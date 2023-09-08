@@ -67,10 +67,9 @@ process_t *process_handle_fork(process_t *parent)
 #if MOS_DEBUG_FEATURE(fork)
     pr_info2("fork: thread %d->%d", parent_thread->tid, child_t->tid);
 #endif
-    platform_setup_forked_context(parent_thread->context, &child_t->context);
+    platform_context_clone(parent_thread->context, &child_t->context);
 
-    hashmap_put(&thread_table, child_t->tid, child_t);
     hashmap_put(&process_table, child_p->pid, child_p);
-    thread_setup_complete(child_t, NULL, NULL);
+    thread_complete_init(child_t);
     return child_p;
 }

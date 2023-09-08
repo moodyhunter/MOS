@@ -70,14 +70,13 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name)
     return t;
 }
 
-thread_t *thread_setup_complete(thread_t *thread, thread_entry_t entry, void *arg)
+thread_t *thread_complete_init(thread_t *thread)
 {
     if (!thread_is_valid(thread))
         return NULL;
 
-    if (entry)
-        platform_context_setup(thread, entry, arg);
-    hashmap_put(&thread_table, thread->tid, thread);
+    thread_t *old = hashmap_put(&thread_table, thread->tid, thread);
+    MOS_ASSERT(old == NULL);
     return thread;
 }
 
@@ -123,7 +122,12 @@ void thread_handle_exit(thread_t *t)
         mos_panic("thread_handle_exit() called on invalid thread");
 
     process_t *owner = t->owner;
-    vmap_destroy(vmap_obtain(owner->mm, (ptr_t) t->u_stack.top, NULL));
+
+    spinlock_acquire(&owner->mm->mm_lock);
+    vmap_t *stack = vmap_obtain(owner->mm, (ptr_t) t->u_stack.top, NULL);
+    spinlock_release(&owner->mm->mm_lock);
+
+    vmap_destroy(stack);
 
     spinlock_acquire(&t->state_lock);
     t->state = THREAD_STATE_DEAD;

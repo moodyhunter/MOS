@@ -332,9 +332,11 @@ void x86_handle_interrupt(ptr_t rsp)
             else
                 frame->eflags &= ~0x3000; // disable IOPL
         }
+
+        x86_update_current_fsbase();
     }
 
     signal_check_and_handle();
-    x86_jump_to_userspace(frame);
+    x86_interrupt_return_impl(frame);
     MOS_UNREACHABLE();
 }

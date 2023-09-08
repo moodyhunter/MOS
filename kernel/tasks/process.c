@@ -97,14 +97,13 @@ process_t *process_allocate(process_t *parent, const char *name)
     return proc;
 }
 
-process_t *process_new(process_t *parent, const char *name, const stdio_t *ios, argv_t argv)
+process_t *process_new(process_t *parent, const char *name, const stdio_t *ios)
 {
     process_t *proc = process_allocate(parent, name);
     if (unlikely(!proc))
         return NULL;
     mos_debug(process, "creating process %pp", (void *) proc);
 
-    proc->argv = argv;
     process_attach_ref_fd(proc, ios && ios->in ? ios->in : io_null);
     process_attach_ref_fd(proc, ios && ios->out ? ios->out : io_null);
     process_attach_ref_fd(proc, ios && ios->err ? ios->err : io_null);

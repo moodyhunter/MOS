@@ -21,7 +21,7 @@ x86_context_switch_impl:
     push    r14
     push    r15
 
-    ; rdi = x86_context
+    ; rdi = x86_stack_frame
     ; rsi = *old_stack
     ; rdx = kernel_stack
     ; rcx = jump_addr
@@ -29,20 +29,17 @@ x86_context_switch_impl:
     mov     [rsi], rsp      ; backup old stack pointer
     mov     rsp, rdx        ; switch to kernel stack
 
-    xor     rax, rax        ; clear rax, rbx, rsi, rdi, rbp
+    xor     rax, rax        ; clear rax, rbx, rdx, rsi, rbp
     xor     rbx, rbx
     xor     rdx, rdx
     xor     rsi, rsi
     xor     rbp, rbp
-    ; rcx contains jump_addr
-    ; rdi contains arguments for the new thread, don't clear it
-    ; rdi = struct { x86_stack_frame, arg };
-    ; jump to jump_addr
-    jmp     rcx
+    ; rdi = struct x86_stack_frame;
+    jmp     rcx             ; rcx contains jump_addr
 .end:
 
-global x86_normal_switch:function (x86_normal_switch.end - x86_normal_switch)
-x86_normal_switch:
+global x86_normal_switch_impl:function (x86_normal_switch_impl.end - x86_normal_switch_impl)
+x86_normal_switch_impl:
     ; we are now on the kernel stack
     ; restore callee-saved registers
     pop     r15
@@ -53,30 +50,4 @@ x86_normal_switch:
     popf
     pop     rbp
     ret
-.end:
-
-global x86_jump_to_userspace:function (x86_jump_to_userspace.end - x86_jump_to_userspace)
-x86_jump_to_userspace:
-    mov     rsp, rdi
-
-    pop     r15
-    pop     r14
-    pop     r13
-    pop     r12
-    pop     r11
-    pop     r10
-    pop     r9
-    pop     r8
-
-    pop     rdi
-    pop     rsi
-    pop     rbp
-
-    pop     rdx
-    pop     rcx
-    pop     rbx
-    pop     rax
-
-    add     rsp, 2 * REGSIZE
-    iretq
 .end:

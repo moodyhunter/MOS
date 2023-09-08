@@ -8,6 +8,8 @@ enum
 {
     X86_SYSCALL_IOPL_ENABLE = 0,  // enable IO operations for the current process
     X86_SYSCALL_IOPL_DISABLE = 1, // disable IO operations for the current process
+    X86_SYSCALL_SET_FS_BASE = 2,  // set the FS base address
+    X86_SYSCALL_SET_GS_BASE = 3,  // set the GS base address
 };
 
 should_inline reg_t platform_syscall0(reg_t number)

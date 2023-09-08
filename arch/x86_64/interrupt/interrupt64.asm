@@ -7,7 +7,7 @@
 %define ISR_MAX_COUNT     255
 %define IRQ_MAX_COUNT     16
 
-%define REG_SIZE          8
+%define REGSIZE           8
 
 extern x86_handle_interrupt
 
@@ -118,6 +118,7 @@ irq_stub_table:
     %assign i i+1
     %endrep
 
+; global x86_handle_interrupt:function (x86_handle_interrupt.end - x86_handle_interrupt)
 do_handle_interrupt:
     push    rax
     push    rbx
@@ -142,4 +143,31 @@ do_handle_interrupt:
 
     mov     rdi, rsp
     call    x86_handle_interrupt    ; x86_handle_interrupt(u32 rsp)
+    nop
+.end:
+
+global x86_interrupt_return_impl:function (x86_interrupt_return_impl.end - x86_interrupt_return_impl)
+x86_interrupt_return_impl:
+    mov     rsp, rdi
+
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     r11
+    pop     r10
+    pop     r9
+    pop     r8
+
+    pop     rdi
+    pop     rsi
+    pop     rbp
+
+    pop     rdx
+    pop     rcx
+    pop     rbx
+    pop     rax
+
+    add     rsp, 2 * REGSIZE
+    iretq
 .end:

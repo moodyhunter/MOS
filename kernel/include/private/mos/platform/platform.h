@@ -89,12 +89,6 @@ typedef enum
 
 MOS_STATIC_ASSERT(IPI_TYPE_MAX <= (u8) 0xFF, "IPI_TYPE_MAX must fit in a u8");
 
-typedef struct
-{
-    size_t argc; // size of argv, does not include the terminating NULL
-    const char **argv;
-} argv_t;
-
 typedef struct _io io_t;
 
 /**
@@ -229,8 +223,9 @@ pfn_t platform_pml4e_get_huge_pfn(const pml4e_t *pml4);
 #endif
 
 // Platform Thread / Process APIs
-void platform_context_setup(thread_t *thread, thread_entry_t entry, void *arg);
-void platform_setup_forked_context(const void *from, void **to);
+void platform_context_setup_main_thread(thread_t *thread, ptr_t entry, ptr_t sp, int argc, ptr_t argv, ptr_t envp);
+void platform_context_setup_child_thread(thread_t *thread, thread_entry_t entry, void *arg);
+void platform_context_clone(const void *from, void **to);
 
 // Platform Context Switching APIs
 void platform_switch_mm(mm_context_t *new_mm);
@@ -244,5 +239,5 @@ u64 platform_arch_syscall(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64 arg4);
 void platform_ipi_send(u8 target_cpu, ipi_type_t type);
 
 // Signal Handler APIs
-void platform_jump_to_signal_handler(signal_t sig, sigaction_t *sa);
+noreturn void platform_jump_to_signal_handler(signal_t sig, sigaction_t *sa);
 noreturn void platform_restore_from_signal_handler(void *sp);

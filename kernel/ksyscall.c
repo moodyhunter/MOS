@@ -143,19 +143,11 @@ DEFINE_SYSCALL(pid_t, get_parent_pid)(void)
 DEFINE_SYSCALL(pid_t, spawn)(const char *path, int argc, const char *const argv[])
 {
     process_t *current = current_process;
-
-    const char **new_argv = kmalloc(sizeof(ptr_t) * (argc + 2)); // +1 for path, +1 for NULL
-    if (new_argv == NULL)
-        return -1;
-
-    const int real_argc = argc + 1; // +1 for path, but not including NULL
-    new_argv[0] = strdup(path);
-    for (int i = 0; i < argc; i++)
-        new_argv[i + 1] = strdup(argv[i]);
-    new_argv[real_argc] = NULL;
+    MOS_ASSERT(argv);
+    MOS_ASSERT(argv[argc] == NULL); // argv must be NULL-terminated
 
     const stdio_t stdio = current_stdio();
-    process_t *process = elf_create_process(path, current, (argv_t){ .argc = real_argc, .argv = new_argv }, &stdio);
+    process_t *process = elf_create_process(path, current, argc, argv, &stdio);
 
     if (process == NULL)
         return -1;
@@ -169,7 +161,8 @@ DEFINE_SYSCALL(tid_t, create_thread)(const char *name, thread_entry_t entry, voi
     if (thread == NULL)
         return -1;
 
-    thread_setup_complete(thread, entry, arg);
+    platform_context_setup_child_thread(thread, entry, arg);
+    thread_complete_init(thread);
     return thread->tid;
 }
 

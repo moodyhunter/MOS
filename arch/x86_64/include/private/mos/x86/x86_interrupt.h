@@ -85,3 +85,5 @@ void x86_handle_interrupt(ptr_t esp);
 bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq));
 
 void x86_dump_registers(x86_stack_frame *frame);
+
+extern noreturn void x86_interrupt_return_impl(x86_stack_frame *context);

@@ -6,9 +6,12 @@
 #include "mos/mm/mm.h"
 #include "mos/mm/mmap.h"
 #include "mos/mm/physical/pmm.h"
+#include "mos/platform/platform.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/thread.h"
 
+#include <elf.h>
+#include <mos_stdlib.h>
 #include <mos_string.h>
 #include <stddef.h>
 
@@ -48,7 +51,7 @@ static void elf_read_file(file_t *file, void *buf, off_t offset, size_t size)
     MOS_ASSERT(read);
 }
 
-bool elf_read_and_verify_executable(file_t *file, elf_header_t *header)
+static bool elf_read_and_verify_executable(file_t *file, elf_header_t *header)
 {
     elf_read_file(file, header, 0, sizeof(elf_header_t));
     const bool valid = elf_verify_header(header);
@@ -61,7 +64,97 @@ bool elf_read_and_verify_executable(file_t *file, elf_header_t *header)
     return true;
 }
 
-process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, const stdio_t *ios)
+static void elf_setup_main_thread(thread_t *thread, const char *command, ptr_t entry, int argc, const char *const src_argv[])
+{
+    mos_debug(scheduler, "cpu %d: setting up a new main thread %pt of process %pp", current_cpu->id, (void *) thread, (void *) thread->owner);
+
+    /**
+     * Typical Stack Layout:
+     *
+     *      (low address)
+     *      |-> u32 argc
+     *      |-> ptr_t argv[]
+     *      |   |-> NULL
+     *      |-> ptr_t envp[]
+     *      |   |-> NULL
+     *      |-> AuxV
+     *      |   |-> AT_...
+     *      |   |-> AT_NULL
+     *      |-> argv strings, NULL-terminated
+     *      |-> environment strings, NULL-terminated
+     *      |-> u32 zero
+     *      (high address, end of stack)
+     */
+
+    MOS_ASSERT_X(thread->u_stack.head == thread->u_stack.top, "thread %pt's user stack is not empty", (void *) thread);
+    stack_push_val(&thread->u_stack, 0);
+
+    const int auxv_count = 6;
+    Elf64_auxv_t auxv[auxv_count];
+    auxv[0].a_type = AT_PHDR;
+    auxv[0].a_un.a_val = 0x40; // TODO: fixme
+
+    auxv[1].a_type = AT_ENTRY;
+    auxv[1].a_un.a_val = entry;
+
+    auxv[2].a_type = AT_PHENT;
+    auxv[2].a_un.a_val = sizeof(elf_program_hdr_t);
+
+    auxv[3].a_type = AT_PHNUM;
+    auxv[3].a_un.a_val = 5; // TODO: fixme
+
+    stack_push(&thread->u_stack, command, strlen(command) + 1); // +1 for the null terminator
+    auxv[4].a_type = AT_EXECFN;
+    auxv[4].a_un.a_val = thread->u_stack.head;
+
+    auxv[5].a_type = AT_NULL;
+    auxv[5].a_un.a_val = 0;
+
+    const int envp_count = 0;         // TODO: support envp
+    const char *src_envp[envp_count]; // TODO: support envp
+
+    void *envp[envp_count + 1]; // +1 for the null terminator
+    if (envp_count == 0)
+        goto no_envp;
+
+    for (int i = envp_count - 1; i >= 0; i--)
+    {
+        const size_t len = strlen(src_envp[i]) + 1; // +1 for the null terminator
+        stack_push(&thread->u_stack, src_envp[i], len);
+        envp[i] = (void *) thread->u_stack.head;
+    }
+
+no_envp:
+    envp[envp_count] = NULL;
+
+    void *argv[argc + 1]; // +1 for the null terminator
+    if (argc == 0)
+        goto no_argv;
+    for (int i = argc - 1; i >= 0; i--)
+    {
+        const size_t len = strlen(src_argv[i]) + 1; // +1 for the null terminator
+        stack_push(&thread->u_stack, src_argv[i], len);
+        argv[i] = (void *) thread->u_stack.head;
+    }
+
+no_argv:
+    argv[argc] = NULL;
+
+    thread->u_stack.head = ALIGN_DOWN(thread->u_stack.head, 16); // align to 16 bytes
+
+    ptr_t user_envp, user_argv;
+
+    stack_push(&thread->u_stack, &auxv, sizeof(Elf64_auxv_t) * auxv_count);
+    stack_push(&thread->u_stack, &envp, sizeof(char *) * (envp_count + 1));
+    user_envp = thread->u_stack.head;
+    stack_push(&thread->u_stack, &argv, sizeof(char *) * (argc + 1));
+    user_argv = thread->u_stack.head;
+    stack_push_val(&thread->u_stack, argc);
+
+    platform_context_setup_main_thread(thread, entry, thread->u_stack.head, argc, user_argv, user_envp);
+}
+
+process_t *elf_create_process(const char *path, process_t *parent, int argc, const char *const argv[], const stdio_t *ios)
 {
     file_t *file = vfs_openat(FD_CWD, path, OPEN_READ | OPEN_EXECUTE);
     if (!file)
@@ -79,12 +172,17 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
         return NULL;
     }
 
-    process_t *proc = process_new(parent, file->dentry->name, ios, argv);
+    process_t *proc = process_new(parent, file->dentry->name, ios);
     if (!proc)
     {
         mos_warn("failed to create process for '%s'", dentry_name(file->dentry));
         return NULL;
     }
+
+    const char *new_argv[argc + 1];
+    for (int i = 0; i < argc; i++)
+        new_argv[i] = strdup(argv[i]); // copy the strings to kernel space, since we are switching to a new address space
+    new_argv[argc] = NULL;
 
     mm_context_t *const prev_mm = mm_switch_context(proc->mm);
 
@@ -161,8 +259,12 @@ process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, 
         };
     }
 
-    thread_setup_complete(proc->main_thread, (thread_entry_t) elf.entry_point, NULL);
+    elf_setup_main_thread(proc->main_thread, path, elf.entry_point, argc, new_argv);
+    thread_complete_init(proc->main_thread);
     mm_switch_context(prev_mm);
+
+    for (int i = 0; i < argc; i++)
+        kfree((void *) new_argv[i]);
 
     if (file)
         io_unref(&file->io); // close the file, we should have the file's refcount == 0 here

@@ -35,8 +35,6 @@ typedef struct _process
     list_head children;      // list of children processes
     list_node_t parent_node; // node in the parent's children list
 
-    argv_t argv;
-
     io_t *files[MOS_PROCESS_MAX_OPEN_FILES];
 
     thread_t *main_thread;

@@ -27,12 +27,16 @@
 
 typedef void (*init_function_t)(void);
 
-static argv_t init_argv = { 0 };
+static struct
+{
+    size_t argc; // size of argv, does not include the terminating NULL
+    const char **argv;
+} init_args = { 0 };
 
 static bool init_sysfs_argv(sysfs_file_t *file)
 {
-    for (u32 i = 0; i < init_argv.argc; i++)
-        sysfs_printf(file, "%s ", init_argv.argv[i]);
+    for (u32 i = 0; i < init_args.argc; i++)
+        sysfs_printf(file, "%s ", init_args.argv[i]);
     sysfs_printf(file, "\n");
     return true;
 }
@@ -42,7 +46,7 @@ SYSFS_ITEM_RO_STRING(kernel_sysfs_revision, MOS_KERNEL_REVISION)
 SYSFS_ITEM_RO_STRING(kernel_sysfs_build_date, __DATE__)
 SYSFS_ITEM_RO_STRING(kernel_sysfs_build_time, __TIME__)
 SYSFS_ITEM_RO_STRING(kernel_sysfs_compiler, __VERSION__)
-SYSFS_ITEM_RO_STRING(init_sysfs_path, init_argv.argv[0])
+SYSFS_ITEM_RO_STRING(init_sysfs_path, init_args.argv[0])
 
 static const sysfs_item_t kernel_sysfs_items[] = {
     SYSFS_RO_ITEM("kernel_version", kernel_sysfs_version),
@@ -65,10 +69,10 @@ static bool setup_init_path(const char *arg)
         return false;
     }
 
-    if (init_argv.argv)
-        kfree(init_argv.argv[0]); // free the old init path
+    if (init_args.argv)
+        kfree(init_args.argv[0]); // free the old init path
 
-    init_argv.argv[0] = strdup(arg);
+    init_args.argv[0] = strdup(arg);
     return true;
 }
 MOS_SETUP("init", setup_init_path);
@@ -77,7 +81,7 @@ static bool setup_init_args(const char *arg)
 {
     char *var_arg = strdup(arg);
     string_unquote(var_arg);
-    init_argv.argv = cmdline_parse(init_argv.argv, var_arg, strlen(var_arg), &init_argv.argc);
+    init_args.argv = cmdline_parse(init_args.argv, var_arg, strlen(var_arg), &init_args.argc);
     kfree(var_arg);
     return true;
 }
@@ -110,14 +114,14 @@ void mos_start_kernel(void)
     startup_invoke_autoinit(INIT_TARGET_POST_MM);
     startup_invoke_autoinit(INIT_TARGET_SLAB_AUTOINIT);
 
-    init_argv.argc = 1;
-    init_argv.argv = kcalloc(1, sizeof(char *)); // init_argv[0] is the init path
-    init_argv.argv[0] = strdup(DEFAULT_INIT_PATH);
+    init_args.argc = 1;
+    init_args.argv = kcalloc(1, sizeof(char *)); // init_argv[0] is the init path
+    init_args.argv[0] = strdup(DEFAULT_INIT_PATH);
     startup_invoke_setup();
 
-    pr_emph("init path: %s", init_argv.argv[0]);
-    for (u32 i = 1; i < init_argv.argc; i++)
-        pr_emph("init arg %d: %s", i, init_argv.argv[i]);
+    pr_emph("init path: %s", init_args.argv[0]);
+    for (u32 i = 1; i < init_args.argc; i++)
+        pr_emph("init arg %d: %s", i, init_args.argv[i]);
 
     // power management
     startup_invoke_autoinit(INIT_TARGET_POWER);
@@ -143,7 +147,7 @@ void mos_start_kernel(void)
 
     console_t *init_con = console_get("serial_com1");
     const stdio_t init_io = { .in = &init_con->io, .out = &init_con->io, .err = &init_con->io };
-    process_t *init = elf_create_process(init_argv.argv[0], NULL, init_argv, &init_io);
+    process_t *init = elf_create_process(init_args.argv[0], NULL, init_args.argc, init_args.argv, &init_io);
     if (unlikely(!init))
         mos_panic("failed to create init process");
 

@@ -120,6 +120,18 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
             options->iopl_enabled = false;
             return 0;
         }
+        case X86_SYSCALL_SET_FS_BASE:
+        {
+            x86_thread_context_t *ctx = current_thread->context;
+            ctx->fs_base = arg1;
+            return 0;
+        }
+        case X86_SYSCALL_SET_GS_BASE:
+        {
+            x86_thread_context_t *ctx = current_thread->context;
+            ctx->gs_base = arg1;
+            return 0;
+        }
         default:
         {
             pr_warn("unknown arch-specific syscall %llu", syscall);
@@ -152,7 +164,7 @@ void platform_jump_to_signal_handler(signal_t sig, sigaction_t *sa)
 
     ctx->regs.di = sig; // arg1
     ctx->regs.sp = current_thread->u_stack.head;
-    x86_jump_to_userspace(&ctx->regs);
+    x86_jump_to_userspace();
 }
 
 void platform_restore_from_signal_handler(void *sp)
@@ -163,5 +175,5 @@ void platform_restore_from_signal_handler(void *sp)
     x86_stack_frame orig;
     stack_pop(&current_thread->u_stack, sizeof(x86_stack_frame), &orig);
     ctx->regs = orig;
-    x86_jump_to_userspace(&ctx->regs);
+    x86_jump_to_userspace();
 }
