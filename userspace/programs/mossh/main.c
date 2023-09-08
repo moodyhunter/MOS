@@ -81,19 +81,24 @@ bool do_builtin(const char *command, int argc, const char **argv)
 
 void do_execute(const char *prog, char *rest)
 {
-    size_t argc = 0;
-    const char **argv = cmdline_parse(NULL, rest, strlen(rest), &argc);
+    size_t argc = 1;
+    const char **argv = malloc(sizeof(char *));
+    argv[0] = prog;
+    argv = cmdline_parse(argv, rest, strlen(rest), &argc);
 
-    for (size_t i = 0; i < argc; i++)
+    for (size_t i = 1; i < argc; i++)
         string_unquote((char *) argv[i]);
 
-    if (!do_builtin(prog, argc, argv))
+    argv = realloc(argv, sizeof(char *) * (argc + 1));
+    argv[argc] = NULL;
+
+    if (!do_builtin(prog, argc - 1, argv + 1))
         if (!do_program(prog, argc, argv))
             fprintf(stderr, "'%s' is not recognized as an internal, operable program or batch file.\n", prog);
 
     if (argc)
     {
-        for (size_t i = 0; i < argc; i++)
+        for (size_t i = 1; i < argc; i++)
             free((void *) argv[i]);
         free(argv);
     }

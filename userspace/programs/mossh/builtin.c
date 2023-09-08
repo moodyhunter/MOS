@@ -167,8 +167,8 @@ void do_repeat(int argc, const char *argv[])
             for (int i = 0; i < count; i++)
             {
                 const char *program = argv[1];
-                int new_argc = argc - 2;
-                const char **new_argv = &argv[2];
+                int new_argc = argc - 1;
+                const char **new_argv = &argv[1];
 
                 if (do_builtin(program, new_argc, new_argv))
                     continue;

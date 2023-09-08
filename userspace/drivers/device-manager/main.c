@@ -33,8 +33,9 @@ static bool start_device_drivers(const config_t *config)
         if (!driver_path)
             return false; // invalid options
 
-        size_t driver_args_count = 0;
-        const char **driver_argv = NULL;
+        size_t driver_args_count = 1;
+        const char **driver_argv = malloc(driver_args_count * sizeof(char *));
+        driver_argv[0] = driver_path;
 
         if (driver_args)
         {
@@ -48,6 +49,9 @@ static bool start_device_drivers(const config_t *config)
                 arg = strtok_r(NULL, " ", &saveptr);
             }
         }
+
+        driver_argv = realloc(driver_argv, (driver_args_count + 1) * sizeof(char *));
+        driver_argv[driver_args_count] = NULL;
 
         pid_t driver_pid = syscall_spawn(driver_path, driver_args_count, driver_argv);
         if (driver_pid <= 0)

@@ -9,7 +9,7 @@ int main(int argc, char **argv)
     if (argc != 2)
     {
         printf("Usage: pong <ping-pong-ipc-channel>\n");
-        printf("Connects to the given ipc name and reads a message from it");
+        printf("Connects to the given ipc name and reads a message from it\n");
         return 1;
     }
 

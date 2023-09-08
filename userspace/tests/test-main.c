@@ -26,7 +26,9 @@ int main(int argc, char **argv)
     for (int i = 0; tests[i].name; i++)
     {
         printf("Running test %s (%s)... ", tests[i].name, tests[i].executable);
-        pid_t ret = syscall_spawn(tests[i].executable, 0, NULL);
+        int test_argc = 1;
+        const char *test_argv[] = { tests[i].name, NULL };
+        pid_t ret = syscall_spawn(tests[i].executable, test_argc, test_argv);
         if (ret < 0)
         {
             printf("FAILED: cannot spawn: %d\n", ret);

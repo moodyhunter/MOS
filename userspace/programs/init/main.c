@@ -12,13 +12,20 @@ static pid_t start_device_manager(void)
 {
     const char *dm_path = config_get(config, "device_manager.path");
     if (!dm_path)
-        dm_path = "/initrd/programs/device_manager";
+        dm_path = "/initrd/drivers/device_manager";
 
     size_t dm_args_count;
     const char **dm_args = config_get_all(config, "device_manager.args", &dm_args_count);
 
+    int argc = dm_args_count + 1;
+    const char *argv[argc]; // +1 for the NULL
+    argv[0] = dm_path;
+    for (size_t i = 0; i < dm_args_count; i++)
+        argv[i + 1] = dm_args[i];
+    argv[argc] = NULL;
+
     // start the device manager
-    return syscall_spawn(dm_path, dm_args_count, dm_args); // TODO: check if the dm_args are valid
+    return syscall_spawn(dm_path, argc, argv);
 }
 
 static bool create_directories(void)
@@ -126,8 +133,9 @@ int main(int argc, const char *argv[])
         return DYN_ERROR_CODE;
 
     // start the shell
-    const char **shell_argv = NULL;
-    int shell_argc = 0;
+    const char **shell_argv = malloc(sizeof(char *));
+    int shell_argc = 1;
+    shell_argv[0] = shell;
 
     const char *arg;
     argparse_init(&state, argv); // reset the options
@@ -137,6 +145,8 @@ int main(int argc, const char *argv[])
         shell_argv = realloc(shell_argv, shell_argc * sizeof(char *));
         shell_argv[shell_argc - 1] = arg;
     }
+    shell_argv = realloc(shell_argv, (shell_argc + 1) * sizeof(char *));
+    shell_argv[shell_argc] = NULL;
 
     // TODO: use exec() ?
     pid_t shell_pid = syscall_spawn(shell, shell_argc, shell_argv);
