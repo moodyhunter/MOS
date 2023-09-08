@@ -61,8 +61,17 @@ bool elf_read_and_verify_executable(file_t *file, elf_header_t *header)
     return true;
 }
 
-process_t *elf_create_process(file_t *file, process_t *parent, argv_t argv, const stdio_t *ios)
+process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, const stdio_t *ios)
 {
+    file_t *file = vfs_openat(FD_CWD, path, OPEN_READ | OPEN_EXECUTE);
+    if (!file)
+    {
+        mos_warn("failed to open '%s'", path);
+        return NULL;
+    }
+
+    io_ref(&file->io);
+
     elf_header_t elf;
     if (!elf_read_and_verify_executable(file, &elf))
     {
@@ -154,5 +163,9 @@ process_t *elf_create_process(file_t *file, process_t *parent, argv_t argv, cons
 
     thread_setup_complete(proc->main_thread, (thread_entry_t) elf.entry_point, NULL);
     mm_switch_context(prev_mm);
+
+    if (file)
+        io_unref(&file->io); // close the file, we should have the file's refcount == 0 here
+
     return proc;
 }

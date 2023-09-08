@@ -143,12 +143,7 @@ void mos_start_kernel(void)
 
     console_t *init_con = console_get("serial_com1");
     const stdio_t init_io = { .in = &init_con->io, .out = &init_con->io, .err = &init_con->io };
-
-    file_t *f = vfs_openat(FD_CWD, init_argv.argv[0], OPEN_READ | OPEN_EXECUTE);
-    if (!f)
-        mos_panic("failed to open init program");
-    process_t *init = elf_create_process(f, NULL, init_argv, &init_io);
-    io_unref(&f->io);
+    process_t *init = elf_create_process(init_argv.argv[0], NULL, init_argv, &init_io);
     if (unlikely(!init))
         mos_panic("failed to create init process");
 

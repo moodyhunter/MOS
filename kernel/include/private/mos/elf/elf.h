@@ -218,4 +218,4 @@ typedef struct
     size_t sh_entsize;
 } __packed elf_section_hdr_t;
 
-process_t *elf_create_process(file_t *file, process_t *parent, argv_t argv, const stdio_t *ios);
+process_t *elf_create_process(const char *path, process_t *parent, argv_t argv, const stdio_t *ios);
