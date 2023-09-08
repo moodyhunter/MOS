@@ -59,10 +59,6 @@ global x86_jump_to_userspace:function (x86_jump_to_userspace.end - x86_jump_to_u
 x86_jump_to_userspace:
     mov     rsp, rdi
 
-    ; no more DS and ES for x86_64
-    pop     fs
-    pop     gs
-
     pop     r15
     pop     r14
     pop     r13

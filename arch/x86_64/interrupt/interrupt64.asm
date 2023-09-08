@@ -137,14 +137,8 @@ do_handle_interrupt:
     push    r14
     push    r15
 
-    push    gs                      ; save fs, gs, no more DS and ES on x86_64
-    push    fs
     cld                             ; clears the DF flag in the RFLAGS register.
                                     ; so that string operations increment the index registers (RSI and/or RDI).
-
-    mov     ax, GDT_SEGMENT_KDATA | 0   ; set the kernel data segment (ring 0)
-    mov     fs, ax
-    mov     gs, ax
 
     mov     rdi, rsp
     call    x86_handle_interrupt    ; x86_handle_interrupt(u32 rsp)

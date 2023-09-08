@@ -17,7 +17,6 @@
 
 typedef struct
 {
-    reg_t fs, gs;
     reg_t r15, r14, r13, r12, r11, r10, r9, r8;
     reg_t di, si, bp, dx, cx, bx, ax;
     reg_t interrupt_number, error_code;
@@ -27,7 +26,7 @@ typedef struct
     reg_t sp, ss;
 } __packed x86_stack_frame;
 
-MOS_STATIC_ASSERT(sizeof(x86_stack_frame) == 192, "x86_stack_frame has incorrect size");
+MOS_STATIC_ASSERT(sizeof(x86_stack_frame) == 176, "x86_stack_frame has incorrect size");
 
 // defined in the linker script 'multiboot.ld'
 extern const char __MOS_KERNEL_CODE_START[], __MOS_KERNEL_CODE_END[];     // Kernel text

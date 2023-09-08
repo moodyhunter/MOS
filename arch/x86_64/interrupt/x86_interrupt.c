@@ -86,8 +86,6 @@ void x86_dump_registers(x86_stack_frame *frame)
             "  R8:  " PTR_FMT " R9:  " PTR_FMT " R10: " PTR_FMT " R11: " PTR_FMT "\n"
             "  R12: " PTR_FMT " R13: " PTR_FMT " R14: " PTR_FMT " R15: " PTR_FMT "\n"
             "  IP:  " PTR_FMT "\n"
-            "Segment Registers:\n"
-            "  FS:  0x%lx GS:  0x%lx\n"
             "Context:\n"
             "  EFLAGS:       " PTR_FMT "\n"
             "  Instruction:  0x%lx:" PTR_FMT "\n"
@@ -97,7 +95,6 @@ void x86_dump_registers(x86_stack_frame *frame)
             frame->r8, frame->r9, frame->r10, frame->r11,   //
             frame->r12, frame->r13, frame->r14, frame->r15, //
             frame->ip,                                      //
-            frame->fs, frame->gs,                           //
             frame->eflags,                                  //
             frame->cs, frame->ip,                           //
             frame->ss, frame->sp                            //
