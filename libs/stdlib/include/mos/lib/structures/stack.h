@@ -23,6 +23,12 @@ MOSAPI void stack_deinit(downwards_stack_t *stack);
 
 MOSAPI void *stack_grow(downwards_stack_t *stack, size_t size);
 MOSAPI void stack_push(downwards_stack_t *stack, const void *data, size_t size);
+#define stack_push_val(stack, val)                                                                                                                                       \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        typeof(val) _val = (val);                                                                                                                                        \
+        stack_push(stack, &_val, sizeof(_val));                                                                                                                          \
+    } while (0)
 
 // ! WARN: Caller must ensure the data is at least size bytes long
 MOSAPI void stack_pop(downwards_stack_t *stack, size_t size, void *data);
