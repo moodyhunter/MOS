@@ -285,16 +285,14 @@ void process_dump_mmaps(const process_t *process)
         i++;
         const char *typestr = vmap_content_str[map->content];
         const char *forkmode = vmap_type_str[map->type];
-        pr_info("  %3zd: " PTR_FMT ", %5zd page(s), [%pvf%c%c, %s]: %s",
-                i,                                    //
-                map->vaddr,                           //
-                map->npages,                          //
-                (void *) &map->vmflags,               //
-                map->vmflags & VM_GLOBAL ? 'g' : '-', //
-                map->vmflags & VM_USER ? 'u' : '-',   //
-                forkmode,                             //
-                typestr                               //
-        );
+        pr_info("  %3zd: %pvm, %s, %s", i, (void *) map, typestr, forkmode);
+        if (map->io)
+        {
+            char filepath[MOS_PATH_MAX_LENGTH];
+            io_get_name(map->io, filepath, sizeof(filepath));
+            pr_info("       file: %s", filepath);
+            pr_info("     offset: %zu", map->io_offset);
+        }
     }
 
     pr_info("total: %zd memory regions", i);
