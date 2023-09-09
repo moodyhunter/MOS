@@ -47,9 +47,19 @@ static vmfault_result_t cow_zod_fault_handler(vmap_t *vmap, ptr_t fault_addr, pa
 
     MOS_ASSERT(!info->is_present); // we can't have (present && !write)
 
-    info->backing_page = zero_page();
-    vmap_stat_inc(vmap, cow);
-    return VMFAULT_MAP_BACKING_PAGE_RO;
+    if (info->is_write)
+    {
+        // non-present and write, must be a ZoD page
+        info->backing_page = mm_get_free_page();
+        vmap_stat_inc(vmap, regular);
+        return VMFAULT_MAP_BACKING_PAGE;
+    }
+    else
+    {
+        info->backing_page = zero_page();
+        vmap_stat_inc(vmap, cow);
+        return VMFAULT_MAP_BACKING_PAGE_RO;
+    }
 }
 
 vmap_t *cow_clone_vmap_locked(mm_context_t *target_mmctx, vmap_t *src_vmap)
