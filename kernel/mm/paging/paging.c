@@ -158,14 +158,15 @@ void mm_replace_page_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, vm_flags 
     mos_debug(vmm, "filling page at " PTR_FMT " with " PFN_FMT, vaddr, pfn);
 
     const pfn_t old_pfn = mm_do_get_pfn(ctx->pgd, vaddr);
-    if (likely(old_pfn))
-        pmm_unref_one(old_pfn); // unmapped
 
     if (unlikely(old_pfn == pfn))
     {
         mos_warn("trying to replace page at " PTR_FMT " with the same page " PFN_FMT, vaddr, pfn);
         return;
     }
+
+    if (likely(old_pfn))
+        pmm_unref_one(old_pfn); // unmapped
 
     pmm_ref_one(pfn);
     mm_do_map(ctx->pgd, vaddr, pfn, 1, flags, false);
