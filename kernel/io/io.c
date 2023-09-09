@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/mm.h"
 #include "mos/mm/paging/paging.h"
+#include "mos/platform/platform.h"
 
 #include <mos/io/io.h>
 #include <mos/io/io_types.h>
@@ -220,7 +222,7 @@ off_t io_tell(io_t *io)
     return io_seek(io, 0, IO_SEEK_CURRENT);
 }
 
-bool io_mmap(io_t *io, vmap_t *vmap, off_t offset)
+bool io_mmap_perm_check(io_t *io, vm_flags flags, bool private)
 {
     if (unlikely(io->closed))
     {
@@ -237,15 +239,23 @@ bool io_mmap(io_t *io, vmap_t *vmap, off_t offset)
     if (!(io->flags & IO_READABLE))
         return false; // can't mmap if io is not readable
 
-    if (vmap->vmflags & VM_WRITE)
+    if (flags & VM_WRITE)
     {
-        const bool may_mmap_writeable = vmap->type & VMAP_TYPE_PRIVATE || io->flags & IO_WRITABLE;
+        const bool may_mmap_writeable = private || io->flags & IO_WRITABLE;
         if (!may_mmap_writeable)
             return false; // can't mmap writable if io is not writable and not private
     }
 
-    if (vmap->vmflags & VM_EXEC && !(io->flags & IO_EXECUTABLE))
-        return false; // can't mmap executable if io is not executable
+    // if (flags & VM_EXEC && !(io->flags & IO_EXECUTABLE))
+    // return false; // can't mmap executable if io is not executable
+
+    return true;
+}
+
+bool io_mmap(io_t *io, vmap_t *vmap, off_t offset)
+{
+    if (!io_mmap_perm_check(io, vmap->vmflags, vmap->type == VMAP_TYPE_PRIVATE))
+        return false;
 
     vmap->io = io;
     vmap->io_offset = offset;
