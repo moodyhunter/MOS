@@ -200,6 +200,28 @@ vmap_t *vmap_obtain(mm_context_t *mmctx, ptr_t vaddr, size_t *out_offset)
     return NULL;
 }
 
+vmap_t *vmap_split(vmap_t *first, size_t split)
+{
+    MOS_ASSERT(spinlock_is_locked(&first->lock));
+    MOS_ASSERT(split && split < first->npages);
+
+    vmap_t *second = kmalloc(vmap_cache);
+    *second = *first;                    // copy the whole structure
+    linked_list_init(list_node(second)); // except for the list node
+
+    first->npages = split; // shrink the first vmap
+    second->npages -= split;
+    second->vaddr += split * MOS_PAGE_SIZE;
+    if (first->io)
+    {
+        second->io = io_ref(first->io);
+        second->io_offset += split * MOS_PAGE_SIZE;
+    }
+
+    do_attach_vmap(first->mmctx, second);
+    return second;
+}
+
 void vmap_finalise_init(vmap_t *vmap, vmap_content_t content, vmap_type_t type)
 {
     MOS_ASSERT(spinlock_is_locked(&vmap->lock));

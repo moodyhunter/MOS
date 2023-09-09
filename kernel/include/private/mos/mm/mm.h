@@ -131,6 +131,15 @@ void vmap_destroy(vmap_t *vmap);
 vmap_t *vmap_obtain(mm_context_t *mmctx, ptr_t vaddr, size_t *out_offset);
 
 /**
+ * @brief Split a vmap object into two, at the specified offset.
+ *
+ * @param vmap The vmap object
+ * @param split The number of pages in the first vmap object
+ * @return vmap_t* The second vmap object, with its lock held.
+ */
+vmap_t *vmap_split(vmap_t *vmap, size_t split);
+
+/**
  * @brief Finalize the initialization of a vmap object.
  *
  * @param vmap The vmap object
