@@ -13,6 +13,7 @@
 #include "mos/mm/paging/table_ops/do_copy.h"
 #include "mos/mm/paging/table_ops/do_flag.h"
 #include "mos/mm/paging/table_ops/do_map.h"
+#include "mos/mm/paging/table_ops/do_mask.h"
 #include "mos/mm/paging/table_ops/do_unmap.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
@@ -36,6 +37,12 @@ void mm_do_unmap(pgd_t max, ptr_t vaddr, size_t n_pages, bool do_unref)
 {
     struct pagetable_do_unmap_data data = { .do_unref = do_unref };
     pml5_traverse(max.max, &vaddr, &n_pages, pagetable_do_unmap_callbacks, &data);
+}
+
+void mm_do_mask_flags(pgd_t max, ptr_t vaddr, size_t n_pages, vm_flags mask)
+{
+    struct pagetable_do_mask_data data = { .mask = mask };
+    pml5_traverse(max.max, &vaddr, &n_pages, pagetable_do_mask_callbacks, &data);
 }
 
 void mm_do_copy(pgd_t src, pgd_t dst, ptr_t vaddr, size_t n_pages)
