@@ -100,6 +100,65 @@ pfn_t mm_do_get_pfn(pgd_t max, ptr_t vaddr)
     return pml1e_get_pfn(pml1e);
 }
 
+vm_flags mm_do_get_flags(pgd_t max, ptr_t vaddr)
+{
+    vm_flags flags = ~0;
+    vaddr = ALIGN_DOWN_TO_PAGE(vaddr);
+    pml5e_t *pml5e = pml5_entry(max.max, vaddr);
+    if (!pml5e_is_present(pml5e))
+        return 0;
+
+    const pml4_t pml4 = pml5e_get_or_create_pml4(pml5e);
+    pml4e_t *pml4e = pml4_entry(pml4, vaddr);
+    if (!pml4e_is_present(pml4e))
+        return 0;
+
+#if MOS_CONFIG(PML4_HUGE_CAPABLE)
+    if (platform_pml4e_is_huge(pml4e))
+        return platform_pml4e_get_flags(pml4e);
+    else
+        flags &= platform_pml4e_get_flags(pml4e);
+#else
+    flags &= platform_pml4e_get_flags(pml4e);
+#endif
+
+    const pml3_t pml3 = pml4e_get_or_create_pml3(pml4e);
+    pml3e_t *pml3e = pml3_entry(pml3, vaddr);
+    if (!pml3e_is_present(pml3e))
+        return 0;
+
+#if MOS_CONFIG(PML3_HUGE_CAPABLE)
+    if (platform_pml3e_is_huge(pml3e))
+        return platform_pml3e_get_flags(pml3e);
+    else
+        flags &= platform_pml3e_get_flags(pml3e);
+#else
+    flags &= platform_pml3e_get_flags(pml3e);
+#endif
+
+    const pml2_t pml2 = pml3e_get_or_create_pml2(pml3e);
+    pml2e_t *pml2e = pml2_entry(pml2, vaddr);
+    if (!pml2e_is_present(pml2e))
+        return 0;
+
+#if MOS_CONFIG(PML2_HUGE_CAPABLE)
+    if (platform_pml2e_is_huge(pml2e))
+        return platform_pml2e_get_flags(pml2e);
+    else
+        flags &= platform_pml2e_get_flags(pml2e);
+#else
+    flags &= platform_pml2e_get_flags(pml2e);
+#endif
+
+    const pml1_t pml1 = pml2e_get_or_create_pml1(pml2e);
+    const pml1e_t *pml1e = pml1_entry(pml1, vaddr);
+    if (!pml1e_is_present(pml1e))
+        return 0;
+
+    flags &= platform_pml1e_get_flags(pml1e);
+    return flags;
+}
+
 void *__create_page_table(void)
 {
     mmstat_inc1(MEM_PAGETABLE);
