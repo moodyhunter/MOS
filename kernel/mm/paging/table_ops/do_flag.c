@@ -6,9 +6,12 @@ static void pml1e_do_flag_callback(pml1_t pml1, pml1e_t *e, ptr_t vaddr, void *d
 {
     MOS_UNUSED(pml1);
     MOS_UNUSED(vaddr);
-    struct pagetable_do_flag_data *flag_data = data;
-    platform_pml1e_set_flags(e, flag_data->flags);
-    platform_invalidate_tlb(vaddr);
+    if (platform_pml1e_get_present(e))
+    {
+        struct pagetable_do_flag_data *flag_data = data;
+        platform_pml1e_set_flags(e, flag_data->flags);
+        platform_invalidate_tlb(vaddr);
+    }
 }
 
 static void pml2e_do_flag_callback(pml2_t pml2, pml2e_t *e, ptr_t vaddr, void *data)
