@@ -261,7 +261,8 @@ process_t *elf_create_process(const char *path, process_t *parent, int argc, con
 
     elf_setup_main_thread(proc->main_thread, path, elf.entry_point, argc, new_argv);
     thread_complete_init(proc->main_thread);
-    mm_switch_context(prev_mm);
+    mm_context_t *prev = mm_switch_context(prev_mm);
+    MOS_UNUSED(prev);
 
     for (int i = 0; i < argc; i++)
         kfree((void *) new_argv[i]);

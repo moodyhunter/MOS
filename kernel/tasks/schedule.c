@@ -88,7 +88,10 @@ static bool schedule_to_thread(uintn key, void *value, void *data)
 
     const bool should_switch_mm = cpu->mm_context != thread->owner->mm;
     if (should_switch_mm)
-        mm_switch_context(thread->owner->mm);
+    {
+        mm_context_t *old = mm_switch_context(thread->owner->mm);
+        MOS_UNUSED(old);
+    }
 
     cpu->thread = thread;
 
