@@ -402,3 +402,8 @@ DEFINE_SYSCALL(noreturn void, signal_return)(void *sp)
 {
     signal_return(sp);
 }
+
+DEFINE_SYSCALL(bool, vm_protect)(void *addr, size_t size, mem_perm_t perm)
+{
+    return vm_protect(current_mm, (ptr_t) addr, size, (vm_flags) perm);
+}

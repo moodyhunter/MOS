@@ -43,3 +43,12 @@ ptr_t mmap_file(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags
  * the range specified will be unmapped even if they are not fully contained within the range.
  */
 bool munmap(ptr_t addr, size_t size);
+
+/**
+ * @brief Change the permissions of a mapping
+ *
+ * @param addr The address of the mapping to change
+ * @param size The size of the mapping to change
+ * @param perm The new permissions for the mapping
+ */
+bool vm_protect(mm_context_t *mmctx, ptr_t addr, size_t size, vm_flags perm);

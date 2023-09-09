@@ -266,6 +266,23 @@ bool mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     }
 
     MOS_ASSERT_X(fault_vmap->on_fault, "vmap %pvm has no fault handler", (void *) fault_vmap);
+    const vm_flags page_flags = mm_do_get_flags(fault_vmap->mmctx->pgd, fault_addr);
+
+    if (info->is_exec && !(fault_vmap->vmflags & VM_EXEC))
+    {
+        pr_emph("page fault in non-executable vmap: %pvm", (void *) fault_vmap);
+        mm_unlock_ctx_pair(mm, NULL);
+        return false;
+    }
+    else if (info->is_present && info->is_exec && fault_vmap->vmflags & VM_EXEC && !(page_flags & VM_EXEC))
+    {
+        // vmprotect has been called on this vmap to enable execution
+        // we need to make sure that the page is executable
+        mm_do_flag(fault_vmap->mmctx->pgd, fault_addr, 1, page_flags | VM_EXEC);
+        mm_unlock_ctx_pair(mm, NULL);
+        spinlock_release(&fault_vmap->lock);
+        return true;
+    }
 
     if (info->is_write && !(fault_vmap->vmflags & VM_WRITE))
     {
@@ -289,7 +306,7 @@ bool mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     vmfault_result_t fault_result = fault_vmap->on_fault(fault_vmap, fault_addr, info);
     mos_debug_cont(cow, " -> %s (%d)", fault_result_names[fault_result], fault_result);
 
-    vm_flags flags = fault_vmap->vmflags;
+    vm_flags map_flags = fault_vmap->vmflags;
     switch (fault_result)
     {
         case VMFAULT_COMPLETE: break;
@@ -304,7 +321,7 @@ bool mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         }
         case VMFAULT_MAP_BACKING_PAGE_RO:
         {
-            flags &= ~VM_WRITE;
+            map_flags &= ~VM_WRITE;
             goto map_backing_page;
         }
         case VMFAULT_MAP_BACKING_PAGE:
@@ -312,7 +329,7 @@ bool mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         map_backing_page:
             MOS_ASSERT(info->backing_page);
             mos_debug_cont(cow, " (backing page: " PFN_FMT ")", phyframe_pfn(info->backing_page));
-            mm_replace_page_locked(fault_vmap->mmctx, fault_addr, phyframe_pfn(info->backing_page), flags);
+            mm_replace_page_locked(fault_vmap->mmctx, fault_addr, phyframe_pfn(info->backing_page), map_flags);
             fault_result = VMFAULT_COMPLETE;
         }
     }

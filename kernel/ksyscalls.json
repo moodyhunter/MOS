@@ -303,6 +303,12 @@
             "name": "signal_return",
             "return": null,
             "arguments": [ { "type": "void *", "arg": "sp" } ]
+        },
+        {
+            "number": 44,
+            "name": "vm_protect",
+            "return": "bool",
+            "arguments": [ { "type": "void *", "arg": "addr" }, { "type": "size_t", "arg": "size" }, { "type": "mem_perm_t", "arg": "perm" } ]
         }
     ]
 }
