@@ -307,11 +307,7 @@ process_t *elf_create_process(const char *path, process_t *parent, int argc, con
             }
             case ELF_PT_NOTE: break;    // intentionally ignored
             case ELF_PT_DYNAMIC: break; // will be handled by the dynamic linker
-            case ELF_PT_TLS:
-            {
-                pr_warn("ignoring unsupported program header type %d", ph.header_type);
-                break;
-            }
+            case ELF_PT_TLS: break;     // will be handled by the dynamic linker or libc
             default:
             {
                 if (IN_RANGE(ph.header_type, ELF_PT_OS_LOW, ELF_PT_OS_HIGH))
