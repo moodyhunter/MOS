@@ -11,6 +11,11 @@
 alias_t *alias_list;
 size_t alias_count;
 
+static void greet(void)
+{
+    puts("MOS Shell Version 1");
+}
+
 void do_alias(int argc, const char *argv[])
 {
     if (argc == 0)
@@ -119,7 +124,7 @@ void do_help(int argc, const char *argv[])
 {
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
-    printf("MOS Shell '" PROGRAM "' Version 1\n");
+    greet();
     printf("Type 'help' to see this help\n");
     printf("The following commands are built-in:\n");
     printf("\n");
@@ -207,7 +212,7 @@ void do_version(int argc, const char *argv[])
 {
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
-    printf("MOS Shell '" PROGRAM "' Version 1\n");
+    greet();
 }
 
 void do_which(int argc, const char *argv[])

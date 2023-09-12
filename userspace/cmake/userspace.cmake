@@ -108,16 +108,9 @@ macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
     add_summary_item(INITRD "${ITEM_TYPE}" "${SOURCE_ITEM_SUPPLIMENTARY_INFO}" "${OUTPUT_DIR_PRETTY}")
 endmacro()
 
-add_custom_target(mos_userspace_programs)
-add_summary_item(UTILITY mos_userspace_programs "" "All Userspace Programs")
-
 macro(setup_userspace_program TARGET INITRD_PATH DESCRIPTION)
-    add_dependencies(mos_userspace_programs ${TARGET})
-
     set_target_properties(${TARGET} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
     target_link_libraries(${TARGET} PRIVATE mos::stdlib)
-    target_compile_definitions(${TARGET} PRIVATE -DPROGRAM="${TARGET}")
 
     add_to_initrd(TARGET ${TARGET} ${INITRD_PATH})
-    add_summary_item(USERSPACE "${TARGET}" "${INITRD_PATH}/${TARGET}" "${DESCRIPTION}")
 endmacro()
