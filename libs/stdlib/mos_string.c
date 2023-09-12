@@ -165,6 +165,7 @@ char *strcat(char *__restrict dest, const char *__restrict src)
 
 char *strncpy(char *__restrict dest, const char *__restrict src, size_t n)
 {
+    char *ret = dest;
     while (n > 0 && *src)
     {
         *dest++ = *src++;
@@ -175,7 +176,7 @@ char *strncpy(char *__restrict dest, const char *__restrict src, size_t n)
         *dest++ = 0;
         n--;
     }
-    return dest;
+    return ret;
 }
 
 char *strdup(const char *src)
