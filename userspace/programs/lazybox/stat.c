@@ -18,7 +18,7 @@ int main(int argc, char **argv)
     for (int i = 1; i < argc; i++)
     {
         file_stat_t statbuf;
-        if (!stat(argv[i], &statbuf))
+        if (!lstat(argv[i], &statbuf))
         {
             fprintf(stderr, "%s: No such file or directory\n", argv[i]);
             return 1;
@@ -26,6 +26,7 @@ int main(int argc, char **argv)
 
         printf("File: %s\n", argv[i]);
         printf("File size: %zd bytes\n", statbuf.size);
+        char link_target[MOS_PATH_MAX_LENGTH] = { 0 };
         switch (statbuf.type)
         {
             case FILE_TYPE_REGULAR: puts("Type: Regular file"); break;
@@ -34,7 +35,18 @@ int main(int argc, char **argv)
             case FILE_TYPE_BLOCK_DEVICE: puts("Type: Block device"); break;
             case FILE_TYPE_NAMED_PIPE: puts("Type: Pipe"); break;
             case FILE_TYPE_SOCKET: puts("Type: Socket"); break;
-            case FILE_TYPE_SYMLINK: puts("Type: Symbolic link"); break;
+            case FILE_TYPE_SYMLINK:
+            {
+                puts("Type: Symbolic link");
+                size_t siz = syscall_vfs_readlinkat(FD_CWD, argv[i], link_target, sizeof(link_target));
+                if (siz == (size_t) -1)
+                {
+                    fatal_abort("readlink");
+                    return 1;
+                }
+                printf("Link target: %s\n", link_target);
+                break;
+            }
             default: puts("Type: Unknown"); break;
         }
 

@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
         for (const dir_entry_t *dirent = (dir_entry_t *) buffer; (char *) dirent < buffer + sz; dirent = dirent_next(dirent))
         {
             file_stat_t statbuf = { 0 };
-            if (!statat(dirfd, dirent->name, &statbuf))
+            if (!lstatat(dirfd, dirent->name, &statbuf))
             {
                 fprintf(stderr, "failed to stat '%s'\n", dirent->name);
                 continue;
@@ -61,14 +61,15 @@ int main(int argc, char *argv[])
             {
                 char link[BUFSIZE];
                 size_t sz = syscall_vfs_readlinkat(dirfd, dirent->name, link, BUFSIZE);
-                if (sz > 0)
+                bool can_stat = sz > 0 && lstatat(dirfd, link, &statbuf);
+                if (can_stat)
                 {
                     link[sz] = '\0';
                     printf(" -> %s", link);
                 }
                 else
                 {
-                    printf(" -> (broken symlink)");
+                    printf(" -> (broken symlink: '%s')", link);
                 }
             }
 
