@@ -280,7 +280,6 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve
     dentry_t *child_ref = dentry_resolve_handle_last_segment(parent_ref, last_segment, flags);
     if (child_ref == NULL)
     {
-        mos_warn("symlink target does not exist");
         dentry_unref(parent_ref);
         kfree(last_segment);
         return NULL;
@@ -354,7 +353,6 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
         dentry_t *const symlink_target_ref = dentry_resolve_follow_symlink(child_ref, flags);
         if (unlikely(symlink_target_ref == NULL))
         {
-            mos_warn("failed to resolve symlink");
             dentry_unref(child_ref);
             return NULL;
         }
