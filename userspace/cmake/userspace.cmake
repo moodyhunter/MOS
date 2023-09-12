@@ -108,6 +108,18 @@ macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
     add_summary_item(INITRD "${ITEM_TYPE}" "${SOURCE_ITEM_SUPPLIMENTARY_INFO}" "${OUTPUT_DIR_PRETTY}")
 endmacro()
 
+macro(add_simple_rust_project PROJECT_DIR NAME INITRD_DIR)
+    set(OUTPUT_FILE "${CMAKE_SOURCE_DIR}/${PROJECT_DIR}/target/x86_64-unknown-none/debug/${NAME}")
+    add_custom_command(
+        OUTPUT ${OUTPUT_FILE}
+        COMMAND cargo build
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/${PROJECT_DIR}
+    )
+    add_custom_target(${NAME}_rust ALL DEPENDS ${OUTPUT_FILE})
+    add_to_initrd(FILE "${OUTPUT_FILE}" "${INITRD_DIR}")
+    add_dependencies(mos_initrd ${NAME}_rust)
+endmacro()
+
 macro(setup_userspace_program TARGET INITRD_PATH DESCRIPTION)
     set_target_properties(${TARGET} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
     target_link_libraries(${TARGET} PRIVATE mos::stdlib)
