@@ -45,6 +45,35 @@ static bool create_directories(void)
     return true;
 }
 
+static bool create_symlinks(void)
+{
+    size_t num_symlinks;
+    const char **symlinks = config_get_all(config, "symlink", &num_symlinks);
+    if (!symlinks)
+        return false;
+
+    for (size_t i = 0; i < num_symlinks; i++)
+    {
+        // format: <Source> <Destination>
+        const char *symlink = symlinks[i];
+
+        char *dup = strdup(symlink);
+        char *source = strtok(dup, " ");
+        char *destination = strtok(NULL, " ");
+
+        if (!source || !destination)
+            return false; // invalid options
+
+        source = string_trim(source);
+        destination = string_trim(destination);
+
+        if (!syscall_vfs_symlink(source, destination))
+            return false;
+    }
+
+    return true;
+}
+
 static bool mount_filesystems(void)
 {
     size_t num_mounts;
@@ -123,6 +152,9 @@ int main(int argc, const char *argv[])
         return DYN_ERROR_CODE;
 
     if (!create_directories())
+        return DYN_ERROR_CODE;
+
+    if (!create_symlinks())
         return DYN_ERROR_CODE;
 
     if (!mount_filesystems())
