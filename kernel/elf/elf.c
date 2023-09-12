@@ -172,8 +172,8 @@ static void elf_map_segment(const elf_program_hdr_t *const ph, mm_context_t *mm,
     MOS_ASSERT_X(ph->size_in_file <= ph->size_in_mem, "invalid ELF: size in file is larger than size in memory");
 
     const vm_flags flags = VM_USER | (ph->p_flags & ELF_PF_R ? VM_READ : 0) | (ph->p_flags & ELF_PF_W ? VM_WRITE : 0) | (ph->p_flags & ELF_PF_X ? VM_EXEC : 0);
-    const size_t npages = ALIGN_UP_TO_PAGE(ph->size_in_mem) / MOS_PAGE_SIZE;
     const ptr_t aligned_vaddr = ALIGN_DOWN_TO_PAGE(ph->vaddr);
+    const size_t npages = (ALIGN_UP_TO_PAGE(ph->vaddr + ph->size_in_mem) - aligned_vaddr) / MOS_PAGE_SIZE;
     const size_t aligned_size = ALIGN_DOWN_TO_PAGE(ph->data_offset);
     mos_debug(elf, "  mapping %zu pages at " PTR_FMT " from offset %zu...", npages, aligned_vaddr, aligned_size);
 
