@@ -52,7 +52,6 @@ include(kconfig)
 include(configure_summary)
 add_summary_section(BOOTABLE    "Bootable Targets")
 add_summary_section(INITRD      "Initrd Items")
-add_summary_section(USERSPACE   "Userspace Targets")
 add_summary_section(UTILITY     "Utility Targets")
 
 include(generate_syscall_headers)

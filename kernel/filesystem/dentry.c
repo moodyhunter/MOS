@@ -122,6 +122,11 @@ static __nodiscard bool dentry_unref_one(dentry_t *dentry)
     return true;
 }
 
+// The two functions below have circular dependencies, so we need to forward declare them
+// Both of them return a referenced dentry, no need to refcount them again
+static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf, lastseg_resolve_flags_t flags);
+static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve_flags_t flags);
+
 /**
  * @brief Lookup the parent directory of a given path, and return the last segment of the path in last_seg_out
  *
@@ -131,7 +136,7 @@ static __nodiscard bool dentry_unref_one(dentry_t *dentry)
  * @param last_seg_out The last segment of the path will be returned in this parameter, the caller is responsible for freeing it
  * @return dentry_t* The parent directory of the path, or NULL if the path is invalid, the dentry will be referenced
  */
-static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, const char *original_path, char **last_seg_out)
+static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, const char *original_path, lastseg_resolve_flags_t flags, char **last_seg_out)
 {
     MOS_ASSERT_X(base_dir && root_dir && original_path, "Invalid VFS lookup parameters");
     if (last_seg_out != NULL)
@@ -164,6 +169,18 @@ static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, co
         const char *const next = strtok_r(NULL, PATH_DELIM_STR, &saveptr);
         if (next == NULL)
         {
+            if (parent_ref->inode->type == FILE_TYPE_SYMLINK)
+            {
+                dentry_t *const parent_real_ref = dentry_resolve_follow_symlink(parent_ref, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_DIR);
+                if (unlikely(parent_real_ref == NULL))
+                {
+                    dentry_unref(parent_ref);
+                    return NULL;
+                }
+
+                parent_ref = parent_real_ref; // this is the real interesting dir
+            }
+
             // "current_seg" is the last segment of the path
             if (last_seg_out != NULL)
             {
@@ -236,11 +253,6 @@ static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, co
     MOS_UNREACHABLE();
 }
 
-// The two functions below have circular dependencies, so we need to forward declare them
-// Both of them return a referenced dentry, no need to refcount them again
-static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf, lastseg_resolve_flags_t flags);
-static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve_flags_t flags);
-
 static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve_flags_t flags)
 {
     MOS_ASSERT_X(dentry != NULL && dentry->inode != NULL, "check before calling this function!");
@@ -268,7 +280,7 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve
     mos_debug(dcache, "symlink target: %s", target);
 
     char *last_segment = NULL;
-    dentry_t *parent_ref = dentry_lookup_parent(dentry_parent(dentry), root_dentry, target, &last_segment);
+    dentry_t *parent_ref = dentry_lookup_parent(dentry_parent(dentry), root_dentry, target, flags, &last_segment);
     kfree(target);
     if (parent_ref == NULL)
     {
@@ -559,7 +571,7 @@ dentry_t *dentry_get(dentry_t *starting_dir, dentry_t *root_dir, const char *pat
 {
     char *last_segment;
     mos_debug(dcache, "resolving path '%s'", path);
-    dentry_t *const parent_ref = dentry_lookup_parent(starting_dir, root_dir, path, &last_segment);
+    dentry_t *const parent_ref = dentry_lookup_parent(starting_dir, root_dir, path, flags, &last_segment);
     if (parent_ref == NULL)
     {
         mos_debug(dcache, "failed to resolve parent of '%s', file not found", path);
