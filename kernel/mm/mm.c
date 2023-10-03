@@ -14,6 +14,7 @@
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
+#include "mos/tasks/signal.h"
 #include "mos/tasks/task_types.h"
 
 #include <mos/lib/structures/list.h>
@@ -251,8 +252,62 @@ vmfault_result_t mm_resolve_cow_fault(vmap_t *vmap, ptr_t fault_addr, pagefault_
     return VMFAULT_COMPLETE;
 }
 
-bool mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
+static void invalid_page_fault(ptr_t fault_addr, pagefault_t *info)
 {
+    pr_emerg("Unhandled Page Fault");
+    pr_emerg("  %s mode invalid %s page %s%s at [" PTR_FMT "]", //
+             info->is_user ? "User" : "Kernel",                 //
+             info->is_present ? "present" : "non-present",      //
+             info->is_write ? "write" : "read",                 //
+             info->is_exec ? " (NX violation)" : "",            //
+             fault_addr                                         //
+    );
+    pr_emerg("  instruction: " PTR_FMT, info->instruction);
+    pr_emerg("  thread: %pt", (void *) current_thread);
+    pr_emerg("  process: %pp", current_thread ? (void *) current_process : NULL);
+
+    if (fault_addr < 1 KB)
+        pr_emerg("  possible null pointer dereference");
+
+    if (info->is_user && fault_addr > MOS_KERNEL_START_VADDR)
+        pr_emerg("  kernel address dereference");
+
+    if (info->instruction > MOS_KERNEL_START_VADDR)
+        pr_emerg("  in kernel function %ps", (void *) info->instruction);
+
+    process_dump_mmaps(current_process);
+    signal_send_to_thread(current_thread, SIGSEGV);
+}
+
+void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
+{
+    thread_t *current = current_thread;
+
+    if (MOS_DEBUG_FEATURE(cow))
+    {
+        if (current)
+        {
+            pr_emph("%s page fault: thread %pt, process %pp at " PTR_FMT ", instruction " PTR_FMT, //
+                    info->is_user ? "user" : "kernel",                                             //
+                    (void *) current,                                                              //
+                    (void *) current->owner,                                                       //
+                    fault_addr,                                                                    //
+                    info->instruction                                                              //
+            );
+        }
+        else
+        {
+            pr_emph("%s page fault: kernel thread at " PTR_FMT ", instruction " PTR_FMT, //
+                    info->is_user ? "user" : "kernel",                                   //
+                    fault_addr,                                                          //
+                    info->instruction                                                    //
+            );
+        }
+    }
+
+    if (info->is_write && info->is_exec)
+        mos_panic("Cannot write and execute at the same time");
+
     mm_context_t *const mm = current_mm;
     mm_lock_ctx_pair(mm, NULL);
 
@@ -262,7 +317,7 @@ bool mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     {
         pr_emph("page fault in " PTR_FMT " (not mapped)", fault_addr);
         mm_unlock_ctx_pair(mm, NULL);
-        return false;
+        goto unhandled_fault;
     }
 
     MOS_ASSERT_X(fault_vmap->on_fault, "vmap %pvm has no fault handler", (void *) fault_vmap);
@@ -272,7 +327,7 @@ bool mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     {
         pr_emph("page fault in non-executable vmap: %pvm", (void *) fault_vmap);
         mm_unlock_ctx_pair(mm, NULL);
-        return false;
+        goto unhandled_fault;
     }
     else if (info->is_present && info->is_exec && fault_vmap->vmflags & VM_EXEC && !(page_flags & VM_EXEC))
     {
@@ -281,14 +336,14 @@ bool mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         mm_do_flag(fault_vmap->mmctx->pgd, fault_addr, 1, page_flags | VM_EXEC);
         mm_unlock_ctx_pair(mm, NULL);
         spinlock_release(&fault_vmap->lock);
-        return true;
+        return;
     }
 
     if (info->is_write && !(fault_vmap->vmflags & VM_WRITE))
     {
         pr_emph("page fault in read-only vmap: %pvm", (void *) fault_vmap);
         mm_unlock_ctx_pair(mm, NULL);
-        return false;
+        goto unhandled_fault;
     }
 
     if (info->is_present)
@@ -338,7 +393,12 @@ bool mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     spinlock_release(&fault_vmap->lock);
     mm_unlock_ctx_pair(mm, NULL);
     ipi_send_all(IPI_TYPE_INVALIDATE_TLB);
-    return fault_result == VMFAULT_COMPLETE;
+    if (fault_result == VMFAULT_COMPLETE)
+        return;
+
+// if we get here, the fault was not handled
+unhandled_fault:
+    invalid_page_fault(fault_addr, info);
 }
 
 // ! sysfs support

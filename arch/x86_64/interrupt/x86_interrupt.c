@@ -141,9 +141,8 @@ static void x86_handle_exception(x86_stack_frame *stack)
         case EXCEPTION_NMI:
         {
             x86_handle_nmi(stack);
-            return;
+            break;
         }
-        case EXCEPTION_DIVIDE_ERROR:
         case EXCEPTION_DEBUG:
         {
             ptr_t drx[6]; // DR0, DR1, DR2, DR3 and DR6, DR7
@@ -160,6 +159,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
 
             return;
         }
+        case EXCEPTION_DIVIDE_ERROR:
         case EXCEPTION_OVERFLOW:
         case EXCEPTION_BOUND_RANGE_EXCEEDED:
         case EXCEPTION_INVALID_OPCODE:
@@ -192,74 +192,17 @@ static void x86_handle_exception(x86_stack_frame *stack)
         {
             intr_type = "page fault";
 
-            ptr_t fault_address;
-            __asm__ volatile("mov %%cr2, %0" : "=r"(fault_address));
-
             pagefault_t info = {
                 .is_present = (stack->error_code & 0x1) != 0,
                 .is_write = (stack->error_code & 0x2) != 0,
                 .is_user = (stack->error_code & 0x4) != 0,
                 .is_exec = (stack->error_code & 0x10) != 0,
+                .instruction = stack->ip,
+                .stack = stack->ss,
             };
 
-            thread_t *current = current_thread;
-
-            if (MOS_DEBUG_FEATURE(cow))
-            {
-                if (current)
-                {
-                    pr_emph("%s page fault: thread %pt, process %pp at " PTR_FMT ", instruction " PTR_FMT, //
-                            info.is_user ? "user" : "kernel",                                              //
-                            (void *) current,                                                              //
-                            (void *) current->owner,                                                       //
-                            fault_address,                                                                 //
-                            (ptr_t) stack->ip                                                              //
-                    );
-                }
-                else
-                {
-                    pr_emph("%s page fault: kernel thread at " PTR_FMT ", instruction " PTR_FMT, //
-                            info.is_user ? "user" : "kernel",                                    //
-                            fault_address,                                                       //
-                            (ptr_t) stack->ip                                                    //
-                    );
-                }
-            }
-
-            if (info.is_write && info.is_exec)
-                mos_panic("Cannot write and execute at the same time");
-
-            bool result = mm_handle_fault(fault_address, &info);
-
-            if (result)
-                return;
-
-            pr_emerg("Unhandled Page Fault");
-            pr_emerg("  %s mode invalid %s page %s%s at [" PTR_FMT "]", //
-                     info.is_user ? "User" : "Kernel",                  //
-                     info.is_present ? "present" : "non-present",       //
-                     info.is_write ? "write" : "read",                  //
-                     info.is_exec ? " (NX violation)" : "",             //
-                     fault_address                                      //
-            );
-            pr_emerg("  instruction: " PTR_FMT, (ptr_t) stack->ip);
-            pr_emerg("  thread: %pt", (void *) current);
-            pr_emerg("  process: %pp", current ? (void *) current->owner : NULL);
-
-            if (fault_address < 1 KB)
-                pr_emerg("  possible null pointer dereference");
-
-            if (info.is_user && fault_address > MOS_KERNEL_START_VADDR)
-                pr_emerg("  kernel address dereference");
-
-            if (stack->ip > MOS_KERNEL_START_VADDR)
-                pr_emerg("  in kernel function %ps", (void *) stack->ip);
-
-            pr_emerg("  CR3: " PTR_FMT, x86_cpu_get_cr3() + platform_info->direct_map_base);
-
-            x86_dump_registers(stack);
-            mos_panic("Unable to recover from page fault.");
-            MOS_UNREACHABLE();
+            mm_handle_fault(x86_cpu_get_cr2(), &info);
+            goto done;
         }
 
         case EXCEPTION_DOUBLE_FAULT:
@@ -268,15 +211,26 @@ static void x86_handle_exception(x86_stack_frame *stack)
             intr_type = "abort";
             break;
         }
-        default:
+        case EXCEPTION_MAX:
+        case EXCEPTION_COUNT:
         {
-            name = "unknown";
-            intr_type = "unknown";
+            MOS_UNREACHABLE();
         }
     }
 
-    x86_dump_registers(stack);
-    mos_panic("x86 %s:\nInterrupt #%lu ('%s', error code %lu)", intr_type, stack->interrupt_number, name, stack->error_code);
+    if (current_thread)
+    {
+        pr_emerg("cpu %d: %s (%lu) at " PTR_FMT " (error code %lu)", lapic_get_id(), name, stack->interrupt_number, stack->ip, stack->error_code);
+        signal_send_to_thread(current_thread, SIGABRT);
+    }
+    else
+    {
+        x86_dump_registers(stack);
+        mos_panic("x86 %s:\nInterrupt #%lu ('%s', error code %lu)", intr_type, stack->interrupt_number, name, stack->error_code);
+    }
+
+done:
+    return;
 }
 
 static void x86_handle_irq(x86_stack_frame *frame)

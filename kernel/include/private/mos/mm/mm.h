@@ -27,6 +27,7 @@ typedef enum
 
 typedef struct
 {
+    ptr_t instruction, stack;
     bool is_present, is_write, is_user, is_exec;
     phyframe_t *faulting_page;      ///< the frame that contains the copy-on-write data (if any)
     const phyframe_t *backing_page; ///< the frame that contains the data for this page, the on_fault handler should set this
@@ -164,6 +165,5 @@ void vmap_finalise_init(vmap_t *vmap, vmap_content_t content, vmap_type_t type);
  *
  * @param fault_addr The fault address
  * @param info The page fault info
- * @return true If the fault is handled
  */
-bool mm_handle_fault(ptr_t fault_addr, pagefault_t *info);
+void mm_handle_fault(ptr_t fault_addr, pagefault_t *info);

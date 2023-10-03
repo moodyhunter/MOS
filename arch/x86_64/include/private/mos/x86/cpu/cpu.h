@@ -40,6 +40,13 @@ should_inline u32 x86_cpu_get_id(void)
         return_reg;                                                                                                                                                      \
     })
 
+should_inline reg_t x86_cpu_get_cr2(void)
+{
+    reg_t cr2;
+    __asm__ volatile("mov %%cr2, %0" : "=r"(cr2));
+    return cr2;
+}
+
 should_inline reg_t x86_cpu_get_cr3(void)
 {
     reg_t cr3;
