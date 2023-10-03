@@ -2,15 +2,9 @@
 
 #pragma once
 
+#include <elf.h>
 #include <mos/tasks/task_types.h>
 #include <mos/types.h>
-
-typedef enum
-{
-    ELF_BITS_INVALID = 0,
-    ELF_BITS_32 = 1,
-    ELF_BITS_64 = 2,
-} elf_bits;
 
 #if MOS_BITS == 32
 #define ELF_BITS_MOS_DEFAULT ELF_BITS_32
@@ -33,64 +27,23 @@ typedef enum
 #define ELF_ENDIANNESS_MOS_DEFAULT ELF_ENDIANNESS_MSB
 #endif
 
-typedef enum
-{
-    ELF_VERSION_NONE = 0,
-    ELF_VERSION_CURRENT = 1,
-} elf_version_type;
-
-typedef enum
-{
-    ELF_OSABI_NONE = 0,
-    ELF_OSABI_LINUX = 3,
-    ELF_OSABI_HURD = 4,
-    ELF_OSABI_SOLARIS = 6,
-    ELF_OSABI_FREEBSD = 9,
-    ELF_OSABI_ARM_AEABI = 64,
-    ELF_OSABI_ARM = 97,
-    ELF_OSABI_MOS = 254, // ! Long live the MOS!
-    ELF_OSABI_STANDALONE = 255,
-} elf_osabi_type;
-
 typedef struct
 {
     char magic[4];
-    elf_bits bits : 8;
-    elf_endianness endianness : 8;
-    elf_version_type version : 8;
-    elf_osabi_type osabi : 8;
+    u32 bits : 8;
+    u32 endianness : 8;
+    u32 version : 8;
+    u32 osabi : 8;
     u8 abiversion : 8;
     u8 __padding[7];
 } elf_identity_t;
 
 MOS_STATIC_ASSERT(sizeof(elf_identity_t) == 16, "elf_identity_t has wrong size");
 
-typedef enum
-{
-    ELF_OBJTYPE_NONE = 0,
-    ELF_OBJTYPE_RELOCATABLE = 1,
-    ELF_OBJTYPE_EXECUTABLE = 2,
-    ELF_OBJTYPE_SHARED_OBJECT = 3,
-    ELF_OBJTYPE_CORE = 4,
-    ELF_OBJTYPE_PROCESSOR_SPECIFIC_LO = 0xff00,
-    ELF_OBJTYPE_PROCESSOR_SPECIFIC_HI = 0xffff,
-} elf_object_type;
-
-typedef enum
-{
-    ELF_MACHINE_NONE = 0,
-    ELF_MACHINE_X86 = 0x03,
-    ELF_MACHINE_MIPS = 0x08,
-    ELF_MACHINE_ARM = 0x28,
-    ELF_MACHINE_X86_64 = 0x3e,
-    ELF_MACHINE_AARCH64 = 0xb7,
-    ELF_MACHINE_RISCV = 0xf3,
-} elf_machine_type;
-
 #if defined(__i386__)
-#define ELF_MACHINE_MOS_DEFAULT ELF_MACHINE_X86
+#define ELF_MACHINE_MOS_DEFAULT EM_X86
 #elif defined(__x86_64__)
-#define ELF_MACHINE_MOS_DEFAULT ELF_MACHINE_X86_64
+#define ELF_MACHINE_MOS_DEFAULT EM_X86_64
 #else
 #error "Unsupported architecture"
 #endif
@@ -98,8 +51,8 @@ typedef enum
 typedef struct
 {
     elf_identity_t identity;
-    elf_object_type object_type : 16;
-    elf_machine_type machine_type : 16;
+    int object_type : 16;
+    int machine_type : 16;
 
     u32 version;
 

@@ -34,36 +34,36 @@ typedef struct
     auxv_vec_t auxv;
 } elf_startup_info_t;
 
-#define add_auxv_entry(var, type, val)                                                                                                                                   \
-    do                                                                                                                                                                   \
-    {                                                                                                                                                                    \
-        MOS_ASSERT_X(var.count < AUXV_VEC_SIZE, "auxv vector overflow, increase AUXV_VEC_SIZE");                                                                         \
-        var.vector[var.count].a_type = type;                                                                                                                             \
-        var.vector[var.count].a_un.a_val = val;                                                                                                                          \
-        var.count++;                                                                                                                                                     \
-    } while (0)
+static void add_auxv_entry(auxv_vec_t *var, unsigned long type, unsigned long val)
+{
+    MOS_ASSERT_X(var->count < AUXV_VEC_SIZE, "auxv vector overflow, increase AUXV_VEC_SIZE");
+
+    var->vector[var->count].a_type = type;
+    var->vector[var->count].a_un.a_val = val;
+    var->count++;
+}
 
 static bool elf_verify_header(const elf_header_t *header)
 {
-    if (header->identity.magic[0] != '\x7f')
+    if (header->identity.magic[0] != ELFMAG0)
         return false;
 
     if (strncmp(&header->identity.magic[1], "ELF", 3) != 0)
         return false;
 
-    if (header->identity.bits != ELF_BITS_MOS_DEFAULT)
+    if (header->identity.bits != ELFCLASS64)
         return false;
 
     if (header->identity.endianness != ELF_ENDIANNESS_MOS_DEFAULT)
         return false;
 
-    if (header->identity.version != ELF_VERSION_CURRENT)
+    if (header->identity.osabi != 0)
         return false;
 
-    if (header->identity.osabi != ELF_OSABI_NONE)
+    if (header->identity.version != EV_CURRENT)
         return false;
 
-    if (header->machine_type != ELF_MACHINE_MOS_DEFAULT)
+    if (header->machine_type != MOS_ELF_PLATFORM)
         return false;
 
     return true;
@@ -82,10 +82,16 @@ static bool elf_read_and_verify_executable(file_t *file, elf_header_t *header)
     if (!valid)
         return false;
 
-    if (header->object_type != ELF_OBJTYPE_EXECUTABLE && header->object_type != ELF_OBJTYPE_SHARED_OBJECT)
+    if (header->object_type != ET_EXEC && header->object_type != ET_DYN)
         return false;
 
     return true;
+}
+
+static ptr_t elf_determine_loadbias(elf_header_t *elf)
+{
+    MOS_UNUSED(elf);
+    return 0x4000000; // TODO: randomize
 }
 
 /**
@@ -114,8 +120,8 @@ static void elf_setup_main_thread(thread_t *thread, elf_startup_info_t *info, in
     stack_push_val(&thread->u_stack, (uintn) 0);
 
     stack_push(&thread->u_stack, info->invocation, info->invocation_size + 1); // +1 for the null terminator
-    add_auxv_entry(info->auxv, AT_EXECFN, (ptr_t) thread->u_stack.head);
-    add_auxv_entry(info->auxv, AT_NULL, 0);
+    add_auxv_entry(&info->auxv, AT_EXECFN, (ptr_t) thread->u_stack.head);
+    add_auxv_entry(&info->auxv, AT_NULL, 0);
 
     const int envp_count = 0;         // TODO: support envp
     const char *src_envp[envp_count]; // TODO: support envp
@@ -157,7 +163,7 @@ no_argv:
     stack_push_val(&thread->u_stack, (uintn) argc);
 }
 
-static void elf_map_segment(const elf_program_hdr_t *const ph, mm_context_t *mm, file_t *file)
+static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, mm_context_t *mm, file_t *file)
 {
     MOS_ASSERT(ph->header_type == ELF_PT_LOAD);
     mos_debug(elf, "program header %c%c%c, type '%d' at " PTR_FMT, //
@@ -175,21 +181,25 @@ static void elf_map_segment(const elf_program_hdr_t *const ph, mm_context_t *mm,
     const ptr_t aligned_vaddr = ALIGN_DOWN_TO_PAGE(ph->vaddr);
     const size_t npages = (ALIGN_UP_TO_PAGE(ph->vaddr + ph->size_in_mem) - aligned_vaddr) / MOS_PAGE_SIZE;
     const size_t aligned_size = ALIGN_DOWN_TO_PAGE(ph->data_offset);
-    mos_debug(elf, "  mapping %zu pages at " PTR_FMT " from offset %zu...", npages, aligned_vaddr, aligned_size);
 
-    const ptr_t vaddr = mmap_file(mm, aligned_vaddr, MMAP_PRIVATE | MMAP_EXACT, flags, npages, &file->io, aligned_size);
-    MOS_ASSERT_X(vaddr == aligned_vaddr, "failed to map ELF segment at " PTR_FMT, aligned_vaddr);
+    const ptr_t map_start = map_bias + aligned_vaddr;
+    mos_debug(elf, "  mapping %zu pages at " PTR_FMT " (bias at " PTR_FMT ") from offset %zu...", npages, map_start, map_bias, aligned_size);
+
+    const ptr_t vaddr = mmap_file(mm, map_start, MMAP_PRIVATE | MMAP_EXACT, flags, npages, &file->io, aligned_size);
+    MOS_ASSERT_X(vaddr == map_start, "failed to map ELF segment at " PTR_FMT, aligned_vaddr);
 
     if (ph->size_in_file < ph->size_in_mem)
     {
-        mos_debug(elf, "  ... and zeroing %zu bytes at " PTR_FMT, ph->size_in_mem - ph->size_in_file, ph->vaddr + ph->size_in_file);
-        memzero((char *) ph->vaddr + ph->size_in_file, ph->size_in_mem - ph->size_in_file);
+        mos_debug(elf, "  ... and zeroing %zu bytes at " PTR_FMT, ph->size_in_mem - ph->size_in_file, map_bias + ph->vaddr + ph->size_in_file);
+        memzero((char *) map_bias + ph->vaddr + ph->size_in_file, ph->size_in_mem - ph->size_in_file);
     }
 
     mos_debug(elf, "  ... done");
 }
 
-ptr_t elf_map_interpreter(const char *path, mm_context_t *mm)
+#define ELF_INTERPRETER_BASE_OFFSET 0x100000
+
+static ptr_t elf_map_interpreter(const char *path, mm_context_t *mm)
 {
     file_t *interp_file = vfs_openat(FD_CWD, path, OPEN_READ | OPEN_EXECUTE);
     if (!interp_file)
@@ -217,13 +227,14 @@ ptr_t elf_map_interpreter(const char *path, mm_context_t *mm)
 
         if (ph.header_type == ELF_PT_LOAD)
         {
-            elf_map_segment(&ph, mm, interp_file);
+            // interpreter is always loaded at vaddr 0
+            elf_map_segment(&ph, ELF_INTERPRETER_BASE_OFFSET, mm, interp_file);
             entry = elf.entry_point;
         }
     }
 
     io_unref(&interp_file->io);
-    return entry;
+    return ELF_INTERPRETER_BASE_OFFSET + entry;
 }
 
 process_t *elf_create_process(const char *path, process_t *parent, int argc, const char *const argv[], const stdio_t *ios)
@@ -248,10 +259,12 @@ process_t *elf_create_process(const char *path, process_t *parent, int argc, con
     info.invocation = strdup(path);
     info.invocation_size = strlen(path);
 
-    add_auxv_entry(info.auxv, AT_PAGESZ, MOS_PAGE_SIZE);
-    add_auxv_entry(info.auxv, AT_UID, 0);
-    add_auxv_entry(info.auxv, AT_GID, 0);
-    add_auxv_entry(info.auxv, AT_ENTRY, elf.entry_point); // the entry point of the executable, not the interpreter
+    add_auxv_entry(&info.auxv, AT_PAGESZ, MOS_PAGE_SIZE);
+    add_auxv_entry(&info.auxv, AT_UID, 0);
+    add_auxv_entry(&info.auxv, AT_EUID, 0);
+    add_auxv_entry(&info.auxv, AT_GID, 0);
+    add_auxv_entry(&info.auxv, AT_EGID, 0);
+    add_auxv_entry(&info.auxv, AT_BASE, ELF_INTERPRETER_BASE_OFFSET);
 
     process_t *proc = process_new(parent, file->dentry->name, ios);
     if (!proc)
@@ -268,8 +281,12 @@ process_t *elf_create_process(const char *path, process_t *parent, int argc, con
     new_argv[argc] = NULL;
     mm_context_t *const prev_mm = mm_switch_context(proc->mm);
 
+    bool should_bias = elf.object_type == ET_DYN; // only ET_DYN (shared libraries) needs randomization
+    ptrdiff_t map_bias = 0;                       // ELF segments are loaded at vaddr + load_bias
+
     bool has_interpreter = false;
-    ptr_t interp_entry = 0;
+    ptr_t interp_entrypoint = 0;
+    ptr_t auxv_phdr_vaddr = false; // whether we need to add AT_PHDR, AT_PHENT, AT_PHNUM to the auxv vector
 
     for (size_t i = 0; i < elf.ph.count; i++)
     {
@@ -285,26 +302,29 @@ process_t *elf_create_process(const char *path, process_t *parent, int argc, con
                 elf_read_file(file, interp_name, ph.data_offset, ph.size_in_file);
                 mos_debug(elf, "elf interpreter: %s", interp_name);
                 has_interpreter = true;
-                interp_entry = elf_map_interpreter(interp_name, proc->mm);
-                if (!interp_entry)
+                interp_entrypoint = elf_map_interpreter(interp_name, proc->mm);
+                if (!interp_entrypoint)
                 {
                     pr_emerg("failed to map interpreter '%s'", interp_name);
                     return NULL;
                 }
+
+                if (should_bias)
+                    map_bias = elf_determine_loadbias(&elf);
+
                 break;
             }
             case ELF_PT_LOAD:
             {
-                elf_map_segment(&ph, proc->mm, file);
+                elf_map_segment(&ph, map_bias, proc->mm, file);
                 break;
             }
             case ELF_PT_PHDR:
             {
-                add_auxv_entry(info.auxv, AT_PHDR, ph.vaddr);           // virtual address of program header table
-                add_auxv_entry(info.auxv, AT_PHENT, elf.ph.entry_size); // size of each program header table entry
-                add_auxv_entry(info.auxv, AT_PHNUM, elf.ph.count);      // number of entries in the program header table
+                auxv_phdr_vaddr = ph.vaddr;
                 break;
             }
+
             case ELF_PT_NOTE: break;    // intentionally ignored
             case ELF_PT_DYNAMIC: break; // will be handled by the dynamic linker
             case ELF_PT_TLS: break;     // will be handled by the dynamic linker or libc
@@ -321,9 +341,18 @@ process_t *elf_create_process(const char *path, process_t *parent, int argc, con
         };
     }
 
+    if (auxv_phdr_vaddr)
+    {
+        add_auxv_entry(&info.auxv, AT_PHDR, map_bias + auxv_phdr_vaddr);
+        add_auxv_entry(&info.auxv, AT_PHENT, elf.ph.entry_size);
+        add_auxv_entry(&info.auxv, AT_PHNUM, elf.ph.count);
+    }
+
+    add_auxv_entry(&info.auxv, AT_ENTRY, map_bias + elf.entry_point); // the entry point of the executable, not the interpreter
+
     ptr_t user_argv, user_envp;
     elf_setup_main_thread(thread, &info, argc, new_argv, &user_argv, &user_envp);
-    platform_context_setup_main_thread(thread, has_interpreter ? interp_entry : elf.entry_point, thread->u_stack.head, argc, user_argv, user_envp);
+    platform_context_setup_main_thread(thread, has_interpreter ? interp_entrypoint : elf.entry_point, thread->u_stack.head, argc, user_argv, user_envp);
 
     thread_complete_init(thread);
     mm_context_t *prev = mm_switch_context(prev_mm);
