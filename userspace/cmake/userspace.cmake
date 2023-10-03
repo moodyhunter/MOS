@@ -94,7 +94,7 @@ macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
             string(REPLACE "/" "_" TARGET_NAME ${TARGET_NAME})
             add_custom_target(${TARGET_NAME}
                 WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-                COMMAND cp -rT ${SOURCE_ITEM} ${OUTPUT_DIR} # see https://gitlab.kitware.com/cmake/cmake/-/issues/14609
+                COMMAND cp --remove-destination -rT ${SOURCE_ITEM} ${OUTPUT_DIR} # see https://gitlab.kitware.com/cmake/cmake/-/issues/14609
                 COMMENT "Copying directory ${SOURCE_ITEM} to initrd"
                 DEPENDS ${SOURCE_ITEM}
                 BYPRODUCTS ${DEST_FILES}
