@@ -117,6 +117,7 @@ macro(add_simple_rust_project PROJECT_DIR NAME INITRD_SUBDIR)
         WORKING_DIRECTORY ${PROJECT_DIR}
         DEPENDS ${PROJECT_DIR}/Cargo.toml
         BYPRODUCTS ${OUTPUT_FILE}
+        USES_TERMINAL
     )
     add_dependencies(mos_initrd ${NAME}_rust)
 endmacro()
