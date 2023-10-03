@@ -290,8 +290,7 @@ void process_dump_mmaps(const process_t *process)
         {
             char filepath[MOS_PATH_MAX_LENGTH];
             io_get_name(map->io, filepath, sizeof(filepath));
-            pr_info("       file: %s", filepath);
-            pr_info("     offset: %zu", map->io_offset);
+            pr_cont(" (%s, offset: 0x%lx)", filepath, map->io_offset);
         }
     }
 
