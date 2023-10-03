@@ -136,7 +136,7 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve
  * @param last_seg_out The last segment of the path will be returned in this parameter, the caller is responsible for freeing it
  * @return dentry_t* The parent directory of the path, or NULL if the path is invalid, the dentry will be referenced
  */
-static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, const char *original_path, lastseg_resolve_flags_t flags, char **last_seg_out)
+static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, const char *original_path, char **last_seg_out)
 {
     MOS_ASSERT_X(base_dir && root_dir && original_path, "Invalid VFS lookup parameters");
     if (last_seg_out != NULL)
@@ -280,7 +280,7 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve
     mos_debug(dcache, "symlink target: %s", target);
 
     char *last_segment = NULL;
-    dentry_t *parent_ref = dentry_lookup_parent(dentry_parent(dentry), root_dentry, target, flags, &last_segment);
+    dentry_t *parent_ref = dentry_lookup_parent(dentry_parent(dentry), root_dentry, target, &last_segment);
     kfree(target);
     if (parent_ref == NULL)
     {
@@ -571,7 +571,7 @@ dentry_t *dentry_get(dentry_t *starting_dir, dentry_t *root_dir, const char *pat
 {
     char *last_segment;
     mos_debug(dcache, "resolving path '%s'", path);
-    dentry_t *const parent_ref = dentry_lookup_parent(starting_dir, root_dir, path, flags, &last_segment);
+    dentry_t *const parent_ref = dentry_lookup_parent(starting_dir, root_dir, path, &last_segment);
     if (parent_ref == NULL)
     {
         mos_debug(dcache, "failed to resolve parent of '%s', file not found", path);
