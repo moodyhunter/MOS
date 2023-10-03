@@ -6,4 +6,8 @@ config MM_LIBALLOC_LOCKS
     bool "Use locks in liballoc"
     default y
 
+config RUST_TARGET
+    string "Userspace Rust target"
+    default "$ARCH-unknown-mos"
+
 endmenu
