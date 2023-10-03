@@ -108,15 +108,16 @@ macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
     add_summary_item(INITRD "${ITEM_TYPE}" "${SOURCE_ITEM_SUPPLIMENTARY_INFO}" "${OUTPUT_DIR_PRETTY}")
 endmacro()
 
-macro(add_simple_rust_project PROJECT_DIR NAME INITRD_DIR)
-    set(OUTPUT_FILE "${CMAKE_SOURCE_DIR}/${PROJECT_DIR}/target/x86_64-unknown-none/debug/${NAME}")
-    add_custom_command(
-        OUTPUT ${OUTPUT_FILE}
-        COMMAND cargo build
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/${PROJECT_DIR}
+macro(add_simple_rust_project PROJECT_DIR NAME INITRD_SUBDIR)
+    set(OUTPUT_FILE "${PROJECT_DIR}/target/${MOS_RUST_TARGET}/debug/${NAME}")
+    add_custom_target(
+        ${NAME}_rust
+        cargo build --target "${MOS_RUST_TARGET}" && ${CMAKE_COMMAND} -E copy ${OUTPUT_FILE} ${INITRD_DIR}/${INITRD_SUBDIR}
+        VERBATIM
+        WORKING_DIRECTORY ${PROJECT_DIR}
+        DEPENDS ${PROJECT_DIR}/Cargo.toml
+        BYPRODUCTS ${OUTPUT_FILE}
     )
-    add_custom_target(${NAME}_rust ALL DEPENDS ${OUTPUT_FILE})
-    add_to_initrd(FILE "${OUTPUT_FILE}" "${INITRD_DIR}")
     add_dependencies(mos_initrd ${NAME}_rust)
 endmacro()
 
