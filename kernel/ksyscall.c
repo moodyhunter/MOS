@@ -383,10 +383,11 @@ DEFINE_SYSCALL(bool, signal_register)(signal_t sig, sigaction_t *action)
 
 DEFINE_SYSCALL(bool, signal_process)(pid_t pid, signal_t sig)
 {
-    // stub
-    MOS_UNUSED(pid);
-    MOS_UNUSED(sig);
-    return false;
+    process_t *process = process_get(pid);
+    if (!process)
+        return false;
+    signal_send_to_process(process, sig);
+    return true;
 }
 
 DEFINE_SYSCALL(bool, signal_thread)(tid_t tid, signal_t sig)

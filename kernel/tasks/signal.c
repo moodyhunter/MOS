@@ -60,8 +60,37 @@ void signal_send_to_thread(thread_t *target, signal_t signal)
 
 void signal_send_to_process(process_t *target, signal_t signal)
 {
-    MOS_UNUSED(target);
-    MOS_UNUSED(signal);
+    thread_t *target_thread = NULL;
+    list_node_foreach(t_node, &target->threads)
+    {
+        thread_t *thread = container_of(t_node, thread_t, owner_node);
+        if (thread->state == THREAD_STATE_RUNNING || thread->state == THREAD_STATE_READY)
+        {
+            target_thread = thread;
+            break;
+        }
+    }
+
+    if (!target_thread)
+    {
+        list_node_foreach(t_node, &target->threads)
+        {
+            thread_t *thread = container_of(t_node, thread_t, owner_node);
+            if (thread->state == THREAD_STATE_BLOCKED)
+            {
+                target_thread = thread;
+                break;
+            }
+        }
+    }
+
+    if (!target_thread)
+    {
+        pr_emerg("signal_send_to_process: no thread to send signal to");
+        return;
+    }
+
+    signal_send_to_thread(target_thread, signal);
 }
 
 sigpending_t *signal_get_next_pending(void)
