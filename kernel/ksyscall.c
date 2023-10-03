@@ -20,6 +20,7 @@
 #include <mos/tasks/thread.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
+#include <sys/poll.h>
 
 #define DEFINE_SYSCALL(ret, name)                                                                                                                                        \
     MOS_STATIC_ASSERT(SYSCALL_DEFINED(name));                                                                                                                            \
@@ -407,4 +408,23 @@ DEFINE_SYSCALL(noreturn void, signal_return)(void *sp)
 DEFINE_SYSCALL(bool, vm_protect)(void *addr, size_t size, mem_perm_t perm)
 {
     return vm_protect(current_mm, (ptr_t) addr, size, (vm_flags) perm);
+}
+
+DEFINE_SYSCALL(int, io_poll)(struct pollfd *fds, nfds_t nfds, int timeout)
+{
+    if (timeout == 0) // poll with timeout 0 is just a check
+        return 0;
+
+    if (!fds || nfds == 0)
+        return -1;
+
+    for (nfds_t i = 0; i < nfds; i++)
+    {
+        if (fds[i].fd < 0)
+            fds[i].revents = 0;
+        pr_info2("io_poll: fd=%d, events=%d", fds[i].fd, fds[i].events);
+    }
+
+    MOS_UNIMPLEMENTED("io_poll");
+    return 0;
 }

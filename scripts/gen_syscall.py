@@ -78,6 +78,7 @@ def select_format(type: str) -> str:
         "io_seek_whence_t": "%d",
         "signal_t": "%d",
         "bool": "%d",
+        "nfds_t": "%d",
     }
     if type in select_formats:
         return select_formats[type]
