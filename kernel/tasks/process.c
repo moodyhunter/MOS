@@ -300,6 +300,7 @@ void process_dump_mmaps(const process_t *process)
 
 bool process_register_signal_handler(process_t *process, signal_t sig, sigaction_t *sigaction)
 {
+    mos_debug(signal, "registering signal handler for process %pp, signal %d", (void *) process, sig);
     process->signal_handlers[sig] = *sigaction;
     return true;
 }
