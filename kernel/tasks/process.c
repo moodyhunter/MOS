@@ -285,7 +285,7 @@ void process_dump_mmaps(const process_t *process)
         i++;
         const char *typestr = vmap_content_str[map->content];
         const char *forkmode = vmap_type_str[map->type];
-        pr_info("  %3zd: %pvm, %s, %s", i, (void *) map, typestr, forkmode);
+        pr_info2("  %3zd: %pvm, %s, %s", i, (void *) map, typestr, forkmode);
         if (map->io)
         {
             char filepath[MOS_PATH_MAX_LENGTH];
