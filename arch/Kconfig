@@ -6,14 +6,14 @@ menu "Generic architecture options"
 
 config ADDR_USER_HEAP
     hex "User heap address"
-    default 0x40000000
+    default 0x0100000000
 
 config ADDR_USER_STACK
     hex "User stack address"
-    default 0x100000000
+    default 0x5000000000
 
 config ADDR_USER_MMAP
     hex "User mmap address"
-    default 0xC00000000
+    default 0x1000000000
 
 endmenu
