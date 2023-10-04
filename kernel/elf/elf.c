@@ -201,12 +201,9 @@ static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, m
 
 static ptr_t elf_map_interpreter(const char *path, mm_context_t *mm)
 {
-    file_t *interp_file = vfs_openat(FD_CWD, path, OPEN_READ | OPEN_EXECUTE);
+    file_t *const interp_file = vfs_openat(FD_CWD, path, OPEN_READ | OPEN_EXECUTE);
     if (!interp_file)
-    {
-        mos_warn("failed to open '%s'", path);
         return 0;
-    }
 
     io_ref(&interp_file->io);
 
@@ -239,6 +236,7 @@ static ptr_t elf_map_interpreter(const char *path, mm_context_t *mm)
 
 process_t *elf_create_process(const char *path, process_t *parent, int argc, const char *const argv[], const stdio_t *ios)
 {
+    process_t *proc = NULL;
     file_t *file = vfs_openat(FD_CWD, path, OPEN_READ | OPEN_EXECUTE);
     if (!file)
     {
@@ -252,13 +250,10 @@ process_t *elf_create_process(const char *path, process_t *parent, int argc, con
     if (!elf_read_and_verify_executable(file, &elf))
     {
         pr_emerg("failed to verify ELF header for '%s'", dentry_name(file->dentry));
-        return NULL;
+        goto cleanup_close_file;
     }
 
     elf_startup_info_t info = { 0 };
-    info.invocation = strdup(path);
-    info.invocation_size = strlen(path);
-
     add_auxv_entry(&info.auxv, AT_PAGESZ, MOS_PAGE_SIZE);
     add_auxv_entry(&info.auxv, AT_UID, 0);
     add_auxv_entry(&info.auxv, AT_EUID, 0);
@@ -266,19 +261,21 @@ process_t *elf_create_process(const char *path, process_t *parent, int argc, con
     add_auxv_entry(&info.auxv, AT_EGID, 0);
     add_auxv_entry(&info.auxv, AT_BASE, ELF_INTERPRETER_BASE_OFFSET);
 
-    process_t *proc = process_new(parent, file->dentry->name, ios);
+    proc = process_new(parent, file->dentry->name, ios);
     if (!proc)
     {
         mos_warn("failed to create process for '%s'", dentry_name(file->dentry));
-        return NULL;
+        goto cleanup_close_file;
     }
 
-    thread_t *const thread = proc->main_thread;
-
-    const char *new_argv[argc + 1];
+    info.invocation = strdup(path);
+    info.invocation_size = strlen(path);
+    const char **new_argv = kmalloc(sizeof(char *) * (argc + 1));
     for (int i = 0; i < argc; i++)
         new_argv[i] = strdup(argv[i]); // copy the strings to kernel space, since we are switching to a new address space
     new_argv[argc] = NULL;
+
+    // !! after this point, we must make sure that we switch back to the previous address space before returning from this function !!
     mm_context_t *const prev_mm = mm_switch_context(proc->mm);
 
     bool should_bias = elf.object_type == ET_DYN; // only ET_DYN (shared libraries) needs randomization
@@ -306,7 +303,7 @@ process_t *elf_create_process(const char *path, process_t *parent, int argc, con
                 if (!interp_entrypoint)
                 {
                     pr_emerg("failed to map interpreter '%s'", interp_name);
-                    return NULL;
+                    goto bad_proc;
                 }
 
                 if (should_bias)
@@ -351,20 +348,29 @@ process_t *elf_create_process(const char *path, process_t *parent, int argc, con
     add_auxv_entry(&info.auxv, AT_ENTRY, map_bias + elf.entry_point); // the entry point of the executable, not the interpreter
 
     ptr_t user_argv, user_envp;
-    elf_setup_main_thread(thread, &info, argc, new_argv, &user_argv, &user_envp);
-    platform_context_setup_main_thread(thread, has_interpreter ? interp_entrypoint : elf.entry_point, thread->u_stack.head, argc, user_argv, user_envp);
+    thread_t *const main_thread = proc->main_thread;
+    elf_setup_main_thread(main_thread, &info, argc, new_argv, &user_argv, &user_envp);
+    platform_context_setup_main_thread(main_thread, has_interpreter ? interp_entrypoint : elf.entry_point, main_thread->u_stack.head, argc, user_argv, user_envp);
 
-    thread_complete_init(thread);
+    thread_complete_init(main_thread);
+
+    goto cleanup_proc;
+
+bad_proc:
+    proc = NULL;
+
+cleanup_proc:;
     mm_context_t *prev = mm_switch_context(prev_mm);
     MOS_UNUSED(prev);
-
     for (int i = 0; i < argc; i++)
         kfree((void *) new_argv[i]);
+    kfree(new_argv);
+
     if (info.invocation)
         kfree(info.invocation);
 
-    if (file)
-        io_unref(&file->io); // close the file, we should have the file's refcount == 0 here
+cleanup_close_file:
+    io_unref(&file->io); // close the file, we should have the file's refcount == 0 here
 
     return proc;
 }
