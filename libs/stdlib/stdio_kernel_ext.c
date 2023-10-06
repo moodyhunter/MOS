@@ -31,22 +31,30 @@ static size_t do_print_vmflags(char *buf, size_t size, vm_flags flags)
  *
  */
 
-bool vsnprintf_do_pointer_kernel(char **buf, size_t *size, const char **pformat, ptr_t ptr)
+size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat, ptr_t ptr)
 {
-#define current    (**pformat)
-#define peek_next  (*(*pformat + 1))
-#define shift_next ((void) ((*pformat)++))
+    size_t ret = 0;
+#define current         (**pformat)
+#define peek_next       (*(*pformat + 1))
+#define shift_next      ((void) ((*pformat)++))
+#define wrap_print(...) wrap_printed(snprintf(buf, *size, __VA_ARGS__))
+#define wrap_printed(x)                                                                                                                                                  \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        const size_t _printed = x;                                                                                                                                       \
+        buf += _printed, ret += _printed;                                                                                                                                \
+    } while (0)
 
     if (current != 'p')
-        return false;
+        goto done;
 
 #define null_check()                                                                                                                                                     \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
         if (unlikely(ptr == 0))                                                                                                                                          \
         {                                                                                                                                                                \
-            *buf += snprintf(*buf, *size, "(null)");                                                                                                                     \
-            return true;                                                                                                                                                 \
+            wrap_print("(null)");                                                                                                                                        \
+            goto done;                                                                                                                                                   \
         }                                                                                                                                                                \
     } while (0)
 
@@ -59,16 +67,16 @@ bool vsnprintf_do_pointer_kernel(char **buf, size_t *size, const char **pformat,
             const kallsyms_t *sym = kallsyms_get_symbol(ptr);
             if (!sym)
             {
-                *buf += snprintf(*buf, *size, "(unknown)");
-                return true;
+                wrap_print("(unknown)");
+                goto done;
             }
 
             const off_t off = ptr - sym->address;
             if (off)
-                *buf += snprintf(*buf, *size, "%s (+0x%zx)", sym ? sym->name : "(unknown)", off);
+                wrap_print("%s (+0x%zx)", sym ? sym->name : "(unknown)", off);
             else
-                *buf += snprintf(*buf, *size, "%s", sym ? sym->name : "(unknown)");
-            return true;
+                wrap_print("%s", sym ? sym->name : "(unknown)");
+            goto done;
         }
         case 't':
         {
@@ -76,8 +84,8 @@ bool vsnprintf_do_pointer_kernel(char **buf, size_t *size, const char **pformat,
             // thread_t
             null_check();
             const thread_t *thread = (const thread_t *) ptr;
-            *buf += snprintf(*buf, *size, "'%s' (tid %d)", thread->name ? thread->name : "<no name>", thread->tid);
-            return true;
+            wrap_print("'%s' (tid %d)", thread->name ? thread->name : "<no name>", thread->tid);
+            goto done;
         }
         case 'p':
         {
@@ -85,8 +93,8 @@ bool vsnprintf_do_pointer_kernel(char **buf, size_t *size, const char **pformat,
             // process_t
             null_check();
             const process_t *process = (const process_t *) ptr;
-            *buf += snprintf(*buf, *size, "'%s' (pid %d)", process->name ? process->name : "<no name>", process->pid);
-            return true;
+            wrap_print("'%s' (pid %d)", process->name ? process->name : "<no name>", process->pid);
+            goto done;
         }
         case 'v':
         {
@@ -100,23 +108,26 @@ bool vsnprintf_do_pointer_kernel(char **buf, size_t *size, const char **pformat,
                     shift_next;
                     // vm_flags, only r/w/x are supported
                     const vm_flags flags = *(vm_flags *) ptr;
-                    *buf += do_print_vmflags(*buf, *size, flags);
-                    return true;
+                    wrap_printed(do_print_vmflags(buf, *size, flags));
+                    goto done;
                 }
                 case 'm':
                 {
                     shift_next;
                     // vmap_t *, print the vmap's range and flags
                     const vmap_t *vmap = (const vmap_t *) ptr;
-                    *buf += snprintf(*buf, *size, "{ " PTR_RANGE ", ", vmap->vaddr, vmap->vaddr + vmap->npages * MOS_PAGE_SIZE - 1);
-                    *buf += do_print_vmflags(*buf, *size, vmap->vmflags);
-                    *buf += snprintf(*buf, *size, ", on_fault=%ps", (void *) (ptr_t) vmap->on_fault);
-                    *buf += snprintf(*buf, *size, " }");
-                    return true;
+                    wrap_print("{ " PTR_RANGE ", ", vmap->vaddr, vmap->vaddr + vmap->npages * MOS_PAGE_SIZE - 1);
+                    wrap_printed(do_print_vmflags(buf, *size, vmap->vmflags));
+                    wrap_print(", on_fault=%ps", (void *) (ptr_t) vmap->on_fault);
+                    wrap_print(" }");
+                    goto done;
                 }
                 default: return false;
             }
         }
         default: return false;
     }
+
+done:
+    return ret;
 }

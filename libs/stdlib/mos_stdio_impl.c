@@ -189,20 +189,31 @@ flag_parse_done:
 }
 
 // writes a character into the buffer, and increses the buffer pointer
-should_inline void buf_putchar(char **pbuf, char c, size_t *size_left)
+should_inline __nodiscard int buf_putchar(char *buf, char c, size_t *size_left)
 {
-    MOS_LIB_ASSERT_X(*size_left > 0, "buffer overflow");
-    **pbuf = c;
-    (*pbuf)++;
-    (*size_left)--;
+    if (*size_left > 0)
+    {
+        *buf = c;
+        (*size_left)--;
+    }
+
+    return 1;
 }
 
 static const char *const lower_hex_digits = "0123456789abcdef";
 static const char *const upper_hex_digits = "0123456789ABCDEF";
 
+#define wrap_printed(x)                                                                                                                                                  \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        const size_t _printed = x;                                                                                                                                       \
+        buf += _printed, ret += _printed;                                                                                                                                \
+    } while (0)
+
 // ! prints d, i, o, u, x, and X
 static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char conv, size_t *size_left)
 {
+    size_t ret = 0;
     MOS_LIB_ASSERT(conv == 'd' || conv == 'i' || conv == 'o' || conv == 'u' || conv == 'x' || conv == 'X');
     MOS_LIB_ASSERT(pflags->precision >= 0);
     MOS_LIB_ASSERT(pflags->minimum_width >= 0);
@@ -266,8 +277,6 @@ static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char con
     if (!pflags->has_explicit_precision)
         pflags->precision = 1;
 
-    char *start = buf;
-
     char num_prefix_buf[5] = { 0 };
     char num_content_buf[32] = { 0 };
     size_t num_content_len = 32;
@@ -316,11 +325,11 @@ static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char con
             case BASE_8:
             case BASE_10:
                 while (number > 0)
-                    buf_putchar(&pnumberbuf, '0' + (char) (number % base), &num_content_len), number /= base;
+                    pnumberbuf += buf_putchar(pnumberbuf, '0' + (char) (number % base), &num_content_len), number /= base;
                 break;
             case BASE_16:
                 while (number > 0)
-                    buf_putchar(&pnumberbuf, hex_digits[number % 16], &num_content_len), number /= 16;
+                    pnumberbuf += buf_putchar(pnumberbuf, hex_digits[number % 16], &num_content_len), number /= 16;
                 break;
             default: MOS_LIB_UNREACHABLE();
         }
@@ -345,13 +354,13 @@ static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char con
     if (pflags->left_aligned)
     {
         while (*pnum_prefix)
-            buf_putchar(&buf, *pnum_prefix++, size_left);
+            wrap_printed(buf_putchar(buf, *pnum_prefix++, size_left));
         while (precision_padding-- > 0)
-            buf_putchar(&buf, '0', size_left);
+            wrap_printed(buf_putchar(buf, '0', size_left));
         while (pnum_content > num_content_buf)
-            buf_putchar(&buf, *--pnum_content, size_left);
+            wrap_printed(buf_putchar(buf, *--pnum_content, size_left));
         while (width_to_pad-- > 0)
-            buf_putchar(&buf, ' ', size_left);
+            wrap_printed(buf_putchar(buf, ' ', size_left));
     }
     else
     {
@@ -359,28 +368,29 @@ static int printf_diouxX(char *buf, u64 number, printf_flags_t *pflags, char con
         {
             // zero should be after the sign
             while (*pnum_prefix)
-                buf_putchar(&buf, *pnum_prefix++, size_left);
+                wrap_printed(buf_putchar(buf, *pnum_prefix++, size_left));
             while (width_to_pad-- > 0)
-                buf_putchar(&buf, '0', size_left);
+                wrap_printed(buf_putchar(buf, '0', size_left));
         }
         else
         {
             // space should be before the sign
             while (width_to_pad-- > 0)
-                buf_putchar(&buf, ' ', size_left);
+                wrap_printed(buf_putchar(buf, ' ', size_left));
             while (*pnum_prefix)
-                buf_putchar(&buf, *pnum_prefix++, size_left);
+                wrap_printed(buf_putchar(buf, *pnum_prefix++, size_left));
         }
         while (precision_padding-- > 0)
-            buf_putchar(&buf, '0', size_left);
+            wrap_printed(buf_putchar(buf, '0', size_left));
         while (pnum_content > num_content_buf)
-            buf_putchar(&buf, *--pnum_content, size_left);
+            wrap_printed(buf_putchar(buf, *--pnum_content, size_left));
     }
-    return buf - start;
+    return ret;
 }
 
-static int printf_cs(char *buf, const char *data, printf_flags_t *pflags, char conv, size_t *size_left)
+static int printf_cs(char *buf, const char *data, printf_flags_t *pflags, char conv, size_t *psize_left)
 {
+    size_t ret = 0;
     if (data == NULL)
         data = "(null)";
     MOS_LIB_ASSERT(conv == 'c' || conv == 's');
@@ -418,8 +428,6 @@ static int printf_cs(char *buf, const char *data, printf_flags_t *pflags, char c
         pflags->precision = 0;
     }
 
-    char *start = buf;
-
     s32 printed_len = conv == 'c' ? 1 : strlen(data);
 
     // If presition is given, the string is truncated to this length.
@@ -431,36 +439,35 @@ static int printf_cs(char *buf, const char *data, printf_flags_t *pflags, char c
     if (pflags->left_aligned)
     {
         while (printed_len-- > 0)
-            buf_putchar(&buf, *data++, size_left);
+            wrap_printed(buf_putchar(buf, *data++, psize_left));
         while (width_to_pad-- > 0)
-            buf_putchar(&buf, ' ', size_left);
+            wrap_printed(buf_putchar(buf, ' ', psize_left));
     }
     else
     {
         while (width_to_pad-- > 0)
-            buf_putchar(&buf, ' ', size_left);
+            wrap_printed(buf_putchar(buf, ' ', psize_left));
         while (printed_len-- > 0)
-            buf_putchar(&buf, *data++, size_left);
+            wrap_printed(buf_putchar(buf, *data++, psize_left));
     }
 
-    return buf - start;
+    return ret;
 }
 
 int vsnprintf(char *buf, size_t size, const char *format, va_list _args)
 {
+    size_t ret = 0;
     if (size == 0)
         return 0; // nothing to do
 
     va_list_ptrwrappper_t args;
     va_copy(args.real, _args);
 
-    char *start = buf;
-
     for (; *format; format++)
     {
         if (*format != '%')
         {
-            buf_putchar(&buf, *format, &size);
+            wrap_printed(buf_putchar(buf, *format, &size));
             continue;
         }
 
@@ -469,8 +476,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list _args)
 
         // parse flags
         printf_flags_t flags = { 0 };
-        size_t c = parse_printf_flags(format, &flags, &args);
-        format += c;
+        format += parse_printf_flags(format, &flags, &args);
 
         switch (*format)
         {
@@ -496,8 +502,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list _args)
                     case LM__j:
                     default: MOS_LIB_UNREACHABLE();
                 }
-                int c = printf_diouxX(buf, value, &flags, *format, &size);
-                buf += c;
+                wrap_printed(printf_diouxX(buf, value, &flags, *format, &size));
                 break;
             }
 
@@ -527,16 +532,14 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list _args)
             {
                 // print string
                 const char *string = va_arg(args.real, char *);
-                int c = printf_cs(buf, string, &flags, *format, &size);
-                buf += c;
+                wrap_printed(printf_cs(buf, string, &flags, *format, &size));
                 break;
             }
             case 'c':
             {
                 // print a character
                 char value = (char) va_arg(args.real, s32);
-                int c = printf_cs(buf, &value, &flags, *format, &size);
-                buf += c;
+                wrap_printed(printf_cs(buf, &value, &flags, *format, &size));
                 break;
             }
             case 'p':
@@ -545,15 +548,16 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list _args)
                 ptr_t value = (ptr_t) va_arg(args.real, void *);
 #ifdef __MOS_KERNEL__
                 // print special kernel data types
-                extern bool vsnprintf_do_pointer_kernel(char **buf, size_t *size, const char **pformat, ptr_t ptr);
-                if (vsnprintf_do_pointer_kernel(&buf, &size, &format, value))
+                extern size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat, ptr_t ptr);
+                const size_t siz = vsnprintf_do_pointer_kernel(buf, &size, &format, value);
+                wrap_printed(siz);
+                if (siz)
                     break;
 #endif
-                buf_putchar(&buf, '0', &size);
-                buf_putchar(&buf, 'x', &size);
+                wrap_printed(buf_putchar(buf, '0', &size));
+                wrap_printed(buf_putchar(buf, 'x', &size));
                 flags.length = MOS_BITS == 32 ? LM__l : LM_ll;
-                int c = printf_diouxX(buf, value, &flags, 'x', &size);
-                buf += c;
+                wrap_printed(printf_diouxX(buf, value, &flags, 'x', &size));
                 break;
             }
             case 'a':
@@ -572,7 +576,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list _args)
             case '%':
             {
                 // print a '%'
-                buf_putchar(&buf, '%', &size);
+                wrap_printed(buf_putchar(buf, '%', &size));
                 break;
             }
             case '\0':
@@ -584,15 +588,15 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list _args)
             default:
             {
                 mos_warn("printf: unknown format specifier");
-                buf_putchar(&buf, '%', &size);
-                buf_putchar(&buf, *format, &size);
+                wrap_printed(buf_putchar(buf, '%', &size));
+                wrap_printed(buf_putchar(buf, *format, &size));
                 break;
             }
         }
     }
 end:
-    buf_putchar(&buf, 0, &size);
+    (void) buf_putchar(buf, 0, &size);
 
     va_end(args.real);
-    return buf - start - 1; // exclude the null terminator
+    return ret;
 }
