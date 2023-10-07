@@ -64,16 +64,17 @@ macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
         set(SOURCE_ITEM_SUPPLIMENTARY_INFO "${SOURCE_ITEM_PRETTY}")
 
         if("${ITEM_TYPE}" STREQUAL "FILE")
-            get_filename_component(FILE_NAME ${SOURCE_ITEM_FULL} NAME)
+            get_filename_component(FILE_NAME ${SOURCE_ITEM} NAME)
             set(OUTPUT_DIR_PRETTY "${OUTPUT_DIR_PRETTY}${FILE_NAME}")
 
-            set(TARGET_NAME _mos_initrd_file_${SOURCE_ITEM_FULL})
+            set(TARGET_NAME _mos_initrd_file_${SOURCE_ITEM})
             string(REPLACE "/" "_" TARGET_NAME ${TARGET_NAME})
             add_custom_target(${TARGET_NAME}
                 WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-                COMMAND ${CMAKE_COMMAND} -E copy ${SOURCE_ITEM_FULL} ${OUTPUT_DIR}
-                COMMENT "Copying file ${SOURCE_ITEM_PRETTY} to initrd"
-                DEPENDS ${SOURCE_ITEM_FULL}
+                COMMAND cp --remove-destination --preserve=mode,timestamps -d -r ${SOURCE_ITEM} ${OUTPUT_DIR} || true
+                VERBATIM
+                COMMENT "Copying file ${SOURCE_ITEM} to initrd"
+                DEPENDS ${SOURCE_ITEM}
                 BYPRODUCTS ${OUTPUT_DIR}/${FILE_NAME}
             )
         elseif("${ITEM_TYPE}" STREQUAL "DIRECTORY")
