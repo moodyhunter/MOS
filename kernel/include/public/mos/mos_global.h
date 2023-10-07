@@ -51,7 +51,7 @@
 #define do_container_of(ptr, type, member)                                                                                                                               \
     __extension__({                                                                                                                                                      \
         void *real_ptr = (void *) (ptr);                                                                                                                                 \
-        _Static_assert(__types_compatible(*(ptr), ((type *) 0)->member) || __types_compatible(*(ptr), void), "pointer type mismatch");                                   \
+        _Static_assert(__types_compatible(*(ptr), ((type *) 0)->member) || __types_compatible(*(ptr), void), "type mismatch: (" #type ") vs (" #ptr "->" #member ")");   \
         ((type *) (real_ptr - offsetof(type, member)));                                                                                                                  \
     })
 
