@@ -262,7 +262,7 @@ static filesystem_t *vfs_find_filesystem(const char *name)
 
 static bool vfs_verify_permissions(dentry_t *file_dentry, bool open, bool read, bool create, bool execute, bool write)
 {
-    MOS_ASSERT(file_dentry != NULL && file_dentry->inode != NULL);
+    MOS_ASSERT(file_dentry && file_dentry->inode);
     const file_perm_t file_perm = file_dentry->inode->perm;
 
     // TODO: we are treating all users as root for now, only checks for execute permission
@@ -296,7 +296,7 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
                                             (expect_dir ? RESOLVE_EXPECT_DIR : 0);
     dentry_t *entry = dentry_get(base, root_dentry, path, resolve_flags);
 
-    if (entry == NULL)
+    if (entry == NULL || entry->inode == NULL)
     {
         mos_debug(vfs, "failed to resolve '%s', create=%d, read=%d, exec=%d, nfollow=%d, dir=%d, trun=%d", path, may_create, read, exec, no_follow, expect_dir, truncate);
         return NULL;

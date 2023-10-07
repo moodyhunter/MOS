@@ -2,8 +2,9 @@
 
 #pragma once
 
+#include "mos/tasks/task_types.h"
+
 #include <elf.h>
-#include <mos/tasks/task_types.h>
 #include <mos/types.h>
 
 #if MOS_BITS == 32

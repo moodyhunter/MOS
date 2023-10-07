@@ -2,18 +2,13 @@
 
 #include "mos/elf/elf.h"
 
-#include "mos/mm/cow.h"
-#include "mos/mm/mm.h"
+#include "mos/filesystem/vfs.h"
 #include "mos/mm/mmap.h"
-#include "mos/mm/physical/pmm.h"
-#include "mos/platform/platform.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/thread.h"
 
-#include <elf.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
-#include <stddef.h>
 
 MOS_STATIC_ASSERT(sizeof(elf_header_t) == (MOS_BITS == 32 ? 0x34 : 0x40), "elf_header has wrong size");
 MOS_STATIC_ASSERT(sizeof(elf_program_hdr_t) == (MOS_BITS == 32 ? 0x20 : 0x38), "elf_program_header has wrong size");
@@ -302,7 +297,7 @@ process_t *elf_create_process(const char *path, process_t *parent, int argc, con
                 interp_entrypoint = elf_map_interpreter(interp_name, proc->mm);
                 if (!interp_entrypoint)
                 {
-                    pr_emerg("failed to map interpreter '%s'", interp_name);
+                    mos_debug(elf, "failed to map interpreter '%s'", interp_name);
                     goto bad_proc;
                 }
 

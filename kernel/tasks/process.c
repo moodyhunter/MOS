@@ -278,7 +278,7 @@ ptr_t process_grow_heap(process_t *process, size_t npages)
 
 void process_dump_mmaps(const process_t *process)
 {
-    pr_info("process %p:", (void *) process);
+    pr_info("process %pp:", (void *) process);
     size_t i = 0;
     list_foreach(vmap_t, map, process->mm->mmaps)
     {
