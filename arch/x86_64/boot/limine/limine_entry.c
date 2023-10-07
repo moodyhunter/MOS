@@ -45,6 +45,7 @@ static void add_to_memmap(pfn_t start, size_t npages, bool reserved, u32 type, c
 
 asmlinkage void limine_entry(void)
 {
+    extern serial_console_t com1_console;
     console_register(&com1_console.con, MOS_PAGE_SIZE);
 
     if (kernel_file_request.response == NULL)

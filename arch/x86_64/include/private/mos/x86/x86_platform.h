@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "mos/x86/devices/serial_console.h"
-
 #include <mos/mos_global.h>
 #include <mos/platform/platform.h>
 
@@ -35,4 +33,3 @@ extern const char __MOS_KERNEL_RW_START[], __MOS_KERNEL_RW_END[];         // Ker
 extern const char __MOS_KERNEL_END[];                                     // Kernel end
 
 extern mos_platform_info_t x86_platform;
-extern serial_console_t com1_console;
