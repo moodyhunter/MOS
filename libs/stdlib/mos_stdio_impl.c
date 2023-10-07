@@ -595,7 +595,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list _args)
         }
     }
 end:
-    (void) buf_putchar(buf, 0, &size);
+    buf += buf_putchar(buf, 0, &size);
 
     va_end(args.real);
     return ret;
