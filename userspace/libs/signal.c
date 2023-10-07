@@ -2,8 +2,8 @@
 
 #include <mos/syscall/usermode.h>
 #include <mos/tasks/signal_types.h>
+#include <mos_signal.h>
 #include <mos_stdlib.h>
-#include <signal.h>
 
 noreturn static __attribute__((naked)) void sigreturn_trampoline(void)
 {
@@ -22,9 +22,7 @@ int raise(signal_t sig)
 
 int kill(pid_t pid, signal_t sig)
 {
-    MOS_UNUSED(pid);
-    MOS_UNUSED(sig);
-    return 0;
+    return syscall_signal_process(pid, sig);
 }
 
 int register_signal_handler(signal_t sig, sighandler *handler)
