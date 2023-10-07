@@ -2,14 +2,13 @@
 
 [bits 64]
 
-%define GDT_SEGMENT_KDATA 0x20 ; as in x86.h
 %define IRQ_BASE          0x20 ; as in x86.h
 %define ISR_MAX_COUNT     255
 %define IRQ_MAX_COUNT     16
 
 %define REGSIZE           8
 
-extern x86_handle_interrupt
+extern x86_interrupt_entry
 
 global irq_stub_table
 global isr_stub_table
@@ -118,7 +117,6 @@ irq_stub_table:
     %assign i i+1
     %endrep
 
-; global x86_handle_interrupt:function (x86_handle_interrupt.end - x86_handle_interrupt)
 do_handle_interrupt:
     push    rax
     push    rbx
@@ -142,8 +140,8 @@ do_handle_interrupt:
                                     ; so that string operations increment the index registers (RSI and/or RDI).
 
     mov     rdi, rsp
-    call    x86_handle_interrupt    ; x86_handle_interrupt(u32 rsp)
-    nop
+    call    x86_interrupt_entry    ; x86_interrupt_entry(ptr_t sp)
+    ud2                             ; if x86_interrupt_entry returns, it's a bug
 .end:
 
 global x86_interrupt_return_impl:function (x86_interrupt_return_impl.end - x86_interrupt_return_impl)

@@ -78,7 +78,7 @@ bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
     return true;
 }
 
-void x86_dump_registers(x86_stack_frame *frame)
+void platform_dump_regs(platform_regs_t *frame)
 {
     pr_emph("General Purpose Registers:\n"
             "  RAX: " PTR_FMT " RBX: " PTR_FMT " RCX: " PTR_FMT " RDX: " PTR_FMT "\n"
@@ -101,7 +101,7 @@ void x86_dump_registers(x86_stack_frame *frame)
     );
 }
 
-static void x86_handle_nmi(x86_stack_frame *frame)
+static void x86_handle_nmi(platform_regs_t *regs)
 {
     pr_emph("cpu %d: NMI received", lapic_get_id());
 
@@ -122,25 +122,25 @@ static void x86_handle_nmi(x86_stack_frame *frame)
         if (scp2 & (1 << bit))
             pr_emph("  %s", scp2_names[bit]);
 
-    x86_dump_registers(frame);
+    platform_dump_regs(regs);
     mos_panic("NMI received");
 }
 
-static void x86_handle_exception(x86_stack_frame *stack)
+static void x86_handle_exception(platform_regs_t *regs)
 {
-    MOS_ASSERT(stack->interrupt_number < EXCEPTION_COUNT);
+    MOS_ASSERT(regs->interrupt_number < EXCEPTION_COUNT);
 
-    const char *name = x86_exception_names[stack->interrupt_number];
+    const char *name = x86_exception_names[regs->interrupt_number];
     const char *intr_type = "";
 
     // Faults: These can be corrected and the program may continue as if nothing happened.
     // Traps:  Traps are reported immediately after the execution of the trapping instruction.
     // Aborts: Some severe unrecoverable error.
-    switch ((x86_exception_enum_t) stack->interrupt_number)
+    switch ((x86_exception_enum_t) regs->interrupt_number)
     {
         case EXCEPTION_NMI:
         {
-            x86_handle_nmi(stack);
+            x86_handle_nmi(regs);
             break;
         }
         case EXCEPTION_DEBUG:
@@ -155,7 +155,7 @@ static void x86_handle_exception(x86_stack_frame *stack)
                              : "=r"(drx[0]), "=r"(drx[1]), "=r"(drx[2]), "=r"(drx[3]), "=r"(drx[4]), "=r"(drx[5]));
 
             pr_emerg("cpu %d: %s (%lu) at " PTR_FMT " (DR0: " PTR_FMT " DR1: " PTR_FMT " DR2: " PTR_FMT " DR3: " PTR_FMT " DR6: " PTR_FMT " DR7: " PTR_FMT ")",
-                     lapic_get_id(), name, stack->interrupt_number, stack->ip, drx[0], drx[1], drx[2], drx[3], drx[4], drx[5]);
+                     lapic_get_id(), name, regs->interrupt_number, regs->ip, drx[0], drx[1], drx[2], drx[3], drx[4], drx[5]);
 
             return;
         }
@@ -193,12 +193,12 @@ static void x86_handle_exception(x86_stack_frame *stack)
             intr_type = "page fault";
 
             pagefault_t info = {
-                .is_present = (stack->error_code & 0x1) != 0,
-                .is_write = (stack->error_code & 0x2) != 0,
-                .is_user = (stack->error_code & 0x4) != 0,
-                .is_exec = (stack->error_code & 0x10) != 0,
-                .instruction = stack->ip,
-                .stack = stack->ss,
+                .is_present = (regs->error_code & 0x1) != 0,
+                .is_write = (regs->error_code & 0x2) != 0,
+                .is_user = (regs->error_code & 0x4) != 0,
+                .is_exec = (regs->error_code & 0x10) != 0,
+                .instruction = regs->ip,
+                .regs = regs,
             };
 
             mm_handle_fault(x86_cpu_get_cr2(), &info);
@@ -220,20 +220,20 @@ static void x86_handle_exception(x86_stack_frame *stack)
 
     if (current_thread)
     {
-        pr_emerg("cpu %d: %s (%lu) at " PTR_FMT " (error code %lu)", lapic_get_id(), name, stack->interrupt_number, stack->ip, stack->error_code);
+        pr_emerg("cpu %d: %s (%lu) at " PTR_FMT " (error code %lu)", lapic_get_id(), name, regs->interrupt_number, regs->ip, regs->error_code);
         signal_send_to_thread(current_thread, SIGABRT);
     }
     else
     {
-        x86_dump_registers(stack);
-        mos_panic("x86 %s:\nInterrupt #%lu ('%s', error code %lu)", intr_type, stack->interrupt_number, name, stack->error_code);
+        platform_dump_regs(regs);
+        mos_panic("x86 %s:\nInterrupt #%lu ('%s', error code %lu)", intr_type, regs->interrupt_number, name, regs->error_code);
     }
 
 done:
     return;
 }
 
-static void x86_handle_irq(x86_stack_frame *frame)
+static void x86_handle_irq(platform_regs_t *frame)
 {
     lapic_eoi();
     int irq = frame->interrupt_number - IRQ_BASE;
@@ -249,20 +249,10 @@ static void x86_handle_irq(x86_stack_frame *frame)
         pr_warn("IRQ %d not handled!", irq);
 }
 
-static void x86_handle_syscall(x86_stack_frame *frame)
+void x86_interrupt_entry(ptr_t rsp)
 {
-    frame->ax = ksyscall_enter(frame->ax, frame->bx, frame->cx, frame->dx, frame->si, frame->di, frame->r9);
-
-    MOS_ASSERT_X(current_thread->state == THREAD_STATE_RUNNING, "thread %pt is not in 'running' state", (void *) current_thread);
-}
-
-void x86_handle_interrupt(ptr_t rsp)
-{
-    x86_stack_frame *frame = (x86_stack_frame *) rsp;
-    thread_t *current = current_thread;
-
-    if (likely(current))
-        ((x86_thread_context_t *) current->context)->regs = *frame;
+    platform_regs_t *frame = (platform_regs_t *) rsp;
+    current_cpu->interrupt_regs = frame;
 
     if (frame->interrupt_number < IRQ_BASE)
         x86_handle_exception(frame);
@@ -271,26 +261,22 @@ void x86_handle_interrupt(ptr_t rsp)
     else if (frame->interrupt_number >= IPI_BASE && frame->interrupt_number < IPI_BASE + IPI_TYPE_MAX)
         ipi_do_handle((ipi_type_t) (frame->interrupt_number - IPI_BASE));
     else if (frame->interrupt_number == MOS_SYSCALL_INTR)
-        x86_handle_syscall(frame);
+        frame->ax = ksyscall_enter(frame->ax, frame->bx, frame->cx, frame->dx, frame->si, frame->di, frame->r9);
     else
         pr_warn("Unknown interrupt number: %lu", frame->interrupt_number);
 
+    thread_t *current = current_thread;
     if (likely(current))
     {
         // flags may have been changed by platform_arch_syscall
-        x86_process_options_t *options = current->owner->platform_options;
-        if (options)
-        {
-            if (options->iopl_enabled)
-                frame->eflags |= 0x3000; // enable IOPL
-            else
-                frame->eflags &= ~0x3000; // disable IOPL
-        }
+        if (current->owner->platform_options.iopl)
+            frame->eflags |= 0x3000; // enable IOPL
+        else
+            frame->eflags &= ~0x3000; // disable IOPL
 
-        x86_update_current_fsbase();
+        signal_check_and_handle(platform_thread_regs(current));
     }
 
-    signal_check_and_handle();
     x86_interrupt_return_impl(frame);
     MOS_UNREACHABLE();
 }

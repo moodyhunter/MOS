@@ -13,7 +13,7 @@
 
 #define X86_VIDEO_DEVICE_PADDR 0xb8000
 
-typedef struct
+typedef struct _platform_regs
 {
     reg_t r15, r14, r13, r12, r11, r10, r9, r8;
     reg_t di, si, bp, dx, cx, bx, ax;
@@ -22,9 +22,9 @@ typedef struct
     reg_t ip, cs;
     reg_t eflags;
     reg_t sp, ss;
-} __packed x86_stack_frame;
+} __packed platform_regs_t;
 
-MOS_STATIC_ASSERT(sizeof(x86_stack_frame) == 176, "x86_stack_frame has incorrect size");
+MOS_STATIC_ASSERT(sizeof(platform_regs_t) == 176, "platform_regs_t has incorrect size");
 
 // defined in the linker script 'multiboot.ld'
 extern const char __MOS_KERNEL_CODE_START[], __MOS_KERNEL_CODE_END[];     // Kernel text

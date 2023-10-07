@@ -23,6 +23,7 @@ typedef struct
     as_linked_list;
     signal_t signal;
 } sigpending_t;
+extern slab_t *sigpending_slab;
 
 /**
  * @brief Send a signal to a thread.
@@ -50,13 +51,19 @@ sigpending_t *signal_get_next_pending(void);
  * @brief Check if there is a pending signal and handle it.
  *
  */
-void signal_check_and_handle(void);
+void signal_check_and_handle(platform_regs_t *regs);
+
+typedef struct _sigreturn_data
+{
+    signal_t signal;
+    bool was_masked;
+} sigreturn_data_t;
 
 /**
  * @brief Return from a signal handler.
  *
  */
-noreturn void signal_return(void *sp);
+void signal_on_returned(sigreturn_data_t *supplimentary_data);
 /**
  * @}
  */

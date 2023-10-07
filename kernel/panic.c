@@ -96,6 +96,17 @@ noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
     pr_emerg("%s", message);
     pr_emerg("  in function: %s (line %u)", func, line);
 
+    pr_cont("\n");
+    pr_emph("Register states before interrupt:");
+    platform_dump_regs(current_cpu->interrupt_regs);
+    pr_cont("\n");
+    pr_emph("Stack trace before interrupt");
+    platform_dump_stack(current_cpu->interrupt_regs);
+    pr_cont("\n");
+    pr_emph("Current stack trace:");
+    platform_dump_current_stack();
+    pr_cont("\n");
+
     list_foreach(panic_hook_holder_t, holder, kpanic_hooks)
     {
         mos_debug(panic, "invoking panic hook '%s' at %ps", holder->name, (void *) holder);

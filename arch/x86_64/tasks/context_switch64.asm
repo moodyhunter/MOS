@@ -2,8 +2,7 @@
 
 %define REGSIZE 8
 
-; void x86_context_switch_impl(ptr_t x86_context, ptr_t *old_stack, ptr_t kernel_stack, ptr_t jump_addr)
-; RDI, RSI, RDX, RCX, R8, R9
+; void x86_context_switch_impl(RDI: ptr_t *old_stack, RSI: ptr_t kernel_stack, RDX: ptr_t jump_addr)
 global x86_context_switch_impl:function (x86_context_switch_impl.end - x86_context_switch_impl)
 x86_context_switch_impl:
     push    rbp
@@ -21,21 +20,19 @@ x86_context_switch_impl:
     push    r14
     push    r15
 
-    ; rdi = x86_stack_frame
-    ; rsi = *old_stack
-    ; rdx = kernel_stack
-    ; rcx = jump_addr
+    ; rdi = old_stack *
+    ; rsi = kernel_stack
+    ; rdx = jump_addr
     ; set rsp to kernel_stack
-    mov     [rsi], rsp      ; backup old stack pointer
-    mov     rsp, rdx        ; switch to kernel stack
+    mov     [rdi], rsp      ; backup old stack pointer
+    mov     rsp, rsi        ; switch to kernel stack
 
-    xor     rax, rax        ; clear rax, rbx, rdx, rsi, rbp
+    xor     rax, rax        ; clear rax, rbx, rdx, rdi, rbp
     xor     rbx, rbx
-    xor     rdx, rdx
     xor     rsi, rsi
+    xor     rdi, rdi
     xor     rbp, rbp
-    ; rdi = struct x86_stack_frame;
-    jmp     rcx             ; rcx contains jump_addr
+    jmp     rdx             ; rdx contains jump_addr
 .end:
 
 global x86_normal_switch_impl:function (x86_normal_switch_impl.end - x86_normal_switch_impl)

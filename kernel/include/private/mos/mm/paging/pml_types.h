@@ -9,6 +9,10 @@
 
 #define MOS_MAX_PAGE_LEVEL 5
 
+#ifndef MOS_PLATFORM_PAGING_LEVELS
+#error "MOS_PLATFORM_PAGING_LEVELS must be defined"
+#endif
+
 #if MOS_PLATFORM_PAGING_LEVELS > 4
 #error "more levels are not supported"
 #endif

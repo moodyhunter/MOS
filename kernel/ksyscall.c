@@ -402,7 +402,7 @@ DEFINE_SYSCALL(bool, signal_thread)(tid_t tid, signal_t sig)
 
 DEFINE_SYSCALL(noreturn void, signal_return)(void *sp)
 {
-    signal_return(sp);
+    platform_restore_from_signal_handler(sp);
 }
 
 DEFINE_SYSCALL(bool, vm_protect)(void *addr, size_t size, mem_perm_t perm)

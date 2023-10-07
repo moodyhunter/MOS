@@ -13,7 +13,7 @@
 #include <mos/tasks/signal_types.h>
 #include <mos_stdlib.h>
 
-static slab_t *sigpending_slab = NULL;
+slab_t *sigpending_slab = NULL;
 SLAB_AUTOINIT("signal_pending", sigpending_slab, sigpending_t);
 
 noreturn static void signal_do_coredump(signal_t signal)
@@ -27,7 +27,7 @@ noreturn static void signal_do_terminate(signal_t signal)
 {
     MOS_UNUSED(signal);
     pr_warn("terminate: WIP");
-    MOS_UNIMPLEMENTED("terminate");
+    process_handle_exit(current_process, 1);
 }
 
 static void signal_do_ignore(signal_t signal)
@@ -64,7 +64,7 @@ void signal_send_to_process(process_t *target, signal_t signal)
     list_node_foreach(t_node, &target->threads)
     {
         thread_t *thread = container_of(t_node, thread_t, owner_node);
-        if (thread->state == THREAD_STATE_RUNNING || thread->state == THREAD_STATE_READY)
+        if (thread->state == THREAD_STATE_RUNNING || thread->state == THREAD_STATE_READY || thread->state == THREAD_STATE_CREATED)
         {
             target_thread = thread;
             break;
@@ -86,7 +86,7 @@ void signal_send_to_process(process_t *target, signal_t signal)
 
     if (!target_thread)
     {
-        pr_emerg("signal_send_to_process: no thread to send signal to");
+        pr_emerg("signal_send_to_process(%pp, %d): no thread to send signal to", (void *) target, signal);
         return;
     }
 
@@ -108,7 +108,7 @@ sigpending_t *signal_get_next_pending(void)
     return NULL; // no pending signal
 }
 
-void signal_check_and_handle(void)
+void signal_check_and_handle(platform_regs_t *regs)
 {
     if (!current_thread)
         return;
@@ -146,13 +146,20 @@ void signal_check_and_handle(void)
     if (!action.handler)
         return; // the default handler is to 'ignore', so we just leave
 
-    // TODO The signal being delivered is also added to the signal mask.
-    // current_thread->signal_info.masks[next->signal] = true;
+    const bool was_masked = current_thread->signal_info.masks[next->signal];
+    if (!was_masked)
+        current_thread->signal_info.masks[next->signal] = true;
 
-    platform_jump_to_signal_handler(next->signal, &action); // save previous register states onto user stack
+    const sigreturn_data_t data = {
+        .signal = next->signal,
+        .was_masked = was_masked,
+    };
+
+    platform_jump_to_signal_handler(regs, &data, &action); // save previous register states onto user stack
 }
 
-void signal_return(void *sp)
+void signal_on_returned(sigreturn_data_t *data)
 {
-    platform_restore_from_signal_handler(sp);
+    if (!data->was_masked)
+        current_thread->signal_info.masks[data->signal] = false;
 }

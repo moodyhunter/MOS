@@ -4,6 +4,7 @@
 
 #include "mos/cmdline.h"
 #include "mos/mm/paging/pml_types.h"
+#include "mos/platform/platform_defs.h"
 
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
@@ -106,12 +107,15 @@ typedef struct
     list_head mmaps;
 } mm_context_t;
 
+typedef struct _platform_regs platform_regs_t;
+
 typedef struct
 {
     u32 id;
     thread_t *thread;
     ptr_t scheduler_stack;
     mm_context_t *mm_context;
+    platform_regs_t *interrupt_regs; ///< the registers of whatever interrupted this CPU
 } cpu_t;
 
 typedef struct
@@ -148,6 +152,9 @@ typedef struct
 
 extern mos_platform_info_t *const platform_info;
 
+typedef struct _platform_process_options platform_process_options_t;
+typedef struct _platform_thread_options platform_thread_options_t;
+
 extern void mos_start_kernel(void);
 
 // Platform Startup APIs
@@ -157,6 +164,10 @@ void platform_startup_late();
 
 // Platform Machine APIs
 noreturn void platform_shutdown(void);
+void platform_dump_regs(platform_regs_t *regs);
+void platform_dump_stack(platform_regs_t *regs);
+platform_regs_t *platform_thread_regs(const thread_t *thread);
+void platform_dump_current_stack();
 
 // Platform CPU APIs
 noreturn void platform_halt_cpu(void);
@@ -225,7 +236,7 @@ pfn_t platform_pml4e_get_huge_pfn(const pml4e_t *pml4);
 // Platform Thread / Process APIs
 void platform_context_setup_main_thread(thread_t *thread, ptr_t entry, ptr_t sp, int argc, ptr_t argv, ptr_t envp);
 void platform_context_setup_child_thread(thread_t *thread, thread_entry_t entry, void *arg);
-void platform_context_clone(const void *from, void **to);
+void platform_context_clone(const thread_t *from, thread_t *to);
 
 // Platform Context Switching APIs
 void platform_switch_mm(mm_context_t *new_mm);
@@ -239,5 +250,6 @@ u64 platform_arch_syscall(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64 arg4);
 void platform_ipi_send(u8 target_cpu, ipi_type_t type);
 
 // Signal Handler APIs
-noreturn void platform_jump_to_signal_handler(signal_t sig, sigaction_t *sa);
+typedef struct _sigreturn_data sigreturn_data_t;
+noreturn void platform_jump_to_signal_handler(platform_regs_t *regs, const sigreturn_data_t *sigreturn_data, sigaction_t *sa);
 noreturn void platform_restore_from_signal_handler(void *sp);

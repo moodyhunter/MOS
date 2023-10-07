@@ -5,6 +5,7 @@
 #include "mos/mm/mmstat.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
+#include "mos/platform/platform_defs.h"
 
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
@@ -27,8 +28,9 @@ typedef enum
 
 typedef struct
 {
-    ptr_t instruction, stack;
     bool is_present, is_write, is_user, is_exec;
+    ptr_t instruction;              ///< the instruction pointer which caused the fault
+    platform_regs_t *regs;          ///< the registers of the moment that caused the fault
     phyframe_t *faulting_page;      ///< the frame that contains the copy-on-write data (if any)
     const phyframe_t *backing_page; ///< the frame that contains the data for this page, the on_fault handler should set this
 } pagefault_t;

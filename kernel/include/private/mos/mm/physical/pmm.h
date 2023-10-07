@@ -3,7 +3,6 @@
 #pragma once
 
 #include "mos/lib/sync/spinlock.h"
-#include "mos/platform/platform_defs.h"
 
 #include <mos/lib/structures/list.h>
 #include <mos/mos_global.h>
@@ -138,8 +137,8 @@ should_inline void _pmm_unref_pfn_range(pfn_t pfn_start, size_t npages)
     _pmm_unref_phyframes(pfn_phyframe(pfn_start), npages);
 }
 
-#define pmm_ref(thing, npages)   _Generic((thing), phyframe_t * : _pmm_ref_phyframes, pfn_t : _pmm_ref_pfn_range)(thing, npages)
-#define pmm_unref(thing, npages) _Generic((thing), phyframe_t * : _pmm_unref_phyframes, pfn_t : _pmm_unref_pfn_range)(thing, npages)
+#define pmm_ref(thing, npages)   _Generic((thing), phyframe_t *: _pmm_ref_phyframes, pfn_t: _pmm_ref_pfn_range)(thing, npages)
+#define pmm_unref(thing, npages) _Generic((thing), phyframe_t *: _pmm_unref_phyframes, pfn_t: _pmm_unref_pfn_range)(thing, npages)
 
 #define pmm_ref_one(thing)   pmm_ref(thing, 1)
 #define pmm_unref_one(thing) pmm_unref(thing, 1)

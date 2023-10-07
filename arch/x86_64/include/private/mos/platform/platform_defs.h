@@ -28,3 +28,20 @@
 #define PML4_HUGE_CAPABLE -1
 
 #define MOS_ELF_PLATFORM EM_X86_64
+
+typedef struct
+{
+    __aligned(16) u8 fpu[512]; // FXSAVE/FXRSTOR area
+} fpu_context_t;
+
+typedef struct _platform_process_options
+{
+    bool iopl;
+} platform_process_options_t;
+
+typedef struct _platform_thread_options
+{
+    ptr_t fs_base, gs_base;
+    bool need_fpu_context;
+    fpu_context_t *fpu_state; // Only valid if need_fpu_context is true
+} platform_thread_options_t;

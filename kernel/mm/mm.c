@@ -252,22 +252,29 @@ vmfault_result_t mm_resolve_cow_fault(vmap_t *vmap, ptr_t fault_addr, pagefault_
     return VMFAULT_COMPLETE;
 }
 
-static void invalid_page_fault(ptr_t fault_addr, pagefault_t *info)
+static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, pagefault_t *info, const char *unhandled_reason)
 {
-    pr_emerg("Unhandled Page Fault");
-    pr_emerg("  %s mode invalid %s page %s%s at [" PTR_FMT "]", //
-             info->is_user ? "User" : "Kernel",                 //
-             info->is_present ? "present" : "non-present",      //
-             info->is_write ? "write" : "read",                 //
-             info->is_exec ? " (NX violation)" : "",            //
-             fault_addr                                         //
+#if MOS_CONFIG(MOS_MM_DETAILED_UNHANDLED_FAULT)
+    pr_emerg("unhandled page fault: %s", unhandled_reason);
+    pr_emerg("  invalid %s mode %s %s page [" PTR_FMT "]",                            //
+             info->is_user ? "user" : "kernel",                                       //
+             info->is_write ? "write to" : (info->is_exec ? "execute" : "read from"), //
+             info->is_present ? "present" : "non-present",                            //
+             fault_addr                                                               //
     );
     pr_emerg("  instruction: " PTR_FMT, info->instruction);
     pr_emerg("  thread: %pt", (void *) current_thread);
     pr_emerg("  process: %pp", current_thread ? (void *) current_process : NULL);
 
     if (fault_addr < 1 KB)
-        pr_emerg("  possible null pointer dereference");
+    {
+        if (info->is_write)
+            pr_emerg("  write to NULL pointer");
+        else if (info->is_exec && fault_addr == 0)
+            pr_emerg("  attempted to execute NULL pointer");
+        else
+            pr_emerg("  possible NULL pointer dereference");
+    }
 
     if (info->is_user && fault_addr > MOS_KERNEL_START_VADDR)
         pr_emerg("  kernel address dereference");
@@ -275,13 +282,32 @@ static void invalid_page_fault(ptr_t fault_addr, pagefault_t *info)
     if (info->instruction > MOS_KERNEL_START_VADDR)
         pr_emerg("  in kernel function %ps", (void *) info->instruction);
 
+    if (faulting_vmap)
+        pr_emerg("  in vmap: %pvm", (void *) faulting_vmap);
+
     process_dump_mmaps(current_process);
+
+    pr_info("stack trace before fault (may be unreliable):");
+    platform_dump_stack(info->regs);
+
+    pr_info("register states before fault:");
+    platform_dump_regs(info->regs);
+    pr_cont("\n");
+#else
+    MOS_UNUSED(faulting_vmap);
+    MOS_UNUSED(fault_addr);
+    MOS_UNUSED(info);
+    MOS_UNUSED(unhandled_reason);
+#endif
     signal_send_to_thread(current_thread, SIGSEGV);
+    signal_check_and_handle(platform_thread_regs(current_thread));
+    MOS_UNREACHABLE();
 }
 
 void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
 {
     thread_t *current = current_thread;
+    const char *unhandled_reason = NULL;
 
     if (MOS_DEBUG_FEATURE(cow))
     {
@@ -315,7 +341,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     vmap_t *fault_vmap = vmap_obtain(mm, fault_addr, &offset);
     if (!fault_vmap)
     {
-        pr_emph("page fault in " PTR_FMT " (not mapped)", fault_addr);
+        unhandled_reason = "page fault in unmapped area";
         mm_unlock_ctx_pair(mm, NULL);
         goto unhandled_fault;
     }
@@ -325,7 +351,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
 
     if (info->is_exec && !(fault_vmap->vmflags & VM_EXEC))
     {
-        pr_emph("page fault in non-executable vmap: %pvm", (void *) fault_vmap);
+        unhandled_reason = "page fault in non-executable vmap";
         mm_unlock_ctx_pair(mm, NULL);
         goto unhandled_fault;
     }
@@ -341,7 +367,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
 
     if (info->is_write && !(fault_vmap->vmflags & VM_WRITE))
     {
-        pr_emph("page fault in read-only vmap: %pvm", (void *) fault_vmap);
+        unhandled_reason = "page fault in read-only vmap";
         mm_unlock_ctx_pair(mm, NULL);
         goto unhandled_fault;
     }
@@ -398,7 +424,8 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
 
 // if we get here, the fault was not handled
 unhandled_fault:
-    invalid_page_fault(fault_addr, info);
+    MOS_ASSERT_X(unhandled_reason, "unhandled fault with no reason");
+    invalid_page_fault(fault_addr, fault_vmap, info, unhandled_reason);
 }
 
 // ! sysfs support

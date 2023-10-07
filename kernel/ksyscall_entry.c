@@ -10,6 +10,6 @@
 reg_t ksyscall_enter(reg_t num, reg_t arg0, reg_t arg1, reg_t arg2, reg_t arg3, reg_t arg4, reg_t arg5)
 {
     reg_t ret = dispatch_syscall(num, arg0, arg1, arg2, arg3, arg4, arg5);
-
+    MOS_ASSERT_X(current_thread->state == THREAD_STATE_RUNNING, "thread %pt is not in 'running' state", (void *) current_thread);
     return ret;
 }

@@ -51,6 +51,10 @@ config INODE_CACHE_HASHMAP_SIZE
     int "inode cache hashmap size"
     default 256
 
+config MM_DETAILED_UNHANDLED_FAULT
+    bool "print detailed information for unhandled page fault"
+    default n
+
 # ! ============================================================
 
 menu "Kernel Debugging Options"

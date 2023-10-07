@@ -80,25 +80,20 @@ static void x86_timer_handler(u32 irq)
     reschedule();
 }
 
-static void x86_do_backtrace(void)
+static void x86_dump_stack_at(ptr_t this_frame)
 {
-    static bool is_tracing = false;
-    if (is_tracing)
-        return;
-    pr_info("Stack trace:");
     struct frame_t
     {
         struct frame_t *ebp;
         ptr_t eip;
-    } *frame = NULL;
-
-    __asm__("movq %%rbp,%1" : "=r"(frame) : "r"(frame));
+    } *frame = (struct frame_t *) this_frame;
 
     const bool do_mapped_check = current_cpu->mm_context;
 
     if (unlikely(!do_mapped_check))
         pr_warn("  no mm context available, mapping checks are disabled (early-boot panic?)");
 
+    pr_info("-- stack trace:");
     for (u32 i = 0; frame; i++)
     {
 #define TRACE_FMT "  %-3d [" PTR_FMT "]: "
@@ -107,25 +102,44 @@ static void x86_do_backtrace(void)
             const pfn_t pfn = mm_get_phys_addr(current_cpu->mm_context, (ptr_t) frame) / MOS_PAGE_SIZE;
             if (!pfn)
             {
-                pr_warn(TRACE_FMT "<corrupted>, aborting backtrace", i, (ptr_t) frame);
+                pr_emerg(TRACE_FMT "<corrupted>, aborting backtrace", i, (ptr_t) frame);
                 break;
             }
         }
 
-        if (frame->eip >= MOS_KERNEL_START_VADDR)
+        if (frame == frame->ebp)
+        {
+            pr_emerg(TRACE_FMT "<corrupted>, aborting backtrace", i, (ptr_t) frame);
+            break;
+        }
+        else if (frame->eip >= MOS_KERNEL_START_VADDR)
+        {
             pr_warn(TRACE_FMT "%ps", i, frame->eip, (void *) frame->eip);
+        }
         else
+        {
             pr_warn(TRACE_FMT "<userspace?>", i, frame->eip);
-
+        }
         frame = frame->ebp;
     }
+#undef TRACE_FMT
+    pr_info("-- end of stack trace");
+}
+
+void platform_dump_current_stack(void)
+{
+    ptr_t frame;
+    __asm__("mov %%rbp, %0" : "=r"(frame));
+    x86_dump_stack_at(frame);
+}
+
+void platform_dump_stack(platform_regs_t *regs)
+{
+    x86_dump_stack_at(regs->bp);
 }
 
 void platform_startup_early()
 {
-    panic_hook_declare(x86_do_backtrace, "Backtrace");
-    panic_hook_install(&x86_do_backtrace_holder);
-
     x86_init_current_cpu_gdt();
     x86_idt_init();
     x86_init_current_cpu_tss();

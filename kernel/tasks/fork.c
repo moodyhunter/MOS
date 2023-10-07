@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/mm/mm.h"
+#include "mos/tasks/signal.h"
 
 #include <mos/lib/structures/hashmap.h>
+#include <mos/lib/structures/list.h>
 #include <mos/lib/structures/stack.h>
+#include <mos/lib/sync/spinlock.h>
 #include <mos/mm/cow.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/mos_global.h>
@@ -12,7 +15,9 @@
 #include <mos/tasks/process.h>
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
+#include <mos_stdlib.h>
 #include <mos_string.h>
+#include <signal.h>
 
 extern const char *vmap_type_str[];
 
@@ -57,8 +62,11 @@ process_t *process_handle_fork(process_t *parent)
             child_p->files[i] = io_ref(file);
     }
 
+    for (int i = 0; i < SIGNAL_MAX_N; i++)
+        child_p->signal_handlers[i] = parent->signal_handlers[i];
+
     // copy the thread
-    const thread_t *parent_thread = current_thread;
+    thread_t *const parent_thread = current_thread;
     thread_t *child_t = thread_allocate(child_p, parent_thread->mode);
     child_t->u_stack = parent_thread->u_stack;
     child_t->name = strdup(parent_thread->name);
@@ -67,7 +75,18 @@ process_t *process_handle_fork(process_t *parent)
 #if MOS_DEBUG_FEATURE(fork)
     pr_info2("fork: thread %d->%d", parent_thread->tid, child_t->tid);
 #endif
-    platform_context_clone(parent_thread->context, &child_t->context);
+    spinlock_acquire(&parent_thread->signal_info.lock);
+    memcpy(child_t->signal_info.masks, parent_thread->signal_info.masks, sizeof(bool) * SIGNAL_MAX_N);
+    list_foreach(sigpending_t, sig, parent_thread->signal_info.pending)
+    {
+        sigpending_t *new_sig = kmalloc(sigpending_slab);
+        linked_list_init(list_node(new_sig));
+        new_sig->signal = sig->signal;
+        list_node_prepend(&child_t->signal_info.pending, list_node(new_sig));
+    }
+    spinlock_release(&parent_thread->signal_info.lock);
+
+    platform_context_clone(parent_thread, child_t);
 
     hashmap_put(&process_table, child_p->pid, child_p);
     thread_complete_init(child_t);
