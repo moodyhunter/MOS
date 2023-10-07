@@ -2,40 +2,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Attach to qemu - MOS Multiboot Kernel",
-            "type": "cppdbg",
-            "request": "launch",
-            "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/build/boot.dir/multiboot.bin",
-            "MIMode": "gdb",
-            "miDebuggerPath": "/usr/bin/i686-elf-gdb",
-            "miDebuggerServerAddress": "localhost:1234",
-            "preLaunchTask": "start_os",
-            "setupCommands": [
-                {
-                    // load gdbinit
-                    "description": "Load gdbinit",
-                    "text": "source ${workspaceFolder}/build/gdbinit",
-                },
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "Set Disassembly Flavor to Intel",
-                    "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
-                },
-            ],
-            "sourceFileMap": {
-                "${workspaceFolder}": {
-                    "editorPath": "${workspaceFolder}",
-                    "useForBreakpoints": "true"
-                }
-            },
-        },
-        {
             "name": "Attach to qemu - MOS UEFI Bootloader",
             "type": "cppdbg",
             "request": "launch",
