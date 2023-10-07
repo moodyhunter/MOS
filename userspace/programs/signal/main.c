@@ -6,8 +6,13 @@
 
 void sigint_handler(signal_t signum)
 {
-    printf("SIGINT(%d) received from PID %d\n", (u32) signum, syscall_get_pid());
-    puts("Okay, I'll leave now");
+    printf("SIGINT(%d) received from PID %d, leaving...\n", (u32) signum, syscall_get_pid());
+    exit(0);
+}
+
+void sigsegv_handler(signal_t signum)
+{
+    printf("SIGSEGV(%d) received from PID %d, leaving...\n", (u32) signum, syscall_get_pid());
     exit(0);
 }
 
@@ -28,6 +33,13 @@ int main(int argc, const char *argv[])
     }
 
     kill(child_pid, SIGINT); // send SIGINT to child
-    puts("Hehe murder go brrr");
+    puts("Hehe muuurder go brrr");
+
+    register_signal_handler(SIGSEGV, sigsegv_handler);
+
+    volatile int *x = (void *) 0x01;
+    *x = 10;
+
+    puts("We should never reach this point");
     return 0;
 }
