@@ -274,7 +274,7 @@ void x86_interrupt_entry(ptr_t rsp)
         else
             frame->eflags &= ~0x3000; // disable IOPL
 
-        signal_check_and_handle(platform_thread_regs(current));
+        signal_check_and_handle();
     }
 
     x86_interrupt_return_impl(frame);

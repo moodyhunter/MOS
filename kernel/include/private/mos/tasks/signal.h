@@ -51,7 +51,7 @@ sigpending_t *signal_get_next_pending(void);
  * @brief Check if there is a pending signal and handle it.
  *
  */
-void signal_check_and_handle(platform_regs_t *regs);
+void signal_check_and_handle(void);
 
 typedef struct _sigreturn_data
 {

@@ -145,8 +145,10 @@ void platform_ipi_send(u8 target, ipi_type_t type)
         lapic_interrupt(IPI_BASE + type, target, APIC_DELIVER_MODE_NORMAL, LAPIC_DEST_MODE_PHYSICAL, LAPIC_SHORTHAND_NONE);
 }
 
-void platform_jump_to_signal_handler(platform_regs_t *regs, const sigreturn_data_t *sigreturn_data, sigaction_t *sa)
+void platform_jump_to_signal_handler(const sigreturn_data_t *sigreturn_data, sigaction_t *sa)
 {
+    platform_regs_t *regs = platform_thread_regs(current_thread);
+
     // avoid x86_64 ABI red zone
     current_thread->u_stack.head = regs->sp - 128;
 

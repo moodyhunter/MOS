@@ -108,7 +108,7 @@ sigpending_t *signal_get_next_pending(void)
     return NULL; // no pending signal
 }
 
-void signal_check_and_handle(platform_regs_t *regs)
+void signal_check_and_handle(void)
 {
     if (!current_thread)
         return;
@@ -155,7 +155,7 @@ void signal_check_and_handle(platform_regs_t *regs)
         .was_masked = was_masked,
     };
 
-    platform_jump_to_signal_handler(regs, &data, &action); // save previous register states onto user stack
+    platform_jump_to_signal_handler(&data, &action); // save previous register states onto user stack
 }
 
 void signal_on_returned(sigreturn_data_t *data)
