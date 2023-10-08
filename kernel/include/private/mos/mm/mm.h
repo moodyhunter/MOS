@@ -143,6 +143,16 @@ vmap_t *vmap_obtain(mm_context_t *mmctx, ptr_t vaddr, size_t *out_offset);
 vmap_t *vmap_split(vmap_t *vmap, size_t split);
 
 /**
+ * @brief Split a vmap to get a vmap object for a range of pages.
+ *
+ * @param vmap The vmap object to split
+ * @param rstart_pgoff The starting page offset
+ * @param rend_pgoff The ending page offset
+ * @return vmap_t* The vmap object for the range, with its lock held.
+ */
+vmap_t *vmap_split_for_range(vmap_t *vmap, size_t rstart_pgoff, size_t rend_pgoff);
+
+/**
  * @brief Finalize the initialization of a vmap object.
  *
  * @param vmap The vmap object

@@ -105,13 +105,44 @@ ptr_t mmap_file(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags
 
 bool munmap(ptr_t addr, size_t size)
 {
+    spinlock_acquire(&current_process->mm->mm_lock);
+    vmap_t *const whole_map = vmap_obtain(current_process->mm, addr, NULL);
+    if (unlikely(!whole_map))
+    {
+        spinlock_release(&current_process->mm->mm_lock);
+        pr_warn("munmap: could not find the vmap");
+        return false;
+    }
+
     // will unmap all pages containing the range, even if they are not fully contained
     const ptr_t range_start = ALIGN_DOWN_TO_PAGE(addr);
     const ptr_t range_end = ALIGN_UP_TO_PAGE(addr + size);
-    const size_t n_pages = (range_end - range_start) / MOS_PAGE_SIZE;
 
-    mm_unmap_pages(current_process->mm, range_start, n_pages);
+    const size_t start_pgoff = (range_start - whole_map->vaddr) / MOS_PAGE_SIZE;
+    const size_t end_pgoff = (range_end - whole_map->vaddr) / MOS_PAGE_SIZE;
 
+    vmap_t *const range_map = vmap_split_for_range(whole_map, start_pgoff, end_pgoff);
+    if (unlikely(!range_map))
+    {
+        pr_warn("munmap: could not split the vmap");
+        spinlock_release(&current_process->mm->mm_lock);
+        spinlock_release(&whole_map->lock);
+        return false;
+    }
+
+    if (range_map->io)
+    {
+        mos_warn("munmap: unmapping a file-backed vmap is not supported yet");
+        // if (!io_munmap(range_map->io, range_map))
+        // {
+        //     pr_warn("munmap: could not unmap the file: io_munmap() failed");
+        //     return false;
+        // }
+    }
+
+    vmap_destroy(range_map);
+    spinlock_release(&current_process->mm->mm_lock);
+    spinlock_release(&whole_map->lock);
     return true;
 }
 
@@ -162,9 +193,9 @@ bool vm_protect(mm_context_t *mmctx, ptr_t addr, size_t size, vm_flags perm)
         }
     }
 
-    bool read_lost = to_protect->vmflags & VM_READ && !(perm & VM_READ);    // if we lose read permission
-    bool write_lost = to_protect->vmflags & VM_WRITE && !(perm & VM_WRITE); // if we lose write permission
-    bool exec_lost = to_protect->vmflags & VM_EXEC && !(perm & VM_EXEC);    // if we lose exec permission
+    const bool read_lost = to_protect->vmflags & VM_READ && !(perm & VM_READ);    // if we lose read permission
+    const bool write_lost = to_protect->vmflags & VM_WRITE && !(perm & VM_WRITE); // if we lose write permission
+    const bool exec_lost = to_protect->vmflags & VM_EXEC && !(perm & VM_EXEC);    // if we lose exec permission
 
     vm_flags mask = 0;
     if (read_lost)
@@ -178,7 +209,7 @@ bool vm_protect(mm_context_t *mmctx, ptr_t addr, size_t size, vm_flags perm)
     if (exec_lost)
         mask |= VM_EXEC;
 
-    // remove permissions immediately/
+    // remove permissions immediately
     mm_do_mask_flags(mmctx->pgd, to_protect->vaddr, to_protect->npages, mask);
 
     // do not add permissions immediately, we will let the page fault handler do it

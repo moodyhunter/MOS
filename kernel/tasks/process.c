@@ -245,9 +245,7 @@ void process_handle_cleanup(process_t *process)
     {
         spinlock_acquire(&map->lock);
         list_remove(map);
-
-        mm_unmap_pages(process->mm, map->vaddr, map->npages);
-        kfree(map);
+        vmap_destroy(map);
     }
 }
 

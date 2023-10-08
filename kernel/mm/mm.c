@@ -173,11 +173,9 @@ void vmap_destroy(vmap_t *vmap)
 {
     MOS_ASSERT(spinlock_is_locked(&vmap->lock));
     mm_context_t *const mm = vmap->mmctx;
-
-    spinlock_acquire(&mm->mm_lock);
+    MOS_ASSERT(spinlock_is_locked(&mm->mm_lock));
     mm_do_unmap(mm->pgd, vmap->vaddr, vmap->npages, true);
     list_remove(vmap);
-    spinlock_release(&mm->mm_lock);
     kfree(vmap);
 }
 
@@ -223,6 +221,29 @@ vmap_t *vmap_split(vmap_t *first, size_t split)
     return second;
 }
 
+vmap_t *vmap_split_for_range(vmap_t *vmap, size_t rstart_pgoff, size_t rend_pgoff)
+{
+    MOS_ASSERT(spinlock_is_locked(&vmap->lock));
+
+    /// |-------|-------|-------|
+    /// |begin  |rstart |rend   |end
+    /// |-------|-------|-------|
+
+    if (rstart_pgoff == 0 && rend_pgoff == vmap->npages)
+        return vmap;
+
+    if (rstart_pgoff == 0)
+        return vmap_split(vmap, rend_pgoff);
+
+    if (rend_pgoff == vmap->npages)
+        return vmap_split(vmap, rstart_pgoff);
+
+    vmap_t *second = vmap_split(vmap, rstart_pgoff);
+    vmap_t *third = vmap_split(second, rend_pgoff - rstart_pgoff);
+    spinlock_release(&third->lock);
+    return second;
+}
+
 void vmap_finalise_init(vmap_t *vmap, vmap_content_t content, vmap_type_t type)
 {
     MOS_ASSERT(spinlock_is_locked(&vmap->lock));
@@ -254,13 +275,13 @@ vmfault_result_t mm_resolve_cow_fault(vmap_t *vmap, ptr_t fault_addr, pagefault_
 
 static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, pagefault_t *info, const char *unhandled_reason)
 {
-#if MOS_CONFIG(MOS_MM_DETAILED_UNHANDLED_FAULT)
     pr_emerg("unhandled page fault: %s", unhandled_reason);
-    pr_emerg("  invalid %s mode %s %s page [" PTR_FMT "]",                            //
-             info->is_user ? "user" : "kernel",                                       //
-             info->is_write ? "write to" : (info->is_exec ? "execute" : "read from"), //
-             info->is_present ? "present" : "non-present",                            //
-             fault_addr                                                               //
+#if MOS_CONFIG(MOS_MM_DETAILED_UNHANDLED_FAULT)
+    pr_emerg("  invalid %s mode %s %s page [" PTR_FMT "]",                               //
+             info->is_user ? "user" : "kernel",                                          //
+             info->is_write ? "write to" : (info->is_exec ? "execute in" : "read from"), //
+             info->is_present ? "present" : "non-present",                               //
+             fault_addr                                                                  //
     );
     pr_emerg("  instruction: " PTR_FMT, info->instruction);
     pr_emerg("  thread: %pt", (void *) current_thread);
@@ -297,10 +318,9 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, pagefaul
     MOS_UNUSED(faulting_vmap);
     MOS_UNUSED(fault_addr);
     MOS_UNUSED(info);
-    MOS_UNUSED(unhandled_reason);
 #endif
     signal_send_to_thread(current_thread, SIGSEGV);
-    signal_check_and_handle(platform_thread_regs(current_thread));
+    signal_check_and_handle();
     MOS_UNREACHABLE();
 }
 
