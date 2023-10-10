@@ -23,11 +23,6 @@ SECTIONS
         __MOS_KERNEL_RODATA_START = .;
         *(.rodata);
         *(.rodata.*);
-
-        . = ALIGN(4K);
-        __MOS_TEST_CASES_START = .;
-        *(.mos.test_cases);
-        __MOS_TEST_CASES_END = .;
     }
 
     .mos_info ALIGN(4K) : AT (ADDR(.mos_info) - 0xFFFFFFFF80000000)
