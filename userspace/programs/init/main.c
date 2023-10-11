@@ -2,6 +2,7 @@
 
 #include <argparse/libargparse.h>
 #include <libconfig/libconfig.h>
+#include <mos/filesystem/fs_types.h>
 #include <mos_stdio.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
@@ -25,7 +26,7 @@ static pid_t start_device_manager(void)
     argv[argc] = NULL;
 
     // start the device manager
-    return syscall_spawn(dm_path, argc, argv);
+    return spawn(dm_path, argv);
 }
 
 static bool create_directories(void)
@@ -38,7 +39,7 @@ static bool create_directories(void)
     for (size_t i = 0; i < num_dirs; i++)
     {
         const char *dir = dirs[i];
-        if (!syscall_vfs_mkdir(dir))
+        if (syscall_vfs_mkdir(dir) != 0)
             return false;
     }
 
@@ -67,7 +68,7 @@ static bool create_symlinks(void)
         source = string_trim(source);
         destination = string_trim(destination);
 
-        if (!syscall_vfs_symlink(source, destination))
+        if (syscall_vfs_symlink(source, destination) != 0)
             return false;
     }
 
@@ -100,7 +101,7 @@ static bool mount_filesystems(void)
         filesystem = string_trim(filesystem);
         options = string_trim(options);
 
-        if (!syscall_vfs_mount(device, mount_point, filesystem, options))
+        if (syscall_vfs_mount(device, mount_point, filesystem, options) != 0)
             return false;
     }
 
@@ -181,7 +182,7 @@ int main(int argc, const char *argv[])
     shell_argv[shell_argc] = NULL;
 
     // TODO: use exec() ?
-    pid_t shell_pid = syscall_spawn(shell, shell_argc, shell_argv);
+    pid_t shell_pid = spawn(shell, shell_argv);
     if (shell_pid <= 0)
         return DYN_ERROR_CODE;
 

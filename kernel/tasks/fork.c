@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/filesystem/dentry.h"
 #include "mos/mm/mm.h"
 #include "mos/tasks/signal.h"
 
@@ -21,7 +22,7 @@
 
 extern const char *vmap_type_str[];
 
-process_t *process_handle_fork(process_t *parent)
+process_t *process_do_fork(process_t *parent)
 {
     MOS_ASSERT(process_is_valid(parent));
 
@@ -31,6 +32,8 @@ process_t *process_handle_fork(process_t *parent)
         pr_emerg("failed to allocate process for fork");
         return NULL;
     }
+
+    child_p->working_directory = dentry_ref(parent->working_directory);
 
 #if MOS_DEBUG_FEATURE(fork)
     pr_emph("process %d forked to %d", parent->pid, child_p->pid);

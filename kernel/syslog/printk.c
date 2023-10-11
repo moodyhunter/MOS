@@ -64,7 +64,7 @@ static inline void deduce_level_color(int loglevel, standard_color_t *fg, standa
     }
 }
 
-static void print_to_console(console_t *con, mos_log_level_t loglevel, const char *message, size_t len)
+static void print_to_console(console_t *con, mos_loglevel loglevel, const char *message, size_t len)
 {
     if (!con)
         return;
@@ -74,7 +74,7 @@ static void print_to_console(console_t *con, mos_log_level_t loglevel, const cha
     console_write_color(con, message, len, fg, bg);
 }
 
-static void lvprintk(mos_log_level_t loglevel, const char *fmt, va_list args)
+void lvprintk(mos_loglevel loglevel, const char *fmt, va_list args)
 {
     // only print warnings and errors if quiet mode is enabled
     if (printk_quiet && loglevel < MOS_LOG_WARN)
@@ -108,7 +108,7 @@ void printk_set_quiet(bool quiet)
     printk_quiet = quiet;
 }
 
-void lprintk(mos_log_level_t loglevel, const char *format, ...)
+void lprintk(mos_loglevel loglevel, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -122,4 +122,9 @@ void printk(const char *format, ...)
     va_start(args, format);
     lvprintk(MOS_LOG_INFO, format, args);
     va_end(args);
+}
+
+void vprintk(const char *format, va_list args)
+{
+    lvprintk(MOS_LOG_INFO, format, args);
 }

@@ -3,18 +3,28 @@
 
 #pragma once
 
-#include <mos/device/console.h>
+#include "mos/printk.h"
+
 #include <mos/mos_global.h>
 #include <mos/types.h>
+#include <mos_stdio.h>
 #include <mos_string.h>
 #include <stdbool.h>
 
 extern s32 test_engine_n_warning_expected;
-extern void mos_test_engine_log(standard_color_t color, char symbol, char *format, ...);
 
-#ifndef MOS_TEST_LOG
-#define MOS_TEST_LOG(color, symbol, format, ...) mos_test_engine_log(color, symbol, format "\n", __VA_ARGS__)
-#endif
+#define mos_test_log(level, symbol, format, ...)                                                                                                                         \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        lprintk(MOS_LOG_UNSET, "\r\n");                                                                                                                                  \
+        if (symbol)                                                                                                                                                      \
+            lprintk(MOS_LOG_EMPH, "[%c] ", symbol);                                                                                                                      \
+        else                                                                                                                                                             \
+            lprintk(MOS_LOG_UNSET, "    ");                                                                                                                              \
+        lprintk(level, format, ##__VA_ARGS__);                                                                                                                           \
+    } while (0)
+
+#define mos_test_log_cont(level, format, ...) lprintk(level, format, ##__VA_ARGS__)
 
 typedef struct
 {
@@ -23,15 +33,6 @@ typedef struct
     u32 n_skipped;
 } mos_test_result_t;
 
-#define MOS_TEST_GRAY    LightGray
-#define MOS_TEST_RED     Red
-#define MOS_TEST_GREEN   Green
-#define MOS_TEST_YELLOW  Brown
-#define MOS_TEST_BLUE    LightBlue
-#define MOS_TEST_MAGENTA Magenta
-#define MOS_TEST_CYAN    Cyan
-#define MOS_TEST_DEFAULT MOS_TEST_GRAY
-
 #define MOS_TEST_DEFINE_CONDITION(condition, message)                                                                                                                    \
     const char *const _mt_test_cond_##condition##_message = message;                                                                                                     \
     static bool condition
@@ -39,7 +40,7 @@ typedef struct
 #define MOS_TEST_CONDITIONAL(cond)                                                                                                                                       \
     for (MOS_TEST_CURRENT_TEST_SKIPPED = !(cond), (*_mt_loop_leave) = false, __extension__({                                                                             \
              if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                                          \
-                 MOS_TEST_LOG(MOS_TEST_YELLOW, '\0', "Skipped '%s': condition '%s' not met.", _mt_test_cond_##cond##_message, #cond);                                    \
+                 mos_test_log(MOS_LOG_WARN, '\0', "Skipped '%s': condition '%s' not met.", _mt_test_cond_##cond##_message, #cond);                                       \
          });                                                                                                                                                             \
          !(*_mt_loop_leave); (*_mt_loop_leave) = true, MOS_TEST_CURRENT_TEST_SKIPPED = false)
 
@@ -54,14 +55,14 @@ typedef struct
     static void _TestName(mos_test_result_t *, bool *, bool *);                                                                                                          \
     static void _MT_WRAP_TEST_NAME(_TestName)(mos_test_result_t * result)                                                                                                \
     {                                                                                                                                                                    \
-        MOS_TEST_LOG(MOS_TEST_BLUE, 'T', "Starting test " #_TestName " (line %d)", __LINE__);                                                                            \
+        mos_test_log(MOS_LOG_INFO, 'T', "Testing '" #_TestName "'... ");                                                                                                 \
         _MT_RUN_TEST_AND_PRINT_RESULT(result, _TestName);                                                                                                                \
     }                                                                                                                                                                    \
     _MT_REGISTER_TEST_CASE(_TestName, _MT_WRAP_TEST_NAME(_TestName));                                                                                                    \
     static void _TestName(mos_test_result_t *_MT_result, __maybe_unused bool *_mt_test_skipped, __maybe_unused bool *_mt_loop_leave)
 
 #define MOS_TEST_DECL_PTEST(_PTestName, ptest_args_printf_format, ...)                                                                                                   \
-    static const char *_MT_PTEST_ARG_FORMAT(_PTestName) = "argument: " ptest_args_printf_format;                                                                         \
+    static const char *_MT_PTEST_ARG_FORMAT(_PTestName) = "" ptest_args_printf_format "";                                                                                \
     static void _PTestName(mos_test_result_t *_MT_result, __maybe_unused bool *_mt_test_skipped, __maybe_unused bool *_mt_loop_leave, __VA_ARGS__)
 
 #define MOS_TEST_PTEST_INSTANCE(_PTestName, ...)                                                                                                                         \
@@ -71,11 +72,13 @@ typedef struct
     }                                                                                                                                                                    \
     static void _MT_WRAP_PTEST_CALLER(_PTestName)(mos_test_result_t * result)                                                                                            \
     {                                                                                                                                                                    \
-        MOS_TEST_LOG(MOS_TEST_BLUE, 'P', "Starting parameterised test %s at line %d", #_PTestName, __LINE__);                                                            \
-        MOS_TEST_LOG(MOS_TEST_BLUE, '\0', _MT_PTEST_ARG_FORMAT(_PTestName), __VA_ARGS__);                                                                                \
+        char __buf[PRINTK_BUFFER_SIZE] = { 0 };                                                                                                                          \
+        snprintf(__buf, PRINTK_BUFFER_SIZE, _MT_PTEST_ARG_FORMAT(_PTestName), __VA_ARGS__);                                                                              \
+        mos_test_log(MOS_LOG_INFO, 'P', "Test %s with parameters: ", #_PTestName);                                                                                       \
+        mos_test_log_cont(MOS_LOG_UNSET, "(%s)... ", __buf);                                                                                                             \
         _MT_RUN_TEST_AND_PRINT_RESULT(result, _MT_PTEST_CALLER(_PTestName));                                                                                             \
     }                                                                                                                                                                    \
-    _MT_REGISTER_TEST_CASE(_TestName, _MT_WRAP_PTEST_CALLER(_PTestName));
+    _MT_REGISTER_TEST_CASE(_TestName, _MT_WRAP_PTEST_CALLER(_PTestName))
 
 #define MOS_TEST_EXPECT_WARNING_N(N, body, msg)                                                                                                                          \
     do                                                                                                                                                                   \
@@ -103,7 +106,7 @@ typedef struct
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
         ++_MT_result->n_failed;                                                                                                                                          \
-        MOS_TEST_LOG(MOS_TEST_RED, 'X', "line %d: " format, __LINE__, __VA_ARGS__);                                                                                      \
+        mos_test_log(MOS_LOG_EMERG, 'X', "line %d: " format, __LINE__, ##__VA_ARGS__);                                                                                   \
     } while (false)
 
 /*
@@ -144,7 +147,7 @@ typedef struct
         }                                                                                                                                                                \
         ++_MT_result->n_total;                                                                                                                                           \
         if ((expected) != (actual))                                                                                                                                      \
-            MOS_TEST_FAIL("'%s' is %d, expected %d", #actual, (actual), (expected));                                                                                     \
+            MOS_TEST_FAIL("'%s' is %lld, expected %lld", #actual, (s64) (actual), (s64) (expected));                                                                     \
     } while (false)
 
 /*
@@ -257,11 +260,11 @@ typedef struct
         u32 passed = total - failed - skipped;                                                                                                                           \
         if (failed == 0)                                                                                                                                                 \
             if (skipped == 0)                                                                                                                                            \
-                MOS_TEST_LOG(MOS_TEST_GREEN, '\0', "%s: All %u test(s) passed", #_TestFunc, total);                                                                      \
+                mos_test_log_cont(MOS_LOG_INFO2, "passed (%u tests)", total);                                                                                            \
             else                                                                                                                                                         \
-                MOS_TEST_LOG(MOS_TEST_GREEN, '\0', "%s: All %u test(s) passed (%u skipped)", #_TestFunc, total, skipped);                                                \
+                mos_test_log_cont(MOS_LOG_INFO2, "passed (%u tests, %u skipped)", total, skipped);                                                                       \
         else                                                                                                                                                             \
-            MOS_TEST_LOG(MOS_TEST_RED, 'X', "%s: %u out of %u test(s) failed (%u passed, %u skipped)", #_TestFunc, failed, total, passed, skipped);                      \
+            mos_test_log(MOS_LOG_EMERG, 'X', "%u failed, (%u tests, %u skipped, %u passed)", failed, total, skipped, passed);                                            \
     } while (0)
 
 #define _MT_FLOATABS(a) ((a) < 0 ? -(a) : (a))

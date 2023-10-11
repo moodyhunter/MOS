@@ -114,6 +114,17 @@ void mos_start_kernel(void)
     startup_invoke_autoinit(INIT_TARGET_POST_MM);
     startup_invoke_autoinit(INIT_TARGET_SLAB_AUTOINIT);
 
+    // power management
+    startup_invoke_autoinit(INIT_TARGET_POWER);
+
+    // register builtin filesystems
+    startup_invoke_autoinit(INIT_TARGET_PRE_VFS);
+    vfs_init();
+    startup_invoke_autoinit(INIT_TARGET_VFS);
+    startup_invoke_autoinit(INIT_TARGET_SYSFS);
+
+    platform_startup_late();
+
     init_args.argc = 1;
     init_args.argv = kcalloc(1, sizeof(char *)); // init_argv[0] is the init path
     init_args.argv[0] = strdup(DEFAULT_INIT_PATH);
@@ -123,31 +134,23 @@ void mos_start_kernel(void)
     for (u32 i = 1; i < init_args.argc; i++)
         pr_emph("init arg %d: %s", i, init_args.argv[i]);
 
-    // power management
-    startup_invoke_autoinit(INIT_TARGET_POWER);
-
-    // register builtin filesystems
-    startup_invoke_autoinit(INIT_TARGET_PRE_VFS);
-    startup_invoke_autoinit(INIT_TARGET_VFS);
-    startup_invoke_autoinit(INIT_TARGET_SYSFS);
-
-    platform_startup_late();
-
-    bool mounted = vfs_mount("none", "/", "tmpfs", NULL);
-    if (!mounted)
+    long ret = vfs_mount("none", "/", "tmpfs", NULL);
+    if (IS_ERR_VALUE(ret))
         mos_panic("failed to mount rootfs");
 
     vfs_mkdir("/initrd");
-    bool mounted_initrd = vfs_mount("none", "/initrd/", "cpiofs", NULL);
-    if (!mounted_initrd)
+    ret = vfs_mount("none", "/initrd/", "cpiofs", NULL);
+    if (IS_ERR_VALUE(ret))
         mos_panic("failed to mount initrd");
 
     ipc_init();
     tasks_init();
 
-    console_t *init_con = console_get("serial_com1");
+    console_t *const init_con = console_get("serial_com1");
     const stdio_t init_io = { .in = &init_con->io, .out = &init_con->io, .err = &init_con->io };
-    process_t *init = elf_create_process(init_args.argv[0], NULL, init_args.argc, init_args.argv, &init_io);
+    const int init_envc = 2;
+    const char *const init_envp[] = { "PATH=/bin", "HOME=/", NULL };
+    process_t *init = elf_create_process(init_args.argv[0], NULL, init_args.argc, init_args.argv, init_envc, init_envp, &init_io);
     if (unlikely(!init))
         mos_panic("failed to create init process");
 

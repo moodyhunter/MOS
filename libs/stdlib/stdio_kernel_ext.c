@@ -25,6 +25,8 @@ static size_t do_print_vmflags(char *buf, size_t size, vm_flags flags)
  *              e.g.: "'my_thread' (tid 123)"
  *  '%pvf'  prints vm_flags_t flag, only the r/w/x bits are printed for general purpose.
  *              e.g.: "rwx" / "r--" / "rw-" / "--x"
+ *  '%pvm'  prints a vmap_t object.
+ *              e.g.: "{ 0x123000-0x123fff, rwx, on_fault=0x12345678 }"
  *
  * @returns true if the format specifier is handled, false otherwise, the
  *          caller should fallback to the default implementation. (i.e. %p)
@@ -34,9 +36,11 @@ static size_t do_print_vmflags(char *buf, size_t size, vm_flags flags)
 size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat, ptr_t ptr)
 {
     size_t ret = 0;
-#define current         (**pformat)
-#define peek_next       (*(*pformat + 1))
-#define shift_next      ((void) ((*pformat)++))
+#define current      (**pformat)
+#define peek_next    (*(*pformat + 1))
+#define shift_next   ((void) ((*pformat)++))
+#define unshift_next ((void) ((*pformat)--))
+
 #define wrap_print(...) wrap_printed(snprintf(buf, *size, __VA_ARGS__))
 #define wrap_printed(x)                                                                                                                                                  \
     do                                                                                                                                                                   \
@@ -60,7 +64,7 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
 
     switch (peek_next)
     {
-        case 's':
+        case 's': // %ps
         {
             shift_next;
             // kernel symbol address
@@ -78,7 +82,7 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
                 wrap_print("%s", sym ? sym->name : "(unknown)");
             goto done;
         }
-        case 't':
+        case 't': // %pt
         {
             shift_next;
             // thread_t
@@ -87,7 +91,7 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
             wrap_print("'%s' (tid %d)", thread->name ? thread->name : "<no name>", thread->tid);
             goto done;
         }
-        case 'p':
+        case 'p': // %pp
         {
             shift_next;
             // process_t
@@ -96,14 +100,14 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
             wrap_print("'%s' (pid %d)", process->name ? process->name : "<no name>", process->pid);
             goto done;
         }
-        case 'v':
+        case 'v': // %pv
         {
             shift_next;
 
             // vmap-related types
             switch (peek_next)
             {
-                case 'f':
+                case 'f': // %pvf
                 {
                     shift_next;
                     // vm_flags, only r/w/x are supported
@@ -111,14 +115,22 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
                     wrap_printed(do_print_vmflags(buf, *size, flags));
                     goto done;
                 }
-                case 'm':
+                case 'm': // %pvm
                 {
                     shift_next;
                     // vmap_t *, print the vmap's range and flags
                     const vmap_t *vmap = (const vmap_t *) ptr;
                     wrap_print("{ " PTR_RANGE ", ", vmap->vaddr, vmap->vaddr + vmap->npages * MOS_PAGE_SIZE - 1);
                     wrap_printed(do_print_vmflags(buf, *size, vmap->vmflags));
-                    wrap_print(", on_fault=%ps", (void *) (ptr_t) vmap->on_fault);
+                    wrap_print(", fault: %ps", (void *) (ptr_t) vmap->on_fault);
+
+                    if (vmap->io)
+                    {
+                        char filepath[MOS_PATH_MAX_LENGTH];
+                        io_get_name(vmap->io, filepath, sizeof(filepath));
+                        wrap_print(", io: '%s', offset: 0x%zx", filepath, vmap->io_offset);
+                    }
+
                     wrap_print(" }");
                     goto done;
                 }

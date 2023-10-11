@@ -5,8 +5,10 @@
 #include "mos/filesystem/vfs.h"
 #include "mos/mm/mmap.h"
 #include "mos/tasks/process.h"
+#include "mos/tasks/task_types.h"
 #include "mos/tasks/thread.h"
 
+#include <mos/types.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
@@ -25,8 +27,12 @@ typedef struct
 typedef struct
 {
     const char *invocation;
-    size_t invocation_size;
     auxv_vec_t auxv;
+    int argc;
+    const char **argv;
+
+    int envc;
+    const char **envp;
 } elf_startup_info_t;
 
 static void add_auxv_entry(auxv_vec_t *var, unsigned long type, unsigned long val)
@@ -107,55 +113,56 @@ static ptr_t elf_determine_loadbias(elf_header_t *elf)
  *      (high address, end of stack)
  */
 
-static void elf_setup_main_thread(thread_t *thread, elf_startup_info_t *info, int argc, const char *const src_argv[], ptr_t *const out_pargv, ptr_t *const out_penvp)
+static void elf_setup_main_thread(thread_t *thread, elf_startup_info_t *const info, ptr_t *const out_pargv, ptr_t *const out_penvp)
 {
     mos_debug(elf, "cpu %d: setting up a new main thread %pt of process %pp", current_cpu->id, (void *) thread, (void *) thread->owner);
 
     MOS_ASSERT_X(thread->u_stack.head == thread->u_stack.top, "thread %pt's user stack is not empty", (void *) thread);
     stack_push_val(&thread->u_stack, (uintn) 0);
 
-    stack_push(&thread->u_stack, info->invocation, info->invocation_size + 1); // +1 for the null terminator
+    stack_push(&thread->u_stack, info->invocation, strlen(info->invocation) + 1); // +1 for the null terminator
     add_auxv_entry(&info->auxv, AT_EXECFN, (ptr_t) thread->u_stack.head);
     add_auxv_entry(&info->auxv, AT_NULL, 0);
 
-    const int envp_count = 0;         // TODO: support envp
-    const char *src_envp[envp_count]; // TODO: support envp
-
-    void *envp[envp_count + 1]; // +1 for the null terminator
-    if (envp_count == 0)
+    // ! copy the environment to the stack in reverse order !
+    const void *stack_envp[info->envc + 1]; // +1 for the null terminator
+    if (info->envc == 0)
         goto no_envp;
 
-    for (int i = envp_count - 1; i >= 0; i--)
+    for (int i = info->envc - 1; i >= 0; i--)
     {
-        const size_t len = strlen(src_envp[i]) + 1; // +1 for the null terminator
-        stack_push(&thread->u_stack, src_envp[i], len);
-        envp[i] = (void *) thread->u_stack.head;
+        const size_t len = strlen(info->envp[i]) + 1; // +1 for the null terminator
+        stack_push(&thread->u_stack, info->envp[i], len);
+        stack_envp[i] = (void *) thread->u_stack.head;
     }
 
 no_envp:
-    envp[envp_count] = NULL;
+    stack_envp[info->envc] = NULL;
 
-    void *argv[argc + 1]; // +1 for the null terminator
-    if (argc == 0)
+    // ! copy the argv to the stack in reverse order !
+    const void *stack_argv[info->argc + 1]; // +1 for the null terminator
+    if (info->argc == 0)
         goto no_argv;
-    for (int i = argc - 1; i >= 0; i--)
+
+    for (int i = info->argc - 1; i >= 0; i--)
     {
-        const size_t len = strlen(src_argv[i]) + 1; // +1 for the null terminator
-        stack_push(&thread->u_stack, src_argv[i], len);
-        argv[i] = (void *) thread->u_stack.head;
+        const size_t len = strlen(info->argv[i]) + 1; // +1 for the null terminator
+        stack_push(&thread->u_stack, info->argv[i], len);
+        stack_argv[i] = (void *) thread->u_stack.head;
     }
 
 no_argv:
-    argv[argc] = NULL;
+    stack_argv[info->argc] = NULL;
 
-    thread->u_stack.head = ALIGN_DOWN(thread->u_stack.head, 16); // align to 16 bytes
+    // align to 16 bytes
+    thread->u_stack.head = ALIGN_DOWN(thread->u_stack.head, 16);
 
-    stack_push(&thread->u_stack, info->auxv.vector, sizeof(Elf64_auxv_t) * info->auxv.count);
-    stack_push(&thread->u_stack, &envp, sizeof(char *) * (envp_count + 1));
-    *out_penvp = thread->u_stack.head;
-    stack_push(&thread->u_stack, &argv, sizeof(char *) * (argc + 1));
-    *out_pargv = thread->u_stack.head;
-    stack_push_val(&thread->u_stack, (uintn) argc);
+    stack_push(&thread->u_stack, info->auxv.vector, sizeof(Elf64_auxv_t) * info->auxv.count); // auxv vector
+    stack_push(&thread->u_stack, &stack_envp, sizeof(char *) * (info->envc + 1));             // envp array
+    *out_penvp = thread->u_stack.head;                                                        // envp pointer
+    stack_push(&thread->u_stack, &stack_argv, sizeof(char *) * (info->argc + 1));             // argv array
+    *out_pargv = thread->u_stack.head;                                                        // argv pointer
+    stack_push_val(&thread->u_stack, (uintn) info->argc);                                     // argc
 }
 
 static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, mm_context_t *mm, file_t *file)
@@ -192,12 +199,10 @@ static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, m
     mos_debug(elf, "  ... done");
 }
 
-#define ELF_INTERPRETER_BASE_OFFSET 0x100000
-
 static ptr_t elf_map_interpreter(const char *path, mm_context_t *mm)
 {
     file_t *const interp_file = vfs_openat(FD_CWD, path, OPEN_READ | OPEN_EXECUTE);
-    if (!interp_file)
+    if (IS_ERR_OR_NULL(interp_file))
         return 0;
 
     io_ref(&interp_file->io);
@@ -220,55 +225,25 @@ static ptr_t elf_map_interpreter(const char *path, mm_context_t *mm)
         if (ph.header_type == ELF_PT_LOAD)
         {
             // interpreter is always loaded at vaddr 0
-            elf_map_segment(&ph, ELF_INTERPRETER_BASE_OFFSET, mm, interp_file);
+            elf_map_segment(&ph, MOS_ELF_INTERPRETER_BASE_OFFSET, mm, interp_file);
             entry = elf.entry_point;
         }
     }
 
     io_unref(&interp_file->io);
-    return ELF_INTERPRETER_BASE_OFFSET + entry;
+    return MOS_ELF_INTERPRETER_BASE_OFFSET + entry;
 }
 
-process_t *elf_create_process(const char *path, process_t *parent, int argc, const char *const argv[], const stdio_t *ios)
+__nodiscard bool elf_do_fill_process(process_t *proc, file_t *file, elf_header_t elf, elf_startup_info_t *info)
 {
-    process_t *proc = NULL;
-    file_t *file = vfs_openat(FD_CWD, path, OPEN_READ | OPEN_EXECUTE);
-    if (!file)
-    {
-        mos_warn("failed to open '%s'", path);
-        return NULL;
-    }
+    bool ret = true;
 
-    io_ref(&file->io);
-
-    elf_header_t elf;
-    if (!elf_read_and_verify_executable(file, &elf))
-    {
-        pr_emerg("failed to verify ELF header for '%s'", dentry_name(file->dentry));
-        goto cleanup_close_file;
-    }
-
-    elf_startup_info_t info = { 0 };
-    add_auxv_entry(&info.auxv, AT_PAGESZ, MOS_PAGE_SIZE);
-    add_auxv_entry(&info.auxv, AT_UID, 0);
-    add_auxv_entry(&info.auxv, AT_EUID, 0);
-    add_auxv_entry(&info.auxv, AT_GID, 0);
-    add_auxv_entry(&info.auxv, AT_EGID, 0);
-    add_auxv_entry(&info.auxv, AT_BASE, ELF_INTERPRETER_BASE_OFFSET);
-
-    proc = process_new(parent, file->dentry->name, ios);
-    if (!proc)
-    {
-        mos_warn("failed to create process for '%s'", dentry_name(file->dentry));
-        goto cleanup_close_file;
-    }
-
-    info.invocation = strdup(path);
-    info.invocation_size = strlen(path);
-    const char **new_argv = kmalloc(sizeof(char *) * (argc + 1));
-    for (int i = 0; i < argc; i++)
-        new_argv[i] = strdup(argv[i]); // copy the strings to kernel space, since we are switching to a new address space
-    new_argv[argc] = NULL;
+    add_auxv_entry(&info->auxv, AT_PAGESZ, MOS_PAGE_SIZE);
+    add_auxv_entry(&info->auxv, AT_UID, 0);
+    add_auxv_entry(&info->auxv, AT_EUID, 0);
+    add_auxv_entry(&info->auxv, AT_GID, 0);
+    add_auxv_entry(&info->auxv, AT_EGID, 0);
+    add_auxv_entry(&info->auxv, AT_BASE, MOS_ELF_INTERPRETER_BASE_OFFSET);
 
     // !! after this point, we must make sure that we switch back to the previous address space before returning from this function !!
     mm_context_t *const prev_mm = mm_switch_context(proc->mm);
@@ -335,37 +310,105 @@ process_t *elf_create_process(const char *path, process_t *parent, int argc, con
 
     if (auxv_phdr_vaddr)
     {
-        add_auxv_entry(&info.auxv, AT_PHDR, map_bias + auxv_phdr_vaddr);
-        add_auxv_entry(&info.auxv, AT_PHENT, elf.ph.entry_size);
-        add_auxv_entry(&info.auxv, AT_PHNUM, elf.ph.count);
+        add_auxv_entry(&info->auxv, AT_PHDR, map_bias + auxv_phdr_vaddr);
+        add_auxv_entry(&info->auxv, AT_PHENT, elf.ph.entry_size);
+        add_auxv_entry(&info->auxv, AT_PHNUM, elf.ph.count);
     }
 
-    add_auxv_entry(&info.auxv, AT_ENTRY, map_bias + elf.entry_point); // the entry point of the executable, not the interpreter
+    add_auxv_entry(&info->auxv, AT_ENTRY, map_bias + elf.entry_point); // the entry point of the executable, not the interpreter
 
     ptr_t user_argv, user_envp;
     thread_t *const main_thread = proc->main_thread;
-    elf_setup_main_thread(main_thread, &info, argc, new_argv, &user_argv, &user_envp);
-    platform_context_setup_main_thread(main_thread, has_interpreter ? interp_entrypoint : elf.entry_point, main_thread->u_stack.head, argc, user_argv, user_envp);
+    elf_setup_main_thread(main_thread, info, &user_argv, &user_envp);
+    platform_context_setup_main_thread(main_thread, has_interpreter ? interp_entrypoint : elf.entry_point, main_thread->u_stack.head, info->argc, user_argv, user_envp);
 
     thread_complete_init(main_thread);
 
-    goto cleanup_proc;
+    goto done;
 
 bad_proc:
-    proc = NULL;
+    ret = false;
 
-cleanup_proc:;
+done:;
     mm_context_t *prev = mm_switch_context(prev_mm);
     MOS_UNUSED(prev);
+
+    return ret;
+}
+
+bool elf_fill_process(process_t *proc, file_t *file, const char *path, int argc, const char *const argv[], int envc, const char *const envp[])
+{
+    bool ret = false;
+
+    io_ref(&file->io);
+
+    elf_header_t elf;
+    if (!elf_read_and_verify_executable(file, &elf))
+    {
+        pr_emerg("failed to verify ELF header for '%s'", dentry_name(file->dentry));
+        goto cleanup_close_file;
+    }
+
+    elf_startup_info_t info = {
+        .invocation = strdup(path),
+        .argc = argc,
+        .argv = kmalloc(sizeof(char *) * (argc + 1)),
+        .envc = envc,
+        .envp = kmalloc(sizeof(char *) * (envc + 1)),
+        .auxv = { 0 },
+    };
+
     for (int i = 0; i < argc; i++)
-        kfree((void *) new_argv[i]);
-    kfree(new_argv);
+        info.argv[i] = strdup(argv[i]); // copy the strings to kernel space, since we are switching to a new address space
+    info.argv[argc] = NULL;
+
+    for (int i = 0; i < envc; i++)
+        info.envp[i] = strdup(envp[i]); // copy the strings to kernel space, since we are switching to a new address space
+    info.envp[envc] = NULL;
+
+    ret = elf_do_fill_process(proc, file, elf, &info);
 
     if (info.invocation)
         kfree(info.invocation);
+    for (int i = 0; i < argc; i++)
+        kfree(info.argv[i]);
+    for (int i = 0; i < envc; i++)
+        kfree(info.envp[i]);
+    kfree(info.argv);
+    kfree(info.envp);
 
 cleanup_close_file:
     io_unref(&file->io); // close the file, we should have the file's refcount == 0 here
 
+    return ret;
+}
+
+process_t *elf_create_process(const char *path, process_t *parent, int argc, const char *const argv[], int envc, const char *const envp[], const stdio_t *ios)
+{
+    process_t *proc = NULL;
+    file_t *file = vfs_openat(FD_CWD, path, OPEN_READ | OPEN_EXECUTE);
+    if (IS_ERR_OR_NULL(file))
+    {
+        mos_warn("failed to open '%s'", path);
+        return NULL;
+    }
+    io_ref(&file->io);
+
+    proc = process_new(parent, file->dentry->name, ios);
+    if (!proc)
+    {
+        mos_warn("failed to create process for '%s'", dentry_name(file->dentry));
+        goto cleanup_close_file;
+    }
+
+    if (!elf_fill_process(proc, file, path, argc, argv, envc, envp))
+    {
+        // TODO how do we make sure that the process is cleaned up properly?
+        process_handle_exit(proc, 1);
+        proc = NULL;
+    }
+
+cleanup_close_file:
+    io_unref(&file->io); // close the file, we should have the file's refcount == 0 here
     return proc;
 }

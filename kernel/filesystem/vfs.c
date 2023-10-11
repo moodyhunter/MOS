@@ -7,6 +7,7 @@
 #include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab_autoinit.h"
 
+#include <errno.h>
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
@@ -72,9 +73,9 @@ static size_t vfs_io_ops_write(io_t *io, const void *buf, size_t count)
 
     spinlock_acquire(&file->offset_lock);
     size_t ret = file_ops->write(file, buf, count, file->offset);
-    file->offset += ret;
+    if (!IS_ERR_VALUE(ret))
+        file->offset += ret;
     spinlock_release(&file->offset_lock);
-
     return ret;
 }
 
@@ -217,7 +218,7 @@ void vfs_op_ops_getname(io_t *io, char *buf, size_t size)
     dentry_path(file->dentry, root_dentry, buf, size);
 }
 
-static const io_op_t fs_io_ops = {
+static const io_op_t file_io_ops = {
     .read = vfs_io_ops_read,
     .write = vfs_io_ops_write,
     .close = vfs_io_ops_close,
@@ -225,6 +226,13 @@ static const io_op_t fs_io_ops = {
     .mmap = vfs_io_ops_mmap,
     .get_name = vfs_op_ops_getname,
 };
+
+static const io_op_t dir_io_ops = {
+    .read = vfs_list_dir,
+    .close = vfs_io_ops_close,
+    .get_name = vfs_op_ops_getname,
+};
+
 // END: filesystem's io_t operations
 
 static void vfs_copy_stat(file_stat_t *statbuf, inode_t *inode)
@@ -295,15 +303,26 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
                                             (may_create ? RESOLVE_EXPECT_ANY_EXIST : RESOLVE_EXPECT_EXIST) | //
                                             (expect_dir ? RESOLVE_EXPECT_DIR : 0);
     dentry_t *entry = dentry_get(base, root_dentry, path, resolve_flags);
-
-    if (entry == NULL || entry->inode == NULL)
+    if (IS_ERR_OR_NULL(entry))
     {
         mos_debug(vfs, "failed to resolve '%s', create=%d, read=%d, exec=%d, nfollow=%d, dir=%d, trun=%d", path, may_create, read, exec, no_follow, expect_dir, truncate);
-        return NULL;
+        return ERR(entry);
+    }
+
+    if (may_create && entry->inode == NULL)
+    {
+        dentry_t *parent = dentry_parent(entry);
+        if (!parent->inode->ops->newfile)
+        {
+            dentry_unref(entry);
+            return ERR_PTR(-EROFS);
+        }
+
+        parent->inode->ops->newfile(parent->inode, entry, FILE_TYPE_REGULAR, 0666);
     }
 
     if (!vfs_verify_permissions(entry, true, read, may_create, exec, write))
-        return NULL;
+        return ERR_PTR(-EACCES);
 
     file_t *file = kmalloc(file_cache);
     file->dentry = entry;
@@ -323,7 +342,10 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
     if (entry->inode->type == FILE_TYPE_REGULAR)
         io_flags |= IO_MMAPABLE;
 
-    io_init(&file->io, IO_FILE, io_flags, &fs_io_ops);
+    if (expect_dir)
+        io_init(&file->io, IO_DIR, (io_flags | IO_READABLE) & ~IO_SEEKABLE, &dir_io_ops);
+    else
+        io_init(&file->io, IO_FILE, io_flags, &file_io_ops);
 
     const file_ops_t *ops = file_get_ops(file);
     if (ops && ops->open)
@@ -331,13 +353,19 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
         bool opened = ops->open(file->dentry->inode, file);
         if (!opened)
         {
-            pr_warn("failed to open file '%s'", path);
             kfree(file);
-            return NULL;
+            return ERR_PTR(-ENOTSUP);
         }
     }
 
     return file;
+}
+
+// public functions
+
+void vfs_init(void)
+{
+    // nothing to do here
 }
 
 void vfs_register_filesystem(filesystem_t *fs)
@@ -349,39 +377,52 @@ void vfs_register_filesystem(filesystem_t *fs)
     mos_debug(vfs, "filesystem '%s' registered", fs->name);
 }
 
-bool vfs_mount(const char *device, const char *path, const char *fs, const char *options)
+long vfs_mount(const char *device, const char *path, const char *fs, const char *options)
 {
     filesystem_t *real_fs = vfs_find_filesystem(fs);
     if (unlikely(real_fs == NULL))
     {
         mos_warn("filesystem '%s' not found", fs);
-        return false;
+        return -EINVAL;
     }
 
-    if (unlikely(root_dentry == NULL))
+    MOS_ASSERT_X(real_fs->mount, "filesystem '%s' does not support mounting", real_fs->name);
+
+    if (unlikely(strcmp(path, "/") == 0))
     {
         // special case: mount root filesystem
-        MOS_ASSERT(strcmp(path, "/") == 0);
+        if (root_dentry)
+        {
+            pr_warn("root filesystem is already mounted");
+            return -EBUSY;
+        }
         mos_debug(vfs, "mounting root filesystem '%s'...", fs);
         root_dentry = real_fs->mount(real_fs, device, options);
         if (root_dentry == NULL)
         {
             mos_warn("failed to mount root filesystem");
-            return false;
+            return -EIO;
         }
         mos_debug(vfs, "root filesystem mounted, dentry=%p", (void *) root_dentry);
 
-        root_dentry->name = NULL;
-        dentry_ref(root_dentry); // it itself is a mount point
-        return true;
+        MOS_ASSERT(root_dentry->name == NULL);
+        bool mounted = dentry_mount(root_dentry, root_dentry, real_fs);
+        MOS_ASSERT(mounted);
+
+        return 0;
     }
 
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
     dentry_t *mountpoint = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST);
-    if (unlikely(mountpoint == NULL))
+    if (IS_ERR(mountpoint))
+        return PTR_ERR(mountpoint);
+
+    if (mountpoint->is_mountpoint)
     {
-        mos_warn("mount point does not exist");
-        return false;
+        // we don't support overlaying filesystems yet
+        mos_warn("mount point is already mounted");
+        dentry_unref(mountpoint);
+        return -EBUSY;
     }
 
     // when mounting:
@@ -391,18 +432,61 @@ bool vfs_mount(const char *device, const char *path, const char *fs, const char 
     if (mounted_root == NULL)
     {
         mos_warn("failed to mount filesystem");
-        return false;
+        return -EIO;
     }
 
     const bool mounted = dentry_mount(mountpoint, mounted_root, real_fs);
     if (unlikely(!mounted))
     {
         mos_warn("failed to mount filesystem");
-        return false;
+        return -EIO;
     }
 
+    MOS_ASSERT_X(mountpoint->refcount == mounted_root->refcount, "mountpoint refcount=%zu, mounted_root refcount=%zu", mountpoint->refcount, mounted_root->refcount);
     mos_debug(vfs, "mounted filesystem '%s' on '%s'", fs, path);
-    return true;
+    return 0;
+}
+
+long vfs_umount(const char *path)
+{
+    dentry_t *mounted_root = dentry_get(root_dentry, root_dentry, path, RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST);
+    if (IS_ERR(mounted_root))
+        return PTR_ERR(mounted_root);
+
+    // the mounted root itself holds a ref, and the caller of this function
+    if (mounted_root->refcount != 2)
+    {
+        dentry_check_refstat(mounted_root);
+        mos_warn("refcount is not as expected");
+        return -EBUSY;
+    }
+
+    dentry_unref(mounted_root); // release the reference held by this function
+
+    // unmounting root filesystem
+    dentry_t *mountpoint = dentry_unmount(mounted_root);
+    if (!mountpoint)
+    {
+        mos_warn("failed to unmount filesystem");
+        return -EIO;
+    }
+
+    MOS_ASSERT(mounted_root->refcount == mountpoint->refcount && mountpoint->refcount == 1);
+    if (mounted_root->superblock->fs->unmount)
+        mounted_root->superblock->fs->unmount(mounted_root->superblock->fs, mounted_root);
+    else
+        MOS_ASSERT(dentry_unref_one(mounted_root));
+    MOS_ASSERT_X(mounted_root->refcount == 0, "fs->umount should release the last reference to the mounted root");
+
+    if (mounted_root == root_dentry)
+    {
+        pr_info2("unmounted root filesystem");
+        root_dentry = NULL;
+        return 0;
+    }
+
+    dentry_unref(mountpoint);
+    return 0;
 }
 
 file_t *vfs_openat(int fd, const char *path, open_flags flags)
@@ -413,22 +497,21 @@ file_t *vfs_openat(int fd, const char *path, open_flags flags)
     return file;
 }
 
-bool vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstatat_flags flags)
+long vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstatat_flags flags)
 {
     if (flags & FSTATAT_FILE)
     {
         mos_debug(vfs, "vfs_fstatat(fd=%d, path='%p', stat=%p, flags=%x)", fd, (void *) path, (void *) statbuf, flags);
         io_t *io = process_get_fd(current_process, fd);
-        if (!io_valid(io))
-            return false;
+        if (!(io_valid(io) && (io->type == IO_FILE || io->type == IO_DIR)))
+            return -EBADF; // io is closed, or is not a file or directory
 
         file_t *file = container_of(io, file_t, io);
-        if (file == NULL)
-            return false;
-
+        MOS_ASSERT(file);
         if (statbuf)
             vfs_copy_stat(statbuf, file->dentry->inode);
-        return true;
+
+        return 0;
     }
 
     mos_debug(vfs, "vfs_fstatat(fd=%d, path='%s', stat=%p, flags=%x)", fd, path, (void *) statbuf, flags);
@@ -438,26 +521,26 @@ bool vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstat
         resolve_flags |= RESOLVE_SYMLINK_NOFOLLOW;
 
     dentry_t *dentry = dentry_get(basedir, root_dentry, path, resolve_flags);
-    if (dentry == NULL)
-        return false;
+    if (IS_ERR(dentry))
+        return PTR_ERR(dentry);
 
     if (statbuf)
         vfs_copy_stat(statbuf, dentry->inode);
     dentry_unref(dentry);
-    return true;
+    return 0;
 }
 
 size_t vfs_readlinkat(fd_t dirfd, const char *path, char *buf, size_t size)
 {
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(dirfd);
     dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_SYMLINK_NOFOLLOW | RESOLVE_EXPECT_EXIST);
-    if (dentry == NULL)
-        return 0;
+    if (IS_ERR(dentry))
+        return PTR_ERR(dentry);
 
     if (dentry->inode->type != FILE_TYPE_SYMLINK)
     {
         dentry_unref(dentry);
-        return 0;
+        return -EINVAL;
     }
 
     const size_t len = dentry->inode->ops->readlink(dentry, buf, size);
@@ -465,17 +548,18 @@ size_t vfs_readlinkat(fd_t dirfd, const char *path, char *buf, size_t size)
     dentry_unref(dentry);
 
     if (len >= size) // buffer too small
-        return 0;
+        return -ENAMETOOLONG;
+
     return len;
 }
 
-bool vfs_touch(const char *path, file_type_t type, u32 perms)
+long vfs_touch(const char *path, file_type_t type, u32 perms)
 {
     mos_debug(vfs, "vfs_touch(path='%s', type=%d, perms=%o)", path, type, perms);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
     dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_ANY_EXIST | RESOLVE_EXPECT_ANY_TYPE);
-    if (dentry == NULL)
-        return false;
+    if (IS_ERR(dentry))
+        return PTR_ERR(dentry);
 
     dentry_t *parentdir = dentry_parent(dentry);
 
@@ -483,20 +567,22 @@ bool vfs_touch(const char *path, file_type_t type, u32 perms)
     {
         mos_debug(vfs, "vfs_touch: parent directory does not support newfile() operation");
         dentry_unref(dentry);
-        return false;
+        return -ENOTSUP;
     }
 
-    parentdir->inode->ops->newfile(parentdir->inode, dentry, type, perms);
-    return true;
+    const bool created = parentdir->inode->ops->newfile(parentdir->inode, dentry, type, perms);
+
+    dentry_unref(dentry);
+    return created ? 0 : -EIO;
 }
 
-bool vfs_symlink(const char *path, const char *target)
+long vfs_symlink(const char *path, const char *target)
 {
     mos_debug(vfs, "vfs_symlink(path='%s', target='%s')", path, target);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
     dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_NONEXIST);
-    if (dentry == NULL)
-        return false;
+    if (IS_ERR(dentry))
+        return PTR_ERR(dentry);
 
     dentry_t *parent_dir = dentry_parent(dentry);
     const bool created = parent_dir->inode->ops->symlink(parent_dir->inode, dentry, target);
@@ -504,16 +590,17 @@ bool vfs_symlink(const char *path, const char *target)
     if (!created)
         mos_warn("failed to create symlink '%s'", path);
 
-    return created;
+    dentry_unref(dentry);
+    return created ? 0 : -EIO;
 }
 
-bool vfs_mkdir(const char *path)
+long vfs_mkdir(const char *path)
 {
     mos_debug(vfs, "vfs_mkdir('%s')", path);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
     dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_NONEXIST);
-    if (dentry == NULL)
-        return false;
+    if (IS_ERR(dentry))
+        return PTR_ERR(dentry);
 
     dentry_t *parent_dir = dentry_parent(dentry);
     if (parent_dir->inode == NULL || parent_dir->inode->ops == NULL || parent_dir->inode->ops->mkdir == NULL)
@@ -528,10 +615,35 @@ bool vfs_mkdir(const char *path)
     if (!created)
         mos_warn("failed to create directory '%s'", path);
 
-    return created;
+    dentry_unref(dentry);
+    return created ? 0 : -EIO;
 }
 
-size_t vfs_list_dir(io_t *io, char *buf, size_t size)
+long vfs_rmdir(const char *path)
+{
+    mos_debug(vfs, "vfs_rmdir('%s')", path);
+    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
+    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_DIR);
+    if (IS_ERR(dentry))
+        return PTR_ERR(dentry);
+
+    dentry_t *parent_dir = dentry_parent(dentry);
+    if (parent_dir->inode == NULL || parent_dir->inode->ops == NULL || parent_dir->inode->ops->rmdir == NULL)
+    {
+        dentry_unref(dentry);
+        return -ENOTSUP;
+    }
+
+    const bool removed = parent_dir->inode->ops->rmdir(parent_dir->inode, dentry);
+
+    if (!removed)
+        mos_warn("failed to remove directory '%s'", path);
+
+    dentry_unref(dentry);
+    return removed ? 0 : -EIO;
+}
+
+size_t vfs_list_dir(io_t *io, void *buf, size_t size)
 {
     mos_debug(vfs, "vfs_list_dir(io=%p, buf=%p, size=%zu)", (void *) io, (void *) buf, size);
     file_t *file = container_of(io, file_t, io);
@@ -553,27 +665,27 @@ size_t vfs_list_dir(io_t *io, char *buf, size_t size)
     return written;
 }
 
-bool vfs_chdir(const char *path)
+long vfs_chdir(const char *path)
 {
     mos_debug(vfs, "vfs_chdir('%s')", path);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
     dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_DIR);
-    if (dentry == NULL)
-        return false;
+    if (IS_ERR(dentry))
+        return PTR_ERR(dentry);
 
     dentry_t *old_cwd = dentry_from_fd(FD_CWD);
     if (old_cwd)
         dentry_unref(old_cwd);
 
     current_process->working_directory = dentry;
-    return true;
+    return 0;
 }
 
 ssize_t vfs_getcwd(char *buf, size_t size)
 {
     dentry_t *cwd = dentry_from_fd(FD_CWD);
-    if (cwd == NULL)
-        return -1;
+    if (IS_ERR(cwd))
+        return PTR_ERR(cwd);
 
     return dentry_path(cwd, root_dentry, buf, size);
 }
@@ -603,9 +715,22 @@ static bool vfs_sysfs_mountpoints(sysfs_file_t *f)
     return true;
 }
 
+static void vfs_sysfs_dentry_stats_stat_receiver(int depth, const dentry_t *dentry, bool mountroot, void *data)
+{
+    sysfs_file_t *file = data;
+    sysfs_printf(file, "%*s%s: refcount=%zu%s\n", depth * 4, "", dentry_name(dentry), dentry->refcount, mountroot ? " (mount root)" : "");
+}
+
+static bool vfs_sysfs_dentry_stats(sysfs_file_t *f)
+{
+    dentry_dump_refstat(root_dentry, vfs_sysfs_dentry_stats_stat_receiver, f);
+    return true;
+}
+
 static const sysfs_item_t vfs_sysfs_items[] = {
     SYSFS_RO_ITEM("filesystems", vfs_sysfs_filesystems),
     SYSFS_RO_ITEM("mount", vfs_sysfs_mountpoints),
+    SYSFS_RO_ITEM("dentry_stats", vfs_sysfs_dentry_stats),
     SYSFS_END_ITEM,
 };
 

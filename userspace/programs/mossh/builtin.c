@@ -80,13 +80,13 @@ void do_cd(int argc, const char *argv[])
     {
         case 0:
         {
-            if (!syscall_vfs_chdir("/"))
+            if (syscall_vfs_chdir("/") != 0)
                 printf("cd: /: Unexpected error\n");
             break;
         }
         case 1:
         {
-            if (!syscall_vfs_chdir(argv[0]))
+            if (syscall_vfs_chdir(argv[0]) != 0)
                 printf("cd: %s: No such file or directory\n", argv[0]);
             break;
         }

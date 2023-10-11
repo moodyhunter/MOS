@@ -4,6 +4,7 @@
 
 #include <mos/mos_global.h>
 #include <mos/types.h>
+#include <stdarg.h>
 
 #define PRINTK_BUFFER_SIZE 1024
 
@@ -29,7 +30,7 @@ typedef enum
     MOS_LOG_INFO2 = 1,
     MOS_LOG_UNSET = 0,
     MOS_LOG_DEFAULT = MOS_LOG_INFO,
-} mos_log_level_t;
+} mos_loglevel;
 
 #define mos_debug(feat, fmt, ...)                                                                                                                                        \
     do                                                                                                                                                                   \
@@ -76,9 +77,12 @@ typedef enum
     } while (0)
 
 __printf(1, 2) void printk(const char *format, ...);
-__printf(2, 3) void lprintk(mos_log_level_t loglevel, const char *format, ...);
+__printf(2, 3) void lprintk(mos_loglevel loglevel, const char *format, ...);
 __printf(3, 4) void mos_kwarn(const char *func, u32 line, const char *fmt, ...);
 noreturn __printf(3, 4) void mos_kpanic(const char *func, u32 line, const char *fmt, ...);
+
+void vprintk(const char *format, va_list args);
+void lvprintk(mos_loglevel loglevel, const char *fmt, va_list args);
 
 bool printk_unquiet(void);
 void printk_set_quiet(bool quiet);

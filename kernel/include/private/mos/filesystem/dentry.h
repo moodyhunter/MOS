@@ -74,6 +74,15 @@ should_inline dentry_t *dentry_parent(const dentry_t *dentry)
 extern list_head vfs_mountpoint_list;
 
 /**
+ * @brief Check the reference count of a dentry
+ *
+ * @param dentry The dentry to check
+ */
+void dentry_check_refstat(const dentry_t *dentry);
+typedef void(dump_refstat_receiver_t)(int depth, const dentry_t *dentry, bool mountroot, void *data);
+void dentry_dump_refstat(const dentry_t *dentry, dump_refstat_receiver_t receiver, void *data);
+
+/**
  * @brief Increment the reference count of a dentry
  *
  * @param dentry The dentry to increment the reference count of
@@ -96,6 +105,7 @@ dentry_t *dentry_ref_up_to(dentry_t *dentry, dentry_t *root);
  * @param dentry The dentry to decrement the reference count of
  */
 void dentry_unref(dentry_t *dentry);
+__nodiscard bool dentry_unref_one(dentry_t *dentry);
 
 /**
  * @brief Get the dentry from a file descriptor
@@ -144,6 +154,13 @@ dentry_t *dentry_get(dentry_t *starting_dir, dentry_t *root_dir, const char *pat
  * @return true if the filesystem was mounted successfully, false otherwise
  */
 __nodiscard bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs);
+
+/**
+ * @brief Unmount a filesystem at the mountpoint
+ *
+ * @return __nodiscard
+ */
+__nodiscard dentry_t *dentry_unmount(dentry_t *root);
 
 /**
  * @brief List the contents of a directory

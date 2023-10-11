@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "test_engine.h"
+#include "test_engine_impl.h"
 
 #include <mos/lib/cmdline.h>
 

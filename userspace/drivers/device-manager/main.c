@@ -53,7 +53,7 @@ static bool start_device_drivers(const config_t *config)
         driver_argv = realloc(driver_argv, (driver_args_count + 1) * sizeof(char *));
         driver_argv[driver_args_count] = NULL;
 
-        pid_t driver_pid = syscall_spawn(driver_path, driver_args_count, driver_argv);
+        pid_t driver_pid = spawn(driver_path, driver_argv);
         if (driver_pid <= 0)
             return false;
     }

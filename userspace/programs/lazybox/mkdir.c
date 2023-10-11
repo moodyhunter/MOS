@@ -5,7 +5,7 @@
 
 void do_mkdir(const char *path)
 {
-    if (!syscall_vfs_mkdir(path))
+    if (syscall_vfs_mkdir(path) != 0)
         fprintf(stderr, "failed to create directory '%s'\n", path);
 }
 

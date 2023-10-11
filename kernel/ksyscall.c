@@ -3,6 +3,7 @@
 #include "mos/misc/power.h"
 #include "mos/tasks/signal.h"
 
+#include <errno.h>
 #include <mos/elf/elf.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/io/io.h>
@@ -18,6 +19,7 @@
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
+#include <mos/types.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
 #include <sys/poll.h>
@@ -52,12 +54,12 @@ DEFINE_SYSCALL(fd_t, vfs_openat)(fd_t dirfd, const char *path, open_flags flags)
         return -1;
 
     file_t *f = vfs_openat(dirfd, path, flags);
-    if (!f)
-        return -1;
+    if (IS_ERR_OR_NULL(f))
+        return PTR_ERR(f);
     return process_attach_ref_fd(current_process, &f->io);
 }
 
-DEFINE_SYSCALL(bool, vfs_fstatat)(fd_t fd, const char *path, file_stat_t *stat_buf, fstatat_flags flags)
+DEFINE_SYSCALL(long, vfs_fstatat)(fd_t fd, const char *path, file_stat_t *stat_buf, fstatat_flags flags)
 {
     if (fd < 0)
         return false;
@@ -117,7 +119,7 @@ DEFINE_SYSCALL(void, yield_cpu)(void)
 DEFINE_SYSCALL(pid_t, fork)(void)
 {
     process_t *parent = current_process;
-    process_t *child = process_handle_fork(parent);
+    process_t *child = process_do_fork(parent);
     if (unlikely(child == NULL))
         return -1;
     return child->pid; // return 0 for child, pid for parent
@@ -141,14 +143,20 @@ DEFINE_SYSCALL(pid_t, get_parent_pid)(void)
     return current_process->parent->pid;
 }
 
-DEFINE_SYSCALL(pid_t, spawn)(const char *path, int argc, const char *const argv[])
+DEFINE_SYSCALL(pid_t, spawn)(const char *path, const char *const argv[], const char *const envp[])
 {
     process_t *current = current_process;
-    MOS_ASSERT(argv);
-    MOS_ASSERT(argv[argc] == NULL); // argv must be NULL-terminated
+
+    size_t argc = 0;
+    while (argv && argv[argc])
+        argc++;
+
+    size_t envc = 0;
+    while (envp && envp[envc])
+        envc++;
 
     const stdio_t stdio = current_stdio();
-    process_t *process = elf_create_process(path, current, argc, argv, &stdio);
+    process_t *process = elf_create_process(path, current, argc, argv, envc, envp, &stdio);
 
     if (process == NULL)
         return -1;
@@ -286,7 +294,7 @@ DEFINE_SYSCALL(u64, arch_syscall)(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64
     return platform_arch_syscall(syscall, arg1, arg2, arg3, arg4);
 }
 
-DEFINE_SYSCALL(bool, vfs_mount)(const char *device, const char *mountpoint, const char *fs_type, const char *options)
+DEFINE_SYSCALL(long, vfs_mount)(const char *device, const char *mountpoint, const char *fs_type, const char *options)
 {
     return vfs_mount(device, mountpoint, fs_type, options);
 }
@@ -296,17 +304,17 @@ DEFINE_SYSCALL(ssize_t, vfs_readlinkat)(fd_t dirfd, const char *path, char *buf,
     return vfs_readlinkat(dirfd, path, buf, buflen);
 }
 
-DEFINE_SYSCALL(bool, vfs_touch)(const char *path, file_type_t type, u32 mode)
+DEFINE_SYSCALL(long, vfs_touch)(const char *path, file_type_t type, u32 mode)
 {
     return vfs_touch(path, type, mode);
 }
 
-DEFINE_SYSCALL(bool, vfs_symlink)(const char *target, const char *linkpath)
+DEFINE_SYSCALL(long, vfs_symlink)(const char *target, const char *linkpath)
 {
     return vfs_symlink(target, linkpath);
 }
 
-DEFINE_SYSCALL(bool, vfs_mkdir)(const char *path)
+DEFINE_SYSCALL(long, vfs_mkdir)(const char *path)
 {
     return vfs_mkdir(path);
 }
@@ -341,7 +349,7 @@ DEFINE_SYSCALL(void *, mmap_file)(ptr_t hint_addr, size_t size, mem_perm_t perm,
     return (void *) result;
 }
 
-DEFINE_SYSCALL(bool, wait_for_process)(pid_t pid)
+DEFINE_SYSCALL(pid_t, wait_for_process)(pid_t pid)
 {
     return process_wait_for_pid(pid);
 }
@@ -427,4 +435,57 @@ DEFINE_SYSCALL(int, io_poll)(struct pollfd *fds, nfds_t nfds, int timeout)
 
     MOS_UNIMPLEMENTED("io_poll");
     return 0;
+}
+
+#if __MLIBC_POSIX_OPTION
+// workaround for mlibc
+#undef FD_CLR
+#undef FD_ISSET
+#undef FD_SET
+#undef FD_ZERO
+void FD_CLR(int fd, fd_set *set)
+{
+    set->__mlibc_elems[fd / 8] &= ~(1 << (fd % 8));
+}
+int FD_ISSET(int fd, fd_set *set)
+{
+    return set->__mlibc_elems[fd / 8] & (1 << (fd % 8));
+}
+void FD_SET(int fd, fd_set *set)
+{
+    set->__mlibc_elems[fd / 8] |= 1 << (fd % 8);
+}
+void FD_ZERO(fd_set *set)
+{
+    memset(set->__mlibc_elems, 0, sizeof(fd_set));
+}
+#endif
+
+DEFINE_SYSCALL(int, io_pselect)(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, const struct timespec *timeout, const sigset_t *sigmask)
+{
+    MOS_UNUSED(timeout);
+    MOS_UNUSED(sigmask);
+
+    for (int i = 0; i < nfds; i++)
+    {
+        if (readfds && FD_ISSET(i, readfds))
+        {
+            // pr_info2("io_pselect: fd=%d, read", i);
+        }
+        if (writefds && FD_ISSET(i, writefds))
+        {
+            // pr_info2("io_pselect: fd=%d, write", i);
+        }
+        if (exceptfds && FD_ISSET(i, exceptfds))
+        {
+            // pr_info2("io_pselect: fd=%d, except", i);
+        }
+    }
+
+    return 1; // stub
+}
+
+DEFINE_SYSCALL(long, execveat)(fd_t dirfd, const char *path, const char *const argv[], const char *const envp[], u32 flags)
+{
+    return process_do_execveat(current_process, dirfd, path, argv, envp, flags);
 }

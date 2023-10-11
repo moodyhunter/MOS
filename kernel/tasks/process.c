@@ -9,6 +9,7 @@
 #include "mos/mm/slab_autoinit.h"
 #include "mos/tasks/signal.h"
 
+#include <errno.h>
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/lib/structures/hashmap.h>
@@ -75,7 +76,7 @@ process_t *process_allocate(process_t *parent, const char *name)
         return NULL;
     }
 
-    list_node_append(&proc->parent->children, &proc->parent_node);
+    list_node_append(&proc->parent->children, list_node(proc));
 
     if (unlikely(proc->pid == 2))
     {
@@ -162,24 +163,46 @@ bool process_detach_fd(process_t *process, fd_t fd)
     MOS_ASSERT(process_is_valid(process));
     if (fd < 0 || fd >= MOS_PROCESS_MAX_OPEN_FILES)
         return false;
+    io_t *io = process->files[fd];
+
+    if (unlikely(!io_valid(io)))
+        return false;
+
     io_unref(process->files[fd]);
     process->files[fd] = NULL;
     return true;
 }
 
-bool process_wait_for_pid(pid_t pid)
+pid_t process_wait_for_pid(pid_t pid)
 {
+    if (pid == -1)
+    {
+        if (list_is_empty(&current_process->children))
+            return -ECHILD; // no children to wait for at all
+
+        list_foreach(process_t, child, current_process->children)
+        {
+            if (!reschedule_for_waitlist(&child->waiters))
+                return child->pid; // waitlist was closed, that child is already dead
+            else if (child->pid == 1)
+                MOS_UNREACHABLE(); // init process cannot die
+            else
+                return child->pid;
+        }
+
+        MOS_UNREACHABLE();
+    }
+
     process_t *target = process_get(pid);
     if (target == NULL)
     {
         pr_warn("process %d does not exist", pid);
-        return false;
+        return -ECHILD;
     }
 
     bool ok = reschedule_for_waitlist(&target->waiters);
     MOS_UNUSED(ok);
-
-    return true;
+    return pid;
 }
 
 void process_handle_exit(process_t *process, u32 exit_code)
@@ -190,9 +213,8 @@ void process_handle_exit(process_t *process, u32 exit_code)
     if (unlikely(process->pid == 1))
         mos_panic("init process exited with code %d", exit_code);
 
-    list_node_foreach(t, &process->threads)
+    list_foreach(thread_t, thread, process->threads)
     {
-        thread_t *thread = container_of(t, thread_t, owner_node);
         spinlock_acquire(&thread->state_lock);
         if (thread->state == THREAD_STATE_DEAD)
         {
@@ -202,7 +224,10 @@ void process_handle_exit(process_t *process, u32 exit_code)
         {
             // send termination signal to all threads, except the current one
             if (thread != current_thread)
-                signal_send_to_thread(thread, SIGTERM);
+            {
+                signal_send_to_thread(thread, SIGKILL);
+                thread_wait_for_tid(thread->tid);
+            }
             thread->state = THREAD_STATE_DEAD; // cleanup will be done by the scheduler
         }
         spinlock_release(&thread->state_lock);
@@ -225,12 +250,27 @@ void process_handle_exit(process_t *process, u32 exit_code)
 
     mos_debug(process, "closed %zu/%zu files owned by %pp", files_closed, files_total, (void *) process);
 
-    dentry_unref(process->working_directory);
-
     waitlist_close(&process->waiters);
     waitlist_wake(&process->waiters, INT_MAX);
 
     signal_send_to_process(process->parent, SIGCHLD);
+    dentry_unref(process->working_directory);
+
+    // remove from parent's children list
+    list_remove(process);
+
+    // remove from process table
+    hashmap_remove(&process_table, process->pid);
+
+    // free memory
+    spinlock_acquire(&process->mm->mm_lock);
+    list_foreach(vmap_t, vmap, process->mm->mmaps)
+    {
+        spinlock_acquire(&vmap->lock);
+        list_remove(vmap);
+        vmap_destroy(vmap);
+    }
+    spinlock_release(&process->mm->mm_lock);
 
     reschedule();
     MOS_UNREACHABLE();
@@ -284,12 +324,6 @@ void process_dump_mmaps(const process_t *process)
         const char *typestr = vmap_content_str[map->content];
         const char *forkmode = vmap_type_str[map->type];
         pr_info2("  %3zd: %pvm, %s, %s", i, (void *) map, typestr, forkmode);
-        if (map->io)
-        {
-            char filepath[MOS_PATH_MAX_LENGTH];
-            io_get_name(map->io, filepath, sizeof(filepath));
-            pr_cont(" (%s, offset: 0x%lx)", filepath, map->io_offset);
-        }
     }
 
     pr_info("total: %zd memory regions", i);
@@ -313,9 +347,8 @@ static bool process_sysfs_process_stat(sysfs_file_t *f)
 
     do_print("%d", "parent", current_process->parent->pid);
 
-    list_node_foreach(t, &current_process->threads)
+    list_foreach(thread_t, thread, current_process->threads)
     {
-        thread_t *thread = container_of(t, thread_t, owner_node);
         do_print("%pt", "thread", (void *) thread);
     }
     return true;

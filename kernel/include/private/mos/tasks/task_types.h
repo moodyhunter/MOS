@@ -24,8 +24,8 @@ typedef struct _process
     pid_t pid;
     const char *name;
     process_t *parent;
-    list_head children;      ///< list of children processes
-    list_node_t parent_node; ///< node in the parent's children list
+    list_head children; ///< list of children processes
+    as_linked_list;     ///< node in the parent's children list
 
     io_t *files[MOS_PROCESS_MAX_OPEN_FILES];
 
@@ -55,7 +55,7 @@ typedef struct _thread
     tid_t tid;
     const char *name;
     process_t *owner;
-    list_node_t owner_node;    ///< node in the process's thread list
+    as_linked_list;            ///< node in the process's thread list
     thread_mode mode;          ///< user-mode thread or kernel-mode
     spinlock_t state_lock;     ///< protects the thread state
     thread_state_t state;      ///< thread state

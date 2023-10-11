@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "test_engine.h"
-
 #include "test_engine_impl.h"
 
 #include <mos/cmdline.h>
-#include <mos/device/console.h>
 #include <mos/lib/structures/list.h>
 #include <mos/panic.h>
 #include <mos/printk.h>
@@ -16,47 +13,17 @@
 
 s32 test_engine_n_warning_expected = 0;
 
-void for_each_console_print_with_color(standard_color_t fg, standard_color_t bg, const char *message, size_t length)
-{
-    list_foreach(console_t, console, consoles)
-    {
-        console_write_color(console, message, length, fg, bg);
-    }
-}
-
-void mos_test_engine_log(standard_color_t color, char symbol, char *format, ...)
-{
-    char prefix[5];
-
-    if (symbol)
-        snprintf(prefix, 5, "[%c] ", symbol);
-    else
-        snprintf(prefix, 5, "    ");
-
-    for_each_console_print_with_color(Gray, Black, prefix, 4);
-
-    char message[512];
-    va_list args;
-    va_start(args, format);
-    vsprintf(message, format, args);
-    va_end(args);
-
-    for_each_console_print_with_color(color, Black, message, strlen(message));
-}
-
 static void test_engine_warning_handler(const char *func, u32 line, const char *fmt, va_list args)
 {
     char message[PRINTK_BUFFER_SIZE];
     vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
-    if (test_engine_n_warning_expected > 0)
+
+    if (test_engine_n_warning_expected == 0)
     {
-        mos_test_engine_log(LightBlue, '\0', "expected warning: %s", message);
-    }
-    else
-    {
+        lprintk(MOS_LOG_WARN, "\r\n");
         lprintk(MOS_LOG_WARN, "warning: %s", message);
-        lprintk(MOS_LOG_WARN, "  in function: %s (line %u)\n", func, line);
-        mos_panic("unexpected warning");
+        lprintk(MOS_LOG_WARN, "  in function: %s (line %u)", func, line);
+        mos_panic("unexpected warning, test failed.");
     }
 
     test_engine_n_warning_expected--;

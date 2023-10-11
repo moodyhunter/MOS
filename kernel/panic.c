@@ -97,12 +97,19 @@ noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
     pr_emerg("  in function: %s (line %u)", func, line);
 
     pr_cont("\n");
-    pr_emph("Register states before interrupt:");
-    platform_dump_regs(current_cpu->interrupt_regs);
-    pr_cont("\n");
-    pr_emph("Stack trace before interrupt");
-    platform_dump_stack(current_cpu->interrupt_regs);
-    pr_cont("\n");
+    if (current_cpu->interrupt_regs)
+    {
+        pr_emph("Register states before interrupt:");
+        platform_dump_regs(current_cpu->interrupt_regs);
+        pr_cont("\n");
+        pr_emph("Stack trace before interrupt");
+        platform_dump_stack(current_cpu->interrupt_regs);
+        pr_cont("\n");
+    }
+    else
+    {
+        pr_emph("No interrupt context available");
+    }
     pr_emph("Current stack trace:");
     platform_dump_current_stack();
     pr_cont("\n");

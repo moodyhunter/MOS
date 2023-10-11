@@ -37,10 +37,11 @@ MOSAPI __malloc void *malloc(size_t size);
 MOSAPI void free(void *ptr);
 MOSAPI void *calloc(size_t nmemb, size_t size);
 MOSAPI void *realloc(void *ptr, size_t size);
+MOSAPI pid_t spawn(const char *path, const char *const argv[]);
 #else
 #include "mos/mm/slab.h"
 
-#define kmalloc(item) _Generic((item), slab_t * : kmemcache_alloc, default : slab_alloc)(item)
+#define kmalloc(item) _Generic((item), slab_t *: kmemcache_alloc, default: slab_alloc)(item)
 
 should_inline __malloc void *kcalloc(size_t nmemb, size_t size)
 {

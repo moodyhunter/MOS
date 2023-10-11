@@ -2,6 +2,7 @@
 
 #include <mos/syscall/usermode.h>
 #include <mos_stdio.h>
+#include <mos_stdlib.h>
 
 struct
 {
@@ -28,9 +29,8 @@ int main(int argc, char **argv)
     for (int i = 0; tests[i].name; i++)
     {
         printf("Running test %s (%s)... \n", tests[i].name, tests[i].executable);
-        int test_argc = 1;
         const char *test_argv[] = { tests[i].name, NULL };
-        pid_t ret = syscall_spawn(tests[i].executable, test_argc, test_argv);
+        pid_t ret = spawn(tests[i].executable, test_argv);
         if (ret < 0)
         {
             printf("FAILED: cannot spawn: %d\n", ret);

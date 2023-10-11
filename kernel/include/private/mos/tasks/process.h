@@ -36,11 +36,13 @@ bool process_detach_fd(process_t *process, fd_t fd);
 
 ptr_t process_grow_heap(process_t *process, size_t npages);
 
-bool process_wait_for_pid(pid_t pid);
+pid_t process_wait_for_pid(pid_t pid);
 
 noreturn void process_handle_exit(process_t *process, u32 exit_code);
-process_t *process_handle_fork(process_t *process);
 
 void process_dump_mmaps(const process_t *process);
 
 bool process_register_signal_handler(process_t *process, signal_t sig, sigaction_t *sigaction);
+
+process_t *process_do_fork(process_t *process);
+long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const char *const argv[], const char *const envp[], int flags);

@@ -33,7 +33,8 @@ bool do_program(const char *prog, int argc, const char **argv)
     if (!prog)
         return false;
 
-    pid_t pid = syscall_spawn(prog, argc, argv);
+    MOS_UNUSED(argc);
+    pid_t pid = spawn(prog, argv);
     if (pid == -1)
     {
         fprintf(stderr, "Failed to execute '%s'\n", prog);

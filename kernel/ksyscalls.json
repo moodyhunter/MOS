@@ -7,7 +7,8 @@
         "mos/mos_global.h",
         "mos/tasks/signal_types.h",
         "mos/types.h",
-        "sys/poll.h"
+        "sys/poll.h",
+        "sys/select.h"
     ],
     "syscalls": [
         {
@@ -23,7 +24,7 @@
         {
             "number": 2,
             "name": "vfs_fstatat",
-            "return": "bool",
+            "return": "long",
             "arguments": [
                 { "type": "fd_t", "arg": "dirfd" },
                 { "type": "const char *", "arg": "file_path" },
@@ -89,7 +90,11 @@
             "number": 12,
             "name": "spawn",
             "return": "pid_t",
-            "arguments": [ { "type": "const char *", "arg": "file_path" }, { "type": "int", "arg": "argc" }, { "type": "const char *const *", "arg": "argv" } ]
+            "arguments": [
+                { "type": "const char *", "arg": "file_path" },
+                { "type": "const char *const *", "arg": "argv" },
+                { "type": "const char *const *", "arg": "envp" }
+            ]
         },
         {
             "number": 13,
@@ -165,7 +170,7 @@
         {
             "number": 24,
             "name": "vfs_mount",
-            "return": "bool",
+            "return": "long",
             "arguments": [
                 { "type": "const char *", "arg": "device" },
                 { "type": "const char *", "arg": "mount_point" },
@@ -187,19 +192,19 @@
         {
             "number": 26,
             "name": "vfs_touch",
-            "return": "bool",
+            "return": "long",
             "arguments": [ { "type": "const char *", "arg": "path" }, { "type": "file_type_t", "arg": "type" }, { "type": "u32", "arg": "mode" } ]
         },
         {
             "number": 27,
             "name": "vfs_symlink",
-            "return": "bool",
+            "return": "long",
             "arguments": [ { "type": "const char *", "arg": "link_path" }, { "type": "const char *", "arg": "target" } ]
         },
         {
             "number": 28,
             "name": "vfs_mkdir",
-            "return": "bool",
+            "return": "long",
             "arguments": [ { "type": "const char *", "arg": "path" } ]
         },
         {
@@ -235,7 +240,7 @@
         {
             "number": 33,
             "name": "wait_for_process",
-            "return": "bool",
+            "return": "pid_t",
             "arguments": [ { "type": "pid_t", "arg": "pid" } ]
         },
         {
@@ -316,6 +321,31 @@
             "name": "io_poll",
             "return": "int",
             "arguments": [ { "type": "struct pollfd *", "arg": "fds" }, { "type": "nfds_t", "arg": "nfds" }, { "type": "int", "arg": "timeout" } ]
+        },
+        {
+            "number": 46,
+            "name": "io_pselect",
+            "return": "int",
+            "arguments": [
+                { "type": "int", "arg": "nfds" },
+                { "type": "fd_set *", "arg": "readfds" },
+                { "type": "fd_set *", "arg": "writefds" },
+                { "type": "fd_set *", "arg": "exceptfds" },
+                { "type": "const struct timespec *", "arg": "timeout" },
+                { "type": "const sigset_t *", "arg": "sigmask" }
+            ]
+        },
+        {
+            "number": 47,
+            "name": "execveat",
+            "return": "long",
+            "arguments": [
+                { "type": "fd_t", "arg": "dirfd" },
+                { "type": "const char *", "arg": "file_path" },
+                { "type": "const char *const *", "arg": "argv" },
+                { "type": "const char *const *", "arg": "envp" },
+                { "type": "u32", "arg": "flags" }
+            ]
         }
     ]
 }

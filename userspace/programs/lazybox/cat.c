@@ -4,7 +4,7 @@
 #include <mos/syscall/usermode.h>
 #include <mos_stdio.h>
 
-#define BUFSIZE 256
+#define BUFSIZE 4096
 
 bool do_cat_file(const char *path)
 {

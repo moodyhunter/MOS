@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <errno.h>
 #include <mos/compiler.h>
 #include <stdnoreturn.h>
 
@@ -105,6 +106,7 @@
 #define TB * (u64) 1024 GB
 #define STUB_FUNCTION(func, ...) void func(__VA_ARGS__){}
 #define STUB_FUNCTION_UNREACHABLE(func, ...) void func(__VA_ARGS__){ MOS_UNREACHABLE(); }
+#define statement_expr(type, ...) __extension__({ type retval; __VA_ARGS__; retval; })
 // clang-format on
 
 // If the feature is enabled, the expression will be 1, otherwise -1.
@@ -128,3 +130,29 @@
     })
 
 #define MOS_PUT_IN_SECTION(_section, _struct, _var, ...) static const _struct _var __used __section(_section) = __VA_ARGS__
+#define IS_ERR_VALUE(x)                                  unlikely((unsigned long) (void *) (x) >= (unsigned long) -4095)
+
+__nodiscard should_inline void *ERR_PTR(long error)
+{
+    return (void *) error;
+}
+
+__nodiscard should_inline long PTR_ERR(const void *ptr)
+{
+    return (long) ptr;
+}
+
+__nodiscard should_inline void *ERR(const void *ptr)
+{
+    return (void *) ptr;
+}
+
+__nodiscard should_inline bool IS_ERR(const void *ptr)
+{
+    return IS_ERR_VALUE((unsigned long) ptr);
+}
+
+__nodiscard should_inline bool IS_ERR_OR_NULL(const void *ptr)
+{
+    return unlikely(!ptr) || IS_ERR_VALUE((unsigned long) ptr);
+}

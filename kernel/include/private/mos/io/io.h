@@ -15,6 +15,7 @@ typedef enum
 {
     IO_NULL,    // null io port
     IO_FILE,    // a file
+    IO_DIR,     // a directory (i.e. readdir())
     IO_IPC,     // an IPC channel
     IO_CONSOLE, // a console
 } io_type_t;

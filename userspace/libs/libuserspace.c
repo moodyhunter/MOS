@@ -16,6 +16,7 @@ typedef struct thread_start_args
 } thread_start_args_t;
 
 u64 __stack_chk_guard = 0xdeadbeefdeadbeef;
+char **environ = NULL;
 
 noreturn void __stack_chk_fail(void)
 {
@@ -45,13 +46,14 @@ static void __attribute__((constructor)) __liballoc_userspace_init(void)
     liballoc_init();
 }
 
-void _start(size_t argc, char **argv)
+void _start(size_t argc, char **argv, char **envp)
 {
-    extern int main(int argc, char **argv);
+    extern int main(int argc, char **argv, char **envp);
     extern void __cxa_finalize(void *d);
+    environ = envp;
 
     invoke_init();
-    int r = main(argc, argv);
+    int r = main(argc, argv, envp);
     __cxa_finalize(NULL);
     syscall_exit(r);
 }
@@ -88,4 +90,9 @@ noreturn void abort()
 {
     raise(SIGABRT);
     exit(-1);
+}
+
+pid_t spawn(const char *path, const char *const argv[])
+{
+    return syscall_spawn(path, argv, (const char *const *) environ);
 }

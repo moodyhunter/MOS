@@ -22,3 +22,8 @@ ssize_t vfs_generic_read(const file_t *file, void *buf, size_t size, off_t offse
 ssize_t vfs_generic_write(const file_t *file, const void *buf, size_t size, off_t offset);
 ssize_t vfs_generic_lseek(const file_t *file, off_t offset, int whence);
 int vfs_generic_close(const file_t *file);
+
+// ! simple page cache functions
+phyframe_t *simple_fill_cache(inode_cache_t *cache, off_t pgoff);
+bool simple_page_write_begin(inode_cache_t *icache, off_t offset, size_t size, phyframe_t **page, void **private);
+void simple_page_write_end(inode_cache_t *icache, off_t offset, size_t size, phyframe_t *page, void *private);

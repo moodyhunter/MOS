@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/device/console.h"
+#include "mos/mm/mm.h"
 #include "mos/tasks/schedule.h"
 #include "mos/x86/acpi/acpi_types.h"
 #include "mos/x86/cpu/cpu.h"
@@ -9,6 +10,7 @@
 
 #include <mos/cmdline.h>
 #include <mos/kallsyms.h>
+#include <mos/lib/sync/spinlock.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/mm/physical/pmm.h>
 #include <mos/panic.h>
@@ -84,14 +86,18 @@ static void x86_dump_stack_at(ptr_t this_frame)
 {
     struct frame_t
     {
-        struct frame_t *ebp;
-        ptr_t eip;
+        struct frame_t *bp;
+        ptr_t ip;
     } *frame = (struct frame_t *) this_frame;
 
     const bool do_mapped_check = current_cpu->mm_context;
 
     if (unlikely(!do_mapped_check))
         pr_warn("  no mm context available, mapping checks are disabled (early-boot panic?)");
+
+    const bool no_relock = spinlock_is_locked(&current_cpu->mm_context->mm_lock);
+    if (no_relock)
+        pr_emerg("  mm lock is already held, stack trace may be corrupted");
 
     pr_info("-- stack trace:");
     for (u32 i = 0; frame; i++)
@@ -107,20 +113,47 @@ static void x86_dump_stack_at(ptr_t this_frame)
             }
         }
 
-        if (frame == frame->ebp)
+        if (frame == frame->bp)
         {
             pr_emerg(TRACE_FMT "<corrupted>, aborting backtrace", i, (ptr_t) frame);
             break;
         }
-        else if (frame->eip >= MOS_KERNEL_START_VADDR)
+        else if (frame->ip >= MOS_KERNEL_START_VADDR)
         {
-            pr_warn(TRACE_FMT "%ps", i, frame->eip, (void *) frame->eip);
+            pr_warn(TRACE_FMT "%ps", i, frame->ip, (void *) frame->ip);
+        }
+        else if (frame->ip == 0)
+        {
+            pr_warn(TRACE_FMT "<end>", i, frame->ip);
+            break;
+        }
+        else if (frame->ip < 1 KB)
+        {
+            pr_emerg(TRACE_FMT "<corrupted?>", i, frame->ip);
         }
         else
         {
-            pr_warn(TRACE_FMT "<userspace?>", i, frame->eip);
+            if (!no_relock)
+                spinlock_acquire(&current_cpu->mm_context->mm_lock);
+            vmap_t *const vmap = vmap_obtain(current_cpu->mm_context, (ptr_t) frame->ip, NULL);
+
+            if (vmap && vmap->io)
+            {
+                char filepath[MOS_PATH_MAX_LENGTH];
+                io_get_name(vmap->io, filepath, sizeof(filepath));
+                pr_warn(TRACE_FMT "%s (+" PTR_VLFMT ")", i, frame->ip, filepath, frame->ip - vmap->vaddr + vmap->io_offset);
+            }
+            else
+            {
+                pr_warn(TRACE_FMT "<userspace, unknown>", i, frame->ip);
+            }
+
+            spinlock_release(&vmap->lock);
+
+            if (!no_relock)
+                spinlock_release(&current_cpu->mm_context->mm_lock);
         }
-        frame = frame->ebp;
+        frame = frame->bp;
     }
 #undef TRACE_FMT
     pr_info("-- end of stack trace");

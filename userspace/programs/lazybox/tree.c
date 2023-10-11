@@ -70,7 +70,7 @@ int main(int argc, char **argv)
     // argv[1] may contain the path to list
     const char *path = argc > 1 ? argv[1] : ".";
 
-    if (!syscall_vfs_chdir(path))
+    if (syscall_vfs_chdir(path) != 0)
     {
         fprintf(stderr, "failed to chdir to '%s'\n", path);
         return 1;

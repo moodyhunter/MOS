@@ -70,19 +70,17 @@ retry_printf:;
 
     va_list args;
     va_start(args, fmt);
-    const size_t written = vsnprintf((char *) phyframe_va(file->buf_page) + file->buf_head_offset, spaces_left, fmt, args);
+    const size_t should_write = vsnprintf((char *) phyframe_va(file->buf_page) + file->buf_head_offset, spaces_left, fmt, args);
     va_end(args);
 
-    MOS_ASSERT_X(written <= spaces_left, "sysfs_printf: vsnprintf wrote more than it should have");
-
-    if (written == spaces_left)
+    if (should_write >= spaces_left)
     {
         sysfs_expand_buffer(file, file->buf_npages + 1);
         goto retry_printf;
     }
 
-    file->buf_head_offset += written;
-    return written;
+    file->buf_head_offset += should_write;
+    return should_write;
 }
 
 ssize_t sysfs_put_data(sysfs_file_t *file, const void *data, size_t count)

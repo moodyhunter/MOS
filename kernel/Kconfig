@@ -55,6 +55,10 @@ config MM_DETAILED_UNHANDLED_FAULT
     bool "print detailed information for unhandled page fault"
     default n
 
+config ELF_INTERPRETER_BASE_OFFSET
+    hex "elf interpreter base offset"
+    default 0x100000
+
 # ! ============================================================
 
 menu "Kernel Debugging Options"
@@ -126,7 +130,6 @@ config DEBUG_dcache
 
 config DEBUG_dcache_ref
     bool "dcache_ref debugging"
-    select DEBUG_dcache
 
 config DEBUG_tmpfs
     bool "tmpfs debugging"

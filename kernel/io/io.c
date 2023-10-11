@@ -254,6 +254,7 @@ bool io_mmap_perm_check(io_t *io, vm_flags flags, bool private)
 
 bool io_mmap(io_t *io, vmap_t *vmap, off_t offset)
 {
+    mos_debug(io, "io_mmap(%p, %p, %lu)", (void *) io, (void *) vmap, offset);
     if (!io_mmap_perm_check(io, vmap->vmflags, vmap->type == VMAP_TYPE_PRIVATE))
         return false;
 
@@ -272,6 +273,12 @@ bool io_mmap(io_t *io, vmap_t *vmap, off_t offset)
 
 void io_get_name(io_t *io, char *buf, size_t size)
 {
+    if (!io_valid(io))
+    {
+        snprintf(buf, size, "<invalid io %p>", (void *) io);
+        return;
+    }
+
     if (io->ops->get_name)
         io->ops->get_name(io, buf, size);
     else

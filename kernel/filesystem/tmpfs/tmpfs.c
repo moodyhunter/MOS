@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/filesystem/vfs_types.h"
 #include "mos/filesystem/vfs_utils.h"
 #include "mos/mm/slab_autoinit.h"
 
@@ -28,6 +29,7 @@ typedef struct
 
 static const inode_ops_t tmpfs_inode_dir_ops;
 static const inode_ops_t tmpfs_inode_symlink_ops;
+static const inode_cache_ops_t tmpfs_inode_cache_ops;
 
 static const file_ops_t tmpfs_file_ops;
 
@@ -49,6 +51,7 @@ inode_t *tmpfs_create_inode(superblock_t *sb, file_type_t type, file_perm_t perm
 
     inode_init(&inode->real_inode, sb, ++tmpfs_inode_count, type);
     inode->real_inode.perm = perm;
+    inode->real_inode.cache.ops = &tmpfs_inode_cache_ops;
 
     switch (type)
     {
@@ -232,6 +235,12 @@ static const inode_ops_t tmpfs_inode_symlink_ops = {
 static const file_ops_t tmpfs_file_ops = {
     .read = vfs_generic_read,
     .write = vfs_generic_write,
+};
+
+static const inode_cache_ops_t tmpfs_inode_cache_ops = {
+    .fill_cache = NULL,
+    .page_write_begin = simple_page_write_begin,
+    .page_write_end = simple_page_write_end,
 };
 
 static filesystem_t fs_tmpfs = {

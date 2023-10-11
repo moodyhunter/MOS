@@ -96,7 +96,7 @@ typedef struct _dentry
 #define dentry_name(dentry)                                                                                                                                              \
     __extension__({                                                                                                                                                      \
         const char *__name = (dentry)->name;                                                                                                                             \
-        __name ? __name : "<NULL>";                                                                                                                                      \
+        __name ? __name : (dentry == root_dentry ? "<root>" : "<NULL>");                                                                                                 \
     })
 
 typedef struct _inode_cache_ops
@@ -147,6 +147,7 @@ typedef struct _filesystem
     const char *name;
     list_head superblocks;
     dentry_t *(*mount)(filesystem_t *fs, const char *dev_name, const char *mount_options);
+    void (*unmount)(filesystem_t *fs, dentry_t *mountpoint); // called when the mountpoint is unmounted
 } filesystem_t;
 
 typedef struct _mount

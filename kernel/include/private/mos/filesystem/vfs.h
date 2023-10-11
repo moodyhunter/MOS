@@ -27,6 +27,7 @@ should_inline const file_ops_t *file_get_ops(file_t *file)
 
 extern dentry_t *root_dentry;
 
+void vfs_init(void);
 void vfs_register_filesystem(filesystem_t *fs);
 
 /**
@@ -39,7 +40,16 @@ void vfs_register_filesystem(filesystem_t *fs);
  * @return true if the filesystem was mounted successfully
  * @return false if the filesystem could not be mounted, see the kernel log for more information
  */
-bool vfs_mount(const char *device, const char *path, const char *fs, const char *options);
+long vfs_mount(const char *device, const char *path, const char *fs, const char *options);
+
+/**
+ * @brief Unmount a filesystem at a given path
+ *
+ * @param path The path to the filesystem
+ * @return true
+ * @return false
+ */
+long vfs_umount(const char *path);
 
 /**
  * @brief Open a file at a given path
@@ -66,7 +76,7 @@ file_t *vfs_openat(int fd, const char *path, open_flags flags);
  *     If the path is relative, the fd will be used as the directory to resolve the path from.
  * If FSTATAT_NOFOLLOW is set, when the path is used, symlinks will not be followed.
  */
-bool vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict stat, fstatat_flags flags);
+long vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict stat, fstatat_flags flags);
 
 /**
  * @brief Read a symbolic link
@@ -86,7 +96,7 @@ size_t vfs_readlinkat(fd_t dirfd, const char *path, char *buf, size_t size);
  * @param perms The permissions of the file, if the file already exists, the permissions will not be changed
  * @return true if the file was created successfully, or already exists. false if the file could not be created
  */
-bool vfs_touch(const char *path, file_type_t type, u32 perms);
+long vfs_touch(const char *path, file_type_t type, u32 perms);
 
 /**
  * @brief Create a symbolic link
@@ -96,7 +106,7 @@ bool vfs_touch(const char *path, file_type_t type, u32 perms);
  * @return true
  * @return false
  */
-bool vfs_symlink(const char *path, const char *target);
+long vfs_symlink(const char *path, const char *target);
 
 /**
  * @brief Create a directory
@@ -105,7 +115,8 @@ bool vfs_symlink(const char *path, const char *target);
  * @return true
  * @return false
  */
-bool vfs_mkdir(const char *path);
+long vfs_mkdir(const char *path);
+long vfs_rmdir(const char *path);
 
 /**
  * @brief Get the content of a directory
@@ -116,7 +127,7 @@ bool vfs_mkdir(const char *path);
  *
  * @return size_t The number of bytes read, or 0 if the end of the directory was reached
  */
-size_t vfs_list_dir(io_t *io, char *buf, size_t size);
+size_t vfs_list_dir(io_t *io, void *buf, size_t size);
 
 /**
  * @brief Change the current working directory
@@ -125,7 +136,7 @@ size_t vfs_list_dir(io_t *io, char *buf, size_t size);
  * @return true
  * @return false
  */
-bool vfs_chdir(const char *path);
+long vfs_chdir(const char *path);
 
 /**
  * @brief Get the current working directory

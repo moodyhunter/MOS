@@ -37,12 +37,11 @@ int main(int argc, char **argv)
     const char *ipc_name = argv[1];
     printf("Server: Starting with ipc name '%s'\n", ipc_name);
 
-    const int pong_argc = 2;
     const char *pong_path = "/initrd/tests/ipc-pong";
     const char *pond_argv[] = { pong_path, ipc_name, NULL };
 
     for (int i = 0; i < 10; i++)
-        syscall_spawn(pong_path, pong_argc, pond_argv);
+        spawn(pong_path, pond_argv);
 
     fd_t fd = syscall_ipc_create(ipc_name, 32);
     if (fd < 0)

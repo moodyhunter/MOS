@@ -15,7 +15,7 @@ phyframe_t *pagecache_get_page_for_read(inode_cache_t *cache, off_t pgoff)
     if (p)
         return p;
 
-    MOS_ASSERT_X(cache->ops, "no page cache ops for inode %p", (void *) cache->owner);
+    MOS_ASSERT_X(cache->ops && cache->ops->fill_cache, "no page cache ops for inode %p", (void *) cache->owner);
     phyframe_t *page = cache->ops->fill_cache(cache, pgoff);
     if (!page)
         return NULL;
@@ -56,6 +56,7 @@ ssize_t vfs_read_pagecache(inode_cache_t *icache, void *buf, size_t size, off_t 
 ssize_t vfs_write_pagecache(inode_cache_t *icache, const void *buf, size_t total_size, off_t offset)
 {
     const inode_cache_ops_t *ops = icache->ops;
+    MOS_ASSERT_X(ops, "no page cache ops for inode %p", (void *) icache->owner);
 
     size_t bytes_written = 0;
     size_t bytes_left = total_size;
@@ -71,7 +72,7 @@ ssize_t vfs_write_pagecache(inode_cache_t *icache, const void *buf, size_t total
         if (!can_write)
         {
             pr_warn("page_write_begin failed");
-            return -1;
+            return -EIO;
         }
 
         memcpy((char *) (phyframe_va(page) + inpage_offset), (char *) buf + bytes_written, inpage_size);

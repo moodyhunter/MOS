@@ -61,9 +61,8 @@ void signal_send_to_thread(thread_t *target, signal_t signal)
 void signal_send_to_process(process_t *target, signal_t signal)
 {
     thread_t *target_thread = NULL;
-    list_node_foreach(t_node, &target->threads)
+    list_foreach(thread_t, thread, target->threads)
     {
-        thread_t *thread = container_of(t_node, thread_t, owner_node);
         if (thread->state == THREAD_STATE_RUNNING || thread->state == THREAD_STATE_READY || thread->state == THREAD_STATE_CREATED)
         {
             target_thread = thread;
@@ -73,9 +72,8 @@ void signal_send_to_process(process_t *target, signal_t signal)
 
     if (!target_thread)
     {
-        list_node_foreach(t_node, &target->threads)
+        list_foreach(thread_t, thread, target->threads)
         {
-            thread_t *thread = container_of(t_node, thread_t, owner_node);
             if (thread->state == THREAD_STATE_BLOCKED)
             {
                 target_thread = thread;
