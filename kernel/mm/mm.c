@@ -315,7 +315,8 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, pagefaul
     if (faulting_vmap)
         pr_emerg("  in vmap: %pvm", (void *) faulting_vmap);
 
-    process_dump_mmaps(current_process);
+    if (current_thread)
+        process_dump_mmaps(current_process);
 
     pr_info("stack trace before fault (may be unreliable):");
     platform_dump_stack(info->regs);
@@ -328,9 +329,15 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, pagefaul
     MOS_UNUSED(fault_addr);
     MOS_UNUSED(info);
 #endif
-    signal_send_to_thread(current_thread, SIGSEGV);
-    signal_check_and_handle();
-    MOS_UNREACHABLE();
+
+    if (current_thread)
+    {
+        signal_send_to_thread(current_thread, SIGSEGV);
+        signal_check_and_handle();
+        MOS_UNREACHABLE();
+    }
+
+    mos_panic("unhandled page fault");
 }
 
 void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
