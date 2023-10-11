@@ -109,7 +109,36 @@ macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
     add_summary_item(INITRD "${ITEM_TYPE}" "${SOURCE_ITEM_SUPPLIMENTARY_INFO}" "${OUTPUT_DIR_PRETTY}")
 endmacro()
 
+
+find_program(RUSTC rustc)
+if (RUSTC)
+    # get rustc --print target-list output
+    execute_process(
+        COMMAND ${RUSTC} --print target-list
+        OUTPUT_VARIABLE RUST_TARGETS
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    # split the output into a list
+    string(REPLACE "\n" ";" RUST_TARGETS ${RUST_TARGETS})
+
+    # find the first target that matches the current architecture
+    set(RUSTC_IS_SUPPORTED FALSE)
+    foreach(TARGET ${RUST_TARGETS})
+        if("${TARGET}" STREQUAL "${MOS_RUST_TARGET}")
+            set(RUSTC_IS_SUPPORTED TRUE)
+            message(STATUS "Found rustc target ${MOS_RUST_TARGET}")
+            break()
+        endif()
+    endforeach()
+else()
+    message(WARNING "rustc not found, rust targets will not be supported")
+endif()
+
 macro(add_simple_rust_project PROJECT_DIR NAME INITRD_SUBDIR)
+    if (NOT RUSTC_IS_SUPPORTED)
+        message(WARNING "Rust target ${MOS_RUST_TARGET} is not supported by rustc")
+        return()
+    endif()
     set(OUTPUT_FILE "${PROJECT_DIR}/target/${MOS_RUST_TARGET}/debug/${NAME}")
     add_custom_target(
         ${NAME}_rust
