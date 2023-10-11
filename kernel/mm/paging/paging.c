@@ -193,6 +193,9 @@ vmap_t *mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx)
     dst_vmap->stat = src_vmap->stat;
     dst_vmap->on_fault = src_vmap->on_fault;
 
+    if (src_vmap->io)
+        io_ref(src_vmap->io);
+
     return dst_vmap;
 }
 

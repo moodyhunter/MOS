@@ -130,16 +130,6 @@ bool munmap(ptr_t addr, size_t size)
         return false;
     }
 
-    if (range_map->io)
-    {
-        mos_warn("munmap: unmapping a file-backed vmap is not supported yet");
-        // if (!io_munmap(range_map->io, range_map))
-        // {
-        //     pr_warn("munmap: could not unmap the file: io_munmap() failed");
-        //     return false;
-        // }
-    }
-
     vmap_destroy(range_map);
     spinlock_release(&current_process->mm->mm_lock);
     spinlock_release(&whole_map->lock);

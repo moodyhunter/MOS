@@ -174,6 +174,15 @@ void vmap_destroy(vmap_t *vmap)
     MOS_ASSERT(spinlock_is_locked(&vmap->lock));
     mm_context_t *const mm = vmap->mmctx;
     MOS_ASSERT(spinlock_is_locked(&mm->mm_lock));
+    if (vmap->io)
+    {
+        io_unref(vmap->io);
+        // if (!io_munmap(range_map->io, range_map))
+        // {
+        //     pr_warn("munmap: could not unmap the file: io_munmap() failed");
+        //     return false;
+        // }
+    }
     mm_do_unmap(mm->pgd, vmap->vaddr, vmap->npages, true);
     list_remove(vmap);
     kfree(vmap);
@@ -213,7 +222,7 @@ vmap_t *vmap_split(vmap_t *first, size_t split)
     second->vaddr += split * MOS_PAGE_SIZE;
     if (first->io)
     {
-        second->io = io_ref(first->io);
+        second->io = io_ref(first->io); // ref the io again
         second->io_offset += split * MOS_PAGE_SIZE;
     }
 
