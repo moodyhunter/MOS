@@ -65,8 +65,8 @@ jobs:
       - name: Generate CodeBrowser
         run: |
           cd build
-          ./codebrowser/build/generator/codebrowser_generator -d /mos-code-browser/data -b ./compile_commands.json -a -o ./docs -p MOS:..
-          ./codebrowser/build/indexgenerator/codebrowser_indexgenerator ./docs -d /mos-code-browser/data
+          ./codebrowser/build/generator/codebrowser_generator -d /MOS/source-code/data -b ./compile_commands.json -a -o ./docs -p MOS:..
+          ./codebrowser/build/indexgenerator/codebrowser_indexgenerator ./docs -d /MOS/source-code/data
           cp -rv ./codebrowser/data ./docs/data
           mv ./docs ./doxygen_output/html/source-code
 
