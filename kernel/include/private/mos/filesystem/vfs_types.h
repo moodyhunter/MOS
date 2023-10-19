@@ -6,6 +6,7 @@
 #include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab.h"
 
+#include <abi-bits/stat.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/io/io.h>
 #include <mos/io/io_types.h>
@@ -23,8 +24,6 @@ typedef struct _mount mount_t;
 typedef struct _superblock superblock_t;
 typedef struct _filesystem filesystem_t;
 typedef struct _file file_t;
-
-typedef u64 dev_t;
 
 typedef struct _dir_iterator_state
 {
