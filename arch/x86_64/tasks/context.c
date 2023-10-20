@@ -6,6 +6,7 @@
 #include "mos/mm/slab_autoinit.h"
 #include "mos/platform/platform_defs.h"
 #include "mos/tasks/signal.h"
+#include "mos/x86/cpu/cpuid.h"
 #include "mos/x86/descriptors/descriptors.h"
 
 #include <elf.h>
@@ -117,31 +118,23 @@ static void x86_switch_to_scheduler(ptr_t *old_stack, ptr_t scheduler_stack)
 }
 __alias(x86_switch_to_scheduler, platform_switch_to_scheduler);
 
-static bool has_rdwrfsgsbase()
-{
-    static bool result = false;
-    if (once())
-    {
-        uintn id = x86_cpuid(b, leaf = 7, c = 0);
-        result = GET_BIT(id, 0);
-
-        // enable wrfsbase (if supported)
-        if (result)
-            x86_cpu_set_cr4(x86_cpu_get_cr4() | (1 << 16));
-    }
-
-    return result;
-}
-
 void x86_update_current_fsbase()
 {
     const ptr_t fs_base = current_thread->platform_options.fs_base;
 
-    if (!has_rdwrfsgsbase())
+    if (cpu_has_feature(CPU_FEATURE_FSGSBASE))
     {
-        cpu_set_msr64(0xc0000100, fs_base); // IA32_FS_BASE
+        if (once())
+            x86_cpu_set_cr4(x86_cpu_get_cr4() | (1 << 16));
+
+        __asm__ volatile("wrfsbase %0" ::"r"(fs_base) : "memory");
         return;
     }
 
-    __asm__ volatile("wrfsbase %0" ::"r"(fs_base) : "memory");
+    cpu_set_msr64(0xc0000100, fs_base); // IA32_FS_BASE
+}
+
+
+        return;
+
 }

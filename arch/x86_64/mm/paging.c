@@ -61,10 +61,7 @@ void x86_paging_setup()
     );
 
     // map all memory to MOS_DIRECT_MAP_VADDR using 1 GiB, or 2 MiB pages
-    // check if 1 GiB pages are supported
-    x86_cpuid_info_t cpuid = { 0 };
-    x86_call_cpuid(0x80000001, &cpuid);
-    const bool gbpages = cpuid.edx & (1 << 26);
+    const bool gbpages = cpu_has_feature(CPU_FEATURE_PDPE1GB);
 
     mos_debug(x86_startup, "mapping all memory to " PTR_FMT " using %s pages", x86_platform.direct_map_base, gbpages ? "1 GB" : "2 MB");
 

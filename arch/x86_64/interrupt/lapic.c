@@ -129,15 +129,11 @@ void lapic_interrupt(u8 vec, u8 dest, lapic_delivery_mode_t delivery_mode, lapic
 
 void lapic_memory_setup(void)
 {
-    // CPUID.01h:EDX[bit 9]
-    processor_version_t info;
-    cpuid_get_processor_info(&info);
-
-    if (!info.edx.onboard_apic)
+    if (!cpu_has_feature(CPU_FEATURE_APIC))
         mos_panic("APIC is not supported");
 
-    if (!info.edx.msr)
-        mos_panic("MSR is not present");
+    if (!cpu_has_feature(CPU_FEATURE_MSR))
+        mos_panic("MSR is not supported");
 
     const ptr_t base_addr = x86_acpi_madt->lapic_addr;
     mos_debug(x86_lapic, "base address: " PTR_FMT, base_addr);

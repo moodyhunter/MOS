@@ -13,7 +13,6 @@ add_kernel_source(
         descriptors/flush${MOS_BITS}.asm
         acpi/acpi.c
         acpi/madt.c
-        cpu/cpuid.c
         devices/serial.c
         devices/serial_console.c
         descriptors/descriptors.c
