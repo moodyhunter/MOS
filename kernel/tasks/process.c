@@ -226,11 +226,13 @@ void process_handle_exit(process_t *process, u32 exit_code)
             if (thread != current_thread)
             {
                 signal_send_to_thread(thread, SIGKILL);
+                spinlock_release(&thread->state_lock);
                 thread_wait_for_tid(thread->tid);
+                spinlock_acquire(&thread->state_lock);
             }
             thread->state = THREAD_STATE_DEAD; // cleanup will be done by the scheduler
+            spinlock_release(&thread->state_lock);
         }
-        spinlock_release(&thread->state_lock);
     }
 
     size_t files_total = 0;
