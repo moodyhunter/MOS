@@ -120,9 +120,11 @@ __alias(x86_switch_to_scheduler, platform_switch_to_scheduler);
 
 void x86_update_current_fsbase()
 {
+    MOS_ASSERT(cpu_has_feature(CPU_FEATURE_FSGSBASE));
+
     const ptr_t fs_base = current_thread->platform_options.fs_base;
 
-    if (cpu_has_feature(CPU_FEATURE_FSGSBASE))
+    if (x86_cpu_get_cr4() & (1 << 16))
     {
         if (once())
             x86_cpu_set_cr4(x86_cpu_get_cr4() | (1 << 16));

@@ -43,5 +43,5 @@
         static int __feature = -1;                                                                                                                                       \
         if (unlikely(__feature == -1))                                                                                                                                   \
             __feature = x86_cpu_get_feature_impl(feat);                                                                                                                  \
-        retval = __feature == 0;                                                                                                                                         \
+        retval = __feature == 1;                                                                                                                                         \
     })
