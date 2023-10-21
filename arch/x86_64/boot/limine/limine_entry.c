@@ -47,6 +47,9 @@ asmlinkage void limine_entry(void)
 {
     extern serial_console_t com1_console;
     console_register(&com1_console.con, MOS_PAGE_SIZE);
+#if MOS_DEBUG_FEATURE(x86_startup)
+    pr_cont("limine_entry");
+#endif
 
     if (kernel_file_request.response == NULL)
         mos_panic("No kernel file found");

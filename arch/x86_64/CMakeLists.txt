@@ -25,6 +25,7 @@ add_kernel_source(
         mm/mm.c
         mm/paging.c
         tasks/context.c
+        tasks/fpu_context.c
         x86_platform.c
         x86_platform_api.c
 )

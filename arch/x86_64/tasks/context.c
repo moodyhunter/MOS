@@ -8,6 +8,7 @@
 #include "mos/tasks/signal.h"
 #include "mos/x86/cpu/cpuid.h"
 #include "mos/x86/descriptors/descriptors.h"
+#include "mos/x86/tasks/fpu_context.h"
 
 #include <elf.h>
 #include <mos/lib/structures/stack.h>
@@ -106,6 +107,7 @@ static void x86_switch_to_thread(ptr_t *scheduler_stack, const thread_t *to, swi
                                       switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? x86_start_kernel_thread :
                                                                                    x86_normal_switch_impl;
 
+    // TODO: save and restore the FPU state
     x86_update_current_fsbase();
     per_cpu(x86_cpu_descriptor)->tss.rsp0 = to->k_stack.top;
     x86_context_switch_impl(scheduler_stack, to->k_stack.head, switch_func);
@@ -134,9 +136,4 @@ void x86_update_current_fsbase()
     }
 
     cpu_set_msr64(0xc0000100, fs_base); // IA32_FS_BASE
-}
-
-
-        return;
-
 }
