@@ -124,12 +124,13 @@ pmm_region_t *pmm_find_reserved_region(ptr_t needle);
 
 // ! ref and unref frames
 
-void _pmm_ref_phyframes(phyframe_t *frame, size_t npages);
+phyframe_t *_pmm_ref_phyframes(phyframe_t *frame, size_t npages);
 void _pmm_unref_phyframes(phyframe_t *frame, size_t npages);
 
-should_inline void _pmm_ref_pfn_range(pfn_t pfn_start, size_t npages)
+should_inline pfn_t _pmm_ref_pfn_range(pfn_t pfn_start, size_t npages)
 {
     _pmm_ref_phyframes(pfn_phyframe(pfn_start), npages);
+    return pfn_start;
 }
 
 should_inline void _pmm_unref_pfn_range(pfn_t pfn_start, size_t npages)

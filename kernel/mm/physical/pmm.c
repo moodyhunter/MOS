@@ -98,7 +98,7 @@ pmm_region_t *pmm_find_reserved_region(ptr_t needle)
     return NULL;
 }
 
-void _pmm_ref_phyframes(phyframe_t *frame, size_t n_pages)
+phyframe_t *_pmm_ref_phyframes(phyframe_t *frame, size_t n_pages)
 {
     const pfn_t start = phyframe_pfn(frame);
     MOS_ASSERT_X(start + n_pages <= pmm_total_frames, "out of bounds");
@@ -106,6 +106,7 @@ void _pmm_ref_phyframes(phyframe_t *frame, size_t n_pages)
 
     for (size_t i = start; i < start + n_pages; i++)
         pfn_phyframe(i)->refcount++;
+    return frame;
 }
 
 void _pmm_unref_phyframes(phyframe_t *frame, size_t n_pages)
