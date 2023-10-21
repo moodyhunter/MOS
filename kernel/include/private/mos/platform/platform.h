@@ -127,6 +127,16 @@ typedef struct
 
 typedef struct
 {
+    u8 second;
+    u8 minute;
+    u8 hour;
+    u8 day;
+    u8 month;
+    u16 year;
+} timeval_t;
+
+typedef struct
+{
     u32 num_cpus;
     u32 boot_cpu_id;
     PER_CPU_DECLARE(cpu_t, cpu);
@@ -168,6 +178,9 @@ void platform_dump_regs(platform_regs_t *regs);
 void platform_dump_stack(platform_regs_t *regs);
 platform_regs_t *platform_thread_regs(const thread_t *thread);
 void platform_dump_current_stack();
+
+// Platform Timer/Clock APIs
+void platform_get_time(timeval_t *val);
 
 // Platform CPU APIs
 noreturn void platform_halt_cpu(void);

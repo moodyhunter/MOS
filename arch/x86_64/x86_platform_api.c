@@ -5,6 +5,7 @@
 #include "mos/mm/paging/pmlx/pml4.h"
 #include "mos/platform/platform_defs.h"
 #include "mos/tasks/signal.h"
+#include "mos/x86/devices/rtc.h"
 
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/paging/paging.h>
@@ -175,4 +176,9 @@ void platform_restore_from_signal_handler(void *sp)
 
     signal_on_returned(&data);
     x86_interrupt_return_impl(&regs);
+}
+
+void platform_get_time(timeval_t *time)
+{
+    rtc_read_time(time);
 }

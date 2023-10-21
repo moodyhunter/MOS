@@ -52,7 +52,7 @@ MOS_STATIC_ASSERT(IRQ_BASE > EXCEPTION_MAX, "IRQ_BASE is too small, possibly ove
 
 typedef enum
 {
-    IRQ_TIMER = 0,
+    IRQ_PIT_TIMER = 0,
     IRQ_KEYBOARD = 1,
     IRQ_CASCADE = 2,
     IRQ_COM2 = 3,

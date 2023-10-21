@@ -6,6 +6,7 @@
 #include "mos/x86/acpi/acpi_types.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/descriptors/descriptors.h"
+#include "mos/x86/devices/rtc.h"
 #include "mos/x86/devices/serial.h"
 
 #include <mos/cmdline.h>
@@ -74,12 +75,6 @@ static void x86_com1_handler(u32 irq)
         serial_device_read(&com1_console.device, &c, 1);
         console_putc(&com1_console.con, c);
     }
-}
-
-static void x86_timer_handler(u32 irq)
-{
-    MOS_ASSERT(irq == IRQ_TIMER);
-    reschedule();
 }
 
 static void x86_dump_stack_at(ptr_t this_frame)
@@ -223,11 +218,13 @@ void platform_startup_late()
     pic_remap_irq();
     ioapic_init();
 
-    x86_install_interrupt_handler(IRQ_TIMER, x86_timer_handler);
+    rtc_init();
+
+    x86_install_interrupt_handler(IRQ_CMOS_RTC, rtc_irq_handler);
     x86_install_interrupt_handler(IRQ_KEYBOARD, x86_keyboard_handler);
     x86_install_interrupt_handler(IRQ_COM1, x86_com1_handler);
 
-    ioapic_enable_interrupt(IRQ_TIMER, x86_platform.boot_cpu_id);
+    ioapic_enable_interrupt(IRQ_CMOS_RTC, x86_platform.boot_cpu_id);
     ioapic_enable_interrupt(IRQ_KEYBOARD, x86_platform.boot_cpu_id);
     ioapic_enable_interrupt(IRQ_COM1, x86_platform.boot_cpu_id);
 

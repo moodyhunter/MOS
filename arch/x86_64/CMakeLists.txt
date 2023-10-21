@@ -15,6 +15,7 @@ add_kernel_source(
         acpi/madt.c
         devices/serial.c
         devices/serial_console.c
+        devices/rtc.c
         descriptors/descriptors.c
         interrupt/lapic.c
         interrupt/ioapic.c
