@@ -26,7 +26,7 @@ static phyframe_t *zero_page(void)
 {
     if (unlikely(!_zero_page))
     {
-        _zero_page = mm_get_free_page();
+        _zero_page = pmm_ref_one(mm_get_free_page());
         MOS_ASSERT(_zero_page);
         memzero((void *) phyframe_va(_zero_page), MOS_PAGE_SIZE);
     }

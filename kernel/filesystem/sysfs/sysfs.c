@@ -120,7 +120,7 @@ static void sysfs_fops_release(file_t *file)
     mos_debug(sysfs, "closing %s in %s", file->dentry->name, dentry_parent(file->dentry)->name);
     sysfs_file_t *f = file->dentry->inode->private;
     if (f->buf_page)
-        pmm_unref(f->buf_page, f->buf_npages);
+        mm_free_pages(f->buf_page, f->buf_npages);
 }
 
 __nodiscard static bool sysfs_file_ensure_ready(const file_t *file)

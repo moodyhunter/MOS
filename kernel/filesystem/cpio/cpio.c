@@ -352,7 +352,7 @@ static phyframe_t *cpio_fill_cache(inode_cache_t *cache, off_t pgoff)
     phyframe_t *page = mm_get_free_page();
     if (!page)
         return NULL;
-
+    pmm_ref_one(page);
     const size_t bytes_to_read = MIN((size_t) MOS_PAGE_SIZE, i->size - pgoff * MOS_PAGE_SIZE);
     const size_t read = initrd_read((char *) phyframe_va(page), bytes_to_read, cpio_i->data_offset + pgoff * MOS_PAGE_SIZE);
     MOS_ASSERT(read == bytes_to_read);

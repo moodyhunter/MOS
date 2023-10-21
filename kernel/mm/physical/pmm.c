@@ -47,9 +47,7 @@ phyframe_t *pmm_allocate_frames(size_t n_frames, pmm_allocation_flags_t flags)
     mos_debug(pmm, "allocated " PFN_RANGE ", %zu pages", pfn, pfn + n_frames, n_frames);
 
     for (size_t i = 0; i < n_frames; i++)
-    {
-        pfn_phyframe(pfn + i)->refcount = 1;
-    }
+        pfn_phyframe(pfn + i)->refcount = 0;
 
     pmm_allocated_frames += n_frames;
     return frame;

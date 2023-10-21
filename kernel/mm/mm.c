@@ -63,7 +63,7 @@ phyframe_t *mm_get_free_pages(size_t npages)
 
 void mm_free_page(phyframe_t *frame)
 {
-    pmm_free_frames(frame, 1);
+    mm_free_pages(frame, 1);
 }
 
 void mm_free_pages(phyframe_t *frame, size_t npages)
@@ -431,7 +431,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         case VMFAULT_COPY_BACKING_PAGE:
         {
             MOS_ASSERT(info->backing_page);
-            const phyframe_t *page = mm_get_free_page();
+            const phyframe_t *page = mm_get_free_page(); // will be ref'd by mm_replace_page_locked()
             mm_copy_page(info->backing_page, page);
             info->backing_page = page;
             goto map_backing_page;
