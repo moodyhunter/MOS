@@ -99,6 +99,8 @@
 #define BIOS_VADDR(paddr)            (MOS_HWMEM_VADDR | ((ptr_t) (paddr)))
 #define BIOS_VADDR_TYPE(paddr, type) ((type) BIOS_VADDR((paddr)))
 
+#define READ_ONCE(x) (*(volatile typeof(x) *) &(x))
+
 // clang-format off
 #define KB * 1024
 #define MB * 1024 KB

@@ -346,6 +346,12 @@
                 { "type": "const char *const *", "arg": "envp" },
                 { "type": "u32", "arg": "flags" }
             ]
+        },
+        {
+            "number": 48,
+            "name": "clock_msleep",
+            "return": "void",
+            "arguments": [ { "type": "u64", "arg": "ms" } ]
         }
     ]
 }

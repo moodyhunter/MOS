@@ -134,6 +134,25 @@ void do_help(int argc, const char *argv[])
     printf("Happy hacking!\n");
 }
 
+void do_msleep(int argc, const char *argv[])
+{
+    if (argc != 1)
+    {
+        printf("msleep: wrong number of arguments\n");
+        printf("Usage: msleep <ms>\n");
+        return;
+    }
+
+    int ms = atoi(argv[0]);
+    if (ms <= 0)
+    {
+        printf("msleep: invalid argument: '%s'\n", argv[0]);
+        return;
+    }
+
+    syscall_clock_msleep(ms);
+}
+
 void do_pid(int argc, const char *argv[])
 {
     MOS_UNUSED(argc);
@@ -196,6 +215,25 @@ void do_show_path(int argc, const char *argv[])
         printf("%2d: %s\n", i, PATH[i]);
 }
 
+void do_sleep(int argc, const char *argv[])
+{
+    if (argc != 1)
+    {
+        printf("sleep: wrong number of arguments\n");
+        printf("Usage: sleep <seconds>\n");
+        return;
+    }
+
+    int seconds = atoi(argv[0]);
+    if (seconds <= 0)
+    {
+        printf("sleep: invalid argument: '%s'\n", argv[0]);
+        return;
+    }
+
+    syscall_clock_msleep(seconds * 1000);
+}
+
 void do_source(int argc, const char *argv[])
 {
     if (argc != 1)
@@ -253,10 +291,12 @@ const command_t builtin_commands[] = {
     { .command = "exit", .action = do_exit, .description = "Exit the shell" },
     { .command = "echo", .action = do_echo, .description = "Echo arguments" },
     { .command = "help", .action = do_help, .description = "Show this help" },
+    { .command = "msleep", .action = do_msleep, .description = "Sleep for a number of milliseconds" },
     { .command = "pid", .action = do_pid, .description = "Show the current process ID" },
     { .command = "pwd", .action = do_pwd, .description = "Print the current directory" },
     { .command = "repeat", .action = do_repeat, .description = "Repeat a command a number of times" },
     { .command = "show-path", .action = do_show_path, .description = "Show the search path for programs" },
+    { .command = "sleep", .action = do_sleep, .description = "Sleep for a number of seconds" },
     { .command = "source", .action = do_source, .description = "Execute a script" },
     { .command = "version", .action = do_version, .description = "Show version information" },
     { .command = "which", .action = do_which, .description = "Show the full path of a command" },

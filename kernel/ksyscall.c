@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/device/clocksource.h"
 #include "mos/misc/power.h"
 #include "mos/tasks/signal.h"
 
@@ -488,4 +489,9 @@ DEFINE_SYSCALL(int, io_pselect)(int nfds, fd_set *readfds, fd_set *writefds, fd_
 DEFINE_SYSCALL(long, execveat)(fd_t dirfd, const char *path, const char *const argv[], const char *const envp[], u32 flags)
 {
     return process_do_execveat(current_process, dirfd, path, argv, envp, flags);
+}
+
+DEFINE_SYSCALL(void, clock_msleep)(u64 ms)
+{
+    clocksource_msleep(ms);
 }

@@ -14,8 +14,10 @@ typedef struct clocksource
 } clocksource_t;
 
 extern list_head clocksources;
-extern clocksource_t *const active_clocksource;
+extern clocksource_t *active_clocksource;
 
 void clocksource_register(clocksource_t *clocksource);
 
 void clocksource_tick(clocksource_t *clocksource); // called by the timer interrupt handler
+
+void clocksource_msleep(u64 ms);
