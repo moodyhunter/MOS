@@ -2,6 +2,8 @@
 
 #include "mos/filesystem/vfs_types.h"
 #include "mos/filesystem/vfs_utils.h"
+#include "mos/mm/mm.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab_autoinit.h"
 
 #include <mos/filesystem/dentry.h>
@@ -228,6 +230,18 @@ static size_t tmpfs_i_readlink(dentry_t *dentry, char *buffer, size_t buflen)
     return bytes_to_copy;
 }
 
+static phyframe_t *tmpfs_fill_cache(inode_cache_t *cache, off_t pgoff)
+{
+    // if VFS ever calls this function, it means that a file has been
+    // written to a new page, but that page has not been allocated yet
+    // (i.e. the file has been extended)
+    // we don't need to do anything but allocate the page
+    MOS_UNUSED(cache);
+    MOS_UNUSED(pgoff);
+
+    return pmm_ref_one(mm_get_free_page());
+}
+
 static const inode_ops_t tmpfs_inode_symlink_ops = {
     .readlink = tmpfs_i_readlink,
 };
@@ -238,7 +252,7 @@ static const file_ops_t tmpfs_file_ops = {
 };
 
 static const inode_cache_ops_t tmpfs_inode_cache_ops = {
-    .fill_cache = NULL,
+    .fill_cache = tmpfs_fill_cache,
     .page_write_begin = simple_page_write_begin,
     .page_write_end = simple_page_write_end,
 };
