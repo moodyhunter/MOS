@@ -6,7 +6,7 @@
 #include "mos/tasks/schedule.h"
 #include "mos/tasks/wait.h"
 
-#define RESCHEDULE_INTERVAL_MS 10
+#define RESCHEDULE_INTERVAL_MS 1
 list_head clocksources = LIST_HEAD_INIT(clocksources);
 clocksource_t *active_clocksource;
 
