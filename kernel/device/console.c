@@ -71,7 +71,6 @@ void console_register(console_t *con, size_t buf_size)
     io_init(&con->io, IO_CONSOLE, IO_READABLE | IO_WRITABLE, &console_io_ops);
     list_node_append(&consoles, list_node(con));
     waitlist_init(&con->waitlist);
-    pr_info("console: registered '%s'", con->name);
 }
 
 console_t *console_get(const char *name)
