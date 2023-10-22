@@ -8,6 +8,8 @@ void pml1_free(pml1_t pml1);
 
 void pml1_traverse(pml1_t pml1, ptr_t *vaddr, size_t *n_pages, pagetable_walk_options_t callback, void *data);
 
+__nodiscard bool pml1_destroy_range(pml1_t pml1, ptr_t *vaddr, size_t *n_pages);
+
 pml1e_t *pml1_entry(pml1_t pml1, ptr_t vaddr);
 
 bool pml1e_is_present(const pml1e_t *pml1e);

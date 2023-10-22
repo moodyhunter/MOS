@@ -98,6 +98,42 @@ process_t *process_allocate(process_t *parent, const char *name)
     return proc;
 }
 
+void process_destroy(process_t *process)
+{
+    if (!process_is_valid(process))
+        return;
+
+    MOS_ASSERT(process != current_process);
+    mos_debug(process, "destroying process %pp", (void *) process);
+
+    if (process->name != NULL)
+        kfree(process->name);
+
+    if (process->main_thread != NULL)
+    {
+        hashmap_remove(&thread_table, process->main_thread->tid);
+        thread_destroy(process->main_thread);
+        process->main_thread = NULL;
+    }
+
+    if (process->mm != NULL)
+    {
+        spinlock_acquire(&process->mm->mm_lock);
+        list_foreach(vmap_t, vmap, process->mm->mmaps)
+        { // 0xffff80007ff4e550
+            spinlock_acquire(&vmap->lock);
+            list_remove(vmap);
+            vmap_destroy(vmap);
+        }
+
+        // free page table
+        MOS_ASSERT(process->mm != current_mm);
+        mm_destroy_context(process->mm);
+    }
+
+    kfree(process);
+}
+
 process_t *process_new(process_t *parent, const char *name, const stdio_t *ios)
 {
     process_t *proc = process_allocate(parent, name);
@@ -202,6 +238,14 @@ pid_t process_wait_for_pid(pid_t pid)
 
     bool ok = reschedule_for_waitlist(&target->waiters);
     MOS_UNUSED(ok);
+
+    list_remove(target);
+    pid = target->pid;
+    const int exit_code = target->exit_code;
+    MOS_UNUSED(exit_code);
+    hashmap_remove(&process_table, pid);
+    process_destroy(target);
+
     return pid;
 }
 
@@ -212,6 +256,8 @@ void process_handle_exit(process_t *process, u32 exit_code)
 
     if (unlikely(process->pid == 1))
         mos_panic("init process exited with code %d", exit_code);
+
+    process->exit_code = exit_code;
 
     list_foreach(thread_t, thread, process->threads)
     {
@@ -229,9 +275,16 @@ void process_handle_exit(process_t *process, u32 exit_code)
                 spinlock_release(&thread->state_lock);
                 thread_wait_for_tid(thread->tid);
                 spinlock_acquire(&thread->state_lock);
+                MOS_ASSERT(thread->state == THREAD_STATE_DEAD);
+                thread_destroy(thread);
+                hashmap_remove(&thread_table, thread->tid);
             }
-            thread->state = THREAD_STATE_DEAD; // cleanup will be done by the scheduler
-            spinlock_release(&thread->state_lock);
+            else
+            {
+                thread->state = THREAD_STATE_DEAD;
+                spinlock_release(&thread->state_lock);
+                process->main_thread = thread; // make sure we don't destroy the current thread
+            }
         }
     }
 
@@ -257,23 +310,6 @@ void process_handle_exit(process_t *process, u32 exit_code)
 
     signal_send_to_process(process->parent, SIGCHLD);
     dentry_unref(process->working_directory);
-
-    // remove from parent's children list
-    list_remove(process);
-
-    // remove from process table
-    hashmap_remove(&process_table, process->pid);
-
-    // free memory
-    spinlock_acquire(&process->mm->mm_lock);
-    list_foreach(vmap_t, vmap, process->mm->mmaps)
-    {
-        spinlock_acquire(&vmap->lock);
-        list_remove(vmap);
-        vmap_destroy(vmap);
-    }
-    spinlock_release(&process->mm->mm_lock);
-
     reschedule();
     MOS_UNREACHABLE();
 }

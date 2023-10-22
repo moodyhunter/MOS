@@ -79,39 +79,6 @@ vmap_t *mm_get_free_vaddr_locked(mm_context_t *mmctx, size_t n_pages, ptr_t base
     }
 }
 
-vmap_t *mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags)
-{
-    MOS_ASSERT(n_pages > 0);
-
-    phyframe_t *frame = mm_get_free_pages(n_pages);
-    if (unlikely(!frame))
-    {
-        spinlock_release(&mmctx->mm_lock);
-        mos_warn("could not allocate %zd physical pages", n_pages);
-        return NULL;
-    }
-
-    spinlock_acquire(&mmctx->mm_lock);
-    vmap_t *vmap = mm_get_free_vaddr_locked(mmctx, n_pages, hint_vaddr, valloc_flags);
-    if (unlikely(!vmap))
-    {
-        mos_warn("could not find %zd pages in the address space", n_pages);
-        spinlock_release(&mmctx->mm_lock);
-        mm_free_pages(frame, n_pages);
-        return NULL;
-    }
-
-    const pfn_t pfn = phyframe_pfn(frame);
-    mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, n_pages, vmap->vaddr, pfn);
-
-    vmap->vmflags = flags;
-    vmap->stat.regular = n_pages;
-
-    mm_do_map(mmctx->pgd, vmap->vaddr, pfn, n_pages, flags, true);
-    spinlock_release(&mmctx->mm_lock);
-    return vmap;
-}
-
 void mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
 {
     MOS_ASSERT(vaddr >= MOS_KERNEL_START_VADDR);
@@ -143,18 +110,9 @@ vmap_t *mm_map_pages_to_user(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t
     return vmap;
 }
 
-void mm_unmap_pages(mm_context_t *ctx, ptr_t vaddr, size_t npages)
-{
-    MOS_ASSERT(npages > 0);
-
-    spinlock_acquire(&ctx->mm_lock);
-    mm_do_unmap(ctx->pgd, vaddr, npages, true);
-    // TODO: remove the page table
-    spinlock_release(&ctx->mm_lock);
-}
-
 void mm_replace_page_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, vm_flags flags)
 {
+    vaddr = ALIGN_DOWN_TO_PAGE(vaddr);
     mos_debug(vmm, "filling page at " PTR_FMT " with " PFN_FMT, vaddr, pfn);
 
     const pfn_t old_pfn = mm_do_get_pfn(ctx->pgd, vaddr);

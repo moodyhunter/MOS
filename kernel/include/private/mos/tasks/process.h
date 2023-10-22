@@ -27,6 +27,8 @@ should_inline stdio_t current_stdio(void)
 }
 
 process_t *process_allocate(process_t *parent, const char *name);
+void process_destroy(process_t *process);
+
 process_t *process_new(process_t *parent, const char *name, const stdio_t *ios);
 process_t *process_get(pid_t pid);
 

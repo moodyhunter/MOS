@@ -9,6 +9,7 @@
 #include "mos/platform/platform.h"
 
 #include <mos/mos_global.h>
+#include <mos_stdlib.h>
 #include <mos_string.h>
 
 #if MOS_PLATFORM_PAGING_LEVELS < 3
@@ -50,8 +51,8 @@ void pml3_traverse(pml3_t pml3, ptr_t *vaddr, size_t *n_pages, pagetable_walk_op
             if (options.readonly)
             {
                 // skip to the next pml2e
-                *vaddr += PML3E_NPAGES * MOS_PAGE_SIZE;
-                *n_pages -= PML3E_NPAGES;
+                *vaddr += MIN(*n_pages, PML3E_NPAGES) * MOS_PAGE_SIZE;
+                *n_pages -= MIN(*n_pages, PML3E_NPAGES);
                 continue;
             }
 
@@ -64,6 +65,35 @@ void pml3_traverse(pml3_t pml3, ptr_t *vaddr, size_t *n_pages, pagetable_walk_op
             options.pml3e_pre_traverse(pml3, pml3e, *vaddr, data);
         pml2_traverse(pml2, vaddr, n_pages, options, data);
     }
+}
+
+bool pml3_destroy_range(pml3_t pml3, ptr_t *vaddr, size_t *n_pages)
+{
+    const bool should_zap_this_pml3 = pml3_index(*vaddr) == 0 && *n_pages >= PML3_ENTRIES;
+
+    for (size_t i = pml3_index(*vaddr); i < PML3_ENTRIES && *n_pages; i++)
+    {
+        pml3e_t *pml3e = pml3_entry(pml3, *vaddr);
+
+        if (pml3e_is_present(pml3e))
+        {
+            pml2_t pml2 = platform_pml3e_get_pml2(pml3e);
+            if (pml2_destroy_range(pml2, vaddr, n_pages))
+                platform_pml3e_set_present(pml3e, false); // pml2 was destroyed
+        }
+        else
+        {
+            // skip to the next pml2e
+            *vaddr += MIN(*n_pages, PML3E_NPAGES) * MOS_PAGE_SIZE;
+            *n_pages -= MIN(*n_pages, PML3E_NPAGES);
+            continue;
+        }
+    }
+
+    if (should_zap_this_pml3)
+        pml_destroy_table(pml3);
+
+    return should_zap_this_pml3;
 }
 
 pml3e_t *pml3_entry(pml3_t pml3, ptr_t vaddr)

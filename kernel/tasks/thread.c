@@ -41,6 +41,31 @@ thread_t *thread_allocate(process_t *owner, thread_mode tflags)
     return t;
 }
 
+void thread_destroy(thread_t *thread)
+{
+    MOS_ASSERT(thread != current_thread);
+    if (!thread_is_valid(thread))
+        return;
+
+    mos_debug(thread, "destroying thread %pt", (void *) thread);
+
+    if (thread->name != NULL)
+        kfree(thread->name);
+
+    if (thread->mode == THREAD_MODE_USER)
+    {
+        process_t *const owner = thread->owner;
+        spinlock_acquire(&owner->mm->mm_lock);
+        vmap_t *const stack = vmap_obtain(owner->mm, (ptr_t) thread->u_stack.top - 1, NULL);
+        vmap_destroy(stack);
+        spinlock_release(&owner->mm->mm_lock);
+    }
+
+    mm_free_pages(va_phyframe((ptr_t) thread->k_stack.top) - MOS_STACK_PAGES_KERNEL, MOS_STACK_PAGES_KERNEL);
+
+    kfree(thread);
+}
+
 thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name)
 {
     thread_t *t = thread_allocate(owner, tmode);
@@ -119,14 +144,6 @@ void thread_handle_exit(thread_t *t)
 {
     if (!thread_is_valid(t))
         mos_panic("thread_handle_exit() called on invalid thread");
-
-    process_t *owner = t->owner;
-
-    spinlock_acquire(&owner->mm->mm_lock);
-    vmap_t *stack = vmap_obtain(owner->mm, (ptr_t) t->u_stack.top, NULL);
-    spinlock_release(&owner->mm->mm_lock);
-
-    vmap_destroy(stack);
 
     spinlock_acquire(&t->state_lock);
     t->state = THREAD_STATE_DEAD;

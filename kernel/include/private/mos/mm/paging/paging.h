@@ -47,22 +47,6 @@ typedef enum
 vmap_t *mm_get_free_vaddr_locked(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags);
 
 /**
- * @brief Allocate npages pages from a page table.
- *
- * @param table The page table to allocate from.
- * @param npages The number of pages to allocate.
- * @param hint_vaddr The virtual address to allocate at, as a hint.
- * @param allocation_flags Allocation flags, see @ref valloc_flags.
- * @param flags Flags to set on the pages, see @ref vm_flags.
- * @return vmblock_t The allocated block of virtual memory, with the
- * number of pages, physical addresses and flags set.
- *
- * @details This function first finds a block of virtual memory using
- * @ref mm_get_free_vaddr, then allocates and maps the pages.
- */
-vmap_t *mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, valloc_flags valloc_flags, vm_flags flags);
-
-/**
  * @brief Map a block of virtual memory to a block of physical memory.
  *
  * @param table The page table to map to.
@@ -78,18 +62,6 @@ vmap_t *mm_alloc_pages(mm_context_t *mmctx, size_t n_pages, ptr_t hint_vaddr, va
  */
 void mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
 vmap_t *mm_map_pages_to_user(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags, vmap_type_t type, vmap_content_t content);
-
-/**
- * @brief Unmap and possibly free a block of virtual memory.
- *
- * @param table The page table to free from.
- * @param vaddr The virtual address to free.
- * @param npages The number of pages to free.
- *
- * @details This function unmaps the pages in the block, and returns the corresponding physical memory
- * back to the allocator if their reference count reaches zero.
- */
-void mm_unmap_pages(mm_context_t *mmctx, ptr_t vaddr, size_t npages);
 
 /**
  * @brief Replace the mappings of a page with a new physical frame.

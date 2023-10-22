@@ -16,6 +16,8 @@ should_inline bool thread_is_valid(thread_t *thread)
 }
 
 thread_t *thread_allocate(process_t *owner, thread_mode tflags);
+void thread_destroy(thread_t *thread);
+
 thread_t *thread_new(process_t *owner, thread_mode mode, const char *name);
 thread_t *thread_complete_init(thread_t *thread);
 thread_t *thread_get(tid_t id);

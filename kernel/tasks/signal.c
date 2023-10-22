@@ -91,8 +91,9 @@ void signal_send_to_process(process_t *target, signal_t signal)
     signal_send_to_thread(target_thread, signal);
 }
 
-sigpending_t *signal_get_next_pending(void)
+static signal_t signal_get_next_pending(void)
 {
+    signal_t signal = 0;
     MOS_ASSERT(spinlock_is_locked(&current_thread->signal_info.lock));
     list_foreach(sigpending_t, sig, current_thread->signal_info.pending)
     {
@@ -100,10 +101,12 @@ sigpending_t *signal_get_next_pending(void)
             continue; // signal is masked, skip it
 
         list_remove(sig);
-        return sig;
+        signal = sig->signal;
+        kfree(sig);
+        break;
     }
 
-    return NULL; // no pending signal
+    return signal;
 }
 
 void signal_check_and_handle(void)
@@ -112,15 +115,15 @@ void signal_check_and_handle(void)
         return;
 
     spinlock_acquire(&current_thread->signal_info.lock);
-    sigpending_t *next = signal_get_next_pending();
+    const signal_t next_signal = signal_get_next_pending();
     spinlock_release(&current_thread->signal_info.lock);
 
-    if (!next)
+    if (!next_signal)
         return; // no pending signal, leave asap
 
     sigaction_t action = { 0 };
 
-    switch (next->signal)
+    switch (next_signal)
     {
 #define SELECT_SIGNAL_HANDLER_OR(SIGNAL, OR)                                                                                                                             \
     case SIGNAL:;                                                                                                                                                        \
@@ -138,18 +141,18 @@ void signal_check_and_handle(void)
         SELECT_SIGNAL_HANDLER_OR(SIGTERM, terminate);
         SELECT_SIGNAL_HANDLER_OR(SIGCHLD, ignore);
 
-        default: MOS_UNREACHABLE_X("handle this signal %d", next->signal); break;
+        default: MOS_UNREACHABLE_X("handle this signal %d", next_signal); break;
     }
 
     if (!action.handler)
         return; // the default handler is to 'ignore', so we just leave
 
-    const bool was_masked = current_thread->signal_info.masks[next->signal];
+    const bool was_masked = current_thread->signal_info.masks[next_signal];
     if (!was_masked)
-        current_thread->signal_info.masks[next->signal] = true;
+        current_thread->signal_info.masks[next_signal] = true;
 
     const sigreturn_data_t data = {
-        .signal = next->signal,
+        .signal = next_signal,
         .was_masked = was_masked,
     };
 

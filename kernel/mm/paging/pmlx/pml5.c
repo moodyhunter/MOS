@@ -16,6 +16,12 @@ void pml5_traverse(pml5_t pml5, ptr_t *vaddr, size_t *n_pages, pagetable_walk_op
     pml4_traverse(pml5.next, vaddr, n_pages, callback, data);
 }
 
+bool pml5_destroy_range(pml5_t pml5, ptr_t *vaddr, size_t *n_pages)
+{
+    // a PML5 entry is a PML4 table
+    return pml4_destroy_range(pml5.next, vaddr, n_pages);
+}
+
 pml5e_t *pml5_entry(pml5_t pml5, ptr_t vaddr)
 {
     MOS_UNUSED(vaddr);

@@ -42,12 +42,6 @@ void signal_send_to_thread(thread_t *target, signal_t signal);
 void signal_send_to_process(process_t *target, signal_t signal);
 
 /**
- * @brief Called when a system call is about to return, to check if a signal should be handled.
- *
- */
-sigpending_t *signal_get_next_pending(void);
-
-/**
  * @brief Check if there is a pending signal and handle it.
  *
  */

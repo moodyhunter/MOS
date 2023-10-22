@@ -26,6 +26,7 @@ typedef struct _process
     process_t *parent;
     list_head children; ///< list of children processes
     as_linked_list;     ///< node in the parent's children list
+    int exit_code;      ///< exit code of the process
 
     io_t *files[MOS_PROCESS_MAX_OPEN_FILES];
 

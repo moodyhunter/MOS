@@ -6,6 +6,8 @@
 
 void pml5_traverse(pml5_t pml5, ptr_t *vaddr, size_t *n_pages, pagetable_walk_options_t callback, void *data);
 
+__nodiscard bool pml5_destroy_range(pml5_t pml5, ptr_t *vaddr, size_t *n_pages);
+
 pml5e_t *pml5_entry(pml5_t pml5, ptr_t vaddr);
 
 bool pml5e_is_present(const pml5e_t *pml5e);

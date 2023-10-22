@@ -7,6 +7,7 @@
 #include "mos/mm/cow.h"
 #include "mos/mm/mmstat.h"
 #include "mos/mm/paging/dump.h"
+#include "mos/mm/paging/pmlx/pml5.h"
 #include "mos/mm/paging/table_ops.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab_autoinit.h"
@@ -89,8 +90,14 @@ mm_context_t *mm_create_context(void)
 
 void mm_destroy_context(mm_context_t *mmctx)
 {
-    MOS_UNUSED(mmctx);
-    MOS_UNIMPLEMENTED("mm_destroy_context");
+    MOS_ASSERT(mmctx != platform_info->kernel_mm); // you can't destroy the kernel mmctx
+    MOS_ASSERT(list_is_empty(&mmctx->mmaps));
+
+    ptr_t zero = 0;
+    size_t userspace_npages = (0x7fffffffffff + 1) / MOS_PAGE_SIZE;
+    const bool freed = pml5_destroy_range(mmctx->pgd.max, &zero, &userspace_npages);
+    MOS_ASSERT(freed); // the entire userspace should be freed
+    kfree(mmctx);
 }
 
 void mm_lock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2)

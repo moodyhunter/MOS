@@ -46,6 +46,7 @@ static void pml4e_do_unmap_callback(pml4_t pml4, pml4e_t *e, ptr_t vaddr, void *
 }
 
 const pagetable_walk_options_t pagetable_do_unmap_callbacks = {
+    .readonly = true,
     .pml1e_callback = pml1e_do_unmap_callback,
     .pml2e_pre_traverse = pml2e_do_unmap_callback,
     .pml3e_pre_traverse = pml3e_do_unmap_callback,
