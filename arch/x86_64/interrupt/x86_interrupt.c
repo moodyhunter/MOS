@@ -78,29 +78,6 @@ bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
     return true;
 }
 
-void platform_dump_regs(platform_regs_t *frame)
-{
-    pr_emph("General Purpose Registers:\n"
-            "  RAX: " PTR_FMT " RBX: " PTR_FMT " RCX: " PTR_FMT " RDX: " PTR_FMT "\n"
-            "  RSI: " PTR_FMT " RDI: " PTR_FMT " RBP: " PTR_FMT " RSP: " PTR_FMT "\n"
-            "  R8:  " PTR_FMT " R9:  " PTR_FMT " R10: " PTR_FMT " R11: " PTR_FMT "\n"
-            "  R12: " PTR_FMT " R13: " PTR_FMT " R14: " PTR_FMT " R15: " PTR_FMT "\n"
-            "  IP:  " PTR_FMT "\n"
-            "Context:\n"
-            "  EFLAGS:       " PTR_FMT "\n"
-            "  Instruction:  0x%lx:" PTR_FMT "\n"
-            "  Stack:        0x%lx:" PTR_FMT,
-            frame->ax, frame->bx, frame->cx, frame->dx,     //
-            frame->si, frame->di, frame->bp, frame->sp,     //
-            frame->r8, frame->r9, frame->r10, frame->r11,   //
-            frame->r12, frame->r13, frame->r14, frame->r15, //
-            frame->ip,                                      //
-            frame->eflags,                                  //
-            frame->cs, frame->ip,                           //
-            frame->ss, frame->sp                            //
-    );
-}
-
 static void x86_handle_nmi(platform_regs_t *regs)
 {
     pr_emph("cpu %d: NMI received", lapic_get_id());
