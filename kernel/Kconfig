@@ -101,9 +101,6 @@ config DEBUG_cow
 config DEBUG_elf
     bool "elf debugging"
 
-config DEBUG_fs
-    bool "fs debugging"
-
 config DEBUG_io
     bool "io debugging"
 
