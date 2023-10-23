@@ -6,7 +6,7 @@
 #include <mos/compiler.h>
 #include <stdnoreturn.h>
 
-#ifndef __noreturn_is_defined
+#if !defined(noreturn)
 #define noreturn __attribute__((noreturn))
 #endif
 
@@ -52,7 +52,7 @@
 #define do_container_of(ptr, type, member)                                                                                                                               \
     __extension__({                                                                                                                                                      \
         void *real_ptr = (void *) (ptr);                                                                                                                                 \
-        _Static_assert(__types_compatible(*(ptr), ((type *) 0)->member) || __types_compatible(*(ptr), void), "type mismatch: (" #type ") vs (" #ptr "->" #member ")");   \
+        _Static_assert(__types_compatible(*(ptr), ((type *) 0)->member) | __types_compatible(*(ptr), void), "type mismatch: (" #type ") vs (" #ptr "->" #member ")");    \
         ((type *) (real_ptr - offsetof(type, member)));                                                                                                                  \
     })
 
@@ -154,7 +154,7 @@ __nodiscard should_inline bool IS_ERR(const void *ptr)
     return IS_ERR_VALUE((unsigned long) ptr);
 }
 
-__nodiscard should_inline bool IS_ERR_OR_NULL(const void *ptr)
+__attribute__((__deprecated__("reconsider if a NULL check is really required"))) __nodiscard should_inline bool IS_ERR_OR_NULL(const void *ptr)
 {
     return unlikely(!ptr) || IS_ERR_VALUE((unsigned long) ptr);
 }
