@@ -317,7 +317,7 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *symlink_dentry, lastseg
     kfree(last_segment);
 
     // if symlink is true, we need to unref the parent_ref dentry as it's irrelevant now
-    if (IS_ERR_OR_NULL(child_ref) || symlink)
+    if (IS_ERR(child_ref) || symlink)
         dentry_unref(parent_ref);
 
     return child_ref; // the real dentry, or an error code
@@ -622,7 +622,7 @@ dentry_t *dentry_get(dentry_t *starting_dir, dentry_t *root_dir, const char *pat
     char *last_segment;
     mos_debug(dcache, "resolving path '%s'", path);
     dentry_t *const parent_ref = dentry_lookup_parent(starting_dir, root_dir, path, &last_segment);
-    if (IS_ERR_OR_NULL(parent_ref))
+    if (IS_ERR(parent_ref))
     {
         mos_debug(dcache, "failed to resolve parent of '%s', file not found", path);
         return parent_ref;
@@ -635,7 +635,6 @@ dentry_t *dentry_get(dentry_t *starting_dir, dentry_t *root_dir, const char *pat
         MOS_ASSERT(parent_ref == starting_dir);
         if (!(flags & RESOLVE_EXPECT_DIR))
         {
-            mos_warn("RESOLVE_EXPECT_DIR flag not set, but path is a directory");
             dentry_unref(parent_ref);
             return ERR_PTR(-EISDIR);
         }

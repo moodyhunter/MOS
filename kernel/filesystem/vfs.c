@@ -305,7 +305,7 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
                                             (may_create ? RESOLVE_EXPECT_ANY_EXIST : RESOLVE_EXPECT_EXIST) | //
                                             (expect_dir ? RESOLVE_EXPECT_DIR : 0);
     dentry_t *entry = dentry_get(base, root_dentry, path, resolve_flags);
-    if (IS_ERR_OR_NULL(entry))
+    if (IS_ERR(entry))
     {
         mos_debug(vfs, "failed to resolve '%s', create=%d, read=%d, exec=%d, nfollow=%d, dir=%d, trun=%d", path, may_create, read, exec, no_follow, expect_dir, truncate);
         return ERR(entry);
@@ -344,7 +344,7 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
     if (entry->inode->type == FILE_TYPE_REGULAR)
         io_flags |= IO_MMAPABLE;
 
-    if (expect_dir)
+    if (file->dentry->inode->type == FILE_TYPE_DIRECTORY)
         io_init(&file->io, IO_DIR, (io_flags | IO_READABLE) & ~IO_SEEKABLE, &dir_io_ops);
     else
         io_init(&file->io, IO_FILE, io_flags, &file_io_ops);

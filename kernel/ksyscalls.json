@@ -352,6 +352,18 @@
             "name": "clock_msleep",
             "return": "void",
             "arguments": [ { "type": "u64", "arg": "ms" } ]
+        },
+        {
+            "number": 49,
+            "name": "io_dup",
+            "return": "fd_t",
+            "arguments": [ { "type": "fd_t", "arg": "fd" } ]
+        },
+        {
+            "number": 50,
+            "name": "io_dup2",
+            "return": "fd_t",
+            "arguments": [ { "type": "fd_t", "arg": "old_fd" }, { "type": "fd_t", "arg": "new_fd" } ]
         }
     ]
 }

@@ -55,7 +55,7 @@ DEFINE_SYSCALL(fd_t, vfs_openat)(fd_t dirfd, const char *path, open_flags flags)
         return -1;
 
     file_t *f = vfs_openat(dirfd, path, flags);
-    if (IS_ERR_OR_NULL(f))
+    if (IS_ERR(f))
         return PTR_ERR(f);
     return process_attach_ref_fd(current_process, &f->io);
 }
@@ -484,4 +484,26 @@ DEFINE_SYSCALL(long, execveat)(fd_t dirfd, const char *path, const char *const a
 DEFINE_SYSCALL(void, clock_msleep)(u64 ms)
 {
     clocksource_msleep(ms);
+}
+
+DEFINE_SYSCALL(fd_t, io_dup)(fd_t fd)
+{
+    io_t *io = process_get_fd(current_process, fd);
+    if (io == NULL)
+        return -EBADF; // fd is not a valid file descriptor
+    return process_attach_ref_fd(current_process, io_ref(io));
+}
+
+DEFINE_SYSCALL(fd_t, io_dup2)(fd_t oldfd, fd_t newfd)
+{
+    io_t *io = process_get_fd(current_process, oldfd);
+    if (io == NULL)
+        return -EBADF; // oldfd is not a valid file descriptor
+
+    if (oldfd == newfd)
+        return newfd;
+
+    process_detach_fd(current_process, newfd);
+    current_process->files[newfd] = io_ref(io);
+    return newfd;
 }
