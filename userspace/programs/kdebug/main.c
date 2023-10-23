@@ -19,7 +19,7 @@ static void print_file(FILE *f)
     {
         char buffer[BUFSIZE] = { 0 };
         size_t sz = fread(buffer, 1, BUFSIZE, f);
-        if (sz == 0)
+        if (sz == 0 || sz == (size_t) -1)
             break;
 
         fwrite(buffer, 1, sz, stdout);
@@ -129,7 +129,7 @@ int main(int argc, const char *argv[])
             }
         }
 
-        if (handled)
+        if (!handled)
         {
             if (strlen(line))
                 puts("unknown command");

@@ -33,6 +33,7 @@ MOSAPI char *string_trim(char *in);
 
 // malloc, free, calloc and realloc
 #ifndef __MOS_KERNEL__
+extern char **environ;
 MOSAPI __malloc void *malloc(size_t size);
 MOSAPI void free(void *ptr);
 MOSAPI void *calloc(size_t nmemb, size_t size);

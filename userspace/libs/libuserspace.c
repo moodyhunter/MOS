@@ -3,6 +3,7 @@
 #include "liballoc.h"
 #include "struct_file.h"
 
+#include <mos/syscall/number.h>
 #include <mos/syscall/usermode.h>
 #include <mos_signal.h>
 #include <mos_stdio.h>
@@ -94,5 +95,12 @@ noreturn void abort()
 
 pid_t spawn(const char *path, const char *const argv[])
 {
-    return syscall_spawn(path, argv, (const char *const *) environ);
+    pid_t pid = syscall_fork();
+    if (pid == 0)
+    {
+        syscall_execveat(FD_CWD, path, argv, (const char *const *) environ, 0);
+        syscall_exit(-1);
+    }
+
+    return pid;
 }

@@ -119,16 +119,6 @@ static const argparse_arg_t longopts[] = {
 
 int main(int argc, const char *argv[])
 {
-    if (syscall_get_pid() != 1)
-    {
-        printf("init: not running as PID 1\n");
-
-        for (int i = 0; i < argc; i++)
-            printf("argv[%d] = %s\n", i, argv[i]);
-
-        return DYN_ERROR_CODE;
-    }
-
     const char *config_file = "/initrd/config/init.conf";
     const char *shell = "/initrd/programs/mossh";
     argparse_state_t state;
@@ -146,6 +136,17 @@ int main(int argc, const char *argv[])
             case 'h': argparse_usage(&state, longopts, "the init program"); return 0;
             default: break;
         }
+    }
+
+    if (syscall_get_pid() != 1)
+    {
+        puts("init: not running as PID 1");
+
+        for (int i = 0; i < argc; i++)
+            printf("argv[%d] = %s\n", i, argv[i]);
+
+        puts("Leaving init...");
+        return DYN_ERROR_CODE;
     }
 
     config = config_parse_file(config_file);
@@ -181,11 +182,14 @@ int main(int argc, const char *argv[])
     shell_argv = realloc(shell_argv, (shell_argc + 1) * sizeof(char *));
     shell_argv[shell_argc] = NULL;
 
-    // TODO: use exec() ?
-    pid_t shell_pid = spawn(shell, shell_argv);
-    if (shell_pid <= 0)
-        return DYN_ERROR_CODE;
+    if (syscall_fork() == 0)
+    {
+        // execve the shell in the child process
+        pid_t shell_pid = syscall_execveat(FD_CWD, shell, shell_argv, (const char *const *) environ, 0);
+        if (shell_pid <= 0)
+            return DYN_ERROR_CODE;
+    }
 
-    syscall_wait_for_process(shell_pid);
+    syscall_wait_for_process(-1);
     return 0;
 }
