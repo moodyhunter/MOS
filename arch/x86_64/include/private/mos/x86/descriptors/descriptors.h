@@ -107,10 +107,10 @@ MOS_STATIC_ASSERT(sizeof(idt_entry_t) == 16, "idt_entry_t is not 16 bytes");
 
 MOS_STATIC_ASSERT(sizeof(idtr_t) == 2 + sizeof(void *), "idtr32_t is not 6 bytes");
 
-void x86_init_current_cpu_gdt(void);
-void x86_init_current_cpu_tss(void);
+void x86_init_percpu_gdt(void);
+void x86_init_percpu_tss(void);
+void x86_init_percpu_idt(void);
 
-void x86_idt_flush(void);
 void x86_idt_init(void);
 
 // The following 5 symbols are defined in the descriptor_flush.asm file.

@@ -79,7 +79,7 @@ void pic_remap_irq(void);
 extern void *isr_stub_table[];
 extern void *irq_stub_table[];
 
-void x86_irq_handler_init(void);
+void x86_init_irq_handlers(void);
 void x86_interrupt_entry(ptr_t esp);
 
 bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq));

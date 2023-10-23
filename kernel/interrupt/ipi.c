@@ -6,8 +6,6 @@
 #include <mos/types.h>
 
 #if MOS_CONFIG(MOS_SMP)
-static bool ipi_initialized = false;
-
 static void ipi_handler_halt(ipi_type_t type)
 {
     MOS_UNUSED(type);
@@ -33,12 +31,6 @@ static const struct
 
 void ipi_send(u8 target, ipi_type_t type)
 {
-    if (unlikely(!ipi_initialized))
-    {
-        mos_warn("IPI subsystem is not initialized");
-        return;
-    }
-
     mos_debug(ipi, "Sending IPI to %d of type %d", target, type);
     platform_ipi_send(target, type);
 }
@@ -47,12 +39,6 @@ void ipi_send_all(ipi_type_t type)
 {
     mos_debug(ipi, "Sending IPI to all of type %d", type);
     ipi_send(TARGET_CPU_ALL, type);
-}
-
-void ipi_init(void)
-{
-    pr_info("initializing IPI subsystem");
-    ipi_initialized = true;
 }
 
 void ipi_do_handle(ipi_type_t type)

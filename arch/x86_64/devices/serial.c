@@ -8,7 +8,7 @@
 static void set_baudrate_divisor(int com, serial_baud_rate divisor)
 {
     // Set the most significant bit of the Line Control Register. This is the DLAB bit, and allows access to the divisor registers.
-    byte_t control = to_union(byte_t) port_inb(com + OFFSET_LINE_CONTROL);
+    byte_t control = __extension__(byte_t) port_inb(com + OFFSET_LINE_CONTROL);
     control.bits.msb = true;
 
     port_outb(com + OFFSET_LINE_CONTROL, control.byte);
@@ -33,7 +33,7 @@ static void set_data_bits(int com, serial_char_length_t length)
 
 static void set_stop_bits(int com, serial_stop_bits_t stop_bits)
 {
-    byte_t control = to_union(byte_t) port_inb(com + OFFSET_LINE_CONTROL);
+    byte_t control = __extension__(byte_t) port_inb(com + OFFSET_LINE_CONTROL);
     control.bits.b1 = stop_bits == STOP_BITS_15_OR_2;
     port_outb(com + OFFSET_LINE_CONTROL, control.byte);
 }
@@ -54,7 +54,7 @@ static void serial_set_interrupts(int com, int interrupts)
 
 static void serial_set_modem_options(int com, serial_modem_control_t control, bool enable)
 {
-    byte_t byte = to_union(byte_t) port_inb(com + OFFSET_MODEM_CONTROL);
+    byte_t byte = __extension__(byte_t) port_inb(com + OFFSET_MODEM_CONTROL);
     switch (control)
     {
         case MODEM_DTR: byte.bits.b0 = enable; break;

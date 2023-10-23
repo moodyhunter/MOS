@@ -62,7 +62,7 @@ typedef struct
 
 static list_head irq_handlers[IRQ_MAX_COUNT];
 
-void x86_irq_handler_init(void)
+void x86_init_irq_handlers(void)
 {
     for (int i = 0; i < IRQ_MAX_COUNT; i++)
         linked_list_init(&irq_handlers[i]);

@@ -1,37 +1,46 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#define pr_fmt(fmt) "ap_entry: " fmt
+
+#include "mos/mm/mm.h"
+#include "mos/mm/paging/pml_types.h"
+#include "mos/platform/platform.h"
+#include "mos/tasks/schedule.h"
+#include "mos/x86/cpu/cpu.h"
 #include "mos/x86/descriptors/descriptors.h"
+#include "mos/x86/interrupt/apic.h"
 
-#include <mos/platform/platform.h>
-#include <mos/printk.h>
-#include <mos/tasks/schedule.h>
-#include <mos/x86/cpu/cpuid.h>
-#include <mos/x86/interrupt/apic.h>
-#include <mos/x86/mm/paging_impl.h>
-#include <mos/x86/x86_platform.h>
+static bool aps_blocked = true;
 
-noreturn void ap_begin_exec(void)
+void x86_start_all_aps(void)
 {
-    x86_init_current_cpu_gdt();
-    x86_init_current_cpu_tss();
-    x86_idt_flush();
-    x86_enable_paging(pgd_pfn(platform_info->kernel_mm->pgd) * MOS_PAGE_SIZE);
+    MOS_ASSERT(aps_blocked);
+    aps_blocked = false;
+}
+
+noreturn void x86_ap_begin_exec(void)
+{
+    while (aps_blocked)
+        __asm__ volatile("pause");
+
+    x86_init_percpu_gdt();
+    x86_init_percpu_tss();
+    x86_init_percpu_idt();
+
+    // enable paging
+    x86_cpu_set_cr3(pgd_pfn(platform_info->kernel_mm->pgd) * MOS_PAGE_SIZE);
+    __asm__ volatile("mov %%cr4, %%rax; orq $0x80, %%rax; mov %%rax, %%cr4" ::: "rax"); // and enable PGE
 
     lapic_enable();
 
-    processor_version_t info;
-    cpuid_get_processor_info(&info);
+    const u8 processor_id = platform_current_cpu_id();
+    pr_info2("AP %u started", processor_id);
 
-    pr_info("smp: AP %u started", info.ebx.local_apic_id);
-    cpuid_print_cpu_info();
+    const u8 lapic_id = lapic_get_id();
+    if (lapic_id != processor_id)
+        mos_warn("LAPIC ID mismatch: LAPIC_ID: %u != PROCESSOR_ID: %u", lapic_id, processor_id);
 
-    per_cpu(x86_platform.cpu)->id = info.ebx.local_apic_id;
-    current_cpu->mm_context = x86_platform.kernel_mm;
-
-    u8 lapic_id = lapic_get_id();
-    if (lapic_id != info.ebx.local_apic_id)
-        mos_warn("smp: AP %u: LAPIC ID mismatch: %u != %u", info.ebx.local_apic_id, lapic_id, info.ebx.local_apic_id);
-
+    current_cpu->mm_context = platform_info->kernel_mm;
+    current_cpu->id = lapic_id;
     scheduler();
-    MOS_UNREACHABLE();
 }

@@ -56,7 +56,7 @@ static gdt_entry_t *gdt_set_entry(gdt_entry_t *entry, ptr_t base, u32 limit, gdt
     return entry;
 }
 
-void x86_init_current_cpu_gdt()
+void x86_init_percpu_gdt()
 {
     x86_cpu_descriptor_t *this_cpu_desc = per_cpu(x86_cpu_descriptor);
     memzero(this_cpu_desc, sizeof(x86_cpu_descriptor_t));
@@ -83,7 +83,7 @@ void x86_init_current_cpu_gdt()
     gdt_flush(&this_cpu_desc->gdt_ptr);
 }
 
-void x86_init_current_cpu_tss()
+void x86_init_percpu_tss()
 {
     x86_cpu_descriptor_t *this_cpu_desc = per_cpu(x86_cpu_descriptor);
     memzero(&this_cpu_desc->tss, sizeof(tss64_t));

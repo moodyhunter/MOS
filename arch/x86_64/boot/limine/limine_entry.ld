@@ -25,6 +25,11 @@ SECTIONS
         *(.rodata.*);
     }
 
+    .limine_reqs ALIGN(4K) : AT (ADDR(.limine_reqs) - 0xFFFFFFFF80000000)
+    {
+        *(.limine_reqs);
+    }
+
     .mos_info ALIGN(4K) : AT (ADDR(.mos_info) - 0xFFFFFFFF80000000)
     {
         __MOS_KERNEL_MOS_INFO_START = .;

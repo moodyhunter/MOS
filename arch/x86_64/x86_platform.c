@@ -4,6 +4,7 @@
 #include "mos/mm/mm.h"
 #include "mos/tasks/schedule.h"
 #include "mos/x86/acpi/acpi_types.h"
+#include "mos/x86/cpu/ap_entry.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/cpu/cpuid.h"
 #include "mos/x86/descriptors/descriptors.h"
@@ -20,7 +21,6 @@
 #include <mos/setup.h>
 #include <mos/x86/acpi/acpi.h>
 #include <mos/x86/acpi/madt.h>
-#include <mos/x86/cpu/smp.h>
 #include <mos/x86/devices/port.h>
 #include <mos/x86/devices/serial_console.h>
 #include <mos/x86/interrupt/apic.h>
@@ -216,15 +216,11 @@ void platform_dump_stack(platform_regs_t *regs)
 
 void platform_startup_early()
 {
-    x86_init_current_cpu_gdt();
     x86_idt_init();
-    x86_init_current_cpu_tss();
-    x86_irq_handler_init();
-
-#if MOS_CONFIG(MOS_SMP)
-    mos_debug(x86_startup, "copying memory for SMP boot...");
-    x86_smp_copy_trampoline();
-#endif
+    x86_init_percpu_gdt();
+    x86_init_percpu_idt();
+    x86_init_percpu_tss();
+    x86_init_irq_handlers();
 }
 
 void platform_startup_mm()
@@ -262,7 +258,7 @@ void platform_startup_late()
     mos_debug(x86_startup, "Initializing APICs...");
     madt_parse_table();
     lapic_memory_setup();
-    lapic_enable();
+    lapic_enable(); // enable the local APIC
     pic_remap_irq();
     ioapic_init();
 
@@ -294,6 +290,6 @@ void platform_startup_late()
         x86_cpu_enable_avx();
 
 #if MOS_CONFIG(MOS_SMP)
-    x86_smp_start_all();
+    x86_start_all_aps();
 #endif
 }

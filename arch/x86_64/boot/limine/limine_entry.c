@@ -9,6 +9,7 @@
 #include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
 #include "mos/setup.h"
+#include "mos/x86/cpu/ap_entry.h"
 #include "mos/x86/devices/serial_console.h"
 #include "mos/x86/x86_platform.h"
 
@@ -20,6 +21,21 @@ static volatile struct limine_kernel_address_request kernel_address_request = { 
 static volatile struct limine_module_request module_request = { .id = LIMINE_MODULE_REQUEST, .revision = 0 };
 static volatile struct limine_hhdm_request hhdm_request = { .id = LIMINE_HHDM_REQUEST, .revision = 0 };
 static volatile struct limine_kernel_file_request kernel_file_request = { .id = LIMINE_KERNEL_FILE_REQUEST, .revision = 0 };
+static volatile struct limine_paging_mode_request paging_mode_request = { .id = LIMINE_PAGING_MODE_REQUEST, .revision = 0 };
+static volatile struct limine_smp_request smp_request = { .id = LIMINE_SMP_REQUEST, .revision = 0, .flags = LIMINE_SMP_X2APIC };
+
+// .limine_reqs section is defined in limine.ld
+MOS_PUT_IN_SECTION(".limine_reqs", volatile void *, sections[],
+                   {
+                       &memmap_request,
+                       &kernel_address_request,
+                       &module_request,
+                       &hhdm_request,
+                       &kernel_file_request,
+                       &paging_mode_request,
+                       &smp_request,
+                       NULL,
+                   });
 
 static void add_to_memmap(pfn_t start, size_t npages, bool reserved, u32 type, const char *typestr)
 {
@@ -43,12 +59,44 @@ static void add_to_memmap(pfn_t start, size_t npages, bool reserved, u32 type, c
         platform_info->max_pfn = MAX(platform_info->max_pfn, entry->pfn_start + entry->nframes);
 }
 
+#if MOS_CONFIG(MOS_SMP)
+static void ap_entry(struct limine_smp_info *info)
+{
+    pr_info("AP started: #%u, LAPIC ID: %u", info->processor_id, info->lapic_id);
+    x86_ap_begin_exec();
+}
+#endif
+
 asmlinkage void limine_entry(void)
 {
     extern serial_console_t com1_console;
     console_register(&com1_console.con, MOS_PAGE_SIZE);
 #if MOS_DEBUG_FEATURE(x86_startup)
     pr_cont("limine_entry");
+#endif
+
+    if (paging_mode_request.response == NULL)
+        mos_panic("No paging mode found");
+
+    struct limine_paging_mode_response *paging_mode_response = paging_mode_request.response;
+    if (paging_mode_response->mode == LIMINE_PAGING_MODE_X86_64_5LVL)
+        mos_panic("5 level paging is not supported");
+
+#if MOS_CONFIG(MOS_SMP)
+    if (smp_request.response == NULL)
+        mos_panic("No SMP info found");
+
+    struct limine_smp_response *smp_response = smp_request.response;
+    for (size_t i = 0; i < smp_response->cpu_count; i++)
+    {
+        struct limine_smp_info *info = smp_response->cpus[i];
+        if (info->lapic_id == 0)
+            continue; // skip BSP
+
+        __atomic_store_n(&info->goto_address, ap_entry, __ATOMIC_SEQ_CST);
+    }
+#else
+    MOS_UNUSED(smp_request);
 #endif
 
     if (kernel_file_request.response == NULL)

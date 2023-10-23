@@ -158,8 +158,6 @@ void mos_start_kernel(void)
     kthread_init(); // must be called after creating the first init process
     startup_invoke_autoinit(INIT_TARGET_KTHREAD);
 
-    ipi_init();
-
     unblock_scheduler();
     scheduler();
     MOS_UNREACHABLE();

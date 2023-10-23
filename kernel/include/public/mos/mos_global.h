@@ -46,8 +46,6 @@
 #define likely(x)   __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
-#define to_union(u) __extension__(u)
-
 #define __types_compatible(a, b) __builtin_types_compatible_p(__typeof(a), __typeof(b))
 #define do_container_of(ptr, type, member)                                                                                                                               \
     __extension__({                                                                                                                                                      \

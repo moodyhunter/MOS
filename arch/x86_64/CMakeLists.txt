@@ -13,6 +13,7 @@ add_kernel_source(
         descriptors/flush${MOS_BITS}.asm
         acpi/acpi.c
         acpi/madt.c
+        cpu/ap_entry.c
         devices/serial.c
         devices/serial_console.c
         devices/rtc.c
@@ -29,17 +30,3 @@ add_kernel_source(
         x86_platform.c
         x86_platform_api.c
 )
-
-if(MOS_SMP)
-    if (MOS_BITS EQUAL 64)
-        message(WARNING "SMP is not supported on 64-bit x86 (yet)")
-        set(MOS_SMP OFF PARENT_SCOPE)
-    else()
-        add_kernel_source(
-            SOURCES
-                cpu/ap_init.asm
-                cpu/ap_entry.c
-                cpu/smp.c
-        )
-    endif()
-endif()

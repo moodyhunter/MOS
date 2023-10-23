@@ -33,7 +33,7 @@ static void idt_set_descriptor(u8 vector, void *isr, bool usermode, bool is_trap
     descriptor->reserved = 0;
 }
 
-void x86_idt_flush()
+void x86_init_percpu_idt()
 {
     idt_flush(&idtr);
 }
@@ -54,5 +54,4 @@ void x86_idt_init()
 
     idtr.base = &idt[0];
     idtr.limit = (u16) sizeof(idt_entry_t) * IDT_ENTRY_COUNT - 1;
-    idt_flush(&idtr);
 }
