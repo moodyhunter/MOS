@@ -146,18 +146,8 @@ DEFINE_SYSCALL(pid_t, get_parent_pid)(void)
 
 DEFINE_SYSCALL(pid_t, spawn)(const char *path, const char *const argv[], const char *const envp[])
 {
-    process_t *current = current_process;
-
-    size_t argc = 0;
-    while (argv && argv[argc])
-        argc++;
-
-    size_t envc = 0;
-    while (envp && envp[envc])
-        envc++;
-
     const stdio_t stdio = current_stdio();
-    process_t *process = elf_create_process(path, current, argc, argv, envc, envp, &stdio);
+    process_t *process = elf_create_process(path, current_process, argv, envp, &stdio);
 
     if (process == NULL)
         return -1;

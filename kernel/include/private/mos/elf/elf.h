@@ -172,4 +172,6 @@ typedef struct
     size_t sh_entsize;
 } __packed elf_section_hdr_t;
 
-process_t *elf_create_process(const char *path, process_t *parent, int argc, const char *const argv[], int envc, const char *const envp[], const stdio_t *ios);
+__nodiscard bool elf_read_and_verify_executable(file_t *file, elf_header_t *header);
+__nodiscard bool elf_fill_process(process_t *proc, file_t *file, const char *path, const char *const argv[], const char *const envp[]);
+process_t *elf_create_process(const char *path, process_t *parent, const char *const argv[], const char *const envp[], const stdio_t *ios);

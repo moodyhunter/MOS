@@ -76,19 +76,6 @@ static void elf_read_file(file_t *file, void *buf, off_t offset, size_t size)
     MOS_ASSERT_X(read == size, "failed to read %zu bytes from file '%s' at offset %zu", size, dentry_name(file->dentry), offset);
 }
 
-static bool elf_read_and_verify_executable(file_t *file, elf_header_t *header)
-{
-    elf_read_file(file, header, 0, sizeof(elf_header_t));
-    const bool valid = elf_verify_header(header);
-    if (!valid)
-        return false;
-
-    if (header->object_type != ET_EXEC && header->object_type != ET_DYN)
-        return false;
-
-    return true;
-}
-
 static ptr_t elf_determine_loadbias(elf_header_t *elf)
 {
     MOS_UNUSED(elf);
@@ -202,7 +189,7 @@ static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, m
 static ptr_t elf_map_interpreter(const char *path, mm_context_t *mm)
 {
     file_t *const interp_file = vfs_openat(FD_CWD, path, OPEN_READ | OPEN_EXECUTE);
-    if (IS_ERR_OR_NULL(interp_file))
+    if (IS_ERR(interp_file))
         return 0;
 
     io_ref(&interp_file->io);
@@ -234,7 +221,7 @@ static ptr_t elf_map_interpreter(const char *path, mm_context_t *mm)
     return MOS_ELF_INTERPRETER_BASE_OFFSET + entry;
 }
 
-__nodiscard bool elf_do_fill_process(process_t *proc, file_t *file, elf_header_t elf, elf_startup_info_t *info)
+__nodiscard static bool elf_do_fill_process(process_t *proc, file_t *file, elf_header_t elf, elf_startup_info_t *info)
 {
     bool ret = true;
 
@@ -322,8 +309,6 @@ __nodiscard bool elf_do_fill_process(process_t *proc, file_t *file, elf_header_t
     elf_setup_main_thread(main_thread, info, &user_argv, &user_envp);
     platform_context_setup_main_thread(main_thread, has_interpreter ? interp_entrypoint : elf.entry_point, main_thread->u_stack.head, info->argc, user_argv, user_envp);
 
-    thread_complete_init(main_thread);
-
     goto done;
 
 bad_proc:
@@ -336,7 +321,20 @@ done:;
     return ret;
 }
 
-bool elf_fill_process(process_t *proc, file_t *file, const char *path, int argc, const char *const argv[], int envc, const char *const envp[])
+bool elf_read_and_verify_executable(file_t *file, elf_header_t *header)
+{
+    elf_read_file(file, header, 0, sizeof(elf_header_t));
+    const bool valid = elf_verify_header(header);
+    if (!valid)
+        return false;
+
+    if (header->object_type != ET_EXEC && header->object_type != ET_DYN)
+        return false;
+
+    return true;
+}
+
+bool elf_fill_process(process_t *proc, file_t *file, const char *path, const char *const argv[], const char *const envp[])
 {
     bool ret = false;
 
@@ -348,6 +346,14 @@ bool elf_fill_process(process_t *proc, file_t *file, const char *path, int argc,
         pr_emerg("failed to verify ELF header for '%s'", dentry_name(file->dentry));
         goto cleanup_close_file;
     }
+
+    int argc = 0;
+    while (argv && argv[argc] != NULL)
+        argc++;
+
+    int envc = 0;
+    while (envp && envp[envc] != NULL)
+        envc++;
 
     elf_startup_info_t info = {
         .invocation = strdup(path),
@@ -383,11 +389,11 @@ cleanup_close_file:
     return ret;
 }
 
-process_t *elf_create_process(const char *path, process_t *parent, int argc, const char *const argv[], int envc, const char *const envp[], const stdio_t *ios)
+process_t *elf_create_process(const char *path, process_t *parent, const char *const argv[], const char *const envp[], const stdio_t *ios)
 {
     process_t *proc = NULL;
     file_t *file = vfs_openat(FD_CWD, path, OPEN_READ | OPEN_EXECUTE);
-    if (IS_ERR_OR_NULL(file))
+    if (IS_ERR(file))
     {
         mos_warn("failed to open '%s'", path);
         return NULL;
@@ -401,7 +407,10 @@ process_t *elf_create_process(const char *path, process_t *parent, int argc, con
         goto cleanup_close_file;
     }
 
-    if (!elf_fill_process(proc, file, path, argc, argv, envc, envp))
+    const bool filled = elf_fill_process(proc, file, path, argv, envp);
+    thread_complete_init(proc->main_thread);
+
+    if (!filled)
     {
         // TODO how do we make sure that the process is cleaned up properly?
         process_handle_exit(proc, 1);

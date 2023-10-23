@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/filesystem/dentry.h"
+#include "mos/filesystem/vfs.h"
 #include "mos/mm/mm.h"
 #include "mos/tasks/signal.h"
 
@@ -33,7 +34,7 @@ process_t *process_do_fork(process_t *parent)
         return NULL;
     }
 
-    child_p->working_directory = dentry_ref(parent->working_directory);
+    child_p->working_directory = dentry_ref_up_to(parent->working_directory, root_dentry);
 
 #if MOS_DEBUG_FEATURE(fork)
     pr_emph("process %d forked to %d", parent->pid, child_p->pid);

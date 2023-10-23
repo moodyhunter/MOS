@@ -101,6 +101,11 @@ platform_regs_t *platform_thread_regs(const thread_t *thread)
     return (platform_regs_t *) (thread->k_stack.top - sizeof(platform_regs_t));
 }
 
+noreturn void platform_return_to_userspace(platform_regs_t *regs)
+{
+    x86_interrupt_return_impl(regs);
+}
+
 u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unused arg2, u64 __maybe_unused arg3, u64 __maybe_unused arg4)
 {
     switch (syscall)

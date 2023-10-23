@@ -219,7 +219,10 @@ pid_t process_wait_for_pid(pid_t pid)
         list_foreach(process_t, child, current_process->children)
         {
             if (!reschedule_for_waitlist(&child->waiters))
-                return child->pid; // waitlist was closed, that child is already dead
+            {
+                pid = child->pid;
+                goto child_dead;
+            }
             else if (child->pid == 1)
                 MOS_UNREACHABLE(); // init process cannot die
             else
@@ -229,22 +232,23 @@ pid_t process_wait_for_pid(pid_t pid)
         MOS_UNREACHABLE();
     }
 
-    process_t *target = process_get(pid);
-    if (target == NULL)
+child_dead:;
+    process_t *target_proc = process_get(pid);
+    if (target_proc == NULL)
     {
         pr_warn("process %d does not exist", pid);
         return -ECHILD;
     }
 
-    bool ok = reschedule_for_waitlist(&target->waiters);
+    bool ok = reschedule_for_waitlist(&target_proc->waiters);
     MOS_UNUSED(ok);
 
-    list_remove(target);
-    pid = target->pid;
-    const int exit_code = target->exit_code;
+    list_remove(target_proc); // remove from parent's children list
+    pid = target_proc->pid;
+    const int exit_code = target_proc->exit_code;
     MOS_UNUSED(exit_code);
     hashmap_remove(&process_table, pid);
-    process_destroy(target);
+    process_destroy(target_proc);
 
     return pid;
 }
@@ -283,7 +287,7 @@ void process_handle_exit(process_t *process, u32 exit_code)
             {
                 thread->state = THREAD_STATE_DEAD;
                 spinlock_release(&thread->state_lock);
-                process->main_thread = thread; // make sure we don't destroy the current thread
+                process->main_thread = thread; // make sure we properly destroy the main thread at the end
             }
         }
     }

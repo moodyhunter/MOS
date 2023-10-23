@@ -129,6 +129,8 @@ void mos_start_kernel(void)
     init_args.argv = kcalloc(1, sizeof(char *)); // init_argv[0] is the init path
     init_args.argv[0] = strdup(DEFAULT_INIT_PATH);
     startup_invoke_setup();
+    init_args.argv = krealloc(init_args.argv, (init_args.argc + 1) * sizeof(char *));
+    init_args.argv[init_args.argc] = NULL;
 
     pr_emph("init path: %s", init_args.argv[0]);
     for (u32 i = 1; i < init_args.argc; i++)
@@ -148,9 +150,8 @@ void mos_start_kernel(void)
 
     console_t *const init_con = console_get("serial_com1");
     const stdio_t init_io = { .in = &init_con->io, .out = &init_con->io, .err = &init_con->io };
-    const int init_envc = 2;
-    const char *const init_envp[] = { "PATH=/bin", "HOME=/", NULL };
-    process_t *init = elf_create_process(init_args.argv[0], NULL, init_args.argc, init_args.argv, init_envc, init_envp, &init_io);
+    const char *const init_envp[] = { "PATH=/initrd/programs:/initrd/bin:/bin", "HOME=/", NULL };
+    process_t *init = elf_create_process(init_args.argv[0], NULL, init_args.argv, init_envp, &init_io);
     if (unlikely(!init))
         mos_panic("failed to create init process");
 

@@ -43,7 +43,7 @@ thread_t *thread_allocate(process_t *owner, thread_mode tflags)
 
 void thread_destroy(thread_t *thread)
 {
-    MOS_ASSERT(thread != current_thread);
+    MOS_ASSERT_X(thread != current_thread, "you cannot just destroy yourself");
     if (!thread_is_valid(thread))
         return;
 
@@ -124,18 +124,12 @@ bool thread_wait_for_tid(tid_t tid)
 
     if (target->owner != current_process)
     {
-        pr_warn("wait_for_tid(%d) from pid %d (%s) but thread belongs to pid %d (%s)", tid, current_process->pid, current_process->name, target->owner->pid,
-                target->owner->name);
+        pr_warn("wait_for_tid(%d) from process %pp but thread belongs to %pp", tid, (void *) current_process, (void *) target->owner);
         return false;
     }
 
-    if (target->state == THREAD_STATE_DEAD)
-    {
-        return true; // thread is already dead, no need to wait
-    }
-
     bool ok = reschedule_for_waitlist(&target->waiters);
-    MOS_UNUSED(ok);
+    MOS_UNUSED(ok); // true: thread is dead, false: thread is already dead at the time of calling
 
     return true;
 }
