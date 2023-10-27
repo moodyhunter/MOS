@@ -56,7 +56,7 @@ typedef enum
 
 #if MOS_CONFIG(MOS_PRINTK_WITH_DATETIME)
 #define _lprintk_datetime_fmt "%s | "
-#define _lprintk_datetime_arg , platform_get_datetime_str()
+#define _lprintk_datetime_arg , (const char *) platform_get_datetime_str()
 #else
 #define _lprintk_datetime_fmt ""
 #define _lprintk_datetime_arg
