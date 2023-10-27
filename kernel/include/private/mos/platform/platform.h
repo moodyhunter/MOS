@@ -189,6 +189,10 @@ u32 platform_current_cpu_id(void);
 void platform_msleep(u64 ms);
 void platform_usleep(u64 us);
 void platform_cpu_idle(void);
+u64 platform_get_timestamp(void);
+
+typedef char datetime_str_t[32];
+datetime_str_t *platform_get_datetime_str(void);
 
 // Platform Interrupt APIs
 void platform_interrupt_enable(void);

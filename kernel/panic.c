@@ -64,6 +64,7 @@ noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
     if (unlikely(in_panic))
     {
         pr_fatal("recursive panic detected, aborting...");
+        pr_info("");
         if (unlikely(poweroff_on_panic))
         {
             pr_emerg("Powering off...");

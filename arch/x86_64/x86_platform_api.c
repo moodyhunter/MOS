@@ -24,6 +24,7 @@
 #include <mos/x86/tasks/context.h>
 #include <mos/x86/x86_interrupt.h>
 #include <mos/x86/x86_platform.h>
+#include <mos_stdio.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
@@ -67,6 +68,21 @@ void platform_usleep(u64 us)
 void platform_cpu_idle(void)
 {
     __asm__ volatile("hlt");
+}
+
+u64 platform_get_timestamp()
+{
+    return rdtsc();
+}
+
+datetime_str_t *platform_get_datetime_str(void)
+{
+    static PER_CPU_DECLARE(datetime_str_t, datetime_str);
+
+    timeval_t time;
+    platform_get_time(&time);
+    snprintf((char *) per_cpu(datetime_str), sizeof(datetime_str_t), "%d-%02d-%02d %02d:%02d:%02d", time.year, time.month, time.day, time.hour, time.minute, time.second);
+    return per_cpu(datetime_str);
 }
 
 void platform_interrupt_enable(void)
