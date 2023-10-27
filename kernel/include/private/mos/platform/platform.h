@@ -265,5 +265,5 @@ void platform_ipi_send(u8 target_cpu, ipi_type_t type);
 
 // Signal Handler APIs
 typedef struct _sigreturn_data sigreturn_data_t;
-noreturn void platform_jump_to_signal_handler(const sigreturn_data_t *sigreturn_data, sigaction_t *sa);
+noreturn void platform_jump_to_signal_handler(const sigreturn_data_t *sigreturn_data, const sigaction_t *sa);
 noreturn void platform_restore_from_signal_handler(void *sp);

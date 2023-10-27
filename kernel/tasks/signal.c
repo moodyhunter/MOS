@@ -109,6 +109,12 @@ static signal_t signal_get_next_pending(void)
     return signal;
 }
 
+// clang-format off
+#define _terminate() signal_do_terminate(next_signal); break
+#define _coredump()  signal_do_coredump(next_signal); break
+#define _ignore()    signal_do_ignore(next_signal); break
+// clang-format on
+
 void signal_check_and_handle(void)
 {
     if (!current_thread)
@@ -121,31 +127,27 @@ void signal_check_and_handle(void)
     if (!next_signal)
         return; // no pending signal, leave asap
 
-    sigaction_t action = { 0 };
+    const sigaction_t action = current_process->signal_handlers[next_signal];
 
-    switch (next_signal)
+    if (action.handler == SIG_DFL)
     {
-#define SELECT_SIGNAL_HANDLER_OR(SIGNAL, OR)                                                                                                                             \
-    case SIGNAL:;                                                                                                                                                        \
-        action = current_process->signal_handlers[SIGNAL];                                                                                                               \
-        if (!action.handler)                                                                                                                                             \
-            signal_do_##OR(SIGNAL);                                                                                                                                      \
-        break
+        switch (next_signal)
+        {
+            case SIGINT: _terminate();
+            case SIGILL: _coredump();
+            case SIGTRAP: _coredump();
+            case SIGABRT: _coredump();
+            case SIGKILL: _terminate();
+            case SIGSEGV: _coredump();
+            case SIGTERM: _terminate();
+            case SIGCHLD: _ignore();
 
-        SELECT_SIGNAL_HANDLER_OR(SIGINT, terminate);
-        SELECT_SIGNAL_HANDLER_OR(SIGILL, coredump);
-        SELECT_SIGNAL_HANDLER_OR(SIGTRAP, coredump);
-        SELECT_SIGNAL_HANDLER_OR(SIGABRT, coredump);
-        SELECT_SIGNAL_HANDLER_OR(SIGKILL, terminate);
-        SELECT_SIGNAL_HANDLER_OR(SIGSEGV, coredump);
-        SELECT_SIGNAL_HANDLER_OR(SIGTERM, terminate);
-        SELECT_SIGNAL_HANDLER_OR(SIGCHLD, ignore);
+            default: MOS_UNREACHABLE_X("handle this signal %d", next_signal); break;
+        }
 
-        default: MOS_UNREACHABLE_X("handle this signal %d", next_signal); break;
+        // the default handler returns
+        return;
     }
-
-    if (!action.handler)
-        return; // the default handler is to 'ignore', so we just leave
 
     const bool was_masked = current_thread->signal_info.masks[next_signal];
     if (!was_masked)
@@ -158,6 +160,9 @@ void signal_check_and_handle(void)
 
     platform_jump_to_signal_handler(&data, &action); // save previous register states onto user stack
 }
+#undef _terminate
+#undef _coredump
+#undef _ignore
 
 void signal_on_returned(sigreturn_data_t *data)
 {
