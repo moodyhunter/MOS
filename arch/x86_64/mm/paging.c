@@ -33,7 +33,7 @@ void x86_paging_setup()
     const pml4_t pml4 = pml_create_table(pml4);
     x86_kernel_mmctx.pgd = pgd_create(pml4);
 
-    mos_debug(x86_startup, "mapping kernel space...");
+    pr_dinfo2(x86_startup, "mapping kernel space...");
 
     // no need to reserve the kernel space, bootloader has done this
     mm_map_pages(                                                                                          //
@@ -63,7 +63,7 @@ void x86_paging_setup()
     // map all memory to MOS_DIRECT_MAP_VADDR using 1 GiB, or 2 MiB pages
     const bool gbpages = cpu_has_feature(CPU_FEATURE_PDPE1GB);
 
-    mos_debug(x86_startup, "mapping all memory to " PTR_FMT " using %s pages", x86_platform.direct_map_base, gbpages ? "1 GB" : "2 MB");
+    pr_dinfo2(x86_startup, "mapping all memory to " PTR_FMT " using %s pages", x86_platform.direct_map_base, gbpages ? "1 GB" : "2 MB");
 
     const size_t STEP = (gbpages ? 1 GB : 2 MB) / MOS_PAGE_SIZE;
     const size_t total_npages = MAX(ALIGN_UP(platform_info->max_pfn, STEP), 4 GB / MOS_PAGE_SIZE);

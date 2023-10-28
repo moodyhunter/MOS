@@ -307,7 +307,7 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
     dentry_t *entry = dentry_get(base, root_dentry, path, resolve_flags);
     if (IS_ERR(entry))
     {
-        mos_debug(vfs, "failed to resolve '%s', create=%d, read=%d, exec=%d, nfollow=%d, dir=%d, trun=%d", path, may_create, read, exec, no_follow, expect_dir, truncate);
+        pr_dinfo2(vfs, "failed to resolve '%s', create=%d, read=%d, exec=%d, nfollow=%d, dir=%d, trun=%d", path, may_create, read, exec, no_follow, expect_dir, truncate);
         return ERR(entry);
     }
 
@@ -376,7 +376,7 @@ void vfs_register_filesystem(filesystem_t *fs)
     list_node_append(&vfs_fs_list, list_node(fs));
     spinlock_release(&vfs_fs_list_lock);
 
-    mos_debug(vfs, "filesystem '%s' registered", fs->name);
+    pr_dinfo2(vfs, "filesystem '%s' registered", fs->name);
 }
 
 long vfs_mount(const char *device, const char *path, const char *fs, const char *options)
@@ -398,14 +398,14 @@ long vfs_mount(const char *device, const char *path, const char *fs, const char 
             pr_warn("root filesystem is already mounted");
             return -EBUSY;
         }
-        mos_debug(vfs, "mounting root filesystem '%s'...", fs);
+        pr_dinfo2(vfs, "mounting root filesystem '%s'...", fs);
         root_dentry = real_fs->mount(real_fs, device, options);
         if (root_dentry == NULL)
         {
             mos_warn("failed to mount root filesystem");
             return -EIO;
         }
-        mos_debug(vfs, "root filesystem mounted, dentry=%p", (void *) root_dentry);
+        pr_dinfo2(vfs, "root filesystem mounted, dentry=%p", (void *) root_dentry);
 
         MOS_ASSERT(root_dentry->name == NULL);
         bool mounted = dentry_mount(root_dentry, root_dentry, real_fs);
@@ -445,7 +445,7 @@ long vfs_mount(const char *device, const char *path, const char *fs, const char 
     }
 
     MOS_ASSERT_X(mountpoint->refcount == mounted_root->refcount, "mountpoint refcount=%zu, mounted_root refcount=%zu", mountpoint->refcount, mounted_root->refcount);
-    mos_debug(vfs, "mounted filesystem '%s' on '%s'", fs, path);
+    pr_dinfo2(vfs, "mounted filesystem '%s' on '%s'", fs, path);
     return 0;
 }
 
@@ -493,7 +493,7 @@ long vfs_umount(const char *path)
 
 file_t *vfs_openat(int fd, const char *path, open_flags flags)
 {
-    mos_debug(vfs, "vfs_openat(fd=%d, path='%s', flags=%x)", fd, path, flags);
+    pr_dinfo2(vfs, "vfs_openat(fd=%d, path='%s', flags=%x)", fd, path, flags);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);
     file_t *file = vfs_do_open_relative(base, path, flags);
     return file;
@@ -503,7 +503,7 @@ long vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstat
 {
     if (flags & FSTATAT_FILE)
     {
-        mos_debug(vfs, "vfs_fstatat(fd=%d, path='%p', stat=%p, flags=%x)", fd, (void *) path, (void *) statbuf, flags);
+        pr_dinfo2(vfs, "vfs_fstatat(fd=%d, path='%p', stat=%p, flags=%x)", fd, (void *) path, (void *) statbuf, flags);
         io_t *io = process_get_fd(current_process, fd);
         if (!(io_valid(io) && (io->type == IO_FILE || io->type == IO_DIR)))
             return -EBADF; // io is closed, or is not a file or directory
@@ -516,7 +516,7 @@ long vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstat
         return 0;
     }
 
-    mos_debug(vfs, "vfs_fstatat(fd=%d, path='%s', stat=%p, flags=%x)", fd, path, (void *) statbuf, flags);
+    pr_dinfo2(vfs, "vfs_fstatat(fd=%d, path='%s', stat=%p, flags=%x)", fd, path, (void *) statbuf, flags);
     dentry_t *basedir = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);
     lastseg_resolve_flags_t resolve_flags = RESOLVE_EXPECT_FILE | RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST;
     if (flags & FSTATAT_NOFOLLOW)
@@ -557,7 +557,7 @@ size_t vfs_readlinkat(fd_t dirfd, const char *path, char *buf, size_t size)
 
 long vfs_touch(const char *path, file_type_t type, u32 perms)
 {
-    mos_debug(vfs, "vfs_touch(path='%s', type=%d, perms=%o)", path, type, perms);
+    pr_dinfo2(vfs, "vfs_touch(path='%s', type=%d, perms=%o)", path, type, perms);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
     dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_ANY_EXIST | RESOLVE_EXPECT_ANY_TYPE);
     if (IS_ERR(dentry))
@@ -567,7 +567,7 @@ long vfs_touch(const char *path, file_type_t type, u32 perms)
 
     if (!(parentdir && parentdir->inode && parentdir->inode->ops && parentdir->inode->ops->newfile))
     {
-        mos_debug(vfs, "vfs_touch: parent directory does not support newfile() operation");
+        pr_dinfo2(vfs, "vfs_touch: parent directory does not support newfile() operation");
         dentry_unref(dentry);
         return -ENOTSUP;
     }
@@ -580,7 +580,7 @@ long vfs_touch(const char *path, file_type_t type, u32 perms)
 
 long vfs_symlink(const char *path, const char *target)
 {
-    mos_debug(vfs, "vfs_symlink(path='%s', target='%s')", path, target);
+    pr_dinfo2(vfs, "vfs_symlink(path='%s', target='%s')", path, target);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
     dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_NONEXIST);
     if (IS_ERR(dentry))
@@ -598,7 +598,7 @@ long vfs_symlink(const char *path, const char *target)
 
 long vfs_mkdir(const char *path)
 {
-    mos_debug(vfs, "vfs_mkdir('%s')", path);
+    pr_dinfo2(vfs, "vfs_mkdir('%s')", path);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
     dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_NONEXIST);
     if (IS_ERR(dentry))
@@ -623,7 +623,7 @@ long vfs_mkdir(const char *path)
 
 long vfs_rmdir(const char *path)
 {
-    mos_debug(vfs, "vfs_rmdir('%s')", path);
+    pr_dinfo2(vfs, "vfs_rmdir('%s')", path);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
     dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_DIR);
     if (IS_ERR(dentry))
@@ -647,7 +647,7 @@ long vfs_rmdir(const char *path)
 
 size_t vfs_list_dir(io_t *io, void *buf, size_t size)
 {
-    mos_debug(vfs, "vfs_list_dir(io=%p, buf=%p, size=%zu)", (void *) io, (void *) buf, size);
+    pr_dinfo2(vfs, "vfs_list_dir(io=%p, buf=%p, size=%zu)", (void *) io, (void *) buf, size);
     file_t *file = container_of(io, file_t, io);
     if (unlikely(file->dentry->inode->type != FILE_TYPE_DIRECTORY))
     {
@@ -669,7 +669,7 @@ size_t vfs_list_dir(io_t *io, void *buf, size_t size)
 
 long vfs_chdir(const char *path)
 {
-    mos_debug(vfs, "vfs_chdir('%s')", path);
+    pr_dinfo2(vfs, "vfs_chdir('%s')", path);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
     dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_DIR);
     if (IS_ERR(dentry))

@@ -102,7 +102,7 @@ static ptr_t elf_determine_loadbias(elf_header_t *elf)
 
 static void elf_setup_main_thread(thread_t *thread, elf_startup_info_t *const info, ptr_t *const out_pargv, ptr_t *const out_penvp)
 {
-    mos_debug(elf, "cpu %d: setting up a new main thread %pt of process %pp", current_cpu->id, (void *) thread, (void *) thread->owner);
+    pr_dinfo2(elf, "cpu %d: setting up a new main thread %pt of process %pp", current_cpu->id, (void *) thread, (void *) thread->owner);
 
     MOS_ASSERT_X(thread->u_stack.head == thread->u_stack.top, "thread %pt's user stack is not empty", (void *) thread);
     stack_push_val(&thread->u_stack, (uintn) 0);
@@ -155,7 +155,7 @@ no_argv:
 static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, mm_context_t *mm, file_t *file)
 {
     MOS_ASSERT(ph->header_type == ELF_PT_LOAD);
-    mos_debug(elf, "program header %c%c%c, type '%d' at " PTR_FMT, //
+    pr_dinfo2(elf, "program header %c%c%c, type '%d' at " PTR_FMT, //
               ph->p_flags & ELF_PF_R ? 'r' : '-',                  //
               ph->p_flags & ELF_PF_W ? 'w' : '-',                  //
               ph->p_flags & ELF_PF_X ? 'x' : '-',                  //
@@ -172,18 +172,18 @@ static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, m
     const size_t aligned_size = ALIGN_DOWN_TO_PAGE(ph->data_offset);
 
     const ptr_t map_start = map_bias + aligned_vaddr;
-    mos_debug(elf, "  mapping %zu pages at " PTR_FMT " (bias at " PTR_FMT ") from offset %zu...", npages, map_start, map_bias, aligned_size);
+    pr_dinfo2(elf, "  mapping %zu pages at " PTR_FMT " (bias at " PTR_FMT ") from offset %zu...", npages, map_start, map_bias, aligned_size);
 
     const ptr_t vaddr = mmap_file(mm, map_start, MMAP_PRIVATE | MMAP_EXACT, flags, npages, &file->io, aligned_size);
     MOS_ASSERT_X(vaddr == map_start, "failed to map ELF segment at " PTR_FMT, aligned_vaddr);
 
     if (ph->size_in_file < ph->size_in_mem)
     {
-        mos_debug(elf, "  ... and zeroing %zu bytes at " PTR_FMT, ph->size_in_mem - ph->size_in_file, map_bias + ph->vaddr + ph->size_in_file);
+        pr_dinfo2(elf, "  ... and zeroing %zu bytes at " PTR_FMT, ph->size_in_mem - ph->size_in_file, map_bias + ph->vaddr + ph->size_in_file);
         memzero((char *) map_bias + ph->vaddr + ph->size_in_file, ph->size_in_mem - ph->size_in_file);
     }
 
-    mos_debug(elf, "  ... done");
+    pr_dinfo2(elf, "  ... done");
 }
 
 static ptr_t elf_map_interpreter(const char *path, mm_context_t *mm)
@@ -254,12 +254,12 @@ __nodiscard static bool elf_do_fill_process(process_t *proc, file_t *file, elf_h
             {
                 char interp_name[ph.size_in_file];
                 elf_read_file(file, interp_name, ph.data_offset, ph.size_in_file);
-                mos_debug(elf, "elf interpreter: %s", interp_name);
+                pr_dinfo2(elf, "elf interpreter: %s", interp_name);
                 has_interpreter = true;
                 interp_entrypoint = elf_map_interpreter(interp_name, proc->mm);
                 if (!interp_entrypoint)
                 {
-                    mos_debug(elf, "failed to map interpreter '%s'", interp_name);
+                    pr_dinfo2(elf, "failed to map interpreter '%s'", interp_name);
                     goto bad_proc;
                 }
 
@@ -285,9 +285,9 @@ __nodiscard static bool elf_do_fill_process(process_t *proc, file_t *file, elf_h
             default:
             {
                 if (IN_RANGE(ph.header_type, ELF_PT_OS_LOW, ELF_PT_OS_HIGH))
-                    mos_debug(elf, "ignoring OS-specific program header type 0x%x", ph.header_type);
+                    pr_dinfo2(elf, "ignoring OS-specific program header type 0x%x", ph.header_type);
                 else if (IN_RANGE(ph.header_type, ELF_PT_PROCESSOR_LO, ELF_PT_PROCESSOR_HI))
-                    mos_debug(elf, "ignoring processor-specific program header type 0x%x", ph.header_type);
+                    pr_dinfo2(elf, "ignoring processor-specific program header type 0x%x", ph.header_type);
                 else
                     pr_warn("unknown program header type 0x%x", ph.header_type);
                 break;

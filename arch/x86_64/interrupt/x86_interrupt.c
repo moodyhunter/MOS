@@ -198,7 +198,8 @@ static void x86_handle_exception(platform_regs_t *regs)
     if (current_thread)
     {
         pr_emerg("cpu %d: %s (%lu) at " PTR_FMT " (error code %lu)", lapic_get_id(), name, regs->interrupt_number, regs->ip, regs->error_code);
-        signal_send_to_thread(current_thread, SIGABRT);
+        signal_send_to_thread(current_thread, SIGKILL);
+        platform_dump_regs(regs);
     }
     else
     {

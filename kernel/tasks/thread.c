@@ -47,7 +47,7 @@ void thread_destroy(thread_t *thread)
     if (!thread_is_valid(thread))
         return;
 
-    mos_debug(thread, "destroying thread %pt", (void *) thread);
+    pr_dinfo2(thread, "destroying thread %pt", (void *) thread);
 
     if (thread->name != NULL)
         kfree(thread->name);
@@ -72,7 +72,7 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name)
 
     t->name = strdup(name);
 
-    mos_debug(thread, "creating new thread %pt, owner=%pp", (void *) t, (void *) owner);
+    pr_dinfo2(thread, "creating new thread %pt, owner=%pp", (void *) t, (void *) owner);
 
     // Kernel stack
     const ptr_t kstack_blk = phyframe_va(mm_get_free_pages(MOS_STACK_PAGES_KERNEL));

@@ -42,7 +42,7 @@ void mos_cmdline_init(const char *cmdline)
     memcpy(cmdline_buf, cmdline, cmdline_length);
     cmdline_buf[cmdline_length] = '\0'; // ensure null terminator
 
-    mos_debug(setup, "cmdline: '%s'", cmdline_buf);
+    pr_dinfo2(setup, "cmdline: '%s'", cmdline_buf);
 
     const char *cmdlines_tmp[MOS_MAX_CMDLINE_COUNT] = { 0 };
     bool result = cmdline_parse_inplace(cmdline_buf, cmdline_length, MOS_MAX_CMDLINE_COUNT, &platform_info->n_cmdlines, cmdlines_tmp);
@@ -51,7 +51,7 @@ void mos_cmdline_init(const char *cmdline)
 
     for (size_t i = 0; i < platform_info->n_cmdlines; i++)
     {
-        mos_debug(setup, "%s", cmdlines_tmp[i]);
+        pr_dinfo2(setup, "%s", cmdlines_tmp[i]);
         platform_info->cmdlines[i].name = cmdlines_tmp[i];
 
         // find the = sign

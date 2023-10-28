@@ -44,7 +44,7 @@ io_t *const io_null = &io_null_impl;
 
 void io_init(io_t *io, io_type_t type, io_flags_t flags, const io_op_t *ops)
 {
-    mos_debug(io, "io_init(%p, %d, %d, %p)", (void *) io, type, flags, (void *) ops);
+    pr_dinfo2(io, "io_init(%p, %d, %d, %p)", (void *) io, type, flags, (void *) ops);
 
     if (unlikely(!io))
         mos_warn("io is NULL");
@@ -73,7 +73,7 @@ void io_init(io_t *io, io_type_t type, io_flags_t flags, const io_op_t *ops)
 
 io_t *io_ref(io_t *io)
 {
-    mos_debug(io, "io_ref(%p)", (void *) io);
+    pr_dinfo2(io, "io_ref(%p)", (void *) io);
     if (unlikely(!io))
     {
         mos_warn("io is NULL");
@@ -92,7 +92,7 @@ io_t *io_ref(io_t *io)
 
 io_t *io_unref(io_t *io)
 {
-    mos_debug(io, "io_unref(%p)", (void *) io);
+    pr_dinfo2(io, "io_unref(%p)", (void *) io);
     if (unlikely(io->closed))
     {
         mos_warn("%p is already closed", (void *) io);
@@ -111,13 +111,13 @@ io_t *io_unref(io_t *io)
     {
         if (io->ops->close)
         {
-            mos_debug(io, "closing %p", (void *) io);
+            pr_dinfo2(io, "closing %p", (void *) io);
             io->closed = true;
             io->ops->close(io);
         }
         else
         {
-            mos_debug(io, "%p is not closeable", (void *) io);
+            pr_dinfo2(io, "%p is not closeable", (void *) io);
         }
         return NULL;
     }
@@ -132,7 +132,7 @@ bool io_valid(io_t *io)
 
 size_t io_read(io_t *io, void *buf, size_t count)
 {
-    mos_debug(io, "io_read(%p, %p, %zu)", (void *) io, buf, count);
+    pr_dinfo2(io, "io_read(%p, %p, %zu)", (void *) io, buf, count);
 
     if (unlikely(io->closed))
     {
@@ -151,7 +151,7 @@ size_t io_read(io_t *io, void *buf, size_t count)
 
 size_t io_pread(io_t *io, void *buf, size_t count, off_t offset)
 {
-    mos_debug(io, "io_pread(%p, %p, %zu, %lu)", (void *) io, buf, count, offset);
+    pr_dinfo2(io, "io_pread(%p, %p, %zu, %lu)", (void *) io, buf, count, offset);
 
     if (unlikely(io->closed))
     {
@@ -180,7 +180,7 @@ size_t io_pread(io_t *io, void *buf, size_t count, off_t offset)
 
 size_t io_write(io_t *io, const void *buf, size_t count)
 {
-    mos_debug(io, "io_write(%p, %p, %zu)", (void *) io, buf, count);
+    pr_dinfo2(io, "io_write(%p, %p, %zu)", (void *) io, buf, count);
 
     if (unlikely(io->closed))
     {
@@ -199,7 +199,7 @@ size_t io_write(io_t *io, const void *buf, size_t count)
 
 off_t io_seek(io_t *io, off_t offset, io_seek_whence_t whence)
 {
-    mos_debug(io, "io_seek(%p, %lu, %d)", (void *) io, offset, whence);
+    pr_dinfo2(io, "io_seek(%p, %lu, %d)", (void *) io, offset, whence);
 
     if (unlikely(io->closed))
     {
@@ -218,7 +218,7 @@ off_t io_seek(io_t *io, off_t offset, io_seek_whence_t whence)
 
 off_t io_tell(io_t *io)
 {
-    mos_debug(io, "io_tell(%p)", (void *) io);
+    pr_dinfo2(io, "io_tell(%p)", (void *) io);
     return io_seek(io, 0, IO_SEEK_CURRENT);
 }
 
@@ -254,7 +254,7 @@ bool io_mmap_perm_check(io_t *io, vm_flags flags, bool private)
 
 bool io_mmap(io_t *io, vmap_t *vmap, off_t offset)
 {
-    mos_debug(io, "io_mmap(%p, %p, %lu)", (void *) io, (void *) vmap, offset);
+    pr_dinfo2(io, "io_mmap(%p, %p, %lu)", (void *) io, (void *) vmap, offset);
     if (!io_mmap_perm_check(io, vmap->vmflags, vmap->type == VMAP_TYPE_PRIVATE))
         return false;
 

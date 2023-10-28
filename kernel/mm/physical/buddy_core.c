@@ -68,7 +68,7 @@ static void populate_freelist(const size_t start_pfn, const size_t nframes, cons
 {
     const size_t step = pow2(order);
 
-    mos_debug(pmm_buddy, "  order: %zu, step: %zu", order, step);
+    pr_dinfo2(pmm_buddy, "  order: %zu, step: %zu", order, step);
 
     pfn_t current = start_pfn;
     size_t nframes_left = nframes;
@@ -79,7 +79,7 @@ static void populate_freelist(const size_t start_pfn, const size_t nframes, cons
         linked_list_init(list_node(frame));
         frame->state = PHYFRAME_FREE; // free or reserved
 
-        mos_debug(pmm_buddy, "    - " PFN_RANGE, current, current + step - 1);
+        pr_dinfo2(pmm_buddy, "    - " PFN_RANGE, current, current + step - 1);
         frame->order = order;
         add_to_freelist(order, frame);
         nframes_left -= step;
@@ -98,7 +98,7 @@ static void break_this_pfn(pfn_t this_pfn, size_t this_order)
 
     // split this frame into two frames of order-1
     const pfn_t frame2_pfn = this_pfn + pow2(this_order - 1); // pow2(order) / 2
-    mos_debug(pmm_buddy, "  breaking order %zu" PFN_RANGE " -> " PFN_RANGE " and " PFN_RANGE, this_order, this_pfn, this_pfn + pow2(this_order) - 1, this_pfn,
+    pr_dinfo2(pmm_buddy, "  breaking order %zu" PFN_RANGE " -> " PFN_RANGE " and " PFN_RANGE, this_order, this_pfn, this_pfn + pow2(this_order) - 1, this_pfn,
               frame2_pfn - 1, frame2_pfn, frame2_pfn + pow2(this_order - 1) - 1);
 
     phyframe_t *const frame2 = pfn_phyframe(frame2_pfn);
@@ -134,7 +134,7 @@ static void extract_exact_range(pfn_t start, size_t nframes, enum phyframe_state
         last_nframes = nframes;
 
         MOS_ASSERT_X(start <= pmm_total_frames, "insane!");
-        mos_debug(pmm_buddy, "  extracting, n left: %zu, start: " PFN_FMT, nframes, start);
+        pr_dinfo2(pmm_buddy, "  extracting, n left: %zu, start: " PFN_FMT, nframes, start);
 
         for (size_t order = max_order; order != (size_t) -1; order--)
         {
@@ -156,7 +156,7 @@ static void extract_exact_range(pfn_t start, size_t nframes, enum phyframe_state
                     // - pow2(order) > nframes:   we need this frame, but we need to break it into two smaller frames so that
                     //                            in the next iteration, a more precise subset of this frame can be found
 
-                    mos_debug(pmm_buddy, "    found a frame that starts with " PFN_FMT "...", start);
+                    pr_dinfo2(pmm_buddy, "    found a frame that starts with " PFN_FMT "...", start);
                     if (pow2(order) <= nframes)
                     {
                         list_remove(f);
@@ -166,12 +166,12 @@ static void extract_exact_range(pfn_t start, size_t nframes, enum phyframe_state
                         nframes -= pow2(order);
                         start += pow2(order);
 
-                        mos_debug(pmm_buddy, "      done, n left: %zu, start: " PFN_FMT, nframes, start);
+                        pr_dinfo2(pmm_buddy, "      done, n left: %zu, start: " PFN_FMT, nframes, start);
                         break; // we're done with the current order
                     }
                     else
                     {
-                        mos_debug(pmm_buddy, "      narrowing down...");
+                        pr_dinfo2(pmm_buddy, "      narrowing down...");
                         // break this frame into two smaller frames, so that in the next iteration
                         // we can find a frame that exactly ends with [start + nframes - 1]
                         break_this_pfn(start_pfn, order);
@@ -181,7 +181,7 @@ static void extract_exact_range(pfn_t start, size_t nframes, enum phyframe_state
 
                 if (start_pfn <= start && end_pfn >= start)
                 {
-                    mos_debug(pmm_buddy, "    found a frame that contains " PFN_FMT, start);
+                    pr_dinfo2(pmm_buddy, "    found a frame that contains " PFN_FMT, start);
                     // we found a frame that contains [start]
                     // so we will break it into two frames,
                     // - one of which contains [start], and
@@ -211,7 +211,7 @@ static void break_the_order(const size_t order)
 
     if (list_is_empty(freelist))
     {
-        mos_debug(pmm_buddy, "  no free frames of order %zu, can't break", order);
+        pr_dinfo2(pmm_buddy, "  no free frames of order %zu, can't break", order);
         return; // out of memory!
     }
 
@@ -222,7 +222,7 @@ static void break_the_order(const size_t order)
     const pfn_t frame_pfn = phyframe_pfn(frame);
     const pfn_t frame2_pfn = frame_pfn + pow2(order - 1); // pow2(order) / 2
 
-    mos_debug(pmm_buddy, "  breaking order %3zu, " PFN_RANGE " -> " PFN_RANGE " and " PFN_RANGE, order, frame_pfn, frame_pfn + pow2(order) - 1, frame_pfn, frame2_pfn - 1,
+    pr_dinfo2(pmm_buddy, "  breaking order %3zu, " PFN_RANGE " -> " PFN_RANGE " and " PFN_RANGE, order, frame_pfn, frame_pfn + pow2(order) - 1, frame_pfn, frame2_pfn - 1,
               frame2_pfn, frame2_pfn + pow2(order - 1) - 1);
 
     phyframe_t *const frame2 = pfn_phyframe(frame2_pfn);
@@ -245,7 +245,7 @@ static void break_the_order(const size_t order)
 {
     if (order > orders[MOS_ARRAY_SIZE(orders) - 1])
     {
-        mos_debug(pmm_buddy, "  order %hhu is too large, cannot merge", order);
+        pr_dinfo2(pmm_buddy, "  order %hhu is too large, cannot merge", order);
         return false;
     }
 
@@ -258,20 +258,20 @@ static void break_the_order(const size_t order)
     phyframe_t *const buddy = pfn_phyframe(buddy_pfn);
     if (buddy->state != PHYFRAME_FREE)
     {
-        mos_debug(pmm_buddy, "  buddy pfn " PFN_FMT " is not free for pfn " PFN_FMT ", not merging", buddy_pfn, pfn);
+        pr_dinfo2(pmm_buddy, "  buddy pfn " PFN_FMT " is not free for pfn " PFN_FMT ", not merging", buddy_pfn, pfn);
         return false;
     }
 
     if (buddy->order != order)
     {
-        mos_debug(pmm_buddy, "  buddy pfn " PFN_FMT " is not the same order (%hhu != %hhu) as " PFN_FMT ", not merging", buddy_pfn, buddy->order, order, pfn);
+        pr_dinfo2(pmm_buddy, "  buddy pfn " PFN_FMT " is not the same order (%hhu != %hhu) as " PFN_FMT ", not merging", buddy_pfn, buddy->order, order, pfn);
         return false;
     }
 
     list_remove(buddy);
     frame->state = PHYFRAME_FREE;
 
-    mos_debug(pmm_buddy, "  merging order %hhu, " PFN_RANGE " and " PFN_RANGE, order, pfn, pfn + pow2(order) - 1, buddy_pfn, buddy_pfn + pow2(order) - 1);
+    pr_dinfo2(pmm_buddy, "  merging order %hhu, " PFN_RANGE " and " PFN_RANGE, order, pfn, pfn + pow2(order) - 1, buddy_pfn, buddy_pfn + pow2(order) - 1);
 
     const size_t high_order_pfn = MIN(pfn, buddy_pfn); // the lower pfn
 
@@ -297,7 +297,7 @@ void buddy_init(size_t max_nframes)
 {
     for (size_t i = 0; i < MOS_ARRAY_SIZE(buddy.freelists); i++)
     {
-        mos_debug(pmm_buddy, "init freelist[%zu], order: %zu", i, orders[i]);
+        pr_dinfo2(pmm_buddy, "init freelist[%zu], order: %zu", i, orders[i]);
         linked_list_init(&buddy.freelists[i]);
     }
 
@@ -307,7 +307,7 @@ void buddy_init(size_t max_nframes)
 
 void buddy_reserve_n(pfn_t pfn, size_t nframes)
 {
-    mos_debug(pmm_buddy, "reserving " PFN_RANGE " (%zu frames)", pfn, pfn + nframes - 1, nframes);
+    pr_dinfo2(pmm_buddy, "reserving " PFN_RANGE " (%zu frames)", pfn, pfn + nframes - 1, nframes);
     extract_exact_range(pfn, nframes, PHYFRAME_RESERVED);
 }
 
@@ -319,7 +319,7 @@ phyframe_t *buddy_alloc_n_exact(size_t nframes)
     if (order > orders[MOS_ARRAY_SIZE(orders) - 1])
         return NULL;
 
-    mos_debug(pmm_buddy, "allocating %zu contiguous frames (order %zu, which is %zu frames, wasting %zu frames)", nframes, order, pow2(order), pow2(order) - nframes);
+    pr_dinfo2(pmm_buddy, "allocating %zu contiguous frames (order %zu, which is %zu frames, wasting %zu frames)", nframes, order, pow2(order), pow2(order) - nframes);
 
     list_head *free = &buddy.freelists[order];
     if (list_is_empty(free))
@@ -349,7 +349,7 @@ phyframe_t *buddy_alloc_n_exact(size_t nframes)
 
 void buddy_free_n(pfn_t pfn, size_t nframes)
 {
-    mos_debug(pmm_buddy, "freeing " PFN_RANGE " (%zu frames)", pfn, pfn + nframes - 1, nframes);
+    pr_dinfo2(pmm_buddy, "freeing " PFN_RANGE " (%zu frames)", pfn, pfn + nframes - 1, nframes);
 
     phyframe_t *const frame = pfn_phyframe(pfn);
     MOS_ASSERT(list_is_empty(list_node(frame)));

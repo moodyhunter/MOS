@@ -99,7 +99,7 @@ ipcshm_server_t *ipcshm_announce(const char *name, size_t max_pending)
 
 ipcshm_t *ipcshm_request(const char *name, size_t buffer_size, void **read_buf, void **write_buf, void *data)
 {
-    mos_debug(ipc, "ipc: connecting to channel '%s'", name);
+    pr_dinfo2(ipc, "ipc: connecting to channel '%s'", name);
     buffer_size = ALIGN_UP(buffer_size, MOS_PAGE_SIZE);
 
     spinlock_acquire(&billboard_lock);
@@ -108,9 +108,9 @@ ipcshm_t *ipcshm_request(const char *name, size_t buffer_size, void **read_buf, 
 
     if (unlikely(!server))
     {
-        mos_debug(ipc, "no server found for channel '%s', waiting...", name);
+        pr_dinfo2(ipc, "no server found for channel '%s', waiting...", name);
         reschedule_for_wait_condition(wc_wait_for(strdup(name), wc_ipcshm_server_name_exists, wc_ipcshm_server_name_free));
-        mos_debug(ipc, "server for channel '%s' found, connecting...", name);
+        pr_dinfo2(ipc, "server for channel '%s' found, connecting...", name);
 
         spinlock_acquire(&billboard_lock);
         server = hashmap_get(ipcshm_billboard, (ptr_t) name);
@@ -119,7 +119,7 @@ ipcshm_t *ipcshm_request(const char *name, size_t buffer_size, void **read_buf, 
         MOS_ASSERT(server);
     }
 
-    mos_debug(ipc, "connecting to channel '%s'", name);
+    pr_dinfo2(ipc, "connecting to channel '%s'", name);
 
     ipcshm_t *shm = NULL;
 
@@ -179,7 +179,7 @@ ipcshm_t *ipcshm_request(const char *name, size_t buffer_size, void **read_buf, 
             *write_buf = NULL;
             return NULL;
         }
-        mos_debug(ipc, "resuming after connection was accepted");
+        pr_dinfo2(ipc, "resuming after connection was accepted");
     }
 
     // step 3
@@ -218,9 +218,9 @@ ipcshm_t *ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_b
 
     if (unlikely(!shm))
     {
-        mos_debug(ipc, "waiting for a pending connection");
+        pr_dinfo2(ipc, "waiting for a pending connection");
         reschedule_for_wait_condition(wc_wait_for(server, wc_ipcshm_pending_or_closed, NULL));
-        mos_debug(ipc, "resuming after pending connection");
+        pr_dinfo2(ipc, "resuming after pending connection");
 
         shm = ipcshm_server_get_pending(server);
         if (!shm)
@@ -231,7 +231,7 @@ ipcshm_t *ipcshm_accept(ipcshm_server_t *server, void **read_buf, void **write_b
         spinlock_acquire(&shm->lock);
     }
 
-    mos_debug(ipc, "accepted connection");
+    pr_dinfo2(ipc, "accepted connection");
 
     // there are 3 steps for a client to connect to a server:
     //

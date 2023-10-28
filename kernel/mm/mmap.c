@@ -58,7 +58,7 @@ ptr_t mmap_anonymous(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_
     const valloc_flags valloc_flags = (flags & MMAP_EXACT) ? VALLOC_EXACT : VALLOC_DEFAULT;
 
     vmap_t *vmap = cow_allocate_zeroed_pages(ctx, n_pages, hint_addr, valloc_flags, vm_flags);
-    mos_debug(mmap, "allocated %zd pages at " PTR_FMT, vmap->npages, vmap->vaddr);
+    pr_dinfo2(mmap, "allocated %zd pages at " PTR_FMT, vmap->npages, vmap->vaddr);
 
     const vmap_type_t type = (flags & MMAP_SHARED) ? VMAP_TYPE_SHARED : VMAP_TYPE_PRIVATE;
     vmap_finalise_init(vmap, VMAP_MMAP, type);

@@ -63,13 +63,13 @@ void lapic_set_base_addr(ptr_t base_addr)
 
 u32 lapic_read32(u32 offset)
 {
-    mos_debug(x86_lapic, "reg: %x", offset);
+    pr_dinfo2(x86_lapic, "reg: %x", offset);
     return lapic_regs[offset / sizeof(u32)];
 }
 
 u64 lapic_read64(u32 offset)
 {
-    mos_debug(x86_lapic, "reg: %x", offset);
+    pr_dinfo2(x86_lapic, "reg: %x", offset);
     u32 high = lapic_regs[(offset + 0x10) / sizeof(u32)];
     u32 low = lapic_regs[offset / sizeof(u32)];
     return ((u64) high << 32) | low;
@@ -77,7 +77,7 @@ u64 lapic_read64(u32 offset)
 
 void lapic_write32(u32 offset, u32 value)
 {
-    mos_debug(x86_lapic, "reg: %x, value: 0x%.8x", offset, value);
+    pr_dinfo2(x86_lapic, "reg: %x, value: 0x%.8x", offset, value);
     lapic_regs[offset / sizeof(u32)] = value;
 #if MOS_DEBUG_FEATURE(x86_lapic)
     u32 read_value = lapic_read32(offset);
@@ -88,7 +88,7 @@ void lapic_write32(u32 offset, u32 value)
 
 void lapic_write64(u32 offset, u64 value)
 {
-    mos_debug(x86_lapic, "reg: %x, value: 0x%.16llx", offset, value);
+    pr_dinfo2(x86_lapic, "reg: %x, value: 0x%.16llx", offset, value);
     lapic_regs[(offset + 0x10) / sizeof(u32)] = value >> 32;
     lapic_regs[offset / sizeof(u32)] = value & 0xffffffff;
 #if MOS_DEBUG_FEATURE(x86_lapic)
@@ -136,7 +136,7 @@ void lapic_memory_setup(void)
         mos_panic("MSR is not supported");
 
     const ptr_t base_addr = x86_acpi_madt->lapic_addr;
-    mos_debug(x86_lapic, "base address: " PTR_FMT, base_addr);
+    pr_dinfo2(x86_lapic, "base address: " PTR_FMT, base_addr);
 
     if (!pmm_find_reserved_region(base_addr))
     {
@@ -163,7 +163,7 @@ void lapic_enable(void)
     const u32 version_reg = lapic_read32(APIC_REG_LAPIC_VERSION);
     const u32 max_lvt_entry = (version_reg >> 16) & 0xff;
     const u32 version_id = version_reg & 0xff;
-    mos_debug(x86_lapic, "LAPIC{%d}: version: %x, max LVT entry: %x", current_cpu_id, version_id, max_lvt_entry);
+    pr_dinfo2(x86_lapic, "LAPIC{%d}: version: %x, max LVT entry: %x", current_cpu_id, version_id, max_lvt_entry);
 }
 
 void lapic_eoi(void)

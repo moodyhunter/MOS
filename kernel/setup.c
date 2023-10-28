@@ -28,7 +28,7 @@ void startup_invoke_setup(void)
 
         if (unlikely(!option))
         {
-            mos_debug(setup, "no option given for '%s'", func->param);
+            pr_dinfo2(setup, "no option given for '%s'", func->param);
             continue;
         }
 
@@ -38,7 +38,7 @@ void startup_invoke_setup(void)
             continue;
         }
 
-        mos_debug(setup, "invoking setup function for '%s'", func->param);
+        pr_dinfo2(setup, "invoking setup function for '%s'", func->param);
         if (unlikely(!func->setup_fn(option->arg)))
         {
             pr_warn("setup function for '%s' failed", func->param);
@@ -60,11 +60,11 @@ void startup_invoke_earlysetup(void)
 
         if (unlikely(!option))
         {
-            mos_debug(setup, "no option given for '%s'", func->param);
+            pr_dinfo2(setup, "no option given for '%s'", func->param);
             continue;
         }
 
-        mos_debug(setup, "invoking early setup function for '%s'", func->param);
+        pr_dinfo2(setup, "invoking early setup function for '%s'", func->param);
         if (unlikely(!func->setup_fn(option->arg)))
             pr_warn("early setup function for '%s' failed", func->param);
 

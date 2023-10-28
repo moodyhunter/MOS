@@ -9,14 +9,14 @@
 static void ipi_handler_halt(ipi_type_t type)
 {
     MOS_UNUSED(type);
-    mos_debug(ipi, "Received halt IPI");
+    pr_dinfo2(ipi, "Received halt IPI");
     platform_halt_cpu();
 }
 
 static void ipi_handler_invalidate_tlb(ipi_type_t type)
 {
     MOS_UNUSED(type);
-    mos_debug(ipi, "Received invalidate TLB IPI");
+    pr_dinfo2(ipi, "Received invalidate TLB IPI");
     platform_invalidate_tlb(0);
 }
 
@@ -31,19 +31,19 @@ static const struct
 
 void ipi_send(u8 target, ipi_type_t type)
 {
-    mos_debug(ipi, "Sending IPI to %d of type %d", target, type);
+    pr_dinfo2(ipi, "Sending IPI to %d of type %d", target, type);
     platform_ipi_send(target, type);
 }
 
 void ipi_send_all(ipi_type_t type)
 {
-    mos_debug(ipi, "Sending IPI to all of type %d", type);
+    pr_dinfo2(ipi, "Sending IPI to all of type %d", type);
     ipi_send(TARGET_CPU_ALL, type);
 }
 
 void ipi_do_handle(ipi_type_t type)
 {
-    mos_debug(ipi, "Handling IPI of type %d", type);
+    pr_dinfo2(ipi, "Handling IPI of type %d", type);
 
     if (type >= IPI_TYPE_MAX)
     {

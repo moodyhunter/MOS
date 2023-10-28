@@ -241,7 +241,7 @@ void platform_startup_mm()
 
 void platform_startup_late()
 {
-    mos_debug(x86_startup, "Parsing ACPI tables...");
+    pr_dinfo2(x86_startup, "Parsing ACPI tables...");
     acpi_rsdp = acpi_find_rsdp(pa_va(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
     if (!acpi_rsdp)
     {
@@ -255,7 +255,7 @@ void platform_startup_late()
 
     acpi_parse_rsdt(acpi_rsdp);
 
-    mos_debug(x86_startup, "Initializing APICs...");
+    pr_dinfo2(x86_startup, "Initializing APICs...");
     madt_parse_table();
     lapic_memory_setup();
     lapic_enable(); // enable the local APIC
@@ -276,7 +276,7 @@ void platform_startup_late()
 
 #if MOS_DEBUG_FEATURE(x86_startup)
     // begin detecting CPU features
-    mos_debug(x86_startup, "cpu features:");
+    pr_dinfo2(x86_startup, "cpu features:");
 #define do_print_cpu_feature(feature)                                                                                                                                    \
     if (cpu_has_feature(CPU_FEATURE_##feature))                                                                                                                          \
         pr_cont(" " #feature);

@@ -15,7 +15,7 @@ static void idle_task(void *arg)
 
 static void create_idle_task()
 {
-    mos_debug(process, "creating the idle task...");
+    pr_dinfo2(process, "creating the idle task...");
     kthread_create(idle_task, NULL, "idle");
 }
 

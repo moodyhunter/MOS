@@ -39,21 +39,34 @@ config STACK_PAGES_USER
     int "Number of pages for user stack"
     default 32
 
+config PRINTK_HAS_SOME_PREFIX
+    bool
+    help
+        If this option is selected, the kernel enable special handling
+        for kernel messages.
+
+        For a list of options that will select this option, read the
+        Kconfig files in `kernel/`.
+
 config PRINTK_WITH_TIMESTAMP
     bool "Include timestamp in debug messages"
     default n
+    select PRINTK_HAS_SOME_PREFIX
 
 config PRINTK_WITH_DATETIME
     bool "Include date and time in debug messages"
     default n
+    select PRINTK_HAS_SOME_PREFIX
 
 config PRINTK_WITH_CPU_ID
     bool "Include CPU ID in debug messages"
     default n
+    select PRINTK_HAS_SOME_PREFIX
 
 config PRINTK_WITH_FILENAME
     bool "filename in debug messages"
     default n
+    select PRINTK_HAS_SOME_PREFIX
 
 config SMP
     bool "SMP support"

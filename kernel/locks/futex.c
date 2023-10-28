@@ -84,12 +84,12 @@ bool futex_wait(futex_word_t *futex, futex_word_t expected)
     }
     spinlock_release(&futex_list_lock);
 
-    mos_debug(futex, "tid %pt waiting on lock key=" PTR_FMT, (void *) current_thread, key);
+    pr_dinfo2(futex, "tid %pt waiting on lock key=" PTR_FMT, (void *) current_thread, key);
 
     bool ok = reschedule_for_waitlist(&fu->waiters);
     MOS_ASSERT(ok);
 
-    mos_debug(futex, "tid %pt woke up", (void *) current_thread);
+    pr_dinfo2(futex, "tid %pt woke up", (void *) current_thread);
     return true;
 }
 
@@ -118,9 +118,9 @@ bool futex_wake(futex_word_t *futex, size_t num_to_wake)
         return true;
     }
 
-    mos_debug(futex, "waking up %zd threads on lock key=" PTR_FMT, num_to_wake, key);
+    pr_dinfo2(futex, "waking up %zd threads on lock key=" PTR_FMT, num_to_wake, key);
     const size_t real_wakeups = waitlist_wake(&fu->waiters, num_to_wake);
-    mos_debug(futex, "actually woke up %zd threads", real_wakeups);
+    pr_dinfo2(futex, "actually woke up %zd threads", real_wakeups);
 
     return true;
 }

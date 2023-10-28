@@ -32,7 +32,7 @@ noreturn static void signal_do_terminate(signal_t signal)
 
 static void signal_do_ignore(signal_t signal)
 {
-    mos_debug(signal, "thread %pt ignoring signal %d", (void *) current_thread, signal);
+    pr_dinfo2(signal, "thread %pt ignoring signal %d", (void *) current_thread, signal);
 }
 
 void signal_send_to_thread(thread_t *target, signal_t signal)

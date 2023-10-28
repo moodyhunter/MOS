@@ -42,7 +42,7 @@ void sysfs_register(sysfs_dir_t *dir)
 {
     linked_list_init(list_node(dir));
     list_node_append(&sysfs_dirs, list_node(dir));
-    mos_debug(sysfs, "registering '%s'", dir->name);
+    pr_dinfo2(sysfs, "registering '%s'", dir->name);
     MOS_ASSERT(sysfs_sb);
     sysfs_do_register(dir);
 }
@@ -107,7 +107,7 @@ void *sysfs_file_get_data(sysfs_file_t *file)
 
 static bool sysfs_fops_open(inode_t *i, file_t *file)
 {
-    mos_debug(sysfs, "opening %s in %s", file->dentry->name, dentry_parent(file->dentry)->name);
+    pr_dinfo2(sysfs, "opening %s in %s", file->dentry->name, dentry_parent(file->dentry)->name);
     sysfs_file_t *f = i->private;
     f->buf_page = NULL;
     f->buf_npages = 0;
@@ -117,7 +117,7 @@ static bool sysfs_fops_open(inode_t *i, file_t *file)
 
 static void sysfs_fops_release(file_t *file)
 {
-    mos_debug(sysfs, "closing %s in %s", file->dentry->name, dentry_parent(file->dentry)->name);
+    pr_dinfo2(sysfs, "closing %s in %s", file->dentry->name, dentry_parent(file->dentry)->name);
     sysfs_file_t *f = file->dentry->inode->private;
     if (f->buf_page)
         mm_free_pages(f->buf_page, f->buf_npages);

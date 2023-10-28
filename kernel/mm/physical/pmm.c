@@ -44,7 +44,7 @@ phyframe_t *pmm_allocate_frames(size_t n_frames, pmm_allocation_flags_t flags)
     if (!frame)
         return NULL;
     const pfn_t pfn = phyframe_pfn(frame);
-    mos_debug(pmm, "allocated " PFN_RANGE ", %zu pages", pfn, pfn + n_frames, n_frames);
+    pr_dinfo2(pmm, "allocated " PFN_RANGE ", %zu pages", pfn, pfn + n_frames, n_frames);
 
     for (size_t i = 0; i < n_frames; i++)
         pfn_phyframe(pfn + i)->refcount = 0;
@@ -56,7 +56,7 @@ phyframe_t *pmm_allocate_frames(size_t n_frames, pmm_allocation_flags_t flags)
 void pmm_free_frames(phyframe_t *start_frame, size_t n_pages)
 {
     const pfn_t start = phyframe_pfn(start_frame);
-    mos_debug(pmm, "freeing " PFN_RANGE ", %zu pages", start, start + n_pages - 1, n_pages);
+    pr_dinfo2(pmm, "freeing " PFN_RANGE ", %zu pages", start, start + n_pages - 1, n_pages);
     for (pfn_t pfn = start; pfn < start + n_pages; pfn++)
     {
         phyframe_t *frame = pfn_phyframe(pfn);
@@ -70,7 +70,7 @@ void pmm_free_frames(phyframe_t *start_frame, size_t n_pages)
 pfn_t pmm_reserve_frames(pfn_t pfn_start, size_t npages)
 {
     MOS_ASSERT_X(pfn_start + npages <= pmm_total_frames, "out of bounds: " PFN_RANGE ", %zu pages", pfn_start, pfn_start + npages - 1, npages);
-    mos_debug(pmm, "reserving " PFN_RANGE ", %zu pages", pfn_start, pfn_start + npages - 1, npages);
+    pr_dinfo2(pmm, "reserving " PFN_RANGE ", %zu pages", pfn_start, pfn_start + npages - 1, npages);
     buddy_reserve_n(pfn_start, npages);
     pmm_reserved_frames += npages;
     return pfn_start;
@@ -78,7 +78,7 @@ pfn_t pmm_reserve_frames(pfn_t pfn_start, size_t npages)
 
 pmm_region_t *pmm_find_reserved_region(ptr_t needle)
 {
-    mos_debug(pmm, "looking for block containing " PTR_FMT, needle);
+    pr_dinfo2(pmm, "looking for block containing " PTR_FMT, needle);
 
     const pfn_t needle_pfn = needle / MOS_PAGE_SIZE;
 
@@ -87,12 +87,12 @@ pmm_region_t *pmm_find_reserved_region(ptr_t needle)
         pmm_region_t *r = &platform_info->pmm_regions[i];
         if (r->reserved && r->pfn_start <= needle_pfn && needle_pfn < r->pfn_start + r->nframes)
         {
-            mos_debug(pmm, "found block: " PFN_RANGE ", %zu pages", r->pfn_start, r->pfn_start + r->nframes - 1, r->nframes);
+            pr_dinfo2(pmm, "found block: " PFN_RANGE ", %zu pages", r->pfn_start, r->pfn_start + r->nframes - 1, r->nframes);
             return r;
         }
     }
 
-    mos_debug(pmm, "no block found");
+    pr_dinfo2(pmm, "no block found");
     return NULL;
 }
 
@@ -100,7 +100,7 @@ phyframe_t *_pmm_ref_phyframes(phyframe_t *frame, size_t n_pages)
 {
     const pfn_t start = phyframe_pfn(frame);
     MOS_ASSERT_X(start + n_pages <= pmm_total_frames, "out of bounds");
-    mos_debug(pmm, "ref range: " PFN_RANGE ", %zu pages", start, start + n_pages, n_pages);
+    pr_dinfo2(pmm, "ref range: " PFN_RANGE ", %zu pages", start, start + n_pages, n_pages);
 
     for (size_t i = start; i < start + n_pages; i++)
         pfn_phyframe(i)->refcount++;
@@ -111,7 +111,7 @@ void _pmm_unref_phyframes(phyframe_t *frame, size_t n_pages)
 {
     const pfn_t start = phyframe_pfn(frame);
     MOS_ASSERT_X(start + n_pages <= pmm_total_frames, "out of bounds");
-    mos_debug(pmm, "unref range: " PFN_RANGE ", %zu pages", start, start + n_pages, n_pages);
+    pr_dinfo2(pmm, "unref range: " PFN_RANGE ", %zu pages", start, start + n_pages, n_pages);
 
     for (pfn_t pfn = start; pfn < start + n_pages; pfn++)
     {

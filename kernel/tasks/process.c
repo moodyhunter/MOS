@@ -104,7 +104,7 @@ void process_destroy(process_t *process)
         return;
 
     MOS_ASSERT(process != current_process);
-    mos_debug(process, "destroying process %pp", (void *) process);
+    pr_dinfo2(process, "destroying process %pp", (void *) process);
 
     if (process->name != NULL)
         kfree(process->name);
@@ -139,7 +139,7 @@ process_t *process_new(process_t *parent, const char *name, const stdio_t *ios)
     process_t *proc = process_allocate(parent, name);
     if (unlikely(!proc))
         return NULL;
-    mos_debug(process, "creating process %pp", (void *) proc);
+    pr_dinfo2(process, "creating process %pp", (void *) proc);
 
     process_attach_ref_fd(proc, ios && ios->in ? ios->in : io_null);
     process_attach_ref_fd(proc, ios && ios->out ? ios->out : io_null);
@@ -256,7 +256,7 @@ child_dead:;
 void process_handle_exit(process_t *process, u32 exit_code)
 {
     MOS_ASSERT(process_is_valid(process));
-    mos_debug(process, "process %pp exited with code %d", (void *) process, exit_code);
+    pr_dinfo2(process, "process %pp exited with code %d", (void *) process, exit_code);
 
     if (unlikely(process->pid == 1))
         mos_panic("init process exited with code %d", exit_code);
@@ -307,7 +307,7 @@ void process_handle_exit(process_t *process, u32 exit_code)
         }
     }
 
-    mos_debug(process, "closed %zu/%zu files owned by %pp", files_closed, files_total, (void *) process);
+    pr_dinfo2(process, "closed %zu/%zu files owned by %pp", files_closed, files_total, (void *) process);
 
     waitlist_close(&process->waiters);
     waitlist_wake(&process->waiters, INT_MAX);
@@ -316,19 +316,6 @@ void process_handle_exit(process_t *process, u32 exit_code)
     dentry_unref(process->working_directory);
     reschedule();
     MOS_UNREACHABLE();
-}
-
-void process_handle_cleanup(process_t *process)
-{
-    MOS_ASSERT(process_is_valid(process));
-    MOS_ASSERT_X(current_process != process, "cannot cleanup current process");
-
-    list_foreach(vmap_t, map, process->mm->mmaps)
-    {
-        spinlock_acquire(&map->lock);
-        list_remove(map);
-        vmap_destroy(map);
-    }
 }
 
 ptr_t process_grow_heap(process_t *process, size_t npages)
@@ -351,7 +338,7 @@ ptr_t process_grow_heap(process_t *process, size_t npages)
     const ptr_t heap_top = heap->vaddr + heap->npages * MOS_PAGE_SIZE;
 
     heap->npages += npages; // let the page fault handler do the rest of the allocation
-    mos_debug(process, "grew heap of process %pp by %zu pages", (void *) process, npages);
+    pr_dinfo2(process, "grew heap of process %pp by %zu pages", (void *) process, npages);
     spinlock_release(&heap->lock);
     return heap_top + npages * MOS_PAGE_SIZE;
 }
@@ -373,7 +360,7 @@ void process_dump_mmaps(const process_t *process)
 
 bool process_register_signal_handler(process_t *process, signal_t sig, sigaction_t *sigaction)
 {
-    mos_debug(signal, "registering signal handler for process %pp, signal %d", (void *) process, sig);
+    pr_dinfo2(signal, "registering signal handler for process %pp, signal %d", (void *) process, sig);
     process->signal_handlers[sig] = *sigaction;
     return true;
 }

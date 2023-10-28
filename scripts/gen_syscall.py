@@ -244,7 +244,7 @@ class SyscallDispatcherGenerator(BaseAbstractGenerator):
         self.gen('#include <mos/syscall/decl.h>')
         self.gen('#include <mos/syscall/number.h>')
         self.gen("")
-        self.gen("// mos_debug macro support")
+        self.gen("// debugging support")
         self.gen('#include "mos/printk.h"')
         self.gen("")
         self.gen("should_inline reg_t dispatch_syscall(const reg_t number, %s)" % (", ".join(["reg_t arg%d" % (i + 1) for i in range(MAX_SYSCALL_NARGS)])))
@@ -268,7 +268,7 @@ class SyscallDispatcherGenerator(BaseAbstractGenerator):
                 self.gen("case SYSCALL_%s:" % e["name"])
                 self.gen("{")
                 with self.scope:
-                    fmt = 'mos_debug(syscall, "%s(' % e["name"]
+                    fmt = 'pr_dinfo2(syscall, "%s(' % e["name"]
                     fmt += ", ".join(["%s=%s" % (e["arguments"][i]["arg"], select_format(e["arguments"][i]["type"])) for i in range(nargs)])
                     fmt += ")\""
 
@@ -285,7 +285,7 @@ class SyscallDispatcherGenerator(BaseAbstractGenerator):
         with self.scope:
             self.gen("}")
             self.gen("")
-            self.gen('mos_debug_cont(syscall, " = 0x%lx", ret);')
+            self.gen('pr_dcont(syscall, " = 0x%lx", ret);')
             self.gen("return ret;")
         self.gen("}")
 

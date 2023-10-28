@@ -116,7 +116,7 @@ void ioapic_init(void)
 
     const u32 arb_id = ioapic_read(IOAPIC_REG_ARB_ID) >> 24 & 0xf; // get the 24-27 bits
 
-    mos_debug(x86_ioapic, "max IRQs: %d, id: %d, version: %d, arb: %d", version.max_redir_entries + 1, ioapic_id, version.version, arb_id);
+    pr_dinfo2(x86_ioapic, "max IRQs: %d, id: %d, version: %d, arb: %d", version.max_redir_entries + 1, ioapic_id, version.version, arb_id);
 
     for (int i = 0; i < version.max_redir_entries + 1; i++)
         ioapic_disable(i);
@@ -124,7 +124,7 @@ void ioapic_init(void)
 
 void ioapic_enable_with_mode(u32 irq, u32 cpu, ioapic_trigger_mode_t trigger_mode, ioapic_polarity_t polarity)
 {
-    mos_debug(x86_ioapic, "enable irq %d, cpu %d, trigger_mode %d, polarity %d", irq, cpu, trigger_mode, polarity);
+    pr_dinfo2(x86_ioapic, "enable irq %d, cpu %d, trigger_mode %d, polarity %d", irq, cpu, trigger_mode, polarity);
 
     ioapic_redirection_entry_t entry = { 0 };
     entry.interrupt_vec = irq + ISR_MAX_COUNT; // the vector number received by the CPU

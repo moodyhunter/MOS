@@ -221,7 +221,7 @@ static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *
         return NULL; // not found
     }
 
-    mos_debug(cpio, "cpio header: %.6s", i->header.magic);
+    pr_dinfo2(cpio, "cpio header: %.6s", i->header.magic);
     sb->fs = fs;
     sb->root = dentry_create(sb, NULL, NULL);
     sb->root->inode = &i->inode;
@@ -289,7 +289,7 @@ static size_t cpio_i_iterate_dir(inode_t *dir, dir_iterator_state_t *state, dent
         {
             if (filtered_n++ >= start_nth)
             {
-                mos_debug(cpio, "prefix '%s' filename '%s'", path_prefix, filename);
+                pr_dinfo2(cpio, "prefix '%s' filename '%s'", path_prefix, filename);
 
                 const u32 modebits = strntoll(header.mode, NULL, 16, sizeof(header.mode) / sizeof(char));
                 const file_type_t type = cpio_modebits_to_filetype(modebits & CPIO_MODE_FILE_TYPE);
@@ -304,7 +304,7 @@ static size_t cpio_i_iterate_dir(inode_t *dir, dir_iterator_state_t *state, dent
                 // no more space, terminate the iteration
                 if (w == 0)
                 {
-                    mos_debug(cpio, "iteration terminated at %zu, possibly out of space", filtered_n);
+                    pr_dinfo2(cpio, "iteration terminated at %zu, possibly out of space", filtered_n);
                     return written;
                 }
             }
@@ -321,7 +321,7 @@ static size_t cpio_i_iterate_dir(inode_t *dir, dir_iterator_state_t *state, dent
         offset = ((offset + 3) & ~0x03); // align to 4 bytes (again)
     }
 
-    mos_debug(cpio, "iterated with prefix='%s', started at %zu, wrote %zu bytes for %zu items", path_prefix, start_nth, written, filtered_n);
+    pr_dinfo2(cpio, "iterated with prefix='%s', started at %zu, wrote %zu bytes for %zu items", path_prefix, start_nth, written, filtered_n);
     return written;
 }
 

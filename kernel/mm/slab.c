@@ -72,7 +72,7 @@ static void slab_impl_free_page(ptr_t page, size_t n)
 static void slab_init_one(slab_t *slab, const char *name, size_t size)
 {
     MOS_ASSERT_X(size < MOS_PAGE_SIZE, "current slab implementation does not support slabs larger than a page");
-    mos_debug(slab, "slab: registering slab for '%s' with %zu bytes", name, size);
+    pr_dinfo2(slab, "slab: registering slab for '%s' with %zu bytes", name, size);
     linked_list_init(list_node(slab));
     list_node_append(&slabs_list, list_node(slab));
     slab->lock = (spinlock_t) SPINLOCK_INIT;
@@ -84,7 +84,7 @@ static void slab_init_one(slab_t *slab, const char *name, size_t size)
 
 static void slab_allocate_mem(slab_t *slab)
 {
-    mos_debug(slab, "renew slab for '%s' with %zu bytes", slab->name, slab->ent_size);
+    pr_dinfo2(slab, "renew slab for '%s' with %zu bytes", slab->name, slab->ent_size);
     slab->first_free = slab_impl_new_page(1);
     if (unlikely(!slab->first_free))
     {
@@ -97,7 +97,7 @@ static void slab_allocate_mem(slab_t *slab)
 
     slab_header_t *const slab_ptr = (slab_header_t *) slab->first_free;
     slab_ptr->slab = slab;
-    mos_debug(slab, "slab header is at %p", (void *) slab_ptr);
+    pr_dinfo2(slab, "slab header is at %p", (void *) slab_ptr);
     slab->first_free = (ptr_t) slab->first_free + header_offset;
 
     void **arr = (void **) slab->first_free;
@@ -113,7 +113,7 @@ static void slab_allocate_mem(slab_t *slab)
 
 static void slab_init(void)
 {
-    mos_debug(slab, "initializing the slab allocator");
+    pr_dinfo2(slab, "initializing the slab allocator");
 
     slab_init_one(&slab_slab, "slab_t", sizeof(slab_t));
     slab_allocate_mem(&slab_slab);
@@ -228,7 +228,7 @@ slab_t *kmemcache_create(const char *name, size_t ent_size)
 
 void *kmemcache_alloc(slab_t *slab)
 {
-    mos_debug(slab, "allocating from slab '%s'", slab->name);
+    pr_dinfo2(slab, "allocating from slab '%s'", slab->name);
     spinlock_acquire(&slab->lock);
 
     if (slab->first_free == 0)
@@ -252,7 +252,7 @@ void *kmemcache_alloc(slab_t *slab)
 
 static void kmemcache_free(slab_t *slab, const void *addr)
 {
-    mos_debug(slab, "freeing from slab '%s'", slab->name);
+    pr_dinfo2(slab, "freeing from slab '%s'", slab->name);
     if (!addr)
         return;
 

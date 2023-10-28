@@ -75,7 +75,7 @@ should_inline bool verify_sdt_checksum(const acpi_sdt_header_t *tableHeader)
 static void do_handle_sdt_header(const acpi_sdt_header_t *const header)
 {
     register_sysfs_acpi_node(header->signature, header);
-    mos_debug(x86_acpi, "%.4s at %p, size %u", header->signature, (void *) header, header->length);
+    pr_dinfo2(x86_acpi, "%.4s at %p, size %u", header->signature, (void *) header, header->length);
 
     if (strncmp(header->signature, ACPI_SIGNATURE_FADT, 4) == 0)
     {
@@ -85,7 +85,7 @@ static void do_handle_sdt_header(const acpi_sdt_header_t *const header)
         const acpi_sdt_header_t *const dsdt = (acpi_sdt_header_t *) pa_va(x86_acpi_fadt->dsdt);
         if (!verify_sdt_checksum(dsdt))
             mos_panic("DSDT checksum error");
-        mos_debug(x86_acpi, "DSDT at %p, size %u", (void *) dsdt, dsdt->length);
+        pr_dinfo2(x86_acpi, "DSDT at %p, size %u", (void *) dsdt, dsdt->length);
         x86_acpi_dsdt = (ptr_t) dsdt;
         register_sysfs_acpi_node("DSDT", dsdt);
     }
@@ -139,7 +139,7 @@ static void do_iterate_sdts(const acpi_rsdp_t *rsdp)
 
 void acpi_parse_rsdt(const acpi_rsdp_t *rsdp)
 {
-    mos_debug(x86_acpi, "initializing ACPI with RSDP at %p", (void *) rsdp);
+    pr_dinfo2(x86_acpi, "initializing ACPI with RSDP at %p", (void *) rsdp);
     do_iterate_sdts(rsdp);
 }
 
@@ -149,7 +149,7 @@ const acpi_rsdp_t *acpi_find_rsdp(ptr_t start, size_t size)
     {
         if (strncmp((const char *) addr, ACPI_SIGNATURE_RSDP, 8) == 0)
         {
-            mos_debug(x86_acpi, "ACPI: RSDP magic at %p", (void *) addr);
+            pr_dinfo2(x86_acpi, "ACPI: RSDP magic at %p", (void *) addr);
             acpi_rsdp_t *rsdp = (acpi_rsdp_t *) addr;
 
             // check the checksum
@@ -162,7 +162,7 @@ const acpi_rsdp_t *acpi_find_rsdp(ptr_t start, size_t size)
                 pr_info2("ACPI: RSDP checksum failed");
                 continue;
             }
-            mos_debug(x86_acpi, "ACPI: oem: '%.6s', revision: %d", rsdp->v1.oem_id, rsdp->v1.revision);
+            pr_dinfo2(x86_acpi, "ACPI: oem: '%.6s', revision: %d", rsdp->v1.oem_id, rsdp->v1.revision);
 
             if (rsdp->v1.revision != 0 && rsdp->v1.revision != 2)
                 mos_panic("ACPI: RSDP revision %d not supported", rsdp->v1.revision);

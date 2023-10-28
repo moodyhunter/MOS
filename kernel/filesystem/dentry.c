@@ -117,7 +117,7 @@ __nodiscard bool dentry_unref_one(dentry_t *dentry)
     }
 
     dentry->refcount--;
-    mos_debug(dcache_ref, "dentry %p '%s' decreased refcount to %zu", (void *) dentry, dentry_name(dentry), dentry->refcount);
+    pr_dinfo2(dcache_ref, "dentry %p '%s' decreased refcount to %zu", (void *) dentry, dentry_name(dentry), dentry->refcount);
 
     if (dentry->name == NULL && dentry != root_dentry)
     {
@@ -125,7 +125,7 @@ __nodiscard bool dentry_unref_one(dentry_t *dentry)
         if (!mountpoint)
             goto done;
         mountpoint->refcount--;
-        mos_debug(dcache_ref, "  mountpoint %p '%s' decreased mountpoint refcount to %zu", (void *) mountpoint, dentry_name(mountpoint), mountpoint->refcount);
+        pr_dinfo2(dcache_ref, "  mountpoint %p '%s' decreased mountpoint refcount to %zu", (void *) mountpoint, dentry_name(mountpoint), mountpoint->refcount);
     }
 done:
     return true;
@@ -161,7 +161,7 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve
  */
 static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, const char *original_path, char **last_seg_out)
 {
-    mos_debug(dcache, "lookup parent of '%s'", original_path);
+    pr_dinfo2(dcache, "lookup parent of '%s'", original_path);
     MOS_ASSERT_X(base_dir && root_dir && original_path, "Invalid VFS lookup parameters");
     if (last_seg_out != NULL)
         *last_seg_out = NULL;
@@ -189,7 +189,7 @@ static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, co
 
     while (true)
     {
-        mos_debug(dcache, "lookup parent: current segment '%s'", current_seg);
+        pr_dinfo2(dcache, "lookup parent: current segment '%s'", current_seg);
         const char *const next = strtok_r(NULL, PATH_DELIM_STR, &saveptr);
         if (next == NULL)
         {
@@ -259,7 +259,7 @@ static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, co
 
         if (child_ref->is_mountpoint)
         {
-            mos_debug(dcache, "jumping to mountpoint %s", child_ref->name);
+            pr_dinfo2(dcache, "jumping to mountpoint %s", child_ref->name);
             parent_ref = dentry_get_mount(child_ref)->root; // if it's a mountpoint, jump to the tree of mounted filesystem instead
 
             // refcount the mounted filesystem root
@@ -300,7 +300,7 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *symlink_dentry, lastseg
 
     target[read] = '\0'; // ensure null termination
 
-    mos_debug(dcache, "symlink target: %s", target);
+    pr_dinfo2(dcache, "symlink target: %s", target);
 
     char *last_segment = NULL;
     dentry_t *parent_ref = dentry_lookup_parent(dentry_parent(symlink_dentry), root_dentry, target, &last_segment);
@@ -328,7 +328,7 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
     MOS_ASSERT(parent != NULL && leaf != NULL);
     *is_symlink = false;
 
-    mos_debug(dcache, "resolving last segment: '%s'", leaf);
+    pr_dinfo2(dcache, "resolving last segment: '%s'", leaf);
     const bool ends_with_slash = leaf[strlen(leaf) - 1] == PATH_DELIM;
     if (ends_with_slash)
         leaf[strlen(leaf) - 1] = '\0'; // remove the trailing slash
@@ -366,7 +366,7 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
             return child_ref;
         }
 
-        mos_debug(dcache, "file does not exist");
+        pr_dinfo2(dcache, "file does not exist");
         dentry_try_release(child_ref);
         return ERR_PTR(-ENOENT);
     }
@@ -384,11 +384,11 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
     {
         if (flags & RESOLVE_SYMLINK_NOFOLLOW)
         {
-            mos_debug(dcache, "not resolving symlink");
+            pr_dinfo2(dcache, "not resolving symlink");
             return child_ref;
         }
 
-        mos_debug(dcache, "resolving symlink: %s", leaf);
+        pr_dinfo2(dcache, "resolving symlink: %s", leaf);
         dentry_t *const symlink_target_ref = dentry_resolve_follow_symlink(child_ref, flags);
         // we don't need the symlink node anymore
         MOS_ASSERT(dentry_unref_one(child_ref));
@@ -445,13 +445,13 @@ dentry_t *dentry_ref(dentry_t *dentry)
     MOS_ASSERT(dentry);
     MOS_ASSERT(dentry->inode); // it's the root, or it has an inode (not a negative dentry)
     dentry->refcount++;
-    mos_debug(dcache_ref, "dentry %p '%s' increased refcount to %zu", (void *) dentry, dentry_name(dentry), dentry->refcount);
+    pr_dinfo2(dcache_ref, "dentry %p '%s' increased refcount to %zu", (void *) dentry, dentry_name(dentry), dentry->refcount);
     return dentry;
 }
 
 dentry_t *dentry_ref_up_to(dentry_t *dentry, dentry_t *root)
 {
-    mos_debug(dcache_ref, "dentry_ref_up_to(%p '%s', %p '%s')", (void *) dentry, dentry_name(dentry), (void *) root, dentry_name(root));
+    pr_dinfo2(dcache_ref, "dentry_ref_up_to(%p '%s', %p '%s')", (void *) dentry, dentry_name(dentry), (void *) root, dentry_name(root));
     for (dentry_t *cur = dentry; cur != root; cur = dentry_parent(cur))
     {
         dentry_ref(cur);
@@ -464,7 +464,7 @@ dentry_t *dentry_ref_up_to(dentry_t *dentry, dentry_t *root)
 
     dentry_ref(root); // it wasn't refcounted in the loop
 
-    mos_debug(dcache_ref, "...done");
+    pr_dinfo2(dcache_ref, "...done");
     return dentry;
 }
 
@@ -523,7 +523,7 @@ void dentry_check_refstat(const dentry_t *dentry)
     }
     else if (dentry->refcount - expected_refcount)
     {
-        mos_debug(dcache_ref, "  dentry %p '%s' has %zu direct references", (void *) dentry, dentry_name(dentry), dentry->refcount - expected_refcount);
+        pr_dinfo2(dcache_ref, "  dentry %p '%s' has %zu direct references", (void *) dentry, dentry_name(dentry), dentry->refcount - expected_refcount);
     }
 }
 
@@ -565,7 +565,7 @@ dentry_t *dentry_get_child(dentry_t *parent, const char *name)
     if (unlikely(parent == NULL))
         return NULL;
 
-    mos_debug(dcache, "looking for dentry '%s' in '%s'", name, dentry_name(parent));
+    pr_dinfo2(dcache, "looking for dentry '%s' in '%s'", name, dentry_name(parent));
 
     dentry_t *dentry = NULL;
 
@@ -576,12 +576,12 @@ dentry_t *dentry_get_child(dentry_t *parent, const char *name)
         {
             if (c->inode != NULL)
             {
-                mos_debug(dcache, "found dentry '%s' in cache", name);
+                pr_dinfo2(dcache, "found dentry '%s' in cache", name);
                 return dentry_ref(c);
             }
             else
             {
-                mos_debug(dcache, "found dentry '%s' in cache, but it's not backed by an inode, try looking up", name);
+                pr_dinfo2(dcache, "found dentry '%s' in cache, but it's not backed by an inode, try looking up", name);
                 dentry = c;
                 break;
             }
@@ -598,18 +598,18 @@ dentry_t *dentry_get_child(dentry_t *parent, const char *name)
     // not in the cache, try to find it in the filesystem
     if (parent->inode == NULL || parent->inode->ops == NULL || parent->inode->ops->lookup == NULL)
     {
-        mos_debug(dcache, "filesystem doesn't support lookup");
+        pr_dinfo2(dcache, "filesystem doesn't support lookup");
         return dentry;
     }
 
     if (parent->inode->ops->lookup(parent->inode, dentry))
     {
-        mos_debug(dcache, "dentry '%s' found in the filesystem", name);
+        pr_dinfo2(dcache, "dentry '%s' found in the filesystem", name);
         return dentry_ref(dentry);
     }
     else
     {
-        mos_debug(dcache, "dentry '%s' not found in the filesystem", name);
+        pr_dinfo2(dcache, "dentry '%s' not found in the filesystem", name);
         return dentry;
     }
 }
@@ -620,18 +620,18 @@ dentry_t *dentry_get(dentry_t *starting_dir, dentry_t *root_dir, const char *pat
         return ERR_PTR(-ENOENT); // no root directory
 
     char *last_segment;
-    mos_debug(dcache, "resolving path '%s'", path);
+    pr_dinfo2(dcache, "resolving path '%s'", path);
     dentry_t *const parent_ref = dentry_lookup_parent(starting_dir, root_dir, path, &last_segment);
     if (IS_ERR(parent_ref))
     {
-        mos_debug(dcache, "failed to resolve parent of '%s', file not found", path);
+        pr_dinfo2(dcache, "failed to resolve parent of '%s', file not found", path);
         return parent_ref;
     }
 
     if (last_segment == NULL)
     {
         // path is a single "/"
-        mos_debug(dcache, "path '%s' is a single '/' or is empty", path);
+        pr_dinfo2(dcache, "path '%s' is a single '/' or is empty", path);
         MOS_ASSERT(parent_ref == starting_dir);
         if (!(flags & RESOLVE_EXPECT_DIR))
         {

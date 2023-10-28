@@ -53,7 +53,7 @@ static void add_to_memmap(pfn_t start, size_t npages, bool reserved, u32 type, c
     entry->nframes = npages;
     entry->pfn_start = start;
     entry->type = type;
-    mos_debug(x86_startup, "%25s: " PFNADDR_RANGE " (%zu pages)", typestr, PFNADDR(entry->pfn_start, entry->pfn_start + entry->nframes), entry->nframes);
+    pr_dinfo2(x86_startup, "%25s: " PFNADDR_RANGE " (%zu pages)", typestr, PFNADDR(entry->pfn_start, entry->pfn_start + entry->nframes), entry->nframes);
 
     if (!entry->reserved)
         platform_info->max_pfn = MAX(platform_info->max_pfn, entry->pfn_start + entry->nframes);
@@ -109,7 +109,7 @@ asmlinkage void limine_entry(void)
         mos_panic("No HHDM found");
 
     platform_info->direct_map_base = hhdm_request.response->offset;
-    mos_debug(x86_startup, "Direct map base: " PTR_FMT, platform_info->direct_map_base);
+    pr_dinfo2(x86_startup, "Direct map base: " PTR_FMT, platform_info->direct_map_base);
 
     if (memmap_request.response == NULL)
         mos_panic("No memory map found"); // are we able to panic at this early stage?
@@ -154,10 +154,10 @@ asmlinkage void limine_entry(void)
         mos_panic("Expected exactly one module, got %zu", module_response->module_count);
 
     struct limine_file *module = module_response->modules[0];
-    mos_debug(x86_startup, "initrd: %s, " PTR_RANGE, module->path, (ptr_t) module->address, (ptr_t) module->address + module->size);
+    pr_dinfo2(x86_startup, "initrd: %s, " PTR_RANGE, module->path, (ptr_t) module->address, (ptr_t) module->address + module->size);
     platform_info->initrd_pfn = va_pfn(module->address);
     platform_info->initrd_npages = ALIGN_UP_TO_PAGE(module->size) / MOS_PAGE_SIZE;
-    mos_debug(x86_startup, "initrd at " PFN_FMT ", size %zu pages", platform_info->initrd_pfn, platform_info->initrd_npages);
+    pr_dinfo2(x86_startup, "initrd at " PFN_FMT ", size %zu pages", platform_info->initrd_pfn, platform_info->initrd_npages);
 
     if (kernel_address_request.response == NULL)
         mos_panic("No kernel address found");

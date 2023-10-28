@@ -426,9 +426,9 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         [VMFAULT_CANNOT_HANDLE] = "CANNOT_HANDLE",
     };
 
-    mos_debug(cow, "handler %ps", (void *) (ptr_t) fault_vmap->on_fault);
+    pr_dinfo2(cow, "handler %ps", (void *) (ptr_t) fault_vmap->on_fault);
     vmfault_result_t fault_result = fault_vmap->on_fault(fault_vmap, fault_addr, info);
-    mos_debug_cont(cow, " -> %s (%d)", fault_result_names[fault_result], fault_result);
+    pr_dcont(cow, " -> %s (%d)", fault_result_names[fault_result], fault_result);
 
     vm_flags map_flags = fault_vmap->vmflags;
     switch (fault_result)
@@ -452,7 +452,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         {
         map_backing_page:
             MOS_ASSERT(info->backing_page);
-            mos_debug_cont(cow, " (backing page: " PFN_FMT ")", phyframe_pfn(info->backing_page));
+            pr_dcont(cow, " (backing page: " PFN_FMT ")", phyframe_pfn(info->backing_page));
             mm_replace_page_locked(fault_vmap->mmctx, fault_addr, phyframe_pfn(info->backing_page), map_flags);
             fault_result = VMFAULT_COMPLETE;
         }

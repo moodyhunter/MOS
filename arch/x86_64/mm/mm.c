@@ -16,11 +16,11 @@ size_t phyframes_npages = 0;
 
 void x86_initialise_phyframes_array(void)
 {
-    mos_debug(x86_startup, "setting up physical memory manager...");
+    pr_dinfo2(x86_startup, "setting up physical memory manager...");
     const size_t phyframes_count = platform_info->max_pfn;
 
     phyframes_npages = ALIGN_UP_TO_PAGE(phyframes_count * sizeof(phyframe_t)) / MOS_PAGE_SIZE;
-    mos_debug(pmm, "%zu pages required for the phyframes array", phyframes_npages);
+    pr_dinfo2(pmm, "%zu pages required for the phyframes array", phyframes_npages);
 
     pmm_region_t *phyframes_region = NULL; // the region that will hold the phyframes array
 
@@ -31,19 +31,19 @@ void x86_initialise_phyframes_array(void)
 
         if (r->reserved)
         {
-            mos_debug(pmm, "skipping reserved region " PFNADDR_RANGE, PFNADDR(r->pfn_start, r->pfn_start + r->nframes));
+            pr_dinfo2(pmm, "skipping reserved region " PFNADDR_RANGE, PFNADDR(r->pfn_start, r->pfn_start + r->nframes));
             continue;
         }
 
         if (r->nframes < phyframes_npages)
         {
-            mos_debug(pmm, "skipping region " PFNADDR_RANGE " because it's too small", PFNADDR(r->pfn_start, r->pfn_start + r->nframes));
+            pr_dinfo2(pmm, "skipping region " PFNADDR_RANGE " because it's too small", PFNADDR(r->pfn_start, r->pfn_start + r->nframes));
             continue; // early out if this region is too small
         }
 
         phyframes_pfn = r->pfn_start;
         phyframes_region = r;
-        mos_debug(pmm, "using " PFNADDR_RANGE " for the phyframes array", PFNADDR(phyframes_pfn, phyframes_pfn + phyframes_npages));
+        pr_dinfo2(pmm, "using " PFNADDR_RANGE " for the phyframes array", PFNADDR(phyframes_pfn, phyframes_pfn + phyframes_npages));
         phyframes = (void *) pfn_va(phyframes_pfn);
 
         // zero the array

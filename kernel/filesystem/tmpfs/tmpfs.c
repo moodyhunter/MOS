@@ -59,21 +59,21 @@ inode_t *tmpfs_create_inode(superblock_t *sb, file_type_t type, file_perm_t perm
     {
         case FILE_TYPE_DIRECTORY:
             // directories
-            mos_debug(tmpfs, "tmpfs: creating a directory inode");
+            pr_dinfo2(tmpfs, "tmpfs: creating a directory inode");
             inode->real_inode.ops = &tmpfs_inode_dir_ops;
             inode->real_inode.file_ops = NULL;
             break;
 
         case FILE_TYPE_SYMLINK:
             // symbolic links
-            mos_debug(tmpfs, "tmpfs: creating a symlink inode");
+            pr_dinfo2(tmpfs, "tmpfs: creating a symlink inode");
             inode->real_inode.ops = &tmpfs_inode_symlink_ops;
             inode->real_inode.file_ops = NULL;
             break;
 
         case FILE_TYPE_REGULAR:
             // regular files, char devices, block devices, named pipes and sockets
-            mos_debug(tmpfs, "tmpfs: creating a file inode");
+            pr_dinfo2(tmpfs, "tmpfs: creating a file inode");
             inode->real_inode.file_ops = &tmpfs_file_ops;
             break;
 

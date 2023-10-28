@@ -150,7 +150,12 @@ void mos_start_kernel(void)
 
     console_t *const init_con = console_get("serial_com1");
     const stdio_t init_io = { .in = &init_con->io, .out = &init_con->io, .err = &init_con->io };
-    const char *const init_envp[] = { "PATH=/initrd/programs:/initrd/bin:/bin", "HOME=/", NULL };
+    const char *const init_envp[] = {
+        "PATH=/initrd/programs:/initrd/bin:/bin",
+        "HOME=/",
+        "TERM=linux",
+        NULL,
+    };
     process_t *init = elf_create_process(init_args.argv[0], NULL, init_args.argv, init_envp, &init_io);
     if (unlikely(!init))
         mos_panic("failed to create init process");

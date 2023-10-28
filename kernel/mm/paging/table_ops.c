@@ -35,7 +35,7 @@ void mm_do_flag(pgd_t max, ptr_t vaddr, size_t n_pages, vm_flags flags)
 
 void mm_do_unmap(pgd_t max, ptr_t vaddr, size_t n_pages, bool do_unref)
 {
-    mos_debug(vmm, "mm_do_unmap: vaddr=" PTR_FMT ", n_pages=%zu, do_unref=%d", vaddr, n_pages, do_unref);
+    pr_dinfo2(vmm, "mm_do_unmap: vaddr=" PTR_FMT ", n_pages=%zu, do_unref=%d", vaddr, n_pages, do_unref);
     ptr_t vaddr1 = vaddr;
     size_t n_pages1 = n_pages;
 

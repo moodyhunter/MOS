@@ -128,13 +128,13 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
     {
         case X86_SYSCALL_IOPL_ENABLE:
         {
-            mos_debug(syscall, "enabling IOPL for thread %pt", (void *) current_thread);
+            pr_dinfo2(syscall, "enabling IOPL for thread %pt", (void *) current_thread);
             current_process->platform_options.iopl = true;
             return 0;
         }
         case X86_SYSCALL_IOPL_DISABLE:
         {
-            mos_debug(syscall, "disabling IOPL for thread %pt", (void *) current_thread);
+            pr_dinfo2(syscall, "disabling IOPL for thread %pt", (void *) current_thread);
             current_process->platform_options.iopl = false;
             return 0;
         }

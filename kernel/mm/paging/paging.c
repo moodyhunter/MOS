@@ -84,7 +84,7 @@ void mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm
     MOS_ASSERT(vaddr >= MOS_KERNEL_START_VADDR);
     MOS_ASSERT(npages > 0);
     spinlock_acquire(&mmctx->mm_lock);
-    mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, npages, vaddr, pfn);
+    pr_dinfo2(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, npages, vaddr, pfn);
     mm_do_map(mmctx->pgd, vaddr, pfn, npages, flags, false);
     spinlock_release(&mmctx->mm_lock);
 }
@@ -101,7 +101,7 @@ vmap_t *mm_map_pages_to_user(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t
         return NULL;
     }
 
-    mos_debug(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, npages, vmap->vaddr, pfn);
+    pr_dinfo2(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, npages, vmap->vaddr, pfn);
     vmap->vmflags = flags;
     vmap->stat.regular = npages;
     mm_do_map(mmctx->pgd, vmap->vaddr, pfn, npages, flags, true);
@@ -113,7 +113,7 @@ vmap_t *mm_map_pages_to_user(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t
 void mm_replace_page_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, vm_flags flags)
 {
     vaddr = ALIGN_DOWN_TO_PAGE(vaddr);
-    mos_debug(vmm, "filling page at " PTR_FMT " with " PFN_FMT, vaddr, pfn);
+    pr_dinfo2(vmm, "filling page at " PTR_FMT " with " PFN_FMT, vaddr, pfn);
 
     const pfn_t old_pfn = mm_do_get_pfn(ctx->pgd, vaddr);
 
@@ -140,7 +140,7 @@ vmap_t *mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx)
         return NULL;
     }
 
-    mos_debug(vmm, "copying mapping from " PTR_FMT ", %zu pages", src_vmap->vaddr, src_vmap->npages);
+    pr_dinfo2(vmm, "copying mapping from " PTR_FMT ", %zu pages", src_vmap->vaddr, src_vmap->npages);
     mm_do_copy(src_vmap->mmctx->pgd, dst_vmap->mmctx->pgd, src_vmap->vaddr, src_vmap->npages);
 
     dst_vmap->vmflags = src_vmap->vmflags;
@@ -173,7 +173,7 @@ void mm_flag_pages_locked(mm_context_t *ctx, ptr_t vaddr, size_t npages, vm_flag
 {
     MOS_ASSERT(npages > 0);
     MOS_ASSERT(spinlock_is_locked(&ctx->mm_lock));
-    mos_debug(vmm, "flagging %zd pages at " PTR_FMT " with flags %x", npages, vaddr, flags);
+    pr_dinfo2(vmm, "flagging %zd pages at " PTR_FMT " with flags %x", npages, vaddr, flags);
     mm_do_flag(ctx->pgd, vaddr, npages, flags);
 }
 
