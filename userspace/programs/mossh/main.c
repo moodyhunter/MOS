@@ -4,6 +4,7 @@
 #include "mossh.h"
 
 #include <fcntl.h>
+#include <readline/libreadline.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,22 +54,6 @@ static char *string_trim(char *in)
     // Write new null terminator
     *(end + 1) = '\0';
     return in;
-}
-
-char *readline(const char *prompt)
-{
-    char *line = NULL;
-    size_t linecap = 0;
-    printf("%s", prompt);
-    fflush(stdout);
-    ssize_t linelen = getline(&line, &linecap, stdin);
-    if (linelen <= 0)
-    {
-        free(line);
-        return NULL;
-    }
-    line[linelen - 1] = '\0'; // remove newline
-    return line;
 }
 
 static pid_t spawn(const char *path, const char *const argv[])

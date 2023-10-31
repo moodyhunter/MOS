@@ -10,7 +10,7 @@ macro(add_mos_library_do_setup LIBNAME DEFINES PRIVATE_INCLUDE PUBLIC_INCLUDE)
 endmacro()
 
 macro(add_mos_library)
-    set(options USERSPACE_ONLY)
+    set(options USERSPACE_ONLY HOSTED_ONLY)
     set(oneValueArgs NAME)
     set(multiValueArgs SOURCES PUBLIC_INCLUDE_DIRECTORIES PRIVATE_INCLUDE_DIRECTORIES LINK_LIBRARIES)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -44,10 +44,12 @@ macro(add_mos_library)
     endif()
 
     # Create a userspace library
-    add_library(${ARG_NAME} STATIC ${ARG_SOURCES})
-    add_library(mos::${ARG_NAME} ALIAS ${ARG_NAME})
 
-    add_mos_library_do_setup(${ARG_NAME} "" "${ARG_PRIVATE_INCLUDE_DIRECTORIES}" "${ARG_PUBLIC_INCLUDE_DIRECTORIES}")
+    if (NOT ARG_HOSTED_ONLY)
+        add_library(${ARG_NAME} STATIC ${ARG_SOURCES})
+        add_library(mos::${ARG_NAME} ALIAS ${ARG_NAME})
+        add_mos_library_do_setup(${ARG_NAME} "" "${ARG_PRIVATE_INCLUDE_DIRECTORIES}" "${ARG_PUBLIC_INCLUDE_DIRECTORIES}")
+    endif()
 
     if ("${ARG_NAME}" STREQUAL "stdlib")
         # only need to add these to stdlib
@@ -61,8 +63,10 @@ macro(add_mos_library)
             message(FATAL_ERROR "stdlib must not link to other libraries")
         endif()
     else()
-        target_link_libraries(${ARG_NAME} PUBLIC mos::stdlib)
-        target_link_libraries(${ARG_NAME} PUBLIC ${ARG_LINK_LIBRARIES})
+        if (NOT ARG_HOSTED_ONLY)
+            target_link_libraries(${ARG_NAME} PUBLIC mos::stdlib)
+            target_link_libraries(${ARG_NAME} PUBLIC ${ARG_LINK_LIBRARIES})
+        endif()
 
         # Create a hosted userspace library
         add_library(${ARG_NAME}_hosted SHARED ${ARG_SOURCES})

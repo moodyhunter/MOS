@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <mos/mos_global.h>
 #include <mos/types.h>
 
 /**
@@ -10,7 +11,7 @@
  * @param prompt Prompt to display
  * @return char*
  */
-char *readline(const char *prompt);
+MOSAPI char *readline(const char *prompt);
 
 /**
  * @brief Read a line from a file descriptor
@@ -18,4 +19,4 @@ char *readline(const char *prompt);
  * @param fd File descriptor to read from
  * @return char*
  */
-char *get_line(fd_t fd);
+MOSAPI char *get_line(fd_t fd);

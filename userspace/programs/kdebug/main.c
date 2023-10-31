@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <fcntl.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
+#include <mos/mos_global.h>
 #include <readline/libreadline.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define BUFSIZE 4096
 
@@ -92,7 +93,7 @@ static void do_memstat(void)
 
 static void do_leave(void)
 {
-    syscall_exit(0);
+    exit(0);
 }
 
 const struct

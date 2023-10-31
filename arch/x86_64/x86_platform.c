@@ -76,8 +76,8 @@ static void x86_com1_handler(u32 irq)
         serial_device_read(&com1_console.device, &c, 1);
         if (c == '\r')
             c = '\n';
+        serial_console_write(&com1_console.con, &c, 1);
         console_putc(&com1_console.con, c);
-        pr_cont("%c", c);
     }
 }
 

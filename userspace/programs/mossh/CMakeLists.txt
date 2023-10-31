@@ -7,5 +7,5 @@ add_executable(mossh
     cmdline.c
 )
 
-target_link_libraries(mossh PRIVATE mos::argparse_hosted)
+target_link_libraries(mossh PRIVATE mos::argparse_hosted mos::libreadline_hosted)
 add_to_initrd(TARGET mossh /programs)
