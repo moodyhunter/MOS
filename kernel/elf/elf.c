@@ -107,49 +107,66 @@ static void elf_setup_main_thread(thread_t *thread, elf_startup_info_t *const in
     MOS_ASSERT_X(thread->u_stack.head == thread->u_stack.top, "thread %pt's user stack is not empty", (void *) thread);
     stack_push_val(&thread->u_stack, (uintn) 0);
 
-    stack_push(&thread->u_stack, info->invocation, strlen(info->invocation) + 1); // +1 for the null terminator
-    add_auxv_entry(&info->auxv, AT_EXECFN, (ptr_t) thread->u_stack.head);
+    const void *stack_envp[info->envc + 1]; // +1 for the null terminator
+    const void *stack_argv[info->argc + 1]; // +1 for the null terminator
+
+    // calculate the size of entire stack usage
+    size_t stack_size = 0;
+    stack_size += sizeof(uintn);                // the topmost zero
+    stack_size += strlen(info->invocation) + 1; // +1 for the null terminator
+
+    for (int i = 0; i < info->envc; i++)
+        stack_size += strlen(info->envp[i]) + 1; // +1 for the null terminator
+
+    for (int i = 0; i < info->argc; i++)
+        stack_size += strlen(info->argv[i]) + 1; // +1 for the null terminator
+
+    stack_size += sizeof(Elf64_auxv_t) * (info->auxv.count + 2); // AT_EXECFN and AT_NULL
+    stack_size += sizeof(stack_envp);                            // envp
+    stack_size += sizeof(stack_argv);                            // argv
+    stack_size += sizeof(uintn);                                 // argc
+
+    // align to 16 bytes
+    const size_t aligned_stack_size = ALIGN_UP(stack_size, 16);
+    thread->u_stack.head = thread->u_stack.top - (aligned_stack_size - stack_size); // so that the stack can be aligned to 16 bytes
+
+    stack_push_val(&thread->u_stack, (uintn) 0);
+
+    void *invocation_ptr = stack_push(&thread->u_stack, info->invocation, strlen(info->invocation) + 1); // +1 for the null terminator
+
+    add_auxv_entry(&info->auxv, AT_EXECFN, (ptr_t) invocation_ptr);
     add_auxv_entry(&info->auxv, AT_NULL, 0);
 
     // ! copy the environment to the stack in reverse order !
-    const void *stack_envp[info->envc + 1]; // +1 for the null terminator
     if (info->envc == 0)
         goto no_envp;
 
     for (int i = info->envc - 1; i >= 0; i--)
     {
         const size_t len = strlen(info->envp[i]) + 1; // +1 for the null terminator
-        stack_push(&thread->u_stack, info->envp[i], len);
-        stack_envp[i] = (void *) thread->u_stack.head;
+        stack_envp[i] = stack_push(&thread->u_stack, info->envp[i], len);
     }
 
 no_envp:
     stack_envp[info->envc] = NULL;
 
     // ! copy the argv to the stack in reverse order !
-    const void *stack_argv[info->argc + 1]; // +1 for the null terminator
     if (info->argc == 0)
         goto no_argv;
 
     for (int i = info->argc - 1; i >= 0; i--)
     {
         const size_t len = strlen(info->argv[i]) + 1; // +1 for the null terminator
-        stack_push(&thread->u_stack, info->argv[i], len);
-        stack_argv[i] = (void *) thread->u_stack.head;
+        stack_argv[i] = stack_push(&thread->u_stack, info->argv[i], len);
     }
 
 no_argv:
     stack_argv[info->argc] = NULL;
 
-    // align to 16 bytes
-    thread->u_stack.head = ALIGN_DOWN(thread->u_stack.head, 16);
-
-    stack_push(&thread->u_stack, info->auxv.vector, sizeof(Elf64_auxv_t) * info->auxv.count); // auxv vector
-    stack_push(&thread->u_stack, &stack_envp, sizeof(char *) * (info->envc + 1));             // envp array
-    *out_penvp = thread->u_stack.head;                                                        // envp pointer
-    stack_push(&thread->u_stack, &stack_argv, sizeof(char *) * (info->argc + 1));             // argv array
-    *out_pargv = thread->u_stack.head;                                                        // argv pointer
-    stack_push_val(&thread->u_stack, (uintn) info->argc);                                     // argc
+    stack_push(&thread->u_stack, info->auxv.vector, sizeof(Elf64_auxv_t) * info->auxv.count);          // auxv
+    *out_penvp = (ptr_t) stack_push(&thread->u_stack, &stack_envp, sizeof(char *) * (info->envc + 1)); // envp
+    *out_pargv = (ptr_t) stack_push(&thread->u_stack, &stack_argv, sizeof(char *) * (info->argc + 1)); // argv
+    stack_push_val(&thread->u_stack, (uintn) info->argc);                                              // argc
 }
 
 static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, mm_context_t *mm, file_t *file)
