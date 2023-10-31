@@ -2,11 +2,12 @@
 
 #include "mossh.h"
 
-#include <mos/mos_global.h>
-#include <mos/syscall/usermode.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#define MOS_UNUSED(x) (void) x
 
 alias_t *alias_list;
 size_t alias_count;
@@ -80,13 +81,13 @@ void do_cd(int argc, const char *argv[])
     {
         case 0:
         {
-            if (syscall_vfs_chdir("/") != 0)
+            if (chdir("/") != 0)
                 printf("cd: /: Unexpected error\n");
             break;
         }
         case 1:
         {
-            if (syscall_vfs_chdir(argv[0]) != 0)
+            if (chdir(argv[0]) != 0)
                 printf("cd: %s: No such file or directory\n", argv[0]);
             break;
         }
@@ -150,14 +151,14 @@ void do_msleep(int argc, const char *argv[])
         return;
     }
 
-    syscall_clock_msleep(ms);
+    usleep(ms);
 }
 
 void do_pid(int argc, const char *argv[])
 {
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
-    printf("pid: %d\n", syscall_get_pid());
+    printf("pid: %d\n", getpid());
 }
 
 void do_pwd(int argc, const char *argv[])
@@ -165,8 +166,8 @@ void do_pwd(int argc, const char *argv[])
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
     char buffer[4096];
-    size_t size = syscall_vfs_getcwd(buffer, sizeof(buffer));
-    printf("%.*s\n", (int) size, buffer);
+    void *p = getcwd(buffer, sizeof(buffer));
+    printf("%s\n", (char *) p);
 }
 
 void do_repeat(int argc, const char *argv[])
@@ -231,7 +232,7 @@ void do_sleep(int argc, const char *argv[])
         return;
     }
 
-    syscall_clock_msleep(seconds * 1000);
+    usleep(seconds * 1000);
 }
 
 void do_source(int argc, const char *argv[])

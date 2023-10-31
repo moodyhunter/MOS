@@ -2,17 +2,19 @@
 
 #include "argparse/libargparse.h"
 #include "mossh.h"
-#include "readline/libreadline.h"
 
 #include <fcntl.h>
-#include <mos/filesystem/fs_types.h>
-#include <mos/lib/cmdline.h>
-#include <mos/mos_global.h>
-#include <mos/syscall/usermode.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#define MOS_UNUSED(x) (void) x
+
+extern const char **cmdline_parse(const char **inargv, char *inbuf, size_t length, size_t *out_count);
+extern void string_unquote(char *str);
 
 // We don't support environment variables yet, so we hardcode the path
 const char *PATH[] = {
@@ -26,6 +28,62 @@ const char *PATH[] = {
 };
 
 static bool verbose = false;
+
+static char *string_trim(char *in)
+{
+    if (in == NULL)
+        return NULL;
+
+    char *end;
+
+    // Trim leading space
+    while (*in == ' ')
+        in++;
+
+    if (*in == 0) // All spaces?
+        return in;
+
+    // Trim trailing space
+    end = in + strlen(in) - 1;
+    while (end > in && *end == ' ')
+        end--;
+
+    // Trim trailing newline
+    if (*end == '\n')
+        end--;
+
+    // Write new null terminator
+    *(end + 1) = '\0';
+    return in;
+}
+
+char *readline(const char *prompt)
+{
+    char *line = NULL;
+    size_t linecap = 0;
+    printf("%s", prompt);
+    fflush(stdout);
+    ssize_t linelen = getline(&line, &linecap, stdin);
+    if (linelen <= 0)
+    {
+        free(line);
+        return NULL;
+    }
+    line[linelen - 1] = '\0'; // remove newline
+    return line;
+}
+
+static pid_t spawn(const char *path, const char *const argv[])
+{
+    pid_t pid = fork();
+    if (pid == 0)
+    {
+        execve(path, (char *const *) argv, environ);
+        exit(-1);
+    }
+
+    return pid;
+}
 
 bool do_program(const char *prog, int argc, const char **argv)
 {
@@ -41,7 +99,7 @@ bool do_program(const char *prog, int argc, const char **argv)
         return true;
     }
 
-    syscall_wait_for_process(pid);
+    waitpid(pid, NULL, 0);
     free((void *) prog);
     return true;
 }
@@ -67,12 +125,12 @@ bool do_builtin(const char *command, int argc, const char **argv)
 
     if (may_be_directory)
     {
-        file_stat_t statbuf = { 0 };
-        if (stat(command, &statbuf))
+        struct stat statbuf = { 0 };
+        if (!stat(command, &statbuf))
         {
-            if (statbuf.type == FILE_TYPE_DIRECTORY)
+            if (S_ISDIR(statbuf.st_mode))
             {
-                syscall_vfs_chdir(command);
+                chdir(command);
                 return true;
             }
         }
@@ -146,24 +204,28 @@ void do_execute_line(char *line)
 
 int do_interpret_script(const char *path)
 {
-    const fd_t fd = open(path, OPEN_READ);
-    if (fd < 0)
+    FILE *f = fopen(path, "r");
+    if (!f)
     {
         fprintf(stderr, "Failed to open '%s'\n", path);
         return 1;
     }
 
-    char *line = get_line(fd);
-    while (line)
-    {
-        if (verbose)
-            printf("<script>: %s\n", line);
-        do_execute_line(line);
-        free(line);
-        line = get_line(fd);
-    }
+    char linebuf[1024] = { 0 };
 
-    syscall_io_close(fd);
+    do
+    {
+        char *line = fgets(linebuf, sizeof(linebuf), f);
+        if (line)
+        {
+            if (verbose)
+                printf("<script>: %s\n", line);
+            line = string_trim(line);
+            do_execute_line(line);
+        }
+    } while (!feof(f));
+
+    fclose(f);
     return 0;
 }
 
@@ -211,7 +273,7 @@ int main(int argc, const char **argv)
     }
 
     printf("Welcome to MOS-sh!\n");
-    char cwdbuf[MOS_PATH_MAX_LENGTH] = { 0 };
+    char cwdbuf[1024] = { 0 };
 
     if (!has_initial_script)
     {
@@ -225,9 +287,7 @@ int main(int argc, const char **argv)
 
     while (1)
     {
-        const ssize_t sz = syscall_vfs_getcwd(cwdbuf, MOS_PATH_MAX_LENGTH);
-
-        if (sz <= 0)
+        if (!getcwd(cwdbuf, sizeof(cwdbuf)))
         {
             fputs("Failed to get current working directory.\n", stderr);
             cwdbuf[0] = '?';
@@ -237,7 +297,7 @@ int main(int argc, const char **argv)
         const char *prompt_part2 = " > ";
         const size_t prompt_len = strlen(cwdbuf) + strlen(prompt_part2) + 1;
         char *prompt = malloc(prompt_len);
-        memzero(prompt, prompt_len);
+        memset(prompt, 0, prompt_len);
         sprintf((char *) prompt, "%s%s", cwdbuf, prompt_part2);
 
         char *line = readline(prompt);

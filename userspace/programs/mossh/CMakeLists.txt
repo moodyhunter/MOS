@@ -4,7 +4,8 @@ add_executable(mossh
     main.c
     builtin.c
     utils.c
+    cmdline.c
 )
 
-setup_userspace_program(mossh /programs "MOS Shell")
-target_link_libraries(mossh PRIVATE mos::readline mos::argparse)
+target_link_libraries(mossh PRIVATE mos::argparse_hosted)
+add_to_initrd(TARGET mossh /programs)

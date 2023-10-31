@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <mos/types.h>
+#include <stddef.h>
 
 void do_help(int argc, const char *argv[]);
 void do_version(int argc, const char *argv[]);
