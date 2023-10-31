@@ -36,7 +36,7 @@
 #define _lprintk_filename_arg
 #endif
 
-#if MOS_CONFIG(MOS_PRINTK_HAS_SOME_PREFIX)
+#if MOS_PRINTK_HAS_SOME_PREFIX
 #define __add_comma(...)    __VA_OPT__(, (__VA_ARGS__))
 #define _lprintk_prefix_fmt _lprintk_timestamp_fmt _lprintk_datetime_fmt _lprintk_cpuid_fmt _lprintk_filename_fmt
 #define _lprintk_prefix_arg __add_comma(_lprintk_timestamp_arg) __add_comma(_lprintk_datetime_arg) __add_comma(_lprintk_cpuid_arg) __add_comma(_lprintk_filename_arg)

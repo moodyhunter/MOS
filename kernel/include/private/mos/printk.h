@@ -42,7 +42,7 @@ typedef enum
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
         if (MOS_DEBUG_FEATURE(feat))                                                                                                                                     \
-            lprintk_wrapper(MOS_LOG_WARN, fmt, ##__VA_ARGS__);                                                                                                           \
+            lprintk_wrapper(level, "%-10s | " fmt, #feat, ##__VA_ARGS__);                                                                                                \
     } while (0)
 
 #define pr_dinfo2(feat, fmt, ...) lprintk_debug_wrapper(feat, MOS_LOG_INFO2, pr_fmt(fmt), ##__VA_ARGS__)

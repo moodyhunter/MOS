@@ -78,12 +78,12 @@ static bool schedule_to_thread(uintn key, void *value, void *data)
     }
 
     cpu_t *cpu = current_cpu;
-    pr_dinfo2(scheduler, "cpu %d: switching to thread %d -> %d, flags: %c%c", //
-              cpu->id,                                                        //
-              current_thread ? current_thread->tid : 0,                       //
-              thread->tid,                                                    //
-              switch_flags & SWITCH_TO_NEW_USER_THREAD ? 'U' : '-',           //
-              switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? 'K' : '-'          //
+    pr_dinfo2(scheduler, "cpu %d: switching to thread %pt -> %pt, flags: %c%c", //
+              cpu->id,                                                          //
+              (void *) current_thread,                                          //
+              (void *) thread,                                                  //
+              switch_flags & SWITCH_TO_NEW_USER_THREAD ? 'U' : '-',             //
+              switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? 'K' : '-'            //
     );
 
     const bool should_switch_mm = cpu->mm_context != thread->owner->mm;
