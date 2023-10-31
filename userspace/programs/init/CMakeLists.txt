@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 add_executable(init main.c)
-setup_userspace_program(init /programs "The init program")
-target_link_libraries(init PRIVATE mos::argparse mos::libconfig)
+target_link_libraries(init
+    PRIVATE
+        mos::argparse_hosted
+        mos::libconfig_hosted
+        mos::include
+)
+add_to_initrd(TARGET init /programs)

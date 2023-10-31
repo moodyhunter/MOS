@@ -3,10 +3,15 @@
 #include "libconfig/libconfig.h"
 
 #include <fcntl.h>
-#include <mos/filesystem/fs_types.h>
-#include <mos/syscall/usermode.h>
+#if __MOS_MINIMAL_LIBC__
 #include <mos_stdlib.h>
 #include <mos_string.h>
+#else
+#include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#endif
 #include <sys/stat.h>
 
 typedef struct struct_config
@@ -21,6 +26,7 @@ typedef struct struct_config
 
 const config_t *config_parse_file(const char *file_path)
 {
+#if __MOS_MINIMAL_LIBC__
     file_stat_t stat = { 0 };
 
     fd_t fd = open(file_path, OPEN_READ);
@@ -31,10 +37,27 @@ const config_t *config_parse_file(const char *file_path)
         return NULL;
 
     char *file_content = malloc(stat.size);
-
     size_t read = syscall_io_read(fd, file_content, stat.size);
     if (read != stat.size)
         return NULL;
+
+    syscall_io_close(fd);
+#else
+    struct stat stat = { 0 };
+    int fd = open(file_path, O_RDONLY);
+    if (fd <= 0)
+        return NULL;
+
+    if (fstat(fd, &stat) != 0)
+        return NULL;
+
+    char *file_content = malloc(stat.st_size);
+    ssize_t readsiz = read(fd, file_content, stat.st_size);
+    if (readsiz != stat.st_size)
+        return NULL;
+
+    close(fd);
+#endif
 
     config_t *config = malloc(sizeof(config_t));
     config->count = 0;

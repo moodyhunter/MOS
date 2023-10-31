@@ -27,7 +27,7 @@ typedef struct rpc_function_info
  * @param data A pointer to user data, which will be passed to the function
  * @return rpc_server_t* A pointer to the new server
  */
-rpc_server_t *rpc_server_create(const char *server_name, void *data);
+MOSAPI rpc_server_t *rpc_server_create(const char *server_name, void *data);
 
 /**
  * @brief Run the server, this function will not return until the server is destroyed
@@ -36,7 +36,7 @@ rpc_server_t *rpc_server_create(const char *server_name, void *data);
  *
  * @note The incoming RPC calls will be handled in a separate thread.
  */
-void rpc_server_exec(rpc_server_t *server);
+MOSAPI void rpc_server_exec(rpc_server_t *server);
 
 /**
  * @brief Register a function with the server
@@ -48,7 +48,7 @@ void rpc_server_exec(rpc_server_t *server);
  * @return true The function was registered successfully
  * @return false The function could not be registered
  */
-bool rpc_server_register_function(rpc_server_t *server, u32 function_id, rpc_function_t func, size_t args_count);
+MOSAPI bool rpc_server_register_function(rpc_server_t *server, u32 function_id, rpc_function_t func, size_t args_count);
 
 /**
  * @brief Register multiple functions with the server
@@ -59,7 +59,7 @@ bool rpc_server_register_function(rpc_server_t *server, u32 function_id, rpc_fun
  * @return true The functions were registered successfully
  * @return false The functions could not be registered
  */
-bool rpc_server_register_functions(rpc_server_t *server, const rpc_function_info_t *functions, size_t count);
+MOSAPI bool rpc_server_register_functions(rpc_server_t *server, const rpc_function_info_t *functions, size_t count);
 
 /**
  * @brief Iterate to the next argument
@@ -70,7 +70,7 @@ bool rpc_server_register_functions(rpc_server_t *server, const rpc_function_info
  *
  * @note Do not modify any of the data in the returned pointer.
  */
-const void *rpc_arg_next(rpc_args_iter_t *args, size_t *size);
+MOSAPI const void *rpc_arg_next(rpc_args_iter_t *args, size_t *size);
 
 /**
  * @brief Iterate to the next argument, and check that the size is as expected
@@ -81,7 +81,7 @@ const void *rpc_arg_next(rpc_args_iter_t *args, size_t *size);
  *
  * @note Do not modify any of the data in the returned pointer.
  */
-const void *rpc_arg_sized_next(rpc_args_iter_t *iter, size_t expected_size);
+MOSAPI const void *rpc_arg_sized_next(rpc_args_iter_t *iter, size_t expected_size);
 
 /**
  * @brief Write a result to the reply
@@ -90,11 +90,11 @@ const void *rpc_arg_sized_next(rpc_args_iter_t *iter, size_t expected_size);
  * @param data The data to write
  * @param size The size of the data to write
  */
-void rpc_write_result(rpc_reply_t *result, const void *data, size_t size);
+MOSAPI void rpc_write_result(rpc_reply_t *result, const void *data, size_t size);
 
 /**
  * @brief Destroy the RPC server
  *
  * @param server The server to destroy
  */
-void rpc_server_destroy(rpc_server_t *server);
+MOSAPI void rpc_server_destroy(rpc_server_t *server);

@@ -145,6 +145,8 @@ void mos_start_kernel(void)
     if (IS_ERR_VALUE(ret))
         mos_panic("failed to mount initrd");
 
+    vfs_symlink("/lib", "/initrd/lib");
+
     ipc_init();
     tasks_init();
 

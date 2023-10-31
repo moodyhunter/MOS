@@ -43,11 +43,7 @@
 
 #pragma once
 
-#if __MOS_MINIMAL_LIBC__
-#include "mos/moslib_global.h"
-#else
-#define MOSAPI
-#endif
+#include <mos/mos_global.h>
 
 typedef struct
 {

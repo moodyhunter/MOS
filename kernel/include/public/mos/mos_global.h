@@ -109,6 +109,12 @@
 #define statement_expr(type, ...) __extension__({ type retval; __VA_ARGS__; retval; })
 // clang-format on
 
+#ifdef __cplusplus
+#define MOSAPI extern "C"
+#else
+#define MOSAPI extern
+#endif
+
 // If the feature is enabled, the expression will be 1, otherwise -1.
 // If the given feature is not defined, the expression will be 0, which throws a division by zero error.
 #define MOS_CONFIG(feat) (1 / feat == 1)

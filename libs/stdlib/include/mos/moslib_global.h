@@ -17,17 +17,10 @@
 #define MOS_LIB_ASSERT_X(cond, msg, ...) MOS_ASSERT_X(cond, msg, ##__VA_ARGS__)
 #define MOS_LIB_UNIMPLEMENTED(content)   MOS_UNIMPLEMENTED(content)
 #define MOS_LIB_UNREACHABLE()            MOS_UNREACHABLE()
-#define MOSAPI
 
 #include "mos/printk.h"
 
 #else // ! Userspace
-
-#ifdef __cplusplus
-#define MOSAPI extern "C"
-#else
-#define MOSAPI extern
-#endif
 
 #include <mos/platform_syscall.h>
 #include <mos/syscall/usermode.h>

@@ -2,12 +2,39 @@
 
 #include <argparse/libargparse.h>
 #include <libconfig/libconfig.h>
-#include <mos/filesystem/fs_types.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
+#include <mos/syscall/usermode.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 static const config_t *config;
+
+static char *string_trim(char *in)
+{
+    if (in == NULL)
+        return NULL;
+
+    char *end;
+
+    // Trim leading space
+    while (*in == ' ')
+        in++;
+
+    if (*in == 0) // All spaces?
+        return in;
+
+    // Trim trailing space
+    end = in + strlen(in) - 1;
+    while (end > in && *end == ' ')
+        end--;
+
+    // Write new null terminator
+    *(end + 1) = '\0';
+    return in;
+}
 
 static pid_t start_device_manager(void)
 {
@@ -26,7 +53,14 @@ static pid_t start_device_manager(void)
     argv[argc] = NULL;
 
     // start the device manager
-    return spawn(dm_path, argv);
+    pid_t pid = fork();
+    if (pid == 0)
+    {
+        execv(dm_path, (char *const *) argv);
+        exit(-1);
+    }
+
+    return pid;
 }
 
 static bool create_directories(void)
@@ -39,7 +73,7 @@ static bool create_directories(void)
     for (size_t i = 0; i < num_dirs; i++)
     {
         const char *dir = dirs[i];
-        if (syscall_vfs_mkdir(dir) != 0)
+        if (mkdir(dir, 0755) != 0)
             return false;
     }
 
@@ -68,7 +102,7 @@ static bool create_symlinks(void)
         source = string_trim(source);
         destination = string_trim(destination);
 
-        if (syscall_vfs_symlink(source, destination) != 0)
+        if (link(source, destination) != 0)
             return false;
     }
 
@@ -138,7 +172,7 @@ int main(int argc, const char *argv[])
         }
     }
 
-    if (syscall_get_pid() != 1)
+    if (getpid() != 1)
     {
         puts("init: not running as PID 1");
 
@@ -182,14 +216,14 @@ int main(int argc, const char *argv[])
     shell_argv = realloc(shell_argv, (shell_argc + 1) * sizeof(char *));
     shell_argv[shell_argc] = NULL;
 
-    if (syscall_fork() == 0)
+    if (fork() == 0)
     {
         // execve the shell in the child process
-        pid_t shell_pid = syscall_execveat(FD_CWD, shell, shell_argv, (const char *const *) environ, 0);
+        pid_t shell_pid = execv(shell, (char **) shell_argv);
         if (shell_pid <= 0)
             return DYN_ERROR_CODE;
     }
 
-    syscall_wait_for_process(-1);
+    waitpid(-1, NULL, 0);
     return 0;
 }

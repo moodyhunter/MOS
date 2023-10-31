@@ -11,8 +11,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#define MOS_UNUSED(x) (void) x
-
 extern const char **cmdline_parse(const char **inargv, char *inbuf, size_t length, size_t *out_count);
 extern void string_unquote(char *str);
 

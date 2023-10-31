@@ -8,8 +8,8 @@
 // https://github.com/u-boot/u-boot/commit/a554ee7edee8e10b38c6899ad8556daf58ca3afe
 
 #include <mos/types.h>
-#include <mos_stdio.h>
-#include <mos_string.h>
+#include <stdio.h>
+#include <string.h>
 
 #define SIZE 4
 static u32 score;
