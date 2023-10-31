@@ -74,10 +74,10 @@ static void x86_com1_handler(u32 irq)
     {
         char c = '\0';
         serial_device_read(&com1_console.device, &c, 1);
+        if (c == '\r')
+            c = '\n';
         console_putc(&com1_console.con, c);
         pr_cont("%c", c);
-        if (c == '\r')
-            pr_cont("\n");
     }
 }
 
