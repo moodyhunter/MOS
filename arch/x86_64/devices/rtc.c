@@ -99,6 +99,7 @@ void rtc_read_time(timeval_t *time)
 void rtc_irq_handler(u32 irq)
 {
     MOS_ASSERT(irq == IRQ_CMOS_RTC);
+    rtc_read_reg(0x0C); // select register C and ack the interrupt
     clocksource_tick(&rtc_clocksource);
 }
 
@@ -109,5 +110,6 @@ void rtc_init()
     port_outb(CMOS_PORT_ADDRESS, 0x80 | RTC_STATUS_REG_B); // set the index again (a read will reset the index to register D)
     port_outb(CMOS_PORT_DATA, val | 0x40);                 // write the previous value ORed with 0x40. This turns on bit 6 of register B
 
+    rtc_read_reg(0x0C); // select register C and ack the interrupt
     clocksource_register(&rtc_clocksource);
 }
