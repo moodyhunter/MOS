@@ -88,6 +88,11 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
             // thread_t
             null_check();
             const thread_t *thread = (const thread_t *) ptr;
+            if (thread == NULL)
+            {
+                wrap_print("(null)");
+                goto done;
+            }
             wrap_print("'%s' (tid %d)", thread->name ? thread->name : "<no name>", thread->tid);
             goto done;
         }
@@ -97,6 +102,11 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
             // process_t
             null_check();
             const process_t *process = (const process_t *) ptr;
+            if (process == NULL)
+            {
+                wrap_print("(null)");
+                goto done;
+            }
             wrap_print("'%s' (pid %d)", process->name ? process->name : "<no name>", process->pid);
             goto done;
         }
@@ -120,6 +130,12 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
                     shift_next;
                     // vmap_t *, print the vmap's range and flags
                     const vmap_t *vmap = (const vmap_t *) ptr;
+                    if (vmap == NULL)
+                    {
+                        wrap_print("(null)");
+                        goto done;
+                    }
+
                     wrap_print("{ " PTR_RANGE ", ", vmap->vaddr, vmap->vaddr + vmap->npages * MOS_PAGE_SIZE - 1);
                     wrap_printed(do_print_vmflags(buf, *size, vmap->vmflags));
                     wrap_print(", fault: %ps", (void *) (ptr_t) vmap->on_fault);
