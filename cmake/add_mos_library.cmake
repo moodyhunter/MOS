@@ -55,6 +55,7 @@ macro(add_mos_library)
         # TODO: Remove this once we have a proper userspace libc
         target_compile_options(${ARG_NAME} PUBLIC "-ffreestanding")
         target_compile_definitions(${ARG_NAME} PUBLIC "__MLIBC_ABI_ONLY")
+        target_compile_definitions(${ARG_NAME} PUBLIC "__MOS_MINIMAL_LIBC__")
         target_link_options(${ARG_NAME} PUBLIC "-nostdlib")
         if (ARG_LINK_LIBRARIES)
             message(FATAL_ERROR "stdlib must not link to other libraries")
@@ -62,5 +63,12 @@ macro(add_mos_library)
     else()
         target_link_libraries(${ARG_NAME} PUBLIC mos::stdlib)
         target_link_libraries(${ARG_NAME} PUBLIC ${ARG_LINK_LIBRARIES})
+
+        # Create a hosted userspace library
+        add_library(${ARG_NAME}_hosted SHARED ${ARG_SOURCES})
+        add_library(mos::${ARG_NAME}_hosted ALIAS ${ARG_NAME}_hosted)
+
+        add_mos_library_do_setup(${ARG_NAME}_hosted "" "${ARG_PRIVATE_INCLUDE_DIRECTORIES}" "${ARG_PUBLIC_INCLUDE_DIRECTORIES}")
+        target_link_libraries(${ARG_NAME}_hosted PUBLIC mos::include ${ARG_LINK_LIBRARIES})
     endif()
 endmacro()
