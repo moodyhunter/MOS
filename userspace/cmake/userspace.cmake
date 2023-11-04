@@ -139,16 +139,25 @@ macro(add_simple_rust_project PROJECT_DIR NAME INITRD_SUBDIR)
         message(WARNING "Rust target ${MOS_RUST_TARGET} is not supported by rustc")
         return()
     endif()
+
+    cmake_parse_arguments(ARGS "" "" "DEPENDS" ${ARGN})
+
     set(OUTPUT_FILE "${PROJECT_DIR}/target/${MOS_RUST_TARGET}/debug/${NAME}")
     add_custom_target(
         ${NAME}_rust
-        cargo build --target "${MOS_RUST_TARGET}" && ${CMAKE_COMMAND} -E copy ${OUTPUT_FILE} ${INITRD_DIR}/${INITRD_SUBDIR}
+        cargo build --target "${MOS_RUST_TARGET}"
+        && ${CMAKE_COMMAND} -E copy ${OUTPUT_FILE} ${INITRD_DIR}/${INITRD_SUBDIR}
         VERBATIM
         WORKING_DIRECTORY ${PROJECT_DIR}
         DEPENDS ${PROJECT_DIR}/Cargo.toml
         BYPRODUCTS ${OUTPUT_FILE}
         USES_TERMINAL
     )
+
+    foreach(DEPENDENCY ${ARGS_DEPENDS})
+        add_dependencies(${NAME}_rust ${DEPENDENCY})
+    endforeach(DEPENDENCY)
+
     add_dependencies(mos_initrd ${NAME}_rust)
 endmacro()
 

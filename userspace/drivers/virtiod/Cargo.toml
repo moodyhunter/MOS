@@ -1,0 +1,10 @@
+[package]
+edition = "2021"
+name = "virtiod"
+version = "0.1.0"
+
+[dependencies]
+clap = {version = "4.4.7", features = ["derive"]}
+libc = {git = "https://github.com/moodyhunter/mos-rust-libc.git"}
+log = "0.4.17"
+virtio-drivers = "0.7.0"
