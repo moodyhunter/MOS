@@ -26,6 +26,7 @@ typedef struct
     struct
     {
         bool (*mmap)(sysfs_file_t *file, vmap_t *vmap, off_t offset);
+        bool (*munmap)(sysfs_file_t *file, vmap_t *vmap, bool *unmapped);
         size_t size;
     } mem;
 } sysfs_item_t;
@@ -34,7 +35,7 @@ typedef struct
 #define SYSFS_RO_ITEM(_name, _show_fn) { .name = _name, .type = SYSFS_RO, .show = _show_fn }
 #define SYSFS_RW_ITEM(_name, _show_fn, _store_fn) { .name = _name, .type = SYSFS_RW, .show = _show_fn, .store = _store_fn }
 #define SYSFS_WO_ITEM(_name, _store_fn) { .name = _name, .type = SYSFS_WO, .store = _store_fn }
-#define SYSFS_MEM_ITEM(_name, _mmap_fn) { .name = _name, .type = SYSFS_MEM, .mem.mmap = _mmap_fn }
+#define SYSFS_MEM_ITEM(_name, _mmap_fn, _munmap_fn) { .name = _name, .type = SYSFS_MEM, .mem.mmap = _mmap_fn, .mem.munmap = _munmap_fn }
 #define SYSFS_END_ITEM { 0 }
 // clang-format on
 

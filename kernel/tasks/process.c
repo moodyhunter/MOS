@@ -32,7 +32,12 @@
 hashmap_t process_table = { 0 }; // pid_t -> process_t
 
 static const char *vmap_content_str[] = {
-    [VMAP_UNKNOWN] = "unknown", [VMAP_HEAP] = "heap", [VMAP_STACK] = "stack", [VMAP_FILE] = "file", [VMAP_MMAP] = "mmap",
+    [VMAP_UNKNOWN] = "unknown", //
+    [VMAP_HEAP] = "heap",       //
+    [VMAP_STACK] = "stack",     //
+    [VMAP_FILE] = "file",       //
+    [VMAP_MMAP] = "mmap",       //
+    [VMAP_DMA] = "DMA",         //
 };
 
 const char *vmap_type_str[] = {

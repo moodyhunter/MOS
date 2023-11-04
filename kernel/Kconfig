@@ -171,6 +171,9 @@ config DEBUG_panic
 config DEBUG_signal
     bool "signal debugging"
 
+config DEBUG_dma
+    bool "dma debugging"
+
 endmenu
 
 endmenu

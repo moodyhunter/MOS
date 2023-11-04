@@ -47,12 +47,21 @@ static bool acpi_sysfs_mmap(sysfs_file_t *f, vmap_t *vmap, off_t offset)
     return true;
 }
 
+static bool acpi_sysfs_munmap(sysfs_file_t *f, vmap_t *vmap, bool *unmapped)
+{
+    MOS_UNUSED(f);
+    mm_do_unmap(vmap->mmctx->pgd, vmap->vaddr, vmap->npages, false);
+    *unmapped = true;
+    return true;
+}
+
 static void register_sysfs_acpi_node(const char table_name[4], const acpi_sdt_header_t *header)
 {
     acpi_sysfs_item_t *const item = kmalloc(sizeof(acpi_sysfs_item_t));
     item->size = header->length;
     item->item.name = strndup(table_name, 4);
     item->item.mem.mmap = acpi_sysfs_mmap;
+    item->item.mem.munmap = acpi_sysfs_munmap;
     item->item.mem.size = item->size;
     item->item.type = SYSFS_MEM;
     item->pages = mm_get_free_pages(ALIGN_UP_TO_PAGE(item->size) / MOS_PAGE_SIZE);
@@ -60,6 +69,7 @@ static void register_sysfs_acpi_node(const char table_name[4], const acpi_sdt_he
         mos_panic("failed to allocate pages for ACPI table");
 
     memcpy((void *) phyframe_va(item->pages), header, header->length);
+    pmm_ref(item->pages, true); // don't free the pages when the item is freed
 
     sysfs_register_file(&__sysfs_acpi, &item->item, item);
 }

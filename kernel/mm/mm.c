@@ -183,14 +183,16 @@ void vmap_destroy(vmap_t *vmap)
     MOS_ASSERT(spinlock_is_locked(&mm->mm_lock));
     if (vmap->io)
     {
-        io_unref(vmap->io);
-        // if (!io_munmap(range_map->io, range_map))
-        // {
-        //     pr_warn("munmap: could not unmap the file: io_munmap() failed");
-        //     return false;
-        // }
+        bool unmapped = false;
+        if (!io_munmap(vmap->io, vmap, &unmapped))
+            pr_warn("munmap: could not unmap the file: io_munmap() failed");
+
+        if (unmapped)
+            goto unmapped;
     }
     mm_do_unmap(mm->pgd, vmap->vaddr, vmap->npages, true);
+
+unmapped:
     list_remove(vmap);
     kfree(vmap);
 }
@@ -476,11 +478,20 @@ unhandled_fault:
 static bool sys_mem_mmap(sysfs_file_t *f, vmap_t *vmap, off_t offset)
 {
     MOS_UNUSED(f);
+    // pr_info("mem: mapping " PTR_VLFMT " to " PTR_VLFMT "\n", vmap->vaddr, offset);
     mm_do_map(vmap->mmctx->pgd, vmap->vaddr, offset / MOS_PAGE_SIZE, vmap->npages, vmap->vmflags, false);
     return true;
 }
 
-static sysfs_item_t sys_mem_item = SYSFS_MEM_ITEM("mem", sys_mem_mmap);
+static bool sys_mem_munmap(sysfs_file_t *f, vmap_t *vmap, bool *unmapped)
+{
+    MOS_UNUSED(f);
+    mm_do_unmap(vmap->mmctx->pgd, vmap->vaddr, vmap->npages, false);
+    *unmapped = true;
+    return true;
+}
+
+static sysfs_item_t sys_mem_item = SYSFS_MEM_ITEM("mem", sys_mem_mmap, sys_mem_munmap);
 
 static void mm_sysfs_init()
 {

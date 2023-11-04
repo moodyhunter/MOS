@@ -60,8 +60,8 @@ vmap_t *mm_get_free_vaddr_locked(mm_context_t *mmctx, size_t n_pages, ptr_t base
  * @note This function is rarely used directly, you don't always know the physical address of the
  * pages you want to map.
  */
-void mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
-vmap_t *mm_map_pages_to_user(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags, vmap_type_t type, vmap_content_t content);
+void mm_map_kernel_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
+vmap_t *mm_map_user_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags, valloc_flags vaflags, vmap_type_t type, vmap_content_t content);
 
 /**
  * @brief Replace the mappings of a page with a new physical frame.

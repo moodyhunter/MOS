@@ -214,6 +214,17 @@ static bool vfs_io_ops_mmap(io_t *io, vmap_t *vmap, off_t offset)
     return true;
 }
 
+static bool vfs_io_ops_munmap(io_t *io, vmap_t *vmap, bool *unmapped)
+{
+    file_t *file = container_of(io, file_t, io);
+    const file_ops_t *const file_ops = file_get_ops(file);
+
+    if (file_ops->munmap)
+        return file_ops->munmap(file, vmap, unmapped);
+
+    return true;
+}
+
 void vfs_op_ops_getname(io_t *io, char *buf, size_t size)
 {
     file_t *file = container_of(io, file_t, io);
@@ -226,6 +237,7 @@ static const io_op_t file_io_ops = {
     .close = vfs_io_ops_close,
     .seek = vfs_io_ops_seek,
     .mmap = vfs_io_ops_mmap,
+    .munmap = vfs_io_ops_munmap,
     .get_name = vfs_op_ops_getname,
 };
 

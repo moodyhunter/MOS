@@ -36,16 +36,14 @@ void mm_do_flag(pgd_t max, ptr_t vaddr, size_t n_pages, vm_flags flags)
 void mm_do_unmap(pgd_t max, ptr_t vaddr, size_t n_pages, bool do_unref)
 {
     pr_dinfo2(vmm, "mm_do_unmap: vaddr=" PTR_FMT ", n_pages=%zu, do_unref=%d", vaddr, n_pages, do_unref);
-    ptr_t vaddr1 = vaddr;
-    size_t n_pages1 = n_pages;
+    ptr_t vaddr1 = vaddr, vaddr2 = vaddr;
+    size_t n_pages1 = n_pages, n_pages2 = n_pages;
 
     struct pagetable_do_unmap_data data = { .do_unref = do_unref };
     pml5_traverse(max.max, &vaddr, &n_pages, pagetable_do_unmap_callbacks, &data);
-    if (pml5_destroy_range(max.max, &vaddr1, &n_pages1))
-    {
-        // entire pml5 was destroyed?
-        MOS_UNREACHABLE();
-    }
+    bool pml5_destroyed = pml5_destroy_range(max.max, &vaddr1, &n_pages1);
+    if (pml5_destroyed)
+        pr_warn("mm_do_unmap: pml5 destroyed: vaddr=" PTR_FMT ", n_pages=%zu", vaddr2, n_pages2);
 }
 
 void mm_do_mask_flags(pgd_t max, ptr_t vaddr, size_t n_pages, vm_flags mask)

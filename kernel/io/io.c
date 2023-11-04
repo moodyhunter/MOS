@@ -271,6 +271,40 @@ bool io_mmap(io_t *io, vmap_t *vmap, off_t offset)
     return true;
 }
 
+bool io_munmap(io_t *io, vmap_t *vmap, bool *unmapped)
+{
+    pr_dinfo2(io, "io_unmap(%p, %p, %p)", (void *) io, (void *) vmap, (void *) unmapped);
+    if (unlikely(io->closed))
+    {
+        mos_warn("%p is already closed", (void *) io);
+        return false;
+    }
+
+    if (unlikely(!vmap->io))
+    {
+        mos_warn("vmap->io is NULL");
+        return false;
+    }
+
+    if (unlikely(vmap->io != io))
+    {
+        mos_warn("vmap->io != io");
+        return false;
+    }
+
+    if (vmap->io->ops->munmap)
+    {
+        if (unlikely(!vmap->io->ops->munmap(vmap->io, vmap, unmapped)))
+        {
+            mos_warn("vmap->io->ops->unmap() failed");
+            return false;
+        }
+    }
+
+    io_unref(io); // unmap decreases refcount
+    return true;
+}
+
 void io_get_name(io_t *io, char *buf, size_t size)
 {
     if (!io_valid(io))

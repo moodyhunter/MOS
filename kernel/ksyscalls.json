@@ -364,6 +364,63 @@
             "name": "io_dup2",
             "return": "fd_t",
             "arguments": [ { "type": "fd_t", "arg": "old_fd" }, { "type": "fd_t", "arg": "new_fd" } ]
+        },
+        {
+            "number": 51,
+            "name": "dmabuf_alloc",
+            "return": "bool",
+            "arguments": [
+                { "type": "size_t", "arg": "n_pages" },
+                { "type": "ptr_t *", "arg": "out_paddr" },
+                { "type": "ptr_t *", "arg": "out_vaddr" }
+            ],
+            "comments": [
+                "Allocate a DMA buffer, the buffer will be physically contiguous and its virtual address",
+                "will be mapped into user's address space."
+            ]
+        },
+        {
+            "number": 52,
+            "name": "dmabuf_free",
+            "return": "bool",
+            "arguments": [
+                { "type": "ptr_t", "arg": "vaddr" },
+                { "type": "ptr_t", "arg": "paddr" }
+            ],
+            "comments": [
+                "Free a DMA buffer that was previously allocated with dma_alloc().",
+                "The buffer will be unmapped from user's address space, and its physical pages",
+                "will be reclaimed."
+            ]
+        },
+        {
+            "number": 53,
+            "name": "dmabuf_share",
+            "return": "bool",
+            "arguments": [
+                { "type": "void *", "arg": "buf" },
+                { "type": "size_t", "arg": "bufsize" },
+                { "type": "ptr_t *", "arg": "out_paddr" }
+            ],
+            "comments": [
+                "Export (copy) a userspace buffer to a DMA buffer address that can be used by devices.",
+                "The physical address of the buffer will be returned in out_paddr."
+            ]
+        },
+        {
+            "number": 54,
+            "name": "dmabuf_unshare",
+            "return": "bool",
+            "arguments": [
+                { "type": "ptr_t", "arg": "paddr" },
+                { "type": "size_t", "arg": "size" },
+                { "type": "void *", "arg": "vaddr" }
+            ],
+            "comments": [
+                "Unshare a DMA buffer that was previously shared with dmabuf_share().",
+                "The buffer will be freed after this call.",
+                "The content of the buffer will be copied back to the userspace buffer, if vaddr is not NULL."
+            ]
         }
     ]
 }

@@ -37,6 +37,7 @@ typedef struct
     void (*close)(io_t *io);
     off_t (*seek)(io_t *io, off_t offset, io_seek_whence_t whence);
     bool (*mmap)(io_t *io, vmap_t *vmap, off_t offset);
+    bool (*munmap)(io_t *io, vmap_t *vmap, bool *unmapped);
     void (*get_name)(io_t *io, char *buf, size_t size);
 } io_op_t;
 
@@ -64,4 +65,5 @@ off_t io_seek(io_t *io, off_t offset, io_seek_whence_t whence);
 off_t io_tell(io_t *io);
 bool io_mmap_perm_check(io_t *io, vm_flags flags, bool private);
 bool io_mmap(io_t *io, vmap_t *vmap, off_t offset);
+bool io_munmap(io_t *io, vmap_t *vmap, bool *unmapped);
 void io_get_name(io_t *io, char *buf, size_t size);

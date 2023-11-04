@@ -70,6 +70,7 @@ typedef struct
     void (*release)(file_t *file);
     off_t (*seek)(file_t *file, off_t offset, io_seek_whence_t whence);
     bool (*mmap)(file_t *file, vmap_t *vmap, off_t offset);
+    bool (*munmap)(file_t *file, vmap_t *vmap, bool *unmapped);
 } file_ops_t;
 
 typedef struct _superblock

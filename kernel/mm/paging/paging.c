@@ -79,7 +79,7 @@ vmap_t *mm_get_free_vaddr_locked(mm_context_t *mmctx, size_t n_pages, ptr_t base
     }
 }
 
-void mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
+void mm_map_kernel_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
 {
     MOS_ASSERT(vaddr >= MOS_KERNEL_START_VADDR);
     MOS_ASSERT(npages > 0);
@@ -89,11 +89,10 @@ void mm_map_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm
     spinlock_release(&mmctx->mm_lock);
 }
 
-vmap_t *mm_map_pages_to_user(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags, vmap_type_t type, vmap_content_t content)
+vmap_t *mm_map_user_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags, valloc_flags vaflags, vmap_type_t type, vmap_content_t content)
 {
-    MOS_UNREACHABLE_X("why would you need this function?");
     spinlock_acquire(&mmctx->mm_lock);
-    vmap_t *vmap = mm_get_free_vaddr_locked(mmctx, npages, vaddr, VALLOC_EXACT);
+    vmap_t *vmap = mm_get_free_vaddr_locked(mmctx, npages, vaddr, vaflags);
     if (unlikely(!vmap))
     {
         mos_warn("could not find %zd pages in the address space", npages);
@@ -104,7 +103,7 @@ vmap_t *mm_map_pages_to_user(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t
     pr_dinfo2(vmm, "mapping %zd pages at " PTR_FMT " to pfn " PFN_FMT, npages, vmap->vaddr, pfn);
     vmap->vmflags = flags;
     vmap->stat.regular = npages;
-    mm_do_map(mmctx->pgd, vmap->vaddr, pfn, npages, flags, true);
+    mm_do_map(mmctx->pgd, vmap->vaddr, pfn, npages, flags, false);
     spinlock_release(&mmctx->mm_lock);
     vmap_finalise_init(vmap, content, type);
     return vmap;

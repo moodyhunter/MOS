@@ -18,6 +18,7 @@ typedef enum
     VMAP_STACK, // stack (user)
     VMAP_FILE,  // file mapping
     VMAP_MMAP,  // mmap mapping
+    VMAP_DMA,   // DMA mapping
 } vmap_content_t;
 
 typedef enum

@@ -36,7 +36,7 @@ void x86_paging_setup()
     pr_dinfo2(x86_startup, "mapping kernel space...");
 
     // no need to reserve the kernel space, bootloader has done this
-    mm_map_pages(                                                                                          //
+    mm_map_kernel_pages(                                                                                   //
         platform_info->kernel_mm,                                                                          //
         (ptr_t) __MOS_KERNEL_CODE_START,                                                                   //
         MOS_KERNEL_PFN((ptr_t) __MOS_KERNEL_CODE_START),                                                   //
@@ -44,7 +44,7 @@ void x86_paging_setup()
         VM_READ | VM_EXEC | VM_GLOBAL                                                                      //
     );
 
-    mm_map_pages(                                                                                              //
+    mm_map_kernel_pages(                                                                                       //
         platform_info->kernel_mm,                                                                              //
         (ptr_t) __MOS_KERNEL_RODATA_START,                                                                     //
         MOS_KERNEL_PFN((ptr_t) __MOS_KERNEL_RODATA_START),                                                     //
@@ -52,7 +52,7 @@ void x86_paging_setup()
         VM_READ | VM_GLOBAL                                                                                    //
     );
 
-    mm_map_pages(                                                                                      //
+    mm_map_kernel_pages(                                                                               //
         platform_info->kernel_mm,                                                                      //
         (ptr_t) __MOS_KERNEL_RW_START,                                                                 //
         MOS_KERNEL_PFN((ptr_t) __MOS_KERNEL_RW_START),                                                 //

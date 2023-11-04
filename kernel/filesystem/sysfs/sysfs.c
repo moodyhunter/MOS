@@ -207,6 +207,17 @@ bool sysfs_fops_mmap(file_t *file, vmap_t *vmap, off_t offset)
     return true;
 }
 
+bool sysfs_fops_munmap(file_t *file, vmap_t *vmap, bool *unmapped)
+{
+    sysfs_file_t *f = file->dentry->inode->private;
+    if (f->item->type == SYSFS_MEM)
+    {
+        return f->item->mem.munmap(f, vmap, unmapped);
+    }
+
+    return true;
+}
+
 static const file_ops_t sysfs_file_ops = {
     .open = sysfs_fops_open,
     .release = sysfs_fops_release,
@@ -214,6 +225,7 @@ static const file_ops_t sysfs_file_ops = {
     .write = sysfs_fops_write,
     .seek = sysfs_fops_seek,
     .mmap = sysfs_fops_mmap,
+    .munmap = sysfs_fops_munmap,
 };
 
 static dentry_t *sysfs_fsop_mount(filesystem_t *fs, const char *dev, const char *options)

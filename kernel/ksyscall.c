@@ -2,6 +2,8 @@
 
 #include "mos/device/clocksource.h"
 #include "mos/misc/power.h"
+#include "mos/mm/dma.h"
+#include "mos/mm/mm.h"
 #include "mos/tasks/signal.h"
 
 #include <errno.h>
@@ -321,7 +323,7 @@ DEFINE_SYSCALL(size_t, vfs_list_dir)(fd_t fd, char *buffer, size_t buffer_size)
 DEFINE_SYSCALL(void *, mmap_anonymous)(ptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t flags)
 {
     const vm_flags vmflags = VM_USER | (vm_flags) perm; // vm_flags shares the same values as mem_perm_t
-    const size_t n_pages = ALIGN_DOWN_TO_PAGE(size) / MOS_PAGE_SIZE;
+    const size_t n_pages = ALIGN_UP_TO_PAGE(size) / MOS_PAGE_SIZE;
 
     ptr_t result = mmap_anonymous(current_mm, hint_addr, flags, vmflags, n_pages);
     return (void *) result;
@@ -506,4 +508,32 @@ DEFINE_SYSCALL(fd_t, io_dup2)(fd_t oldfd, fd_t newfd)
     process_detach_fd(current_process, newfd);
     current_process->files[newfd] = io_ref(io);
     return newfd;
+}
+
+DEFINE_SYSCALL(bool, dmabuf_alloc)(size_t n_pages, ptr_t *phys, ptr_t *virt)
+{
+    pfn_t pfn = dmabuf_allocate(n_pages, virt);
+    *phys = pfn * MOS_PAGE_SIZE;
+    return !IS_ERR_VALUE(pfn);
+}
+
+DEFINE_SYSCALL(bool, dmabuf_free)(ptr_t vaddr, ptr_t paddr)
+{
+    return dmabuf_free(vaddr, paddr);
+}
+
+DEFINE_SYSCALL(bool, dmabuf_share)(void *buffer, size_t size, ptr_t *phyaddr)
+{
+    pfn_t pfn = dmabuf_share(buffer, size);
+
+    if (IS_ERR_VALUE(pfn))
+        return false;
+
+    *phyaddr = pfn * MOS_PAGE_SIZE;
+    return true;
+}
+
+DEFINE_SYSCALL(bool, dmabuf_unshare)(ptr_t phys, size_t size, void *buf)
+{
+    return dmabuf_unshare(phys, size, buf);
 }
