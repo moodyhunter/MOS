@@ -130,7 +130,9 @@ void *laihost_map(size_t paddr, size_t npages)
     if (sysmemfd == -1)
         return NULL;
 
-    return syscall_mmap_file(0, npages * MOS_PAGE_SIZE, MEM_PERM_READ | MEM_PERM_WRITE, MMAP_SHARED, sysmemfd, paddr);
+    ptr_t v = (ptr_t) syscall_mmap_file(0, npages * MOS_PAGE_SIZE, MEM_PERM_READ | MEM_PERM_WRITE, MMAP_SHARED, sysmemfd, ALIGN_DOWN_TO_PAGE(paddr));
+    v += paddr % MOS_PAGE_SIZE;
+    return (void *) v;
 }
 
 void laihost_unmap(void *vaddr, size_t npages)
