@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "liballoc.h"
+#include "mos_string.h"
 #include "struct_file.h"
 
 #include <mos/syscall/number.h>
@@ -103,4 +104,49 @@ pid_t spawn(const char *path, const char *const argv[])
     }
 
     return pid;
+}
+
+pid_t shell_execute(const char *command)
+{
+    char *dup = strdup(command);
+    char *saveptr;
+    char *driver_path = strtok_r(dup, " ", &saveptr);
+    char *driver_args = strtok_r(NULL, " ", &saveptr);
+
+    driver_path = string_trim(driver_path);
+    driver_args = string_trim(driver_args);
+
+    if (!driver_path)
+        return false; // invalid options
+
+    size_t driver_args_count = 1;
+    const char **driver_argv = malloc(driver_args_count * sizeof(char *));
+    driver_argv[0] = driver_path;
+
+    if (driver_args)
+    {
+        char *saveptr;
+        char *arg = strtok_r(driver_args, " ", &saveptr);
+        while (arg)
+        {
+            driver_args_count++;
+            driver_argv = realloc(driver_argv, driver_args_count * sizeof(char *));
+            driver_argv[driver_args_count - 1] = arg;
+            arg = strtok_r(NULL, " ", &saveptr);
+        }
+    }
+
+    driver_argv = realloc(driver_argv, (driver_args_count + 1) * sizeof(char *));
+    driver_argv[driver_args_count] = NULL;
+
+    pid_t driver_pid = spawn(driver_path, driver_argv);
+    if (driver_pid <= 0)
+        return -1;
+
+    for (size_t i = 0; i < driver_args_count; i++)
+        free((void *) driver_argv[i]);
+
+    free(driver_argv);
+    free(dup);
+    return driver_pid;
 }

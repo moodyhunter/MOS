@@ -39,6 +39,7 @@ MOSAPI void free(void *ptr);
 MOSAPI void *calloc(size_t nmemb, size_t size);
 MOSAPI void *realloc(void *ptr, size_t size);
 MOSAPI pid_t spawn(const char *path, const char *const argv[]);
+pid_t shell_execute(const char *command);
 #else
 #include "mos/mm/slab.h"
 
