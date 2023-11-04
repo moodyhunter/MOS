@@ -15,6 +15,8 @@
 
 typedef void (*pci_scan_callback_t)(u8 bus, u8 device, u8 function, u16 vendor_id, u16 device_id, u8 base_class, u8 sub_class, u8 prog_if);
 
+extern ptr_t mmio_base;
+
 void scan_pci(pci_scan_callback_t callback); // scan all buses
 
 void scan_bus(u8 bus, pci_scan_callback_t callback);

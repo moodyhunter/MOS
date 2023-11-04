@@ -6,7 +6,7 @@
 #include <mos/device/dm_types.h>
 
 #define DM_RPCS_X(X, arg)                                                                                                                                                \
-    X(arg, 1, register_device, REGISTER_DEVICE, "iiis", ARG(u32, vendor), ARG(u32, devid), ARG(u32, location), ARG(const char *, server))                                \
+    X(arg, 1, register_device, REGISTER_DEVICE, "iiil", ARG(u32, vendor), ARG(u32, devid), ARG(u32, location), ARG(u64, mmio_base))                                      \
     X(arg, 2, register_driver, REGISTER_DRIVER, "v")
 
 RPC_DEFINE_ENUMS(dm, DM, DM_RPCS_X)

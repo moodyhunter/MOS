@@ -4,31 +4,117 @@
 #include "known_devices.h"
 #include "pci_scan.h"
 
+#include <fcntl.h>
 #include <librpc/rpc_client.h>
+#include <mos/mm/mm_types.h>
 #include <mos/types.h>
 #include <mos_stdio.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
 #include <sys/stat.h>
 
+ptr_t mmio_base;
 static rpc_server_stub_t *dm;
 
 #define PCI_RPC_SERVER_NAME "drivers.pci"
 
-void scan_callback(u8 bus, u8 device, u8 function, u16 vendor_id, u16 device_id, u8 base_class, u8 sub_class, u8 prog_if)
+static void scan_callback(u8 bus, u8 device, u8 function, u16 vendor_id, u16 device_id, u8 base_class, u8 sub_class, u8 prog_if)
 {
     const char *class_name = get_known_class_name(base_class, sub_class, prog_if);
     printf("PCI: %02x:%02x.%01x: [%04x:%04x] %s (%02x:%02x:%02x)\n", bus, device, function, vendor_id, device_id, class_name, base_class, sub_class, prog_if);
     free((void *) class_name);
 
     const u32 location = (bus << 16) | (device << 8) | function;
-    dm_register_device(dm, vendor_id, device_id, location, PCI_RPC_SERVER_NAME);
+    dm_register_device(dm, vendor_id, device_id, location, mmio_base);
+}
+
+typedef struct
+{
+    u64 base_address;
+    u16 segment_group_number;
+    u8 start_pci_bus_number;
+    u8 end_pci_bus_number;
+    u32 reserved;
+} __packed acpi_mcfg_base_addr_alloc_t;
+
+typedef struct
+{
+    char signature[4];
+    u32 length;
+    u8 revision;
+    u8 checksum;
+    char oem_id[6];
+    char oem_table_id[8];
+    u32 oem_revision;
+    u32 creator_id;
+    u32 creator_revision;
+    u8 reserved[8];
+    char content[];
+} acpi_mcfg_header_t;
+
+static const acpi_mcfg_header_t *mcfg_table;
+static const acpi_mcfg_base_addr_alloc_t *base_addr_alloc;
+static size_t n_base_addr_alloc;
+
+static bool read_mcfg_table(void)
+{
+    int fd = open("/sys/acpi/MCFG", OPEN_READ);
+    if (fd < 0)
+    {
+        puts("pci-daemon: failed to open /sys/acpi/MCFG");
+        return false;
+    }
+
+    mcfg_table = (acpi_mcfg_header_t *) syscall_mmap_file(0, MOS_PAGE_SIZE, MEM_PERM_READ, MMAP_PRIVATE, fd, 0);
+    base_addr_alloc = (acpi_mcfg_base_addr_alloc_t *) &mcfg_table->content[0];
+    syscall_io_close(fd);
+
+    n_base_addr_alloc = (mcfg_table->length - sizeof(acpi_mcfg_header_t)) / sizeof(acpi_mcfg_base_addr_alloc_t);
+    for (size_t i = 0; i < n_base_addr_alloc; i++)
+    {
+        const acpi_mcfg_base_addr_alloc_t *alloc = &base_addr_alloc[i];
+        printf("pci-daemon: MCFG table: base_address=%llx\n", alloc->base_address);
+        printf("pci-daemon: MCFG table: segment_group_number=%x\n", alloc->segment_group_number);
+        printf("pci-daemon: MCFG table: start_pci_bus_number=%x\n", alloc->start_pci_bus_number);
+        printf("pci-daemon: MCFG table: end_pci_bus_number=%x\n", alloc->end_pci_bus_number);
+        printf("pci-daemon: MCFG table: reserved=%x\n", alloc->reserved);
+    }
+
+    if (n_base_addr_alloc > 1)
+    {
+        fputs("pci-daemon: MCFG table: multiple base address allocators are not supported", stderr);
+        return false;
+    }
+
+    mmio_base = base_addr_alloc->base_address;
+
+    // memory range
+    const ptr_t start = base_addr_alloc->base_address;
+    const ptr_t end = start + ((u32) base_addr_alloc->end_pci_bus_number - base_addr_alloc->start_pci_bus_number + 1) * 4 KB;
+    printf("pci-daemon: PCI memory range: " PTR_FMT "-" PTR_FMT "\n", start, end);
+
+    // map the PCI memory range
+    const u64 size = ALIGN_UP_TO_PAGE(end - start);
+
+    fd_t memfd = open("/sys/mem", OPEN_READ | OPEN_WRITE);
+    if (memfd < 0)
+    {
+        puts("pci-daemon: failed to open /sys/mem");
+        return false;
+    }
+
+    syscall_mmap_file(start, size, MEM_PERM_READ | MEM_PERM_WRITE, MMAP_SHARED | MMAP_EXACT, memfd, start);
+    syscall_io_close(memfd);
+
+    return true;
 }
 
 int main(int argc, char **argv)
 {
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
+
+    read_mcfg_table();
 
     dm = rpc_client_create(MOS_DEVICE_MANAGER_SERVICE_NAME);
     if (!dm)

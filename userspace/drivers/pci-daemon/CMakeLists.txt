@@ -11,7 +11,7 @@ add_executable(pci-daemon
     known_devices.c
 )
 
-target_link_libraries(pci-daemon PRIVATE mos::stdlib mos::private_include librpc::client)
+target_link_libraries(pci-daemon PRIVATE mos::stdlib librpc::client)
 target_link_libraries(pci-daemon PRIVATE device-manager::client)
 
 setup_userspace_program(pci-daemon /drivers "x86 PCI driver")

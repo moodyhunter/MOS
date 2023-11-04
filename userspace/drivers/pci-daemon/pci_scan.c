@@ -3,20 +3,17 @@
 #include "pci_scan.h"
 
 #include <mos/types.h>
-#include <mos/x86/devices/port.h>
 
-static u8 pci_read8(u8 bus, u8 slot, u8 func, u8 offset)
+static u8 pcie_read8(u8 bus, u8 slot, u8 func, u8 offset)
 {
-    const u32 address = (u32) ((bus << 16) | (slot << 11) | (func << 8) | (offset & 0xFC) | ((u32) 0x80000000));
-    port_outl(0xCF8, address);
-    return (u8) ((port_inl(0xCFC) >> ((offset & 3) * 8)) & 0xFF);
+    const ptr_t addr = mmio_base + (bus << 20) + (slot << 15) + (func << 12) + offset; // PCI Express Extended Configuration Space
+    return *((volatile u8 *) addr);
 }
 
 static u16 pci_read16(u8 bus, u8 slot, u8 func, u8 offset)
 {
-    const u32 address = (u32) ((bus << 16) | (slot << 11) | (func << 8) | (offset & 0xFC) | ((u32) 0x80000000));
-    port_outl(0xCF8, address);
-    return (u16) ((port_inl(0xCFC) >> ((offset & 2) * 8)) & 0xFFFF);
+    const ptr_t addr = mmio_base + (bus << 20) + (slot << 15) + (func << 12) + offset;
+    return *((volatile u16 *) addr);
 }
 
 void scan_bus(u8 bus, pci_scan_callback_t callback)
@@ -35,7 +32,7 @@ void scan_device(u8 bus, u8 device, pci_scan_callback_t callback)
     scan_function(bus, device, function, callback);
     function++;
 
-    const u8 header_type = pci_read8(bus, device, function, PCI_OFFSET_HEADER_TYPE);
+    const u8 header_type = pcie_read8(bus, device, function, PCI_OFFSET_HEADER_TYPE);
     if (header_type & PCI_HEADER_TYPE_MULTIFUNC)
     {
         // check remaining functions if this is a multi-function device
@@ -52,9 +49,9 @@ void scan_device(u8 bus, u8 device, pci_scan_callback_t callback)
 
 void scan_function(u8 bus, u8 device, u8 function, pci_scan_callback_t callback)
 {
-    const u8 baseClass = pci_read8(bus, device, function, PCI_OFFSET_BASE_CLASS);
-    const u8 subClass = pci_read8(bus, device, function, PCI_OFFSET_SUB_CLASS);
-    const u8 progIF = pci_read8(bus, device, function, PCI_OFFSET_PROG_IF);
+    const u8 baseClass = pcie_read8(bus, device, function, PCI_OFFSET_BASE_CLASS);
+    const u8 subClass = pcie_read8(bus, device, function, PCI_OFFSET_SUB_CLASS);
+    const u8 progIF = pcie_read8(bus, device, function, PCI_OFFSET_PROG_IF);
     const u16 deviceID = pci_read16(bus, device, function, PCI_OFFSET_DEVICE_ID);
     const u16 vendorID = pci_read16(bus, device, function, PCI_OFFSET_VENDOR_ID);
 
@@ -62,14 +59,14 @@ void scan_function(u8 bus, u8 device, u8 function, pci_scan_callback_t callback)
 
     if ((baseClass == 0x6) && (subClass == 0x4))
     {
-        const u8 secondaryBus = pci_read8(bus, device, function, 0x19);
+        const u8 secondaryBus = pcie_read8(bus, device, function, 0x19);
         scan_bus(secondaryBus, callback);
     }
 }
 
 void scan_pci(pci_scan_callback_t callback)
 {
-    const u8 header_type = pci_read8(0, 0, 0, 0xE);
+    const u8 header_type = pcie_read8(0, 0, 0, 0xE);
     if ((header_type & 0x80) == 0)
     {
         scan_bus(0, callback);
