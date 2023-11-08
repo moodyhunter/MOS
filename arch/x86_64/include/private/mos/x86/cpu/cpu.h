@@ -27,9 +27,9 @@ should_inline noreturn void x86_cpu_halt(void)
 
 #define x86_cpuid(return_reg, ...)                                                                                                                                       \
     __extension__({                                                                                                                                                      \
-        reg_t a = 0, b = 0, c = 0, d = 0, leaf = 0;                                                                                                                      \
+        u32 a = 0, b = 0, c = 0, d = 0, leaf = 0;                                                                                                                        \
         __VA_ARGS__;                                                                                                                                                     \
-        __cpuid(leaf, a, b, c, d);                                                                                                                                       \
+        __get_cpuid(leaf, &a, &b, &c, &d);                                                                                                                               \
         return_reg;                                                                                                                                                      \
     })
 
@@ -56,3 +56,5 @@ should_inline void x86_cpu_invlpg_all(void)
 {
     __asm__ volatile("mov %%cr3, %%rax; mov %%rax, %%cr3" : : : "rax", "memory");
 }
+
+void x86_cpu_get_caps_all(void);

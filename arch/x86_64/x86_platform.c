@@ -221,6 +221,20 @@ void platform_startup_early()
     x86_init_percpu_idt();
     x86_init_percpu_tss();
     x86_init_irq_handlers();
+
+    x86_cpu_get_caps_all();
+
+#if MOS_DEBUG_FEATURE(x86_startup)
+    pr_dinfo2(x86_startup, "cpu features:");
+
+#define do_print_cpu_feature(feature)                                                                                                                                    \
+    if (cpu_has_feature(CPU_FEATURE_##feature))                                                                                                                          \
+        pr_cont(" " #feature);
+    FOR_ALL_CPU_FEATURES(do_print_cpu_feature)
+
+#undef do_print_cpu_feature
+
+#endif
 }
 
 void platform_startup_mm()
@@ -259,6 +273,8 @@ void platform_startup_late()
     madt_parse_table();
     lapic_memory_setup();
     lapic_enable(); // enable the local APIC
+    current_cpu->id = x86_platform.boot_cpu_id = lapic_get_id();
+
     pic_remap_irq();
     ioapic_init();
 
@@ -271,18 +287,6 @@ void platform_startup_late()
     ioapic_enable_interrupt(IRQ_CMOS_RTC, x86_platform.boot_cpu_id);
     ioapic_enable_interrupt(IRQ_KEYBOARD, x86_platform.boot_cpu_id);
     ioapic_enable_interrupt(IRQ_COM1, x86_platform.boot_cpu_id);
-
-    current_cpu->id = x86_platform.boot_cpu_id = lapic_get_id();
-
-#if MOS_DEBUG_FEATURE(x86_startup)
-    // begin detecting CPU features
-    pr_dinfo2(x86_startup, "cpu features:");
-#define do_print_cpu_feature(feature)                                                                                                                                    \
-    if (cpu_has_feature(CPU_FEATURE_##feature))                                                                                                                          \
-        pr_cont(" " #feature);
-    FOR_ALL_CPU_FEATURES(do_print_cpu_feature)
-#undef do_print_cpu_feature
-#endif
 
     x86_cpu_enable_sse();
 

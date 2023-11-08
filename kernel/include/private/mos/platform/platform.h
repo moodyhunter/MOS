@@ -116,6 +116,7 @@ typedef struct
     ptr_t scheduler_stack;
     mm_context_t *mm_context;
     platform_regs_t *interrupt_regs; ///< the registers of whatever interrupted this CPU
+    platform_cpuinfo_t cpuinfo;
 } cpu_t;
 
 typedef struct

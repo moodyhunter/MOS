@@ -14,6 +14,7 @@ add_kernel_source(
         acpi/acpi.c
         acpi/madt.c
         cpu/ap_entry.c
+        cpu/cpu.c
         devices/serial.c
         devices/serial_console.c
         devices/rtc.c

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/x86/cpu/cpuid.h"
+
 #include <mos/types.h>
 
 #pragma once
@@ -45,3 +47,8 @@ typedef struct _platform_thread_options
     bool need_fpu_context;
     fpu_context_t *fpu_state; // Only valid if need_fpu_context is true
 } platform_thread_options_t;
+
+typedef struct
+{
+    x86_cpuid_array cpuid;
+} platform_cpuinfo_t;
