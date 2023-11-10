@@ -63,13 +63,13 @@ int main(int argc, char **argv)
             // syscall_wait_for_process(p7);
         }
 
-        while (syscall_wait_for_process(-1) != -ECHILD)
+        while (syscall_wait_for_process(-1, NULL) != -ECHILD)
             ;
     }
     else
     {
         printf("Parent process: pid = %d, child pid = %d\n", syscall_get_pid(), pid);
-        syscall_wait_for_process(pid);
+        syscall_wait_for_process(pid, NULL);
         printf("fork test passed\n");
     }
     return 0;

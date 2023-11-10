@@ -111,7 +111,7 @@ DEFINE_SYSCALL(noreturn void, exit)(u32 exit_code)
 {
     // only use the lower 8 bits
     exit_code &= 0xff;
-    process_handle_exit(current_process, exit_code);
+    process_handle_exit(current_process, exit_code, 0);
 }
 
 DEFINE_SYSCALL(void, yield_cpu)(void)
@@ -342,9 +342,9 @@ DEFINE_SYSCALL(void *, mmap_file)(ptr_t hint_addr, size_t size, mem_perm_t perm,
     return (void *) result;
 }
 
-DEFINE_SYSCALL(pid_t, wait_for_process)(pid_t pid)
+DEFINE_SYSCALL(pid_t, wait_for_process)(pid_t pid, u32 *exit_code)
 {
-    return process_wait_for_pid(pid);
+    return process_wait_for_pid(pid, exit_code);
 }
 
 DEFINE_SYSCALL(bool, munmap)(void *addr, size_t size)

@@ -66,8 +66,8 @@ process_t *process_do_fork(process_t *parent)
             child_p->files[i] = io_ref(file);
     }
 
-    for (int i = 0; i < SIGNAL_MAX_N; i++)
-        child_p->signal_handlers[i] = parent->signal_handlers[i];
+    child_p->signal_info = parent->signal_info;
+    waitlist_init(&child_p->signal_info.sigchild_waitlist);
 
     // copy the thread
     thread_t *const parent_thread = current_thread;

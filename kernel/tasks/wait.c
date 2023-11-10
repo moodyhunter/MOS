@@ -11,6 +11,7 @@
 #include <mos/tasks/thread.h>
 #include <mos/tasks/wait.h>
 #include <mos_stdlib.h>
+#include <mos_string.h>
 
 static slab_t *waitlist_listentry_slab = NULL;
 SLAB_AUTOINIT("waitlist_entry", waitlist_listentry_slab, waitable_list_entry_t);
@@ -39,11 +40,11 @@ void wc_condition_cleanup(wait_condition_t *condition)
 
 void waitlist_init(waitlist_t *list)
 {
+    memzero(list, sizeof(waitlist_t));
     linked_list_init(&list->list);
-    list->lock.flag = 0;
 }
 
-bool waitlist_append_only(waitlist_t *list)
+bool waitlist_append(waitlist_t *list)
 {
     spinlock_acquire(&list->lock);
     if (list->closed)
@@ -76,14 +77,12 @@ size_t waitlist_wake(waitlist_t *list, size_t max_wakeups)
         waitable_list_entry_t *entry = list_entry(node, waitable_list_entry_t);
 
         thread_t *thread = thread_get(entry->waiter);
+        MOS_ASSERT(thread);
 
-        if (thread)
-        {
-            spinlock_acquire(&thread->state_lock);
-            MOS_ASSERT(thread->state == THREAD_STATE_BLOCKED);
-            thread->state = THREAD_STATE_READY;
-            spinlock_release(&thread->state_lock);
-        }
+        spinlock_acquire(&thread->state_lock);
+        MOS_ASSERT(thread->state == THREAD_STATE_BLOCKED);
+        thread->state = THREAD_STATE_READY;
+        spinlock_release(&thread->state_lock);
 
         kfree(entry);
         wakeups++;

@@ -37,7 +37,9 @@ int main(int argc, char **argv)
             continue;
         }
 
-        syscall_wait_for_process(ret);
+        u32 status = 0;
+        syscall_wait_for_process(ret, &status);
+        printf("Test %s exited with status %d\n", tests[i].name, status);
         printf("OK\n");
     }
 

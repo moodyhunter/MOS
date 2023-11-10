@@ -33,7 +33,7 @@ int main(int argc, const char *argv[])
     }
 
     kill(child_pid, SIGINT); // send SIGINT to child
-    puts("Hehe muuurder go brrr");
+    printf("Hehe muuurder go brrr\n");
 
     register_signal_handler(SIGSEGV, sigsegv_handler);
 

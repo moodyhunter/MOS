@@ -117,8 +117,11 @@ void do_exit(int argc, const char *argv[])
 {
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
-    printf("Bye!\n");
-    exit(0);
+    if (argc == 0)
+        exit(0);
+
+    int exit_code = atoi(argv[0]);
+    exit(exit_code);
 }
 
 void do_help(int argc, const char *argv[])

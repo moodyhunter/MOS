@@ -136,7 +136,7 @@ bool reschedule_for_waitlist(waitlist_t *waitlist)
     MOS_ASSERT_X(t->state != THREAD_STATE_BLOCKED, "thread %d is already blocked", t->tid);
     MOS_ASSERT_X(t->waiting == NULL, "thread %d is already waiting for something else", t->tid);
 
-    if (!waitlist_append_only(waitlist))
+    if (!waitlist_append(waitlist))
         return false; // waitlist is closed, process is dead
 
     spinlock_release(&t->state_lock);

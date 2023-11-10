@@ -82,8 +82,21 @@ bool do_program(const char *prog, int argc, const char **argv)
         return true;
     }
 
-    waitpid(pid, NULL, 0);
+    int status = 0;
+    waitpid(pid, &status, 0);
     free((void *) prog);
+
+    if (WIFEXITED(status))
+    {
+        u32 exit_code = WEXITSTATUS(status);
+        if (exit_code != 0)
+            printf("(process exited with status %d)\n", exit_code);
+    }
+    else if (WIFSIGNALED(status))
+        printf("(process killed by signal %d (%s))\n", WTERMSIG(status), strsignal(WTERMSIG(status)));
+    else
+        printf("(process exited with strange status %d)\n", status);
+
     return true;
 }
 

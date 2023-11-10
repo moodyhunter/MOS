@@ -95,7 +95,7 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
     {
         pr_emerg("failed to fill process, execve failed");
         spinlock_release(&thread->state_lock);
-        process_handle_exit(proc, 1);
+        process_handle_exit(proc, 0, SIGKILL);
         MOS_UNREACHABLE();
     }
 

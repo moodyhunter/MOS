@@ -8,6 +8,7 @@
 
 #include <mos/lib/structures/list.h>
 #include <mos/lib/structures/stack.h>
+#include <mos/tasks/signal_types.h>
 
 typedef enum
 {
@@ -18,6 +19,12 @@ typedef enum
 typedef struct _thread thread_t;
 typedef struct _process process_t;
 
+typedef struct
+{
+    sigaction_t handlers[SIGNAL_MAX_N]; ///< signal handlers
+    waitlist_t sigchild_waitlist;       ///< the parent is waiting for a child to exit, if not NULL
+} process_signal_info_t;
+
 typedef struct _process
 {
     u32 magic;
@@ -26,7 +33,9 @@ typedef struct _process
     process_t *parent;
     list_head children; ///< list of children processes
     as_linked_list;     ///< node in the parent's children list
-    int exit_code;      ///< exit code of the process
+
+    bool exited;     ///< true if the process has exited
+    u32 exit_status; ///< exit status
 
     io_t *files[MOS_PROCESS_MAX_OPEN_FILES];
 
@@ -37,10 +46,8 @@ typedef struct _process
     dentry_t *working_directory;
 
     platform_process_options_t platform_options; ///< platform per-process flags
-    waitlist_t waiters;                          ///< list of threads waiting for this process to exit
 
-    // signal handling
-    sigaction_t signal_handlers[SIGNAL_MAX_N];
+    process_signal_info_t signal_info; //< signal handling info
 } process_t;
 
 typedef struct

@@ -18,16 +18,12 @@ SLAB_AUTOINIT("signal_pending", sigpending_slab, sigpending_t);
 
 noreturn static void signal_do_coredump(signal_t signal)
 {
-    MOS_UNUSED(signal);
-    pr_warn("coredump: WIP");
-    process_handle_exit(current_process, 1);
+    process_handle_exit(current_process, 0, signal);
 }
 
 noreturn static void signal_do_terminate(signal_t signal)
 {
-    MOS_UNUSED(signal);
-    pr_warn("terminate: WIP");
-    process_handle_exit(current_process, 1);
+    process_handle_exit(current_process, 0, signal);
 }
 
 static void signal_do_ignore(signal_t signal)
@@ -127,7 +123,7 @@ void signal_check_and_handle(void)
     if (!next_signal)
         return; // no pending signal, leave asap
 
-    const sigaction_t action = current_process->signal_handlers[next_signal];
+    const sigaction_t action = current_process->signal_info.handlers[next_signal];
 
     if (action.handler == SIG_DFL)
     {

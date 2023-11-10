@@ -9,6 +9,7 @@
 #include "mos/mm/slab_autoinit.h"
 #include "mos/tasks/signal.h"
 
+#include <abi-bits/wait.h>
 #include <errno.h>
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/vfs.h>
@@ -60,7 +61,7 @@ process_t *process_allocate(process_t *parent, const char *name)
     linked_list_init(&proc->threads);
     linked_list_init(&proc->children);
 
-    waitlist_init(&proc->waiters);
+    waitlist_init(&proc->signal_info.sigchild_waitlist);
 
     proc->name = strdup(name ? name : "<unknown>");
 
@@ -214,27 +215,31 @@ bool process_detach_fd(process_t *process, fd_t fd)
     return true;
 }
 
-pid_t process_wait_for_pid(pid_t pid)
+pid_t process_wait_for_pid(pid_t pid, u32 *exit_code)
 {
     if (pid == -1)
     {
         if (list_is_empty(&current_process->children))
             return -ECHILD; // no children to wait for at all
 
+    find_dead_child:;
+        // first find if there are any dead children
         list_foreach(process_t, child, current_process->children)
         {
-            if (!reschedule_for_waitlist(&child->waiters))
+            if (child->exited)
             {
                 pid = child->pid;
                 goto child_dead;
             }
-            else if (child->pid == 1)
-                MOS_UNREACHABLE(); // init process cannot die
-            else
-                return child->pid;
         }
 
-        MOS_UNREACHABLE();
+        // we have to wait for a child to die
+        MOS_ASSERT_X(!current_process->signal_info.sigchild_waitlist.closed, "waitlist is in use");
+
+        const bool ok = reschedule_for_waitlist(&current_process->signal_info.sigchild_waitlist);
+        MOS_ASSERT(ok); // we just created the waitlist, it should be empty
+        // we are woken up by a signal, or a child dying
+        goto find_dead_child;
     }
 
 child_dead:;
@@ -245,28 +250,36 @@ child_dead:;
         return -ECHILD;
     }
 
-    bool ok = reschedule_for_waitlist(&target_proc->waiters);
-    MOS_UNUSED(ok);
+    while (true)
+    {
+        // child is already dead
+        if (target_proc->exited)
+            break;
+
+        // wait for the child to die
+        bool ok = reschedule_for_waitlist(&current_process->signal_info.sigchild_waitlist);
+        MOS_ASSERT(ok);
+    }
 
     list_remove(target_proc); // remove from parent's children list
     pid = target_proc->pid;
-    const int exit_code = target_proc->exit_code;
-    MOS_UNUSED(exit_code);
+    if (exit_code)
+        *exit_code = target_proc->exit_status;
     hashmap_remove(&process_table, pid);
     process_destroy(target_proc);
 
     return pid;
 }
 
-void process_handle_exit(process_t *process, u32 exit_code)
+void process_handle_exit(process_t *process, u8 exit_code, signal_t signal)
 {
     MOS_ASSERT(process_is_valid(process));
-    pr_dinfo2(process, "process %pp exited with code %d", (void *) process, exit_code);
+    pr_dinfo2(process, "process %pp exited with code %d, signal %d", (void *) process, exit_code, signal);
 
     if (unlikely(process->pid == 1))
-        mos_panic("init process exited with code %d", exit_code);
+        mos_panic("init process terminated with code %d, signal %d", exit_code, signal);
 
-    process->exit_code = exit_code;
+    process->exit_status = W_EXITCODE(exit_code, signal);
 
     list_foreach(thread_t, thread, process->threads)
     {
@@ -313,11 +326,12 @@ void process_handle_exit(process_t *process, u32 exit_code)
     }
 
     pr_dinfo2(process, "closed %zu/%zu files owned by %pp", files_closed, files_total, (void *) process);
+    process->exited = true;
 
-    waitlist_close(&process->waiters);
-    waitlist_wake(&process->waiters, INT_MAX);
-
+    // wake up parent
     signal_send_to_process(process->parent, SIGCHLD);
+    waitlist_wake(&process->parent->signal_info.sigchild_waitlist, INT_MAX);
+
     dentry_unref(process->working_directory);
     reschedule();
     MOS_UNREACHABLE();
@@ -366,7 +380,7 @@ void process_dump_mmaps(const process_t *process)
 bool process_register_signal_handler(process_t *process, signal_t sig, sigaction_t *sigaction)
 {
     pr_dinfo2(signal, "registering signal handler for process %pp, signal %d", (void *) process, sig);
-    process->signal_handlers[sig] = *sigaction;
+    process->signal_info.handlers[sig] = *sigaction;
     return true;
 }
 

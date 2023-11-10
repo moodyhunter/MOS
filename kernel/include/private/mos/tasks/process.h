@@ -38,9 +38,9 @@ bool process_detach_fd(process_t *process, fd_t fd);
 
 ptr_t process_grow_heap(process_t *process, size_t npages);
 
-pid_t process_wait_for_pid(pid_t pid);
+pid_t process_wait_for_pid(pid_t pid, u32 *exit_code);
 
-noreturn void process_handle_exit(process_t *process, u32 exit_code);
+noreturn void process_handle_exit(process_t *process, u8 exit_code, signal_t signal);
 
 void process_dump_mmaps(const process_t *process);
 
