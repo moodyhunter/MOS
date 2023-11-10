@@ -14,7 +14,6 @@ void clocksource_register(clocksource_t *clocksource)
 {
     clocksource->ticks = 0;
     list_node_append(&clocksources, list_node(clocksource));
-    pr_info2("registered clocksource %s", clocksource->name);
     active_clocksource = clocksource;
 }
 

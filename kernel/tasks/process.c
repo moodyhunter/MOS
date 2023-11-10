@@ -71,7 +71,7 @@ process_t *process_allocate(process_t *parent, const char *name)
     else if (unlikely(proc->pid == 1) || unlikely(proc->pid == 2))
     {
         proc->parent = proc;
-        pr_emph("special process %pp created", (void *) proc);
+        pr_demph(process, "special process %pp created", (void *) proc);
     }
     else
     {
