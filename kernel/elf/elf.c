@@ -70,10 +70,10 @@ static bool elf_verify_header(const elf_header_t *header)
     return true;
 }
 
-static void elf_read_file(file_t *file, void *buf, off_t offset, size_t size)
+[[nodiscard]] static bool elf_read_file(file_t *file, void *buf, off_t offset, size_t size)
 {
     const size_t read = io_pread(&file->io, buf, size, offset);
-    MOS_ASSERT_X(read == size, "failed to read %zu bytes from file '%s' at offset %zu", size, dentry_name(file->dentry), offset);
+    return read == size;
 }
 
 static ptr_t elf_determine_loadbias(elf_header_t *elf)
@@ -224,7 +224,12 @@ static ptr_t elf_map_interpreter(const char *path, mm_context_t *mm)
     for (size_t i = 0; i < elf.ph.count; i++)
     {
         elf_program_hdr_t ph;
-        elf_read_file(interp_file, &ph, elf.ph_offset + i * elf.ph.entry_size, elf.ph.entry_size);
+        if (!elf_read_file(interp_file, &ph, elf.ph_offset + i * elf.ph.entry_size, elf.ph.entry_size))
+        {
+            pr_emerg("failed to read program header %zu for '%s'", i, dentry_name(interp_file->dentry));
+            io_unref(&interp_file->io);
+            return 0;
+        }
 
         if (ph.header_type == ELF_PT_LOAD)
         {
@@ -262,7 +267,11 @@ __nodiscard static bool elf_do_fill_process(process_t *proc, file_t *file, elf_h
     for (size_t i = 0; i < elf.ph.count; i++)
     {
         elf_program_hdr_t ph;
-        elf_read_file(file, &ph, elf.ph_offset + i * elf.ph.entry_size, elf.ph.entry_size);
+        if (!elf_read_file(file, &ph, elf.ph_offset + i * elf.ph.entry_size, elf.ph.entry_size))
+        {
+            pr_emerg("failed to read program header %zu for '%s'", i, dentry_name(file->dentry));
+            goto bad_proc;
+        }
 
         switch (ph.header_type)
         {
@@ -270,7 +279,11 @@ __nodiscard static bool elf_do_fill_process(process_t *proc, file_t *file, elf_h
             case ELF_PT_INTERP:
             {
                 char interp_name[ph.size_in_file];
-                elf_read_file(file, interp_name, ph.data_offset, ph.size_in_file);
+                if (!elf_read_file(file, interp_name, ph.data_offset, ph.size_in_file))
+                {
+                    pr_emerg("failed to read interpreter name for '%s'", dentry_name(file->dentry));
+                    goto bad_proc;
+                }
                 pr_dinfo2(elf, "elf interpreter: %s", interp_name);
                 has_interpreter = true;
                 interp_entrypoint = elf_map_interpreter(interp_name, proc->mm);
@@ -340,7 +353,9 @@ done:;
 
 bool elf_read_and_verify_executable(file_t *file, elf_header_t *header)
 {
-    elf_read_file(file, header, 0, sizeof(elf_header_t));
+    if (!elf_read_file(file, header, 0, sizeof(elf_header_t)))
+        return false;
+
     const bool valid = elf_verify_header(header);
     if (!valid)
         return false;
