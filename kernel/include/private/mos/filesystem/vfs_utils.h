@@ -27,3 +27,6 @@ int vfs_generic_close(const file_t *file);
 phyframe_t *simple_fill_cache(inode_cache_t *cache, off_t pgoff);
 bool simple_page_write_begin(inode_cache_t *icache, off_t offset, size_t size, phyframe_t **page, void **private);
 void simple_page_write_end(inode_cache_t *icache, off_t offset, size_t size, phyframe_t *page, void *private);
+
+// ! simple in-memory directory iterator
+size_t vfs_generic_iterate_dir(const dentry_t *dir, dir_iterator_state_t *state, dentry_iterator_op op);

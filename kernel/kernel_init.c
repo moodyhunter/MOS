@@ -48,7 +48,7 @@ SYSFS_ITEM_RO_STRING(kernel_sysfs_build_time, __TIME__)
 SYSFS_ITEM_RO_STRING(kernel_sysfs_compiler, __VERSION__)
 SYSFS_ITEM_RO_STRING(init_sysfs_path, init_args.argv[0])
 
-static const sysfs_item_t kernel_sysfs_items[] = {
+static sysfs_item_t kernel_sysfs_items[] = {
     SYSFS_RO_ITEM("kernel_version", kernel_sysfs_version),
     SYSFS_RO_ITEM("kernel_revision", kernel_sysfs_revision),
     SYSFS_RO_ITEM("kernel_build_date", kernel_sysfs_build_date),
@@ -56,7 +56,6 @@ static const sysfs_item_t kernel_sysfs_items[] = {
     SYSFS_RO_ITEM("kernel_compiler", kernel_sysfs_compiler),
     SYSFS_RO_ITEM("init_path", init_sysfs_path),
     SYSFS_RO_ITEM("init_argv", init_sysfs_argv),
-    SYSFS_END_ITEM,
 };
 
 SYSFS_AUTOREGISTER(kernel, kernel_sysfs_items);

@@ -152,7 +152,6 @@ static sysfs_item_t mmstat_sysfs_items[] = {
     SYSFS_RO_ITEM("stat", mmstat_sysfs_stat),
     SYSFS_RW_ITEM("phyframe_stat", mmstat_sysfs_phyframe_stat_show, mmstat_sysfs_phyframe_stat_store),
     SYSFS_RW_ITEM("pagetable", mmstat_sysfs_pagetable_show, mmstat_sysfs_pagetable_store),
-    SYSFS_END_ITEM,
 };
 
 SYSFS_AUTOREGISTER(mmstat, mmstat_sysfs_items);

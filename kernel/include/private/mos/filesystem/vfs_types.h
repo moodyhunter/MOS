@@ -27,10 +27,11 @@ typedef struct _file file_t;
 
 typedef struct _dir_iterator_state
 {
-    size_t dir_nth;
+    size_t start_nth;
+    size_t i;
     size_t buf_capacity;
     size_t buf_written;
-    char *buf;
+    char *const buf;
 } dir_iterator_state_t;
 
 typedef size_t(dentry_iterator_op)(dir_iterator_state_t *state, u64 ino, const char *name, size_t name_len, file_type_t type);
@@ -58,7 +59,7 @@ typedef struct
     /// read the contents of a symbolic link
     size_t (*readlink)(dentry_t *dentry, char *buffer, size_t buflen);
     /// iterate over the contents of a directory
-    size_t (*iterate_dir)(inode_t *dir, dir_iterator_state_t *iterator_state, dentry_iterator_op op);
+    size_t (*iterate_dir)(dentry_t *dentry, dir_iterator_state_t *iterator_state, dentry_iterator_op op);
 } inode_ops_t;
 
 typedef struct

@@ -659,6 +659,12 @@ long vfs_rmdir(const char *path)
 
 size_t vfs_list_dir(io_t *io, void *buf, size_t size)
 {
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // !!!! the current index counting is incorrect,               !!!!
+    // !!!! it will yield less than the actual number of entries   !!!!
+    // !!!! if the buffer is not large enough to hold all of them  !!!!
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     pr_dinfo2(vfs, "vfs_list_dir(io=%p, buf=%p, size=%zu)", (void *) io, (void *) buf, size);
     file_t *file = container_of(io, file_t, io);
     if (unlikely(file->dentry->inode->type != FILE_TYPE_DIRECTORY))
@@ -668,14 +674,15 @@ size_t vfs_list_dir(io_t *io, void *buf, size_t size)
     }
 
     dir_iterator_state_t state = {
-        .dir_nth = file->offset,
+        .start_nth = file->offset,
+        .i = file->offset,
         .buf = buf,
         .buf_capacity = size,
         .buf_written = 0,
     };
 
     size_t written = dentry_list(file->dentry, &state);
-    file->offset = state.dir_nth;
+    file->offset = state.i;
     return written;
 }
 
@@ -741,11 +748,10 @@ static bool vfs_sysfs_dentry_stats(sysfs_file_t *f)
     return true;
 }
 
-static const sysfs_item_t vfs_sysfs_items[] = {
+static sysfs_item_t vfs_sysfs_items[] = {
     SYSFS_RO_ITEM("filesystems", vfs_sysfs_filesystems),
     SYSFS_RO_ITEM("mount", vfs_sysfs_mountpoints),
     SYSFS_RO_ITEM("dentry_stats", vfs_sysfs_dentry_stats),
-    SYSFS_END_ITEM,
 };
 
 SYSFS_AUTOREGISTER(vfs, vfs_sysfs_items);

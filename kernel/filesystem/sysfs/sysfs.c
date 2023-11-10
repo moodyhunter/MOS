@@ -38,6 +38,12 @@ static superblock_t *sysfs_sb = NULL;
 
 static void sysfs_do_register(sysfs_dir_t *sysfs_dir);
 
+static u64 sysfs_get_ino(void)
+{
+    static u64 ino = 1;
+    return ino++;
+}
+
 void sysfs_register(sysfs_dir_t *dir)
 {
     linked_list_init(list_node(dir));
@@ -228,6 +234,77 @@ static const file_ops_t sysfs_file_ops = {
     .munmap = sysfs_fops_munmap,
 };
 
+static size_t sysfs_iops_iterate_dir(dentry_t *dentry, dir_iterator_state_t *state, dentry_iterator_op op)
+{
+    // root directory
+    if (dentry->inode == sysfs_sb->root->inode)
+        return vfs_generic_iterate_dir(dentry, state, op);
+
+    sysfs_dir_t *dir = dentry->inode->private;
+    MOS_ASSERT_X(dir, "invalid sysfs entry, possibly a VFS bug");
+
+    // non-dynamic directory
+    if (list_is_empty(&dir->_dynamic_items))
+        return vfs_generic_iterate_dir(dentry, state, op);
+
+    size_t written = 0;
+
+    {
+        size_t i = state->i - state->start_nth;
+
+        for (size_t j = 0; j < dir->num_items; j++)
+        {
+            sysfs_item_t *item = &dir->items[j];
+            if (item->type == _SYSFS_INVALID || item->type == SYSFS_DYN)
+                continue;
+
+            // skip entries until we reach the nth one
+            if (state->i != i++)
+                continue;
+
+            const size_t w = op(state, item->ino, item->name, strlen(item->name), FILE_TYPE_REGULAR);
+            if (w == 0)
+                break;
+            written += w;
+        }
+    }
+
+    // iterate the dynamic items
+    list_node_foreach(item_node, &dir->_dynamic_items)
+    {
+        sysfs_item_t *const dynitem = container_of(item_node, sysfs_item_t, dyn.list_node);
+        written += dynitem->dyn.iterate(dynitem, dentry, state, op);
+    }
+
+    return written;
+}
+
+static bool sysfs_iops_lookup(inode_t *dir, dentry_t *dentry)
+{
+    // if we get here, it means the expected dentry cannpt be found in the dentry cache
+    // that means either it's a dynamic item, or the user is trying to access a file that doesn't exist
+
+    sysfs_dir_t *sysfs_dir = dir->private;
+    MOS_ASSERT_X(sysfs_dir, "invalid sysfs entry, possibly a VFS bug");
+
+    if (list_is_empty(&sysfs_dir->_dynamic_items))
+        return false;
+
+    list_node_foreach(item_node, &sysfs_dir->_dynamic_items)
+    {
+        sysfs_item_t *const dynitem = container_of(item_node, sysfs_item_t, dyn.list_node);
+        if (dynitem->dyn.lookup(dir, dentry))
+            return true;
+    }
+
+    return false;
+}
+
+static const inode_ops_t sysfs_dir_i_ops = {
+    .iterate_dir = sysfs_iops_iterate_dir,
+    .lookup = sysfs_iops_lookup,
+};
+
 static dentry_t *sysfs_fsop_mount(filesystem_t *fs, const char *dev, const char *options)
 {
     MOS_ASSERT(fs == &fs_sysfs);
@@ -254,27 +331,41 @@ static filesystem_t fs_sysfs = {
 
 static const file_perm_t sysfs_dir_perm = PERM_READ | PERM_EXEC; // r-xr-xr-x
 
-static u64 sysfs_get_ino(void)
-{
-    static u64 ino = 1;
-    return ino++;
-}
-
 static void sysfs_do_register(sysfs_dir_t *sysfs_dir)
 {
     inode_t *dir_i = inode_create(sysfs_sb, sysfs_get_ino(), FILE_TYPE_DIRECTORY);
     dir_i->perm = sysfs_dir_perm;
+    dir_i->ops = &sysfs_dir_i_ops;
 
     dentry_t *vfs_dir = dentry_create(sysfs_sb, sysfs_sb->root, sysfs_dir->name);
     vfs_dir->inode = dir_i;
+    vfs_dir->inode->private = sysfs_dir; ///< for convience
     sysfs_dir->_dentry = vfs_dir;
 
-    for (const sysfs_item_t *item = sysfs_dir->items; item && item->name; item++)
-        sysfs_register_file(sysfs_dir, item, NULL);
+    for (size_t i = 0; i < sysfs_dir->num_items; i++)
+        sysfs_register_file(sysfs_dir, &sysfs_dir->items[i], NULL);
 }
 
-void sysfs_register_file(sysfs_dir_t *sysfs_dir, const sysfs_item_t *item, void *data)
+inode_t *sysfs_create_inode(file_type_t type, void *data)
 {
+    inode_t *inode = inode_create(sysfs_sb, sysfs_get_ino(), type);
+    inode->private = data;
+    return inode;
+}
+
+void sysfs_register_file(sysfs_dir_t *sysfs_dir, sysfs_item_t *item, void *data)
+{
+    if (item->type == _SYSFS_INVALID)
+        return;
+
+    if (item->type == SYSFS_DYN)
+    {
+        MOS_ASSERT(item->dyn.iterate);
+        linked_list_init(list_node(&item->dyn));
+        list_node_append(&sysfs_dir->_dynamic_items, list_node(&item->dyn));
+        return;
+    }
+
     sysfs_file_t *sysfs_file = kmalloc(sizeof(sysfs_file_t));
     sysfs_file->item = item;
     sysfs_file->data = data;
@@ -282,9 +373,12 @@ void sysfs_register_file(sysfs_dir_t *sysfs_dir, const sysfs_item_t *item, void 
     inode_t *file_i = inode_create(sysfs_sb, sysfs_get_ino(), FILE_TYPE_REGULAR);
     file_i->file_ops = &sysfs_file_ops;
     file_i->private = sysfs_file;
+    item->ino = file_i->ino;
 
     switch (item->type)
     {
+        case _SYSFS_INVALID: MOS_UNREACHABLE();
+        case SYSFS_DYN: MOS_UNREACHABLE();
         case SYSFS_RO: file_i->perm |= PERM_READ; break;
         case SYSFS_RW: file_i->perm |= PERM_READ | PERM_WRITE; break;
         case SYSFS_WO: file_i->perm |= PERM_WRITE; break;
@@ -310,6 +404,7 @@ static void register_sysfs(void)
     sysfs_sb->fs = &fs_sysfs;
     sysfs_sb->root = dentry_create(sysfs_sb, NULL, NULL);
     sysfs_sb->root->inode = inode_create(sysfs_sb, sysfs_get_ino(), FILE_TYPE_DIRECTORY);
+    sysfs_sb->root->inode->ops = &sysfs_dir_i_ops;
 }
 
 MOS_INIT(VFS, register_sysfs);

@@ -2,9 +2,12 @@
 
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
+#include "mos/filesystem/vfs_types.h"
+#include "mos/filesystem/vfs_utils.h"
 #include "mos/mm/slab.h"
 #include "mos/mm/slab_autoinit.h"
 
+#include <mos/filesystem/fs_types.h>
 #include <mos/io/io.h>
 #include <mos/ipc/ipc.h>
 #include <mos/lib/structures/list.h>
@@ -16,6 +19,7 @@
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/wait.h>
 #include <mos_stdlib.h>
+#include <mos_string.h>
 
 #define IPC_SERVER_MAGIC MOS_FOURCC('I', 'P', 'C', 'S')
 
@@ -30,6 +34,7 @@ typedef struct
     u32 magic;
     io_t io;
     ipcshm_server_t *shm_server;
+    inode_t *sysfs_ino;
 } ipc_server_t;
 
 static void ipc_server_io_close(io_t *io)
@@ -186,17 +191,79 @@ io_t *ipc_connect(const char *name, size_t buffer_size)
 
 static bool ipc_sysfs_servers(sysfs_file_t *f)
 {
+    sysfs_printf(f, "%-20s\t%s\n", "Server Name", "Max Pending Connections");
     list_foreach(ipc_server_t, ipc, ipc_servers)
     {
-        sysfs_printf(f, "%20s, max_pending=%zu\n", ipc->shm_server->name, ipc->shm_server->max_pending);
+        sysfs_printf(f, "%-20s\t%zu\n", ipc->shm_server->name, ipc->shm_server->max_pending);
     }
 
     return true;
 }
 
+static inode_t *ipc_sysfs_create_ino(ipc_server_t *ipc_server)
+{
+    ipc_server->sysfs_ino = sysfs_create_inode(FILE_TYPE_DIRECTORY, ipc_server);
+    ipc_server->sysfs_ino->perm = PERM_OWNER & (PERM_READ | PERM_WRITE);
+    return ipc_server->sysfs_ino;
+}
+
+static size_t ipc_sysfs_list_ipcs(sysfs_item_t *item, dentry_t *d, dir_iterator_state_t *state, dentry_iterator_op op)
+{
+    MOS_UNUSED(item);
+    MOS_UNUSED(d);
+
+    size_t i = state->i - state->start_nth;
+    size_t written = 0;
+
+    list_foreach(ipc_server_t, ipc_server, ipc_servers)
+    {
+        // skip entries until we reach the nth one
+        if (state->i != i++)
+            continue;
+
+        if (!ipc_server->sysfs_ino)
+        {
+            if (!ipc_sysfs_create_ino(ipc_server))
+                MOS_UNREACHABLE();
+        }
+
+        const size_t w = op(state, ipc_server->sysfs_ino->ino, ipc_server->shm_server->name, strlen(ipc_server->shm_server->name), FILE_TYPE_REGULAR);
+        if (w == 0)
+            break;
+        written += w;
+    }
+
+    return written;
+}
+
+static bool ipc_sysfs_lookup_ipc(inode_t *parent_dir, dentry_t *dentry)
+{
+    MOS_UNUSED(parent_dir);
+
+    const char *name = dentry->name;
+    ipc_server_t *ipc_server = NULL;
+    list_foreach(ipc_server_t, ipc, ipc_servers)
+    {
+        if (strcmp(ipc->shm_server->name, name) == 0)
+        {
+            ipc_server = ipc;
+            break;
+        }
+    }
+
+    if (ipc_server->sysfs_ino)
+    {
+        dentry->inode = ipc_server->sysfs_ino;
+        return true;
+    }
+
+    dentry->inode = ipc_sysfs_create_ino(ipc_server);
+    return true;
+}
+
 static sysfs_item_t ipc_sysfs_items[] = {
     SYSFS_RO_ITEM("servers", ipc_sysfs_servers),
-    SYSFS_END_ITEM,
+    SYSFS_DYN_ITEMS("ipcs", ipc_sysfs_list_ipcs, ipc_sysfs_lookup_ipc),
 };
 
 SYSFS_AUTOREGISTER(ipc, ipc_sysfs_items);

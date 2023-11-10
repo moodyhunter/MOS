@@ -244,25 +244,25 @@ static bool cpio_i_lookup(inode_t *parent_dir, dentry_t *dentry)
     return true;
 }
 
-static size_t cpio_i_iterate_dir(inode_t *dir, dir_iterator_state_t *state, dentry_iterator_op op)
+static size_t cpio_i_iterate_dir(dentry_t *dentry, dir_iterator_state_t *state, dentry_iterator_op op)
 {
-    cpio_inode_t *i = CPIO_INODE(dir);
+    cpio_inode_t *inode = CPIO_INODE(dentry->inode);
 
-    char path_prefix[i->name_length + 1]; // +1 for null terminator
-    initrd_read(path_prefix, i->name_length, i->name_offset);
-    path_prefix[i->name_length] = '\0';
+    char path_prefix[inode->name_length + 1]; // +1 for null terminator
+    initrd_read(path_prefix, inode->name_length, inode->name_offset);
+    path_prefix[inode->name_length] = '\0';
     size_t prefix_len = strlen(path_prefix); // +1 for the slash
 
     if (strcmp(path_prefix, ".") == 0)
         path_prefix[0] = '\0', prefix_len = 0; // root directory
 
-    const size_t start_nth = state->dir_nth - DIR_ITERATOR_NTH_START; // - 2 because of '.' and '..', so we start at that offset
+    size_t i = state->i - state->start_nth;
 
     // find all children of this directory, that starts with 'path' and doesn't have any more slashes
     size_t written = 0;
     cpio_newc_header_t header;
     size_t offset = 0;
-    size_t filtered_n = 0;
+
     while (true)
     {
         initrd_read(&header, sizeof(cpio_newc_header_t), offset);
@@ -285,29 +285,23 @@ static size_t cpio_i_iterate_dir(inode_t *dir, dir_iterator_state_t *state, dent
         const bool is_root_dot = strcmp(filename, ".") == 0;
 
         // only continue after we've found the start_nth file
-        if (found && !is_TRAILER && !is_root_dot)
+        if (found && !is_TRAILER && !is_root_dot && state->i == i++)
         {
-            if (filtered_n++ >= start_nth)
-            {
-                pr_dinfo2(cpio, "prefix '%s' filename '%s'", path_prefix, filename);
+            pr_dinfo2(cpio, "prefix '%s' filename '%s'", path_prefix, filename);
 
-                const u32 modebits = strntoll(header.mode, NULL, 16, sizeof(header.mode) / sizeof(char));
-                const file_type_t type = cpio_modebits_to_filetype(modebits & CPIO_MODE_FILE_TYPE);
-                const s64 ino = strntoll(header.ino, NULL, 16, sizeof(header.ino) / sizeof(char));
+            const u32 modebits = strntoll(header.mode, NULL, 16, sizeof(header.mode) / sizeof(char));
+            const file_type_t type = cpio_modebits_to_filetype(modebits & CPIO_MODE_FILE_TYPE);
+            const s64 ino = strntoll(header.ino, NULL, 16, sizeof(header.ino) / sizeof(char));
 
-                const char *name = filename + prefix_len + (prefix_len == 0 ? 0 : 1);          // +1 for the slash if it's not the root
-                const size_t name_len = filename_len - prefix_len - (prefix_len == 0 ? 0 : 1); // -1 for the slash if it's not the root
+            const char *name = filename + prefix_len + (prefix_len == 0 ? 0 : 1);          // +1 for the slash if it's not the root
+            const size_t name_len = filename_len - prefix_len - (prefix_len == 0 ? 0 : 1); // -1 for the slash if it's not the root
 
-                const size_t w = op(state, ino, name, name_len, type);
-                written += w;
+            const size_t w = op(state, ino, name, name_len, type);
+            written += w;
 
-                // no more space, terminate the iteration
-                if (w == 0)
-                {
-                    pr_dinfo2(cpio, "iteration terminated at %zu, possibly out of space", filtered_n);
-                    return written;
-                }
-            }
+            // no more space, terminate the iteration
+            if (w == 0)
+                return written;
         }
 
         if (unlikely(is_TRAILER))
@@ -321,7 +315,7 @@ static size_t cpio_i_iterate_dir(inode_t *dir, dir_iterator_state_t *state, dent
         offset = ((offset + 3) & ~0x03); // align to 4 bytes (again)
     }
 
-    pr_dinfo2(cpio, "iterated with prefix='%s', started at %zu, wrote %zu bytes for %zu items", path_prefix, start_nth, written, filtered_n);
+    pr_dinfo2(cpio, "iterated with prefix='%s', started at %zu, wrote %zu bytes for %zu items", path_prefix, i, written, state->i - state->start_nth);
     return written;
 }
 

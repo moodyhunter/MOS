@@ -443,7 +443,6 @@ static sysfs_item_t process_sysfs_items[] = {
     SYSFS_RO_ITEM("process", process_sysfs_process_stat),
     SYSFS_RO_ITEM("thread", process_sysfs_thread_stat),
     SYSFS_RO_ITEM("vmaps", process_sysfs_vmap_stat),
-    SYSFS_END_ITEM,
 };
 
 SYSFS_AUTOREGISTER(current, process_sysfs_items);

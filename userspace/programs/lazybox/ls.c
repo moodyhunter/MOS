@@ -7,7 +7,7 @@
 #include <mos_stdio.h>
 #include <sys/stat.h>
 
-#define BUFSIZE 256
+#define BUFSIZE 4096
 
 static const char *type_to_string[] = {
     [FILE_TYPE_DIRECTORY] = "directory", [FILE_TYPE_REGULAR] = "regular", [FILE_TYPE_CHAR_DEVICE] = "chardev", [FILE_TYPE_BLOCK_DEVICE] = "blockdev",

@@ -435,7 +435,7 @@ static size_t dentry_add_dir(dir_iterator_state_t *state, u64 ino, const char *n
     strcpy(entry->name, name);
     entry->name[entry->name_len] = '\0'; // ensure null termination
 
-    state->dir_nth++;
+    state->i++;
     state->buf_written += this_record_size;
     return this_record_size;
 }
@@ -693,34 +693,11 @@ dentry_t *dentry_unmount(dentry_t *root)
     return mountpoint;
 }
 
-static size_t dentry_default_iterate(const dentry_t *dir, dir_iterator_state_t *state, dentry_iterator_op op)
-{
-    size_t written = 0;
-
-    size_t i = DIR_ITERATOR_NTH_START;
-    tree_foreach_child(dentry_t, child, dir)
-    {
-        if (child->inode == NULL)
-            continue;
-
-        // skip entries until we reach the nth one
-        if (state->dir_nth != i++)
-            continue;
-
-        size_t w = op(state, child->inode->ino, child->name, strlen(child->name), child->inode->type);
-        if (w == 0)
-            break;
-        written += w;
-    }
-
-    return written;
-}
-
 size_t dentry_list(dentry_t *dir, dir_iterator_state_t *state)
 {
     size_t written = 0;
 
-    if (state->dir_nth == 0)
+    if (state->i == 0)
     {
         inode_t *inode = dir->inode;
         size_t w;
@@ -730,7 +707,7 @@ size_t dentry_list(dentry_t *dir, dir_iterator_state_t *state)
         written += w;
     }
 
-    if (state->dir_nth == 1)
+    if (state->i == 1)
     {
         dentry_t *parent = dentry_parent(dir);
         if (parent == NULL)
@@ -747,9 +724,9 @@ size_t dentry_list(dentry_t *dir, dir_iterator_state_t *state)
 
     // this call may not write all the entries, because the buffer may not be big enough
     if (dir->inode->ops && dir->inode->ops->iterate_dir)
-        written += dir->inode->ops->iterate_dir(dir->inode, state, dentry_add_dir);
+        written += dir->inode->ops->iterate_dir(dir, state, dentry_add_dir);
     else
-        written += dentry_default_iterate(dir, state, dentry_add_dir);
+        written += vfs_generic_iterate_dir(dir, state, dentry_add_dir);
 
     MOS_ASSERT(written <= state->buf_capacity); // we should never write more than the buffer can hold
 

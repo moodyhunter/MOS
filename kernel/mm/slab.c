@@ -278,9 +278,8 @@ static bool slab_sysfs_status(sysfs_file_t *f)
     return true;
 }
 
-static const sysfs_item_t slab_sysfs_items[] = {
+static sysfs_item_t slab_sysfs_items[] = {
     SYSFS_RO_ITEM("status", slab_sysfs_status),
-    SYSFS_END_ITEM,
 };
 
 SYSFS_AUTOREGISTER(slab, slab_sysfs_items);

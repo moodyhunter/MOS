@@ -21,7 +21,11 @@
 
 ptr_t x86_acpi_dsdt = 0;
 
-SYSFS_AUTOREGISTER(acpi, NULL);
+static sysfs_item_t acpi_sysfs_items[] = {
+    0,
+};
+
+SYSFS_AUTOREGISTER(acpi, acpi_sysfs_items);
 
 #define do_verify_checksum(var, header, type)                                                                                                                            \
     var = container_of(header, type, sdt_header);                                                                                                                        \
