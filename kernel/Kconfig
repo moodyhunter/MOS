@@ -174,6 +174,9 @@ config DEBUG_signal
 config DEBUG_dma
     bool "dma debugging"
 
+config DEBUG_pipe
+    bool "pipe debugging"
+
 endmenu
 
 endmenu

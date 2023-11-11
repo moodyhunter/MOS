@@ -256,8 +256,8 @@ DEFINE_SYSCALL(bool, futex_wake)(futex_word_t *futex, size_t count)
 DEFINE_SYSCALL(fd_t, ipc_create)(const char *name, size_t max_pending_connections)
 {
     io_t *io = ipc_create(name, max_pending_connections);
-    if (io == NULL)
-        return -1;
+    if (IS_ERR(io))
+        return PTR_ERR(io);
     return process_attach_ref_fd(current_process, io);
 }
 
@@ -378,7 +378,7 @@ DEFINE_SYSCALL(off_t, io_tell)(fd_t fd)
     return io_tell(io);
 }
 
-DEFINE_SYSCALL(bool, signal_register)(signal_t sig, sigaction_t *action)
+DEFINE_SYSCALL(bool, signal_register)(signal_t sig, const sigaction_t *action)
 {
     return process_register_signal_handler(current_process, sig, action);
 }

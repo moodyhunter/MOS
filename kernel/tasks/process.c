@@ -325,6 +325,14 @@ void process_handle_exit(process_t *process, u8 exit_code, signal_t signal)
         }
     }
 
+    // re-parent all children to parent of this process
+    list_foreach(process_t, child, process->children)
+    {
+        child->parent = process->parent;
+        linked_list_init(list_node(child));
+        list_node_append(&process->parent->children, list_node(child));
+    }
+
     pr_dinfo2(process, "closed %zu/%zu files owned by %pp", files_closed, files_total, (void *) process);
     process->exited = true;
 
@@ -377,7 +385,7 @@ void process_dump_mmaps(const process_t *process)
     pr_info("total: %zd memory regions", i);
 }
 
-bool process_register_signal_handler(process_t *process, signal_t sig, sigaction_t *sigaction)
+bool process_register_signal_handler(process_t *process, signal_t sig, const sigaction_t *sigaction)
 {
     pr_dinfo2(signal, "registering signal handler for process %pp, signal %d", (void *) process, sig);
     process->signal_info.handlers[sig] = *sigaction;

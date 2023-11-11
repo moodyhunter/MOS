@@ -44,7 +44,7 @@ noreturn void process_handle_exit(process_t *process, u8 exit_code, signal_t sig
 
 void process_dump_mmaps(const process_t *process);
 
-bool process_register_signal_handler(process_t *process, signal_t sig, sigaction_t *sigaction);
+bool process_register_signal_handler(process_t *process, signal_t sig, const sigaction_t *sigaction);
 
 process_t *process_do_fork(process_t *process);
 long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const char *const argv[], const char *const envp[], int flags);

@@ -277,7 +277,7 @@
             "number": 39,
             "name": "signal_register",
             "return": "bool",
-            "arguments": [ { "type": "signal_t", "arg": "signum" }, { "type": "sigaction_t *", "arg": "action" } ]
+            "arguments": [ { "type": "signal_t", "arg": "signum" }, { "type": "const sigaction_t *", "arg": "action" } ]
         },
         {
             "number": 40,
