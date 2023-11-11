@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "argparse/libargparse.h"
 #include "mossh.h"
 
+#include <argparse/libargparse.h>
 #include <fcntl.h>
 #include <readline/libreadline.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,6 +28,19 @@ const char *PATH[] = {
 };
 
 static bool verbose = false;
+
+static void sigchld_handler(int signal)
+{
+    MOS_UNUSED(signal);
+    if (verbose)
+        printf("collecting zombies...");
+    pid_t pid;
+    while ((pid = waitpid(-1, NULL, WNOHANG)) > 0)
+        if (verbose)
+            printf(" %d", pid);
+    if (verbose)
+        puts(" done.");
+}
 
 static char *string_trim(char *in)
 {
@@ -84,19 +98,22 @@ bool do_program(const char *prog, int argc, const char **argv)
 
     int status = 0;
     waitpid(pid, &status, 0);
-    free((void *) prog);
 
     if (WIFEXITED(status))
     {
         u32 exit_code = WEXITSTATUS(status);
         if (exit_code != 0)
-            printf("(process exited with status %d)\n", exit_code);
+            printf("command '%s' exited with code %d\n", prog, exit_code);
     }
     else if (WIFSIGNALED(status))
-        printf("(process killed by signal %d (%s))\n", WTERMSIG(status), strsignal(WTERMSIG(status)));
+    {
+        int sig = WTERMSIG(status);
+        printf("command '%s' was terminated by signal %d (%s)\n", prog, sig, strsignal(sig));
+    }
     else
-        printf("(process exited with strange status %d)\n", status);
+        printf("command '%s' exited with unknown status %d\n", prog, status);
 
+    free((void *) prog);
     return true;
 }
 
@@ -237,6 +254,7 @@ static const argparse_arg_t mossh_options[] = {
 int main(int argc, const char **argv)
 {
     MOS_UNUSED(argc);
+    signal(SIGCHLD, sigchld_handler);
 
     argparse_state_t state;
     argparse_init(&state, argv);
