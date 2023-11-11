@@ -4,6 +4,7 @@
 #include "mos/filesystem/vfs.h"
 #include "mos/mm/cow.h"
 #include "mos/platform/platform.h"
+#include "mos/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/signal.h"
 #include "mos/tasks/task_types.h"

@@ -10,18 +10,6 @@
 
 #define PRINTK_BUFFER_SIZE 1024
 
-#define MOS_UNIMPLEMENTED(content)  mos_panic("\nUNIMPLEMENTED: %s", content)
-#define MOS_UNREACHABLE()           mos_panic("\nUNREACHABLE line %d reached in file: %s", __LINE__, __FILE__)
-#define MOS_UNREACHABLE_X(msg, ...) mos_panic("\nUNREACHABLE line %d reached in file: %s\n" msg, __LINE__, __FILE__, ##__VA_ARGS__)
-#define MOS_ASSERT_ONCE(...)        MOS_ASSERT_X(once(), __VA_ARGS__)
-#define MOS_ASSERT(cond)            MOS_ASSERT_X(cond, "")
-#define MOS_ASSERT_X(cond, msg, ...)                                                                                                                                     \
-    do                                                                                                                                                                   \
-    {                                                                                                                                                                    \
-        if (unlikely(!(cond)))                                                                                                                                           \
-            mos_panic("Assertion failed: %s\n" msg, #cond, ##__VA_ARGS__);                                                                                               \
-    } while (0)
-
 typedef enum
 {
     MOS_LOG_FATAL = 6,
@@ -62,21 +50,8 @@ typedef enum
 #define pr_fatal(fmt, ...) lprintk_wrapper(MOS_LOG_FATAL, pr_fmt(fmt), ##__VA_ARGS__)
 #define pr_cont(fmt, ...)  lprintk(MOS_LOG_UNSET, "" fmt, ##__VA_ARGS__)
 
-// these two also invokes a warning/panic handler
-#define mos_warn(fmt, ...)  mos_kwarn(__func__, __LINE__, "WARN: " fmt "\r\n", ##__VA_ARGS__)
-#define mos_panic(fmt, ...) mos_kpanic(__func__, __LINE__, "" fmt, ##__VA_ARGS__)
-
-#define mos_warn_once(...)                                                                                                                                               \
-    do                                                                                                                                                                   \
-    {                                                                                                                                                                    \
-        if (once())                                                                                                                                                      \
-            mos_warn(__VA_ARGS__);                                                                                                                                       \
-    } while (0)
-
 __printf(1, 2) void printk(const char *format, ...);
 __printf(2, 3) void lprintk(mos_loglevel loglevel, const char *format, ...);
-__printf(3, 4) void mos_kwarn(const char *func, u32 line, const char *fmt, ...);
-noreturn __printf(3, 4) void mos_kpanic(const char *func, u32 line, const char *fmt, ...);
 
 void vprintk(const char *format, va_list args);
 void lvprintk(mos_loglevel loglevel, const char *fmt, va_list args);

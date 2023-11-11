@@ -2,6 +2,7 @@
 
 #include "mos/device/console.h"
 #include "mos/mm/mm.h"
+#include "mos/printk.h"
 #include "mos/tasks/schedule.h"
 #include "mos/x86/acpi/acpi_types.h"
 #include "mos/x86/cpu/ap_entry.h"

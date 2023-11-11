@@ -2,9 +2,9 @@
 
 #pragma once
 
+#include "mos/panic.h"
+
 #include <cpuid.h>
-#include <mos/mos_global.h>
-#include <mos/printk.h>
 #include <mos/types.h>
 
 should_inline void cpu_get_msr(u32 msr, u32 *lo, u32 *hi)

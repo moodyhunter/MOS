@@ -5,6 +5,7 @@
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/pml_types.h"
 #include "mos/platform/platform.h"
+#include "mos/printk.h"
 #include "mos/tasks/schedule.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/descriptors/descriptors.h"

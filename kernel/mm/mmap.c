@@ -4,6 +4,7 @@
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/table_ops.h"
 #include "mos/platform/platform.h"
+#include "mos/printk.h"
 
 #include <mos/mm/cow.h>
 #include <mos/mm/mm_types.h>

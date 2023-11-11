@@ -21,3 +21,6 @@ typedef struct
 void panic_hook_install(panic_hook_holder_t *hook);
 void kwarn_handler_set(kmsg_handler_t *handler);
 void kwarn_handler_remove(void);
+
+__printf(3, 4) void mos_kwarn(const char *func, u32 line, const char *fmt, ...);
+noreturn __printf(3, 4) void mos_kpanic(const char *func, u32 line, const char *fmt, ...);

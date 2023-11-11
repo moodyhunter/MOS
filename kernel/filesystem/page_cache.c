@@ -5,6 +5,7 @@
 #include "mos/mm/mm.h"
 #include "mos/mm/mmstat.h"
 #include "mos/mm/physical/pmm.h"
+#include "mos/printk.h"
 
 #include <mos_stdlib.h>
 #include <mos_string.h>

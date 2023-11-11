@@ -8,6 +8,7 @@
 #include "mos/mm/mm.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
+#include "mos/printk.h"
 #include "mos/setup.h"
 #include "mos/x86/cpu/ap_entry.h"
 #include "mos/x86/devices/serial_console.h"

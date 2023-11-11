@@ -11,6 +11,7 @@
 #include "mos/mm/mm.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab.h"
+#include "mos/printk.h"
 #include "mos/setup.h"
 
 #include <mos/filesystem/fs_types.h>

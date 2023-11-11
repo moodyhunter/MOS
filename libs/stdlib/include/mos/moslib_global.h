@@ -18,7 +18,7 @@
 #define MOS_LIB_UNIMPLEMENTED(content)   MOS_UNIMPLEMENTED(content)
 #define MOS_LIB_UNREACHABLE()            MOS_UNREACHABLE()
 
-#include "mos/printk.h"
+#include "mos/assert.h"
 
 #else // ! Userspace
 

@@ -9,6 +9,7 @@
 #include "mos/mm/paging/table_ops.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
+#include "mos/printk.h"
 
 #include <mos_string.h>
 
