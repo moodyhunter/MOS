@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/device/clocksource.h"
+#include "mos/ipc/pipe.h"
 #include "mos/misc/power.h"
 #include "mos/mm/dma.h"
 #include "mos/mm/mm.h"
@@ -536,4 +537,15 @@ DEFINE_SYSCALL(bool, dmabuf_share)(void *buffer, size_t size, ptr_t *phyaddr)
 DEFINE_SYSCALL(bool, dmabuf_unshare)(ptr_t phys, size_t size, void *buf)
 {
     return dmabuf_unshare(phys, size, buf);
+}
+
+DEFINE_SYSCALL(long, pipe)(fd_t *reader, fd_t *writer)
+{
+    pipe_t *pipe = pipe_create(MOS_PAGE_SIZE * 4);
+    if (IS_ERR(pipe))
+        return PTR_ERR(pipe);
+
+    *reader = process_attach_ref_fd(current_process, &pipe->reader);
+    *writer = process_attach_ref_fd(current_process, &pipe->writer);
+    return 0;
 }

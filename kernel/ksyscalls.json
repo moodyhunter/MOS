@@ -421,6 +421,12 @@
                 "The buffer will be freed after this call.",
                 "The content of the buffer will be copied back to the userspace buffer, if vaddr is not NULL."
             ]
+        },
+        {
+            "number": 55,
+            "name": "pipe",
+            "return": "long",
+            "arguments": [ { "type": "fd_t *", "arg": "out_read_fd" }, { "type": "fd_t *", "arg": "out_write_fd" } ]
         }
     ]
 }

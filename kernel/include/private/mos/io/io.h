@@ -17,6 +17,7 @@ typedef enum
     IO_FILE,    // a file
     IO_DIR,     // a directory (i.e. readdir())
     IO_IPC,     // an IPC channel
+    IO_PIPE,    // an end of a pipe
     IO_CONSOLE, // a console
 } io_type_t;
 
