@@ -9,4 +9,4 @@ int raise(signal_t sig);
 
 int kill(pid_t pid, signal_t sig);
 
-int register_signal_handler(signal_t sig, sighandler *handler);
+int register_signal_handler(signal_t sig, __sighandler handler);

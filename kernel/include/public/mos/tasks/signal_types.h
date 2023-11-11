@@ -2,19 +2,9 @@
 
 #pragma once
 
-#include <mos/types.h>
+#include <abi-bits/signal.h>
 #include <signal.h>
 
 #define SIGNAL_MAX_N NSIG
 typedef int signal_t;
-
-typedef void(sighandler)(signal_t signal);
-
-typedef struct
-{
-    sighandler *handler;        // user-space signal handler
-    void *sigreturn_trampoline; // trampoline code address when returning from a signal handler
-} sigaction_t;
-
-#define SIGACT_DEF ((sigaction_t) 0)
-#define SIGACT_IGN ((sigaction_t) 1)
+typedef struct sigaction sigaction_t;

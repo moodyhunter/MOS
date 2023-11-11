@@ -125,7 +125,7 @@ void signal_check_and_handle(void)
 
     const sigaction_t action = current_process->signal_info.handlers[next_signal];
 
-    if (action.handler == SIG_DFL)
+    if (action.sa_handler == SIG_DFL)
     {
         switch (next_signal)
         {
@@ -137,11 +137,18 @@ void signal_check_and_handle(void)
             case SIGSEGV: _coredump();
             case SIGTERM: _terminate();
             case SIGCHLD: _ignore();
+            case SIGPIPE: _terminate();
 
             default: MOS_UNREACHABLE_X("handle this signal %d", next_signal); break;
         }
 
         // the default handler returns
+        return;
+    }
+
+    if (action.sa_handler == SIG_IGN)
+    {
+        signal_do_ignore(next_signal);
         return;
     }
 

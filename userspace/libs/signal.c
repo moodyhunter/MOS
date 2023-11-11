@@ -25,11 +25,11 @@ int kill(pid_t pid, signal_t sig)
     return syscall_signal_process(pid, sig);
 }
 
-int register_signal_handler(signal_t sig, sighandler *handler)
+int register_signal_handler(signal_t sig, __sighandler handler)
 {
     sigaction_t *act = malloc(sizeof(sigaction_t));
-    act->handler = *handler;
-    act->sigreturn_trampoline = (void *) (ptr_t) sigreturn_trampoline;
+    act->sa_handler = handler;
+    act->sa_restorer = sigreturn_trampoline;
     syscall_signal_register(sig, act);
     return 0;
 }

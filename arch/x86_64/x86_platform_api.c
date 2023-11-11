@@ -179,8 +179,8 @@ void platform_jump_to_signal_handler(const sigreturn_data_t *sigreturn_data, con
     stack_push_val(&current_thread->u_stack, *sigreturn_data);
 
     // Set up the new context
-    regs->ip = (ptr_t) sa->handler;
-    stack_push_val(&current_thread->u_stack, sa->sigreturn_trampoline); // the return address
+    regs->ip = (ptr_t) sa->sa_handler;
+    stack_push_val(&current_thread->u_stack, (ptr_t) sa->sa_restorer); // the return address
 
     regs->di = sigreturn_data->signal; // arg1
     regs->sp = current_thread->u_stack.head;
