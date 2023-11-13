@@ -288,7 +288,7 @@ static bool sysfs_iops_lookup(inode_t *dir, dentry_t *dentry)
     sysfs_dir_t *sysfs_dir = dir->private;
 
     // if it's NULL, it implies that the dir must be the root directory /sys
-    MOS_ASSERT_X(!sysfs_dir || dir == sysfs_sb->root->inode, "invalid sysfs entry, possibly a VFS bug");
+    MOS_ASSERT_X(sysfs_dir || dir == sysfs_sb->root->inode, "invalid sysfs entry, possibly a VFS bug");
 
     if (!sysfs_dir)
         return false; // sysfs root dir doesn't have any dynamic items
