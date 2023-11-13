@@ -61,11 +61,12 @@ typedef enum
 
 typedef enum
 {
-    THREAD_STATE_CREATED, // created or forked, but not ever started
-    THREAD_STATE_READY,   // thread can be scheduled
-    THREAD_STATE_RUNNING, // thread is currently running
-    THREAD_STATE_BLOCKED, // thread is blocked by a wait condition
-    THREAD_STATE_DEAD,    // thread is dead, and will be cleaned up soon by the scheduler
+    THREAD_STATE_CREATED,          ///< created or forked, but not ever started
+    THREAD_STATE_READY,            ///< thread can be scheduled
+    THREAD_STATE_RUNNING,          ///< thread is currently running
+    THREAD_STATE_BLOCKED,          ///< thread is blocked by a wait condition
+    THREAD_STATE_NONINTERRUPTIBLE, ///< thread is blocked, and cannot be interrupted
+    THREAD_STATE_DEAD,             ///< thread is dead, and will be cleaned up soon by the scheduler
 } thread_state_t;
 
 typedef enum

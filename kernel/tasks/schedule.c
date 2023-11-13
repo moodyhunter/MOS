@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/tasks/signal.h"
+
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/platform/platform.h>
@@ -31,6 +33,12 @@ static bool should_schedule_to_thread(thread_t *thread)
         }
         case THREAD_STATE_BLOCKED:
         {
+            if (signal_has_pending())
+            {
+                pr_dinfo2(scheduler, "cpu %d: thread %pt is blocked, but there are pending signals, waking it up", current_cpu->id, (void *) thread);
+                return true;
+            }
+
             // if the thread is blocked, check if the condition (if any) is met
             if (!thread->waiting)
                 return false;
@@ -41,6 +49,10 @@ static bool should_schedule_to_thread(thread_t *thread)
             thread->waiting = NULL;
             pr_dinfo2(scheduler, "cpu %d: thread %d waiting condition is resolved", current_cpu->id, thread->tid);
             return true;
+        }
+        case THREAD_STATE_NONINTERRUPTIBLE:
+        {
+            return false;
         }
         case THREAD_STATE_DEAD:
         case THREAD_STATE_RUNNING:

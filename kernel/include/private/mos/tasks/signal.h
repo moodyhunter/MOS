@@ -58,6 +58,13 @@ typedef struct _sigreturn_data
  *
  */
 void signal_on_returned(sigreturn_data_t *supplimentary_data);
+
+/**
+ * @brief Return true if there's a pending signal.
+ *
+ */
+bool signal_has_pending(void);
+
 /**
  * @}
  */

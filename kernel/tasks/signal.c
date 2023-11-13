@@ -172,3 +172,10 @@ void signal_on_returned(sigreturn_data_t *data)
     if (!data->was_masked)
         current_thread->signal_info.masks[data->signal] = false;
 }
+bool signal_has_pending(void)
+{
+    spinlock_acquire(&current_thread->signal_info.lock);
+    const bool has_pending = !list_is_empty(&current_thread->signal_info.pending);
+    spinlock_release(&current_thread->signal_info.lock);
+    return has_pending;
+}
