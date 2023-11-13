@@ -726,11 +726,10 @@ static bool vfs_sysfs_filesystems(sysfs_file_t *f)
 static bool vfs_sysfs_mountpoints(sysfs_file_t *f)
 {
     char pathbuf[MOS_PATH_MAX_LENGTH];
-    sysfs_printf(f, "%s: %s\n", "/", root_dentry->superblock->fs->name);
     list_foreach(mount_t, mp, vfs_mountpoint_list)
     {
         dentry_path(mp->mountpoint, root_dentry, pathbuf, sizeof(pathbuf));
-        sysfs_printf(f, "%s: %s\n", pathbuf, mp->fs->name);
+        sysfs_printf(f, "%-20s %-10s\n", pathbuf, mp->fs->name);
     }
 
     return true;
@@ -739,7 +738,13 @@ static bool vfs_sysfs_mountpoints(sysfs_file_t *f)
 static void vfs_sysfs_dentry_stats_stat_receiver(int depth, const dentry_t *dentry, bool mountroot, void *data)
 {
     sysfs_file_t *file = data;
-    sysfs_printf(file, "%*s%s: refcount=%zu%s\n", depth * 4, "", dentry_name(dentry), dentry->refcount, mountroot ? " (mount root)" : "");
+    sysfs_printf(file, "%*s%s: refcount=%zu%s\n",                                             //
+                 depth * 4,                                                                   //
+                 "",                                                                          //
+                 dentry_name(dentry),                                                         //
+                 dentry->refcount,                                                            //
+                 mountroot ? " (mount root)" : (dentry->is_mountpoint ? " (mountpoint)" : "") //
+    );
 }
 
 static bool vfs_sysfs_dentry_stats(sysfs_file_t *f)
