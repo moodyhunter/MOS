@@ -17,3 +17,5 @@ target_include_directories(stdlib SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/userspace/in
 add_subdirectory(argparse)
 add_subdirectory(libconfig)
 add_subdirectory(readline)
+
+add_to_initrd(TARGET libipc_hosted /lib)

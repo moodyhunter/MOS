@@ -2,9 +2,19 @@
 
 #include "libipc/ipc.h"
 
+#ifndef __MOS_MINIMAL_LIBC__
+#undef __MLIBC_ABI_ONLY // make clangd happy
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#define memzero(b, s) memset(b, 0, s)
+#define mos_warn      puts
+#else
 #include <mos_stdio.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
+#endif
 
 #ifdef __MOS_KERNEL__
 #include <mos/syscall/decl.h>
@@ -31,6 +41,13 @@ ipc_msg_t *ipc_read_msg(fd_t fd)
 {
     size_t size = 0;
     size_t read_size = syscall_io_read(fd, &size, sizeof(size));
+
+    if (read_size == 0)
+    {
+        // EOF
+        return NULL;
+    }
+
     if (read_size != sizeof(size))
     {
         mos_warn("failed to read size from ipc channel");
