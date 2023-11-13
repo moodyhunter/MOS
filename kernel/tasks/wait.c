@@ -83,7 +83,7 @@ size_t waitlist_wake(waitlist_t *list, size_t max_wakeups)
         MOS_ASSERT(thread);
 
         spinlock_acquire(&thread->state_lock);
-        MOS_ASSERT(thread->state == THREAD_STATE_BLOCKED);
+        MOS_ASSERT(thread->state == THREAD_STATE_BLOCKED || thread->state == THREAD_STATE_READY);
         thread->state = THREAD_STATE_READY;
         spinlock_release(&thread->state_lock);
 
@@ -104,4 +104,21 @@ void waitlist_close(waitlist_t *list)
 
     list->closed = true;
     spinlock_release(&list->lock);
+}
+
+void waitlist_remove_me(waitlist_t *waitlist)
+{
+    spinlock_acquire(&waitlist->lock);
+
+    list_foreach(waitable_list_entry_t, entry, waitlist->list)
+    {
+        if (entry->waiter == current_thread->tid)
+        {
+            list_remove(entry);
+            kfree(entry);
+            break;
+        }
+    }
+
+    spinlock_release(&waitlist->lock);
 }
