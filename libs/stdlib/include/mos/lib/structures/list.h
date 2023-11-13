@@ -57,6 +57,12 @@ struct list_node
 #define list_next_entry(item, type) list_entry(list_node(item)->next, type)
 
 /**
+ * @brief Get the next list node
+ *
+ */
+#define list_node_next_entry(node, type) container_of((node)->next, type, list_node)
+
+/**
  * @brief Get the `list_node' of a list element.
  * This is exactly the reverse of `list_entry' above.
  */

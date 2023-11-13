@@ -183,7 +183,7 @@ void run_client(void)
     }
 
     rpc_client_destroy(stub);
-    printf("all done\n");
+    puts("all done");
 }
 
 int main(int argc, char *argv[])

@@ -23,9 +23,8 @@ SLAB_AUTOINIT("pipe", pipe_slab, pipe_t);
 
 #define advance_buffer(buffer, bytes) ((buffer) = (void *) ((char *) (buffer) + (bytes)))
 
-static size_t pipe_io_write(io_t *io, const void *buf, size_t size)
+size_t pipe_write(pipe_t *pipe, const void *buf, size_t size)
 {
-    pipe_t *pipe = container_of(io, pipe_t, writer);
     if (pipe->magic != PIPE_MAGIC)
     {
         pr_warn("pipe_io_write: invalid magic");
@@ -37,7 +36,7 @@ static size_t pipe_io_write(io_t *io, const void *buf, size_t size)
     // write data to buffer
     spinlock_acquire(&pipe->lock);
 
-    if (pipe->closed)
+    if (pipe->other_closed)
     {
         pr_dinfo2(pipe, "%pt: pipe closed", (void *) current_thread);
         signal_send_to_thread(current_thread, SIGPIPE);
@@ -61,7 +60,7 @@ retry_write:;
         spinlock_acquire(&pipe->lock);
 
         // check if the pipe is still valid
-        if (pipe->closed)
+        if (pipe->other_closed)
         {
             pr_dinfo2(pipe, "%pt: pipe closed", (void *) current_thread);
             signal_send_to_thread(current_thread, SIGPIPE);
@@ -79,9 +78,8 @@ retry_write:;
     return total_written;
 }
 
-static size_t pipe_io_read(io_t *io, void *buf, size_t size)
+size_t pipe_read(pipe_t *pipe, void *buf, size_t size)
 {
-    pipe_t *pipe = container_of(io, pipe_t, reader);
     if (pipe->magic != PIPE_MAGIC)
     {
         pr_warn("pipe_io_read: invalid magic");
@@ -102,7 +100,7 @@ retry_read:;
     if (size > 0)
     {
         // check if the pipe is still valid
-        if (pipe->closed && ring_buffer_pos_is_empty(&pipe->buffer_pos))
+        if (pipe->other_closed && ring_buffer_pos_is_empty(&pipe->buffer_pos))
         {
             pr_dinfo2(pipe, "%pt: pipe closed", (void *) current_thread);
             spinlock_release(&pipe->lock);
@@ -129,26 +127,8 @@ retry_read:;
     return total_read;
 }
 
-static void pipe_io_close(io_t *io)
+void pipe_close_one_end(pipe_t *pipe)
 {
-    pipe_t *pipe;
-    const char *type = io->flags & IO_READABLE ? "reader" : "writer";
-    if (io->flags & IO_READABLE)
-    {
-        // the reader is closing, so the writer should be notified
-        pipe = container_of(io, pipe_t, reader);
-    }
-    else if (io->flags & IO_WRITABLE)
-    {
-        // the writer is closing, so the reader should be notified
-        pipe = container_of(io, pipe_t, writer);
-    }
-    else
-    {
-        pr_warn("pipe_io_close: invalid flags");
-        MOS_UNREACHABLE();
-    }
-
     if (pipe->magic != PIPE_MAGIC)
     {
         pr_warn("pipe_io_close: invalid magic");
@@ -156,10 +136,9 @@ static void pipe_io_close(io_t *io)
     }
 
     spinlock_acquire(&pipe->lock);
-    if (!pipe->closed)
+    if (!pipe->other_closed)
     {
-        pr_dinfo2(pipe, "pipe %s closing", type);
-        pipe->closed = true;
+        pipe->other_closed = true;
         spinlock_release(&pipe->lock);
 
         // wake up any readers/writers that are waiting for data/space in the buffer
@@ -170,17 +149,10 @@ static void pipe_io_close(io_t *io)
         // the other end of the pipe is already closed, so we can just free the pipe
         spinlock_release(&pipe->lock);
 
-        pr_dinfo2(pipe, "pipe is already closed by the other end, '%s' closing", type);
         mm_free_pages(va_phyframe(pipe->buffers), pipe->buffer_npages);
         kfree(pipe);
     }
 }
-
-static const io_op_t pipe_io_ops = {
-    .write = pipe_io_write,
-    .read = pipe_io_read,
-    .close = pipe_io_close,
-};
 
 pipe_t *pipe_create(size_t bufsize)
 {
@@ -192,7 +164,64 @@ pipe_t *pipe_create(size_t bufsize)
     pipe->buffers = (void *) phyframe_va(mm_get_free_pages(pipe->buffer_npages));
     waitlist_init(&pipe->waitlist);
     ring_buffer_pos_init(&pipe->buffer_pos, bufsize);
-    io_init(&pipe->reader, IO_PIPE, IO_READABLE, &pipe_io_ops);
-    io_init(&pipe->writer, IO_PIPE, IO_WRITABLE, &pipe_io_ops);
     return pipe;
+}
+
+static size_t pipeio_io_read(io_t *io, void *buf, size_t size)
+{
+    pipeio_t *pipeio = container_of(io, pipeio_t, io_r);
+    return pipe_read(pipeio->pipe, buf, size);
+}
+
+static size_t pipeio_io_write(io_t *io, const void *buf, size_t size)
+{
+    pipeio_t *pipeio = container_of(io, pipeio_t, io_w);
+    return pipe_write(pipeio->pipe, buf, size);
+}
+
+static void pipeio_io_close(io_t *io)
+{
+    pipeio_t *pipeio = NULL;
+    const char *type = io->flags & IO_READABLE ? "reader" : "writer";
+    if (io->flags & IO_READABLE)
+    {
+        // the reader is closing, so the writer should be notified
+        pipeio = container_of(io, pipeio_t, io_r);
+    }
+    else if (io->flags & IO_WRITABLE)
+    {
+        // the writer is closing, so the reader should be notified
+        pipeio = container_of(io, pipeio_t, io_w);
+    }
+    else
+    {
+        pr_warn("invalid flags");
+        MOS_UNREACHABLE();
+    }
+
+    if (!pipeio->pipe->other_closed)
+    {
+        pr_dinfo2(pipe, "pipe %s closing", type);
+    }
+    else
+    {
+        pr_dinfo2(pipe, "pipe is already closed by the other end, '%s' closing", type);
+    }
+
+    pipe_close_one_end(pipeio->pipe);
+}
+
+static const io_op_t pipe_io_ops = {
+    .write = pipeio_io_write,
+    .read = pipeio_io_read,
+    .close = pipeio_io_close,
+};
+
+pipeio_t *pipeio_create(pipe_t *pipe)
+{
+    pipeio_t *pipeio = kmalloc(sizeof(pipeio_t));
+    pipeio->pipe = pipe;
+    io_init(&pipeio->io_r, IO_PIPE, IO_READABLE, &pipe_io_ops);
+    io_init(&pipeio->io_w, IO_PIPE, IO_WRITABLE, &pipe_io_ops);
+    return pipeio;
 }

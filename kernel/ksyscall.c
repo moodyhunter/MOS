@@ -269,8 +269,8 @@ DEFINE_SYSCALL(fd_t, ipc_accept)(fd_t listen_fd)
         return -1;
 
     io_t *client_io = ipc_accept(server);
-    if (client_io == NULL)
-        return -1;
+    if (IS_ERR(client_io))
+        return PTR_ERR(client_io);
 
     return process_attach_ref_fd(current_process, client_io);
 }
@@ -545,7 +545,9 @@ DEFINE_SYSCALL(long, pipe)(fd_t *reader, fd_t *writer)
     if (IS_ERR(pipe))
         return PTR_ERR(pipe);
 
-    *reader = process_attach_ref_fd(current_process, &pipe->reader);
-    *writer = process_attach_ref_fd(current_process, &pipe->writer);
+    pipeio_t *pipeio = pipeio_create(pipe); // TODO: leak
+
+    *reader = process_attach_ref_fd(current_process, &pipeio->io_r);
+    *writer = process_attach_ref_fd(current_process, &pipeio->io_w);
     return 0;
 }

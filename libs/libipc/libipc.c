@@ -89,10 +89,10 @@ bool ipc_write_as_msg(fd_t fd, const char *data, size_t size)
 
 size_t ipc_read_as_msg(fd_t fd, char *buffer, size_t buffer_size)
 {
-    size_t r = 0;
+    size_t read = 0;
     size_t data_size = 0;
-    r = syscall_io_read(fd, &data_size, sizeof(size_t));
-    if (unlikely(r != sizeof(size_t)))
+    read = syscall_io_read(fd, &data_size, sizeof(size_t));
+    if (unlikely(read != sizeof(size_t)))
     {
         mos_warn("failed to read size from ipc channel");
         return 0;
@@ -104,8 +104,8 @@ size_t ipc_read_as_msg(fd_t fd, char *buffer, size_t buffer_size)
         return 0;
     }
 
-    r = syscall_io_read(fd, buffer, buffer_size);
-    if (unlikely(r != data_size))
+    read = syscall_io_read(fd, buffer, buffer_size);
+    if (unlikely(read != data_size))
     {
         mos_warn("failed to read data from ipc channel");
         return 0;

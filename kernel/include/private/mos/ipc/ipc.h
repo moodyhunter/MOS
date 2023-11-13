@@ -2,28 +2,7 @@
 
 #pragma once
 
-#include <mos/lib/structures/ring_buffer.h>
-#include <mos/mm/ipcshm/ipcshm.h>
-#include <mos/tasks/task_types.h>
-
-typedef struct ipc_t
-{
-    // srv.w == cli.r == server_writebuf ([server] is writing, or [client] is reading)
-    // srv.r == cli.w == client_writebuf ([client] is writing, or [server] is reading)
-    struct _ipc_node
-    {
-        io_t io;
-        struct _ipc_node_buf *writebuf_obj, *readbuf_obj; // points to the write buffer for this node, see below
-        void *write_buffer, *read_buffer;
-    } server, client;
-
-    struct _ipc_node_buf
-    {
-        ring_buffer_pos_t pos;
-        spinlock_t lock;
-        bool closed; // set to true when the other node closes this buffer
-    } server_nodebuf, client_nodebuf;
-} ipc_t;
+#include "mos/platform/platform.h"
 
 void ipc_init(void);
 
