@@ -7,6 +7,7 @@
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
+#include "mos/tasks/thread.h"
 
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
@@ -18,12 +19,20 @@ SLAB_AUTOINIT("signal_pending", sigpending_slab, sigpending_t);
 
 noreturn static void signal_do_coredump(signal_t signal)
 {
-    process_handle_exit(current_process, 0, signal);
+    if (current_thread == current_process->main_thread)
+        process_handle_exit(current_process, 0, signal);
+    else
+        thread_handle_exit(current_thread);
+    MOS_UNREACHABLE();
 }
 
 noreturn static void signal_do_terminate(signal_t signal)
 {
-    process_handle_exit(current_process, 0, signal);
+    if (current_thread == current_process->main_thread)
+        process_handle_exit(current_process, 0, signal);
+    else
+        thread_handle_exit(current_thread);
+    MOS_UNREACHABLE();
 }
 
 static void signal_do_ignore(signal_t signal)
@@ -172,6 +181,7 @@ void signal_on_returned(sigreturn_data_t *data)
     if (!data->was_masked)
         current_thread->signal_info.masks[data->signal] = false;
 }
+
 bool signal_has_pending(void)
 {
     spinlock_acquire(&current_thread->signal_info.lock);
