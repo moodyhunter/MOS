@@ -286,26 +286,32 @@ void process_handle_exit(process_t *process, u8 exit_code, signal_t signal)
         spinlock_acquire(&thread->state_lock);
         if (thread->state == THREAD_STATE_DEAD)
         {
-            pr_warn("thread %pt is already dead", (void *) thread);
+            pr_dinfo2(process, "cleanup thread %pp", (void *) thread);
+            MOS_ASSERT(thread != current_thread);
+            hashmap_remove(&thread_table, thread->tid);
+            thread_destroy(thread);
         }
         else
         {
             // send termination signal to all threads, except the current one
             if (thread != current_thread)
             {
+                pr_dinfo2(process, "sending SIGKILL to thread %pp", (void *) thread);
                 signal_send_to_thread(thread, SIGKILL);
                 spinlock_release(&thread->state_lock);
                 thread_wait_for_tid(thread->tid);
                 spinlock_acquire(&thread->state_lock);
+                pr_dinfo2(process, "thread %pp terminated", (void *) thread);
                 MOS_ASSERT(thread->state == THREAD_STATE_DEAD);
-                thread_destroy(thread);
                 hashmap_remove(&thread_table, thread->tid);
+                thread_destroy(thread);
             }
             else
             {
                 thread->state = THREAD_STATE_DEAD;
                 spinlock_release(&thread->state_lock);
                 process->main_thread = thread; // make sure we properly destroy the main thread at the end
+                pr_dinfo2(process, "thread %pp is current thread, replacing main thread", (void *) thread);
             }
         }
     }
@@ -337,6 +343,7 @@ void process_handle_exit(process_t *process, u8 exit_code, signal_t signal)
     process->exited = true;
 
     // wake up parent
+    pr_dinfo2(process, "waking up parent %pp", (void *) process->parent);
     signal_send_to_process(process->parent, SIGCHLD);
     waitlist_wake(&process->parent->signal_info.sigchild_waitlist, INT_MAX);
 

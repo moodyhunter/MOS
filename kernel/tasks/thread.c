@@ -49,7 +49,7 @@ void thread_destroy(thread_t *thread)
 
     pr_dinfo2(thread, "destroying thread %pt", (void *) thread);
 
-    if (thread->name != NULL)
+    if (thread->name)
         kfree(thread->name);
 
     if (thread->mode == THREAD_MODE_USER)
@@ -138,6 +138,8 @@ void thread_handle_exit(thread_t *t)
 {
     if (!thread_is_valid(t))
         mos_panic("thread_handle_exit() called on invalid thread");
+
+    pr_dinfo(thread, "thread %pt exited", (void *) t);
 
     spinlock_acquire(&t->state_lock);
     t->state = THREAD_STATE_DEAD;
