@@ -465,6 +465,9 @@ static bool ipc_sysfs_lookup_ipc(inode_t *parent_dir, dentry_t *dentry)
         }
     }
 
+    if (ipc_server == NULL)
+        return false;
+
     if (ipc_server->sysfs_ino)
         dentry->inode = ipc_server->sysfs_ino;
     else
