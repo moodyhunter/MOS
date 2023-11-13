@@ -179,6 +179,7 @@ void platform_dump_regs(platform_regs_t *regs);
 void platform_dump_stack(platform_regs_t *regs);
 platform_regs_t *platform_thread_regs(const thread_t *thread);
 void platform_dump_current_stack();
+void platform_dump_thread_kernel_stack(const thread_t *thread);
 
 // Platform Timer/Clock APIs
 void platform_get_time(timeval_t *val);

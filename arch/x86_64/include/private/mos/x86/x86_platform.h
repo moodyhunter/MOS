@@ -33,3 +33,4 @@ extern const char __MOS_KERNEL_RW_START[], __MOS_KERNEL_RW_END[];         // Ker
 extern const char __MOS_KERNEL_END[];                                     // Kernel end
 
 extern mos_platform_info_t x86_platform;
+void x86_dump_stack_at(ptr_t this_frame, bool can_access_vmaps);

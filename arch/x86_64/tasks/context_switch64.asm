@@ -19,6 +19,7 @@ x86_context_switch_impl:
     push    r13
     push    r14
     push    r15
+    ; ! keep the above 7 pushes in sync with the ones in 'platform_dump_thread_kernel_stack'
 
     ; rdi = old_stack *
     ; rsi = kernel_stack

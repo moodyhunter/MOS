@@ -117,6 +117,25 @@ platform_regs_t *platform_thread_regs(const thread_t *thread)
     return (platform_regs_t *) (thread->k_stack.top - sizeof(platform_regs_t));
 }
 
+void platform_dump_thread_kernel_stack(const thread_t *thread)
+{
+    if (!thread)
+    {
+        pr_warn("thread is null, cannot dump its stack");
+        return;
+    }
+
+    if (thread->state != THREAD_STATE_BLOCKED)
+    {
+        pr_emph("thread %pt is not blocked, cannot dump stack", (void *) thread);
+        return;
+    }
+
+    ptr_t *rbp_ptr = (ptr_t *) thread->k_stack.head;
+    rbp_ptr += 6; // 6 registers pushed by x86_context_switch_impl
+    x86_dump_stack_at(*rbp_ptr, false);
+}
+
 noreturn void platform_return_to_userspace(platform_regs_t *regs)
 {
     x86_interrupt_return_impl(regs);

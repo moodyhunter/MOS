@@ -126,13 +126,15 @@ static void x86_cpu_enable_avx(void)
                      : "rax", "rcx", "rdx");
 }
 
-static void x86_dump_stack_at(ptr_t this_frame)
+typedef struct _frame
 {
-    struct frame_t
-    {
-        struct frame_t *bp;
-        ptr_t ip;
-    } *frame = (struct frame_t *) this_frame;
+    struct _frame *bp;
+    ptr_t ip;
+} frame_t;
+
+void x86_dump_stack_at(ptr_t this_frame, bool can_access_vmaps)
+{
+    frame_t *frame = (frame_t *) this_frame;
 
     const bool do_mapped_check = current_cpu->mm_context;
 
@@ -175,7 +177,7 @@ static void x86_dump_stack_at(ptr_t this_frame)
         {
             pr_emerg(TRACE_FMT "<corrupted?>", i, frame->ip);
         }
-        else
+        else if (can_access_vmaps)
         {
             if (!no_relock)
                 spinlock_acquire(&current_cpu->mm_context->mm_lock);
@@ -189,13 +191,18 @@ static void x86_dump_stack_at(ptr_t this_frame)
             }
             else
             {
-                pr_warn(TRACE_FMT "<userspace, unknown>", i, frame->ip);
+                pr_warn(TRACE_FMT "<userspace?, unknown>", i, frame->ip);
             }
 
-            spinlock_release(&vmap->lock);
+            if (vmap)
+                spinlock_release(&vmap->lock);
 
             if (!no_relock)
                 spinlock_release(&current_cpu->mm_context->mm_lock);
+        }
+        else
+        {
+            pr_warn(TRACE_FMT "<unknown>", i, frame->ip);
         }
         frame = frame->bp;
     }
@@ -207,12 +214,12 @@ void platform_dump_current_stack(void)
 {
     ptr_t frame;
     __asm__("mov %%rbp, %0" : "=r"(frame));
-    x86_dump_stack_at(frame);
+    x86_dump_stack_at(frame, true);
 }
 
 void platform_dump_stack(platform_regs_t *regs)
 {
-    x86_dump_stack_at(regs->bp);
+    x86_dump_stack_at(regs->bp, true);
 }
 
 void platform_startup_early()
