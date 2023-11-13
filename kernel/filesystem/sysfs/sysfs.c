@@ -286,7 +286,12 @@ static bool sysfs_iops_lookup(inode_t *dir, dentry_t *dentry)
     // that means either it's a dynamic item, or the user is trying to access a file that doesn't exist
 
     sysfs_dir_t *sysfs_dir = dir->private;
-    MOS_ASSERT_X(sysfs_dir, "invalid sysfs entry, possibly a VFS bug");
+
+    // if it's NULL, it implies that the dir must be the root directory /sys
+    MOS_ASSERT_X(!sysfs_dir || dir == sysfs_sb->root->inode, "invalid sysfs entry, possibly a VFS bug");
+
+    if (!sysfs_dir)
+        return false; // sysfs root dir doesn't have any dynamic items
 
     if (list_is_empty(&sysfs_dir->_dynamic_items))
         return false;
