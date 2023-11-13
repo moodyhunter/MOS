@@ -36,7 +36,7 @@
                 "mos_kernel_debug",
                 "-d",
                 "qemu-system-x86_64",
-                "-m", "60G",
+                "-m", "8G",
                 "-machine", "q35",
                 "-display", "gtk,show-tabs=on",
                 "-d", "cpu_reset,guest_errors",
