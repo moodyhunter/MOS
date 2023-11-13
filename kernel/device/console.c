@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/tasks/signal.h"
+
 #include <mos/device/console.h>
 #include <mos/io/io.h>
 #include <mos/lib/structures/list.h>
@@ -26,6 +28,12 @@ static size_t console_io_read(io_t *io, void *data, size_t size)
             return 0;
         }
         spinlock_acquire(&con->read.lock);
+
+        if (signal_has_pending())
+        {
+            spinlock_release(&con->read.lock);
+            return 0;
+        }
     }
 
     const size_t rd = ring_buffer_pos_pop_front(con->read.buf, &con->read.pos, data, size);
