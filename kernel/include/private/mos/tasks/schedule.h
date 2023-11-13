@@ -11,4 +11,14 @@ noreturn void scheduler(void);
 void reschedule_for_wait_condition(wait_condition_t *wait_condition);
 __nodiscard bool reschedule_for_waitlist(waitlist_t *waitlist);
 
+/**
+ * @brief reschedule.
+ *
+ */
 void reschedule(void);
+
+/**
+ * @brief Mark the current task as blocked and reschedule.
+ *
+ */
+void blocked_reschedule(void);

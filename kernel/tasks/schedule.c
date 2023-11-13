@@ -160,17 +160,29 @@ void reschedule(void)
     cpu_t *cpu = current_cpu;
 
     spinlock_acquire(&cpu->thread->state_lock);
-    MOS_ASSERT_X(cpu->thread->state != THREAD_STATE_READY, "thread %d must not be ready", cpu->thread->tid);
+    MOS_ASSERT_X(cpu->thread->state != THREAD_STATE_READY, "thread %pt must not be ready", (void *) cpu->thread);
 
     if (cpu->thread->state == THREAD_STATE_RUNNING)
     {
         cpu->thread->state = THREAD_STATE_READY;
-        pr_dinfo2(scheduler, "cpu %d: rescheduling thread %d, making it ready", cpu->id, cpu->thread->tid);
+        pr_dinfo2(scheduler, "cpu %d: rescheduling thread %pt, making it ready", cpu->id, (void *) cpu->thread);
     }
     else
     {
-        pr_dinfo2(scheduler, "cpu %d: rescheduling thread %d, state: '%c'", cpu->id, cpu->thread->tid, thread_state_str[cpu->thread->state]);
+        pr_dinfo2(scheduler, "cpu %d: rescheduling thread %pt, state: '%c'", cpu->id, (void *) cpu->thread, thread_state_str[cpu->thread->state]);
     }
+    spinlock_release(&cpu->thread->state_lock);
+
+    // update k_stack because we are now running on the kernel stack
+    platform_switch_to_scheduler(&cpu->thread->k_stack.head, cpu->scheduler_stack);
+}
+
+void blocked_reschedule(void)
+{
+    cpu_t *cpu = current_cpu;
+    spinlock_acquire(&cpu->thread->state_lock);
+    current_thread->state = THREAD_STATE_BLOCKED;
+    pr_dinfo2(scheduler, "cpu %d: block-rescheduling thread %pt", cpu->id, (void *) cpu->thread);
     spinlock_release(&cpu->thread->state_lock);
 
     // update k_stack because we are now running on the kernel stack
