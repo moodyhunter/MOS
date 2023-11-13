@@ -92,6 +92,15 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
     const bool filled = elf_fill_process(proc, f, path_copy, argv_copy, envp_copy);
     io_unref(&f->io);
 
+    // free old argv and envp
+    for (int i = 0; i < argc; i++)
+        kfree(argv_copy[i]);
+    kfree(argv_copy);
+    for (int i = 0; i < envc; i++)
+        kfree(envp_copy[i]);
+    kfree(envp_copy);
+    kfree(path_copy);
+
     if (!filled)
     {
         pr_emerg("failed to fill process, execve failed");
