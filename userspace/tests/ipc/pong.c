@@ -5,6 +5,11 @@
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
+#define IPC_METHOD_SYSCALL 0
+#define IPC_METHOD_SYSFS   1
+
+#define IPC_METHOD IPC_METHOD_SYSFS
+
 int main(int argc, char **argv)
 {
     if (argc != 2)
@@ -17,7 +22,20 @@ int main(int argc, char **argv)
     const char *ipc_name = argv[1];
     printf("client: connecting to ipc name '%s'\n", ipc_name);
 
+#if IPC_METHOD == IPC_METHOD_SYSCALL
     const fd_t client = syscall_ipc_connect(ipc_name, MOS_PAGE_SIZE);
+#elif IPC_METHOD == IPC_METHOD_SYSFS
+    const char *basepath = "/sys/ipc/";
+    const size_t path_len = strlen(basepath) + strlen(ipc_name) + 1;
+    char pathbuf[path_len];
+    strcpy(pathbuf, basepath);
+    strcat(pathbuf, ipc_name);
+    pathbuf[path_len - 1] = '\0';
+    const fd_t client = syscall_vfs_openat(FD_CWD, pathbuf, OPEN_READ | OPEN_WRITE);
+#else
+#error "unknown IPC_METHOD"
+#endif
+
     if (client < 0)
     {
         printf("client: failed to open ipc channel '%s'\n", ipc_name);
