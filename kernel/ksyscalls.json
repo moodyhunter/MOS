@@ -241,7 +241,7 @@
             "number": 33,
             "name": "wait_for_process",
             "return": "pid_t",
-            "arguments": [ { "type": "pid_t", "arg": "pid" }, { "type": "u32 *", "arg": "exit_code" } ]
+            "arguments": [ { "type": "pid_t", "arg": "pid" }, { "type": "u32 *", "arg": "exit_code" }, { "type": "u32", "arg": "flags" } ]
         },
         {
             "number": 34,
