@@ -68,6 +68,11 @@ config PRINTK_WITH_FILENAME
     default n
     select PRINTK_HAS_SOME_PREFIX
 
+config PRINTK_WITH_THREAD_ID
+    bool "thread ID in debug messages"
+    default n
+    select PRINTK_HAS_SOME_PREFIX
+
 config SMP
     bool "SMP support"
     default n

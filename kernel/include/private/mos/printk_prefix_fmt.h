@@ -36,10 +36,31 @@
 #define _lprintk_filename_arg
 #endif
 
+#if MOS_CONFIG(MOS_PRINTK_WITH_THREAD_ID)
+#define _lprintk_threadid_fmt "tid: %pt\t| "
+#define _lprintk_threadid_arg ((void *) current_thread)
+#else
+#define _lprintk_threadid_fmt ""
+#define _lprintk_threadid_arg
+#endif
+
 #if MOS_PRINTK_HAS_SOME_PREFIX
-#define __add_comma(...)    __VA_OPT__(, (__VA_ARGS__))
-#define _lprintk_prefix_fmt _lprintk_timestamp_fmt _lprintk_datetime_fmt _lprintk_cpuid_fmt _lprintk_filename_fmt
-#define _lprintk_prefix_arg __add_comma(_lprintk_timestamp_arg) __add_comma(_lprintk_datetime_arg) __add_comma(_lprintk_cpuid_arg) __add_comma(_lprintk_filename_arg)
+#define __add_comma(...) __VA_OPT__(, (__VA_ARGS__))
+// clang-format off
+#define _lprintk_prefix_fmt             \
+    _lprintk_timestamp_fmt              \
+    _lprintk_datetime_fmt               \
+    _lprintk_cpuid_fmt                  \
+    _lprintk_filename_fmt               \
+    _lprintk_threadid_fmt
+
+#define _lprintk_prefix_arg                                                                                                                                              \
+    __add_comma(_lprintk_timestamp_arg) \
+    __add_comma(_lprintk_datetime_arg)  \
+    __add_comma(_lprintk_cpuid_arg)     \
+    __add_comma(_lprintk_filename_arg)  \
+    __add_comma(_lprintk_threadid_arg)
+// clang-format on
 #else
 #define _lprintk_prefix_fmt ""
 #define _lprintk_prefix_arg // empty so that the comma after fmt is not included
