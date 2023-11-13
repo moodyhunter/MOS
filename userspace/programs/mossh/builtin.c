@@ -201,7 +201,7 @@ void do_repeat(int argc, const char *argv[])
                 if (do_builtin(program, new_argc, new_argv))
                     continue;
 
-                if (!do_program(program, new_argc, new_argv))
+                if (!do_program(program, new_argc, new_argv, true))
                     printf("repeat: %s: command not found\n", program);
             }
             break;

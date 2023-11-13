@@ -30,5 +30,5 @@ extern const char *PATH[];
 const char *locate_program(const char *prog);
 
 bool do_builtin(const char *command, int argc, const char **argv);
-bool do_program(const char *command, int argc, const char **argv);
+bool do_program(const char *command, int argc, const char **argv, bool should_wait);
 int do_interpret_script(const char *path);

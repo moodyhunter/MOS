@@ -224,6 +224,7 @@ int main(int argc, const char *argv[])
             return DYN_ERROR_CODE;
     }
 
-    waitpid(-1, NULL, 0);
+    while (true)
+        waitpid(-1, NULL, 0);
     return 0;
 }

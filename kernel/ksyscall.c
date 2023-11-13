@@ -73,12 +73,15 @@ DEFINE_SYSCALL(long, vfs_fstatat)(fd_t fd, const char *path, file_stat_t *stat_b
 
 DEFINE_SYSCALL(size_t, io_read)(fd_t fd, void *buf, size_t count)
 {
-    if (fd < 0 || buf == NULL)
-        return -1;
+    if (fd < 0)
+        return -EBADF;
+
+    if (buf == NULL)
+        return -EFAULT;
 
     io_t *io = process_get_fd(current_process, fd);
     if (!io)
-        return -1;
+        return -EBADF;
 
     return io_read(io, buf, count);
 }
@@ -343,9 +346,9 @@ DEFINE_SYSCALL(void *, mmap_file)(ptr_t hint_addr, size_t size, mem_perm_t perm,
     return (void *) result;
 }
 
-DEFINE_SYSCALL(pid_t, wait_for_process)(pid_t pid, u32 *exit_code)
+DEFINE_SYSCALL(pid_t, wait_for_process)(pid_t pid, u32 *exit_code, u32 flags)
 {
-    return process_wait_for_pid(pid, exit_code);
+    return process_wait_for_pid(pid, exit_code, flags);
 }
 
 DEFINE_SYSCALL(bool, munmap)(void *addr, size_t size)

@@ -215,7 +215,7 @@ bool process_detach_fd(process_t *process, fd_t fd)
     return true;
 }
 
-pid_t process_wait_for_pid(pid_t pid, u32 *exit_code)
+pid_t process_wait_for_pid(pid_t pid, u32 *exit_code, u32 flags)
 {
     if (pid == -1)
     {
@@ -232,6 +232,9 @@ pid_t process_wait_for_pid(pid_t pid, u32 *exit_code)
                 goto child_dead;
             }
         }
+
+        if (flags & WNOHANG)
+            return 0; // no dead children, and we don't want to wait
 
         // we have to wait for a child to die
         MOS_ASSERT_X(!current_process->signal_info.sigchild_waitlist.closed, "waitlist is in use");

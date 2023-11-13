@@ -42,6 +42,11 @@ static void sigchld_handler(int signal)
         puts(" done.");
 }
 
+static void sigint_handler(int signal)
+{
+    MOS_UNUSED(signal);
+}
+
 static char *string_trim(char *in)
 {
     if (in == NULL)
@@ -82,7 +87,7 @@ static pid_t spawn(const char *path, const char *const argv[])
     return pid;
 }
 
-bool do_program(const char *prog, int argc, const char **argv)
+bool do_program(const char *prog, int argc, const char **argv, bool should_wait)
 {
     prog = locate_program(prog);
     if (!prog)
@@ -96,23 +101,28 @@ bool do_program(const char *prog, int argc, const char **argv)
         return true;
     }
 
-    int status = 0;
-    waitpid(pid, &status, 0);
-
-    if (WIFEXITED(status))
+    if (should_wait)
     {
-        u32 exit_code = WEXITSTATUS(status);
-        if (exit_code != 0)
-            printf("command '%s' exited with code %d\n", prog, exit_code);
-    }
-    else if (WIFSIGNALED(status))
-    {
-        int sig = WTERMSIG(status);
-        printf("command '%s' was terminated by signal %d (%s)\n", prog, sig, strsignal(sig));
+        waitpid(pid, NULL, 0);
+        int status = 0;
+        if (WIFEXITED(status))
+        {
+            u32 exit_code = WEXITSTATUS(status);
+            if (exit_code != 0)
+                printf("command '%s' exited with code %d\n", prog, exit_code);
+        }
+        else if (WIFSIGNALED(status))
+        {
+            int sig = WTERMSIG(status);
+            printf("command '%s' was terminated by signal %d (%s)\n", prog, sig, strsignal(sig));
+        }
+        else
+            printf("command '%s' exited with unknown status %d\n", prog, status);
     }
     else
-        printf("command '%s' exited with unknown status %d\n", prog, status);
-
+    {
+        printf("Started '%s' with pid %d\n", prog, pid);
+    }
     free((void *) prog);
     return true;
 }
@@ -152,7 +162,7 @@ bool do_builtin(const char *command, int argc, const char **argv)
     return false;
 }
 
-void do_execute(const char *prog, char *rest)
+void do_execute(const char *prog, char *rest, bool should_wait)
 {
     size_t argc = 1;
     const char **argv = malloc(sizeof(char *));
@@ -166,7 +176,7 @@ void do_execute(const char *prog, char *rest)
     argv[argc] = NULL;
 
     if (!do_builtin(prog, argc - 1, argv + 1))
-        if (!do_program(prog, argc, argv))
+        if (!do_program(prog, argc, argv, should_wait))
             fprintf(stderr, "'%s' is not recognized as an internal, operable program or batch file.\n", prog);
 
     if (argc)
@@ -180,6 +190,14 @@ void do_execute(const char *prog, char *rest)
 void do_execute_line(char *line)
 {
     line = string_trim(line);
+
+    // check if the line ends with an '&' and if so, run it in the background
+    bool background = false;
+    if (line[strlen(line) - 1] == '&')
+    {
+        background = true;
+        line[strlen(line) - 1] = '\0';
+    }
 
     // filter comments
     char *comment = strchr(line, '#');
@@ -206,13 +224,13 @@ void do_execute_line(char *line)
             prog = strtok(rest, " ");
             rest += strlen(prog) + 1; // skip the program name
 
-            do_execute(prog, rest);
+            do_execute(prog, rest, !background);
             free(line_dup);
             return;
         }
     }
 
-    do_execute(prog, rest);
+    do_execute(prog, rest, !background);
 }
 
 int do_interpret_script(const char *path)
@@ -255,6 +273,7 @@ int main(int argc, const char **argv)
 {
     MOS_UNUSED(argc);
     signal(SIGCHLD, sigchld_handler);
+    signal(SIGINT, sigint_handler);
 
     argparse_state_t state;
     argparse_init(&state, argv);
