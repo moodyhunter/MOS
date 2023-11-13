@@ -27,8 +27,9 @@ size_t pipe_write(pipe_t *pipe, const void *buf, size_t size);
  * @note The other end should also call this function to get the pipe correctly freed.
  *
  * @param pipe The pipe to close one end of.
+ * @return true if the pipe was fully closed, false if the other end is still open.
  */
-void pipe_close_one_end(pipe_t *pipe);
+__nodiscard bool pipe_close_one_end(pipe_t *pipe);
 
 typedef struct
 {

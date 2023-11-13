@@ -1,19 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/tasks/signal.h"
 #define pr_fmt(fmt) "ipc: " fmt
+
+#include "mos/ipc/ipc.h"
 
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
-#include "mos/ipc/ipc.h"
+#include "mos/filesystem/vfs_types.h"
 #include "mos/ipc/pipe.h"
 #include "mos/mm/slab.h"
 #include "mos/mm/slab_autoinit.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/schedule.h"
+#include "mos/tasks/signal.h"
 #include "mos/tasks/wait.h"
 
+#include <mos/filesystem/fs_types.h>
 #include <mos/lib/structures/hashmap_common.h>
 #include <mos/lib/structures/list.h>
 #include <mos/mos_global.h>
@@ -41,16 +44,12 @@ typedef struct _ipc
         pipe_t *server_write_pipe;
         pipe_t *client_read_pipe;
     };
-
-    io_t client_io; ///< client's io, connected to server_read_pipe and server_write_pipe
-    io_t server_io; ///< server's io, connected to client_read_pipe and client_write_pipe
 } ipc_t;
 
 typedef struct _ipc_server
 {
     as_linked_list;
     const char *name;
-    io_t control_io; ///< only used to close the server
     spinlock_t lock;
     inode_t *sysfs_ino; ///< inode for sysfs
     size_t pending_max, pending_n;
@@ -71,14 +70,8 @@ static list_head ipc_servers = LIST_HEAD_INIT(ipc_servers);
 static hashmap_t name_waitlist;             // waitlist for an IPC server, key = name, value = waitlist_t *
 static spinlock_t ipc_lock = SPINLOCK_INIT; ///< protects ipc_servers and name_waitlist
 
-static void ipc_control_io_close(io_t *io)
+void ipc_server_close(ipc_server_t *server)
 {
-    if (io->type != IO_IPC)
-        mos_panic("ipc_control_io_close: io->type != IO_IPC"); // handle error cases in io_close
-
-    // we only deannounce the server, we don't free it
-    ipc_server_t *server = container_of(io, ipc_server_t, control_io);
-
     spinlock_acquire(&ipc_lock);
     spinlock_acquire(&server->lock);
     // remove the server from the list
@@ -124,31 +117,33 @@ static void ipc_control_io_close(io_t *io)
     }
 }
 
-static const io_op_t ipc_control_io_op = {
-    .close = ipc_control_io_close,
-};
-
-static size_t ipc_client_io_write(io_t *io, const void *buf, size_t size)
+size_t ipc_client_read(ipc_t *ipc, void *buf, size_t size)
 {
-    ipc_t *ipc = container_of(io, ipc_t, client_io);
-    return pipe_write(ipc->client_write_pipe, buf, size);
-}
-
-static size_t ipc_client_io_read(io_t *io, void *buf, size_t size)
-{
-    ipc_t *ipc = container_of(io, ipc_t, client_io);
     return pipe_read(ipc->client_read_pipe, buf, size);
 }
 
-static void ipc_client_io_close(io_t *io)
+size_t ipc_client_write(ipc_t *ipc, const void *buf, size_t size)
 {
-    ipc_t *ipc = container_of(io, ipc_t, client_io);
-    bool server_closed = ipc->server_io.closed;
+    return pipe_write(ipc->client_write_pipe, buf, size);
+}
 
-    pipe_close_one_end(ipc->client_read_pipe);
-    pipe_close_one_end(ipc->client_write_pipe);
+size_t ipc_server_read(ipc_t *ipc, void *buf, size_t size)
+{
+    return pipe_read(ipc->server_read_pipe, buf, size);
+}
 
-    if (server_closed)
+size_t ipc_server_write(ipc_t *ipc, const void *buf, size_t size)
+{
+    return pipe_write(ipc->server_write_pipe, buf, size);
+}
+
+void ipc_client_close_channel(ipc_t *ipc)
+{
+    bool r_fullyclosed = pipe_close_one_end(ipc->client_read_pipe);
+    bool w_fullyclosed = pipe_close_one_end(ipc->client_write_pipe);
+    MOS_ASSERT(r_fullyclosed == w_fullyclosed); // both ends should have the same return value
+
+    if (r_fullyclosed || w_fullyclosed)
     {
         // now we can free the ipc
         kfree(ipc->server_name);
@@ -157,53 +152,27 @@ static void ipc_client_io_close(io_t *io)
     }
 }
 
-static const io_op_t ipc_client_io_op = {
-    .read = ipc_client_io_read,
-    .write = ipc_client_io_write,
-    .close = ipc_client_io_close,
-};
-
-static size_t ipc_server_io_write(io_t *io, const void *buf, size_t size)
+void ipc_server_close_channel(ipc_t *ipc)
 {
-    ipc_t *ipc = container_of(io, ipc_t, server_io);
-    return pipe_write(ipc->server_write_pipe, buf, size);
-}
+    bool r_fullyclosed = pipe_close_one_end(ipc->server_read_pipe);
+    bool w_fullyclosed = pipe_close_one_end(ipc->server_write_pipe);
+    MOS_ASSERT(r_fullyclosed == w_fullyclosed); // both ends should have the same return value
 
-static size_t ipc_server_io_read(io_t *io, void *buf, size_t size)
-{
-    ipc_t *ipc = container_of(io, ipc_t, server_io);
-    return pipe_read(ipc->server_read_pipe, buf, size);
-}
-
-static void ipc_server_io_close(io_t *io)
-{
-    ipc_t *ipc = container_of(io, ipc_t, server_io);
-    bool client_closed = ipc->client_io.closed;
-
-    pipe_close_one_end(ipc->server_read_pipe);
-    pipe_close_one_end(ipc->server_write_pipe);
-
-    if (client_closed)
+    if (r_fullyclosed || w_fullyclosed)
     {
-        // the client has closed, we can free the ipc
+        // now we can free the ipc
         kfree(ipc->server_name);
         kfree(ipc);
         return;
     }
 }
 
-static const io_op_t ipc_server_io_op = {
-    .read = ipc_server_io_read,
-    .write = ipc_server_io_write,
-    .close = ipc_server_io_close,
-};
-
 void ipc_init(void)
 {
     hashmap_init(&name_waitlist, 128, hashmap_hash_string, hashmap_compare_string);
 }
 
-io_t *ipc_create(const char *name, size_t max_pending)
+ipc_server_t *ipc_server_create(const char *name, size_t max_pending)
 {
     pr_dinfo(ipc, "creating ipc server '%s' with max_pending=%zu", name, max_pending);
     spinlock_acquire(&ipc_lock);
@@ -225,7 +194,6 @@ io_t *ipc_create(const char *name, size_t max_pending)
     waitlist_init(&server->server_waitlist);
     server->name = strdup(name);
     server->pending_max = max_pending;
-    io_init(&server->control_io, IO_IPC, IO_NONE, &ipc_control_io_op);
 
     // now announce the server
     list_node_append(&ipc_servers, list_node(server));
@@ -244,15 +212,11 @@ io_t *ipc_create(const char *name, size_t max_pending)
     }
     spinlock_release(&ipc_lock);
 
-    return &server->control_io;
+    return server;
 }
 
-io_t *ipc_accept(io_t *server)
+ipc_t *ipc_server_accept(ipc_server_t *ipc_server)
 {
-    if (server->type != IO_IPC)
-        return ERR_PTR(-EBADF); // not an ipc server
-
-    ipc_server_t *ipc_server = container_of(server, ipc_server_t, control_io);
     pr_dinfo(ipc, "accepting connection on ipc server '%s'...", ipc_server->name);
 
 retry_accept:
@@ -293,16 +257,13 @@ retry_accept:
     ipc->server_read_pipe = pipe_create(ipc->buffer_size_npages);
     ipc->server_write_pipe = pipe_create(ipc->buffer_size_npages);
 
-    io_init(&ipc->client_io, IO_IPC, IO_READABLE | IO_WRITABLE, &ipc_client_io_op);
-    io_init(&ipc->server_io, IO_IPC, IO_READABLE | IO_WRITABLE, &ipc_server_io_op);
-
     // wake up the client
     waitlist_wake_all(&ipc->client_waitlist);
 
-    return &ipc->server_io;
+    return ipc;
 }
 
-io_t *ipc_connect(const char *name, size_t buffer_size)
+ipc_t *ipc_connect_to_server(const char *name, size_t buffer_size)
 {
     if (buffer_size == 0)
         return ERR_PTR(-EINVAL); // buffer size must be > 0
@@ -396,8 +357,48 @@ check_server:
     // now we have a connection, both the read and write pipes are ready, the io object is also ready
     // we just need to return the io object
     pr_dinfo2(ipc, "ipc server '%s' has accepted the connection", ipc_server->name);
-    return &ipc->client_io;
+    return ipc;
 }
+
+// ! /sys/ipc/<server_name> operations to connect to an IPC server
+
+static bool vfs_open_ipc(inode_t *ino, file_t *file)
+{
+    MOS_UNUSED(ino);
+    ipc_t *ipc = ipc_connect_to_server(file->dentry->name, MOS_PAGE_SIZE);
+    if (IS_ERR(ipc))
+        return false;
+
+    file->private_data = ipc;
+    return true;
+}
+
+static ssize_t vfs_ipc_file_read(const file_t *file, void *buf, size_t size, off_t offset)
+{
+    MOS_UNUSED(offset);
+    ipc_t *ipc = file->private_data;
+    return ipc_client_read(ipc, buf, size);
+}
+
+static ssize_t vfs_ipc_file_write(const file_t *file, const void *buf, size_t size, off_t offset)
+{
+    MOS_UNUSED(offset);
+    ipc_t *ipc = file->private_data;
+    return ipc_client_write(ipc, buf, size);
+}
+
+static void vfs_ipc_file_release(file_t *file)
+{
+    ipc_t *ipc = file->private_data;
+    ipc_client_close_channel(ipc);
+}
+
+static const file_ops_t ipc_sysfs_file_ops = {
+    .open = vfs_open_ipc,
+    .read = vfs_ipc_file_read,
+    .write = vfs_ipc_file_write,
+    .release = vfs_ipc_file_release,
+};
 
 // ! sysfs support
 
@@ -414,8 +415,9 @@ static bool ipc_sysfs_servers(sysfs_file_t *f)
 
 static inode_t *ipc_sysfs_create_ino(ipc_server_t *ipc_server)
 {
-    ipc_server->sysfs_ino = sysfs_create_inode(FILE_TYPE_DIRECTORY, ipc_server);
+    ipc_server->sysfs_ino = sysfs_create_inode(FILE_TYPE_CHAR_DEVICE, ipc_server);
     ipc_server->sysfs_ino->perm = PERM_OWNER & (PERM_READ | PERM_WRITE);
+    ipc_server->sysfs_ino->file_ops = &ipc_sysfs_file_ops;
     return ipc_server->sysfs_ino;
 }
 
@@ -439,7 +441,7 @@ static size_t ipc_sysfs_list_ipcs(sysfs_item_t *item, dentry_t *d, dir_iterator_
                 MOS_UNREACHABLE();
         }
 
-        const size_t w = op(state, ipc_server->sysfs_ino->ino, ipc_server->name, strlen(ipc_server->name), FILE_TYPE_REGULAR);
+        const size_t w = op(state, ipc_server->sysfs_ino->ino, ipc_server->name, strlen(ipc_server->name), ipc_server->sysfs_ino->type);
         if (w == 0)
             break;
         written += w;

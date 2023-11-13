@@ -166,6 +166,7 @@ typedef struct _file
     dentry_t *dentry;
     spinlock_t offset_lock; // protects the offset field
     size_t offset;          // tracks the current position in the file
+    void *private_data;
 } file_t;
 
 extern slab_t *superblock_cache, *mount_cache, *file_cache;

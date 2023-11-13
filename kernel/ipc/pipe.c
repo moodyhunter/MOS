@@ -127,12 +127,12 @@ retry_read:;
     return total_read;
 }
 
-void pipe_close_one_end(pipe_t *pipe)
+bool pipe_close_one_end(pipe_t *pipe)
 {
     if (pipe->magic != PIPE_MAGIC)
     {
         pr_warn("pipe_io_close: invalid magic");
-        return;
+        return false;
     }
 
     spinlock_acquire(&pipe->lock);
@@ -143,6 +143,7 @@ void pipe_close_one_end(pipe_t *pipe)
 
         // wake up any readers/writers that are waiting for data/space in the buffer
         waitlist_wake(&pipe->waitlist, INT_MAX);
+        return false;
     }
     else
     {
@@ -151,7 +152,10 @@ void pipe_close_one_end(pipe_t *pipe)
 
         mm_free_pages(va_phyframe(pipe->buffers), pipe->buffer_npages);
         kfree(pipe);
+        return true;
     }
+
+    MOS_UNREACHABLE();
 }
 
 pipe_t *pipe_create(size_t bufsize)
@@ -208,7 +212,8 @@ static void pipeio_io_close(io_t *io)
         pr_dinfo2(pipe, "pipe is already closed by the other end, '%s' closing", type);
     }
 
-    pipe_close_one_end(pipeio->pipe);
+    bool unused = pipe_close_one_end(pipeio->pipe);
+    MOS_UNUSED(unused); // we don't care if the pipe was fully closed or not
 }
 
 static const io_op_t pipe_io_ops = {

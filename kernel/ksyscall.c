@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/device/clocksource.h"
+#include "mos/ipc/ipc_io.h"
 #include "mos/ipc/pipe.h"
 #include "mos/misc/power.h"
 #include "mos/mm/dma.h"
@@ -11,7 +12,6 @@
 #include <mos/elf/elf.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/io/io.h>
-#include <mos/ipc/ipc.h>
 #include <mos/locks/futex.h>
 #include <mos/mm/mmap.h>
 #include <mos/mm/paging/paging.h>
@@ -278,8 +278,8 @@ DEFINE_SYSCALL(fd_t, ipc_accept)(fd_t listen_fd)
 DEFINE_SYSCALL(fd_t, ipc_connect)(const char *server, size_t buffer_size)
 {
     io_t *io = ipc_connect(server, buffer_size);
-    if (io == NULL)
-        return -1;
+    if (IS_ERR(io))
+        return PTR_ERR(io);
     return process_attach_ref_fd(current_process, io);
 }
 
