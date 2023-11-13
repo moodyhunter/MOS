@@ -39,7 +39,12 @@ typedef enum
 #define pr_dwarn(feat, fmt, ...)  lprintk_debug_wrapper(feat, MOS_LOG_WARN, pr_fmt(fmt), ##__VA_ARGS__)
 #define pr_demerg(feat, fmt, ...) lprintk_debug_wrapper(feat, MOS_LOG_EMERG, pr_fmt(fmt), ##__VA_ARGS__)
 #define pr_dfatal(feat, fmt, ...) lprintk_debug_wrapper(feat, MOS_LOG_FATAL, pr_fmt(fmt), ##__VA_ARGS__)
-#define pr_dcont(feat, fmt, ...)  lprintk_debug_wrapper(feat, MOS_LOG_UNSET, "" fmt, ##__VA_ARGS__)
+#define pr_dcont(feat, fmt, ...)                                                                                                                                         \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (MOS_DEBUG_FEATURE(feat))                                                                                                                                     \
+            pr_cont(fmt, ##__VA_ARGS__);                                                                                                                                 \
+    } while (0)
 
 // print a colored message without handler, print unconditionally without a handler
 #define pr_info(fmt, ...)  lprintk_wrapper(MOS_LOG_INFO, pr_fmt(fmt), ##__VA_ARGS__)
