@@ -13,6 +13,9 @@
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
+slab_t *waitlist_slab = NULL;
+SLAB_AUTOINIT("waitlist", waitlist_slab, waitlist_t);
+
 static slab_t *waitlist_listentry_slab = NULL;
 SLAB_AUTOINIT("waitlist_entry", waitlist_listentry_slab, waitable_list_entry_t);
 

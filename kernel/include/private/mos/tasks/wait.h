@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "mos/mm/slab.h"
+
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mos_global.h>
@@ -31,6 +33,8 @@ typedef struct
     list_head list;  // list of threads waiting
 } waitlist_t;
 
+extern slab_t *waitlist_slab;
+
 typedef bool (*wait_condition_verifier_t)(wait_condition_t *condition);
 typedef void (*wait_condition_cleanup_t)(wait_condition_t *condition);
 
@@ -43,3 +47,6 @@ void waitlist_init(waitlist_t *list);
 __nodiscard bool waitlist_append(waitlist_t *list);
 size_t waitlist_wake(waitlist_t *list, size_t max_wakeups);
 void waitlist_close(waitlist_t *list);
+
+#define waitlist_wake_one(list) waitlist_wake(list, 1)
+#define waitlist_wake_all(list) waitlist_wake(list, SIZE_MAX)
