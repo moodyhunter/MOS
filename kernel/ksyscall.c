@@ -301,11 +301,6 @@ DEFINE_SYSCALL(ssize_t, vfs_readlinkat)(fd_t dirfd, const char *path, char *buf,
     return vfs_readlinkat(dirfd, path, buf, buflen);
 }
 
-DEFINE_SYSCALL(long, vfs_touch)(const char *path, file_type_t type, u32 mode)
-{
-    return vfs_touch(path, type, mode);
-}
-
 DEFINE_SYSCALL(long, vfs_symlink)(const char *target, const char *linkpath)
 {
     return vfs_symlink(target, linkpath);

@@ -190,12 +190,6 @@
             ]
         },
         {
-            "number": 26,
-            "name": "vfs_touch",
-            "return": "long",
-            "arguments": [ { "type": "const char *", "arg": "path" }, { "type": "file_type_t", "arg": "type" }, { "type": "u32", "arg": "mode" } ]
-        },
-        {
             "number": 27,
             "name": "vfs_symlink",
             "return": "long",

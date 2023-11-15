@@ -567,29 +567,6 @@ size_t vfs_readlinkat(fd_t dirfd, const char *path, char *buf, size_t size)
     return len;
 }
 
-long vfs_touch(const char *path, file_type_t type, u32 perms)
-{
-    pr_dinfo2(vfs, "vfs_touch(path='%s', type=%d, perms=%o)", path, type, perms);
-    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
-    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_ANY_EXIST | RESOLVE_EXPECT_ANY_TYPE);
-    if (IS_ERR(dentry))
-        return PTR_ERR(dentry);
-
-    dentry_t *parentdir = dentry_parent(dentry);
-
-    if (!(parentdir && parentdir->inode && parentdir->inode->ops && parentdir->inode->ops->newfile))
-    {
-        pr_dinfo2(vfs, "vfs_touch: parent directory does not support newfile() operation");
-        dentry_unref(dentry);
-        return -ENOTSUP;
-    }
-
-    const bool created = parentdir->inode->ops->newfile(parentdir->inode, dentry, type, perms);
-
-    dentry_unref(dentry);
-    return created ? 0 : -EIO;
-}
-
 long vfs_symlink(const char *path, const char *target)
 {
     pr_dinfo2(vfs, "vfs_symlink(path='%s', target='%s')", path, target);

@@ -6,7 +6,7 @@
 
 void do_touch(const char *path)
 {
-    if (syscall_vfs_touch(path, FILE_TYPE_REGULAR, 0755) != 0)
+    if (syscall_vfs_openat(FD_CWD, path, OPEN_READ | OPEN_WRITE | OPEN_CREATE) < 0)
         fprintf(stderr, "failed to touch file '%s'\n", path);
 }
 
