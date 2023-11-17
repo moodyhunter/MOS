@@ -20,7 +20,7 @@ size_t pmm_reserved_frames = 0;
 
 void pmm_init(size_t max_nframes)
 {
-    pr_info("the system has %zu frames in total", max_nframes);
+    pr_dinfo(pmm, "the system has %zu frames in total", max_nframes);
     pmm_total_frames = max_nframes;
     buddy_init(max_nframes);
 
