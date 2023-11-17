@@ -154,7 +154,7 @@ void do_msleep(int argc, const char *argv[])
         return;
     }
 
-    usleep(ms);
+    usleep(ms * 1000); // usleep takes microseconds, we take milliseconds
 }
 
 void do_pid(int argc, const char *argv[])
@@ -235,7 +235,7 @@ void do_sleep(int argc, const char *argv[])
         return;
     }
 
-    usleep(seconds * 1000);
+    usleep(seconds * 1000 * 1000); // usleep takes microseconds, we take seconds
 }
 
 void do_source(int argc, const char *argv[])

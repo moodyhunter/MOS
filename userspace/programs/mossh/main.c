@@ -19,8 +19,8 @@ extern void string_unquote(char *str);
 // We don't support environment variables yet, so we hardcode the path
 const char *PATH[] = {
     "/programs",        // (currently unused)
-    "/initrd/bin",      // programs in the initrd
     "/initrd/programs", // programs in the initrd
+    "/initrd/bin",      // programs in the initrd
     "/initrd/drivers",  // builtin drivers
     "/initrd/games",    // games in the initrd
     "/initrd/tests",    // userspace tests
