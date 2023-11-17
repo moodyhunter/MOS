@@ -334,10 +334,12 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, pagefaul
     platform_dump_regs(info->regs);
     pr_cont("\n");
 #else
-    MOS_UNUSED(faulting_vmap);
     MOS_UNUSED(fault_addr);
     MOS_UNUSED(info);
 #endif
+
+    if (faulting_vmap)
+        spinlock_release(&faulting_vmap->lock);
 
     if (current_thread)
     {
