@@ -406,6 +406,11 @@ void process_dump_mmaps(const process_t *process)
 bool process_register_signal_handler(process_t *process, signal_t sig, const sigaction_t *sigaction)
 {
     pr_dinfo2(signal, "registering signal handler for process %pp, signal %d", (void *) process, sig);
+    if (!sigaction)
+    {
+        process->signal_info.handlers[sig] = (sigaction_t){ .sa_handler = SIG_DFL };
+        return true;
+    }
     process->signal_info.handlers[sig] = *sigaction;
     return true;
 }
