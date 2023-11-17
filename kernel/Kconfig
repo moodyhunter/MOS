@@ -83,7 +83,7 @@ config INODE_CACHE_HASHMAP_SIZE
 
 config MM_DETAILED_UNHANDLED_FAULT
     bool "print detailed information for unhandled page fault"
-    default n
+    default y
 
 config ELF_INTERPRETER_BASE_OFFSET
     hex "elf interpreter base offset"
