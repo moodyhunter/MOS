@@ -14,39 +14,12 @@
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
-static struct
-{
-    slab_t *inode_cache;
-    slab_t *dentry_cache;
-} caches = { 0 };
-
-SLAB_AUTOINIT("inode", caches.inode_cache, inode_t);
-SLAB_AUTOINIT("dentry", caches.dentry_cache, dentry_t);
-
-void inode_init(inode_t *inode, superblock_t *sb, u64 ino, file_type_t type)
-{
-    inode->superblock = sb;
-    inode->ino = ino;
-    inode->type = type;
-    inode->file_ops = NULL;
-    inode->nlinks = 1;
-    inode->perm = 0;
-    inode->private = NULL;
-
-    hashmap_init(&inode->cache.pages, MOS_INODE_CACHE_HASHMAP_SIZE, hashmap_identity_hash, hashmap_simple_key_compare);
-    inode->cache.owner = inode;
-}
-
-inode_t *inode_create(superblock_t *sb, u64 ino, file_type_t type)
-{
-    inode_t *inode = kmalloc(caches.inode_cache);
-    inode_init(inode, sb, ino, type);
-    return inode;
-}
+slab_t *dentry_cache;
+SLAB_AUTOINIT("dentry", dentry_cache, dentry_t);
 
 dentry_t *dentry_create(superblock_t *sb, dentry_t *parent, const char *name)
 {
-    dentry_t *dentry = kmalloc(caches.dentry_cache);
+    dentry_t *dentry = kmalloc(dentry_cache);
     dentry->superblock = sb;
     tree_node_init(tree_node(dentry));
 

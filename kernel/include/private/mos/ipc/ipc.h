@@ -11,6 +11,8 @@ void ipc_init(void);
 
 ipc_server_t *ipc_server_create(const char *name, size_t max_pending_connections);
 
+ipc_server_t *ipc_get_server(const char *name);
+
 ipc_t *ipc_server_accept(ipc_server_t *server);
 
 void ipc_server_close(ipc_server_t *server);

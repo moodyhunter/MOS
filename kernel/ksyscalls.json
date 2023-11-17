@@ -427,6 +427,12 @@
             "name": "io_readv",
             "return": "ssize_t",
             "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "const struct iovec *", "arg": "iov" }, { "type": "int", "arg": "iov_count" } ]
+        },
+        {
+            "number": 57,
+            "name": "vfs_unmount",
+            "return": "long",
+            "arguments": [ { "type": "const char *", "arg": "mount_point" } ]
         }
     ]
 }

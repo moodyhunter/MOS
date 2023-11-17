@@ -118,7 +118,6 @@ void mos_start_kernel(void)
 
     // register builtin filesystems
     startup_invoke_autoinit(INIT_TARGET_PRE_VFS);
-    vfs_init();
     startup_invoke_autoinit(INIT_TARGET_VFS);
     startup_invoke_autoinit(INIT_TARGET_SYSFS);
 

@@ -112,9 +112,10 @@ void *sysfs_file_get_data(sysfs_file_t *file)
     return file->data;
 }
 
-static bool sysfs_fops_open(inode_t *i, file_t *file)
+static bool sysfs_fops_open(inode_t *i, file_t *file, bool create)
 {
     pr_dinfo2(sysfs, "opening %s in %s", file->dentry->name, dentry_parent(file->dentry)->name);
+    MOS_UNUSED(create);
     sysfs_file_t *f = i->private;
     f->buf_page = NULL;
     f->buf_npages = 0;
@@ -306,9 +307,31 @@ static bool sysfs_iops_lookup(inode_t *dir, dentry_t *dentry)
     return false;
 }
 
+static bool sysfs_iops_create(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm)
+{
+    sysfs_dir_t *sysfs_dir = dir->private;
+    MOS_ASSERT_X(sysfs_dir || dir == sysfs_sb->root->inode, "invalid sysfs entry, possibly a VFS bug");
+
+    if (!sysfs_dir)
+        return false; // sysfs root dir doesn't have any dynamic items
+
+    if (list_is_empty(&sysfs_dir->_dynamic_items))
+        return false;
+
+    list_node_foreach(item_node, &sysfs_dir->_dynamic_items)
+    {
+        sysfs_item_t *const dynitem = container_of(item_node, sysfs_item_t, dyn.list_node);
+        if (dynitem->dyn.create(dir, dentry, type, perm))
+            return true;
+    }
+
+    return false;
+}
+
 static const inode_ops_t sysfs_dir_i_ops = {
     .iterate_dir = sysfs_iops_iterate_dir,
     .lookup = sysfs_iops_lookup,
+    .newfile = sysfs_iops_create,
 };
 
 static dentry_t *sysfs_fsop_mount(filesystem_t *fs, const char *dev, const char *options)

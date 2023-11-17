@@ -122,13 +122,6 @@ typedef struct
 
 typedef struct
 {
-    ptr_t vaddr; // virtual addresses
-    size_t npages;
-    vm_flags flags; // the expected flags for the region
-} vmblock_t;
-
-typedef struct
-{
     u8 second;
     u8 minute;
     u8 hour;
@@ -143,7 +136,6 @@ typedef struct
     u32 boot_cpu_id;
     PER_CPU_DECLARE(cpu_t, cpu);
 
-    vmblock_t k_code, k_rwdata, k_rodata;
     pfn_t k_basepfn;
     ptr_t k_basevaddr; // virtual address of the kernel base (i.e. the start of the kernel image)
 

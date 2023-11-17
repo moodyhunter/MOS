@@ -39,6 +39,7 @@ typedef struct _sysfs_item
             as_linked_list;
             size_t (*iterate)(struct _sysfs_item *item, dentry_t *dentry, dir_iterator_state_t *iterator_state, dentry_iterator_op op);
             bool (*lookup)(inode_t *parent_dir, dentry_t *dentry);
+            bool (*create)(inode_t *parent_dir, dentry_t *dentry, file_type_t type, file_perm_t perm);
         } dyn;
     };
 } sysfs_item_t;
@@ -49,6 +50,7 @@ typedef struct _sysfs_item
 #define SYSFS_WO_ITEM(_name, _store_fn) { .name = _name, .type = SYSFS_WO, .store = _store_fn }
 #define SYSFS_MEM_ITEM(_name, _mmap_fn, _munmap_fn) { .name = _name, .type = SYSFS_MEM, .mem.mmap = _mmap_fn, .mem.munmap = _munmap_fn }
 #define SYSFS_DYN_ITEMS(_name, _iterate_fn, _lookup_fn) { .type = SYSFS_DYN, .dyn.iterate = _iterate_fn, .dyn.lookup = _lookup_fn }
+#define SYSFS_DYN_DIR(_name, _iterate_fn, _lookup_fn, _create_fn) { .type = SYSFS_DYN, .dyn.iterate = _iterate_fn, .dyn.lookup = _lookup_fn, .dyn.create = _create_fn }
 // clang-format on
 
 #define SYSFS_ITEM_RO_STRING(name, value)                                                                                                                                \

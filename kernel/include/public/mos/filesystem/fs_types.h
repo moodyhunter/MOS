@@ -10,8 +10,6 @@
 #define PATH_DELIM_STR "/"
 #define FD_CWD         (MOS_PROCESS_MAX_OPEN_FILES + 100)
 
-#define DIR_ITERATOR_NTH_START 2 // 0 and 1 are '.' and '..'
-
 typedef enum
 {
     FILE_TYPE_REGULAR,

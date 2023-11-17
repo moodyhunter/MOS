@@ -64,7 +64,7 @@ typedef struct
 
 typedef struct
 {
-    bool (*open)(inode_t *inode, file_t *file);
+    bool (*open)(inode_t *inode, file_t *file, bool create);
     ssize_t (*read)(const file_t *file, void *buf, size_t size, off_t offset);
     ssize_t (*write)(const file_t *file, const void *buf, size_t size, off_t offset);
     int (*flush)(file_t *file);
@@ -74,12 +74,18 @@ typedef struct
     bool (*munmap)(file_t *file, vmap_t *vmap, bool *unmapped);
 } file_ops_t;
 
+typedef struct
+{
+    bool (*drop_inode)(inode_t *inode);
+} superblock_ops_t;
+
 typedef struct _superblock
 {
     bool dirty;
     dentry_t *root;
     filesystem_t *fs;
     list_head mounts;
+    superblock_ops_t *ops;
 } superblock_t;
 
 typedef struct _dentry
@@ -140,6 +146,8 @@ typedef struct _inode
     const file_ops_t *file_ops; // operations on files of this inode
     void *private;              // private data
     inode_cache_t cache;        // page cache for this inode
+
+    atomic_t refcount; ///< number of references to this inode
 } inode_t;
 
 typedef struct _filesystem

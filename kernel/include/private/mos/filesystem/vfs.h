@@ -27,7 +27,6 @@ should_inline const file_ops_t *file_get_ops(file_t *file)
 
 extern dentry_t *root_dentry;
 
-void vfs_init(void);
 void vfs_register_filesystem(filesystem_t *fs);
 
 /**
@@ -49,7 +48,7 @@ long vfs_mount(const char *device, const char *path, const char *fs, const char 
  * @return true
  * @return false
  */
-long vfs_umount(const char *path);
+long vfs_unmount(const char *path);
 
 /**
  * @brief Open a file at a given path

@@ -68,12 +68,6 @@ should_inline dentry_t *dentry_parent(const dentry_t *dentry)
 }
 
 /**
- * @brief A linked-list of all mountpoints
- *
- */
-extern list_head vfs_mountpoint_list;
-
-/**
  * @brief Check the reference count of a dentry
  *
  * @param dentry The dentry to check
@@ -105,7 +99,15 @@ dentry_t *dentry_ref_up_to(dentry_t *dentry, dentry_t *root);
  * @param dentry The dentry to decrement the reference count of
  */
 void dentry_unref(dentry_t *dentry);
-__nodiscard bool dentry_unref_one(dentry_t *dentry);
+__nodiscard bool dentry_unref_one_norelease(dentry_t *dentry);
+void dentry_try_release(dentry_t *dentry);
+
+/**
+ * @brief Detach the inode from a dentry
+ *
+ * @param dentry The dentry to detach the inode from
+ */
+void dentry_detach_inode(dentry_t *dentry);
 
 /**
  * @brief Get the dentry from a file descriptor

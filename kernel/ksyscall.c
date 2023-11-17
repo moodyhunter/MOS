@@ -426,7 +426,8 @@ DEFINE_SYSCALL(int, io_poll)(struct pollfd *fds, nfds_t nfds, int timeout)
         pr_info2("io_poll: fd=%d, events=%d", fds[i].fd, fds[i].events);
     }
 
-    MOS_UNIMPLEMENTED("io_poll");
+    pr_emerg("io_poll is not implemented yet\n");
+    signal_send_to_thread(current_thread, SIGKILL); // unimplemented
     return 0;
 }
 
@@ -586,3 +587,7 @@ DEFINE_SYSCALL(ssize_t, io_readv)(fd_t fd, const struct iovec *iov, int iovcnt)
     return bytes_read;
 }
 
+DEFINE_SYSCALL(long, vfs_unmount)(const char *path)
+{
+    return vfs_unmount(path);
+}

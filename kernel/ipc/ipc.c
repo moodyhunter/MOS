@@ -172,6 +172,8 @@ void ipc_init(void)
     hashmap_init(&name_waitlist, 128, hashmap_hash_string, hashmap_compare_string);
 }
 
+static inode_t *ipc_sysfs_create_ino(ipc_server_t *ipc_server);
+
 ipc_server_t *ipc_server_create(const char *name, size_t max_pending)
 {
     pr_dinfo(ipc, "creating ipc server '%s' with max_pending=%zu", name, max_pending);
@@ -197,6 +199,7 @@ ipc_server_t *ipc_server_create(const char *name, size_t max_pending)
 
     // now announce the server
     list_node_append(&ipc_servers, list_node(server));
+    ipc_sysfs_create_ino(server);
 
     // check and see if there is a waitlist for this name
     // if so, wake up all waiters
@@ -213,6 +216,22 @@ ipc_server_t *ipc_server_create(const char *name, size_t max_pending)
     spinlock_release(&ipc_lock);
 
     return server;
+}
+
+ipc_server_t *ipc_get_server(const char *name)
+{
+    spinlock_acquire(&ipc_lock);
+    list_foreach(ipc_server_t, server, ipc_servers)
+    {
+        if (strcmp(server->name, name) == 0)
+        {
+            spinlock_release(&ipc_lock);
+            return server;
+        }
+    }
+
+    spinlock_release(&ipc_lock);
+    return NULL;
 }
 
 ipc_t *ipc_server_accept(ipc_server_t *ipc_server)
@@ -360,46 +379,6 @@ check_server:
     return ipc;
 }
 
-// ! /sys/ipc/<server_name> operations to connect to an IPC server
-
-static bool vfs_open_ipc(inode_t *ino, file_t *file)
-{
-    MOS_UNUSED(ino);
-    ipc_t *ipc = ipc_connect_to_server(file->dentry->name, MOS_PAGE_SIZE);
-    if (IS_ERR(ipc))
-        return false;
-
-    file->private_data = ipc;
-    return true;
-}
-
-static ssize_t vfs_ipc_file_read(const file_t *file, void *buf, size_t size, off_t offset)
-{
-    MOS_UNUSED(offset);
-    ipc_t *ipc = file->private_data;
-    return ipc_client_read(ipc, buf, size);
-}
-
-static ssize_t vfs_ipc_file_write(const file_t *file, const void *buf, size_t size, off_t offset)
-{
-    MOS_UNUSED(offset);
-    ipc_t *ipc = file->private_data;
-    return ipc_client_write(ipc, buf, size);
-}
-
-static void vfs_ipc_file_release(file_t *file)
-{
-    ipc_t *ipc = file->private_data;
-    ipc_client_close_channel(ipc);
-}
-
-static const file_ops_t ipc_sysfs_file_ops = {
-    .open = vfs_open_ipc,
-    .read = vfs_ipc_file_read,
-    .write = vfs_ipc_file_write,
-    .release = vfs_ipc_file_release,
-};
-
 // ! sysfs support
 
 static bool ipc_sysfs_servers(sysfs_file_t *f)
@@ -415,6 +394,7 @@ static bool ipc_sysfs_servers(sysfs_file_t *f)
 
 static inode_t *ipc_sysfs_create_ino(ipc_server_t *ipc_server)
 {
+    extern const file_ops_t ipc_sysfs_file_ops;
     ipc_server->sysfs_ino = sysfs_create_inode(FILE_TYPE_CHAR_DEVICE, ipc_server);
     ipc_server->sysfs_ino->perm = PERM_OWNER & (PERM_READ | PERM_WRITE);
     ipc_server->sysfs_ino->file_ops = &ipc_sysfs_file_ops;
@@ -435,12 +415,7 @@ static size_t ipc_sysfs_list_ipcs(sysfs_item_t *item, dentry_t *d, dir_iterator_
         if (state->i != i++)
             continue;
 
-        if (!ipc_server->sysfs_ino)
-        {
-            if (!ipc_sysfs_create_ino(ipc_server))
-                MOS_UNREACHABLE();
-        }
-
+        MOS_ASSERT(ipc_server->sysfs_ino);
         const size_t w = op(state, ipc_server->sysfs_ino->ino, ipc_server->name, strlen(ipc_server->name), ipc_server->sysfs_ino->type);
         if (w == 0)
             break;
@@ -468,11 +443,24 @@ static bool ipc_sysfs_lookup_ipc(inode_t *parent_dir, dentry_t *dentry)
     if (ipc_server == NULL)
         return false;
 
-    if (ipc_server->sysfs_ino)
-        dentry->inode = ipc_server->sysfs_ino;
-    else
-        dentry->inode = ipc_sysfs_create_ino(ipc_server);
+    dentry->inode = ipc_server->sysfs_ino;
     return dentry->inode != NULL;
+}
+
+static bool ipc_sysfs_create_server(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm)
+{
+    MOS_UNUSED(dir);
+    MOS_UNUSED(perm);
+
+    if (type != FILE_TYPE_REGULAR)
+        return false;
+
+    ipc_server_t *ipc_server = ipc_server_create(dentry->name, 1);
+    if (IS_ERR(ipc_server))
+        return false;
+
+    dentry->inode = ipc_server->sysfs_ino;
+    return true;
 }
 
 static bool ipc_dump_name_waitlist(uintn key, void *value, void *data)
@@ -503,7 +491,7 @@ static bool ipc_sysfs_dump_name_waitlist(sysfs_file_t *f)
 
 static sysfs_item_t ipc_sysfs_items[] = {
     SYSFS_RO_ITEM("servers", ipc_sysfs_servers),
-    SYSFS_DYN_ITEMS("ipcs", ipc_sysfs_list_ipcs, ipc_sysfs_lookup_ipc),
+    SYSFS_DYN_DIR("ipcs", ipc_sysfs_list_ipcs, ipc_sysfs_lookup_ipc, ipc_sysfs_create_server),
     SYSFS_RO_ITEM("name_waitlist", ipc_sysfs_dump_name_waitlist),
 };
 

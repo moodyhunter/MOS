@@ -2,7 +2,15 @@
 
 #pragma once
 
+#include "mos/io/io.h"
+#include "mos/ipc/ipc.h"
 #include "mos/platform/platform.h"
+
+typedef struct
+{
+    io_t io;
+    ipc_t *ipc;
+} ipc_conn_io_t;
 
 /**
  * @brief Create a new IPC server
@@ -28,3 +36,12 @@ io_t *ipc_accept(io_t *server);
  * @return A new io_t object that represents the connection, or an error code on failure
  */
 io_t *ipc_connect(const char *name, size_t buffer_size);
+
+/**
+ * @brief Create a new IPC connection io descriptor
+ *
+ * @param ipc The IPC object to create the connection for
+ * @param is_server_side Whether this is the server side of the connection
+ * @return ipc_conn_io_t* A new IPC connection io descriptor
+ */
+ipc_conn_io_t *ipc_conn_io_create(ipc_t *ipc, bool is_server_side);

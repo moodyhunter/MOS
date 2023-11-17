@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/filesystem/mount.h"
 #include "mos/filesystem/page_cache.h"
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
@@ -323,6 +324,8 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
         return ERR(entry);
     }
 
+    bool created = false;
+
     if (may_create && entry->inode == NULL)
     {
         dentry_t *parent = dentry_parent(entry);
@@ -333,6 +336,7 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
         }
 
         parent->inode->ops->newfile(parent->inode, entry, FILE_TYPE_REGULAR, 0666);
+        created = true;
     }
 
     if (!vfs_verify_permissions(entry, true, read, may_create, exec, write))
@@ -364,7 +368,7 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
     const file_ops_t *ops = file_get_ops(file);
     if (ops && ops->open)
     {
-        bool opened = ops->open(file->dentry->inode, file);
+        bool opened = ops->open(file->dentry->inode, file, created);
         if (!opened)
         {
             kfree(file);
@@ -376,11 +380,6 @@ static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags
 }
 
 // public functions
-
-void vfs_init(void)
-{
-    // nothing to do here
-}
 
 void vfs_register_filesystem(filesystem_t *fs)
 {
@@ -461,7 +460,7 @@ long vfs_mount(const char *device, const char *path, const char *fs, const char 
     return 0;
 }
 
-long vfs_umount(const char *path)
+long vfs_unmount(const char *path)
 {
     dentry_t *mounted_root = dentry_get(root_dentry, root_dentry, path, RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST);
     if (IS_ERR(mounted_root))
@@ -489,7 +488,7 @@ long vfs_umount(const char *path)
     if (mounted_root->superblock->fs->unmount)
         mounted_root->superblock->fs->unmount(mounted_root->superblock->fs, mounted_root);
     else
-        MOS_ASSERT(dentry_unref_one(mounted_root));
+        MOS_ASSERT(dentry_unref_one_norelease(mounted_root));
     MOS_ASSERT_X(mounted_root->refcount == 0, "fs->umount should release the last reference to the mounted root");
 
     if (mounted_root == root_dentry)

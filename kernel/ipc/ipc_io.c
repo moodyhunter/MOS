@@ -16,12 +16,6 @@ typedef struct _ipc_server_io
     ipc_server_t *server;
 } ipc_server_io_t;
 
-typedef struct _ipc_conn_io
-{
-    io_t io;
-    ipc_t *ipc;
-} ipc_conn_io_t;
-
 static slab_t *ipc_server_io_slab = NULL;
 SLAB_AUTOINIT("ipc_server_io", ipc_server_io_slab, ipc_server_io_t);
 
@@ -99,6 +93,16 @@ static const io_op_t ipc_server_io_op = {
     .close = ipc_server_io_close,
 };
 
+ipc_conn_io_t *ipc_conn_io_create(ipc_t *ipc, bool is_server_side)
+{
+    ipc_conn_io_t *io = kmalloc(ipc_conn_io_slab);
+    if (IS_ERR(io))
+        return ERR(io);
+    io->ipc = ipc;
+    io_init(&io->io, IO_IPC, IO_READABLE | IO_WRITABLE, is_server_side ? &ipc_server_io_op : &ipc_client_io_op);
+    return io;
+}
+
 io_t *ipc_create(const char *name, size_t max_pending_connections)
 {
     ipc_server_t *server = ipc_server_create(name, max_pending_connections);
@@ -121,9 +125,7 @@ io_t *ipc_accept(io_t *server)
     if (IS_ERR(ipc))
         return ERR(ipc);
 
-    ipc_conn_io_t *io = kmalloc(ipc_conn_io_slab);
-    io->ipc = ipc;
-    io_init(&io->io, IO_IPC, IO_READABLE | IO_WRITABLE, &ipc_server_io_op);
+    ipc_conn_io_t *io = ipc_conn_io_create(ipc, true);
     return &io->io;
 }
 
@@ -133,8 +135,6 @@ io_t *ipc_connect(const char *name, size_t buffer_size)
     if (IS_ERR(ipc))
         return ERR(ipc);
 
-    ipc_conn_io_t *io = kmalloc(ipc_conn_io_slab);
-    io->ipc = ipc;
-    io_init(&io->io, IO_IPC, IO_READABLE | IO_WRITABLE, &ipc_client_io_op);
-    return &io->io;
+    ipc_conn_io_t *connio = ipc_conn_io_create(ipc, false);
+    return &connio->io;
 }

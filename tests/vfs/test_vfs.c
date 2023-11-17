@@ -28,7 +28,7 @@ MOS_TEST_DECL_PTEST(vfs_mount_test, "Mount %s in %s, with rootfs: %d", const cha
     MOS_TEST_ASSERT((ok == 0) == rootfs, "mounting %s on %s should %sbe successful", fs, mountpoint, rootfs ? "" : "not");
     dentry_dump_refstat(root_dentry, stat_receiver, NULL);
 
-    ok = vfs_umount(mountpoint);
+    ok = vfs_unmount(mountpoint);
     MOS_TEST_ASSERT((ok == 0) == rootfs, "unmounting /tmp should %sbe successful", rootfs ? "" : "not");
     dentry_dump_refstat(root_dentry, stat_receiver, NULL);
 
@@ -38,7 +38,7 @@ MOS_TEST_DECL_PTEST(vfs_mount_test, "Mount %s in %s, with rootfs: %d", const cha
 
     if (rootfs)
     {
-        ok = vfs_umount("/");
+        ok = vfs_unmount("/");
         MOS_TEST_ASSERT(ok == 0, "failed to unmount rootfs");
     }
 }
