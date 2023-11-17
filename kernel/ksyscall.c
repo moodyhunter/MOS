@@ -8,6 +8,7 @@
 #include "mos/mm/mm.h"
 #include "mos/tasks/signal.h"
 
+#include <bits/posix/iovec.h>
 #include <errno.h>
 #include <mos/elf/elf.h>
 #include <mos/filesystem/vfs.h>
@@ -549,3 +550,39 @@ DEFINE_SYSCALL(long, pipe)(fd_t *reader, fd_t *writer)
     *writer = process_attach_ref_fd(current_process, &pipeio->io_w);
     return 0;
 }
+
+DEFINE_SYSCALL(ssize_t, io_readv)(fd_t fd, const struct iovec *iov, int iovcnt)
+{
+    if (fd < 0)
+        return -EBADF;
+
+    if (iov == NULL)
+        return -EFAULT;
+
+    io_t *io = process_get_fd(current_process, fd);
+    if (!io)
+        return -EBADF;
+
+    for (int i = 0; i < iovcnt; i++)
+    {
+        if (iov[i].iov_base == NULL)
+            return -EFAULT;
+    }
+
+    ssize_t bytes_read = 0;
+
+    for (int i = 0; i < iovcnt; i++)
+    {
+        size_t ret = io_read(io, iov[i].iov_base, iov[i].iov_len);
+        if (IS_ERR_VALUE(ret))
+            return ret;
+
+        bytes_read += ret;
+
+        if (ret != iov[i].iov_len)
+            break; // short read, leave
+    }
+
+    return bytes_read;
+}
+

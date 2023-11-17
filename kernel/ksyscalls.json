@@ -421,6 +421,12 @@
             "name": "pipe",
             "return": "long",
             "arguments": [ { "type": "fd_t *", "arg": "out_read_fd" }, { "type": "fd_t *", "arg": "out_write_fd" } ]
+        },
+        {
+            "number": 56,
+            "name": "io_readv",
+            "return": "ssize_t",
+            "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "const struct iovec *", "arg": "iov" }, { "type": "int", "arg": "iov_count" } ]
         }
     ]
 }
