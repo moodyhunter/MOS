@@ -9,9 +9,26 @@
 #define RPC_RESPONSE_MAGIC MOS_FOURCC('R', 'P', 'C', '<')
 #define RPC_ARG_MAGIC      MOS_FOURCC('R', 'P', 'C', 'A')
 
+typedef enum
+{
+    RPC_ARG_FLOAT32,
+    RPC_ARG_INT8,
+    RPC_ARG_FLOAT64,
+    RPC_ARG_INT16,
+    RPC_ARG_INT32,
+    RPC_ARG_INT64,
+    RPC_ARG_UINT8,
+    RPC_ARG_UINT16,
+    RPC_ARG_UINT32,
+    RPC_ARG_UINT64,
+    RPC_ARG_STRING,
+    RPC_ARG_BUFFER,
+} rpc_argtype_t;
+
 typedef struct
 {
     u32 magic; // RPC_ARG_MAGIC
+    rpc_argtype_t argtype;
     u32 size;
     char data[];
 } rpc_arg_t;

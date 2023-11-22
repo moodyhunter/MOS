@@ -1,32 +1,110 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::io::Error;
+// ! IPC Server and Channels
+pub(crate) mod ipc_impl;
+pub use ipc_impl::*; // import all IPC implementations (for MOS and Unix)
 
-mod ipc_impl;
-
-pub trait IPC {
-    fn send_message(&mut self, message: &[u8]) -> Result<(), Error>;
-    fn recv_message(&mut self) -> Result<Vec<u8>, Error>;
-    fn close(&mut self) -> Result<(), Error>;
+macro_rules! make_4cc {
+    ($a:tt, $b:tt, $c:tt, $d:tt) => {
+        (($a as u32) << 24) | (($b as u32) << 16) | (($c as u32) << 8) | ($d as u32)
+    };
 }
 
-pub fn ipc_connect(server: &str) -> Result<Box<dyn IPC>, Error> {
-    let mut ipc_path = std::path::PathBuf::from("/sys/ipc/");
-    ipc_path.push(server);
+pub(crate) const RPC_REQUEST_MAGIC: u32 = make_4cc!('R', 'P', 'C', '>');
+pub(crate) const RPC_RESPONSE_MAGIC: u32 = make_4cc!('R', 'P', 'C', '<');
+pub(crate) const RPC_ARG_MAGIC: u32 = make_4cc!('R', 'P', 'C', 'A');
 
-    if !ipc_path.exists() {
-        return Err(Error::new(
-            std::io::ErrorKind::NotFound,
-            "IPC server does not exist",
-        ));
-    }
+// ! RPC Servers
+pub(crate) mod impl_server;
+pub use impl_server::{RpcCallContext, RpcCallFuncInfo, RpcCallFunction, RpcServer};
 
-    let file = std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .append(false)
-        .truncate(false)
-        .open(ipc_path)?;
+#[macro_export]
+macro_rules! rpc_server_function {
+    ($id:tt, $func:tt,  $($argtypes:tt),*) => {
+        RpcCallFuncInfo {
+            id: $id,
+            func: $func,
+            argtypes: &[$(RpcCallArgType::$argtypes),*],
+        }
+    };
+}
 
-    Ok(Box::new(ipc_impl::IpcFile { file }))
+// ! RPC Clients
+pub(crate) mod impl_client;
+pub use impl_client::RpcStub;
+
+#[macro_export]
+macro_rules! define_rpc_server {
+    ($visiblity:tt, $servername:ident) => {
+        $visiblity struct $servername {
+            rpc_server: RpcStub,
+        }
+
+        impl $servername {
+            pub fn new(name: &str) -> Result<Self, Error> {
+                let stub = RpcStub::new(name)?;
+                Ok($servername {
+                    rpc_server: stub,
+                })
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! rpc_server_stub_function {
+    ($func_id:expr, $name:ident, $(($argname:ident, $argtype:ty, $argtypenum:ident $(, $argtypetofn:ident)?)),*) => {
+        pub fn $name(&mut self, $($argname: $argtype),*) -> Result<RpcCallResult, Error> {
+            self.rpc_server
+                .create_call($func_id)
+                $(.add_arg(RpcCallArgStructs::$argtypenum($argname $(.$argtypetofn())?)))*
+                .exec()
+        }
+    };
+}
+
+// !! Keep these 3 enums in-sync with the C version !!
+#[derive(Clone, Debug, num_derive::FromPrimitive, PartialEq)]
+pub enum RpcCallResult {
+    Ok = 0,
+    ServerInvalidFunction,
+    ServerInvalidArgCount,
+    ServerInternalError,
+    InvalidArg,
+    ClientInvalidArgspec,
+    ClientWriteFailed,
+    ClientReadFailed,
+    CallidMismatch,
+}
+
+#[derive(Clone, Debug, num_derive::FromPrimitive, PartialEq)]
+pub enum RpcCallArgType {
+    Float32,
+    Int8,
+    Float64,
+    Int16,
+    Int32,
+    Int64,
+    Uint8,
+    Uint16,
+    Uint32,
+    Uint64,
+    String,
+    Buffer,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum RpcCallArgStructs {
+    Float32(f32),
+    Float64(f64),
+    Int8(i8),
+    Int16(i16),
+    Int32(i32),
+    Int64(i64),
+    Uint8(u8),
+    Uint16(u16),
+    Uint32(u32),
+    Uint64(u64),
+    String(String),
+    Buffer(Vec<u8>),
 }

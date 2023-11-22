@@ -2,3 +2,10 @@
 edition = "2021"
 name = "librpc-rs"
 version = "0.1.0"
+
+[dependencies]
+num-derive = "0.4"
+num-traits = "0.2"
+
+[features]
+debug = []
