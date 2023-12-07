@@ -17,7 +17,7 @@ void x86_cpu_get_caps_all(void)
     platform_cpuinfo_t *cpuinfo = &per_cpu(platform_info->cpu)->cpuinfo;
     memzero(cpuinfo, sizeof(platform_cpuinfo_t));
 
-#define impl_fill_leaf(leaf, subleaf, reg) cpuinfo->cpuid[X86_CPUID_LEAF_ENUM(leaf, subleaf, reg, _)] = x86_cpuid(reg, a = leaf, c = subleaf);
+#define impl_fill_leaf(_l, _sl, _r) cpuinfo->cpuid[X86_CPUID_LEAF_ENUM(_l, _sl, _r, _)] = x86_cpuid(_r, leaf = _l, c = _sl);
     FOR_ALL_SUPPORTED_CPUID_LEAF(impl_fill_leaf);
 #undef impl_fill_leaf
 }
