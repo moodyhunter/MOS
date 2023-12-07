@@ -233,7 +233,7 @@ void platform_startup_early()
     x86_cpu_get_caps_all();
 
 #if MOS_DEBUG_FEATURE(x86_startup)
-    pr_dinfo2(x86_startup, "cpu features:");
+    pr_info2("cpu features:");
 
 #define do_print_cpu_feature(feature)                                                                                                                                    \
     if (cpu_has_feature(CPU_FEATURE_##feature))                                                                                                                          \

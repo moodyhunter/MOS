@@ -52,7 +52,7 @@ void platform_invalidate_tlb(ptr_t vaddr)
 
 u32 platform_current_cpu_id(void)
 {
-    return x86_cpuid(b, leaf = 1) >> 24;
+    return x86_cpuid(b, 1, 0) >> 24;
 }
 
 void platform_msleep(u64 ms)

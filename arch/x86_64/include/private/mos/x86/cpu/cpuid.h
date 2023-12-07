@@ -86,4 +86,4 @@ enum
     _X86_CPUID_COUNT,
 };
 
-typedef s32 x86_cpuid_array[_X86_CPUID_COUNT];
+typedef reg32_t x86_cpuid_array[_X86_CPUID_COUNT];

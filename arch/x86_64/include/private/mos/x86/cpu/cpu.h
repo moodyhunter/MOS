@@ -25,11 +25,10 @@ should_inline noreturn void x86_cpu_halt(void)
     mos_panic("halt failed");
 }
 
-#define x86_cpuid(return_reg, ...)                                                                                                                                       \
+#define x86_cpuid(return_reg, leaf, subleaf)                                                                                                                             \
     __extension__({                                                                                                                                                      \
-        u32 a = 0, b = 0, c = 0, d = 0, leaf = 0;                                                                                                                        \
-        __VA_ARGS__;                                                                                                                                                     \
-        __get_cpuid(leaf, &a, &b, &c, &d);                                                                                                                               \
+        reg32_t a = 0, b = 0, c = 0, d = 0;                                                                                                                              \
+        __get_cpuid_count(leaf, subleaf, &a, &b, &c, &d);                                                                                                                \
         return_reg;                                                                                                                                                      \
     })
 
