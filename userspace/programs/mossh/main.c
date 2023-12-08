@@ -192,10 +192,10 @@ void do_execute_line(char *line)
     line = string_trim(line);
 
     // check if the line ends with an '&' and if so, run it in the background
-    bool background = false;
+    bool should_wait = true;
     if (line[strlen(line) - 1] == '&')
     {
-        background = true;
+        should_wait = false;
         line[strlen(line) - 1] = '\0';
     }
 
@@ -224,13 +224,13 @@ void do_execute_line(char *line)
             prog = strtok(rest, " ");
             rest += strlen(prog) + 1; // skip the program name
 
-            do_execute(prog, rest, !background);
+            do_execute(prog, rest, should_wait);
             free(line_dup);
             return;
         }
     }
 
-    do_execute(prog, rest, !background);
+    do_execute(prog, rest, should_wait);
 }
 
 int do_interpret_script(const char *path)
