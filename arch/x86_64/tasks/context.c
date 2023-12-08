@@ -107,10 +107,11 @@ static void x86_switch_to_thread(ptr_t *scheduler_stack, const thread_t *to, swi
                                       switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? x86_start_kernel_thread :
                                                                                    x86_normal_switch_impl;
 
-    // TODO: save and restore the FPU state
+    x86_save_fpu_context();
     x86_update_current_fsbase();
     per_cpu(x86_cpu_descriptor)->tss.rsp0 = to->k_stack.top;
     x86_context_switch_impl(scheduler_stack, to->k_stack.head, switch_func);
+    x86_load_fpu_context();
 }
 __alias(x86_switch_to_thread, platform_switch_to_thread);
 

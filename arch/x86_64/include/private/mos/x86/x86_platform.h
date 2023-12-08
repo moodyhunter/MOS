@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include <mos/mos_global.h>
-#include <mos/platform/platform.h>
+#include "mos/platform/platform.h"
 
 #define X86_BIOS_MEMREGION_PADDR 0xf0000
 #define BIOS_MEMREGION_SIZE      0x10000
@@ -26,7 +25,7 @@ typedef struct _platform_regs
 
 MOS_STATIC_ASSERT(sizeof(platform_regs_t) == 176, "platform_regs_t has incorrect size");
 
-// defined in the linker script 'multiboot.ld'
+// defined in the linker script
 extern const char __MOS_KERNEL_CODE_START[], __MOS_KERNEL_CODE_END[];     // Kernel text
 extern const char __MOS_KERNEL_RODATA_START[], __MOS_KERNEL_RODATA_END[]; // Kernel rodata
 extern const char __MOS_KERNEL_RW_START[], __MOS_KERNEL_RW_END[];         // Kernel read-write data

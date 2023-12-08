@@ -152,6 +152,8 @@ typedef struct
 
     size_t n_cmdlines;
     cmdline_option_t cmdlines[MOS_MAX_CMDLINE_COUNT];
+
+    platform_arch_info_t arch_info;
 } mos_platform_info_t;
 
 extern mos_platform_info_t *const platform_info;

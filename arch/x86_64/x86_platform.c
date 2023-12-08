@@ -1,35 +1,28 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/x86/x86_platform.h"
+
 #include "mos/device/console.h"
 #include "mos/mm/mm.h"
+#include "mos/mm/paging/paging.h"
 #include "mos/printk.h"
 #include "mos/tasks/schedule.h"
+#include "mos/x86/acpi/acpi.h"
 #include "mos/x86/acpi/acpi_types.h"
+#include "mos/x86/acpi/madt.h"
 #include "mos/x86/cpu/ap_entry.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/cpu/cpuid.h"
 #include "mos/x86/descriptors/descriptors.h"
+#include "mos/x86/devices/port.h"
 #include "mos/x86/devices/rtc.h"
 #include "mos/x86/devices/serial.h"
+#include "mos/x86/devices/serial_console.h"
+#include "mos/x86/interrupt/apic.h"
+#include "mos/x86/mm/mm.h"
+#include "mos/x86/mm/paging_impl.h"
+#include "mos/x86/x86_interrupt.h"
 
-#include <mos/cmdline.h>
-#include <mos/kallsyms.h>
-#include <mos/lib/sync/spinlock.h>
-#include <mos/mm/paging/paging.h>
-#include <mos/mm/physical/pmm.h>
-#include <mos/panic.h>
-#include <mos/platform/platform.h>
-#include <mos/setup.h>
-#include <mos/x86/acpi/acpi.h>
-#include <mos/x86/acpi/madt.h>
-#include <mos/x86/devices/port.h>
-#include <mos/x86/devices/serial_console.h>
-#include <mos/x86/interrupt/apic.h>
-#include <mos/x86/mm/mm.h>
-#include <mos/x86/mm/paging_impl.h>
-#include <mos/x86/tasks/context.h>
-#include <mos/x86/x86_interrupt.h>
-#include <mos/x86/x86_platform.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
@@ -82,48 +75,69 @@ static void x86_com1_handler(u32 irq)
     }
 }
 
-static void x86_cpu_enable_sse(void)
+static void x86_setup_xsave_area(void)
 {
-    reg_t cr0 = x86_cpu_get_cr0();
-    cr0 &= ~0x4; // clear coprocessor emulation CR0.EM
-    cr0 |= 0x2;  // set coprocessor monitoring  CR0.MP
-    x86_cpu_set_cr0(cr0);
+    MOS_ASSERT(cpu_has_feature(CPU_FEATURE_XSAVE)); // modern x86 CPUs should support XSAVE
+    x86_cpu_set_cr4(x86_cpu_get_cr4() | BIT(18));   // set CR4.OSXSAVE
 
-    reg_t cr4 = x86_cpu_get_cr4();
-    cr4 |= 0x3 << 9; // set CR4.OSFXSR and CR4.OSXMMEXCPT at the same time
-    x86_cpu_set_cr4(cr4);
-}
+    reg_t xcr0 = XCR0_X87;
+    size_t xsave_size = 512; // X87 + SSE
 
-static void x86_cpu_enable_avx(void)
-{
-    // 0    X87 (x87 FPU/MMX State, note, must be '1')
-    // 1    SSE (XSAVE feature set enable for MXCSR and XMM regs)
-    // 2    AVX (AVX enable, and XSAVE feature set can be used to manage YMM regs)
-    // 3    BNDREG (MPX enable, and XSAVE feature set can be used for BND regs)
-    // 4    BNDCSR (MPX enable, and XSAVE feature set can be used for BNDCFGU and BNDSTATUS regs)
-    // 5    opmask (AVX-512 enable, and XSAVE feature set can be used for AVX opmask, AKA k-mask, regs)
-    // 6    ZMM_hi256 (AVX-512 enable, and XSAVE feature set can be used for upper-halves of the lower ZMM regs)
-    // 7    Hi16_ZMM (AVX-512 enable, and XSAVE feature set can be used for the upper ZMM regs)
-    // 8    PT (Processor Trace)
-    // 9    PKRU (XSAVE feature set can be used for PKRU register, which is part of the protection keys mechanism)
-    // 10   PASID
-    // 11   CET_U
-    // 12   CET_S
-    // 13   HDC (Hardware duty cycling)
-    // 14   UINTR (User interrupts)
-    // 15   LBR (Last branch record)
-    // 16   HWP (Hardware P-states)
-    // 17   AMX TILECFG
-    // 18   AMX TILEDATA
-    // 19   APX extended GPRs (R16 through R31)
+    if (cpu_has_feature(CPU_FEATURE_SSE))
+    {
+        xcr0 |= XCR0_SSE;
 
-    __asm__ volatile("xor %%rcx, %%rcx;"
-                     "xgetbv;"
-                     "or $7, %%eax;" // x87, SSE, AVX
-                     "xsetbv;"
-                     :
-                     :
-                     : "rax", "rcx", "rdx");
+        reg_t cr0 = x86_cpu_get_cr0();
+        cr0 &= ~0x4; // clear coprocessor emulation CR0.EM
+        cr0 |= 0x2;  // set coprocessor monitoring  CR0.MP
+        x86_cpu_set_cr0(cr0);
+
+        reg_t cr4 = x86_cpu_get_cr4();
+        cr4 |= 0x3 << 9; // set CR4.OSFXSR and CR4.OSXMMEXCPT at the same time
+        x86_cpu_set_cr4(cr4);
+    }
+
+    xsave_size += 64; // XSAVE header
+
+    if (cpu_has_feature(CPU_FEATURE_AVX))
+    {
+        xcr0 |= XCR0_AVX;
+    }
+
+    static const char *const xcr0_names[] = {
+        [0] = "x87",              //
+        [1] = "SSE",              //
+        [2] = "AVX",              //
+        [3] = "MPX BNDREGS",      //
+        [4] = "MPX BNDCSR",       //
+        [5] = "AVX-512 OPMASK",   //
+        [6] = "AVX-512 ZMM0-15",  //
+        [7] = "AVX-512 ZMM16-31", //
+        [8] = "PT",               //
+        [9] = "PKRU",             //
+    };
+
+    for (size_t state_component = 2; state_component < 64; state_component++)
+    {
+        reg32_t size, offset, ecx, edx;
+        __cpuid_count(0xd, state_component, size, offset, ecx, edx);
+        if (size && offset && ((ecx & BIT(0)) == 0))
+        {
+            const char *const name = state_component < MOS_ARRAY_SIZE(xcr0_names) ? xcr0_names[state_component] : "<unknown>";
+            pr_dinfo2(x86_startup, "XSAVE state component '%s': size=%d, offset=%d", name, size, offset);
+
+            if (xcr0 & BIT(state_component))
+            {
+                pr_dcont(x86_startup, " (enabled)");
+                xsave_size += size;
+            }
+        }
+    }
+
+    pr_dinfo2(x86_startup, "XSAVE area size: %zu", xsave_size);
+
+    __asm__ volatile("xsetbv" : : "c"(0), "a"(xcr0), "d"(xcr0 >> 32));
+    x86_platform.arch_info.xsave_size = xsave_size;
 }
 
 typedef struct _frame
@@ -296,10 +310,8 @@ void platform_startup_late()
     ioapic_enable_interrupt(IRQ_KEYBOARD, x86_platform.boot_cpu_id);
     ioapic_enable_interrupt(IRQ_COM1, x86_platform.boot_cpu_id);
 
-    x86_cpu_enable_sse();
-
-    if (cpu_has_feature(CPU_FEATURE_AVX))
-        x86_cpu_enable_avx();
+    // set up the XSAVE area
+    x86_setup_xsave_area();
 
 #if MOS_CONFIG(MOS_SMP)
     x86_start_all_aps();

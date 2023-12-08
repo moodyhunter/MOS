@@ -9,9 +9,6 @@
 
 #include <mos_stdlib.h>
 
-slab_t *fpu_ctx_slab;
-SLAB_AUTOINIT("x86_fpu_context", fpu_ctx_slab, fpu_context_t);
-
 void x86_save_fpu_context()
 {
     thread_t *thread = current_thread;
@@ -20,15 +17,19 @@ void x86_save_fpu_context()
     if (thread->platform_options.need_fpu_context)
         return;
 
-    if (unlikely(!thread->platform_options.fpu_state))
-        thread->platform_options.fpu_state = kmalloc(fpu_ctx_slab);
+    if (unlikely(!thread->platform_options.xsaveptr))
+        thread->platform_options.xsaveptr = kmalloc(platform_info->arch_info.xsave_size);
 
-    __asm__ volatile("fxsave %0" ::"m"(*thread->platform_options.fpu_state->fpu));
+    __asm__ volatile("xsave %0" ::"m"(*thread->platform_options.xsaveptr));
 }
 
 void x86_load_fpu_context()
 {
     thread_t *thread = current_thread;
-    MOS_ASSERT(thread->platform_options.fpu_state);
-    __asm__ volatile("fxrstor %0" ::"m"(*thread->platform_options.fpu_state->fpu));
+    MOS_ASSERT(thread->platform_options.xsaveptr);
+
+    if (thread->platform_options.need_fpu_context)
+        return;
+
+    __asm__ volatile("xrstor %0" ::"m"(*thread->platform_options.xsaveptr));
 }
