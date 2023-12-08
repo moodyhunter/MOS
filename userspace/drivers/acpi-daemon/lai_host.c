@@ -17,10 +17,10 @@ void *laihost_malloc(size_t size)
     return malloc(size);
 }
 
-void *laihost_realloc(void *, size_t newsize, size_t oldsize)
+void *laihost_realloc(void *ptr, size_t newsize, size_t oldsize)
 {
     MOS_UNUSED(oldsize);
-    return realloc(NULL, newsize);
+    return realloc(ptr, newsize);
 }
 
 void laihost_free(void *ptr, size_t)
