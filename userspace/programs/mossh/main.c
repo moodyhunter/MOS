@@ -272,8 +272,9 @@ static const argparse_arg_t mossh_options[] = {
 int main(int argc, const char **argv)
 {
     MOS_UNUSED(argc);
-    signal(SIGCHLD, sigchld_handler);
-    signal(SIGINT, sigint_handler);
+
+    sigaction(SIGCHLD, &(struct sigaction){ .sa_handler = sigchld_handler, .sa_flags = SA_RESTART }, NULL);
+    sigaction(SIGINT, &(struct sigaction){ .sa_handler = sigint_handler, .sa_flags = SA_RESTART }, NULL);
 
     argparse_state_t state;
     argparse_init(&state, argv);
