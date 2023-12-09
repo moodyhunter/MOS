@@ -40,8 +40,14 @@ static void signal_do_ignore(signal_t signal)
     pr_dinfo2(signal, "thread %pt ignoring signal %d", (void *) current_thread, signal);
 }
 
-void signal_send_to_thread(thread_t *target, signal_t signal)
+long signal_send_to_thread(thread_t *target, signal_t signal)
 {
+    if (target->mode == THREAD_MODE_KERNEL)
+    {
+        pr_emerg("signal_send_to_thread(%pt, %d): cannot send signal to kernel thread", (void *) target, signal);
+        return -EINVAL;
+    }
+
     spinlock_acquire(&target->signal_info.lock);
 
     bool has_pending = false; // true if the signal is already pending
@@ -61,10 +67,23 @@ void signal_send_to_thread(thread_t *target, signal_t signal)
     }
 
     spinlock_release(&target->signal_info.lock);
+    return 0;
 }
 
-void signal_send_to_process(process_t *target, signal_t signal)
+long signal_send_to_process(process_t *target, signal_t signal)
 {
+    if (target->pid == 1 && signal == SIGKILL)
+    {
+        pr_emerg("signal_send_to_process(%pp, %d): cannot send SIGKILL to init", (void *) target, signal);
+        return -EINVAL;
+    }
+
+    if (target->pid == 2)
+    {
+        pr_emerg("signal_send_to_process(%pp, %d): cannot send signal to kthreadd", (void *) target, signal);
+        return -EINVAL;
+    }
+
     thread_t *target_thread = NULL;
     list_foreach(thread_t, thread, target->threads)
     {
@@ -90,10 +109,20 @@ void signal_send_to_process(process_t *target, signal_t signal)
     if (!target_thread)
     {
         pr_emerg("signal_send_to_process(%pp, %d): no thread to send signal to", (void *) target, signal);
-        return;
+        return -EINVAL;
     }
 
     signal_send_to_thread(target_thread, signal);
+
+    if (target_thread != current_thread)
+    {
+        spinlock_acquire(&target_thread->state_lock);
+        if (target_thread->state == THREAD_STATE_BLOCKED)
+            target_thread->state = THREAD_STATE_READY;
+        spinlock_release(&target_thread->state_lock);
+    }
+
+    return 0;
 }
 
 static signal_t signal_get_next_pending(void)
@@ -119,6 +148,9 @@ static void do_signal_exit_to_user_prepare(platform_regs_t *regs, signal_t next_
 {
     if (action->sa_handler == SIG_DFL)
     {
+        if (current_process->pid == 1)
+            goto done; // init only receives signals it wants
+
         switch (next_signal)
         {
             case SIGINT: signal_do_terminate(next_signal); break;
@@ -134,7 +166,8 @@ static void do_signal_exit_to_user_prepare(platform_regs_t *regs, signal_t next_
             default: MOS_UNREACHABLE_X("handle this signal %d", next_signal); break;
         }
 
-        // the default handler returns
+    // the default handler returns
+    done:
         return;
     }
 

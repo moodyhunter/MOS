@@ -247,7 +247,7 @@ pid_t process_wait_for_pid(pid_t pid, u32 *exit_code, u32 flags)
         {
             pr_dinfo2(process, "woken up by signal");
             waitlist_remove_me(&current_process->signal_info.sigchild_waitlist);
-            return -EINTR;
+            return -ERESTARTSYS;
         }
 
         goto find_dead_child;

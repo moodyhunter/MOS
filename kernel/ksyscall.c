@@ -383,22 +383,20 @@ DEFINE_SYSCALL(bool, signal_register)(signal_t sig, const sigaction_t *action)
     return process_register_signal_handler(current_process, sig, action);
 }
 
-DEFINE_SYSCALL(bool, signal_process)(pid_t pid, signal_t sig)
+DEFINE_SYSCALL(long, signal_process)(pid_t pid, signal_t sig)
 {
     process_t *process = process_get(pid);
     if (!process)
-        return false;
-    signal_send_to_process(process, sig);
-    return true;
+        return -ESRCH;
+    return signal_send_to_process(process, sig);
 }
 
-DEFINE_SYSCALL(bool, signal_thread)(tid_t tid, signal_t sig)
+DEFINE_SYSCALL(long, signal_thread)(tid_t tid, signal_t sig)
 {
     thread_t *thread = thread_get(tid);
     if (thread == NULL)
-        return false;
-    signal_send_to_thread(thread, sig);
-    return true;
+        return -ESRCH;
+    return signal_send_to_thread(thread, sig);
 }
 
 DEFINE_SYSCALL(noreturn void, signal_return)(void *sp)

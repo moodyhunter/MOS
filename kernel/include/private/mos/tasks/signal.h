@@ -33,7 +33,7 @@ extern slab_t *sigpending_slab;
  * @param target
  * @param signal
  */
-void signal_send_to_thread(thread_t *target, signal_t signal);
+long signal_send_to_thread(thread_t *target, signal_t signal);
 
 /**
  * @brief Send a signal to a process, an arbitrary thread will be chosen to receive the signal.
@@ -41,7 +41,7 @@ void signal_send_to_thread(thread_t *target, signal_t signal);
  * @param target
  * @param signal
  */
-void signal_send_to_process(process_t *target, signal_t signal);
+long signal_send_to_process(process_t *target, signal_t signal);
 
 /**
  * @brief Prepare to exit to userspace.

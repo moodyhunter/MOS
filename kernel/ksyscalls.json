@@ -276,7 +276,7 @@
         {
             "number": 40,
             "name": "signal_process",
-            "return": "bool",
+            "return": "long",
             "arguments": [ { "type": "pid_t", "arg": "pid" }, { "type": "signal_t", "arg": "signum" } ],
             "comments": [
                 "Send a signal to a process, an arbitrary thread in the target process",
@@ -286,7 +286,7 @@
         {
             "number": 41,
             "name": "signal_thread",
-            "return": "bool",
+            "return": "long",
             "arguments": [ { "type": "tid_t", "arg": "tid" }, { "type": "signal_t", "arg": "signum" } ],
             "comments": [
                 "Send a signal to a specific thread in a process."

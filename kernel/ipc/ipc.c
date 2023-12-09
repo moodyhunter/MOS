@@ -259,6 +259,14 @@ retry_accept:
         MOS_ASSERT(waitlist_append(&ipc_server->server_waitlist));
         spinlock_release(&ipc_server->lock);
         blocked_reschedule();
+
+        if (signal_has_pending())
+        {
+            pr_dinfo2(ipc, "woken up by a signal, aborting accept()");
+            waitlist_remove_me(&ipc_server->server_waitlist);
+            return ERR_PTR(-EINTR);
+        }
+
         goto retry_accept; // the server has woken us up, try again
     }
 

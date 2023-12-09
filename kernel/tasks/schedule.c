@@ -33,12 +33,6 @@ static bool should_schedule_to_thread(thread_t *thread)
         }
         case THREAD_STATE_BLOCKED:
         {
-            if (signal_has_pending())
-            {
-                pr_dinfo2(scheduler, "cpu %d: thread %pt is blocked, but there are pending signals, waking it up", current_cpu->id, (void *) thread);
-                return true;
-            }
-
             // if the thread is blocked, check if the condition (if any) is met
             if (!thread->waiting)
                 return false;
