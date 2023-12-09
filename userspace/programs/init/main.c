@@ -153,6 +153,9 @@ static const argparse_arg_t longopts[] = {
 
 int main(int argc, const char *argv[])
 {
+    sigaction(SIGCHLD, &(struct sigaction){ .sa_handler = SIG_IGN, .sa_flags = SA_RESTART }, NULL);
+    sigaction(SIGTERM, &(struct sigaction){ .sa_handler = SIG_IGN, .sa_flags = SA_RESTART }, NULL);
+
     const char *config_file = "/initrd/config/init.conf";
     const char *shell = "/initrd/programs/mossh";
     argparse_state_t state;
@@ -216,15 +219,30 @@ int main(int argc, const char *argv[])
     shell_argv = realloc(shell_argv, (shell_argc + 1) * sizeof(char *));
     shell_argv[shell_argc] = NULL;
 
-    if (fork() == 0)
-    {
-        // execve the shell in the child process
-        pid_t shell_pid = execv(shell, (char **) shell_argv);
-        if (shell_pid <= 0)
+start_shell:;
+    const pid_t shell_pid = fork();
+    if (shell_pid == 0)
+        if (execv(shell, (char **) shell_argv) <= 0)
             return DYN_ERROR_CODE;
-    }
 
     while (true)
-        waitpid(-1, NULL, 0);
+    {
+        pid_t pid = waitpid(-1, NULL, 0);
+        if (pid == dm_pid)
+        {
+            puts("init: device manager exited, restarting...");
+            dm_pid = start_device_manager();
+        }
+        else if (pid == shell_pid)
+        {
+            puts("init: shell exited, restarting...");
+            goto start_shell;
+        }
+        else
+        {
+            printf("init: process %d exited\n", pid);
+        }
+    }
+
     return 0;
 }
