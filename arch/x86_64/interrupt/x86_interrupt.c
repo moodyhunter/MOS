@@ -232,6 +232,8 @@ void x86_interrupt_entry(ptr_t rsp)
     platform_regs_t *frame = (platform_regs_t *) rsp;
     current_cpu->interrupt_regs = frame;
 
+    reg_t syscall_ret = 0, syscall_nr = 0;
+
     if (frame->interrupt_number < IRQ_BASE)
         x86_handle_exception(frame);
     else if (frame->interrupt_number >= IRQ_BASE && frame->interrupt_number < IRQ_BASE + IRQ_MAX)
@@ -239,21 +241,18 @@ void x86_interrupt_entry(ptr_t rsp)
     else if (frame->interrupt_number >= IPI_BASE && frame->interrupt_number < IPI_BASE + IPI_TYPE_MAX)
         ipi_do_handle((ipi_type_t) (frame->interrupt_number - IPI_BASE));
     else if (frame->interrupt_number == MOS_SYSCALL_INTR)
-        frame->ax = ksyscall_enter(frame->ax, frame->bx, frame->cx, frame->dx, frame->si, frame->di, frame->r9);
+        syscall_nr = frame->ax, syscall_ret = ksyscall_enter(frame->ax, frame->bx, frame->cx, frame->dx, frame->si, frame->di, frame->r9);
     else
         pr_warn("Unknown interrupt number: %lu", frame->interrupt_number);
 
-    thread_t *current = current_thread;
-    if (likely(current))
-    {
-        // flags may have been changed by platform_arch_syscall
-        if (current->owner->platform_options.iopl)
-            frame->eflags |= 0x3000; // enable IOPL
-        else
-            frame->eflags &= ~0x3000; // disable IOPL
+    if (unlikely(!current_thread))
+        x86_interrupt_return_impl(frame), MOS_UNREACHABLE();
 
-        signal_check_and_handle();
-    }
+    // jump to signal handler if there is a pending signal
+    if (frame->interrupt_number == MOS_SYSCALL_INTR)
+        signal_exit_to_user_prepare_syscall(frame, syscall_nr, syscall_ret);
+    else
+        signal_exit_to_user_prepare(frame);
 
     x86_interrupt_return_impl(frame);
     MOS_UNREACHABLE();

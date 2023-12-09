@@ -22,7 +22,7 @@ typedef struct _process process_t;
 typedef struct
 {
     sigaction_t handlers[SIGNAL_MAX_N]; ///< signal handlers
-    waitlist_t sigchild_waitlist;       ///< the parent is waiting for a child to exit, if not NULL
+    waitlist_t sigchild_waitlist;       ///< the parent is waiting for a child to exit, if not empty
 } process_signal_info_t;
 
 typedef struct _process
@@ -47,7 +47,7 @@ typedef struct _process
 
     platform_process_options_t platform_options; ///< platform per-process flags
 
-    process_signal_info_t signal_info; //< signal handling info
+    process_signal_info_t signal_info; ///< signal handling info
 } process_t;
 
 typedef struct

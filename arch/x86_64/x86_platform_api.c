@@ -149,12 +149,14 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
         {
             pr_dinfo2(syscall, "enabling IOPL for thread %pt", (void *) current_thread);
             current_process->platform_options.iopl = true;
+            platform_thread_regs(current_thread)->eflags |= 0x3000;
             return 0;
         }
         case X86_SYSCALL_IOPL_DISABLE:
         {
             pr_dinfo2(syscall, "disabling IOPL for thread %pt", (void *) current_thread);
             current_process->platform_options.iopl = false;
+            platform_thread_regs(current_thread)->eflags &= ~0x3000;
             return 0;
         }
         case X86_SYSCALL_SET_FS_BASE:
@@ -186,11 +188,8 @@ void platform_ipi_send(u8 target, ipi_type_t type)
         lapic_interrupt(IPI_BASE + type, target, APIC_DELIVER_MODE_NORMAL, LAPIC_DEST_MODE_PHYSICAL, LAPIC_SHORTHAND_NONE);
 }
 
-void platform_jump_to_signal_handler(const sigreturn_data_t *sigreturn_data, const sigaction_t *sa)
+void platform_jump_to_signal_handler(const platform_regs_t *regs, const sigreturn_data_t *sigreturn_data, const sigaction_t *sa)
 {
-    platform_regs_t *regs = platform_thread_regs(current_thread);
-
-    // avoid x86_64 ABI red zone
     current_thread->u_stack.head = regs->sp - 128;
 
     // backup previous frame
@@ -198,12 +197,13 @@ void platform_jump_to_signal_handler(const sigreturn_data_t *sigreturn_data, con
     stack_push_val(&current_thread->u_stack, *sigreturn_data);
 
     // Set up the new context
-    regs->ip = (ptr_t) sa->sa_handler;
+    platform_regs_t ret_regs = *regs;
+    ret_regs.ip = (ptr_t) sa->sa_handler;
     stack_push_val(&current_thread->u_stack, (ptr_t) sa->sa_restorer); // the return address
 
-    regs->di = sigreturn_data->signal; // arg1
-    regs->sp = current_thread->u_stack.head;
-    x86_interrupt_return_impl(regs);
+    ret_regs.di = sigreturn_data->signal; // arg1
+    ret_regs.sp = current_thread->u_stack.head;
+    x86_interrupt_return_impl(&ret_regs);
 }
 
 void platform_restore_from_signal_handler(void *sp)
@@ -244,4 +244,15 @@ void platform_dump_regs(platform_regs_t *frame)
             frame->cs, frame->ip,                           //
             frame->ss, frame->sp                            //
     );
+}
+
+void platform_syscall_restart(platform_regs_t *regs, reg_t syscall_nr)
+{
+    regs->ax = syscall_nr;
+    regs->ip -= 2; // replay the 'syscall' or 'int 0x88' instruction
+}
+
+void platform_syscall_result(platform_regs_t *regs, reg_t result)
+{
+    regs->ax = result;
 }

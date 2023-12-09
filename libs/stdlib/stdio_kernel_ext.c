@@ -136,7 +136,7 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
                         goto done;
                     }
 
-                    wrap_print("{ " PTR_RANGE ", ", vmap->vaddr, vmap->vaddr + vmap->npages * MOS_PAGE_SIZE - 1);
+                    wrap_print("{ [" PTR_VLFMT " - " PTR_VLFMT "], ", vmap->vaddr, vmap->vaddr + vmap->npages * MOS_PAGE_SIZE - 1);
                     wrap_printed(do_print_vmflags(buf, *size, vmap->vmflags));
                     wrap_print(", fault: %ps", (void *) (ptr_t) vmap->on_fault);
 

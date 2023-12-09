@@ -99,54 +99,37 @@ void signal_send_to_process(process_t *target, signal_t signal)
 static signal_t signal_get_next_pending(void)
 {
     signal_t signal = 0;
+
     MOS_ASSERT(spinlock_is_locked(&current_thread->signal_info.lock));
-    list_foreach(sigpending_t, sig, current_thread->signal_info.pending)
+    list_foreach(sigpending_t, pending, current_thread->signal_info.pending)
     {
-        if (current_thread->signal_info.masks[sig->signal])
+        if (current_thread->signal_info.masks[pending->signal])
             continue; // signal is masked, skip it
 
-        list_remove(sig);
-        signal = sig->signal;
-        kfree(sig);
+        list_remove(pending);
+        signal = pending->signal;
+        kfree(pending);
         break;
     }
 
     return signal;
 }
 
-// clang-format off
-#define _terminate() signal_do_terminate(next_signal); break
-#define _coredump()  signal_do_coredump(next_signal); break
-#define _ignore()    signal_do_ignore(next_signal); break
-// clang-format on
-
-void signal_check_and_handle(void)
+static void do_signal_exit_to_user_prepare(platform_regs_t *regs, signal_t next_signal, const sigaction_t *action)
 {
-    if (!current_thread)
-        return;
-
-    spinlock_acquire(&current_thread->signal_info.lock);
-    const signal_t next_signal = signal_get_next_pending();
-    spinlock_release(&current_thread->signal_info.lock);
-
-    if (!next_signal)
-        return; // no pending signal, leave asap
-
-    const sigaction_t action = current_process->signal_info.handlers[next_signal];
-
-    if (action.sa_handler == SIG_DFL)
+    if (action->sa_handler == SIG_DFL)
     {
         switch (next_signal)
         {
-            case SIGINT: _terminate();
-            case SIGILL: _coredump();
-            case SIGTRAP: _coredump();
-            case SIGABRT: _coredump();
-            case SIGKILL: _terminate();
-            case SIGSEGV: _coredump();
-            case SIGTERM: _terminate();
-            case SIGCHLD: _ignore();
-            case SIGPIPE: _terminate();
+            case SIGINT: signal_do_terminate(next_signal); break;
+            case SIGILL: signal_do_coredump(next_signal); break;
+            case SIGTRAP: signal_do_coredump(next_signal); break;
+            case SIGABRT: signal_do_coredump(next_signal); break;
+            case SIGKILL: signal_do_terminate(next_signal); break;
+            case SIGSEGV: signal_do_coredump(next_signal); break;
+            case SIGTERM: signal_do_terminate(next_signal); break;
+            case SIGCHLD: signal_do_ignore(next_signal); break;
+            case SIGPIPE: signal_do_terminate(next_signal); break;
 
             default: MOS_UNREACHABLE_X("handle this signal %d", next_signal); break;
         }
@@ -155,7 +138,7 @@ void signal_check_and_handle(void)
         return;
     }
 
-    if (action.sa_handler == SIG_IGN)
+    if (action->sa_handler == SIG_IGN)
     {
         signal_do_ignore(next_signal);
         return;
@@ -170,11 +153,58 @@ void signal_check_and_handle(void)
         .was_masked = was_masked,
     };
 
-    platform_jump_to_signal_handler(&data, &action); // save previous register states onto user stack
+    platform_jump_to_signal_handler(regs, &data, action); // save previous register states onto user stack
 }
-#undef _terminate
-#undef _coredump
-#undef _ignore
+
+void signal_exit_to_user_prepare(platform_regs_t *regs)
+{
+    MOS_ASSERT(current_thread);
+
+    spinlock_acquire(&current_thread->signal_info.lock);
+    const signal_t next_signal = signal_get_next_pending();
+    spinlock_release(&current_thread->signal_info.lock);
+
+    if (!next_signal)
+        return; // no pending signal, leave asap
+
+    const sigaction_t action = current_process->signal_info.handlers[next_signal];
+
+    do_signal_exit_to_user_prepare(regs, next_signal, &action);
+}
+
+void signal_exit_to_user_prepare_syscall(platform_regs_t *regs, reg_t syscall_nr, reg_t syscall_ret)
+{
+    MOS_ASSERT(current_thread);
+
+    spinlock_acquire(&current_thread->signal_info.lock);
+    const signal_t next_signal = signal_get_next_pending();
+    spinlock_release(&current_thread->signal_info.lock);
+
+    const sigaction_t action = current_process->signal_info.handlers[next_signal];
+
+    reg_t real_ret = syscall_ret;
+    if (syscall_ret == (reg_t) -ERESTARTSYS)
+    {
+        MOS_ASSERT(next_signal);
+        real_ret = -EINTR;
+
+        if (action.sa_flags & SA_RESTART)
+        {
+            pr_dinfo2(signal, "thread %pt will restart syscall %lu after signal %d", (void *) current_thread, syscall_nr, next_signal);
+            platform_syscall_restart(regs, syscall_nr);
+            goto really_prepare;
+        }
+        // else: fall through, return -EINTR
+    }
+
+    platform_syscall_result(regs, real_ret);
+
+    if (!next_signal)
+        return; // no pending signal, leave asap
+
+really_prepare:
+    do_signal_exit_to_user_prepare(regs, next_signal, &action);
+}
 
 void signal_on_returned(sigreturn_data_t *data)
 {

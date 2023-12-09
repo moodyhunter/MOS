@@ -344,11 +344,12 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, pagefaul
     if (current_thread)
     {
         signal_send_to_thread(current_thread, SIGSEGV);
-        signal_check_and_handle();
-        MOS_UNREACHABLE();
+        signal_exit_to_user_prepare(info->regs);
     }
-
-    mos_panic("unhandled page fault");
+    else
+    {
+        mos_panic("unhandled page fault");
+    }
 }
 
 void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)

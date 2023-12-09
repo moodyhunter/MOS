@@ -84,4 +84,4 @@ void x86_interrupt_entry(ptr_t esp);
 
 bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq));
 
-extern noreturn void x86_interrupt_return_impl(platform_regs_t *context);
+extern noreturn void x86_interrupt_return_impl(const platform_regs_t *regs);

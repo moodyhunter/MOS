@@ -41,8 +41,9 @@ static void x86_start_kernel_thread()
 
 static void x86_start_user_thread()
 {
-    signal_check_and_handle();
-    x86_interrupt_return_impl(platform_thread_regs(current_thread));
+    platform_regs_t *regs = platform_thread_regs(current_thread);
+    signal_exit_to_user_prepare(regs);
+    x86_interrupt_return_impl(regs);
 }
 
 static platform_regs_t *x86_setup_thread_common(thread_t *thread)
@@ -56,7 +57,11 @@ static platform_regs_t *x86_setup_thread_common(thread_t *thread)
     regs->sp = thread->mode == THREAD_MODE_KERNEL ? thread->k_stack.top : thread->u_stack.top;
 
     if (thread->mode == THREAD_MODE_USER)
-        regs->eflags = 0x202 | (thread->owner->platform_options.iopl ? 0x3000 : 0);
+    {
+        regs->eflags = 0x202;
+        if (thread->owner->platform_options.iopl)
+            regs->eflags |= 0x3000;
+    }
 
     return regs;
 }

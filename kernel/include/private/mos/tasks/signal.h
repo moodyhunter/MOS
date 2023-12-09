@@ -7,6 +7,8 @@
 #include <mos/lib/structures/list.h>
 #include <mos/tasks/signal_types.h>
 
+#define ERESTARTSYS 512
+
 /**
  * @defgroup kernel_tasks_signal kernel.tasks.signal
  * @ingroup kernel_tasks
@@ -42,10 +44,17 @@ void signal_send_to_thread(thread_t *target, signal_t signal);
 void signal_send_to_process(process_t *target, signal_t signal);
 
 /**
- * @brief Check if there is a pending signal and handle it.
+ * @brief Prepare to exit to userspace.
+ *
+ * @param regs The registers of the thread.
+ * @param syscall_nr The syscall number, used in case the syscall should be restarted.
+ * @param syscall_ret The return value of the syscall, which may be -ERESTARTSYS,
+ *                    in which case the syscall should be restarted.
  *
  */
-void signal_check_and_handle(void);
+void signal_exit_to_user_prepare(platform_regs_t *regs);
+
+void signal_exit_to_user_prepare_syscall(platform_regs_t *regs, reg_t syscall_nr, reg_t syscall_ret);
 
 typedef struct _sigreturn_data
 {
