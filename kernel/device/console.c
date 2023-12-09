@@ -25,14 +25,14 @@ static size_t console_io_read(io_t *io, void *data, size_t size)
         if (!ok)
         {
             pr_emerg("console: '%s' closed", con->name);
-            return 0;
+            return -EIO;
         }
         spinlock_acquire(&con->read.lock);
 
         if (signal_has_pending())
         {
             spinlock_release(&con->read.lock);
-            return 0;
+            return -ERESTARTSYS;
         }
     }
 
