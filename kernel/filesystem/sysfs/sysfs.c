@@ -147,10 +147,10 @@ static ssize_t sysfs_fops_read(const file_t *file, void *buf, size_t size, off_t
 {
     sysfs_file_t *f = file->dentry->inode->private;
     if (f->item->type != SYSFS_RO && f->item->type != SYSFS_RW)
-        return -1;
+        return -ENOTSUP;
 
     if (!sysfs_file_ensure_ready(file))
-        return -1;
+        return -ETXTBSY;
 
     if (offset >= f->buf_head_offset)
         return 0;
@@ -167,7 +167,7 @@ static ssize_t sysfs_fops_write(const file_t *file, const void *buf, size_t size
 {
     sysfs_file_t *f = file->dentry->inode->private;
     if (f->item->type != SYSFS_WO && f->item->type != SYSFS_RW)
-        return -1;
+        return -ENOTSUP;
     return f->item->store(f, buf, size, offset);
 }
 
