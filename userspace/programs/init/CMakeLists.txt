@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+add_executable(bootstrapper bootstrapper.c)
+target_link_libraries(bootstrapper PRIVATE mos::stdlib)
+add_to_initrd(TARGET bootstrapper /programs)
+
 add_executable(init main.c)
 target_link_libraries(init
     PRIVATE

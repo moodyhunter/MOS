@@ -93,6 +93,15 @@ config UBSAN
     bool "enable undefined behavior sanitizer"
     default n
 
+config MAP_INITRD_TO_INIT
+    bool "map initrd to init process"
+    default n
+
+config INITRD_BASE
+    hex "base address of initrd when mapped to init process"
+    default 0x100000000
+    depends on MAP_INITRD_TO_INIT
+
 # ! ============================================================
 
 menu "Kernel Debugging Options"

@@ -5,6 +5,7 @@
 #include "mos/misc/power.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/dump.h"
+#include "mos/mm/paging/paging.h"
 #include "mos/panic.h"
 
 #include <mos/cmdline.h>
@@ -23,7 +24,7 @@
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
-#define DEFAULT_INIT_PATH "/initrd/programs/init"
+#define DEFAULT_INIT_PATH "/initrd/programs/bootstrapper"
 
 typedef void (*init_function_t)(void);
 
@@ -165,10 +166,28 @@ void mos_start_kernel(void)
     if (unlikely(!init))
         mos_panic("failed to create init process");
 
+// map initrd into init process
+#if MOS_CONFIG(MOS_MAP_INITRD_TO_INIT)
+    vmap_t *initrd_map = mm_map_user_pages( //
+        init->mm,                           //
+        MOS_INITRD_BASE,                    //
+        platform_info->initrd_pfn,          //
+        platform_info->initrd_pfn,          //
+        VM_USER_RO,                         //
+        VALLOC_EXACT,                       //
+        VMAP_TYPE_SHARED,                   //
+        VMAP_FILE                           //
+    );
+
+    MOS_ASSERT_X(initrd_map, "failed to map initrd into init process");
+#endif
+
     kthread_init(); // must be called after creating the first init process
     startup_invoke_autoinit(INIT_TARGET_KTHREAD);
 
     unblock_scheduler();
+
+    pr_cont("\n");
     scheduler();
     MOS_UNREACHABLE();
 }
