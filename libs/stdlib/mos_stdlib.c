@@ -90,11 +90,10 @@ s64 strntoll(const char *str, char **endptr, int base, size_t n)
 
 void format_size(char *buf, size_t buf_size, u64 size)
 {
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
     static const char *const units[] = { "B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB" };
     size_t i = 0;
     size_t diff = 0;
-    while (size >= 1024 && i < ARRAY_SIZE(units) - 1)
+    while (size >= 1024 && i < MOS_ARRAY_SIZE(units) - 1)
     {
         diff = size % 1024;
         size /= 1024;
