@@ -49,13 +49,13 @@ SYSFS_ITEM_RO_STRING(kernel_sysfs_compiler, __VERSION__)
 SYSFS_ITEM_RO_STRING(init_sysfs_path, init_args.argv[0])
 
 static sysfs_item_t kernel_sysfs_items[] = {
-    SYSFS_RO_ITEM("kernel_version", kernel_sysfs_version),
-    SYSFS_RO_ITEM("kernel_revision", kernel_sysfs_revision),
-    SYSFS_RO_ITEM("kernel_build_date", kernel_sysfs_build_date),
-    SYSFS_RO_ITEM("kernel_build_time", kernel_sysfs_build_time),
-    SYSFS_RO_ITEM("kernel_compiler", kernel_sysfs_compiler),
-    SYSFS_RO_ITEM("init_path", init_sysfs_path),
-    SYSFS_RO_ITEM("init_argv", init_sysfs_argv),
+    SYSFS_RO_ITEM("version", kernel_sysfs_version),       //
+    SYSFS_RO_ITEM("revision", kernel_sysfs_revision),     //
+    SYSFS_RO_ITEM("build_date", kernel_sysfs_build_date), //
+    SYSFS_RO_ITEM("build_time", kernel_sysfs_build_time), //
+    SYSFS_RO_ITEM("compiler", kernel_sysfs_compiler),     //
+    SYSFS_RO_ITEM("init_path", init_sysfs_path),          //
+    SYSFS_RO_ITEM("init_argv", init_sysfs_argv),          //
 };
 
 SYSFS_AUTOREGISTER(kernel, kernel_sysfs_items);
@@ -130,10 +130,6 @@ void mos_start_kernel(void)
     init_args.argv = krealloc(init_args.argv, (init_args.argc + 1) * sizeof(char *));
     init_args.argv[init_args.argc] = NULL;
 
-    pr_emph("init path: %s", init_args.argv[0]);
-    for (u32 i = 1; i < init_args.argc; i++)
-        pr_emph("init arg %d: %s", i, init_args.argv[i]);
-
     long ret = vfs_mount("none", "/", "tmpfs", NULL);
     if (IS_ERR_VALUE(ret))
         mos_panic("failed to mount rootfs");
@@ -156,6 +152,15 @@ void mos_start_kernel(void)
         "TERM=linux",
         NULL,
     };
+
+    pr_info("run '%s' as init process", init_args.argv[0]);
+    pr_info2("  with arguments:");
+    for (u32 i = 0; i < init_args.argc; i++)
+        pr_info2("    argv[%d] = %s", i, init_args.argv[i]);
+    pr_info2("  with environment:");
+    for (u32 i = 0; init_envp[i]; i++)
+        pr_info2("  %s", init_envp[i]);
+
     process_t *init = elf_create_process(init_args.argv[0], NULL, init_args.argv, init_envp, &init_io);
     if (unlikely(!init))
         mos_panic("failed to create init process");

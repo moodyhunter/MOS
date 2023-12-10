@@ -82,8 +82,8 @@ static bool tasks_sysfs_thread_list(sysfs_file_t *f)
 }
 
 static sysfs_item_t task_sysfs_items[] = {
-    SYSFS_RO_ITEM("process_list", tasks_sysfs_process_list),
-    SYSFS_RO_ITEM("thread_list", tasks_sysfs_thread_list),
+    SYSFS_RO_ITEM("processes", tasks_sysfs_process_list),
+    SYSFS_RO_ITEM("threads", tasks_sysfs_thread_list),
 };
 
 SYSFS_AUTOREGISTER(tasks, task_sysfs_items);
