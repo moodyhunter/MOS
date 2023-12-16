@@ -4,6 +4,8 @@ if (NOT DEFINED MOS_ARCH)
     message(FATAL_ERROR "MOS_ARCH is not defined")
 endif()
 
+include(${CMAKE_SOURCE_DIR}/cmake/toolchains/${MOS_ARCH}-mos.cmake)
+
 set(_ARCH_CONFIGURATION_FILE ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/platform_config.cmake)
 set(_ARCH_LISTS ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/CMakeLists.txt)
 
@@ -13,8 +15,8 @@ endif()
 
 include(${_ARCH_CONFIGURATION_FILE})
 
-if(NOT DEFINED MOS_COMPILER_PREFIX OR NOT DEFINED MOS_BITS)
-    message(FATAL_ERROR "MOS_COMPILER_PREFIX or MOS_BITS is not defined, the target architecture config file is not correct")
+if(NOT DEFINED MOS_BITS)
+    message(FATAL_ERROR "MOS_BITS is not defined, the target architecture config file is not correct")
 endif()
 
 set(MOS_CX_FLAGS "${MOS_CX_FLAGS} -Wall -Wextra -Wpedantic -pedantic -Werror=div-by-zero")
@@ -41,9 +43,6 @@ if (__MOS_HAS_NO_COMPILER)
     set(CMAKE_ASM_NASM_COMPILER "true")
     set(CMAKE_ASM_NASM_COMPILER_WORKS 1)
     message(WARNING "__MOS_HAS_NO_COMPILER is set, using true as compiler.")
-else()
-    find_program(CMAKE_C_COMPILER NAMES "${MOS_COMPILER_PREFIX}gcc" NO_CACHE)
-    find_program(CMAKE_CXX_COMPILER NAMES "${MOS_COMPILER_PREFIX}g++" NO_CACHE)
 endif()
 
 message(STATUS "Target: C compiler: ${CMAKE_C_COMPILER}")
