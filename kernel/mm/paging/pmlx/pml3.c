@@ -69,7 +69,7 @@ void pml3_traverse(pml3_t pml3, ptr_t *vaddr, size_t *n_pages, pagetable_walk_op
 
 bool pml3_destroy_range(pml3_t pml3, ptr_t *vaddr, size_t *n_pages)
 {
-    const bool should_zap_this_pml3 = pml3_index(*vaddr) == 0 && *n_pages >= PML3_ENTRIES;
+    const bool should_zap_this_pml3 = pml3_index(*vaddr) == 0 && *n_pages >= PML3_ENTRIES * PML3E_NPAGES;
 
     for (size_t i = pml3_index(*vaddr); i < PML3_ENTRIES && *n_pages; i++)
     {

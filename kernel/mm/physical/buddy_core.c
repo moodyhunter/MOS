@@ -30,7 +30,7 @@ static void add_to_freelist(size_t order, phyframe_t *frame)
     list_node_t *frame_node = list_node(frame);
     MOS_ASSERT(list_is_empty(frame_node));
 
-    list_head *head = &buddy.freelists[order];
+    list_head *const head = &buddy.freelists[order];
     list_head *node = head->next;
 
     // performance hot spot, even a binary tree would always be faster
@@ -354,6 +354,7 @@ void buddy_free_n(pfn_t pfn, size_t nframes)
     pr_dinfo2(pmm_buddy, "freeing " PFN_RANGE " (%zu frames)", pfn, pfn + nframes - 1, nframes);
 
     phyframe_t *const frame = pfn_phyframe(pfn);
+    MOS_ASSERT_X(frame->state == PHYFRAME_ALLOCATED, "O");
     MOS_ASSERT(list_is_empty(list_node(frame)));
     frame->state = PHYFRAME_FREE;
 

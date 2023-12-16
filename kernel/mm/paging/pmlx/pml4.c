@@ -8,6 +8,7 @@
 #include "mos/mm/paging/pmlx/pml3.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
+#include "mos/platform/platform_defs.h"
 
 #include <mos/mos_global.h>
 #include <mos_stdlib.h>
@@ -70,7 +71,11 @@ void pml4_traverse(pml4_t pml4, ptr_t *vaddr, size_t *n_pages, pagetable_walk_op
 
 bool pml4_destroy_range(pml4_t pml4, ptr_t *vaddr, size_t *n_pages)
 {
-    const bool should_zap_this_pml4 = pml4_index(*vaddr) == 0 && *n_pages >= PML4_ENTRIES;
+#if MOS_PLATFORM_PAGING_LEVELS <= 4
+    const bool should_zap_this_pml4 = pml4_index(*vaddr) == 0 && *n_pages == (MOS_USER_END_VADDR + 1) / MOS_PAGE_SIZE;
+#else
+    const bool should_zap_this_pml4 = pml4_index(*vaddr) == 0 && *n_pages >= PML4_ENTRIES * PML4E_NPAGES;
+#endif
 
     for (size_t i = pml4_index(*vaddr); i < PML4_ENTRIES && *n_pages; i++)
     {

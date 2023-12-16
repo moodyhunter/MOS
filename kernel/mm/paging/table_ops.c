@@ -36,14 +36,17 @@ void mm_do_flag(pgd_t max, ptr_t vaddr, size_t n_pages, vm_flags flags)
 void mm_do_unmap(pgd_t max, ptr_t vaddr, size_t n_pages, bool do_unref)
 {
     pr_dinfo2(vmm, "mm_do_unmap: vaddr=" PTR_FMT ", n_pages=%zu, do_unref=%d", vaddr, n_pages, do_unref);
-    ptr_t vaddr1 = vaddr, vaddr2 = vaddr;
-    size_t n_pages1 = n_pages, n_pages2 = n_pages;
+    ptr_t vaddr1 = vaddr;
+    size_t n_pages1 = n_pages;
+
+    const ptr_t vaddr2 = vaddr;
+    const size_t n_pages2 = n_pages;
 
     struct pagetable_do_unmap_data data = { .do_unref = do_unref };
     pml5_traverse(max.max, &vaddr, &n_pages, pagetable_do_unmap_callbacks, &data);
     bool pml5_destroyed = pml5_destroy_range(max.max, &vaddr1, &n_pages1);
     if (pml5_destroyed)
-        pr_warn("mm_do_unmap: pml5 destroyed: vaddr=" PTR_FMT ", n_pages=%zu", vaddr2, n_pages2);
+        pr_warn("mm_do_unmap: pml5 destroyed: vaddr=" PTR_RANGE ", n_pages=%zu", vaddr2, vaddr2 + n_pages2 * MOS_PAGE_SIZE, n_pages2);
 }
 
 void mm_do_mask_flags(pgd_t max, ptr_t vaddr, size_t n_pages, vm_flags mask)
@@ -175,5 +178,6 @@ void *__create_page_table(void)
 void __destroy_page_table(void *table)
 {
     mmstat_dec1(MEM_PAGETABLE);
+    pr_dinfo2(vmm, "__destroy_page_table: table=" PTR_FMT, (ptr_t) table);
     mm_free_page(va_phyframe(table));
 }

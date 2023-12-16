@@ -13,6 +13,7 @@
 #include "mos/mm/slab_autoinit.h"
 #include "mos/panic.h"
 #include "mos/platform/platform.h"
+#include "mos/platform/platform_defs.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/signal.h"
@@ -94,9 +95,9 @@ void mm_destroy_context(mm_context_t *mmctx)
     MOS_ASSERT(list_is_empty(&mmctx->mmaps));
 
     ptr_t zero = 0;
-    size_t userspace_npages = (0x7fffffffffff + 1) / MOS_PAGE_SIZE;
+    size_t userspace_npages = (MOS_USER_END_VADDR + 1) / MOS_PAGE_SIZE;
     const bool freed = pml5_destroy_range(mmctx->pgd.max, &zero, &userspace_npages);
-    MOS_ASSERT(freed); // the entire userspace should be freed
+    MOS_ASSERT_X(freed, "failed to free the entire userspace");
     kfree(mmctx);
 }
 

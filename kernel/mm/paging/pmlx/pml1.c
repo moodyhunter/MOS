@@ -26,7 +26,7 @@ void pml1_traverse(pml1_t pml1, ptr_t *vaddr, size_t *n_pages, pagetable_walk_op
 
 bool pml1_destroy_range(pml1_t pml1, ptr_t *vaddr, size_t *n_pages)
 {
-    const bool should_zap_this_pml1 = pml1_index(*vaddr) == 0 && *n_pages >= PML1_ENTRIES;
+    const bool should_zap_this_pml1 = pml1_index(*vaddr) == 0 && *n_pages >= PML1_ENTRIES * PML1E_NPAGES;
 
     for (size_t pml1_i = pml1_index(*vaddr); pml1_i < PML1_ENTRIES && *n_pages; pml1_i++)
     {
