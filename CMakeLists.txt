@@ -64,11 +64,11 @@ endif()
 # Public includes interface target
 add_library(mos_kernel_include INTERFACE)
 target_include_directories(mos_kernel_include SYSTEM INTERFACE
-    ${MOS_MLIBC_HEADER_DIR}/                            # mlibc headers
     ${CMAKE_BINARY_DIR}/include                         # generated headers
     ${CMAKE_BINARY_DIR}/kconfig/include                 # generated kconfig headers
     ${CMAKE_SOURCE_DIR}/kernel/include/public           # public types
     ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/include/public # public arch (e.g. syscall)
+    ${MOS_MLIBC_HEADER_DIR}/                            # mlibc headers
 )
 add_library(mos::include ALIAS mos_kernel_include)
 
