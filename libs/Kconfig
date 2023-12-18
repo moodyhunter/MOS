@@ -4,7 +4,7 @@ menu "Library Options"
 
 config MLIBC_HEADER_DIR
     string "mlibc header include directory"
-    default "/usr/$ARCH-mos/include/"
+    default "/opt/$ARCH-mos/include/"
     help
       The directory where the C library 'mlibc' headers are installed.
 
