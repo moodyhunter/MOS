@@ -1,5 +1,5 @@
-set(CMAKE_SYSROOT "/usr/x86_64-mos")
-set(CMAKE_PREFIX_PATH "/usr/x86_64-mos")
+set(CMAKE_SYSROOT "/opt/x86_64-mos")
+set(CMAKE_PREFIX_PATH "/opt/x86_64-mos")
 
 set(CMAKE_SYSTEM_NAME "MOS")
 set(CMAKE_SYSTEM_PROCESSOR "x86_64")
