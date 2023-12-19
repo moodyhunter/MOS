@@ -75,7 +75,11 @@ bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs)
     MOS_ASSERT_X(dentry_parent(root) == NULL, "mountpoint already has a parent");
 
     dentry_ref(root);
-    tree_node(root)->parent = tree_node(dentry_parent(mountpoint));
+
+    tree_node(root)->parent = NULL;
+    if (dentry_parent(mountpoint))
+        tree_node(root)->parent = tree_node(dentry_parent(mountpoint));
+
     mountpoint->is_mountpoint = true;
 
     mount_t *mount = kmalloc(mount_cache);

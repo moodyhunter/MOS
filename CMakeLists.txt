@@ -81,6 +81,10 @@ target_include_directories(mos_kernel_private_include INTERFACE
 add_library(mos::private_include ALIAS mos_kernel_private_include)
 
 add_library(mos_kernel_compile_options INTERFACE)
+if ("${MOS_UBSAN}" STREQUAL "y")
+    target_compile_options(mos_kernel_compile_options INTERFACE -g -fsanitize=undefined)
+    target_link_options(mos_kernel_compile_options INTERFACE -g -fsanitize=undefined)
+endif()
 target_compile_options(mos_kernel_compile_options INTERFACE -ffreestanding ${MOS_KERNEL_CFLAGS})
 target_compile_definitions(mos_kernel_compile_options INTERFACE -D__MOS_KERNEL__ -D__MLIBC_ABI_ONLY)
 target_link_options(mos_kernel_compile_options INTERFACE -nostdlib)
