@@ -30,6 +30,21 @@ typedef struct rpc_function_info
 MOSAPI rpc_server_t *rpc_server_create(const char *server_name, void *data);
 
 /**
+ * @brief Set the user data for the server
+ *
+ * @param server The server to set the data for
+ * @param data The data to set
+ */
+MOSAPI void rpc_server_set_data(rpc_server_t *server, void *data);
+
+/**
+ * @brief Get the user data for the server
+ *
+ * @param server The server to get the data for
+ */
+MOSAPI void *rpc_server_get_data(rpc_server_t *server);
+
+/**
  * @brief Run the server, this function will not return until the server is destroyed
  *
  * @param server The server to run

@@ -7,20 +7,64 @@
 
 #include <libipc/ipc.h>
 #include <mos/types.h>
+
+#ifdef __MOS_KERNEL__
+#include "mos/tasks/kthread.h"
+
+#include <mos/lib/sync/mutex.h>
+#include <mos/syscall/decl.h>
 #include <mos_stdio.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
+#define syscall_ipc_create(server_name, max_pending_calls) impl_syscall_ipc_create(server_name, max_pending_calls)
+#define syscall_ipc_accept(server_fd)                      impl_syscall_ipc_accept(server_fd)
+#define syscall_ipc_connect(server_name, smh_size)         impl_syscall_ipc_connect(server_name, smh_size)
+#define syscall_io_close(fd)                               impl_syscall_io_close(fd)
+#define start_thread(name, func, arg)                      kthread_create(func, arg, name)
+#elifdef __MOS_MINIMAL_LIBC__
+#include "mos/lib/sync/mutex.h"
+#include "mos/moslib_global.h"
 
-#ifdef __MOS_KERNEL__
-#include <mos/syscall/decl.h>
-#define syscall_ipc_create impl_syscall_ipc_create
-#define syscall_ipc_accept impl_syscall_ipc_accept
-#define syscall_io_close   impl_syscall_io_close
-
-#include "mos/tasks/kthread.h"
-#define start_thread(name, func, arg) kthread_create(func, arg, name)
+#include <mos/syscall/usermode.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 #else
 #include <mos/syscall/usermode.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+typedef pthread_mutex_t mutex_t;
+#define memzero(ptr, size)    memset(ptr, 0, size)
+#define mutex_acquire(mutex)  pthread_mutex_lock(mutex)
+#define mutex_release(mutex)  pthread_mutex_unlock(mutex)
+#define mos_warn(...)         fprintf(stderr, __VA_ARGS__)
+#define MOS_LIB_UNREACHABLE() __builtin_unreachable()
+
+typedef struct
+{
+    thread_entry_t entry;
+    void *arg;
+} thread_start_args_t;
+
+static void thread_start(void *_arg)
+{
+    thread_entry_t entry = ((thread_start_args_t *) _arg)->entry;
+    void *entry_arg = ((thread_start_args_t *) _arg)->arg;
+    entry(entry_arg);
+    free(_arg);
+    syscall_thread_exit();
+}
+
+static tid_t start_thread(const char *name, thread_entry_t entry, void *arg)
+{
+    thread_start_args_t *thread_start_args = malloc(sizeof(thread_start_args_t));
+    thread_start_args->entry = entry;
+    thread_start_args->arg = arg;
+    return syscall_create_thread(name, thread_start, thread_start_args);
+}
+
 #endif
 
 #define RPC_SERVER_MAX_PENDING_CALLS 32
@@ -69,8 +113,11 @@ static void rpc_handle_call(void *arg)
 
     while (true)
     {
-        ipc_msg_t *msg = ipc_read_msg(client_fd);
-        if (!msg || msg->size < sizeof(rpc_request_t))
+        ipc_msg_t *const msg = ipc_read_msg(client_fd);
+        if (!msg)
+            break;
+
+        if (msg->size < sizeof(rpc_request_t))
         {
             mos_warn("failed to read message from client");
             ipc_msg_destroy(msg);
@@ -146,6 +193,16 @@ void rpc_server_destroy(rpc_server_t *server)
     if (server->functions)
         free(server->functions);
     free(server);
+}
+
+void rpc_server_set_data(rpc_server_t *server, void *data)
+{
+    server->data = data;
+}
+
+void *rpc_server_get_data(rpc_server_t *server)
+{
+    return server->data;
 }
 
 void rpc_server_exec(rpc_server_t *server)

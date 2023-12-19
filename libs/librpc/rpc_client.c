@@ -4,21 +4,38 @@
 
 #include "librpc/internal.h"
 #include "librpc/rpc.h"
-#include "mos/moslib_global.h"
 
 #include <libipc/ipc.h>
-#include <mos/lib/sync/mutex.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
 #include <stdarg.h>
 
 #ifdef __MOS_KERNEL__
+#include <mos/lib/sync/mutex.h>
 #include <mos/syscall/decl.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 #define syscall_ipc_connect(server_name, smh_size) impl_syscall_ipc_connect(server_name, smh_size)
 #define syscall_io_close(fd)                       impl_syscall_io_close(fd)
+#elifdef __MOS_MINIMAL_LIBC__
+#include "mos/lib/sync/mutex.h"
+#include "mos/moslib_global.h"
+
+#include <mos/syscall/usermode.h>
+#include <mos_stdio.h>
+#include <mos_stdlib.h>
+#include <mos_string.h>
 #else
 #include <mos/syscall/usermode.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+typedef pthread_mutex_t mutex_t;
+#define memzero(ptr, size)    memset(ptr, 0, size)
+#define mutex_acquire(mutex)  pthread_mutex_lock(mutex)
+#define mutex_release(mutex)  pthread_mutex_unlock(mutex)
+#define mos_warn(...)         fprintf(stderr, __VA_ARGS__)
+#define MOS_LIB_UNREACHABLE() __builtin_unreachable()
 #endif
 
 #define RPC_CLIENT_SMH_SIZE MOS_PAGE_SIZE
