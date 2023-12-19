@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 
             if (dirent->type == FILE_TYPE_SYMLINK)
             {
-                char link[BUFSIZE];
+                char link[BUFSIZE] = { 0 };
                 size_t sz = syscall_vfs_readlinkat(dirfd, dirent->name, link, BUFSIZE);
                 bool can_stat = sz > 0 && lstatat(dirfd, link, &statbuf);
                 if (can_stat)
