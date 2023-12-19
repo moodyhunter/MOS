@@ -19,3 +19,5 @@ add_subdirectory(libconfig)
 add_subdirectory(readline)
 
 add_to_initrd(TARGET libipc_hosted /lib)
+add_to_initrd(TARGET librpc-client_hosted /lib)
+add_to_initrd(TARGET librpc-server_hosted /lib)

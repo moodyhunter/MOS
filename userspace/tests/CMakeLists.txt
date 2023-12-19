@@ -13,6 +13,7 @@ add_subdirectory(signal)
 add_subdirectory(pipe-test)
 
 add_subdirectory(librpc-rs-test)
+add_subdirectory(syslog-test)
 
 add_executable(test-launcher test-main.c)
 setup_userspace_program(test-launcher /tests "Userspace test launcher")
