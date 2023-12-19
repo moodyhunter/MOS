@@ -3,6 +3,7 @@
 #include <argparse/libargparse.h>
 #include <libconfig/libconfig.h>
 #include <mos/syscall/usermode.h>
+#include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -142,6 +143,16 @@ static bool mount_filesystems(void)
     return true;
 }
 
+static void sigsegv_handler(int sig)
+{
+    if (sig == SIGSEGV)
+    {
+        puts("\033[1;31mSegmentation fault\033[0m");
+        while (true)
+            sched_yield();
+    }
+}
+
 #define DYN_ERROR_CODE (__COUNTER__ + 1)
 
 static const argparse_arg_t longopts[] = {
@@ -153,6 +164,7 @@ static const argparse_arg_t longopts[] = {
 
 int main(int argc, const char *argv[])
 {
+    sigaction(SIGSEGV, &(struct sigaction){ .sa_handler = sigsegv_handler, .sa_flags = SA_RESTART }, NULL);
     sigaction(SIGCHLD, &(struct sigaction){ .sa_handler = SIG_IGN, .sa_flags = SA_RESTART }, NULL);
     sigaction(SIGTERM, &(struct sigaction){ .sa_handler = SIG_IGN, .sa_flags = SA_RESTART }, NULL);
 
