@@ -9,6 +9,8 @@ add_mos_library(
         rpc_client.c
     LINK_LIBRARIES
         mos::libipc
+    DEFINES
+        __MOS_RPC_CLIENT__
 )
 
 add_library(librpc::client ALIAS librpc-client)
@@ -22,6 +24,8 @@ add_mos_library(
         rpc_server.c
     LINK_LIBRARIES
         mos::libipc
+    DEFINES
+        __MOS_RPC_SERVER__
 )
 
 add_library(librpc::server ALIAS librpc-server)
