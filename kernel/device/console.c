@@ -58,7 +58,7 @@ static const io_op_t console_io_ops = {
     .write = console_io_write,
 };
 
-void console_register(console_t *con, size_t buf_size)
+void console_register(console_t *con)
 {
     if (con->caps & CONSOLE_CAP_EXTRA_SETUP)
     {
@@ -75,7 +75,7 @@ void console_register(console_t *con, size_t buf_size)
     con->read.lock = (spinlock_t) SPINLOCK_INIT;
     con->write.lock = (spinlock_t) SPINLOCK_INIT;
 
-    ring_buffer_pos_init(&con->read.pos, buf_size);
+    ring_buffer_pos_init(&con->read.pos, con->read.size);
     io_init(&con->io, IO_CONSOLE, IO_READABLE | IO_WRITABLE, &console_io_ops);
     list_node_append(&consoles, list_node(con));
     waitlist_init(&con->waitlist);

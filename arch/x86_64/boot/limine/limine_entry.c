@@ -70,8 +70,9 @@ static void ap_entry(struct limine_smp_info *info)
 
 asmlinkage void limine_entry(void)
 {
-    extern serial_console_t com1_console;
-    console_register(&com1_console.con, MOS_PAGE_SIZE);
+    extern serial_console_t com1_console, com2_console;
+    console_register(&com1_console.con);
+    console_register(&com2_console.con);
 #if MOS_DEBUG_FEATURE(x86_startup)
     pr_cont("limine_entry");
 #endif

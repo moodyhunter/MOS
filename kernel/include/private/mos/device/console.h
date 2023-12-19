@@ -34,6 +34,7 @@ typedef struct _console
         spinlock_t lock;
         ring_buffer_pos_t pos;
         u8 *buf;
+        size_t size;
     } read;
 
     struct
@@ -64,7 +65,7 @@ typedef struct console_ops
 } console_ops_t;
 
 extern list_head consoles;
-void console_register(console_t *con, size_t buf_size);
+void console_register(console_t *con);
 console_t *console_get(const char *name);
 console_t *console_get_by_prefix(const char *prefix);
 

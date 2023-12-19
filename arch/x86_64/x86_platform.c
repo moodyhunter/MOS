@@ -27,6 +27,7 @@
 #include <mos_string.h>
 
 static u8 com1_buf[MOS_PAGE_SIZE] __aligned(MOS_PAGE_SIZE) = { 0 };
+static u8 com2_buf[MOS_PAGE_SIZE] __aligned(MOS_PAGE_SIZE) = { 0 };
 
 serial_console_t com1_console = {
     .device = {
@@ -44,6 +45,29 @@ serial_console_t com1_console = {
         .name = "serial_com1",
         .caps = CONSOLE_CAP_EXTRA_SETUP,
         .read.buf = com1_buf,
+        .read.size = MOS_PAGE_SIZE,
+        .default_fg = LightBlue,
+        .default_bg = Black,
+    },
+};
+
+serial_console_t com2_console = {
+    .device = {
+            .port = COM2,
+            .baud_rate = BAUD_RATE_115200,
+            .char_length = CHAR_LENGTH_8,
+            .stop_bits = STOP_BITS_15_OR_2,
+            .parity = PARITY_EVEN,
+        },
+    .con = {
+        .ops =
+            &(console_ops_t){
+                .extra_setup = serial_console_setup,
+            },
+        .name = "serial_com2",
+        .caps = CONSOLE_CAP_EXTRA_SETUP,
+        .read.buf = com2_buf,
+        .read.size = MOS_PAGE_SIZE,
         .default_fg = LightBlue,
         .default_bg = Black,
     },
