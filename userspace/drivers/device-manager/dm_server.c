@@ -6,7 +6,7 @@
 #include <librpc/rpc_server.h>
 #include <mos_stdio.h>
 
-DECLARE_RPC_SERVER_PROTOTYPES(dm, DM_RPCS_X)
+RPC_DECL_SERVER_PROTOTYPES(dm, DM_RPCS_X)
 
 static int dm_register_device(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
 {

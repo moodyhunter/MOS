@@ -59,7 +59,7 @@
 
 // ============ SERVER SIDE ============
 // Generate the function prototypes and the function info array
-#define DECLARE_RPC_SERVER_PROTOTYPES(name, X_MACRO)                                                                                                                     \
+#define RPC_DECL_SERVER_PROTOTYPES(name, X_MACRO)                                                                                                                        \
     MOS_WARNING_PUSH                                                                                                                                                     \
     MOS_WARNING_DISABLE("-Wgnu-zero-variadic-macro-arguments")                                                                                                           \
     X_MACRO(X_GENERATE_FUNCTION_FORWARDS, name##_)                                                                                                                       \
