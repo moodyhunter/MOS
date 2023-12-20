@@ -18,6 +18,7 @@
 
 #ifdef __MOS_KERNEL__
 #include <mos/syscall/decl.h>
+#include <mos_stdlib.h>
 #define syscall_io_read(fd, buffer, size)  impl_syscall_io_read(fd, buffer, size)
 #define syscall_io_write(fd, buffer, size) impl_syscall_io_write(fd, buffer, size)
 #else
