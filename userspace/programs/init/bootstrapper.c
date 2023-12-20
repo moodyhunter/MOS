@@ -7,11 +7,16 @@
 // - Starting the stage 2 init program
 
 #include <fcntl.h>
+#include <mos/filesystem/fs_types.h>
 #include <mos/mos_global.h>
 #include <mos/moslib_global.h>
 #include <mos_stdio.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
+
+#if !MOS_CONFIG(MOS_MAP_INITRD_TO_INIT)
+#error "MOS_MAP_INITRD_TO_INIT must be enabled to use bootstrapper"
+#endif
 
 #define CPIO_MODE_FILE_TYPE 0170000 // This masks the file type bits.
 #define CPIO_MODE_SOCKET    0140000 // File type value for sockets.
@@ -121,5 +126,6 @@ static bool cpio_read_metadata(const char *target, cpio_header_t *header, cpio_m
 
 int main(int argc, const char *argv[])
 {
-    return 0;
+    MOS_UNUSED(argc);
+    return syscall_execveat(FD_CWD, "/initrd/programs/init", argv, NULL, 0);
 }

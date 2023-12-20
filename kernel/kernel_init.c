@@ -6,6 +6,7 @@
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/dump.h"
 #include "mos/mm/paging/paging.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/panic.h"
 
 #include <mos/cmdline.h>
@@ -172,12 +173,15 @@ void mos_start_kernel(void)
         init->mm,                           //
         MOS_INITRD_BASE,                    //
         platform_info->initrd_pfn,          //
-        platform_info->initrd_pfn,          //
+        platform_info->initrd_npages,       //
         VM_USER_RO,                         //
         VALLOC_EXACT,                       //
         VMAP_TYPE_SHARED,                   //
         VMAP_FILE                           //
     );
+
+    pmm_ref(platform_info->initrd_pfn, platform_info->initrd_npages);
+    pmm_ref(platform_info->initrd_pfn, platform_info->initrd_npages);
 
     MOS_ASSERT_X(initrd_map, "failed to map initrd into init process");
 #endif

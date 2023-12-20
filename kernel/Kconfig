@@ -95,11 +95,11 @@ config UBSAN
 
 config MAP_INITRD_TO_INIT
     bool "map initrd to init process"
-    default n
+    default y
 
 config INITRD_BASE
     hex "base address of initrd when mapped to init process"
-    default 0x100000000
+    default 0x300000000
     depends on MAP_INITRD_TO_INIT
 
 # ! ============================================================
