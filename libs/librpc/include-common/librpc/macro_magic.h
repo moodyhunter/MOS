@@ -26,10 +26,7 @@
     should_inline rpc_result_code_t prefix##name(rpc_server_stub_t *server_stub FOR_EACH(RPC_GENERATE_PROTOTYPE, __VA_ARGS__))                                           \
     {                                                                                                                                                                    \
         if (unlikely(spec == NULL))                                                                                                                                      \
-        {                                                                                                                                                                \
-            fprintf(stderr, "simple call isn't available for '" #name "'\n");                                                                                            \
             return RPC_RESULT_INVALID_ARG;                                                                                                                               \
-        }                                                                                                                                                                \
         return rpc_simple_call(server_stub, id, NULL, spec FOR_EACH(RPC_EXTRACT_NAME, __VA_ARGS__));                                                                     \
     }
 
@@ -43,6 +40,7 @@
 #define FOR_EACH_6(what, x, ...) what(x) EXPAND(FOR_EACH_5(what, __VA_ARGS__))
 #define FOR_EACH_7(what, x, ...) what(x) EXPAND(FOR_EACH_6(what, __VA_ARGS__))
 #define FOR_EACH_8(what, x, ...) what(x) EXPAND(FOR_EACH_7(what, __VA_ARGS__))
+#define FOR_EACH_9(what, x, ...) what(x) EXPAND(FOR_EACH_8(what, __VA_ARGS__))
 #define FOR_EACH_NARG(...)       FOR_EACH_NARG_(__VA_ARGS__, FOR_EACH_RSEQ_N())
 #define FOR_EACH_NARG_(...)      EXPAND(FOR_EACH_ARG_N(__VA_ARGS__))
 #define FOR_EACH_RSEQ_N()        8, 7, 6, 5, 4, 3, 2, 1, 0
