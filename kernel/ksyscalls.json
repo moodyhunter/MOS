@@ -433,6 +433,12 @@
             "name": "vfs_unmount",
             "return": "long",
             "arguments": [ { "type": "const char *", "arg": "mount_point" } ]
+        },
+        {
+            "number": 58,
+            "name": "clock_gettimeofday",
+            "return": "long",
+            "arguments": [ { "type": "struct timespec *", "arg": "tv" } ]
         }
     ]
 }

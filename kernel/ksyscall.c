@@ -589,3 +589,12 @@ DEFINE_SYSCALL(long, vfs_unmount)(const char *path)
 {
     return vfs_unmount(path);
 }
+
+DEFINE_SYSCALL(long, clock_gettimeofday)(struct timespec *ts)
+{
+    timeval_t tv;
+    platform_get_time(&tv);
+    ts->tv_sec = tv.hour * 3600 + tv.minute * 60 + tv.second;
+    ts->tv_nsec = 0;
+    return 0;
+}
