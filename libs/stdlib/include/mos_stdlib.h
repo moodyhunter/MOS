@@ -14,6 +14,7 @@
  * @{
  */
 
+MOSAPI unsigned char tolower(unsigned char c);
 MOSAPI s32 abs(s32 x);
 MOSAPI long labs(long x);
 MOSAPI s64 llabs(s64 x);

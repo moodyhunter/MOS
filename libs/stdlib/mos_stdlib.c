@@ -6,6 +6,13 @@
 #include <mos_stdio.h>
 #include <mos_string.h>
 
+unsigned char tolower(unsigned char c)
+{
+    if (c >= 'A' && c <= 'Z')
+        return c - 'A' + 'a';
+    return c;
+}
+
 static int isspace(int _c)
 {
     return ((_c > 8 && _c < 14) || (_c == 32));

@@ -36,6 +36,23 @@ s32 strncmp(const char *str1, const char *str2, size_t n)
     return 0;
 }
 
+s32 strncasecmp(const char *a, const char *b, size_t n)
+{
+    for (size_t i = 0; i < n; i++)
+    {
+        unsigned char a_byte = tolower(a[i]);
+        unsigned char b_byte = tolower(b[i]);
+        if (!a_byte && !b_byte)
+            return 0;
+        // If only one char is null, one of the following cases applies.
+        if (a_byte < b_byte)
+            return -1;
+        if (a_byte > b_byte)
+            return 1;
+    }
+    return 0;
+}
+
 void *memcpy(void *__restrict _dst, const void *__restrict _src, size_t n)
 {
     // https://github.com/eblot/newlib/blob/master/newlib/libc/string/memcpy.c
@@ -211,6 +228,17 @@ char *strchr(const char *s, int c)
         s++;
     }
     return NULL;
+}
+
+char *strrchr(const char *s, int c)
+{
+    const char *last = NULL;
+    do
+    {
+        if (*s == c)
+            last = s;
+    } while (*s++);
+    return (char *) last;
 }
 
 size_t strspn(const char *s, const char *accept)
