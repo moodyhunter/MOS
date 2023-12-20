@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later OR MIT
+
 set(CMAKE_SYSROOT "/opt/x86_64-mos")
 set(CMAKE_PREFIX_PATH "/opt/x86_64-mos")
 

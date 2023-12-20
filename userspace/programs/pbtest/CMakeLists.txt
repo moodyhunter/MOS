@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 find_package(Protobuf)
 
 if (NOT Protobuf_FOUND)
