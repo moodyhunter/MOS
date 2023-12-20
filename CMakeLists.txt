@@ -99,6 +99,10 @@ add_dependencies(mos_kernel mos_syscall_decl)
 add_library(mos::kernel ALIAS mos_kernel)
 target_compile_definitions(mos_kernel PRIVATE MOS_KERNEL_VERSION="${CMAKE_PROJECT_VERSION}" MOS_KERNEL_REVISION="${REVISION}")
 
+# nanopb
+include(nanopb)
+add_subdirectory(libs/nanopb/nanopb)
+
 # Libraries
 include(add_kernel_source)
 include(add_mos_library)
