@@ -40,11 +40,30 @@ static void signal_do_ignore(signal_t signal)
     pr_dinfo2(signal, "thread %pt ignoring signal %d", (void *) current_thread, signal);
 }
 
+static bool is_fatal_signal(signal_t signal)
+{
+    switch (signal)
+    {
+        case SIGILL:
+        case SIGTRAP:
+        case SIGABRT:
+        case SIGKILL:
+        case SIGSEGV: return true;
+
+        case SIGINT:
+        case SIGTERM:
+        case SIGCHLD:
+        case SIGPIPE: return false;
+
+        default: MOS_UNREACHABLE_X("handle this signal %d", signal); break;
+    }
+}
+
 long signal_send_to_thread(thread_t *target, signal_t signal)
 {
-    if (target->mode == THREAD_MODE_KERNEL)
+    if (target->mode == THREAD_MODE_KERNEL && !is_fatal_signal(signal))
     {
-        pr_emerg("signal_send_to_thread(%pt, %d): cannot send signal to kernel thread", (void *) target, signal);
+        pr_emerg("signal_send_to_thread(%pt, %d): cannot send non-fatal signal to kernel thread", (void *) target, signal);
         return -EINVAL;
     }
 
