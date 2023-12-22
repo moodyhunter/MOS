@@ -22,7 +22,7 @@ set(INITRD_DIR "${CMAKE_BINARY_DIR}/initrd" CACHE PATH "The directory to store t
 make_directory(${INITRD_DIR})
 
 add_custom_target(mos_initrd
-    find . -depth | sort | cpio -o --format=crc >../initrd.cpio
+    find . -depth | sort | cpio --quiet -o --format=crc >../initrd.cpio
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/initrd
     COMMENT "Creating initrd at ${CMAKE_BINARY_DIR}/initrd.cpio"
     BYPRODUCTS ${CMAKE_BINARY_DIR}/initrd.cpio
@@ -136,7 +136,7 @@ endif()
 
 macro(add_simple_rust_project PROJECT_DIR NAME INITRD_SUBDIR)
     if (NOT RUSTC_IS_SUPPORTED)
-        message(WARNING "Rust target ${MOS_RUST_TARGET} is not supported by rustc")
+        message(WARNING "Rust target ${MOS_RUST_TARGET} is not supported by rustc, skipping ${NAME}")
         return()
     endif()
 
@@ -145,13 +145,13 @@ macro(add_simple_rust_project PROJECT_DIR NAME INITRD_SUBDIR)
     set(OUTPUT_FILE "${PROJECT_DIR}/target/${MOS_RUST_TARGET}/debug/${NAME}")
     add_custom_target(
         ${NAME}_rust
-        cargo build --target "${MOS_RUST_TARGET}"
+        cargo build --quiet --target "${MOS_RUST_TARGET}"
         && ${CMAKE_COMMAND} -E copy ${OUTPUT_FILE} ${INITRD_DIR}/${INITRD_SUBDIR}
         VERBATIM
         WORKING_DIRECTORY ${PROJECT_DIR}
         DEPENDS ${PROJECT_DIR}/Cargo.toml
         BYPRODUCTS ${OUTPUT_FILE}
-        USES_TERMINAL
+        COMMENT "Building ${NAME} (rust)"
     )
 
     foreach(DEPENDENCY ${ARGS_DEPENDS})
