@@ -80,7 +80,7 @@ bool ring_buffer_resize(ring_buffer_t *buffer, size_t new_capacity)
 size_t ring_buffer_pos_push_back(u8 *data, ring_buffer_pos_t *pos, const u8 *target, size_t size)
 {
     if (pos->size + size > pos->capacity)
-        return 0;
+        size = pos->capacity - pos->size;
 
     size_t first_part_i = pos->next_pos;
     size_t first_part_size = MIN(size, pos->capacity - pos->next_pos);
