@@ -179,7 +179,7 @@ void x86_dump_stack_at(ptr_t this_frame, bool can_access_vmaps)
     if (unlikely(!do_mapped_check))
         pr_warn("  no mm context available, mapping checks are disabled (early-boot panic?)");
 
-    const bool no_relock = spinlock_is_locked(&current_cpu->mm_context->mm_lock);
+    const bool no_relock = do_mapped_check && spinlock_is_locked(&current_cpu->mm_context->mm_lock);
     if (no_relock)
         pr_emerg("  mm lock is already held, stack trace may be corrupted");
 
