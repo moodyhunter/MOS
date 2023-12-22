@@ -22,14 +22,14 @@ typedef struct
  * @param server_name The name of the server to connect to
  * @return rpc_server_stub_t* A pointer to the new server stub, or NULL on error
  */
-rpc_server_stub_t *rpc_client_create(const char *server_name);
+MOSAPI rpc_server_stub_t *rpc_client_create(const char *server_name);
 
 /**
  * @brief Destroy a server stub
  *
  * @param server The server stub to destroy
  */
-void rpc_client_destroy(rpc_server_stub_t *server);
+MOSAPI void rpc_client_destroy(rpc_server_stub_t *server);
 
 /**
  * @brief Call a function on the server
@@ -45,7 +45,7 @@ void rpc_client_destroy(rpc_server_stub_t *server);
  *
  * @note This function is a simple wrapper around rpc_call_create, rpc_call_arg, rpc_call_exec and rpc_call_destroy.
  */
-rpc_result_code_t rpc_simple_call(rpc_server_stub_t *stub, u32 funcid, rpc_result_t *result, const char *argspec, ...);
+MOSAPI rpc_result_code_t rpc_simple_call(rpc_server_stub_t *stub, u32 funcid, rpc_result_t *result, const char *argspec, ...);
 
 /**
  * @brief Call a function on the server
@@ -57,7 +57,7 @@ rpc_result_code_t rpc_simple_call(rpc_server_stub_t *stub, u32 funcid, rpc_resul
  * @param args The arguments to the function
  * @return rpc_result_code_t The result code of the call
  */
-rpc_result_code_t rpc_simple_callv(rpc_server_stub_t *stub, u32 funcid, rpc_result_t *result, const char *argspec, va_list args);
+MOSAPI rpc_result_code_t rpc_simple_callv(rpc_server_stub_t *stub, u32 funcid, rpc_result_t *result, const char *argspec, va_list args);
 
 /**
  * @brief Manually create a new RPC call
@@ -66,7 +66,7 @@ rpc_result_code_t rpc_simple_callv(rpc_server_stub_t *stub, u32 funcid, rpc_resu
  * @param function_id The function ID to call
  * @return rpc_call_t* A pointer to the new call.
  */
-rpc_call_t *rpc_call_create(rpc_server_stub_t *server, u32 function_id);
+MOSAPI rpc_call_t *rpc_call_create(rpc_server_stub_t *server, u32 function_id);
 
 /**
  * @brief Add an argument to a call
@@ -75,7 +75,7 @@ rpc_call_t *rpc_call_create(rpc_server_stub_t *server, u32 function_id);
  * @param data A pointer to the argument data
  * @param size The size of the argument data
  */
-void rpc_call_arg(rpc_call_t *call, const void *data, size_t size);
+MOSAPI void rpc_call_arg(rpc_call_t *call, const void *data, size_t size);
 
 /**
  * @brief Execute a call
@@ -87,11 +87,11 @@ void rpc_call_arg(rpc_call_t *call, const void *data, size_t size);
  *
  * @note The result data will be malloc'd and must be freed by the caller.
  */
-rpc_result_code_t rpc_call_exec(rpc_call_t *call, void **result_data, size_t *result_size);
+MOSAPI rpc_result_code_t rpc_call_exec(rpc_call_t *call, void **result_data, size_t *result_size);
 
 /**
  * @brief Destroy a call
  *
  * @param call The call to destroy
  */
-void rpc_call_destroy(rpc_call_t *call);
+MOSAPI void rpc_call_destroy(rpc_call_t *call);
