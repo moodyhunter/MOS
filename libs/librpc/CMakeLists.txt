@@ -9,6 +9,7 @@ add_mos_library(
         rpc_client.c
     LINK_LIBRARIES
         mos::libipc
+        mos::nanopb
     DEFINES
         __MOS_RPC_CLIENT__
 )

@@ -8,33 +8,33 @@
 #include <libipc/ipc.h>
 #include <mos/types.h>
 
-#ifdef __MOS_KERNEL__
-#include "mos/tasks/kthread.h"
-
+#if defined(__MOS_KERNEL__) || defined(__MOS_MINIMAL_LIBC__)
 #include <mos/lib/sync/mutex.h>
-#include <mos/syscall/decl.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
-#define syscall_ipc_create(server_name, max_pending_calls) impl_syscall_ipc_create(server_name, max_pending_calls)
-#define syscall_ipc_accept(server_fd)                      impl_syscall_ipc_accept(server_fd)
-#define syscall_ipc_connect(server_name, smh_size)         impl_syscall_ipc_connect(server_name, smh_size)
-#define syscall_io_close(fd)                               impl_syscall_io_close(fd)
-#define start_thread(name, func, arg)                      kthread_create(func, arg, name)
-#elifdef __MOS_MINIMAL_LIBC__
-#include "mos/lib/sync/mutex.h"
-#include "mos/moslib_global.h"
-
-#include <mos/syscall/usermode.h>
 #include <mos_stdio.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
 #else
-#include <mos/syscall/usermode.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#endif
+
+#ifdef __MOS_KERNEL__
+#include "mos/tasks/kthread.h"
+
+#include <mos/syscall/decl.h>
+#define syscall_ipc_create(server_name, max_pending_calls) impl_syscall_ipc_create(server_name, max_pending_calls)
+#define syscall_ipc_accept(server_fd)                      impl_syscall_ipc_accept(server_fd)
+#define syscall_ipc_connect(server_name, smh_size)         impl_syscall_ipc_connect(server_name, smh_size)
+#define start_thread(name, func, arg)                      kthread_create(func, arg, name)
+#define syscall_io_close(fd)                               impl_syscall_io_close(fd)
+#else
+#include <mos/syscall/usermode.h>
+#endif
+
+#if !defined(__MOS_KERNEL__) && !defined(__MOS_MINIMAL_LIBC__)
+// fixup for hosted libc
+#include <pthread.h>
 typedef pthread_mutex_t mutex_t;
 #define memzero(ptr, size)    memset(ptr, 0, size)
 #define mutex_acquire(mutex)  pthread_mutex_lock(mutex)
@@ -64,7 +64,6 @@ static tid_t start_thread(const char *name, thread_entry_t entry, void *arg)
     thread_start_args->arg = arg;
     return syscall_create_thread(name, thread_start, thread_start_args);
 }
-
 #endif
 
 #define RPC_SERVER_MAX_PENDING_CALLS 32

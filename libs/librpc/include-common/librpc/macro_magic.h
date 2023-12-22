@@ -9,9 +9,10 @@
     MOS_WARNING_DISABLE("-Wgnu-zero-variadic-macro-arguments")                                                                                                           \
     typedef enum                                                                                                                                                         \
     {                                                                                                                                                                    \
-        X_MACRO(X_GENERATE_ENUM, NAME##_)                                                                                                                                \
+        X_MACRO(X_GENERATE_ENUM, X_GENERATE_ENUM, NAME##_)                                                                                                               \
     } name##_rpc_functions;                                                                                                                                              \
     MOS_WARNING_POP
+
 #define X_GENERATE_ENUM(prefix, id, name, NAME, ...) prefix##NAME = id,
 
 // ============ CLIENT SIDE ============
@@ -19,15 +20,21 @@
 #define RPC_CLIENT_DEFINE_SIMPLECALL(prefix, X_MACRO)                                                                                                                    \
     MOS_WARNING_PUSH                                                                                                                                                     \
     MOS_WARNING_DISABLE("-Wgnu-zero-variadic-macro-arguments")                                                                                                           \
-    X_MACRO(X_GENERATE_FUNCTION_STUB_IMPL, prefix##_)                                                                                                                    \
+    X_MACRO(X_GENERATE_FUNCTION_STUB_IMPL_ARGS, X_GENERATE_FUNCTION_STUB_IMPL_PB, prefix##_)                                                                             \
     MOS_WARNING_POP
 
-#define X_GENERATE_FUNCTION_STUB_IMPL(prefix, id, name, NAME, spec, ...)                                                                                                 \
+#define X_GENERATE_FUNCTION_STUB_IMPL_ARGS(prefix, id, name, NAME, spec, ...)                                                                                            \
     should_inline rpc_result_code_t prefix##name(rpc_server_stub_t *server_stub FOR_EACH(RPC_GENERATE_PROTOTYPE, __VA_ARGS__))                                           \
     {                                                                                                                                                                    \
         if (unlikely(spec == NULL))                                                                                                                                      \
             return RPC_RESULT_INVALID_ARG;                                                                                                                               \
         return rpc_simple_call(server_stub, id, NULL, spec FOR_EACH(RPC_EXTRACT_NAME, __VA_ARGS__));                                                                     \
+    }
+
+#define X_GENERATE_FUNCTION_STUB_IMPL_PB(prefix, id, name, NAME, reqtype, resptype)                                                                                      \
+    should_inline rpc_result_code_t prefix##name(rpc_server_stub_t *server_stub, const void *request, void *response)                                                    \
+    {                                                                                                                                                                    \
+        return rpc_do_pb_call(server_stub, id, reqtype##_fields, request, resptype##_fields, response);                                                                  \
     }
 
 #define EXPAND(x) x
@@ -60,13 +67,33 @@
 #define RPC_DECL_SERVER_PROTOTYPES(name, X_MACRO)                                                                                                                        \
     MOS_WARNING_PUSH                                                                                                                                                     \
     MOS_WARNING_DISABLE("-Wgnu-zero-variadic-macro-arguments")                                                                                                           \
-    X_MACRO(X_GENERATE_FUNCTION_FORWARDS, name##_)                                                                                                                       \
-    static const rpc_function_info_t name##_functions[] = { X_MACRO(X_GENERATE_FUNCTION_INFO, name##_) };                                                                \
+    X_MACRO(X_GENERATE_FUNCTION_FORWARDS_ARGS, X_GENERATE_FUNCTION_FORWARDS_PB, name##_)                                                                                 \
+    static const rpc_function_info_t name##_functions[] = { X_MACRO(X_GENERATE_FUNCTION_INFO_ARGS, X_GENERATE_FUNCTION_INFO_PB, name##_) };                              \
     MOS_WARNING_POP
+
+#define X_GENERATE_FUNCTION_FORWARDS_ARGS(prefix, _id, _func, ...) static int prefix##_func(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data);
 
 // clang-format off
 #define X_COUNT_ARGUMENTS_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, N, ...) N
 #define X_COUNT_ARGUMENTS(...) X_COUNT_ARGUMENTS_IMPL(_ __VA_OPT__(, ) __VA_ARGS__, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, _err)
-#define X_GENERATE_FUNCTION_INFO(prefix, fid, function, FUNCTION, _, ...) { .function_id = fid, .func = prefix##function, .args_count = X_COUNT_ARGUMENTS(__VA_ARGS__) },
-#define X_GENERATE_FUNCTION_FORWARDS(prefix, _id, _func, ...)   static int prefix##_func(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data);
 // clang-format on
+
+#define X_DO_GENERATE_FUNCION_INFO(_fid, _func, _nargs) { .function_id = _fid, .func = _func, .args_count = _nargs },
+
+#define X_GENERATE_FUNCTION_INFO_ARGS(prefix, fid, function, FUNCTION, _, ...) X_DO_GENERATE_FUNCION_INFO(fid, prefix##function, X_COUNT_ARGUMENTS(__VA_ARGS__))
+#define X_GENERATE_FUNCTION_INFO_PB(prefix, fid, function, FUNCTION, _, ...)   X_DO_GENERATE_FUNCION_INFO(fid, prefix##function##_pb_wrapper, 1)
+
+#define X_GENERATE_FUNCTION_FORWARDS_PB(prefix, _id, _func, _FUNC, reqtype, resptype)                                                                                    \
+    static int prefix##_func(rpc_server_t *server, reqtype *req, resptype *resp, void *data);                                                                            \
+    static int prefix##_func##_pb_wrapper(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)                                                   \
+    {                                                                                                                                                                    \
+        reqtype req = { 0 };                                                                                                                                             \
+        if (!rpc_arg_next_pb(reqtype, req, args))                                                                                                                        \
+            return RPC_RESULT_SERVER_INTERNAL_ERROR;                                                                                                                     \
+        resptype resp = resptype##_init_zero;                                                                                                                            \
+        int result = prefix##_func(server, &req, &resp, data);                                                                                                           \
+        pb_release(reqtype##_fields, &req);                                                                                                                              \
+        rpc_write_result_pb(resptype, resp, reply);                                                                                                                      \
+        pb_release(resptype##_fields, &resp);                                                                                                                            \
+        return result;                                                                                                                                                   \
+    }
