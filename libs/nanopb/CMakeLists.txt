@@ -7,10 +7,9 @@ add_mos_library(NAME nanopb
         nanopb/pb_decode.c
         nanopb/pb_decode.h
         nanopb/pb_encode.c
-    PRIVATE_INCLUDE_DIRECTORIES
+    PUBLIC_INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_SOURCE_DIR}
-    INCLUDE_DIRECTORIES
-        nanopb
-    PRIVATE_DEFINES
-        PB_SYSTEM_HEADER="nanopb_mos.h"
+        ${CMAKE_CURRENT_SOURCE_DIR}/nanopb
+    DEFINES
+        "-DPB_SYSTEM_HEADER=\"nanopb_mos.h\""
 )
