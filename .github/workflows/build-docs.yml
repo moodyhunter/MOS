@@ -20,7 +20,7 @@ jobs:
       - name: Install packages
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm --needed base-devel git cmake ninja clang lld nasm cpio wget python jq llvm
+          pacman -S --noconfirm --needed base-devel git cmake ninja clang lld nasm cpio wget python jq llvm mtools unzip limine protobuf python-protobuf python-setuptools
 
       - uses: actions/checkout@v3
         with:
