@@ -463,7 +463,9 @@ void liballoc_free(const void *original_ptr)
     const void *ptr = original_ptr;
     if (ptr == NULL)
     {
+#ifdef __MOS_KERNEL__
         mos_panic("liballoc: free(NULL) called");
+#endif
         return;
     }
 
