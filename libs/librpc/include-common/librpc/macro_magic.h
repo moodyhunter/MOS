@@ -2,6 +2,57 @@
 
 #pragma once
 
+/**
+ * @brief RPC macros for generating RPC client and server code.
+ * @details The X_MACRO pattern is used here, RPC users should define their own
+ *          X_MACROs to generate the code they need.
+ *          The X_MACROs are called with the following arguments:
+ *          - ARGS: A macro that generates function prototypes with specific arguments and types, this is called
+ *                  with the following arguments:
+ *              - prefix: the prefix of the function name, given by the third argument of the X_MACRO
+ *              - id: the function ID of an RPC function, the user should not use duplicate IDs
+ *              - name: the name of the function
+ *              - NAME: the name of the function in uppercase, used to generate the enum values
+ *              - spec: the specification of the function arguments, this is a string that contains
+ *                      the types of the arguments, for example "iis" for int, int, string
+ *                      read the spec.md file for more information.
+ *              - ...:  the arguments of the function, this is a list of pairs of type and name
+ *                      wrapped by ARG(type, name)
+ *          - PB: A macro that generates function prototypes that use protobuf as the argument and
+ *                return type, this is called with the following arguments:
+ *              - prefix: the prefix of the function name, given by the third argument of the X_MACRO
+ *              - id: the function ID of an RPC function, the user should not use duplicate IDs
+ *              - name: the name of the function
+ *              - NAME: the name of the function in uppercase, used to generate the enum values
+ *              - reqtype: the type of the protobuf request
+ *              - resptype: the type of the protobuf response
+ *          - xarg: the user defined argument, this should be passed to the ARGS and PB as the first argument
+ * @example
+ * generate enum values for function IDs
+ * #define MY_RPC_X(ARGS, PB, xarg) \
+ *     ARGS(xarg, 0, foo, FOO, "i", ARG(int, x)) \
+ *     PB(xarg, 1, bar, BAR, my_rpc_bar_request, my_rpc_bar_response)
+ *
+ * RPC_DEFINE_ENUMS(my_rpc, MY_RPC, MY_RPC_X) // optional
+ *     this generates the enum values (MY_RPC_FOO = 0, MY_RPC_BAR = 1)
+ *
+ * RPC_CLIENT_DEFINE_SIMPLECALL(my_rpc, MY_RPC_X)
+ *     this generates the simplecall implementation, which is a function that takes the arguments
+ *     and calls the RPC server with the function ID and the arguments
+ *     i.e.
+ *       rpc_result_code_t my_rpc_foo(rpc_server_stub_t *server_stub, int x);
+ *       rpc_result_code_t my_rpc_bar(rpc_server_stub_t *server_stub, my_rpc_bar_request *request, my_rpc_bar_response *response);
+ *
+ * RPC_DECL_SERVER_PROTOTYPES(my_rpc, MY_RPC_X)
+ *     this generates the function prototypes and the function info array
+ *     i.e.
+ *       static int my_rpc_foo(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data);
+ *       static int my_rpc_bar(rpc_server_t *server, my_rpc_bar_request *req, my_rpc_bar_response *resp, void *data);
+ *       static const rpc_function_info_t my_rpc_functions[] = ...;
+ *     which should be implemented by the user, and the function info array should be passed to
+ *     \ref rpc_server_register_functions
+ */
+
 // ============ COMMON ============
 // generate enum values for function IDs
 #define RPC_DEFINE_ENUMS(name, NAME, X_MACRO)                                                                                                                            \
@@ -32,7 +83,7 @@
     }
 
 #define X_GENERATE_FUNCTION_STUB_IMPL_PB(prefix, id, name, NAME, reqtype, resptype)                                                                                      \
-    should_inline rpc_result_code_t prefix##name(rpc_server_stub_t *server_stub, const void *request, void *response)                                                    \
+    should_inline rpc_result_code_t prefix##name(rpc_server_stub_t *server_stub, const reqtype *request, resptype *response)                                             \
     {                                                                                                                                                                    \
         return rpc_do_pb_call(server_stub, id, reqtype##_fields, request, resptype##_fields, response);                                                                  \
     }
