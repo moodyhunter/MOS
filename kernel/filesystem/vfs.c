@@ -81,7 +81,9 @@ static size_t vfs_io_ops_read(io_t *io, void *buf, size_t count)
 
     spinlock_acquire(&file->offset_lock);
     size_t ret = file_ops->read(file, buf, count, file->offset);
-    if (ret != (size_t) -1)
+    if (IS_ERR_VALUE(ret))
+        ; // do nothing
+    else if (ret != (size_t) -1)
         file->offset += ret;
     spinlock_release(&file->offset_lock);
 
