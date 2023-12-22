@@ -7,6 +7,50 @@ set(nanopb_BUILD_GENERATOR OFF CACHE BOOL "don't build nanopb generator" FORCE)
 set(NANOPB_SOURCE_DIR ${CMAKE_SOURCE_DIR}/libs/nanopb/nanopb)
 set(NANOPB_GENERATE_CPP_APPEND_PATH FALSE)
 
+set(GENERATOR_PATH ${CMAKE_BINARY_DIR}/nanopb_workdir)
+make_directory(${GENERATOR_PATH})
+
+set(NANOPB_GENERATOR_EXECUTABLE ${GENERATOR_PATH}/nanopb_generator.py)
+set(NANOPB_GENERATOR_PLUGIN ${GENERATOR_PATH}/protoc-gen-nanopb)
+set(GENERATOR_CORE_DIR ${GENERATOR_PATH}/proto)
+set(GENERATOR_CORE_SRC ${GENERATOR_CORE_DIR}/nanopb.proto)
+
+# Treat the source directory as immutable.
+#
+# Copy the generator directory to the build directory before
+# compiling python and proto files.  Fixes issues when using the
+# same build directory with different python/protobuf versions
+# as the binary build directory is discarded across builds.
+#
+# Notice: copy_directory does not copy the content if the directory already exists.
+# We therefore append '/' to specify that we want to copy the content of the folder. See #847
+#
+
+add_custom_command(
+    OUTPUT ${NANOPB_GENERATOR_EXECUTABLE} ${GENERATOR_CORE_SRC}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ARGS ${NANOPB_SOURCE_DIR}/generator/ ${GENERATOR_PATH}
+    VERBATIM
+)
+
+set(GENERATOR_CORE_PYTHON_SRC)
+
+foreach(_proto_file ${GENERATOR_CORE_SRC})
+    get_filename_component(ABS_FIL ${_proto_file} ABSOLUTE)
+    get_filename_component(FIL_WE ${_proto_file} NAME_WE)
+
+    set(output "${GENERATOR_CORE_DIR}/${FIL_WE}_pb2.py")
+    set(GENERATOR_CORE_PYTHON_SRC ${GENERATOR_CORE_PYTHON_SRC} ${output})
+    add_custom_command(
+        OUTPUT ${output}
+        COMMAND protoc
+        ARGS -I${GENERATOR_PATH}/proto
+        --python_out=${GENERATOR_CORE_DIR} ${ABS_FIL}
+        DEPENDS ${ABS_FIL}
+        VERBATIM
+    )
+endforeach()
+
 function(generate_nanopb_proto SRCS HDRS)
     cmake_parse_arguments(_arg "" "RELPATH" "" ${ARGN})
 
@@ -17,6 +61,7 @@ function(generate_nanopb_proto SRCS HDRS)
 
     set(NANOPB_OPTIONS_DIRS)
     list(APPEND _nanopb_include_path "-I${CMAKE_CURRENT_SOURCE_DIR}")
+    list(APPEND _nanopb_include_path "-I${CMAKE_SOURCE_DIR}")
 
     if(DEFINED NANOPB_IMPORT_DIRS)
         foreach(DIR ${NANOPB_IMPORT_DIRS})
@@ -26,49 +71,6 @@ function(generate_nanopb_proto SRCS HDRS)
     endif()
 
     list(REMOVE_DUPLICATES _nanopb_include_path)
-
-    set(GENERATOR_PATH ${CMAKE_BINARY_DIR}/nanopb_workdir)
-    make_directory(${GENERATOR_PATH})
-
-    set(NANOPB_GENERATOR_EXECUTABLE ${GENERATOR_PATH}/nanopb_generator.py)
-    set(NANOPB_GENERATOR_PLUGIN ${GENERATOR_PATH}/protoc-gen-nanopb)
-    set(GENERATOR_CORE_DIR ${GENERATOR_PATH}/proto)
-    set(GENERATOR_CORE_SRC ${GENERATOR_CORE_DIR}/nanopb.proto)
-
-    # Treat the source directory as immutable.
-    #
-    # Copy the generator directory to the build directory before
-    # compiling python and proto files.  Fixes issues when using the
-    # same build directory with different python/protobuf versions
-    # as the binary build directory is discarded across builds.
-    #
-    # Notice: copy_directory does not copy the content if the directory already exists.
-    # We therefore append '/' to specify that we want to copy the content of the folder. See #847
-    #
-
-    add_custom_command(
-        OUTPUT ${NANOPB_GENERATOR_EXECUTABLE} ${GENERATOR_CORE_SRC}
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ARGS ${NANOPB_SOURCE_DIR}/generator/ ${GENERATOR_PATH}
-        VERBATIM)
-
-    set(GENERATOR_CORE_PYTHON_SRC)
-
-    foreach(_proto_file ${GENERATOR_CORE_SRC})
-        get_filename_component(ABS_FIL ${_proto_file} ABSOLUTE)
-        get_filename_component(FIL_WE ${_proto_file} NAME_WE)
-
-        set(output "${GENERATOR_CORE_DIR}/${FIL_WE}_pb2.py")
-        set(GENERATOR_CORE_PYTHON_SRC ${GENERATOR_CORE_PYTHON_SRC} ${output})
-        add_custom_command(
-            OUTPUT ${output}
-            COMMAND protoc
-            ARGS -I${GENERATOR_PATH}/proto
-            --python_out=${GENERATOR_CORE_DIR} ${ABS_FIL}
-            DEPENDS ${ABS_FIL}
-            VERBATIM
-        )
-    endforeach()
 
     get_filename_component(ABS_ROOT ${CMAKE_SOURCE_DIR} ABSOLUTE)
 
