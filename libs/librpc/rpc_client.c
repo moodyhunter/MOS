@@ -297,5 +297,6 @@ rpc_result_code_t rpc_do_pb_call(rpc_server_stub_t *stub, u32 funcid, const pb_m
     if (!pb_decode(&stream, respm, resp))
         return RPC_RESULT_CLIENT_READ_FAILED;
 
+    free(result);
     return RPC_RESULT_OK;
 }
