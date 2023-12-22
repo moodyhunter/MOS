@@ -6,30 +6,32 @@
 #include "librpc/rpc.h"
 
 #include <libipc/ipc.h>
+#include <pb_decode.h>
+#include <pb_encode.h>
 #include <stdarg.h>
 
-#ifdef __MOS_KERNEL__
+#if defined(__MOS_KERNEL__) || defined(__MOS_MINIMAL_LIBC__)
 #include <mos/lib/sync/mutex.h>
-#include <mos/syscall/decl.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
-#define syscall_ipc_connect(server_name, smh_size) impl_syscall_ipc_connect(server_name, smh_size)
-#define syscall_io_close(fd)                       impl_syscall_io_close(fd)
-#elifdef __MOS_MINIMAL_LIBC__
-#include "mos/lib/sync/mutex.h"
-#include "mos/moslib_global.h"
-
-#include <mos/syscall/usermode.h>
 #include <mos_stdio.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
 #else
-#include <mos/syscall/usermode.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#endif
+
+#ifdef __MOS_KERNEL__
+#include <mos/syscall/decl.h>
+#define syscall_ipc_connect(n, s) impl_syscall_ipc_connect(n, s)
+#define syscall_io_close(fd)      impl_syscall_io_close(fd)
+#else
+#include <mos/syscall/usermode.h>
+#endif
+
+#if !defined(__MOS_KERNEL__) && !defined(__MOS_MINIMAL_LIBC__)
+// fixup for hosted libc
+#include <pthread.h>
 typedef pthread_mutex_t mutex_t;
 #define memzero(ptr, size)    memset(ptr, 0, size)
 #define mutex_acquire(mutex)  pthread_mutex_lock(mutex)
@@ -266,6 +268,34 @@ rpc_result_code_t rpc_simple_callv(rpc_server_stub_t *stub, u32 funcid, rpc_resu
 exec:
     rpc_call_exec(call, &result->data, &result->size);
     rpc_call_destroy(call);
+
+    return RPC_RESULT_OK;
+}
+
+rpc_result_code_t rpc_do_pb_call(rpc_server_stub_t *stub, u32 funcid, const pb_msgdesc_t *reqm, const void *req, const pb_msgdesc_t *respm, void *resp)
+{
+    char buf[1024] = { 0 };
+    pb_ostream_t wstream = pb_ostream_from_buffer((pb_byte_t *) buf, sizeof(buf));
+    if (!pb_encode(&wstream, reqm, req))
+        return RPC_RESULT_CLIENT_WRITE_FAILED;
+
+    rpc_call_t *call = rpc_call_create(stub, funcid);
+    rpc_call_arg(call, buf, wstream.bytes_written);
+
+    void *result = NULL;
+    size_t result_size = 0;
+    rpc_result_code_t result_code = rpc_call_exec(call, &result, &result_size);
+    rpc_call_destroy(call);
+
+    if (!respm || !resp)
+        return result_code; // no response expected
+
+    if (result_code != RPC_RESULT_OK)
+        return result_code;
+
+    pb_istream_t stream = pb_istream_from_buffer((pb_byte_t *) result, result_size);
+    if (!pb_decode(&stream, respm, resp))
+        return RPC_RESULT_CLIENT_READ_FAILED;
 
     return RPC_RESULT_OK;
 }

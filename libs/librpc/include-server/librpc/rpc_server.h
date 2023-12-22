@@ -113,3 +113,21 @@ MOSAPI void rpc_write_result(rpc_reply_t *result, const void *data, size_t size)
  * @param server The server to destroy
  */
 MOSAPI void rpc_server_destroy(rpc_server_t *server);
+
+// so we can use protobuf (nanopb) with librpc
+#define rpc_arg_next_pb(type, val, args)                                                                                                                                 \
+    statement_expr(bool, {                                                                                                                                               \
+        size_t size;                                                                                                                                                     \
+        const void *payload = rpc_arg_next(args, &size);                                                                                                                 \
+        pb_istream_t stream = pb_istream_from_buffer(payload, size);                                                                                                     \
+        retval = pb_decode(&stream, type##_fields, &val);                                                                                                                \
+    })
+
+#define rpc_write_result_pb(type, val, reply)                                                                                                                            \
+    statement_expr(bool, {                                                                                                                                               \
+        uint8_t buffer[1024];                                                                                                                                            \
+        pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));                                                                                            \
+        retval = pb_encode(&stream, type##_fields, &val);                                                                                                                \
+        if (retval)                                                                                                                                                      \
+            rpc_write_result(reply, buffer, stream.bytes_written);                                                                                                       \
+    })

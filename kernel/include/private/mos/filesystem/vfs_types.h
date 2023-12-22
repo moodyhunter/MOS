@@ -38,33 +38,33 @@ typedef size_t(dentry_iterator_op)(dir_iterator_state_t *state, u64 ino, const c
 
 typedef struct
 {
-    /// lookup a file in a directory, if it's unset for a directory, the VFS will use the default lookup
-    bool (*lookup)(inode_t *dir, dentry_t *dentry);
-    /// create a new file
-    bool (*newfile)(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm);
     /// create a hard link
     bool (*hardlink)(dentry_t *old_dentry, inode_t *dir, dentry_t *new_dentry);
+    /// iterate over the contents of a directory
+    size_t (*iterate_dir)(dentry_t *dentry, dir_iterator_state_t *iterator_state, dentry_iterator_op op);
+    /// lookup a file in a directory, if it's unset for a directory, the VFS will use the default lookup
+    bool (*lookup)(inode_t *dir, dentry_t *dentry);
+    /// create a new directory
+    bool (*mkdir)(inode_t *dir, dentry_t *dentry, file_perm_t perm);
+    /// create a new device file
+    bool (*mknode)(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm, dev_t dev);
+    /// create a new file
+    bool (*newfile)(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm);
+    /// read the contents of a symbolic link
+    size_t (*readlink)(dentry_t *dentry, char *buffer, size_t buflen);
+    /// rename a file
+    bool (*rename)(inode_t *old_dir, dentry_t *old_dentry, inode_t *new_dir, dentry_t *new_dentry);
+    /// remove a directory
+    bool (*rmdir)(inode_t *dir, dentry_t *dentry);
     /// create a symbolic link
     bool (*symlink)(inode_t *dir, dentry_t *dentry, const char *symname);
     /// remove a file
     bool (*unlink)(inode_t *dir, dentry_t *dentry);
-    /// create a new directory
-    bool (*mkdir)(inode_t *dir, dentry_t *dentry, file_perm_t perm);
-    /// remove a directory
-    bool (*rmdir)(inode_t *dir, dentry_t *dentry);
-    /// create a new device file
-    bool (*mknode)(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm, dev_t dev);
-    /// rename a file
-    bool (*rename)(inode_t *old_dir, dentry_t *old_dentry, inode_t *new_dir, dentry_t *new_dentry);
-    /// read the contents of a symbolic link
-    size_t (*readlink)(dentry_t *dentry, char *buffer, size_t buflen);
-    /// iterate over the contents of a directory
-    size_t (*iterate_dir)(dentry_t *dentry, dir_iterator_state_t *iterator_state, dentry_iterator_op op);
 } inode_ops_t;
 
 typedef struct
 {
-    bool (*open)(inode_t *inode, file_t *file, bool create);
+    bool (*open)(inode_t *inode, file_t *file, bool created);
     ssize_t (*read)(const file_t *file, void *buf, size_t size, off_t offset);
     ssize_t (*write)(const file_t *file, const void *buf, size_t size, off_t offset);
     int (*flush)(file_t *file);

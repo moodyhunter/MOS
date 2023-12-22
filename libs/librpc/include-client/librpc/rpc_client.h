@@ -95,3 +95,20 @@ MOSAPI rpc_result_code_t rpc_call_exec(rpc_call_t *call, void **result_data, siz
  * @param call The call to destroy
  */
 MOSAPI void rpc_call_destroy(rpc_call_t *call);
+
+typedef struct pb_msgdesc_s pb_msgdesc_t;
+
+/**
+ * @brief Call a function on the server using protobuf (nanopb)
+ *
+ * @param stub The server stub to call
+ * @param funcid The function ID to call
+ * @param reqm The protobuf message descriptor for the request
+ * @param req The request message
+ * @param respm The protobuf message descriptor for the response
+ * @param resp The response message
+ * @return rpc_result_code_t
+ */
+MOSAPI rpc_result_code_t rpc_do_pb_call(rpc_server_stub_t *stub, u32 funcid, const pb_msgdesc_t *reqm, const void *req, const pb_msgdesc_t *respm, void *resp);
+
+#define rpc_pb_call(stub, funcid, reqt, req, respt, resp) rpc_do_pb_call(stub, funcid, reqt##_fields, req, respt##_fields, resp)
