@@ -125,7 +125,7 @@ MOSAPI void rpc_server_destroy(rpc_server_t *server);
 
 #define rpc_write_result_pb(type, val, reply)                                                                                                                            \
     statement_expr(bool, {                                                                                                                                               \
-        uint8_t buffer[1024];                                                                                                                                            \
+        uint8_t buffer[8192];                                                                                                                                            \
         pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));                                                                                            \
         retval = pb_encode(&stream, type##_fields, &val);                                                                                                                \
         if (retval)                                                                                                                                                      \
