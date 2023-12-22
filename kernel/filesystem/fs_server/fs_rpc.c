@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// filesystem server RPCs
+// userspace filesystems
 
 #include "mos/filesystem/dentry.h"
 #include "mos/filesystem/vfs.h"
 #include "mos/filesystem/vfs_types.h"
 #include "mos/filesystem/vfs_utils.h"
+#include "mos/mm/mm.h"
+#include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab_autoinit.h"
 #include "mos/printk.h"
 #include "mos/setup.h"
@@ -40,6 +42,7 @@ SLAB_AUTOINIT("userfs", userfs_slab, userfs_t);
 
 static const inode_ops_t userfs_iops;
 static const file_ops_t userfs_fops;
+static const inode_cache_ops_t userfs_inode_cache_ops;
 
 static inode_t *i_from_pb(const pb_inode *pbi, superblock_t *sb)
 {
@@ -161,6 +164,7 @@ static bool userfs_iop_lookup(inode_t *dir, dentry_t *dentry)
     dentry->inode = i;
     dentry->superblock = i->superblock = dir->superblock;
     i->ops = &userfs_iops;
+    i->cache.ops = &userfs_inode_cache_ops;
     i->file_ops = &userfs_fops;
     ret = true;
 
@@ -292,6 +296,52 @@ static const file_ops_t userfs_fops = {
     .seek = NULL,
     .mmap = NULL,
     .munmap = NULL,
+};
+
+static phyframe_t *userfs_inode_cache_fill_cache(inode_cache_t *cache, off_t pgoff)
+{
+    // get a page from the server
+    userfs_t *userfs = container_of(cache->owner->superblock->fs, userfs_t, fs);
+    mos_rpc_fs_getpage_request req = { 0 };
+    i_to_pb(cache->owner, &req.inode);
+    req.pgoff = pgoff;
+
+    mos_rpc_fs_getpage_response resp = { 0 };
+    userfs_ensure_connected(userfs);
+    int result = fs_client_getpage(userfs->rpc_server, &req, &resp);
+    if (result != RPC_RESULT_OK)
+    {
+        pr_warn("userfs_inode_cache_fill_cache: failed to getpage %s: %d", dentry_name(cache->owner->superblock->root), result);
+        goto bail_out;
+    }
+
+    if (!resp.result.success)
+    {
+        pr_warn("userfs_inode_cache_fill_cache: failed to getpage %s: %s", dentry_name(cache->owner->superblock->root), resp.result.error);
+        goto bail_out;
+    }
+
+    // allocate a page
+    phyframe_t *page = pmm_ref_one(mm_get_free_page());
+    if (!page)
+    {
+        pr_warn("userfs_inode_cache_fill_cache: failed to allocate page");
+        goto bail_out;
+    }
+
+    // copy the data from the server
+    memcpy((void *) phyframe_va(page), resp.data->bytes, MIN(resp.data->size, MOS_PAGE_SIZE));
+    return page;
+
+bail_out:
+    pb_release(mos_rpc_fs_getpage_response_fields, &resp);
+    return ERR_PTR(-EIO);
+}
+
+static const inode_cache_ops_t userfs_inode_cache_ops = {
+    .fill_cache = userfs_inode_cache_fill_cache,
+    .page_write_begin = NULL,
+    .page_write_end = NULL,
 };
 
 static dentry_t *userfs_fsop_mount(filesystem_t *fs, const char *device, const char *options)

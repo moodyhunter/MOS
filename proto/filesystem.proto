@@ -122,3 +122,15 @@ message mos_rpc_fs_readlink_response
     mos_rpc_result result = 1;
     string target = 2; // the target of the symlink
 }
+
+message mos_rpc_fs_getpage_request
+{
+    pb_inode inode = 1; // the inode of the file
+    uint64 pgoff = 2;   // the offset of the page, in number of pages
+}
+
+message mos_rpc_fs_getpage_response
+{
+    mos_rpc_result result = 1;
+    bytes data = 2; // the data of the page
+}
