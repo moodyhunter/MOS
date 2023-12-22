@@ -113,13 +113,13 @@ static void userfs_iop_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state,
     if (result != RPC_RESULT_OK)
     {
         pr_warn("userfs_iop_iterate_dir: failed to readdir %s: %d", dentry_name(dentry), result);
-        return 0;
+        goto bail_out;
     }
 
     if (!resp.entries_count)
     {
         pr_warn("userfs_iop_iterate_dir: failed to readdir %s: %s", dentry_name(dentry), resp.result.error);
-        return 0;
+        goto bail_out;
     }
 
     for (size_t i = 0; i < resp.entries_count; i++)
@@ -129,14 +129,17 @@ static void userfs_iop_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state,
         add_record(state, pbde->ino, pbde->name, strlen(pbde->name), (file_type_t) pbde->type);
     }
 
+bail_out:
+    pb_release(mos_rpc_fs_readdir_response_fields, &resp);
 }
 
 static bool userfs_iop_lookup(inode_t *dir, dentry_t *dentry)
 {
+    bool ret = false;
     userfs_t *userfs = container_of(dir->superblock->fs, userfs_t, fs);
     mos_rpc_fs_lookup_request req = { 0 };
     i_to_pb(dir, &req.inode);
-    req.name = strdup(dentry_name(dentry));
+    req.name = (char *) dentry_name(dentry);
 
     mos_rpc_fs_lookup_response resp = { 0 };
     userfs_ensure_connected(userfs);
@@ -145,13 +148,13 @@ static bool userfs_iop_lookup(inode_t *dir, dentry_t *dentry)
     if (result != RPC_RESULT_OK)
     {
         pr_warn("userfs_iop_lookup: failed to lookup %s: %d", dentry_name(dentry), result);
-        return false;
+        goto leave;
     }
 
     if (!resp.result.success)
     {
         pr_warn("userfs_iop_lookup: failed to lookup %s: %s", dentry_name(dentry), resp.result.error);
-        return false;
+        goto leave;
     }
 
     inode_t *i = i_from_pb(&resp.inode, dir->superblock);
@@ -159,7 +162,11 @@ static bool userfs_iop_lookup(inode_t *dir, dentry_t *dentry)
     dentry->superblock = i->superblock = dir->superblock;
     i->ops = &userfs_iops;
     i->file_ops = &userfs_fops;
-    return true;
+    ret = true;
+
+leave:
+    pb_release(mos_rpc_fs_lookup_response_fields, &resp);
+    return ret;
 }
 
 static bool userfs_iop_mkdir(inode_t *dir, dentry_t *dentry, file_perm_t perm)
@@ -202,13 +209,13 @@ static size_t userfs_iop_readlink(dentry_t *dentry, char *buffer, size_t buflen)
     if (result != RPC_RESULT_OK)
     {
         pr_warn("userfs_iop_readlink: failed to readlink %s: %d", dentry_name(dentry), result);
-        return 0;
+        goto bail_out;
     }
 
     if (!resp.result.success)
     {
         pr_warn("userfs_iop_readlink: failed to readlink %s: %s", dentry_name(dentry), resp.result.error);
-        return 0;
+        goto bail_out;
     }
 
     size_t len = strlen(resp.target);
@@ -217,6 +224,10 @@ static size_t userfs_iop_readlink(dentry_t *dentry, char *buffer, size_t buflen)
 
     memcpy(buffer, resp.target, len);
     return len;
+
+bail_out:
+    pb_release(mos_rpc_fs_readlink_response_fields, &resp);
+    return -EIO;
 }
 
 static bool userfs_iop_rename(inode_t *old_dir, dentry_t *old_dentry, inode_t *new_dir, dentry_t *new_dentry)
@@ -286,7 +297,6 @@ static const file_ops_t userfs_fops = {
 static dentry_t *userfs_fsop_mount(filesystem_t *fs, const char *device, const char *options)
 {
     userfs_t *userfs = container_of(fs, userfs_t, fs);
-
     userfs_ensure_connected(userfs);
 
     const mos_rpc_fs_mount_request req = {
@@ -300,13 +310,15 @@ static dentry_t *userfs_fsop_mount(filesystem_t *fs, const char *device, const c
     if (result != RPC_RESULT_OK)
     {
         pr_warn("userfs_fsop_mount: failed to mount %s: %d", fs->name, result);
-        return NULL;
+        pb_release(mos_rpc_fs_mount_response_fields, &resp);
+        return ERR_PTR(-EIO);
     }
 
     if (!resp.result.success)
     {
         pr_warn("userfs_fsop_mount: failed to mount %s: %s", fs->name, resp.result.error);
-        return NULL;
+        pb_release(mos_rpc_fs_mount_response_fields, &resp);
+        return ERR_PTR(-EIO);
     }
 
     superblock_t *sb = kmalloc(superblock_cache);
