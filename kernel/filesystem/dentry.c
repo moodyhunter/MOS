@@ -427,63 +427,36 @@ dentry_t *dentry_get(dentry_t *starting_dir, dentry_t *root_dir, const char *pat
     return child_ref;
 }
 
-static size_t dentry_add_dir(dir_iterator_state_t *state, u64 ino, const char *name, size_t name_len, file_type_t type)
+static void dentry_add_dir(vfs_listdir_state_t *state, u64 ino, const char *name, size_t name_len, file_type_t type)
 {
-    const size_t this_record_size = sizeof(dir_entry_t) + name_len + 1; // + 1 for null terminator
-
-    if (state->buf_capacity - state->buf_written < this_record_size)
-        return 0; // not enough space
-
-    dir_entry_t *entry = (dir_entry_t *) (state->buf + state->buf_written);
+    vfs_listdir_entry_t *entry = kmalloc(sizeof(vfs_listdir_entry_t));
+    linked_list_init(list_node(entry));
     entry->ino = ino;
-    entry->next_offset = this_record_size;
-    entry->type = type;
+    entry->name = strndup(name, name_len);
     entry->name_len = name_len;
-
-    strcpy(entry->name, name);
-    entry->name[entry->name_len] = '\0'; // ensure null termination
-
-    state->i++;
-    state->buf_written += this_record_size;
-    return this_record_size;
+    entry->type = type;
+    list_node_append(&state->entries, list_node(entry));
+    state->n_count++;
 }
 
-size_t dentry_list(dentry_t *dir, dir_iterator_state_t *state)
+void vfs_populate_listdir_buf(dentry_t *dir, vfs_listdir_state_t *state)
 {
-    size_t written = 0;
+    inode_t *d_inode = dir->inode;
 
-    if (state->i == 0)
-    {
-        inode_t *inode = dir->inode;
-        size_t w;
-        w = dentry_add_dir(state, inode->ino, ".", 1, FILE_TYPE_DIRECTORY);
-        if (w == 0)
-            return written;
-        written += w;
-    }
+    dentry_t *d_parent = dentry_parent(dir);
+    if (d_parent == NULL)
+        d_parent = root_dentry;
 
-    if (state->i == 1)
-    {
-        dentry_t *parent = dentry_parent(dir);
-        if (parent == NULL)
-            parent = root_dentry;
+    MOS_ASSERT(d_parent->inode != NULL);
 
-        MOS_ASSERT(parent->inode != NULL);
-        size_t w = dentry_add_dir(state, parent->inode->ino, "..", 2, FILE_TYPE_DIRECTORY);
-        if (w == 0)
-            return written;
-        written += w;
-    }
+    dentry_add_dir(state, d_inode->ino, ".", 1, FILE_TYPE_DIRECTORY);
+    dentry_add_dir(state, d_parent->inode->ino, "..", 2, FILE_TYPE_DIRECTORY);
 
     MOS_ASSERT(dir->inode);
 
     // this call may not write all the entries, because the buffer may not be big enough
     if (dir->inode->ops && dir->inode->ops->iterate_dir)
-        written += dir->inode->ops->iterate_dir(dir, state, dentry_add_dir);
+        dir->inode->ops->iterate_dir(dir, state, dentry_add_dir);
     else
-        written += vfs_generic_iterate_dir(dir, state, dentry_add_dir);
-
-    MOS_ASSERT(written <= state->buf_capacity); // we should never write more than the buffer can hold
-
-    return written;
+        vfs_generic_iterate_dir(dir, state, dentry_add_dir);
 }

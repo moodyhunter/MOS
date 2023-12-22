@@ -37,7 +37,7 @@ typedef struct _sysfs_item
         struct
         {
             as_linked_list;
-            size_t (*iterate)(struct _sysfs_item *item, dentry_t *dentry, dir_iterator_state_t *iterator_state, dentry_iterator_op op);
+            void (*iterate)(struct _sysfs_item *item, dentry_t *dentry, vfs_listdir_state_t *iterator_state, dentry_iterator_op op);
             bool (*lookup)(inode_t *parent_dir, dentry_t *dentry);
             bool (*create)(inode_t *parent_dir, dentry_t *dentry, file_type_t type, file_perm_t perm);
         } dyn;

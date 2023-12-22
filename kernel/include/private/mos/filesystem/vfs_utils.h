@@ -29,4 +29,4 @@ bool simple_page_write_begin(inode_cache_t *icache, off_t offset, size_t size, p
 void simple_page_write_end(inode_cache_t *icache, off_t offset, size_t size, phyframe_t *page, void *private);
 
 // ! simple in-memory directory iterator
-size_t vfs_generic_iterate_dir(const dentry_t *dir, dir_iterator_state_t *state, dentry_iterator_op op);
+void vfs_generic_iterate_dir(const dentry_t *dir, vfs_listdir_state_t *state, dentry_iterator_op op);

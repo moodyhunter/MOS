@@ -51,6 +51,27 @@ static void vfs_io_ops_close(io_t *io)
     kfree(file);
 }
 
+static void vfs_io_ops_close_dir(io_t *io)
+{
+    file_t *file = container_of(io, file_t, io);
+
+    if (file->private_data)
+    {
+        vfs_listdir_state_t *state = file->private_data;
+        list_foreach(vfs_listdir_entry_t, entry, state->entries)
+        {
+            list_remove(entry);
+            kfree(entry->name);
+            kfree(entry);
+        }
+
+        kfree(state);
+        file->private_data = NULL;
+    }
+
+    vfs_io_ops_close(io); // close the file
+}
+
 static size_t vfs_io_ops_read(io_t *io, void *buf, size_t count)
 {
     file_t *file = container_of(io, file_t, io);
@@ -244,7 +265,7 @@ static const io_op_t file_io_ops = {
 
 static const io_op_t dir_io_ops = {
     .read = vfs_list_dir,
-    .close = vfs_io_ops_close,
+    .close = vfs_io_ops_close_dir,
     .get_name = vfs_op_ops_getname,
 };
 
@@ -300,7 +321,7 @@ static bool vfs_verify_permissions(dentry_t *file_dentry, bool open, bool read, 
     return true;
 }
 
-static file_t *vfs_do_open_relative(dentry_t *base, const char *path, open_flags flags)
+static file_t *vfs_do_open(dentry_t *base, const char *path, open_flags flags)
 {
     if (base == NULL)
         return NULL;
@@ -506,7 +527,7 @@ file_t *vfs_openat(int fd, const char *path, open_flags flags)
 {
     pr_dinfo2(vfs, "vfs_openat(fd=%d, path='%s', flags=%x)", fd, path, flags);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);
-    file_t *file = vfs_do_open_relative(base, path, flags);
+    file_t *file = vfs_do_open(base, path, flags);
     return file;
 }
 
@@ -633,7 +654,7 @@ long vfs_rmdir(const char *path)
     return removed ? 0 : -EIO;
 }
 
-size_t vfs_list_dir(io_t *io, void *buf, size_t size)
+size_t vfs_list_dir(io_t *io, void *user_buf, size_t user_size)
 {
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // !!!! the current index counting is incorrect,               !!!!
@@ -641,7 +662,7 @@ size_t vfs_list_dir(io_t *io, void *buf, size_t size)
     // !!!! if the buffer is not large enough to hold all of them  !!!!
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    pr_dinfo2(vfs, "vfs_list_dir(io=%p, buf=%p, size=%zu)", (void *) io, (void *) buf, size);
+    pr_dinfo2(vfs, "vfs_list_dir(io=%p, buf=%p, size=%zu)", (void *) io, (void *) user_buf, user_size);
     file_t *file = container_of(io, file_t, io);
     if (unlikely(file->dentry->inode->type != FILE_TYPE_DIRECTORY))
     {
@@ -649,17 +670,44 @@ size_t vfs_list_dir(io_t *io, void *buf, size_t size)
         return 0;
     }
 
-    dir_iterator_state_t state = {
-        .start_nth = file->offset,
-        .i = file->offset,
-        .buf = buf,
-        .buf_capacity = size,
-        .buf_written = 0,
-    };
+    if (file->private_data == NULL)
+    {
+        vfs_listdir_state_t *const state = file->private_data = kmalloc(sizeof(vfs_listdir_state_t));
+        linked_list_init(&state->entries);
+        state->n_count = state->read_offset = 0;
+        vfs_populate_listdir_buf(file->dentry, state);
+    }
 
-    size_t written = dentry_list(file->dentry, &state);
-    file->offset = state.i;
-    return written;
+    vfs_listdir_state_t *const state = file->private_data;
+
+    if (state->read_offset >= state->n_count)
+        return 0; // no more entries
+
+    size_t bytes_copied = 0;
+    size_t i = 0;
+    list_foreach(vfs_listdir_entry_t, entry, state->entries)
+    {
+        if (i++ < state->read_offset)
+            continue; // skip the entries we have already read
+
+        if (state->read_offset >= state->n_count)
+            break;
+
+        const size_t entry_size = sizeof(dir_entry_t) + entry->name_len + 1; // +1 for the null terminator
+        if (bytes_copied + entry_size > user_size)
+            break;
+
+        dir_entry_t *dirent = (dir_entry_t *) (((char *) user_buf) + bytes_copied);
+        dirent->ino = entry->ino;
+        dirent->type = entry->type;
+        dirent->name_len = entry->name_len;
+        dirent->next_offset = entry_size;
+        memcpy(dirent->name, entry->name, entry->name_len);
+        bytes_copied += entry_size;
+        state->read_offset++;
+    }
+
+    return bytes_copied;
 }
 
 long vfs_chdir(const char *path)

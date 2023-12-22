@@ -236,49 +236,41 @@ static const file_ops_t sysfs_file_ops = {
     .munmap = sysfs_fops_munmap,
 };
 
-static size_t sysfs_iops_iterate_dir(dentry_t *dentry, dir_iterator_state_t *state, dentry_iterator_op op)
+static void sysfs_iops_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state, dentry_iterator_op add_record)
 {
     // root directory
     if (dentry->inode == sysfs_sb->root->inode)
-        return vfs_generic_iterate_dir(dentry, state, op);
+    {
+        // list all the directories in the dcache
+        vfs_generic_iterate_dir(dentry, state, add_record);
+        return;
+    }
 
     sysfs_dir_t *dir = dentry->inode->private;
     MOS_ASSERT_X(dir, "invalid sysfs entry, possibly a VFS bug");
 
     // non-dynamic directory
     if (list_is_empty(&dir->_dynamic_items))
-        return vfs_generic_iterate_dir(dentry, state, op);
-
-    size_t written = 0;
-
     {
-        size_t i = state->i - state->start_nth;
+        vfs_generic_iterate_dir(dentry, state, add_record);
+        return;
+    }
 
-        for (size_t j = 0; j < dir->num_items; j++)
-        {
-            sysfs_item_t *item = &dir->items[j];
-            if (item->type == _SYSFS_INVALID || item->type == SYSFS_DYN)
-                continue;
+    for (size_t j = 0; j < dir->num_items; j++)
+    {
+        sysfs_item_t *item = &dir->items[j];
+        if (item->type == _SYSFS_INVALID || item->type == SYSFS_DYN)
+            continue;
 
-            // skip entries until we reach the nth one
-            if (state->i != i++)
-                continue;
-
-            const size_t w = op(state, item->ino, item->name, strlen(item->name), FILE_TYPE_REGULAR);
-            if (w == 0)
-                break;
-            written += w;
-        }
+        add_record(state, item->ino, item->name, strlen(item->name), FILE_TYPE_REGULAR);
     }
 
     // iterate the dynamic items
     list_node_foreach(item_node, &dir->_dynamic_items)
     {
         sysfs_item_t *const dynitem = container_of(item_node, sysfs_item_t, dyn.list_node);
-        written += dynitem->dyn.iterate(dynitem, dentry, state, op);
+        dynitem->dyn.iterate(dynitem, dentry, state, add_record);
     }
-
-    return written;
 }
 
 static bool sysfs_iops_lookup(inode_t *dir, dentry_t *dentry)

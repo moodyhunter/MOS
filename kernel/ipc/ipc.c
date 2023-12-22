@@ -409,28 +409,16 @@ static inode_t *ipc_sysfs_create_ino(ipc_server_t *ipc_server)
     return ipc_server->sysfs_ino;
 }
 
-static size_t ipc_sysfs_list_ipcs(sysfs_item_t *item, dentry_t *d, dir_iterator_state_t *state, dentry_iterator_op op)
+static void ipc_sysfs_list_ipcs(sysfs_item_t *item, dentry_t *d, vfs_listdir_state_t *state, dentry_iterator_op add_record)
 {
     MOS_UNUSED(item);
     MOS_UNUSED(d);
 
-    size_t i = state->i - state->start_nth;
-    size_t written = 0;
-
     list_foreach(ipc_server_t, ipc_server, ipc_servers)
     {
-        // skip entries until we reach the nth one
-        if (state->i != i++)
-            continue;
-
         MOS_ASSERT(ipc_server->sysfs_ino);
-        const size_t w = op(state, ipc_server->sysfs_ino->ino, ipc_server->name, strlen(ipc_server->name), ipc_server->sysfs_ino->type);
-        if (w == 0)
-            break;
-        written += w;
+        add_record(state, ipc_server->sysfs_ino->ino, ipc_server->name, strlen(ipc_server->name), ipc_server->sysfs_ino->type);
     }
-
-    return written;
 }
 
 static bool ipc_sysfs_lookup_ipc(inode_t *parent_dir, dentry_t *dentry)

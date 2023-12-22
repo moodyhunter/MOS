@@ -172,7 +172,7 @@ __nodiscard dentry_t *dentry_unmount(dentry_t *root);
  *
  * @return The number of bytes written to the buffer, which is contained in the state object
  */
-size_t dentry_list(dentry_t *dir, dir_iterator_state_t *state);
+void vfs_populate_listdir_buf(dentry_t *dir, vfs_listdir_state_t *state);
 
 /**
  * @brief Get the path of a dentry

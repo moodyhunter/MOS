@@ -25,23 +25,30 @@ typedef struct _superblock superblock_t;
 typedef struct _filesystem filesystem_t;
 typedef struct _file file_t;
 
-typedef struct _dir_iterator_state
+typedef struct
 {
-    size_t start_nth;
-    size_t i;
-    size_t buf_capacity;
-    size_t buf_written;
-    char *const buf;
-} dir_iterator_state_t;
+    as_linked_list;
+    ino_t ino;
+    const char *name;
+    size_t name_len;
+    file_type_t type;
+} vfs_listdir_entry_t;
 
-typedef size_t(dentry_iterator_op)(dir_iterator_state_t *state, u64 ino, const char *name, size_t name_len, file_type_t type);
+typedef struct
+{
+    list_head entries;
+    size_t n_count;     ///< number of entries in the list
+    size_t read_offset; ///< user has read up to this offset, start from this offset when reading more entries
+} vfs_listdir_state_t;
+
+typedef void(dentry_iterator_op)(vfs_listdir_state_t *state, u64 ino, const char *name, size_t name_len, file_type_t type);
 
 typedef struct
 {
     /// create a hard link
     bool (*hardlink)(dentry_t *old_dentry, inode_t *dir, dentry_t *new_dentry);
     /// iterate over the contents of a directory
-    size_t (*iterate_dir)(dentry_t *dentry, dir_iterator_state_t *iterator_state, dentry_iterator_op op);
+    void (*iterate_dir)(dentry_t *dentry, vfs_listdir_state_t *iterator_state, dentry_iterator_op op);
     /// lookup a file in a directory, if it's unset for a directory, the VFS will use the default lookup
     bool (*lookup)(inode_t *dir, dentry_t *dentry);
     /// create a new directory
