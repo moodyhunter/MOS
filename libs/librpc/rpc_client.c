@@ -274,7 +274,7 @@ exec:
 
 rpc_result_code_t rpc_do_pb_call(rpc_server_stub_t *stub, u32 funcid, const pb_msgdesc_t *reqm, const void *req, const pb_msgdesc_t *respm, void *resp)
 {
-    char buf[1024] = { 0 };
+    char buf[8192] = { 0 };
     pb_ostream_t wstream = pb_ostream_from_buffer((pb_byte_t *) buf, sizeof(buf));
     if (!pb_encode(&wstream, reqm, req))
         return RPC_RESULT_CLIENT_WRITE_FAILED;
