@@ -42,6 +42,8 @@ message pb_file_stat
 
 message pb_inode
 {
+    // in real life, this stat is too big to be passed around, not all its fields are needed
+    // actually, we only need the inode id and the private data
     pb_file_stat stat = 1;
     uint64 private_data = 2; // the private data of the inode, may be used by the filesystem
 }
@@ -54,7 +56,7 @@ message pb_dentry
 
 message pb_fs
 {
-    string name = 1;
+    string name = 1; // the name of the filesystem
 }
 
 message mos_rpc_fs_register_request
@@ -91,7 +93,6 @@ message pb_dirent
 message mos_rpc_fs_readdir_request
 {
     pb_inode inode = 1; // the inode to read
-    // string path = 2;    // the path to read, relative to the mount point
 }
 
 message mos_rpc_fs_readdir_response
@@ -132,5 +133,8 @@ message mos_rpc_fs_getpage_request
 message mos_rpc_fs_getpage_response
 {
     mos_rpc_result result = 1;
-    bytes data = 2; // the data of the page
+
+    // the data of the page, this is currently a raw byte array, which costs a lot of memory
+    // we could use a page manager to reference a page and only pass a page uuid here
+    bytes data = 2;
 }
