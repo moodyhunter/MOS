@@ -101,7 +101,7 @@ static bool userfs_iop_hardlink(dentry_t *d, inode_t *i, dentry_t *new_d)
     return false;
 }
 
-static size_t userfs_iop_iterate_dir(dentry_t *dentry, dir_iterator_state_t *iterator_state, dentry_iterator_op op)
+static void userfs_iop_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state, dentry_iterator_op add_record)
 {
     userfs_t *userfs = container_of(dentry->superblock->fs, userfs_t, fs);
     mos_rpc_fs_readdir_request req = { 0 };
@@ -122,15 +122,13 @@ static size_t userfs_iop_iterate_dir(dentry_t *dentry, dir_iterator_state_t *ite
         return 0;
     }
 
-    size_t written = 0;
     for (size_t i = 0; i < resp.entries_count; i++)
     {
         const pb_dirent *pbde = &resp.entries[i];
         MOS_ASSERT(pbde->name);
-        written += op(iterator_state, pbde->ino, pbde->name, strlen(pbde->name), (file_type_t) pbde->type);
+        add_record(state, pbde->ino, pbde->name, strlen(pbde->name), (file_type_t) pbde->type);
     }
 
-    return written;
 }
 
 static bool userfs_iop_lookup(inode_t *dir, dentry_t *dentry)

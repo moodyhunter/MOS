@@ -82,25 +82,11 @@ bool vfs_simple_write_begin(inode_cache_t *icache, off_t offset, size_t size)
     return true;
 }
 
-size_t vfs_generic_iterate_dir(const dentry_t *dir, dir_iterator_state_t *state, dentry_iterator_op op)
+void vfs_generic_iterate_dir(const dentry_t *dir, vfs_listdir_state_t *state, dentry_iterator_op add_record)
 {
-    size_t written = 0;
-
-    size_t i = state->i - state->start_nth;
     tree_foreach_child(dentry_t, child, dir)
     {
-        if (child->inode == NULL)
-            continue;
-
-        // skip entries until we reach the nth one
-        if (state->i != i++)
-            continue;
-
-        const size_t w = op(state, child->inode->ino, child->name, strlen(child->name), child->inode->type);
-        if (w == 0)
-            break;
-        written += w;
+        if (child->inode)
+            add_record(state, child->inode->ino, child->name, strlen(child->name), child->inode->type);
     }
-
-    return written;
 }

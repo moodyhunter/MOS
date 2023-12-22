@@ -244,7 +244,7 @@ static bool cpio_i_lookup(inode_t *parent_dir, dentry_t *dentry)
     return true;
 }
 
-static size_t cpio_i_iterate_dir(dentry_t *dentry, dir_iterator_state_t *state, dentry_iterator_op op)
+static void cpio_i_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state, dentry_iterator_op add_record)
 {
     cpio_inode_t *inode = CPIO_INODE(dentry->inode);
 
@@ -256,10 +256,7 @@ static size_t cpio_i_iterate_dir(dentry_t *dentry, dir_iterator_state_t *state, 
     if (strcmp(path_prefix, ".") == 0)
         path_prefix[0] = '\0', prefix_len = 0; // root directory
 
-    size_t i = state->i - state->start_nth;
-
     // find all children of this directory, that starts with 'path' and doesn't have any more slashes
-    size_t written = 0;
     cpio_newc_header_t header;
     size_t offset = 0;
 
@@ -284,8 +281,7 @@ static size_t cpio_i_iterate_dir(dentry_t *dentry, dir_iterator_state_t *state, 
         const bool is_TRAILER = strcmp(filename, "TRAILER!!!") == 0;
         const bool is_root_dot = strcmp(filename, ".") == 0;
 
-        // only continue after we've found the start_nth file
-        if (found && !is_TRAILER && !is_root_dot && state->i == i++)
+        if (found && !is_TRAILER && !is_root_dot)
         {
             pr_dinfo2(cpio, "prefix '%s' filename '%s'", path_prefix, filename);
 
@@ -296,12 +292,7 @@ static size_t cpio_i_iterate_dir(dentry_t *dentry, dir_iterator_state_t *state, 
             const char *name = filename + prefix_len + (prefix_len == 0 ? 0 : 1);          // +1 for the slash if it's not the root
             const size_t name_len = filename_len - prefix_len - (prefix_len == 0 ? 0 : 1); // -1 for the slash if it's not the root
 
-            const size_t w = op(state, ino, name, name_len, type);
-            written += w;
-
-            // no more space, terminate the iteration
-            if (w == 0)
-                return written;
+            add_record(state, ino, name, name_len, type);
         }
 
         if (unlikely(is_TRAILER))
@@ -314,9 +305,6 @@ static size_t cpio_i_iterate_dir(dentry_t *dentry, dir_iterator_state_t *state, 
         offset += data_len;
         offset = ((offset + 3) & ~0x03); // align to 4 bytes (again)
     }
-
-    pr_dinfo2(cpio, "iterated with prefix='%s', started at %zu, wrote %zu bytes for %zu items", path_prefix, i, written, state->i - state->start_nth);
-    return written;
 }
 
 static size_t cpio_i_readlink(dentry_t *dentry, char *buffer, size_t buflen)
