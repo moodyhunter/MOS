@@ -18,8 +18,8 @@ phyframe_t *pagecache_get_page_for_read(inode_cache_t *cache, off_t pgoff)
 
     MOS_ASSERT_X(cache->ops && cache->ops->fill_cache, "no page cache ops for inode %p", (void *) cache->owner);
     phyframe_t *page = cache->ops->fill_cache(cache, pgoff);
-    if (!page)
-        return NULL;
+    if (IS_ERR(page))
+        return page;
     mmstat_inc1(MEM_PAGECACHE);
     hashmap_put(&cache->pages, pgoff, page);
     return page;
@@ -41,8 +41,8 @@ ssize_t vfs_read_pagecache(inode_cache_t *icache, void *buf, size_t size, off_t 
         const size_t inpage_size = MIN(MOS_PAGE_SIZE - inpage_offset, bytes_left); // in case we're at the end of the file,
 
         phyframe_t *page = pagecache_get_page_for_read(icache, offset / MOS_PAGE_SIZE); // the initial page
-        if (!page)
-            return -1;
+        if (IS_ERR(page))
+            return PTR_ERR(page);
 
         memcpy((char *) buf + bytes_read, (void *) (phyframe_va(page) + inpage_offset), inpage_size);
 
