@@ -26,6 +26,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
 # ! Kconfig ===================================================
 execute_process(
     COMMAND git describe --long --tags --all --dirty
@@ -102,6 +104,8 @@ target_compile_definitions(mos_kernel PRIVATE MOS_KERNEL_VERSION="${CMAKE_PROJEC
 # nanopb
 include(nanopb)
 add_subdirectory(libs/nanopb/nanopb)
+generate_nanopb_proto(FILESYSTEM_PROTO_SRCS FILESYSTEM_PROTO_HEADERS proto/filesystem.proto)
+target_sources(mos_kernel PRIVATE ${FILESYSTEM_PROTO_SRCS} ${FILESYSTEM_PROTO_HEADERS})
 
 # Libraries
 include(add_kernel_source)
