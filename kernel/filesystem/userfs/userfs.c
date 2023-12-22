@@ -1,17 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // userspace filesystems
 
-#include "mos/filesystem/dentry.h"
+#include "mos/filesystem/userfs/userfs.h"
+
 #include "mos/filesystem/vfs.h"
-#include "mos/filesystem/vfs_types.h"
 #include "mos/filesystem/vfs_utils.h"
-#include "mos/mm/mm.h"
-#include "mos/mm/physical/pmm.h"
-#include "mos/mm/slab_autoinit.h"
 #include "mos/printk.h"
-#include "mos/setup.h"
-#include "mos/tasks/kthread.h"
-#include "proto/filesystem.pb.h"
 
 #include <librpc/macro_magic.h>
 #include <librpc/rpc.h>
@@ -26,25 +20,13 @@
 #include <pb_decode.h>
 #include <pb_encode.h>
 
-RPC_DECL_SERVER_PROTOTYPES(fs_manager, FS_MANAGER_X)
-
-RPC_CLIENT_DEFINE_SIMPLECALL(fs_client, FS_IMPL_X)
-
-typedef struct
-{
-    filesystem_t fs;
-    const char *rpc_server_name;
-    rpc_server_stub_t *rpc_server;
-} userfs_t;
-
-static slab_t *userfs_slab = NULL;
-SLAB_AUTOINIT("userfs", userfs_slab, userfs_t);
+RPC_CLIENT_DEFINE_SIMPLECALL(fs_client, USERFS_IMPL_X)
 
 static const inode_ops_t userfs_iops;
 static const file_ops_t userfs_fops;
 static const inode_cache_ops_t userfs_inode_cache_ops;
 
-static inode_t *i_from_pb(const pb_inode *pbi, superblock_t *sb)
+inode_t *i_from_pb(const pb_inode *pbi, superblock_t *sb)
 {
     // enum pb_file_type_t -> enum file_type_t is safe here because they have the same values
     inode_t *i = inode_create(sb, pbi->stat.ino, (file_type_t) pbi->stat.type);
@@ -65,7 +47,7 @@ static inode_t *i_from_pb(const pb_inode *pbi, superblock_t *sb)
     return i;
 }
 
-static pb_inode *i_to_pb(const inode_t *i, pb_inode *pbi)
+pb_inode *i_to_pb(const inode_t *i, pb_inode *pbi)
 {
     pbi->stat.ino = i->ino;
     pbi->stat.type = (pb_file_type_t) i->type;
@@ -83,7 +65,8 @@ static pb_inode *i_to_pb(const inode_t *i, pb_inode *pbi)
     pbi->private_data = (ptr_t) i->private;
     return pbi;
 }
-static void userfs_ensure_connected(userfs_t *userfs)
+
+void userfs_ensure_connected(userfs_t *userfs)
 {
     if (userfs->rpc_server)
         return;
@@ -344,7 +327,7 @@ static const inode_cache_ops_t userfs_inode_cache_ops = {
     .page_write_end = NULL,
 };
 
-static dentry_t *userfs_fsop_mount(filesystem_t *fs, const char *device, const char *options)
+dentry_t *userfs_fsop_mount(filesystem_t *fs, const char *device, const char *options)
 {
     userfs_t *userfs = container_of(fs, userfs_t, fs);
     userfs_ensure_connected(userfs);
@@ -380,56 +363,3 @@ static dentry_t *userfs_fsop_mount(filesystem_t *fs, const char *device, const c
     sb->root->superblock = i->superblock = sb;
     return sb->root;
 }
-
-static int fs_manager_register(rpc_server_t *server, mos_rpc_fs_register_request *req, mos_rpc_fs_register_response *resp, void *data)
-{
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
-    userfs_t *userfs = kmalloc(userfs_slab);
-    if (!userfs)
-        return RPC_RESULT_SERVER_INTERNAL_ERROR;
-
-    size_t userfs_fsnamelen = strlen("userfs.") + strlen(req->fs.name) + 1;
-    userfs->fs.name = kmalloc(userfs_fsnamelen);
-    if (!userfs->fs.name)
-    {
-        kfree(userfs);
-        return RPC_RESULT_SERVER_INTERNAL_ERROR;
-    }
-
-    snprintf((char *) userfs->fs.name, userfs_fsnamelen, "userfs.%s", req->fs.name);
-    userfs->rpc_server_name = strdup(req->rpc_server_name);
-
-    resp->result.success = true;
-
-    userfs->fs.mount = userfs_fsop_mount;
-    vfs_register_filesystem(&userfs->fs);
-    return RPC_RESULT_OK;
-}
-
-static int fs_manager_unregister(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
-{
-    MOS_UNUSED(server);
-    MOS_UNUSED(reply);
-    MOS_UNUSED(data);
-    MOS_UNUSED(args);
-
-    return RPC_RESULT_OK;
-}
-
-static void fs_rpc_execute_server(void *arg)
-{
-    MOS_UNUSED(arg);
-    rpc_server_t *fs_server = rpc_server_create(FS_SERVER_RPC_NAME, NULL);
-    rpc_server_register_functions(fs_server, fs_manager_functions, MOS_ARRAY_SIZE(fs_manager_functions));
-    rpc_server_exec(fs_server);
-    pr_emerg("fs_rpc_execute_server exited");
-}
-
-void fs_rpc_init()
-{
-    kthread_create(fs_rpc_execute_server, NULL, "fs_rpc_server");
-}
-
-MOS_INIT(KTHREAD, fs_rpc_init);
