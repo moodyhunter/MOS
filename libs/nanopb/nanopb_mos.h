@@ -12,5 +12,7 @@
 #include <stdlib.h>
 #endif
 
+#define PB_FIELD_32BIT 1
+#define PB_VALIDATE_UTF8 1
 #define PB_ENABLE_MALLOC 1
 #define PB_STATIC_ASSERT(a, b) MOS_STATIC_ASSERT(a, #b);
