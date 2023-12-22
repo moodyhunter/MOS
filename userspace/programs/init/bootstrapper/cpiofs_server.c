@@ -22,9 +22,9 @@
 #define CPIOFS_NAME            "cpiofs"
 #define CPIOFS_RPC_SERVER_NAME "fs.cpiofs"
 
-RPC_CLIENT_DEFINE_SIMPLECALL(fs_manager, FS_MANAGER_X)
+RPC_CLIENT_DEFINE_SIMPLECALL(fs_manager, USERFS_MANAGER_X)
 
-RPC_DECL_SERVER_PROTOTYPES(cpiofs, FS_IMPL_X)
+RPC_DECL_SERVER_PROTOTYPES(cpiofs, USERFS_IMPL_X)
 
 static rpc_server_t *cpiofs = NULL;
 static rpc_server_stub_t *fs_manager = NULL;
@@ -304,7 +304,7 @@ void cpiofs_run_server()
 
     rpc_server_register_functions(cpiofs, cpiofs_functions, MOS_ARRAY_SIZE(cpiofs_functions));
 
-    fs_manager = rpc_client_create(FS_SERVER_RPC_NAME);
+    fs_manager = rpc_client_create(USERFS_SERVER_RPC_NAME);
     if (!fs_manager)
     {
         puts("failed to connect to filesystem server");
