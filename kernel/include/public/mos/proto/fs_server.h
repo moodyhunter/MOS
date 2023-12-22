@@ -17,4 +17,5 @@ RPC_DEFINE_ENUMS(fs_manager, FS_MANAGER, FS_MANAGER_X)
     PB(xarg, 0, mount, MOUNT, mos_rpc_fs_mount_request, mos_rpc_fs_mount_response)                                                                                       \
     PB(xarg, 1, readdir, READDIR, mos_rpc_fs_readdir_request, mos_rpc_fs_readdir_response)                                                                               \
     PB(xarg, 2, lookup, LOOKUP, mos_rpc_fs_lookup_request, mos_rpc_fs_lookup_response)                                                                                   \
-    PB(xarg, 3, readlink, READLINK, mos_rpc_fs_readlink_request, mos_rpc_fs_readlink_response)
+    PB(xarg, 3, readlink, READLINK, mos_rpc_fs_readlink_request, mos_rpc_fs_readlink_response)                                                                           \
+    PB(xarg, 4, getpage, GETPAGE, mos_rpc_fs_getpage_request, mos_rpc_fs_getpage_response)

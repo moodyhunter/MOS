@@ -267,6 +267,32 @@ static int cpiofs_readlink(rpc_server_t *server, mos_rpc_fs_readlink_request *re
     return RPC_RESULT_OK;
 }
 
+static int cpiofs_getpage(rpc_server_t *server, mos_rpc_fs_getpage_request *req, mos_rpc_fs_getpage_response *resp, void *data)
+{
+    MOS_UNUSED(server);
+    MOS_UNUSED(data);
+
+    cpio_inode_t *cpio_i = (cpio_inode_t *) req->inode.private_data;
+    const size_t bytes_to_read = MIN((size_t) MOS_PAGE_SIZE, cpio_i->pb_i.stat.size - req->pgoff * MOS_PAGE_SIZE);
+
+    resp->data = malloc(sizeof(pb_bytes_array_t) + bytes_to_read);
+    resp->data->size = bytes_to_read;
+
+    const size_t read = read_initrd(resp->data->bytes, bytes_to_read, cpio_i->data_offset + req->pgoff * MOS_PAGE_SIZE);
+    if (read != bytes_to_read)
+    {
+        puts("cpiofs_getpage: failed to read page");
+        resp->result.success = false;
+        resp->result.error = strdup("failed to read page");
+
+        free(resp->data);
+        return RPC_RESULT_OK;
+    }
+
+    resp->result.success = true;
+    return RPC_RESULT_OK;
+}
+
 void cpiofs_run_server()
 {
     cpiofs = rpc_server_create(CPIOFS_RPC_SERVER_NAME, NULL);
