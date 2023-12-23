@@ -598,3 +598,27 @@ DEFINE_SYSCALL(long, clock_gettimeofday)(struct timespec *ts)
     ts->tv_nsec = 0;
     return 0;
 }
+
+DEFINE_SYSCALL(long, thread_setname)(tid_t tid, const char *name)
+{
+    thread_t *thread = thread_get(tid);
+    if (thread == NULL)
+        return -ESRCH;
+
+    if (thread->name)
+        kfree(thread->name);
+
+    thread->name = strdup(name);
+    return true;
+}
+
+DEFINE_SYSCALL(ssize_t, thread_getname)(tid_t tid, char *buf, size_t buflen)
+{
+    thread_t *thread = thread_get(tid);
+
+    if (thread == NULL)
+        return -ESRCH;
+
+    char *end = strncpy(buf, thread->name, buflen);
+    return end - buf;
+}

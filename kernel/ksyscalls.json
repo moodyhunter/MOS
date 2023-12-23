@@ -445,6 +445,18 @@
             "name": "clock_gettimeofday",
             "return": "long",
             "arguments": [ { "type": "struct timespec *", "arg": "tv" } ]
+        },
+        {
+            "number": 59,
+            "name": "thread_setname",
+            "return": "long",
+            "arguments": [ { "type": "tid_t", "arg": "tid" }, { "type": "const char *", "arg": "name" } ]
+        },
+        {
+            "number": 60,
+            "name": "thread_getname",
+            "return": "ssize_t",
+            "arguments": [ { "type": "tid_t", "arg": "tid" }, { "type": "char *", "arg": "buf" }, { "type": "size_t", "arg": "buf_size" } ]
         }
     ]
 }
