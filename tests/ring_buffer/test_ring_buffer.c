@@ -437,76 +437,76 @@ MOS_TEST_CASE(ringbuffer_push_pop_multiple_bytes)
 
     MOS_TEST_CHECK(strncmp((char *) rb->data, "MY_DATA!MY_DATA!", 16), 0);
 
-    written = ring_buffer_push_back(rb, (u8 *) data, 8); // can't write more
-    MOS_TEST_CHECK(written, 0);
-    MOS_TEST_CHECK(rb->pos.head, 0);
-    MOS_TEST_CHECK(rb->pos.next_pos, 16);
-    MOS_TEST_CHECK(rb->pos.size, 16);
+    written = ring_buffer_push_back(rb, (u8 *) data, 8); // "MY_DATA!MY_DATA!MY_D"
+    MOS_TEST_CHECK(written, 4);                          // only part of the data is written (MY_D)
+    MOS_TEST_CHECK(rb->pos.head, 0);                     // no change
+    MOS_TEST_CHECK(rb->pos.next_pos, 0);                 // wrap around
+    MOS_TEST_CHECK(rb->pos.size, 20);                    // full, 16 existing + 4 new
 
     read = ring_buffer_pop_front(rb, (u8 *) buf, 8);
     MOS_TEST_CHECK(read, 8);
     MOS_TEST_CHECK(rb->pos.head, 8);
-    MOS_TEST_CHECK(rb->pos.next_pos, 16);
-    MOS_TEST_CHECK(rb->pos.size, 8);
+    MOS_TEST_CHECK(rb->pos.next_pos, 0); // no change
+    MOS_TEST_CHECK(rb->pos.size, 12);    // 20 - 8 = 12
     MOS_TEST_CHECK(strncmp(buf, data, 8), 0);
 
-    MOS_TEST_CHECK(strncmp((char *) rb->data + 8, "MY_DATA!", 8), 0);
+    MOS_TEST_CHECK_STRING_N((char *) rb->data + rb->pos.head, "MY_DATA!", 8);
 
     written = ring_buffer_push_back(rb, (u8 *) data, 8); // wrap around
     MOS_TEST_CHECK(written, 8);
     MOS_TEST_CHECK(rb->pos.head, 8);
-    MOS_TEST_CHECK(rb->pos.next_pos, 4);
-    MOS_TEST_CHECK(rb->pos.size, 16);
+    MOS_TEST_CHECK(rb->pos.next_pos, 8); // 0 + 8 = 8
+    MOS_TEST_CHECK(rb->pos.size, 20);    // 12 + 8 = 20
 
-    MOS_TEST_CHECK(strncmp((char *) rb->data, "ATA!ATA!MY_DATA!MY_D", 16), 0);
+    MOS_TEST_CHECK_STRING((char *) rb->data, "MY_DATA!MY_DATA!MY_D");
 
     read = ring_buffer_pop_front(rb, (u8 *) buf, 8);
     MOS_TEST_CHECK(read, 8);
-    MOS_TEST_CHECK(rb->pos.head, 16);
-    MOS_TEST_CHECK(rb->pos.next_pos, 4);
-    MOS_TEST_CHECK(rb->pos.size, 8);
+    MOS_TEST_CHECK(rb->pos.head, 16);    // 8 + 8 = 16
+    MOS_TEST_CHECK(rb->pos.next_pos, 8); // unchanged
+    MOS_TEST_CHECK(rb->pos.size, 12);    // 20 - 8 = 12
     MOS_TEST_CHECK(strncmp(buf, data, 8), 0);
 
     read = ring_buffer_pop_back(rb, (u8 *) buf, 8);
     MOS_TEST_CHECK(read, 8);
-    MOS_TEST_CHECK(rb->pos.head, 16);
-    MOS_TEST_CHECK(rb->pos.next_pos, 16);
-    MOS_TEST_CHECK(rb->pos.size, 0);
+    MOS_TEST_CHECK(rb->pos.head, 16);    // unchanged
+    MOS_TEST_CHECK(rb->pos.next_pos, 0); // 8 - 8 = 0
+    MOS_TEST_CHECK(rb->pos.size, 4);     // 12 - 8 = 4
     MOS_TEST_CHECK(strncmp(buf, data, 8), 0);
 
     written = ring_buffer_push_front(rb, (u8 *) data, 8); // no wrap around
     MOS_TEST_CHECK(written, 8);
-    MOS_TEST_CHECK(rb->pos.head, 8);
-    MOS_TEST_CHECK(rb->pos.next_pos, 16);
-    MOS_TEST_CHECK(rb->pos.size, 8);
+    MOS_TEST_CHECK(rb->pos.head, 8);     // 16 - 8 = 8
+    MOS_TEST_CHECK(rb->pos.next_pos, 0); // unchanged
+    MOS_TEST_CHECK(rb->pos.size, 12);    // 4 + 8 = 12
 
     written = ring_buffer_push_front(rb, (u8 *) data, 8);
     MOS_TEST_CHECK(written, 8);
-    MOS_TEST_CHECK(rb->pos.head, 0);
-    MOS_TEST_CHECK(rb->pos.next_pos, 16);
-    MOS_TEST_CHECK(rb->pos.size, 16);
+    MOS_TEST_CHECK(rb->pos.head, 0);     // 8 - 8 = 0
+    MOS_TEST_CHECK(rb->pos.next_pos, 0); // unchanged
+    MOS_TEST_CHECK(rb->pos.size, 20);    // 12 + 8 = 20
 
     written = ring_buffer_push_front(rb, (u8 *) data, 8); // can't write more
     MOS_TEST_CHECK(written, 0);
     MOS_TEST_CHECK(rb->pos.head, 0);
-    MOS_TEST_CHECK(rb->pos.next_pos, 16);
-    MOS_TEST_CHECK(rb->pos.size, 16);
+    MOS_TEST_CHECK(rb->pos.next_pos, 0);
+    MOS_TEST_CHECK(rb->pos.size, 20);
 
     read = ring_buffer_pop_back(rb, (u8 *) buf, 8);
     MOS_TEST_CHECK(read, 8);
-    MOS_TEST_CHECK(rb->pos.head, 0);
-    MOS_TEST_CHECK(rb->pos.next_pos, 8);
-    MOS_TEST_CHECK(rb->pos.size, 8);
+    MOS_TEST_CHECK(rb->pos.head, 0);      // unchanged
+    MOS_TEST_CHECK(rb->pos.next_pos, 12); // 20 - 8 = 12
+    MOS_TEST_CHECK(rb->pos.size, 12);     // 20 - 8 = 12
 
     read = ring_buffer_push_front(rb, (u8 *) data, 8); // wrap around
     MOS_TEST_CHECK(read, 8);
-    MOS_TEST_CHECK(rb->pos.head, 12);
-    MOS_TEST_CHECK(rb->pos.next_pos, 8);
-    MOS_TEST_CHECK(rb->pos.size, 16);
+    MOS_TEST_CHECK(rb->pos.head, 12);     // 0 - 8 mod 20 = 12
+    MOS_TEST_CHECK(rb->pos.next_pos, 12); // unchanged
+    MOS_TEST_CHECK(rb->pos.size, 20);     // 12 + 8 = 20
 
     read = ring_buffer_pop_back(rb, (u8 *) buf, 8);
     MOS_TEST_CHECK(read, 8);
-    MOS_TEST_CHECK(rb->pos.head, 12);
-    MOS_TEST_CHECK(rb->pos.next_pos, 0);
-    MOS_TEST_CHECK(rb->pos.size, 8);
+    MOS_TEST_CHECK(rb->pos.head, 12);    // unchanged
+    MOS_TEST_CHECK(rb->pos.next_pos, 4); // 12 - 8 = 4
+    MOS_TEST_CHECK(rb->pos.size, 12);    // 20 - 8 = 12
 }

@@ -171,6 +171,27 @@ typedef struct
     } while (false)
 
 /*
+ * Check if actual string is equal expected string, with n characters.
+ *
+ * Arguments:
+ *   - expected         - expected string
+ *   - actual           - actual string
+ *   - n                - number of characters to compare
+ */
+#define MOS_TEST_CHECK_STRING_N(actual, expected, n)                                                                                                                     \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                                               \
+        {                                                                                                                                                                \
+            MOS_TEST_SKIP();                                                                                                                                             \
+            break;                                                                                                                                                       \
+        }                                                                                                                                                                \
+        ++_MT_result->n_total;                                                                                                                                           \
+        if (strncmp(expected, actual, n) != 0)                                                                                                                           \
+            MOS_TEST_FAIL("values are different (expected = '%.*s', actual = '%.*s'), at line %u", (n), (expected), (n), (actual), (__LINE__));                          \
+    } while (false);
+
+/*
  * Check if actual value is not differ from expected value by more then epsilon.
  *
  * Arguments:
