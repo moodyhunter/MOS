@@ -89,9 +89,8 @@ static void x86_setup_child_thread(thread_t *thread, thread_entry_t entry, void 
     MOS_ASSERT(thread->owner->mm == current_mm);
     MOS_ASSERT(thread != thread->owner->main_thread);
 
-    regs->di = (ptr_t) arg;                      // argument
-    stack_push_val(&thread->u_stack, (ptr_t) 0); // return address
-    regs->sp = thread->u_stack.head;             // update the stack pointer
+    regs->di = (ptr_t) arg;          // argument
+    regs->sp = thread->u_stack.head; // update the stack pointer
 }
 __alias(x86_setup_child_thread, platform_context_setup_child_thread);
 
