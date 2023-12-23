@@ -41,28 +41,16 @@ typedef pthread_mutex_t mutex_t;
 #define mutex_release(mutex)  pthread_mutex_unlock(mutex)
 #define mos_warn(...)         fprintf(stderr, __VA_ARGS__)
 #define MOS_LIB_UNREACHABLE() __builtin_unreachable()
-
-typedef struct
+static void start_thread(const char *name, thread_entry_t entry, void *arg)
 {
-    thread_entry_t entry;
-    void *arg;
-} thread_start_args_t;
-
-static void thread_start(void *_arg)
-{
-    thread_entry_t entry = ((thread_start_args_t *) _arg)->entry;
-    void *entry_arg = ((thread_start_args_t *) _arg)->arg;
-    entry(entry_arg);
-    free(_arg);
-    syscall_thread_exit();
-}
-
-static tid_t start_thread(const char *name, thread_entry_t entry, void *arg)
-{
-    thread_start_args_t *thread_start_args = malloc(sizeof(thread_start_args_t));
-    thread_start_args->entry = entry;
-    thread_start_args->arg = arg;
-    return syscall_create_thread(name, thread_start, thread_start_args, 0, NULL);
+    union
+    {
+        thread_entry_t entry;
+        void *(*func)(void *);
+    } u = { entry }; // to make the compiler happy
+    pthread_t thread;
+    pthread_create(&thread, NULL, u.func, arg);
+    pthread_setname_np(thread, name);
 }
 #endif
 
