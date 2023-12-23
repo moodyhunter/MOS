@@ -5,8 +5,9 @@
 #include <librpc/macro_magic.h>
 #include <librpc/rpc.h>
 #include <librpc/rpc_server.h>
-#include <mos_stdio.h>
-#include <mos_string.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 static rpc_server_t *server;
 

@@ -11,7 +11,7 @@ target_include_directories(syslogd
 
 target_link_libraries(syslogd
     PRIVATE
-        mos::librpc-server
+        mos::librpc-server_hosted
 )
 
 add_to_initrd(TARGET syslogd /programs)
