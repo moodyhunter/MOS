@@ -16,27 +16,9 @@ jobs:
       matrix:
         build_type: [Debug, Release]
         config:
-          #   - {
-          #       "name": "x86_64 UEFI (no SMP)",
-          #       "arch": "x86_64",
-          #       "target_triple": "x86_64-elf",
-          #       "target": "mos_uefi_entry",
-          #       "has_smp": "OFF",
-          #       "compile_only": "ON", # we don't have a working platform support for now
-          #     }
-          #   - {
-          #       "name": "x86_64 UEFI with SMP (1 core)",
-          #       "arch": "x86_64",
-          #       "target_triple": "x86_64-elf",
-          #       "target": "mos_uefi_entry",
-          #       "has_smp": "ON",
-          #       "smp": "1",
-          #       "compile_only": "ON",
-          #     }
           - {
               "name": "x86_64 limine (no SMP)",
               "arch": "x86_64",
-              "target_triple": "x86_64-elf",
               "target": "mos_limine",
               "has_smp": "n",
               "compile_only": "ON",
@@ -44,7 +26,6 @@ jobs:
           #   - {
           #       "name": "x86_64 limine with SMP (1 core)",
           #       "arch": "x86_64",
-          #       "target_triple": "x86_64-elf",
           #       "target": "mos_limine",
           #       "has_smp": "y",
           #       "smp": "1",
