@@ -151,7 +151,7 @@ process_t *process_new(process_t *parent, const char *name, const stdio_t *ios)
     process_attach_ref_fd(proc, ios && ios->out ? ios->out : io_null);
     process_attach_ref_fd(proc, ios && ios->err ? ios->err : io_null);
 
-    proc->main_thread = thread_new(proc, THREAD_MODE_USER, proc->name);
+    proc->main_thread = thread_new(proc, THREAD_MODE_USER, proc->name, 0, NULL);
 
     vmap_t *heap = cow_allocate_zeroed_pages(proc->mm, 1, MOS_ADDR_USER_HEAP, VALLOC_DEFAULT, VM_USER_RW);
     vmap_finalise_init(heap, VMAP_HEAP, VMAP_TYPE_PRIVATE);

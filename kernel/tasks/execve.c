@@ -84,8 +84,9 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
     // the userspace stack for the current thread will also be freed, so we create a new one
     if (thread->mode == THREAD_MODE_USER)
     {
-        vmap_t *stack_vmap = cow_allocate_zeroed_pages(proc->mm, MOS_STACK_PAGES_USER, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, VM_USER_RW);
-        stack_init(&thread->u_stack, (void *) stack_vmap->vaddr, MOS_STACK_PAGES_USER * MOS_PAGE_SIZE);
+        const size_t ustack_size = MOS_STACK_PAGES_USER * MOS_PAGE_SIZE;
+        vmap_t *stack_vmap = cow_allocate_zeroed_pages(proc->mm, ustack_size / MOS_PAGE_SIZE, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, VM_USER_RW);
+        stack_init(&thread->u_stack, (void *) stack_vmap->vaddr, ustack_size);
         vmap_finalise_init(stack_vmap, VMAP_STACK, VMAP_TYPE_PRIVATE);
     }
 

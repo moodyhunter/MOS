@@ -100,7 +100,13 @@
             "number": 13,
             "name": "create_thread",
             "return": "tid_t",
-            "arguments": [ { "type": "const char *", "arg": "name" }, { "type": "thread_entry_t", "arg": "entry" }, { "type": "void *", "arg": "arg" } ]
+            "arguments": [
+                { "type": "const char *", "arg": "name" },
+                { "type": "thread_entry_t", "arg": "entry" },
+                { "type": "void *", "arg": "arg" },
+                { "type": "size_t", "arg": "stack_size" },
+                { "type": "void *", "arg": "stack" }
+            ]
         },
         {
             "number": 14,

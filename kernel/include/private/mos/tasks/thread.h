@@ -18,7 +18,7 @@ should_inline bool thread_is_valid(thread_t *thread)
 thread_t *thread_allocate(process_t *owner, thread_mode tflags);
 void thread_destroy(thread_t *thread);
 
-thread_t *thread_new(process_t *owner, thread_mode mode, const char *name);
+thread_t *thread_new(process_t *owner, thread_mode mode, const char *name, size_t stack_size, void *stack);
 thread_t *thread_complete_init(thread_t *thread);
 thread_t *thread_get(tid_t id);
 bool thread_wait_for_tid(tid_t tid);

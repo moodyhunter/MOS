@@ -162,9 +162,9 @@ DEFINE_SYSCALL(pid_t, spawn)(const char *path, const char *const argv[], const c
     return process->pid;
 }
 
-DEFINE_SYSCALL(tid_t, create_thread)(const char *name, thread_entry_t entry, void *arg)
+DEFINE_SYSCALL(tid_t, create_thread)(const char *name, thread_entry_t entry, void *arg, size_t stack_size, void *stack)
 {
-    thread_t *thread = thread_new(current_process, THREAD_MODE_USER, name);
+    thread_t *thread = thread_new(current_process, THREAD_MODE_USER, name, stack_size, stack);
     if (thread == NULL)
         return -1;
 

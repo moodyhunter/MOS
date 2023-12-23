@@ -66,7 +66,7 @@ void thread_destroy(thread_t *thread)
     kfree(thread);
 }
 
-thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name)
+thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, size_t stack_size, void *explicit_stack_top)
 {
     thread_t *t = thread_allocate(owner, tmode);
 
@@ -78,20 +78,70 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name)
     const ptr_t kstack_blk = phyframe_va(mm_get_free_pages(MOS_STACK_PAGES_KERNEL));
     stack_init(&t->k_stack, (void *) kstack_blk, MOS_STACK_PAGES_KERNEL * MOS_PAGE_SIZE);
 
-    if (tmode == THREAD_MODE_USER)
+    if (tmode != THREAD_MODE_USER)
     {
-        // User stack
-        vmap_t *stack_vmap = cow_allocate_zeroed_pages(owner->mm, MOS_STACK_PAGES_USER, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, VM_USER_RW);
-        stack_init(&t->u_stack, (void *) stack_vmap->vaddr, MOS_STACK_PAGES_USER * MOS_PAGE_SIZE);
-        vmap_finalise_init(stack_vmap, VMAP_STACK, VMAP_TYPE_PRIVATE);
-    }
-    else
-    {
-        // kernel thread has no user stack
-        stack_init(&t->u_stack, NULL, 0);
+        stack_init(&t->u_stack, NULL, 0); // kernel thread has no user stack
+        return t;
     }
 
+    // User stack
+    const size_t user_stack_size = stack_size ? stack_size : MOS_STACK_PAGES_USER * MOS_PAGE_SIZE;
+    if (!explicit_stack_top)
+    {
+        vmap_t *stack_vmap = cow_allocate_zeroed_pages(owner->mm, user_stack_size / MOS_PAGE_SIZE, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, VM_USER_RW);
+        stack_init(&t->u_stack, (void *) stack_vmap->vaddr, user_stack_size);
+        vmap_finalise_init(stack_vmap, VMAP_STACK, VMAP_TYPE_PRIVATE);
+        return t;
+    }
+
+    // check if the stack is valid
+    mm_lock_ctx_pair(owner->mm, NULL);
+    vmap_t *stack_vmap = vmap_obtain(owner->mm, (ptr_t) explicit_stack_top, NULL);
+    if (!stack_vmap)
+    {
+        pr_warn("invalid stack pointer %pt", explicit_stack_top);
+        goto done_efault;
+    }
+
+    // check if the stack vmap is valid
+    if (stack_vmap->content == VMAP_STACK) // has been claimed by another thread?
+    {
+        pr_warn("stack %pt has been claimed by another thread", explicit_stack_top);
+        goto done_efault;
+    }
+
+    // check if the stack is large enough
+    if (stack_vmap->npages < user_stack_size / MOS_PAGE_SIZE)
+    {
+        pr_warn("stack %pt is too small (size=%zu, required=%zu)", explicit_stack_top, stack_vmap->npages * MOS_PAGE_SIZE, user_stack_size);
+        goto done_efault;
+    }
+
+    // check if the stack is writable
+    if (!(stack_vmap->vmflags & VM_USER_RW))
+    {
+        pr_warn("stack %pt is not writable", explicit_stack_top);
+        goto done_efault;
+    }
+
+    const ptr_t stack_bottom = ALIGN_UP_TO_PAGE((ptr_t) explicit_stack_top) - user_stack_size;
+    vmap_t *second = vmap_split(stack_vmap, (stack_bottom - stack_vmap->vaddr) / MOS_PAGE_SIZE);
+    spinlock_release(&stack_vmap->lock);
+    stack_vmap = second;
+
+    stack_vmap->content = VMAP_STACK;
+    stack_vmap->type = VMAP_TYPE_PRIVATE;
+    spinlock_release(&stack_vmap->lock);
+    mm_unlock_ctx_pair(owner->mm, NULL);
+    stack_init(&t->u_stack, (void *) stack_bottom, user_stack_size);
+    t->u_stack.head = (ptr_t) explicit_stack_top;
     return t;
+
+done_efault:
+    spinlock_release(&stack_vmap->lock);
+    mm_unlock_ctx_pair(owner->mm, NULL);
+    thread_destroy(t);
+    return ERR_PTR(-EFAULT); // invalid stack pointer
 }
 
 thread_t *thread_complete_init(thread_t *thread)

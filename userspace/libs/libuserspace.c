@@ -85,7 +85,7 @@ tid_t start_thread(const char *name, thread_entry_t entry, void *arg)
     thread_start_args_t *thread_start_args = malloc(sizeof(thread_start_args_t));
     thread_start_args->entry = entry;
     thread_start_args->arg = arg;
-    return syscall_create_thread(name, thread_start, thread_start_args);
+    return syscall_create_thread(name, thread_start, thread_start_args, 0, NULL);
 }
 
 noreturn void abort()
