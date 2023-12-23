@@ -33,19 +33,25 @@ cmdline_option_t *cmdline_get_option(const char *option_name)
 void mos_cmdline_init(const char *cmdline)
 {
     // must be static so that it doesn't get freed
-    static char cmdline_buf[PRINTK_BUFFER_SIZE] = { 0 };
+    static char cmdline_buf[PRINTK_BUFFER_SIZE];
 
-    if (!cmdline)
-        return;
+    static const char *extra_cmdlines = MOS_EXTRA_CMDLINE;
+    size_t cmdline_len = sizeof(MOS_EXTRA_CMDLINE) - 1; // -1 to remove the null terminator
+    memcpy(cmdline_buf, extra_cmdlines, cmdline_len);
 
-    const size_t cmdline_length = strlen(cmdline);
-    memcpy(cmdline_buf, cmdline, cmdline_length);
-    cmdline_buf[cmdline_length] = '\0'; // ensure null terminator
+    if (cmdline)
+    {
+        cmdline_buf[cmdline_len] = ' ';
+        cmdline_len++;
+        memcpy(cmdline_buf + cmdline_len, cmdline, strlen(cmdline));
+    }
+
+    cmdline_buf[cmdline_len] = '\0'; // ensure null terminator
 
     pr_dinfo2(setup, "cmdline: '%s'", cmdline_buf);
 
     const char *cmdlines_tmp[MOS_MAX_CMDLINE_COUNT] = { 0 };
-    bool result = cmdline_parse_inplace(cmdline_buf, cmdline_length, MOS_MAX_CMDLINE_COUNT, &platform_info->n_cmdlines, cmdlines_tmp);
+    bool result = cmdline_parse_inplace(cmdline_buf, cmdline_len, MOS_MAX_CMDLINE_COUNT, &platform_info->n_cmdlines, cmdlines_tmp);
     if (!result)
         pr_warn("cmdline_parse: too many cmdlines");
 

@@ -15,6 +15,13 @@ config MAX_CMDLINE_COUNT
     int "Maximum number of command line arguments"
     default 64
 
+config EXTRA_CMDLINE
+    string "Extra command line arguments"
+    default ""
+    help
+    This option allows you to specify extra command line arguments
+    that will be passed to the kernel at boot time.
+
 config MAX_MEMREGIONS
     int "Maximum number of bootloader-provided memory regions"
     default 64
