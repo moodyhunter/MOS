@@ -20,14 +20,14 @@ int main(int argc, const char *argv[])
     pid_t filesystem_server_pid = syscall_fork();
     if (filesystem_server_pid == -1)
     {
-        puts("failed to fork filesystem server");
+        puts("bootstrapper: failed to fork filesystem server");
         return 0;
     }
     else if (filesystem_server_pid == 0)
     {
-        puts("starting filesystem server");
+        puts("bootstrapper: starting filesystem server");
         cpiofs_run_server();
-        puts("filesystem server exited unexpectedly");
+        puts("bootstrapper: filesystem server exited unexpectedly");
         return 0;
     }
 

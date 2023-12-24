@@ -100,11 +100,11 @@ static int cpiofs_mount(rpc_server_t *server, mos_rpc_fs_mount_request *req, mos
     MOS_UNUSED(server);
     MOS_UNUSED(data);
 
-    if (unlikely(req->options) && strlen(req->options) > 0)
-        puts("cpio: mount options are not supported");
+    if (req->options && strlen(req->options) > 0 && strcmp(req->options, "defaults") != 0)
+        printf("cpio: mount option '%s' is not supported\n", req->options);
 
-    if (req->device && strcmp(req->device, "none") != 0)
-        puts("cpio: mount: dev_name is not supported");
+    if (req->device && strlen(req->device) > 0 && strcmp(req->device, "none") != 0)
+        printf("cpio: mount: device name '%s' is not supported\n", req->device);
 
     cpio_inode_t *cpio_i = cpio_trycreate_i(".");
     if (!cpio_i)
@@ -170,8 +170,6 @@ static int cpiofs_readdir(rpc_server_t *server, mos_rpc_fs_readdir_request *req,
 
         if (found && !is_TRAILER && !is_root_dot)
         {
-            printf("prefix '%s' filename '%s'\n", path_prefix, fpath);
-
             const s64 ino = strntoll(header.ino, NULL, 16, sizeof(header.ino) / sizeof(char));
             const u32 modebits = strntoll(header.mode, NULL, 16, sizeof(header.mode) / sizeof(char));
             const pb_file_type_t type = cpio_modebits_to_filetype(modebits & CPIO_MODE_FILE_TYPE);
@@ -204,8 +202,6 @@ static int cpiofs_readdir(rpc_server_t *server, mos_rpc_fs_readdir_request *req,
     }
 
     resp->entries_count = n_written; // not the same as resp->entries_count, because we might have allocated more than we needed
-
-    printf("iterated with prefix='%s', found %zu entries\n", path_prefix, n_written);
     return RPC_RESULT_OK;
 }
 
@@ -272,6 +268,14 @@ static int cpiofs_getpage(rpc_server_t *server, mos_rpc_fs_getpage_request *req,
     MOS_UNUSED(server);
     MOS_UNUSED(data);
 
+    if (req->pgoff * MOS_PAGE_SIZE >= req->inode.stat.size)
+    {
+        resp->data = malloc(sizeof(pb_bytes_array_t));
+        resp->data->size = 0;
+        resp->result.success = true;
+        return RPC_RESULT_OK;
+    }
+
     cpio_inode_t *cpio_i = (cpio_inode_t *) req->inode.private_data;
     const size_t bytes_to_read = MIN((size_t) MOS_PAGE_SIZE, cpio_i->pb_i.stat.size - req->pgoff * MOS_PAGE_SIZE);
 
@@ -323,9 +327,11 @@ void cpiofs_run_server()
     }
 
     if (resp.result.success)
-        printf("cpiofs registered with filesystem server\n");
+        printf("cpiofs: registered with filesystem server\n");
     else
-        printf("cpiofs failed to register with filesystem server\n");
+        printf("cpiofs: failed to register with filesystem server\n");
+
+    pb_release(mos_rpc_fs_register_response_fields, &resp);
 
     rpc_server_exec(cpiofs);
     puts("cpiofs server exited unexpectedly");
