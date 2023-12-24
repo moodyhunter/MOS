@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/syscall/usermode.h>
@@ -7,14 +8,14 @@
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
-#define dirent_next(d) ((dir_entry_t *) ((char *) d + d->next_offset))
+#define dirent_next(d) ((struct dirent *) ((char *) d + d->d_reclen))
 static size_t depth = 1;
 
-static void print_entry(const dir_entry_t *dirent)
+static void print_entry(const struct dirent *dirent)
 {
     for (size_t i = 0; i < depth; i++)
         printf("    ");
-    printf("%s\n", dirent->name);
+    printf("%s\n", dirent->d_name);
 }
 
 static void do_tree(void)
@@ -33,16 +34,16 @@ static void do_tree(void)
         if (sz == 0)
             break;
 
-        for (const dir_entry_t *dirent = (dir_entry_t *) buffer; (char *) dirent < buffer + sz; dirent = dirent_next(dirent))
+        for (const struct dirent *dirent = (struct dirent *) buffer; (char *) dirent < buffer + sz; dirent = dirent_next(dirent))
         {
-            if (dirent->type == FILE_TYPE_DIRECTORY)
+            if (dirent->d_type == FILE_TYPE_DIRECTORY)
             {
-                if (strcmp(dirent->name, ".") == 0 || strcmp(dirent->name, "..") == 0)
+                if (strcmp(dirent->d_name, ".") == 0 || strcmp(dirent->d_name, "..") == 0)
                     continue;
 
                 print_entry(dirent);
                 depth++;
-                syscall_vfs_chdir(dirent->name);
+                syscall_vfs_chdir(dirent->d_name);
                 do_tree();
                 syscall_vfs_chdir("..");
                 depth--;
