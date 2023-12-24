@@ -690,7 +690,7 @@ size_t vfs_list_dir(io_t *io, void *user_buf, size_t user_size)
         if (state->read_offset >= state->n_count)
             break;
 
-        const size_t entry_size = sizeof(struct dirent) + entry->name_len + 1; // +1 for the null terminator
+        const size_t entry_size = sizeof(ino_t) + sizeof(off_t) + sizeof(short) + sizeof(char) + entry->name_len + 1; // +1 for the null terminator
         if (bytes_copied + entry_size > user_size)
             break;
 
