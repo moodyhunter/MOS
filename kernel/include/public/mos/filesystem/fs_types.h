@@ -48,10 +48,9 @@ typedef u16 file_perm_t;
 #define PERM_OWNER 0x1C0 // 111 000 000
 #define PERM_GROUP 0x38  // 000 111 000
 #define PERM_OTHER 0x7   // 000 000 111
-
-#define PERM_READ  0x49
-#define PERM_WRITE 0x92
-#define PERM_EXEC  0x124
+#define PERM_READ  0x49  // 001 001 001
+#define PERM_WRITE 0x92  // 010 010 010
+#define PERM_EXEC  0x124 // 100 100 100
 
 #define PERM_MASK 0777
 
@@ -74,16 +73,16 @@ typedef struct
 
 should_inline void file_format_perm(file_perm_t perms, char buf[10])
 {
-    buf[0] = perms & (PERM_READ | PERM_OWNER) ? 'r' : '-';
-    buf[1] = perms & (PERM_WRITE | PERM_OWNER) ? 'w' : '-';
-    buf[2] = perms & (PERM_EXEC | PERM_OWNER) ? 'x' : '-';
+    buf[0] = perms & (PERM_READ & PERM_OWNER) ? 'r' : '-';
+    buf[1] = perms & (PERM_WRITE & PERM_OWNER) ? 'w' : '-';
+    buf[2] = perms & (PERM_EXEC & PERM_OWNER) ? 'x' : '-';
 
-    buf[3] = perms & (PERM_READ | PERM_GROUP) ? 'r' : '-';
-    buf[4] = perms & (PERM_WRITE | PERM_GROUP) ? 'w' : '-';
-    buf[5] = perms & (PERM_EXEC | PERM_GROUP) ? 'x' : '-';
+    buf[3] = perms & (PERM_READ & PERM_GROUP) ? 'r' : '-';
+    buf[4] = perms & (PERM_WRITE & PERM_GROUP) ? 'w' : '-';
+    buf[5] = perms & (PERM_EXEC & PERM_GROUP) ? 'x' : '-';
 
-    buf[6] = perms & (PERM_READ | PERM_OTHER) ? 'r' : '-';
-    buf[7] = perms & (PERM_WRITE | PERM_OTHER) ? 'w' : '-';
-    buf[8] = perms & (PERM_EXEC | PERM_OTHER) ? 'x' : '-';
+    buf[6] = perms & (PERM_READ & PERM_OTHER) ? 'r' : '-';
+    buf[7] = perms & (PERM_WRITE & PERM_OTHER) ? 'w' : '-';
+    buf[8] = perms & (PERM_EXEC & PERM_OTHER) ? 'x' : '-';
     buf[9] = '\0';
 }
