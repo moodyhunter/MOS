@@ -40,7 +40,7 @@ config PATH_MAX_LENGTH
 
 config STACK_PAGES_KERNEL
     int "Number of pages for kernel stack"
-    default 4
+    default 8
 
 config STACK_PAGES_USER
     int "Number of pages for user stack"
@@ -171,6 +171,9 @@ config DEBUG_ipc
 
 config DEBUG_vfs
     bool "vfs debugging"
+
+config DEBUG_userfs
+    bool "userfs debugging"
 
 config DEBUG_dcache
     bool "dcache debugging"

@@ -74,6 +74,8 @@ SLAB_AUTOINIT("cpio_inode", cpio_inode_cache, cpio_inode_t);
 
 static size_t initrd_read(void *buf, size_t size, size_t offset)
 {
+    if (unlikely(offset + size > platform_info->initrd_npages * MOS_PAGE_SIZE))
+        mos_panic("initrd_read: out of bounds");
     memcpy(buf, (void *) (pfn_va(platform_info->initrd_pfn) + offset), size);
     return size;
 }
@@ -335,6 +337,10 @@ static phyframe_t *cpio_fill_cache(inode_cache_t *cache, off_t pgoff)
     if (!page)
         return NULL;
     pmm_ref_one(page);
+
+    if ((size_t) pgoff * MOS_PAGE_SIZE >= i->size)
+        return page; // EOF, no need to read anything
+
     const size_t bytes_to_read = MIN((size_t) MOS_PAGE_SIZE, i->size - pgoff * MOS_PAGE_SIZE);
     const size_t read = initrd_read((char *) phyframe_va(page), bytes_to_read, cpio_i->data_offset + pgoff * MOS_PAGE_SIZE);
     MOS_ASSERT(read == bytes_to_read);

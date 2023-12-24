@@ -104,7 +104,7 @@ static void userfs_iop_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state,
 
     if (!resp.entries_count)
     {
-        pr_warn("userfs_iop_iterate_dir: failed to readdir %s: %s", dentry_name(dentry), resp.result.error);
+        pr_dwarn(userfs, "userfs_iop_iterate_dir: failed to readdir %s: %s", dentry_name(dentry), resp.result.error);
         goto bail_out;
     }
 
@@ -139,7 +139,7 @@ static bool userfs_iop_lookup(inode_t *dir, dentry_t *dentry)
 
     if (!resp.result.success)
     {
-        pr_warn("userfs_iop_lookup: failed to lookup %s: %s", dentry_name(dentry), resp.result.error);
+        pr_dwarn(userfs, "userfs_iop_lookup: failed to lookup %s: %s", dentry_name(dentry), resp.result.error);
         goto leave;
     }
 
@@ -201,7 +201,7 @@ static size_t userfs_iop_readlink(dentry_t *dentry, char *buffer, size_t buflen)
 
     if (!resp.result.success)
     {
-        pr_warn("userfs_iop_readlink: failed to readlink %s: %s", dentry_name(dentry), resp.result.error);
+        pr_dwarn(userfs, "userfs_iop_readlink: failed to readlink %s: %s", dentry_name(dentry), resp.result.error);
         goto bail_out;
     }
 
@@ -300,7 +300,7 @@ static phyframe_t *userfs_inode_cache_fill_cache(inode_cache_t *cache, off_t pgo
 
     if (!resp.result.success)
     {
-        pr_warn("userfs_inode_cache_fill_cache: failed to getpage %s: %s", dentry_name(cache->owner->superblock->root), resp.result.error);
+        pr_dwarn(userfs, "userfs_inode_cache_fill_cache: failed to getpage %s: %s", dentry_name(cache->owner->superblock->root), resp.result.error);
         goto bail_out;
     }
 
@@ -349,7 +349,7 @@ dentry_t *userfs_fsop_mount(filesystem_t *fs, const char *device, const char *op
 
     if (!resp.result.success)
     {
-        pr_warn("userfs_fsop_mount: failed to mount %s: %s", fs->name, resp.result.error);
+        pr_dwarn(userfs, "userfs_fsop_mount: failed to mount %s: %s", fs->name, resp.result.error);
         pb_release(mos_rpc_fs_mount_response_fields, &resp);
         return ERR_PTR(-EIO);
     }

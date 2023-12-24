@@ -192,10 +192,7 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *symlink_dentry, lastseg
     dentry_t *parent_ref = dentry_lookup_parent(dentry_parent(symlink_dentry), root_dentry, target, &last_segment);
     kfree(target);
     if (IS_ERR(parent_ref))
-    {
-        mos_warn("symlink target does not exist");
-        return parent_ref;
-    }
+        return parent_ref; // the symlink target does not exist
 
     // it's possibly that the symlink target is also a symlink, this will be handled recursively
     bool symlink = false;

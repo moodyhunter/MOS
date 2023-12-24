@@ -440,10 +440,14 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     switch (fault_result)
     {
         case VMFAULT_COMPLETE: break;
-        case VMFAULT_CANNOT_HANDLE: break;
+        case VMFAULT_CANNOT_HANDLE:
+        {
+            unhandled_reason = "vmap fault handler returned VMFAULT_CANNOT_HANDLE";
+            goto unhandled_fault;
+        }
         case VMFAULT_COPY_BACKING_PAGE:
         {
-            MOS_ASSERT(info->backing_page);
+            MOS_ASSERT(info->backing_page && !IS_ERR(info->backing_page));
             const phyframe_t *page = mm_get_free_page(); // will be ref'd by mm_replace_page_locked()
             mm_copy_page(info->backing_page, page);
             info->backing_page = page;

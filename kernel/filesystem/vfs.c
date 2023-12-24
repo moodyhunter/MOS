@@ -187,7 +187,7 @@ static vmfault_result_t vfs_fault_handler(vmap_t *vmap, ptr_t fault_addr, pagefa
     const size_t fault_pgoffset = (vmap->io_offset + ALIGN_DOWN_TO_PAGE(fault_addr) - vmap->vaddr) / MOS_PAGE_SIZE;
     phyframe_t *pagecache_page = pagecache_get_page_for_read(&file->dentry->inode->cache, fault_pgoffset);
 
-    if (pagecache_page == NULL)
+    if (IS_ERR(pagecache_page))
         return VMFAULT_CANNOT_HANDLE;
 
     if (info->is_present && info->is_write)
