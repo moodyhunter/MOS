@@ -10,6 +10,7 @@
 #include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab_autoinit.h"
 
+#include <dirent.h>
 #include <errno.h>
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/fs_types.h>
@@ -658,12 +659,6 @@ long vfs_rmdir(const char *path)
 
 size_t vfs_list_dir(io_t *io, void *user_buf, size_t user_size)
 {
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // !!!! the current index counting is incorrect,               !!!!
-    // !!!! it will yield less than the actual number of entries   !!!!
-    // !!!! if the buffer is not large enough to hold all of them  !!!!
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
     pr_dinfo2(vfs, "vfs_list_dir(io=%p, buf=%p, size=%zu)", (void *) io, (void *) user_buf, user_size);
     file_t *file = container_of(io, file_t, io);
     if (unlikely(file->dentry->inode->type != FILE_TYPE_DIRECTORY))
@@ -695,16 +690,17 @@ size_t vfs_list_dir(io_t *io, void *user_buf, size_t user_size)
         if (state->read_offset >= state->n_count)
             break;
 
-        const size_t entry_size = sizeof(dir_entry_t) + entry->name_len + 1; // +1 for the null terminator
+        const size_t entry_size = sizeof(struct dirent) + entry->name_len + 1; // +1 for the null terminator
         if (bytes_copied + entry_size > user_size)
             break;
 
-        dir_entry_t *dirent = (dir_entry_t *) (((char *) user_buf) + bytes_copied);
-        dirent->ino = entry->ino;
-        dirent->type = entry->type;
-        dirent->name_len = entry->name_len;
-        dirent->next_offset = entry_size;
-        memcpy(dirent->name, entry->name, entry->name_len);
+        struct dirent *dirent = (struct dirent *) (((char *) user_buf) + bytes_copied);
+        dirent->d_ino = entry->ino;
+        dirent->d_type = entry->type;
+        dirent->d_reclen = entry_size;
+        dirent->d_off = entry_size - 1;
+        memcpy(dirent->d_name, entry->name, entry->name_len);
+        dirent->d_name[entry->name_len] = '\0';
         bytes_copied += entry_size;
         state->read_offset++;
     }

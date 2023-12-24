@@ -72,15 +72,6 @@ typedef struct
     u64 modified;
 } file_stat_t;
 
-typedef struct
-{
-    u64 ino;
-    u64 next_offset;      ///< sizeof(dir_entry_t) + name_len + 1
-    file_type_t type : 8; ///< file_type_t
-    u16 name_len;         ///< not including the null terminator
-    char name[];
-} dir_entry_t;
-
 should_inline void file_format_perm(file_perm_t perms, char buf[10])
 {
     buf[0] = perms & (PERM_READ | PERM_OWNER) ? 'r' : '-';
