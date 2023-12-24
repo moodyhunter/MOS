@@ -197,7 +197,13 @@ void x86_dump_stack_at(ptr_t this_frame, bool can_access_vmaps)
             }
         }
 
-        if (frame == frame->bp)
+        if (frame->bp == 0)
+        {
+            // end of stack
+            pr_warn(TRACE_FMT "<end>", i, NULL);
+            break;
+        }
+        else if (frame == frame->bp)
         {
             pr_emerg(TRACE_FMT "<corrupted>, aborting backtrace", i, (ptr_t) frame);
             break;
