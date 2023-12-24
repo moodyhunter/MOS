@@ -7,10 +7,6 @@
 #include <mos_stdio.h>
 #include <mos_string.h>
 
-#ifdef __MOS_KERNEL__
-#include <mos/platform/platform.h>
-#endif
-
 #define VERSION "1.1"
 
 // This is the byte alignment that memory must be allocated on. IMPORTANT for GTK and other stuff.
@@ -102,34 +98,6 @@ static liballoc_block_t *l_bestbet = NULL; // The major with the most free memor
 static size_t l_mem_allocated = 0; // Running total of allocated memory.
 static size_t l_mem_inuse = 0;     // Running total of used memory.
 static size_t l_warnings = 0;      // Number of warnings encountered
-
-#if __MOS_KERNEL__
-void liballoc_dump(void)
-{
-    pr_info("--------------- Memory data ---------------");
-    pr_info2("  Total Memory Allocated: %zu bytes", l_mem_allocated);
-    pr_info2("  Memory Used (malloc'ed): %zu bytes", l_mem_inuse);
-    pr_info2("  Emitted %zu warning(s)", l_warnings);
-
-    liballoc_block_t *maj = l_memroot;
-    liballoc_part_t *min = NULL;
-
-    pr_info("Memory Blocks:");
-    while (maj != NULL)
-    {
-        pr_info2("  %p: total = %zu, used = %zu", (void *) maj, maj->size, maj->usage);
-
-        min = maj->first;
-        while (min != NULL)
-        {
-            pr_info2("    %p: %zu bytes", (void *) min, min->size);
-            min = min->next;
-        }
-
-        maj = maj->next;
-    }
-}
-#endif
 
 static liballoc_block_t *allocate_new_pages_for(unsigned int size)
 {
@@ -462,12 +430,7 @@ void liballoc_free(const void *original_ptr)
 
     const void *ptr = original_ptr;
     if (ptr == NULL)
-    {
-#ifdef __MOS_KERNEL__
-        mos_panic("liballoc: free(NULL) called");
-#endif
         return;
-    }
 
     LIBALLOC_UNALIGN_PTR(ptr);
 
