@@ -190,7 +190,7 @@ size_t io_write(io_t *io, const void *buf, size_t count)
 
     if (!(io->flags & IO_WRITABLE))
     {
-        pr_info2("%p is not writable\n", (void *) io);
+        pr_info2("%p is not writable", (void *) io);
         return 0;
     }
 
@@ -209,7 +209,7 @@ off_t io_seek(io_t *io, off_t offset, io_seek_whence_t whence)
 
     if (!(io->flags & IO_SEEKABLE))
     {
-        pr_info2("%p is not seekable\n", (void *) io);
+        pr_info2("%p is not seekable", (void *) io);
         return 0;
     }
 
@@ -232,7 +232,7 @@ bool io_mmap_perm_check(io_t *io, vm_flags flags, bool private)
 
     if (!(io->flags & IO_MMAPABLE))
     {
-        pr_info2("%p is not mmapable\n", (void *) io);
+        pr_info2("%p is not mmapable", (void *) io);
         return false;
     }
 
