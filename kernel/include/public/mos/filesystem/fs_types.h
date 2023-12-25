@@ -48,9 +48,9 @@ typedef u16 file_perm_t;
 #define PERM_OWNER 0x1C0 // 111 000 000
 #define PERM_GROUP 0x38  // 000 111 000
 #define PERM_OTHER 0x7   // 000 000 111
-#define PERM_READ  0x49  // 001 001 001
+#define PERM_READ  0x124 // 100 100 100
 #define PERM_WRITE 0x92  // 010 010 010
-#define PERM_EXEC  0x124 // 100 100 100
+#define PERM_EXEC  0x49  // 001 001 001
 
 #define PERM_MASK 0777
 
