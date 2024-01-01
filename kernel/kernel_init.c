@@ -161,7 +161,7 @@ void mos_start_kernel(void)
         pr_info2("    argv[%d] = %s", i, init_args.argv[i]);
     pr_info2("  with environment:");
     for (u32 i = 0; init_envp[i]; i++)
-        pr_info2("  %s", init_envp[i]);
+        pr_info2("    %s", init_envp[i]);
 
     process_t *init = elf_create_process(init_args.argv[0], NULL, init_args.argv, init_envp, &init_io);
     if (unlikely(!init))
