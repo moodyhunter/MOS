@@ -110,66 +110,31 @@ static off_t vfs_io_ops_seek(io_t *io, off_t offset, io_seek_whence_t whence)
 {
     file_t *file = container_of(io, file_t, io);
 
-    if (file_get_ops(file)->seek)
-        return file_get_ops(file)->seek(file, offset, whence); // use the filesystem's lseek if it exists
+    const file_ops_t *const ops = file_get_ops(file);
+    if (ops->seek)
+        return ops->seek(file, offset, whence); // use the filesystem's lseek if it exists
 
     spinlock_acquire(&file->offset_lock);
 
-    off_t ret = 0;
     switch (whence)
     {
         case IO_SEEK_SET:
         {
-            if (unlikely(offset < 0))
-            {
-                ret = 0;
-                break;
-            }
-
-            if ((size_t) offset > file->dentry->inode->size)
-                ret = file->dentry->inode->size; // beyond the end of the file
-            else
-                ret = offset;
-
-            file->offset = ret;
+            file->offset = MAX(offset, 0);
             break;
         }
         case IO_SEEK_CURRENT:
         {
-            if (offset < 0)
-            {
-                if (file->offset < (size_t) -offset)
-                    ret = 0; // before the beginning of the file
-                else
-                    ret = file->offset + offset;
-            }
-            else
-            {
-                if (file->offset + offset > file->dentry->inode->size)
-                    ret = file->dentry->inode->size; // beyond the end of the file
-                else
-                    ret = file->offset + offset;
-            }
-
-            file->offset = ret;
+            off_t new_offset = file->offset + offset;
+            new_offset = MAX(new_offset, 0);
+            file->offset = new_offset;
             break;
         }
         case IO_SEEK_END:
         {
-            if (offset < 0)
-            {
-                if (file->dentry->inode->size < (size_t) -offset)
-                    ret = 0; // before the beginning of the file
-                else
-                    ret = file->dentry->inode->size + offset;
-            }
-            else
-            {
-                // don't allow seeking past the end of the file, (yet)
-                pr_warn("vfs: seeking past the end of the file is not supported yet");
-            }
-
-            file->offset = ret;
+            off_t new_offset = file->dentry->inode->size + offset;
+            new_offset = MAX(new_offset, 0);
+            file->offset = new_offset;
             break;
         }
         case IO_SEEK_DATA: mos_warn("vfs: IO_SEEK_DATA is not supported"); break;
@@ -177,7 +142,7 @@ static off_t vfs_io_ops_seek(io_t *io, off_t offset, io_seek_whence_t whence)
     };
 
     spinlock_release(&file->offset_lock);
-    return ret;
+    return file->offset;
 }
 
 static vmfault_result_t vfs_fault_handler(vmap_t *vmap, ptr_t fault_addr, pagefault_t *info)
@@ -553,7 +518,7 @@ long vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstat
 
     pr_dinfo2(vfs, "vfs_fstatat(fd=%d, path='%s', stat=%p, flags=%x)", fd, path, (void *) statbuf, flags);
     dentry_t *basedir = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);
-    lastseg_resolve_flags_t resolve_flags = RESOLVE_EXPECT_FILE | RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST;
+    lastseg_resolve_flags_t resolve_flags = RESOLVE_EXPECT_ANY_TYPE | RESOLVE_EXPECT_EXIST;
     if (flags & FSTATAT_NOFOLLOW)
         resolve_flags |= RESOLVE_SYMLINK_NOFOLLOW;
 
@@ -570,7 +535,7 @@ long vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstat
 size_t vfs_readlinkat(fd_t dirfd, const char *path, char *buf, size_t size)
 {
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(dirfd);
-    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_SYMLINK_NOFOLLOW | RESOLVE_EXPECT_EXIST);
+    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_SYMLINK_NOFOLLOW | RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_FILE);
     if (IS_ERR(dentry))
         return PTR_ERR(dentry);
 
@@ -731,6 +696,20 @@ ssize_t vfs_getcwd(char *buf, size_t size)
         return PTR_ERR(cwd);
 
     return dentry_path(cwd, root_dentry, buf, size);
+}
+
+long vfs_fchmodat(fd_t fd, const char *path, int perm, int flags)
+{
+    pr_dinfo2(vfs, "vfs_fchmodat(fd=%d, path='%s', perm=%o, flags=%x)", fd, path, perm, flags);
+    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);
+    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_ANY_TYPE);
+    if (IS_ERR(dentry))
+        return PTR_ERR(dentry);
+
+    // TODO: check if the underlying filesystem supports chmod, and is not read-only
+    dentry->inode->perm = perm;
+    dentry_unref(dentry);
+    return 0;
 }
 
 // ! sysfs support

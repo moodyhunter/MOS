@@ -457,6 +457,17 @@
             "name": "thread_getname",
             "return": "ssize_t",
             "arguments": [ { "type": "tid_t", "arg": "tid" }, { "type": "char *", "arg": "buf" }, { "type": "size_t", "arg": "buf_size" } ]
+        },
+        {
+            "number": 61,
+            "name": "vfs_fchmodat",
+            "return": "long",
+            "arguments": [
+                { "type": "fd_t", "arg": "dirfd" },
+                { "type": "const char *", "arg": "path" },
+                { "type": "int", "arg": "mode" },
+                { "type": "int", "arg": "flags" }
+            ]
         }
     ]
 }

@@ -136,3 +136,14 @@ long vfs_chdir(const char *path);
  * @return ssize_t The size of the path, or 0 if the buffer was too small
  */
 ssize_t vfs_getcwd(char *buf, size_t size);
+
+/**
+ * @brief Change the permissions of a file
+ *
+ * @param fd The directory, or a file if FSTATAT_FILE is set
+ * @param path The path to the file
+ * @param perm The new permissions
+ * @param flags fstat_flags flags
+ * @return long 0 on success, or errno on failure
+ */
+long vfs_fchmodat(fd_t fd, const char *path, int perm, int flags);

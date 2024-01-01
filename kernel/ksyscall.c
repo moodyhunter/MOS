@@ -622,3 +622,8 @@ DEFINE_SYSCALL(ssize_t, thread_getname)(tid_t tid, char *buf, size_t buflen)
     char *end = strncpy(buf, thread->name, buflen);
     return end - buf;
 }
+
+DEFINE_SYSCALL(long, vfs_fchmodat)(fd_t dirfd, const char *path, int mode, int flags)
+{
+    return vfs_fchmodat(dirfd, path, mode, flags);
+}
