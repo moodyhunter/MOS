@@ -86,4 +86,17 @@ function(add_mos_library)
     foreach(lib ${ARG_LINK_LIBRARIES})
         target_link_libraries(${ARG_NAME}_hosted PUBLIC ${lib}_hosted)
     endforeach()
+
+    # create a hosted static library
+    add_library(${ARG_NAME}_hosted_static STATIC ${ARG_SOURCES})
+    add_library(mos::${ARG_NAME}_hosted_static ALIAS ${ARG_NAME}_hosted_static)
+
+    add_mos_library_do_setup(${ARG_NAME}_hosted_static "" "${ARG_PRIVATE_INCLUDE_DIRECTORIES}" "${ARG_PUBLIC_INCLUDE_DIRECTORIES}")
+    target_compile_definitions(${ARG_NAME}_hosted_static PUBLIC ${ARG_DEFINES})
+    target_compile_definitions(${ARG_NAME}_hosted_static PRIVATE ${ARG_PRIVATE_DEFINES})
+
+    target_link_libraries(${ARG_NAME}_hosted_static PUBLIC mos::include)
+    foreach(lib ${ARG_LINK_LIBRARIES})
+        target_link_libraries(${ARG_NAME}_hosted_static PUBLIC ${lib}_hosted_static)
+    endforeach()
 endfunction()
