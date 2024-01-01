@@ -138,6 +138,7 @@ function(generate_nanopb_proto SRCS HDRS)
                 -I${GENERATOR_PATH}
                 -I${GENERATOR_CORE_DIR}
                 -I${CMAKE_CURRENT_BINARY_DIR}
+                -I${FIL_DIR}
                 --plugin=protoc-gen-nanopb=${NANOPB_GENERATOR_PLUGIN}
                 ${NANOPB_OPT_STRING}
                 ${PROTOC_OPTIONS}
