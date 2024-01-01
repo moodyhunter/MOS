@@ -3,7 +3,6 @@
 #include "bootstrapper.h"
 #include "cpiofs.h"
 #include "proto/filesystem.pb.h"
-#include "proto/mm.pb.h"
 
 #include <librpc/macro_magic.h>
 #include <librpc/rpc.h>

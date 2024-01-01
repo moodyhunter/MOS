@@ -3,7 +3,6 @@
 generate_nanopb_proto(PROTO_SRCS PROTO_HDRS
     ${CMAKE_SOURCE_DIR}/proto/mos_rpc.proto
     ${CMAKE_SOURCE_DIR}/proto/filesystem.proto
-    ${CMAKE_SOURCE_DIR}/proto/shm_manager.proto
 )
 
 add_executable(bootstrapper
