@@ -51,6 +51,7 @@ void do_alias(int argc, const char *argv[])
                 return;
             }
         }
+
         printf("alias: '%s' not found\n", value);
         return;
     }
@@ -68,7 +69,8 @@ void do_alias(int argc, const char *argv[])
         }
     }
 
-    printf("alias: '%s' -> '%s'\n", argv[0], argv[1]);
+    if (verbose)
+        printf("alias: '%s' -> '%s'\n", argv[0], argv[1]);
     alias_list = realloc(alias_list, sizeof(alias_t) * (alias_count + 1));
     alias_list[alias_count].name = strdup(argv[0]);
     alias_list[alias_count].command = strdup(argv[1]);

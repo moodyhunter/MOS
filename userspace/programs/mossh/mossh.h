@@ -26,6 +26,7 @@ extern size_t alias_count;
 
 extern const command_t builtin_commands[];
 extern const char *PATH[];
+extern bool verbose;
 
 const char *locate_program(const char *prog);
 

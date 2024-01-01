@@ -27,7 +27,7 @@ const char *PATH[] = {
     NULL,
 };
 
-static bool verbose = false;
+bool verbose = false;
 
 static void sigchld_handler(int signal)
 {
