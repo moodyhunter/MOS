@@ -2,11 +2,13 @@
 
 #include "cpiofs.h"
 
+#include "bootstrapper.h"
+
 #include <mos/mos_global.h>
 #include <mos/types.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 size_t read_initrd(void *buf, size_t size, size_t offset)
 {

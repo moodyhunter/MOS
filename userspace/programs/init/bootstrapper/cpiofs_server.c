@@ -2,18 +2,21 @@
 
 #include "bootstrapper.h"
 #include "cpiofs.h"
-#include "mos/proto/fs_server.h"
 #include "proto/filesystem.pb.h"
+#include "proto/mm.pb.h"
 
 #include <librpc/macro_magic.h>
 #include <librpc/rpc.h>
 #include <librpc/rpc_client.h>
 #include <librpc/rpc_server.h>
 #include <mos/mos_global.h>
-#include <mos_stdio.h>
+#include <mos/proto/fs_server.h>
+#include <mos/proto/shm_manager.h>
 #include <pb.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
+#include <stdio.h>
+#include <sys/param.h>
 
 #if !MOS_CONFIG(MOS_MAP_INITRD_TO_INIT)
 #error "MOS_MAP_INITRD_TO_INIT must be enabled to use bootstrapper"

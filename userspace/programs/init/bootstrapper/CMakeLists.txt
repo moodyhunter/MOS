@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-generate_nanopb_proto(PROTO_SRCS PROTO_HDRS ${CMAKE_SOURCE_DIR}/proto/filesystem.proto)
+generate_nanopb_proto(PROTO_SRCS PROTO_HDRS
+    ${CMAKE_SOURCE_DIR}/proto/mos_rpc.proto
+    ${CMAKE_SOURCE_DIR}/proto/filesystem.proto
+    ${CMAKE_SOURCE_DIR}/proto/shm_manager.proto
+)
 
 add_executable(bootstrapper
     main.c
@@ -12,12 +16,10 @@ add_executable(bootstrapper
 
 target_link_libraries(bootstrapper PRIVATE
     mos::include
-    mos::nanopb
-    mos::stdlib
-    mos::librpc-server
-    mos::librpc-client
+    mos::nanopb_hosted_static
+    mos::librpc-server_hosted_static
+    mos::librpc-client_hosted_static
 )
 target_compile_options(bootstrapper PRIVATE -static)
 target_link_options(bootstrapper PRIVATE -static)
 add_to_initrd(TARGET bootstrapper /programs)
-

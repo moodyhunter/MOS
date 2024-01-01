@@ -11,13 +11,44 @@
 
 #include <librpc/rpc_server.h>
 #include <mos/mos_global.h>
-#include <mos_stdio.h>
+#include <stdio.h>
+#include <unistd.h>
 
-int main(int argc, const char *argv[])
+s64 strntoll(const char *str, char **endptr, int base, size_t n)
+{
+    s64 result = 0;
+    bool negative = false;
+    size_t i = 0;
+
+    if (*str == '-')
+        negative = true, str++, i++;
+    else if (*str == '+')
+        str++, i++;
+
+    while (i < n && *str)
+    {
+        char c = *str;
+        if (c >= '0' && c <= '9')
+            result *= base, result += c - '0';
+        else if (c >= 'a' && c <= 'z')
+            result *= base, result += c - 'a' + 10;
+        else if (c >= 'A' && c <= 'Z')
+            result *= base, result += c - 'A' + 10;
+        else
+            break;
+        str++;
+        i++;
+    }
+    if (endptr)
+        *endptr = (char *) str;
+    return negative ? -result : result;
+}
+
+int main(int argc, char *argv[])
 {
     MOS_UNUSED(argc);
 
-    pid_t filesystem_server_pid = syscall_fork();
+    pid_t filesystem_server_pid = fork();
     if (filesystem_server_pid == -1)
     {
         puts("bootstrapper: failed to fork filesystem server");
@@ -31,5 +62,5 @@ int main(int argc, const char *argv[])
         return 0;
     }
 
-    return syscall_execveat(FD_CWD, "/initrd/programs/init", argv, NULL, 0);
+    return execv("/initrd/programs/init", argv);
 }

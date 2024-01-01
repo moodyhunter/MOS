@@ -2,4 +2,7 @@
 
 #pragma once
 
+#include <mos/types.h>
 void cpiofs_run_server();
+
+s64 strntoll(const char *str, char **endptr, int base, size_t n);
