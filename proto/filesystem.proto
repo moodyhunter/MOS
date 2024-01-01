@@ -1,15 +1,10 @@
 syntax = "proto3";
 import "nanopb.proto";
+import "mos_rpc.proto";
 
 option (nanopb_fileopt).fallback_type = FT_POINTER;
 option (nanopb_fileopt).enum_to_string = true;
 option (nanopb_fileopt).proto3_singular_msgs = true;
-
-message mos_rpc_result
-{
-    bool success = 1;
-    optional string error = 2;
-}
 
 enum pb_file_type_t
 {
@@ -67,7 +62,7 @@ message mos_rpc_fs_register_request
 
 message mos_rpc_fs_register_response
 {
-    mos_rpc_result result = 1;
+    mos_rpc.result result = 1;
 }
 
 message mos_rpc_fs_mount_request
@@ -79,7 +74,7 @@ message mos_rpc_fs_mount_request
 
 message mos_rpc_fs_mount_response
 {
-    mos_rpc_result result = 1;
+    mos_rpc.result result = 1;
     pb_inode root_i = 2; // the root inode of the mounted root
 }
 
@@ -97,7 +92,7 @@ message mos_rpc_fs_readdir_request
 
 message mos_rpc_fs_readdir_response
 {
-    mos_rpc_result result = 1;
+    mos_rpc.result result = 1;
     repeated pb_dirent entries = 2;
 }
 
@@ -109,7 +104,7 @@ message mos_rpc_fs_lookup_request
 
 message mos_rpc_fs_lookup_response
 {
-    mos_rpc_result result = 1;
+    mos_rpc.result result = 1;
     pb_inode inode = 2; // the inode of the file
 }
 
@@ -120,7 +115,7 @@ message mos_rpc_fs_readlink_request
 
 message mos_rpc_fs_readlink_response
 {
-    mos_rpc_result result = 1;
+    mos_rpc.result result = 1;
     string target = 2; // the target of the symlink
 }
 
@@ -132,7 +127,7 @@ message mos_rpc_fs_getpage_request
 
 message mos_rpc_fs_getpage_response
 {
-    mos_rpc_result result = 1;
+    mos_rpc.result result = 1;
 
     // the data of the page, this is currently a raw byte array, which costs a lot of memory
     // we could use a page manager to reference a page and only pass a page uuid here
