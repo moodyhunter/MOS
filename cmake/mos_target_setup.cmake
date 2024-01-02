@@ -5,6 +5,7 @@ if (NOT DEFINED MOS_ARCH)
 endif()
 
 include(${CMAKE_SOURCE_DIR}/cmake/toolchains/${MOS_ARCH}-mos.cmake)
+set(CMAKE_PREFIX_PATH) # we are only cross-compiling
 
 set(_ARCH_CONFIGURATION_FILE ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/platform_config.cmake)
 set(_ARCH_LISTS ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/CMakeLists.txt)
