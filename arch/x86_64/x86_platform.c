@@ -200,7 +200,7 @@ void x86_dump_stack_at(ptr_t this_frame, bool can_access_vmaps)
         if (frame->bp == 0)
         {
             // end of stack
-            pr_warn(TRACE_FMT "<end>", i, NULL);
+            pr_warn(TRACE_FMT "<end>", i, (ptr_t) 0);
             break;
         }
         else if (frame == frame->bp)
