@@ -10,7 +10,6 @@
 #include <librpc/rpc_server.h>
 #include <mos/mos_global.h>
 #include <mos/proto/fs_server.h>
-#include <mos/proto/shm_manager.h>
 #include <pb.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
