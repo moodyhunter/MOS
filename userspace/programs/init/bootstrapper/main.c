@@ -62,5 +62,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    link("/lib", "/initrd/lib");
+
     return execv("/initrd/programs/init", argv);
 }
