@@ -51,4 +51,7 @@ typedef struct _platform_cpuinfo
 typedef struct _platform_arch_info
 {
     size_t xsave_size;
+
+    ptr_t rsdp_addr;
+    u32 rsdp_revision;
 } platform_arch_info_t;

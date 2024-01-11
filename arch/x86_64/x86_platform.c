@@ -308,12 +308,23 @@ void platform_startup_mm()
 void platform_startup_late()
 {
     pr_dinfo2(x86_startup, "Parsing ACPI tables...");
-    acpi_rsdp = acpi_find_rsdp(pa_va(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
-    if (!acpi_rsdp)
+
+    if (platform_info->arch_info.rsdp_addr)
     {
-        acpi_rsdp = acpi_find_rsdp(pa_va(X86_BIOS_MEMREGION_PADDR), BIOS_MEMREGION_SIZE);
+        pr_dinfo2(x86_startup, "Using RSDP from bootloader: " PTR_FMT, platform_info->arch_info.rsdp_addr);
+        acpi_rsdp = (const acpi_rsdp_t *) platform_info->arch_info.rsdp_addr;
+    }
+    else
+    {
+        pr_dinfo2(x86_startup, "Searching for RSDP in EBDA...");
+        acpi_rsdp = acpi_find_rsdp(pa_va(X86_EBDA_MEMREGION_PADDR), EBDA_MEMREGION_SIZE);
         if (!acpi_rsdp)
-            mos_panic("RSDP not found");
+        {
+            pr_dinfo2(x86_startup, "Searching for RSDP in BIOS memory region...");
+            acpi_rsdp = acpi_find_rsdp(pa_va(X86_BIOS_MEMREGION_PADDR), BIOS_MEMREGION_SIZE);
+            if (!acpi_rsdp)
+                mos_panic("RSDP not found");
+        }
     }
 
     const pmm_region_t *acpi_region = pmm_find_reserved_region(acpi_rsdp->v1.rsdt_addr);

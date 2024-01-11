@@ -24,6 +24,7 @@ static volatile struct limine_hhdm_request hhdm_request = { .id = LIMINE_HHDM_RE
 static volatile struct limine_kernel_file_request kernel_file_request = { .id = LIMINE_KERNEL_FILE_REQUEST, .revision = 0 };
 static volatile struct limine_paging_mode_request paging_mode_request = { .id = LIMINE_PAGING_MODE_REQUEST, .revision = 0 };
 static volatile struct limine_smp_request smp_request = { .id = LIMINE_SMP_REQUEST, .revision = 0, .flags = LIMINE_SMP_X2APIC };
+static volatile struct limine_rsdp_request rsdp_request = { .id = LIMINE_RSDP_REQUEST, .revision = 0 };
 
 // .limine_reqs section is defined in limine.ld
 MOS_PUT_IN_SECTION(".limine_reqs", volatile void *, sections[],
@@ -35,6 +36,7 @@ MOS_PUT_IN_SECTION(".limine_reqs", volatile void *, sections[],
                        &kernel_file_request,
                        &paging_mode_request,
                        &smp_request,
+                       &rsdp_request,
                        NULL,
                    });
 
@@ -167,6 +169,17 @@ asmlinkage void limine_entry(void)
     struct limine_kernel_address_response *kernel_address_response = kernel_address_request.response;
     platform_info->k_basepfn = kernel_address_response->physical_base / MOS_PAGE_SIZE;
     platform_info->k_basevaddr = kernel_address_response->virtual_base;
+
+    if (rsdp_request.response)
+    {
+        platform_info->arch_info.rsdp_addr = (ptr_t) rsdp_request.response->address;
+        platform_info->arch_info.rsdp_revision = rsdp_request.response->revision;
+        pr_dinfo2(x86_startup, "RSDP at " PTR_FMT ", revision %u", platform_info->arch_info.rsdp_addr, platform_info->arch_info.rsdp_revision);
+    }
+    else
+    {
+        pr_dinfo2(x86_startup, "No RSDP found from limine");
+    }
 
     mos_start_kernel();
 }
