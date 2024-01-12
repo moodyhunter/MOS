@@ -6,22 +6,10 @@ option (nanopb_fileopt).fallback_type = FT_POINTER;
 option (nanopb_fileopt).enum_to_string = true;
 option (nanopb_fileopt).proto3_singular_msgs = true;
 
-enum pb_file_type_t
-{
-    FILE_TYPE_REGULAR = 0;
-    FILE_TYPE_DIRECTORY = 1;
-    FILE_TYPE_SYMLINK = 2;
-    FILE_TYPE_CHAR_DEVICE = 3;
-    FILE_TYPE_BLOCK_DEVICE = 4;
-    FILE_TYPE_NAMED_PIPE = 5;
-    FILE_TYPE_SOCKET = 6;
-    FILE_TYPE_UNKNOWN = 7;
-};
-
 message pb_file_stat
 {
     uint64 ino = 1;
-    pb_file_type_t type = 2;
+    int32 type = 2;
     uint32 perm = 3;
     uint64 size = 4;
     uint32 uid = 5;
@@ -82,7 +70,7 @@ message pb_dirent
 {
     uint64 ino = 1;
     string name = 2;
-    pb_file_type_t type = 3;
+    int32 type = 3;
 }
 
 message mos_rpc_fs_readdir_request

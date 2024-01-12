@@ -50,7 +50,7 @@ inode_t *i_from_pb(const pb_inode *pbi, superblock_t *sb)
 pb_inode *i_to_pb(const inode_t *i, pb_inode *pbi)
 {
     pbi->stat.ino = i->ino;
-    pbi->stat.type = (pb_file_type_t) i->type;
+    pbi->stat.type = i->type;
     pbi->stat.created = i->created;
     pbi->stat.modified = i->modified;
     pbi->stat.accessed = i->accessed;

@@ -8,6 +8,7 @@
 #include <librpc/rpc.h>
 #include <librpc/rpc_client.h>
 #include <librpc/rpc_server.h>
+#include <mos/filesystem/fs_types.h>
 #include <mos/mos_global.h>
 #include <mos/proto/fs_server.h>
 #include <pb.h>
@@ -15,6 +16,7 @@
 #include <pb_encode.h>
 #include <stdio.h>
 #include <sys/param.h>
+#include <unistd.h>
 
 #if !MOS_CONFIG(MOS_MAP_INITRD_TO_INIT)
 #error "MOS_MAP_INITRD_TO_INIT must be enabled to use bootstrapper"
@@ -39,18 +41,18 @@ typedef struct
     cpio_header_t header;
 } cpio_inode_t;
 
-static pb_file_type_t cpio_modebits_to_filetype(u32 modebits)
+static file_type_t cpio_modebits_to_filetype(u32 modebits)
 {
-    pb_file_type_t type = pb_file_type_t_FILE_TYPE_UNKNOWN;
+    file_type_t type = FILE_TYPE_UNKNOWN;
     switch (modebits & CPIO_MODE_FILE_TYPE)
     {
-        case CPIO_MODE_FILE: type = pb_file_type_t_FILE_TYPE_REGULAR; break;
-        case CPIO_MODE_DIR: type = pb_file_type_t_FILE_TYPE_DIRECTORY; break;
-        case CPIO_MODE_SYMLINK: type = pb_file_type_t_FILE_TYPE_SYMLINK; break;
-        case CPIO_MODE_CHARDEV: type = pb_file_type_t_FILE_TYPE_CHAR_DEVICE; break;
-        case CPIO_MODE_BLOCKDEV: type = pb_file_type_t_FILE_TYPE_BLOCK_DEVICE; break;
-        case CPIO_MODE_FIFO: type = pb_file_type_t_FILE_TYPE_NAMED_PIPE; break;
-        case CPIO_MODE_SOCKET: type = pb_file_type_t_FILE_TYPE_SOCKET; break;
+        case CPIO_MODE_FILE: type = FILE_TYPE_REGULAR; break;
+        case CPIO_MODE_DIR: type = FILE_TYPE_DIRECTORY; break;
+        case CPIO_MODE_SYMLINK: type = FILE_TYPE_SYMLINK; break;
+        case CPIO_MODE_CHARDEV: type = FILE_TYPE_CHAR_DEVICE; break;
+        case CPIO_MODE_BLOCKDEV: type = FILE_TYPE_BLOCK_DEVICE; break;
+        case CPIO_MODE_FIFO: type = FILE_TYPE_NAMED_PIPE; break;
+        case CPIO_MODE_SOCKET: type = FILE_TYPE_SOCKET; break;
         default: puts("invalid cpio file mode"); break;
     }
 
@@ -74,7 +76,7 @@ static cpio_inode_t *cpio_trycreate_i(const char *path)
 
     const u32 modebits = strntoll(cpio_inode->header.mode, NULL, 16, sizeof(cpio_inode->header.mode) / sizeof(char));
     const u64 ino = strntoll(cpio_inode->header.ino, NULL, 16, sizeof(cpio_inode->header.ino) / sizeof(char));
-    const pb_file_type_t file_type = cpio_modebits_to_filetype(modebits & CPIO_MODE_FILE_TYPE);
+    const file_type_t file_type = cpio_modebits_to_filetype(modebits & CPIO_MODE_FILE_TYPE);
 
     pb_inode *const inode = &cpio_inode->pb_i;
 
@@ -173,7 +175,7 @@ static int cpiofs_readdir(rpc_server_t *server, mos_rpc_fs_readdir_request *req,
         {
             const s64 ino = strntoll(header.ino, NULL, 16, sizeof(header.ino) / sizeof(char));
             const u32 modebits = strntoll(header.mode, NULL, 16, sizeof(header.mode) / sizeof(char));
-            const pb_file_type_t type = cpio_modebits_to_filetype(modebits & CPIO_MODE_FILE_TYPE);
+            const file_type_t type = cpio_modebits_to_filetype(modebits & CPIO_MODE_FILE_TYPE);
 
             const char *fname = fpath + prefix_len + (prefix_len != 0);          // +1 for the slash if it's not the root
             const size_t fname_len = fpath_len - prefix_len - (prefix_len != 0); // -1 for the slash if it's not the root
