@@ -305,8 +305,8 @@ void init_start_cpiofs_server(fd_t notifier)
     cpiofs = rpc_server_create(CPIOFS_RPC_SERVER_NAME, NULL);
     if (!cpiofs)
     {
-        puts("failed to create cpiofs server");
-        return;
+        puts("cpiofs: failed to create cpiofs server");
+        goto bad;
     }
 
     rpc_server_register_functions(cpiofs, cpiofs_functions, MOS_ARRAY_SIZE(cpiofs_functions));
@@ -314,8 +314,8 @@ void init_start_cpiofs_server(fd_t notifier)
     fs_manager = rpc_client_create(USERFS_SERVER_RPC_NAME);
     if (!fs_manager)
     {
-        puts("failed to connect to filesystem server");
-        return;
+        puts("cpiofs: failed to connect to the userfs manager");
+        goto bad;
     }
 
     mos_rpc_fs_register_request req = mos_rpc_fs_register_request_init_zero;
@@ -323,27 +323,31 @@ void init_start_cpiofs_server(fd_t notifier)
     req.rpc_server_name = CPIOFS_RPC_SERVER_NAME;
 
     mos_rpc_fs_register_response resp = mos_rpc_fs_register_response_init_zero;
-    if (fs_manager_register(fs_manager, &req, &resp) != RPC_RESULT_OK)
+    const rpc_result_code_t result = fs_manager_register(fs_manager, &req, &resp);
+    if (result != RPC_RESULT_OK || !resp.result.success)
     {
-        puts("failed to register cpiofs with filesystem server");
-        return;
-    }
-
-    if (resp.result.success)
-        puts("cpiofs: registered with filesystem server");
-    else
-    {
-        puts("cpiofs: failed to register with filesystem server");
-        exit(1);
+        puts("cpiofs: failed to register cpiofs with filesystem server");
+        goto bad;
     }
 
     pb_release(mos_rpc_fs_register_response_fields, &resp);
 
-    write(notifier, &(char){ 'v' }, 1);
+    if (write(notifier, &(char){ 'v' }, 1) != 1)
+    {
+        puts("cpiofs: failed to notify init");
+        goto bad2;
+    }
 
     rpc_server_exec(cpiofs);
-    puts("cpiofs server exited unexpectedly");
-
     rpc_server_destroy(cpiofs);
-    cpiofs = NULL;
+    return;
+
+bad:
+    if (write(notifier, &(char){ 'x' }, 1) != 1)
+        puts("cpiofs: failed to notify init");
+bad2:
+    if (fs_manager)
+        rpc_client_destroy(fs_manager);
+    if (cpiofs)
+        rpc_server_destroy(cpiofs);
 }

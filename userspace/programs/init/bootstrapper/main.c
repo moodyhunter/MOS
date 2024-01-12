@@ -55,32 +55,39 @@ int main(int argc, char *argv[])
     if (filesystem_server_pid == -1)
     {
         puts("bootstrapper: failed to fork filesystem server");
-        return 0;
+        return 1;
     }
-    else if (filesystem_server_pid == 0)
+
+    if (filesystem_server_pid == 0)
     {
-        // ! TODO: migrate to pthread_cond_wait after mlibc supports cross-process condition variables
         close(statusfd[0]);
         init_start_cpiofs_server(statusfd[1]);
         puts("bootstrapper: filesystem server exited unexpectedly");
-        return 0;
+        return 1;
     }
-    else
+
+    // ! TODO: migrate to pthread_cond_wait after mlibc supports cross-process condition variables
+    close(statusfd[1]);
+    char buf[1] = { 0 };
+    read(statusfd[0], buf, 1);
+    close(statusfd[0]);
+    if (buf[0] != 'v')
     {
-        close(statusfd[1]);
-        char buf[1];
-        read(statusfd[0], buf, 1);
-        close(statusfd[0]);
-        if (buf[0] != 'v')
-        {
-            puts("bootstrapper: filesystem server failed to start");
-            return 0;
-        }
-
-        printf("bootstrapper: filesystem server started (pid=%d)\n", filesystem_server_pid);
+        puts("bootstrapper: filesystem server failed to start");
+        return 1;
     }
 
-    link("/lib", "/initrd/lib");
+    if (link("/lib", "/initrd/lib") != 0)
+    {
+        puts("bootstrapper: failed to link /lib to /initrd/lib");
+        return 1;
+    }
 
-    return execv("/initrd/programs/init", argv);
+    if (execv("/initrd/programs/init", argv) != 0)
+    {
+        puts("bootstrapper: failed to start init");
+        return 1;
+    }
+
+    __builtin_unreachable();
 }
