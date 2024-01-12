@@ -334,7 +334,6 @@ void platform_startup_late()
 
     pr_dinfo2(x86_startup, "Initializing APICs...");
     madt_parse_table();
-    lapic_memory_setup();
     lapic_enable(); // enable the local APIC
     current_cpu->id = x86_platform.boot_cpu_id = lapic_get_id();
 

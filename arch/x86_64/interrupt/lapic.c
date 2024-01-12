@@ -49,59 +49,41 @@
 #define APIC_INTERRUPT_COMMAND_REG_BEGIN 0x300
 #define APIC_INTERRUPT_COMMAND_REG_END   0x310
 
-static volatile u32 *lapic_regs = NULL;
+#define IA32_APIC_BASE_MSR 0x1B
 
-#define IA32_APIC_BASE_MSR        0x1B
-#define IA32_APIC_BASE_MSR_ENABLE 0x800
-
-void lapic_set_base_addr(ptr_t base_addr)
-{
-    u32 edx = 0;
-    u32 eax = (base_addr & 0xfffff0000) | IA32_APIC_BASE_MSR_ENABLE;
-    cpu_set_msr(IA32_APIC_BASE_MSR, eax, edx);
-}
+static ptr_t lapic_regs = 0;
 
 u32 lapic_read32(u32 offset)
 {
-    pr_dinfo2(x86_lapic, "reg: %x", offset);
-    return lapic_regs[offset / sizeof(u32)];
+    pr_dinfo2(x86_lapic, "reading reg: %x, ptr: " PTR_FMT, offset, lapic_regs + offset);
+    return *(volatile u32 *) (lapic_regs + offset);
 }
 
 u64 lapic_read64(u32 offset)
 {
-    pr_dinfo2(x86_lapic, "reg: %x", offset);
-    u32 high = lapic_regs[(offset + 0x10) / sizeof(u32)];
-    u32 low = lapic_regs[offset / sizeof(u32)];
+    pr_dinfo2(x86_lapic, "reading reg: %x, ptr: " PTR_FMT, offset, lapic_regs + offset);
+    const u32 high = *(volatile u32 *) (lapic_regs + offset + 0x10);
+    const u32 low = *(volatile u32 *) (lapic_regs + offset);
     return ((u64) high << 32) | low;
 }
 
 void lapic_write32(u32 offset, u32 value)
 {
-    pr_dinfo2(x86_lapic, "reg: %x, value: 0x%.8x", offset, value);
-    lapic_regs[offset / sizeof(u32)] = value;
-#if MOS_DEBUG_FEATURE(x86_lapic)
-    u32 read_value = lapic_read32(offset);
-    if (read_value != value)
-        mos_warn("INCORRECT: 0x%.8x", read_value);
-#endif
+    pr_dinfo2(x86_lapic, "writing reg: %x, value: 0x%.8x, ptr: " PTR_FMT, offset, value, lapic_regs + offset);
+    *(volatile u32 *) (lapic_regs + offset) = value;
 }
 
 void lapic_write64(u32 offset, u64 value)
 {
-    pr_dinfo2(x86_lapic, "reg: %x, value: 0x%.16llx", offset, value);
-    lapic_regs[(offset + 0x10) / sizeof(u32)] = value >> 32;
-    lapic_regs[offset / sizeof(u32)] = value & 0xffffffff;
-#if MOS_DEBUG_FEATURE(x86_lapic)
-    u64 read_value = lapic_read64(offset);
-    if (read_value != value)
-        mos_warn("INCORRECT: 0x%.16llx", read_value);
-#endif
+    pr_dinfo2(x86_lapic, "writing reg: %x, value: 0x%.16llx, ptr: " PTR_FMT, offset, value, lapic_regs + offset);
+    *(volatile u32 *) (lapic_regs + offset + 0x10) = value >> 32;
+    *(volatile u32 *) (lapic_regs + offset) = value;
 }
 
 static void lapic_wait_sent(void)
 {
     // Wait for the delivery status bit to be set
-    while (lapic_read32(APIC_INTERRUPT_COMMAND_REG_BEGIN) & SET_BITS(12, 1, 1))
+    while (lapic_read32(APIC_INTERRUPT_COMMAND_REG_BEGIN) & BIT(12))
         ;
 }
 
@@ -127,7 +109,7 @@ void lapic_interrupt(u8 vec, u8 dest, lapic_delivery_mode_t delivery_mode, lapic
     lapic_interrupt_full(vec, dest, delivery_mode, dest_mode, true, false, shorthand);
 }
 
-void lapic_memory_setup(void)
+static void lapic_memory_setup(void)
 {
     if (!cpu_has_feature(CPU_FEATURE_APIC))
         mos_panic("APIC is not supported");
@@ -144,12 +126,12 @@ void lapic_memory_setup(void)
         pmm_reserve_address(base_addr);
     }
 
-    lapic_regs = (u32 *) pa_va(base_addr);
+    lapic_regs = pa_va(base_addr);
 }
 
 void lapic_enable(void)
 {
-    lapic_set_base_addr((ptr_t) lapic_regs);
+    lapic_memory_setup();
 
     // (https://wiki.osdev.org/APIC#Local_APIC_configuration)
     // To enable the Local APIC to receive interrupts it is necessary to configure the "Spurious Interrupt Vector Register".
@@ -157,13 +139,8 @@ void lapic_enable(void)
     // - the IRQ number that you want to map the spurious interrupts to within the lowest 8 bits, and
     // - the 8th bit set to 1
     // to actually enable the APIC
-    lapic_write32(APIC_REG_SPURIOUS_INTR_VEC, lapic_read32(APIC_REG_SPURIOUS_INTR_VEC) | (1 << 8));
-
-    const u32 current_cpu_id = lapic_get_id();
-    const u32 version_reg = lapic_read32(APIC_REG_LAPIC_VERSION);
-    const u32 max_lvt_entry = (version_reg >> 16) & 0xff;
-    const u32 version_id = version_reg & 0xff;
-    pr_dinfo2(x86_lapic, "LAPIC{%d}: version: %x, max LVT entry: %x", current_cpu_id, version_id, max_lvt_entry);
+    const u32 spurious_intr_vec = lapic_read32(APIC_REG_SPURIOUS_INTR_VEC) | 0x100;
+    lapic_write32(APIC_REG_SPURIOUS_INTR_VEC, spurious_intr_vec);
 }
 
 void lapic_eoi(void)

@@ -7,17 +7,19 @@
 #include <cpuid.h>
 #include <mos/types.h>
 
-should_inline void cpu_get_msr(u32 msr, u32 *lo, u32 *hi)
+should_inline u64 cpu_rdmsr(u32 msr)
 {
-    __asm__ volatile("rdmsr" : "=a"(*lo), "=d"(*hi) : "c"(msr));
+    u32 lo, hi;
+    __asm__ volatile("rdmsr" : "=a"(lo), "=d"(hi) : "c"(msr));
+    return ((u64) hi << 32) | lo;
 }
-#define cpu_get_msr64(msr, val) cpu_get_msr(msr, (u32 *) val, (u32 *) (val >> 32))
 
-should_inline void cpu_set_msr(u32 msr, u32 lo, u32 hi)
+should_inline void cpu_wrmsr(u32 msr, u64 val)
 {
+    u32 lo = val & 0xFFFFFFFF;
+    u32 hi = val >> 32;
     __asm__ volatile("wrmsr" : : "a"(lo), "d"(hi), "c"(msr));
 }
-#define cpu_set_msr64(msr, val) cpu_set_msr(msr, (u32) val, (u32) (val >> 32))
 
 should_inline noreturn void x86_cpu_halt(void)
 {

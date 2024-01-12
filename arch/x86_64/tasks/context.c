@@ -140,5 +140,5 @@ void x86_update_current_fsbase()
         return;
     }
 
-    cpu_set_msr64(0xc0000100, fs_base); // IA32_FS_BASE
+    cpu_wrmsr(0xc0000100, fs_base); // IA32_FS_BASE
 }

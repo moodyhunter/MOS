@@ -28,7 +28,7 @@
 #define IOAPIC_REG_ID             0x00
 #define IOAPIC_REG_VERSION        0x01
 #define IOAPIC_REG_ARB_ID         0x02
-#define IOAPIC_REG_REDIR_TABLE(n) (0x10 + (n) *2)
+#define IOAPIC_REG_REDIR_TABLE(n) (0x10 + 2 * (n))
 
 typedef struct
 {
@@ -109,16 +109,16 @@ void ioapic_init(void)
         {
             u32 version : 8; // 0 - 7
             u32 reserved : 8;
-            u32 max_redir_entries : 8; // 16 - 23
+            u32 max_entries : 8; // 16 - 23
             u32 reserved2 : 8;
         } __packed;
     } version = { .value = ioapic_read(IOAPIC_REG_VERSION) };
 
     const u32 arb_id = ioapic_read(IOAPIC_REG_ARB_ID) >> 24 & 0xf; // get the 24-27 bits
 
-    pr_dinfo2(x86_ioapic, "max IRQs: %d, id: %d, version: %d, arb: %d", version.max_redir_entries + 1, ioapic_id, version.version, arb_id);
+    pr_dinfo2(x86_ioapic, "max IRQs: %d, id: %d, version: %d, arb: %d", version.max_entries + 1, ioapic_id, version.version, arb_id);
 
-    for (int i = 0; i < version.max_redir_entries + 1; i++)
+    for (int i = 0; i < version.max_entries + 1; i++)
         ioapic_disable(i);
 }
 

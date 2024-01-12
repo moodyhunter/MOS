@@ -31,7 +31,6 @@ typedef enum
     LAPIC_SHORTHAND_ALL_EXCLUDING_SELF = 3,
 } lapic_shorthand_t;
 
-void lapic_memory_setup(void);
 void lapic_enable(void);
 void lapic_interrupt(u8 vec, u8 dest, lapic_delivery_mode_t delivery_mode, lapic_dest_mode_t dest_mode, lapic_shorthand_t shorthand);
 void lapic_interrupt_full(u8 vec, u8 dest, lapic_delivery_mode_t dliv_mode, lapic_dest_mode_t dstmode, bool lvl, bool trigger, lapic_shorthand_t sh);

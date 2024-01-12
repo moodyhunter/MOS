@@ -8,6 +8,7 @@
 
 const acpi_madt_t *x86_acpi_madt = NULL;
 ptr_t x86_ioapic_phyaddr = 0;
+u32 x86_lapic_global_base = 0;
 
 #define IOAPIC_IRQ_OVERRIDE_MAX 255 // u8 can hold up to 255
 static u32 ioapic_irq_override[IOAPIC_IRQ_OVERRIDE_MAX] = { 0 };
@@ -61,13 +62,14 @@ void madt_parse_table()
                 if (unlikely(x86_ioapic_phyaddr))
                     mos_panic("Multiple IOAPICs not supported");
                 x86_ioapic_phyaddr = ioapic->address;
+                x86_lapic_global_base = ioapic->global_intr_base;
                 break;
             }
             case 2:
             {
                 acpi_madt_et2_ioapic_override_t *int_override = container_of(entry, acpi_madt_et2_ioapic_override_t, header);
-                pr_dinfo2(x86_acpi, "MADT entry IOAPIC override [%p], bus=%u, source=%u, global_irq=%u, flags=0x%x", (void *) int_override, int_override->bus_source,
-                          int_override->irq_source, int_override->global_intr, int_override->flags);
+                pr_dinfo2(x86_acpi, "MADT entry IOAPIC override [%p], bus=%u, flags=0x%x, 'irq source %u is now global irq %u'", (void *) int_override,
+                          int_override->bus_source, int_override->flags, int_override->irq_source, int_override->global_intr);
 
                 if (unlikely(int_override->bus_source != 0))
                     mos_panic("IOAPIC override for non-ISA bus not supported");
