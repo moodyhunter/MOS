@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/x86/x86_interrupt.h"
-#define CURRENT_YEAR 2023
+#define CURRENT_YEAR 2024
+
+#include "mos/x86/devices/rtc.h"
 
 #include "mos/device/clocksource.h"
 #include "mos/printk.h"
 #include "mos/tasks/schedule.h"
 #include "mos/x86/devices/port.h"
-#include "mos/x86/devices/rtc.h"
+#include "mos/x86/x86_interrupt.h"
 
 #include <mos/types.h>
 
