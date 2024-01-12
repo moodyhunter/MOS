@@ -4,9 +4,10 @@
 #include "dm/common.h"
 
 #include <libconfig/libconfig.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
+#include <spawn.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 bool start_load_drivers(const config_t *config)
 {
@@ -18,7 +19,8 @@ bool start_load_drivers(const config_t *config)
     for (size_t i = 0; i < num_drivers; i++)
     {
         const char *driver = drivers[i];
-        pid_t driver_pid = shell_execute(driver);
+        pid_t driver_pid;
+        posix_spawn(&driver_pid, driver, NULL, NULL, NULL, NULL);
         if (driver_pid <= 0)
             fprintf(stderr, "Failed to start driver: %s\n", driver);
     }
@@ -54,8 +56,6 @@ bool try_start_driver(u16 vendor, u16 device, u32 location, u64 mmio_base)
     if (!driver_path)
         return false; // invalid options
 
-    driver_path = string_trim(driver_path);
-
     if (unlikely(driver_args))
     {
         puts("argv for driver is not supported yet");
@@ -82,7 +82,10 @@ bool try_start_driver(u16 vendor, u16 device, u32 location, u64 mmio_base)
     for (size_t i = 0; argv[i]; i++)
         printf(" %s", argv[i]);
     putchar('\n');
-    const pid_t driver_pid = spawn(driver_path, argv);
+
+    pid_t driver_pid;
+    posix_spawn(&driver_pid, driver_path, NULL, NULL, (char *const *) argv, NULL);
+
     free(dup);
 
     return driver_pid > 0;

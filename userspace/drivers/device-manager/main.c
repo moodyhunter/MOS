@@ -6,9 +6,9 @@
 #include <argparse/libargparse.h>
 #include <libconfig/libconfig.h>
 #include <librpc/rpc_server.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 const config_t *dm_config = NULL;
 
