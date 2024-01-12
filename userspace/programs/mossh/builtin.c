@@ -2,12 +2,11 @@
 
 #include "mossh.h"
 
+#include <mos/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#define MOS_UNUSED(x) (void) x
 
 alias_t *alias_list;
 size_t alias_count;
@@ -149,7 +148,7 @@ void do_msleep(int argc, const char *argv[])
         return;
     }
 
-    int ms = atoi(argv[0]);
+    u64 ms = atoi(argv[0]);
     if (ms <= 0)
     {
         printf("msleep: invalid argument: '%s'\n", argv[0]);
@@ -237,7 +236,7 @@ void do_sleep(int argc, const char *argv[])
         return;
     }
 
-    usleep(seconds * 1000 * 1000); // usleep takes microseconds, we take seconds
+    sleep(seconds);
 }
 
 void do_source(int argc, const char *argv[])
