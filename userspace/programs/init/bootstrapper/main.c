@@ -48,7 +48,10 @@ int main(int argc, char *argv[])
 {
     MOS_UNUSED(argc);
 
-    pid_t filesystem_server_pid = fork();
+    int statusfd[2];
+    pipe(statusfd);
+
+    const pid_t filesystem_server_pid = fork();
     if (filesystem_server_pid == -1)
     {
         puts("bootstrapper: failed to fork filesystem server");
@@ -56,10 +59,25 @@ int main(int argc, char *argv[])
     }
     else if (filesystem_server_pid == 0)
     {
-        puts("bootstrapper: starting filesystem server");
-        cpiofs_run_server();
+        // ! TODO: migrate to pthread_cond_wait after mlibc supports cross-process condition variables
+        close(statusfd[0]);
+        init_start_cpiofs_server(statusfd[1]);
         puts("bootstrapper: filesystem server exited unexpectedly");
         return 0;
+    }
+    else
+    {
+        close(statusfd[1]);
+        char buf[1];
+        read(statusfd[0], buf, 1);
+        close(statusfd[0]);
+        if (buf[0] != 'v')
+        {
+            puts("bootstrapper: filesystem server failed to start");
+            return 0;
+        }
+
+        printf("bootstrapper: filesystem server started (pid=%d)\n", filesystem_server_pid);
     }
 
     link("/lib", "/initrd/lib");

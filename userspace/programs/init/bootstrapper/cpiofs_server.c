@@ -300,7 +300,7 @@ static int cpiofs_getpage(rpc_server_t *server, mos_rpc_fs_getpage_request *req,
     return RPC_RESULT_OK;
 }
 
-void cpiofs_run_server()
+void init_start_cpiofs_server(fd_t notifier)
 {
     cpiofs = rpc_server_create(CPIOFS_RPC_SERVER_NAME, NULL);
     if (!cpiofs)
@@ -330,11 +330,16 @@ void cpiofs_run_server()
     }
 
     if (resp.result.success)
-        printf("cpiofs: registered with filesystem server\n");
+        puts("cpiofs: registered with filesystem server");
     else
-        printf("cpiofs: failed to register with filesystem server\n");
+    {
+        puts("cpiofs: failed to register with filesystem server");
+        exit(1);
+    }
 
     pb_release(mos_rpc_fs_register_response_fields, &resp);
+
+    write(notifier, &(char){ 'v' }, 1);
 
     rpc_server_exec(cpiofs);
     puts("cpiofs server exited unexpectedly");
