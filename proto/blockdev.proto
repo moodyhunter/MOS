@@ -1,0 +1,82 @@
+syntax = "proto3";
+import "nanopb.proto";
+import "mos_rpc.proto";
+
+option (nanopb_fileopt).fallback_type = FT_POINTER;
+option (nanopb_fileopt).enum_to_string = true;
+option (nanopb_fileopt).proto3_singular_msgs = true;
+
+package mos_rpc_blockdev;
+
+// blockdev manager interface
+
+message register_dev_request
+{
+    string server_name = 1;
+    string blockdev_name = 2;
+    uint32 block_size = 3;
+    uint64 num_blocks = 4;
+}
+
+message register_dev_response
+{
+    mos_rpc.result result = 1;
+    uint32 id = 2;
+}
+
+message register_layer_request
+{
+    string server_name = 1;
+    string layer_name = 2;
+}
+message register_layer_response
+{
+    mos_rpc.result result = 1;
+    uint32 id = 2;
+}
+
+// blockdev interface
+
+message read_request
+{
+    uint64 n_boffset = 1;
+    uint32 n_blocks = 2;
+}
+
+message read_response
+{
+    mos_rpc.result result = 1;
+    bytes data = 2;
+}
+
+message write_request
+{
+    bytes data = 1;
+    uint64 n_boffset = 2;
+    uint32 n_blocks = 3;
+}
+
+message write_response
+{
+    mos_rpc.result result = 1;
+    uint32 n_blocks = 2;
+}
+
+// blockdev layer interface
+
+message partition
+{
+    string name = 1;
+    int32 id = 2;
+}
+
+message layer_probe_request
+{
+    string base_layer = 1;
+}
+
+message layer_probe_response
+{
+    mos_rpc.result result = 1;
+    partition parts = 2;
+}
