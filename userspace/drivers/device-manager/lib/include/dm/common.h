@@ -11,7 +11,7 @@
 
 RPC_DEFINE_ENUMS(dm, DM, DM_RPCS_X)
 
-#define MOS_DEVICE_MANAGER_SERVICE_NAME "mos.device_manager"
+#define MOS_DEVICE_MANAGER_SERVICE_NAME "mos.device-manager"
 
 typedef struct device_t device_t;
 typedef struct device_driver_t device_driver_t;
