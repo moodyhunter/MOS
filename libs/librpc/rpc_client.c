@@ -22,9 +22,12 @@
 #endif
 
 #ifdef __MOS_KERNEL__
+#include "mos/ipc/ipc_io.h"
+
+#include <mos/platform/platform.h>
 #include <mos/syscall/decl.h>
-#define syscall_ipc_connect(n, s) impl_syscall_ipc_connect(n, s)
-#define syscall_io_close(fd)      impl_syscall_io_close(fd)
+#define syscall_ipc_connect(n, s) ipc_connect(n, s)
+#define syscall_io_close(fd)      io_unref(fd)
 #else
 #include <mos/syscall/usermode.h>
 #endif
@@ -45,7 +48,7 @@ typedef pthread_mutex_t mutex_t;
 typedef struct rpc_server_stub
 {
     const char *server_name;
-    fd_t fd;
+    ipcfd_t *fd;
     mutex_t mutex; // only one call at a time
     atomic_t callid;
 } rpc_server_stub_t;
@@ -65,7 +68,7 @@ rpc_server_stub_t *rpc_client_create(const char *server_name)
     client->server_name = server_name;
     client->fd = syscall_ipc_connect(server_name, RPC_CLIENT_SMH_SIZE);
 
-    if (client->fd < 0)
+    if (IS_ERR_VALUE(client->fd))
     {
         free(client);
         return NULL;

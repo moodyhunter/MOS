@@ -4,6 +4,13 @@
 
 #include <mos/types.h>
 
+#ifdef __MOS_KERNEL__
+typedef struct _io io_t;
+#define ipcfd_t io_t *
+#else
+#define ipcfd_t fd_t
+#endif
+
 /**
  * @brief An IPC message.
  *
@@ -35,7 +42,7 @@ void ipc_msg_destroy(ipc_msg_t *buffer);
  * @param fd The file descriptor.
  * @return ipc_msg_t* The message.
  */
-ipc_msg_t *ipc_read_msg(fd_t fd);
+ipc_msg_t *ipc_read_msg(ipcfd_t fd);
 
 /**
  * @brief Write an IPC message.
@@ -45,7 +52,7 @@ ipc_msg_t *ipc_read_msg(fd_t fd);
  * @return true The message was written.
  * @return false The message was not written.
  */
-bool ipc_write_msg(fd_t fd, ipc_msg_t *buffer);
 
-size_t ipc_read_as_msg(fd_t fd, char *buffer, size_t buffer_size);
-bool ipc_write_as_msg(fd_t fd, const char *data, size_t size);
+bool ipc_write_msg(ipcfd_t fd, ipc_msg_t *buffer);
+size_t ipc_read_as_msg(ipcfd_t fd, char *buffer, size_t buffer_size);
+bool ipc_write_as_msg(ipcfd_t fd, const char *data, size_t size);

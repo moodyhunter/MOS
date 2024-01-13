@@ -119,7 +119,7 @@ MOSAPI void rpc_server_destroy(rpc_server_t *server);
     statement_expr(bool, {                                                                                                                                               \
         size_t size;                                                                                                                                                     \
         const void *payload = rpc_arg_next(args, &size);                                                                                                                 \
-        pb_istream_t stream = pb_istream_from_buffer(payload, size);                                                                                                     \
+        pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *) payload, size);                                                                                 \
         retval = pb_decode(&stream, type##_fields, &val);                                                                                                                \
     })
 

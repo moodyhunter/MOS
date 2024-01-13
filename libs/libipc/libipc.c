@@ -17,10 +17,11 @@
 #endif
 
 #ifdef __MOS_KERNEL__
-#include <mos/syscall/decl.h>
+#include "mos/io/io.h"
+
 #include <mos_stdlib.h>
-#define syscall_io_read(fd, buffer, size)  impl_syscall_io_read(fd, buffer, size)
-#define syscall_io_write(fd, buffer, size) impl_syscall_io_write(fd, buffer, size)
+#define syscall_io_read(fd, buffer, size)  io_read(fd, buffer, size)
+#define syscall_io_write(fd, buffer, size) io_write(fd, buffer, size)
 #else
 #include <mos/syscall/usermode.h>
 #endif
@@ -38,7 +39,7 @@ void ipc_msg_destroy(ipc_msg_t *buffer)
     free(buffer);
 }
 
-ipc_msg_t *ipc_read_msg(fd_t fd)
+ipc_msg_t *ipc_read_msg(ipcfd_t fd)
 {
     size_t size = 0;
     size_t read_size = syscall_io_read(fd, &size, sizeof(size));
@@ -67,7 +68,7 @@ ipc_msg_t *ipc_read_msg(fd_t fd)
     return buffer;
 }
 
-bool ipc_write_msg(fd_t fd, ipc_msg_t *buffer)
+bool ipc_write_msg(ipcfd_t fd, ipc_msg_t *buffer)
 {
     size_t written = syscall_io_write(fd, &buffer->size, sizeof(buffer->size));
     if (written != sizeof(buffer->size))
@@ -86,7 +87,7 @@ bool ipc_write_msg(fd_t fd, ipc_msg_t *buffer)
     return true;
 }
 
-bool ipc_write_as_msg(fd_t fd, const char *data, size_t size)
+bool ipc_write_as_msg(ipcfd_t fd, const char *data, size_t size)
 {
     size_t w = 0;
     w = syscall_io_write(fd, &size, sizeof(size));
@@ -105,7 +106,7 @@ bool ipc_write_as_msg(fd_t fd, const char *data, size_t size)
     return true;
 }
 
-size_t ipc_read_as_msg(fd_t fd, char *buffer, size_t buffer_size)
+size_t ipc_read_as_msg(ipcfd_t fd, char *buffer, size_t buffer_size)
 {
     size_t read = 0;
     size_t data_size = 0;

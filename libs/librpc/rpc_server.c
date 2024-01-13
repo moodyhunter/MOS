@@ -20,14 +20,16 @@
 #endif
 
 #ifdef __MOS_KERNEL__
+#include "mos/io/io.h"
+#include "mos/ipc/ipc_io.h"
 #include "mos/tasks/kthread.h"
 
 #include <mos/syscall/decl.h>
-#define syscall_ipc_create(server_name, max_pending_calls) impl_syscall_ipc_create(server_name, max_pending_calls)
-#define syscall_ipc_accept(server_fd)                      impl_syscall_ipc_accept(server_fd)
-#define syscall_ipc_connect(server_name, smh_size)         impl_syscall_ipc_connect(server_name, smh_size)
-#define start_thread(name, func, arg)                      kthread_create(func, arg, name)
-#define syscall_io_close(fd)                               impl_syscall_io_close(fd)
+#define syscall_ipc_create(server_name, max_pending) ipc_create(server_name, max_pending)
+#define syscall_ipc_accept(server_fd)                io_ref(ipc_accept(server_fd))
+#define syscall_ipc_connect(server_name, smh_size)   ipc_connect(server_name, smh_size)
+#define start_thread(name, func, arg)                kthread_create(func, arg, name)
+#define syscall_io_close(fd)                         io_unref(fd)
 #else
 #include <mos/syscall/usermode.h>
 #endif
@@ -60,7 +62,7 @@ typedef struct _rpc_server
 {
     const char *server_name;
     void *data;
-    fd_t server_fd;
+    ipcfd_t server_fd;
     size_t functions_count;
     rpc_function_info_t *functions;
 } rpc_server_t;
@@ -80,7 +82,7 @@ struct _rpc_reply_wrapper
 typedef struct rpc_call_context
 {
     rpc_server_t *server;
-    fd_t client_fd;
+    ipcfd_t client_fd;
 } rpc_call_context_t;
 
 static inline rpc_function_info_t *rpc_server_get_function(rpc_server_t *server, u32 function_id)
@@ -95,7 +97,7 @@ static void rpc_handle_call(void *arg)
 {
     rpc_call_context_t *context = (rpc_call_context_t *) arg;
     rpc_server_t *server = context->server;
-    fd_t client_fd = context->client_fd;
+    ipcfd_t client_fd = context->client_fd;
     free(context);
 
     while (true)
@@ -170,12 +172,20 @@ rpc_server_t *rpc_server_create(const char *server_name, void *data)
     server->functions_count = 0;
     server->functions = NULL;
     server->server_fd = syscall_ipc_create(server_name, RPC_SERVER_MAX_PENDING_CALLS);
+    if (IS_ERR_VALUE(server->server_fd))
+    {
+#if !defined(__MOS_KERNEL__) && !defined(__MOS_MINIMAL_LIBC__)
+        errno = -server->server_fd;
+#endif
+        free(server);
+        return NULL;
+    }
     return server;
 }
 
 void rpc_server_destroy(rpc_server_t *server)
 {
-    if (server->server_fd != -1)
+    if (IS_ERR_VALUE(server->server_fd))
         syscall_io_close(server->server_fd);
     if (server->functions)
         free(server->functions);
@@ -196,13 +206,16 @@ void rpc_server_exec(rpc_server_t *server)
 {
     while (true)
     {
-        fd_t client_fd = syscall_ipc_accept(server->server_fd);
-        if (client_fd == -ECONNABORTED)
-            break; // server closed
+        ipcfd_t client_fd = syscall_ipc_accept(server->server_fd);
 
-        if (client_fd < 0)
+        if (IS_ERR_VALUE(client_fd))
         {
-            mos_warn("failed to accept client");
+            if ((long) client_fd == -ECONNABORTED)
+                break; // server closed
+
+#if !defined(__MOS_KERNEL__) && !defined(__MOS_MINIMAL_LIBC__)
+            errno = -client_fd;
+#endif
             break;
         }
 
