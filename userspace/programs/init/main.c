@@ -4,6 +4,7 @@
 #include <libconfig/libconfig.h>
 #include <mos/syscall/usermode.h>
 #include <sched.h>
+#include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,6 +36,34 @@ static char *string_trim(char *in)
     // Write new null terminator
     *(end + 1) = '\0';
     return in;
+}
+
+bool start_services(void)
+{
+    size_t num_drivers;
+    const char **services = config_get_all(config, "service", &num_drivers);
+    if (!services)
+        return true;
+
+    for (size_t i = 0; i < num_drivers; i++)
+    {
+        const char *service = services[i];
+        pid_t driver_pid = fork();
+        if (driver_pid == 0)
+        {
+            // child
+            execl(service, service, NULL);
+            exit(-1);
+        }
+
+        if (driver_pid <= 0)
+            fprintf(stderr, "Failed to start service: %s\n", service);
+
+        usleep(100000); // so that it looks better
+    }
+
+    free(services);
+    return true;
 }
 
 static pid_t start_device_manager(void)
@@ -213,6 +242,9 @@ int main(int argc, const char *argv[])
 
     pid_t dm_pid = start_device_manager();
     if (dm_pid <= 0)
+        return DYN_ERROR_CODE;
+
+    if (!start_services())
         return DYN_ERROR_CODE;
 
     // start the shell
