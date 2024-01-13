@@ -48,7 +48,7 @@ typedef pthread_mutex_t mutex_t;
 typedef struct rpc_server_stub
 {
     const char *server_name;
-    ipcfd_t *fd;
+    ipcfd_t fd;
     mutex_t mutex; // only one call at a time
     atomic_t callid;
 } rpc_server_stub_t;
