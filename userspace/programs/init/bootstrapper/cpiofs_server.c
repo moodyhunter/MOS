@@ -92,9 +92,6 @@ static cpio_inode_t *cpio_trycreate_i(const char *path)
     inode->stat.suid = modebits & CPIO_MODE_SUID;
     inode->stat.sgid = modebits & CPIO_MODE_SGID;
     inode->stat.nlinks = strntoll(cpio_inode->header.nlink, NULL, 16, sizeof(cpio_inode->header.nlink) / sizeof(char));
-    // inode->stat.ops = file_type == pb_file_type_t_FILE_TYPE_DIRECTORY ? &cpio_dir_inode_ops : &cpio_file_inode_ops;
-    // inode->stat.file_ops = file_type == pb_file_type_t_FILE_TYPE_DIRECTORY ? NULL : &cpio_file_ops;
-    // inode->cache.ops = &cpio_icache_ops;
     return cpio_inode;
 }
 
@@ -282,7 +279,7 @@ static int cpiofs_getpage(rpc_server_t *server, mos_rpc_fs_getpage_request *req,
     cpio_inode_t *cpio_i = (cpio_inode_t *) req->inode.private_data;
     const size_t bytes_to_read = MIN((size_t) MOS_PAGE_SIZE, cpio_i->pb_i.stat.size - req->pgoff * MOS_PAGE_SIZE);
 
-    resp->data = malloc(sizeof(pb_bytes_array_t) + bytes_to_read);
+    resp->data = malloc(PB_BYTES_ARRAY_T_ALLOCSIZE(bytes_to_read));
     resp->data->size = bytes_to_read;
 
     const size_t read = read_initrd(resp->data->bytes, bytes_to_read, cpio_i->data_offset + req->pgoff * MOS_PAGE_SIZE);
