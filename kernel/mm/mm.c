@@ -303,13 +303,13 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, pagefaul
              fault_addr                                                                  //
     );
     pr_emerg("  instruction: " PTR_FMT, info->instruction);
-    pr_emerg("  thread: %pt", (void *) current_thread);
-    pr_emerg("  process: %pp", current_thread ? (void *) current_process : NULL);
+    pr_emerg("    thread: %pt", (void *) current_thread);
+    pr_emerg("    process: %pp", current_thread ? (void *) current_process : NULL);
 
     if (fault_addr < 1 KB)
     {
         if (info->is_write)
-            pr_emerg("  write to NULL pointer");
+            pr_emerg("  possible write to NULL pointer");
         else if (info->is_exec && fault_addr == 0)
             pr_emerg("  attempted to execute NULL pointer");
         else
@@ -317,16 +317,18 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, pagefaul
     }
 
     if (info->is_user && fault_addr > MOS_KERNEL_START_VADDR)
-        pr_emerg("  kernel address dereference");
+        pr_emerg("    kernel address dereference");
 
     if (info->instruction > MOS_KERNEL_START_VADDR)
-        pr_emerg("  in kernel function %ps", (void *) info->instruction);
+        pr_emerg("    in kernel function %ps", (void *) info->instruction);
 
     if (faulting_vmap)
-        pr_emerg("  in vmap: %pvm", (void *) faulting_vmap);
+        pr_emerg("    in vmap: %pvm", (void *) faulting_vmap);
 
+#if MOS_CONFIG(MOS_MM_DETAILED_MMAPS_UNHANDLED_FAULT)
     if (current_thread)
         process_dump_mmaps(current_process);
+#endif
 
     pr_info("stack trace before fault (may be unreliable):");
     platform_dump_stack(info->regs);

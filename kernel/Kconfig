@@ -92,6 +92,10 @@ config MM_DETAILED_UNHANDLED_FAULT
     bool "print detailed information for unhandled page fault"
     default y
 
+config MM_DETAILED_MMAPS_UNHANDLED_FAULT
+    bool "print process mmap information for unhandled page fault"
+    default n
+
 config ELF_INTERPRETER_BASE_OFFSET
     hex "elf interpreter base offset"
     default 0x100000
