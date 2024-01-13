@@ -126,9 +126,8 @@ void process_destroy(process_t *process)
     {
         spinlock_acquire(&process->mm->mm_lock);
         list_foreach(vmap_t, vmap, process->mm->mmaps)
-        { // 0xffff80007ff4e550
+        {
             spinlock_acquire(&vmap->lock);
-            list_remove(vmap);
             vmap_destroy(vmap);
         }
 
