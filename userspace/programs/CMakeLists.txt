@@ -9,4 +9,5 @@ add_subdirectory(2048)
 
 add_subdirectory(pbtest)
 
+add_subdirectory(ramdisk)
 add_subdirectory(syslogd)
