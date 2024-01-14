@@ -543,8 +543,7 @@ DEFINE_SYSCALL(long, pipe)(fd_t *reader, fd_t *writer)
     if (IS_ERR(pipe))
         return PTR_ERR(pipe);
 
-    pipeio_t *pipeio = pipeio_create(pipe); // TODO: leak
-
+    pipeio_t *pipeio = pipeio_create(pipe);
     *reader = process_attach_ref_fd(current_process, &pipeio->io_r);
     *writer = process_attach_ref_fd(current_process, &pipeio->io_w);
     return 0;

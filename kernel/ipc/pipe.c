@@ -21,6 +21,9 @@
 static slab_t *pipe_slab = NULL;
 SLAB_AUTOINIT("pipe", pipe_slab, pipe_t);
 
+static slab_t *pipeio_slab = NULL;
+SLAB_AUTOINIT("pipeio", pipeio_slab, pipeio_t);
+
 #define advance_buffer(buffer, bytes) ((buffer) = (void *) ((char *) (buffer) + (bytes)))
 
 size_t pipe_write(pipe_t *pipe, const void *buf, size_t size)
@@ -173,47 +176,38 @@ pipe_t *pipe_create(size_t bufsize)
 
 static size_t pipeio_io_read(io_t *io, void *buf, size_t size)
 {
+    MOS_ASSERT(io->flags & IO_READABLE);
     pipeio_t *pipeio = container_of(io, pipeio_t, io_r);
     return pipe_read(pipeio->pipe, buf, size);
 }
 
 static size_t pipeio_io_write(io_t *io, const void *buf, size_t size)
 {
+    MOS_ASSERT(io->flags & IO_WRITABLE);
     pipeio_t *pipeio = container_of(io, pipeio_t, io_w);
     return pipe_write(pipeio->pipe, buf, size);
 }
 
 static void pipeio_io_close(io_t *io)
 {
-    pipeio_t *pipeio = NULL;
+    const pipeio_t *const pipeio = statement_expr(const pipeio_t *, {
+        if (io->flags & IO_READABLE)
+            retval = container_of(io, pipeio_t, io_r); // the reader is closing
+        else if (io->flags & IO_WRITABLE)
+            retval = container_of(io, pipeio_t, io_w); // the writer is closing
+        else
+            MOS_UNREACHABLE();
+    });
+
     const char *type = io->flags & IO_READABLE ? "reader" : "writer";
-    if (io->flags & IO_READABLE)
-    {
-        // the reader is closing, so the writer should be notified
-        pipeio = container_of(io, pipeio_t, io_r);
-    }
-    else if (io->flags & IO_WRITABLE)
-    {
-        // the writer is closing, so the reader should be notified
-        pipeio = container_of(io, pipeio_t, io_w);
-    }
-    else
-    {
-        pr_warn("invalid flags");
-        MOS_UNREACHABLE();
-    }
-
     if (!pipeio->pipe->other_closed)
-    {
         pr_dinfo2(pipe, "pipe %s closing", type);
-    }
     else
-    {
         pr_dinfo2(pipe, "pipe is already closed by the other end, '%s' closing", type);
-    }
 
-    bool unused = pipe_close_one_end(pipeio->pipe);
-    MOS_UNUSED(unused); // we don't care if the pipe was fully closed or not
+    const bool fully_closed = pipe_close_one_end(pipeio->pipe);
+    if (fully_closed)
+        kfree(pipeio);
 }
 
 static const io_op_t pipe_io_ops = {
@@ -224,7 +218,7 @@ static const io_op_t pipe_io_ops = {
 
 pipeio_t *pipeio_create(pipe_t *pipe)
 {
-    pipeio_t *pipeio = kmalloc(sizeof(pipeio_t));
+    pipeio_t *pipeio = kmalloc(pipeio_slab);
     pipeio->pipe = pipe;
     io_init(&pipeio->io_r, IO_PIPE, IO_READABLE, &pipe_io_ops);
     io_init(&pipeio->io_w, IO_PIPE, IO_WRITABLE, &pipe_io_ops);
