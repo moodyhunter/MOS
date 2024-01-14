@@ -18,10 +18,8 @@
 
 typedef enum
 {
-    ///< Default allocation flags.
-    VALLOC_DEFAULT = 0,
-    ///< Allocate pages at the exact address.
-    VALLOC_EXACT = MMAP_EXACT,
+    VALLOC_DEFAULT = 0,        ///< Default allocation flags.
+    VALLOC_EXACT = MMAP_EXACT, ///< Allocate pages at the exact address.
 } valloc_flags;
 
 /**
