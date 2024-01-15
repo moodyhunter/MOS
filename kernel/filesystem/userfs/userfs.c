@@ -5,6 +5,7 @@
 
 #include "mos/filesystem/vfs.h"
 #include "mos/filesystem/vfs_utils.h"
+#include "mos/misc/profiling.h"
 #include "mos/printk.h"
 
 #include <librpc/macro_magic.h>
@@ -95,7 +96,11 @@ static void userfs_iop_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state,
 
     mos_rpc_fs_readdir_response resp = { 0 };
     userfs_ensure_connected(userfs);
-    int result = fs_client_readdir(userfs->rpc_server, &req, &resp);
+
+    const pf_point_t ev = profile_enter();
+    const int result = fs_client_readdir(userfs->rpc_server, &req, &resp);
+    profile_leave(ev, "userfs.'%s'.readdir", userfs->rpc_server_name);
+
     if (result != RPC_RESULT_OK)
     {
         pr_warn("userfs_iop_iterate_dir: failed to readdir %s: %d", dentry_name(dentry), result);
@@ -130,7 +135,10 @@ static bool userfs_iop_lookup(inode_t *dir, dentry_t *dentry)
     mos_rpc_fs_lookup_response resp = { 0 };
     userfs_ensure_connected(userfs);
 
-    int result = fs_client_lookup(userfs->rpc_server, &req, &resp);
+    const pf_point_t ev = profile_enter();
+    const int result = fs_client_lookup(userfs->rpc_server, &req, &resp);
+    profile_leave(ev, "userfs.'%s'.lookup", userfs->rpc_server_name);
+
     if (result != RPC_RESULT_OK)
     {
         pr_warn("userfs_iop_lookup: failed to lookup %s: %d", dentry_name(dentry), result);
@@ -192,7 +200,10 @@ static size_t userfs_iop_readlink(dentry_t *dentry, char *buffer, size_t buflen)
     userfs_t *userfs = container_of(dentry->superblock->fs, userfs_t, fs);
     userfs_ensure_connected(userfs);
 
-    int result = fs_client_readlink(userfs->rpc_server, &req, &resp);
+    const pf_point_t pp = profile_enter();
+    const int result = fs_client_readlink(userfs->rpc_server, &req, &resp);
+    profile_leave(pp, "userfs.'%s'.readlink", userfs->rpc_server_name);
+
     if (result != RPC_RESULT_OK)
     {
         pr_warn("userfs_iop_readlink: failed to readlink %s: %d", dentry_name(dentry), result);
@@ -291,7 +302,11 @@ static phyframe_t *userfs_inode_cache_fill_cache(inode_cache_t *cache, off_t pgo
 
     mos_rpc_fs_getpage_response resp = { 0 };
     userfs_ensure_connected(userfs);
-    int result = fs_client_getpage(userfs->rpc_server, &req, &resp);
+
+    const pf_point_t pp = profile_enter();
+    const int result = fs_client_getpage(userfs->rpc_server, &req, &resp);
+    profile_leave(pp, "userfs.'%s'.getpage", userfs->rpc_server_name);
+
     if (result != RPC_RESULT_OK)
     {
         pr_warn("userfs_inode_cache_fill_cache: failed to getpage %s: %d", dentry_name(cache->owner->superblock->root), result);
@@ -339,7 +354,11 @@ dentry_t *userfs_fsop_mount(filesystem_t *fs, const char *device, const char *op
     };
 
     mos_rpc_fs_mount_response resp = { 0 };
-    int result = fs_client_mount(userfs->rpc_server, &req, &resp);
+
+    const pf_point_t pp = profile_enter();
+    const int result = fs_client_mount(userfs->rpc_server, &req, &resp);
+    profile_leave(pp, "userfs.'%s'.mount", userfs->rpc_server_name);
+
     if (result != RPC_RESULT_OK)
     {
         pr_warn("userfs_fsop_mount: failed to mount %s: %d", fs->name, result);
