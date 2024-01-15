@@ -54,20 +54,38 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
 
     int argc = 0;
     while (argv && argv[argc])
-        argc++, argv_copy = krealloc(argv_copy, (argc + 1) * sizeof(char *)), argv_copy[argc - 1] = strdup(argv[argc - 1]);
+    {
+        argc++;
+        argv_copy = krealloc(argv_copy, (argc + 1) * sizeof(char *));
+        argv_copy[argc - 1] = strdup(argv[argc - 1]);
+    }
 
     if (!argv_copy)
-        argv_copy = kmalloc(sizeof(char *) * 2), argv_copy[0] = strdup(path), argv_copy[1] = NULL;
-    else
-        argv_copy[argc] = NULL;
+    {
+        argv_copy = kmalloc(sizeof(char *) * 2);
+        argv_copy[0] = strdup(path);
+        argv_copy[1] = NULL;
+        argc = 1;
+    }
+
+    argv_copy[argc] = NULL;
 
     int envc = 0;
     while (envp && envp[envc])
-        envc++, envp_copy = krealloc(envp_copy, (envc + 1) * sizeof(char *)), envp_copy[envc - 1] = strdup(envp[envc - 1]);
+    {
+        envc++;
+        envp_copy = krealloc(envp_copy, (envc + 1) * sizeof(char *));
+        envp_copy[envc - 1] = strdup(envp[envc - 1]);
+    }
+
     if (!envp_copy)
-        envp_copy = kmalloc(sizeof(char *) * 1), envp_copy[0] = NULL;
-    else
-        envp_copy[envc] = NULL;
+    {
+        envp_copy = kmalloc(sizeof(char *) * 1);
+        envp_copy[0] = NULL;
+        envc = 0;
+    }
+
+    envp_copy[envc] = NULL;
 
     list_foreach(thread_t, t, process->threads)
     {
