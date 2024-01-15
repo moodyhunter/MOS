@@ -16,19 +16,19 @@ endif()
 
 include(${_ARCH_CONFIGURATION_FILE})
 
-set(MOS_CX_FLAGS "${MOS_CX_FLAGS} -Wall -Wextra -Wpedantic -pedantic -Werror=div-by-zero")
+list(APPEND MOS_KERNEL_CFLAGS "-ffreestanding")
 
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${MOS_CX_FLAGS} -Wstrict-prototypes -Wold-style-definition")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MOS_CX_FLAGS} -fno-rtti -fno-exceptions")
+# global compiler flags, which should be used for all targets
+set(MOS_GLOBAL_C_CXX_FLAGS "${MOS_GLOBAL_C_CXX_FLAGS} -Wall -Wextra -Wpedantic -pedantic -Werror=div-by-zero")
+
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${MOS_GLOBAL_C_CXX_FLAGS} -Wstrict-prototypes -Wold-style-definition")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MOS_GLOBAL_C_CXX_FLAGS}")
 
 set(CMAKE_C_FLAGS_DEBUG "-ggdb3")
 set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3")
 
 set(CMAKE_C_COMPILER_LAUNCHER "")
 set(CMAKE_CXX_COMPILER_LAUNCHER "")
-
-set(CMAKE_C_COMPILER_WORKS 1)
-set(CMAKE_CXX_COMPILER_WORKS 1)
 
 # set(CMAKE_ASM_NASM_OBJECT_FORMAT elf${BITS})
 # Add debug info to nasm
@@ -39,6 +39,8 @@ if (__MOS_HAS_NO_COMPILER)
     set(CMAKE_CXX_COMPILER "true")
     set(CMAKE_ASM_NASM_COMPILER "true")
     set(CMAKE_ASM_NASM_COMPILER_WORKS 1)
+    set(CMAKE_C_COMPILER_WORKS 1)
+    set(CMAKE_CXX_COMPILER_WORKS 1)
     message(WARNING "__MOS_HAS_NO_COMPILER is set, using true as compiler.")
 endif()
 

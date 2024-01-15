@@ -55,6 +55,14 @@ void _start(size_t argc, char **argv, char **envp)
     environ = envp;
 
     invoke_init();
+
+// ensure that the stack is 16-byte aligned
+#if defined(__x86_64__)
+    __asm__ volatile("andq $-16, %rsp");
+#else
+#error "unsupported architecture"
+#endif
+
     int r = main(argc, argv, envp);
     __cxa_finalize(NULL);
     syscall_exit(r);
