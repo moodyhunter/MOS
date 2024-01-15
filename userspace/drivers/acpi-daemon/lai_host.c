@@ -7,10 +7,11 @@
 #include <mos/filesystem/fs_types.h>
 #include <mos/io/io_types.h>
 #include <mos/mm/mm_types.h>
-#include <mos/moslib_global.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 void *laihost_malloc(size_t size)
 {
@@ -50,7 +51,7 @@ void *laihost_scan(const char *name, size_t nth)
 
     printf("laihost_scan: %s...", path);
 
-    file_stat_t statbuf;
+    struct stat statbuf;
     if (!stat(path, &statbuf))
     {
         printf("failed.\n");
@@ -64,8 +65,8 @@ void *laihost_scan(const char *name, size_t nth)
         return NULL;
     }
 
-    void *ptr = syscall_mmap_file(0, statbuf.size, MEM_PERM_READ, MMAP_SHARED, fd, 0);
-    syscall_io_close(fd);
+    void *ptr = mmap(NULL, statbuf.st_size, MEM_PERM_READ | MEM_PERM_WRITE, MMAP_SHARED, fd, 0);
+    close(fd);
     printf("ok.\n");
     return ptr;
 }
@@ -130,14 +131,14 @@ void *laihost_map(size_t paddr, size_t npages)
     if (sysmemfd == -1)
         return NULL;
 
-    ptr_t v = (ptr_t) syscall_mmap_file(0, npages * MOS_PAGE_SIZE, MEM_PERM_READ | MEM_PERM_WRITE, MMAP_SHARED, sysmemfd, ALIGN_DOWN_TO_PAGE(paddr));
+    ptr_t v = (ptr_t) mmap(0, npages * MOS_PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, sysmemfd, ALIGN_DOWN_TO_PAGE(paddr));
     v += paddr % MOS_PAGE_SIZE;
     return (void *) v;
 }
 
 void laihost_unmap(void *vaddr, size_t npages)
 {
-    syscall_munmap(vaddr, npages * MOS_PAGE_SIZE);
+    munmap(vaddr, npages * MOS_PAGE_SIZE);
 }
 
 void laihost_sleep(uint64_t ms)

@@ -33,4 +33,4 @@ add_executable(acpi-daemon
 )
 
 target_link_libraries(acpi-daemon PRIVATE lai mos::private_include)
-setup_userspace_program(acpi-daemon /drivers "ACPI Daemon")
+add_to_initrd(TARGET acpi-daemon /drivers)

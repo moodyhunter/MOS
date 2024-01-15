@@ -5,8 +5,8 @@
 #include "lai/helpers/sci.h"
 
 #include <mos/mos_global.h>
-#include <mos/platform_syscall.h>
-#include <mos_stdio.h>
+#include <mos/syscall/usermode.h>
+#include <stdio.h>
 
 int main(int argc, const char *argv[])
 {
