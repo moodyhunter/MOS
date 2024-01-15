@@ -159,6 +159,7 @@ class KernelDeclGenerator(BaseAbstractGenerator):
         line += "impl_" + syscall_name_with_prefix(e)
         line += "(" + syscall_args(e) + ");"
         self.gen(line)
+        self.gen("")
 
     def generate_epilogue(self):
         self.gen("#define define_syscall(name) impl_syscall_##name")
@@ -185,9 +186,11 @@ class UsermodeWrapperGenerator(BaseAbstractGenerator):
 
     def generate_single(self, e):
         syscall_nargs = len(e["arguments"])
-        syscall_conv_arg_to_reg_type = ", ".join(["SYSCALL_" + str(e["name"])] + ["(reg_t) %s" % arg["arg"] for arg in e["arguments"]])
+        syscall_conv_arg_to_reg_type = ", ".join(
+            ["SYSCALL_" + str(e["name"])] + ["(reg_t) %s" % arg["arg"] for arg in e["arguments"]])
         comments = e["comments"] if "comments" in e else []
-        return_stmt = "return (" + e["return"] + ") " if syscall_has_return_value(e) else ""
+        return_stmt = "return (" + e["return"] + \
+            ") " if syscall_has_return_value(e) else ""
 
         if len(comments) > 0:
             self.gen("/**")
@@ -196,7 +199,10 @@ class UsermodeWrapperGenerator(BaseAbstractGenerator):
                 self.gen(" * %s" % comment)
             self.gen(" */")
 
-        self.gen("should_inline %s%s(%s)" % (syscall_format_return_type(e), syscall_name_with_prefix(e), syscall_args(e)))
+        vals = (syscall_format_return_type(e),
+                syscall_name_with_prefix(e),
+                syscall_args(e))
+        self.gen("should_inline %s%s(%s)" % vals)
         self.gen("{")
         with self.scope:
             self.gen("%splatform_syscall%d(%s);" % (return_stmt,
@@ -205,6 +211,7 @@ class UsermodeWrapperGenerator(BaseAbstractGenerator):
             if syscall_is_noreturn(e):
                 self.gen("__builtin_unreachable();")
         self.gen("}")
+        self.gen("")
 
     def generate_epilogue(self):
         pass
@@ -229,6 +236,7 @@ class SyscallNumberGenerator(BaseAbstractGenerator):
     def generate_single(self, e):
         self.gen("#define SYSCALL_%s %d" % (e["name"], e["number"]))
         self.gen("#define SYSCALL_NAME_%d %s" % (e["number"], e["name"]))
+        self.gen("")
 
 
 class SyscallDispatcherGenerator(BaseAbstractGenerator):
@@ -247,7 +255,8 @@ class SyscallDispatcherGenerator(BaseAbstractGenerator):
         self.gen("// debugging support")
         self.gen('#include "mos/printk.h"')
         self.gen("")
-        self.gen("should_inline reg_t dispatch_syscall(const reg_t number, %s)" % (", ".join(["reg_t arg%d" % (i + 1) for i in range(MAX_SYSCALL_NARGS)])))
+        self.gen("should_inline reg_t dispatch_syscall(const reg_t number, %s)" % (
+            ", ".join(["reg_t arg%d" % (i + 1) for i in range(MAX_SYSCALL_NARGS)])))
         self.gen("{")
         with self.scope:
             for i in range(MAX_SYSCALL_NARGS):
@@ -262,22 +271,27 @@ class SyscallDispatcherGenerator(BaseAbstractGenerator):
         with self.scope:  # function scope
             with self.scope:  # switch scope
                 nargs = len(e["arguments"])
-                syscall_arg_casted = ", ".join(["(%s) arg%d" % (e["arguments"][i]["type"], i + 1) for i in range(nargs)])
-                retval_assign = "ret = (reg_t) " if syscall_has_return_value(e) else ""
+                syscall_arg_casted = ", ".join(
+                    ["(%s) arg%d" % (e["arguments"][i]["type"], i + 1) for i in range(nargs)])
+                retval_assign = "ret = (reg_t) " if syscall_has_return_value(
+                    e) else ""
 
                 self.gen("case SYSCALL_%s:" % e["name"])
                 self.gen("{")
                 with self.scope:
                     fmt = 'pr_dinfo2(syscall, "%s(' % e["name"]
-                    fmt += ", ".join(["%s=%s" % (e["arguments"][i]["arg"], select_format(e["arguments"][i]["type"])) for i in range(nargs)])
+                    fmt += ", ".join(["%s=%s" % (e["arguments"][i]["arg"], select_format(
+                        e["arguments"][i]["type"])) for i in range(nargs)])
                     fmt += ")\""
 
                     if e["arguments"]:
                         fmt += ", "
-                        fmt += ", ".join(["(%s) arg%d" % (select_format_type(e["arguments"][i]["type"]), i + 1) for i in range(nargs)])
+                        fmt += ", ".join(["(%s) arg%d" % (select_format_type(
+                            e["arguments"][i]["type"]), i + 1) for i in range(nargs)])
                     fmt += ");"
                     self.gen(fmt)
-                    self.gen("%simpl_%s(%s);" % (retval_assign, syscall_name_with_prefix(e), syscall_arg_casted))
+                    self.gen("%simpl_%s(%s);" % (retval_assign,
+                             syscall_name_with_prefix(e), syscall_arg_casted))
                     self.gen("break;")
                 self.gen("}")
 
@@ -290,11 +304,35 @@ class SyscallDispatcherGenerator(BaseAbstractGenerator):
         self.gen("}")
 
 
+class SyscallTableGenerator(BaseAbstractGenerator):
+    def filename(self):
+        return "table.h"
+
+    def description(self):
+        return "Syscall name table (const char *[])"
+
+    def generate_prologue(self):
+        self.gen_includes(j["includes"])
+        self.gen("// syscall name table")
+        self.gen('#include <mos/syscall/decl.h>')
+        self.gen('#include <mos/syscall/number.h>')
+        self.gen("")
+        self.gen("static const char *syscall_names[] = {")
+
+    def generate_single(self, e):
+        with self.scope:
+            self.gen('[SYSCALL_%s] = "%s",' % (e["name"], e["name"]))
+
+    def generate_epilogue(self):
+        self.gen("};")
+
+
 generators: list[BaseAbstractGenerator] = [
     KernelDeclGenerator(),
     UsermodeWrapperGenerator(),
     SyscallNumberGenerator(),
     SyscallDispatcherGenerator(),
+    SyscallTableGenerator(),
 ]
 
 
@@ -330,6 +368,5 @@ with open(input_json, "r") as f:
         g.generate_prologue()
         for e in j["syscalls"]:
             g.generate_single(e)
-            g.gen("")
         g.generate_epilogue()
         g.finish()

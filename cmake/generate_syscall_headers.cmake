@@ -6,6 +6,7 @@ set(MOS_SYSCALL_FILES
     ${MOS_SYSCALL_DIR}/dispatcher.h
     ${MOS_SYSCALL_DIR}/number.h
     ${MOS_SYSCALL_DIR}/usermode.h
+    ${MOS_SYSCALL_DIR}/table.h
 )
 
 find_program(PYTHON "python3" NAMES "python3 python" REQUIRED)
