@@ -35,15 +35,25 @@ void mos_cmdline_init(const char *cmdline)
     // must be static so that it doesn't get freed
     static char cmdline_buf[PRINTK_BUFFER_SIZE];
 
-    static const char *extra_cmdlines = MOS_EXTRA_CMDLINE;
-    size_t cmdline_len = sizeof(MOS_EXTRA_CMDLINE) - 1; // -1 to remove the null terminator
-    memcpy(cmdline_buf, extra_cmdlines, cmdline_len);
+    // first we copy EXTRA_CMDLINE to cmdline_buf
+    size_t cmdline_len = 0;
+    if (MOS_EXTRA_CMDLINE)
+    {
+        cmdline_len = strlen(MOS_EXTRA_CMDLINE);
+        memcpy(cmdline_buf, MOS_EXTRA_CMDLINE, cmdline_len);
+    }
 
+    // then we append cmdline
     if (cmdline)
     {
-        cmdline_buf[cmdline_len] = ' ';
-        cmdline_len++;
+        if (cmdline_len > 0)
+        {
+            cmdline_buf[cmdline_len] = ' ';
+            cmdline_len++;
+        }
+
         memcpy(cmdline_buf + cmdline_len, cmdline, strlen(cmdline));
+        cmdline_len += strlen(cmdline);
     }
 
     cmdline_buf[cmdline_len] = '\0'; // ensure null terminator
