@@ -165,10 +165,10 @@ should_inline cpio_inode_t *CPIO_INODE(inode_t *inode)
 
 static cpio_inode_t *cpio_inode_trycreate(const char *path, superblock_t *sb)
 {
-    cpio_newc_header_t header;
-    size_t header_offset;
-    size_t name_offset, name_length;
-    size_t data_offset, data_length;
+    cpio_newc_header_t header = { 0 };
+    size_t header_offset = 0;
+    size_t name_offset = 0, name_length = 0;
+    size_t data_offset = 0, data_length = 0;
     const bool found = cpio_read_metadata(path, &header, &header_offset, &name_offset, &name_length, &data_offset, &data_length);
     if (!found)
         return NULL;

@@ -81,7 +81,7 @@ datetime_str_t *platform_get_datetime_str(void)
 
     timeval_t time;
     platform_get_time(&time);
-    snprintf((char *) per_cpu(datetime_str), sizeof(datetime_str_t), "%d-%02d-%02d %02d:%02d:%02d", time.year, time.month, time.day, time.hour, time.minute, time.second);
+    snprintf(*per_cpu(datetime_str), sizeof(datetime_str_t), "%d-%02d-%02d %02d:%02d:%02d", time.year, time.month, time.day, time.hour, time.minute, time.second);
     return per_cpu(datetime_str);
 }
 
