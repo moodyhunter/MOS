@@ -186,11 +186,8 @@ void run_client(void)
     puts("all done");
 }
 
-int main(int argc, char *argv[])
+int main()
 {
-    MOS_UNUSED(argc);
-    MOS_UNUSED(argv);
-
     pid_t child = syscall_fork();
     if (child != 0)
     {
