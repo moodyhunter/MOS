@@ -2,14 +2,19 @@
 
 #include "mos/ksyscall_entry.h"
 
+#include "mos/misc/profiling.h"
+#include "mos/syscall/table.h"
 #include "mos/tasks/signal.h"
 
 #include <mos/syscall/dispatcher.h>
 #include <mos/types.h>
+#include <mos_stdio.h>
 
 reg_t ksyscall_enter(reg_t num, reg_t arg0, reg_t arg1, reg_t arg2, reg_t arg3, reg_t arg4, reg_t arg5)
 {
+    const pf_point_t ev = profile_enter();
     reg_t ret = dispatch_syscall(num, arg0, arg1, arg2, arg3, arg4, arg5);
+    profile_leave(ev, "syscall.%lu.%s", num, syscall_names[num]);
 
     if (IS_ERR_VALUE(ret))
     {
