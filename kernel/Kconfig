@@ -115,6 +115,16 @@ config INITRD_BASE
 
 # ! ============================================================
 
+menu "Kernel Profiling Options"
+
+config PROFILING
+    bool "enable TSC-based kernel profiling"
+    default n
+
+endmenu
+
+# ! ============================================================
+
 menu "Kernel Debugging Options"
 
 config DEBUG_thread
