@@ -101,6 +101,14 @@ console_t *console_get_by_prefix(const char *prefix)
     return NULL;
 }
 
+size_t console_write(console_t *con, const char *data, size_t size)
+{
+    spinlock_acquire(&con->write.lock);
+    size_t ret = con->ops->write(con, data, size);
+    spinlock_release(&con->write.lock);
+    return ret;
+}
+
 size_t console_write_color(console_t *con, const char *data, size_t size, standard_color_t fg, standard_color_t bg)
 {
     standard_color_t prev_fg, prev_bg;

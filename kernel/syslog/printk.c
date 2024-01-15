@@ -83,17 +83,16 @@ void lvprintk(mos_loglevel loglevel, const char *fmt, va_list args)
     char message[PRINTK_BUFFER_SIZE];
     const int len = vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
 
-    if (likely(printk_console))
-    {
-        print_to_console(printk_console, loglevel, message, len);
-    }
-    else
+    if (unlikely(!printk_console))
     {
         list_foreach(console_t, con, consoles)
         {
-            print_to_console(con, loglevel, message, len);
+            printk_console = con; // set the first console as the default
+            break;
         }
     }
+
+    print_to_console(printk_console, loglevel, message, len);
 }
 
 bool printk_unquiet(void)
