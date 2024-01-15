@@ -2,6 +2,7 @@
 
 #include "mos/kallsyms.h"
 #include "mos/ksyscall_entry.h"
+#include "mos/misc/profiling.h"
 #include "mos/tasks/signal.h"
 #include "mos/tasks/task_types.h"
 
@@ -17,6 +18,7 @@
 #include <mos/x86/tasks/context.h>
 #include <mos/x86/x86_interrupt.h>
 #include <mos/x86/x86_platform.h>
+#include <mos_stdio.h>
 #include <mos_stdlib.h>
 
 static const char *const x86_exception_names[EXCEPTION_COUNT] = {
@@ -200,6 +202,8 @@ static void x86_handle_exception(platform_regs_t *regs)
         pr_emerg("cpu %d: %s (%lu) at " PTR_FMT " (error code %lu)", lapic_get_id(), name, regs->interrupt_number, regs->ip, regs->error_code);
         signal_send_to_thread(current_thread, SIGKILL);
         platform_dump_regs(regs);
+        platform_dump_current_stack();
+        platform_dump_stack(regs);
     }
     else
     {
@@ -220,7 +224,9 @@ static void x86_handle_irq(platform_regs_t *frame)
     list_foreach(x86_irq_handler_t, handler, irq_handlers[irq])
     {
         irq_handled = true;
+        const pf_point_t ev = profile_enter();
         handler->handler(irq);
+        profile_leave(ev, "x86.irq.handler.%d", irq);
     }
 
     if (unlikely(!irq_handled))
@@ -234,6 +240,8 @@ void x86_interrupt_entry(ptr_t rsp)
 
     reg_t syscall_ret = 0, syscall_nr = 0;
 
+    const pf_point_t ev = profile_enter();
+
     if (frame->interrupt_number < IRQ_BASE)
         x86_handle_exception(frame);
     else if (frame->interrupt_number >= IRQ_BASE && frame->interrupt_number < IRQ_BASE + IRQ_MAX)
@@ -244,6 +252,8 @@ void x86_interrupt_entry(ptr_t rsp)
         syscall_nr = frame->ax, syscall_ret = ksyscall_enter(frame->ax, frame->bx, frame->cx, frame->dx, frame->si, frame->di, frame->r9);
     else
         pr_warn("Unknown interrupt number: %lu", frame->interrupt_number);
+
+    profile_leave(ev, "x86.int.%lu", frame->interrupt_number);
 
     if (unlikely(!current_thread))
         x86_interrupt_return_impl(frame), MOS_UNREACHABLE();
