@@ -117,7 +117,7 @@ MOSAPI void rpc_server_destroy(rpc_server_t *server);
 // so we can use protobuf (nanopb) with librpc
 #define rpc_arg_next_pb(type, val, args)                                                                                                                                 \
     statement_expr(bool, {                                                                                                                                               \
-        size_t size;                                                                                                                                                     \
+        size_t size = 0;                                                                                                                                                 \
         const void *payload = rpc_arg_next(args, &size);                                                                                                                 \
         pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *) payload, size);                                                                                 \
         retval = pb_decode(&stream, type##_fields, &val);                                                                                                                \
