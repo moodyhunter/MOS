@@ -556,7 +556,7 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list _args)
 #endif
                 wrap_printed(buf_putchar(buf, '0', &size));
                 wrap_printed(buf_putchar(buf, 'x', &size));
-                flags.length = LM__l;
+                flags.length = LM_ll;
                 wrap_printed(printf_diouxX(buf, value, &flags, 'x', &size));
                 break;
             }
