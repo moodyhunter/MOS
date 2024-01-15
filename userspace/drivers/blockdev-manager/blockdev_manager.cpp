@@ -16,8 +16,8 @@
 RPC_DECL_SERVER_PROTOTYPES(blockdev_manager, BLOCKDEV_MANAGER_RPC_X)
 
 rpc_server_t *blockdev_server = NULL;
-std::map<int, blockdev_info> blockdev_list;  // blockdev id -> blockdev info
-static std::atomic_int next_blockdev_id = 2; // 1 is reserved for the root directory
+std::map<int, blockdev_info> blockdev_list;    // blockdev id -> blockdev info
+static std::atomic_ulong next_blockdev_id = 2; // 1 is reserved for the root directory
 
 static int blockdev_manager_register_layer(rpc_server_t *server, mos_rpc_blockdev_register_layer_request *req, mos_rpc_blockdev_register_layer_response *resp, void *data)
 {
@@ -39,16 +39,15 @@ static int blockdev_manager_register_blockdev(rpc_server_t *server, mos_rpc_bloc
         .server_name = req->server_name,
         .num_blocks = req->num_blocks,
         .block_size = req->block_size,
+        .ino = next_blockdev_id++,
     };
 
-    const int id = next_blockdev_id++;
-    blockdev_list[id] = info;
-    info.ino = id;
+    blockdev_list[info.ino] = info;
 
-    std::cout << "Registered blockdev " << info.name << " with id " << id << std::endl;
+    std::cout << "Registered blockdev " << info.name << " with id " << info.ino << std::endl;
     resp->result.success = true;
     resp->result.error = NULL;
-    resp->id = id;
+    resp->id = info.ino;
 
     return 0;
 }
