@@ -101,32 +101,29 @@ static void x86_com1_handler(u32 irq)
 
 static void x86_setup_xsave_area(void)
 {
+    MOS_ASSERT(cpu_has_feature(CPU_FEATURE_SSE));
     MOS_ASSERT(cpu_has_feature(CPU_FEATURE_XSAVE)); // modern x86 CPUs should support XSAVE
-    x86_cpu_set_cr4(x86_cpu_get_cr4() | BIT(18));   // set CR4.OSXSAVE
 
-    reg_t xcr0 = XCR0_X87;
-    size_t xsave_size = 512; // X87 + SSE
+    x86_cpu_set_cr4(x86_cpu_get_cr4() | BIT(18)); // set CR4.OSXSAVE
 
-    if (cpu_has_feature(CPU_FEATURE_SSE))
-    {
-        xcr0 |= XCR0_SSE;
+    reg_t xcr0 = XCR0_X87 | XCR0_SSE; // bit 0, 1
+    size_t xsave_size = 512;          // X87 + SSE
 
-        reg_t cr0 = x86_cpu_get_cr0();
-        cr0 &= ~0x4; // clear coprocessor emulation CR0.EM
-        cr0 |= 0x2;  // set coprocessor monitoring  CR0.MP
-        x86_cpu_set_cr0(cr0);
+    xcr0 |= XCR0_SSE;
 
-        reg_t cr4 = x86_cpu_get_cr4();
-        cr4 |= 0x3 << 9; // set CR4.OSFXSR and CR4.OSXMMEXCPT at the same time
-        x86_cpu_set_cr4(cr4);
-    }
+    reg_t cr0 = x86_cpu_get_cr0();
+    cr0 &= ~0x4; // clear coprocessor emulation CR0.EM
+    cr0 |= 0x2;  // set coprocessor monitoring  CR0.MP
+    x86_cpu_set_cr0(cr0);
+
+    reg_t cr4 = x86_cpu_get_cr4();
+    cr4 |= 0x3 << 9; // set CR4.OSFXSR and CR4.OSXMMEXCPT at the same time
+    x86_cpu_set_cr4(cr4);
 
     xsave_size += 64; // XSAVE header
 
     if (cpu_has_feature(CPU_FEATURE_AVX))
-    {
         xcr0 |= XCR0_AVX;
-    }
 
     static const char *const xcr0_names[] = {
         [0] = "x87",              //
