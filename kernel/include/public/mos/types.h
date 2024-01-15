@@ -27,13 +27,8 @@ typedef signed long intn;
 typedef unsigned long uintn;
 
 // native integer type
-#if MOS_BITS == 32
-#define PTR_FMT   "0x%8.8lx"
-#define PTR_VLFMT "0x%lx"
-#else
 #define PTR_FMT   "0x%16.16lx"
 #define PTR_VLFMT "0x%lx"
-#endif
 
 #define PTR_RANGE   "[" PTR_FMT " - " PTR_FMT "]"
 #define PTR_RANGE64 "[0x%.16llx - 0x%.16llx]"
@@ -46,7 +41,7 @@ typedef unsigned long long pfn_t;
 
 #define PFNADDR(pfn, end) (((ptr_t) (pfn)) * MOS_PAGE_SIZE), ((((ptr_t) end) * MOS_PAGE_SIZE) - 1), (pfn), (end)
 
-MOS_STATIC_ASSERT(sizeof(void *) == MOS_BITS / 8, "pointer size check failed");
+MOS_STATIC_ASSERT(sizeof(void *) == 8, "pointer size check failed");
 MOS_STATIC_ASSERT(sizeof(ptr_t) == sizeof(void *), "ptr_t is not the same size as void *");
 
 typedef uintn reg_t; // native register type

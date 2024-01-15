@@ -33,17 +33,9 @@
 // * END find out if the compiler is big or little endian
 
 // * BEGIN determine the code model
-#if defined(__ILP32__)
-#define MOS_LP32 1 // sizeof(long) == sizeof(void *) == 4
-#define MOS_BITS 32
-#elif defined(__LP64__)
+#if defined(__LP64__)
 #define MOS_LP64 1 // sizeof(long) == sizeof(void *) == 8
-#define MOS_BITS 64
-#elif defined(__LLP64__)
-#error "LLP64 is not supported"
-#endif
-
-#if !defined(MOS_LP32) && !defined(MOS_LP64)
+#else
 #error "Unknown code model"
 #endif
 // * END determine the code model

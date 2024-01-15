@@ -16,10 +16,6 @@ endif()
 
 include(${_ARCH_CONFIGURATION_FILE})
 
-if(NOT DEFINED MOS_BITS)
-    message(FATAL_ERROR "MOS_BITS is not defined, the target architecture config file is not correct")
-endif()
-
 set(MOS_CX_FLAGS "${MOS_CX_FLAGS} -Wall -Wextra -Wpedantic -pedantic -Werror=div-by-zero")
 
 set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${MOS_CX_FLAGS} -Wstrict-prototypes -Wold-style-definition")
@@ -36,7 +32,7 @@ set(CMAKE_CXX_COMPILER_WORKS 1)
 
 # set(CMAKE_ASM_NASM_OBJECT_FORMAT elf${BITS})
 # Add debug info to nasm
-set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> -felf${MOS_BITS} -gdwarf -o <OBJECT> <SOURCE>")
+set(CMAKE_ASM_NASM_COMPILE_OBJECT "<CMAKE_ASM_NASM_COMPILER> <INCLUDES> -felf64 -gdwarf -o <OBJECT> <SOURCE>")
 
 if (__MOS_HAS_NO_COMPILER)
     set(CMAKE_C_COMPILER "true")

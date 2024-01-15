@@ -8,9 +8,9 @@ add_kernel_source(
     SYSTEM_INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_LIST_DIR}/include/public
     SOURCES
-        interrupt/interrupt${MOS_BITS}.asm
-        tasks/context_switch${MOS_BITS}.asm
-        descriptors/flush${MOS_BITS}.asm
+        interrupt/interrupt64.asm
+        tasks/context_switch64.asm
+        descriptors/flush64.asm
         acpi/acpi.c
         acpi/madt.c
         cpu/ap_entry.c
