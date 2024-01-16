@@ -3,6 +3,7 @@
 #include "mos/device/clocksource.h"
 
 #include "mos/platform/platform.h"
+#include "mos/printk.h"
 #include "mos/tasks/schedule.h"
 #include "mos/tasks/wait.h"
 
@@ -36,4 +37,10 @@ void clocksource_msleep(u64 ms)
     const u64 offset = ms * active_clocksource->frequency / 1000;
     const u64 target_val = active_clocksource_ticks() + offset;
     reschedule_for_wait_condition(wc_wait_for((void *) target_val, should_continue, NULL));
+
+    if (current_thread->waiting)
+    {
+        wc_condition_cleanup(current_thread->waiting);
+        current_thread->waiting = NULL;
+    }
 }
