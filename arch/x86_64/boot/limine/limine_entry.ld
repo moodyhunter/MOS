@@ -60,9 +60,26 @@ SECTIONS
         *(.data);
     }
 
+    .init_array ALIGN(4K) : AT (ADDR(.init_array) - 0xFFFFFFFF80000000)
+    {
+        PROVIDE_HIDDEN (__init_array_start = .);
+        KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
+        KEEP (*(.init_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .ctors))
+        PROVIDE_HIDDEN (__init_array_end = .);
+    }
+
+    .fini_array ALIGN(4K) : AT (ADDR(.fini_array) - 0xFFFFFFFF80000000)
+    {
+        PROVIDE_HIDDEN (__fini_array_start = .);
+        KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*)))
+        KEEP (*(.fini_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .dtors))
+        PROVIDE_HIDDEN (__fini_array_end = .);
+    }
+
     .bss ALIGN(4K) : AT (ADDR(.bss) - 0xFFFFFFFF80000000)
     {
         *(.bss);
+        *(.bss.*);
         . = ALIGN(4K);
         . += 1M * 16; /* ! 16 MiB for all CPUs' stacks (defined in mos_config.cmake) */
         __MOS_KERNEL_HIGHER_STACK_TOP = .;

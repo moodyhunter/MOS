@@ -28,6 +28,18 @@
 #define DEFAULT_INIT_PATH "/initrd/programs/bootstrapper"
 
 typedef void (*init_function_t)(void);
+extern const init_function_t __init_array_start[], __init_array_end;
+
+static void invoke_constructors(void)
+{
+    pr_dinfo2(setup, "invoking constructors...");
+    for (const init_function_t *func = __init_array_start; func != &__init_array_end; func++)
+    {
+        pr_dinfo2(setup, "  %p", (void *) (ptr_t) *func);
+        (*func)();
+    }
+}
+MOS_INIT(POST_MM, invoke_constructors);
 
 static struct
 {
