@@ -52,11 +52,10 @@ def main():
         l = l.strip()
 
         count = l.count(" ")
-        if count != 2:
+        if count < 2:
             print("", file=stderr)
             print("Failed to generate ELF map info:", file=stderr)
-            print("    Invalid line: '%s', expected 3 fields, got %d" % (l, count), file=stderr)
-            print("    (possibly undefined symbol?)", file=stderr)
+            print("    Invalid line: '%s', expected 2 fields, got %d" % (l, count), file=stderr)
             print("", file=stderr)
             exit(1)
 
@@ -70,8 +69,9 @@ def main():
         if should_skip:
             continue
 
-        if type == "t" or type == 'T':
-            gen("    { .address = 0x%s, .name = %s }," % (addr, "\"" + name + "\""))
+        if type == "t" or type == "T":
+            gen("    { .address = 0x%s, .name = %s }," %
+                (addr, '"' + name + '"'))
 
     gen("    { .address = 0, .name = NULL },")
     gen("};")

@@ -28,5 +28,9 @@
             mos_warn(__VA_ARGS__);                                                                                                                                       \
     } while (0)
 
+__BEGIN_DECLS
+
 __printf(3, 4) void mos_kwarn(const char *func, u32 line, const char *fmt, ...);
 noreturn __printf(3, 4) void mos_kpanic(const char *func, u32 line, const char *fmt, ...);
+
+__END_DECLS

@@ -6,6 +6,8 @@
 #include <mos/lib/sync/spinlock.h>
 #include <stddef.h>
 
+__BEGIN_DECLS
+
 /**
  * @brief Allocate a block of memory from the slab allocator.
  *
@@ -51,3 +53,5 @@ typedef struct
 
 slab_t *kmemcache_create(const char *name, size_t ent_size);
 void *kmemcache_alloc(slab_t *slab);
+
+__END_DECLS

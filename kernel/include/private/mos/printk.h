@@ -55,6 +55,8 @@ typedef enum
 #define pr_fatal(fmt, ...) lprintk_wrapper(MOS_LOG_FATAL, pr_fmt(fmt), ##__VA_ARGS__)
 #define pr_cont(fmt, ...)  lprintk(MOS_LOG_UNSET, "" fmt, ##__VA_ARGS__)
 
+__BEGIN_DECLS
+
 __printf(1, 2) void printk(const char *format, ...);
 __printf(2, 3) void lprintk(mos_loglevel loglevel, const char *format, ...);
 
@@ -63,3 +65,5 @@ void lvprintk(mos_loglevel loglevel, const char *fmt, va_list args);
 
 bool printk_unquiet(void);
 void printk_set_quiet(bool quiet);
+
+__END_DECLS

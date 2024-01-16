@@ -28,6 +28,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "")
+set(CMAKE_CXX_IMPLICIT_LINK_LIBRARIES "")
+
 # ! Kconfig ===================================================
 execute_process(
     COMMAND git describe --long --tags --all --dirty
@@ -88,13 +91,14 @@ if ("${MOS_UBSAN}" STREQUAL "y")
     target_link_options(mos_kernel_compile_options INTERFACE -g -fsanitize=undefined)
 endif()
 target_compile_options(mos_kernel_compile_options INTERFACE $<$<COMPILE_LANGUAGE:C>:${MOS_KERNEL_CFLAGS}>)
+target_compile_options(mos_kernel_compile_options INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${MOS_KERNEL_CXXFLAGS}>)
 target_compile_definitions(mos_kernel_compile_options INTERFACE -D__MOS_KERNEL__ -D__MLIBC_ABI_ONLY)
 target_link_options(mos_kernel_compile_options INTERFACE -nostdlib)
 target_link_libraries(mos_kernel_compile_options INTERFACE mos::include mos::private_include gcc)
 add_library(mos::kernel_compile_options ALIAS mos_kernel_compile_options)
 
 # The Kernel
-file(GLOB_RECURSE MOS_KERNEL_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/kernel/*.c)
+file(GLOB_RECURSE MOS_KERNEL_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/kernel/*.c ${CMAKE_SOURCE_DIR}/kernel/*.cpp)
 add_library(mos_kernel OBJECT ${MOS_KERNEL_SOURCES})
 target_link_libraries(mos_kernel PUBLIC mos::kernel_compile_options)
 add_dependencies(mos_kernel mos_syscall_decl)

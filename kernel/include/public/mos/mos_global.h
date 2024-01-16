@@ -22,6 +22,16 @@
 #define __mos_copy_attr(target)
 #endif
 
+// clang-format off
+#if defined(__MOS_KERNEL__) && defined(__cplusplus)
+#define __BEGIN_DECLS extern "C" {
+#define __END_DECLS }
+#else
+#define __BEGIN_DECLS
+#define __END_DECLS
+#endif
+// clang-format on
+
 #define __alias(target, func) extern __typeof__(target) func __attribute__((__alias__(#target))) __mos_copy_attr(target)
 
 #define __aligned(x)    __attribute__((__aligned__(x)))

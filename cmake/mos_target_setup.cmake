@@ -17,6 +17,7 @@ endif()
 include(${_ARCH_CONFIGURATION_FILE})
 
 list(APPEND MOS_KERNEL_CFLAGS "-ffreestanding")
+list(APPEND MOS_KERNEL_CXXFLAGS "-ffreestanding;-fno-exceptions;-fno-rtti")
 
 # global compiler flags, which should be used for all targets
 set(MOS_GLOBAL_C_CXX_FLAGS "${MOS_GLOBAL_C_CXX_FLAGS} -Wall -Wextra -Wpedantic -pedantic -Werror=div-by-zero")
