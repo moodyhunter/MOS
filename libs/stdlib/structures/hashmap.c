@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/lib/sync/spinlock.h"
+
 #include <mos/lib/structures/hashmap.h>
 #include <mos/moslib_global.h>
 #include <mos_stdlib.h>
@@ -22,6 +24,7 @@ void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, has
         mos_panic("hashmap_init: hashmap %p is already initialized", (void *) map);
         return;
     }
+    memzero(map, sizeof(hashmap_t));
     map->magic = HASHMAP_MAGIC;
     map->entries = calloc(capacity, sizeof(hashmap_entry_t *));
     map->capacity = capacity;
@@ -41,6 +44,7 @@ void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, has
 void hashmap_deinit(hashmap_t *map)
 {
     MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
+    spinlock_acquire(&map->lock);
     for (size_t i = 0; i < map->capacity; i++)
     {
         hashmap_entry_t *entry = map->entries[i];
@@ -52,11 +56,13 @@ void hashmap_deinit(hashmap_t *map)
         }
     }
     free(map->entries);
+    spinlock_release(&map->lock);
 }
 
 void *hashmap_put(hashmap_t *map, uintn key, void *value)
 {
     MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
+    spinlock_acquire(&map->lock);
     size_t index = map->hash_func(key).hash % map->capacity;
     hashmap_entry_t *entry = map->entries[index];
     while (entry != NULL)
@@ -66,6 +72,7 @@ void *hashmap_put(hashmap_t *map, uintn key, void *value)
             // key already exists, replace value
             void *old_value = entry->value;
             entry->value = value;
+            spinlock_release(&map->lock);
             return old_value;
         }
         entry = entry->next;
@@ -76,28 +83,35 @@ void *hashmap_put(hashmap_t *map, uintn key, void *value)
     entry->next = map->entries[index];
     map->entries[index] = entry;
     map->size++;
+    spinlock_release(&map->lock);
     return NULL;
 }
 
-void *hashmap_get(const hashmap_t *map, uintn key)
+void *hashmap_get(hashmap_t *map, uintn key)
 {
     MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
+    spinlock_acquire(&map->lock);
     size_t index = map->hash_func(key).hash % map->capacity;
     hashmap_entry_t *entry = map->entries[index];
     while (entry != NULL)
     {
         if (map->key_compare_func(entry->key, key))
         {
-            return entry->value;
+            void *value = entry->value;
+            spinlock_release(&map->lock);
+            return value;
         }
         entry = entry->next;
     }
+
+    spinlock_release(&map->lock);
     return NULL;
 }
 
 void *hashmap_remove(hashmap_t *map, uintn key)
 {
     MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
+    spinlock_acquire(&map->lock);
     size_t index = map->hash_func(key).hash % map->capacity;
     hashmap_entry_t *entry = map->entries[index];
     hashmap_entry_t *prev = NULL;
@@ -106,21 +120,20 @@ void *hashmap_remove(hashmap_t *map, uintn key)
         if (map->key_compare_func(entry->key, key))
         {
             if (prev == NULL)
-            {
                 map->entries[index] = entry->next;
-            }
             else
-            {
                 prev->next = entry->next;
-            }
             void *value = entry->value;
             free(entry);
             map->size--;
+            spinlock_release(&map->lock);
             return value;
         }
         prev = entry;
         entry = entry->next;
     }
+
+    spinlock_release(&map->lock);
     return NULL;
 }
 

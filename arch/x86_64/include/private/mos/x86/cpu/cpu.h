@@ -58,4 +58,6 @@ should_inline void x86_cpu_invlpg_all(void)
     __asm__ volatile("mov %%cr3, %%rax; mov %%rax, %%cr3" : : : "rax", "memory");
 }
 
-void x86_cpu_get_caps_all(void);
+void x86_cpu_initialise_caps(void);
+
+size_t x86_cpu_setup_xsave_area(void);
