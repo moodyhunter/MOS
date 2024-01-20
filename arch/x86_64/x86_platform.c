@@ -222,6 +222,9 @@ void platform_startup_early()
 #undef do_print_cpu_feature
 
 #endif
+
+    // set up the XSAVE area
+    x86_platform.arch_info.xsave_size = x86_cpu_setup_xsave_area();
 }
 
 void platform_startup_mm()
@@ -284,9 +287,6 @@ void platform_startup_late()
     ioapic_enable_interrupt(IRQ_CMOS_RTC, x86_platform.boot_cpu_id);
     ioapic_enable_interrupt(IRQ_KEYBOARD, x86_platform.boot_cpu_id);
     ioapic_enable_interrupt(IRQ_COM1, x86_platform.boot_cpu_id);
-
-    // set up the XSAVE area
-    x86_platform.arch_info.xsave_size = x86_cpu_setup_xsave_area();
 
 #if MOS_CONFIG(MOS_SMP)
     x86_start_all_aps();

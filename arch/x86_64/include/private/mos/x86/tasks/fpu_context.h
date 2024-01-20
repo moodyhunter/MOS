@@ -2,5 +2,9 @@
 
 #pragma once
 
-void x86_save_fpu_context();
-void x86_load_fpu_context();
+#include "mos/mm/slab.h"
+
+extern slab_t *xsave_area_slab;
+
+void x86_xsave_current();
+void x86_xrstor_current();

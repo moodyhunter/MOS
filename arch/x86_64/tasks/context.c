@@ -10,7 +10,6 @@
 #include "mos/x86/descriptors/descriptors.h"
 #include "mos/x86/tasks/fpu_context.h"
 
-#include <elf.h>
 #include <mos/lib/structures/stack.h>
 #include <mos/mos_global.h>
 #include <mos/platform/platform.h>
@@ -48,6 +47,7 @@ static void x86_start_user_thread()
 
 static platform_regs_t *x86_setup_thread_common(thread_t *thread)
 {
+    thread->platform_options.xsaveptr = kmalloc(xsave_area_slab);
     thread->k_stack.head -= sizeof(platform_regs_t);
     platform_regs_t *regs = platform_thread_regs(thread);
     *regs = (platform_regs_t){ 0 };
@@ -100,7 +100,16 @@ static void x86_clone_forked_context(const thread_t *from, thread_t *to)
     *to_regs = *platform_thread_regs(from);
     to_regs->ax = 0; // return 0 for the child
 
-    to->platform_options = from->platform_options; // TODO: COPY THE FPU STATE
+    // synchronise the sp of user stack
+    if (to->mode == THREAD_MODE_USER)
+    {
+        to->u_stack.head = to_regs->sp;
+        to->platform_options.xsaveptr = kmalloc(xsave_area_slab);
+        memcpy(to->platform_options.xsaveptr, from->platform_options.xsaveptr, platform_info->arch_info.xsave_size);
+    }
+
+    to->platform_options.fs_base = from->platform_options.fs_base;
+    to->platform_options.gs_base = from->platform_options.gs_base;
     to->k_stack.head -= sizeof(platform_regs_t);
 }
 __alias(x86_clone_forked_context, platform_context_clone);
@@ -111,11 +120,11 @@ static void x86_switch_to_thread(ptr_t *scheduler_stack, const thread_t *to, swi
                                       switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? x86_start_kernel_thread :
                                                                                    x86_normal_switch_impl;
 
-    x86_save_fpu_context();
+    x86_xsave_current();
     x86_update_current_fsbase();
     per_cpu(x86_cpu_descriptor)->tss.rsp0 = to->k_stack.top;
     x86_context_switch_impl(scheduler_stack, to->k_stack.head, switch_func);
-    x86_load_fpu_context();
+    x86_xrstor_current();
 }
 __alias(x86_switch_to_thread, platform_switch_to_thread);
 

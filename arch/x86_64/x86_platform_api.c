@@ -6,6 +6,7 @@
 #include "mos/platform/platform_defs.h"
 #include "mos/tasks/signal.h"
 #include "mos/x86/devices/rtc.h"
+#include "mos/x86/tasks/fpu_context.h"
 
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/paging/paging.h>
@@ -138,6 +139,7 @@ void platform_dump_thread_kernel_stack(const thread_t *thread)
 
 noreturn void platform_return_to_userspace(platform_regs_t *regs)
 {
+    x86_xrstor_current();
     x86_interrupt_return_impl(regs);
 }
 

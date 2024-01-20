@@ -39,8 +39,7 @@ typedef struct _platform_process_options
 typedef struct _platform_thread_options
 {
     ptr_t fs_base, gs_base;
-    bool need_fpu_context;
-    u8 *xsaveptr; // Only valid if need_fpu_context is true
+    u8 *xsaveptr;
 } platform_thread_options_t;
 
 typedef struct _platform_cpuinfo
