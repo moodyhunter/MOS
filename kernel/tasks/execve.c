@@ -35,18 +35,6 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
         return -ENOEXEC;
     }
 
-    // !! ====== point of no return ====== !! //
-
-    if (proc->name)
-        kfree(proc->name);
-    if (thread->name)
-        kfree(thread->name);
-
-    proc->name = strdup(f->dentry->name);   // set process name to the name of the executable
-    thread->name = strdup(f->dentry->name); // set thread name to the name of the executable
-
-    spinlock_acquire(&thread->state_lock);
-
     // backup argv and envp
     const char **argv_copy = NULL;
     const char **envp_copy = NULL;
@@ -87,6 +75,18 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
 
     envp_copy[envc] = NULL;
 
+    // !! ====== point of no return ====== !! //
+
+    if (proc->name)
+        kfree(proc->name);
+    if (thread->name)
+        kfree(thread->name);
+
+    proc->name = strdup(f->dentry->name);   // set process name to the name of the executable
+    thread->name = strdup(f->dentry->name); // set thread name to the name of the executable
+
+    spinlock_acquire(&thread->state_lock);
+
     list_foreach(thread_t, t, process->threads)
     {
         if (t != thread)
@@ -117,7 +117,16 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
         vmap_finalise_init(stack_vmap, VMAP_STACK, VMAP_TYPE_PRIVATE);
     }
 
-    const bool filled = elf_fill_process(proc, f, path_copy, argv_copy, envp_copy);
+    elf_startup_info_t startup_info = {
+        .argc = argc,
+        .argv = argv_copy,
+        .envc = envc,
+        .envp = envp_copy,
+        .auxv = { 0 },
+        .invocation = path_copy,
+    };
+
+    const bool filled = elf_do_fill_process(proc, f, header, &startup_info);
     io_unref(&f->io);
 
     // free old argv and envp

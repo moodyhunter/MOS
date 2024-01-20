@@ -153,6 +153,26 @@ typedef struct
     size_t sh_entsize;
 } __packed elf_section_hdr_t;
 
+#define AUXV_VEC_SIZE 16
+
+typedef struct
+{
+    int count;
+    Elf64_auxv_t vector[AUXV_VEC_SIZE];
+} auxv_vec_t;
+
+typedef struct
+{
+    const char *invocation;
+    auxv_vec_t auxv;
+    int argc;
+    const char **argv;
+
+    int envc;
+    const char **envp;
+} elf_startup_info_t;
+
 __nodiscard bool elf_read_and_verify_executable(file_t *file, elf_header_t *header);
 __nodiscard bool elf_fill_process(process_t *proc, file_t *file, const char *path, const char *const argv[], const char *const envp[]);
+__nodiscard bool elf_do_fill_process(process_t *proc, file_t *file, elf_header_t elf, elf_startup_info_t *info);
 process_t *elf_create_process(const char *path, process_t *parent, const char *const argv[], const char *const envp[], const stdio_t *ios);

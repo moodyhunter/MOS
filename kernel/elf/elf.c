@@ -3,7 +3,9 @@
 #include "mos/elf/elf.h"
 
 #include "mos/filesystem/vfs.h"
+#include "mos/misc/kutils.h"
 #include "mos/mm/mmap.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_types.h"
@@ -16,25 +18,6 @@
 MOS_STATIC_ASSERT(sizeof(elf_header_t) == 0x40, "elf_header has wrong size");
 MOS_STATIC_ASSERT(sizeof(elf_program_hdr_t) == 0x38, "elf_program_header has wrong size");
 MOS_STATIC_ASSERT(sizeof(elf_section_hdr_t) == 0x40, "elf_section_header has wrong size");
-
-#define AUXV_VEC_SIZE 16
-
-typedef struct
-{
-    int count;
-    Elf64_auxv_t vector[AUXV_VEC_SIZE];
-} auxv_vec_t;
-
-typedef struct
-{
-    const char *invocation;
-    auxv_vec_t auxv;
-    int argc;
-    const char **argv;
-
-    int envc;
-    const char **envp;
-} elf_startup_info_t;
 
 static void add_auxv_entry(auxv_vec_t *var, unsigned long type, unsigned long val)
 {
@@ -168,6 +151,7 @@ no_argv:
     *out_penvp = (ptr_t) stack_push(&thread->u_stack, &stack_envp, sizeof(char *) * (info->envc + 1)); // envp
     *out_pargv = (ptr_t) stack_push(&thread->u_stack, &stack_argv, sizeof(char *) * (info->argc + 1)); // argv
     stack_push_val(&thread->u_stack, (uintn) info->argc);                                              // argc
+    MOS_ASSERT(thread->u_stack.head % 16 == 0);
 }
 
 static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, mm_context_t *mm, file_t *file)
@@ -244,7 +228,7 @@ static ptr_t elf_map_interpreter(const char *path, mm_context_t *mm)
     return MOS_ELF_INTERPRETER_BASE_OFFSET + entry;
 }
 
-__nodiscard static bool elf_do_fill_process(process_t *proc, file_t *file, elf_header_t elf, elf_startup_info_t *info)
+__nodiscard bool elf_do_fill_process(process_t *proc, file_t *file, elf_header_t elf, elf_startup_info_t *info)
 {
     bool ret = true;
 
