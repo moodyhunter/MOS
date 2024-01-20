@@ -39,7 +39,8 @@ void profile_leave(const pf_point_t start, const char *fmt, ...)
 {
     const u64 end = platform_get_timestamp();
 
-    MOS_ASSERT_X(profile_console, "cmdline 'profile_console' must be set before using profiling");
+    if (unlikely(!profile_console))
+        return;
 
     const u64 total = end - start;
 
