@@ -258,11 +258,14 @@ void x86_interrupt_entry(ptr_t rsp)
     if (unlikely(!current_thread))
         x86_interrupt_return_impl(frame), MOS_UNREACHABLE();
 
-    // jump to signal handler if there is a pending signal
-    if (frame->interrupt_number == MOS_SYSCALL_INTR)
-        signal_exit_to_user_prepare_syscall(frame, syscall_nr, syscall_ret);
-    else
-        signal_exit_to_user_prepare(frame);
+    // jump to signal handler if there is a pending signal, and if we are coming from userspace
+    if (frame->cs & 0x3)
+    {
+        if (frame->interrupt_number == MOS_SYSCALL_INTR)
+            signal_exit_to_user_prepare_syscall(frame, syscall_nr, syscall_ret);
+        else
+            signal_exit_to_user_prepare(frame);
+    }
 
     x86_interrupt_return_impl(frame);
     MOS_UNREACHABLE();
