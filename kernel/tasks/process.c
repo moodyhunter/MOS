@@ -183,7 +183,7 @@ fd_t process_attach_ref_fd(process_t *process, io_t *file)
         if (fd >= MOS_PROCESS_MAX_OPEN_FILES)
         {
             mos_warn("process %pp has too many open files", (void *) process);
-            return -1;
+            return -EMFILE;
         }
     }
 
