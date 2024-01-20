@@ -110,6 +110,9 @@ io_t *ipc_create(const char *name, size_t max_pending_connections)
         return ERR(server);
 
     ipc_server_io_t *io = kmalloc(ipc_server_io_slab);
+    if (IS_ERR(io))
+        return ERR(io);
+
     io->server = server;
     io_init(&io->control_io, IO_IPC, IO_NONE, &ipc_control_io_op);
     return &io->control_io;
@@ -126,6 +129,9 @@ io_t *ipc_accept(io_t *server)
         return ERR(ipc);
 
     ipc_conn_io_t *io = ipc_conn_io_create(ipc, true);
+    if (IS_ERR(io))
+        return ERR(io);
+
     return &io->io;
 }
 
@@ -136,5 +142,8 @@ io_t *ipc_connect(const char *name, size_t buffer_size)
         return ERR(ipc);
 
     ipc_conn_io_t *connio = ipc_conn_io_create(ipc, false);
+    if (IS_ERR(connio))
+        return ERR(connio);
+
     return &connio->io;
 }

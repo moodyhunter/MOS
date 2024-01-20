@@ -248,7 +248,6 @@ retry_accept:
         pr_dinfo2(ipc, "ipc server '%s' is closed, aborting accept()", ipc_server->name);
         kfree(ipc_server->name);
         kfree(ipc_server);
-        spinlock_release(&ipc_server->lock);
         return ERR_PTR(-ECONNABORTED);
     }
 
@@ -330,7 +329,16 @@ check_server:
         {
             waitlist = kmalloc(waitlist_slab);
             waitlist_init(waitlist);
-            hashmap_put(&name_waitlist, (ptr_t) ipc->server_name, waitlist); // the key must be in kernel memory
+            waitlist_t *const old = hashmap_put(&name_waitlist, (ptr_t) ipc->server_name, waitlist); // the key must be in kernel memory
+            if (old)
+            {
+                // someone else has created the waitlist, but now we have replaced it
+                // so we have to append the old waitlist to the new one
+                list_foreach(thread_t, thread, old->list)
+                {
+                    MOS_ASSERT(waitlist_append(waitlist));
+                }
+            }
             pr_dinfo2(ipc, "created waitlist for ipc server '%s'", name);
         }
 
@@ -342,6 +350,7 @@ check_server:
         if (signal_has_pending())
         {
             pr_dinfo2(ipc, "woken up by a signal, aborting connect()");
+            kfree(ipc);
             return ERR_PTR(-EINTR);
         }
 
