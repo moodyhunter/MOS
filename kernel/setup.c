@@ -3,6 +3,7 @@
 #include "mos/setup.h"
 
 #include "mos/cmdline.h"
+#include "mos/platform/platform.h"
 #include "mos/printk.h"
 
 void startup_invoke_autoinit(init_target_t target)
