@@ -17,7 +17,10 @@
     {                                                                                                                                                                    \
         type percpu_value[MOS_MAX_CPU_COUNT];                                                                                                                            \
     } name
-
+#define PER_CPU_VAR_INIT                                                                                                                                                 \
+    {                                                                                                                                                                    \
+        .percpu_value = { 0 }                                                                                                                                            \
+    }
 #define per_cpu(var) (&(var.percpu_value[platform_current_cpu_id()]))
 #else
 #define PER_CPU_DECLARE(type, name)                                                                                                                                      \
@@ -25,7 +28,10 @@
     {                                                                                                                                                                    \
         type percpu_value;                                                                                                                                               \
     } name
-
+#define PER_CPU_VAR_INIT                                                                                                                                                 \
+    {                                                                                                                                                                    \
+        .percpu_value = 0                                                                                                                                                \
+    }
 #define per_cpu(var) (&(var.percpu_value))
 #endif
 
@@ -86,6 +92,7 @@ typedef enum
 {
     IPI_TYPE_HALT = 0,       // halt the CPU
     IPI_TYPE_INVALIDATE_TLB, // TLB shootdown
+    IPI_TYPE_RESCHEDULE,     // Reschedule
     IPI_TYPE_MAX,
 } ipi_type_t;
 
