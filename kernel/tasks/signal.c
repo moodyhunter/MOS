@@ -167,7 +167,7 @@ static void do_signal_exit_to_user_prepare(platform_regs_t *regs, signal_t next_
 {
     if (action->sa_handler == SIG_DFL)
     {
-        if (current_process->pid == 1)
+        if (current_process->pid == 1 && !is_fatal_signal(next_signal))
             goto done; // init only receives signals it wants
 
         switch (next_signal)
