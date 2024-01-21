@@ -9,29 +9,17 @@
 #include <mos/mm/mm_types.h>
 #include <mos/tasks/signal_types.h>
 
+// clang-format off
 #if MOS_CONFIG(MOS_SMP)
-#define PER_CPU_DECLARE(type, name)                                                                                                                                      \
-    struct name                                                                                                                                                          \
-    {                                                                                                                                                                    \
-        type percpu_value[MOS_MAX_CPU_COUNT];                                                                                                                            \
-    } name
-#define PER_CPU_VAR_INIT                                                                                                                                                 \
-    {                                                                                                                                                                    \
-        .percpu_value = { 0 }                                                                                                                                            \
-    }
+#define PER_CPU_DECLARE(type, name) struct name { type percpu_value[MOS_MAX_CPU_COUNT]; } name
+#define PER_CPU_VAR_INIT { .percpu_value = { 0 } }
 #define per_cpu(var) (&(var.percpu_value[platform_current_cpu_id()]))
 #else
-#define PER_CPU_DECLARE(type, name)                                                                                                                                      \
-    struct name                                                                                                                                                          \
-    {                                                                                                                                                                    \
-        type percpu_value;                                                                                                                                               \
-    } name
-#define PER_CPU_VAR_INIT                                                                                                                                                 \
-    {                                                                                                                                                                    \
-        .percpu_value = 0                                                                                                                                                \
-    }
+#define PER_CPU_DECLARE(type, name) struct name { type percpu_value; } name
+#define PER_CPU_VAR_INIT { .percpu_value = 0 }
 #define per_cpu(var) (&(var.percpu_value))
 #endif
+// clang-format on
 
 #define current_cpu     per_cpu(platform_info->cpu)
 #define current_thread  (current_cpu->thread)
