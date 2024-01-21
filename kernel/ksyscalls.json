@@ -252,7 +252,7 @@
         {
             "number": 35,
             "name": "vfs_chdir",
-            "return": "bool",
+            "return": "long",
             "arguments": [ { "type": "const char *", "arg": "path" } ]
         },
         {

@@ -352,7 +352,7 @@ DEFINE_SYSCALL(bool, munmap)(void *addr, size_t size)
     return munmap((ptr_t) addr, size);
 }
 
-DEFINE_SYSCALL(bool, vfs_chdir)(const char *path)
+DEFINE_SYSCALL(long, vfs_chdir)(const char *path)
 {
     return vfs_chdir(path);
 }
