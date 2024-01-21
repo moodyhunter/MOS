@@ -138,24 +138,14 @@ bool do_builtin(const char *command, int argc, const char **argv)
         }
     }
 
-    // if the command ends with / and such directory exists, cd into it
-
-    bool may_be_directory = command[strlen(command) - 1] == '/';
-    may_be_directory |= strcmp(command, "..") == 0;
-    may_be_directory |= command[0] == '.' && command[1] == '.';
-    may_be_directory |= command[0] == '/';
-    may_be_directory |= command[0] == '.' && command[1] == '/';
-
-    if (may_be_directory)
+    // if the command is a directory, run the cd builtin
+    struct stat statbuf = { 0 };
+    if (stat(command, &statbuf) == 0)
     {
-        struct stat statbuf = { 0 };
-        if (!stat(command, &statbuf))
+        if (S_ISDIR(statbuf.st_mode))
         {
-            if (S_ISDIR(statbuf.st_mode))
-            {
-                chdir(command);
-                return true;
-            }
+            const char *argv[] = { command, NULL };
+            return do_builtin("cd", 1, argv);
         }
     }
 

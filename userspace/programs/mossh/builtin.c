@@ -82,14 +82,14 @@ void do_cd(int argc, const char *argv[])
     {
         case 0:
         {
-            if (chdir("/") != 0)
-                printf("cd: /: Unexpected error\n");
+            if (chdir("/"))
+                printf("cd: /: Unexpected error: %s\n", strerror(errno));
             break;
         }
         case 1:
         {
-            if (chdir(argv[0]) != 0)
-                printf("cd: %s: No such file or directory\n", argv[0]);
+            if (chdir(argv[0]))
+                printf("cannot change directory to '%s': %s\n", argv[0], strerror(errno));
             break;
         }
         default:
