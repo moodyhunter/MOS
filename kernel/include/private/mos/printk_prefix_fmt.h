@@ -37,7 +37,7 @@
 #endif
 
 #if MOS_CONFIG(MOS_PRINTK_WITH_THREAD_ID)
-#define _lprintk_threadid_fmt "tid: %pt\t| "
+#define _lprintk_threadid_fmt "%pt\t| "
 #define _lprintk_threadid_arg ((void *) current_thread)
 #else
 #define _lprintk_threadid_fmt ""

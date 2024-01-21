@@ -20,9 +20,9 @@ static size_t do_print_vmflags(char *buf, size_t size, vm_flags flags)
  *  '%ps'   prints a kernel symbol name, with offset if applicable.
  *              e.g. "do_fork (+0x123)"
  *  '%pt'   prints a thread_t object.
- *              e.g.: "'my_process' (pid 123)"
+ *              e.g.: "[p123:my_process]"
  *  '%pp'   prints a process_t object.
- *              e.g.: "'my_thread' (tid 123)"
+ *              e.g.: "[t123:my_thread]"
  *  '%pvf'  prints vm_flags_t flag, only the r/w/x bits are printed for general purpose.
  *              e.g.: "rwx" / "r--" / "rw-" / "--x"
  *  '%pvm'  prints a vmap_t object.
@@ -93,7 +93,7 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
                 wrap_print("(null)");
                 goto done;
             }
-            wrap_print("'%s' (tid %d)", thread->name ? thread->name : "<no name>", thread->tid);
+            wrap_print("[t%d:%s]", thread->tid, thread->name ? thread->name : "<no name>");
             goto done;
         }
         case 'p': // %pp
@@ -107,7 +107,7 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
                 wrap_print("(null)");
                 goto done;
             }
-            wrap_print("'%s' (pid %d)", process->name ? process->name : "<no name>", process->pid);
+            wrap_print("[p%d:%s]", process->pid, process->name ? process->name : "<no name>");
             goto done;
         }
         case 'v': // %pv

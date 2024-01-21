@@ -41,7 +41,7 @@ static bool should_schedule_to_thread(thread_t *thread)
                 return false;
             wc_condition_cleanup(thread->waiting);
             thread->waiting = NULL;
-            pr_dinfo2(scheduler, "cpu %d: thread %d waiting condition is resolved", current_cpu->id, thread->tid);
+            pr_dinfo2(scheduler, "%pt's wait condition is resolved", (void *) thread);
             return true;
         }
         case THREAD_STATE_NONINTERRUPTIBLE:
@@ -84,12 +84,11 @@ static bool schedule_to_thread(uintn key, void *value, void *data)
     }
 
     cpu_t *cpu = current_cpu;
-    pr_dinfo2(scheduler, "cpu %d: switching to thread %pt -> %pt, flags: %c%c", //
-              cpu->id,                                                          //
-              (void *) current_thread,                                          //
-              (void *) thread,                                                  //
-              switch_flags & SWITCH_TO_NEW_USER_THREAD ? 'U' : '-',             //
-              switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? 'K' : '-'            //
+    pr_dinfo2(scheduler, "switching %pt -> %pt, flags: %c%c",        //
+              (void *) current_thread,                               //
+              (void *) thread,                                       //
+              switch_flags & SWITCH_TO_NEW_USER_THREAD ? 'U' : '-',  //
+              switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? 'K' : '-' //
     );
 
     const bool should_switch_mm = cpu->mm_context != thread->owner->mm;
@@ -130,7 +129,7 @@ void reschedule_for_wait_condition(wait_condition_t *wait_condition)
     MOS_ASSERT_X(t->waiting == NULL, "thread %d is already waiting for something else", t->tid);
     spinlock_acquire(&t->state_lock);
     t->state = THREAD_STATE_BLOCKED;
-    pr_dinfo2(scheduler, "cpu %d: thread %d is now blocked", current_cpu->id, t->tid);
+    pr_dinfo2(scheduler, "%pt is now blocked for wait-condition", (void *) t);
     spinlock_release(&t->state_lock);
     t->waiting = wait_condition;
     platform_switch_to_scheduler(&t->k_stack.head, current_cpu->scheduler_stack);
@@ -147,7 +146,7 @@ bool reschedule_for_waitlist(waitlist_t *waitlist)
 
     spinlock_release(&t->state_lock);
     t->state = THREAD_STATE_BLOCKED;
-    pr_dinfo2(scheduler, "cpu %d: thread %d is now blocked", current_cpu->id, t->tid);
+    pr_dinfo2(scheduler, "%pt is now blocked for waitlist", (void *) t);
     spinlock_release(&t->state_lock);
     platform_switch_to_scheduler(&t->k_stack.head, current_cpu->scheduler_stack);
 
@@ -171,11 +170,11 @@ void reschedule(void)
     if (cpu->thread->state == THREAD_STATE_RUNNING)
     {
         cpu->thread->state = THREAD_STATE_READY;
-        pr_dinfo2(scheduler, "cpu %d: rescheduling thread %pt, making it ready", cpu->id, (void *) cpu->thread);
+        pr_dinfo2(scheduler, "leaving %pt", (void *) cpu->thread);
     }
     else
     {
-        pr_dinfo2(scheduler, "cpu %d: rescheduling thread %pt, state: '%c'", cpu->id, (void *) cpu->thread, thread_state_str[cpu->thread->state]);
+        pr_dinfo2(scheduler, "leaving %pt, state: '%c'", (void *) cpu->thread, thread_state_str[cpu->thread->state]);
     }
     spinlock_release(&cpu->thread->state_lock);
 
@@ -188,7 +187,7 @@ void blocked_reschedule(void)
     cpu_t *cpu = current_cpu;
     spinlock_acquire(&cpu->thread->state_lock);
     current_thread->state = THREAD_STATE_BLOCKED;
-    pr_dinfo2(scheduler, "cpu %d: block-rescheduling thread %pt", cpu->id, (void *) cpu->thread);
+    pr_dinfo2(scheduler, "block-rescheduling %pt", (void *) cpu->thread);
     spinlock_release(&cpu->thread->state_lock);
 
     // update k_stack because we are now running on the kernel stack
