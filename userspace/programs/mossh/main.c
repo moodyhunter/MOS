@@ -177,7 +177,7 @@ void do_execute(const char *prog, char *rest, bool should_wait)
 
     if (!do_builtin(prog, argc - 1, argv + 1))
         if (!do_program(prog, argc, argv, should_wait))
-            fprintf(stderr, "'%s' is not recognized as an internal, operable program or batch file.\n", prog);
+            fprintf(stderr, "'%s' is not recognized as an internal or external command, operable program or batch file.\n", prog);
 
     if (argc)
     {
