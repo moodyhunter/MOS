@@ -195,7 +195,7 @@ void platform_jump_to_signal_handler(const platform_regs_t *regs, const sigretur
     current_thread->u_stack.head = regs->sp - 128;
 
     // backup previous frame
-    stack_push(&current_thread->u_stack, regs, sizeof(platform_regs_t));
+    stack_push_val(&current_thread->u_stack, *regs);
     stack_push_val(&current_thread->u_stack, *sigreturn_data);
 
     // Set up the new context
@@ -214,7 +214,7 @@ void platform_restore_from_signal_handler(void *sp)
     sigreturn_data_t data;
     platform_regs_t regs;
     stack_pop_val(&current_thread->u_stack, data);
-    stack_pop(&current_thread->u_stack, sizeof(platform_regs_t), &regs);
+    stack_pop_val(&current_thread->u_stack, regs);
 
     signal_on_returned(&data);
     x86_interrupt_return_impl(&regs);
