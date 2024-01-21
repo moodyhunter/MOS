@@ -108,7 +108,7 @@ void platform_irq_handler_remove(u32 irq, irq_handler handler)
     MOS_UNUSED(handler);
 }
 
-void platform_switch_mm(mm_context_t *mm)
+void platform_switch_mm(const mm_context_t *mm)
 {
     x86_cpu_set_cr3(pgd_pfn(mm->pgd) * MOS_PAGE_SIZE);
 }
