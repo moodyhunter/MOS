@@ -48,6 +48,12 @@ int main(int argc, char *argv[])
 {
     MOS_UNUSED(argc);
 
+    if (getpid() != 1)
+    {
+        puts("bootstrapper: not running as PID 1, exiting");
+        return 1;
+    }
+
     int statusfd[2];
     pipe(statusfd);
 
