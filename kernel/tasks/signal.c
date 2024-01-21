@@ -243,13 +243,13 @@ void signal_exit_to_user_prepare_syscall(platform_regs_t *regs, reg_t syscall_nr
         if (action.sa_flags & SA_RESTART)
         {
             pr_dinfo2(signal, "thread %pt will restart syscall %lu after signal %d", (void *) current_thread, syscall_nr, next_signal);
-            platform_syscall_restart(regs, syscall_nr);
+            platform_syscall_setup_restart_context(regs, syscall_nr);
             goto really_prepare;
         }
         // else: fall through, return -EINTR
     }
 
-    platform_syscall_result(regs, real_ret);
+    platform_syscall_store_retval(regs, real_ret);
 
     if (!next_signal)
         return; // no pending signal, leave asap

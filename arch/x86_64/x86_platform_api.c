@@ -248,13 +248,13 @@ void platform_dump_regs(platform_regs_t *frame)
     );
 }
 
-void platform_syscall_restart(platform_regs_t *regs, reg_t syscall_nr)
+void platform_syscall_setup_restart_context(platform_regs_t *regs, reg_t syscall_nr)
 {
     regs->ax = syscall_nr;
     regs->ip -= 2; // replay the 'syscall' or 'int 0x88' instruction
 }
 
-void platform_syscall_result(platform_regs_t *regs, reg_t result)
+void platform_syscall_store_retval(platform_regs_t *regs, reg_t result)
 {
     regs->ax = result;
 }
