@@ -31,7 +31,7 @@ typedef struct
     rpc_argtype_t argtype;
     u32 size;
     char data[];
-} rpc_arg_t;
+} __packed rpc_arg_t;
 
 typedef struct
 {
@@ -41,7 +41,7 @@ typedef struct
     u32 function_id;
     u32 args_count;
     char args_array[]; // rpc_arg_t[]
-} rpc_request_t;
+} __packed rpc_request_t;
 
 typedef struct
 {
@@ -51,4 +51,4 @@ typedef struct
     rpc_result_code_t result_code;
     size_t data_size;
     char data[];
-} rpc_response_t;
+} __packed rpc_response_t;
