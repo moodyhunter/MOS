@@ -1,4 +1,8 @@
-use std::{io::Error, thread::spawn};
+use std::{
+    io::Error,
+    sync::{Arc, Mutex},
+    thread,
+};
 
 use crate::{
     IpcChannel, IpcServer, RpcCallArgType, RpcCallResult, RPC_ARG_MAGIC, RPC_REQUEST_MAGIC,
@@ -9,24 +13,28 @@ use num_traits::FromPrimitive;
 
 // ! BEGIN public API
 
-pub type RpcCallFunction = fn(&mut RpcCallContext) -> Result<(), Error>;
+// pub type RpcCallFunction = fn(&mut RpcCallContext) -> Result<(), Error>;
 
-#[derive(Clone, Copy, Debug)]
-pub struct RpcCallFuncInfo {
+pub struct RpcCallFunction<T: Send + Sync + Clone> {
+    pub func: Box<dyn FnMut(&mut T, &mut RpcCallContext) -> Result<(), Error> + Send>,
+}
+
+#[derive(Clone)]
+pub struct RpcCallFuncInfo<T: Send + Sync + Clone> {
     pub id: u32,
-    pub func: RpcCallFunction,
-    pub argtypes: &'static [RpcCallArgType],
+    pub func: Arc<Mutex<RpcCallFunction<T>>>,
+    pub argtypes: Vec<RpcCallArgType>,
 }
 
 pub struct RpcCallContext {
-    funcinfo: RpcCallFuncInfo,
+    argtypes: Vec<RpcCallArgType>,
     data: Vec<u8>,
     reply: RpcReply,
 }
 
-pub struct RpcServer {
+pub struct RpcServer<T: Send + Sync + Clone> {
     ipc: IpcServer,
-    functions: Vec<RpcCallFuncInfo>,
+    functions: Vec<RpcCallFuncInfo<T>>,
 }
 
 // ! END public API
@@ -93,7 +101,7 @@ impl RpcCallContext {
         for _ in 0..index {
             data_slice_and_shift!(data, this_arg, 12);
 
-            if u32::from_le_bytes(do_try_into!(this_arg, 0, 4)) != RPC_ARG_MAGIC {
+            if u32::from_be_bytes(do_try_into!(this_arg, 0, 4)) != RPC_ARG_MAGIC {
                 return Err(new_ioerr!("invalid magic in rpc arg"));
             }
 
@@ -104,13 +112,13 @@ impl RpcCallContext {
 
         data_slice_and_shift!(data, this_arg, 12);
 
-        if u32::from_le_bytes(do_try_into!(this_arg, 0, 4)) != RPC_ARG_MAGIC {
+        if u32::from_be_bytes(do_try_into!(this_arg, 0, 4)) != RPC_ARG_MAGIC {
             return Err(new_ioerr!("invalid magic in rpc arg"));
         }
 
         let argtype = u32::from_le_bytes(do_try_into!(this_arg, 4, 8));
         let argtype = RpcCallArgType::from_u32(argtype).ok_or(new_ioerr!("invalid argtype"))?;
-        if self.funcinfo.argtypes[index as usize] != argtype {
+        if self.argtypes[index as usize] != argtype {
             return Err(new_ioerr!("invalid argtype in rpc arg"));
         }
 
@@ -132,6 +140,12 @@ impl RpcCallContext {
         self.get_narg(index)
     }
 
+    #[cfg(feature = "protobuf")]
+    pub fn get_arg_pb<T: protobuf::Message>(&self, index: u32) -> Result<T, Error> {
+        let data = self.get_narg(index)?;
+        T::parse_from_bytes(&data).or(Err(new_ioerr!("invalid protobuf")))
+    }
+
     get_arg_ints!(get_arg_i8, i8);
     get_arg_ints!(get_arg_i16, i16);
     get_arg_ints!(get_arg_i32, i32);
@@ -142,9 +156,9 @@ impl RpcCallContext {
     get_arg_ints!(get_arg_u64, u64);
 }
 
-impl RpcServer {
-    pub fn create(str: &str, functions: &[RpcCallFuncInfo]) -> Result<RpcServer, Error> {
-        let ipc = IpcServer::create(str)?;
+impl<T: Send + Sync + Clone> RpcServer<T> {
+    pub fn create(str: &str, functions: &[RpcCallFuncInfo<T>]) -> Result<RpcServer<T>, Error> {
+        let ipc = IpcServer::create(&str)?;
         let server = RpcServer {
             ipc,
             functions: functions.to_vec(),
@@ -156,151 +170,175 @@ impl RpcServer {
         Ok(server)
     }
 
-    pub fn run(&mut self) -> Result<(), Error> {
-        loop {
-            let functions = self.functions.clone();
-            let mut ipc = match self.ipc.accept()? {
-                Some(ipc) => ipc,
-                None => return Ok(()),
-            };
-
-            #[cfg(feature = "debug")]
-            println!("->> accepted new client");
-
-            spawn(move || loop {
-                match handle_call(&functions, &mut ipc) {
-                    Err(err) => {
-                        println!("handle_call failed: {:?}", err);
-                        return;
-                    }
-
-                    Ok(false) => {
-                        #[cfg(feature = "debug")]
-                        println!("<<- client disconnected");
-                        return; // client disconnected
-                    }
-                    _ => {}
-                }
-            });
-        }
+    pub fn set_functions(&mut self, functions: &[RpcCallFuncInfo<T>]) {
+        self.functions = functions.to_vec();
     }
-}
 
-fn handle_call(functions: &Vec<RpcCallFuncInfo>, mut ipc: &mut IpcChannel) -> Result<bool, Error> {
-    let mut msg = match ipc.recv_message() {
-        Ok(msg) => msg,
-        Err(err) => {
-            if err.kind() == std::io::ErrorKind::UnexpectedEof {
-                return Ok(false);
+    pub fn run(&mut self, t: &mut T) -> Result<(), Error> {
+        thread::scope(|s| {
+            loop {
+                let mut tclone = t.clone();
+                let functions = self.functions.clone();
+
+                match self.ipc.accept().expect("accept") {
+                    Some(mut ipc) => {
+                        #[cfg(feature = "debug")]
+                        println!("->> accepted new client");
+                        s.spawn(move || Self::handle(functions, &mut ipc, &mut tclone));
+                    }
+                    None => {
+                        #[cfg(feature = "debug")]
+                        println!("->> no more clients");
+                        break;
+                    }
+                };
             }
 
-            return Err(err);
+            #[cfg(feature = "debug")]
+            println!("->> waiting for threads to complete");
+        });
+
+        println!("->> all threads completed");
+        Ok(())
+    }
+
+    fn handle(functions: Vec<RpcCallFuncInfo<T>>, ipc: &mut IpcChannel, t: &mut T) {
+        loop {
+            match Self::handle_call(functions.clone(), ipc, t) {
+                Err(err) => {
+                    println!("handle_call failed: {:?}", err);
+                    return;
+                }
+                Ok(false) => {
+                    #[cfg(feature = "debug")]
+                    println!("<<- client disconnected");
+                    return; // client disconnected
+                }
+                _ => {}
+            };
         }
-    };
-
-    if msg.len() < 16 {
-        unreachable!("message too short");
     }
 
-    // typedef struct
-    // {
-    //     u32 magic; // RPC_REQUEST_MAGIC
-    //     id_t call_id;
-    //     u32 function_id;
-    //     u32 args_count;
-    //     char args_array[]; // rpc_arg_t[]
-    // } rpc_request_t;
+    fn handle_call(
+        functions: Vec<RpcCallFuncInfo<T>>,
+        ipc: &mut IpcChannel,
+        t: &mut T,
+    ) -> Result<bool, Error> {
+        let mut msg = match ipc.recv_message() {
+            Ok(msg) => msg,
+            Err(err) => {
+                if err.kind() == std::io::ErrorKind::UnexpectedEof {
+                    return Ok(false);
+                }
 
-    data_slice_and_shift!(msg, magic, 4); // magic
-    let magic = u32::from_le_bytes(do_try_into!(magic, 0, 4));
+                return Err(err);
+            }
+        };
 
-    data_slice_and_shift!(msg, call_id, 4); // call_id
-    let call_id = u32::from_le_bytes(do_try_into!(call_id, 0, 4));
+        if msg.len() < 16 {
+            unreachable!("message too short");
+        }
 
-    data_slice_and_shift!(msg, function_id, 4); // function_id
-    let function_id = u32::from_le_bytes(do_try_into!(function_id, 0, 4));
+        // typedef struct
+        // {
+        //     u32 magic; // RPC_REQUEST_MAGIC
+        //     id_t call_id;
+        //     u32 function_id;
+        //     u32 args_count;
+        //     char args_array[]; // rpc_arg_t[]
+        // } rpc_request_t;
 
-    data_slice_and_shift!(msg, args_count, 4); // args_count
-    let args_count = u32::from_le_bytes(do_try_into!(args_count, 0, 4));
+        data_slice_and_shift!(msg, magic, 4); // magic
+        let magic = u32::from_be_bytes(do_try_into!(magic, 0, 4));
 
-    if magic != RPC_REQUEST_MAGIC {
-        send_rpc_respose(ipc, call_id, RpcCallResult::InvalidArg, &[])?;
-        return Ok(true);
-    }
+        data_slice_and_shift!(msg, call_id, 4); // call_id
+        let call_id = u32::from_le_bytes(do_try_into!(call_id, 0, 4));
 
-    let funcinfo = match functions.iter().find(|f| f.id == function_id) {
-        Some(funcinfo) => funcinfo,
-        None => {
-            send_rpc_respose(ipc, call_id, RpcCallResult::ServerInvalidFunction, &[])?;
+        data_slice_and_shift!(msg, function_id, 4); // function_id
+        let function_id = u32::from_le_bytes(do_try_into!(function_id, 0, 4));
+
+        data_slice_and_shift!(msg, args_count, 4); // args_count
+        let args_count = u32::from_le_bytes(do_try_into!(args_count, 0, 4));
+
+        if magic != RPC_REQUEST_MAGIC {
+            Self::send_rpc_respose(ipc, call_id, RpcCallResult::InvalidArg, &[])?;
             return Ok(true);
         }
-    };
 
-    if funcinfo.argtypes.len() > args_count as usize {
-        send_rpc_respose(ipc, call_id, RpcCallResult::InvalidArg, &[])?;
+        let funcinfo = match functions.iter().find(|f| f.id == function_id) {
+            Some(funcinfo) => funcinfo,
+            None => {
+                Self::send_rpc_respose(ipc, call_id, RpcCallResult::ServerInvalidFunction, &[])?;
+                return Ok(true);
+            }
+        };
+
+        if funcinfo.argtypes.len() > args_count as usize {
+            Self::send_rpc_respose(ipc, call_id, RpcCallResult::InvalidArg, &[])?;
+            #[cfg(feature = "debug")]
+            println!(
+                "  --> received call for function {} with {} args, but function expects {} args",
+                funcinfo.id,
+                args_count,
+                funcinfo.argtypes.len()
+            );
+            return Ok(true);
+        }
+
         #[cfg(feature = "debug")]
         println!(
-            "  --> received call for function {} with {} args, but function expects {} args",
-            funcinfo.id,
-            args_count,
-            funcinfo.argtypes.len()
+            "  --> received call for function {} with {} args",
+            funcinfo.id, args_count
         );
-        return Ok(true);
-    }
 
-    #[cfg(feature = "debug")]
-    println!(
-        "  --> received call for function {} with {} args",
-        funcinfo.id, args_count
-    );
+        let mut ctx = RpcCallContext {
+            argtypes: funcinfo.argtypes.clone(),
+            data: msg,
+            reply: RpcReply { data: Vec::new() },
+        };
 
-    let mut ctx = RpcCallContext {
-        funcinfo: funcinfo.clone(),
-        data: msg,
-        reply: RpcReply { data: Vec::new() },
-    };
+        if let Err(_err) = funcinfo.func.lock().unwrap().func.call_mut((t, &mut ctx)) {
+            #[cfg(feature = "debug")]
+            println!("function {} failed: {:?}", funcinfo.id, _err);
+            Self::send_rpc_respose(ipc, call_id, RpcCallResult::ServerInternalError, &[])?;
+            return Ok(true);
+        }
 
-    if let Err(_err) = (funcinfo.func)(&mut ctx) {
+        // reply with reply message
+
         #[cfg(feature = "debug")]
-        println!("function {} failed: {:?}", funcinfo.id, _err);
-        send_rpc_respose(&mut ipc, call_id, RpcCallResult::ServerInternalError, &[])?;
-        return Ok(true);
+        println!(
+            "  <-- sending reply for function {} with {} bytes",
+            funcinfo.id,
+            ctx.reply.data.len()
+        );
+
+        Self::send_rpc_respose(ipc, call_id, RpcCallResult::Ok, &ctx.reply.data)?;
+        Ok(true)
     }
 
-    // reply with reply message
+    fn send_rpc_respose(
+        ipc_channel: &mut IpcChannel,
+        call_id: u32,
+        result: RpcCallResult,
+        data: &[u8],
+    ) -> Result<(), Error> {
+        // typedef struct
+        // {
+        //     u32 magic; // RPC_RESPONSE_MAGIC
+        //     id_t call_id;
+        //     rpc_result_code_t result_code;
+        //     size_t data_size;
+        //     char data[];
+        // } rpc_response_t;
 
-    #[cfg(feature = "debug")]
-    println!(
-        "  <-- sending reply for function {} with {} bytes",
-        funcinfo.id,
-        ctx.reply.data.len()
-    );
+        let mut msg = Vec::new();
+        msg.extend_from_slice(&RPC_RESPONSE_MAGIC.to_be_bytes());
+        msg.extend_from_slice(&call_id.to_le_bytes());
+        msg.extend_from_slice(&(result as u64).to_le_bytes());
+        msg.extend_from_slice(&(data.len() as usize).to_le_bytes());
+        msg.extend_from_slice(data);
 
-    send_rpc_respose(ipc, call_id, RpcCallResult::Ok, &ctx.reply.data)?;
-    Ok(true)
-}
-
-fn send_rpc_respose(
-    ipc_channel: &mut IpcChannel,
-    call_id: u32,
-    result: RpcCallResult,
-    data: &[u8],
-) -> Result<(), Error> {
-    // typedef struct
-    // {
-    //     u32 magic; // RPC_RESPONSE_MAGIC
-    //     id_t call_id;
-    //     rpc_result_code_t result_code;
-    //     size_t data_size;
-    //     char data[];
-    // } rpc_response_t;
-
-    let mut msg = Vec::new();
-    msg.extend_from_slice(&RPC_RESPONSE_MAGIC.to_le_bytes());
-    msg.extend_from_slice(&call_id.to_le_bytes());
-    msg.extend_from_slice(&(result as u32).to_le_bytes());
-    msg.extend_from_slice(&(data.len() as usize).to_le_bytes());
-    msg.extend_from_slice(data);
-
-    ipc_channel.send_message(&msg)
+        ipc_channel.send_message(&msg)
+    }
 }

@@ -13,6 +13,14 @@ pub struct MosIpcChannel {
     file: std::fs::File,
 }
 
+impl Clone for MosIpcChannel {
+    fn clone(&self) -> Self {
+        MosIpcChannel {
+            file: self.file.try_clone().unwrap(),
+        }
+    }
+}
+
 impl MosIpcChannel {
     pub fn connect(str: &str) -> Result<MosIpcChannel, Error> {
         let mut ipc_path = std::path::PathBuf::from("/sys/ipc/");

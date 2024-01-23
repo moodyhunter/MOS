@@ -12,6 +12,7 @@ pub struct RpcStubCall<'a> {
     channel: &'a mut IpcChannel,
 }
 
+#[derive(Clone)]
 pub struct RpcStub {
     channel: IpcChannel,
     call_id_seq: u32,
@@ -35,6 +36,32 @@ impl RpcStub {
             channel: &mut self.channel,
         }
     }
+
+    #[cfg(feature = "protobuf")]
+    pub fn create_pb_call<Req: protobuf::Message, Resp: protobuf::Message>(
+        self: &mut Self,
+        func_id: u32,
+        msg: &Req,
+    ) -> Result<Resp, std::io::Error> {
+        let mut call = self.create_call(func_id);
+
+        call.add_arg(RpcCallArgStructs::Buffer(msg.write_to_bytes()?));
+
+        match call.exec()? {
+            (RpcCallResult::Ok, Some(respbuf)) => {
+                let mut from_bytes = protobuf::CodedInputStream::from_bytes(&respbuf);
+                Ok(Resp::parse_from(&mut from_bytes)?)
+            }
+            (RpcCallResult::Ok, None) => Err(std::io::Error::new(
+                ErrorKind::Other,
+                "call failed: no response",
+            )),
+            (_, _) => Err(std::io::Error::new(
+                ErrorKind::Other,
+                "call failed: unknown error",
+            )),
+        }
+    }
 }
 
 impl RpcStubCall<'_> {
@@ -43,7 +70,7 @@ impl RpcStubCall<'_> {
         self
     }
 
-    pub fn exec(&mut self) -> Result<RpcCallResult, Error> {
+    pub fn exec(&mut self) -> Result<(RpcCallResult, Option<Vec<u8>>), Error> {
         // typedef struct
         // {
         //     u32 magic; // RPC_ARG_MAGIC
@@ -63,13 +90,13 @@ impl RpcStubCall<'_> {
         // } rpc_request_t;
 
         let mut buf = Vec::new();
-        buf.extend_from_slice(&RPC_REQUEST_MAGIC.to_le_bytes());
+        buf.extend_from_slice(&RPC_REQUEST_MAGIC.to_be_bytes());
         buf.extend_from_slice(&self.call_id.to_le_bytes());
         buf.extend_from_slice(&self.function_id.to_le_bytes());
         buf.extend_from_slice(&(self.args.len() as u32).to_le_bytes());
 
         for arg in &self.args {
-            buf.extend_from_slice(&RPC_ARG_MAGIC.to_le_bytes());
+            buf.extend_from_slice(&RPC_ARG_MAGIC.to_be_bytes());
 
             macro_rules! marshal {
                 ($typeenum:ident, $val:ident) => {
@@ -150,7 +177,7 @@ impl RpcStubCall<'_> {
         let mut result = result.as_slice();
         let mut magic = [0u8; 4];
         result.read_exact(&mut magic)?;
-        let magic = u32::from_le_bytes(magic);
+        let magic = u32::from_be_bytes(magic);
         if magic != RPC_RESPONSE_MAGIC {
             return Err(Error::new(
                 ErrorKind::InvalidData,
@@ -179,15 +206,18 @@ impl RpcStubCall<'_> {
             _ => return Err(Error::new(ErrorKind::InvalidData, "invalid result code")),
         };
 
-        let mut data_size = [0u8; 4];
+        let mut data_size = [0u8; 8]; // u64
         result.read_exact(&mut data_size)?;
-        let data_size = u32::from_le_bytes(data_size);
+        let data_size = u64::from_le_bytes(data_size);
+        if data_size == 0 {
+            return Ok((result_code, None));
+        }
 
         let mut data = vec![0u8; data_size as usize];
         result.read_exact(&mut data)?;
 
         self.args.clear();
 
-        Ok(result_code)
+        Ok((result_code, Some(data)))
     }
 }

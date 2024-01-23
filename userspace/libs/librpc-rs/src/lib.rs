@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#![feature(fn_traits)]
 
 // ! IPC Server and Channels
 pub(crate) mod ipc_impl;
@@ -20,11 +21,11 @@ pub use impl_server::{RpcCallContext, RpcCallFuncInfo, RpcCallFunction, RpcServe
 
 #[macro_export]
 macro_rules! rpc_server_function {
-    ($id:tt, $func:tt,  $($argtypes:tt),*) => {
-        RpcCallFuncInfo {
+    ($id:tt, $func:expr,  $($argtypes:tt),*) => {
+        librpc_rs::RpcCallFuncInfo {
             id: $id,
-            func: $func,
-            argtypes: &[$(RpcCallArgType::$argtypes),*],
+            func: Arc::new(Mutex::new(librpc_rs::RpcCallFunction { func: Box::new($func) })),
+            argtypes: [$(librpc_rs::RpcCallArgType::$argtypes),*].to_vec(),
         }
     };
 }
@@ -54,7 +55,7 @@ macro_rules! define_rpc_server {
 #[macro_export]
 macro_rules! rpc_server_stub_function {
     ($func_id:expr, $name:ident, $(($argname:ident, $argtype:ty, $argtypenum:ident $(, $argtypetofn:ident)?)),*) => {
-        pub fn $name(&mut self, $($argname: $argtype),*) -> Result<RpcCallResult, Error> {
+        pub fn $name(&mut self, $($argname: $argtype),*) -> Result<(librpc_rs::RpcCallResult, Option<Vec<u8>>), std::io::Error> {
             self.rpc_server
                 .create_call($func_id)
                 $(.add_arg(RpcCallArgStructs::$argtypenum($argname $(.$argtypetofn())?)))*

@@ -8,6 +8,14 @@ pub struct UnixIpcChannel {
     stream: UnixStream,
 }
 
+impl Clone for UnixIpcChannel {
+    fn clone(&self) -> Self {
+        UnixIpcChannel {
+            stream: self.stream.try_clone().unwrap(),
+        }
+    }
+}
+
 pub struct UnixIpcServer {
     listener: UnixListener,
 }
