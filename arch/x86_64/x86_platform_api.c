@@ -139,7 +139,6 @@ void platform_dump_thread_kernel_stack(const thread_t *thread)
 
 noreturn void platform_return_to_userspace(platform_regs_t *regs)
 {
-    x86_xrstor_current();
     x86_interrupt_return_impl(regs);
 }
 
@@ -164,7 +163,7 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
         case X86_SYSCALL_SET_FS_BASE:
         {
             current_thread->platform_options.fs_base = arg1;
-            x86_update_current_fsbase();
+            x86_set_fsbase(current_thread);
             return 0;
         }
         case X86_SYSCALL_SET_GS_BASE:

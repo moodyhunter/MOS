@@ -2,4 +2,6 @@
 
 #pragma once
 
-void x86_update_current_fsbase();
+#include "mos/platform/platform.h"
+
+void x86_set_fsbase(thread_t *thread);

@@ -98,8 +98,6 @@ static bool schedule_to_thread(uintn key, void *value, void *data)
         MOS_UNUSED(old);
     }
 
-    cpu->thread = thread;
-
     platform_switch_to_thread(&cpu->scheduler_stack, thread, switch_flags);
     return true;
 }

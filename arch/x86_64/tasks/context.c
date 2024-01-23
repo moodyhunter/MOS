@@ -114,17 +114,21 @@ static void x86_clone_forked_context(const thread_t *from, thread_t *to)
 }
 __alias(x86_clone_forked_context, platform_context_clone);
 
-static void x86_switch_to_thread(ptr_t *scheduler_stack, const thread_t *to, switch_flags_t switch_flags)
+static void x86_switch_to_thread(ptr_t *scheduler_stack, thread_t *new_thread, switch_flags_t switch_flags)
 {
+    thread_t *const old_thread = current_thread;
     const switch_func_t switch_func = switch_flags & SWITCH_TO_NEW_USER_THREAD   ? x86_start_user_thread :
                                       switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? x86_start_kernel_thread :
                                                                                    x86_normal_switch_impl;
 
-    x86_xsave_current();
-    x86_update_current_fsbase();
-    per_cpu(x86_cpu_descriptor)->tss.rsp0 = to->k_stack.top;
-    x86_context_switch_impl(scheduler_stack, to->k_stack.head, switch_func);
-    x86_xrstor_current();
+    x86_xsave_thread(old_thread);
+    x86_xrstor_thread(new_thread);
+    x86_set_fsbase(new_thread);
+
+    __atomic_store_n(&current_cpu->thread, new_thread, __ATOMIC_SEQ_CST);
+    __atomic_store_n(&per_cpu(x86_cpu_descriptor)->tss.rsp0, new_thread->k_stack.top, __ATOMIC_SEQ_CST);
+
+    x86_context_switch_impl(scheduler_stack, new_thread->k_stack.head, switch_func);
 }
 __alias(x86_switch_to_thread, platform_switch_to_thread);
 
@@ -134,11 +138,11 @@ static void x86_switch_to_scheduler(ptr_t *old_stack, ptr_t scheduler_stack)
 }
 __alias(x86_switch_to_scheduler, platform_switch_to_scheduler);
 
-void x86_update_current_fsbase()
+void x86_set_fsbase(thread_t *thread)
 {
     MOS_ASSERT(cpu_has_feature(CPU_FEATURE_FSGSBASE));
 
-    const ptr_t fs_base = current_thread->platform_options.fs_base;
+    const ptr_t fs_base = thread->platform_options.fs_base;
 
     if (x86_cpu_get_cr4() & (1 << 16))
     {
