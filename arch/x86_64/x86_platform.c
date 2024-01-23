@@ -238,9 +238,6 @@ void platform_startup_mm()
 
     pmm_reserve_frames(X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, BIOS_MEMREGION_SIZE / MOS_PAGE_SIZE);
     pmm_reserve_frames(X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, EBDA_MEMREGION_SIZE / MOS_PAGE_SIZE);
-
-    if (platform_info->initrd_npages)
-        pmm_reserve_frames(platform_info->initrd_pfn, platform_info->initrd_npages);
 }
 
 void platform_startup_late()

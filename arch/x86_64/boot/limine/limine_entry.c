@@ -58,7 +58,8 @@ static void add_to_memmap(pfn_t start, size_t npages, bool reserved, u32 type, c
     entry->type = type;
     pr_dinfo2(x86_startup, "%25s: " PFNADDR_RANGE " (%zu pages)", typestr, PFNADDR(entry->pfn_start, entry->pfn_start + entry->nframes), entry->nframes);
 
-    if (!entry->reserved)
+    if (entry->type == LIMINE_MEMMAP_USABLE || entry->type == LIMINE_MEMMAP_KERNEL_AND_MODULES || entry->type == LIMINE_MEMMAP_FRAMEBUFFER ||
+        entry->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE || entry->type == LIMINE_MEMMAP_ACPI_RECLAIMABLE || entry->type == LIMINE_MEMMAP_ACPI_NVS)
         platform_info->max_pfn = MAX(platform_info->max_pfn, entry->pfn_start + entry->nframes);
 }
 
