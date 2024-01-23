@@ -468,7 +468,13 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         case VMFAULT_MAP_BACKING_PAGE:
         {
         map_backing_page:
-            MOS_ASSERT(info->backing_page);
+            if (!info->backing_page)
+            {
+                unhandled_reason = "out of memory";
+                mm_unlock_ctx_pair(mm, NULL);
+                goto unhandled_fault;
+            }
+
             pr_dcont(cow, " (backing page: " PFN_FMT ")", phyframe_pfn(info->backing_page));
             mm_replace_page_locked(fault_vmap->mmctx, fault_addr, phyframe_pfn(info->backing_page), map_flags);
             fault_result = VMFAULT_COMPLETE;
