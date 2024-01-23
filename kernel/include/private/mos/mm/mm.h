@@ -30,7 +30,7 @@ typedef enum
 typedef struct
 {
     bool is_present, is_write, is_user, is_exec;
-    ptr_t instruction;              ///< the instruction pointer which caused the fault
+    ptr_t ip;                       ///< the instruction pointer which caused the fault
     platform_regs_t *regs;          ///< the registers of the moment that caused the fault
     phyframe_t *faulting_page;      ///< the frame that contains the copy-on-write data (if any)
     const phyframe_t *backing_page; ///< the frame that contains the data for this page, the on_fault handler should set this

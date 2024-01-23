@@ -176,7 +176,7 @@ static void x86_handle_exception(platform_regs_t *regs)
                 .is_write = (regs->error_code & 0x2) != 0,
                 .is_user = (regs->error_code & 0x4) != 0,
                 .is_exec = (regs->error_code & 0x10) != 0,
-                .instruction = regs->ip,
+                .ip = regs->ip,
                 .regs = regs,
             };
 

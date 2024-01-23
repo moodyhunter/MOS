@@ -21,6 +21,7 @@
 
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
+#include <mos/mos_global.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
@@ -292,7 +293,7 @@ vmfault_result_t mm_resolve_cow_fault(vmap_t *vmap, ptr_t fault_addr, pagefault_
     return VMFAULT_COMPLETE;
 }
 
-static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, pagefault_t *info, const char *unhandled_reason)
+static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, vmap_t *ip_vmap, pagefault_t *info, const char *unhandled_reason)
 {
     pr_emerg("unhandled page fault: %s", unhandled_reason);
 #if MOS_CONFIG(MOS_MM_DETAILED_UNHANDLED_FAULT)
@@ -302,7 +303,14 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, pagefaul
              info->is_present ? "present" : "non-present",                               //
              fault_addr                                                                  //
     );
-    pr_emerg("  instruction: " PTR_FMT, info->instruction);
+
+    pr_emerg("  instruction: " PTR_FMT, info->ip);
+    if (ip_vmap)
+    {
+        pr_emerg("    vmap: %pvm", (void *) ip_vmap);
+        pr_emerg("    offset: 0x%zx", info->ip - ip_vmap->vaddr + (ip_vmap->io ? ip_vmap->io_offset : 0));
+    }
+
     pr_emerg("    thread: %pt", (void *) current_thread);
     pr_emerg("    process: %pp", current_thread ? (void *) current_process : NULL);
 
@@ -319,11 +327,14 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, pagefaul
     if (info->is_user && fault_addr > MOS_KERNEL_START_VADDR)
         pr_emerg("    kernel address dereference");
 
-    if (info->instruction > MOS_KERNEL_START_VADDR)
-        pr_emerg("    in kernel function %ps", (void *) info->instruction);
+    if (info->ip > MOS_KERNEL_START_VADDR)
+        pr_emerg("    in kernel function %ps", (void *) info->ip);
 
     if (faulting_vmap)
+    {
         pr_emerg("    in vmap: %pvm", (void *) faulting_vmap);
+        pr_emerg("       offset: 0x%zx", fault_addr - faulting_vmap->vaddr + (faulting_vmap->io ? faulting_vmap->io_offset : 0));
+    }
 
 #if MOS_CONFIG(MOS_MM_DETAILED_MMAPS_UNHANDLED_FAULT)
     if (current_thread)
@@ -344,6 +355,9 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, pagefaul
     if (faulting_vmap)
         spinlock_release(&faulting_vmap->lock);
 
+    if (ip_vmap)
+        spinlock_release(&ip_vmap->lock);
+
     if (current_thread)
     {
         signal_send_to_thread(current_thread, SIGSEGV);
@@ -360,27 +374,13 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     thread_t *current = current_thread;
     const char *unhandled_reason = NULL;
 
-    if (MOS_DEBUG_FEATURE(cow))
-    {
-        if (current)
-        {
-            pr_emph("%s page fault: thread %pt, process %pp at " PTR_FMT ", instruction " PTR_FMT, //
-                    info->is_user ? "user" : "kernel",                                             //
-                    (void *) current,                                                              //
-                    (void *) current->owner,                                                       //
-                    fault_addr,                                                                    //
-                    info->instruction                                                              //
-            );
-        }
-        else
-        {
-            pr_emph("%s page fault: kernel thread at " PTR_FMT ", instruction " PTR_FMT, //
-                    info->is_user ? "user" : "kernel",                                   //
-                    fault_addr,                                                          //
-                    info->instruction                                                    //
-            );
-        }
-    }
+    pr_demph(cow, "%s #PF: %pt, %pp, IP=" PTR_VLFMT ", ADDR=" PTR_VLFMT, //
+             info->is_user ? "user" : "kernel",                          //
+             current ? (void *) current : NULL,                          //
+             current ? (void *) current->owner : NULL,                   //
+             info->ip,                                                   //
+             fault_addr                                                  //
+    );
 
     if (info->is_write && info->is_exec)
         mos_panic("Cannot write and execute at the same time");
@@ -390,12 +390,15 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
 
     size_t offset;
     vmap_t *fault_vmap = vmap_obtain(mm, fault_addr, &offset);
+    vmap_t *ip_vmap = NULL;
     if (!fault_vmap)
     {
+        ip_vmap = vmap_obtain(mm, info->ip, NULL);
         unhandled_reason = "page fault in unmapped area";
         mm_unlock_ctx_pair(mm, NULL);
         goto unhandled_fault;
     }
+    ip_vmap = IN_RANGE(info->ip, fault_vmap->vaddr, fault_vmap->vaddr + fault_vmap->npages * MOS_PAGE_SIZE) ? fault_vmap : vmap_obtain(mm, info->ip, NULL);
 
     MOS_ASSERT_X(fault_vmap->on_fault, "vmap %pvm has no fault handler", (void *) fault_vmap);
     const vm_flags page_flags = mm_do_get_flags(fault_vmap->mmctx->pgd, fault_addr);
@@ -413,6 +416,8 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         mm_do_flag(fault_vmap->mmctx->pgd, fault_addr, 1, page_flags | VM_EXEC);
         mm_unlock_ctx_pair(mm, NULL);
         spinlock_release(&fault_vmap->lock);
+        if (ip_vmap)
+            spinlock_release(&ip_vmap->lock);
         return;
     }
 
@@ -434,9 +439,9 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         [VMFAULT_CANNOT_HANDLE] = "CANNOT_HANDLE",
     };
 
-    pr_dinfo2(cow, "handler %ps", (void *) (ptr_t) fault_vmap->on_fault);
+    pr_dcont(cow, ", handler %ps", (void *) (ptr_t) fault_vmap->on_fault);
     vmfault_result_t fault_result = fault_vmap->on_fault(fault_vmap, fault_addr, info);
-    pr_dcont(cow, " -> %s (%d)", fault_result_names[fault_result], fault_result);
+    pr_dcont(cow, " -> %s", fault_result_names[fault_result]);
 
     vm_flags map_flags = fault_vmap->vmflags;
     switch (fault_result)
@@ -471,6 +476,8 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     }
 
     MOS_ASSERT_X(fault_result == VMFAULT_COMPLETE || fault_result == VMFAULT_CANNOT_HANDLE, "invalid fault result %d", fault_result);
+    if (ip_vmap)
+        spinlock_release(&ip_vmap->lock);
     spinlock_release(&fault_vmap->lock);
     mm_unlock_ctx_pair(mm, NULL);
     ipi_send_all(IPI_TYPE_INVALIDATE_TLB);
@@ -480,7 +487,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
 // if we get here, the fault was not handled
 unhandled_fault:
     MOS_ASSERT_X(unhandled_reason, "unhandled fault with no reason");
-    invalid_page_fault(fault_addr, fault_vmap, info, unhandled_reason);
+    invalid_page_fault(fault_addr, fault_vmap, ip_vmap, info, unhandled_reason);
 }
 
 // ! sysfs support
