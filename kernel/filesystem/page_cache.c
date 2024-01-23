@@ -21,7 +21,7 @@ phyframe_t *pagecache_get_page_for_read(inode_cache_t *cache, off_t pgoff)
     if (IS_ERR(page))
         return page;
     mmstat_inc1(MEM_PAGECACHE);
-    hashmap_put(&cache->pages, pgoff, page);
+    MOS_ASSERT(hashmap_put(&cache->pages, pgoff, page) == NULL);
     return page;
 }
 
