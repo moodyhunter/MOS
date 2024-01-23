@@ -17,15 +17,15 @@ pub(crate) const RPC_ARG_MAGIC: u32 = make_4cc!('R', 'P', 'C', 'A');
 
 // ! RPC Servers
 pub(crate) mod impl_server;
-pub use impl_server::{RpcCallContext, RpcCallFuncInfo, RpcCallFunction, RpcServer};
+pub use impl_server::{RpcCallContext, RpcCallFuncInfo, RpcServer};
 
 #[macro_export]
 macro_rules! rpc_server_function {
     ($id:tt, $func:expr,  $($argtypes:tt),*) => {
         librpc_rs::RpcCallFuncInfo {
             id: $id,
-            func: Arc::new(Mutex::new(librpc_rs::RpcCallFunction { func: Box::new($func) })),
-            argtypes: [$(librpc_rs::RpcCallArgType::$argtypes),*].to_vec(),
+            func: $func,
+            argtypes: &[$(librpc_rs::RpcCallArgType::$argtypes),*],
         }
     };
 }

@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::{
-    io::Error,
-    sync::{Arc, Mutex},
-};
+use std::io::Error;
 
 use librpc_rs::{
     define_rpc_server, rpc_server_function, rpc_server_stub_function, IpcChannel, IpcServer,
-    RpcCallArgStructs, RpcCallContext, RpcServer, RpcStub,
+    RpcCallArgStructs, RpcCallContext, RpcCallFuncInfo, RpcServer, RpcStub,
 };
 
 #[derive(Clone)]
@@ -48,6 +45,12 @@ impl MyServer {
     rpc_server_stub_function!(2, something, (val, i32, Int32));
 }
 
+const FUNCTIONS: &[RpcCallFuncInfo<MyServerImpl>] = &[
+    rpc_server_function!(0, MyServerImpl::on_echo, String, String, String, Int64),
+    rpc_server_function!(1, MyServerImpl::on_print, String),
+    rpc_server_function!(2, MyServerImpl::on_something, Int32),
+];
+
 fn main() -> Result<(), Error> {
     if let Some(arg) = std::env::args().nth(1) {
         if arg == "ipc-server" {
@@ -82,13 +85,7 @@ fn main() -> Result<(), Error> {
             println!("Received message: {:}", msg);
             return Ok(());
         } else if arg == "rpc-server" {
-            let functions = &[
-                rpc_server_function!(0, MyServerImpl::on_echo, String, String, String, Int64),
-                rpc_server_function!(1, MyServerImpl::on_print, String),
-                rpc_server_function!(2, MyServerImpl::on_something, Int32),
-            ];
-
-            let mut rpc_server = RpcServer::create("librpc-rs-demo", functions)?;
+            let mut rpc_server = RpcServer::create("librpc-rs-demo", FUNCTIONS)?;
 
             let mut xserver = MyServerImpl {};
             match rpc_server.run(&mut xserver) {

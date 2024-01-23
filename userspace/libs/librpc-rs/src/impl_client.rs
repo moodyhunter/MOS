@@ -71,24 +71,6 @@ impl RpcStubCall<'_> {
     }
 
     pub fn exec(&mut self) -> Result<(RpcCallResult, Option<Vec<u8>>), Error> {
-        // typedef struct
-        // {
-        //     u32 magic; // RPC_ARG_MAGIC
-        //     rpc_argtype_t argtype;
-        //     u32 size;
-        //     char data[];
-        // } rpc_arg_t;
-
-        // typedef struct
-        // {
-        //     u32 magic; // RPC_REQUEST_MAGIC
-        //     id_t call_id;
-
-        //     u32 function_id;
-        //     u32 args_count;
-        //     char args_array[]; // rpc_arg_t[]
-        // } rpc_request_t;
-
         let mut buf = Vec::new();
         buf.extend_from_slice(&RPC_REQUEST_MAGIC.to_be_bytes());
         buf.extend_from_slice(&self.call_id.to_le_bytes());
@@ -163,16 +145,6 @@ impl RpcStubCall<'_> {
         self.channel.send_message(&buf)?;
 
         let result = self.channel.recv_message()?;
-
-        // typedef struct
-        // {
-        //     u32 magic; // RPC_RESPONSE_MAGIC
-        //     id_t call_id;
-
-        //     rpc_result_code_t result_code;
-        //     size_t data_size;
-        //     char data[];
-        // } rpc_response_t;
 
         let mut result = result.as_slice();
         let mut magic = [0u8; 4];
