@@ -5,6 +5,14 @@ version = "0.1.0"
 
 [dependencies]
 clap = {version = "4.4.7", features = ["derive"]}
-libc = {git = "https://github.com/moodyhunter/mos-rust-libc.git"}
+libc = "0.2.151"
+librpc-rs = {path = "../../libs/librpc-rs", features = ["protobuf"]}
 log = "0.4.17"
+protobuf = "3.3.0"
 virtio-drivers = "0.7.0"
+
+[patch.crates-io]
+libc = {git = "https://github.com/moodyhunter/mos-rust-libc.git"}
+
+[build-dependencies]
+protobuf-codegen = "3.3.0"

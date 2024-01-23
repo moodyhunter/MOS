@@ -74,7 +74,7 @@ unsafe impl Hal for MOSHal {
         if unsafe { !libdma_share_buffer(buffer.as_ptr() as *mut u8, buffer.len(), &mut phyaddr) } {
             panic!("Failed to share buffer");
         }
-        phyaddr.try_into().unwrap()
+        phyaddr
     }
 
     unsafe fn unshare(

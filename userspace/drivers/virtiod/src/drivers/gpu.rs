@@ -1,10 +1,10 @@
-use std::thread::sleep;
+use std::{io::Error, thread::sleep};
 
 use virtio_drivers::{device::gpu::VirtIOGpu, transport::Transport};
 
 use crate::hal::MOSHal;
 
-pub fn start_gpu_driver<T: Transport>(transport: T) {
+pub fn run_gpu<T: Transport>(transport: T) -> Result<(), Error> {
     let mut gpu = VirtIOGpu::<MOSHal, T>::new(transport).expect("failed to create gpu driver");
     let (width, height) = gpu.resolution().expect("failed to get resolution");
     let width = width as usize;
@@ -27,4 +27,5 @@ pub fn start_gpu_driver<T: Transport>(transport: T) {
     println!("virtio-gpu show graphics...");
     sleep(std::time::Duration::from_secs(10));
     println!("virtio-gpu test finished");
+    Ok(())
 }

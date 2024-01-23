@@ -1,14 +1,19 @@
-use virtio_drivers::transport::{DeviceType, Transport};
+use std::io::Error;
 
-use self::{block::start_block_driver, gpu::start_gpu_driver};
+use virtio_drivers::transport::{
+    pci::{bus::DeviceFunction, PciTransport},
+    DeviceType, Transport,
+};
+
+use self::{block::run_blockdev, gpu::run_gpu};
 
 mod block;
 mod gpu;
 
-pub(crate) fn start_device(transport: impl Transport) {
+pub(crate) fn start_device(transport: PciTransport, function: DeviceFunction) -> Result<(), Error> {
     match transport.device_type() {
-        DeviceType::Block => start_block_driver(transport),
-        DeviceType::GPU => start_gpu_driver(transport),
-        t => println!("Unrecognized virtio device: {:?}", t),
+        DeviceType::Block => run_blockdev(transport, function),
+        DeviceType::GPU => run_gpu(transport),
+        t => unimplemented!("Unrecognized virtio device: {:?}", t),
     }
 }
