@@ -9,6 +9,7 @@
 #include <librpc/rpc_client.h>
 #include <librpc/rpc_server.h>
 #include <memory>
+#include <mos/mos_global.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
 #include <system_error>
@@ -18,14 +19,21 @@ RPC_DECL_SERVER_PROTOTYPES(ramdisk_server, BLOCKDEV_SERVER_RPC_X);
 
 static std::unique_ptr<RAMDisk> rd = nullptr;
 
-static int ramdisk_server_read_block(rpc_server_t *server, mos_rpc_blockdev_read_request *req, mos_rpc_blockdev_read_response *resp, void *data)
+static rpc_result_code_t ramdisk_server_read_block(rpc_server_t *server, mos_rpc_blockdev_read_request *req, mos_rpc_blockdev_read_response *resp, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(data);
 
-    const size_t size = req->n_blocks * rd->block_size();
-    resp->data = (pb_bytes_array_t *) malloc(PB_BYTES_ARRAY_T_ALLOCSIZE(size));
-    rd->read_block(req->n_boffset, req->n_blocks, resp->data->bytes);
+    if (req->n_boffset + req->n_blocks > rd->nblocks())
+    {
+        resp->result.success = false;
+        resp->result.error = strdup("Out of bounds");
+        return RPC_RESULT_OK;
+    }
+
+    resp->data = (pb_bytes_array_t *) malloc(PB_BYTES_ARRAY_T_ALLOCSIZE(req->n_blocks * rd->block_size()));
+    const auto read = rd->read_block(req->n_boffset, req->n_blocks, resp->data->bytes);
+    resp->data->size = read * rd->block_size();
 
     resp->result.success = true;
     resp->result.error = nullptr;
@@ -33,7 +41,7 @@ static int ramdisk_server_read_block(rpc_server_t *server, mos_rpc_blockdev_read
     return RPC_RESULT_OK;
 }
 
-static int ramdisk_server_write_block(rpc_server_t *server, mos_rpc_blockdev_write_request *req, mos_rpc_blockdev_write_response *resp, void *data)
+static rpc_result_code_t ramdisk_server_write_block(rpc_server_t *server, mos_rpc_blockdev_write_request *req, mos_rpc_blockdev_write_response *resp, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(data);
@@ -140,7 +148,7 @@ int main(int argc, char **argv)
         }
     }
 
-    std::string rpc_server_name = "ramdisk." + blockdev_name;
+    const std::string rpc_server_name = "ramdisk." + blockdev_name;
 
     rpc_server_t *const server = rpc_server_create(rpc_server_name.c_str(), nullptr);
     if (!server)
@@ -148,6 +156,8 @@ int main(int argc, char **argv)
         std::cerr << "Failed to create ramdisk server: " << std::generic_category().message(errno) << std::endl;
         return 1;
     }
+
+    rpc_server_register_functions(server, ramdisk_server_functions, MOS_ARRAY_SIZE(ramdisk_server_functions));
 
     rd = std::make_unique<RAMDisk>(size);
 
