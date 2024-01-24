@@ -96,7 +96,9 @@ impl<'a> RpcCallContext<'a> {
         }
 
         let argtype = u32::from_le_bytes(do_try_into!(this_arg, 4, 8));
-        let argtype = RpcCallArgType::from_u32(argtype).ok_or(new_ioerr!("invalid argtype"))?;
+        let argtype = RpcCallArgType::from_u32(argtype).ok_or(new_ioerr!(
+            "invalid argtype".to_owned() + argtype.to_string().as_str()
+        ))?;
         if self.argtypes[index as usize] != argtype {
             return Err(new_ioerr!("invalid argtype in rpc arg"));
         }
@@ -280,14 +282,18 @@ impl<'a, T: Send + Sync + Clone> RpcServer<'a, T> {
             return Ok(());
         }
 
-        #[cfg(feature = "debug")]
-        println!(
-            "  <-- sending reply for function {} with {} bytes",
-            funcinfo.id,
-            ctx.reply.data.len()
-        );
+        if let Some(reply) = ctx.reply {
+            #[cfg(feature = "debug")]
+            println!(
+                "  <-- sending reply for function {} with {} bytes",
+                funcinfo.id,
+                reply.0.len()
+            );
+            Self::send_rpc_respose(ipc, call_id, RpcCallResult::Ok, Some(reply))?;
+        } else {
+            Self::send_rpc_respose(ipc, call_id, RpcCallResult::Ok, None)?; // no reply
+        }
 
-        Self::send_rpc_respose(ipc, call_id, RpcCallResult::Ok, ctx.reply)?;
         Ok(())
     }
 
@@ -300,7 +306,7 @@ impl<'a, T: Send + Sync + Clone> RpcServer<'a, T> {
         let mut msg = Vec::new();
         msg.extend_from_slice(&RPC_RESPONSE_MAGIC.to_be_bytes());
         msg.extend_from_slice(&call_id.to_le_bytes());
-        msg.extend_from_slice(&(result as u64).to_le_bytes());
+        msg.extend_from_slice(&(result as u32).to_le_bytes());
         if let Some(data) = data {
             msg.extend_from_slice(&(data.0.len() as usize).to_le_bytes());
             msg.extend_from_slice(&data.0);
