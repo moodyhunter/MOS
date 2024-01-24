@@ -7,9 +7,7 @@
 
 #define USERFS_SERVER_RPC_NAME "mos.userfs-manager"
 
-#define USERFS_MANAGER_X(ARGS, PB, xarg)                                                                                                                                 \
-    PB(xarg, 0, register, REGISTER, mos_rpc_fs_register_request, mos_rpc_fs_register_response)                                                                           \
-    ARGS(xarg, 1, unregister, UNREGISTER, "b", ARG(void *, pb_mos_rpc_fs_unregister_request))
+#define USERFS_MANAGER_X(ARGS, PB, xarg) PB(xarg, 0, register, REGISTER, mos_rpc_fs_register_request, mos_rpc_fs_register_response)
 
 RPC_DEFINE_ENUMS(userfs_manager, USERFS_MANAGER, USERFS_MANAGER_X)
 

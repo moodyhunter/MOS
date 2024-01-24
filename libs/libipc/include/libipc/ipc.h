@@ -6,9 +6,9 @@
 
 #ifdef __MOS_KERNEL__
 typedef struct _io io_t;
-#define ipcfd_t io_t *
+typedef io_t *ipcfd_t;
 #else
-#define ipcfd_t fd_t
+typedef fd_t ipcfd_t;
 #endif
 
 /**

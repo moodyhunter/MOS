@@ -8,7 +8,8 @@
 
 #define BLOCKDEV_MANAGER_RPC_X(ARGS, PB, arg)                                                                                                                            \
     PB(arg, 1, register_blockdev, REGISTER_BLOCKDEV, mos_rpc_blockdev_register_dev_request, mos_rpc_blockdev_register_dev_response)                                      \
-    PB(arg, 2, register_layer, REGISTER_LAYER, mos_rpc_blockdev_register_layer_request, mos_rpc_blockdev_register_layer_response)
+    PB(arg, 2, register_layer, REGISTER_LAYER, mos_rpc_blockdev_register_layer_request, mos_rpc_blockdev_register_layer_response)                                        \
+    PB(arg, 3, open_device, BLOCKDEV_OPEN, mos_rpc_blockdev_opendev_request, mos_rpc_blockdev_opendev_response)
 
 #define BLOCKDEV_SERVER_RPC_X(ARGS, PB, arg)                                                                                                                             \
     PB(arg, 1, read_block, READ_BLOCK, mos_rpc_blockdev_read_request, mos_rpc_blockdev_read_response)                                                                    \

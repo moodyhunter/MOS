@@ -35,7 +35,7 @@ struct blockdevfs_inode
 
 static blockdevfs_inode *root = NULL;
 
-static int blockdevfs_mount(rpc_server_t *server, mos_rpc_fs_mount_request *req, mos_rpc_fs_mount_response *resp, void *data)
+static rpc_result_code_t blockdevfs_mount(rpc_server_t *server, mos_rpc_fs_mount_request *req, mos_rpc_fs_mount_response *resp, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(data);
@@ -50,7 +50,7 @@ static int blockdevfs_mount(rpc_server_t *server, mos_rpc_fs_mount_request *req,
     {
         resp->result.success = false;
         resp->result.error = strdup("blockdevfs: already mounted");
-        return 0;
+        return RPC_RESULT_OK;
     }
 
     root = new blockdevfs_inode();
@@ -72,10 +72,10 @@ static int blockdevfs_mount(rpc_server_t *server, mos_rpc_fs_mount_request *req,
     resp->result.success = true;
     resp->result.error = NULL;
 
-    return 0;
+    return RPC_RESULT_OK;
 }
 
-static int blockdevfs_readdir(rpc_server_t *server, mos_rpc_fs_readdir_request *req, mos_rpc_fs_readdir_response *resp, void *data)
+static rpc_result_code_t blockdevfs_readdir(rpc_server_t *server, mos_rpc_fs_readdir_request *req, mos_rpc_fs_readdir_response *resp, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(data);
@@ -84,7 +84,7 @@ static int blockdevfs_readdir(rpc_server_t *server, mos_rpc_fs_readdir_request *
     {
         resp->result.success = false;
         resp->result.error = strdup("blockdevfs: invalid inode");
-        return 0;
+        return RPC_RESULT_OK;
     }
 
     const size_t count = blockdev_list.size();
@@ -102,10 +102,10 @@ static int blockdevfs_readdir(rpc_server_t *server, mos_rpc_fs_readdir_request *
 
     resp->result.success = true;
     resp->result.error = NULL;
-    return 0;
+    return RPC_RESULT_OK;
 }
 
-static int blockdevfs_lookup(rpc_server_t *server, mos_rpc_fs_lookup_request *req, mos_rpc_fs_lookup_response *resp, void *data)
+static rpc_result_code_t blockdevfs_lookup(rpc_server_t *server, mos_rpc_fs_lookup_request *req, mos_rpc_fs_lookup_response *resp, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(req);
@@ -116,7 +116,7 @@ static int blockdevfs_lookup(rpc_server_t *server, mos_rpc_fs_lookup_request *re
     {
         resp->result.success = false;
         resp->result.error = strdup("blockdevfs: invalid inode");
-        return 0;
+        return RPC_RESULT_OK;
     }
 
     const auto it = std::find_if(blockdev_list.begin(), blockdev_list.end(), [&](const auto &p) { return p.second.name == req->name; });
@@ -124,7 +124,7 @@ static int blockdevfs_lookup(rpc_server_t *server, mos_rpc_fs_lookup_request *re
     {
         resp->result.success = false;
         resp->result.error = strdup("blockdevfs: no such block device");
-        return 0;
+        return RPC_RESULT_OK;
     }
 
     const auto &[id, info] = *it;
@@ -145,10 +145,10 @@ static int blockdevfs_lookup(rpc_server_t *server, mos_rpc_fs_lookup_request *re
 
     resp->result.success = true;
     resp->result.error = NULL;
-    return 0;
+    return RPC_RESULT_OK;
 }
 
-static int blockdevfs_readlink(rpc_server_t *server, mos_rpc_fs_readlink_request *req, mos_rpc_fs_readlink_response *resp, void *data)
+static rpc_result_code_t blockdevfs_readlink(rpc_server_t *server, mos_rpc_fs_readlink_request *req, mos_rpc_fs_readlink_response *resp, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(req);
@@ -157,10 +157,10 @@ static int blockdevfs_readlink(rpc_server_t *server, mos_rpc_fs_readlink_request
 
     resp->result.success = false;
     resp->result.error = strdup("blockdevfs: no symlinks expected in blockdevfs");
-    return 0;
+    return RPC_RESULT_OK;
 }
 
-static int blockdevfs_getpage(rpc_server_t *server, mos_rpc_fs_getpage_request *req, mos_rpc_fs_getpage_response *resp, void *data)
+static rpc_result_code_t blockdevfs_getpage(rpc_server_t *server, mos_rpc_fs_getpage_request *req, mos_rpc_fs_getpage_response *resp, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(req);
@@ -169,7 +169,7 @@ static int blockdevfs_getpage(rpc_server_t *server, mos_rpc_fs_getpage_request *
 
     resp->result.success = false;
     resp->result.error = strdup("blockdevfs doen't support reading or writing pages");
-    return 0;
+    return RPC_RESULT_OK;
 }
 
 static void *blockdevfs_worker(void *data)

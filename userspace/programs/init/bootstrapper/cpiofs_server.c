@@ -95,7 +95,7 @@ static cpio_inode_t *cpio_trycreate_i(const char *path)
     return cpio_inode;
 }
 
-static int cpiofs_mount(rpc_server_t *server, mos_rpc_fs_mount_request *req, mos_rpc_fs_mount_response *resp, void *data)
+static rpc_result_code_t cpiofs_mount(rpc_server_t *server, mos_rpc_fs_mount_request *req, mos_rpc_fs_mount_response *resp, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(data);
@@ -121,7 +121,7 @@ static int cpiofs_mount(rpc_server_t *server, mos_rpc_fs_mount_request *req, mos
     return RPC_RESULT_OK;
 }
 
-static int cpiofs_readdir(rpc_server_t *server, mos_rpc_fs_readdir_request *req, mos_rpc_fs_readdir_response *resp, void *data)
+static rpc_result_code_t cpiofs_readdir(rpc_server_t *server, mos_rpc_fs_readdir_request *req, mos_rpc_fs_readdir_response *resp, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(data);
@@ -205,7 +205,7 @@ static int cpiofs_readdir(rpc_server_t *server, mos_rpc_fs_readdir_request *req,
     return RPC_RESULT_OK;
 }
 
-static int cpiofs_lookup(rpc_server_t *server, mos_rpc_fs_lookup_request *req, mos_rpc_fs_lookup_response *resp, void *data)
+static rpc_result_code_t cpiofs_lookup(rpc_server_t *server, mos_rpc_fs_lookup_request *req, mos_rpc_fs_lookup_response *resp, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(data);
@@ -248,7 +248,7 @@ static int cpiofs_lookup(rpc_server_t *server, mos_rpc_fs_lookup_request *req, m
     return RPC_RESULT_OK;
 }
 
-static int cpiofs_readlink(rpc_server_t *server, mos_rpc_fs_readlink_request *req, mos_rpc_fs_readlink_response *resp, void *data)
+static rpc_result_code_t cpiofs_readlink(rpc_server_t *server, mos_rpc_fs_readlink_request *req, mos_rpc_fs_readlink_response *resp, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(data);
@@ -263,7 +263,7 @@ static int cpiofs_readlink(rpc_server_t *server, mos_rpc_fs_readlink_request *re
     return RPC_RESULT_OK;
 }
 
-static int cpiofs_getpage(rpc_server_t *server, mos_rpc_fs_getpage_request *req, mos_rpc_fs_getpage_response *resp, void *data)
+static rpc_result_code_t cpiofs_getpage(rpc_server_t *server, mos_rpc_fs_getpage_request *req, mos_rpc_fs_getpage_response *resp, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(data);

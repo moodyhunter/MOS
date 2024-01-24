@@ -6,6 +6,7 @@
 #include "librpc/rpc.h"
 
 #include <libipc/ipc.h>
+#include <mos/types.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
 #include <stdarg.h>
@@ -106,7 +107,7 @@ void rpc_call_destroy(rpc_call_t *call)
     free(call);
 }
 
-void rpc_call_arg(rpc_call_t *call, const void *data, size_t size)
+void rpc_call_arg(rpc_call_t *call, rpc_argtype_t argtype, const void *data, size_t size)
 {
     mutex_acquire(&call->mutex);
     call->request = realloc(call->request, call->size + sizeof(rpc_arg_t) + size);
@@ -114,11 +115,30 @@ void rpc_call_arg(rpc_call_t *call, const void *data, size_t size)
 
     rpc_arg_t *arg = (rpc_arg_t *) &call->request->args_array[call->size - sizeof(rpc_request_t)];
     arg->size = size;
+    arg->argtype = argtype;
     arg->magic = RPC_ARG_MAGIC;
     memcpy(arg->data, data, size);
 
     call->size += sizeof(rpc_arg_t) + size;
     mutex_release(&call->mutex);
+}
+
+#define RPC_CALL_ARG_IMPL(type, TYPE)                                                                                                                                    \
+    void rpc_call_arg_##type(rpc_call_t *call, type arg)                                                                                                                 \
+    {                                                                                                                                                                    \
+        rpc_call_arg(call, RPC_ARGTYPE_##TYPE, &arg, sizeof(arg));                                                                                                       \
+    }
+
+RPC_CALL_ARG_IMPL(u8, UINT8)
+RPC_CALL_ARG_IMPL(u32, UINT32)
+RPC_CALL_ARG_IMPL(u64, UINT64)
+RPC_CALL_ARG_IMPL(s8, INT8)
+RPC_CALL_ARG_IMPL(s32, INT32)
+RPC_CALL_ARG_IMPL(s64, INT64)
+
+void rpc_call_arg_string(rpc_call_t *call, const char *arg)
+{
+    rpc_call_arg(call, RPC_ARGTYPE_STRING, arg, strlen(arg) + 1); // also send the null terminator
 }
 
 rpc_result_code_t rpc_call_exec(rpc_call_t *call, void **result_data, size_t *data_size)
@@ -236,19 +256,19 @@ rpc_result_code_t rpc_simple_callv(rpc_server_stub_t *stub, u32 funcid, rpc_resu
             case 'c':
             {
                 u8 arg = va_arg(args, int);
-                rpc_call_arg(call, &arg, sizeof(arg));
+                rpc_call_arg(call, RPC_ARGTYPE_UINT8, &arg, sizeof(arg));
                 break;
             }
             case 'i':
             {
                 u32 arg = va_arg(args, int);
-                rpc_call_arg(call, &arg, sizeof(arg));
+                rpc_call_arg(call, RPC_ARGTYPE_UINT32, &arg, sizeof(arg));
                 break;
             }
             case 'l':
             {
                 u64 arg = va_arg(args, long long);
-                rpc_call_arg(call, &arg, sizeof(arg));
+                rpc_call_arg(call, RPC_ARGTYPE_UINT64, &arg, sizeof(arg));
                 break;
             }
             case 'f':
@@ -261,7 +281,7 @@ rpc_result_code_t rpc_simple_callv(rpc_server_stub_t *stub, u32 funcid, rpc_resu
             case 's':
             {
                 const char *arg = va_arg(args, const char *);
-                rpc_call_arg(call, arg, strlen(arg) + 1); // also send the null terminator
+                rpc_call_arg(call, RPC_ARGTYPE_STRING, arg, strlen(arg) + 1); // also send the null terminator
                 break;
             }
             default: mos_warn("rpc_call: invalid argspec '%c'", *c); return RPC_RESULT_CLIENT_INVALID_ARGSPEC;
@@ -283,7 +303,7 @@ rpc_result_code_t rpc_do_pb_call(rpc_server_stub_t *stub, u32 funcid, const pb_m
         return RPC_RESULT_CLIENT_WRITE_FAILED;
 
     rpc_call_t *call = rpc_call_create(stub, funcid);
-    rpc_call_arg(call, buf, wstream.bytes_written);
+    rpc_call_arg(call, RPC_ARGTYPE_BUFFER, buf, wstream.bytes_written);
 
     void *result = NULL;
     size_t result_size = 0;

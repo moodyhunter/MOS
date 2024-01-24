@@ -2,6 +2,7 @@
 
 #include "mos-syslog.h"
 
+#include <librpc/internal.h>
 #include <librpc/macro_magic.h>
 #include <librpc/rpc.h>
 #include <librpc/rpc_server.h>
@@ -13,42 +14,37 @@ static rpc_server_t *server;
 
 RPC_DECL_SERVER_PROTOTYPES(syslogd, SYSLOGD_RPC_X)
 
-static const char *rpc_arg_next_string(rpc_args_iter_t *args)
-{
-    size_t message_len;
-    const char *message = rpc_arg_next(args, &message_len);
-    return message;
-}
-
-static int syslogd_set_name(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
+static rpc_result_code_t syslogd_set_name(rpc_server_t *server, rpc_context_t *context, void *data)
 {
     MOS_UNUSED(server);
-    MOS_UNUSED(args);
-    MOS_UNUSED(reply);
+    const char *name = rpc_arg(context, 0, RPC_ARGTYPE_STRING, NULL);
     MOS_UNUSED(data);
+
+    if (name == NULL)
+        return RPC_RESULT_INVALID_ARGUMENT;
+
+    printf("syslogd: setting name to '%s'\n", name);
 
     return RPC_RESULT_OK;
 }
 
-static int syslogd_log(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
+static rpc_result_code_t syslogd_log(rpc_server_t *server, rpc_context_t *context, void *data)
 {
     MOS_UNUSED(server);
-    MOS_UNUSED(reply);
     MOS_UNUSED(data);
 
-    const char *message = rpc_arg_next_string(args);
+    const char *message = rpc_arg(context, 0, RPC_ARGTYPE_STRING, NULL);
     printf("%s\n", message);
     return RPC_RESULT_OK;
 }
 
-static int syslogd_logc(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
+static rpc_result_code_t syslogd_logc(rpc_server_t *server, rpc_context_t *context, void *data)
 {
     MOS_UNUSED(server);
-    MOS_UNUSED(reply);
     MOS_UNUSED(data);
 
-    const char *category = rpc_arg_next_string(args);
-    const char *msg = rpc_arg_next_string(args);
+    const char *category = rpc_arg(context, 0, RPC_ARGTYPE_STRING, NULL);
+    const char *msg = rpc_arg(context, 1, RPC_ARGTYPE_STRING, NULL);
     printf("[%s] %s\n", category, msg);
     return RPC_RESULT_OK;
 }

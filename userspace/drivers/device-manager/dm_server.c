@@ -8,30 +8,27 @@
 
 RPC_DECL_SERVER_PROTOTYPES(dm, DM_RPCS_X)
 
-static int dm_register_device(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
+static rpc_result_code_t dm_register_device(rpc_server_t *server, rpc_context_t *context, void *data)
 {
     MOS_UNUSED(server);
-    MOS_UNUSED(reply);
     MOS_UNUSED(data);
 
     rpc_result_code_t result = RPC_RESULT_OK;
-    u32 vendor, device, location;
     u64 mmio_base;
 
-    vendor = *(u32 *) rpc_arg_sized_next(args, sizeof(u32));
-    device = *(u32 *) rpc_arg_sized_next(args, sizeof(u32));
-    location = *(u32 *) rpc_arg_sized_next(args, sizeof(u32));
-    mmio_base = *(u64 *) rpc_arg_sized_next(args, sizeof(u64));
+    u32 vendor = rpc_arg_u32(context, 0);
+    u32 device = rpc_arg_u32(context, 1);
+    u32 location = rpc_arg_u32(context, 2);
+    mmio_base = rpc_arg_u64(context, 3);
 
     try_start_driver(vendor, device, location, mmio_base);
     return result;
 }
 
-static int dm_register_driver(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
+static rpc_result_code_t dm_register_driver(rpc_server_t *server, rpc_context_t *context, void *data)
 {
     MOS_UNUSED(server);
-    MOS_UNUSED(args);
-    MOS_UNUSED(reply);
+    MOS_UNUSED(context);
     MOS_UNUSED(data);
 
     rpc_result_code_t result = RPC_RESULT_OK;

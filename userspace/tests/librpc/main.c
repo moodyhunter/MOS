@@ -4,6 +4,7 @@
 #include "librpc/rpc_client.h"
 #include "librpc/rpc_server.h"
 
+#include <librpc/internal.h>
 #include <mos/syscall/usermode.h>
 #include <mos_stdio.h>
 #include <mos_stdlib.h>
@@ -27,40 +28,39 @@ enum
     CALC_DIV = 3,
 };
 
-static int testserver_ping(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
+static rpc_result_code_t testserver_ping(rpc_server_t *server, rpc_context_t *context, void *data)
 {
     MOS_UNUSED(server);
-    MOS_UNUSED(args);
-    MOS_UNUSED(reply);
+    MOS_UNUSED(context);
     MOS_UNUSED(data);
     printf("!!!!!!!!!!! ping !!!!!!!!!!!\n");
     return 0;
 }
 
-static int testserver_echo(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
+static rpc_result_code_t testserver_echo(rpc_server_t *server, rpc_context_t *context, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(data);
 
     size_t arg1_size = 0;
-    const char *arg1 = rpc_arg_next(args, &arg1_size);
+    const char *arg1 = rpc_arg_next(context, &arg1_size);
     printf("echo server: received '%.*s'\n", (int) arg1_size, arg1);
-    rpc_write_result(reply, arg1, arg1_size);
+    rpc_write_result(context, arg1, arg1_size);
 
     return 0;
 }
 
-static int testserver_calculation(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
+static rpc_result_code_t testserver_calculation(rpc_server_t *server, rpc_context_t *context, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(data);
 
     size_t arg1_size;
-    const int *a = rpc_arg_next(args, &arg1_size);
+    const int *a = rpc_arg_next(context, &arg1_size);
     size_t arg2_size;
-    const int *b = rpc_arg_next(args, &arg2_size);
+    const int *b = rpc_arg_next(context, &arg2_size);
     size_t arg3_size;
-    const int *c = rpc_arg_next(args, &arg3_size);
+    const int *c = rpc_arg_next(context, &arg3_size);
 
     int result = 0;
     switch (*b)
@@ -74,15 +74,14 @@ static int testserver_calculation(rpc_server_t *server, rpc_args_iter_t *args, r
     static const char op_names[] = { '+', '-', '*', '/' };
     printf("calculation server: %d %c %d = %d\n", *a, op_names[*b], *c, result);
 
-    rpc_write_result(reply, &result, sizeof(result));
+    rpc_write_result(context, &result, sizeof(result));
     return 0;
 }
 
-static int rpc_server_close(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
+static rpc_result_code_t rpc_server_close(rpc_server_t *server, rpc_context_t *context, void *data)
 {
     MOS_UNUSED(server);
-    MOS_UNUSED(args);
-    MOS_UNUSED(reply);
+    MOS_UNUSED(context);
     MOS_UNUSED(data);
 
     printf("rpc_server_close\n");
@@ -93,10 +92,10 @@ static int rpc_server_close(rpc_server_t *server, rpc_args_iter_t *args, rpc_rep
 void run_server(void)
 {
     static const rpc_function_info_t testserver_functions[] = {
-        { TESTSERVER_PING, testserver_ping, 0 },
-        { TESTSERVER_ECHO, testserver_echo, 1 },
-        { TESTSERVER_CALCULATE, testserver_calculation, 3 },
-        { TESTSERVER_CLOSE, rpc_server_close, 0 },
+        { TESTSERVER_PING, testserver_ping, 0, .args_type = { 0 } },
+        { TESTSERVER_ECHO, testserver_echo, 1, .args_type = { RPC_ARGTYPE_STRING } },
+        { TESTSERVER_CALCULATE, testserver_calculation, 3, .args_type = { RPC_ARGTYPE_INT32, RPC_ARGTYPE_INT32, RPC_ARGTYPE_INT32 } },
+        { TESTSERVER_CLOSE, rpc_server_close, 0, .args_type = { 0 } },
     };
 
     rpc_server_t *server = rpc_server_create(RPC_TEST_SERVERNAME, NULL);
@@ -126,7 +125,7 @@ void run_client(void)
     // echo
     {
         rpc_call_t *echo_call = rpc_call_create(stub, TESTSERVER_ECHO);
-        rpc_call_arg(echo_call, "hello world", 12);
+        rpc_call_arg_string(echo_call, "hello world");
 
         char *result;
         size_t result_size;
@@ -143,9 +142,9 @@ void run_client(void)
         int a = 10;
         int b = CALC_ADD;
         int c = 5;
-        rpc_call_arg(calc_call, &a, sizeof(a));
-        rpc_call_arg(calc_call, &b, sizeof(b));
-        rpc_call_arg(calc_call, &c, sizeof(c));
+        rpc_call_arg_u32(calc_call, a);
+        rpc_call_arg_u32(calc_call, b);
+        rpc_call_arg_u32(calc_call, c);
 
         int *result;
         size_t result_size;
@@ -159,9 +158,9 @@ void run_client(void)
         a = 10;
         b = CALC_SUB;
         c = 5;
-        rpc_call_arg(calc_call2, &a, sizeof(a));
-        rpc_call_arg(calc_call2, &b, sizeof(b));
-        rpc_call_arg(calc_call2, &c, sizeof(c));
+        rpc_call_arg_u32(calc_call2, a);
+        rpc_call_arg_u32(calc_call2, b);
+        rpc_call_arg_u32(calc_call2, c);
 
         rpc_call_exec(calc_call2, (void *) &result, &result_size);
         rpc_call_destroy(calc_call2);

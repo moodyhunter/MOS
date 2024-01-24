@@ -14,9 +14,12 @@
 #include <mos_stdlib.h>
 #include <mos_string.h>
 #else
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#define MOS_LIB_ASSERT_X(cond, msg) assert(cond &&msg)
+#define MOS_LIB_ASSERT(cond)        assert(cond)
 #endif
 
 #ifdef __MOS_KERNEL__
@@ -41,7 +44,7 @@ typedef pthread_mutex_t mutex_t;
 #define memzero(ptr, size)    memset(ptr, 0, size)
 #define mutex_acquire(mutex)  pthread_mutex_lock(mutex)
 #define mutex_release(mutex)  pthread_mutex_unlock(mutex)
-#define mos_warn(...)         fprintf(stderr, __VA_ARGS__)
+#define mos_warn(fmt, ...)    fprintf(stderr, fmt "\n", ##__VA_ARGS__)
 #define MOS_LIB_UNREACHABLE() __builtin_unreachable()
 static void start_thread(const char *name, thread_entry_t entry, void *arg)
 {
@@ -69,7 +72,6 @@ typedef struct _rpc_server
 
 typedef struct _rpc_args_iter
 {
-    rpc_request_t *request;
     size_t next_arg_index;
     size_t next_arg_byte;
 } rpc_args_iter_t;
@@ -79,11 +81,17 @@ struct _rpc_reply_wrapper
     rpc_response_t *response; // may be relocated by rpc_fill_result
 };
 
-typedef struct rpc_call_context
+struct _rpc_context
 {
     rpc_server_t *server;
     ipcfd_t client_fd;
-} rpc_call_context_t;
+
+    rpc_request_t *request;
+    rpc_response_t *response;
+    rpc_args_iter_t arg_iter;
+
+    void *data;
+};
 
 static inline rpc_function_info_t *rpc_server_get_function(rpc_server_t *server, u32 function_id)
 {
@@ -93,16 +101,13 @@ static inline rpc_function_info_t *rpc_server_get_function(rpc_server_t *server,
     return NULL;
 }
 
-static void rpc_handle_call(void *arg)
+static void rpc_handle_client(void *arg)
 {
-    rpc_call_context_t *context = (rpc_call_context_t *) arg;
-    rpc_server_t *server = context->server;
-    ipcfd_t client_fd = context->client_fd;
-    free(context);
+    rpc_context_t *context = (rpc_context_t *) arg;
 
     while (true)
     {
-        ipc_msg_t *const msg = ipc_read_msg(client_fd);
+        ipc_msg_t *const msg = ipc_read_msg(context->client_fd);
         if (!msg)
             break;
 
@@ -121,10 +126,17 @@ static void rpc_handle_call(void *arg)
             break;
         }
 
-        rpc_function_info_t *function = rpc_server_get_function(server, request->function_id);
+        rpc_function_info_t *function = rpc_server_get_function(context->server, request->function_id);
         if (!function)
         {
             mos_warn("invalid function id in rpc request: %d", request->function_id);
+            ipc_msg_destroy(msg);
+            break;
+        }
+
+        if (request->args_count > RPC_MAX_ARGS)
+        {
+            mos_warn("too many arguments in rpc request: %d", request->args_count);
             ipc_msg_destroy(msg);
             break;
         }
@@ -136,19 +148,46 @@ static void rpc_handle_call(void *arg)
             break;
         }
 
-        rpc_args_iter_t args = { request, 0, 0 };
+        // check argument types
+        const char *argptr = request->args_array;
+        for (size_t i = 0; i < request->args_count; i++)
+        {
+            const rpc_arg_t *arg = (const rpc_arg_t *) argptr;
+            if (arg->magic != RPC_ARG_MAGIC)
+            {
+                mos_warn("invalid magic in rpc argument: %x", arg->magic);
+                ipc_msg_destroy(msg);
+                break;
+            }
+            if (arg->argtype != function->args_type[i])
+            {
+                mos_warn("invalid argument type in rpc request, expected %d, got %d", function->args_type[i], arg->argtype);
+                ipc_msg_destroy(msg);
+                break;
+            }
+            argptr += sizeof(rpc_arg_t) + arg->size;
+        }
+        context->request = request;
+        context->response = NULL;
+        context->arg_iter = (rpc_args_iter_t){ 0 };
 
-        rpc_reply_t reply = { 0 };
-        reply.response = malloc(sizeof(rpc_response_t));
-        memzero(reply.response, sizeof(rpc_response_t));
-        reply.response->magic = RPC_RESPONSE_MAGIC;
-        reply.response->call_id = request->call_id;
-        reply.response->result_code = function->func(server, &args, &reply, server->data);
+        const rpc_result_code_t result = function->func(context->server, context, context->server->data);
 
-        bool written = ipc_write_as_msg(client_fd, (const char *) reply.response, sizeof(rpc_response_t) + reply.response->data_size);
+        if (context->response == NULL)
+        {
+            context->response = malloc(sizeof(rpc_response_t));
+            context->response->magic = RPC_RESPONSE_MAGIC;
+            context->response->call_id = request->call_id;
+            context->response->data_size = 0;
+        }
+
+        context->response->result_code = result;
+
+        const bool written = ipc_write_as_msg(context->client_fd, (const char *) context->response, sizeof(rpc_response_t) + context->response->data_size);
 
         ipc_msg_destroy(msg);
-        free(reply.response);
+        free(context->response);
+        context->response = NULL, context->request = NULL, context->arg_iter = (rpc_args_iter_t){ 0 };
 
         if (!written)
         {
@@ -157,7 +196,8 @@ static void rpc_handle_call(void *arg)
         }
     }
 
-    syscall_io_close(client_fd);
+    syscall_io_close(context->client_fd);
+    free(context);
 }
 
 rpc_server_t *rpc_server_create(const char *server_name, void *data)
@@ -206,7 +246,7 @@ void rpc_server_exec(rpc_server_t *server)
 {
     while (true)
     {
-        ipcfd_t client_fd = syscall_ipc_accept(server->server_fd);
+        const ipcfd_t client_fd = syscall_ipc_accept(server->server_fd);
 
         if (IS_ERR_VALUE(client_fd))
         {
@@ -219,40 +259,32 @@ void rpc_server_exec(rpc_server_t *server)
             break;
         }
 
-        rpc_call_context_t *context = malloc(sizeof(rpc_call_context_t));
+        rpc_context_t *context = malloc(sizeof(rpc_context_t));
         context->server = server;
         context->client_fd = client_fd;
-        start_thread("rpc-call", rpc_handle_call, context);
+        start_thread("rpc-client-worker", rpc_handle_client, context);
     }
 }
 
 bool rpc_server_register_functions(rpc_server_t *server, const rpc_function_info_t *functions, size_t count)
 {
-    for (size_t i = 0; i < count; i++)
-        if (!rpc_server_register_function(server, functions[i].function_id, functions[i].func, functions[i].args_count))
-            return false;
+    MOS_LIB_ASSERT_X(server->functions == NULL, "cannot register multiple times");
+    server->functions = malloc(sizeof(rpc_function_info_t) * count);
+    memcpy(server->functions, functions, sizeof(rpc_function_info_t) * count);
+    server->functions_count = count;
     return true;
 }
 
-bool rpc_server_register_function(rpc_server_t *server, u32 function_id, rpc_function_t func, size_t args_count)
+const void *rpc_arg_next(rpc_context_t *context, size_t *size)
 {
-    if (rpc_server_get_function(server, function_id))
-        return false; // function already registered
-
-    server->functions = realloc(server->functions, sizeof(rpc_function_info_t) * (server->functions_count + 1));
-    server->functions[server->functions_count] = (rpc_function_info_t){ function_id, func, args_count };
-    server->functions_count++;
-    return true;
-}
-
-const void *rpc_arg_next(rpc_args_iter_t *args, size_t *size)
-{
-    if (args->next_arg_index >= args->request->args_count)
+    if (context->arg_iter.next_arg_index >= context->request->args_count)
         return NULL;
+
+    rpc_args_iter_t *const args = &context->arg_iter;
 
     const size_t next_arg_byte = args->next_arg_byte;
 
-    const rpc_arg_t *arg = (rpc_arg_t *) &args->request->args_array[next_arg_byte];
+    const rpc_arg_t *arg = (rpc_arg_t *) &context->request->args_array[next_arg_byte];
     if (arg->magic != RPC_ARG_MAGIC)
         return NULL;
 
@@ -265,7 +297,7 @@ const void *rpc_arg_next(rpc_args_iter_t *args, size_t *size)
     return arg->data;
 }
 
-const void *rpc_arg_sized_next(rpc_args_iter_t *iter, size_t expected_size)
+const void *rpc_arg_sized_next(rpc_context_t *iter, size_t expected_size)
 {
     size_t size = 0;
     const void *data = rpc_arg_next(iter, &size);
@@ -274,9 +306,49 @@ const void *rpc_arg_sized_next(rpc_args_iter_t *iter, size_t expected_size)
     return (void *) data;
 }
 
-void rpc_write_result(rpc_reply_t *result, const void *data, size_t size)
+const void *rpc_arg(const rpc_context_t *context, size_t iarg, rpc_argtype_t type, size_t *argsize)
 {
-    result->response->data_size = size;
-    result->response = realloc(result->response, sizeof(rpc_response_t) + size);
-    memcpy(result->response->data, data, size);
+    // iterate over arguments
+    const char *ptr = context->request->args_array;
+    for (size_t i = 0; i < iarg; i++)
+    {
+        const rpc_arg_t *arg = (const rpc_arg_t *) ptr;
+        MOS_LIB_ASSERT(arg->magic == RPC_ARG_MAGIC);
+        ptr += sizeof(rpc_arg_t) + arg->size;
+    }
+
+    const rpc_arg_t *arg = (const rpc_arg_t *) ptr;
+    MOS_LIB_ASSERT(arg->magic == RPC_ARG_MAGIC);
+    MOS_LIB_ASSERT(arg->argtype == type);
+    if (argsize)
+        *argsize = arg->size;
+    return arg->data;
+}
+
+#define RPC_GET_ARG_IMPL(type, TYPE)                                                                                                                                     \
+    type rpc_arg_##type(const rpc_context_t *context, size_t iarg)                                                                                                       \
+    {                                                                                                                                                                    \
+        return *(type *) rpc_arg(context, iarg, RPC_ARGTYPE_##TYPE, NULL);                                                                                               \
+    }
+
+RPC_GET_ARG_IMPL(u8, UINT32)
+RPC_GET_ARG_IMPL(u16, UINT32)
+RPC_GET_ARG_IMPL(u32, UINT32)
+RPC_GET_ARG_IMPL(u64, UINT64)
+RPC_GET_ARG_IMPL(s8, INT32)
+RPC_GET_ARG_IMPL(s16, INT32)
+RPC_GET_ARG_IMPL(s32, INT32)
+RPC_GET_ARG_IMPL(s64, INT64)
+
+void rpc_write_result(rpc_context_t *context, const void *data, size_t size)
+{
+    MOS_LIB_ASSERT_X(context->response == NULL, "rpc_write_result called twice");
+
+    rpc_response_t *response = malloc(sizeof(rpc_response_t) + size);
+    response->magic = RPC_RESPONSE_MAGIC;
+    response->call_id = context->request->call_id;
+    response->result_code = RPC_RESULT_OK;
+    response->data_size = size;
+    memcpy(response->data, data, size);
+    context->response = response;
 }

@@ -8,6 +8,7 @@
 #include "mos/tasks/kthread.h"
 #include "proto/filesystem.pb.h"
 
+#include <librpc/rpc.h>
 #include <librpc/rpc_server.h>
 #include <mos/proto/fs_server.h>
 #include <mos_stdio.h>
@@ -19,7 +20,7 @@ SLAB_AUTOINIT("userfs", userfs_slab, userfs_t);
 
 RPC_DECL_SERVER_PROTOTYPES(userfs_manager, USERFS_MANAGER_X)
 
-static int userfs_manager_register(rpc_server_t *server, mos_rpc_fs_register_request *req, mos_rpc_fs_register_response *resp, void *data)
+static rpc_result_code_t userfs_manager_register(rpc_server_t *server, mos_rpc_fs_register_request *req, mos_rpc_fs_register_response *resp, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(data);
@@ -43,16 +44,6 @@ static int userfs_manager_register(rpc_server_t *server, mos_rpc_fs_register_req
 
     userfs->fs.mount = userfs_fsop_mount;
     vfs_register_filesystem(&userfs->fs);
-    return RPC_RESULT_OK;
-}
-
-static int userfs_manager_unregister(rpc_server_t *server, rpc_args_iter_t *args, rpc_reply_t *reply, void *data)
-{
-    MOS_UNUSED(server);
-    MOS_UNUSED(reply);
-    MOS_UNUSED(data);
-    MOS_UNUSED(args);
-
     return RPC_RESULT_OK;
 }
 

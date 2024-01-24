@@ -7,11 +7,13 @@
 
 #include <atomic>
 #include <iostream>
+#include <librpc/rpc.h>
 #include <librpc/rpc_server.h>
 #include <map>
 #include <pb_decode.h>
 #include <pb_encode.h>
 #include <string>
+#include <string_view>
 
 RPC_DECL_SERVER_PROTOTYPES(blockdev_manager, BLOCKDEV_MANAGER_RPC_X)
 
@@ -19,17 +21,19 @@ rpc_server_t *blockdev_server = NULL;
 std::map<int, blockdev_info> blockdev_list;    // blockdev id -> blockdev info
 static std::atomic_ulong next_blockdev_id = 2; // 1 is reserved for the root directory
 
-static int blockdev_manager_register_layer(rpc_server_t *server, mos_rpc_blockdev_register_layer_request *req, mos_rpc_blockdev_register_layer_response *resp, void *data)
+static rpc_result_code_t blockdev_manager_register_layer(rpc_server_t *server, mos_rpc_blockdev_register_layer_request *req,
+                                                         mos_rpc_blockdev_register_layer_response *resp, void *data)
 {
     std::cout << "Got register_layer request" << std::endl;
     MOS_UNUSED(server);
     MOS_UNUSED(req);
     MOS_UNUSED(resp);
     MOS_UNUSED(data);
-    return 0;
+    return RPC_RESULT_OK;
 }
 
-static int blockdev_manager_register_blockdev(rpc_server_t *server, mos_rpc_blockdev_register_dev_request *req, mos_rpc_blockdev_register_dev_response *resp, void *data)
+static rpc_result_code_t blockdev_manager_register_blockdev(rpc_server_t *server, mos_rpc_blockdev_register_dev_request *req,
+                                                            mos_rpc_blockdev_register_dev_response *resp, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(data);
@@ -49,7 +53,30 @@ static int blockdev_manager_register_blockdev(rpc_server_t *server, mos_rpc_bloc
     resp->result.error = NULL;
     resp->id = info.ino;
 
-    return 0;
+    return RPC_RESULT_OK;
+}
+
+static rpc_result_code_t blockdev_manager_open_device(rpc_server_t *server, mos_rpc_blockdev_opendev_request *req, mos_rpc_blockdev_opendev_response *resp, void *data)
+{
+    MOS_UNUSED(server);
+    MOS_UNUSED(data);
+
+    const auto name = std::string_view(req->device_name);
+    for (const auto &blockdev : blockdev_list)
+    {
+        if (blockdev.second.name == name)
+        {
+            resp->server_name = strdup(blockdev.second.server_name.c_str());
+            resp->result.success = true;
+            resp->result.error = NULL;
+            return RPC_RESULT_OK;
+        }
+    }
+
+    resp->result.success = false;
+    resp->result.error = strdup("No such blockdev");
+
+    return RPC_RESULT_OK;
 }
 
 bool blockdev_manager_run()

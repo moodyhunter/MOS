@@ -75,7 +75,17 @@ MOSAPI rpc_call_t *rpc_call_create(rpc_server_stub_t *server, u32 function_id);
  * @param data A pointer to the argument data
  * @param size The size of the argument data
  */
-MOSAPI void rpc_call_arg(rpc_call_t *call, const void *data, size_t size);
+MOSAPI void rpc_call_arg(rpc_call_t *call, rpc_argtype_t argtype, const void *data, size_t size);
+
+MOSAPI void rpc_call_arg_u8(rpc_call_t *call, u8 arg);
+MOSAPI void rpc_call_arg_u16(rpc_call_t *call, u16 arg);
+MOSAPI void rpc_call_arg_u32(rpc_call_t *call, u32 arg);
+MOSAPI void rpc_call_arg_u64(rpc_call_t *call, u64 arg);
+MOSAPI void rpc_call_arg_s8(rpc_call_t *call, s8 arg);
+MOSAPI void rpc_call_arg_s16(rpc_call_t *call, s16 arg);
+MOSAPI void rpc_call_arg_s32(rpc_call_t *call, s32 arg);
+MOSAPI void rpc_call_arg_s64(rpc_call_t *call, s64 arg);
+MOSAPI void rpc_call_arg_string(rpc_call_t *call, const char *arg);
 
 /**
  * @brief Execute a call

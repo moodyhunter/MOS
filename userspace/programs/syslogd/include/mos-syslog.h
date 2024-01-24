@@ -3,9 +3,9 @@
 #pragma once
 
 #define SYSLOGD_RPC_X(ARGS, PB, arg)                                                                                                                                     \
-    ARGS(arg, 0, set_name, SET_NAME, "s", ARG(const char *, name))                                                                                                       \
-    ARGS(arg, 1, log, LOG, "s", ARG(const char *, message))                                                                                                              \
-    ARGS(arg, 2, logc, LOGC, "ss", ARG(const char *, category), ARG(const char *, message))
+    ARGS(arg, 0, set_name, SET_NAME, "s", ARG(STRING, name))                                                                                                             \
+    ARGS(arg, 1, log, LOG, "s", ARG(STRING, message))                                                                                                                    \
+    ARGS(arg, 2, logc, LOGC, "ss", ARG(STRING, category), ARG(STRING, message))
 
 #define SYSLOGD_SERVICE_NAME "syslogd"
 
