@@ -35,6 +35,17 @@ message register_layer_response
     uint32 id = 2;
 }
 
+message opendev_request
+{
+    string device_name = 1;
+}
+
+message opendev_response
+{
+    mos_rpc.result result = 1;
+    string server_name = 2;
+}
+
 // blockdev interface
 
 message read_request
