@@ -336,6 +336,12 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, vmap_t *
         pr_emerg("       offset: 0x%zx", fault_addr - faulting_vmap->vaddr + (faulting_vmap->io ? faulting_vmap->io_offset : 0));
     }
 
+    if (faulting_vmap)
+        spinlock_release(&faulting_vmap->lock);
+
+    if (ip_vmap)
+        spinlock_release(&ip_vmap->lock);
+
 #if MOS_CONFIG(MOS_MM_DETAILED_MMAPS_UNHANDLED_FAULT)
     if (current_thread)
         process_dump_mmaps(current_process);
@@ -351,12 +357,6 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, vmap_t *
     MOS_UNUSED(fault_addr);
     MOS_UNUSED(info);
 #endif
-
-    if (faulting_vmap)
-        spinlock_release(&faulting_vmap->lock);
-
-    if (ip_vmap)
-        spinlock_release(&ip_vmap->lock);
 
     if (current_thread)
     {
