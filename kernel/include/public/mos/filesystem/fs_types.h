@@ -43,6 +43,12 @@ typedef enum
     FSTATAT_FILE = 1 << 2,     // the fd is a file, not a directory
 } fstatat_flags;
 
+typedef enum
+{
+    FD_FLAGS_NONE = 0,
+    FD_FLAGS_CLOEXEC = 1 << 0,
+} fd_flags_t;
+
 typedef u16 file_perm_t;
 
 #define PERM_OWNER 0x1C0 // 111 000 000

@@ -55,7 +55,7 @@ int main(void)
     register_signal_handler(SIGPIPE, sigpipe_handler);
 
     fd_t r, w;
-    long result = syscall_pipe(&r, &w);
+    long result = syscall_pipe(&r, &w, FD_FLAGS_NONE);
     if (IS_ERR_VALUE(result))
     {
         printf("pipe(2) failed: %ld\n", result);

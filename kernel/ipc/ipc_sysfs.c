@@ -70,7 +70,7 @@ static ssize_t vfs_ipc_file_read(const file_t *file, void *buf, size_t size, off
         if (IS_ERR(connio))
             return PTR_ERR(connio);
 
-        const fd_t fd = process_attach_ref_fd(current_process, &connio->io);
+        const fd_t fd = process_attach_ref_fd(current_process, &connio->io, FD_FLAGS_NONE);
         if (IS_ERR_VALUE(fd))
             return fd;
 

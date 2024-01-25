@@ -12,6 +12,7 @@
 #include <abi-bits/wait.h>
 #include <errno.h>
 #include <mos/filesystem/dentry.h>
+#include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/structures/hashmap_common.h>
@@ -146,9 +147,9 @@ process_t *process_new(process_t *parent, const char *name, const stdio_t *ios)
         return NULL;
     pr_dinfo2(process, "creating process %pp", (void *) proc);
 
-    process_attach_ref_fd(proc, ios && ios->in ? ios->in : io_null);
-    process_attach_ref_fd(proc, ios && ios->out ? ios->out : io_null);
-    process_attach_ref_fd(proc, ios && ios->err ? ios->err : io_null);
+    process_attach_ref_fd(proc, ios && ios->in ? ios->in : io_null, FD_FLAGS_NONE);
+    process_attach_ref_fd(proc, ios && ios->out ? ios->out : io_null, FD_FLAGS_NONE);
+    process_attach_ref_fd(proc, ios && ios->err ? ios->err : io_null, FD_FLAGS_NONE);
 
     proc->main_thread = thread_new(proc, THREAD_MODE_USER, proc->name, 0, NULL);
 
@@ -171,13 +172,13 @@ process_t *process_get(pid_t pid)
     return NULL;
 }
 
-fd_t process_attach_ref_fd(process_t *process, io_t *file)
+fd_t process_attach_ref_fd(process_t *process, io_t *file, fd_flags_t flags)
 {
     MOS_ASSERT(process_is_valid(process));
 
     // find a free fd
     fd_t fd = 0;
-    while (process->files[fd] != NULL)
+    while (process->files[fd].io)
     {
         fd++;
         if (fd >= MOS_PROCESS_MAX_OPEN_FILES)
@@ -187,7 +188,8 @@ fd_t process_attach_ref_fd(process_t *process, io_t *file)
         }
     }
 
-    process->files[fd] = io_ref(file);
+    process->files[fd].io = io_ref(file);
+    process->files[fd].flags = flags;
     return fd;
 }
 
@@ -196,7 +198,7 @@ io_t *process_get_fd(process_t *process, fd_t fd)
     MOS_ASSERT(process_is_valid(process));
     if (fd < 0 || fd >= MOS_PROCESS_MAX_OPEN_FILES)
         return NULL;
-    return process->files[fd];
+    return process->files[fd].io;
 }
 
 bool process_detach_fd(process_t *process, fd_t fd)
@@ -204,13 +206,13 @@ bool process_detach_fd(process_t *process, fd_t fd)
     MOS_ASSERT(process_is_valid(process));
     if (fd < 0 || fd >= MOS_PROCESS_MAX_OPEN_FILES)
         return false;
-    io_t *io = process->files[fd];
+    io_t *io = process->files[fd].io;
 
     if (unlikely(!io_valid(io)))
         return false;
 
-    io_unref(process->files[fd]);
-    process->files[fd] = NULL;
+    io_unref(process->files[fd].io);
+    process->files[fd] = nullfd;
     return true;
 }
 
@@ -330,13 +332,13 @@ void process_handle_exit(process_t *process, u8 exit_code, signal_t signal)
     size_t files_closed = 0;
     for (int i = 0; i < MOS_PROCESS_MAX_OPEN_FILES; i++)
     {
-        io_t *file = process->files[i];
-        process->files[i] = NULL;
+        fd_type file = process->files[i];
+        process->files[i] = nullfd;
 
-        if (io_valid(file))
+        if (io_valid(file.io))
         {
             files_total++;
-            if (io_unref(file) == NULL)
+            if (io_unref(file.io) == NULL)
                 files_closed++;
         }
     }

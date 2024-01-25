@@ -11,6 +11,7 @@
 #include <bits/posix/iovec.h>
 #include <errno.h>
 #include <mos/elf/elf.h>
+#include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/io/io.h>
 #include <mos/locks/futex.h>
@@ -61,7 +62,7 @@ DEFINE_SYSCALL(fd_t, vfs_openat)(fd_t dirfd, const char *path, open_flags flags)
     file_t *f = vfs_openat(dirfd, path, flags);
     if (IS_ERR(f))
         return PTR_ERR(f);
-    return process_attach_ref_fd(current_process, &f->io);
+    return process_attach_ref_fd(current_process, &f->io, FD_FLAGS_NONE);
 }
 
 DEFINE_SYSCALL(long, vfs_fstatat)(fd_t fd, const char *path, file_stat_t *stat_buf, fstatat_flags flags)
@@ -263,7 +264,7 @@ DEFINE_SYSCALL(fd_t, ipc_create)(const char *name, size_t max_pending_connection
     io_t *io = ipc_create(name, max_pending_connections);
     if (IS_ERR(io))
         return PTR_ERR(io);
-    return process_attach_ref_fd(current_process, io);
+    return process_attach_ref_fd(current_process, io, FD_FLAGS_NONE);
 }
 
 DEFINE_SYSCALL(fd_t, ipc_accept)(fd_t listen_fd)
@@ -276,7 +277,7 @@ DEFINE_SYSCALL(fd_t, ipc_accept)(fd_t listen_fd)
     if (IS_ERR(client_io))
         return PTR_ERR(client_io);
 
-    return process_attach_ref_fd(current_process, client_io);
+    return process_attach_ref_fd(current_process, client_io, FD_FLAGS_NONE);
 }
 
 DEFINE_SYSCALL(fd_t, ipc_connect)(const char *server, size_t buffer_size)
@@ -284,7 +285,7 @@ DEFINE_SYSCALL(fd_t, ipc_connect)(const char *server, size_t buffer_size)
     io_t *io = ipc_connect(server, buffer_size);
     if (IS_ERR(io))
         return PTR_ERR(io);
-    return process_attach_ref_fd(current_process, io);
+    return process_attach_ref_fd(current_process, io, FD_FLAGS_NONE);
 }
 
 DEFINE_SYSCALL(u64, arch_syscall)(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64 arg4)
@@ -492,7 +493,7 @@ DEFINE_SYSCALL(fd_t, io_dup)(fd_t fd)
     io_t *io = process_get_fd(current_process, fd);
     if (io == NULL)
         return -EBADF; // fd is not a valid file descriptor
-    return process_attach_ref_fd(current_process, io_ref(io));
+    return process_attach_ref_fd(current_process, io_ref(io), current_process->files[fd].flags);
 }
 
 DEFINE_SYSCALL(fd_t, io_dup2)(fd_t oldfd, fd_t newfd)
@@ -505,7 +506,9 @@ DEFINE_SYSCALL(fd_t, io_dup2)(fd_t oldfd, fd_t newfd)
         return newfd;
 
     process_detach_fd(current_process, newfd);
-    current_process->files[newfd] = io_ref(io);
+    fd_type *fdt = &current_process->files[newfd];
+    fdt->io = io_ref(io);
+    // TODO: fd flags
     return newfd;
 }
 
@@ -537,15 +540,15 @@ DEFINE_SYSCALL(bool, dmabuf_unshare)(ptr_t phys, size_t size, void *buf)
     return dmabuf_unshare(phys, size, buf);
 }
 
-DEFINE_SYSCALL(long, pipe)(fd_t *reader, fd_t *writer)
+DEFINE_SYSCALL(long, pipe)(fd_t *reader, fd_t *writer, fd_flags_t flags)
 {
     pipe_t *pipe = pipe_create(MOS_PAGE_SIZE * 4);
     if (IS_ERR(pipe))
         return PTR_ERR(pipe);
 
     pipeio_t *pipeio = pipeio_create(pipe);
-    *reader = process_attach_ref_fd(current_process, &pipeio->io_r);
-    *writer = process_attach_ref_fd(current_process, &pipeio->io_w);
+    *reader = process_attach_ref_fd(current_process, &pipeio->io_r, flags);
+    *writer = process_attach_ref_fd(current_process, &pipeio->io_w, flags);
     return 0;
 }
 

@@ -61,9 +61,12 @@ process_t *process_do_fork(process_t *parent)
     // copy the parent's files
     for (int i = 0; i < MOS_PROCESS_MAX_OPEN_FILES; i++)
     {
-        io_t *file = parent->files[i];
-        if (io_valid(file))
-            child_p->files[i] = io_ref(file);
+        fd_type file = parent->files[i];
+        if (io_valid(file.io))
+        {
+            child_p->files[i].io = io_ref(file.io);
+            child_p->files[i].flags = file.flags;
+        }
     }
 
     child_p->signal_info = parent->signal_info;

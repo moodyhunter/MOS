@@ -20,9 +20,9 @@ should_inline bool process_is_valid(process_t *process)
 should_inline stdio_t current_stdio(void)
 {
     return (stdio_t){
-        .in = current_process->files[0],
-        .out = current_process->files[1],
-        .err = current_process->files[2],
+        .in = current_process->files[0].io,
+        .out = current_process->files[1].io,
+        .err = current_process->files[2].io,
     };
 }
 
@@ -32,7 +32,7 @@ void process_destroy(process_t *process);
 process_t *process_new(process_t *parent, const char *name, const stdio_t *ios);
 process_t *process_get(pid_t pid);
 
-fd_t process_attach_ref_fd(process_t *process, io_t *file);
+fd_t process_attach_ref_fd(process_t *process, io_t *file, fd_flags_t flags);
 io_t *process_get_fd(process_t *process, fd_t fd);
 bool process_detach_fd(process_t *process, fd_t fd);
 

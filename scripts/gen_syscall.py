@@ -79,6 +79,7 @@ def select_format(type: str) -> str:
         "signal_t": "%d",
         "bool": "%d",
         "nfds_t": "%ld",
+        "fd_flags_t": "%d",
     }
     if type in select_formats:
         return select_formats[type]

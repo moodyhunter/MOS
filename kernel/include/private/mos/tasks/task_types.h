@@ -25,6 +25,14 @@ typedef struct
     waitlist_t sigchild_waitlist;       ///< the parent is waiting for a child to exit, if not empty
 } process_signal_info_t;
 
+typedef struct
+{
+    io_t *io;
+    fd_flags_t flags;
+} fd_type;
+
+#define nullfd ((fd_type){ .io = NULL, .flags = 0 })
+
 typedef struct _process
 {
     u32 magic;
@@ -37,7 +45,7 @@ typedef struct _process
     bool exited;     ///< true if the process has exited
     u32 exit_status; ///< exit status
 
-    io_t *files[MOS_PROCESS_MAX_OPEN_FILES];
+    fd_type files[MOS_PROCESS_MAX_OPEN_FILES];
 
     thread_t *main_thread;
     list_head threads;

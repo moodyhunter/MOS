@@ -10,6 +10,7 @@
 #include "mos/tasks/task_types.h"
 #include "mos/tasks/thread.h"
 
+#include <mos/filesystem/fs_types.h>
 #include <mos/types.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
@@ -150,6 +151,13 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
 
     vmap_t *heap = cow_allocate_zeroed_pages(proc->mm, 1, MOS_ADDR_USER_HEAP, VALLOC_DEFAULT, VM_USER_RW);
     vmap_finalise_init(heap, VMAP_HEAP, VMAP_TYPE_PRIVATE);
+
+    // close any files that are FD_CLOEXEC
+    for (int i = 0; i < MOS_PROCESS_MAX_OPEN_FILES; i++)
+    {
+        if (io_valid(proc->files[i].io) && (proc->files[i].flags & FD_FLAGS_CLOEXEC))
+            process_detach_fd(proc, i);
+    }
 
     spinlock_release(&thread->state_lock);
     platform_return_to_userspace(platform_thread_regs(thread));

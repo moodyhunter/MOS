@@ -426,7 +426,11 @@
             "number": 55,
             "name": "pipe",
             "return": "long",
-            "arguments": [ { "type": "fd_t *", "arg": "out_read_fd" }, { "type": "fd_t *", "arg": "out_write_fd" } ]
+            "arguments": [
+                { "type": "fd_t *", "arg": "out_read_fd" },
+                { "type": "fd_t *", "arg": "out_write_fd" },
+                { "type": "fd_flags_t", "arg": "flags" }
+            ]
         },
         {
             "number": 56,
