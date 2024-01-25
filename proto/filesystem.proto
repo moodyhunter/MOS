@@ -6,7 +6,7 @@ option (nanopb_fileopt).fallback_type = FT_POINTER;
 option (nanopb_fileopt).enum_to_string = true;
 option (nanopb_fileopt).proto3_singular_msgs = true;
 
-message pb_file_stat
+message pb_inode_info
 {
     uint64 ino = 1;
     int32 type = 2;
@@ -23,12 +23,9 @@ message pb_file_stat
     uint64 modified = 13;
 }
 
-message pb_inode
+message pb_inode_ref
 {
-    // in real life, this stat is too big to be passed around, not all its fields are needed
-    // actually, we only need the inode id and the private data
-    pb_file_stat stat = 1;
-    uint64 private_data = 2; // the private data of the inode, may be used by the filesystem
+    uint64 data = 2; // the private data of the inode, may be used by the filesystem
 }
 
 message pb_dentry
@@ -63,7 +60,8 @@ message mos_rpc_fs_mount_request
 message mos_rpc_fs_mount_response
 {
     mos_rpc.result result = 1;
-    pb_inode root_i = 2; // the root inode of the mounted root
+    pb_inode_ref root_ref = 2; // the root inode of the mounted root
+    pb_inode_info root_info = 3;
 }
 
 message pb_dirent
@@ -75,7 +73,7 @@ message pb_dirent
 
 message mos_rpc_fs_readdir_request
 {
-    pb_inode inode = 1; // the inode to read
+    pb_inode_ref i_ref = 1; // the inode to read
 }
 
 message mos_rpc_fs_readdir_response
@@ -86,19 +84,20 @@ message mos_rpc_fs_readdir_response
 
 message mos_rpc_fs_lookup_request
 {
-    pb_inode inode = 1; // the inode of parent directory
-    string name = 2;    // the name of the file to lookup
+    pb_inode_ref i_ref = 1; // the inode of parent directory
+    string name = 2;        // the name of the file to lookup
 }
 
 message mos_rpc_fs_lookup_response
 {
     mos_rpc.result result = 1;
-    pb_inode inode = 2; // the inode of the file
+    pb_inode_ref i_ref = 2; // the inode of the file
+    pb_inode_info i_info = 3;
 }
 
 message mos_rpc_fs_readlink_request
 {
-    pb_inode inode = 1; // the inode of the symlink
+    pb_inode_ref i_ref = 1; // the inode of the symlink
 }
 
 message mos_rpc_fs_readlink_response
@@ -109,8 +108,8 @@ message mos_rpc_fs_readlink_response
 
 message mos_rpc_fs_getpage_request
 {
-    pb_inode inode = 1; // the inode of the file
-    uint64 pgoff = 2;   // the offset of the page, in number of pages
+    pb_inode_ref i_ref = 1; // the inode of the file
+    uint64 pgoff = 2;       // the offset of the page, in number of pages
 }
 
 message mos_rpc_fs_getpage_response

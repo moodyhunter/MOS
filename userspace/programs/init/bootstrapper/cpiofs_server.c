@@ -34,7 +34,7 @@ static rpc_server_stub_t *fs_manager = NULL;
 
 typedef struct
 {
-    pb_inode pb_i;
+    pb_inode_info pb_i;
     size_t header_offset;
     size_t name_offset, name_length;
     size_t data_offset;
@@ -78,20 +78,20 @@ static cpio_inode_t *cpio_trycreate_i(const char *path)
     const u64 ino = strntoll(cpio_inode->header.ino, NULL, 16, sizeof(cpio_inode->header.ino) / sizeof(char));
     const file_type_t file_type = cpio_modebits_to_filetype(modebits & CPIO_MODE_FILE_TYPE);
 
-    pb_inode *const inode = &cpio_inode->pb_i;
+    pb_inode_info *const i = &cpio_inode->pb_i;
 
-    inode->stat.type = file_type;
-    inode->stat.ino = ino;
+    i->type = file_type;
+    i->ino = ino;
 
     // 0000777 - The lower 9 bits specify read/write/execute permissions for world, group, and user following standard POSIX conventions.
-    inode->stat.perm = modebits & 0777;
-    inode->stat.size = metadata.data_length;
-    inode->stat.uid = strntoll(cpio_inode->header.uid, NULL, 16, sizeof(cpio_inode->header.uid) / sizeof(char));
-    inode->stat.gid = strntoll(cpio_inode->header.gid, NULL, 16, sizeof(cpio_inode->header.gid) / sizeof(char));
-    inode->stat.sticky = modebits & CPIO_MODE_STICKY;
-    inode->stat.suid = modebits & CPIO_MODE_SUID;
-    inode->stat.sgid = modebits & CPIO_MODE_SGID;
-    inode->stat.nlinks = strntoll(cpio_inode->header.nlink, NULL, 16, sizeof(cpio_inode->header.nlink) / sizeof(char));
+    i->perm = modebits & 0777;
+    i->size = metadata.data_length;
+    i->uid = strntoll(cpio_inode->header.uid, NULL, 16, sizeof(cpio_inode->header.uid) / sizeof(char));
+    i->gid = strntoll(cpio_inode->header.gid, NULL, 16, sizeof(cpio_inode->header.gid) / sizeof(char));
+    i->sticky = modebits & CPIO_MODE_STICKY;
+    i->suid = modebits & CPIO_MODE_SUID;
+    i->sgid = modebits & CPIO_MODE_SGID;
+    i->nlinks = strntoll(cpio_inode->header.nlink, NULL, 16, sizeof(cpio_inode->header.nlink) / sizeof(char));
     return cpio_inode;
 }
 
@@ -115,9 +115,9 @@ static rpc_result_code_t cpiofs_mount(rpc_server_t *server, mos_rpc_fs_mount_req
         return RPC_RESULT_OK;
     }
 
-    cpio_i->pb_i.private_data = (ptr_t) cpio_i;
     resp->result.success = true;
-    resp->root_i = cpio_i->pb_i;
+    resp->root_info = cpio_i->pb_i;
+    resp->root_ref.data = (ptr_t) cpio_i;
     return RPC_RESULT_OK;
 }
 
@@ -126,7 +126,7 @@ static rpc_result_code_t cpiofs_readdir(rpc_server_t *server, mos_rpc_fs_readdir
     MOS_UNUSED(server);
     MOS_UNUSED(data);
 
-    cpio_inode_t *inode = (cpio_inode_t *) req->inode.private_data;
+    cpio_inode_t *inode = (cpio_inode_t *) req->i_ref.data;
 
     char path_prefix[inode->name_length + 1]; // +1 for null terminator
     read_initrd(path_prefix, inode->name_length, inode->name_offset);
@@ -211,7 +211,7 @@ static rpc_result_code_t cpiofs_lookup(rpc_server_t *server, mos_rpc_fs_lookup_r
     MOS_UNUSED(data);
 
     char pathbuf[PATH_MAX] = { 0 };
-    cpio_inode_t *parent_diri = (cpio_inode_t *) req->inode.private_data;
+    cpio_inode_t *parent_diri = (cpio_inode_t *) req->i_ref.data;
     read_initrd(pathbuf, parent_diri->name_length, parent_diri->name_offset);
 
     // append the filename (req->name)
@@ -243,8 +243,8 @@ static rpc_result_code_t cpiofs_lookup(rpc_server_t *server, mos_rpc_fs_lookup_r
     }
 
     resp->result.success = true;
-    resp->inode = cpio_i->pb_i;
-    resp->inode.private_data = (ptr_t) cpio_i;
+    resp->i_info = cpio_i->pb_i;
+    resp->i_ref.data = (ptr_t) cpio_i;
     return RPC_RESULT_OK;
 }
 
@@ -253,10 +253,10 @@ static rpc_result_code_t cpiofs_readlink(rpc_server_t *server, mos_rpc_fs_readli
     MOS_UNUSED(server);
     MOS_UNUSED(data);
 
-    cpio_inode_t *cpio_i = (cpio_inode_t *) req->inode.private_data;
-    char path[cpio_i->data_offset + cpio_i->pb_i.stat.size + 1];
-    read_initrd(path, cpio_i->pb_i.stat.size, cpio_i->data_offset);
-    path[cpio_i->pb_i.stat.size] = '\0';
+    cpio_inode_t *cpio_i = (cpio_inode_t *) req->i_ref.data;
+    char path[cpio_i->data_offset + cpio_i->pb_i.size + 1];
+    read_initrd(path, cpio_i->pb_i.size, cpio_i->data_offset);
+    path[cpio_i->pb_i.size] = '\0';
 
     resp->result.success = true;
     resp->target = strdup(path);
@@ -268,7 +268,9 @@ static rpc_result_code_t cpiofs_getpage(rpc_server_t *server, mos_rpc_fs_getpage
     MOS_UNUSED(server);
     MOS_UNUSED(data);
 
-    if (req->pgoff * MOS_PAGE_SIZE >= req->inode.stat.size)
+    cpio_inode_t *cpio_i = (cpio_inode_t *) req->i_ref.data;
+
+    if (req->pgoff * MOS_PAGE_SIZE >= cpio_i->pb_i.size)
     {
         resp->data = malloc(sizeof(pb_bytes_array_t));
         resp->data->size = 0;
@@ -276,8 +278,7 @@ static rpc_result_code_t cpiofs_getpage(rpc_server_t *server, mos_rpc_fs_getpage
         return RPC_RESULT_OK;
     }
 
-    cpio_inode_t *cpio_i = (cpio_inode_t *) req->inode.private_data;
-    const size_t bytes_to_read = MIN((size_t) MOS_PAGE_SIZE, cpio_i->pb_i.stat.size - req->pgoff * MOS_PAGE_SIZE);
+    const size_t bytes_to_read = MIN((size_t) MOS_PAGE_SIZE, cpio_i->pb_i.size - req->pgoff * MOS_PAGE_SIZE);
 
     resp->data = malloc(PB_BYTES_ARRAY_T_ALLOCSIZE(bytes_to_read));
     resp->data->size = bytes_to_read;

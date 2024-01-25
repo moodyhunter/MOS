@@ -55,19 +55,20 @@ static rpc_result_code_t blockdevfs_mount(rpc_server_t *server, mos_rpc_fs_mount
 
     root = new blockdevfs_inode();
 
-    pb_inode *i = &resp->root_i;
-    i->stat.ino = 1;
-    i->stat.type = FILE_TYPE_DIRECTORY;
-    i->stat.perm = 0755;
-    i->stat.uid = 0;
-    i->stat.gid = 0;
-    i->stat.size = 0;
-    i->stat.accessed = i->stat.modified = i->stat.created = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    i->stat.nlinks = 1; // 1 for the directory itself
-    i->stat.sticky = false;
-    i->stat.suid = false;
-    i->stat.sgid = false;
-    i->private_data = (ptr_t) root;
+    pb_inode_info *const i = &resp->root_info;
+    i->ino = 1;
+    i->type = FILE_TYPE_DIRECTORY;
+    i->perm = 0755;
+    i->uid = 0;
+    i->gid = 0;
+    i->size = 0;
+    i->accessed = i->modified = i->created = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    i->nlinks = 1; // 1 for the directory itself
+    i->sticky = false;
+    i->suid = false;
+    i->sgid = false;
+
+    resp->root_ref.data = (ptr_t) root;
 
     resp->result.success = true;
     resp->result.error = NULL;
@@ -80,7 +81,7 @@ static rpc_result_code_t blockdevfs_readdir(rpc_server_t *server, mos_rpc_fs_rea
     MOS_UNUSED(server);
     MOS_UNUSED(data);
 
-    if (req->inode.private_data != (ptr_t) root)
+    if (req->i_ref.data != (ptr_t) root)
     {
         resp->result.success = false;
         resp->result.error = strdup("blockdevfs: invalid inode");
@@ -112,7 +113,7 @@ static rpc_result_code_t blockdevfs_lookup(rpc_server_t *server, mos_rpc_fs_look
     MOS_UNUSED(resp);
     MOS_UNUSED(data);
 
-    if (req->inode.private_data != (ptr_t) root)
+    if (req->i_ref.data != (ptr_t) root)
     {
         resp->result.success = false;
         resp->result.error = strdup("blockdevfs: invalid inode");
@@ -129,19 +130,18 @@ static rpc_result_code_t blockdevfs_lookup(rpc_server_t *server, mos_rpc_fs_look
 
     const auto &[id, info] = *it;
 
-    pb_inode *i = &resp->inode;
-    i->stat.ino = id;
-    i->stat.type = FILE_TYPE_BLOCK_DEVICE;
-    i->stat.perm = 0660;
-    i->stat.uid = 0;
-    i->stat.gid = 0;
-    i->stat.size = info.num_blocks * info.block_size;
-    i->stat.accessed = i->stat.modified = i->stat.created = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    i->stat.nlinks = 1;
-    i->stat.sticky = false;
-    i->stat.suid = false;
-    i->stat.sgid = false;
-    i->private_data = 0;
+    pb_inode_info *i = &resp->i_info;
+    i->ino = id;
+    i->type = FILE_TYPE_BLOCK_DEVICE;
+    i->perm = 0660;
+    i->uid = 0;
+    i->gid = 0;
+    i->size = info.num_blocks * info.block_size;
+    i->accessed = i->modified = i->created = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    i->nlinks = 1;
+    i->sticky = false;
+    i->suid = false;
+    i->sgid = false;
 
     resp->result.success = true;
     resp->result.error = NULL;

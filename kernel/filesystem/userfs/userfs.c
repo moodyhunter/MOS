@@ -7,6 +7,7 @@
 #include "mos/filesystem/vfs_utils.h"
 #include "mos/misc/profiling.h"
 #include "mos/printk.h"
+#include "proto/filesystem.pb.h"
 
 #include <librpc/macro_magic.h>
 #include <librpc/rpc.h>
@@ -27,43 +28,49 @@ static const inode_ops_t userfs_iops;
 static const file_ops_t userfs_fops;
 static const inode_cache_ops_t userfs_inode_cache_ops;
 
-inode_t *i_from_pb(const pb_inode *pbi, superblock_t *sb)
+inode_t *i_from_pbfull(const pb_inode_info *stat, superblock_t *sb, void *private)
 {
     // enum pb_file_type_t -> enum file_type_t is safe here because they have the same values
-    inode_t *i = inode_create(sb, pbi->stat.ino, (file_type_t) pbi->stat.type);
-    i->created = pbi->stat.created;
-    i->modified = pbi->stat.modified;
-    i->accessed = pbi->stat.accessed;
-    i->size = pbi->stat.size;
-    i->uid = pbi->stat.uid;
-    i->gid = pbi->stat.gid;
-    i->perm = pbi->stat.perm;
-    i->nlinks = pbi->stat.nlinks;
-    i->suid = pbi->stat.suid;
-    i->sgid = pbi->stat.sgid;
-    i->sticky = pbi->stat.sticky;
-    i->private = (void *) pbi->private_data;
+    inode_t *i = inode_create(sb, stat->ino, (file_type_t) stat->type);
+    i->created = stat->created;
+    i->modified = stat->modified;
+    i->accessed = stat->accessed;
+    i->size = stat->size;
+    i->uid = stat->uid;
+    i->gid = stat->gid;
+    i->perm = stat->perm;
+    i->nlinks = stat->nlinks;
+    i->suid = stat->suid;
+    i->sgid = stat->sgid;
+    i->sticky = stat->sticky;
+    i->private = private;
     i->ops = &userfs_iops;
     i->file_ops = &userfs_fops;
     return i;
 }
 
-pb_inode *i_to_pb(const inode_t *i, pb_inode *pbi)
+pb_inode_info *i_to_pb_full(const inode_t *i, pb_inode_info *pbi)
 {
-    pbi->stat.ino = i->ino;
-    pbi->stat.type = i->type;
-    pbi->stat.created = i->created;
-    pbi->stat.modified = i->modified;
-    pbi->stat.accessed = i->accessed;
-    pbi->stat.size = i->size;
-    pbi->stat.uid = i->uid;
-    pbi->stat.gid = i->gid;
-    pbi->stat.perm = i->perm;
-    pbi->stat.nlinks = i->nlinks;
-    pbi->stat.suid = i->suid;
-    pbi->stat.sgid = i->sgid;
-    pbi->stat.sticky = i->sticky;
-    pbi->private_data = (ptr_t) i->private;
+    pbi->ino = i->ino;
+    pbi->type = i->type;
+    pbi->created = i->created;
+    pbi->modified = i->modified;
+    pbi->accessed = i->accessed;
+    pbi->size = i->size;
+    pbi->uid = i->uid;
+    pbi->gid = i->gid;
+    pbi->perm = i->perm;
+    pbi->nlinks = i->nlinks;
+    pbi->suid = i->suid;
+    pbi->sgid = i->sgid;
+    pbi->sticky = i->sticky;
+    // pbi->private_data = (ptr_t) i->private;
+    return pbi;
+}
+
+pb_inode_ref *i_to_pb_ref(const inode_t *i, pb_inode_ref *pbi)
+{
+    pbi->data = (ptr_t) i->private;
     return pbi;
 }
 
@@ -92,7 +99,7 @@ static void userfs_iop_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state,
 {
     userfs_t *userfs = container_of(dentry->superblock->fs, userfs_t, fs);
     mos_rpc_fs_readdir_request req = { 0 };
-    i_to_pb(dentry->inode, &req.inode);
+    i_to_pb_ref(dentry->inode, &req.i_ref);
 
     mos_rpc_fs_readdir_response resp = { 0 };
     userfs_ensure_connected(userfs);
@@ -129,7 +136,7 @@ static bool userfs_iop_lookup(inode_t *dir, dentry_t *dentry)
     bool ret = false;
     userfs_t *userfs = container_of(dir->superblock->fs, userfs_t, fs);
     mos_rpc_fs_lookup_request req = { 0 };
-    i_to_pb(dir, &req.inode);
+    i_to_pb_ref(dir, &req.i_ref);
     req.name = (char *) dentry_name(dentry);
 
     mos_rpc_fs_lookup_response resp = { 0 };
@@ -151,7 +158,7 @@ static bool userfs_iop_lookup(inode_t *dir, dentry_t *dentry)
         goto leave;
     }
 
-    inode_t *i = i_from_pb(&resp.inode, dir->superblock);
+    inode_t *i = i_from_pbfull(&resp.i_info, dir->superblock, (void *) resp.i_ref.data);
     dentry->inode = i;
     dentry->superblock = i->superblock = dir->superblock;
     i->ops = &userfs_iops;
@@ -194,7 +201,7 @@ static bool userfs_iop_newfile(inode_t *dir, dentry_t *dentry, file_type_t type,
 static size_t userfs_iop_readlink(dentry_t *dentry, char *buffer, size_t buflen)
 {
     mos_rpc_fs_readlink_request req = { 0 };
-    i_to_pb(dentry->inode, &req.inode);
+    i_to_pb_ref(dentry->inode, &req.i_ref);
 
     mos_rpc_fs_readlink_response resp = { 0 };
     userfs_t *userfs = container_of(dentry->superblock->fs, userfs_t, fs);
@@ -297,7 +304,7 @@ static phyframe_t *userfs_inode_cache_fill_cache(inode_cache_t *cache, off_t pgo
     // get a page from the server
     userfs_t *userfs = container_of(cache->owner->superblock->fs, userfs_t, fs);
     mos_rpc_fs_getpage_request req = { 0 };
-    i_to_pb(cache->owner, &req.inode);
+    i_to_pb_ref(cache->owner, &req.i_ref);
     req.pgoff = pgoff;
 
     mos_rpc_fs_getpage_response resp = { 0 };
@@ -374,7 +381,7 @@ dentry_t *userfs_fsop_mount(filesystem_t *fs, const char *device, const char *op
     }
 
     superblock_t *sb = kmalloc(superblock_cache);
-    inode_t *i = i_from_pb(&resp.root_i, sb);
+    inode_t *i = i_from_pbfull(&resp.root_info, sb, (void *) resp.root_ref.data);
 
     sb->fs = fs;
     sb->root = dentry_create(sb, NULL, NULL);
