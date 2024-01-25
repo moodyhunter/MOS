@@ -468,6 +468,17 @@
                 { "type": "int", "arg": "mode" },
                 { "type": "int", "arg": "flags" }
             ]
+        },
+        {
+            "number": 62,
+            "name": "io_pread",
+            "return": "long",
+            "arguments": [
+                { "type": "fd_t", "arg": "fd" },
+                { "type": "void *", "arg": "buf" },
+                { "type": "size_t", "arg": "count" },
+                { "type": "off_t", "arg": "offset" }
+            ]
         }
     ]
 }

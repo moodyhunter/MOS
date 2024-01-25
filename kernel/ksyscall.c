@@ -626,3 +626,18 @@ DEFINE_SYSCALL(long, vfs_fchmodat)(fd_t dirfd, const char *path, int mode, int f
 {
     return vfs_fchmodat(dirfd, path, mode, flags);
 }
+
+DEFINE_SYSCALL(long, io_pread)(fd_t fd, void *buf, size_t count, off_t offset)
+{
+    if (fd < 0)
+        return -EBADF;
+
+    if (buf == NULL)
+        return -EFAULT;
+
+    io_t *io = process_get_fd(current_process, fd);
+    if (!io)
+        return -EBADF;
+
+    return io_pread(io, buf, count, offset);
+}
