@@ -4,7 +4,6 @@ add_subdirectory(echo-ipc)
 add_subdirectory(fork)
 add_subdirectory(librpc)
 add_subdirectory(ipc)
-add_subdirectory(cxx)
 add_subdirectory(libstdcxx)
 
 add_subdirectory(libc-test)
