@@ -256,19 +256,19 @@ rpc_result_code_t rpc_simple_callv(rpc_server_stub_t *stub, u32 funcid, rpc_resu
             case 'c':
             {
                 u8 arg = va_arg(args, int);
-                rpc_call_arg(call, RPC_ARGTYPE_UINT8, &arg, sizeof(arg));
+                rpc_call_arg(call, RPC_ARGTYPE_INT8, &arg, sizeof(arg));
                 break;
             }
             case 'i':
             {
                 u32 arg = va_arg(args, int);
-                rpc_call_arg(call, RPC_ARGTYPE_UINT32, &arg, sizeof(arg));
+                rpc_call_arg(call, RPC_ARGTYPE_INT32, &arg, sizeof(arg));
                 break;
             }
             case 'l':
             {
                 u64 arg = va_arg(args, long long);
-                rpc_call_arg(call, RPC_ARGTYPE_UINT64, &arg, sizeof(arg));
+                rpc_call_arg(call, RPC_ARGTYPE_INT64, &arg, sizeof(arg));
                 break;
             }
             case 'f':

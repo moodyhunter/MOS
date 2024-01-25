@@ -223,9 +223,15 @@ rpc_server_t *rpc_server_create(const char *server_name, void *data)
     return server;
 }
 
+void rpc_server_close(rpc_server_t *server)
+{
+    syscall_io_close(server->server_fd);
+    server->server_fd = (ipcfd_t) -1;
+}
+
 void rpc_server_destroy(rpc_server_t *server)
 {
-    if (IS_ERR_VALUE(server->server_fd))
+    if (!IS_ERR_VALUE(server->server_fd))
         syscall_io_close(server->server_fd);
     if (server->functions)
         free(server->functions);

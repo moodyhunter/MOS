@@ -127,6 +127,8 @@ MOSAPI void rpc_write_result(rpc_context_t *context, const void *data, size_t si
             rpc_write_result(context, buffer, stream.bytes_written);                                                                                                     \
     })
 
+MOSAPI void rpc_server_close(rpc_server_t *server);
+
 /**
  * @brief Destroy the RPC server
  *
