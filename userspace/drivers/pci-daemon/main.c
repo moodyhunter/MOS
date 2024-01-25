@@ -7,11 +7,14 @@
 #include <fcntl.h>
 #include <librpc/rpc_client.h>
 #include <mos/mm/mm_types.h>
+#include <mos/syscall/usermode.h>
 #include <mos/types.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 ptr_t mmio_base;
 static rpc_server_stub_t *dm;
@@ -58,16 +61,16 @@ static size_t n_base_addr_alloc;
 
 static bool read_mcfg_table(void)
 {
-    int fd = open("/sys/acpi/MCFG", OPEN_READ);
+    int fd = open("/sys/acpi/MCFG", O_RDONLY);
     if (fd < 0)
     {
         puts("pci-daemon: failed to open /sys/acpi/MCFG");
         return false;
     }
 
-    mcfg_table = (acpi_mcfg_header_t *) syscall_mmap_file(0, MOS_PAGE_SIZE, MEM_PERM_READ, MMAP_PRIVATE, fd, 0);
+    mcfg_table = (acpi_mcfg_header_t *) mmap(NULL, 4 KB, PROT_READ, MAP_PRIVATE, fd, 0);
     base_addr_alloc = (acpi_mcfg_base_addr_alloc_t *) &mcfg_table->content[0];
-    syscall_io_close(fd);
+    close(fd);
 
     n_base_addr_alloc = (mcfg_table->length - sizeof(acpi_mcfg_header_t)) / sizeof(acpi_mcfg_base_addr_alloc_t);
     for (size_t i = 0; i < n_base_addr_alloc; i++)
@@ -96,15 +99,17 @@ static bool read_mcfg_table(void)
     // map the PCI memory range
     const u64 size = ALIGN_UP_TO_PAGE(end - start);
 
-    fd_t memfd = open("/sys/mem", OPEN_READ | OPEN_WRITE);
+    fd_t memfd = open("/sys/mem", O_RDWR);
     if (memfd < 0)
     {
         puts("pci-daemon: failed to open /sys/mem");
         return false;
     }
 
-    syscall_mmap_file(start, size, MEM_PERM_READ | MEM_PERM_WRITE, MMAP_SHARED | MMAP_EXACT, memfd, start);
-    syscall_io_close(memfd);
+    void *addr = mmap((void *) start, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, memfd, start);
+    close(memfd);
+
+    MOS_UNUSED(addr);
 
     return true;
 }
