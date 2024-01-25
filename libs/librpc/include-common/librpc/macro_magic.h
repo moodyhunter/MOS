@@ -114,10 +114,10 @@
 #define _RPC_ARGTYPE_UINT16 u16
 #define _RPC_ARGTYPE_UINT32 u32
 #define _RPC_ARGTYPE_UINT64 u64
-#define _RPC_ARGTYPE_INT8   i8
-#define _RPC_ARGTYPE_INT16  i16
-#define _RPC_ARGTYPE_INT32  i32
-#define _RPC_ARGTYPE_INT64  i64
+#define _RPC_ARGTYPE_INT8   s8
+#define _RPC_ARGTYPE_INT16  s16
+#define _RPC_ARGTYPE_INT32  s32
+#define _RPC_ARGTYPE_INT64  s64
 #define _RPC_ARGTYPE_STRING const char *
 #define _RPC_ARGTYPE_BUFFER const void *
 
