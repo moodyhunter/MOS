@@ -42,6 +42,17 @@ impl BlockDevDriver {
         };
 
         let resp: Register_dev_response = self.blockdev_manager.create_pb_call(1, &request)?;
+
+        if !resp.result.success {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::AddrInUse,
+                resp.result
+                    .error
+                    .clone()
+                    .unwrap_or("unknown error".to_string()),
+            )));
+        }
+
         println!("registered with blockdev id {}", resp.id);
         Ok(())
     }
@@ -93,15 +104,24 @@ const FUNCTIONS: &[RpcCallFuncInfo<BlockDevDriver>] = &[
 ];
 
 pub fn run_blockdev(transport: PciTransport, function: DeviceFunction) -> RpcResult<()> {
-    let devname = format!(
+    let devlocation = format!(
         "{:02x}:{:02x}:{:02x}",
         function.bus, function.device, function.function
     );
 
+    let devname = format!("virtio-blk.{}", devlocation);
+    let server_name = format!("blockdev.virtio.{}", devlocation);
+
+    // check /dev/block if the device is already registered
+    if std::fs::metadata(format!("/dev/block/{}", devname)).is_ok() {
+        println!("blockdev {} already registered", devname);
+        return Ok(());
+    }
+
     let mut driver = BlockDevDriver {
         blockdev_manager: RpcStub::new("mos.blockdev-manager")?,
-        devname: format!("virtio-blockdev:{}", devname),
-        server_name: format!("blockdev.virtio.{}", devname),
+        devname,
+        server_name,
         blockdev: Arc::new(Mutex::new(SafeVirtIOBlk(
             VirtIOBlk::new(transport).expect("failed to create blockdev"),
         ))),

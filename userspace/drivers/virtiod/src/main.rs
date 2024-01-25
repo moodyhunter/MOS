@@ -1,6 +1,6 @@
 use crate::{
     drivers::start_device,
-    hal::{libdma_init, libdma_map_physical_address},
+    hal::{libdma_exit, libdma_init, libdma_map_physical_address},
 };
 use clap::Parser;
 use hal::MOSHal;
@@ -49,14 +49,15 @@ fn main() -> () {
         println!("    MMIO Base: 0x{:x}", args.mmio_base);
     }
 
-    // const u32 location = (bus << 16) | (device << 8) | function;
-    let bus = (args.location >> 16) as u8;
-    let device = ((args.location >> 8) & 0xff) as u8;
-    let function = (args.location & 0xff) as u8;
+    let location = DeviceFunction {
+        bus: (args.location >> 16) as u8,
+        device: ((args.location >> 8) & 0xff) as u8,
+        function: (args.location & 0xff) as u8,
+    };
 
     println!(
         "Device Location: 0x{:x}, Device: 0x{:x}, Function: 0x{:x}",
-        bus, device, function
+        location.bus, location.device, location.function
     );
 
     let mut pci_root = unsafe {
@@ -65,12 +66,6 @@ fn main() -> () {
             libdma_map_physical_address(args.mmio_base as _, 256, std::ptr::null_mut()) as _,
             Cam::Ecam,
         )
-    };
-
-    let device_function = DeviceFunction {
-        bus,
-        device,
-        function,
     };
 
     #[cfg(feature = "debug")]
@@ -84,7 +79,7 @@ fn main() -> () {
 
     // Enable the device to use its BARs.
     pci_root.set_command(
-        device_function,
+        location,
         Command::IO_SPACE | Command::MEMORY_SPACE | Command::BUS_MASTER,
     );
 
@@ -94,10 +89,14 @@ fn main() -> () {
         println!("BAR {}: {:#x?}", bar, bar_info);
     }
 
-    let transport = PciTransport::new::<MOSHal>(&mut pci_root, device_function).unwrap();
+    let transport = PciTransport::new::<MOSHal>(&mut pci_root, location).unwrap();
 
     #[cfg(feature = "debug")]
     println!("Detected virtio PCI device '{:?}'", transport.device_type());
 
-    start_device(transport, device_function).expect("failed to start device")
+    start_device(transport, location).expect("Failed to start device");
+
+    unsafe {
+        libdma_exit();
+    }
 }

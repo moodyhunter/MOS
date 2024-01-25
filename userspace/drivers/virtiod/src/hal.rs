@@ -23,6 +23,10 @@ extern "C" {
 
     // ptr_t libdma_map_physical_address(ptr_t paddr, size_t size, ptr_t vaddr)
     pub fn libdma_map_physical_address(paddr: usize, size: usize, vaddr: *mut u8) -> usize;
+
+    // void libdma_exit(void)
+    pub fn libdma_exit();
+
 }
 
 pub(crate) struct MOSHal {}
