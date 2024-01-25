@@ -2,7 +2,7 @@
 
 #include <abi-bits/errno.h>
 #include <mos/syscall/usermode.h>
-#include <mos_stdio.h>
+#include <stdio.h>
 
 #define WAITMSG "pid %d waits for %d\n"
 
@@ -10,6 +10,7 @@ int main(int argc, char **argv)
 {
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
+    setbuf(stdout, NULL);
     int pid = syscall_fork();
     if (pid == 0)
     {

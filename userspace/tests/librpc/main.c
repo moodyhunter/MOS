@@ -6,9 +6,9 @@
 
 #include <librpc/internal.h>
 #include <mos/syscall/usermode.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define RPC_TEST_SERVERNAME "testserver"
 
@@ -78,14 +78,14 @@ static rpc_result_code_t testserver_calculation(rpc_server_t *server, rpc_contex
     return 0;
 }
 
-static rpc_result_code_t rpc_server_close(rpc_server_t *server, rpc_context_t *context, void *data)
+static rpc_result_code_t rpc_server_do_close(rpc_server_t *server, rpc_context_t *context, void *data)
 {
     MOS_UNUSED(server);
     MOS_UNUSED(context);
     MOS_UNUSED(data);
 
     printf("rpc_server_close\n");
-    rpc_server_destroy(server);
+    rpc_server_close(server);
     return 0;
 }
 
@@ -95,7 +95,7 @@ void run_server(void)
         { TESTSERVER_PING, testserver_ping, 0, .args_type = { 0 } },
         { TESTSERVER_ECHO, testserver_echo, 1, .args_type = { RPC_ARGTYPE_STRING } },
         { TESTSERVER_CALCULATE, testserver_calculation, 3, .args_type = { RPC_ARGTYPE_INT32, RPC_ARGTYPE_INT32, RPC_ARGTYPE_INT32 } },
-        { TESTSERVER_CLOSE, rpc_server_close, 0, .args_type = { 0 } },
+        { TESTSERVER_CLOSE, rpc_server_do_close, 0, .args_type = { 0 } },
     };
 
     rpc_server_t *server = rpc_server_create(RPC_TEST_SERVERNAME, NULL);
@@ -103,6 +103,8 @@ void run_server(void)
     rpc_server_exec(server);
 
     printf("rpc_server_destroy\n");
+    rpc_server_destroy(server);
+    printf("rpc_server_destroy done\n");
 }
 
 void run_client(void)
@@ -142,9 +144,9 @@ void run_client(void)
         int a = 10;
         int b = CALC_ADD;
         int c = 5;
-        rpc_call_arg_u32(calc_call, a);
-        rpc_call_arg_u32(calc_call, b);
-        rpc_call_arg_u32(calc_call, c);
+        rpc_call_arg_s32(calc_call, a);
+        rpc_call_arg_s32(calc_call, b);
+        rpc_call_arg_s32(calc_call, c);
 
         int *result;
         size_t result_size;
@@ -158,9 +160,9 @@ void run_client(void)
         a = 10;
         b = CALC_SUB;
         c = 5;
-        rpc_call_arg_u32(calc_call2, a);
-        rpc_call_arg_u32(calc_call2, b);
-        rpc_call_arg_u32(calc_call2, c);
+        rpc_call_arg_s32(calc_call2, a);
+        rpc_call_arg_s32(calc_call2, b);
+        rpc_call_arg_s32(calc_call2, c);
 
         rpc_call_exec(calc_call2, (void *) &result, &result_size);
         rpc_call_destroy(calc_call2);

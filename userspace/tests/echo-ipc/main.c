@@ -3,10 +3,11 @@
 #include "mos/syscall/usermode.h"
 
 #include <libipc/ipc.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-void ipc_do_echo(void *arg)
+void *ipc_do_echo(void *arg)
 {
     fd_t client_fd = (fd_t) (ptr_t) arg;
     while (true)
@@ -14,12 +15,12 @@ void ipc_do_echo(void *arg)
         ipc_msg_t *msg = ipc_read_msg(client_fd);
 
         if (msg == NULL)
-            return; // EOF
+            return NULL; // EOF
 
         if (!ipc_write_msg(client_fd, msg))
         {
             puts("Failed to send IPC message");
-            return;
+            return NULL;
         }
 
         ipc_msg_destroy(msg);
@@ -48,14 +49,8 @@ int main()
             return 1;
         }
 
-        pthread_t *thread = malloc(sizeof(pthread_t));
-        if (thread == NULL)
-        {
-            puts("Failed to allocate thread");
-            return 1;
-        }
-
-        start_thread("echo-ipc", ipc_do_echo, (void *) (ptr_t) client_fd);
+        pthread_t thread = { 0 };
+        pthread_create(&thread, NULL, ipc_do_echo, (void *) (ptr_t) client_fd);
     }
 
     return 0;

@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <fcntl.h>
 #include <mos/syscall/usermode.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #define IPC_METHOD_SYSCALL 0
 #define IPC_METHOD_SYSFS   1
@@ -31,7 +33,7 @@ int main(int argc, char **argv)
     strcpy(pathbuf, basepath);
     strcat(pathbuf, ipc_name);
     pathbuf[path_len - 1] = '\0';
-    const fd_t client = syscall_vfs_openat(FD_CWD, pathbuf, OPEN_READ | OPEN_WRITE);
+    const fd_t client = open(pathbuf, O_RDWR);
 #else
 #error "unknown IPC_METHOD"
 #endif
@@ -43,7 +45,7 @@ int main(int argc, char **argv)
     }
 
     size_t bufsize = 0;
-    const size_t readsize = syscall_io_read(client, &bufsize, sizeof(bufsize));
+    const size_t readsize = read(client, &bufsize, sizeof(bufsize));
     if (readsize != sizeof(bufsize))
     {
         puts("client: failed to read size from ipc channel");
@@ -51,7 +53,7 @@ int main(int argc, char **argv)
     }
 
     char *buf = malloc(bufsize);
-    const size_t read_size = syscall_io_read(client, buf, bufsize);
+    const size_t read_size = read(client, buf, bufsize);
     if (read_size != bufsize)
     {
         puts("client: failed to read from ipc channel");
@@ -62,8 +64,8 @@ int main(int argc, char **argv)
 
     const char *reply = "Hello, Server!";
     const size_t reply_size = strlen(reply) + 1;
-    syscall_io_write(client, &reply_size, sizeof(reply_size));
-    const size_t written = syscall_io_write(client, reply, reply_size);
+    write(client, &reply_size, sizeof(reply_size));
+    const size_t written = write(client, reply, reply_size);
 
     if (written != reply_size)
     {

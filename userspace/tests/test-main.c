@@ -1,19 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <mos/syscall/usermode.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
+#include <pthread.h>
+#include <spawn.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
 
 struct
 {
     const char *name;
     const char *executable;
 } const tests[] = {
-    { "fork", "/initrd/tests/fork-test" }, //
-    { "cxx", "/initrd/tests/cxx_test" },   //
-    { "rpc", "/initrd/tests/rpc-test" },   //
-    { "libc", "/initrd/tests/libc-test" }, //
-    { "rust", "/initrd/tests/rust-test" }, //
+    { "fork", "/initrd/tests/fork-test" },     //
+    { "rpc", "/initrd/tests/rpc-test" },       //
+    { "libc", "/initrd/tests/libc-test" },     //
+    { "c++", "/initrd/tests/libstdc++-test" }, //
+    { "rust", "/initrd/tests/rust-test" },     //
     { 0 },
 };
 
@@ -30,7 +33,11 @@ int main(int argc, char **argv)
     {
         printf("Running test %s (%s)... \n", tests[i].name, tests[i].executable);
         const char *test_argv[] = { tests[i].name, NULL };
-        pid_t ret = spawn(tests[i].executable, test_argv);
+        pid_t ret;
+        posix_spawn(&ret, tests[i].executable,
+                    NULL, // file_actions
+                    NULL, // attrp
+                    (char *const *) test_argv, NULL);
         if (ret < 0)
         {
             printf("FAILED: cannot spawn: %d\n", ret);
