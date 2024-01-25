@@ -66,33 +66,6 @@ bool start_services(void)
     return true;
 }
 
-static pid_t start_device_manager(void)
-{
-    const char *dm_path = config_get(config, "device_manager.path");
-    if (!dm_path)
-        dm_path = "/initrd/drivers/device_manager";
-
-    size_t dm_args_count;
-    const char **dm_args = config_get_all(config, "device_manager.args", &dm_args_count);
-
-    int argc = dm_args_count + 1;
-    const char *argv[argc]; // +1 for the NULL
-    argv[0] = dm_path;
-    for (size_t i = 0; i < dm_args_count; i++)
-        argv[i + 1] = dm_args[i];
-    argv[argc] = NULL;
-
-    // start the device manager
-    pid_t pid = fork();
-    if (pid == 0)
-    {
-        execv(dm_path, (char *const *) argv);
-        exit(-1);
-    }
-
-    return pid;
-}
-
 static bool create_directories(void)
 {
     size_t num_dirs;
@@ -240,10 +213,6 @@ int main(int argc, const char *argv[])
     if (!mount_filesystems())
         return DYN_ERROR_CODE;
 
-    pid_t dm_pid = start_device_manager();
-    if (dm_pid <= 0)
-        return DYN_ERROR_CODE;
-
     if (!start_services())
         return DYN_ERROR_CODE;
 
@@ -272,12 +241,7 @@ start_shell:;
     while (true)
     {
         pid_t pid = waitpid(-1, NULL, 0);
-        if (pid == dm_pid)
-        {
-            puts("init: device manager exited, restarting...");
-            dm_pid = start_device_manager();
-        }
-        else if (pid == shell_pid)
+        if (pid == shell_pid)
         {
             puts("init: shell exited, restarting...");
             goto start_shell;
