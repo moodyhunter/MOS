@@ -38,6 +38,14 @@ static rpc_result_code_t blockdev_manager_register_blockdev(rpc_server_t *server
     MOS_UNUSED(server);
     MOS_UNUSED(data);
 
+    const auto it = std::find_if(blockdev_list.begin(), blockdev_list.end(), [&](const auto &blockdev) { return blockdev.second.name == req->blockdev_name; });
+    if (it != blockdev_list.end())
+    {
+        resp->result.success = false;
+        resp->result.error = strdup("Blockdev already registered");
+        return RPC_RESULT_OK;
+    }
+
     blockdev_info info = {
         .name = req->blockdev_name,
         .server_name = req->server_name,
