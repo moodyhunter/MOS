@@ -4,14 +4,14 @@ use std::io::Error;
 
 use librpc_rs::{
     define_rpc_server, rpc_server_function, rpc_server_stub_function, IpcChannel, IpcServer,
-    RpcCallArgStructs, RpcCallContext, RpcCallFuncInfo, RpcServer, RpcStub,
+    RpcCallArgStructs, RpcCallContext, RpcCallFuncInfo, RpcResult, RpcServer, RpcStub,
 };
 
 #[derive(Clone)]
 struct MyServerImpl {}
 
 impl MyServerImpl {
-    fn on_echo(&mut self, ctx: &mut RpcCallContext) -> Result<(), Error> {
+    fn on_echo(&mut self, ctx: &mut RpcCallContext) -> RpcResult<()> {
         println!("1. {}", ctx.get_arg_string(0)?);
         println!("2. {}", ctx.get_arg_string(1)?);
         println!("3. {}", ctx.get_arg_string(2)?);
@@ -19,12 +19,12 @@ impl MyServerImpl {
         Ok(())
     }
 
-    fn on_print(&mut self, ctx: &mut RpcCallContext) -> Result<(), Error> {
+    fn on_print(&mut self, ctx: &mut RpcCallContext) -> RpcResult<()> {
         println!("1. {}", ctx.get_arg_string(0)?);
         Ok(())
     }
 
-    fn on_something(&mut self, ctx: &mut RpcCallContext) -> Result<(), Error> {
+    fn on_something(&mut self, ctx: &mut RpcCallContext) -> RpcResult<()> {
         println!("1. {}", ctx.get_arg_i32(0)?);
         Ok(())
     }
@@ -51,7 +51,7 @@ const FUNCTIONS: &[RpcCallFuncInfo<MyServerImpl>] = &[
     rpc_server_function!(2, MyServerImpl::on_something, Int32),
 ];
 
-fn main() -> Result<(), Error> {
+fn main() -> RpcResult<()> {
     if let Some(arg) = std::env::args().nth(1) {
         if arg == "ipc-server" {
             let mut server = IpcServer::create("echo-server")?;

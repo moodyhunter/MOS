@@ -1,4 +1,4 @@
-use std::{io::Error, thread};
+use std::thread;
 
 use crate::{
     IpcChannel, IpcServer, RpcCallArgType, RpcCallResult, RPC_ARG_MAGIC, RPC_REQUEST_MAGIC,
@@ -9,9 +9,11 @@ use num_traits::FromPrimitive;
 
 // ! BEGIN public API
 
+pub type RpcResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
 pub struct RpcCallFuncInfo<'a, T: Send + Sync + Clone> {
     pub id: u32,
-    pub func: fn(&mut T, &mut RpcCallContext) -> Result<(), Error>,
+    pub func: fn(&mut T, &mut RpcCallContext) -> RpcResult<()>,
     pub argtypes: &'a [RpcCallArgType],
 }
 
@@ -30,7 +32,7 @@ pub struct RpcServer<'a, T: Send + Sync + Clone> {
 
 macro_rules! get_arg_ints {
     ($name:ident, $int_type:ty) => {
-        pub fn $name(&self, index: u32) -> Result<$int_type, Error> {
+        pub fn $name(&self, index: u32) -> RpcResult<$int_type> {
             let data = self.get_narg(index)?;
             let data = <$int_type>::from_le_bytes(
                 data[..std::mem::size_of::<$int_type>()]
@@ -45,10 +47,10 @@ macro_rules! get_arg_ints {
 macro_rules! data_slice_and_shift {
     ($data:ident, $newvar:ident, $size:expr) => {
         if $data.len() < $size {
-            return Err(Error::new(
+            return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 "invalid data in rpc arg",
-            ));
+            )));
         }
         let $newvar = $data[..$size].to_vec();
         $data = $data[$size..].to_vec();
@@ -58,7 +60,7 @@ macro_rules! data_slice_and_shift {
 macro_rules! do_try_into {
     ($data:ident, $from:expr, $to:expr) => {
         $data[$from..$to].try_into().or_else(|_| {
-            Err(Error::new(
+            Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 "invalid data in rpc arg",
             ))
@@ -68,14 +70,17 @@ macro_rules! do_try_into {
 
 macro_rules! new_ioerr {
     ($message:expr) => {
-        Error::new(std::io::ErrorKind::InvalidData, $message)
+        Box::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            $message,
+        ))
     };
 }
 
 struct RpcReply(Vec<u8>);
 
 impl<'a> RpcCallContext<'a> {
-    fn get_narg(&self, index: u32) -> Result<Vec<u8>, Error> {
+    fn get_narg(&self, index: u32) -> RpcResult<Vec<u8>> {
         let mut data = self.data.clone();
         for _ in 0..index {
             data_slice_and_shift!(data, this_arg, 12);
@@ -109,7 +114,7 @@ impl<'a> RpcCallContext<'a> {
         Ok(argdata)
     }
 
-    pub fn get_arg_string(&self, index: u32) -> Result<String, Error> {
+    pub fn get_arg_string(&self, index: u32) -> RpcResult<String> {
         self.get_narg(index).and_then(|data| {
             std::str::from_utf8(&data)
                 .and_then(|s| Ok(s.to_string()))
@@ -117,18 +122,18 @@ impl<'a> RpcCallContext<'a> {
         })
     }
 
-    pub fn get_arg_buffer(&self, index: u32) -> Result<Vec<u8>, Error> {
+    pub fn get_arg_buffer(&self, index: u32) -> RpcResult<Vec<u8>> {
         self.get_narg(index)
     }
 
     #[cfg(feature = "protobuf")]
-    pub fn get_arg_pb<T: protobuf::Message>(&self, index: u32) -> Result<T, Error> {
+    pub fn get_arg_pb<T: protobuf::Message>(&self, index: u32) -> RpcResult<T> {
         let data = self.get_narg(index)?;
         T::parse_from_bytes(&data).or(Err(new_ioerr!("invalid protobuf")))
     }
 
     #[cfg(feature = "protobuf")]
-    pub fn write_response_pb<T: protobuf::Message>(&mut self, pb: &T) -> Result<(), Error> {
+    pub fn write_response_pb<T: protobuf::Message>(&mut self, pb: &T) -> RpcResult<()> {
         let mut data = Vec::new();
         pb.write_to_vec(&mut data)
             .or(Err(new_ioerr!("failed to write protobuf")))?;
@@ -147,10 +152,7 @@ impl<'a> RpcCallContext<'a> {
 }
 
 impl<'a, T: Send + Sync + Clone> RpcServer<'a, T> {
-    pub fn create(
-        str: &str,
-        functions: &'a [RpcCallFuncInfo<T>],
-    ) -> Result<RpcServer<'a, T>, Error> {
+    pub fn create(str: &str, functions: &'a [RpcCallFuncInfo<T>]) -> RpcResult<RpcServer<'a, T>> {
         let ipc = IpcServer::create(&str)?;
         let server = RpcServer { ipc, functions };
 
@@ -164,7 +166,7 @@ impl<'a, T: Send + Sync + Clone> RpcServer<'a, T> {
         self.functions = functions;
     }
 
-    pub fn run(&mut self, t: &mut T) -> Result<(), Error> {
+    pub fn run(&mut self, t: &mut T) -> RpcResult<()> {
         thread::scope(|s| {
             loop {
                 let mut t_ = t.clone();
@@ -179,10 +181,12 @@ impl<'a, T: Send + Sync + Clone> RpcServer<'a, T> {
                         s.spawn(move || {
                             loop {
                                 if let Err(err) = Self::handle_call(functions, &mut ipc, &mut t_) {
-                                    if err.kind() == std::io::ErrorKind::UnexpectedEof {
-                                        #[cfg(feature = "debug")]
-                                        println!("<<- client disconnected");
-                                        break; // client disconnected
+                                    if let Some(err) = err.downcast_ref::<std::io::Error>() {
+                                        if err.kind() == std::io::ErrorKind::UnexpectedEof {
+                                            #[cfg(feature = "debug")]
+                                            println!("<<- client disconnected");
+                                            break; // client disconnected
+                                        }
                                     }
 
                                     println!("handle_call failed: {:?}", err);
@@ -214,11 +218,11 @@ impl<'a, T: Send + Sync + Clone> RpcServer<'a, T> {
         functions: &'a [RpcCallFuncInfo<T>],
         ipc: &mut IpcChannel,
         t: &mut T,
-    ) -> Result<(), Error> {
+    ) -> RpcResult<()> {
         let mut msg = match ipc.recv_message() {
             Ok(msg) => msg,
             Err(err) => {
-                return Err(err);
+                return Err(Box::new(err));
             }
         };
 
@@ -302,7 +306,7 @@ impl<'a, T: Send + Sync + Clone> RpcServer<'a, T> {
         call_id: u32,
         result: RpcCallResult,
         data: Option<RpcReply>,
-    ) -> Result<(), Error> {
+    ) -> RpcResult<()> {
         let mut msg = Vec::new();
         msg.extend_from_slice(&RPC_RESPONSE_MAGIC.to_be_bytes());
         msg.extend_from_slice(&call_id.to_le_bytes());
@@ -313,6 +317,7 @@ impl<'a, T: Send + Sync + Clone> RpcServer<'a, T> {
         } else {
             msg.extend_from_slice(&(0 as usize).to_le_bytes());
         }
-        ipc_channel.send_message(&msg)
+
+        Ok(ipc_channel.send_message(&msg)?)
     }
 }

@@ -5,12 +5,9 @@ use crate::{
 use clap::Parser;
 use hal::MOSHal;
 use utils::{parse_hex16, parse_hex32, parse_hex64};
-use virtio_drivers::transport::{
-    pci::{
-        bus::{Cam, Command, DeviceFunction, PciRoot},
-        PciTransport,
-    },
-    Transport,
+use virtio_drivers::transport::pci::{
+    bus::{Cam, Command, DeviceFunction, PciRoot},
+    PciTransport,
 };
 
 mod drivers;
@@ -43,20 +40,24 @@ fn main() -> () {
     println!("VirtIO Driver for MOS");
 
     let args = Args::parse();
-    println!("  Device Info");
-    println!("    Vendor: 0x{:x}", args.vendor_id);
-    println!("    Device: 0x{:x}", args.device_id);
-    println!("    MMIO Base: 0x{:x}", args.mmio_base);
+
+    #[cfg(feature = "debug")]
+    {
+        println!("  Device Info");
+        println!("    Vendor: 0x{:x}", args.vendor_id);
+        println!("    Device: 0x{:x}", args.device_id);
+        println!("    MMIO Base: 0x{:x}", args.mmio_base);
+    }
 
     // const u32 location = (bus << 16) | (device << 8) | function;
     let bus = (args.location >> 16) as u8;
     let device = ((args.location >> 8) & 0xff) as u8;
     let function = (args.location & 0xff) as u8;
 
-    println!("  PCI Info");
-    println!("    Bus: 0x{:x}", bus);
-    println!("    Device: 0x{:x}", device);
-    println!("    Function: 0x{:x}", function);
+    println!(
+        "Device Location: 0x{:x}, Device: 0x{:x}, Function: 0x{:x}",
+        bus, device, function
+    );
 
     let mut pci_root = unsafe {
         libdma_init();
@@ -72,11 +73,14 @@ fn main() -> () {
         function,
     };
 
-    let (status, command) = pci_root.get_status_command(device_function);
-    println!(
-        "Found {}, status {:?} command {:?}",
-        device_function, status, command
-    );
+    #[cfg(feature = "debug")]
+    {
+        let (status, command) = pci_root.get_status_command(device_function);
+        println!(
+            "Found {}, status {:?} command {:?}",
+            device_function, status, command
+        );
+    }
 
     // Enable the device to use its BARs.
     pci_root.set_command(
@@ -84,18 +88,16 @@ fn main() -> () {
         Command::IO_SPACE | Command::MEMORY_SPACE | Command::BUS_MASTER,
     );
 
+    #[cfg(feature = "debug")]
     for bar in 0..6 {
         let bar_info = pci_root.bar_info(device_function, bar).unwrap();
         println!("BAR {}: {:#x?}", bar, bar_info);
     }
 
-    let mut transport = PciTransport::new::<MOSHal>(&mut pci_root, device_function).unwrap();
+    let transport = PciTransport::new::<MOSHal>(&mut pci_root, device_function).unwrap();
 
-    println!(
-        "Detected virtio PCI device '{:?}', feature={:#018x}",
-        transport.device_type(),
-        transport.read_device_features(),
-    );
+    #[cfg(feature = "debug")]
+    println!("Detected virtio PCI device '{:?}'", transport.device_type());
 
     start_device(transport, device_function).expect("failed to start device")
 }

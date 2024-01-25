@@ -17,7 +17,7 @@ pub(crate) const RPC_ARG_MAGIC: u32 = make_4cc!('R', 'P', 'C', 'A');
 
 // ! RPC Servers
 pub(crate) mod impl_server;
-pub use impl_server::{RpcCallContext, RpcCallFuncInfo, RpcServer};
+pub use impl_server::{RpcCallContext, RpcCallFuncInfo, RpcResult, RpcServer};
 
 #[macro_export]
 macro_rules! rpc_server_function {

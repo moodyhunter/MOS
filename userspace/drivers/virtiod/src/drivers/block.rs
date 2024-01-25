@@ -1,9 +1,8 @@
-use std::{
-    io::Error,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
-use librpc_rs::{rpc_server_function, RpcCallContext, RpcCallFuncInfo, RpcServer, RpcStub};
+use librpc_rs::{
+    rpc_server_function, RpcCallContext, RpcCallFuncInfo, RpcResult, RpcServer, RpcStub,
+};
 use protobuf::MessageField;
 use virtio_drivers::{
     device::blk::VirtIOBlk,
@@ -16,7 +15,7 @@ use crate::{
         Read_request, Read_response, Register_dev_request, Register_dev_response, Write_request,
         Write_response,
     },
-    result_ok,
+    result_err, result_ok,
 };
 
 struct SafeVirtIOBlk(VirtIOBlk<MOSHal, PciTransport>);
@@ -31,7 +30,7 @@ struct BlockDevDriver {
 }
 
 impl BlockDevDriver {
-    pub fn register(&mut self) -> Result<(), Error> {
+    pub fn register(&mut self) -> RpcResult<()> {
         let dev = &self.blockdev.lock().unwrap().0;
 
         let request = Register_dev_request {
@@ -47,46 +46,41 @@ impl BlockDevDriver {
         Ok(())
     }
 
-    pub fn on_read(&mut self, ctx: &mut RpcCallContext) -> Result<(), Error> {
-        let dev = &mut self.blockdev.lock().unwrap().0;
-
+    pub fn on_read(&mut self, ctx: &mut RpcCallContext) -> RpcResult<()> {
         let arg: Read_request = ctx.get_arg_pb(0)?;
-        println!(
-            "read reqeust: block {}, nblocks {}",
-            arg.n_boffset, arg.n_blocks
-        );
-
         let mut buf = vec![0u8; 512 * arg.n_blocks as usize];
 
-        dev.read_blocks(arg.n_boffset as _, &mut buf)
-            .expect("failed to read");
+        let virtioblk = &mut self.blockdev.lock().unwrap().0;
 
-        let resp = Read_response {
-            result: result_ok!(),
-            data: buf,
-            ..Default::default()
+        let resp = match virtioblk.read_blocks(arg.n_boffset as _, &mut buf) {
+            Ok(()) => Read_response {
+                result: result_ok!(),
+                data: buf,
+                ..Default::default()
+            },
+            Err(e) => Read_response {
+                result: result_err!(format!("failed to read: {}", e)),
+                ..Default::default()
+            },
         };
 
         ctx.write_response_pb(&resp)
     }
 
-    pub fn on_write(&mut self, ctx: &mut RpcCallContext) -> Result<(), Error> {
+    pub fn on_write(&mut self, ctx: &mut RpcCallContext) -> RpcResult<()> {
         let arg: Write_request = ctx.get_arg_pb(0)?;
 
-        println!(
-            "write reqeust: block {}, nblocks {}",
-            arg.n_boffset, arg.n_blocks
-        );
+        let virtioblk = &mut self.blockdev.lock().unwrap().0;
 
-        // let mut dev = unsafe { BLOCKDEV.get() }.unwrap().lock().unwrap();
-        let dev = &mut self.blockdev.lock().unwrap().0;
-
-        dev.write_blocks(arg.n_boffset as _, &arg.data)
-            .expect("failed to write");
-
-        let resp = Write_response {
-            result: result_ok!(),
-            ..Default::default()
+        let resp = match virtioblk.write_blocks(arg.n_boffset as _, &arg.data) {
+            Ok(()) => Write_response {
+                result: result_ok!(),
+                ..Default::default()
+            },
+            Err(e) => Write_response {
+                result: result_err!(format!("failed to write: {}", e)),
+                ..Default::default()
+            },
         };
 
         ctx.write_response_pb(&resp)
@@ -98,8 +92,7 @@ const FUNCTIONS: &[RpcCallFuncInfo<BlockDevDriver>] = &[
     rpc_server_function!(2, BlockDevDriver::on_write, Buffer),
 ];
 
-// virtiod --vendor-id 1af4 --device-id 1001 --location 0300 --mmio-base b0000000
-pub fn run_blockdev(transport: PciTransport, function: DeviceFunction) -> Result<(), Error> {
+pub fn run_blockdev(transport: PciTransport, function: DeviceFunction) -> RpcResult<()> {
     let devname = format!(
         "{:02x}:{:02x}:{:02x}",
         function.bus, function.device, function.function
@@ -118,6 +111,5 @@ pub fn run_blockdev(transport: PciTransport, function: DeviceFunction) -> Result
 
     driver.register()?;
 
-    println!("rpc server running...");
     rpc_server.run(&mut driver)
 }
