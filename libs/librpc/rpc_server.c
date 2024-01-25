@@ -256,6 +256,9 @@ void rpc_server_exec(rpc_server_t *server)
 
         if (IS_ERR_VALUE(client_fd))
         {
+            if ((long) client_fd == -EINTR)
+                continue;
+
             if ((long) client_fd == -ECONNABORTED)
                 break; // server closed
 
