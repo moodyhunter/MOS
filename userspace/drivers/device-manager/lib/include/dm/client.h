@@ -5,6 +5,5 @@
 #include "common.h"
 
 #include <librpc/rpc_client.h>
-#include <mos_stdio.h>
 
 RPC_CLIENT_DEFINE_SIMPLECALL(dm, DM_RPCS_X)

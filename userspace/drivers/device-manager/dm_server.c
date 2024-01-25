@@ -14,12 +14,11 @@ static rpc_result_code_t dm_register_device(rpc_server_t *server, rpc_context_t 
     MOS_UNUSED(data);
 
     rpc_result_code_t result = RPC_RESULT_OK;
-    u64 mmio_base;
 
-    u32 vendor = rpc_arg_u32(context, 0);
-    u32 device = rpc_arg_u32(context, 1);
-    u32 location = rpc_arg_u32(context, 2);
-    mmio_base = rpc_arg_u64(context, 3);
+    s32 vendor = rpc_arg_s32(context, 0);
+    s32 device = rpc_arg_s32(context, 1);
+    s32 location = rpc_arg_s32(context, 2);
+    ptr_t mmio_base = rpc_arg_s64(context, 3);
 
     try_start_driver(vendor, device, location, mmio_base);
     return result;
