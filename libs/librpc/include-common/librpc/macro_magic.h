@@ -46,8 +46,8 @@
  * RPC_DECL_SERVER_PROTOTYPES(my_rpc, MY_RPC_X)
  *     this generates the function prototypes and the function info array
  *     i.e.
- *       static int my_rpc_foo(rpc_server_t *server, rpc_context_t* context, ...args...);
- *       static int my_rpc_bar(rpc_server_t *server, my_rpc_bar_request *req, my_rpc_bar_response *resp, ...args...);
+ *       static int my_rpc_foo(rpc_context_t *ctx, ...args...);
+ *       static int my_rpc_bar(rpc_context_t *ctx, my_rpc_bar_request *req, my_rpc_bar_response *resp);
  *       static const rpc_function_info_t my_rpc_functions[] = ...;
  *     which should be implemented by the user, and the function info array should be passed to
  *     \ref rpc_server_register_functions
