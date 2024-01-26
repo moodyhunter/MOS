@@ -7,45 +7,53 @@
 #include <librpc/rpc.h>
 #include <librpc/rpc_server.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-static rpc_server_t *server;
-
 RPC_DECL_SERVER_PROTOTYPES(syslogd, SYSLOGD_RPC_X)
 
-static rpc_result_code_t syslogd_set_name(rpc_server_t *server, rpc_context_t *context, void *data)
+static void syslogd_on_connect(rpc_context_t *context)
 {
-    MOS_UNUSED(server);
-    const char *name = rpc_arg(context, 0, RPC_ARGTYPE_STRING, NULL);
-    MOS_UNUSED(data);
+    const char *name = "<unknown>";
+    rpc_context_set_data(context, strdup(name));
+}
+
+static void syslogd_on_disconnect(rpc_context_t *context)
+{
+    void *data = rpc_context_get_data(context);
+    if (data != NULL)
+        free(data); // client name
+    MOS_UNUSED(context);
+}
+
+static rpc_result_code_t syslogd_set_name(rpc_context_t *context, const char *name)
+{
+    MOS_UNUSED(context);
 
     if (name == NULL)
         return RPC_RESULT_INVALID_ARGUMENT;
 
     printf("syslogd: setting name to '%s'\n", name);
-
+    void *old = rpc_context_set_data(context, strdup(name));
+    if (old != NULL)
+        free(old);
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t syslogd_log(rpc_server_t *server, rpc_context_t *context, void *data)
+static rpc_result_code_t syslogd_log(rpc_context_t *context, const char *message)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
-    const char *message = rpc_arg(context, 0, RPC_ARGTYPE_STRING, NULL);
-    printf("%s\n", message);
+    MOS_UNUSED(context);
+    void *data = rpc_context_get_data(context);
+    printf("[%s] %s\n", (char *) data, message);
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t syslogd_logc(rpc_server_t *server, rpc_context_t *context, void *data)
+static rpc_result_code_t syslogd_logc(rpc_context_t *context, const char *category, const char *message)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
-    const char *category = rpc_arg(context, 0, RPC_ARGTYPE_STRING, NULL);
-    const char *msg = rpc_arg(context, 1, RPC_ARGTYPE_STRING, NULL);
-    printf("[%s] %s\n", category, msg);
+    MOS_UNUSED(context);
+    void *data = rpc_context_get_data(context);
+    printf("[%s] [%s] %s\n", (char *) data, category, message);
     return RPC_RESULT_OK;
 }
 
@@ -55,7 +63,10 @@ int main(int argc, char **argv)
     MOS_UNUSED(argv);
 
     puts("syslogd: starting");
-    server = rpc_server_create(SYSLOGD_SERVICE_NAME, NULL);
+
+    rpc_server_t *const server = rpc_server_create(SYSLOGD_SERVICE_NAME, NULL);
+    rpc_server_set_on_connect(server, syslogd_on_connect);
+    rpc_server_set_on_disconnect(server, syslogd_on_disconnect);
     rpc_server_register_functions(server, syslogd_functions, MOS_ARRAY_SIZE(syslogd_functions));
     rpc_server_exec(server);
 

@@ -46,8 +46,8 @@
  * RPC_DECL_SERVER_PROTOTYPES(my_rpc, MY_RPC_X)
  *     this generates the function prototypes and the function info array
  *     i.e.
- *       static int my_rpc_foo(rpc_server_t *server, rpc_context_t* context, void *data);
- *       static int my_rpc_bar(rpc_server_t *server, my_rpc_bar_request *req, my_rpc_bar_response *resp, void *data);
+ *       static int my_rpc_foo(rpc_server_t *server, rpc_context_t* context, ...args...);
+ *       static int my_rpc_bar(rpc_server_t *server, my_rpc_bar_request *req, my_rpc_bar_response *resp, ...args...);
  *       static const rpc_function_info_t my_rpc_functions[] = ...;
  *     which should be implemented by the user, and the function info array should be passed to
  *     \ref rpc_server_register_functions
@@ -121,6 +121,17 @@
 #define _RPC_ARGTYPE_STRING const char *
 #define _RPC_ARGTYPE_BUFFER const void *
 
+#define _RPC_GETARG_UINT8  u8
+#define _RPC_GETARG_UINT16 u16
+#define _RPC_GETARG_UINT32 u32
+#define _RPC_GETARG_UINT64 u64
+#define _RPC_GETARG_INT8   s8
+#define _RPC_GETARG_INT16  s16
+#define _RPC_GETARG_INT32  s32
+#define _RPC_GETARG_INT64  s64
+#define _RPC_GETARG_STRING string
+#define _RPC_GETARG_BUFFER buffer
+
 #define X_GENERATE_PROTOTYPE_ARG(type, name) , _RPC_ARGTYPE_##type name
 #define RPC_GENERATE_PROTOTYPE(y)            X_GENERATE_PROTOTYPE_##y
 
@@ -133,7 +144,16 @@
     static const rpc_function_info_t prefix##_functions[] = { X_MACRO(X_GENERATE_FUNCTION_INFO_ARGS, X_GENERATE_FUNCTION_INFO_PB, prefix##_) };                          \
     MOS_WARNING_POP
 
-#define X_GENERATE_FUNCTION_FORWARDS_ARGS(prefix, _id, _func, ...) static rpc_result_code_t prefix##_func(rpc_server_t *server, rpc_context_t *context, void *data);
+#define X_RPC_DO_GET_ARG(type, name) _RPC_ARGTYPE_##type name = MOS_CONCAT(rpc_arg_next_, EXPAND(_RPC_GETARG_##type))(context);
+#define X_RPC_GET_ARG(arg)           X_RPC_DO_GET_##arg
+
+#define X_GENERATE_FUNCTION_FORWARDS_ARGS(prefix, _id, _func, _FUNC, _spec, ...)                                                                                         \
+    static rpc_result_code_t prefix##_func(rpc_context_t *context __VA_OPT__(FOR_EACH(RPC_GENERATE_PROTOTYPE, __VA_ARGS__)));                                            \
+    static rpc_result_code_t prefix##_func##_wrapper(rpc_context_t *context)                                                                                             \
+    {                                                                                                                                                                    \
+        __VA_OPT__(FOR_EACH(X_RPC_GET_ARG, __VA_ARGS__))                                                                                                                 \
+        return prefix##_func(context FOR_EACH(RPC_EXTRACT_NAME, __VA_ARGS__));                                                                                           \
+    }
 
 // clang-format off
 #define X_COUNT_ARGUMENTS_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, N, ...) N
@@ -148,18 +168,19 @@
     { .function_id = _fid, .func = _func, .args_count = _nargs, .args_type = { FOR_EACH(X_GENERATE_FUNCTION_INFO_ARGS_X, __VA_ARGS__) } },
 #define X_DO_GENERATE_FUNCION_INFO_PB(_fid, _func) { .function_id = _fid, .func = _func, .args_count = 1, .args_type = { RPC_ARGTYPE_BUFFER } },
 
-#define X_GENERATE_FUNCTION_INFO_ARGS(prefix, fid, func, _1, _2, ...) X_DO_GENERATE_FUNCION_INFO_ARGS(fid, prefix##func, X_COUNT_ARGUMENTS(__VA_ARGS__), __VA_ARGS__)
-#define X_GENERATE_FUNCTION_INFO_PB(prefix, fid, func, _1, _2, ...)   X_DO_GENERATE_FUNCION_INFO_PB(fid, prefix##func##_pb_wrapper)
+#define X_GENERATE_FUNCTION_INFO_ARGS(prefix, fid, func, _1, _2, ...)                                                                                                    \
+    X_DO_GENERATE_FUNCION_INFO_ARGS(fid, prefix##func##_wrapper, X_COUNT_ARGUMENTS(__VA_ARGS__), __VA_ARGS__)
+#define X_GENERATE_FUNCTION_INFO_PB(prefix, fid, func, _1, _2, ...) X_DO_GENERATE_FUNCION_INFO_PB(fid, prefix##func##_pb_wrapper)
 
 #define X_GENERATE_FUNCTION_FORWARDS_PB(prefix, _id, _func, _FUNC, reqtype, resptype)                                                                                    \
-    static rpc_result_code_t prefix##_func(rpc_server_t *server, reqtype *req, resptype *resp, void *data);                                                              \
-    static rpc_result_code_t prefix##_func##_pb_wrapper(rpc_server_t *server, rpc_context_t *context, void *data)                                                        \
+    static rpc_result_code_t prefix##_func(rpc_context_t *context, reqtype *req, resptype *resp);                                                                        \
+    static rpc_result_code_t prefix##_func##_pb_wrapper(rpc_context_t *context)                                                                                          \
     {                                                                                                                                                                    \
         reqtype req = { 0 };                                                                                                                                             \
         if (!rpc_arg_pb(reqtype, req, context, 0))                                                                                                                       \
             return RPC_RESULT_SERVER_INTERNAL_ERROR;                                                                                                                     \
         resptype resp = resptype##_init_zero;                                                                                                                            \
-        const rpc_result_code_t result = prefix##_func(server, &req, &resp, data);                                                                                       \
+        const rpc_result_code_t result = prefix##_func(context, &req, &resp);                                                                                            \
         pb_release(reqtype##_fields, &req);                                                                                                                              \
         rpc_write_result_pb(resptype, resp, context);                                                                                                                    \
         pb_release(resptype##_fields, &resp);                                                                                                                            \

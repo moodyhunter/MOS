@@ -19,11 +19,8 @@ RPC_DECL_SERVER_PROTOTYPES(ramdisk_server, BLOCKDEV_SERVER_RPC_X);
 
 static std::unique_ptr<RAMDisk> rd = nullptr;
 
-static rpc_result_code_t ramdisk_server_read_block(rpc_server_t *server, mos_rpc_blockdev_read_request *req, mos_rpc_blockdev_read_response *resp, void *data)
+static rpc_result_code_t ramdisk_server_read_block(rpc_context_t *, mos_rpc_blockdev_read_request *req, mos_rpc_blockdev_read_response *resp)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
     if (req->n_boffset + req->n_blocks > rd->nblocks())
     {
         resp->result.success = false;
@@ -41,11 +38,8 @@ static rpc_result_code_t ramdisk_server_read_block(rpc_server_t *server, mos_rpc
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t ramdisk_server_write_block(rpc_server_t *server, mos_rpc_blockdev_write_request *req, mos_rpc_blockdev_write_response *resp, void *data)
+static rpc_result_code_t ramdisk_server_write_block(rpc_context_t *, mos_rpc_blockdev_write_request *req, mos_rpc_blockdev_write_response *resp)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
     rd->write_block(req->n_boffset, req->n_blocks, req->data->bytes);
 
     resp->result.success = true;

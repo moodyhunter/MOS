@@ -28,20 +28,15 @@ enum
     CALC_DIV = 3,
 };
 
-static rpc_result_code_t testserver_ping(rpc_server_t *server, rpc_context_t *context, void *data)
+static rpc_result_code_t testserver_ping(rpc_context_t *context)
 {
-    MOS_UNUSED(server);
     MOS_UNUSED(context);
-    MOS_UNUSED(data);
     printf("!!!!!!!!!!! ping !!!!!!!!!!!\n");
     return 0;
 }
 
-static rpc_result_code_t testserver_echo(rpc_server_t *server, rpc_context_t *context, void *data)
+static rpc_result_code_t testserver_echo(rpc_context_t *context)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
     size_t arg1_size = 0;
     const char *arg1 = rpc_arg_next(context, &arg1_size);
     printf("echo server: received '%.*s'\n", (int) arg1_size, arg1);
@@ -50,11 +45,8 @@ static rpc_result_code_t testserver_echo(rpc_server_t *server, rpc_context_t *co
     return 0;
 }
 
-static rpc_result_code_t testserver_calculation(rpc_server_t *server, rpc_context_t *context, void *data)
+static rpc_result_code_t testserver_calculation(rpc_context_t *context)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
     size_t arg1_size;
     const int *a = rpc_arg_next(context, &arg1_size);
     size_t arg2_size;
@@ -78,14 +70,10 @@ static rpc_result_code_t testserver_calculation(rpc_server_t *server, rpc_contex
     return 0;
 }
 
-static rpc_result_code_t rpc_server_do_close(rpc_server_t *server, rpc_context_t *context, void *data)
+static rpc_result_code_t rpc_server_do_close(rpc_context_t *context)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(context);
-    MOS_UNUSED(data);
-
-    printf("rpc_server_close\n");
-    rpc_server_close(server);
+    puts("rpc_server_close");
+    rpc_server_close(rpc_context_get_server(context));
     return 0;
 }
 

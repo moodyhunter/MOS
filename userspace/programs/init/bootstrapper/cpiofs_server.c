@@ -95,11 +95,8 @@ static cpio_inode_t *cpio_trycreate_i(const char *path)
     return cpio_inode;
 }
 
-static rpc_result_code_t cpiofs_mount(rpc_server_t *server, mos_rpc_fs_mount_request *req, mos_rpc_fs_mount_response *resp, void *data)
+static rpc_result_code_t cpiofs_mount(rpc_context_t *, mos_rpc_fs_mount_request *req, mos_rpc_fs_mount_response *resp)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
     if (req->options && strlen(req->options) > 0 && strcmp(req->options, "defaults") != 0)
         printf("cpio: mount option '%s' is not supported\n", req->options);
 
@@ -121,11 +118,8 @@ static rpc_result_code_t cpiofs_mount(rpc_server_t *server, mos_rpc_fs_mount_req
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t cpiofs_readdir(rpc_server_t *server, mos_rpc_fs_readdir_request *req, mos_rpc_fs_readdir_response *resp, void *data)
+static rpc_result_code_t cpiofs_readdir(rpc_context_t *, mos_rpc_fs_readdir_request *req, mos_rpc_fs_readdir_response *resp)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
     cpio_inode_t *inode = (cpio_inode_t *) req->i_ref.data;
 
     char path_prefix[inode->name_length + 1]; // +1 for null terminator
@@ -205,11 +199,8 @@ static rpc_result_code_t cpiofs_readdir(rpc_server_t *server, mos_rpc_fs_readdir
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t cpiofs_lookup(rpc_server_t *server, mos_rpc_fs_lookup_request *req, mos_rpc_fs_lookup_response *resp, void *data)
+static rpc_result_code_t cpiofs_lookup(rpc_context_t *, mos_rpc_fs_lookup_request *req, mos_rpc_fs_lookup_response *resp)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
     char pathbuf[PATH_MAX] = { 0 };
     cpio_inode_t *parent_diri = (cpio_inode_t *) req->i_ref.data;
     read_initrd(pathbuf, parent_diri->name_length, parent_diri->name_offset);
@@ -248,11 +239,8 @@ static rpc_result_code_t cpiofs_lookup(rpc_server_t *server, mos_rpc_fs_lookup_r
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t cpiofs_readlink(rpc_server_t *server, mos_rpc_fs_readlink_request *req, mos_rpc_fs_readlink_response *resp, void *data)
+static rpc_result_code_t cpiofs_readlink(rpc_context_t *, mos_rpc_fs_readlink_request *req, mos_rpc_fs_readlink_response *resp)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
     cpio_inode_t *cpio_i = (cpio_inode_t *) req->i_ref.data;
     char path[cpio_i->data_offset + cpio_i->pb_i.size + 1];
     read_initrd(path, cpio_i->pb_i.size, cpio_i->data_offset);
@@ -263,11 +251,8 @@ static rpc_result_code_t cpiofs_readlink(rpc_server_t *server, mos_rpc_fs_readli
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t cpiofs_getpage(rpc_server_t *server, mos_rpc_fs_getpage_request *req, mos_rpc_fs_getpage_response *resp, void *data)
+static rpc_result_code_t cpiofs_getpage(rpc_context_t *, mos_rpc_fs_getpage_request *req, mos_rpc_fs_getpage_response *resp)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
     cpio_inode_t *cpio_i = (cpio_inode_t *) req->i_ref.data;
 
     if (req->pgoff * MOS_PAGE_SIZE >= cpio_i->pb_i.size)

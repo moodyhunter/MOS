@@ -8,12 +8,14 @@
 
 #include <mos/types.h>
 
-#define RPC_MAX_ARGS 8
+#define RPC_MAX_ARGS 16
 
 typedef struct _rpc_server rpc_server_t;
 typedef struct _rpc_context rpc_context_t;
 
-typedef rpc_result_code_t (*rpc_function_t)(rpc_server_t *server, rpc_context_t *context, void *data);
+typedef void (*rpc_server_on_connect_t)(rpc_context_t *context);     // called when a client connects
+typedef void (*rpc_server_on_disconnect_t)(rpc_context_t *context);  // called when a client disconnects
+typedef rpc_result_code_t (*rpc_function_t)(rpc_context_t *context); // called when a client calls a function
 
 typedef struct rpc_function_info
 {
@@ -31,6 +33,22 @@ typedef struct rpc_function_info
  * @return rpc_server_t* A pointer to the new server
  */
 MOSAPI rpc_server_t *rpc_server_create(const char *server_name, void *data);
+
+/**
+ * @brief Sets the callback function to be called when a client connects to the RPC server.
+ *
+ * @param server The RPC server instance.
+ * @param on_connect The callback function to be called when a client connects.
+ */
+MOSAPI void rpc_server_set_on_connect(rpc_server_t *server, rpc_server_on_connect_t on_connect);
+
+/**
+ * @brief Sets the callback function to be called when a client disconnects from the RPC server.
+ *
+ * @param server The RPC server instance.
+ * @param on_disconnect The callback function to be called when a client disconnects.
+ */
+MOSAPI void rpc_server_set_on_disconnect(rpc_server_t *server, rpc_server_on_disconnect_t on_disconnect);
 
 /**
  * @brief Set the user data for the server
@@ -68,6 +86,45 @@ MOSAPI void rpc_server_exec(rpc_server_t *server);
 MOSAPI bool rpc_server_register_functions(rpc_server_t *server, const rpc_function_info_t *functions, size_t count);
 
 /**
+ * @brief Close the RPC server
+ *
+ * @param server The server to close
+ */
+MOSAPI void rpc_server_close(rpc_server_t *server);
+
+/**
+ * @brief Destroy the RPC server
+ *
+ * @param server The server to destroy
+ */
+MOSAPI void rpc_server_destroy(rpc_server_t *server);
+
+/**
+ * @brief Get the context data for an RPC context
+ *
+ * @param context The context to get the data for
+ * @return MOSAPI*
+ */
+MOSAPI void *rpc_context_get_data(const rpc_context_t *context);
+
+/**
+ * @brief Set the context data for an RPC client
+ *
+ * @param context The context to set the data for
+ * @param data The data to set
+ * @return void* The previous data, or NULL if there was no previous data
+ */
+MOSAPI void *rpc_context_set_data(rpc_context_t *context, void *data);
+
+/**
+ * @brief Get the RPC server instance for an RPC call context
+ *
+ * @param context The context to get the server for
+ * @return rpc_server_t* The server
+ */
+MOSAPI rpc_server_t *rpc_context_get_server(const rpc_context_t *context);
+
+/**
  * @brief Iterate to the next argument
  *
  * @param args The argument iterator
@@ -88,9 +145,17 @@ MOSAPI const void *rpc_arg_next(rpc_context_t *args, size_t *size);
  * @note Do not modify any of the data in the returned pointer.
  */
 MOSAPI const void *rpc_arg_sized_next(rpc_context_t *iter, size_t expected_size);
+MOSAPI u8 rpc_arg_next_u8(rpc_context_t *args);
+MOSAPI u16 rpc_arg_next_u16(rpc_context_t *args);
+MOSAPI u32 rpc_arg_next_u32(rpc_context_t *args);
+MOSAPI u64 rpc_arg_next_u64(rpc_context_t *args);
+MOSAPI s8 rpc_arg_next_s8(rpc_context_t *args);
+MOSAPI s16 rpc_arg_next_s16(rpc_context_t *args);
+MOSAPI s32 rpc_arg_next_s32(rpc_context_t *args);
+MOSAPI s64 rpc_arg_next_s64(rpc_context_t *args);
+MOSAPI const char *rpc_arg_next_string(rpc_context_t *context);
 
 MOSAPI const void *rpc_arg(const rpc_context_t *context, size_t iarg, rpc_argtype_t type, size_t *argsize);
-
 MOSAPI u8 rpc_arg_u8(const rpc_context_t *context, size_t iarg);
 MOSAPI u16 rpc_arg_u16(const rpc_context_t *context, size_t iarg);
 MOSAPI u32 rpc_arg_u32(const rpc_context_t *context, size_t iarg);
@@ -99,6 +164,7 @@ MOSAPI s8 rpc_arg_s8(const rpc_context_t *context, size_t iarg);
 MOSAPI s16 rpc_arg_s16(const rpc_context_t *context, size_t iarg);
 MOSAPI s32 rpc_arg_s32(const rpc_context_t *context, size_t iarg);
 MOSAPI s64 rpc_arg_s64(const rpc_context_t *context, size_t iarg);
+MOSAPI const char *rpc_arg_string(const rpc_context_t *context, size_t iarg);
 
 // so we can use protobuf (nanopb) with librpc
 #define rpc_arg_pb(type, val, context, argid)                                                                                                                            \
@@ -126,12 +192,3 @@ MOSAPI void rpc_write_result(rpc_context_t *context, const void *data, size_t si
         if (retval)                                                                                                                                                      \
             rpc_write_result(context, buffer, stream.bytes_written);                                                                                                     \
     })
-
-MOSAPI void rpc_server_close(rpc_server_t *server);
-
-/**
- * @brief Destroy the RPC server
- *
- * @param server The server to destroy
- */
-MOSAPI void rpc_server_destroy(rpc_server_t *server);

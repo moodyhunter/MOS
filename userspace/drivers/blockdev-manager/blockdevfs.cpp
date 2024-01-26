@@ -35,11 +35,8 @@ struct blockdevfs_inode
 
 static blockdevfs_inode *root = NULL;
 
-static rpc_result_code_t blockdevfs_mount(rpc_server_t *server, mos_rpc_fs_mount_request *req, mos_rpc_fs_mount_response *resp, void *data)
+static rpc_result_code_t blockdevfs_mount(rpc_context_t *, mos_rpc_fs_mount_request *req, mos_rpc_fs_mount_response *resp)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
     if (req->options && strlen(req->options) > 0 && strcmp(req->options, "defaults") != 0)
         printf("blockdevfs: mount option '%s' is not supported\n", req->options);
 
@@ -76,11 +73,8 @@ static rpc_result_code_t blockdevfs_mount(rpc_server_t *server, mos_rpc_fs_mount
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t blockdevfs_readdir(rpc_server_t *server, mos_rpc_fs_readdir_request *req, mos_rpc_fs_readdir_response *resp, void *data)
+static rpc_result_code_t blockdevfs_readdir(rpc_context_t *, mos_rpc_fs_readdir_request *req, mos_rpc_fs_readdir_response *resp)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
     if (req->i_ref.data != (ptr_t) root)
     {
         resp->result.success = false;
@@ -106,13 +100,8 @@ static rpc_result_code_t blockdevfs_readdir(rpc_server_t *server, mos_rpc_fs_rea
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t blockdevfs_lookup(rpc_server_t *server, mos_rpc_fs_lookup_request *req, mos_rpc_fs_lookup_response *resp, void *data)
+static rpc_result_code_t blockdevfs_lookup(rpc_context_t *, mos_rpc_fs_lookup_request *req, mos_rpc_fs_lookup_response *resp)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(req);
-    MOS_UNUSED(resp);
-    MOS_UNUSED(data);
-
     if (req->i_ref.data != (ptr_t) root)
     {
         resp->result.success = false;
@@ -148,24 +137,18 @@ static rpc_result_code_t blockdevfs_lookup(rpc_server_t *server, mos_rpc_fs_look
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t blockdevfs_readlink(rpc_server_t *server, mos_rpc_fs_readlink_request *req, mos_rpc_fs_readlink_response *resp, void *data)
+static rpc_result_code_t blockdevfs_readlink(rpc_context_t *, mos_rpc_fs_readlink_request *req, mos_rpc_fs_readlink_response *resp)
 {
-    MOS_UNUSED(server);
     MOS_UNUSED(req);
-    MOS_UNUSED(resp);
-    MOS_UNUSED(data);
 
     resp->result.success = false;
     resp->result.error = strdup("blockdevfs: no symlinks expected in blockdevfs");
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t blockdevfs_getpage(rpc_server_t *server, mos_rpc_fs_getpage_request *req, mos_rpc_fs_getpage_response *resp, void *data)
+static rpc_result_code_t blockdevfs_getpage(rpc_context_t *, mos_rpc_fs_getpage_request *req, mos_rpc_fs_getpage_response *resp)
 {
-    MOS_UNUSED(server);
     MOS_UNUSED(req);
-    MOS_UNUSED(resp);
-    MOS_UNUSED(data);
 
     resp->result.success = false;
     resp->result.error = strdup("blockdevfs doen't support reading or writing pages");

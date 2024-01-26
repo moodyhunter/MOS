@@ -68,6 +68,8 @@ typedef struct _rpc_server
     ipcfd_t server_fd;
     size_t functions_count;
     rpc_function_info_t *functions;
+    rpc_server_on_connect_t on_connect;
+    rpc_server_on_disconnect_t on_disconnect;
 } rpc_server_t;
 
 typedef struct _rpc_args_iter
@@ -83,13 +85,11 @@ struct _rpc_reply_wrapper
 
 struct _rpc_context
 {
-    rpc_server_t *server;
     ipcfd_t client_fd;
-
+    rpc_server_t *server;
     rpc_request_t *request;
     rpc_response_t *response;
     rpc_args_iter_t arg_iter;
-
     void *data;
 };
 
@@ -104,6 +104,9 @@ static inline rpc_function_info_t *rpc_server_get_function(rpc_server_t *server,
 static void rpc_handle_client(void *arg)
 {
     rpc_context_t *context = (rpc_context_t *) arg;
+
+    if (context->server->on_connect)
+        context->server->on_connect(context);
 
     while (true)
     {
@@ -171,7 +174,7 @@ static void rpc_handle_client(void *arg)
         context->response = NULL;
         context->arg_iter = (rpc_args_iter_t){ 0 };
 
-        const rpc_result_code_t result = function->func(context->server, context, context->server->data);
+        const rpc_result_code_t result = function->func(context);
 
         if (context->response == NULL)
         {
@@ -191,10 +194,13 @@ static void rpc_handle_client(void *arg)
 
         if (!written)
         {
-            mos_warn("failed to write reply to client\n");
+            mos_warn("failed to write reply to client");
             break;
         }
     }
+
+    if (context->server->on_disconnect)
+        context->server->on_disconnect(context);
 
     syscall_io_close(context->client_fd);
     free(context);
@@ -221,6 +227,16 @@ rpc_server_t *rpc_server_create(const char *server_name, void *data)
         return NULL;
     }
     return server;
+}
+
+void rpc_server_set_on_connect(rpc_server_t *server, rpc_server_on_connect_t on_connect)
+{
+    server->on_connect = on_connect;
+}
+
+void rpc_server_set_on_disconnect(rpc_server_t *server, rpc_server_on_disconnect_t on_disconnect)
+{
+    server->on_disconnect = on_disconnect;
 }
 
 void rpc_server_close(rpc_server_t *server)
@@ -284,6 +300,23 @@ bool rpc_server_register_functions(rpc_server_t *server, const rpc_function_info
     return true;
 }
 
+void *rpc_context_get_data(const rpc_context_t *context)
+{
+    return context->data;
+}
+
+void *rpc_context_set_data(rpc_context_t *context, void *data)
+{
+    void *old = NULL;
+    __atomic_exchange(&context->data, &data, &old, __ATOMIC_SEQ_CST);
+    return old;
+}
+
+rpc_server_t *rpc_context_get_server(const rpc_context_t *context)
+{
+    return context->server;
+}
+
 const void *rpc_arg_next(rpc_context_t *context, size_t *size)
 {
     if (context->arg_iter.next_arg_index >= context->request->args_count)
@@ -313,6 +346,26 @@ const void *rpc_arg_sized_next(rpc_context_t *iter, size_t expected_size)
     if (size != expected_size)
         return NULL;
     return (void *) data;
+}
+
+#define RPC_ARG_NEXT_IMPL(type, TYPE)                                                                                                                                    \
+    type rpc_arg_next_##type(rpc_context_t *context)                                                                                                                     \
+    {                                                                                                                                                                    \
+        return *(type *) rpc_arg_next(context, NULL);                                                                                                                    \
+    }
+
+RPC_ARG_NEXT_IMPL(u8, UINT8)
+RPC_ARG_NEXT_IMPL(u16, UINT16)
+RPC_ARG_NEXT_IMPL(u32, UINT32)
+RPC_ARG_NEXT_IMPL(u64, UINT64)
+RPC_ARG_NEXT_IMPL(s8, INT8)
+RPC_ARG_NEXT_IMPL(s16, INT16)
+RPC_ARG_NEXT_IMPL(s32, INT32)
+RPC_ARG_NEXT_IMPL(s64, INT64)
+
+const char *rpc_arg_next_string(rpc_context_t *context)
+{
+    return rpc_arg_next(context, NULL);
 }
 
 const void *rpc_arg(const rpc_context_t *context, size_t iarg, rpc_argtype_t type, size_t *argsize)
@@ -348,6 +401,11 @@ RPC_GET_ARG_IMPL(s8, INT32)
 RPC_GET_ARG_IMPL(s16, INT32)
 RPC_GET_ARG_IMPL(s32, INT32)
 RPC_GET_ARG_IMPL(s64, INT64)
+
+const char *rpc_arg_string(const rpc_context_t *context, size_t iarg)
+{
+    return (const char *) rpc_arg(context, iarg, RPC_ARGTYPE_STRING, NULL);
+}
 
 void rpc_write_result(rpc_context_t *context, const void *data, size_t size)
 {

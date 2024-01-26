@@ -21,23 +21,17 @@ rpc_server_t *blockdev_server = NULL;
 std::map<int, blockdev_info> blockdev_list;    // blockdev id -> blockdev info
 static std::atomic_ulong next_blockdev_id = 2; // 1 is reserved for the root directory
 
-static rpc_result_code_t blockdev_manager_register_layer(rpc_server_t *server, mos_rpc_blockdev_register_layer_request *req,
-                                                         mos_rpc_blockdev_register_layer_response *resp, void *data)
+static rpc_result_code_t blockdev_manager_register_layer(rpc_context_t *, mos_rpc_blockdev_register_layer_request *req, mos_rpc_blockdev_register_layer_response *resp)
 {
     std::cout << "Got register_layer request" << std::endl;
-    MOS_UNUSED(server);
     MOS_UNUSED(req);
     MOS_UNUSED(resp);
-    MOS_UNUSED(data);
+
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t blockdev_manager_register_blockdev(rpc_server_t *server, mos_rpc_blockdev_register_dev_request *req,
-                                                            mos_rpc_blockdev_register_dev_response *resp, void *data)
+static rpc_result_code_t blockdev_manager_register_blockdev(rpc_context_t *, mos_rpc_blockdev_register_dev_request *req, mos_rpc_blockdev_register_dev_response *resp)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
     const auto it = std::find_if(blockdev_list.begin(), blockdev_list.end(), [&](const auto &blockdev) { return blockdev.second.name == req->blockdev_name; });
     if (it != blockdev_list.end())
     {
@@ -64,11 +58,8 @@ static rpc_result_code_t blockdev_manager_register_blockdev(rpc_server_t *server
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t blockdev_manager_open_device(rpc_server_t *server, mos_rpc_blockdev_opendev_request *req, mos_rpc_blockdev_opendev_response *resp, void *data)
+static rpc_result_code_t blockdev_manager_open_device(rpc_context_t *, mos_rpc_blockdev_opendev_request *req, mos_rpc_blockdev_opendev_response *resp)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
     const auto name = std::string_view(req->device_name);
     for (const auto &blockdev : blockdev_list)
     {

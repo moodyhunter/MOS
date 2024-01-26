@@ -8,28 +8,17 @@
 
 RPC_DECL_SERVER_PROTOTYPES(dm, DM_RPCS_X)
 
-static rpc_result_code_t dm_register_device(rpc_server_t *server, rpc_context_t *context, void *data)
+static rpc_result_code_t dm_register_device(rpc_context_t *context, s32 vendor, s32 devid, s32 location, s64 mmio_base)
 {
-    MOS_UNUSED(server);
-    MOS_UNUSED(data);
-
+    MOS_UNUSED(context);
     rpc_result_code_t result = RPC_RESULT_OK;
-
-    s32 vendor = rpc_arg_s32(context, 0);
-    s32 device = rpc_arg_s32(context, 1);
-    s32 location = rpc_arg_s32(context, 2);
-    ptr_t mmio_base = rpc_arg_s64(context, 3);
-
-    try_start_driver(vendor, device, location, mmio_base);
+    try_start_driver(vendor, devid, location, mmio_base);
     return result;
 }
 
-static rpc_result_code_t dm_register_driver(rpc_server_t *server, rpc_context_t *context, void *data)
+static rpc_result_code_t dm_register_driver(rpc_context_t *context)
 {
-    MOS_UNUSED(server);
     MOS_UNUSED(context);
-    MOS_UNUSED(data);
-
     rpc_result_code_t result = RPC_RESULT_OK;
     return result;
 }
