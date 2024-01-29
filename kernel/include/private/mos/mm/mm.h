@@ -68,7 +68,7 @@ typedef struct _vmap
     vmfault_handler_t on_fault;
 } vmap_t;
 
-#define pfn_va(pfn)        ((ptr_t) (platform_info->direct_map_base + (pfn) *MOS_PAGE_SIZE))
+#define pfn_va(pfn)        ((ptr_t) (platform_info->direct_map_base + (pfn) * (MOS_PAGE_SIZE)))
 #define va_pfn(va)         ((((ptr_t) (va)) - platform_info->direct_map_base) / MOS_PAGE_SIZE)
 #define va_phyframe(va)    (&phyframes[va_pfn(va)])
 #define phyframe_va(frame) ((ptr_t) pfn_va(phyframe_pfn(frame)))
@@ -78,8 +78,8 @@ phyframe_t *mm_get_free_page(void);
 phyframe_t *mm_get_free_page_raw(void);
 phyframe_t *mm_get_free_pages(size_t npages);
 
-void mm_free_page(phyframe_t *frame);
-void mm_free_pages(phyframe_t *frame, size_t npages);
+#define mm_free_page(frame)          pmm_free_frames(frame, 1)
+#define mm_free_pages(frame, npages) pmm_free_frames(frame, npages)
 
 /**
  * @brief Create a user-mode platform-dependent page table.

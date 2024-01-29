@@ -64,16 +64,6 @@ phyframe_t *mm_get_free_pages(size_t npages)
     return frame;
 }
 
-void mm_free_page(phyframe_t *frame)
-{
-    mm_free_pages(frame, 1);
-}
-
-void mm_free_pages(phyframe_t *frame, size_t npages)
-{
-    pmm_free_frames(frame, npages);
-}
-
 mm_context_t *mm_create_context(void)
 {
     mm_context_t *mmctx = kmalloc(mm_context_cache);
