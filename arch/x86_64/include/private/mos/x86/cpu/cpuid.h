@@ -7,6 +7,7 @@
 #include <mos/mos_global.h>
 #include <mos/types.h>
 
+//!! this feature list must start at line 11 for correct counting (see below...)
 #define CPU_FEATURE_FPU          1, 0, d, 0           // Floating-point unit on-chip
 #define CPU_FEATURE_VME          1, 0, d, 1           // Virtual 8086 mode extensions
 #define CPU_FEATURE_DE           1, 0, d, 2           // Debugging extensions
@@ -17,7 +18,6 @@
 #define CPU_FEATURE_MCE          1, 0, d, 7           // Machine Check Exception
 #define CPU_FEATURE_CX8          1, 0, d, 8           // CMPXCHG8 instruction
 #define CPU_FEATURE_APIC         1, 0, d, 9           // APIC on-chip
-#define CPU_FEATURE_1_0_d_10                          // reserved
 #define CPU_FEATURE_SEP          1, 0, d, 11          // SYSENTER and SYSEXIT instructions
 #define CPU_FEATURE_MTRR         1, 0, d, 12          // Memory Type Range Registers
 #define CPU_FEATURE_PGE          1, 0, d, 13          // Page Global Enable
@@ -27,7 +27,6 @@
 #define CPU_FEATURE_PSE36        1, 0, d, 17          // 36-bit page size extension
 #define CPU_FEATURE_PSN          1, 0, d, 18          // Processor Serial Number
 #define CPU_FEATURE_CLFSH        1, 0, d, 19          // CLFLUSH instruction
-#define CPU_FEATURE_1_0_d_20                          // reserved, NX for itanium only
 #define CPU_FEATURE_DS           1, 0, d, 21          // Debug store
 #define CPU_FEATURE_ACPI         1, 0, d, 22          // Thermal controls MSR for ACPI
 #define CPU_FEATURE_MMX          1, 0, d, 23          // MMX technology
@@ -63,64 +62,23 @@
 #define CPU_FEATURE_NX           0x80000001, 0, d, 20 // No-Execute Bit
 #define CPU_FEATURE_PDPE1GB      0x80000001, 0, d, 26 // GB pages
 
+// clang-format off
+#define FOR_ALL_CPU_FEATURES(M) \
+    M(FPU)      M(VME)      M(DE)       M(PSE)  M(TSC)      M(MSR)      M(PAE)          M(MCE)      M(CX8)      M(APIC)         \
+    M(SEP)      M(MTRR)     M(PGE)      M(MCA)  M(CMOV)     M(PAT)      M(PSE36)        M(PSN)      M(CLFSH)    M(DS)           \
+    M(ACPI)     M(MMX)      M(FXSR)     M(SSE)  M(SSE2)     M(SS)       M(HTT)          M(TM1)      M(IA64)     M(PBE)          \
+    M(SSE3)     M(SSSE3)    M(PCID)     M(DCA)  M(SSE4_1)   M(SSE4_2)   M(X2APIC)       M(MOVBE)    M(POPCNT)   M(TSC_DEADLINE) \
+    M(AES_NI)   M(XSAVE)    M(OSXSAVE)  M(AVX)  M(F16C)     M(RDRAND)   M(HYPERVISOR)   M(AVX2)     M(FSGSBASE) M(LA57)         \
+    M(XSAVES)   M(NX)       M(PDPE1GB)
+// clang-format on
+
+#define _do_count(leaf) __COUNTER__,
+MOS_STATIC_ASSERT(sizeof((int[]){ FOR_ALL_CPU_FEATURES(_do_count) }) / sizeof(int) == __LINE__ - 23, "FOR_ALL_CPU_FEATURES is incomplete");
+#undef _do_count
+
 #define x86_cpu_get_feature_impl(leaf, subleaf, reg, bit) (per_cpu(platform_info->cpu)->cpuinfo.cpuid[X86_CPUID_LEAF_ENUM(leaf, subleaf, reg, )] & (1 << bit))
 
 #define cpu_has_feature(feat) x86_cpu_get_feature_impl(feat)
-
-#define FOR_ALL_CPU_FEATURES(M)                                                                                                                                          \
-    M(FPU)                                                                                                                                                               \
-    M(VME)                                                                                                                                                               \
-    M(DE)                                                                                                                                                                \
-    M(PSE)                                                                                                                                                               \
-    M(TSC)                                                                                                                                                               \
-    M(MSR)                                                                                                                                                               \
-    M(PAE)                                                                                                                                                               \
-    M(MCE)                                                                                                                                                               \
-    M(CX8)                                                                                                                                                               \
-    M(APIC)                                                                                                                                                              \
-    M(SEP)                                                                                                                                                               \
-    M(MTRR)                                                                                                                                                              \
-    M(PGE)                                                                                                                                                               \
-    M(MCA)                                                                                                                                                               \
-    M(CMOV)                                                                                                                                                              \
-    M(PAT)                                                                                                                                                               \
-    M(PSE36)                                                                                                                                                             \
-    M(PSN)                                                                                                                                                               \
-    M(CLFSH)                                                                                                                                                             \
-    M(DS)                                                                                                                                                                \
-    M(ACPI)                                                                                                                                                              \
-    M(MMX)                                                                                                                                                               \
-    M(FXSR)                                                                                                                                                              \
-    M(SSE)                                                                                                                                                               \
-    M(SSE2)                                                                                                                                                              \
-    M(SS)                                                                                                                                                                \
-    M(HTT)                                                                                                                                                               \
-    M(TM1)                                                                                                                                                               \
-    M(IA64)                                                                                                                                                              \
-    M(PBE)                                                                                                                                                               \
-    M(SSE3)                                                                                                                                                              \
-    M(SSSE3)                                                                                                                                                             \
-    M(PCID)                                                                                                                                                              \
-    M(DCA)                                                                                                                                                               \
-    M(SSE4_1)                                                                                                                                                            \
-    M(SSE4_2)                                                                                                                                                            \
-    M(X2APIC)                                                                                                                                                            \
-    M(MOVBE)                                                                                                                                                             \
-    M(POPCNT)                                                                                                                                                            \
-    M(TSC_DEADLINE)                                                                                                                                                      \
-    M(AES_NI)                                                                                                                                                            \
-    M(XSAVE)                                                                                                                                                             \
-    M(OSXSAVE)                                                                                                                                                           \
-    M(AVX)                                                                                                                                                               \
-    M(F16C)                                                                                                                                                              \
-    M(RDRAND)                                                                                                                                                            \
-    M(HYPERVISOR)                                                                                                                                                        \
-    M(AVX2)                                                                                                                                                              \
-    M(FSGSBASE)                                                                                                                                                          \
-    M(LA57)                                                                                                                                                              \
-    M(XSAVES)                                                                                                                                                            \
-    M(NX)                                                                                                                                                                \
-    M(PDPE1GB)
 
 #define FOR_ALL_SUPPORTED_CPUID_LEAF(M)                                                                                                                                  \
     M(1, 0, d)                                                                                                                                                           \
