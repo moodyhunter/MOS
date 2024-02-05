@@ -15,9 +15,9 @@
 #define PER_CPU_VAR_INIT { .percpu_value = { 0 } }
 #define per_cpu(var) (&(var.percpu_value[platform_current_cpu_id()]))
 #else
-#define PER_CPU_DECLARE(type, name) struct name { type percpu_value; } name
-#define PER_CPU_VAR_INIT { .percpu_value = 0 }
-#define per_cpu(var) (&(var.percpu_value))
+#define PER_CPU_DECLARE(type, name) type name
+#define PER_CPU_VAR_INIT 0
+#define per_cpu(var) (&(var))
 #endif
 // clang-format on
 

@@ -47,7 +47,7 @@ typedef struct phyframe
     union
     {
         // number of times this frame is mapped, if this drops to 0, the frame is freed
-        atomic_t refcount;
+        atomic_t allocated_refcount;
     };
 
 } phyframe_t;

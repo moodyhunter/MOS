@@ -7,7 +7,7 @@
 #include <mos/x86/x86_platform.h>
 #include <mos_string.h>
 
-struct x86_cpu_descriptor x86_cpu_descriptor = { 0 };
+typeof(x86_cpu_descriptor) x86_cpu_descriptor = { 0 };
 
 typedef enum
 {

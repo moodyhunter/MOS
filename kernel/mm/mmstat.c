@@ -76,7 +76,7 @@ static bool mmstat_sysfs_phyframe_stat_show(sysfs_file_t *f)
     sysfs_printf(f, "type: %s\n", frame->state == PHYFRAME_FREE ? "free" : frame->state == PHYFRAME_ALLOCATED ? "allocated" : "reserved");
     sysfs_printf(f, "order: %u\n", frame->order);
     if (frame->state == PHYFRAME_ALLOCATED)
-        sysfs_printf(f, "refcnt: %zu\n", frame->refcount);
+        sysfs_printf(f, "refcnt: %zu\n", frame->allocated_refcount);
 
     return true;
 }
