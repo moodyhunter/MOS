@@ -422,28 +422,20 @@ DEFINE_SYSCALL(int, io_poll)(struct pollfd *fds, nfds_t nfds, int timeout)
     return 0;
 }
 
-#if __MLIBC_POSIX_OPTION
-// workaround for mlibc
-#undef FD_CLR
-#undef FD_ISSET
-#undef FD_SET
-#undef FD_ZERO
-void FD_CLR(int fd, fd_set *set)
-{
-    set->__mlibc_elems[fd / 8] &= ~(1 << (fd % 8));
-}
-int FD_ISSET(int fd, fd_set *set)
-{
-    return set->__mlibc_elems[fd / 8] & (1 << (fd % 8));
-}
-void FD_SET(int fd, fd_set *set)
-{
-    set->__mlibc_elems[fd / 8] |= 1 << (fd % 8);
-}
-void FD_ZERO(fd_set *set)
-{
-    memset(set->__mlibc_elems, 0, sizeof(fd_set));
-}
+#ifndef FD_CLR
+#define FD_CLR(__fd, __set) (__set->fds_bits[__fd / 8] &= ~(1 << (__fd % 8)))
+#endif
+
+#ifndef FD_ISSET
+#define FD_ISSET(__fd, __set) (__set->fds_bits[__fd / 8] & (1 << (__fd % 8)))
+#endif
+
+#ifndef FD_SET
+#define FD_SET(__fd, __set) (__set->fds_bits[__fd / 8] |= 1 << (__fd % 8))
+#endif
+
+#ifndef FD_ZERO
+#define FD_ZERO(__set) memset(__set->fds_bits, 0, sizeof(fd_set))
 #endif
 
 DEFINE_SYSCALL(int, io_pselect)(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, const struct timespec *timeout, const sigset_t *sigmask)
