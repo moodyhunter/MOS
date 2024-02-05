@@ -134,14 +134,6 @@ DEFINE_SYSCALL(pid_t, fork)(void)
     return child->pid; // return 0 for child, pid for parent
 }
 
-DEFINE_SYSCALL(pid_t, exec)(const char *path, const char *const argv[])
-{
-    MOS_UNUSED(path);
-    MOS_UNUSED(argv);
-    mos_warn("exec syscall not implemented yet");
-    return -1;
-}
-
 DEFINE_SYSCALL(pid_t, get_pid)(void)
 {
     return current_process->pid;
