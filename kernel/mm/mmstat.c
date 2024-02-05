@@ -11,6 +11,7 @@
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_types.h"
 
+#include <mos/mos_global.h>
 #include <mos_stdlib.h>
 
 typedef struct
@@ -117,7 +118,7 @@ static bool mmstat_sysfs_pagetable_show(sysfs_file_t *f)
     const mm_context_t *mmctx = proc->mm;
 
     pagetable_iter_t iter;
-    pagetable_iter_init(&iter, mmctx->pgd, 0, 0x7fffffffffff); // 4-level paging, 48-bit address space
+    pagetable_iter_init(&iter, mmctx->pgd, 0, MOS_USER_END_VADDR);
 
     pagetable_iter_range_t *range;
     while ((range = pagetable_iter_next(&iter)))
