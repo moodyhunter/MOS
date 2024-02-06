@@ -15,7 +15,6 @@ slab_t *xsave_area_slab = NULL;
 
 static void setup_xsave_slab(void)
 {
-    MOS_ASSERT(cpu_has_feature(CPU_FEATURE_FXSR));
     xsave_area_slab = kmemcache_create("x86.xsave", platform_info->arch_info.xsave_size);
 }
 

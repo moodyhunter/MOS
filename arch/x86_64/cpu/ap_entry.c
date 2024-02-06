@@ -30,7 +30,6 @@ noreturn void x86_ap_begin_exec(void)
 
     // enable paging
     x86_cpu_set_cr3(pgd_pfn(platform_info->kernel_mm->pgd) * MOS_PAGE_SIZE);
-    __asm__ volatile("mov %%cr4, %%rax; orq $0x80, %%rax; mov %%rax, %%cr4" ::: "rax"); // and enable PGE
 
     x86_cpu_initialise_caps();
     x86_cpu_setup_xsave_area();

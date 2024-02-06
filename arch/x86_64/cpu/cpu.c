@@ -11,6 +11,8 @@
 #define do_static_assert(feat) MOS_STATIC_ASSERT(X86_CPUID_LEAF_ENUM(feat) >= 0);
 #define test_ensure_all_leafs_are_supported(feature) do_static_assert(CPU_FEATURE_##feature)
 FOR_ALL_CPU_FEATURES(test_ensure_all_leafs_are_supported)
+#undef test_ensure_all_leafs_are_supported
+#undef do_static_assert
 // clang-format on
 
 void x86_cpu_initialise_caps(void)
@@ -21,31 +23,34 @@ void x86_cpu_initialise_caps(void)
 #define impl_fill_leaf(_l, _sl, _r) cpuinfo->cpuid[X86_CPUID_LEAF_ENUM(_l, _sl, _r, _)] = x86_cpuid(_r, _l, _sl);
     FOR_ALL_SUPPORTED_CPUID_LEAF(impl_fill_leaf);
 #undef impl_fill_leaf
+
+    MOS_ASSERT_X(cpu_has_feature(CPU_FEATURE_FSGSBASE), "FSGSBASE is required");
+    MOS_ASSERT_X(cpu_has_feature(CPU_FEATURE_FXSR), "FXSR is required");
+    MOS_ASSERT_X(cpu_has_feature(CPU_FEATURE_SSE), "SSE is required");
+    MOS_ASSERT_X(cpu_has_feature(CPU_FEATURE_XSAVE), "XSAVE is required");
+
+    x86_cpu_set_cr4(x86_cpu_get_cr4() | BIT(7) | BIT(11) | BIT(16)); // set CR4.PGE, CR4.FSGSBASE, CR4.UMIP
 }
 
 size_t x86_cpu_setup_xsave_area(void)
 {
-    MOS_ASSERT(cpu_has_feature(CPU_FEATURE_SSE));
-    MOS_ASSERT(cpu_has_feature(CPU_FEATURE_XSAVE)); // modern x86 CPUs should support XSAVE
+    reg_t cr0 = x86_cpu_get_cr0();
+    cr0 &= ~BIT(2); // clear coprocessor emulation CR0.EM
+    cr0 |= BIT(1);
+    x86_cpu_set_cr0(cr0);
 
-    x86_cpu_set_cr4(x86_cpu_get_cr4() | BIT(18)); // set CR4.OSXSAVE
+    reg_t cr4 = x86_cpu_get_cr4();
+    cr4 |= BIT(9) | BIT(10) | BIT(18); // set CR4.OSFXSR, CR4.OSXMMEXCPT and CR4.OSXSAVE
+    x86_cpu_set_cr4(cr4);
 
     reg_t xcr0 = XCR0_X87 | XCR0_SSE; // bit 0, 1
     size_t xsave_size = 512;          // X87 + SSE
 
-    xcr0 |= XCR0_SSE;
-
-    reg_t cr0 = x86_cpu_get_cr0();
-    cr0 &= ~0x4; // clear coprocessor emulation CR0.EM
-    cr0 |= 0x2;  // set coprocessor monitoring  CR0.MP
-    x86_cpu_set_cr0(cr0);
-
-    reg_t cr4 = x86_cpu_get_cr4();
-    cr4 |= 0x3 << 9; // set CR4.OSFXSR and CR4.OSXMMEXCPT at the same time
-    x86_cpu_set_cr4(cr4);
-
+    // SSE
+    xcr0 |= XCR0_SSE; // bit 1
     xsave_size += 64; // XSAVE header
 
+    // AVX
     if (cpu_has_feature(CPU_FEATURE_AVX))
         xcr0 |= XCR0_AVX;
 

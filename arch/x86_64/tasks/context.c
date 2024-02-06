@@ -140,18 +140,5 @@ __alias(x86_switch_to_scheduler, platform_switch_to_scheduler);
 
 void x86_set_fsbase(thread_t *thread)
 {
-    MOS_ASSERT(cpu_has_feature(CPU_FEATURE_FSGSBASE));
-
-    const ptr_t fs_base = thread->platform_options.fs_base;
-
-    if (x86_cpu_get_cr4() & (1 << 16))
-    {
-        if (once())
-            x86_cpu_set_cr4(x86_cpu_get_cr4() | (1 << 16));
-
-        __asm__ volatile("wrfsbase %0" ::"r"(fs_base) : "memory");
-        return;
-    }
-
-    cpu_wrmsr(0xc0000100, fs_base); // IA32_FS_BASE
+    __asm__ volatile("wrfsbase %0" ::"r"(thread->platform_options.fs_base) : "memory");
 }

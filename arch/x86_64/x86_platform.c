@@ -204,12 +204,13 @@ void platform_dump_stack(platform_regs_t *regs)
 void platform_startup_early()
 {
     x86_idt_init();
+    x86_init_irq_handlers();
     x86_init_percpu_gdt();
     x86_init_percpu_idt();
     x86_init_percpu_tss();
-    x86_init_irq_handlers();
 
     x86_cpu_initialise_caps();
+    x86_platform.arch_info.xsave_size = x86_cpu_setup_xsave_area();
 
 #if MOS_DEBUG_FEATURE(x86_startup)
     pr_info2("cpu features:");
@@ -222,9 +223,6 @@ void platform_startup_early()
 #undef do_print_cpu_feature
 
 #endif
-
-    // set up the XSAVE area
-    x86_platform.arch_info.xsave_size = x86_cpu_setup_xsave_area();
 }
 
 void platform_startup_mm()
@@ -234,7 +232,6 @@ void platform_startup_mm()
 
     // enable paging
     x86_cpu_set_cr3(pgd_pfn(x86_platform.kernel_mm->pgd) * MOS_PAGE_SIZE);
-    __asm__ volatile("mov %%cr4, %%rax; orq $0x80, %%rax; mov %%rax, %%cr4" ::: "rax"); // and enable PGE
 
     pmm_reserve_frames(X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, BIOS_MEMREGION_SIZE / MOS_PAGE_SIZE);
     pmm_reserve_frames(X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, EBDA_MEMREGION_SIZE / MOS_PAGE_SIZE);
