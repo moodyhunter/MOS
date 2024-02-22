@@ -66,13 +66,13 @@ jobs:
           ninja ${{matrix.config.target}} mos_initrd
 
       - name: Upload Bootable Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: MOS-${{matrix.config.target}}-${{matrix.build_type}}
           path: build/boot.dir/
 
       - name: Upload initrd
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: MOS-${{matrix.config.target}}-${{matrix.build_type}}-initrd
           path: build/initrd.cpio
