@@ -49,7 +49,7 @@ jobs:
         run: |
           git clone https://github.com/jothepro/doxygen-awesome-css build/doxygen-awesome-css
 
-      - uses: mattnotmitt/doxygen-action@v1.9.4
+      - uses: mattnotmitt/doxygen-action@1.9.8
         with:
           doxyfile-path: ".github/workflows/Doxyfile"
 
