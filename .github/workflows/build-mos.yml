@@ -40,7 +40,7 @@ jobs:
         run: |
           pacman -Syu --noconfirm base-devel git nasm mtools jq ninja qemu-system-x86 gnu-efi cpio wget unzip cmake limine protobuf python-protobuf python-setuptools
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
