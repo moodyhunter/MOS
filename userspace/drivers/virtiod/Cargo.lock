@@ -196,8 +196,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.151"
-source = "git+https://github.com/moodyhunter/mos-rust-libc.git#ee521838dee6543e89d1b5fd0d5e535a9954c52d"
+version = "0.2.153"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c198f91728a82281a64e1f4f9eeb25d82cb32a5de251c6bd1b5154d63a8e7bd"
 
 [[package]]
 name = "librpc-rs"
@@ -556,3 +557,8 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[patch.unused]]
+name = "libc"
+version = "0.2.151"
+source = "git+https://github.com/moodyhunter/mos-rust-libc.git#ee521838dee6543e89d1b5fd0d5e535a9954c52d"
