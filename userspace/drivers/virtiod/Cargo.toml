@@ -7,7 +7,7 @@ version = "0.1.0"
 clap = {version = "4.4.7", features = ["derive"]}
 libc = "0.2.151"
 librpc-rs = {path = "../../libs/librpc-rs", features = ["protobuf"]}
-log = "0.4.17"
+log = "0.4.20"
 protobuf = "3.3.0"
 virtio-drivers = "0.7.0"
 
