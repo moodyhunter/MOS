@@ -15,4 +15,4 @@ virtio-drivers = "0.7.1"
 libc = {git = "https://github.com/moodyhunter/mos-rust-libc.git"}
 
 [build-dependencies]
-protobuf-codegen = "3.3.0"
+protobuf-codegen = "3.4.0"
