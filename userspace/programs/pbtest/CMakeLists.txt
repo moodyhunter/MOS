@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+if (__MOS_HAS_NO_COMPILER)
+    return()
+endif()
+
 find_package(Protobuf)
 
 if (NOT Protobuf_FOUND)
