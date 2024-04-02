@@ -50,7 +50,7 @@ void mmstat_dec(mmstat_type_t type, size_t size);
  *      Forked      cow += regular, regular = 0 (regular pages now becomes cow pages, pagecache ones stay pagecache (read-only))
  *  Shared File-backed:
  *      Read        pagecache++, regular++,
- *      Written     if the page wasn't priviously mapped, pagecache++, regular++ (a new pagecache page is now mapped)
+ *      Written     if the page wasn't previously mapped, pagecache++, regular++ (a new pagecache page is now mapped)
  *  Private Anonymous:
  *      Read        cow++,
  *                  zero page is mapped

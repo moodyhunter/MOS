@@ -360,7 +360,7 @@ static void sysfs_do_register(sysfs_dir_t *sysfs_dir)
 
     dentry_t *vfs_dir = dentry_create(sysfs_sb, sysfs_sb->root, sysfs_dir->name);
     vfs_dir->inode = dir_i;
-    vfs_dir->inode->private = sysfs_dir; ///< for convience
+    vfs_dir->inode->private = sysfs_dir; ///< for convenience
     sysfs_dir->_dentry = vfs_dir;
 
     for (size_t i = 0; i < sysfs_dir->num_items; i++)
