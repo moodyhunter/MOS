@@ -3,7 +3,6 @@
 #include "mos/elf/elf.h"
 
 #include "mos/filesystem/vfs.h"
-#include "mos/misc/kutils.h"
 #include "mos/mm/mmap.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"

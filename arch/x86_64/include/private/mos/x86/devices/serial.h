@@ -18,7 +18,7 @@ typedef enum
 
 typedef enum
 {
-    OFFSET_INTTERUPT_ENABLE = 1,  // Interrupt Enable Register
+    OFFSET_INTERRUPT_ENABLE = 1,  // Interrupt Enable Register
     OFFSET_INTERRUPT_ID_FIFO = 2, // Interrupt ID Register and FIFO Control Register
     OFFSET_LINE_CONTROL = 3,      // Line Control Register
     OFFSET_MODEM_CONTROL = 4,     // Modem Control Register

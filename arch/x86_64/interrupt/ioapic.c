@@ -132,8 +132,8 @@ void ioapic_enable_with_mode(u32 irq, u32 cpu, ioapic_trigger_mode_t trigger_mod
     entry.trigger_mode = trigger_mode;
     entry.destination.target_apic_id = cpu;
 
-    u32 irq_overrided = x86_ioapic_get_irq_override(irq); // the irq number received by the ioapic "pin"
-    ioapic_write_redirection_entry(irq_overrided, entry);
+    const u32 irq_overridden = x86_ioapic_get_irq_override(irq); // the irq number received by the ioapic "pin"
+    ioapic_write_redirection_entry(irq_overridden, entry);
 }
 
 void ioapic_disable(u32 irq)

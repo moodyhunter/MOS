@@ -2,7 +2,6 @@
 
 #define pr_fmt(fmt) "ap_entry: " fmt
 
-#include "mos/mm/mm.h"
 #include "mos/mm/paging/pml_types.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"

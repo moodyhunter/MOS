@@ -2,11 +2,8 @@
 
 #include "mos/x86/tasks/context.h"
 
-#include "mos/mm/paging/paging.h"
-#include "mos/mm/slab_autoinit.h"
 #include "mos/platform/platform_defs.h"
 #include "mos/tasks/signal.h"
-#include "mos/x86/cpu/cpuid.h"
 #include "mos/x86/descriptors/descriptors.h"
 #include "mos/x86/tasks/fpu_context.h"
 

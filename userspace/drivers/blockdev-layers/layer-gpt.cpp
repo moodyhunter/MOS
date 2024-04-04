@@ -4,7 +4,6 @@
 
 #include <abi-bits/access.h>
 #include <assert.h>
-#include <cstdint>
 #include <cstring>
 #include <dirent.h>
 #include <fcntl.h>

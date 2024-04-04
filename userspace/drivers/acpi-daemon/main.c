@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "lai/core.h"
-#include "lai/helpers/pm.h"
 #include "lai/helpers/sci.h"
 
 #include <mos/mos_global.h>

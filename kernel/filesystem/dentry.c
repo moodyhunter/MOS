@@ -8,9 +8,7 @@
 #include "mos/filesystem/vfs.h"
 #include "mos/filesystem/vfs_types.h"
 #include "mos/filesystem/vfs_utils.h"
-#include "mos/mm/slab.h"
 #include "mos/printk.h"
-#include "mos/setup.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_types.h"
 

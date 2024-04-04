@@ -4,7 +4,6 @@
 
 #include "mos/filesystem/page_cache.h"
 #include "mos/filesystem/vfs_types.h"
-#include "mos/mm/mm.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab.h"
 #include "mos/mm/slab_autoinit.h"

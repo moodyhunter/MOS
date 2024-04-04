@@ -5,8 +5,6 @@
 #include "mos/x86/devices/rtc.h"
 
 #include "mos/device/clocksource.h"
-#include "mos/printk.h"
-#include "mos/tasks/schedule.h"
 #include "mos/x86/devices/port.h"
 #include "mos/x86/x86_interrupt.h"
 
@@ -72,7 +70,7 @@ void rtc_read_time(timeval_t *time)
     } while ((last_second != time->second) || (last_minute != time->minute) || (last_hour != time->hour) || (last_day != time->day) || (last_month != time->month) ||
              (last_year != time->year));
 
-#define bcd_to_binary(val) (((val) &0x0F) + ((val) / 16) * 10)
+#define bcd_to_binary(val) (((val) & 0x0F) + ((val) / 16) * 10)
 
     const u8 registerB = rtc_read_reg(0x0B);
     if (!(registerB & 0x04))

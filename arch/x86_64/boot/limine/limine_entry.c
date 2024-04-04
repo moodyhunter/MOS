@@ -10,9 +10,10 @@
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/setup.h"
+#if MOS_CONFIG(MOS_SMP)
 #include "mos/x86/cpu/ap_entry.h"
+#endif
 #include "mos/x86/devices/serial_console.h"
-#include "mos/x86/x86_platform.h"
 
 #include <mos/mos_global.h>
 #include <mos_stdlib.h>

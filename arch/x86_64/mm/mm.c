@@ -2,10 +2,9 @@
 
 #include "mos/x86/mm/mm.h"
 
-#include "mos/mm/paging/paging.h"
+#include "mos/mm/mm.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
-#include "mos/x86/x86_platform.h"
 
 #include <mos/printk.h>
 #include <mos_stdlib.h>

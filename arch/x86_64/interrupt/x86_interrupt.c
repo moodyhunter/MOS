@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/kallsyms.h"
 #include "mos/ksyscall_entry.h"
 #include "mos/misc/profiling.h"
 #include "mos/tasks/signal.h"
-#include "mos/tasks/task_types.h"
 
 #include <mos/interrupt/ipi.h>
 #include <mos/lib/structures/list.h>

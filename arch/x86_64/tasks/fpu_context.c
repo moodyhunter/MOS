@@ -3,11 +3,10 @@
 #include "mos/x86/tasks/fpu_context.h"
 
 #include "mos/mm/slab.h"
-#include "mos/mm/slab_autoinit.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
+#include "mos/setup.h"
 #include "mos/tasks/task_types.h"
-#include "mos/x86/cpu/cpuid.h"
 
 #include <mos_stdlib.h>
 

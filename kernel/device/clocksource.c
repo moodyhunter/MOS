@@ -3,7 +3,6 @@
 #include "mos/device/clocksource.h"
 
 #include "mos/platform/platform.h"
-#include "mos/printk.h"
 #include "mos/tasks/schedule.h"
 #include "mos/tasks/wait.h"
 

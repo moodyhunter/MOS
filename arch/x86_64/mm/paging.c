@@ -6,13 +6,9 @@
 #include "mos/mm/paging/pmlx/pml2.h"
 #include "mos/mm/paging/pmlx/pml3.h"
 #include "mos/mm/paging/pmlx/pml4.h"
-#include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
-#include "mos/platform/platform_defs.h"
 #include "mos/printk.h"
-#include "mos/x86/cpu/cpu.h"
 #include "mos/x86/cpu/cpuid.h"
-#include "mos/x86/mm/mm.h"
 #include "mos/x86/mm/paging_impl.h"
 #include "mos/x86/x86_platform.h"
 

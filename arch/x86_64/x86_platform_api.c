@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/mm/mm.h"
 #include "mos/mm/paging/pml_types.h"
-#include "mos/mm/paging/pmlx/pml4.h"
 #include "mos/platform/platform_defs.h"
 #include "mos/tasks/signal.h"
 #include "mos/x86/devices/rtc.h"
-#include "mos/x86/tasks/fpu_context.h"
 
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/paging/paging.h>

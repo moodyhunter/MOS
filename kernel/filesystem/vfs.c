@@ -6,7 +6,6 @@
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/mmstat.h"
-#include "mos/mm/paging/table_ops.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab_autoinit.h"
 
@@ -309,7 +308,7 @@ static file_t *vfs_do_open(dentry_t *base, const char *path, open_flags flags)
     dentry_t *entry = dentry_get(base, root_dentry, path, resolve_flags);
     if (IS_ERR(entry))
     {
-        pr_dinfo2(vfs, "failed to resolve '%s', create=%d, read=%d, exec=%d, nfollow=%d, dir=%d, trun=%d", path, may_create, read, exec, no_follow, expect_dir, truncate);
+        pr_dinfo2(vfs, "failed to resolve '%s': create=%d, r=%d, x=%d, nofollow=%d, dir=%d, truncate=%d", path, may_create, read, exec, no_follow, expect_dir, truncate);
         return ERR(entry);
     }
 
