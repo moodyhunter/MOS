@@ -2,12 +2,9 @@
 
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
-#include "mos/misc/power.h"
 #include "mos/mm/mm.h"
-#include "mos/mm/paging/dump.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/mm/physical/pmm.h"
-#include "mos/panic.h"
 
 #include <mos/cmdline.h>
 #include <mos/device/console.h>
