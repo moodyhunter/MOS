@@ -1,4 +1,4 @@
-# 1. CMake Configuration Options
+# CMake Options
 
 This document describes the CMake configuration options for MOS.
 

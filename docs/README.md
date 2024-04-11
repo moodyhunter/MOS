@@ -2,15 +2,6 @@
 
 Welcome to the documentation for the MOS project.
 
-## Table of Contents
-
-- [MOS Documentation](#mos-documentation)
-  - [Table of Contents](#table-of-contents)
-  - [About This Documentation](#about-this-documentation)
-  - [Building MOS](#building-mos)
-  - [MOS Internals](#mos-internals)
-  - [Resources](#resources)
-
 ## About This Documentation
 
 This documentation is intended to provide a comprehensive guide to the MOS operating system, how to build and run it, and how to develop for it. It **should** be a living document, and will be updated as the project evolves.

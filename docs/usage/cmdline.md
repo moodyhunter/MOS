@@ -1,4 +1,4 @@
-# 2. Kernel Command Line
+# Kernel Command Line Options
 
 A `cmdline` is a argv-like string that's passed to the kernel by the bootloader.
 It can be used to configure the kernel at runtime. The kernel will parse the given

@@ -1,4 +1,4 @@
-# Kernel Command Line
+# Command Line Parsing
 
 ## Early Options vs Normal Options
 
