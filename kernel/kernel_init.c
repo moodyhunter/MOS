@@ -3,7 +3,6 @@
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/mm/mm.h"
-#include "mos/mm/paging/dump.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/mm/physical/pmm.h"
 
@@ -23,17 +22,19 @@
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
-#define DEFAULT_INIT_PATH "/initrd/programs/bootstrapper"
-
-typedef void (*init_function_t)(void);
-extern const init_function_t __init_array_start[], __init_array_end;
+#if MOS_DEBUG_FEATURE(vmm)
+#include "mos/mm/paging/dump.h"
+#endif
 
 static void invoke_constructors(void)
 {
+    typedef void (*init_function_t)(void);
+    extern const init_function_t __init_array_start[], __init_array_end;
+
     pr_dinfo2(setup, "invoking constructors...");
     for (const init_function_t *func = __init_array_start; func != &__init_array_end; func++)
     {
-        pr_dinfo2(setup, "  %p", (void *) (ptr_t) *func);
+        pr_dinfo2(setup, "  %ps", (void *) (ptr_t) *func);
         (*func)();
     }
 }
@@ -137,7 +138,7 @@ void mos_start_kernel(void)
 
     init_args.argc = 1;
     init_args.argv = kcalloc(1, sizeof(char *)); // init_argv[0] is the init path
-    init_args.argv[0] = strdup(DEFAULT_INIT_PATH);
+    init_args.argv[0] = strdup(MOS_DEFAULT_INIT_PATH);
     startup_invoke_setup();
     init_args.argv = krealloc(init_args.argv, (init_args.argc + 1) * sizeof(char *));
     init_args.argv[init_args.argc] = NULL;

@@ -15,6 +15,13 @@ config MAX_CMDLINE_COUNT
     int "Maximum number of command line arguments"
     default 64
 
+config DEFAULT_INIT_PATH
+    string "Default init program path"
+    default "/initrd/programs/bootstrapper"
+    help
+    This is the default path to the init program that the kernel will
+    execute if no init=/program is specified in the command line.
+
 config EXTRA_CMDLINE
     string "Extra command line arguments"
     default ""
