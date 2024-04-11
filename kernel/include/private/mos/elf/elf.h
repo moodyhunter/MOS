@@ -33,14 +33,6 @@ typedef struct
 
 MOS_STATIC_ASSERT(sizeof(elf_identity_t) == 16, "elf_identity_t has wrong size");
 
-#if defined(__i386__)
-#define ELF_MACHINE_MOS_DEFAULT EM_X86
-#elif defined(__x86_64__)
-#define ELF_MACHINE_MOS_DEFAULT EM_X86_64
-#else
-#error "Unsupported architecture"
-#endif
-
 typedef struct
 {
     elf_identity_t identity;
