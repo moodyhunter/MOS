@@ -20,7 +20,8 @@ jobs:
       - name: Install packages
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm --needed base-devel git cmake ninja clang lld nasm cpio wget python jq llvm mtools unzip limine protobuf python-protobuf python-setuptools
+          pacman -S --noconfirm --needed base-devel git cmake ninja clang lld nasm cpio wget python jq llvm mtools unzip limine protobuf python-protobuf
+          pacman -S --noconfirm --needed python-setuptools graphviz doxygen npm nodejs
 
       - uses: actions/checkout@v4
         with:
@@ -48,15 +49,7 @@ jobs:
           cd build
           ninja mos_limine mos_initrd
 
-      - name: Clone Stylesheet
-        run: |
-          git clone https://github.com/jothepro/doxygen-awesome-css build/doxygen-awesome-css
-
-      - uses: mattnotmitt/doxygen-action@1.9.8
-        with:
-          doxyfile-path: ".github/workflows/Doxyfile"
-
-      - name: Build CodeBrowser
+      - name: Prepare - Build CodeBrowser
         run: |
           cd build
           git clone https://github.com/moodyhunter/codebrowser
@@ -65,25 +58,40 @@ jobs:
           cmake .. -DCLANG_BUILTIN_HEADERS_DIR=/usr/lib/clang/*/include
           make -j2
 
-      - name: Generate CodeBrowser
+      - name: Prepare - Clone Stylesheet
+        run: |
+          git clone https://github.com/jothepro/doxygen-awesome-css build/doxygen-awesome-css
+
+      - name: Prepare - Install Retype
+        run: |
+          npm install retypeapp
+          mkdir -p build/website_public/
+
+      - name: Build - Retype Website
+        run: npx retype build docs/ --output build/website_public/
+
+      - name: Build - Code Documentation
+        run: doxygen ./.github/workflows/Doxyfile
+
+      - name: Build - CodeBrowser
         run: |
           cd build
-          ./codebrowser/build/generator/codebrowser_generator -d /source-code/data -b ./compile_commands.json -a -o ./docs -p MOS:..
-          ./codebrowser/build/indexgenerator/codebrowser_indexgenerator ./docs -d /source-code/data
+          ./codebrowser/build/generator/codebrowser_generator -d /code-browser/data -b ./compile_commands.json -a -o ./docs -p MOS:..
+          ./codebrowser/build/indexgenerator/codebrowser_indexgenerator ./docs -d /code-browser/data
           cp -rv ./codebrowser/data ./docs/data
-          mv ./docs ./doxygen_output/html/source-code
+          mv ./docs ./website_public/code-browser
 
       - name: Fix permissions
         run: |
           cd build
-          chmod -c -R +rX "doxygen_output/html/" | while read line; do
+          chmod -c -R +rX "website_public/" | while read line; do
             echo "::warning title=Invalid file permissions automatically fixed::$line"
           done
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "build/doxygen_output/html"
+          path: "build/website_public"
 
   deploy:
     needs: build

@@ -5,4 +5,4 @@ description: >-
   This section describes how to configure the kernel.
 ---
 
-# Kernel Configuration
+# MOS Configuration

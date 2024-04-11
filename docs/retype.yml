@@ -1,0 +1,43 @@
+input: .
+url: mos.mooody.me
+branding:
+  title: Moody's OS
+  logo: assets/logo-black-nobg.svg
+  logoDark: assets/logo-white-nobg.svg
+
+favicon: assets/logo-white-nobg.svg
+
+editor:
+  enabled: false
+
+search:
+  hotkeys:
+    - "/"
+
+footer:
+  copyright: "MOS Developers, {{ year }}"
+  links:
+    - text: Package Builder Status
+      link: https://g.mooody.me/public-dashboards/4e008de4d4ae439bba0407ffdf64b958?orgId=1&refresh=10s
+      icon: graph
+
+    - text: Licensed under CC BY-SA 4.0
+      link: https://creativecommons.org/licenses/by-sa/4.0/
+      icon: book
+
+links:
+  - text: GitHub Repo
+    link: https://github.com/moodyhunter/MOS
+    icon: mark-github
+
+  - text: Source Browser
+    link: https://mos-code.mooody.me/source-code/MOS/
+    icon: code
+
+  - text: Source Docs
+    link: https://mos-code.mooody.me/topics.html
+    icon: book
+
+  - text: Packages
+    link: https://github.com/moodyhunter/mos-packages
+    icon: package

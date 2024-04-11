@@ -1,3 +1,11 @@
+---
+breadcrumb: true
+categories: cmdline
+tags:
+  - internals
+  - startup
+---
+
 # Command Line Parsing
 
 ## Early Options vs Normal Options

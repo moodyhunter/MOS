@@ -1,6 +1,5 @@
 ---
 icon: book
-order: -100
 ---
 
-# Usage
+# Getting Started
