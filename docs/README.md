@@ -7,7 +7,7 @@ Welcome to the documentation for the MOS project.
 - [MOS Documentation](#mos-documentation)
   - [Table of Contents](#table-of-contents)
   - [About This Documentation](#about-this-documentation)
-  - [Chapters](#chapters)
+  - [Building MOS](#building-mos)
   - [MOS Internals](#mos-internals)
   - [Resources](#resources)
 
@@ -15,7 +15,9 @@ Welcome to the documentation for the MOS project.
 
 This documentation is intended to provide a comprehensive guide to the MOS operating system, how to build and run it, and how to develop for it. It **should** be a living document, and will be updated as the project evolves.
 
-## Chapters
+## Building MOS
+
+To build MOS, you will need to have the following dependencies installed:
 
 ## MOS Internals
 
