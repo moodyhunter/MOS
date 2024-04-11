@@ -16,10 +16,9 @@ set(STUB_KALLSYMS_C [=[
 const kallsyms_t mos_kallsyms[] = {
     { .address = 0, .name = "stub" },
 }\;
-
 ]=])
 
-file(WRITE ${CMAKE_BINARY_DIR}/stub_kallsyms.c ${STUB_KALLSYMS_C})
+file(WRITE ${KALLSYMS_DIR}/stub_kallsyms.c ${STUB_KALLSYMS_C})
 
 function(do_kallsyms TARGET_NAME LINKER_SCRIPT KALLSYMS_C)
     add_executable(${TARGET_NAME} ${KALLSYMS_C})
@@ -71,7 +70,7 @@ function(create_bootable_kernel_binary)
     # no need to publicly link to mos::kernel, see above comment in do_kallsyms
     target_link_libraries(${ARGS_TARGET}_loader PRIVATE mos::kernel)
 
-    set(STEP1_KALLSYMS_C "${CMAKE_BINARY_DIR}/stub_kallsyms.c")
+    set(STEP1_KALLSYMS_C "${KALLSYMS_DIR}/stub_kallsyms.c")
     set(STEP2_KALLSYMS_C "${KALLSYMS_DIR}/${ARGS_TARGET}.kallsyms.1.c")
     set(STEP3_KALLSYMS_C "${KALLSYMS_DIR}/${ARGS_TARGET}.kallsyms.2.c")
 
