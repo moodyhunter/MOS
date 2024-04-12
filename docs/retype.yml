@@ -31,11 +31,11 @@ links:
     icon: mark-github
 
   - text: Source Browser
-    link: https://mos-code.mooody.me/source-code/MOS/
+    link: https://mos.mooody.me/code-browser/MOS/
     icon: code
 
   - text: Source Docs
-    link: https://mos-code.mooody.me/topics.html
+    link: https://mos.mooody.me/code-docs/
     icon: book
 
   - text: Packages

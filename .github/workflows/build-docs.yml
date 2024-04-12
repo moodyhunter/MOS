@@ -71,7 +71,10 @@ jobs:
         run: npx retype build docs/ --output build/website_public/
 
       - name: Build - Code Documentation
-        run: doxygen ./.github/workflows/Doxyfile
+        run: |
+          doxygen ./.github/workflows/Doxyfile
+          cd ./build/website_public/code-docs
+          mv html/* ./ && rmdir html
 
       - name: Build - CodeBrowser
         run: |
