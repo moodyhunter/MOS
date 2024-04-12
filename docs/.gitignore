@@ -1,2 +1,7 @@
-retype.manifest
 .retype/
+
+retype.manifest
+
+package.json
+package-lock.json
+node_modules/

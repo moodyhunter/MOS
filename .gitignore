@@ -7,7 +7,7 @@ rootfs.img
 build/
 
 # clangd generated files
-.cache
+.cache/
 
 # VSCode-specific files
-.vscode
+.vscode/
