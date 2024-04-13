@@ -1,4 +1,6 @@
-# Kernel Command Line Options
+---
+title: Kernel Command Line Options
+---
 
 A `cmdline` is a argv-like string that's passed to the kernel by the bootloader.
 It can be used to configure the kernel at runtime. The kernel will parse the given
@@ -7,7 +9,7 @@ cmdline and apply the options specified.
 Command line options that are not recognized by the kernel will be appended to the arguments
 of init program.
 
-## General Options
+## 1. General Options
 
 | Option              | Argument            | Description                                                                                                                 |
 | ------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
@@ -18,7 +20,7 @@ of init program.
 | `poweroff_on_panic` |                     | Power off the machine when the kernel panics, instead of halting.                                                           |
 | `quiet`             |                     | Disable most of the kernel messages, except for warnings and panics.                                                        |
 
-## Unit Tests Options
+## 2. Unit Tests Options
 
 These options are only useful if you are running MOS tests, (i.e. `BUILD_TESTING` is set to `ON` when building the kernel).
 

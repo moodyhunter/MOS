@@ -62,7 +62,7 @@ function(create_bootable_kernel_binary)
     endif()
 
     if (NOT ARGS_COMMENT)
-        set(ARGS_COMMENT "Bootable kernel binary ${ARGS_FILENAME}")
+        set(ARGS_COMMENT "Bootable kernel ${ARGS_FILENAME}")
     endif()
 
     # add loader code to the kernel

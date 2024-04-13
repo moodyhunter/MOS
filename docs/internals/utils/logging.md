@@ -1,1 +1,3 @@
-# MOS Logging System
+---
+title: MOS Logging System
+---

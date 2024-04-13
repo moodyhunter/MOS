@@ -51,3 +51,5 @@ add_custom_target(mos_limine_iso
         ${LIMINE_ROOT}/limine-bios.sys
         ${LIMINE_ROOT}/limine-bios-cd.bin
 )
+
+add_summary_item(BOOTABLE mos_limine_iso "${BOOT_DIR}/mos_limine.iso" "ISO with limine bootloader")

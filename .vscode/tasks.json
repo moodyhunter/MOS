@@ -50,7 +50,7 @@
                 "-cdrom", "${workspaceFolder}/build/boot.dir/mos_limine.iso",
                 "-smp", "1",
                 "-cpu", "max",
-                "-drive", "file=${workspaceFolder}/build/disk.img,format=raw,if=virtio", // using virtio
+                "-drive", "file=${workspaceFolder}/rootfs.img,format=raw,if=virtio", // using virtio
                 "-device", "virtio-gpu-pci",
                 "-vga", "none",
                 "-boot", "d", // boot from cdrom

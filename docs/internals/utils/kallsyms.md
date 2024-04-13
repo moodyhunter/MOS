@@ -1,10 +1,12 @@
-# Kernel Symbol Table (kallsyms)
+---
+title: Kernel Symbol Table (kallsyms)
+---
 
 The `kallsyms` provides a way to access the kernel symbol table, i.e. the list of functions exported
 by the kernel. This is useful for debugging, e.g. when the kernel crashes, a backtrace can be
 generated using the symbol table.
 
-## How is the symbol table merged into the kernel binary?
+## 1. How is the symbol table merged into the kernel binary?
 
 The CMake file `prepare_bootable_kernel_binary.cmake` contains a function `create_bootable_kernel_binary`.
 
