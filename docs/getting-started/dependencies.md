@@ -2,6 +2,7 @@
 icon: package-dependencies
 title: Dependencies
 order: -1
+tags: [dependencies, build, toolchain, packages]
 ---
 
 In this section, you will find the dependencies required to build the **MOS** kernel and userspace.
@@ -40,7 +41,7 @@ MOS uses `pacman` as its package manager, which is the one used in Arch Linux, M
 package manager is simple and easy to use. The packaging scripts are written in bash, making it easy to create and maintain
 packages.
 
-#### 3.2.1. Installing from the MOS Binary Repository
++++ Binary Package Repository
 
 You will be able to find these packages from the [MOS Binary Repository](https://mospkg.mooody.me), simply add the following
 repository to your `pacman.conf`:
@@ -52,17 +53,28 @@ SigLevel = Optional
 Server = https://mospkg.mooody.me/$arch
 ```
 
-#### 3.2.2. Compiling the Toolchain from Source
+Then you can install the packages using:
 
-You can also compile the toolchain from source, which is useful if you want to customize the toolchain or if you are using
-a different distribution. The toolchain is built using the `makepkg` tool, which is part of the `pacman` package manager.
+```bash
+export ARCH=x86_64 # or any other supported architecture
+pacman -S mos-sdk $ARCH-mos-binutils $ARCH-mos-gcc $ARCH-mos-mlibc
+```
+
++++ Building from Source
+This option is more useful if you want to customize the toolchain, or if you want to build the toolchain for an unsupported
+architecture.
+
+The toolchain is built using the `makepkg` tool, which is part of the `pacman` package manager.
 
 You can find the packaging scripts for the toolchain in the [MOS Toolchain Repository](https://github.com/moodyhunter/mos-toolchain).
++++
 
 ### 3.3. Using the Toolchain
 
 Once installed, the libraries will be available at `/opt/$ARCH-mos` while the cross compilers will be installed to the
 standard locations, e.g. `/usr/bin/$ARCH-mos-gcc`.
 
-No special configuration should be required to use the toolchain, once you have installed the packages, you can start
-[configuring and building MOS](configure.md).
+## After Installation
+
+No further configuration is required to use the toolchain, once you have installed the packages, you can start
+[configuring and building MOS](configure-build.md).

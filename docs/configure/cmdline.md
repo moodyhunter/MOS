@@ -1,5 +1,7 @@
 ---
-title: Kernel Command Line Options
+title: Kernel Command Line
+order: -2
+tags: [configure, cmdline]
 ---
 
 A `cmdline` is a argv-like string that's passed to the kernel by the bootloader.

@@ -1,10 +1,7 @@
 ---
 breadcrumb: true
-categories: cmdline
 title: Command Line Parsing
-tags:
-  - internals
-  - startup
+tags: [internals, startup, cmdline]
 ---
 
 ## 1. Early Options vs Normal Options
