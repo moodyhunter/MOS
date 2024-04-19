@@ -28,7 +28,7 @@ All parameters that can be set via `menuconfig` can also be set via CMake comman
 cmake . -DMOS_MM_DETAILED_UNHANDLED_FAULT=y
 ```
 
-!!! warning
+!!! warning Boolean Options
 The configuration options are case-insensitive, so you can use either `y` or `Y` to enable an option.
 However, `ON` is not a valid value for boolean options.
 !!!
@@ -40,3 +40,10 @@ cmake . -DMOS_MAX_MEMREGIONS=12 -DMOS_RUST_TARGET="x86_64-unknown-mos"
 ```
 
 You can press `c` to display the configuration name in menuconfig.
+
+!!! danger CMake-Kconfig Limitation
+Currently, setting **any** options via CMake overrides **ALL** options modified via `menuconfig`.
+But any options set via previous CMake command lines will be preserved.
+
+This will be fixed in the future.
+!!!
