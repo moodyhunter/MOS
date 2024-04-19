@@ -10,4 +10,4 @@ generate_nanopb_proto(
 add_executable(blockdev-layer-gpt layer-gpt.cpp ${PROTO_SRCS} ${PROTO_HEADERS})
 add_to_initrd(TARGET blockdev-layer-gpt /programs)
 
-target_link_libraries(blockdev-layer-gpt PRIVATE librpc::client_hosted blockdev-manager-lib)
+target_link_libraries(blockdev-layer-gpt PRIVATE librpc::client blockdev-manager-lib)

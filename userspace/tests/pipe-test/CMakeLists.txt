@@ -2,4 +2,4 @@
 
 add_executable(pipe-test main.c)
 
-setup_userspace_program(pipe-test /tests "Pipe test")
+add_to_initrd(TARGET pipe-test /tests)

@@ -1,6 +1,6 @@
 fn main() {
     println!("cargo:rustc-link-search=native=./../../../build/userspace/drivers/libdma/");
-    println!("cargo:rustc-link-lib=dma_hosted");
+    println!("cargo:rustc-link-lib=dma");
     println!("cargo:rerun-if-changed=../../../proto/blockdev.proto");
 
     protobuf_codegen::Codegen::new()

@@ -22,8 +22,8 @@ add_executable(blockdev-manager
 target_link_libraries(blockdev-manager
     PRIVATE
         blockdev-manager-lib
-        librpc::client_hosted
-        librpc::server_hosted
+        librpc::client
+        librpc::server
 )
 
 add_to_initrd(TARGET blockdev-manager /drivers)

@@ -7,7 +7,6 @@ add_mos_library(
     PUBLIC_INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_LIST_DIR}/include
     USERSPACE_ONLY
-    HOSTED_ONLY
 )
 
-add_to_initrd(TARGET libreadline_hosted /lib/)
+add_to_initrd(TARGET libreadline /lib/)

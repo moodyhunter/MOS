@@ -160,10 +160,3 @@ macro(add_simple_rust_project PROJECT_DIR NAME INITRD_SUBDIR)
 
     add_dependencies(mos_initrd ${NAME}_rust)
 endmacro()
-
-macro(setup_userspace_program TARGET INITRD_PATH DESCRIPTION)
-    set_target_properties(${TARGET} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
-    target_link_libraries(${TARGET} PRIVATE mos::stdlib)
-
-    add_to_initrd(TARGET ${TARGET} ${INITRD_PATH})
-endmacro()

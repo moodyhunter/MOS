@@ -11,11 +11,11 @@ target_include_directories(syslogd
 
 target_link_libraries(syslogd
     PRIVATE
-        mos::librpc-server_hosted
+        mos::librpc-server
 )
 
 add_to_initrd(TARGET syslogd /programs)
 
 add_library(libsyslog INTERFACE)
 target_include_directories(libsyslog INTERFACE include)
-target_link_libraries(libsyslog INTERFACE mos::librpc-client_hosted)
+target_link_libraries(libsyslog INTERFACE mos::librpc-client)

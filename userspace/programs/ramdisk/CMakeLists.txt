@@ -17,9 +17,9 @@ add_executable(ramdisk
 target_link_libraries(ramdisk
     PRIVATE
         blockdev-manager-lib
-        nanopb_hosted
-        librpc::client_hosted
-        librpc::server_hosted
+        nanopb
+        librpc::client
+        librpc::server
 )
 
 add_to_initrd(TARGET ramdisk /programs)

@@ -3,7 +3,9 @@
 
 macro(lazybox_program name description)
     add_executable(${name} ${name}.c)
-    setup_userspace_program(${name} /programs "${description}")
+    set_target_properties(${name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+    target_link_libraries(${name} PRIVATE mos::stdlib_minimal)
+    add_to_initrd(TARGET ${name} /programs)
 endmacro()
 
 lazybox_program(cat "Concatenate files and print on the standard output")

@@ -11,7 +11,7 @@ add_executable(pci-daemon
     known_devices.c
 )
 
-target_link_libraries(pci-daemon PRIVATE librpc::client_hosted)
+target_link_libraries(pci-daemon PRIVATE librpc::client)
 target_link_libraries(pci-daemon PRIVATE device-manager::client)
 
 add_to_initrd(TARGET pci-daemon /drivers)

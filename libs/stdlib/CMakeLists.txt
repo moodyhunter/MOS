@@ -23,4 +23,4 @@ add_mos_library(
 # special kernel extensions for vsnprintf
 target_sources(stdlib_kernel PRIVATE stdio_kernel_ext.c)
 
-add_dependencies(stdlib mos_syscall_decl) # needs to be generated before we can compile
+add_dependencies(stdlib_minimal mos_syscall_decl) # needs to be generated before we can compile

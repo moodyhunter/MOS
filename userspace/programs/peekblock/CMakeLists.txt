@@ -15,4 +15,4 @@ add_executable(peekblock
 
 add_to_initrd(TARGET peekblock /programs)
 
-target_link_libraries(peekblock PRIVATE librpc::client_hosted nanopb_hosted blockdev-manager-lib)
+target_link_libraries(peekblock PRIVATE librpc::client nanopb blockdev-manager-lib)

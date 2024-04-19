@@ -15,7 +15,6 @@ add_mos_library(
 )
 
 add_library(librpc::client ALIAS librpc-client)
-add_library(librpc::client_hosted ALIAS librpc-client_hosted)
 
 add_mos_library(
     NAME librpc-server
@@ -31,4 +30,3 @@ add_mos_library(
 )
 
 add_library(librpc::server ALIAS librpc-server)
-add_library(librpc::server_hosted ALIAS librpc-server_hosted)

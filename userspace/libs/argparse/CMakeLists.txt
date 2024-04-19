@@ -9,4 +9,4 @@ add_mos_library(
     USERSPACE_ONLY
 )
 
-add_to_initrd(TARGET argparse_hosted /lib/)
+add_to_initrd(TARGET argparse /lib/)
