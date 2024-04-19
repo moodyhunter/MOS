@@ -164,13 +164,13 @@
 
 #define X_GENERATE_FUNCTION_INFO_ARGS_X(X) X_GENERATE_FUNCTION_INFO_ARGS_X_##X
 
-#define X_DO_GENERATE_FUNCION_INFO_ARGS(_fid, _func, _nargs, ...)                                                                                                        \
+#define X_DO_GENERATE_FUNCTION_INFO_ARGS(_fid, _func, _nargs, ...)                                                                                                       \
     { .function_id = _fid, .func = _func, .args_count = _nargs, .args_type = { FOR_EACH(X_GENERATE_FUNCTION_INFO_ARGS_X, __VA_ARGS__) } },
-#define X_DO_GENERATE_FUNCION_INFO_PB(_fid, _func) { .function_id = _fid, .func = _func, .args_count = 1, .args_type = { RPC_ARGTYPE_BUFFER } },
+#define X_DO_GENERATE_FUNCTION_INFO_PB(_fid, _func) { .function_id = _fid, .func = _func, .args_count = 1, .args_type = { RPC_ARGTYPE_BUFFER } },
 
 #define X_GENERATE_FUNCTION_INFO_ARGS(prefix, fid, func, _1, _2, ...)                                                                                                    \
-    X_DO_GENERATE_FUNCION_INFO_ARGS(fid, prefix##func##_wrapper, X_COUNT_ARGUMENTS(__VA_ARGS__), __VA_ARGS__)
-#define X_GENERATE_FUNCTION_INFO_PB(prefix, fid, func, _1, _2, ...) X_DO_GENERATE_FUNCION_INFO_PB(fid, prefix##func##_pb_wrapper)
+    X_DO_GENERATE_FUNCTION_INFO_ARGS(fid, prefix##func##_wrapper, X_COUNT_ARGUMENTS(__VA_ARGS__), __VA_ARGS__)
+#define X_GENERATE_FUNCTION_INFO_PB(prefix, fid, func, _1, _2, ...) X_DO_GENERATE_FUNCTION_INFO_PB(fid, prefix##func##_pb_wrapper)
 
 #define X_GENERATE_FUNCTION_FORWARDS_PB(prefix, _id, _func, _FUNC, reqtype, resptype)                                                                                    \
     static rpc_result_code_t prefix##_func(rpc_context_t *context, reqtype *req, resptype *resp);                                                                        \
