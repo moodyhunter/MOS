@@ -6,8 +6,6 @@
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/mm/mm.h"
-#include "mos/mm/paging/paging.h"
-#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/setup.h"
 

@@ -2,7 +2,6 @@
 
 #include "mos/misc/kutils.h"
 
-#include "mos/platform/platform.h"
 #include "mos/printk.h"
 
 static const int HEXDUMP_COLS = 16;

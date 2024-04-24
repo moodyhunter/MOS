@@ -3,7 +3,6 @@
 #include "mos/ksyscall_entry.h"
 
 #include "mos/misc/profiling.h"
-#include "mos/syscall/table.h"
 #include "mos/tasks/signal.h"
 
 #include <mos/syscall/dispatcher.h>

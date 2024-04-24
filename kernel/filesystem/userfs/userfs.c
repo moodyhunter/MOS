@@ -3,7 +3,7 @@
 
 #include "mos/filesystem/userfs/userfs.h"
 
-#include "mos/filesystem/vfs.h"
+#include "mos/filesystem/vfs_types.h"
 #include "mos/filesystem/vfs_utils.h"
 #include "mos/misc/profiling.h"
 #include "mos/printk.h"

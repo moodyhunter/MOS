@@ -2,7 +2,6 @@
 
 #include "mos/mm/paging/table_ops/do_mask.h"
 
-#include "mos/mm/paging/table_ops/do_flag.h"
 #include "mos/platform/platform.h"
 
 static void pml1e_do_mask_callback(pml1_t pml1, pml1e_t *e, ptr_t vaddr, void *data)

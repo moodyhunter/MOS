@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "mos/lib/sync/spinlock.h"
-
 #include <mos/lib/structures/list.h>
 #include <mos/mos_global.h>
 #include <mos/types.h>
@@ -100,7 +98,7 @@ void pmm_free_frames(phyframe_t *start_frame, size_t n_pages);
 /**
  * @brief Mark a range of physical memory as reserved.
  *
- * @param paddr Physical address of the block to reserve.
+ * @param pfn Physical frame number of the block to reserve.
  * @param npages Number of pages to reserve.
  * @return pfn_t Physical frame number of the first frame in the reserved block.
  *

@@ -2,6 +2,7 @@
 
 #include "mos/tasks/signal.h"
 
+#include <limits.h>
 #include <mos/device/console.h>
 #include <mos/io/io.h>
 #include <mos/lib/structures/list.h>

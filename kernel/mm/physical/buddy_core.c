@@ -2,7 +2,6 @@
 
 #include "mos/mm/physical/buddy.h"
 #include "mos/mm/physical/pmm.h"
-#include "mos/platform/platform.h"
 #include "mos/printk.h"
 
 #include <mos/lib/structures/list.h>

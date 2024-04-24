@@ -19,7 +19,6 @@
 #include <mos/tasks/thread.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
-#include <signal.h>
 
 extern const char *vmap_type_str[];
 

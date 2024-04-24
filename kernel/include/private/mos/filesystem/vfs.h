@@ -8,6 +8,13 @@
 #include <mos/lib/sync/mutex.h>
 #include <mos/types.h>
 
+/**
+ * @defgroup vfs Virtual File System
+ * @brief The Virtual File System (VFS) is an abstraction layer that allows the kernel to
+ * interact with different filesystems in a uniform way.
+ * @{
+ */
+
 should_inline const file_ops_t *file_get_ops(file_t *file)
 {
     if (!file)
@@ -147,3 +154,5 @@ ssize_t vfs_getcwd(char *buf, size_t size);
  * @return long 0 on success, or errno on failure
  */
 long vfs_fchmodat(fd_t fd, const char *path, int perm, int flags);
+
+/** @} */

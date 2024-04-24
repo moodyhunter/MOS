@@ -112,7 +112,7 @@ typedef enum
     ELF_ST_FINI_ARRAY = 15,    // Array of destructors
     ELF_ST_PREINIT_ARRAY = 16, // Array of pre-constructors
     ELF_ST_GROUP = 17,         // Section group
-    ELF_ST_SYMTAB_SHNDX = 18,  // Extended section indeces
+    ELF_ST_SYMTAB_SHNDX = 18,  // Extended section indices
     ELF_ST_NUM = 19,           // Number of defined types
     ELF_ST_LOOS = 0x60000000,  // Start of OS-specific
 } elf_section_header_type;

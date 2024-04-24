@@ -4,6 +4,7 @@
 #include <libconfig/libconfig.h>
 #include <mos/syscall/usermode.h>
 #include <sched.h>
+#include <signal.h>
 #include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/platform/platform.h"
+#include <stddef.h>
 
 typedef struct _ipc ipc_t;
 typedef struct _ipc_server ipc_server_t;

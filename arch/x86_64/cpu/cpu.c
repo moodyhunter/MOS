@@ -9,9 +9,9 @@
 
 // clang-format off
 #define do_static_assert(feat) MOS_STATIC_ASSERT(X86_CPUID_LEAF_ENUM(feat) >= 0);
-#define test_ensure_all_leafs_are_supported(feature) do_static_assert(CPU_FEATURE_##feature)
-FOR_ALL_CPU_FEATURES(test_ensure_all_leafs_are_supported)
-#undef test_ensure_all_leafs_are_supported
+#define test_ensure_all_leaves_are_supported(feature) do_static_assert(CPU_FEATURE_##feature)
+FOR_ALL_CPU_FEATURES(test_ensure_all_leaves_are_supported)
+#undef test_ensure_all_leaves_are_supported
 #undef do_static_assert
 // clang-format on
 

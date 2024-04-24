@@ -72,6 +72,7 @@ MOSAPI rpc_call_t *rpc_call_create(rpc_server_stub_t *server, u32 function_id);
  * @brief Add an argument to a call
  *
  * @param call The call to add the argument to
+ * @param argtype The type of the argument
  * @param data A pointer to the argument data
  * @param size The size of the argument data
  */

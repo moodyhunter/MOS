@@ -3,11 +3,8 @@
 
 #include "mos/mm/physical/pmm.h"
 
-#include "mos/filesystem/sysfs/sysfs.h"
-#include "mos/filesystem/sysfs/sysfs_autoinit.h"
-#include "mos/mm/mmstat.h"
 #include "mos/mm/physical/buddy.h"
-#include "mos/panic.h"
+#include "mos/panic.h" // for panic_hook_declare, panic_hook_install
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 

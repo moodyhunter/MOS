@@ -5,11 +5,16 @@
 #include "mos/mm/mmstat.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
-#include "mos/platform/platform_defs.h"
 
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/mm_types.h>
+
+/**
+ * @defgroup mm Memory Management
+ * @brief Memory management functions and structures.
+ * @{
+ */
 
 typedef enum
 {
@@ -180,3 +185,5 @@ void vmap_finalise_init(vmap_t *vmap, vmap_content_t content, vmap_type_t type);
  * @param info The page fault info
  */
 void mm_handle_fault(ptr_t fault_addr, pagefault_t *info);
+
+/** @} */

@@ -5,6 +5,7 @@
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/mm/physical/pmm.h"
+#include "mos/panic.h" // for panic_hook_declare and panic_hook_install
 
 #include <mos/cmdline.h>
 #include <mos/device/console.h>

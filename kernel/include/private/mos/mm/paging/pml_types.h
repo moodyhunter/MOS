@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform_defs.h"
 
 #include <mos/mos_global.h>

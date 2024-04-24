@@ -3,10 +3,8 @@
 #include "mos/mm/paging/pmlx/pml4.h"
 
 #include "mos/mm/mm.h"
-#include "mos/mm/paging/paging.h"
 #include "mos/mm/paging/pml_types.h"
 #include "mos/mm/paging/pmlx/pml3.h"
-#include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
 #include "mos/platform/platform_defs.h"
 

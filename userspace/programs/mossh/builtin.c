@@ -2,6 +2,7 @@
 
 #include "mossh.h"
 
+#include <errno.h>
 #include <mos/types.h>
 #include <stdio.h>
 #include <stdlib.h>

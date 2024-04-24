@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#include <mos/mos_global.h>
 
-#include "mos/misc/profiling.h"
-
+#if MOS_CONFIG(MOS_PROFILING)
 #include "mos/device/console.h"
-#include "mos/mm/slab_autoinit.h"
-#include "mos/platform/platform.h"
+#include "mos/misc/profiling.h"
 #include "mos/printk.h"
 #include "mos/setup.h"
 
@@ -14,9 +13,9 @@
 #include <mos_stdio.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
+#endif
 
 #if MOS_CONFIG(MOS_PROFILING)
-
 #define PROFILER_HEADER "name,start_time,end_time,total_time\n"
 #define PROFILER_LINE   "%s,%llu,%llu,%llu"
 

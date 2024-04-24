@@ -10,6 +10,11 @@
 #include <mos/lib/structures/stack.h>
 #include <mos/tasks/signal_types.h>
 
+/**
+ * @defgroup tasks Process and thread management
+ * @{
+ */
+
 typedef enum
 {
     THREAD_MODE_KERNEL,
@@ -87,3 +92,5 @@ typedef struct _thread
 } thread_t;
 
 extern slab_t *process_cache, *thread_cache;
+
+/** @} */

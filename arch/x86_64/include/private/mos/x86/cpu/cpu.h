@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/panic.h"
+#include "mos/assert.h"
 
 #include <cpuid.h>
 #include <mos/types.h>

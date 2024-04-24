@@ -2,8 +2,6 @@
 
 #define pr_fmt(fmt) "UBSAN: " fmt
 
-#include "mos/assert.h"
-#include "mos/platform/platform.h"
 #include "mos/printk.h"
 
 #include <mos/types.h>

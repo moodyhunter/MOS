@@ -15,6 +15,7 @@
 #include <mos_string.h>
 #else
 #include <assert.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -339,10 +340,10 @@ const void *rpc_arg_next(rpc_context_t *context, size_t *size)
     return arg->data;
 }
 
-const void *rpc_arg_sized_next(rpc_context_t *iter, size_t expected_size)
+const void *rpc_arg_sized_next(rpc_context_t *context, size_t expected_size)
 {
     size_t size = 0;
-    const void *data = rpc_arg_next(iter, &size);
+    const void *data = rpc_arg_next(context, &size);
     if (size != expected_size)
         return NULL;
     return (void *) data;

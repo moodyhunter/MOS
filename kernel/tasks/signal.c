@@ -9,6 +9,7 @@
 #include "mos/tasks/process.h"
 #include "mos/tasks/thread.h"
 
+#include <errno.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/tasks/signal_types.h>

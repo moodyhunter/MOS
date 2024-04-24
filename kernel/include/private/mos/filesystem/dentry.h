@@ -169,8 +169,6 @@ __nodiscard dentry_t *dentry_unmount(dentry_t *root);
  *
  * @param dir The directory to list
  * @param state The state of the directory iterator
- *
- * @return The number of bytes written to the buffer, which is contained in the state object
  */
 void vfs_populate_listdir_buf(dentry_t *dir, vfs_listdir_state_t *state);
 

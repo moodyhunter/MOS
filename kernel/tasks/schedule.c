@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/tasks/signal.h"
-
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/platform/platform.h>

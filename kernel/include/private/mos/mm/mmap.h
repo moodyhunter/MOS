@@ -11,6 +11,7 @@
 /**
  * @brief Map a page into the current process's address space
  *
+ * @param ctx The memory management context
  * @param hint_addr A hint for the address to map the page at, the actual address is determined based on the @p flags
  * @param flags Flags to control the mapping, see @ref mmap_flags_t
  * @param vm_flags Flags to control the permissions of the mapping, see @ref vm_flags
@@ -22,6 +23,7 @@ ptr_t mmap_anonymous(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_
 /**
  * @brief Map a file into the current process's address space
  *
+ * @param ctx The memory management context
  * @param hint_addr A hint for the address to map the page at, the actual address is determined based on the @p flags
  * @param flags Flags to control the mapping, see @ref mmap_flags_t
  * @param vm_flags Flags to control the permissions of the mapping, see @ref vm_flags
@@ -47,6 +49,7 @@ bool munmap(ptr_t addr, size_t size);
 /**
  * @brief Change the permissions of a mapping
  *
+ * @param mmctx The memory management context
  * @param addr The address of the mapping to change
  * @param size The size of the mapping to change
  * @param perm The new permissions for the mapping

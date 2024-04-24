@@ -60,7 +60,7 @@ void *memcpy(void *__restrict _dst, const void *__restrict _src, size_t n)
 #define UNALIGNED(X, Y) (((long) X & (sizeof(long) - 1)) | ((long) Y & (sizeof(long) - 1))) // Nonzero if either X or Y is not aligned on a "long" boundary.
 #define BIGBLOCKSIZE    (sizeof(long) << 2)                                                 // How many bytes are copied each iteration of the 4X unrolled loop.
 #define LITTLEBLOCKSIZE (sizeof(long))                                                      // How many bytes are copied each iteration of the word copy loop.
-#define TOO_SMALL(LEN)  ((LEN) < BIGBLOCKSIZE)                                              // Threshhold for punting to the byte copier.
+#define TOO_SMALL(LEN)  ((LEN) < BIGBLOCKSIZE)                                              // Threshold for punting to the byte copier.
 
     char *dst = _dst;
     const char *src = _src;

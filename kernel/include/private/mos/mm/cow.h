@@ -4,7 +4,6 @@
 
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/paging.h"
-#include "mos/tasks/task_types.h"
 
 /**
  * @brief Copy-on-write a page range

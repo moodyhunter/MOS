@@ -26,6 +26,7 @@ void userfs_ensure_connected(userfs_t *userfs);
  *
  * @param pbi The protobuf inode.
  * @param sb The superblock.
+ * @param private The private data for the inode.
  * @return inode_t* An allocated kernel inode.
  */
 inode_t *i_from_pbfull(const pb_inode_info *pbi, superblock_t *sb, void *private);

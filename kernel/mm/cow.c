@@ -2,13 +2,10 @@
 
 #include "mos/mm/cow.h"
 
-#include "mos/interrupt/ipi.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/mmstat.h"
 #include "mos/mm/paging/paging.h"
-#include "mos/mm/paging/table_ops.h"
 #include "mos/platform/platform.h"
-#include "mos/tasks/task_types.h"
 
 #include <mos/interrupt/ipi.h>
 #include <mos/mm/cow.h>

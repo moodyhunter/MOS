@@ -11,7 +11,7 @@
 
 /**
  * @defgroup kernel_tasks_signal kernel.tasks.signal
- * @ingroup kernel_tasks
+ * @ingroup tasks
  * @brief Signal handling.
  * @{
  */
@@ -47,13 +47,18 @@ long signal_send_to_process(process_t *target, signal_t signal);
  * @brief Prepare to exit to userspace.
  *
  * @param regs The registers of the thread.
- * @param syscall_nr The syscall number, used in case the syscall should be restarted.
- * @param syscall_ret The return value of the syscall, which may be -ERESTARTSYS,
- *                    in which case the syscall should be restarted.
  *
  */
 void signal_exit_to_user_prepare(platform_regs_t *regs);
 
+/**
+ * @brief Prepare to exit to userspace after a syscall.
+ *
+ * @param regs The registers of the thread.
+ * @param syscall_nr The syscall number, used in case the syscall should be restarted.
+ * @param syscall_ret The return value of the syscall, which may be -ERESTARTSYS,
+ *                    in which case the syscall should be restarted.
+ */
 void signal_exit_to_user_prepare_syscall(platform_regs_t *regs, reg_t syscall_nr, reg_t syscall_ret);
 
 typedef struct _sigreturn_data
@@ -74,6 +79,4 @@ void signal_on_returned(sigreturn_data_t *supplimentary_data);
  */
 bool signal_has_pending(void);
 
-/**
- * @}
- */
+/** @} */

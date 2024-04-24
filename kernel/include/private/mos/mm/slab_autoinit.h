@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "mos/mm/slab.h"
 #include "mos/setup.h"
 
 #define _DO_SLAB_AUTOINIT(name, var, type, func)                                                                                                                         \

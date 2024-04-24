@@ -7,7 +7,6 @@
 #include "mos/mm/paging/pmlx/pml2.h"
 #include "mos/mm/paging/pmlx/pml3.h"
 #include "mos/mm/paging/pmlx/pml4.h"
-#include "mos/mm/paging/pmlx/pml5.h"
 #include "mos/platform/platform.h"
 
 #include <mos/mos_global.h>

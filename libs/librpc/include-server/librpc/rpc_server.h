@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "librpc/internal.h"
 #include "librpc/rpc.h"
 
 #include <mos/types.h>
@@ -138,13 +137,13 @@ MOSAPI const void *rpc_arg_next(rpc_context_t *args, size_t *size);
 /**
  * @brief Iterate to the next argument, and check that the size is as expected
  *
- * @param args The argument iterator
+ * @param context The RPC call context
  * @param expected_size The expected size of the argument
  * @return const void* A pointer to the next argument, or NULL if the size is incorrect.
  *
  * @note Do not modify any of the data in the returned pointer.
  */
-MOSAPI const void *rpc_arg_sized_next(rpc_context_t *iter, size_t expected_size);
+MOSAPI const void *rpc_arg_sized_next(rpc_context_t *context, size_t expected_size);
 MOSAPI u8 rpc_arg_next_u8(rpc_context_t *args);
 MOSAPI u16 rpc_arg_next_u16(rpc_context_t *args);
 MOSAPI u32 rpc_arg_next_u32(rpc_context_t *args);
@@ -178,7 +177,7 @@ MOSAPI const char *rpc_arg_string(const rpc_context_t *context, size_t iarg);
 /**
  * @brief Write a result to the reply
  *
- * @param result The result object
+ * @param context The RPC call context
  * @param data The data to write
  * @param size The size of the data to write
  */

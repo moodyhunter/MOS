@@ -15,7 +15,6 @@
 #include "mos/mm/paging/table_ops/do_map.h"
 #include "mos/mm/paging/table_ops/do_mask.h"
 #include "mos/mm/paging/table_ops/do_unmap.h"
-#include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"
 

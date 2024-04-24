@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include <errno.h>
+#ifdef __MOS_KERNEL__
+#include <abi-bits/errno.h>
+#endif
 #include <mos/compiler.h>
 #include <stdnoreturn.h>
 

@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/tasks/schedule.h"
-
-#include <iso646.h>
 #include <mos/interrupt/ipi.h>
 #include <mos/platform/platform.h>
 #include <mos/printk.h>
 #include <mos/types.h>
-#include <stddef.h>
 
 #if MOS_CONFIG(MOS_SMP)
+#include "mos/tasks/schedule.h"
 
 static void ipi_handler_halt(ipi_type_t type)
 {

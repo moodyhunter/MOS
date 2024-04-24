@@ -2,14 +2,13 @@
 
 #pragma once
 
-#include "mos/platform/platform.h"
-
 #include <mos/mos_global.h>
 #include <mos/types.h>
 
 typedef u64 pf_point_t;
 
 #if MOS_CONFIG(MOS_PROFILING)
+#include "mos/platform/platform.h"
 
 /**
  * @brief Enter a profiling scope

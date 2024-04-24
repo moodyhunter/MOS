@@ -10,7 +10,7 @@
  * @post  head_node->next == head_node
  * @post  head_node->prev == head_node
  *
- * @param head_node The list head node (and thus, the only element in the newly created list)
+ * @param node The list head node (and thus, the only element in the newly created list)
  */
 void linked_list_init(list_node_t *node)
 {
@@ -18,17 +18,6 @@ void linked_list_init(list_node_t *node)
     node->next = node;
 }
 
-/**
- * @brief Insert a node into a list
- * @post  node->next == next
- * @post  node->prev == prev
- * @post  prev->next == node
- * @post  next->prev == node
- *
- * @param node The node to insert
- * @param prev The node before the insertion point
- * @param next The node after the insertion point
- */
 bool list_is_empty(const list_node_t *head)
 {
     return head->next == head;
@@ -45,6 +34,17 @@ void list_node_remove(list_node_t *node)
 }
 
 // ! Internal API
+/**
+ * @brief Insert a node into a list
+ * @post  node->next == next
+ * @post  node->prev == prev
+ * @post  prev->next == node
+ * @post  next->prev == node
+ *
+ * @param prev The node before the insertion point
+ * @param new_node The node to insert
+ * @param next The node after the insertion point
+ */
 static void list_node_insert(list_node_t *prev, list_node_t *new_node, list_node_t *next)
 {
     new_node->prev = prev;

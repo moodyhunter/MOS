@@ -107,6 +107,8 @@ typedef struct _dentry
     void *private; // fs-specific data
 } dentry_t;
 
+extern dentry_t *root_dentry;
+
 #define dentry_name(dentry)                                                                                                                                              \
     __extension__({                                                                                                                                                      \
         const char *__name = (dentry)->name;                                                                                                                             \

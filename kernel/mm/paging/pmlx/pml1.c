@@ -2,9 +2,8 @@
 
 #include "mos/mm/paging/pmlx/pml1.h"
 
-#include "mos/mm/mm.h"
-#include "mos/mm/paging/paging.h"
 #include "mos/mm/paging/pml_types.h"
+#include "mos/platform/platform.h"
 
 #include <mos_stdlib.h>
 

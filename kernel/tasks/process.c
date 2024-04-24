@@ -6,7 +6,6 @@
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/io/io.h"
 #include "mos/mm/mm.h"
-#include "mos/mm/slab_autoinit.h"
 #include "mos/tasks/signal.h"
 
 #include <abi-bits/wait.h>

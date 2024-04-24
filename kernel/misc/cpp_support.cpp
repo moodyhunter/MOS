@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/printk.h"
-#include "mos/setup.h"
-
 #include <cxxabi.h>
 #include <mos/lib/sync/mutex.h>
 #include <mos_stdlib.h>

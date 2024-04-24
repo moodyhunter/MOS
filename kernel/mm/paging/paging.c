@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/io/io.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/mmstat.h"
-#include "mos/mm/paging/pmlx/pml4.h"
 #include "mos/mm/paging/table_ops.h"
-#include "mos/mm/slab.h"
-#include "mos/mm/slab_autoinit.h"
-#include "mos/tasks/task_types.h"
 
 #include <mos/lib/structures/bitmap.h>
 #include <mos/lib/structures/list.h>

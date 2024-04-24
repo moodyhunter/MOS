@@ -3,7 +3,6 @@
 #pragma once
 
 #include <abi-bits/signal.h>
-#include <signal.h>
 
 #define SIGNAL_MAX_N NSIG
 typedef int signal_t;
