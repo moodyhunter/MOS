@@ -11,12 +11,7 @@
 
 #ifdef __MOS_RPC_CLIENT__
 #include <librpc/rpc_client.h>
-
-#ifdef __MOS_MINIMAL_LIBC__
-#include <mos_stdio.h>
-#else
 #include <stdio.h>
-#endif
 
 RPC_CLIENT_DEFINE_SIMPLECALL(syslogd, SYSLOGD_RPC_X)
 

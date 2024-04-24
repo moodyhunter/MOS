@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <limits.h>
 #include <mos/moslib_global.h>
 #include <mos/types.h>
 #include <stddef.h>
@@ -32,16 +31,7 @@ MOSAPI char *string_trim(char *in);
 #define pow2(x) ((__typeof__(x)) 1 << (x))
 // clang-format on
 
-// malloc, free, calloc and realloc
-#ifndef __MOS_KERNEL__
-extern char **environ;
-MOSAPI __malloc void *malloc(size_t size);
-MOSAPI void free(void *ptr);
-MOSAPI void *calloc(size_t nmemb, size_t size);
-MOSAPI void *realloc(void *ptr, size_t size);
-MOSAPI pid_t spawn(const char *path, const char *const argv[]);
-pid_t shell_execute(const char *command);
-#else
+#ifdef __MOS_KERNEL__
 #include "mos/mm/slab.h"
 
 #define kmalloc(item) _Generic((item), slab_t *: kmemcache_alloc, default: slab_alloc)(item)
@@ -68,6 +58,9 @@ should_inline void kfree(const void *ptr)
 #define free(ptr)           slab_free(ptr)
 #endif
 
+#else
+// malloc, free, calloc and realloc should be provided by libc
+MOSAPI pid_t spawn(const char *path, const char *const argv[]);
 #endif
 
 #ifndef __MOS_KERNEL__

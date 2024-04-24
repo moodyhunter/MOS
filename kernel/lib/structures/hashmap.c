@@ -26,7 +26,7 @@ void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, has
     }
     memzero(map, sizeof(hashmap_t));
     map->magic = HASHMAP_MAGIC;
-    map->entries = calloc(capacity, sizeof(hashmap_entry_t *));
+    map->entries = kcalloc(capacity, sizeof(hashmap_entry_t *));
     map->capacity = capacity;
     map->size = 0;
     map->hash_func = hash_func;
@@ -51,11 +51,11 @@ void hashmap_deinit(hashmap_t *map)
         while (entry != NULL)
         {
             hashmap_entry_t *next = entry->next;
-            free(entry);
+            kfree(entry);
             entry = next;
         }
     }
-    free(map->entries);
+    kfree(map->entries);
     spinlock_release(&map->lock);
 }
 
@@ -77,7 +77,7 @@ void *hashmap_put(hashmap_t *map, uintn key, void *value)
         }
         entry = entry->next;
     }
-    entry = malloc(sizeof(hashmap_entry_t));
+    entry = kmalloc(sizeof(hashmap_entry_t));
     entry->key = key;
     entry->value = value;
     entry->next = map->entries[index];
@@ -124,7 +124,7 @@ void *hashmap_remove(hashmap_t *map, uintn key)
             else
                 prev->next = entry->next;
             void *value = entry->value;
-            free(entry);
+            kfree(entry);
             map->size--;
             spinlock_release(&map->lock);
             return value;

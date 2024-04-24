@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/syscall/usermode.h>
+#include "mosapi.h"
 
 int main(int argc, char **argv)
 {

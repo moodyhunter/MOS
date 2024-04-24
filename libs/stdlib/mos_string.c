@@ -196,6 +196,8 @@ char *strncpy(char *__restrict dest, const char *__restrict src, size_t n)
     return ret;
 }
 
+// not available for minimal libc
+#ifdef __MOS_KERNEL__
 char *strdup(const char *src)
 {
     char *dst = malloc(strlen(src) + 1);
@@ -210,14 +212,7 @@ char *strndup(const char *src, size_t len)
     dst[len] = '\0';
     return dst;
 }
-
-const char *duplicate_string(const char *src, size_t len)
-{
-    char *dst = malloc(len + 1);
-    strncpy(dst, src, len);
-    dst[len] = '\0';
-    return dst;
-}
+#endif
 
 char *strchr(const char *s, int c)
 {

@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/filesystem/fs_types.h>
-#include <mos/mos_global.h>
-#include <mos/syscall/usermode.h>
-#include <mos_stdio.h>
+#include "mosapi.h"
 
 void do_touch(const char *path)
 {

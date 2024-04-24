@@ -186,7 +186,7 @@ flag_parse_done:
     return format - start;
 }
 
-// writes a character into the buffer, and increses the buffer pointer
+// writes a character into the buffer, and increases the buffer pointer
 should_inline __nodiscard int buf_putchar(char *buf, char c, size_t *size_left)
 {
     if (*size_left > 0)
@@ -547,9 +547,9 @@ int vsnprintf(char *buf, size_t size, const char *format, va_list _args)
 #ifdef __MOS_KERNEL__
                 // print special kernel data types
                 extern size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat, ptr_t ptr);
-                const size_t siz = vsnprintf_do_pointer_kernel(buf, &size, &format, value);
-                wrap_printed(siz);
-                if (siz)
+                const size_t s = vsnprintf_do_pointer_kernel(buf, &size, &format, value);
+                wrap_printed(s);
+                if (s)
                     break;
 #endif
                 wrap_printed(buf_putchar(buf, '0', &size));

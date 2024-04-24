@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/mos_global.h>
-#include <mos_stdio.h>
-#include <mos_string.h>
+#include "mosapi.h"
 
 int main(int argc, char **argv)
 {

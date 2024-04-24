@@ -28,7 +28,6 @@ MOSAPI char *strcat(char *__restrict dest, const char *__restrict src);
 
 MOSAPI char *strncpy(char *__restrict dest, const char *__restrict src, size_t n);
 
-MOSAPI const char *duplicate_string(const char *src, size_t len);
 MOSAPI char *strdup(const char *src);
 MOSAPI char *strndup(const char *src, size_t n);
 

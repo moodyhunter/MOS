@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <dirent.h>
-#include <fcntl.h>
-#include <mos/filesystem/fs_types.h>
-#include <mos/syscall/usermode.h>
-#include <mos/types.h>
-#include <mos_stdio.h>
-#include <sys/stat.h>
+#include "mosapi.h"
 
 #define BUFSIZE 4096
 

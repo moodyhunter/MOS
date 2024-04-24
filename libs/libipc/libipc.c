@@ -2,19 +2,10 @@
 
 #include "libipc/ipc.h"
 
-#ifndef __MOS_MINIMAL_LIBC__
-#undef __MLIBC_ABI_ONLY // make clangd happy
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#define memzero(b, s) memset(b, 0, s)
-#define mos_warn      puts
-#else
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
-#endif
 
 #ifdef __MOS_KERNEL__
 #include "mos/io/io.h"
@@ -23,13 +14,13 @@
 #define syscall_io_read(fd, buffer, size)  io_read(fd, buffer, size)
 #define syscall_io_write(fd, buffer, size) io_write(fd, buffer, size)
 #else
+#define mos_warn(...) fprintf(stderr, __VA_ARGS__)
 #include <mos/syscall/usermode.h>
 #endif
 
 ipc_msg_t *ipc_msg_create(size_t size)
 {
     ipc_msg_t *buffer = malloc(sizeof(ipc_msg_t) + size);
-    memzero(buffer, sizeof(ipc_msg_t) + size);
     buffer->size = size;
     return buffer;
 }

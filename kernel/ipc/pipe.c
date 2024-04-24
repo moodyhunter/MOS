@@ -2,10 +2,10 @@
 // abstract pipe implementation
 // A pipe is a buffer that only has a single reader and a single writer
 
+#include <limits.h>
 #define pr_fmt(fmt) "pipe: " fmt
 
 #include "mos/ipc/pipe.h"
-
 #include "mos/mm/slab_autoinit.h"
 #include "mos/platform/platform.h"
 #include "mos/printk.h"

@@ -10,6 +10,7 @@
 
 #include <abi-bits/wait.h>
 #include <errno.h>
+#include <limits.h>
 #include <mos/filesystem/dentry.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>

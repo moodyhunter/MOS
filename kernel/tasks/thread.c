@@ -3,6 +3,7 @@
 #include "mos/mm/mm.h"
 
 #include <errno.h>
+#include <limits.h>
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/structures/hashmap_common.h>
 #include <mos/lib/structures/list.h>

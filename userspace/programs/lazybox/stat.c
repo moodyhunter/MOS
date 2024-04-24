@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/moslib_global.h"
-
-#include <mos/filesystem/fs_types.h>
-#include <mos/syscall/usermode.h>
-#include <mos_stdio.h>
-#include <sys/stat.h>
+#include "mosapi.h"
 
 int main(int argc, char **argv)
 {
@@ -18,7 +13,7 @@ int main(int argc, char **argv)
     for (int i = 1; i < argc; i++)
     {
         file_stat_t statbuf;
-        if (!lstat(argv[i], &statbuf))
+        if (!lstatat(FD_CWD, argv[i], &statbuf))
         {
             fprintf(stderr, "%s: No such file or directory\n", argv[i]);
             return 1;
@@ -38,10 +33,10 @@ int main(int argc, char **argv)
             case FILE_TYPE_SYMLINK:
             {
                 puts("Type: Symbolic link");
-                size_t siz = syscall_vfs_readlinkat(FD_CWD, argv[i], link_target, sizeof(link_target));
-                if (siz == (size_t) -1)
+                const size_t size = syscall_vfs_readlinkat(FD_CWD, argv[i], link_target, sizeof(link_target));
+                if (size == (size_t) -1)
                 {
-                    fatal_abort("readlink");
+                    puts("readlink failed");
                     return 1;
                 }
                 printf("Link target: %s\n", link_target);

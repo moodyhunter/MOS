@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/syscall/usermode.h>
-#include <mos_stdio.h>
+#include "mosapi.h"
 
 void do_mkdir(const char *path)
 {

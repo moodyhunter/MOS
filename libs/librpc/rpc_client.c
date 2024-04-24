@@ -11,7 +11,7 @@
 #include <pb_encode.h>
 #include <stdarg.h>
 
-#if defined(__MOS_KERNEL__) || defined(__MOS_MINIMAL_LIBC__)
+#if defined(__MOS_KERNEL__)
 #include <mos/lib/sync/mutex.h>
 #include <mos_stdio.h>
 #include <mos_stdlib.h>
@@ -33,7 +33,7 @@
 #include <mos/syscall/usermode.h>
 #endif
 
-#if !defined(__MOS_KERNEL__) && !defined(__MOS_MINIMAL_LIBC__)
+#if !defined(__MOS_KERNEL__)
 // fixup for hosted libc
 #include <pthread.h>
 typedef pthread_mutex_t mutex_t;

@@ -15,13 +15,13 @@ ring_buffer_t *ring_buffer_create(size_t capacity)
     if (capacity == 0)
         return NULL; // forget about it
 
-    ring_buffer_t *rb = malloc(sizeof(ring_buffer_t));
+    ring_buffer_t *rb = kmalloc(sizeof(ring_buffer_t));
     if (!rb)
         return NULL;
-    rb->data = malloc(capacity);
+    rb->data = kmalloc(capacity);
     if (!rb->data)
     {
-        free(rb);
+        kfree(rb);
         return NULL;
     }
     ring_buffer_pos_init(&rb->pos, capacity);
@@ -33,7 +33,7 @@ ring_buffer_t *ring_buffer_create_at(void *data, size_t capacity)
     if (capacity == 0)
         return NULL; // forget about it
 
-    ring_buffer_t *rb = malloc(sizeof(ring_buffer_t));
+    ring_buffer_t *rb = kmalloc(sizeof(ring_buffer_t));
     if (!rb)
         return NULL;
     rb->data = data;
@@ -51,15 +51,15 @@ void ring_buffer_pos_init(ring_buffer_pos_t *pos, size_t capacity)
 
 void ring_buffer_destroy(ring_buffer_t *buffer)
 {
-    free(buffer->data);
-    free(buffer);
+    kfree(buffer->data);
+    kfree(buffer);
 }
 
 bool ring_buffer_resize(ring_buffer_t *buffer, size_t new_capacity)
 {
     if (new_capacity < buffer->pos.size)
         return false;
-    void *new_data = malloc(new_capacity);
+    void *new_data = kmalloc(new_capacity);
     if (!new_data)
         return false;
     size_t i = 0;
@@ -69,7 +69,7 @@ bool ring_buffer_resize(ring_buffer_t *buffer, size_t new_capacity)
         i++;
     }
 
-    free(buffer->data);
+    kfree(buffer->data);
     buffer->data = new_data;
     buffer->pos.capacity = new_capacity;
     buffer->pos.head = 0;

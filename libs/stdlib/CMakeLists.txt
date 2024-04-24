@@ -9,15 +9,6 @@ add_mos_library(
         mos_stdio_impl.c
         mos_stdlib.c
         mos_string.c
-        cmdline.c
-        structures/bitmap.c
-        structures/hashmap.c
-        structures/hashmap_common.c
-        structures/list.c
-        structures/ring_buffer.c
-        structures/stack.c
-        structures/tree.c
-        sync/mutex.c
 )
 
 # special kernel extensions for vsnprintf

@@ -20,7 +20,7 @@ static const char **cmdline_static_array_insert(const char **result, size_t resu
 static const char **cmdline_dynamic_array_insert(const char **argv, size_t result_capacity, char *cmdline, size_t *result_count)
 {
     MOS_UNUSED(result_capacity); // unused because we always realloc
-    argv = realloc(argv, sizeof(char *) * (*result_count + 1));
+    argv = krealloc(argv, sizeof(char *) * (*result_count + 1));
     argv[*result_count] = strdup(cmdline);
     (*result_count)++;
     return argv;
