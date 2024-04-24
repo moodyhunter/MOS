@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <errno.h>
 #include <mos/syscall/usermode.h>
 #include <pthread.h>
 #include <spawn.h>
