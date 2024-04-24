@@ -1,0 +1,150 @@
+<script src="https://cdn.jsdelivr.net/npm/jsframe.js/lib/jsframe.min.js"></script>
+<script src="https://kit.fontawesome.com/ff52c6ccdf.js" crossorigin="anonymous"></script>
+
+<style type="text/css">
+    .btn-chat {
+        box-shadow: 2px 3px 16px rgba(0, 0, 0, .6);
+        border-radius: 50%;
+        text-align: center;
+        vertical-align: middle;
+        position: fixed;
+        color: #fff;
+        background-color: #007bff;
+        border-color: #007bff;
+        transition: transform 0.2s linear, opacity 0.5s;
+        transform: scale(0.9);
+    }
+
+    .btn-chat:hover {
+        color: #fff;
+        background-color: #0069d9;
+        border-color: #0062cc;
+        transform: scale(1.0);
+    }
+</style>
+
+<script type="text/javascript">
+    class ChatUI {
+        constructor() {
+            this.jsFrame = new JSFrame({
+                parentElement: document.querySelector('#chat_container'),
+                horizontalAlign: 'right',
+                verticalAlign: 'bottom',
+            });
+
+            this.initParam = {
+                btnRight: 100,
+                btnBottom: 20,
+                btnSize: 60,
+                btnFontSize: 25,
+                frmWidth: 400,
+                frmHeight: 300,
+                frmHeightMin: 300,
+                frmWidthMin: 200,
+                frmTitleHeight: 32,
+            };
+
+            this.frameName = 'chat_window';
+            this.buttonId = 'chat_wakeup';
+            this.isVisible = false;
+        }
+
+        buildChatButton() {
+            const btn = document.createElement('div')
+            btn.id = this.buttonId;
+            btn.className = 'btn-chat';
+            btn.innerHTML = '<i class="fas fa-comment-alt"></i>';
+            btn.onclick = this.toggleChatVisibility.bind(this);
+            btn.style.right = this.initParam.btnRight + 'px';
+            btn.style.bottom = this.initParam.btnBottom + 'px';
+            btn.style.width = this.initParam.btnSize + 'px';
+            btn.style.fontSize = this.initParam.btnFontSize + 'px';
+            btn.style.height = btn.style.width;
+            btn.style.lineHeight = btn.style.width;
+            btn.style.zIndex = 1000;
+
+            document.body.appendChild(btn);
+        }
+
+        buildChatWindow() {
+            const p = this.initParam;
+            const frmWidth = p.frmWidth;
+            const frmHeight = p.frmHeight;
+            const frmHeightMin = p.frmHeightMin;
+            const frmWidthMin = p.frmWidthMin;
+            const frmLeft = - (p.btnRight + p.frmWidth - 50);
+            const frmTop = - (p.btnBottom + p.btnSize + p.frmHeight - 20);
+            const frmTitleHeight = p.frmTitleHeight;
+
+            console.log("location: " + frmLeft + ", " + frmTop + " size: " + frmWidth + "x" + frmHeight)
+
+            this.frame = this.jsFrame.create({
+                name: this.frameName,
+                title: 'MOS Docs AI ChatBot',
+                left: frmLeft,
+                top: frmTop,
+                width: frmWidth,
+                height: frmHeight,
+                minWidth: frmWidthMin,
+                minHeight: frmHeightMin,
+                url: "/mos-ai.html",
+                appearanceName: 'material',
+                appearanceParam: {
+                    border: { shadow: '2px 2px 10px rgba(0, 0, 0, 0.5)', radius: 10 },
+                    titleBar: {
+                        color: 'white',
+                        background: '#500bff',
+                        leftMargin: 40,
+                        height: frmTitleHeight,
+                        fontSize: 14,
+                        buttonWidth: 36,
+                        buttonHeight: 16,
+                        buttonColor: 'white',
+                        buttons: [{ fa: 'fas fa-times', name: 'hideButton', visible: true }],
+                        buttonsOnLeft: [{ fa: 'fas fa-comments', visible: true }],
+                    },
+                },
+                style: { overflow: 'hidden' },
+            });
+
+            this.frame.setControl({});
+            this.frame.on('hideButton', 'click', this.toggleChatVisibility.bind(this));
+            this.frame.control.doHide({});
+        }
+
+        toggleChatVisibility() {
+            this.isVisible = !this.isVisible;
+            const frame = this.jsFrame.getWindowByName(this.frameName);
+            if (this.isVisible) frame.control.doDehide({});
+            else frame.control.doHide({});
+        }
+    }
+</script>
+
+<script type="text/javascript">
+    function addAIChatBot() {
+        const div = document.createElement('div');
+        div.id = 'chat_container';
+        div.style.position = 'fixed';
+        div.style.bottom = 0;
+        div.style.right = 0;
+        div.style.zIndex = 999;
+        document.body.prepend(div);
+
+        console.log('Adding AI Chat Bot');
+        window.ChatUI = new ChatUI();
+        window.ChatUI.buildChatButton();
+        window.ChatUI.buildChatWindow();
+    }
+
+    window.addEventListener('load', () => addAIChatBot());
+
+    let prev_url = '';
+    new MutationObserver(function (mutations) {
+        if (location.pathname !== prev_url) {
+            prev_url = location.pathname;
+            console.log(`URL changed to ${location.pathname}`);
+            setTimeout(addAIChatBot, 0);
+        }
+    }).observe(document, { subtree: true, childList: true });
+</script>

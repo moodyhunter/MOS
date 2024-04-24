@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOS Documentation AI</title>
+    <script type="module" src="https://cdn.jsdelivr.net/gh/zerodevx/zero-md@2/dist/zero-md.min.js"></script>
+    <meta name="color-scheme" content="light dark">
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 10px;
+            background-color: #333;
+            color: #eee;
+            border-radius: 4px;
+        }
+
+        #query {
+            background-color: #444;
+            color: #eee;
+            border: 1px solid #555;
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .answer {
+            background-color: #0d1117;
+            border: 1px solid #555;
+            margin-top: 20px;
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+
+            &:disabled {
+                color: #ccc;
+            }
+        }
+
+        #followup {
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+
+            &:hover:not(:disabled) {
+                background-color: #0056b3;
+            }
+
+            &:disabled {
+                background-color: #ccc;
+                cursor: not-allowed;
+            }
+        }
+
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        .markdown-body {
+            padding: 20px;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+    </style>
+
+
+    <script>
+        function set_enable(enabled) {
+            document.getElementById('query').disabled = !enabled
+            document.getElementById('ask').disabled = !enabled
+            document.getElementById('followup-container').hidden = !enabled
+        }
+
+        function populate_response(data) {
+            if (!data.text || !data.followupQuestions) {
+                document.getElementById('answer').innerHTML = 'Sorry, no answer found.'
+            } else {
+                document.getElementById('answer').innerHTML = data.text
+                document.getElementById('followup').innerHTML = data.followupQuestions.map(q => `<li><a href="#" onclick="do_query('${q}')">${q}</a></li>`).join('')
+            }
+            set_enable(true)
+        }
+
+        async function do_query(query) {
+            set_enable(false)
+            document.getElementById('query').value = query
+            document.getElementById('answer').innerText = 'Waiting for answer...'
+
+            var response = await fetch('https://api.gitbook.com/v1/spaces/6fwi7oR9p2PuhRgOB2Sg/search/ask', {
+                method: 'POST',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ "query": query }),
+            });
+
+            var data = await response.json();
+            populate_response(data.answer || {})
+        }
+    </script>
+</head>
+
+<body>
+    <form action="#" onsubmit="do_query(document.getElementById('query').value); return false;">
+        <div style="display: flex; justify-content: flex-start; gap: 10px;">
+            <input id="query" type="text" placeholder="Ask a question...">
+            <button id="ask">Ask</button>
+        </div>
+    </form>
+
+    <zero-md class="answer">
+        <template>
+            <link rel="stylesheet"
+                href="https://cdn.jsdelivr.net/gh/sindresorhus/github-markdown-css/github-markdown.css">
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/PrismJS/prism/themes/prism.min.css" />
+            <link rel="stylesheet"
+                href="https://cdn.jsdelivr.net/gh/sindresorhus/github-markdown-css/github-markdown-dark.min.css" />
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/PrismJS/prism/themes/prism-okaidia.min.css" />
+        </template>
+        <script type="text/markdown" id="answer">Ask me anything about MOS!</script>
+    </zero-md>
+
+    <div id="followup-container">
+        <h3>You may also want...</h3>
+        <div id="followup">
+            <li><a href="#" onclick="do_query('How to configure MOS?')">How to configure MOS?</a></li>
+            <li><a href="#" onclick="do_query('What are the supported architectures?')">What are the supported
+                    architectures?</a></li>
+        </div>
+    </div>
+
+</body>
+
+</html>

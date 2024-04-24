@@ -66,7 +66,7 @@ architecture.
 
 The toolchain is built using the `makepkg` tool, which is part of the `pacman` package manager.
 
-You can find the packaging scripts for the toolchain in the [MOS Toolchain Repository](https://github.com/moodyhunter/mos-toolchain).
+You can find the packaging scripts for the toolchain in the [MOS Package Repository](https://github.com/moodyhunter/mos-packages).
 +++
 
 ### 3.3. Using the Toolchain
@@ -74,7 +74,7 @@ You can find the packaging scripts for the toolchain in the [MOS Toolchain Repos
 Once installed, the libraries will be available at `/opt/$ARCH-mos` while the cross compilers will be installed to the
 standard locations, e.g. `/usr/bin/$ARCH-mos-gcc`.
 
-## After Installation
+## 4. After Installation
 
 No further configuration is required to use the toolchain, once you have installed the packages, you can start
 [configuring and building MOS](configure-build.md).
