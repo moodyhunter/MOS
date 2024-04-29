@@ -5,7 +5,7 @@ version = "0.1.0"
 
 [dependencies]
 clap = {version = "4.5.4", features = ["derive"]}
-libc = "0.2.153"
+libc = "0.2.154"
 librpc-rs = {path = "../../libs/librpc-rs", features = ["protobuf"]}
 log = "0.4.21"
 protobuf = "3.4.0"
