@@ -5,6 +5,7 @@
 #include "mos/platform/platform_defs.h"
 
 #include <mos/mos_global.h>
+#include <mos/types.h>
 
 #define MOS_MAX_PAGE_LEVEL 5
 
