@@ -1,0 +1,7 @@
+menu "riscv64 configuration"
+
+config PAGE_SIZE
+    int "Page size"
+    default 4096
+
+endmenu
