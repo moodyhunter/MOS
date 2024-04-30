@@ -81,6 +81,18 @@
 
 
     <script>
+        function save_context() {
+            localStorage.setItem('mos-ai-query', document.getElementById('query').value);
+            localStorage.setItem('mos-ai-answer', document.getElementById('answer').innerHTML);
+            localStorage.setItem('mos-ai-followup', document.getElementById('followup').innerHTML);
+        }
+
+        function load_context() {
+            document.getElementById('query').value = localStorage.getItem('mos-ai-query') || '';
+            document.getElementById('answer').innerHTML = localStorage.getItem('mos-ai-answer') || 'Ask me anything about MOS!';
+            document.getElementById('followup').innerHTML = localStorage.getItem('mos-ai-followup') || '';
+        }
+
         function set_enable(enabled) {
             document.getElementById('query').disabled = !enabled
             document.getElementById('ask').disabled = !enabled
@@ -93,6 +105,7 @@
             } else {
                 document.getElementById('answer').innerHTML = data.text
                 document.getElementById('followup').innerHTML = data.followupQuestions.map(q => `<li><a href="#" onclick="do_query('${q}')">${q}</a></li>`).join('')
+                save_context()
             }
             set_enable(true)
         }
@@ -131,7 +144,7 @@
                 href="https://cdn.jsdelivr.net/gh/sindresorhus/github-markdown-css/github-markdown-dark.min.css" />
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/PrismJS/prism/themes/prism-okaidia.min.css" />
         </template>
-        <script type="text/markdown" id="answer">Ask me anything about MOS!</script>
+        <script type="text/markdown" id="answer"></script>
     </zero-md>
 
     <div id="followup-container">
@@ -142,6 +155,10 @@
                     architectures?</a></li>
         </div>
     </div>
+
+    <script type="application/javascript">
+        load_context()
+    </script>
 
 </body>
 
