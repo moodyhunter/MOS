@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <errno.h>
 #include <mos/mos_global.h>
 #include <mos/tasks/signal_types.h>
 #include <mos/types.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

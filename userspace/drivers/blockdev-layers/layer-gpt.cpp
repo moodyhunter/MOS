@@ -16,6 +16,7 @@
 #include <mos/types.h>
 #include <optional>
 #include <pb_decode.h>
+#include <ranges>
 #include <string_view>
 #include <unistd.h>
 
@@ -89,12 +90,10 @@ void do_gpt_scan()
 {
     std::cout << "Scanning for GPT partitions..." << std::endl;
 
-    for (const auto &entry : std::filesystem::directory_iterator("/dev/block/"))
+    const auto nondir = [](const auto &e) { return !e.is_directory(); };
+    for (const auto &entry : std::filesystem::directory_iterator("/dev/block/") | std::ranges::views::filter(nondir))
     {
-        if (entry.is_directory())
-            continue;
-
-        const std::string name = entry.path().filename().string();
+        const std::string name = entry.path().filename();
 
         if (name[0] == '.') // skip any hidden files, . and ..
             continue;

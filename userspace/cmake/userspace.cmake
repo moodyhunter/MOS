@@ -117,19 +117,26 @@ if (RUSTC)
         COMMAND ${RUSTC} --print target-list
         OUTPUT_VARIABLE RUST_TARGETS
         OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE RUST_TARGETS_RESULT
     )
-    # split the output into a list
-    string(REPLACE "\n" ";" RUST_TARGETS ${RUST_TARGETS})
 
-    # find the first target that matches the current architecture
-    set(RUSTC_IS_SUPPORTED FALSE)
-    foreach(TARGET ${RUST_TARGETS})
-        if("${TARGET}" STREQUAL "${MOS_RUST_TARGET}")
-            set(RUSTC_IS_SUPPORTED TRUE)
-            message(STATUS "Found rustc target ${MOS_RUST_TARGET}")
-            break()
-        endif()
-    endforeach()
+    if(NOT RUST_TARGETS_RESULT EQUAL 0)
+        message(WARNING "Failed to get rustc target list")
+        set(RUSTC_IS_SUPPORTED FALSE)
+    else()
+        # split the output into a list
+        string(REPLACE "\n" ";" RUST_TARGETS ${RUST_TARGETS})
+
+        # find the first target that matches the current architecture
+        set(RUSTC_IS_SUPPORTED FALSE)
+        foreach(TARGET ${RUST_TARGETS})
+            if("${TARGET}" STREQUAL "${MOS_RUST_TARGET}")
+                set(RUSTC_IS_SUPPORTED TRUE)
+                message(STATUS "Found rustc target ${MOS_RUST_TARGET}")
+                break()
+            endif()
+        endforeach()
+    endif()
 else()
     message(WARNING "rustc not found, rust targets will not be supported")
 endif()
