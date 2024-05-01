@@ -4,7 +4,7 @@ name = "librpc-rs"
 version = "0.1.0"
 
 [dependencies]
-num-derive = "0.4"
+num-derive = "0.4.2"
 num-traits = "0.2"
 protobuf = {version = "3.4.0", optional = true}
 
