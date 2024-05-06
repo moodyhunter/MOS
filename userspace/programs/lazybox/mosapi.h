@@ -27,6 +27,8 @@ void _start(size_t argc, char **argv, char **envp)
 // ensure that the stack is 16-byte aligned
 #if defined(__x86_64__)
     __asm__ volatile("andq $-16, %rsp");
+#elif defined(__riscv)
+    __asm__ volatile("and sp, sp, -16");
 #else
 #error "unsupported architecture"
 #endif

@@ -18,7 +18,13 @@ static u32 score;
 should_inline u32 rand(void)
 {
     u32 result;
+#if defined(__x86_64__)
     __asm__ volatile("rdtsc" : "=a"(result) : : "edx");
+#elif defined(__riscv)
+    __asm__ volatile("rdcycle %0" : "=r"(result));
+#else
+#error "unsupported architecture"
+#endif
     result ^= (ptr_t) &result;
     return result;
 }

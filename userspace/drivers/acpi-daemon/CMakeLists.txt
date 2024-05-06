@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+if (NOT MOS_ARCH STREQUAL "x86_64")
+    message(WARNING "ACPI daemon is only supported on x86_64")
+    return()
+endif()
+
 add_library(lai STATIC
     lai/core/error.c
     lai/core/eval.c
