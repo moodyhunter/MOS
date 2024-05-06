@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    name: "MOS ${{matrix.build_type}}, ${{matrix.config.name}}"
+    name: "MOS ${{matrix.config.name}} (${{matrix.build_type}})"
     runs-on: ubuntu-latest
     container:
       image: archlinux:latest
@@ -23,14 +23,13 @@ jobs:
               "has_smp": "n",
               "compile_only": "ON",
             }
-          #   - {
-          #       "name": "x86_64 limine with SMP (1 core)",
-          #       "arch": "x86_64",
-          #       "target": "mos_limine",
-          #       "has_smp": "y",
-          #       "smp": "1",
-          #       "compile_only": "ON",
-          #     }
+          - {
+              "name": "RISC-V kernel only",
+              "arch": "riscv64",
+              "target": "mos_kernel",
+              "has_smp": "n",
+              "compile_only": "ON",
+            }
 
     env:
       MOS_TEST_SMP_COUNT: ${{matrix.config.smp}}
@@ -51,7 +50,7 @@ jobs:
           echo 'SigLevel = Optional TrustAll' >> /etc/pacman.conf
           echo 'Server = https://mospkg.mooody.me/$arch' >> /etc/pacman.conf
 
-          pacman -Sy --noconfirm x86_64-mos-gcc x86_64-mos-binutils x86_64-mos-mlibc mos-api-headers-x86_64-git
+          pacman -Sy --noconfirm ${{matrix.config.arch}}-mos-gcc ${{matrix.config.arch}}-mos-binutils ${{matrix.config.arch}}-mos-mlibc
 
       - name: Configure
         run: |
