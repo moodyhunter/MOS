@@ -25,6 +25,7 @@ static void pagetable_iterator_start_current_range(pagetable_iter_t *it, pml5_t 
     if (!pml3e_is_present(pml3e))
         return;
 
+#if MOS_CONFIG(PML3_HUGE_CAPABLE)
     if (platform_pml3e_is_huge(pml3e))
     {
         it->range.present = true;
@@ -34,12 +35,14 @@ static void pagetable_iterator_start_current_range(pagetable_iter_t *it, pml5_t 
         it->range.pfn_end = it->range.pfn + PML3E_NPAGES - 1;
         return;
     }
+#endif
 
     *pml2 = platform_pml3e_get_pml2(pml3e);
     const pml2e_t *pml2e = pml2_entry(*pml2, it->vaddr);
     if (!pml2e_is_present(pml2e))
         return;
 
+#if MOS_CONFIG(PML2_HUGE_CAPABLE)
     if (platform_pml2e_is_huge(pml2e))
     {
         it->range.present = true;
@@ -49,6 +52,7 @@ static void pagetable_iterator_start_current_range(pagetable_iter_t *it, pml5_t 
         it->range.pfn_end = it->range.pfn + PML2E_NPAGES - 1;
         return;
     }
+#endif
 
     *pml1 = platform_pml2e_get_pml1(pml2e);
     const pml1e_t *pml1e = pml1_entry(*pml1, it->vaddr);
@@ -151,6 +155,7 @@ iterate_pml2:
             continue;
         }
 
+#if MOS_CONFIG(PML2_HUGE_CAPABLE)
         if (platform_pml2e_is_huge(pml2e))
         {
             const vm_flags new_flags = platform_pml2e_get_flags(pml2e);
@@ -167,6 +172,7 @@ iterate_pml2:
             it->range.pfn_end = new_pfn + PML2E_NPAGES - 1;
         }
         else
+#endif
         {
             pml1 = platform_pml2e_get_pml1(pml2e);
             goto iterate_pml1; // iterate pml1
@@ -188,6 +194,7 @@ iterate_pml3:
             continue;
         }
 
+#if MOS_CONFIG(PML3_HUGE_CAPABLE)
         if (platform_pml3e_is_huge(pml3e))
         {
             const vm_flags new_flags = platform_pml3e_get_flags(pml3e);
@@ -204,6 +211,7 @@ iterate_pml3:
             it->range.pfn_end = new_pfn + PML3E_NPAGES - 1;
         }
         else
+#endif
         {
             pml2 = platform_pml3e_get_pml2(pml3e);
             goto iterate_pml2; // iterate pml2
