@@ -14,7 +14,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        build_type: [Debug, Release]
         config:
           - {
               "name": "x86_64 limine (no SMP)",
@@ -30,6 +29,7 @@ jobs:
               "has_smp": "n",
               "compile_only": "ON",
             }
+        build_type: [Debug, Release]
 
     env:
       MOS_TEST_SMP_COUNT: ${{matrix.config.smp}}
@@ -50,7 +50,7 @@ jobs:
           echo 'SigLevel = Optional TrustAll' >> /etc/pacman.conf
           echo 'Server = https://mospkg.mooody.me/$arch' >> /etc/pacman.conf
 
-          pacman -Sy --noconfirm ${{matrix.config.arch}}-mos-gcc ${{matrix.config.arch}}-mos-binutils ${{matrix.config.arch}}-mos-mlibc
+          pacman -Sy --noconfirm mos-sdk ${{matrix.config.arch}}-mos-gcc ${{matrix.config.arch}}-mos-binutils ${{matrix.config.arch}}-mos-mlibc
 
       - name: Configure
         run: |
