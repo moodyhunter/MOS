@@ -60,6 +60,11 @@ s32 atoi(const char *nptr)
     return neg ? -val : val;
 }
 
+unsigned long strtoul(const char *restrict nptr, char **restrict endptr, int base)
+{
+    return strtoll(nptr, endptr, base);
+}
+
 s64 strtoll(const char *str, char **endptr, int base)
 {
     return strntoll(str, endptr, base, strlen(str));

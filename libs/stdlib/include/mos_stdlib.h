@@ -19,6 +19,7 @@ MOSAPI long labs(long x);
 MOSAPI s64 llabs(s64 x);
 MOSAPI s32 atoi(const char *nptr);
 
+MOSAPI unsigned long strtoul(const char *nptr, char **endptr, int base);
 MOSAPI s64 strtoll(const char *str, char **endptr, int base);
 MOSAPI s64 strntoll(const char *str, char **endptr, int base, size_t n);
 

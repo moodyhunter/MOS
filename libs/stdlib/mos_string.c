@@ -13,6 +13,14 @@ size_t strlen(const char *str)
     return len;
 }
 
+size_t strnlen(const char *str, size_t n)
+{
+    size_t len = 0;
+    while (len < n && str[len])
+        len++;
+    return len;
+}
+
 s32 strcmp(const char *s1, const char *s2)
 {
     size_t i = 0;
@@ -160,6 +168,17 @@ void memzero(void *s, size_t n)
         *csrc++ = 0;
         n--;
     }
+}
+
+void *memchr(const void *m, int c, size_t n)
+{
+    const u8 *s = m;
+    for (size_t i = 0; i < n; i++)
+    {
+        if (s[i] == c)
+            return (void *) &s[i];
+    }
+    return NULL;
 }
 
 char *strcpy(char *__restrict dest, const char *__restrict src)

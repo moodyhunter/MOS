@@ -12,6 +12,7 @@
  */
 
 MOSAPI size_t strlen(const char *str) __pure;
+MOSAPI size_t strnlen(const char *, size_t);
 MOSAPI s32 strcmp(const char *str1, const char *str2);
 MOSAPI s32 strncmp(const char *str1, const char *str2, size_t n);
 MOSAPI s32 strncasecmp(const char *str1, const char *str2, size_t n);
@@ -22,6 +23,7 @@ MOSAPI void *memmove(void *dest, const void *src, size_t n);
 MOSAPI void *memset(void *s, int c, size_t n);
 MOSAPI int memcmp(const void *s1, const void *s2, size_t n);
 MOSAPI void memzero(void *s, size_t n);
+MOSAPI void *memchr(const void *m, int c, size_t n);
 
 MOSAPI char *strcpy(char *__restrict dest, const char *__restrict src);
 MOSAPI char *strcat(char *__restrict dest, const char *__restrict src);
