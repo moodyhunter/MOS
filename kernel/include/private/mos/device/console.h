@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <mos/device/dm_types.h>
+#include <ansi_colors.h>
 #include <mos/io/io.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/structures/ring_buffer.h>

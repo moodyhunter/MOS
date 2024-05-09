@@ -2,12 +2,37 @@
 
 #pragma once
 
+#include <mos/mos_global.h>
+#include <mos_string.h>
+
 /**
  * @defgroup libs_ansicolors libs.AnsiColors
  * @ingroup libs
  * @brief ANSI color codes.
  * @{
  */
+
+#define STD_COLOR_LIGHT 0x8
+
+typedef enum
+{
+    Black = 0x0,
+    Blue = 0x1,
+    Green = 0x2,
+    Cyan = 0x3,
+    Red = 0x4,
+    Magenta = 0x5,
+    Brown = 0x6,
+    Gray = 0x7,
+    DarkGray = Black | STD_COLOR_LIGHT,
+    LightBlue = Blue | STD_COLOR_LIGHT,
+    LightGreen = Green | STD_COLOR_LIGHT,
+    LightCyan = Cyan | STD_COLOR_LIGHT,
+    LightRed = Red | STD_COLOR_LIGHT,
+    LightMagenta = Magenta | STD_COLOR_LIGHT,
+    Yellow = Brown | STD_COLOR_LIGHT,
+    White = Gray | STD_COLOR_LIGHT,
+} standard_color_t;
 
 /**
  * @brief ANSI color codes creator.
@@ -51,5 +76,36 @@
 #define _ANSI_COLOR_2(fg, style)          _ANSI_STYLE_##style ";" _ANSI_FG _ANSI_COLOR_##fg
 #define _ANSI_COLOR_3(fg, style, bg)      _ANSI_STYLE_##style ";" _ANSI_FG _ANSI_COLOR_##fg ";" _ANSI_BG _ANSI_COLOR_##bg
 #define _ANSI_COLOR_N(_1, _2, _3, N, ...) N
+
+should_inline void get_ansi_color(char *buf, standard_color_t fg, standard_color_t bg)
+{
+    MOS_UNUSED(bg);
+    static const char *g_ansi_colors[] = {
+        [Black] = ANSI_COLOR(black),
+        [Blue] = ANSI_COLOR(blue),
+        [Green] = ANSI_COLOR(green),
+        [Cyan] = ANSI_COLOR(cyan),
+        [Red] = ANSI_COLOR(red),
+        [Magenta] = ANSI_COLOR(magenta),
+        [Brown] = ANSI_COLOR(yellow),
+        [Gray] = ANSI_COLOR(white, bright),
+        [DarkGray] = ANSI_COLOR(white),
+        [LightBlue] = ANSI_COLOR(blue, bright),
+        [LightGreen] = ANSI_COLOR(green, bright),
+        [LightCyan] = ANSI_COLOR(cyan, bright),
+        [LightRed] = ANSI_COLOR(red, bright),
+        [LightMagenta] = ANSI_COLOR(magenta, bright),
+        [Yellow] = ANSI_COLOR(yellow, bright),
+        [White] = ANSI_COLOR(white, bright),
+    };
+
+    const char *color = g_ansi_colors[fg];
+
+    // TODO: add support for background colors
+    if (bg == Red)
+        color = ANSI_COLOR(red, blink);
+
+    strcpy(buf, color);
+}
 
 /** @} */
