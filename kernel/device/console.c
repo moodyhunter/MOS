@@ -71,13 +71,18 @@ void console_register(console_t *con)
         }
     }
 
-    MOS_ASSERT_X(con->read.buf, "console: '%s' has no read buffer", con->name);
-
-    con->read.lock = (spinlock_t) SPINLOCK_INIT;
     con->write.lock = (spinlock_t) SPINLOCK_INIT;
+    io_flags_t flags = IO_WRITABLE;
 
-    ring_buffer_pos_init(&con->read.pos, con->read.size);
-    io_init(&con->io, IO_CONSOLE, IO_READABLE | IO_WRITABLE, &console_io_ops);
+    if (con->caps & CONSOLE_CAP_READ)
+    {
+        MOS_ASSERT_X(con->read.buf, "console: '%s' has no read buffer", con->name);
+        con->read.lock = (spinlock_t) SPINLOCK_INIT;
+        ring_buffer_pos_init(&con->read.pos, con->read.size);
+        flags |= IO_READABLE;
+    }
+
+    io_init(&con->io, IO_CONSOLE, flags, &console_io_ops);
     list_node_append(&consoles, list_node(con));
     waitlist_init(&con->waitlist);
 }

@@ -18,6 +18,7 @@ typedef enum
     CONSOLE_CAP_CURSOR_HIDE = 1 << 3,
     CONSOLE_CAP_CURSOR_MOVE = 1 << 4,
     CONSOLE_CAP_EXTRA_SETUP = 1 << 5, // extra setup required
+    CONSOLE_CAP_READ = 1 << 6,        ///< console supports read
 } console_caps;
 
 typedef struct _console
