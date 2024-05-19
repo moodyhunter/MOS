@@ -8,7 +8,8 @@
         "mos/tasks/signal_types.h",
         "mos/types.h",
         "sys/poll.h",
-        "sys/select.h"
+        "sys/select.h",
+        "sys/uio.h"
     ],
     "syscalls": [
         {
