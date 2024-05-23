@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#![feature(fn_traits)]
 
 // ! IPC Server and Channels
 pub(crate) mod ipc_impl;
@@ -36,8 +35,8 @@ pub use impl_client::RpcStub;
 
 #[macro_export]
 macro_rules! define_rpc_server {
-    ($visiblity:tt, $servername:ident) => {
-        $visiblity struct $servername {
+    ($visibility:tt, $servername:ident) => {
+        $visibility struct $servername {
             rpc_server: RpcStub,
         }
 
