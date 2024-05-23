@@ -62,7 +62,6 @@ process_t *process_allocate(process_t *parent, const char *name)
     linked_list_init(&proc->threads);
     linked_list_init(&proc->children);
 
-    proc->signal_info.handlers = kmalloc(sizeof(sigaction_t) * SIGNAL_MAX_N);
     waitlist_init(&proc->signal_info.sigchild_waitlist);
 
     proc->name = strdup(name ? name : "<unknown>");
@@ -137,9 +136,6 @@ void process_destroy(process_t *process)
         MOS_ASSERT(process->mm != current_mm);
         mm_destroy_context(process->mm);
     }
-
-    if (process->signal_info.handlers)
-        kfree(process->signal_info.handlers);
 
     kfree(process);
 }
