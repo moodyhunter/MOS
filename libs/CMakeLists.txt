@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# FDT library
+add_subdirectory(libfdt++)
+
 # Standard libraries, with some data structures
 add_subdirectory(stdlib)
 

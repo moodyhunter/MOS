@@ -1,0 +1,77 @@
+diff --git a/libs/libfdt++/libfdt/fdt_overlay.c b/libs/libfdt++/libfdt/fdt_overlay.c
+index c793f27b..5c0c3981 100644
+--- a/libs/libfdt++/libfdt/fdt_overlay.c
++++ b/libs/libfdt++/libfdt/fdt_overlay.c
+@@ -389,7 +389,7 @@ static int overlay_fixup_one_phandle(void *fdt, void *fdto,
+ 						   name, name_len, poffset,
+ 						   &phandle_prop,
+ 						   sizeof(phandle_prop));
+-};
++}
+
+ /**
+  * overlay_fixup_phandle - Set an overlay phandle to the base one
+diff --git a/libs/libfdt++/libfdt/libfdt.h b/libs/libfdt++/libfdt/libfdt.h
+index 03fbcbf6..77ccff19 100644
+--- a/libs/libfdt++/libfdt/libfdt.h
++++ b/libs/libfdt++/libfdt/libfdt.h
+@@ -263,16 +263,16 @@ int fdt_next_subnode(const void *fdt, int offset);
+ 		struct fdt_header *fdth = (struct fdt_header *)fdt; \
+ 		fdth->name = cpu_to_fdt32(val); \
+ 	}
+-fdt_set_hdr_(magic);
+-fdt_set_hdr_(totalsize);
+-fdt_set_hdr_(off_dt_struct);
+-fdt_set_hdr_(off_dt_strings);
+-fdt_set_hdr_(off_mem_rsvmap);
+-fdt_set_hdr_(version);
+-fdt_set_hdr_(last_comp_version);
+-fdt_set_hdr_(boot_cpuid_phys);
+-fdt_set_hdr_(size_dt_strings);
+-fdt_set_hdr_(size_dt_struct);
++fdt_set_hdr_(magic)
++fdt_set_hdr_(totalsize)
++fdt_set_hdr_(off_dt_struct)
++fdt_set_hdr_(off_dt_strings)
++fdt_set_hdr_(off_mem_rsvmap)
++fdt_set_hdr_(version)
++fdt_set_hdr_(last_comp_version)
++fdt_set_hdr_(boot_cpuid_phys)
++fdt_set_hdr_(size_dt_strings)
++fdt_set_hdr_(size_dt_struct)
+ #undef fdt_set_hdr_
+
+ /**
+diff --git a/libs/libfdt++/libfdt/libfdt_env.h b/libs/libfdt++/libfdt/libfdt_env.h
+index dad8b58d..73b6d404 100644
+--- a/libs/libfdt++/libfdt/libfdt_env.h
++++ b/libs/libfdt++/libfdt/libfdt_env.h
+@@ -10,8 +10,8 @@
+ #include <stdbool.h>
+ #include <stddef.h>
+ #include <stdint.h>
+-#include <stdlib.h>
+-#include <string.h>
++#include <mos_stdlib.h>
++#include <mos_string.h>
+ #include <limits.h>
+
+ #ifdef __CHECKER__
+--- a/libs/libfdt++/libfdt/fdt.h
++++ b/libs/libfdt++/libfdt/fdt.h
+@@ -33,6 +33,8 @@
+        fdt64_t size;
+ };
+
++MOS_WARNING_PUSH
++MOS_WARNING_DISABLE("-Wpedantic")
+ struct fdt_node_header {
+        fdt32_t tag;
+        char name[];
+@@ -44,6 +46,7 @@
+        fdt32_t nameoff;
+        char data[];
+ };
++MOS_WARNING_POP
+
+ #endif /* !__ASSEMBLY */
