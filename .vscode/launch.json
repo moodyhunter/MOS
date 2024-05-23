@@ -2,11 +2,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Attach to qemu - MOS Limine Kernel",
+            "name": "Attach to QEMU - MOS Kernel (Limine, x86_64)",
             "type": "cppdbg",
             "request": "launch",
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/build/boot.dir/limine_entry.elf",
+            "program": "${workspaceFolder}/build/x86_64/boot.dir/limine_entry.elf",
             "MIMode": "gdb",
             "miDebuggerPath": "/usr/bin/x86_64-elf-gdb",
             "miDebuggerServerAddress": "localhost:1234",
@@ -15,7 +15,7 @@
                 {
                     // load gdbinit
                     "description": "Load gdbinit",
-                    "text": "source ${workspaceFolder}/build/gdbinit",
+                    "text": "source ${workspaceFolder}/build/x86_64/gdbinit"
                 },
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -26,14 +26,48 @@
                     "description": "Set Disassembly Flavor to Intel",
                     "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
-                },
+                }
             ],
             "sourceFileMap": {
                 "${workspaceFolder}": {
                     "editorPath": "${workspaceFolder}",
                     "useForBreakpoints": "true"
                 }
-            },
+            }
         },
+        {
+            "name": "Attach to QEMU - MOS Kernel (Simple, riscv64)",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/build/riscv64/boot.dir/riscv_simple.elf",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/riscv64-elf-gdb",
+            "miDebuggerServerAddress": "localhost:1234",
+            "preLaunchTask": "start_os_riscv64",
+            "setupCommands": [
+                {
+                    // load gdbinit
+                    "description": "Load gdbinit",
+                    "text": "source ${workspaceFolder}/build/riscv64/gdbinit"
+                },
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ],
+            "sourceFileMap": {
+                "${workspaceFolder}": {
+                    "editorPath": "${workspaceFolder}",
+                    "useForBreakpoints": "true"
+                }
+            }
+        }
     ]
 }

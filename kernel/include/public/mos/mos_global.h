@@ -173,6 +173,15 @@ __attribute__((__deprecated__("reconsider if a NULL check is really required")))
     return unlikely(!ptr) || IS_ERR_VALUE((unsigned long) ptr);
 }
 
+#define MOS_STUB_IMPL(...)                                                                                                                                               \
+    MOS_WARNING_PUSH                                                                                                                                                     \
+    MOS_WARNING_DISABLE("-Wunused-parameter")                                                                                                                            \
+    __VA_ARGS__                                                                                                                                                          \
+    {                                                                                                                                                                    \
+        mos_panic("unimplemented: file %s, line %d", __FILE__, __LINE__);                                                                                                \
+    }                                                                                                                                                                    \
+    MOS_WARNING_POP
+
 #ifdef __cplusplus
 // enum operators are not supported in C++ implicitly
 // clang-format off

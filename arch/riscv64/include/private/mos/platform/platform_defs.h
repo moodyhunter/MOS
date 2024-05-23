@@ -45,5 +45,5 @@ typedef struct _platform_cpuinfo
 
 typedef struct _platform_arch_info
 {
-    int __unused;
+    void *fdt; ///< pointer to the device tree
 } platform_arch_info_t;

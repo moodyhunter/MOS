@@ -1,0 +1,56 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 20,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "build-ninja",
+            "hidden": true,
+            "generator": "Ninja"
+        },
+        {
+            "name": "type-debug",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "arch-x86_64",
+            "hidden": true,
+            "cacheVariables": {
+                "MOS_ARCH": "x86_64"
+            }
+        },
+        {
+            "name": "arch-riscv64",
+            "hidden": true,
+            "cacheVariables": {
+                "MOS_ARCH": "riscv64"
+            }
+        },
+        {
+            "name": "x86_64-debug-ninja",
+            "inherits": [
+                "build-ninja",
+                "type-debug",
+                "arch-x86_64"
+            ],
+            "displayName": "x86_64 Debug using Ninja",
+            "binaryDir": "${sourceDir}/build/x86_64"
+        },
+        {
+            "name": "riscv64-debug-ninja",
+            "inherits": [
+                "build-ninja",
+                "type-debug",
+                "arch-riscv64"
+            ],
+            "displayName": "riscv64 Debug using Ninja",
+            "binaryDir": "${sourceDir}/build/riscv64"
+        }
+    ]
+}

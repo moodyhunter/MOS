@@ -4,13 +4,16 @@
         {
             "label": "compile_mos_limine",
             "type": "shell",
-            "options": { "cwd": "${workspaceFolder}/build" },
-            "command": "cmake --build ${workspaceFolder}/build --target mos_limine_iso",
+            "command": "cmake --build ${workspaceFolder}/build/x86_64 --target mos_limine_iso",
             "group": "build",
-            "presentation": {
-                "reveal": "silent",
-                // "close": true
-            }
+            "presentation": { "reveal": "silent", }
+        },
+        {
+            "label": "compile_mos_riscv64_simple",
+            "type": "shell",
+            "command": "cmake --build ${workspaceFolder}/build/riscv64 --target mos_riscv_simple mos_initrd",
+            "group": "build",
+            "presentation": { "reveal": "silent", }
         },
         {
             "label": "kill_mos",
@@ -18,18 +21,13 @@
             "command": "tmux kill-session -t mos_kernel_debug || true",
             "problemMatcher": [ ],
             "group": "none",
-            "presentation": {
-                "reveal": "silent",
-                "close": true
-            }
+            "presentation": { "reveal": "silent", "close": true }
         },
         {
             "label": "start_os_x86_64",
             "type": "process",
             "command": "tmux",
-            "options": {
-                "cwd": "${workspaceFolder}/build",
-            },
+            "options": { "cwd": "${workspaceFolder}/build/x86_64/" },
             "args": [
                 "new",
                 "-s",
@@ -47,7 +45,7 @@
                 "-chardev", "file,id=serial-com2,path=serial-com2.log",
                 "-serial", "chardev:serial_log",
                 "-serial", "chardev:serial-com2",
-                "-cdrom", "${workspaceFolder}/build/boot.dir/mos_limine.iso",
+                "-cdrom", "${workspaceFolder}/build/x86_64/boot.dir/mos_limine.iso",
                 "-smp", "1",
                 "-cpu", "max",
                 "-drive", "file=${workspaceFolder}/rootfs.img,format=raw,if=virtio", // using virtio
@@ -57,10 +55,41 @@
             ],
             "problemMatcher": [ ],
             "group": "none",
-            "dependsOn": [
-                "kill_mos",
-                "compile_mos_limine"
+            "dependsOn": [ "kill_mos", "compile_mos_limine" ],
+            "presentation": { "reveal": "silent", "close": true },
+            "detail": "Start MOS and wait for the debugger to connect."
+        },
+        {
+            "label": "start_os_riscv64",
+            "type": "process",
+            "command": "tmux",
+            "options": { "cwd": "${workspaceFolder}/build/riscv64", },
+            "args": [
+                "new",
+                "-s",
+                "mos_kernel_debug",
+                "-d",
+                "qemu-system-riscv64",
+                "-m", "8G",
+                "-machine", "virt",
+                "-display", "gtk,show-tabs=on",
+                "-d", "cpu_reset,guest_errors",
+                "-D", "qemu_err.log",
+                "-s",
+                "-S",
+                "-chardev", "stdio,id=serial_log,logfile=serial_log.log,signal=off",
+                "-chardev", "file,id=serial-com2,path=serial-com2.log",
+                "-serial", "chardev:serial_log",
+                "-serial", "chardev:serial-com2",
+                "-kernel", "${workspaceFolder}/build/riscv64/boot.dir/riscv_simple.elf",
+                "-initrd", "${workspaceFolder}/build/riscv64/initrd.cpio",
+                "-append", "AAAAAAAAAAAAAAAA",
+                "-smp", "1",
+                // "-cpu", "max",
             ],
+            "problemMatcher": [ ],
+            "group": "none",
+            "dependsOn": [ "kill_mos", "compile_mos_riscv64_simple" ],
             "presentation": {
                 "reveal": "silent",
                 "close": true
@@ -71,12 +100,8 @@
             "label": "build_doxygen",
             "type": "shell",
             "command": "doxygen",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "args": [
-                "${workspaceFolder}/.github/workflows/Doxyfile"
-            ],
+            "options": { "cwd": "${workspaceFolder}" },
+            "args": [ "${workspaceFolder}/.github/workflows/Doxyfile" ],
             "problemMatcher": [ ]
         },
     ]
