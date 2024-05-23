@@ -26,8 +26,8 @@ typedef struct _process process_t;
 
 typedef struct
 {
-    sigaction_t handlers[SIGNAL_MAX_N]; ///< signal handlers
-    waitlist_t sigchild_waitlist;       ///< the parent is waiting for a child to exit, if not empty
+    sigaction_t *handlers;        ///< signal handlers
+    waitlist_t sigchild_waitlist; ///< the parent is waiting for a child to exit, if not empty
 } process_signal_info_t;
 
 typedef struct
