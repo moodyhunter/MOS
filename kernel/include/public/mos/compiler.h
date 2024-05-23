@@ -23,8 +23,40 @@
 // * BEGIN find out if the compiler is big or little endian
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 #define MOS_BIG_ENDIAN 1
+
+#define cpu_to_be16(x) (x)
+#define cpu_to_be32(x) (x)
+#define cpu_to_be64(x) (x)
+
+#define be16_to_cpu(x) (x)
+#define be32_to_cpu(x) (x)
+#define be64_to_cpu(x) (x)
+
+#define cpu_to_le16(x) __builtin_bswap16(x)
+#define cpu_to_le32(x) __builtin_bswap32(x)
+#define cpu_to_le64(x) __builtin_bswap64(x)
+
+#define le16_to_cpu(x) __builtin_bswap32(x)
+#define le32_to_cpu(x) __builtin_bswap16(x)
+#define le64_to_cpu(x) __builtin_bswap64(x)
 #elif __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 #define MOS_LITTLE_ENDIAN 1
+
+#define cpu_to_be16(x) __builtin_bswap16(x)
+#define cpu_to_be32(x) __builtin_bswap32(x)
+#define cpu_to_be64(x) __builtin_bswap64(x)
+
+#define be16_to_cpu(x) __builtin_bswap16(x)
+#define be32_to_cpu(x) __builtin_bswap32(x)
+#define be64_to_cpu(x) __builtin_bswap64(x)
+
+#define cpu_to_le16(x) (x)
+#define cpu_to_le32(x) (x)
+#define cpu_to_le64(x) (x)
+
+#define le16_to_cpu(x) (x)
+#define le32_to_cpu(x) (x)
+#define le64_to_cpu(x) (x)
 #endif
 
 #if !defined(MOS_BIG_ENDIAN) && !defined(MOS_LITTLE_ENDIAN)
