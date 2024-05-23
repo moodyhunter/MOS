@@ -179,8 +179,6 @@ void platform_get_time(timeval_t *val);
 noreturn void platform_halt_cpu(void);
 void platform_invalidate_tlb(ptr_t vaddr);
 u32 platform_current_cpu_id(void);
-void platform_msleep(u64 ms);
-void platform_usleep(u64 us);
 void platform_cpu_idle(void);
 u64 platform_get_timestamp(void);
 

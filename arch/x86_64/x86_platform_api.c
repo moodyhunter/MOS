@@ -53,16 +53,6 @@ u32 platform_current_cpu_id(void)
     return x86_cpuid(b, 1, 0) >> 24;
 }
 
-void platform_msleep(u64 ms)
-{
-    mdelay(ms);
-}
-
-void platform_usleep(u64 us)
-{
-    udelay(us);
-}
-
 void platform_cpu_idle(void)
 {
     __asm__ volatile("hlt");
