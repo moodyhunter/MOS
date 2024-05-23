@@ -153,7 +153,15 @@ static signal_t signal_get_next_pending(void)
     list_foreach(sigpending_t, pending, current_thread->signal_info.pending)
     {
         if (current_thread->signal_info.masks[pending->signal])
+        {
+            // if a fatal signal is pending but also masked, kill the thread
+            if (is_fatal_signal(pending->signal))
+            {
+                pr_emerg("thread %pt received fatal signal %d but it was masked, terminating", (void *) current_thread, pending->signal);
+                signal_do_terminate(pending->signal);
+            }
             continue; // signal is masked, skip it
+        }
 
         list_remove(pending);
         signal = pending->signal;
