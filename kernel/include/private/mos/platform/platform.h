@@ -165,18 +165,22 @@ void platform_startup_mm();
 void platform_startup_late();
 
 // Platform Machine APIs
+// default implementation panics
 noreturn void platform_shutdown(void);
+// default implementations do nothing for 4 functions below
 void platform_dump_regs(platform_regs_t *regs);
 void platform_dump_stack(platform_regs_t *regs);
-platform_regs_t *platform_thread_regs(const thread_t *thread);
 void platform_dump_current_stack();
 void platform_dump_thread_kernel_stack(const thread_t *thread);
 
 // Platform Timer/Clock APIs
+// default implementation does nothing
 void platform_get_time(timeval_t *val);
 
 // Platform CPU APIs
+// default implementation loops forever
 noreturn void platform_halt_cpu(void);
+// default implementation does nothing for 4 functions below
 void platform_invalidate_tlb(ptr_t vaddr);
 u32 platform_current_cpu_id(void);
 void platform_cpu_idle(void);
@@ -186,12 +190,14 @@ typedef char datetime_str_t[32];
 datetime_str_t *platform_get_datetime_str(void);
 
 // Platform Interrupt APIs
+// default implementation does nothing
 void platform_interrupt_enable(void);
 void platform_interrupt_disable(void);
 bool platform_irq_handler_install(u32 irq, irq_handler handler);
 void platform_irq_handler_remove(u32 irq, irq_handler handler);
 
 // Platform Page Table APIs
+// no default implementation, platform-specific implementations must be provided
 pfn_t platform_pml1e_get_pfn(const pml1e_t *pml1);            // returns the physical address contained in the pmlx entry,
 void platform_pml1e_set_pfn(pml1e_t *pml1, pfn_t pfn);        // -- which can be a pfn for either a page or another page table
 bool platform_pml1e_get_present(const pml1e_t *pml1);         // returns if an entry in this page table is present
@@ -242,23 +248,29 @@ pfn_t platform_pml4e_get_huge_pfn(const pml4e_t *pml4);
 #endif
 
 // Platform Thread / Process APIs
+// no default implementation, platform-specific implementations must be provided
+platform_regs_t *platform_thread_regs(const thread_t *thread);
 void platform_context_setup_main_thread(thread_t *thread, ptr_t entry, ptr_t sp, int argc, ptr_t argv, ptr_t envp);
 void platform_context_setup_child_thread(thread_t *thread, thread_entry_t entry, void *arg);
 void platform_context_clone(const thread_t *from, thread_t *to);
 
 // Platform Context Switching APIs
+// no default implementation, platform-specific implementations must be provided
 void platform_switch_mm(const mm_context_t *new_mm);
 void platform_switch_to_thread(ptr_t *old_stack, thread_t *new_thread, switch_flags_t switch_flags);
 void platform_switch_to_scheduler(ptr_t *old_stack, ptr_t new_stack);
 noreturn void platform_return_to_userspace(platform_regs_t *regs);
 
 // Platform-Specific syscall APIs
+// default implementation does nothing
 u64 platform_arch_syscall(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64 arg4);
 
 // Platform-Specific IPI (Inter-Processor Interrupt) APIs
+// default implementation does nothing
 void platform_ipi_send(u8 target_cpu, ipi_type_t type);
 
 // Signal Handler APIs
+// the 4 function below has default implementations that panic if not implemented
 typedef struct _sigreturn_data sigreturn_data_t;
 noreturn void platform_jump_to_signal_handler(const platform_regs_t *regs, const sigreturn_data_t *sigreturn_data, const sigaction_t *sa);
 noreturn void platform_restore_from_signal_handler(void *sp);
