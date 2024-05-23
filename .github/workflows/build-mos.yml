@@ -65,6 +65,8 @@ jobs:
             -B build \
             -G Ninja
 
+          ln -svf $(pwd)/build/ $(pwd)/build/${{matrix.config.arch}}
+
       - name: Build
         run: |
           cd build
