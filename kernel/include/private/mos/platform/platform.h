@@ -255,6 +255,7 @@ platform_regs_t *platform_thread_regs(const thread_t *thread);
 void platform_context_setup_main_thread(thread_t *thread, ptr_t entry, ptr_t sp, int argc, ptr_t argv, ptr_t envp);
 void platform_context_setup_child_thread(thread_t *thread, thread_entry_t entry, void *arg);
 void platform_context_clone(const thread_t *from, thread_t *to);
+void platform_context_cleanup(thread_t *thread);
 
 // Platform Context Switching APIs
 // no default implementation, platform-specific implementations must be provided

@@ -44,6 +44,7 @@ static void x86_start_user_thread()
 
 static platform_regs_t *x86_setup_thread_common(thread_t *thread)
 {
+    MOS_ASSERT_X(thread->platform_options.xsaveptr == NULL, "xsaveptr should be NULL");
     thread->platform_options.xsaveptr = kmalloc(xsave_area_slab);
     thread->k_stack.head -= sizeof(platform_regs_t);
     platform_regs_t *regs = platform_thread_regs(thread);
@@ -73,6 +74,12 @@ static void x86_setup_main_thread(thread_t *thread, ptr_t entry, ptr_t sp, int a
     regs->sp = sp;
 }
 __alias(x86_setup_main_thread, platform_context_setup_main_thread);
+
+void platform_context_cleanup(thread_t *thread)
+{
+    if (thread->mode == THREAD_MODE_USER)
+        kfree(thread->platform_options.xsaveptr), thread->platform_options.xsaveptr = NULL;
+}
 
 static void x86_setup_child_thread(thread_t *thread, thread_entry_t entry, void *arg)
 {

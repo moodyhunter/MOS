@@ -99,6 +99,7 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
     }
 
     proc->main_thread = thread; // make current thread the only thread
+    platform_context_cleanup(thread);
 
     // free old memory
     spinlock_acquire(&proc->mm->mm_lock);

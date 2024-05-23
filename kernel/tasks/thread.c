@@ -50,6 +50,7 @@ void thread_destroy(thread_t *thread)
         return;
 
     pr_dinfo2(thread, "destroying thread %pt", (void *) thread);
+    platform_context_cleanup(thread);
 
     if (thread->name)
         kfree(thread->name);

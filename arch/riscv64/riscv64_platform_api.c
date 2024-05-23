@@ -70,6 +70,7 @@ MOS_STUB_IMPL(pfn_t platform_pml4e_get_huge_pfn(const pml4e_t *pml4))
 MOS_STUB_IMPL(void platform_context_setup_main_thread(thread_t *thread, ptr_t entry, ptr_t sp, int argc, ptr_t argv, ptr_t envp))
 MOS_STUB_IMPL(void platform_context_setup_child_thread(thread_t *thread, thread_entry_t entry, void *arg))
 MOS_STUB_IMPL(void platform_context_clone(const thread_t *from, thread_t *to))
+MOS_STUB_IMPL(void platform_context_cleanup(thread_t *thread))
 
 // Platform Context Switching APIs
 MOS_STUB_IMPL(void platform_switch_mm(const mm_context_t *new_mm))
