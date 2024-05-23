@@ -353,7 +353,7 @@ void buddy_free_n(pfn_t pfn, size_t nframes)
     pr_dinfo2(pmm_buddy, "freeing " PFN_RANGE " (%zu frames)", pfn, pfn + nframes - 1, nframes);
 
     phyframe_t *const frame = pfn_phyframe(pfn);
-    MOS_ASSERT_X(frame->state == PHYFRAME_ALLOCATED, "O");
+    MOS_ASSERT_X(frame->state == PHYFRAME_ALLOCATED, "frame must be allocated");
     MOS_ASSERT(list_is_empty(list_node(frame)));
     frame->state = PHYFRAME_FREE;
 

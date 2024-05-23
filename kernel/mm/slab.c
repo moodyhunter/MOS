@@ -70,7 +70,7 @@ static void slab_impl_free_page(ptr_t page, size_t n)
 
 static void slab_init_one(slab_t *slab, const char *name, size_t size)
 {
-    MOS_ASSERT_X(size < MOS_PAGE_SIZE, "current slab implementation does not support slabs larger than a page");
+    MOS_ASSERT_X(size < MOS_PAGE_SIZE, "current slab implementation does not support slabs larger than a page, %zu bytes requested", size);
     pr_dinfo2(slab, "slab: registering slab for '%s' with %zu bytes", name, size);
     linked_list_init(list_node(slab));
     list_node_append(&slabs_list, list_node(slab));
