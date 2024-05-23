@@ -21,6 +21,8 @@ typedef enum
     CONSOLE_CAP_READ = 1 << 6,        ///< console supports read
 } console_caps;
 
+DEFINE_ENUM_OPERATORS(console_caps)
+
 typedef struct _console
 {
     as_linked_list;
@@ -66,6 +68,8 @@ typedef struct console_ops
 } console_ops_t;
 
 extern list_head consoles;
+
+__BEGIN_DECLS
 void console_register(console_t *con);
 console_t *console_get(const char *name);
 console_t *console_get_by_prefix(const char *prefix);
@@ -74,3 +78,4 @@ size_t console_write(console_t *con, const char *data, size_t size);
 size_t console_write_color(console_t *con, const char *data, size_t size, standard_color_t fg, standard_color_t bg);
 
 void console_putc(console_t *con, u8 c);
+__END_DECLS

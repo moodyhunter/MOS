@@ -64,7 +64,7 @@ size_t io_pread(io_t *io, void *buf, size_t count, off_t offset);
 size_t io_write(io_t *io, const void *buf, size_t count);
 off_t io_seek(io_t *io, off_t offset, io_seek_whence_t whence);
 off_t io_tell(io_t *io);
-bool io_mmap_perm_check(io_t *io, vm_flags flags, bool private);
+bool io_mmap_perm_check(io_t *io, vm_flags flags, bool is_private);
 bool io_mmap(io_t *io, vmap_t *vmap, off_t offset);
 bool io_munmap(io_t *io, vmap_t *vmap, bool *unmapped);
 void io_get_name(io_t *io, char *buf, size_t size);

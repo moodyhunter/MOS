@@ -6,6 +6,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+#include <atomic>
+#endif
+
 typedef signed char s8;
 typedef signed short s16;
 typedef signed int s32;
@@ -30,6 +34,7 @@ typedef unsigned long uintn;
 #define PTR_VLFMT "0x%lx"
 
 #define PTR_RANGE   "[" PTR_FMT " - " PTR_FMT "]"
+#define PTR_VLRANGE "[" PTR_VLFMT " - " PTR_VLFMT "]"
 #define PTR_RANGE64 "[0x%.16llx - 0x%.16llx]"
 
 // physical frame number
@@ -96,6 +101,9 @@ typedef s32 futex_word_t;
 #ifndef __cplusplus
 #define __atomic(type) _Atomic(type)
 typedef __atomic(size_t) atomic_t;
+#else
+// for C++, we need to use the atomic type directly
+typedef std::atomic<size_t> atomic_t;
 #endif
 
 typedef void (*thread_entry_t)(void *arg);

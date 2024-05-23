@@ -36,10 +36,14 @@ typedef struct phyframe
 
     union
     {
+        MOS_WARNING_PUSH
+        MOS_WARNING_DISABLE("-Wpedantic") // ISO C++ forbids anonymous structs
+
         struct // free frame
         {
             as_linked_list; // for use of freelist in the buddy allocator
         };
+        MOS_WARNING_POP
     };
 
     union

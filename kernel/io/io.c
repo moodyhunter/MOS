@@ -221,7 +221,7 @@ off_t io_tell(io_t *io)
     return io_seek(io, 0, IO_SEEK_CURRENT);
 }
 
-bool io_mmap_perm_check(io_t *io, vm_flags flags, bool private)
+bool io_mmap_perm_check(io_t *io, vm_flags flags, bool is_private)
 {
     if (unlikely(io->closed))
     {
@@ -240,7 +240,7 @@ bool io_mmap_perm_check(io_t *io, vm_flags flags, bool private)
 
     if (flags & VM_WRITE)
     {
-        const bool may_mmap_writeable = private || io->flags & IO_WRITABLE;
+        const bool may_mmap_writeable = is_private || io->flags & IO_WRITABLE;
         if (!may_mmap_writeable)
             return false; // can't mmap writable if io is not writable and not private
     }

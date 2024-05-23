@@ -172,3 +172,17 @@ __attribute__((__deprecated__("reconsider if a NULL check is really required")))
 {
     return unlikely(!ptr) || IS_ERR_VALUE((unsigned long) ptr);
 }
+
+#ifdef __cplusplus
+// enum operators are not supported in C++ implicitly
+// clang-format off
+#define DEFINE_ENUM_OPERATORS(enum_name) \
+    constexpr inline enum_name operator|(enum_name a, enum_name b) { return static_cast<enum_name>(static_cast<int>(a) | static_cast<int>(b)); } \
+    constexpr inline enum_name operator&(enum_name a, enum_name b) { return static_cast<enum_name>(static_cast<int>(a) & static_cast<int>(b)); } \
+    constexpr inline enum_name operator~(enum_name a) { return static_cast<enum_name>(~static_cast<int>(a)); } \
+    constexpr inline enum_name &operator|=(enum_name &a, enum_name b) { return a = a | b; } \
+    constexpr inline enum_name &operator&=(enum_name &a, enum_name b) { return a = a & b; }
+// clang-format on
+#else
+#define DEFINE_ENUM_OPERATORS(enum_name)
+#endif
