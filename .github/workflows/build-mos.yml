@@ -24,9 +24,9 @@ jobs:
               "compile_only": "ON",
             }
           - {
-              "name": "RISC-V kernel only",
+              "name": "RISC-V Simple",
               "arch": "riscv64",
-              "target": "mos_kernel",
+              "target": "mos_riscv_simple",
               "has_smp": "n",
               "compile_only": "ON",
             }
