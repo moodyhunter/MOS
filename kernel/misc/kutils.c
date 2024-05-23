@@ -21,7 +21,9 @@ void hexdump(const char *data, const size_t len)
                 const char c = data[j];
                 pr_cont("%c", c >= 32 && c <= 126 ? c : '.');
             }
-            pr_info("  " PTR_FMT ": ", (ptr_t) (data + i + 1));
+
+            if (i + 1 < len)
+                pr_info("  " PTR_FMT ": ", (ptr_t) (data + i + 1));
         }
     }
 
@@ -36,5 +38,5 @@ void hexdump(const char *data, const size_t len)
         }
     }
 
-    pr_info("\n");
+    pr_info();
 }
