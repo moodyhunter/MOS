@@ -186,7 +186,7 @@ void platform_jump_to_signal_handler(const platform_regs_t *regs, const sigretur
 
     // Set up the new context
     platform_regs_t ret_regs = *regs;
-    ret_regs.ip = (ptr_t) sa->sa_handler;
+    ret_regs.ip = (ptr_t) sa->handler;
     stack_push_val(&current_thread->u_stack, (ptr_t) sa->sa_restorer); // the return address
 
     ret_regs.di = sigreturn_data->signal; // arg1

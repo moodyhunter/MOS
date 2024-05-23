@@ -174,7 +174,7 @@ static signal_t signal_get_next_pending(void)
 
 static void do_signal_exit_to_user_prepare(platform_regs_t *regs, signal_t next_signal, const sigaction_t *action)
 {
-    if (action->sa_handler == SIG_DFL)
+    if (action->handler == SIG_DFL)
     {
         if (current_process->pid == 1 && !is_fatal_signal(next_signal))
             goto done; // init only receives signals it wants
@@ -199,7 +199,7 @@ static void do_signal_exit_to_user_prepare(platform_regs_t *regs, signal_t next_
         return;
     }
 
-    if (action->sa_handler == SIG_IGN)
+    if (action->handler == SIG_IGN)
     {
         signal_do_ignore(next_signal);
         return;

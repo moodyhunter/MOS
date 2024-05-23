@@ -6,6 +6,7 @@
 #include <abi-bits/errno.h>
 #endif
 #include <mos/compiler.h>
+#include <stddef.h>
 #include <stdnoreturn.h>
 
 #if !defined(noreturn)
@@ -17,6 +18,11 @@
 #else
 #define MOS_STATIC_ASSERT _Static_assert
 #endif
+
+/**
+ * @brief Helper macro to make sure the offset of a field in a struct is the same as another struct.
+ */
+#define MOS_ASSERT_OFFSET(src_t, src_f, dst_t, dst_f, msg) MOS_STATIC_ASSERT(offsetof(src_t, src_f) == offsetof(dst_t, dst_f), msg)
 
 #if MOS_COMPILER_GCC
 #define __mos_copy_attr(target) __attribute__((__copy__(target)))
