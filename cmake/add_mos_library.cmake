@@ -10,7 +10,7 @@ macro(add_mos_library_do_setup LIBNAME DEFINES PRIVATE_INCLUDE PUBLIC_INCLUDE)
 endmacro()
 
 function(add_mos_library)
-    set(options USERSPACE_ONLY)
+    set(options USERSPACE_ONLY KERNEL_ONLY)
     set(oneValueArgs NAME)
     set(multiValueArgs SOURCES PUBLIC_INCLUDE_DIRECTORIES PRIVATE_INCLUDE_DIRECTORIES LINK_LIBRARIES DEFINES PRIVATE_DEFINES)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -63,6 +63,9 @@ function(add_mos_library)
         return()
     endif()
 
+    if (ARG_KERNEL_ONLY)
+        return()
+    endif()
     # Create a hosted userspace library
     add_library(${ARG_NAME} SHARED ${ARG_SOURCES})
     add_library(mos::${ARG_NAME} ALIAS ${ARG_NAME})
