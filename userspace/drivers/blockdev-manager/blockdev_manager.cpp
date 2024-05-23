@@ -32,7 +32,7 @@ static rpc_result_code_t blockdev_manager_register_layer(rpc_context_t *, mos_rp
 
 static rpc_result_code_t blockdev_manager_register_blockdev(rpc_context_t *, mos_rpc_blockdev_register_dev_request *req, mos_rpc_blockdev_register_dev_response *resp)
 {
-    const auto it = std::find_if(blockdev_list.begin(), blockdev_list.end(), [&](const auto &blockdev) { return blockdev.second.name == req->blockdev_name; });
+    const auto it = std::ranges::find_if(blockdev_list.begin(), blockdev_list.end(), [&](const auto &blockdev) { return blockdev.second.name == req->blockdev_name; });
     if (it != blockdev_list.end())
     {
         resp->result.success = false;
