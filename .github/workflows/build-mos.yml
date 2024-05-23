@@ -18,7 +18,8 @@ jobs:
           - {
               "name": "x86_64 limine (no SMP)",
               "arch": "x86_64",
-              "target": "mos_limine",
+              "target": "mos_limine_iso",
+              "artifact": "mos_limine.iso",
               "has_smp": "n",
               "compile_only": "ON",
             }
@@ -37,7 +38,7 @@ jobs:
     steps:
       - name: Install packages
         run: |
-          pacman -Syu --noconfirm base-devel git nasm mtools jq ninja qemu-system-x86 gnu-efi cpio wget unzip cmake limine protobuf python-protobuf python-setuptools
+          pacman -Syu --noconfirm base-devel git nasm mtools jq ninja qemu-system-x86 gnu-efi cpio wget unzip cmake limine protobuf python-protobuf python-setuptools libisoburn
 
       - uses: actions/checkout@v4
         with:
@@ -75,11 +76,11 @@ jobs:
       - name: Upload Bootable Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MOS-${{matrix.config.target}}-${{matrix.build_type}}
-          path: build/boot.dir/
+          name: MOS-${{matrix.config.target}}-${{matrix.build_type}}-${{matrix.config.arch}}
+          path: build/boot.dir/${{matrix.config.artifact}}
 
       - name: Upload initrd
         uses: actions/upload-artifact@v4
         with:
-          name: MOS-${{matrix.config.target}}-${{matrix.build_type}}-initrd
+          name: MOS-${{matrix.config.target}}-${{matrix.build_type}}-${{matrix.config.arch}}-initrd
           path: build/initrd.cpio
