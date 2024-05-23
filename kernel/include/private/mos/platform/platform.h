@@ -157,6 +157,8 @@ extern mos_platform_info_t *const platform_info;
 typedef struct _platform_process_options platform_process_options_t;
 typedef struct _platform_thread_options platform_thread_options_t;
 
+__BEGIN_DECLS
+
 extern void mos_start_kernel(void);
 
 // Platform Startup APIs
@@ -276,3 +278,5 @@ noreturn void platform_jump_to_signal_handler(const platform_regs_t *regs, const
 noreturn void platform_restore_from_signal_handler(void *sp);
 void platform_syscall_setup_restart_context(platform_regs_t *regs, reg_t syscall_nr);
 void platform_syscall_store_retval(platform_regs_t *regs, reg_t result);
+
+__END_DECLS
