@@ -4,6 +4,8 @@
 
 #include "mos/platform/platform_defs.h"
 
+#include <mos/mos_global.h>
+
 #ifndef MOS_PLATFORM_DEBUG_MODULES
 #define MOS_PLATFORM_DEBUG_MODULES(X)
 #endif
