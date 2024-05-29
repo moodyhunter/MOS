@@ -124,6 +124,14 @@ MOSAPI void *rpc_context_set_data(rpc_context_t *context, void *data);
 MOSAPI rpc_server_t *rpc_context_get_server(const rpc_context_t *context);
 
 /**
+ * @brief Get the function ID for an RPC call context
+ *
+ * @param context The context to get the function ID for
+ * @return int The function ID
+ */
+MOSAPI int rpc_context_get_function_id(const rpc_context_t *context);
+
+/**
  * @brief Iterate to the next argument
  *
  * @param args The argument iterator

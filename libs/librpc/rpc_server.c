@@ -318,6 +318,13 @@ rpc_server_t *rpc_context_get_server(const rpc_context_t *context)
     return context->server;
 }
 
+MOSAPI int rpc_context_get_function_id(const rpc_context_t *context)
+{
+    if (!context->request)
+        return -1;
+    return context->request->function_id;
+}
+
 const void *rpc_arg_next(rpc_context_t *context, size_t *size)
 {
     if (context->arg_iter.next_arg_index >= context->request->args_count)
