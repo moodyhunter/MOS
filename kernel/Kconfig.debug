@@ -2,6 +2,38 @@
 
 menu "Kernel Debugging Log Options"
 
+config DEBUG_ALL
+    bool "Enable all platform-independent debugging logs"
+    select DEBUG_acpi
+    select DEBUG_apic
+    select DEBUG_cpio
+    select DEBUG_dcache
+    select DEBUG_dcache_ref
+    select DEBUG_dma
+    select DEBUG_elf
+    select DEBUG_futex
+    select DEBUG_io
+    select DEBUG_ipc
+    select DEBUG_ipi
+    select DEBUG_panic
+    select DEBUG_pagefault
+    select DEBUG_pipe
+    select DEBUG_pmm
+    select DEBUG_pmm_buddy
+    select DEBUG_process
+    select DEBUG_scheduler
+    select DEBUG_setup
+    select DEBUG_signal
+    select DEBUG_slab
+    select DEBUG_spinlock
+    select DEBUG_syscall
+    select DEBUG_sysfs
+    select DEBUG_thread
+    select DEBUG_tmpfs
+    select DEBUG_userfs
+    select DEBUG_vfs
+    select DEBUG_vmm
+
 config DEBUG_cpio
     bool "Initrd cpio archive debugging log"
 

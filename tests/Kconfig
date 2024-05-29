@@ -8,42 +8,45 @@ if TESTS
 
 menu "Select tests to build"
 
+config TEST_ALL
+    bool "Build all tests"
+    default y
+    select TEST_printf
+    select TEST_linked_list
+    select TEST_kmalloc
+    select TEST_cmdline_parser
+    select TEST_hashmap
+    select TEST_downwards_stack
+    select TEST_memops
+    select TEST_ring_buffer
+    select TEST_vfs
+
 config TEST_printf
     bool "Test printf"
-    default y
 
 config TEST_linked_list
     bool "Test linked list"
-    default y
 
 config TEST_kmalloc
     bool "Test kmalloc"
-    default y
 
 config TEST_cmdline_parser
     bool "Test cmdline parser"
-    default y
 
 config TEST_hashmap
     bool "Test hashmap"
-    default y
 
 config TEST_downwards_stack
     bool "Test downwards stack"
-    default y
 
 config TEST_memops
     bool "Test memory-related operations"
-    default y
 
 config TEST_ring_buffer
     bool "Test ring buffer"
-    default y
 
 config TEST_vfs
     bool "Test VFS operations"
-    default y
-
 
 endmenu
 

@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-source "arch/$ARCH/Kconfig"
-
-menu "Generic architecture options"
+menu "Architecture options"
 
 config ADDR_USER_HEAP
     hex "User heap address"
@@ -15,5 +13,14 @@ config ADDR_USER_STACK
 config ADDR_USER_MMAP
     hex "User mmap address"
     default 0x1000000000
+
+config PLATFORM_DEBUG_ALL
+    bool "Enable all platform-specific debug options"
+    select PLATFORM_DEBUG_ALL_x86_64
+    select PLATFORM_DEBUG_ALL_riscv64
+    help
+    Enable all platform-specific debug options
+
+source "arch/$ARCH/Kconfig"
 
 endmenu
