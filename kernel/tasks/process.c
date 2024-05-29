@@ -308,7 +308,7 @@ void process_handle_exit(process_t *process, u8 exit_code, signal_t signal)
             // send termination signal to all threads, except the current one
             if (thread != current_thread)
             {
-                pr_dinfo2(process, "sending SIGKILL to thread %pp", (void *) thread);
+                pr_dinfo2(signal, "sending SIGKILL to thread %pp", (void *) thread);
                 signal_send_to_thread(thread, SIGKILL);
                 spinlock_release(&thread->state_lock);
                 thread_wait_for_tid(thread->tid);

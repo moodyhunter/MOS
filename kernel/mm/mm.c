@@ -361,12 +361,12 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     thread_t *current = current_thread;
     const char *unhandled_reason = NULL;
 
-    pr_demph(cow, "%s #PF: %pt, %pp, IP=" PTR_VLFMT ", ADDR=" PTR_VLFMT, //
-             info->is_user ? "user" : "kernel",                          //
-             current ? (void *) current : NULL,                          //
-             current ? (void *) current->owner : NULL,                   //
-             info->ip,                                                   //
-             fault_addr                                                  //
+    pr_demph(pagefault, "%s #PF: %pt, %pp, IP=" PTR_VLFMT ", ADDR=" PTR_VLFMT, //
+             info->is_user ? "user" : "kernel",                                //
+             current ? (void *) current : NULL,                                //
+             current ? (void *) current->owner : NULL,                         //
+             info->ip,                                                         //
+             fault_addr                                                        //
     );
 
     if (info->is_write && info->is_exec)
@@ -426,9 +426,9 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         [VMFAULT_CANNOT_HANDLE] = "CANNOT_HANDLE",
     };
 
-    pr_dcont(cow, ", handler %ps", (void *) (ptr_t) fault_vmap->on_fault);
+    pr_dcont(pagefault, ", handler %ps", (void *) (ptr_t) fault_vmap->on_fault);
     vmfault_result_t fault_result = fault_vmap->on_fault(fault_vmap, fault_addr, info);
-    pr_dcont(cow, " -> %s", fault_result_names[fault_result]);
+    pr_dcont(pagefault, " -> %s", fault_result_names[fault_result]);
 
     vm_flags map_flags = fault_vmap->vmflags;
     switch (fault_result)
@@ -462,7 +462,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
                 goto unhandled_fault;
             }
 
-            pr_dcont(cow, " (backing page: " PFN_FMT ")", phyframe_pfn(info->backing_page));
+            pr_dcont(pagefault, " (backing page: " PFN_FMT ")", phyframe_pfn(info->backing_page));
             mm_replace_page_locked(fault_vmap->mmctx, fault_addr, phyframe_pfn(info->backing_page), map_flags);
             fault_result = VMFAULT_COMPLETE;
         }

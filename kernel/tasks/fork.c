@@ -35,7 +35,7 @@ process_t *process_do_fork(process_t *parent)
 
     child_p->working_directory = dentry_ref_up_to(parent->working_directory, root_dentry);
 
-#if MOS_DEBUG_FEATURE(fork)
+#if MOS_DEBUG_FEATURE(process)
     pr_emph("process %d forked to %d", parent->pid, child_p->pid);
 #endif
 
@@ -49,7 +49,7 @@ process_t *process_do_fork(process_t *parent)
             case VMAP_TYPE_PRIVATE: child_vmap = cow_clone_vmap_locked(child_p->mm, vmap_p); break;
             default: mos_panic("unknown vmap"); break;
         }
-#if MOS_DEBUG_FEATURE(fork)
+#if MOS_DEBUG_FEATURE(process)
         pr_info2("fork %d->%d: %10s, parent vmap: %pvm, child vmap: %pvm", parent->pid, child_p->pid, vmap_type_str[vmap_p->type], (void *) vmap_p, (void *) child_vmap);
 #endif
         vmap_finalise_init(child_vmap, vmap_p->content, vmap_p->type);
@@ -78,7 +78,7 @@ process_t *process_do_fork(process_t *parent)
     child_t->name = strdup(parent_thread->name);
     const ptr_t kstack_blk = phyframe_va(mm_get_free_pages(MOS_STACK_PAGES_KERNEL));
     stack_init(&child_t->k_stack, (void *) kstack_blk, MOS_STACK_PAGES_KERNEL * MOS_PAGE_SIZE);
-#if MOS_DEBUG_FEATURE(fork)
+#if MOS_DEBUG_FEATURE(process)
     pr_info2("fork: thread %d->%d", parent_thread->tid, child_t->tid);
 #endif
     spinlock_acquire(&parent_thread->signal_info.lock);

@@ -56,11 +56,11 @@ config STACK_PAGES_USER
 config PRINTK_HAS_SOME_PREFIX
     bool
     help
-        If this option is selected, the kernel enable special handling
-        for kernel messages.
+    If this option is selected, the kernel enable special handling
+    for kernel messages.
 
-        For a list of options that will select this option, read the
-        Kconfig files in `kernel/`.
+    For a list of options that will select this option, read the
+    Kconfig files in `kernel/`.
 
 config PRINTK_WITH_TIMESTAMP
     bool "Include timestamp in debug messages"
@@ -132,100 +132,6 @@ endmenu
 
 # ! ============================================================
 
-menu "Kernel Debugging Options"
-
-config DEBUG_thread
-    bool "thread debugging"
-
-config DEBUG_process
-    bool "process debugging"
-
-config DEBUG_fork
-    bool "fork debugging"
-    select DEBUG_process
-
-config DEBUG_scheduler
-    bool "scheduler debugging"
-
-config DEBUG_syscall
-    bool "syscall debugging"
-
-config DEBUG_pmm
-    bool "pmm debugging"
-
-config DEBUG_pmm_buddy
-    bool "pmm_buddy debugging"
-    select DEBUG_pmm
-
-config DEBUG_vmm
-    bool "vmm debugging"
-
-config DEBUG_mmap
-    bool "mmap debugging"
-
-config DEBUG_shm
-    bool "shm debugging"
-
-config DEBUG_cow
-    bool "cow debugging"
-
-config DEBUG_elf
-    bool "elf debugging"
-
-config DEBUG_io
-    bool "io debugging"
-
-config DEBUG_cpio
-    bool "cpio debugging"
-
-config DEBUG_setup
-    bool "setup debugging"
-
-config DEBUG_spinlock
-    bool "spinlock debugging"
-
-config DEBUG_futex
-    bool "futex debugging"
-
-config DEBUG_ipc
-    bool "ipc debugging"
-
-config DEBUG_vfs
-    bool "vfs debugging"
-
-config DEBUG_userfs
-    bool "userfs debugging"
-
-config DEBUG_dcache
-    bool "dcache debugging"
-
-config DEBUG_dcache_ref
-    bool "dcache_ref debugging"
-
-config DEBUG_tmpfs
-    bool "tmpfs debugging"
-
-config DEBUG_ipi
-    bool "ipi debugging"
-
-config DEBUG_slab
-    bool "slab debugging"
-
-config DEBUG_sysfs
-    bool "sysfs debugging"
-
-config DEBUG_panic
-    bool "kernel panic debugging"
-
-config DEBUG_signal
-    bool "signal debugging"
-
-config DEBUG_dma
-    bool "dma debugging"
-
-config DEBUG_pipe
-    bool "pipe debugging"
-
-endmenu
+source "kernel/Kconfig.debug"
 
 endmenu

@@ -31,6 +31,15 @@
 
 #define MOS_ELF_PLATFORM EM_X86_64
 
+// clang-format off
+#define MOS_PLATFORM_DEBUG_MODULES(X) \
+    X(x86_cpu)      \
+    X(x86_lapic)    \
+    X(x86_ioapic)   \
+    X(x86_startup)  \
+    X(x86_acpi)
+// clang-format on
+
 typedef struct _platform_process_options
 {
     bool iopl;

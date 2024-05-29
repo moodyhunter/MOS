@@ -1,0 +1,87 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+menu "Kernel Debugging Log Options"
+
+config DEBUG_cpio
+    bool "Initrd cpio archive debugging log"
+
+config DEBUG_dcache
+    bool "Directory entry cache debugging"
+
+config DEBUG_dcache_ref
+    bool "Directory entry cache referencing debugging"
+
+config DEBUG_dma
+    bool "DMA allocator debugging"
+
+config DEBUG_elf
+    bool "ELF program loader debugging log"
+
+config DEBUG_futex
+    bool "Futex debugging"
+
+config DEBUG_io
+    bool "IO interface debugging log"
+
+config DEBUG_ipc
+    bool "IPC connection debugging"
+
+config DEBUG_ipi
+    bool "Inter-processor interrupt debugging"
+
+config DEBUG_panic
+    bool "Kernel panic debugging"
+
+config DEBUG_pagefault
+    bool "Page fault debugging log"
+
+config DEBUG_pipe
+    bool "Pipe debugging"
+
+config DEBUG_pmm
+    bool "Physical memory manager debugging log"
+
+config DEBUG_pmm_buddy
+    bool "Buddy-allocator debugging log"
+    select DEBUG_pmm
+
+config DEBUG_process
+    bool "Process creation, termination and wait debugging log"
+
+config DEBUG_scheduler
+    bool "Scheduler debugging log"
+
+config DEBUG_setup
+    bool "Kernel setup debugging log"
+
+config DEBUG_signal
+    bool "Signal debugging"
+
+config DEBUG_slab
+    bool "Slab allocator debugging"
+
+config DEBUG_spinlock
+    bool "Spinlock debugging"
+
+config DEBUG_syscall
+    bool "System call tracing"
+
+config DEBUG_sysfs
+    bool "SysFS debugging"
+
+config DEBUG_thread
+    bool "Thread creation and destruction debugging log"
+
+config DEBUG_tmpfs
+    bool "TmpFS debugging"
+
+config DEBUG_userfs
+    bool "UserFS debugging"
+
+config DEBUG_vfs
+    bool "VFS debugging"
+
+config DEBUG_vmm
+    bool "Virtual memory manager debugging log"
+
+endmenu

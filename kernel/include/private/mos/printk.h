@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/debug.h"
 #include "mos/printk_prefix_fmt.h"
 
 #include <mos/mos_global.h>
@@ -29,7 +30,7 @@ typedef enum
 #define lprintk_debug_wrapper(feat, level, fmt, ...)                                                                                                                     \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
-        if (MOS_DEBUG_FEATURE(feat))                                                                                                                                     \
+        if (mos_debug_enabled(feat))                                                                                                                                     \
             lprintk_wrapper(level, "%-10s | " fmt, #feat, ##__VA_ARGS__);                                                                                                \
     } while (0)
 
@@ -42,7 +43,7 @@ typedef enum
 #define pr_dcont(feat, fmt, ...)                                                                                                                                         \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
-        if (MOS_DEBUG_FEATURE(feat))                                                                                                                                     \
+        if (mos_debug_enabled(feat))                                                                                                                                     \
             pr_cont(fmt, ##__VA_ARGS__);                                                                                                                                 \
     } while (0)
 
