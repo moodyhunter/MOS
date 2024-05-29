@@ -132,6 +132,13 @@ endmenu
 
 # ! ============================================================
 
+config DYNAMIC_DEBUG
+    bool "Runtime kernel debugging switches"
+    default y
+    help
+    This option adds support for dynamic debug messages. This allows
+    you to enable and disable debug messages at runtime.
+
 source "kernel/Kconfig.debug"
 
 endmenu

@@ -41,6 +41,7 @@
     X(vmm)
 // clang-format on
 
+#if MOS_CONFIG(MOS_DYNAMIC_DEBUG)
 extern struct
 {
 #define _expand_field(name) bool name;
@@ -49,3 +50,6 @@ extern struct
 } mos_debug_info;
 
 #define mos_debug_enabled(name) (mos_debug_info.name)
+#else
+#define mos_debug_enabled(name) MOS_DEBUG_FEATURE(name)
+#endif

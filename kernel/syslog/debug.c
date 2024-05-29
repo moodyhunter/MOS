@@ -2,14 +2,18 @@
 
 #include "mos/debug.h"
 
+#if MOS_CONFIG(MOS_DYNAMIC_DEBUG)
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
+#endif
 
 #include <mos/mos_global.h>
 
 #define _check_debug_macro_defined_(name) MOS_STATIC_ASSERT(MOS_CONCAT(MOS_DEBUG_, name) != 0);
 MOS_ALL_DEBUG_MODULES(_check_debug_macro_defined_)
 #undef _check_debug_macro_defined_
+
+#if MOS_CONFIG(MOS_DYNAMIC_DEBUG)
 
 // populate default debug settings
 typeof(mos_debug_info) mos_debug_info = {
@@ -49,3 +53,5 @@ static sysfs_item_t sys_debug_items[] = {
 };
 
 SYSFS_AUTOREGISTER(debug, sys_debug_items);
+
+#endif
