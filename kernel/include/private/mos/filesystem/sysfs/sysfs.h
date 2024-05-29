@@ -68,7 +68,7 @@ typedef struct _sysfs_item
         .num_items = MOS_ARRAY_SIZE(sysfs_items),                                                                                                                        \
         ._dentry = NULL,                                                                                                                                                 \
         ._dynamic_items = LIST_HEAD_INIT(__sysfs_##sysfs_name._dynamic_items),                                                                                           \
-    };
+    }
 
 typedef struct
 {
@@ -76,13 +76,32 @@ typedef struct
     const char *name;
     sysfs_item_t *const items;
     const size_t num_items;
-    dentry_t *_dentry; ///< for internal use only
-    list_head _dynamic_items;
+    dentry_t *_dentry;        ///< for internal use only
+    list_head _dynamic_items; ///< for internal use only
 } sysfs_dir_t;
 
+/**
+ * @brief Register a sysfs directory
+ *
+ * @param entry the sysfs directory to register
+ */
 void sysfs_register(sysfs_dir_t *entry);
+
+/**
+ * @brief Register an entry in a sysfs directory
+ *
+ * @param sysfs_dir the sysfs directory to register the item in
+ * @param item the sysfs item to register
+ * @param data the data to associate with the item
+ */
 void sysfs_register_file(sysfs_dir_t *sysfs_dir, sysfs_item_t *item, void *data);
 
+/**
+ * @brief Register an entry in the sysfs root directory
+ *
+ * @param item the sysfs item to register
+ * @param data the data to associate with the item
+ */
 should_inline void sysfs_register_root_file(sysfs_item_t *item, void *data)
 {
     sysfs_register_file(NULL, item, data);
