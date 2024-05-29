@@ -5,7 +5,6 @@
 #include "proto/filesystem.pb.h"
 
 #include <algorithm>
-#include <atomic>
 #include <chrono>
 #include <iostream>
 #include <librpc/rpc.h>
@@ -82,12 +81,12 @@ static rpc_result_code_t blockdevfs_readdir(rpc_context_t *, mos_rpc_fs_readdir_
         return RPC_RESULT_OK;
     }
 
-    const size_t count = blockdev_list.size();
+    const size_t count = devlist.size();
     resp->entries_count = count;
     resp->entries = (pb_dirent *) malloc(count * sizeof(pb_dirent));
 
     int i = 0;
-    for (const auto &[id, info] : blockdev_list)
+    for (const auto &[id, info] : devlist)
     {
         pb_dirent *e = &resp->entries[i++];
         e->name = strdup(info.name.c_str());
@@ -109,8 +108,8 @@ static rpc_result_code_t blockdevfs_lookup(rpc_context_t *, mos_rpc_fs_lookup_re
         return RPC_RESULT_OK;
     }
 
-    const auto it = std::find_if(blockdev_list.begin(), blockdev_list.end(), [&](const auto &p) { return p.second.name == req->name; });
-    if (it == blockdev_list.end())
+    const auto it = std::find_if(devlist.begin(), devlist.end(), [&](const auto &p) { return p.second.name == req->name; });
+    if (it == devlist.end())
     {
         resp->result.success = false;
         resp->result.error = strdup("blockdevfs: no such block device");
@@ -151,7 +150,7 @@ static rpc_result_code_t blockdevfs_getpage(rpc_context_t *, mos_rpc_fs_getpage_
     MOS_UNUSED(req);
 
     resp->result.success = false;
-    resp->result.error = strdup("blockdevfs doen't support reading or writing pages");
+    resp->result.error = strdup("blockdevfs doesn't support reading or writing pages");
     return RPC_RESULT_OK;
 }
 

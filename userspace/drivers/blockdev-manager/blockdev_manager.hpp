@@ -5,7 +5,7 @@
 #include <abi-bits/ino_t.h>
 #include <librpc/rpc_server.h>
 #include <map>
-#include <memory>
+#include <string>
 
 struct blockdev_info
 {
@@ -17,8 +17,7 @@ struct blockdev_info
     ino_t ino; // inode number in blockdevfs
 };
 
-extern rpc_server_t *blockdev_server;
-extern std::map<int, blockdev_info> blockdev_list;
+extern std::map<int, blockdev_info> devlist;
 
 bool blockdev_manager_run();
 bool register_blockdevfs();
