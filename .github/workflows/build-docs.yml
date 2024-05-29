@@ -34,7 +34,7 @@ jobs:
           echo 'SigLevel = Optional TrustAll' >> /etc/pacman.conf
           echo 'Server = https://mospkg.mooody.me/$arch' >> /etc/pacman.conf
 
-          pacman -Sy --noconfirm x86_64-mos-gcc x86_64-mos-binutils x86_64-mos-mlibc mos-api-headers-x86_64-git
+          pacman -Sy --noconfirm x86_64-mos-gcc x86_64-mos-binutils x86_64-mos-mlibc
 
       - name: Configure CMake
         run: |
