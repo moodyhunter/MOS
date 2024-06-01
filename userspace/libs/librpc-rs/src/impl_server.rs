@@ -243,20 +243,20 @@ impl<'a, T: Send + Sync + Clone> RpcServer<'a, T> {
         let args_count = u32::from_le_bytes(do_try_into!(args_count, 0, 4));
 
         if magic != RPC_REQUEST_MAGIC {
-            Self::send_rpc_respose(ipc, call_id, RpcCallResult::InvalidArg, None)?;
+            Self::send_rpc_response(ipc, call_id, RpcCallResult::InvalidArg, None)?;
             return Ok(());
         }
 
         let funcinfo = match functions.iter().find(|f| f.id == function_id) {
             Some(funcinfo) => funcinfo,
             None => {
-                Self::send_rpc_respose(ipc, call_id, RpcCallResult::ServerInvalidFunction, None)?;
+                Self::send_rpc_response(ipc, call_id, RpcCallResult::ServerInvalidFunction, None)?;
                 return Ok(());
             }
         };
 
         if funcinfo.argtypes.len() > args_count as usize {
-            Self::send_rpc_respose(ipc, call_id, RpcCallResult::InvalidArg, None)?;
+            Self::send_rpc_response(ipc, call_id, RpcCallResult::InvalidArg, None)?;
             #[cfg(feature = "debug")]
             println!(
                 "  --> received call for function {} with {} args, but function expects {} args",
@@ -282,7 +282,7 @@ impl<'a, T: Send + Sync + Clone> RpcServer<'a, T> {
         if let Err(_err) = (funcinfo.func)(t, &mut ctx) {
             #[cfg(feature = "debug")]
             println!("function {} failed: {:?}", funcinfo.id, _err);
-            Self::send_rpc_respose(ipc, call_id, RpcCallResult::ServerInternalError, None)?;
+            Self::send_rpc_response(ipc, call_id, RpcCallResult::ServerInternalError, None)?;
             return Ok(());
         }
 
@@ -293,15 +293,15 @@ impl<'a, T: Send + Sync + Clone> RpcServer<'a, T> {
                 funcinfo.id,
                 reply.0.len()
             );
-            Self::send_rpc_respose(ipc, call_id, RpcCallResult::Ok, Some(reply))?;
+            Self::send_rpc_response(ipc, call_id, RpcCallResult::Ok, Some(reply))?;
         } else {
-            Self::send_rpc_respose(ipc, call_id, RpcCallResult::Ok, None)?; // no reply
+            Self::send_rpc_response(ipc, call_id, RpcCallResult::Ok, None)?; // no reply
         }
 
         Ok(())
     }
 
-    fn send_rpc_respose(
+    fn send_rpc_response(
         ipc_channel: &mut IpcChannel,
         call_id: u32,
         result: RpcCallResult,
