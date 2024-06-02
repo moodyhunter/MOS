@@ -16,11 +16,8 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (!blockdev_manager_run())
-    {
-        std::cerr << "Failed to start blockdev manager" << std::endl;
-        return 1;
-    }
+    BlockManager manager;
+    manager.run();
 
     std::cerr << "Block Device Manager exiting" << std::endl;
     return 0;

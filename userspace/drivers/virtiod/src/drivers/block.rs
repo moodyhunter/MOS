@@ -11,9 +11,12 @@ use virtio_drivers::{
 
 use crate::{
     hal::MOSHal,
-    mos_rpc::blockdev::{
-        Read_request, Read_response, Register_dev_request, Register_dev_response, Write_request,
-        Write_response,
+    mos_rpc::{
+        self,
+        blockdev::{
+            Read_block_request, Read_block_response, Register_device_request,
+            Register_device_response, Write_block_request, Write_block_response,
+        },
     },
     result_err, result_ok,
 };
@@ -33,15 +36,20 @@ impl BlockDevDriver {
     pub fn register(&mut self) -> RpcResult<()> {
         let dev = &self.blockdev.lock().unwrap().0;
 
-        let request = Register_dev_request {
-            block_size: 512,
-            num_blocks: dev.capacity() / 512,
+        let request = Register_device_request {
             server_name: self.server_name.clone(),
-            blockdev_name: self.devname.clone(),
+            device_info: Some(mos_rpc::blockdev::Blockdev_info {
+                name: self.devname.clone(),
+                block_size: 512,
+                n_blocks: dev.capacity() / 512,
+                size: dev.capacity(),
+                ..Default::default()
+            })
+            .into(),
             ..Default::default()
         };
 
-        let resp: Register_dev_response = self.blockdev_manager.create_pb_call(1, &request)?;
+        let resp: Register_device_response = self.blockdev_manager.create_pb_call(1, &request)?;
 
         if !resp.result.success {
             return Err(Box::new(std::io::Error::new(
@@ -58,18 +66,18 @@ impl BlockDevDriver {
     }
 
     pub fn on_read(&mut self, ctx: &mut RpcCallContext) -> RpcResult<()> {
-        let arg: Read_request = ctx.get_arg_pb(0)?;
+        let arg: Read_block_request = ctx.get_arg_pb(0)?;
         let mut buf = vec![0u8; 512 * arg.n_blocks as usize];
 
         let virtioblk = &mut self.blockdev.lock().unwrap().0;
 
         let resp = match virtioblk.read_blocks(arg.n_boffset as _, &mut buf) {
-            Ok(()) => Read_response {
+            Ok(()) => Read_block_response {
                 result: result_ok!(),
                 data: buf,
                 ..Default::default()
             },
-            Err(e) => Read_response {
+            Err(e) => Read_block_response {
                 result: result_err!(format!("failed to read: {}", e)),
                 ..Default::default()
             },
@@ -79,16 +87,16 @@ impl BlockDevDriver {
     }
 
     pub fn on_write(&mut self, ctx: &mut RpcCallContext) -> RpcResult<()> {
-        let arg: Write_request = ctx.get_arg_pb(0)?;
+        let arg: Write_block_request = ctx.get_arg_pb(0)?;
 
         let virtioblk = &mut self.blockdev.lock().unwrap().0;
 
         let resp = match virtioblk.write_blocks(arg.n_boffset as _, &arg.data) {
-            Ok(()) => Write_response {
+            Ok(()) => Write_block_response {
                 result: result_ok!(),
                 ..Default::default()
             },
-            Err(e) => Write_response {
+            Err(e) => Write_block_response {
                 result: result_err!(format!("failed to write: {}", e)),
                 ..Default::default()
             },

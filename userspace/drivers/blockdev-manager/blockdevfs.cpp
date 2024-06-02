@@ -4,7 +4,6 @@
 #include "blockdev_manager.hpp"
 #include "proto/filesystem.pb.h"
 
-#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <librpc/rpc.h>
@@ -81,16 +80,16 @@ static rpc_result_code_t blockdevfs_readdir(rpc_context_t *, mos_rpc_fs_readdir_
         return RPC_RESULT_OK;
     }
 
-    const size_t count = devlist.size();
+    const size_t count = devices.size();
     resp->entries_count = count;
     resp->entries = (pb_dirent *) malloc(count * sizeof(pb_dirent));
 
     int i = 0;
-    for (const auto &[id, info] : devlist)
+    for (const auto &[name, info] : devices)
     {
         pb_dirent *e = &resp->entries[i++];
-        e->name = strdup(info.name.c_str());
-        e->ino = id;
+        e->name = strdup(name.c_str());
+        e->ino = info.ino;
         e->type = FILE_TYPE_BLOCK_DEVICE;
     }
 
@@ -108,18 +107,17 @@ static rpc_result_code_t blockdevfs_lookup(rpc_context_t *, mos_rpc_fs_lookup_re
         return RPC_RESULT_OK;
     }
 
-    const auto it = std::find_if(devlist.begin(), devlist.end(), [&](const auto &p) { return p.second.name == req->name; });
-    if (it == devlist.end())
+    if (!devices.contains(req->name))
     {
         resp->result.success = false;
         resp->result.error = strdup("blockdevfs: no such block device");
         return RPC_RESULT_OK;
     }
 
-    const auto &[id, info] = *it;
+    const auto &info = devices[req->name];
 
     pb_inode_info *i = &resp->i_info;
-    i->ino = id;
+    i->ino = info.ino;
     i->type = FILE_TYPE_BLOCK_DEVICE;
     i->perm = 0660;
     i->uid = 0;

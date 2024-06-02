@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <mos/types.h>
 
 #define BLOCKDEV_BLOCK_SIZE 512
 
@@ -16,12 +17,12 @@ class RAMDisk
     size_t read_block(const size_t block, const size_t nblocks, uint8_t *buf);
     size_t write_block(const size_t block, const size_t nblocks, const uint8_t *buf);
 
-    size_t nblocks() const
+    u32 nblocks() const
     {
         return m_nblocks;
     }
 
-    size_t block_size() const
+    u32 block_size() const
     {
         return BLOCKDEV_BLOCK_SIZE;
     }

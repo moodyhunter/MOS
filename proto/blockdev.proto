@@ -8,86 +8,117 @@ option (nanopb_fileopt).proto3_singular_msgs = true;
 
 package mos_rpc_blockdev;
 
-// blockdev manager interface
-
-message register_dev_request
+message blockdev
 {
-    string server_name = 1;
-    string blockdev_name = 2;
-    uint32 block_size = 3;
-    uint64 num_blocks = 4;
+    uint32 devid = 1;
 }
 
-message register_dev_response
+message partition
+{
+    uint32 partid = 1;
+}
+
+message blockdev_info
+{
+    string name = 1;
+    uint64 size = 2;
+    uint32 block_size = 3;
+    uint64 n_blocks = 4;
+}
+
+// blockdev manager interface
+
+message register_device_request
+{
+    string server_name = 1;
+    blockdev_info device_info = 2;
+}
+
+message register_device_response
 {
     mos_rpc.result result = 1;
     uint32 id = 2;
 }
 
-message register_layer_request
+message register_layer_server_request
 {
     string server_name = 1;
     string layer_name = 2;
 }
-message register_layer_response
+
+message register_layer_server_response
 {
     mos_rpc.result result = 1;
     uint32 id = 2;
 }
 
-message opendev_request
+message query_device_info_request
 {
     string device_name = 1;
 }
 
-message opendev_response
+message query_device_info_response
 {
     mos_rpc.result result = 1;
-    string server_name = 2;
+    string layer_name = 2;
 }
 
-// blockdev interface
-
-message read_request
+message read_block_request
 {
-    uint64 n_boffset = 1;
-    uint32 n_blocks = 2;
+    blockdev device = 1;
+    uint64 n_boffset = 2;
+    uint32 n_blocks = 3;
 }
 
-message read_response
+message read_block_response
 {
     mos_rpc.result result = 1;
     bytes data = 2;
 }
 
-message write_request
+message write_block_request
 {
     bytes data = 1;
     uint64 n_boffset = 2;
     uint32 n_blocks = 3;
 }
 
-message write_response
+message write_block_response
 {
     mos_rpc.result result = 1;
     uint32 n_blocks = 2;
 }
 
-// blockdev layer interface
-
-message partition
+message open_device_request
 {
-    string name = 1;
-    int32 id = 2;
+    string device_name = 1;
 }
 
-message layer_probe_request
+message open_device_response
 {
-    string base_layer = 1;
+    mos_rpc.result result = 1;
+    blockdev device = 2;
 }
 
-message layer_probe_response
+// layer interface
+
+message probe_layers_request
+{
+    string base_layer = 1; // a path of /dev/block/layer_name
+}
+
+message probe_layers_response
 {
     mos_rpc.result result = 1;
     partition parts = 2;
+}
+
+message get_layer_info_request
+{
+    string layer_name = 1;
+}
+
+message get_layer_info_response
+{
+    mos_rpc.result result = 1;
 }

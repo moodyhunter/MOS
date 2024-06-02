@@ -3,96 +3,59 @@
 #include "blockdev.h"
 #include "ramdisk.hpp"
 
-#include <cstdint>
 #include <iostream>
 #include <librpc/macro_magic.h>
 #include <librpc/rpc_client.h>
+#include <librpc/rpc_server++.hpp>
 #include <librpc/rpc_server.h>
 #include <memory>
 #include <mos/mos_global.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
-#include <system_error>
 
-RPC_CLIENT_DEFINE_SIMPLECALL(blockdev_server, BLOCKDEV_MANAGER_RPC_X);
-RPC_DECL_SERVER_PROTOTYPES(ramdisk_server, BLOCKDEV_SERVER_RPC_X);
+RPC_CLIENT_DEFINE_STUB_CLASS(BlockManager, BLOCKDEV_MANAGER_RPC_X);
+RPC_DECL_SERVER_INTERFACE_CLASS(IRamDiskServer, BLOCKDEV_DEVICE_RPC_X);
 
-static std::unique_ptr<RAMDisk> rd = nullptr;
-
-static rpc_result_code_t ramdisk_server_read_block(rpc_context_t *, mos_rpc_blockdev_read_request *req, mos_rpc_blockdev_read_response *resp)
+class RAMDiskServer
+    : public IRamDiskServer
+    , public RAMDisk
 {
-    if (req->n_boffset + req->n_blocks > rd->nblocks())
+  public:
+    explicit RAMDiskServer(const std::string &servername, const size_t nbytes) : IRamDiskServer(servername), RAMDisk(nbytes)
     {
-        resp->result.success = false;
-        resp->result.error = strdup("Out of bounds");
+    }
+
+    rpc_result_code_t read_block(rpc_context_t *, mos_rpc_blockdev_read_block_request *req, mos_rpc_blockdev_read_block_response *resp) override
+    {
+        if (req->n_boffset + req->n_blocks > nblocks())
+        {
+            resp->result.success = false;
+            resp->result.error = strdup("Out of bounds");
+            return RPC_RESULT_OK;
+        }
+
+        resp->data = (pb_bytes_array_t *) malloc(PB_BYTES_ARRAY_T_ALLOCSIZE(req->n_blocks * block_size()));
+        const auto read = RAMDisk::read_block(req->n_boffset, req->n_blocks, resp->data->bytes);
+        resp->data->size = read * block_size();
+
+        resp->result.success = true;
+        resp->result.error = nullptr;
+
         return RPC_RESULT_OK;
     }
 
-    resp->data = (pb_bytes_array_t *) malloc(PB_BYTES_ARRAY_T_ALLOCSIZE(req->n_blocks * rd->block_size()));
-    const auto read = rd->read_block(req->n_boffset, req->n_blocks, resp->data->bytes);
-    resp->data->size = read * rd->block_size();
-
-    resp->result.success = true;
-    resp->result.error = nullptr;
-
-    return RPC_RESULT_OK;
-}
-
-static rpc_result_code_t ramdisk_server_write_block(rpc_context_t *, mos_rpc_blockdev_write_request *req, mos_rpc_blockdev_write_response *resp)
-{
-    rd->write_block(req->n_boffset, req->n_blocks, req->data->bytes);
-
-    resp->result.success = true;
-    resp->result.error = nullptr;
-
-    resp->n_blocks = req->n_blocks;
-
-    return RPC_RESULT_OK;
-}
-
-static int do_register_blockdev(const char *name, const char *rpcserver, const size_t nblocks, const size_t block_size)
-{
-    rpc_server_stub_t *const blockdev_server = rpc_client_create(BLOCKDEV_MANAGER_RPC_SERVER_NAME);
-    if (!blockdev_server)
+    rpc_result_code_t write_block(rpc_context_t *, mos_rpc_blockdev_write_block_request *req, mos_rpc_blockdev_write_block_response *resp) override
     {
-        std::cerr << "Failed to connect to blockdev server" << std::endl;
-        return 1;
+        RAMDisk::write_block(req->n_boffset, req->n_blocks, req->data->bytes);
+
+        resp->result.success = true;
+        resp->result.error = nullptr;
+
+        resp->n_blocks = req->n_blocks;
+
+        return RPC_RESULT_OK;
     }
-
-    mos_rpc_blockdev_register_dev_request req = mos_rpc_blockdev_register_dev_request_init_default;
-    req.blockdev_name = strdup(name);
-    req.server_name = strdup(rpcserver);
-    req.num_blocks = nblocks;
-    req.block_size = block_size;
-
-    mos_rpc_blockdev_register_dev_response resp = mos_rpc_blockdev_register_dev_response_init_default;
-
-    if (blockdev_server_register_blockdev(blockdev_server, &req, &resp) != RPC_RESULT_OK)
-    {
-        std::cerr << "Failed to register blockdev" << std::endl;
-        return -1;
-    }
-
-    if (!resp.result.success)
-    {
-        if (!resp.result.error)
-        {
-            std::cerr << "Failed to register blockdev: unknown error" << std::endl;
-            return -1;
-        }
-
-        std::cerr << "Failed to register blockdev: " << resp.result.error << std::endl;
-        return -1;
-    }
-
-    int ret = resp.id;
-
-    pb_release(mos_rpc_blockdev_register_dev_request_fields, &req);
-    pb_release(mos_rpc_blockdev_register_dev_response_fields, &resp);
-    rpc_client_destroy(blockdev_server);
-
-    return ret;
-}
+};
 
 int main(int argc, char **argv)
 {
@@ -142,30 +105,33 @@ int main(int argc, char **argv)
         }
     }
 
-    const std::string rpc_server_name = "ramdisk." + blockdev_name;
+    RAMDiskServer ramdisk_server("ramdisk." + blockdev_name, size);
 
-    rpc_server_t *const server = rpc_server_create(rpc_server_name.c_str(), nullptr);
-    if (!server)
+    const auto blockdev_manager = std::make_unique<BlockManager>(BLOCKDEV_MANAGER_RPC_SERVER_NAME);
+
+    mos_rpc_blockdev_register_device_request req{ .server_name = strdup(ramdisk_server.get_name().c_str()),
+                                                  .device_info = {
+                                                      .name = strdup(blockdev_name.c_str()),
+                                                      .size = ramdisk_server.nblocks() * ramdisk_server.block_size(),
+                                                      .block_size = ramdisk_server.block_size(),
+                                                      .n_blocks = ramdisk_server.nblocks(),
+                                                  } };
+    mos_rpc_blockdev_register_device_response resp;
+    blockdev_manager->register_device(&req, &resp);
+    if (!resp.result.success)
     {
-        std::cerr << "Failed to create ramdisk server: " << std::generic_category().message(errno) << std::endl;
-        return 1;
+        if (!resp.result.error)
+        {
+            std::cerr << "Failed to register blockdev: unknown error" << std::endl;
+            return -1;
+        }
+
+        std::cerr << "Failed to register blockdev: " << resp.result.error << std::endl;
+        return -1;
     }
 
-    rpc_server_register_functions(server, ramdisk_server_functions, MOS_ARRAY_SIZE(ramdisk_server_functions));
-
-    rd = std::make_unique<RAMDisk>(size);
-
-    if (!rd)
-    {
-        std::cerr << "Failed to create RAMDisk" << std::endl;
-        return 1;
-    }
-
-    do_register_blockdev(blockdev_name.c_str(), rpc_server_name.c_str(), rd->nblocks(), rd->block_size());
-
-    rpc_server_exec(server);
-
+    // int ret = resp.id;
+    ramdisk_server.run();
     std::cout << "RAMDisk server terminated" << std::endl;
-
     return 0;
 }
