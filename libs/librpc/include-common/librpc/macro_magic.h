@@ -90,6 +90,40 @@
     X_MACRO(X_GENERATE_FUNCTION_STUB_IMPL_ARGS, X_GENERATE_FUNCTION_STUB_IMPL_PB, prefix##_)                                                                             \
     MOS_WARNING_POP
 
+// generate a stub class for C++ clients
+#define X_GENERATE_FUNCTION_STUB_IMPL_CLASS_ARGS(prefix, id, name, NAME, spec, ...)                                                                                      \
+    rpc_result_code_t prefix##name(FOR_EACH(RPC_GENERATE_PROTOTYPE, __VA_ARGS__))                                                                                        \
+    {                                                                                                                                                                    \
+        if (unlikely(spec == NULL))                                                                                                                                      \
+            return RPC_RESULT_INVALID_ARGUMENT;                                                                                                                          \
+        return rpc_simple_call(this->server_stub, id, NULL, spec FOR_EACH(RPC_EXTRACT_NAME, __VA_ARGS__));                                                               \
+    }
+
+#define X_GENERATE_FUNCTION_STUB_IMPL_CLASS_PB(prefix, id, name, NAME, reqtype, resptype)                                                                                \
+    rpc_result_code_t prefix##name(const reqtype *request, resptype *response)                                                                                           \
+    {                                                                                                                                                                    \
+        return rpc_do_pb_call(this->server_stub, id, reqtype##_fields, request, resptype##_fields, response);                                                            \
+    }
+
+#define RPC_CLIENT_DEFINE_STUB_CLASS(_class_name, X_MACRO)                                                                                                               \
+    class _class_name                                                                                                                                                    \
+    {                                                                                                                                                                    \
+      public:                                                                                                                                                            \
+        explicit _class_name(const std::string &servername) : server_stub(rpc_client_create(servername.c_str())){};                                                      \
+        X_MACRO(X_GENERATE_FUNCTION_STUB_IMPL_CLASS_ARGS, X_GENERATE_FUNCTION_STUB_IMPL_CLASS_PB, );                                                                     \
+        ~_class_name()                                                                                                                                                   \
+        {                                                                                                                                                                \
+            rpc_client_destroy(server_stub);                                                                                                                             \
+        }                                                                                                                                                                \
+        rpc_server_stub_t *get() const                                                                                                                                   \
+        {                                                                                                                                                                \
+            return server_stub;                                                                                                                                          \
+        }                                                                                                                                                                \
+                                                                                                                                                                         \
+      private:                                                                                                                                                           \
+        rpc_server_stub_t *server_stub;                                                                                                                                  \
+    };
+
 #define FOR_EACH_ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, N, ...) N
 
 #define EXPAND(x) x
@@ -154,12 +188,12 @@
     static rpc_result_code_t prefix##_func##_pb_wrapper(rpc_context_t *context)                                                                                          \
     {                                                                                                                                                                    \
         reqtype req = { 0 };                                                                                                                                             \
-        if (!rpc_arg_pb(reqtype, req, context, 0))                                                                                                                       \
+        if (!rpc_arg_pb(context, reqtype##_fields, &req, 0))                                                                                                             \
             return RPC_RESULT_SERVER_INTERNAL_ERROR;                                                                                                                     \
         resptype resp = resptype##_init_zero;                                                                                                                            \
         const rpc_result_code_t result = prefix##_func(context, &req, &resp);                                                                                            \
         pb_release(reqtype##_fields, &req);                                                                                                                              \
-        rpc_write_result_pb(resptype, resp, context);                                                                                                                    \
+        rpc_write_result_pb(context, resptype##_fields, &resp);                                                                                                          \
         pb_release(resptype##_fields, &resp);                                                                                                                            \
         return result;                                                                                                                                                   \
     }
@@ -190,56 +224,70 @@
     MOS_WARNING_POP
 
 // ============ cpp class wrapper ============
-#define X_GENERATE_NULL_FUNC_INFO_ARGS(prefix, fid, func, _1, _2, ...) X_DO_GENERATE_FUNCTION_INFO_ARGS(fid, nullptr, X_NARGS(__VA_ARGS__), __VA_ARGS__)
-#define X_GENERATE_NULL_FUNC_INFO_PB(prefix, fid, func, _1, _2, ...)   X_DO_GENERATE_FUNCTION_INFO_PB(fid, nullptr)
+#define X_GENERATE_NULL_FUNC_INFO_ARGS(unused, fid, func, _1, _2, ...) X_DO_GENERATE_FUNCTION_INFO_ARGS(fid, nullptr, X_NARGS(__VA_ARGS__), __VA_ARGS__)
+#define X_GENERATE_NULL_FUNC_INFO_PB(unused, fid, func, _1, _2, ...)   X_DO_GENERATE_FUNCTION_INFO_PB(fid, nullptr)
 
-#define X_GENERATE_SWITCH_CASE_CLASS_ARGS(prefix, id, name, NAME, spec, ...)                                                                                             \
+#define X_GENERATE_SWITCH_CASE_CLASS_ARGS(unused, id, name, NAME, spec, ...)                                                                                             \
     case id:                                                                                                                                                             \
     {                                                                                                                                                                    \
         __VA_OPT__(FOR_EACH(X_RPC_GET_ARG, __VA_ARGS__))                                                                                                                 \
-        return this->prefix##name(context FOR_EACH(RPC_EXTRACT_NAME, __VA_ARGS__));                                                                                      \
+        return this->name(context FOR_EACH(RPC_EXTRACT_NAME, __VA_ARGS__));                                                                                              \
     }
 
-#define X_GENERATE_SWITCH_CASE_CLASS_PB(prefix, id, name, NAME, reqtype, resptype)                                                                                       \
+#define X_GENERATE_SWITCH_CASE_CLASS_PB(unused, id, name, NAME, reqtype, resptype)                                                                                       \
     case id:                                                                                                                                                             \
     {                                                                                                                                                                    \
         reqtype req;                                                                                                                                                     \
-        if (!rpc_arg_pb(reqtype, req, context, 0))                                                                                                                       \
+        if (!rpc_arg_pb(context, reqtype##_fields, &req, 0))                                                                                                             \
             return RPC_RESULT_SERVER_INTERNAL_ERROR;                                                                                                                     \
         resptype resp = resptype##_init_zero;                                                                                                                            \
-        const rpc_result_code_t result = this->prefix##name(context, &req, &resp);                                                                                       \
+        const rpc_result_code_t result = this->name(context, &req, &resp);                                                                                               \
         pb_release(reqtype##_fields, &req);                                                                                                                              \
-        rpc_write_result_pb(resptype, resp, context);                                                                                                                    \
+        rpc_write_result_pb(context, resptype##_fields, &resp);                                                                                                          \
         pb_release(resptype##_fields, &resp);                                                                                                                            \
         return result;                                                                                                                                                   \
     }
 
-#define X_GENERATE_FUNCTION_FORWARDS_ARGS_CPP_CLASS(prefix, _id, _func, _FUNC, _spec, ...)                                                                               \
-    virtual rpc_result_code_t prefix##_func(rpc_context_t *context __VA_OPT__(FOR_EACH(RPC_GENERATE_PROTOTYPE, __VA_ARGS__))) = 0;
+#define X_GENERATE_FUNCTION_FORWARDS_ARGS_CPP_CLASS(_prefix, _id, func, _FUNC, _spec, ...)                                                                               \
+    virtual rpc_result_code_t func(rpc_context_t *context __VA_OPT__(FOR_EACH(RPC_GENERATE_PROTOTYPE, __VA_ARGS__))) = 0;
 
-#define X_GENERATE_FUNCTION_FORWARDS_PB_CPP_CLASS(prefix, _id, _func, _FUNC, reqtype, resptype)                                                                          \
-    virtual rpc_result_code_t prefix##_func(rpc_context_t *context, reqtype *req, resptype *resp) = 0;
+#define X_GENERATE_FUNCTION_FORWARDS_PB_CPP_CLASS(_prefix, _id, func, _FUNC, reqtype, resptype)                                                                          \
+    virtual rpc_result_code_t func(rpc_context_t *context, reqtype *req, resptype *resp) = 0;
 
-#define RPC_DEFINE_SERVER_CPP_CLASS_WRAPPER(prefix, X_MACRO)                                                                                                             \
-    MOS_WARNING_PUSH                                                                                                                                                     \
-    MOS_WARNING_DISABLE("-Wgnu-zero-variadic-macro-arguments")                                                                                                           \
-    X_MACRO(X_GENERATE_FUNCTION_FORWARDS_ARGS_CPP_CLASS, X_GENERATE_FUNCTION_FORWARDS_PB_CPP_CLASS, prefix##_)                                                           \
+#define RPC_DEFINE_SERVER_CPP_CLASS_WRAPPER(X_MACRO)                                                                                                                     \
+    X_MACRO(X_GENERATE_FUNCTION_FORWARDS_ARGS_CPP_CLASS, X_GENERATE_FUNCTION_FORWARDS_PB_CPP_CLASS, )                                                                    \
     virtual rpc_result_code_t dispatcher(rpc_context_t *context, u32 funcid) override final                                                                              \
     {                                                                                                                                                                    \
         switch (funcid)                                                                                                                                                  \
         {                                                                                                                                                                \
-            X_MACRO(X_GENERATE_SWITCH_CASE_CLASS_ARGS, X_GENERATE_SWITCH_CASE_CLASS_PB, prefix##_)                                                                       \
-            default: std::cerr << "Unknown function ID: " << funcid << std::endl; return RPC_RESULT_SERVER_INTERNAL_ERROR;                                               \
+            X_MACRO(X_GENERATE_SWITCH_CASE_CLASS_ARGS, X_GENERATE_SWITCH_CASE_CLASS_PB, )                                                                                \
         }                                                                                                                                                                \
-    }                                                                                                                                                                    \
-    MOS_WARNING_POP
+    }
 
-#define RPC_DECL_SERVER_INTERFACE_CLASS(classname, prefix, X_MACRO)                                                                                                      \
+#define RPC_DECL_SERVER_INTERFACE_CLASS(classname, X_MACRO)                                                                                                              \
     class classname : public RPCServer                                                                                                                                   \
     {                                                                                                                                                                    \
-        constexpr const static rpc_function_info_t prefix##_rpc_functions[] = { X_MACRO(X_GENERATE_NULL_FUNC_INFO_ARGS, X_GENERATE_NULL_FUNC_INFO_PB, prefix##_) };      \
+        constexpr const static rpc_function_info_t rpc_functions[] = { X_MACRO(X_GENERATE_NULL_FUNC_INFO_ARGS, X_GENERATE_NULL_FUNC_INFO_PB, _) };                       \
                                                                                                                                                                          \
       public:                                                                                                                                                            \
-        explicit classname(const std::string &rpcname) : RPCServer(rpcname, prefix##_rpc_functions, MOS_ARRAY_SIZE(prefix##_rpc_functions)){};                           \
-        RPC_DEFINE_SERVER_CPP_CLASS_WRAPPER(prefix, X_MACRO)                                                                                                             \
-    };
+        explicit classname(const std::string &rpcname) : RPCServer(rpcname, rpc_functions, MOS_ARRAY_SIZE(rpc_functions)){};                                             \
+        RPC_DEFINE_SERVER_CPP_CLASS_WRAPPER(X_MACRO)                                                                                                                     \
+    }
+
+// ============ CPP TYPE NAMESPACE ============
+#define __RPC_DO_DECL_CPP_TYPE_NAMESPACE_ALIAS_IMPL(subns, _id, action, ...)                                                                                             \
+    namespace action                                                                                                                                                     \
+    {                                                                                                                                                                    \
+        using request = mos_rpc##_##subns##_##action##_request;                                                                                                          \
+        using response = mos_rpc##_##subns##_##action##_response;                                                                                                        \
+    }
+
+#ifdef __cplusplus
+#define RPC_DECL_CPP_TYPE_NAMESPACE(subns, X_MACRO)                                                                                                                      \
+    namespace mos_rpc::subns                                                                                                                                             \
+    {                                                                                                                                                                    \
+        X_MACRO(__NO_OP, __RPC_DO_DECL_CPP_TYPE_NAMESPACE_ALIAS_IMPL, subns)                                                                                             \
+    }
+#else
+#define RPC_DECL_CPP_TYPE_NAMESPACE(subns, X_MACRO)
+#endif

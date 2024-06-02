@@ -7,6 +7,9 @@
 
 #include <libipc/ipc.h>
 #include <mos/types.h>
+#include <pb.h>
+#include <pb_decode.h>
+#include <pb_encode.h>
 
 #if defined(__MOS_KERNEL__)
 #include <mos/lib/sync/mutex.h>
@@ -426,4 +429,23 @@ void rpc_write_result(rpc_context_t *context, const void *data, size_t size)
     response->data_size = size;
     memcpy(response->data, data, size);
     context->response = response;
+}
+
+bool rpc_arg_pb(rpc_context_t *context, const pb_msgdesc_t *fields, void *val, size_t argid)
+{
+    size_t size = 0;
+    const void *payload = rpc_arg(context, argid, RPC_ARGTYPE_BUFFER, &size);
+    pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *) payload, size);
+    return pb_decode(&stream, fields, val);
+}
+
+void rpc_write_result_pb(rpc_context_t *context, const pb_msgdesc_t *type_fields, const void *val)
+{
+    size_t bufsize;
+    pb_get_encoded_size(&bufsize, type_fields, val);
+    pb_byte_t buffer[bufsize];
+    pb_ostream_t stream = pb_ostream_from_buffer(buffer, bufsize);
+    const int retval = pb_encode(&stream, type_fields, val);
+    if (retval)
+        rpc_write_result(context, buffer, stream.bytes_written);
 }

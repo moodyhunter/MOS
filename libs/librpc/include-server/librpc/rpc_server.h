@@ -173,15 +173,6 @@ MOSAPI s32 rpc_arg_s32(const rpc_context_t *context, size_t iarg);
 MOSAPI s64 rpc_arg_s64(const rpc_context_t *context, size_t iarg);
 MOSAPI const char *rpc_arg_string(const rpc_context_t *context, size_t iarg);
 
-// so we can use protobuf (nanopb) with librpc
-#define rpc_arg_pb(type, val, context, argid)                                                                                                                            \
-    statement_expr(bool, {                                                                                                                                               \
-        size_t size = 0;                                                                                                                                                 \
-        const void *payload = rpc_arg(context, argid, RPC_ARGTYPE_BUFFER, &size);                                                                                        \
-        pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *) payload, size);                                                                                 \
-        retval = pb_decode(&stream, type##_fields, &val);                                                                                                                \
-    })
-
 /**
  * @brief Write a result to the reply
  *
@@ -191,11 +182,9 @@ MOSAPI const char *rpc_arg_string(const rpc_context_t *context, size_t iarg);
  */
 MOSAPI void rpc_write_result(rpc_context_t *context, const void *data, size_t size);
 
-#define rpc_write_result_pb(type, val, context)                                                                                                                          \
-    statement_expr(bool, {                                                                                                                                               \
-        uint8_t buffer[8192];                                                                                                                                            \
-        pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));                                                                                            \
-        retval = pb_encode(&stream, type##_fields, &val);                                                                                                                \
-        if (retval)                                                                                                                                                      \
-            rpc_write_result(context, buffer, stream.bytes_written);                                                                                                     \
-    })
+// so we can use protobuf (nanopb) with librpc
+typedef struct pb_msgdesc_s pb_msgdesc_t;
+
+MOSAPI bool rpc_arg_pb(rpc_context_t *context, const pb_msgdesc_t *type_fields, void *val, size_t argid);
+
+MOSAPI void rpc_write_result_pb(rpc_context_t *context, const pb_msgdesc_t *type_fields, const void *val);

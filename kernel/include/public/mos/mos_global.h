@@ -123,6 +123,8 @@
 #define statement_expr(type, ...) __extension__({ type retval; __VA_ARGS__; retval; })
 // clang-format on
 
+#define __NO_OP(...)
+
 #define BIT(x) (1ull << (x))
 
 #ifdef __cplusplus

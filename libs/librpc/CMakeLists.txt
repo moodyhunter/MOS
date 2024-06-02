@@ -25,6 +25,7 @@ add_mos_library(
         rpc_server.c
     LINK_LIBRARIES
         mos::libipc
+        mos::nanopb
     DEFINES
         __MOS_RPC_SERVER__
 )

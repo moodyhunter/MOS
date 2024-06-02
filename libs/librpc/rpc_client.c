@@ -297,8 +297,10 @@ exec:
 
 rpc_result_code_t rpc_do_pb_call(rpc_server_stub_t *stub, u32 funcid, const pb_msgdesc_t *reqm, const void *req, const pb_msgdesc_t *respm, void *resp)
 {
-    char buf[8192] = { 0 };
-    pb_ostream_t wstream = pb_ostream_from_buffer((pb_byte_t *) buf, sizeof(buf));
+    size_t bufsize;
+    pb_get_encoded_size(&bufsize, reqm, req);
+    pb_byte_t buf[bufsize];
+    pb_ostream_t wstream = pb_ostream_from_buffer(buf, bufsize);
     if (!pb_encode(&wstream, reqm, req))
         return RPC_RESULT_CLIENT_WRITE_FAILED;
 
@@ -316,7 +318,7 @@ rpc_result_code_t rpc_do_pb_call(rpc_server_stub_t *stub, u32 funcid, const pb_m
     if (result_code != RPC_RESULT_OK)
         return result_code;
 
-    pb_istream_t stream = pb_istream_from_buffer((pb_byte_t *) result, result_size);
+    pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *) result, result_size);
     if (!pb_decode(&stream, respm, resp))
         return RPC_RESULT_CLIENT_READ_FAILED;
 
