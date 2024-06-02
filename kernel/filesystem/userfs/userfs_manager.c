@@ -19,7 +19,7 @@ SLAB_AUTOINIT("userfs", userfs_slab, userfs_t);
 
 RPC_DECL_SERVER_PROTOTYPES(userfs_manager, USERFS_MANAGER_X)
 
-static rpc_result_code_t userfs_manager_register(rpc_context_t *, mos_rpc_fs_register_request *req, mos_rpc_fs_register_response *resp)
+static rpc_result_code_t userfs_manager_register_fs(rpc_context_t *, mos_rpc_fs_register_request *req, mos_rpc_fs_register_response *resp)
 {
     userfs_t *userfs = kmalloc(userfs_slab);
     if (!userfs)

@@ -2,12 +2,8 @@
 
 #pragma once
 
-#ifndef __cplusplus
-#error "This header is only for C++"
-#endif
-
-#ifdef __MOS_KERNEL__
-#error "This header is not for kernel"
+#if defined(__MOS_KERNEL__) || !defined(__cplusplus)
+#error "This file is only for use in C++ userspace code"
 #endif
 
 #include "librpc/rpc_server.h"

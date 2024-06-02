@@ -306,7 +306,7 @@ void init_start_cpiofs_server(fd_t notifier)
     req.rpc_server_name = CPIOFS_RPC_SERVER_NAME;
 
     mos_rpc_fs_register_response resp = mos_rpc_fs_register_response_init_zero;
-    const rpc_result_code_t result = fs_manager_register(fs_manager, &req, &resp);
+    const rpc_result_code_t result = fs_manager_register_fs(fs_manager, &req, &resp);
     if (result != RPC_RESULT_OK || !resp.result.success)
     {
         puts("cpiofs: failed to register cpiofs with filesystem server");

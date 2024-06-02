@@ -2,14 +2,11 @@
 
 #pragma once
 
-#include <librpc/macro_magic.h>
-#include <mos/mos_global.h>
-
 #define USERFS_SERVER_RPC_NAME "mos.userfs-manager"
 
-#define USERFS_MANAGER_X(ARGS, PB, xarg) PB(xarg, 0, register, REGISTER, mos_rpc_fs_register_request, mos_rpc_fs_register_response)
-
-RPC_DEFINE_ENUMS(userfs_manager, USERFS_MANAGER, USERFS_MANAGER_X)
+#define USERFS_MANAGER_X(ARGS, PB, xarg)                                                                                                                                 \
+    /**/                                                                                                                                                                 \
+    PB(xarg, 0, register_fs, REGISTER_FS, mos_rpc_fs_register_request, mos_rpc_fs_register_response)
 
 #define USERFS_IMPL_X(ARGS, PB, xarg)                                                                                                                                    \
     PB(xarg, 0, mount, MOUNT, mos_rpc_fs_mount_request, mos_rpc_fs_mount_response)                                                                                       \

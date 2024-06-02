@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "autodestroy.hpp"
+#include "blockdevfs.hpp"
+
 #include "blockdev_manager.hpp"
 #include "proto/filesystem.pb.h"
 
+#include <assert.h>
 #include <chrono>
 #include <iostream>
+#include <librpc/macro_magic.h>
 #include <librpc/rpc.h>
 #include <librpc/rpc_client.h>
 #include <librpc/rpc_server.h>
+#include <memory>
 #include <mos/filesystem/fs_types.h>
 #include <mos/proto/fs_server.h>
 #include <mos/syscall/usermode.h>
 #include <ostream>
-#include <pb_decode.h>
-#include <pb_encode.h>
 #include <sys/stat.h>
 
-RPC_CLIENT_DEFINE_SIMPLECALL(userfs_manager, USERFS_MANAGER_X)
-RPC_DECL_SERVER_PROTOTYPES(blockdevfs, USERFS_IMPL_X)
-
-static rpc_server_t *blockdevfs = NULL;
-static const auto blockdevfs_guard = mAutoDestroy(blockdevfs, rpc_server_destroy);
+using namespace std::chrono;
 
 #define BLOCKDEVFS_NAME            "blockdevfs"
 #define BLOCKDEVFS_RPC_SERVER_NAME "fs.blockdevfs"
+
+std::unique_ptr<IUserFSServer> blockdevfs;
 
 struct blockdevfs_inode
 {
@@ -33,7 +33,7 @@ struct blockdevfs_inode
 
 static blockdevfs_inode *root = NULL;
 
-static rpc_result_code_t blockdevfs_mount(rpc_context_t *, mos_rpc_fs_mount_request *req, mos_rpc_fs_mount_response *resp)
+rpc_result_code_t BlockdevFSServer::mount(rpc_context_t *, mos_rpc_fs_mount_request *req, mos_rpc_fs_mount_response *resp)
 {
     if (req->options && strlen(req->options) > 0 && strcmp(req->options, "defaults") != 0)
         printf("blockdevfs: mount option '%s' is not supported\n", req->options);
@@ -54,10 +54,9 @@ static rpc_result_code_t blockdevfs_mount(rpc_context_t *, mos_rpc_fs_mount_requ
     i->ino = 1;
     i->type = FILE_TYPE_DIRECTORY;
     i->perm = 0755;
-    i->uid = 0;
-    i->gid = 0;
+    i->uid = i->gid = 0;
     i->size = 0;
-    i->accessed = i->modified = i->created = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    i->accessed = i->modified = i->created = duration_cast<seconds>(system_clock::now().time_since_epoch()).count();
     i->nlinks = 1; // 1 for the directory itself
     i->sticky = false;
     i->suid = false;
@@ -71,7 +70,7 @@ static rpc_result_code_t blockdevfs_mount(rpc_context_t *, mos_rpc_fs_mount_requ
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t blockdevfs_readdir(rpc_context_t *, mos_rpc_fs_readdir_request *req, mos_rpc_fs_readdir_response *resp)
+rpc_result_code_t BlockdevFSServer::readdir(rpc_context_t *, mos_rpc_fs_readdir_request *req, mos_rpc_fs_readdir_response *resp)
 {
     if (req->i_ref.data != (ptr_t) root)
     {
@@ -98,7 +97,7 @@ static rpc_result_code_t blockdevfs_readdir(rpc_context_t *, mos_rpc_fs_readdir_
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t blockdevfs_lookup(rpc_context_t *, mos_rpc_fs_lookup_request *req, mos_rpc_fs_lookup_response *resp)
+rpc_result_code_t BlockdevFSServer::lookup(rpc_context_t *, mos_rpc_fs_lookup_request *req, mos_rpc_fs_lookup_response *resp)
 {
     if (req->i_ref.data != (ptr_t) root)
     {
@@ -134,19 +133,15 @@ static rpc_result_code_t blockdevfs_lookup(rpc_context_t *, mos_rpc_fs_lookup_re
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t blockdevfs_readlink(rpc_context_t *, mos_rpc_fs_readlink_request *req, mos_rpc_fs_readlink_response *resp)
+rpc_result_code_t BlockdevFSServer::readlink(rpc_context_t *, mos_rpc_fs_readlink_request *, mos_rpc_fs_readlink_response *resp)
 {
-    MOS_UNUSED(req);
-
     resp->result.success = false;
     resp->result.error = strdup("blockdevfs: no symlinks expected in blockdevfs");
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t blockdevfs_getpage(rpc_context_t *, mos_rpc_fs_getpage_request *req, mos_rpc_fs_getpage_response *resp)
+rpc_result_code_t BlockdevFSServer::getpage(rpc_context_t *, mos_rpc_fs_getpage_request *, mos_rpc_fs_getpage_response *resp)
 {
-    MOS_UNUSED(req);
-
     resp->result.success = false;
     resp->result.error = strdup("blockdevfs doesn't support reading or writing pages");
     return RPC_RESULT_OK;
@@ -156,45 +151,25 @@ static void *blockdevfs_worker(void *data)
 {
     MOS_UNUSED(data);
     pthread_setname_np(pthread_self(), "blockdevfs.worker");
-
-    std::cout << "blockdevfs: worker thread started" << std::endl;
-
-    rpc_server_exec(blockdevfs);
-
+    assert(blockdevfs != nullptr);
+    blockdevfs->run();
     std::cout << "blockdevfs: worker thread exiting" << std::endl;
     return NULL;
 }
 
 bool register_blockdevfs()
 {
-    blockdevfs = rpc_server_create(BLOCKDEVFS_RPC_SERVER_NAME, NULL);
-    if (!blockdevfs)
-    {
-        std::cout << "blockdevfs: failed to create blockdevfs server" << std::endl;
-        return false;
-    }
+    blockdevfs = std::make_unique<BlockdevFSServer>(BLOCKDEVFS_RPC_SERVER_NAME);
 
-    rpc_server_register_functions(blockdevfs, blockdevfs_functions, MOS_ARRAY_SIZE(blockdevfs_functions));
+    UserfsManager userfs_manager{ USERFS_SERVER_RPC_NAME };
+    mos_rpc_fs_register_request req = { .fs = { .name = strdup(BLOCKDEVFS_NAME) }, .rpc_server_name = strdup(BLOCKDEVFS_RPC_SERVER_NAME) };
+    mos_rpc_fs_register_response resp;
 
-    rpc_server_stub_t *userfs_manager = rpc_client_create(USERFS_SERVER_RPC_NAME);
-    if (!userfs_manager)
-    {
-        std::cerr << "blockdevfs: failed to connect to the userfs manager" << std::endl;
-        return false;
-    }
-
-    auto guard = mAutoDestroy(userfs_manager, rpc_client_destroy);
-    MOS_UNUSED(guard);
-
-    mos_rpc_fs_register_request req = mos_rpc_fs_register_request_init_zero;
-    req.fs.name = strdup(BLOCKDEVFS_NAME);
-    req.rpc_server_name = strdup(BLOCKDEVFS_RPC_SERVER_NAME);
-
-    mos_rpc_fs_register_response resp = mos_rpc_fs_register_response_init_zero;
-    const rpc_result_code_t result = userfs_manager_register(userfs_manager, &req, &resp);
+    const rpc_result_code_t result = userfs_manager.register_fs(&req, &resp);
     if (result != RPC_RESULT_OK || !resp.result.success)
     {
         std::cout << "blockdevfs: failed to register blockdevfs with filesystem server" << std::endl;
+        std::cout << "blockdevfs: " << resp.result.error << std::endl;
         return false;
     }
 
@@ -210,7 +185,6 @@ bool register_blockdevfs()
         return false;
     }
 
-    mkdir("/dev", 0755);
     mkdir("/dev/block", 0755);
     long ok = syscall_vfs_mount("none", "/dev/block", "userfs.blockdevfs", "defaults"); // a blocked syscall
     if (IS_ERR_VALUE(ok))
