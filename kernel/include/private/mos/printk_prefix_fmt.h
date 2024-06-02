@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "mos/platform/platform.h"
+
 #include <mos/mos_global.h>
 
 #if MOS_CONFIG(MOS_PRINTK_WITH_TIMESTAMP)
