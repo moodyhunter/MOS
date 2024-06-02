@@ -41,7 +41,7 @@ size_t pipe_write(pipe_t *pipe, const void *buf, size_t size)
 
     if (pipe->other_closed)
     {
-        pr_dinfo2(pipe, "%pt: pipe closed", (void *) current_thread);
+        pr_dinfo2(pipe, "pipe closed");
         signal_send_to_thread(current_thread, SIGPIPE);
         spinlock_release(&pipe->lock);
         return -EPIPE; // pipe closed
@@ -56,7 +56,7 @@ retry_write:;
     if (size > 0)
     {
         // buffer is full, wait for the reader to read some data
-        pr_dinfo2(pipe, "%pt: pipe buffer full, waiting...", (void *) current_thread);
+        pr_dinfo2(pipe, "pipe buffer full, waiting...");
         spinlock_release(&pipe->lock);
         waitlist_wake(&pipe->waitlist, INT_MAX);              // wake up any readers that are waiting for data
         MOS_ASSERT(reschedule_for_waitlist(&pipe->waitlist)); // wait for the reader to read some data
@@ -65,7 +65,7 @@ retry_write:;
         // check if the pipe is still valid
         if (pipe->other_closed)
         {
-            pr_dinfo2(pipe, "%pt: pipe closed", (void *) current_thread);
+            pr_dinfo2(pipe, "pipe closed");
             signal_send_to_thread(current_thread, SIGPIPE);
             spinlock_release(&pipe->lock);
             return -EPIPE; // pipe closed
@@ -105,7 +105,7 @@ retry_read:;
         // check if the pipe is still valid
         if (pipe->other_closed && ring_buffer_pos_is_empty(&pipe->buffer_pos))
         {
-            pr_dinfo2(pipe, "%pt: pipe closed", (void *) current_thread);
+            pr_dinfo2(pipe, "pipe closed");
             spinlock_release(&pipe->lock);
             waitlist_wake(&pipe->waitlist, INT_MAX);
             pr_dinfo2(pipe, "read %zu bytes", total_read);
@@ -113,7 +113,7 @@ retry_read:;
         }
 
         // buffer is empty, wait for the writer to write some data
-        pr_dinfo2(pipe, "%pt: pipe buffer empty, waiting...", (void *) current_thread);
+        pr_dinfo2(pipe, "pipe buffer empty, waiting...");
         spinlock_release(&pipe->lock);
         waitlist_wake(&pipe->waitlist, INT_MAX);              // wake up any writers that are waiting for space in the buffer
         MOS_ASSERT(reschedule_for_waitlist(&pipe->waitlist)); // wait for the writer to write some data
