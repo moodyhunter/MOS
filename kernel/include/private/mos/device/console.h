@@ -21,7 +21,7 @@ typedef enum
     CONSOLE_CAP_READ = 1 << 6,        ///< console supports read
 } console_caps;
 
-DEFINE_ENUM_OPERATORS(console_caps)
+MOS_ENUM_OPERATORS(console_caps)
 
 typedef struct _console
 {

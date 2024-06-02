@@ -71,8 +71,6 @@
 #define container_of(ptr, type, member)                                                                                                                                  \
     _Generic(ptr, const __typeof(*(ptr)) *: ((const type *) do_container_of(ptr, type, member)), default: ((type *) do_container_of(ptr, type, member)))
 
-#define add_const(x) (*(const __typeof__(x) *) (&(x)))
-
 #define cast_to(value, valtype, desttype) _Generic((value), valtype: (desttype) (value), const valtype: (const desttype)(value))
 
 #define is_aligned(ptr, alignment) (((ptr_t) ptr & (alignment - 1)) == 0)
@@ -104,8 +102,7 @@
 #define MOS_FOURCC(a, b, c, d) ((u32) (a) | ((u32) (b) << 8) | ((u32) (c) << 16) | ((u32) (d) << 24))
 #define MOS_ARRAY_SIZE(x)      (sizeof(x) / sizeof(x[0]))
 
-#define MOS_MAX_VADDR         ((ptr_t) ~0)
-#define MOS_KERNEL_PFN(vaddr) ((ALIGN_DOWN_TO_PAGE((vaddr) -platform_info->k_basevaddr) / MOS_PAGE_SIZE) + platform_info->k_basepfn)
+#define MOS_MAX_VADDR ((ptr_t) ~0)
 
 #define MOS_SYSCALL_INTR             0x88
 #define BIOS_VADDR(paddr)            (MOS_HWMEM_VADDR | ((ptr_t) (paddr)))
@@ -193,13 +190,13 @@ __attribute__((__deprecated__("reconsider if a NULL check is really required")))
 #ifdef __cplusplus
 // enum operators are not supported in C++ implicitly
 // clang-format off
-#define DEFINE_ENUM_OPERATORS(enum_name) \
-    constexpr inline enum_name operator|(enum_name a, enum_name b) { return static_cast<enum_name>(static_cast<int>(a) | static_cast<int>(b)); } \
-    constexpr inline enum_name operator&(enum_name a, enum_name b) { return static_cast<enum_name>(static_cast<int>(a) & static_cast<int>(b)); } \
-    constexpr inline enum_name operator~(enum_name a) { return static_cast<enum_name>(~static_cast<int>(a)); } \
-    constexpr inline enum_name &operator|=(enum_name &a, enum_name b) { return a = a | b; } \
-    constexpr inline enum_name &operator&=(enum_name &a, enum_name b) { return a = a & b; }
+#define MOS_ENUM_OPERATORS(_enum) \
+    constexpr inline _enum operator|(_enum a, _enum b) { return static_cast<_enum>(static_cast<int>(a) | static_cast<int>(b)); } \
+    constexpr inline _enum operator&(_enum a, _enum b) { return static_cast<_enum>(static_cast<int>(a) & static_cast<int>(b)); } \
+    constexpr inline _enum operator~(_enum a) { return static_cast<_enum>(~static_cast<int>(a)); } \
+    constexpr inline _enum &operator|=(_enum &a, _enum b) { return a = a | b; } \
+    constexpr inline _enum &operator&=(_enum &a, _enum b) { return a = a & b; }
 // clang-format on
 #else
-#define DEFINE_ENUM_OPERATORS(enum_name)
+#define MOS_ENUM_OPERATORS(_enum)
 #endif

@@ -17,6 +17,8 @@
 #include <mos/types.h>
 #include <mos_stdlib.h>
 
+#define MOS_KERNEL_PFN(vaddr) ((ALIGN_DOWN_TO_PAGE((vaddr) -platform_info->k_basevaddr) / MOS_PAGE_SIZE) + platform_info->k_basepfn)
+
 static mm_context_t x86_kernel_mmctx = {
     .mm_lock = SPINLOCK_INIT,
     .mmaps = LIST_HEAD_INIT(x86_kernel_mmctx.mmaps),
