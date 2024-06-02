@@ -109,6 +109,12 @@ macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
     add_summary_item(INITRD "${ITEM_TYPE}" "${SOURCE_ITEM_SUPPLIMENTARY_INFO}" "${OUTPUT_DIR_PRETTY}")
 endmacro()
 
+if (_MOS_NO_RUST_TARGETS)
+    macro(add_simple_rust_project PROJECT_DIR NAME INITRD_SUBDIR)
+        message(WARNING "Rust targets are disabled, skipping ${NAME}")
+    endmacro()
+    return()
+endif()
 
 find_program(RUSTC rustc)
 if (RUSTC)
