@@ -50,7 +50,7 @@ jobs:
           echo "" >> /etc/pacman.conf
           echo '[mos]' >> /etc/pacman.conf
           echo 'SigLevel = Optional TrustAll' >> /etc/pacman.conf
-          echo 'Server = https://mospkg.mooody.me/$arch' >> /etc/pacman.conf
+          echo 'Server = https://repo.mooody.me/$repo/$arch' >> /etc/pacman.conf
 
           pacman -Sy --noconfirm rustup mos-sdk ${{matrix.config.arch}}-mos-gcc ${{matrix.config.arch}}-mos-binutils ${{matrix.config.arch}}-mos-mlibc mos-llvm mos-rust
 

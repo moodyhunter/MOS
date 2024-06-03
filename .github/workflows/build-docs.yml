@@ -32,7 +32,7 @@ jobs:
           echo "" >> /etc/pacman.conf
           echo '[mos]' >> /etc/pacman.conf
           echo 'SigLevel = Optional TrustAll' >> /etc/pacman.conf
-          echo 'Server = https://mospkg.mooody.me/$arch' >> /etc/pacman.conf
+          echo 'Server = https://repo.mooody.me/$repo/$arch' >> /etc/pacman.conf
 
           pacman -Sy --noconfirm x86_64-mos-gcc x86_64-mos-binutils x86_64-mos-mlibc
 
