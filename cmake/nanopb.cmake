@@ -26,29 +26,14 @@ set(GENERATOR_CORE_SRC ${GENERATOR_CORE_DIR}/nanopb.proto)
 # We therefore append '/' to specify that we want to copy the content of the folder. See #847
 #
 
-add_custom_command(
-    OUTPUT ${NANOPB_GENERATOR_EXECUTABLE} ${GENERATOR_CORE_SRC}
+execute_process(
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ARGS ${NANOPB_SOURCE_DIR}/generator/ ${GENERATOR_PATH}
-    VERBATIM
+    ${NANOPB_SOURCE_DIR}/generator/ ${GENERATOR_PATH}
 )
 
-set(GENERATOR_CORE_PYTHON_SRC)
-
 foreach(_proto_file ${GENERATOR_CORE_SRC})
-    get_filename_component(ABS_FIL ${_proto_file} ABSOLUTE)
-    get_filename_component(FIL_WE ${_proto_file} NAME_WE)
-
-    set(output "${GENERATOR_CORE_DIR}/${FIL_WE}_pb2.py")
-    set(GENERATOR_CORE_PYTHON_SRC ${GENERATOR_CORE_PYTHON_SRC} ${output})
-    add_custom_command(
-        OUTPUT ${output}
-        COMMAND protoc
-        ARGS -I${GENERATOR_PATH}/proto
-        --python_out=${GENERATOR_CORE_DIR} ${ABS_FIL}
-        DEPENDS ${ABS_FIL}
-        VERBATIM
-    )
+    get_filename_component(ABS_FILE ${_proto_file} ABSOLUTE)
+    execute_process(COMMAND protoc -I${GENERATOR_PATH}/proto --python_out=${GENERATOR_CORE_DIR} ${ABS_FILE})
 endforeach()
 
 function(generate_nanopb_proto SRCS HDRS)
@@ -75,28 +60,28 @@ function(generate_nanopb_proto SRCS HDRS)
     get_filename_component(ABS_ROOT ${CMAKE_SOURCE_DIR} ABSOLUTE)
 
     foreach(_proto_file ${_arg_UNPARSED_ARGUMENTS})
-        get_filename_component(ABS_FIL ${_proto_file} ABSOLUTE)
-        get_filename_component(FIL_WE ${_proto_file} NAME_WLE)
-        get_filename_component(FIL_DIR ${ABS_FIL} PATH)
+        get_filename_component(ABS_FILE ${_proto_file} ABSOLUTE)
+        get_filename_component(FILE_WE ${_proto_file} NAME_WLE)
+        get_filename_component(FILE_DIR ${ABS_FILE} PATH)
 
-        cmake_path(RELATIVE_PATH ABS_FIL BASE_DIRECTORY ${ABS_ROOT} OUTPUT_VARIABLE FIL_REL)
+        cmake_path(RELATIVE_PATH ABS_FILE BASE_DIRECTORY ${ABS_ROOT} OUTPUT_VARIABLE FIL_REL)
         get_filename_component(FIL_PATH_REL ${FIL_REL} PATH)
         file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL})
 
-        list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.c")
-        list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.h")
+        list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FILE_WE}.pb.c")
+        list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FILE_WE}.pb.h")
 
         # If there an options file in the same working directory, set it as a dependency
-        get_filename_component(ABS_OPT_FIL ${FIL_DIR}/${FIL_WE}.options ABSOLUTE)
+        get_filename_component(ABS_OPT_FILE ${FILE_DIR}/${FILE_WE}.options ABSOLUTE)
 
-        if(EXISTS ${ABS_OPT_FIL})
+        if(EXISTS ${ABS_OPT_FILE})
             # Get directory as lookups for dependency options fail if an options
             # file is used. The options is still set as a dependency of the
             # generated source and header.
-            get_filename_component(options_dir ${ABS_OPT_FIL} DIRECTORY)
+            get_filename_component(options_dir ${ABS_OPT_FILE} DIRECTORY)
             list(APPEND NANOPB_OPTIONS_DIRS ${options_dir})
         else()
-            set(ABS_OPT_FIL)
+            set(ABS_OPT_FILE)
         endif()
 
         # If the dependencies are options files, we need to pass the directories
@@ -129,8 +114,8 @@ function(generate_nanopb_proto SRCS HDRS)
 
         add_custom_command(
             OUTPUT
-                "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.c"
-                "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.h"
+                "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FILE_WE}.pb.c"
+                "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FILE_WE}.pb.h"
             COMMAND
                 protoc
             ARGS
@@ -138,13 +123,13 @@ function(generate_nanopb_proto SRCS HDRS)
                 -I${GENERATOR_PATH}
                 -I${GENERATOR_CORE_DIR}
                 -I${CMAKE_CURRENT_BINARY_DIR}
-                -I${FIL_DIR}
+                -I${FILE_DIR}
                 --plugin=protoc-gen-nanopb=${NANOPB_GENERATOR_PLUGIN}
                 ${NANOPB_OPT_STRING}
                 ${PROTOC_OPTIONS}
-                ${ABS_FIL}
+                ${ABS_FILE}
             DEPENDS
-                ${ABS_FIL} ${GENERATOR_CORE_PYTHON_SRC} ${ABS_OPT_FIL} ${NANOPB_DEPENDS}
+                ${ABS_FILE} ${ABS_OPT_FILE} ${NANOPB_DEPENDS}
             COMMENT "Running C++ protocol buffer compiler using nanopb plugin on ${_proto_file}"
             VERBATIM
         )

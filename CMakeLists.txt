@@ -64,10 +64,9 @@ if (NOT EXISTS ${MOS_MLIBC_HEADER_DIR}/mlibc-config.h)
 endif()
 
 include(nanopb)
-add_subdirectory(libs/nanopb/nanopb)
-
 include(add_kernel_source)
 include(create_bootable_kernel_binary)
+
 add_subdirectory(kernel)
 
 # Libraries
