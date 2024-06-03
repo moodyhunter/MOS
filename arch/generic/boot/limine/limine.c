@@ -7,48 +7,39 @@
 #include "mos/cmdline.h"
 #include "mos/device/console.h"
 #include "mos/mm/mm.h"
-#include "mos/mm/physical/pmm.h"
-#include "mos/platform/platform.h"
 #include "mos/printk.h"
 #include "mos/setup.h"
 
-#include <mos/mos_global.h>
 #include <mos_stdlib.h>
 
-static volatile struct limine_memmap_request memmap_request = { .id = LIMINE_MEMMAP_REQUEST, .revision = 0 };
-static volatile struct limine_kernel_address_request kernel_address_request = { .id = LIMINE_KERNEL_ADDRESS_REQUEST, .revision = 0 };
-static volatile struct limine_module_request module_request = { .id = LIMINE_MODULE_REQUEST, .revision = 0 };
-static volatile struct limine_hhdm_request hhdm_request = { .id = LIMINE_HHDM_REQUEST, .revision = 0 };
-static volatile struct limine_kernel_file_request kernel_file_request = { .id = LIMINE_KERNEL_FILE_REQUEST, .revision = 0 };
-static volatile struct limine_paging_mode_request paging_mode_request = { .id = LIMINE_PAGING_MODE_REQUEST, .revision = 0, .mode = LIMINE_PAGING_MODE_DEFAULT };
-static volatile struct limine_smp_request smp_request = { .id = LIMINE_SMP_REQUEST, .revision = 0, .flags = 0 };
-static volatile struct limine_rsdp_request rsdp_request = { .id = LIMINE_RSDP_REQUEST, .revision = 0 };
-static volatile struct limine_dtb_request dtb_request = { .id = LIMINE_DTB_REQUEST, .revision = 0 };
-static volatile struct limine_framebuffer_request framebuffer_request = { .id = LIMINE_FRAMEBUFFER_REQUEST, .revision = 0 };
+MOS_WARNING_PUSH
+MOS_WARNING_DISABLE("-Wextra-semi")
+MOS_WARNING_DISABLE("-Wpedantic")
+__used __section(".limine.markers.requests_start") static volatile LIMINE_REQUESTS_START_MARKER;
+__used __section(".limine.markers.requests_end") static volatile LIMINE_REQUESTS_END_MARKER;
+__used __section(".limine.requests") static volatile LIMINE_BASE_REVISION(2);
+MOS_WARNING_POP
 
-// .limine_reqs section is defined in limine.ld
-MOS_PUT_IN_SECTION(".limine_reqs", volatile void *, sections[],
-                   {
-                       &memmap_request,
-                       &kernel_address_request,
-                       &module_request,
-                       &hhdm_request,
-                       &kernel_file_request,
-                       &paging_mode_request,
-                       &smp_request,
-                       &rsdp_request,
-                       &dtb_request,
-                       &framebuffer_request,
-                       NULL,
-                   });
+#define limine_request __section(".limine.requests") __used static volatile struct
+
+limine_request limine_bootloader_info_request bootloader_info = { .id = LIMINE_BOOTLOADER_INFO_REQUEST, .revision = 0 };
+limine_request limine_dtb_request dtb = { .id = LIMINE_DTB_REQUEST, .revision = 0 };
+limine_request limine_efi_system_table_request efi_system_table = { .id = LIMINE_EFI_SYSTEM_TABLE_REQUEST, .revision = 0 };
+limine_request limine_framebuffer_request framebuffer = { .id = LIMINE_FRAMEBUFFER_REQUEST, .revision = 0 };
+limine_request limine_hhdm_request hhdm = { .id = LIMINE_HHDM_REQUEST, .revision = 0 };
+limine_request limine_kernel_address_request kernel_address = { .id = LIMINE_KERNEL_ADDRESS_REQUEST, .revision = 0 };
+limine_request limine_kernel_file_request kernel_file = { .id = LIMINE_KERNEL_FILE_REQUEST, .revision = 0 };
+limine_request limine_memmap_request memmap = { .id = LIMINE_MEMMAP_REQUEST, .revision = 0 };
+limine_request limine_module_request module = { .id = LIMINE_MODULE_REQUEST, .revision = 0 };
+limine_request limine_paging_mode_request paging_mode = { .id = LIMINE_PAGING_MODE_REQUEST, .revision = 0, .mode = LIMINE_PAGING_MODE_DEFAULT };
+limine_request limine_rsdp_request rsdp = { .id = LIMINE_RSDP_REQUEST, .revision = 0 };
+limine_request limine_smp_request smp = { .id = LIMINE_SMP_REQUEST, .revision = 0, .flags = 0 };
+limine_request limine_stack_size_request stack_size = { .id = LIMINE_STACK_SIZE_REQUEST, .revision = 0, .stack_size = 16 MB };
 
 static void add_to_memmap(pfn_t start, size_t npages, bool reserved, u32 type, const char *typestr)
 {
     if (start + npages < 1 MB / MOS_PAGE_SIZE)
-    {
-        type = LIMINE_MEMMAP_RESERVED;
-        reserved = true;
-    }
+        type = LIMINE_MEMMAP_RESERVED, reserved = true;
 
     if (npages == 0)
         return;
@@ -64,6 +55,7 @@ static void add_to_memmap(pfn_t start, size_t npages, bool reserved, u32 type, c
         entry->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE || entry->type == LIMINE_MEMMAP_ACPI_RECLAIMABLE || entry->type == LIMINE_MEMMAP_ACPI_NVS)
         platform_info->max_pfn = MAX(platform_info->max_pfn, entry->pfn_start + entry->nframes);
 }
+
 static void ap_entry(struct limine_smp_info *info)
 {
     u64 processor_id = info->processor_id;
@@ -77,20 +69,25 @@ void limine_entry(void)
         console_register(platform_info->boot_console);
 
 #if MOS_DEBUG_FEATURE(limine)
-    pr_cont("limine_entry");
+    pr_cont("bootloader: %s, version %s", bootloader_info.response ? bootloader_info.response->name : "unknown",
+            bootloader_info.response ? bootloader_info.response->version : "unknown");
+    pr_info2("stack size: %zu KB", stack_size.stack_size / (1 KB));
 #endif
 
-    if (paging_mode_request.response == NULL)
+    if (!LIMINE_BASE_REVISION_SUPPORTED)
+        mos_panic("Unsupported Limine base revision");
+
+    if (paging_mode.response == NULL)
         mos_panic("No paging mode found");
 
-    struct limine_paging_mode_response *paging_mode_response = paging_mode_request.response;
+    struct limine_paging_mode_response *paging_mode_response = paging_mode.response;
     if (paging_mode_response->mode != LIMINE_PAGING_MODE_DEFAULT)
         mos_panic("non-default paging mode not supported");
 
-    if (smp_request.response == NULL)
+    if (smp.response == NULL)
         mos_panic("No SMP info found");
 
-    struct limine_smp_response *smp_response = smp_request.response;
+    struct limine_smp_response *smp_response = smp.response;
     for (size_t i = 0; i < smp_response->cpu_count; i++)
     {
         struct limine_smp_info *info = smp_response->cpus[i];
@@ -100,24 +97,24 @@ void limine_entry(void)
         __atomic_store_n(&info->goto_address, ap_entry, __ATOMIC_SEQ_CST);
     }
 
-    if (kernel_file_request.response == NULL)
+    if (kernel_file.response == NULL)
         mos_panic("No kernel file found");
 
-    mos_cmdline_init(kernel_file_request.response->kernel_file->cmdline);
+    mos_cmdline_init(kernel_file.response->kernel_file->cmdline);
     startup_invoke_earlysetup();
 
-    if (hhdm_request.response == NULL)
+    if (hhdm.response == NULL)
         mos_panic("No HHDM found");
 
-    platform_info->direct_map_base = hhdm_request.response->offset;
+    platform_info->direct_map_base = hhdm.response->offset;
     pr_dinfo2(limine, "Direct map base: " PTR_FMT, platform_info->direct_map_base);
 
-    if (memmap_request.response == NULL)
+    if (memmap.response == NULL)
         mos_panic("No memory map found"); // are we able to panic at this early stage?
 
     pfn_t last_end_pfn = 0;
 
-    struct limine_memmap_response *memmap_response = memmap_request.response;
+    struct limine_memmap_response *memmap_response = memmap.response;
     for (size_t i = 0; i < memmap_response->entry_count; i++)
     {
         const struct limine_memmap_entry *entry = memmap_response->entries[i];
@@ -147,10 +144,10 @@ void limine_entry(void)
         add_to_memmap(start_pfn, npages, entry->type != LIMINE_MEMMAP_USABLE, entry->type, typestr);
     }
 
-    if (module_request.response == NULL)
+    if (module.response == NULL)
         mos_panic("No modules found");
 
-    struct limine_module_response *module_response = module_request.response;
+    struct limine_module_response *module_response = module.response;
     if (module_response->module_count != 1)
         mos_panic("Expected exactly one module, got %zu", module_response->module_count);
 
@@ -160,17 +157,17 @@ void limine_entry(void)
     platform_info->initrd_npages = ALIGN_UP_TO_PAGE(module->size) / MOS_PAGE_SIZE;
     pr_dinfo2(limine, "initrd at " PFN_FMT ", size %zu pages", platform_info->initrd_pfn, platform_info->initrd_npages);
 
-    if (kernel_address_request.response == NULL)
+    if (kernel_address.response == NULL)
         mos_panic("No kernel address found");
 
-    struct limine_kernel_address_response *kernel_address_response = kernel_address_request.response;
+    struct limine_kernel_address_response *kernel_address_response = kernel_address.response;
     platform_info->k_basepfn = kernel_address_response->physical_base / MOS_PAGE_SIZE;
     platform_info->k_basevaddr = kernel_address_response->virtual_base;
 
-    if (rsdp_request.response)
+    if (rsdp.response)
     {
-        platform_info->arch_info.rsdp_addr = (ptr_t) rsdp_request.response->address;
-        platform_info->arch_info.rsdp_revision = rsdp_request.response->revision;
+        platform_info->arch_info.rsdp_addr = (ptr_t) rsdp.response->address;
+        platform_info->arch_info.rsdp_revision = rsdp.response->revision;
         pr_dinfo2(limine, "RSDP at " PTR_FMT ", revision %u", platform_info->arch_info.rsdp_addr, platform_info->arch_info.rsdp_revision);
     }
     else
@@ -178,10 +175,10 @@ void limine_entry(void)
         pr_dinfo2(limine, "No RSDP found from limine");
     }
 
-    if (dtb_request.response)
+    if (dtb.response)
     {
 #if MOS_PLATFORM_HAS_FDT
-        platform_info->arch_info.fdt = dtb_request.response->dtb_ptr;
+        platform_info->arch_info.fdt = dtb.response->dtb_ptr;
         pr_dinfo2(limine, "DTB at " PTR_FMT, (ptr_t) platform_info->arch_info.fdt);
 #endif
     }
