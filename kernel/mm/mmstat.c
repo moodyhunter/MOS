@@ -7,7 +7,7 @@
 #include "mos/mm/paging/iterator.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
-#include "mos/printk.h"
+#include "mos/syslog/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_types.h"
 

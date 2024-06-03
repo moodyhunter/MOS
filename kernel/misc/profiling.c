@@ -4,8 +4,8 @@
 #if MOS_CONFIG(MOS_PROFILING)
 #include "mos/device/console.h"
 #include "mos/misc/profiling.h"
-#include "mos/printk.h"
-#include "mos/setup.h"
+#include "mos/misc/setup.h"
+#include "mos/syslog/printk.h"
 
 #include <mos/device/dm_types.h>
 #include <mos/lib/structures/hashmap.h>

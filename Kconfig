@@ -2,12 +2,8 @@
 
 mainmenu "MOS Kernel Configuration"
 
-source "arch/Kconfig"
-
 source "kernel/Kconfig"
 
 source "libs/Kconfig"
-
-source "tests/Kconfig"
 
 source "userspace/Kconfig"

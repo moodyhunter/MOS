@@ -18,11 +18,11 @@
 #include <mos/lib/structures/hashmap_common.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
+#include <mos/misc/panic.h>
 #include <mos/mm/cow.h>
 #include <mos/mm/paging/paging.h>
-#include <mos/panic.h>
 #include <mos/platform/platform.h>
-#include <mos/printk.h>
+#include <mos/syslog/printk.h>
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>

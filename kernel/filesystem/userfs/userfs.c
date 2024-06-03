@@ -6,7 +6,7 @@
 #include "mos/filesystem/vfs_types.h"
 #include "mos/filesystem/vfs_utils.h"
 #include "mos/misc/profiling.h"
-#include "mos/printk.h"
+#include "mos/syslog/printk.h"
 #include "proto/filesystem.pb.h"
 
 #include <librpc/macro_magic.h>

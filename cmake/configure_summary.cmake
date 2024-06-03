@@ -58,11 +58,9 @@ function(print_summary)
 
         message("")
     endforeach()
-
-    mos_save_summary()
 endfunction()
 
-function(mos_save_summary)
+function(save_summary)
     set(SUMMARY_FILE "${CMAKE_BINARY_DIR}/summary.txt")
     file(WRITE ${SUMMARY_FILE} "Configuration Summary:\n")
 

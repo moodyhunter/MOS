@@ -16,7 +16,7 @@
 #include "mos/mm/paging/table_ops/do_mask.h"
 #include "mos/mm/paging/table_ops/do_unmap.h"
 #include "mos/platform/platform.h"
-#include "mos/printk.h"
+#include "mos/syslog/printk.h"
 
 #include <mos/types.h>
 

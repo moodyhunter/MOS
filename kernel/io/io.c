@@ -7,7 +7,7 @@
 #include <mos/io/io_types.h>
 #include <mos/mm/mm_types.h>
 #include <mos/mos_global.h>
-#include <mos/printk.h>
+#include <mos/syslog/printk.h>
 #include <mos_stdio.h>
 
 static size_t _null_read(io_t *io, void *buffer, size_t size)

@@ -124,11 +124,11 @@ class BaseAbstractGenerator(ABC):
         self.gen("")
 
     @abstractmethod
-    def filename(self):
+    def filename(self) -> str:
         pass
 
     @abstractmethod
-    def description(self):
+    def description(self) -> str:
         pass
 
     @abstractmethod
@@ -254,7 +254,7 @@ class SyscallDispatcherGenerator(BaseAbstractGenerator):
         self.gen('#include <mos/syscall/number.h>')
         self.gen("")
         self.gen("// debugging support")
-        self.gen('#include "mos/printk.h"')
+        self.gen('#include "mos/syslog/printk.h"')
         self.gen("")
         self.gen("should_inline reg_t dispatch_syscall(const reg_t number, %s)" % (
             ", ".join(["reg_t arg%d" % (i + 1) for i in range(MAX_SYSCALL_NARGS)])))

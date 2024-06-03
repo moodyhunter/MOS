@@ -4,7 +4,7 @@
 
 #include "mos/filesystem/vfs_types.h"
 #include "mos/mm/slab_autoinit.h"
-#include "mos/printk.h"
+#include "mos/syslog/printk.h"
 
 #include <mos/lib/structures/hashmap_common.h>
 #include <mos_stdlib.h>

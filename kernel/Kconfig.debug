@@ -1,7 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-menu "Kernel Debugging Log Options"
-
 config DEBUG_ALL
     bool "Enable all platform-independent debugging logs"
     select DEBUG_acpi
@@ -116,4 +114,3 @@ config DEBUG_vfs
 config DEBUG_vmm
     bool "Virtual memory manager debugging log"
 
-endmenu

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/setup.h"
+#include "mos/misc/setup.h"
 
 #define _DO_SLAB_AUTOINIT(name, var, type, func)                                                                                                                         \
     static void func(void)                                                                                                                                               \

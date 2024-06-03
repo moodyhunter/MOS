@@ -2,7 +2,7 @@
 
 #include <mos/interrupt/ipi.h>
 #include <mos/platform/platform.h>
-#include <mos/printk.h>
+#include <mos/syslog/printk.h>
 #include <mos/types.h>
 
 #if MOS_CONFIG(MOS_SMP)

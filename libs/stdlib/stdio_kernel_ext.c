@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/kallsyms.h"
+#include "mos/misc/kallsyms.h"
 #include "mos/platform/platform.h"
 #include "mos/tasks/task_types.h"
 

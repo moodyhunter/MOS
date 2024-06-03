@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/elf/elf.h"
 #include "mos/filesystem/vfs.h"
 #include "mos/mm/cow.h"
 #include "mos/platform/platform.h"
-#include "mos/printk.h"
+#include "mos/syslog/printk.h"
+#include "mos/tasks/elf.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/signal.h"
 #include "mos/tasks/task_types.h"

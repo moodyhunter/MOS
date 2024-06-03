@@ -8,10 +8,10 @@
 #include "mos/filesystem/vfs.h"
 #include "mos/filesystem/vfs_types.h"
 #include "mos/filesystem/vfs_utils.h"
+#include "mos/misc/setup.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/physical/pmm.h"
-#include "mos/printk.h"
-#include "mos/setup.h"
+#include "mos/syslog/printk.h"
 
 #include <mos/filesystem/fs_types.h>
 #include <mos/io/io_types.h>

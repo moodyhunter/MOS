@@ -5,7 +5,7 @@
 #include <mos/locks/futex.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/platform/platform.h>
-#include <mos/printk.h>
+#include <mos/syslog/printk.h>
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/wait.h>
 #include <mos/types.h>

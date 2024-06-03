@@ -43,7 +43,7 @@ execute_process(
 
 if (NOT MOS_CONFIG)
     set(MOS_CONFIG ${MOS_ARCH}-default)
-    message("Using default config: ${MOS_CONFIG}")
+    message(STATUS "Using default config: ${MOS_CONFIG}")
 endif()
 
 set(KCONFIG_ARCH ${MOS_ARCH})
@@ -56,72 +56,25 @@ include(kconfig)
 
 include(configure_summary)
 add_summary_section(BOOTABLE    "Bootable Targets")
-add_summary_section(INITRD      "Initrd Items")
 add_summary_section(UTILITY     "Utility Targets")
-
-include(generate_syscall_headers)
 
 # mlibc headers
 if (NOT EXISTS ${MOS_MLIBC_HEADER_DIR}/mlibc-config.h)
     message(WARNING "mlibc-config.h not found in ${MOS_MLIBC_HEADER_DIR}. Please verify that mlibc is installed and that MOS_MLIBC_HEADER_DIR is set correctly.")
 endif()
 
-# Public includes interface target
-add_library(mos_kernel_include INTERFACE)
-target_include_directories(mos_kernel_include SYSTEM INTERFACE
-    ${CMAKE_BINARY_DIR}/include                         # generated headers
-    ${CMAKE_BINARY_DIR}/kconfig/include                 # generated kconfig headers
-    ${CMAKE_SOURCE_DIR}/kernel/include/public           # public types
-    ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/include/public # public arch (e.g. syscall)
-    ${MOS_MLIBC_HEADER_DIR}/                            # mlibc headers
-)
-add_library(mos::include ALIAS mos_kernel_include)
-
-# Private includes interface target
-add_library(mos_kernel_private_include INTERFACE)
-target_include_directories(mos_kernel_private_include INTERFACE
-    ${CMAKE_SOURCE_DIR}/kernel/include/private
-    ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/include/private
-)
-add_library(mos::private_include ALIAS mos_kernel_private_include)
-
-add_library(mos_kernel_compile_options INTERFACE)
-if ("${MOS_UBSAN}" STREQUAL "y")
-    target_compile_options(mos_kernel_compile_options INTERFACE -g -fsanitize=undefined)
-    target_link_options(mos_kernel_compile_options INTERFACE -g -fsanitize=undefined)
-endif()
-target_compile_options(mos_kernel_compile_options INTERFACE $<$<COMPILE_LANGUAGE:C>:${MOS_KERNEL_CFLAGS}>)
-target_compile_options(mos_kernel_compile_options INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${MOS_KERNEL_CXXFLAGS}>)
-target_compile_definitions(mos_kernel_compile_options INTERFACE -D__MOS_KERNEL__ -D__MLIBC_ABI_ONLY)
-target_link_options(mos_kernel_compile_options INTERFACE -nostdlib)
-target_link_libraries(mos_kernel_compile_options INTERFACE mos::include mos::private_include gcc)
-add_library(mos::kernel_compile_options ALIAS mos_kernel_compile_options)
-
-# The Kernel
-file(GLOB_RECURSE MOS_KERNEL_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/kernel/*.c ${CMAKE_SOURCE_DIR}/kernel/*.cpp)
-add_library(mos_kernel OBJECT ${MOS_KERNEL_SOURCES})
-target_link_libraries(mos_kernel PUBLIC mos::kernel_compile_options)
-add_dependencies(mos_kernel mos_syscall_decl)
-add_library(mos::kernel ALIAS mos_kernel)
-target_compile_definitions(mos_kernel PRIVATE MOS_KERNEL_VERSION="${CMAKE_PROJECT_VERSION}" MOS_KERNEL_REVISION="${REVISION}")
-
-# nanopb
 include(nanopb)
 add_subdirectory(libs/nanopb/nanopb)
-generate_nanopb_proto(FILESYSTEM_PROTO_SRCS FILESYSTEM_PROTO_HEADERS proto/mos_rpc.proto proto/filesystem.proto)
-target_sources(mos_kernel PRIVATE ${FILESYSTEM_PROTO_SRCS} ${FILESYSTEM_PROTO_HEADERS})
+
+include(add_kernel_source)
+include(create_bootable_kernel_binary)
+add_subdirectory(kernel)
 
 # Libraries
-include(add_kernel_source)
 include(add_mos_library)
 add_subdirectory(libs)
 
-# Configure architecture-specific stuff
-include(create_bootable_kernel_binary)
-add_subdirectory(arch)
-
 add_subdirectory(userspace)
-add_subdirectory(tests)
 add_subdirectory(tools)
 
 # include custom configuration
@@ -166,3 +119,4 @@ message("MOS is now configured :)")
 message("")
 
 print_summary()
+save_summary()

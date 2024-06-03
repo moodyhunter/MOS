@@ -10,9 +10,9 @@
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/lib/structures/list.h>
+#include <mos/misc/setup.h>
 #include <mos/mos_global.h>
-#include <mos/printk.h>
-#include <mos/setup.h>
+#include <mos/syslog/printk.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
 

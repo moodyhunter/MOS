@@ -3,7 +3,7 @@
 #include "mos/mm/paging/dump.h"
 
 #include "mos/mm/paging/iterator.h"
-#include "mos/printk.h"
+#include "mos/syslog/printk.h"
 #include "mos/tasks/task_types.h"
 
 static void pagetable_do_dump(ptr_t vaddr, ptr_t vaddr_end, vm_flags flags, pfn_t pfn, pfn_t pfn_end, ptr_t *prev_end_vaddr)

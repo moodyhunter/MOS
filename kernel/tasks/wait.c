@@ -6,7 +6,7 @@
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/platform/platform.h>
-#include <mos/printk.h>
+#include <mos/syslog/printk.h>
 #include <mos/tasks/task_types.h>
 #include <mos/tasks/thread.h>
 #include <mos/tasks/wait.h>

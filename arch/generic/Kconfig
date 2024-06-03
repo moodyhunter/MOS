@@ -1,8 +1,0 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
-
-config GENERIC_PLATFORM_DEBUG_ALL
-    bool
-    select DEBUG_limine
-
-config DEBUG_limine
-    bool "limine startup debug"

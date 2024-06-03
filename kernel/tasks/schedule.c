@@ -3,7 +3,7 @@
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/platform/platform.h>
-#include <mos/printk.h>
+#include <mos/syslog/printk.h>
 #include <mos/tasks/process.h>
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/task_types.h>

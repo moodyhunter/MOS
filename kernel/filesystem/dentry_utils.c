@@ -4,7 +4,7 @@
 #include "mos/filesystem/mount.h"
 #include "mos/filesystem/vfs.h"
 #include "mos/filesystem/vfs_types.h"
-#include "mos/printk.h"
+#include "mos/syslog/printk.h"
 
 #include <mos_stdio.h>
 #include <mos_stdlib.h>

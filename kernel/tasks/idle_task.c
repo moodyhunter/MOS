@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <mos/misc/setup.h>
 #include <mos/platform/platform.h>
-#include <mos/printk.h>
-#include <mos/setup.h>
+#include <mos/syslog/printk.h>
 #include <mos/tasks/kthread.h>
 
 static void idle_task(void *arg)

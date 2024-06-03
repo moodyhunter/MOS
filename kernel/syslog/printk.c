@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/cmdline.h>
 #include <mos/device/console.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
-#include <mos/printk.h>
-#include <mos/setup.h>
+#include <mos/misc/cmdline.h>
+#include <mos/misc/setup.h>
+#include <mos/syslog/printk.h>
 #include <mos_stdio.h>
 #include <mos_string.h>
 

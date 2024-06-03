@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+source "kernel/arch/generic/Kconfig"
+
+menu "Architecture ($ARCH) Configuration"
+
+source "kernel/arch/$ARCH/Kconfig"
+
+endmenu

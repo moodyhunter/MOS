@@ -10,7 +10,6 @@
 
 #include <bits/posix/iovec.h>
 #include <errno.h>
-#include <mos/elf/elf.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/io/io.h>
@@ -18,9 +17,10 @@
 #include <mos/mm/mmap.h>
 #include <mos/mm/paging/paging.h>
 #include <mos/platform/platform.h>
-#include <mos/printk.h>
 #include <mos/syscall/decl.h>
 #include <mos/syscall/number.h>
+#include <mos/syslog/printk.h>
+#include <mos/tasks/elf.h>
 #include <mos/tasks/process.h>
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/task_types.h>

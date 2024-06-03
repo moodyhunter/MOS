@@ -3,7 +3,7 @@
 #include "mos/platform/platform.h"
 
 #include "mos/assert.h"
-#include "mos/printk.h"
+#include "mos/syslog/printk.h"
 
 #include <mos/mos_global.h>
 #include <mos/types.h>

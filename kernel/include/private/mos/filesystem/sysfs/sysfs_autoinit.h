@@ -2,7 +2,7 @@
 #pragma once
 
 #include "mos/filesystem/sysfs/sysfs.h"
-#include "mos/setup.h"
+#include "mos/misc/setup.h"
 
 #define SYSFS_AUTOREGISTER(sysfs_name, sysfs_items)                                                                                                                      \
     SYSFS_DEFINE_DIR(sysfs_name, sysfs_items);                                                                                                                           \

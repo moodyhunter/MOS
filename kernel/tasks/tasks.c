@@ -4,11 +4,11 @@
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/mm/slab_autoinit.h"
-#include "mos/printk.h"
+#include "mos/syslog/printk.h"
 
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/structures/hashmap_common.h>
-#include <mos/panic.h>
+#include <mos/misc/panic.h>
 #include <mos/platform/platform.h>
 #include <mos/tasks/process.h>
 #include <mos/tasks/task_types.h>

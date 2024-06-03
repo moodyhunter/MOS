@@ -11,7 +11,7 @@
 #include "mos/mm/slab_autoinit.h"
 #include "mos/platform/platform.h"
 #include "mos/platform/platform_defs.h"
-#include "mos/printk.h"
+#include "mos/syslog/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/signal.h"
 #include "mos/tasks/task_types.h"

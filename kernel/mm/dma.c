@@ -8,7 +8,7 @@
 #include "mos/mm/paging/paging.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform.h"
-#include "mos/printk.h"
+#include "mos/syslog/printk.h"
 
 #include <mos_string.h>
 

@@ -4,7 +4,7 @@
 
 #include "mos/filesystem/dentry.h"
 #include "mos/filesystem/vfs.h"
-#include "mos/setup.h"
+#include "mos/misc/setup.h"
 
 #include <mos/lib/structures/hashmap_common.h>
 #include <mos_stdlib.h>

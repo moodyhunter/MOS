@@ -2,7 +2,7 @@
 
 #define pr_fmt(fmt) "UBSAN: " fmt
 
-#include "mos/printk.h"
+#include "mos/syslog/printk.h"
 
 #include <mos/types.h>
 

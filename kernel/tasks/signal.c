@@ -5,7 +5,7 @@
 #include "mos/mm/slab.h"
 #include "mos/mm/slab_autoinit.h"
 #include "mos/platform/platform.h"
-#include "mos/printk.h"
+#include "mos/syslog/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/thread.h"
 

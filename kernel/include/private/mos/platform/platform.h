@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "mos/cmdline.h"
+#include "mos/misc/cmdline.h"
 #include "mos/mm/paging/pml_types.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/platform/platform_defs.h"

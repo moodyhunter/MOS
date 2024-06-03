@@ -1,20 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-menu "Kernel Configuration"
+source "kernel/arch/Kconfig"
 
-config MAX_CPU_COUNT
-    int "Maximum number of CPUs"
-    default 8
-    help
-    This is the maximum number of CPUs that the kernel will support.
-
-    In MOS, the `per_cpu` macro uses an array to store per-CPU data.
-    This option sets the size of the array.
-
-config MAX_CMDLINE_COUNT
-    int "Maximum number of command line arguments"
-    default 64
-
+# ! ============================================================
 config DEFAULT_INIT_PATH
     string "Default init program path"
     default "/initrd/programs/bootstrapper"
@@ -28,6 +16,53 @@ config EXTRA_CMDLINE
     help
     This option allows you to specify extra command line arguments
     that will be passed to the kernel at boot time.
+
+config SMP
+    bool "SMP support"
+    default n
+
+config MM_DETAILED_UNHANDLED_FAULT
+    bool "Print detailed information on unhandled #PF"
+    default y
+
+config MM_DETAILED_MMAPS_UNHANDLED_FAULT
+    bool "Print process mmap information on unhandled #PF"
+    default n
+
+config DYNAMIC_DEBUG
+    bool "Runtime kernel debugging switches"
+    default y
+    help
+    This option adds support for dynamic debug messages. This allows
+    you to enable and disable debug messages at runtime.
+
+config INODE_CACHE_HASHMAP_SIZE
+    int "Inode cache hashmap size"
+    default 256
+
+config ELF_INTERPRETER_BASE_OFFSET
+    hex "ELF interpreter base offset"
+    default 0x100000
+
+config INITRD_BASE
+    hex "Address of the initrd when mapped in init process"
+    default 0x300000000
+
+# ! ============================================================
+menu "Kernel Limits"
+
+config MAX_CPU_COUNT
+    int "Maximum number of CPUs"
+    default 8
+    help
+    This is the maximum number of CPUs that the kernel will support.
+
+    In MOS, the `per_cpu` macro uses an array to store per-CPU data.
+    This option sets the size of the array.
+
+config MAX_CMDLINE_COUNT
+    int "Maximum number of command line arguments"
+    default 64
 
 config MAX_MEMREGIONS
     int "Maximum number of bootloader-provided memory regions"
@@ -53,76 +88,14 @@ config STACK_PAGES_USER
     int "Number of pages for user stack"
     default 32
 
-config PRINTK_HAS_SOME_PREFIX
-    bool
-    help
-    If this option is selected, the kernel enable special handling
-    for kernel messages.
+endmenu
 
-    For a list of options that will select this option, read the
-    Kconfig files in `kernel/`.
-
-config PRINTK_WITH_TIMESTAMP
-    bool "Include timestamp in debug messages"
-    default n
-    select PRINTK_HAS_SOME_PREFIX
-
-config PRINTK_WITH_DATETIME
-    bool "Include date and time in debug messages"
-    default n
-    select PRINTK_HAS_SOME_PREFIX
-
-config PRINTK_WITH_CPU_ID
-    bool "Include CPU ID in debug messages"
-    default n
-    select PRINTK_HAS_SOME_PREFIX
-
-config PRINTK_WITH_FILENAME
-    bool "filename in debug messages"
-    default n
-    select PRINTK_HAS_SOME_PREFIX
-
-config PRINTK_WITH_THREAD_ID
-    bool "thread ID in debug messages"
-    default n
-    select PRINTK_HAS_SOME_PREFIX
-
-config SMP
-    bool "SMP support"
-    default n
-
-config INODE_CACHE_HASHMAP_SIZE
-    int "inode cache hashmap size"
-    default 256
-
-config MM_DETAILED_UNHANDLED_FAULT
-    bool "print detailed information for unhandled page fault"
-    default y
-
-config MM_DETAILED_MMAPS_UNHANDLED_FAULT
-    bool "print process mmap information for unhandled page fault"
-    default n
-
-config ELF_INTERPRETER_BASE_OFFSET
-    hex "elf interpreter base offset"
-    default 0x100000
+# ! ============================================================
+menu "Miscellaneous Kernel Options"
 
 config UBSAN
     bool "enable undefined behavior sanitizer"
     default n
-
-config MAP_INITRD_TO_INIT
-    bool "map initrd to init process"
-    default y
-
-config INITRD_BASE
-    hex "base address of initrd when mapped to init process"
-    default 0x300000000
-    depends on MAP_INITRD_TO_INIT
-
-# ! ============================================================
-
-menu "Kernel Profiling Options"
 
 config PROFILING
     bool "enable TSC-based kernel profiling"
@@ -131,14 +104,24 @@ config PROFILING
 endmenu
 
 # ! ============================================================
-
-config DYNAMIC_DEBUG
-    bool "Runtime kernel debugging switches"
-    default y
-    help
-    This option adds support for dynamic debug messages. This allows
-    you to enable and disable debug messages at runtime.
-
-source "kernel/Kconfig.debug"
-
+menu "Kernel Logging"
+source "kernel/syslog/Kconfig"
 endmenu
+
+# ! ============================================================
+menu "Kernel Debugging Log Options"
+source "kernel/Kconfig.debug"
+endmenu
+
+# ! ============================================================
+config TESTS
+    bool "Kernel-space unit tests"
+    default y
+
+if TESTS
+
+menu "Select tests to build"
+source "kernel/tests/Kconfig"
+endmenu
+
+endif

@@ -106,7 +106,6 @@ macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
     endif()
 
     add_dependencies(mos_initrd ${TARGET_NAME})
-    add_summary_item(INITRD "${ITEM_TYPE}" "${SOURCE_ITEM_SUPPLIMENTARY_INFO}" "${OUTPUT_DIR_PRETTY}")
 endmacro()
 
 if (_MOS_NO_RUST_TARGETS)

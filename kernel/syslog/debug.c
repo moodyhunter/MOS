@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/debug.h"
+#include "mos/syslog/debug.h"
 
 #if MOS_CONFIG(MOS_DYNAMIC_DEBUG)
 #include "mos/filesystem/sysfs/sysfs.h"

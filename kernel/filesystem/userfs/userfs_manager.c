@@ -3,7 +3,7 @@
 #include "mos/filesystem/userfs/userfs.h"
 #include "mos/filesystem/vfs.h"
 #include "mos/mm/slab_autoinit.h"
-#include "mos/printk.h"
+#include "mos/syslog/printk.h"
 #include "mos/tasks/kthread.h"
 #include "proto/filesystem.pb.h"
 

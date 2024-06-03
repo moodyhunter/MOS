@@ -5,9 +5,9 @@
 
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
+#include "mos/misc/setup.h"
 #include "mos/mm/mm.h"
-#include "mos/printk.h"
-#include "mos/setup.h"
+#include "mos/syslog/printk.h"
 
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>

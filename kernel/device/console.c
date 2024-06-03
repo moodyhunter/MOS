@@ -7,7 +7,7 @@
 #include <mos/io/io.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/structures/ring_buffer.h>
-#include <mos/printk.h>
+#include <mos/syslog/printk.h>
 #include <mos/tasks/schedule.h>
 #include <mos/tasks/wait.h>
 #include <mos_string.h>

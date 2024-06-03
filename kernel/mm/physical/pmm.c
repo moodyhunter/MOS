@@ -5,12 +5,12 @@
 
 #include "mos/mm/physical/buddy.h"
 #include "mos/platform/platform.h"
-#include "mos/printk.h"
+#include "mos/syslog/printk.h"
 
 #include <mos_stdlib.h>
 
 #if MOS_DEBUG_FEATURE(pmm)
-#include "mos/panic.h" // for panic_hook_declare, panic_hook_install
+#include "mos/misc/panic.h" // for panic_hook_declare, panic_hook_install
 #endif
 
 phyframe_t *phyframes = NULL;

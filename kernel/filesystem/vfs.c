@@ -21,7 +21,7 @@
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mos_global.h>
 #include <mos/platform/platform.h>
-#include <mos/printk.h>
+#include <mos/syslog/printk.h>
 #include <mos/tasks/process.h>
 #include <mos/types.h>
 #include <mos_stdlib.h>

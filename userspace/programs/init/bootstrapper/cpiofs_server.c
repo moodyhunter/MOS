@@ -18,10 +18,6 @@
 #include <sys/param.h>
 #include <unistd.h>
 
-#if !MOS_CONFIG(MOS_MAP_INITRD_TO_INIT)
-#error "MOS_MAP_INITRD_TO_INIT must be enabled to use bootstrapper"
-#endif
-
 #define CPIOFS_NAME            "cpiofs"
 #define CPIOFS_RPC_SERVER_NAME "fs.cpiofs"
 
