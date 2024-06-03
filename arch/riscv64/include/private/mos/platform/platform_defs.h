@@ -2,7 +2,11 @@
 
 #pragma once
 
+#include <mos/types.h>
+
 #define MOS_PLATFORM_PAGING_LEVELS 4
+
+#define MOS_PLATFORM_HAS_FDT 1
 
 #define PML2_HUGE_CAPABLE -1
 #define PML3_HUGE_CAPABLE -1
@@ -46,4 +50,6 @@ typedef struct _platform_cpuinfo
 typedef struct _platform_arch_info
 {
     void *fdt; ///< pointer to the device tree
+    ptr_t rsdp_addr;
+    u32 rsdp_revision;
 } platform_arch_info_t;

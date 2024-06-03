@@ -18,15 +18,16 @@ jobs:
           - {
               "name": "x86_64 limine (no SMP)",
               "arch": "x86_64",
-              "target": "mos_limine_iso",
-              "artifact": "mos_limine.iso",
+              "target": "mos_limine",
+              "artifact": "mos_limine.elf",
               "has_smp": "n",
               "compile_only": "ON",
             }
           - {
-              "name": "RISC-V Simple",
+              "name": "RISC-V limine (no SMP)",
               "arch": "riscv64",
-              "target": "mos_riscv_simple",
+              "target": "mos_limine",
+              "artifact": "mos_limine.elf",
               "has_smp": "n",
               "compile_only": "ON",
             }

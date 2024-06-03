@@ -118,7 +118,7 @@ add_subdirectory(libs)
 
 # Configure architecture-specific stuff
 include(create_bootable_kernel_binary)
-add_subdirectory(arch/${MOS_ARCH})
+add_subdirectory(arch)
 
 add_subdirectory(userspace)
 add_subdirectory(tests)

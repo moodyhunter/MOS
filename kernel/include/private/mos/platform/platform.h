@@ -32,6 +32,7 @@
 typedef void (*irq_handler)(u32 irq);
 
 typedef struct _thread thread_t;
+typedef struct _console console_t;
 
 typedef enum
 {
@@ -150,6 +151,8 @@ typedef struct
     cmdline_option_t cmdlines[MOS_MAX_CMDLINE_COUNT];
 
     platform_arch_info_t arch_info;
+
+    console_t *boot_console;
 } mos_platform_info_t;
 
 extern mos_platform_info_t *const platform_info;
@@ -162,6 +165,7 @@ __BEGIN_DECLS
 extern void mos_start_kernel(void);
 
 // Platform Startup APIs
+void platform_ap_entry(u64 arg);
 void platform_startup_early();
 void platform_startup_mm();
 void platform_startup_late();

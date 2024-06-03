@@ -2,11 +2,19 @@
 
 #include "mos/platform/platform.h"
 
+#include "mos/assert.h"
 #include "mos/printk.h"
 
 #include <mos/mos_global.h>
+#include <mos/types.h>
 
 #define __weak__ [[gnu::weak]]
+
+__weak__ noreturn void platform_ap_entry(u64 arg)
+{
+    MOS_UNUSED(arg);
+    mos_panic("platform_ap_entry not implemented");
+}
 
 // Platform Machine APIs
 __weak__ noreturn void platform_shutdown(void)

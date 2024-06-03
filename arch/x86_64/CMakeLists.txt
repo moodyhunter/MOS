@@ -1,7 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-add_subdirectory(boot/limine)
-
 add_kernel_source(
     INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_LIST_DIR}/include/private

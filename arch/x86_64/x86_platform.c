@@ -71,7 +71,7 @@ serial_console_t com2_console = {
 };
 
 mos_platform_info_t *const platform_info = &x86_platform;
-mos_platform_info_t x86_platform = { 0 };
+mos_platform_info_t x86_platform = { .boot_console = &com1_console.con };
 const acpi_rsdp_t *acpi_rsdp = NULL;
 
 static void x86_keyboard_handler(u32 irq)
@@ -200,6 +200,7 @@ void platform_dump_stack(platform_regs_t *regs)
 
 void platform_startup_early()
 {
+    console_register(&com2_console.con);
     x86_idt_init();
     x86_init_irq_handlers();
     x86_init_percpu_gdt();

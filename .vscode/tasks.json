@@ -4,14 +4,14 @@
         {
             "label": "compile_mos_limine",
             "type": "shell",
-            "command": "cmake --build ${workspaceFolder}/build/x86_64 --target mos_limine_iso",
+            "command": "cmake --build ${workspaceFolder}/build/x86_64 --target mos_uefi_partition",
             "group": "build",
             "presentation": { "reveal": "silent", }
         },
         {
-            "label": "compile_mos_riscv64_simple",
+            "label": "compile_mos_riscv64_limine",
             "type": "shell",
-            "command": "cmake --build ${workspaceFolder}/build/riscv64 --target mos_riscv_simple mos_initrd",
+            "command": "cmake --build ${workspaceFolder}/build/riscv64 --target mos_uefi_partition",
             "group": "build",
             "presentation": { "reveal": "silent", }
         },
@@ -41,17 +41,17 @@
                 "-D", "qemu_err.log",
                 "-s",
                 "-S",
+                "-bios", "/usr/share/ovmf/x64/OVMF.4m.fd",
                 "-chardev", "stdio,id=serial_log,logfile=serial_log.log,signal=off",
                 "-chardev", "file,id=serial-com2,path=serial-com2.log",
                 "-serial", "chardev:serial_log",
                 "-serial", "chardev:serial-com2",
-                "-cdrom", "${workspaceFolder}/build/x86_64/boot.dir/mos_limine.iso",
+                "-drive", "format=raw,file=fat:rw:${workspaceFolder}/build/x86_64/uefi-files/",
                 "-smp", "1",
                 "-cpu", "max",
-                "-drive", "file=${workspaceFolder}/rootfs.img,format=raw,if=virtio", // using virtio
                 "-device", "virtio-gpu-pci",
+                "-drive", "file=${workspaceFolder}/rootfs.img,format=raw,if=virtio",
                 "-vga", "none",
-                "-boot", "d", // boot from cdrom
             ],
             "problemMatcher": [ ],
             "group": "none",
@@ -81,19 +81,18 @@
                 "-chardev", "file,id=serial-com2,path=serial-com2.log",
                 "-serial", "chardev:serial_log",
                 "-serial", "chardev:serial-com2",
-                "-kernel", "${workspaceFolder}/build/riscv64/boot.dir/riscv_simple.elf",
-                "-initrd", "${workspaceFolder}/build/riscv64/initrd.cpio",
-                "-append", "AAAAAAAAAAAAAAAA",
+                "-device", "ramfb", // framebuffer
+                "-device", "qemu-xhci", "-device", "usb-kbd", // usb controller and keyboard
+                "-drive", "if=pflash,unit=0,format=raw,file=/opt/ovmf-riscv64.fd", // OVMF UEFI firmware
+                "-device", "virtio-scsi-pci", // virtio-scsi
+                "-device", "scsi-hd,drive=hd0",
+                "-drive", "id=hd0,format=raw,file=fat:rw:uefi-files/", // UEFI files
                 "-smp", "1",
-                // "-cpu", "max",
             ],
             "problemMatcher": [ ],
             "group": "none",
-            "dependsOn": [ "kill_mos", "compile_mos_riscv64_simple" ],
-            "presentation": {
-                "reveal": "silent",
-                "close": true
-            },
+            "dependsOn": [ "kill_mos", "compile_mos_riscv64_limine" ],
+            "presentation": { "reveal": "silent", "close": true },
             "detail": "Start MOS and wait for the debugger to connect."
         },
         {

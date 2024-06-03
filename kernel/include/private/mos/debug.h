@@ -11,9 +11,14 @@
 #endif
 
 // clang-format off
+// ! Keep this list consistent with arch/generic/Kconfig.debug
+#define MOS_GENERIC_PLATFORM_DEBUG_MODULES(X) \
+    X(limine)
+
 // ! Keep this list consistent with kernel/Kconfig.debug
 #define MOS_ALL_DEBUG_MODULES(X)    \
     MOS_PLATFORM_DEBUG_MODULES(X)   \
+    MOS_GENERIC_PLATFORM_DEBUG_MODULES(X) \
     X(cpio)         \
     X(dcache)       \
     X(dcache_ref)   \

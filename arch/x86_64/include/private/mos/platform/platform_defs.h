@@ -10,6 +10,8 @@
 #define MOS_USER_END_VADDR         0x00007FFFFFFFFFFF
 #define MOS_KERNEL_START_VADDR     0xFFFF800000000000
 
+#define MOS_PLATFORM_HAS_FDT 0
+
 #define PML1_SHIFT   12
 #define PML1_MASK    0x1FFL // 9 bits page table offset
 #define PML1_ENTRIES 512
