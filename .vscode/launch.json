@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Attach to QEMU - MOS Kernel (Limine, x86_64)",
+            "name": "x86_64 limine kernel",
             "type": "cppdbg",
             "request": "launch",
             "cwd": "${workspaceFolder}",
@@ -36,7 +36,7 @@
             }
         },
         {
-            "name": "Attach to QEMU - MOS Kernel (Simple, riscv64)",
+            "name": "riscv64 limine kernel",
             "type": "cppdbg",
             "request": "launch",
             "cwd": "${workspaceFolder}",
