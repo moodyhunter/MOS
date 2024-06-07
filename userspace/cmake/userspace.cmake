@@ -9,15 +9,6 @@ macro(add_to_gdbinit_raw LINE)
     file(APPEND ${CMAKE_BINARY_DIR}/gdbinit "${LINE}\r\n")
 endmacro()
 
-macro(add_to_gdbinit TARGET)
-    get_target_property(OUT_DIR ${TARGET} RUNTIME_OUTPUT_DIRECTORY)
-    if (NOT OUT_DIR)
-        message(FATAL_ERROR "Target ${TARGET} has no RUNTIME_OUTPUT_DIRECTORY")
-    endif()
-    add_to_gdbinit_raw("# ${TARGET}")
-    add_to_gdbinit_raw("add-symbol-file ${OUT_DIR}/${TARGET}")
-endmacro()
-
 set(INITRD_DIR "${CMAKE_BINARY_DIR}/initrd" CACHE PATH "The directory to store the initrd in" FORCE)
 make_directory(${INITRD_DIR})
 
