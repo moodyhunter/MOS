@@ -5,6 +5,7 @@
 #if MOS_CONFIG(MOS_DYNAMIC_DEBUG)
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
+#include "mos/syslog/printk.h"
 #endif
 
 #include <mos/mos_global.h>
@@ -24,6 +25,11 @@ typeof(mos_debug_info) mos_debug_info = {
 
 // expose a sysfs file to enable/disable each debug feature
 
+void debug_print_action(const char *name, bool newstate)
+{
+    pr_info("debug option '%s' has been turned %s", name, newstate ? "on" : "off");
+}
+
 #define debug_show_function(name)                                                                                                                                        \
     bool debug_show_##name(sysfs_file_t *file)                                                                                                                           \
     {                                                                                                                                                                    \
@@ -38,7 +44,9 @@ typeof(mos_debug_info) mos_debug_info = {
         MOS_UNUSED(offset);                                                                                                                                              \
         if (count < 1)                                                                                                                                                   \
             return false;                                                                                                                                                \
-        mos_debug_info.name = buf[0] == '1';                                                                                                                             \
+        const bool on = buf[0] == '1';                                                                                                                                   \
+        mos_debug_info.name = on;                                                                                                                                        \
+        debug_print_action(#name, on);                                                                                                                                   \
         return true;                                                                                                                                                     \
     }
 
