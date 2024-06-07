@@ -5,18 +5,16 @@
 #include <mos/mm/mm_types.h>
 #include <mos/syscall/usermode.h>
 #include <mos/types.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
 // #define LIBDMA_DEBUG
 
-#ifdef LIBDMA_DEBUG
+#if defined(LIBDMA_DEBUG)
+#include <stdio.h>
 #define libdma_debug(fmt, ...) printf("libdma: " fmt "\n"__VA_OPT__(, ) __VA_ARGS__)
 #else
-#define libdma_debug(fmt, ...)
+#define libdma_debug(...)
 #endif
 
 static fd_t sysmem_fd = -1;
@@ -24,7 +22,7 @@ static fd_t sysmem_fd = -1;
 void libdma_init(void)
 {
     sysmem_fd = open("/sys/mem", O_RDWR);
-    libdma_debug("libdma is initialized, sysmem_fd=%d", sysmem_fd);
+    libdma_debug("libdma is initialized, /sys/mem fd=%d", sysmem_fd);
 }
 
 bool libdma_alloc(size_t n_pages, ptr_t *phys, ptr_t *virt)
@@ -64,5 +62,5 @@ ptr_t libdma_map_physical_address(ptr_t paddr, size_t n_pages, ptr_t vaddr)
 void libdma_exit(void)
 {
     close(sysmem_fd);
-    libdma_debug("libdma exits", );
+    libdma_debug("libdma exits");
 }
