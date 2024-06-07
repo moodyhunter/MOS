@@ -7,7 +7,6 @@
 // - Starting the stage 2 init program
 
 #include "bootstrapper.h"
-#include "proto/filesystem.pb.h"
 
 #include <librpc/rpc_server.h>
 #include <mos/mos_global.h>
@@ -57,14 +56,14 @@ int main(int argc, char *argv[])
     int statusfd[2];
     pipe(statusfd);
 
-    const pid_t filesystem_server_pid = fork();
-    if (filesystem_server_pid == -1)
+    const pid_t cpiofs_server_pid = fork();
+    if (cpiofs_server_pid == -1)
     {
         puts("bootstrapper: failed to fork filesystem server");
         return 1;
     }
 
-    if (filesystem_server_pid == 0)
+    if (cpiofs_server_pid == 0)
     {
         close(statusfd[0]);
         init_start_cpiofs_server(statusfd[1]);
@@ -95,5 +94,6 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    puts("MOS in crisis!");
     __builtin_unreachable();
 }
