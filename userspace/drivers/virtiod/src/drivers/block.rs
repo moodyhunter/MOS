@@ -117,7 +117,7 @@ pub fn run_blockdev(transport: PciTransport, function: DeviceFunction) -> RpcRes
         function.bus, function.device, function.function
     );
 
-    let devname = format!("virtio-blk.{}", devlocation);
+    let devname = format!("virtblk.{}", devlocation);
     let server_name = format!("blockdev.virtio.{}", devlocation);
 
     // check /dev/block if the device is already registered
