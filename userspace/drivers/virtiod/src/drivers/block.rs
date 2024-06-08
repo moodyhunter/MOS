@@ -5,7 +5,7 @@ use librpc_rs::{
 };
 use protobuf::MessageField;
 use virtio_drivers::{
-    device::blk::VirtIOBlk,
+    device::blk::{VirtIOBlk, SECTOR_SIZE},
     transport::pci::{bus::DeviceFunction, PciTransport},
 };
 
@@ -40,8 +40,8 @@ impl BlockDevDriver {
             server_name: self.server_name.clone(),
             device_info: Some(mos_rpc::blockdev::Blockdev_info {
                 name: self.devname.clone(),
-                block_size: 512,
-                n_blocks: dev.capacity() / 512,
+                block_size: SECTOR_SIZE as _, // 512
+                n_blocks: dev.capacity(),
                 size: dev.capacity(),
                 ..Default::default()
             })
