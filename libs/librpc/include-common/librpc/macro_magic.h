@@ -248,14 +248,14 @@
         return result;                                                                                                                                                   \
     }
 
-#define X_GENERATE_FUNCTION_FORWARDS_ARGS_CPP_CLASS(_prefix, _id, func, _FUNC, _spec, ...)                                                                               \
+#define __X_GENERATE_FUNCTION_FORWARDS_ARGS_CPP_CLASS(_prefix, _id, func, _FUNC, _spec, ...)                                                                             \
     virtual rpc_result_code_t func(rpc_context_t *context __VA_OPT__(FOR_EACH(RPC_GENERATE_PROTOTYPE, __VA_ARGS__))) = 0;
 
-#define X_GENERATE_FUNCTION_FORWARDS_PB_CPP_CLASS(_prefix, _id, func, _FUNC, reqtype, resptype)                                                                          \
+#define __X_GENERATE_FUNCTION_FORWARDS_PB_CPP_CLASS(_prefix, _id, func, _FUNC, reqtype, resptype)                                                                        \
     virtual rpc_result_code_t func(rpc_context_t *context, reqtype *req, resptype *resp) = 0;
 
-#define RPC_DEFINE_SERVER_CPP_CLASS_WRAPPER(X_MACRO)                                                                                                                     \
-    X_MACRO(X_GENERATE_FUNCTION_FORWARDS_ARGS_CPP_CLASS, X_GENERATE_FUNCTION_FORWARDS_PB_CPP_CLASS, )                                                                    \
+#define __RPC_DEFINE_SERVER_CPP_CLASS_WRAPPER(X_MACRO)                                                                                                                   \
+    X_MACRO(__X_GENERATE_FUNCTION_FORWARDS_ARGS_CPP_CLASS, __X_GENERATE_FUNCTION_FORWARDS_PB_CPP_CLASS, )                                                                \
     virtual rpc_result_code_t dispatcher(rpc_context_t *context, u32 funcid) override final                                                                              \
     {                                                                                                                                                                    \
         switch (funcid)                                                                                                                                                  \
@@ -271,7 +271,7 @@
                                                                                                                                                                          \
       public:                                                                                                                                                            \
         explicit classname(const std::string &rpcname) : RPCServer(rpcname, rpc_functions, MOS_ARRAY_SIZE(rpc_functions)){};                                             \
-        RPC_DEFINE_SERVER_CPP_CLASS_WRAPPER(X_MACRO)                                                                                                                     \
+        __RPC_DEFINE_SERVER_CPP_CLASS_WRAPPER(X_MACRO)                                                                                                                   \
     }
 
 // ============ CPP TYPE NAMESPACE ============
