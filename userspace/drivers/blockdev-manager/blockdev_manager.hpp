@@ -12,6 +12,7 @@
 #include <pb_decode.h>
 #include <pb_encode.h>
 #include <string>
+#include <variant>
 
 RPC_CLIENT_DEFINE_STUB_CLASS(BlockLayerServer, BLOCKDEV_LAYER_RPC_X);
 RPC_CLIENT_DEFINE_STUB_CLASS(BlockDeviceServer, BLOCKDEV_DEVICE_RPC_X);
@@ -21,14 +22,32 @@ using namespace mos_rpc::blockdev;
 
 struct BlockDeviceInfo
 {
-    std::string name, server_name;
-    size_t num_blocks;
-    size_t block_size;
-
-    ino_t ino; // inode number in blockdevfs
+    std::string server_name;
 };
 
-extern std::map<std::string, BlockDeviceInfo> devices; // blockdev name -> blockdev info
+struct BlockLayerInfo
+{
+    std::string server_name;
+    u32 partid;
+};
+
+struct BlockInfo
+{
+    ino_t ino; // inode number in blockdevfs
+    std::string name;
+    size_t n_blocks;
+    size_t block_size;
+
+    enum
+    {
+        BLOCKDEV_LAYER,
+        BLOCKDEV_DEVICE,
+    } type;
+
+    std::variant<BlockLayerInfo, BlockDeviceInfo> info;
+};
+
+extern std::map<std::string, BlockInfo> devices; // blockdev name -> blockdev info
 
 class BlockManager : public IBlockManager
 {

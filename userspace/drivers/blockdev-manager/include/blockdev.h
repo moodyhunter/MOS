@@ -25,9 +25,5 @@ RPC_DECL_CPP_TYPE_NAMESPACE(blockdev, BLOCKDEV_MANAGER_RPC_X);
 RPC_DECL_CPP_TYPE_NAMESPACE(blockdev, BLOCKDEV_DEVICE_RPC_X);
 
 #define BLOCKDEV_LAYER_RPC_X(ARGS, PB, arg)                                                                                                                              \
-    PB(arg, 1, read_block, READ_BLOCK, mos_rpc_blockdev_read_block_request, mos_rpc_blockdev_read_block_response)                                                        \
-    PB(arg, 2, write_block, WRITE_BLOCK, mos_rpc_blockdev_write_block_request, mos_rpc_blockdev_write_block_response)                                                    \
-    PB(arg, 3, probe_layers, PROBE_LAYERS, mos_rpc_blockdev_probe_layers_request, mos_rpc_blockdev_probe_layers_response)                                                \
-    PB(arg, 4, get_layer_info, GET_LAYER_INFO, mos_rpc_blockdev_get_layer_info_request, mos_rpc_blockdev_get_layer_info_response)
-
-RPC_DECL_CPP_TYPE_NAMESPACE(blockdev, BLOCKDEV_LAYER_RPC_X);
+    PB(arg, 1, read_partition_block, READ_PARTITION_BLOCK, mos_rpc_blockdev_read_partition_block_request, mos_rpc_blockdev_read_block_response)                          \
+    PB(arg, 2, write_partition_block, WRITE_PARTITION_BLOCK, mos_rpc_blockdev_write_partition_block_request, mos_rpc_blockdev_write_block_response)

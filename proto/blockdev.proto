@@ -26,6 +26,13 @@ message blockdev_info
     uint64 n_blocks = 4;
 }
 
+message partition_info
+{
+    string name = 1;
+    uint64 size = 2;
+    uint32 partid = 3;
+}
+
 // blockdev manager interface
 
 message register_device_request
@@ -43,7 +50,7 @@ message register_device_response
 message register_layer_server_request
 {
     string server_name = 1;
-    string layer_name = 2;
+    repeated partition_info partitions = 2;
 }
 
 message register_layer_server_response
@@ -52,20 +59,10 @@ message register_layer_server_response
     uint32 id = 2;
 }
 
-message query_device_info_request
-{
-    string device_name = 1;
-}
-
-message query_device_info_response
-{
-    mos_rpc.result result = 1;
-    string layer_name = 2;
-}
-
+// ! read
 message read_block_request
 {
-    blockdev device = 1;
+    blockdev device = 1; // caller only
     uint64 n_boffset = 2;
     uint32 n_blocks = 3;
 }
@@ -76,6 +73,7 @@ message read_block_response
     bytes data = 2;
 }
 
+// ! write
 message write_block_request
 {
     bytes data = 1;
@@ -89,6 +87,7 @@ message write_block_response
     uint32 n_blocks = 2;
 }
 
+// ! open device
 message open_device_request
 {
     string device_name = 1;
@@ -100,25 +99,19 @@ message open_device_response
     blockdev device = 2;
 }
 
-// layer interface
-
-message probe_layers_request
+message read_partition_block_request
 {
-    string base_layer = 1; // a path of /dev/block/layer_name
+    blockdev device = 1;
+    partition partition = 2;
+    uint64 n_boffset = 3;
+    uint32 n_blocks = 4;
 }
 
-message probe_layers_response
+message write_partition_block_request
 {
-    mos_rpc.result result = 1;
-    partition parts = 2;
-}
-
-message get_layer_info_request
-{
-    string layer_name = 1;
-}
-
-message get_layer_info_response
-{
-    mos_rpc.result result = 1;
+    blockdev device = 1;
+    partition partition = 2;
+    bytes data = 3;
+    uint64 n_boffset = 4;
+    uint32 n_blocks = 5;
 }

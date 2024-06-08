@@ -2,7 +2,7 @@
 
 add_subdirectory(acpi-daemon)
 
-add_subdirectory(blockdev-layers)
+add_subdirectory(blockdev-layer-gpt)
 add_subdirectory(blockdev-manager)
 
 add_subdirectory(device-manager)

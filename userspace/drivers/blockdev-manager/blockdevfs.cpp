@@ -121,7 +121,7 @@ rpc_result_code_t BlockdevFSServer::lookup(rpc_context_t *, mos_rpc_fs_lookup_re
     i->perm = 0660;
     i->uid = 0;
     i->gid = 0;
-    i->size = info.num_blocks * info.block_size;
+    i->size = info.n_blocks * info.block_size;
     i->accessed = i->modified = i->created = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     i->nlinks = 1;
     i->sticky = false;

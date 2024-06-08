@@ -19,22 +19,31 @@
 #include <pb_encode.h>
 #include <string>
 
-std::map<std::string, BlockDeviceInfo> devices; // blockdev id -> blockdev info
-static std::atomic_ulong next_blockdev_id = 2;  // 1 is reserved for the root directory
+std::map<std::string, BlockInfo> devices;      // blockdev id -> blockdev info
+static std::atomic_ulong next_blockdev_id = 2; // 1 is reserved for the root directory
 
 static std::shared_ptr<BlockLayerServer> get_layer_server(const std::string &name)
 {
     static std::map<std::string, std::shared_ptr<BlockLayerServer>> layer_servers; // server name -> server
     static std::mutex server_lock;
-
     std::lock_guard<std::mutex> lock(server_lock);
+
     if (!layer_servers.contains(name))
-    {
-        auto server = std::make_shared<BlockLayerServer>(name);
-        layer_servers[name] = server;
-    }
+        layer_servers[name] = std::make_shared<BlockLayerServer>(name);
 
     return layer_servers[name];
+}
+
+static std::shared_ptr<BlockDeviceServer> get_device_server(const std::string &name)
+{
+    static std::map<std::string, std::shared_ptr<BlockDeviceServer>> device_servers; // server name -> server
+    static std::mutex server_lock;
+    std::lock_guard<std::mutex> lock(server_lock);
+
+    if (!device_servers.contains(name))
+        device_servers[name] = std::make_shared<BlockDeviceServer>(name);
+
+    return device_servers[name];
 }
 
 struct ClientFDTable
@@ -58,9 +67,23 @@ void BlockManager::on_disconnect(rpc_context_t *ctx)
 
 rpc_result_code_t BlockManager::register_layer_server(rpc_context_t *, register_layer_server::request *req, register_layer_server::response *resp)
 {
-    std::cout << "Got register_layer request" << std::endl;
-    MOS_UNUSED(req);
-    MOS_UNUSED(resp);
+    for (size_t i = 0; i < req->partitions_count; i++)
+    {
+        const auto part = req->partitions[i];
+        const BlockInfo info = {
+            .ino = next_blockdev_id++,
+            .name = part.name,
+            .n_blocks = part.size / 512,
+            .block_size = 512,
+            .type = BlockInfo::BLOCKDEV_LAYER,
+            .info = BlockLayerInfo{ .server_name = req->server_name, .partid = part.partid },
+        };
+
+        devices.emplace(part.name, info);
+    }
+
+    resp->result.success = true;
+    resp->result.error = NULL;
     return RPC_RESULT_OK;
 }
 
@@ -74,14 +97,20 @@ rpc_result_code_t BlockManager::register_device(rpc_context_t *, register_device
         return RPC_RESULT_OK;
     }
 
-    auto &device = devices[req->device_info.name];
-    device.name = req->device_info.name;
-    device.server_name = req->server_name;
-    device.num_blocks = req->device_info.n_blocks;
-    device.block_size = req->device_info.block_size;
-    device.ino = next_blockdev_id++;
+    const BlockInfo info = {
+        .ino = next_blockdev_id++,
+        .name = req->device_info.name,
+        .n_blocks = req->device_info.n_blocks,
+        .block_size = req->device_info.block_size,
+        .type = BlockInfo::BLOCKDEV_DEVICE,
+        .info = BlockDeviceInfo{ .server_name = req->server_name },
+    };
 
-    std::cout << "Registered blockdev server " << req->server_name << std::endl;
+    devices.emplace(req->device_info.name, info);
+
+    std::cout << "Registered device " << req->device_info.name << " with " << req->device_info.n_blocks << " blocks of size " << req->device_info.block_size << " bytes"
+              << std::endl;
+
     resp->result.success = true;
     resp->result.error = NULL;
     return RPC_RESULT_OK;
@@ -119,7 +148,7 @@ rpc_result_code_t BlockManager::read_block(rpc_context_t *ctx, read_block::reque
     }
 
     auto &device = devices[fdtable->fd_to_device[req->device.devid]];
-    if (req->n_boffset >= device.num_blocks)
+    if (req->n_boffset >= device.n_blocks)
     {
         std::cout << "Block offset " << req->n_boffset << " out of range" << std::endl;
         resp->result.success = false;
@@ -127,8 +156,31 @@ rpc_result_code_t BlockManager::read_block(rpc_context_t *ctx, read_block::reque
         return RPC_RESULT_OK;
     }
 
-    const auto server = get_layer_server(device.server_name);
-    return server->read_block(req, resp);
+    switch (device.type)
+    {
+        case BlockInfo::BLOCKDEV_LAYER:
+        {
+            const auto info = std::get<BlockLayerInfo>(device.info);
+            const auto server = get_layer_server(info.server_name);
+
+            mos_rpc_blockdev_read_partition_block_request part_req = {
+                .device = { .devid = (u32) -1 },
+                .partition = { .partid = info.partid },
+                .n_boffset = req->n_boffset,
+                .n_blocks = req->n_blocks,
+            };
+
+            return server->read_partition_block(&part_req, resp);
+        }
+
+        case BlockInfo::BLOCKDEV_DEVICE:
+        {
+            const auto server = get_device_server(std::get<BlockDeviceInfo>(device.info).server_name);
+            return server->read_block(req, resp);
+        }
+
+        default: __builtin_unreachable();
+    };
 }
 
 rpc_result_code_t BlockManager::write_block(rpc_context_t *ctx, write_block::request *req, write_block::response *resp)
