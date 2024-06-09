@@ -83,7 +83,7 @@ void pagetable_iter_init(pagetable_iter_t *it, pgd_t pgd, ptr_t vaddr, ptr_t end
 
 pagetable_iter_range_t *pagetable_iter_next(pagetable_iter_t *it)
 {
-#define _IS_IN_RANGE IN_RANGE(it->vaddr, it->start, it->end)
+#define _IS_IN_RANGE MOS_IN_RANGE(it->vaddr, it->start, it->end)
     if (!_IS_IN_RANGE)
         return NULL;
 

@@ -385,7 +385,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         mm_unlock_ctx_pair(mm, NULL);
         goto unhandled_fault;
     }
-    ip_vmap = IN_RANGE(info->ip, fault_vmap->vaddr, fault_vmap->vaddr + fault_vmap->npages * MOS_PAGE_SIZE) ? fault_vmap : vmap_obtain(mm, info->ip, NULL);
+    ip_vmap = MOS_IN_RANGE(info->ip, fault_vmap->vaddr, fault_vmap->vaddr + fault_vmap->npages * MOS_PAGE_SIZE) ? fault_vmap : vmap_obtain(mm, info->ip, NULL);
 
     MOS_ASSERT_X(fault_vmap->on_fault, "vmap %pvm has no fault handler", (void *) fault_vmap);
     const vm_flags page_flags = mm_do_get_flags(fault_vmap->mmctx->pgd, fault_addr);

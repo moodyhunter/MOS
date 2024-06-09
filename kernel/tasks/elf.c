@@ -298,9 +298,9 @@ __nodiscard bool elf_do_fill_process(process_t *proc, file_t *file, elf_header_t
             case ELF_PT_TLS: break;     // will be handled by the dynamic linker or libc
             default:
             {
-                if (IN_RANGE(ph.header_type, ELF_PT_OS_LOW, ELF_PT_OS_HIGH))
+                if (MOS_IN_RANGE(ph.header_type, ELF_PT_OS_LOW, ELF_PT_OS_HIGH))
                     pr_dinfo2(elf, "ignoring OS-specific program header type 0x%x", ph.header_type);
-                else if (IN_RANGE(ph.header_type, ELF_PT_PROCESSOR_LO, ELF_PT_PROCESSOR_HI))
+                else if (MOS_IN_RANGE(ph.header_type, ELF_PT_PROCESSOR_LO, ELF_PT_PROCESSOR_HI))
                     pr_dinfo2(elf, "ignoring processor-specific program header type 0x%x", ph.header_type);
                 else
                     pr_warn("unknown program header type 0x%x", ph.header_type);

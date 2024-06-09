@@ -96,8 +96,8 @@
 #define ALIGN_UP_TO_PAGE(addr)   ALIGN_UP(addr, MOS_PAGE_SIZE)
 #define ALIGN_DOWN_TO_PAGE(addr) ALIGN_DOWN(addr, MOS_PAGE_SIZE)
 
-#define IN_RANGE(addr, start, end)           ((addr) >= (start) && (addr) < (end))
-#define SUBSET_RANGE(addr, size, start, end) (IN_RANGE(addr, start, end) && IN_RANGE(addr + size, start, end))
+#define MOS_IN_RANGE(addr, start, end)       ((addr) >= (start) && (addr) < (end))
+#define SUBSET_RANGE(addr, size, start, end) (MOS_IN_RANGE(addr, start, end) && MOS_IN_RANGE(addr + size, start, end))
 
 #define MOS_FOURCC(a, b, c, d) ((u32) (a) | ((u32) (b) << 8) | ((u32) (c) << 16) | ((u32) (d) << 24))
 #define MOS_ARRAY_SIZE(x)      (sizeof(x) / sizeof(x[0]))
