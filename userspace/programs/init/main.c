@@ -60,7 +60,8 @@ bool start_services(void)
         if (driver_pid <= 0)
             fprintf(stderr, "Failed to start service: %s\n", service);
 
-        usleep(100000); // so that it looks better
+        // sleep for 500ms
+        usleep(500000);
     }
 
     free(services);
