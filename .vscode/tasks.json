@@ -51,6 +51,7 @@
                 "-cpu", "max",
                 "-device", "virtio-gpu-pci",
                 "-drive", "file=${workspaceFolder}/rootfs.img,format=raw,if=virtio",
+                "-drive", "file=${workspaceFolder}/testblk,format=raw,if=virtio",
                 "-vga", "none",
             ],
             "problemMatcher": [ ],
