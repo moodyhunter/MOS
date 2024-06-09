@@ -375,7 +375,7 @@ dentry_t *userfs_fsop_mount(filesystem_t *fs, const char *device, const char *op
 
     if (!resp.result.success)
     {
-        pr_dwarn(userfs, "userfs_fsop_mount: failed to mount %s: %s", fs->name, resp.result.error);
+        pr_warn("userfs_fsop_mount: failed to mount %s: %s", fs->name, resp.result.error);
         pb_release(mos_rpc_fs_mount_response_fields, &resp);
         return ERR_PTR(-EIO);
     }
