@@ -430,7 +430,7 @@ long vfs_mount(const char *device, const char *path, const char *fs, const char 
     // mounted_root will have a reference of 1
     // the mount_point will have its reference incremented by 1
     dentry_t *mounted_root = real_fs->mount(real_fs, device, options);
-    if (mounted_root == NULL)
+    if (IS_ERR(mounted_root))
     {
         mos_warn("failed to mount filesystem");
         return -EIO;

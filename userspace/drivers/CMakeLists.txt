@@ -5,6 +5,8 @@ add_subdirectory(acpi-daemon)
 add_subdirectory(blockdev-layer-gpt)
 add_subdirectory(blockdev-manager)
 
+add_subdirectory(fs)
+
 add_subdirectory(device-manager)
 add_subdirectory(pci-daemon)
 
