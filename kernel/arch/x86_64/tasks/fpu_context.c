@@ -28,8 +28,10 @@ void x86_xsave_thread(thread_t *thread)
     if (!thread || thread->mode == THREAD_MODE_KERNEL)
         return; // no, kernel threads don't have these
 
+    if (!thread->platform_options.xsaveptr)
+        return; // this happens when the thread is being execve'd
+
     pr_dcont(scheduler, "saved.");
-    MOS_ASSERT(thread->platform_options.xsaveptr);
     __asm__ volatile("xsave %0" ::"m"(*thread->platform_options.xsaveptr), "a"(low), "d"(high));
 }
 
@@ -38,7 +40,9 @@ void x86_xrstor_thread(thread_t *thread)
     if (!thread || thread->mode == THREAD_MODE_KERNEL)
         return; // no, kernel threads don't have these
 
+    if (!thread->platform_options.xsaveptr)
+        return; // this happens when the thread is being execve'd
+
     pr_dcont(scheduler, "restored.");
-    MOS_ASSERT(thread->platform_options.xsaveptr);
     __asm__ volatile("xrstor %0" ::"m"(*thread->platform_options.xsaveptr), "a"(low), "d"(high));
 }
