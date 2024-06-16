@@ -39,8 +39,3 @@ typedef const struct
 
 MOSAPI void tree_node_init(tree_node_t *node);
 MOSAPI void tree_add_child(tree_node_t *parent, tree_node_t *child);
-
-MOSAPI const tree_node_t *tree_find_child_by_name(tree_op_t *op, const tree_node_t *node, const char *name, size_t name_len);
-MOSAPI const tree_node_t *tree_find_common_prefix(const tree_node_t *node1, const tree_node_t *node2);
-
-MOSAPI void tree_trace_to_root(const tree_node_t *node, void (*trace_func)(const tree_node_t *node));
