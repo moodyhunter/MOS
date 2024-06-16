@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/tasks/process.h"
 #include "mos/tasks/task_types.h"
 
 #include <elf.h>

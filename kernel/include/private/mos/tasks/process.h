@@ -2,11 +2,21 @@
 
 #pragma once
 
+#include "mos/io/io.h"
+
 #include <mos/tasks/task_types.h>
 
 #define PROCESS_MAGIC_PROC MOS_FOURCC('P', 'R', 'O', 'C')
 
 typedef struct _hashmap hashmap_t;
+
+/**
+ * @brief A wrapper type for the standard I/O streams
+ */
+typedef struct
+{
+    io_t *in, *out, *err;
+} stdio_t;
 
 extern hashmap_t process_table;
 

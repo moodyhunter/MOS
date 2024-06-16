@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/interrupt/ipi.h"
 #include "mos/misc/cmdline.h"
 #include "mos/mm/paging/pml_types.h"
 #include "mos/mm/physical/pmm.h"
@@ -71,32 +72,6 @@ typedef enum
     SWITCH_TO_NEW_USER_THREAD = 1 << 1,
     SWITCH_TO_NEW_KERNEL_THREAD = 1 << 2,
 } switch_flags_t;
-
-#define TARGET_CPU_ALL 0xFF
-
-/**
- * @brief The type of IPI to send
- *
- */
-typedef enum
-{
-    IPI_TYPE_HALT = 0,       // halt the CPU
-    IPI_TYPE_INVALIDATE_TLB, // TLB shootdown
-    IPI_TYPE_RESCHEDULE,     // Reschedule
-    IPI_TYPE_MAX,
-} ipi_type_t;
-
-MOS_STATIC_ASSERT(IPI_TYPE_MAX <= (u8) 0xFF, "IPI_TYPE_MAX must fit in a u8");
-
-typedef struct _io io_t;
-
-/**
- * @brief A wrapper type for the standard I/O streams
- */
-typedef struct
-{
-    io_t *in, *out, *err;
-} stdio_t;
 
 typedef struct
 {

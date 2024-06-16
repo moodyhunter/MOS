@@ -12,7 +12,6 @@
 #include "mos/platform/platform.h"
 #include "mos/platform/platform_defs.h"
 #include "mos/syslog/printk.h"
-#include "mos/tasks/process.h"
 #include "mos/tasks/signal.h"
 #include "mos/tasks/task_types.h"
 
@@ -21,6 +20,10 @@
 #include <mos/mos_global.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
+
+#if MOS_CONFIG(MOS_MM_DETAILED_MMAPS_UNHANDLED_FAULT)
+#include "mos/tasks/process.h"
+#endif
 
 static slab_t *vmap_cache = NULL;
 SLAB_AUTOINIT("vmap", vmap_cache, vmap_t);

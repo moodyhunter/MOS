@@ -153,7 +153,7 @@ bool pipe_close_one_end(pipe_t *pipe)
         // the other end of the pipe is already closed, so we can just free the pipe
         spinlock_release(&pipe->lock);
 
-        mm_free_pages(va_phyframe(pipe->buffers), pipe->buffer_npages);
+        mm_free_pages(va_phyframe(pipe->buffers), pipe->buffer_pos.size / MOS_PAGE_SIZE);
         kfree(pipe);
         return true;
     }
@@ -167,8 +167,7 @@ pipe_t *pipe_create(size_t bufsize)
 
     pipe_t *pipe = kmalloc(pipe_slab);
     pipe->magic = PIPE_MAGIC;
-    pipe->buffer_npages = bufsize / MOS_PAGE_SIZE;
-    pipe->buffers = (void *) phyframe_va(mm_get_free_pages(pipe->buffer_npages));
+    pipe->buffers = (void *) phyframe_va(mm_get_free_pages(pipe->buffer_pos.size / MOS_PAGE_SIZE));
     waitlist_init(&pipe->waitlist);
     ring_buffer_pos_init(&pipe->buffer_pos, bufsize);
     return pipe;
@@ -190,16 +189,16 @@ static size_t pipeio_io_write(io_t *io, const void *buf, size_t size)
 
 static void pipeio_io_close(io_t *io)
 {
+    const char *type = "<unknown>";
     const pipeio_t *const pipeio = statement_expr(const pipeio_t *, {
         if (io->flags & IO_READABLE)
-            retval = container_of(io, pipeio_t, io_r); // the reader is closing
+            retval = container_of(io, pipeio_t, io_r), type = "reader"; // the reader is closing
         else if (io->flags & IO_WRITABLE)
-            retval = container_of(io, pipeio_t, io_w); // the writer is closing
+            retval = container_of(io, pipeio_t, io_w), type = "writer"; // the writer is closing
         else
             MOS_UNREACHABLE();
     });
 
-    const char *type = io->flags & IO_READABLE ? "reader" : "writer";
     if (!pipeio->pipe->other_closed)
         pr_dinfo2(pipe, "pipe %s closing", type);
     else

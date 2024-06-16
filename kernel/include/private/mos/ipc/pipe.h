@@ -14,7 +14,6 @@ typedef struct
     spinlock_t lock;     ///< protects the buffer_pos (and thus the buffer)
     bool other_closed;   ///< true if the other end of the pipe has been closed
     void *buffers;
-    size_t buffer_npages;
     ring_buffer_pos_t buffer_pos;
 } pipe_t;
 
