@@ -36,8 +36,7 @@ noreturn void __stack_chk_fail(void)
 {
     puts("stack smashing detected...");
     syscall_exit(-1);
-    while (1)
-        ;
+    __builtin_unreachable();
 }
 
 void __stack_chk_fail_local(void)
@@ -45,7 +44,7 @@ void __stack_chk_fail_local(void)
     __stack_chk_fail();
 }
 
-MOSAPI void __printf(1, 2) fatal_abort(const char *fmt, ...)
+void __printf(1, 2) fatal_abort(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);

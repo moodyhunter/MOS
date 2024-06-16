@@ -17,7 +17,7 @@ int main(int argc, char **)
     blockdev_manager = std::make_unique<BlockdevManager>(BLOCKDEV_MANAGER_RPC_SERVER_NAME);
     userfs_manager = std::make_unique<UserFSManager>(USERFS_SERVER_RPC_NAME);
 
-    const auto server_name = "ext4.fs"s;
+    const auto server_name = "fs.ext4"s;
 
     mos_rpc_fs_register_request req{
         .fs = { .name = strdup("ext4") },
