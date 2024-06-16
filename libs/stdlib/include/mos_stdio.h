@@ -31,10 +31,6 @@ MOSAPI FILE *stderr;
 #define stdout stdout
 #define stderr stderr
 
-#define STDIN_FILENO  0
-#define STDOUT_FILENO 1
-#define STDERR_FILENO 2
-
 MOSAPI int __printf(1, 2) printf(const char *__restrict format, ...);
 MOSAPI int __printf(2, 3) fprintf(FILE *__restrict file, const char *__restrict format, ...);
 MOSAPI int __printf(2, 3) dprintf(int fd, const char *__restrict format, ...);
