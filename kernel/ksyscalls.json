@@ -3,7 +3,6 @@
     "includes": [
         "mos/filesystem/fs_types.h",
         "mos/io/io_types.h",
-        "mos/mm/heap_ops.h",
         "mos/mos_global.h",
         "mos/tasks/signal_types.h",
         "mos/types.h",
@@ -114,12 +113,6 @@
             "name": "thread_exit",
             "return": null,
             "arguments": [ ]
-        },
-        {
-            "number": 16,
-            "name": "heap_control",
-            "return": "ptr_t",
-            "arguments": [ { "type": "heap_control_op", "arg": "op" }, { "type": "ptr_t", "arg": "arg" } ]
         },
         {
             "number": 17,

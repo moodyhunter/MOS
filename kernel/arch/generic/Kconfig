@@ -2,10 +2,6 @@
 
 menu "Generic architecture options"
 
-config ADDR_USER_HEAP
-    hex "User heap address"
-    default 0x0100000000
-
 config ADDR_USER_STACK
     hex "User stack address"
     default 0x5000000000

@@ -35,7 +35,6 @@ hashmap_t process_table = { 0 }; // pid_t -> process_t
 
 static const char *vmap_content_str[] = {
     [VMAP_UNKNOWN] = "unknown", //
-    [VMAP_HEAP] = "heap",       //
     [VMAP_STACK] = "stack",     //
     [VMAP_FILE] = "file",       //
     [VMAP_MMAP] = "mmap",       //
@@ -152,10 +151,6 @@ process_t *process_new(process_t *parent, const char *name, const stdio_t *ios)
     process_attach_ref_fd(proc, ios && ios->err ? ios->err : io_null, FD_FLAGS_NONE);
 
     proc->main_thread = thread_new(proc, THREAD_MODE_USER, proc->name, 0, NULL);
-
-    vmap_t *heap = cow_allocate_zeroed_pages(proc->mm, 1, MOS_ADDR_USER_HEAP, VALLOC_DEFAULT, VM_USER_RW);
-    vmap_finalise_init(heap, VMAP_HEAP, VMAP_TYPE_PRIVATE);
-
     proc->working_directory = dentry_ref_up_to(parent ? parent->working_directory : root_dentry, root_dentry);
 
     void *old_proc = hashmap_put(&process_table, proc->pid, proc);
@@ -362,31 +357,6 @@ void process_handle_exit(process_t *process, u8 exit_code, signal_t signal)
     dentry_unref(process->working_directory);
     reschedule();
     MOS_UNREACHABLE();
-}
-
-ptr_t process_grow_heap(process_t *process, size_t npages)
-{
-    MOS_ASSERT(process_is_valid(process));
-
-    vmap_t *heap = NULL;
-    list_foreach(vmap_t, mmap, process->mm->mmaps)
-    {
-        if (mmap->content == VMAP_HEAP)
-        {
-            heap = mmap;
-            spinlock_acquire(&heap->lock);
-            break;
-        }
-    }
-
-    MOS_ASSERT(heap != NULL);
-
-    const ptr_t heap_top = heap->vaddr + heap->npages * MOS_PAGE_SIZE;
-
-    heap->npages += npages; // let the page fault handler do the rest of the allocation
-    pr_dinfo2(process, "grew heap of process %pp by %zu pages", (void *) process, npages);
-    spinlock_release(&heap->lock);
-    return heap_top + npages * MOS_PAGE_SIZE;
 }
 
 void process_dump_mmaps(const process_t *process)

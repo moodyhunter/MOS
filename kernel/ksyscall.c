@@ -5,7 +5,6 @@
 #include "mos/ipc/pipe.h"
 #include "mos/misc/power.h"
 #include "mos/mm/dma.h"
-#include "mos/mm/mm.h"
 #include "mos/tasks/signal.h"
 
 #include <bits/posix/iovec.h>
@@ -174,66 +173,6 @@ DEFINE_SYSCALL(tid_t, get_tid)(void)
 DEFINE_SYSCALL(noreturn void, thread_exit)(void)
 {
     thread_handle_exit(current_thread);
-}
-
-DEFINE_SYSCALL(ptr_t, heap_control)(heap_control_op op, ptr_t arg)
-{
-    process_t *process = current_process;
-
-    vmap_t *block = NULL;
-    list_foreach(vmap_t, map, process->mm->mmaps)
-    {
-        if (map->content == VMAP_HEAP)
-        {
-            block = map;
-            break;
-        }
-    }
-
-    if (block == NULL)
-    {
-        mos_warn("heap_control called but no heap block found");
-        return 0;
-    }
-
-    switch (op)
-    {
-        case HEAP_GET_BASE: return block->vaddr;
-        case HEAP_GET_TOP: return block->vaddr + block->npages * MOS_PAGE_SIZE;
-        case HEAP_SET_TOP:
-        {
-            if (arg < block->vaddr)
-            {
-                mos_warn("heap_control: new top is below heap base");
-                return 0;
-            }
-
-            if (arg % MOS_PAGE_SIZE)
-            {
-                mos_warn("heap_control: new top is not page-aligned");
-                return 0;
-            }
-
-            if (arg == block->vaddr + block->npages * MOS_PAGE_SIZE)
-                return 0; // no change
-
-            if (arg < block->vaddr + block->npages * MOS_PAGE_SIZE)
-            {
-                mos_warn("heap_control: shrinking heap not supported yet");
-                return 0;
-            }
-
-            return process_grow_heap(process, (arg - block->vaddr) / MOS_PAGE_SIZE);
-        }
-        case HEAP_GET_SIZE: return block->npages * MOS_PAGE_SIZE;
-        case HEAP_GROW_PAGES:
-        {
-            // arg is the number of pages to grow
-            // some bad guy would pass a huge value here :)
-            return process_grow_heap(process, arg);
-        }
-        default: mos_warn("heap_control: unknown op %d", op); return 0;
-    }
 }
 
 DEFINE_SYSCALL(bool, wait_for_thread)(tid_t tid)

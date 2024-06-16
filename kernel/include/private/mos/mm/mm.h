@@ -19,7 +19,6 @@
 typedef enum
 {
     VMAP_UNKNOWN = 0,
-    VMAP_HEAP,  // heap
     VMAP_STACK, // stack (user)
     VMAP_FILE,  // file mapping
     VMAP_MMAP,  // mmap mapping

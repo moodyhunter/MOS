@@ -70,7 +70,6 @@ def select_format(type: str) -> str:
         "open_flags": "%x",
         "fstatat_flags": "%x",
         "thread_entry_t": "%p",
-        "heap_control_op": "%d",
         "ptr_t": "\" PTR_FMT \"",
         "file_type_t": "%d",
         "mem_perm_t": "%d",
@@ -263,7 +262,7 @@ class SyscallDispatcherGenerator(BaseAbstractGenerator):
             for i in range(MAX_SYSCALL_NARGS):
                 self.gen("MOS_UNUSED(arg%d);" % (i + 1))
             self.gen("")
-            self.gen("reg_t ret = 0;")
+            self.gen("reg_t ret = -ENOSYS;")
             self.gen("")
             self.gen("switch (number)")
             self.gen("{")
