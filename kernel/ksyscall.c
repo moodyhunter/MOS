@@ -567,3 +567,8 @@ DEFINE_SYSCALL(long, io_pread)(fd_t fd, void *buf, size_t count, off_t offset)
 
     return io_pread(io, buf, count, offset);
 }
+
+DEFINE_SYSCALL(fd_t, memfd_create)(const char *name, u32 flags)
+{
+    return -ENOSYS;
+}

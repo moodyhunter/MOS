@@ -471,6 +471,12 @@
                 { "type": "size_t", "arg": "count" },
                 { "type": "off_t", "arg": "offset" }
             ]
+        },
+        {
+            "number": 63,
+            "name": "memfd_create",
+            "return": "fd_t",
+            "arguments": [ { "type": "const char *", "arg": "name" }, { "type": "u32", "arg": "flags" } ]
         }
     ]
 }
