@@ -86,7 +86,7 @@ endif()
 install(
     DIRECTORY
         ${CMAKE_SOURCE_DIR}/kernel/include/public/mos
-        ${CMAKE_SOURCE_DIR}/arch/${MOS_ARCH}/include/public/mos
+        ${CMAKE_SOURCE_DIR}/kernel/arch/${MOS_ARCH}/include/public/mos
     TYPE INCLUDE
     COMPONENT mos-api-headers
     EXCLUDE_FROM_ALL
