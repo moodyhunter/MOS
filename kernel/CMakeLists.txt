@@ -25,6 +25,13 @@ add_custom_command(
 add_custom_target(mos_syscall_decl DEPENDS ${MOS_SYSCALL_FILES})
 add_summary_item(UTILITY mos_syscall_decl "" "Generate syscall headers")
 
+install(
+    FILES ${MOS_SYSCALL_FILES}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/include/mos/syscall
+    COMPONENT mos-api-headers
+    EXCLUDE_FROM_ALL
+)
+
 # interface libraries for kernel includes
 add_library(kernel_public_include INTERFACE)
 add_library(mos::include ALIAS kernel_public_include)

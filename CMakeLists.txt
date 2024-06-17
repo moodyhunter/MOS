@@ -103,13 +103,6 @@ install(
     EXCLUDE_FROM_ALL
 )
 
-install(
-    FILES ${MOS_SYSCALL_FILES}
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/include/mos/syscall
-    COMPONENT mos-api-headers
-    EXCLUDE_FROM_ALL
-)
-
 add_custom_target(mos_print_summary COMMAND ${CMAKE_COMMAND} -E cat ${CMAKE_BINARY_DIR}/summary.txt USES_TERMINAL)
 add_summary_item(UTILITY "mos_print_summary" "" "Print Configuration Summary")
 
