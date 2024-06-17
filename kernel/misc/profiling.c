@@ -7,7 +7,6 @@
 #include "mos/misc/setup.h"
 #include "mos/syslog/printk.h"
 
-#include <mos/device/dm_types.h>
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/structures/hashmap_common.h>
 #include <mos_stdio.h>

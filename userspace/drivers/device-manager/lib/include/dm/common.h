@@ -3,7 +3,6 @@
 #pragma once
 
 #include <librpc/rpc.h>
-#include <mos/device/dm_types.h>
 
 #define DM_RPCS_X(ARGS, PB, arg)                                                                                                                                         \
     ARGS(arg, 1, register_device, REGISTER_DEVICE, "iiil", ARG(INT32, vendor), ARG(INT32, devid), ARG(INT32, location), ARG(INT64, mmio_base))                           \
