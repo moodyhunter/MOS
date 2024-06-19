@@ -153,7 +153,7 @@ bool pipe_close_one_end(pipe_t *pipe)
         // the other end of the pipe is already closed, so we can just free the pipe
         spinlock_release(&pipe->lock);
 
-        mm_free_pages(va_phyframe(pipe->buffers), pipe->buffer_pos.size / MOS_PAGE_SIZE);
+        mm_free_pages(va_phyframe(pipe->buffers), pipe->buffer_pos.capacity / MOS_PAGE_SIZE);
         kfree(pipe);
         return true;
     }
@@ -167,7 +167,7 @@ pipe_t *pipe_create(size_t bufsize)
 
     pipe_t *pipe = kmalloc(pipe_slab);
     pipe->magic = PIPE_MAGIC;
-    pipe->buffers = (void *) phyframe_va(mm_get_free_pages(pipe->buffer_pos.size / MOS_PAGE_SIZE));
+    pipe->buffers = (void *) phyframe_va(mm_get_free_pages(bufsize / MOS_PAGE_SIZE));
     waitlist_init(&pipe->waitlist);
     ring_buffer_pos_init(&pipe->buffer_pos, bufsize);
     return pipe;
