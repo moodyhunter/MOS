@@ -15,7 +15,7 @@
 // A position-only ring buffer specifier.
 typedef struct _ring_buffer_pos
 {
-    size_t size;
+    size_t count;
     size_t capacity;
     size_t head;     // index of the first element
     size_t next_pos; // index of the next element to be inserted
@@ -56,8 +56,8 @@ should_inline u8 ring_buffer_pos_pop_front_byte(u8 *buffer, ring_buffer_pos_t *p
 }
 
 // clang-format off
-should_inline bool ring_buffer_pos_is_full(ring_buffer_pos_t *pos) { return pos->size == pos->capacity; }
-should_inline bool ring_buffer_pos_is_empty(ring_buffer_pos_t *pos) { return pos->size == 0; }
+should_inline bool ring_buffer_pos_is_full(ring_buffer_pos_t *pos) { return pos->count == pos->capacity; }
+should_inline bool ring_buffer_pos_is_empty(ring_buffer_pos_t *pos) { return pos->count == 0; }
 
 should_inline size_t ring_buffer_pos_push_back_byte(u8 *buffer, ring_buffer_pos_t *pos, u8 data) { return ring_buffer_pos_push_back(buffer, pos, &data, 1); }
 should_inline size_t ring_buffer_pos_push_front_byte(u8 *buffer, ring_buffer_pos_t *pos,  u8 data) { return ring_buffer_pos_push_front(buffer, pos, &data, 1); }
