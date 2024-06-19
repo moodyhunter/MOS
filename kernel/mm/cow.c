@@ -81,6 +81,10 @@ vmap_t *cow_allocate_zeroed_pages(mm_context_t *mmctx, size_t npages, ptr_t vadd
     spinlock_acquire(&mmctx->mm_lock);
     vmap_t *vmap = mm_get_free_vaddr_locked(mmctx, npages, vaddr, allocflags);
     spinlock_release(&mmctx->mm_lock);
+
+    if (IS_ERR(vmap))
+        return vmap;
+
     vmap->vmflags = flags;
     vmap->on_fault = cow_zod_fault_handler;
     return vmap;

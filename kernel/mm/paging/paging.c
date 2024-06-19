@@ -34,9 +34,12 @@ vmap_t *mm_get_free_vaddr_locked(mm_context_t *mmctx, size_t n_pages, ptr_t base
             {
                 // this mmap overlaps with the area we want to allocate
                 // so we can't allocate here
-                return NULL;
+                return ERR_PTR(-ENOMEM);
             }
         }
+
+        if (end_vaddr > MOS_USER_END_VADDR)
+            return ERR_PTR(-ENOMEM);
 
         // nothing seems to overlap
         return vmap_create(mmctx, base_vaddr, n_pages);
@@ -47,8 +50,8 @@ vmap_t *mm_get_free_vaddr_locked(mm_context_t *mmctx, size_t n_pages, ptr_t base
         list_foreach(vmap_t, mmap, mmctx->mmaps)
         {
             // we've reached the end of the user address space?
-            if (retry_addr + n_pages * MOS_PAGE_SIZE > MOS_KERNEL_START_VADDR)
-                return NULL;
+            if (retry_addr + n_pages * MOS_PAGE_SIZE > MOS_USER_END_VADDR)
+                return ERR_PTR(-ENOMEM);
 
             const ptr_t this_vaddr = mmap->vaddr;
             const ptr_t this_end_vaddr = this_vaddr + mmap->npages * MOS_PAGE_SIZE;
@@ -69,10 +72,10 @@ vmap_t *mm_get_free_vaddr_locked(mm_context_t *mmctx, size_t n_pages, ptr_t base
         }
 
         // we've reached the end of the list, no matter it's empty or not
-        if (retry_addr + n_pages * MOS_PAGE_SIZE <= MOS_KERNEL_START_VADDR)
+        if (retry_addr + n_pages * MOS_PAGE_SIZE <= MOS_USER_END_VADDR)
             return vmap_create(mmctx, retry_addr, n_pages);
-        else
-            return NULL;
+
+        return ERR_PTR(-ENOMEM);
     }
 }
 

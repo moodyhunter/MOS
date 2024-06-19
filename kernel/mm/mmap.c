@@ -59,6 +59,10 @@ ptr_t mmap_anonymous(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_
     const valloc_flags valloc_flags = (flags & MMAP_EXACT) ? VALLOC_EXACT : VALLOC_DEFAULT;
 
     vmap_t *vmap = cow_allocate_zeroed_pages(ctx, n_pages, hint_addr, valloc_flags, vm_flags);
+
+    if (IS_ERR(vmap))
+        return PTR_ERR(vmap);
+
     pr_dinfo2(vmm, "allocated %zd pages at " PTR_FMT, vmap->npages, vmap->vaddr);
 
     const vmap_type_t type = (flags & MMAP_SHARED) ? VMAP_TYPE_SHARED : VMAP_TYPE_PRIVATE;
@@ -84,7 +88,7 @@ ptr_t mmap_file(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags
     vmap_t *vmap = mm_get_free_vaddr_locked(ctx, n_pages, hint_addr, valloc_flags);
     mm_unlock_ctx_pair(ctx, NULL);
 
-    if (unlikely(!vmap))
+    if (IS_ERR(vmap))
     {
         pr_warn("mmap_file: no free virtual address space");
         return 0;
