@@ -4,6 +4,7 @@
 #include "cpiofs.h"
 #include "proto/filesystem.pb.h"
 
+#include <bits/posix/pthread_t.h>
 #include <librpc/macro_magic.h>
 #include <librpc/rpc.h>
 #include <librpc/rpc_client.h>
@@ -11,9 +12,11 @@
 #include <mos/filesystem/fs_types.h>
 #include <mos/mos_global.h>
 #include <mos/proto/fs_server.h>
+#include <mos/syscall/usermode.h>
 #include <pb.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <sys/param.h>
 #include <unistd.h>
@@ -281,6 +284,9 @@ static rpc_result_code_t cpiofs_getpage(rpc_context_t *, mos_rpc_fs_getpage_requ
 
 void init_start_cpiofs_server(fd_t notifier)
 {
+    pthread_t self = pthread_self();
+    pthread_setname_np(self, "cpiofs");
+
     cpiofs = rpc_server_create(CPIOFS_RPC_SERVER_NAME, NULL);
     if (!cpiofs)
     {
@@ -311,22 +317,26 @@ void init_start_cpiofs_server(fd_t notifier)
 
     pb_release(mos_rpc_fs_register_response_fields, &resp);
 
-    if (write(notifier, &(char){ 'v' }, 1) != 1)
+    if (write(notifier, "v", 1) != 1)
     {
         puts("cpiofs: failed to notify init");
-        goto bad2;
+        goto cleanup;
     }
 
     rpc_server_exec(cpiofs);
     rpc_server_destroy(cpiofs);
+
+cleanup:
+    if (cpiofs)
+        rpc_server_destroy(cpiofs);
+    if (fs_manager)
+        rpc_client_destroy(fs_manager);
+
     return;
 
 bad:
-    if (write(notifier, &(char){ 'x' }, 1) != 1)
+    if (write(notifier, "x", 1) != 1)
         puts("cpiofs: failed to notify init");
-bad2:
-    if (fs_manager)
-        rpc_client_destroy(fs_manager);
-    if (cpiofs)
-        rpc_server_destroy(cpiofs);
+
+    goto cleanup;
 }
