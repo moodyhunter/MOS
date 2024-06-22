@@ -8,6 +8,7 @@
 #include "mos/filesystem/vfs.h"
 #include "mos/filesystem/vfs_types.h"
 #include "mos/filesystem/vfs_utils.h"
+#include "mos/io/io.h"
 #include "mos/syslog/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_types.h"
@@ -326,6 +327,9 @@ dentry_t *dentry_from_fd(fd_t fd)
 
     io_t *io = process_get_fd(current_process, fd);
     if (io == NULL)
+        return ERR_PTR(-EBADF);
+
+    if (io->type != IO_FILE && io->type != IO_DIR)
         return ERR_PTR(-EBADF);
 
     file_t *file = container_of(io, file_t, io);
