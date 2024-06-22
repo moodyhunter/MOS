@@ -78,7 +78,8 @@ __alias(x86_setup_main_thread, platform_context_setup_main_thread);
 void platform_context_cleanup(thread_t *thread)
 {
     if (thread->mode == THREAD_MODE_USER)
-        kfree(thread->platform_options.xsaveptr), thread->platform_options.xsaveptr = NULL;
+        if (thread->platform_options.xsaveptr)
+            kfree(thread->platform_options.xsaveptr), thread->platform_options.xsaveptr = NULL;
 }
 
 static void x86_setup_child_thread(thread_t *thread, thread_entry_t entry, void *arg)
