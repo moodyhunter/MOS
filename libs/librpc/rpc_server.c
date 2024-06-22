@@ -289,9 +289,10 @@ void rpc_server_exec(rpc_server_t *server)
         }
 
         rpc_context_t *context = malloc(sizeof(rpc_context_t));
+        memset(context, 0, sizeof(rpc_context_t));
         context->server = server;
         context->client_fd = client_fd;
-        start_thread("rpc-client-worker", rpc_handle_client, context);
+        start_thread("rpc-worker", rpc_handle_client, context);
     }
 }
 
