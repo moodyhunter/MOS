@@ -92,23 +92,22 @@ void sysfs_register(sysfs_dir_t *entry);
  *
  * @param sysfs_dir the sysfs directory to register the item in
  * @param item the sysfs item to register
- * @param data the data to associate with the item
  */
-void sysfs_register_file(sysfs_dir_t *sysfs_dir, sysfs_item_t *item, void *data);
+void sysfs_register_file(sysfs_dir_t *sysfs_dir, sysfs_item_t *item);
 
 /**
  * @brief Register an entry in the sysfs root directory
  *
  * @param item the sysfs item to register
- * @param data the data to associate with the item
  */
-should_inline void sysfs_register_root_file(sysfs_item_t *item, void *data)
+should_inline void sysfs_register_root_file(sysfs_item_t *item)
 {
-    sysfs_register_file(NULL, item, data);
+    sysfs_register_file(NULL, item);
 }
 
 void sysfs_file_set_data(sysfs_file_t *file, void *data);
 void *sysfs_file_get_data(sysfs_file_t *file);
+sysfs_item_t *sysfs_file_get_item(sysfs_file_t *file);
 
 inode_t *sysfs_create_inode(file_type_t type, void *data);
 

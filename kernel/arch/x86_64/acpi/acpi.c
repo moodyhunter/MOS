@@ -41,7 +41,7 @@ typedef struct
 
 static bool acpi_sysfs_mmap(sysfs_file_t *f, vmap_t *vmap, off_t offset)
 {
-    acpi_sysfs_item_t *const item = sysfs_file_get_data(f);
+    acpi_sysfs_item_t *const item = container_of(sysfs_file_get_item(f), acpi_sysfs_item_t, item);
     const ssize_t item_npages = ALIGN_UP_TO_PAGE(item->size) / MOS_PAGE_SIZE;
     if (offset >= item_npages)
         return false;
@@ -75,7 +75,7 @@ static void register_sysfs_acpi_node(const char table_name[4], const acpi_sdt_he
     memcpy((void *) phyframe_va(item->pages), header, header->length);
     pmm_ref(item->pages, true); // don't free the pages when the item is freed
 
-    sysfs_register_file(&__sysfs_acpi, &item->item, item);
+    sysfs_register_file(&__sysfs_acpi, &item->item);
 }
 
 should_inline bool verify_sdt_checksum(const acpi_sdt_header_t *tableHeader)

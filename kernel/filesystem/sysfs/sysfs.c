@@ -23,7 +23,7 @@
 
 typedef struct _sysfs_file
 {
-    const sysfs_item_t *item;
+    sysfs_item_t *item;
 
     phyframe_t *buf_page;
     ssize_t buf_head_offset;
@@ -53,18 +53,18 @@ void sysfs_register(sysfs_dir_t *dir)
     sysfs_do_register(dir);
 }
 
-static void sysfs_expand_buffer(sysfs_file_t *file, size_t new_npages)
+static void sysfs_expand_buffer(sysfs_file_t *buffer, size_t new_npages)
 {
-    phyframe_t *oldbuf_page = file->buf_page;
-    const size_t oldbuf_npages = file->buf_npages;
+    phyframe_t *oldbuf_page = buffer->buf_page;
+    const size_t oldbuf_npages = buffer->buf_npages;
 
     // We need to allocate more pages
-    file->buf_npages = new_npages;
-    file->buf_page = mm_get_free_pages(file->buf_npages);
+    buffer->buf_npages = new_npages;
+    buffer->buf_page = mm_get_free_pages(buffer->buf_npages);
 
     if (oldbuf_page)
     {
-        memcpy((char *) phyframe_va(file->buf_page), (char *) phyframe_va(oldbuf_page), oldbuf_npages * MOS_PAGE_SIZE);
+        memcpy((char *) phyframe_va(buffer->buf_page), (char *) phyframe_va(oldbuf_page), oldbuf_npages * MOS_PAGE_SIZE);
         mm_free_pages(oldbuf_page, oldbuf_npages);
     }
 }
@@ -111,28 +111,33 @@ void *sysfs_file_get_data(sysfs_file_t *file)
     return file->data;
 }
 
-static bool sysfs_fops_open(inode_t *i, file_t *file, bool create)
+sysfs_item_t *sysfs_file_get_item(sysfs_file_t *file)
 {
-    pr_dinfo2(sysfs, "opening %s in %s", file->dentry->name, dentry_parent(file->dentry)->name);
-    MOS_UNUSED(create);
-    sysfs_file_t *f = i->private;
-    f->buf_page = NULL;
-    f->buf_npages = 0;
-    f->buf_head_offset = 0;
+    return file->item;
+}
+
+static bool sysfs_fops_open(inode_t *inode, file_t *file, bool created)
+{
+    MOS_UNUSED(created);
+    sysfs_file_t *sysfs_file = kmalloc(sizeof(sysfs_file_t));
+    sysfs_file->item = inode->private;
+
+    file->private_data = sysfs_file;
     return true;
 }
 
 static void sysfs_fops_release(file_t *file)
 {
     pr_dinfo2(sysfs, "closing %s in %s", file->dentry->name, dentry_parent(file->dentry)->name);
-    sysfs_file_t *f = file->dentry->inode->private;
+    sysfs_file_t *f = file->private_data;
     if (f->buf_page)
-        mm_free_pages(f->buf_page, f->buf_npages);
+        mm_free_pages(f->buf_page, f->buf_npages), f->buf_page = NULL, f->buf_npages = 0, f->buf_head_offset = 0;
+    kfree(f);
 }
 
 __nodiscard static bool sysfs_file_ensure_ready(const file_t *file)
 {
-    sysfs_file_t *f = file->dentry->inode->private;
+    sysfs_file_t *f = file->private_data;
     if (f->buf_head_offset == 0)
     {
         if (!f->item->show(f))
@@ -144,7 +149,7 @@ __nodiscard static bool sysfs_file_ensure_ready(const file_t *file)
 
 static ssize_t sysfs_fops_read(const file_t *file, void *buf, size_t size, off_t offset)
 {
-    sysfs_file_t *f = file->dentry->inode->private;
+    sysfs_file_t *f = file->private_data;
     if (f->item->type != SYSFS_RO && f->item->type != SYSFS_RW)
         return -ENOTSUP;
 
@@ -164,7 +169,7 @@ static ssize_t sysfs_fops_read(const file_t *file, void *buf, size_t size, off_t
 
 static ssize_t sysfs_fops_write(const file_t *file, const void *buf, size_t size, off_t offset)
 {
-    sysfs_file_t *f = file->dentry->inode->private;
+    sysfs_file_t *f = file->private_data;
     if (f->item->type != SYSFS_WO && f->item->type != SYSFS_RW)
         return -ENOTSUP;
     return f->item->store(f, buf, size, offset);
@@ -181,7 +186,7 @@ static off_t sysfs_fops_seek(file_t *file, off_t offset, io_seek_whence_t whence
     if (whence == IO_SEEK_SET)
         return -1;
 
-    sysfs_file_t *f = file->dentry->inode->private;
+    sysfs_file_t *f = file->private_data;
 
     if (f->item->type == SYSFS_MEM)
         return -1;
@@ -197,7 +202,7 @@ bool sysfs_fops_mmap(file_t *file, vmap_t *vmap, off_t offset)
     MOS_UNUSED(vmap);
     MOS_UNUSED(offset);
 
-    sysfs_file_t *f = file->dentry->inode->private;
+    sysfs_file_t *f = file->private_data;
     if (f->item->type == SYSFS_MEM)
     {
         return f->item->mem.mmap(f, vmap, offset);
@@ -216,7 +221,7 @@ bool sysfs_fops_mmap(file_t *file, vmap_t *vmap, off_t offset)
 
 bool sysfs_fops_munmap(file_t *file, vmap_t *vmap, bool *unmapped)
 {
-    sysfs_file_t *f = file->dentry->inode->private;
+    sysfs_file_t *f = file->private_data;
     if (f->item->type == SYSFS_MEM)
     {
         return f->item->mem.munmap(f, vmap, unmapped);
@@ -363,7 +368,7 @@ static void sysfs_do_register(sysfs_dir_t *sysfs_dir)
     sysfs_dir->_dentry = vfs_dir;
 
     for (size_t i = 0; i < sysfs_dir->num_items; i++)
-        sysfs_register_file(sysfs_dir, &sysfs_dir->items[i], NULL);
+        sysfs_register_file(sysfs_dir, &sysfs_dir->items[i]);
 }
 
 inode_t *sysfs_create_inode(file_type_t type, void *data)
@@ -373,7 +378,7 @@ inode_t *sysfs_create_inode(file_type_t type, void *data)
     return inode;
 }
 
-void sysfs_register_file(sysfs_dir_t *sysfs_dir, sysfs_item_t *item, void *data)
+void sysfs_register_file(sysfs_dir_t *sysfs_dir, sysfs_item_t *item)
 {
     if (item->type == _SYSFS_INVALID)
         return;
@@ -386,13 +391,9 @@ void sysfs_register_file(sysfs_dir_t *sysfs_dir, sysfs_item_t *item, void *data)
         return;
     }
 
-    sysfs_file_t *sysfs_file = kmalloc(sizeof(sysfs_file_t));
-    sysfs_file->item = item;
-    sysfs_file->data = data;
-
     inode_t *file_i = inode_create(sysfs_sb, sysfs_get_ino(), FILE_TYPE_REGULAR);
     file_i->file_ops = &sysfs_file_ops;
-    file_i->private = sysfs_file;
+    file_i->private = item;
     item->ino = file_i->ino;
 
     switch (item->type)

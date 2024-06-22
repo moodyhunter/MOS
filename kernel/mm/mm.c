@@ -509,7 +509,7 @@ static sysfs_item_t sys_mem_item = SYSFS_MEM_ITEM("mem", sys_mem_mmap, sys_mem_m
 static void mm_sysfs_init()
 {
     sys_mem_item.mem.size = platform_info->max_pfn * MOS_PAGE_SIZE;
-    sysfs_register_root_file(&sys_mem_item, NULL);
+    sysfs_register_root_file(&sys_mem_item);
 }
 
 MOS_INIT(SYSFS, mm_sysfs_init);
