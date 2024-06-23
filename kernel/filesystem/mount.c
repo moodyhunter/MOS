@@ -34,7 +34,11 @@ dentry_t *dentry_root_get_mountpoint(dentry_t *dentry)
         return dentry; // the root dentry is its own mountpoint
 
     dentry_t *parent = dentry_parent(dentry);
-    MOS_ASSERT(parent);
+    if (parent == NULL)
+    {
+        // root for some other fs trees
+        return NULL;
+    }
 
     tree_foreach_child(dentry_t, child, parent)
     {
