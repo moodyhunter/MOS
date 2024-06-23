@@ -214,7 +214,7 @@ static bool vfs_io_ops_munmap(io_t *io, vmap_t *vmap, bool *unmapped)
     return true;
 }
 
-void vfs_op_ops_getname(io_t *io, char *buf, size_t size)
+void vfs_io_ops_getname(io_t *io, char *buf, size_t size)
 {
     file_t *file = container_of(io, file_t, io);
     dentry_path(file->dentry, root_dentry, buf, size);
@@ -227,13 +227,13 @@ static const io_op_t file_io_ops = {
     .seek = vfs_io_ops_seek,
     .mmap = vfs_io_ops_mmap,
     .munmap = vfs_io_ops_munmap,
-    .get_name = vfs_op_ops_getname,
+    .get_name = vfs_io_ops_getname,
 };
 
 static const io_op_t dir_io_ops = {
     .read = vfs_list_dir,
     .close = vfs_io_ops_close_dir,
-    .get_name = vfs_op_ops_getname,
+    .get_name = vfs_io_ops_getname,
 };
 
 // END: filesystem's io_t operations
