@@ -29,8 +29,7 @@ static dentry_t *memfd_root_dentry = NULL;
 
 static void memfd_file_release(file_t *file)
 {
-    dentry_detach_inode(file->dentry);
-    memfd_t *memfd = file->private_data;
+    dentry_detach(file->dentry);
 }
 
 static const file_ops_t memfd_file_ops = {
@@ -39,7 +38,7 @@ static const file_ops_t memfd_file_ops = {
     .release = memfd_file_release,
 };
 
-io_t *memfd_create(const char *name, u32 flags)
+io_t *memfd_create(const char *name)
 {
     memfd_t *memfd = kmalloc(memfd_slab);
     if (!memfd)

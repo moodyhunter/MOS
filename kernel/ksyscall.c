@@ -576,7 +576,7 @@ DEFINE_SYSCALL(long, io_pread)(fd_t fd, void *buf, size_t count, off_t offset)
 
 DEFINE_SYSCALL(fd_t, memfd_create)(const char *name, u32 flags)
 {
-    io_t *io = memfd_create(name, flags);
+    io_t *io = memfd_create(name);
     if (IS_ERR(io))
         return PTR_ERR(io);
 

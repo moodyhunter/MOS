@@ -4,4 +4,4 @@
 
 #include "mos/io/io.h"
 
-io_t *memfd_create(const char *name, u32 flags);
+io_t *memfd_create(const char *name);
