@@ -17,6 +17,21 @@
 #include <mos/platform/platform.h>
 #include <mos/types.h>
 
+#define FILESYSTEM_DEFINE(var, fsname, mountfn, unmountfn)                                                                                                               \
+    filesystem_t var = {                                                                                                                                                 \
+        .list_node = LIST_HEAD_INIT(var.list_node),                                                                                                                      \
+        .name = fsname,                                                                                                                                                  \
+        .mount = mountfn,                                                                                                                                                \
+        .unmount = unmountfn,                                                                                                                                            \
+    }
+
+#define FILESYSTEM_AUTOREGISTER(fs)                                                                                                                                      \
+    static void __register_##fs()                                                                                                                                        \
+    {                                                                                                                                                                    \
+        vfs_register_filesystem(&fs);                                                                                                                                    \
+    }                                                                                                                                                                    \
+    MOS_INIT(VFS, __register_##fs)
+
 typedef struct _dentry dentry_t;
 typedef struct _inode_cache inode_cache_t;
 typedef struct _inode inode_t;
@@ -83,6 +98,7 @@ typedef struct
 
 typedef struct
 {
+    /// The inode has zero links and the last reference to the file has been dropped
     bool (*drop_inode)(inode_t *inode);
 } superblock_ops_t;
 
@@ -163,7 +179,6 @@ typedef struct _filesystem
 {
     as_linked_list;
     const char *name;
-    list_head superblocks;
     dentry_t *(*mount)(filesystem_t *fs, const char *dev_name, const char *mount_options);
     void (*unmount)(filesystem_t *fs, dentry_t *mountpoint); // called when the mountpoint is unmounted
 } filesystem_t;

@@ -351,16 +351,5 @@ static const inode_cache_ops_t cpio_icache_ops = {
     .fill_cache = cpio_fill_cache,
 };
 
-static filesystem_t fs_cpiofs = {
-    .list_node = LIST_HEAD_INIT(fs_cpiofs.list_node),
-    .superblocks = LIST_HEAD_INIT(fs_cpiofs.superblocks),
-    .name = "cpiofs",
-    .mount = cpio_mount,
-};
-
-static void register_cpiofs(void)
-{
-    vfs_register_filesystem(&fs_cpiofs);
-}
-
-MOS_INIT(VFS, register_cpiofs);
+static FILESYSTEM_DEFINE(fs_cpiofs, "cpiofs", cpio_mount, NULL);
+FILESYSTEM_AUTOREGISTER(fs_cpiofs);

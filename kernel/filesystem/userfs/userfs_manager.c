@@ -25,6 +25,8 @@ static rpc_result_code_t userfs_manager_register_fs(rpc_context_t *, mos_rpc_fs_
     if (!userfs)
         return RPC_RESULT_SERVER_INTERNAL_ERROR;
 
+    linked_list_init(list_node(&userfs->fs));
+
     size_t userfs_fsnamelen = strlen("userfs.") + strlen(req->fs.name) + 1;
     userfs->fs.name = kmalloc(userfs_fsnamelen);
     if (!userfs->fs.name)

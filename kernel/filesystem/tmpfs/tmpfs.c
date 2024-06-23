@@ -13,6 +13,7 @@
 #include <mos/misc/setup.h>
 #include <mos/mos_global.h>
 #include <mos/syslog/printk.h>
+#include <mos/types.h>
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
@@ -27,31 +28,36 @@ typedef struct
     };
 } tmpfs_inode_t;
 
+typedef struct
+{
+    superblock_t sb;
+    atomic_t ino;
+} tmpfs_superblock_t;
+
 #define TMPFS_INODE(inode) container_of(inode, tmpfs_inode_t, real_inode)
+#define TMPFS_SB(var)      container_of(var, tmpfs_superblock_t, sb)
 
 static const inode_ops_t tmpfs_inode_dir_ops;
 static const inode_ops_t tmpfs_inode_symlink_ops;
 static const inode_cache_ops_t tmpfs_inode_cache_ops;
-
 static const file_ops_t tmpfs_file_ops;
-
-static atomic_t tmpfs_inode_count = 0;
-
-static filesystem_t fs_tmpfs;
+static const superblock_ops_t tmpfs_sb_op;
 
 static slab_t *tmpfs_inode_cache = NULL;
 SLAB_AUTOINIT("tmpfs_inode", tmpfs_inode_cache, tmpfs_inode_t);
 
-should_inline tmpfs_inode_t *INODE(inode_t *inode)
-{
-    return container_of(inode, tmpfs_inode_t, real_inode);
-}
+static slab_t *tmpfs_superblock_cache = NULL;
+SLAB_AUTOINIT("tmpfs_superblock", tmpfs_superblock_cache, tmpfs_superblock_t);
 
-inode_t *tmpfs_create_inode(superblock_t *sb, file_type_t type, file_perm_t perm)
+static dentry_t *tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char *options); // forward declaration
+FILESYSTEM_DEFINE(fs_tmpfs, "tmpfs", tmpfs_fsop_mount, NULL);
+FILESYSTEM_AUTOREGISTER(fs_tmpfs);
+
+inode_t *tmpfs_create_inode(tmpfs_superblock_t *sb, file_type_t type, file_perm_t perm)
 {
     tmpfs_inode_t *inode = kmalloc(tmpfs_inode_cache);
 
-    inode_init(&inode->real_inode, sb, ++tmpfs_inode_count, type);
+    inode_init(&inode->real_inode, &sb->sb, ++sb->ino, type);
     inode->real_inode.perm = perm;
     inode->real_inode.cache.ops = &tmpfs_inode_cache_ops;
 
@@ -111,18 +117,18 @@ static dentry_t *tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char 
         return NULL;
     }
 
-    superblock_t *tmpfs_sb = kmalloc(superblock_cache);
-    tmpfs_sb->fs = fs;
-    tmpfs_sb->root = dentry_create(tmpfs_sb, NULL, NULL);
-    tmpfs_sb->root->inode = tmpfs_create_inode(tmpfs_sb, FILE_TYPE_DIRECTORY, tmpfs_default_mode);
-    tmpfs_sb->root->inode->type = FILE_TYPE_DIRECTORY;
-    return tmpfs_sb->root;
+    tmpfs_superblock_t *tmpfs_sb = kmalloc(tmpfs_superblock_cache);
+    tmpfs_sb->sb.fs = fs;
+    tmpfs_sb->sb.root = dentry_create(&tmpfs_sb->sb, NULL, NULL);
+    tmpfs_sb->sb.root->inode = tmpfs_create_inode(tmpfs_sb, FILE_TYPE_DIRECTORY, tmpfs_default_mode);
+    tmpfs_sb->sb.root->inode->type = FILE_TYPE_DIRECTORY;
+    return tmpfs_sb->sb.root;
 }
 
 // create a new node in the directory
 static bool tmpfs_mknod_impl(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm, dev_t dev)
 {
-    inode_t *inode = tmpfs_create_inode(dir->superblock, type, perm);
+    inode_t *inode = tmpfs_create_inode(TMPFS_SB(dir->superblock), type, perm);
     dentry->inode = inode;
     TMPFS_INODE(inode)->dev = dev;
     return true;
@@ -158,22 +164,6 @@ static bool tmpfs_i_unlink(inode_t *dir, dentry_t *dentry)
 {
     MOS_UNUSED(dir);
     dentry->inode->nlinks--;
-    if (dentry->inode->nlinks == 0)
-    {
-        tmpfs_inode_t *inode = TMPFS_INODE(dentry->inode);
-        if (inode->real_inode.type == FILE_TYPE_DIRECTORY)
-        {
-            mos_warn("tmpfs: unlinking a directory");
-            return false;
-        }
-
-        if (inode->real_inode.type == FILE_TYPE_SYMLINK)
-            if (inode->symlink_target != NULL)
-                kfree(inode->symlink_target);
-        kfree(inode);
-    }
-
-    dentry->inode = NULL;
     return true;
 }
 
@@ -242,6 +232,23 @@ static phyframe_t *tmpfs_fill_cache(inode_cache_t *cache, off_t pgoff)
     return pmm_ref_one(mm_get_free_page());
 }
 
+static bool tmpfs_sb_drop_inode(inode_t *inode)
+{
+    tmpfs_inode_t *tmpfs_inode = TMPFS_INODE(inode);
+    if (inode->nlinks == 0)
+    {
+        if (inode->type == FILE_TYPE_DIRECTORY)
+            return false;
+
+        if (inode->type == FILE_TYPE_SYMLINK)
+            if (tmpfs_inode->symlink_target != NULL)
+                kfree(tmpfs_inode->symlink_target);
+        kfree(tmpfs_inode);
+    }
+
+    return true;
+}
+
 static const inode_ops_t tmpfs_inode_symlink_ops = {
     .readlink = tmpfs_i_readlink,
 };
@@ -257,15 +264,6 @@ static const inode_cache_ops_t tmpfs_inode_cache_ops = {
     .page_write_end = simple_page_write_end,
 };
 
-static filesystem_t fs_tmpfs = {
-    .list_node = LIST_HEAD_INIT(fs_tmpfs.list_node),
-    .name = "tmpfs",
-    .mount = tmpfs_fsop_mount,
+static const superblock_ops_t tmpfs_sb_op = {
+    .drop_inode = tmpfs_sb_drop_inode,
 };
-
-static void register_tmpfs(void)
-{
-    vfs_register_filesystem(&fs_tmpfs);
-}
-
-MOS_INIT(VFS, register_tmpfs);
