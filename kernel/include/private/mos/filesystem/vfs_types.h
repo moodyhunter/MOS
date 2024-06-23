@@ -80,7 +80,7 @@ typedef struct
     bool (*rmdir)(inode_t *dir, dentry_t *dentry);
     /// create a symbolic link
     bool (*symlink)(inode_t *dir, dentry_t *dentry, const char *symname);
-    /// remove a file
+    /// remove a file name, this is called after nlinks is decremented
     bool (*unlink)(inode_t *dir, dentry_t *dentry);
 } inode_ops_t;
 

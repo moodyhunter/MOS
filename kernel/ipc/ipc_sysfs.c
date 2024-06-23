@@ -100,7 +100,7 @@ static void vfs_ipc_file_release(file_t *file)
     if (private->server_control_file)
     {
         ipc_server_close(private->server);
-        dentry_detach_inode(file->dentry);
+        dentry_detach(file->dentry);
     }
     else
         ipc_client_close_channel(private->client_ipc);

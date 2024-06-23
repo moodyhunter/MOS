@@ -30,6 +30,29 @@ static bool vfs_generic_inode_drop(inode_t *inode)
     return true;
 }
 
+static bool inode_try_drop(inode_t *inode)
+{
+    if (inode->refcount == 0 && inode->nlinks == 0)
+    {
+        // drop the inode
+        inode_cache_t *icache = &inode->cache;
+        hashmap_foreach(&icache->pages, do_flush_and_drop_cache_page, NULL);
+
+        bool dropped = false;
+        if (inode->superblock->ops && inode->superblock->ops->drop_inode)
+            dropped = inode->superblock->ops->drop_inode(inode);
+        else
+            dropped = vfs_generic_inode_drop(inode);
+
+        if (!dropped)
+            pr_warn("inode %p has 0 refcount and 0 nlinks, but could not be dropped", (void *) inode);
+
+        return dropped;
+    }
+
+    return false;
+}
+
 void inode_init(inode_t *inode, superblock_t *sb, u64 ino, file_type_t type)
 {
     inode->superblock = sb;
@@ -39,7 +62,7 @@ void inode_init(inode_t *inode, superblock_t *sb, u64 ino, file_type_t type)
     inode->nlinks = 1;
     inode->perm = 0;
     inode->private = NULL;
-    inode->refcount = 1;
+    inode->refcount = 0;
 
     hashmap_init(&inode->cache.pages, MOS_INODE_CACHE_HASHMAP_SIZE, hashmap_identity_hash, hashmap_simple_key_compare);
     inode->cache.owner = inode;
@@ -58,27 +81,21 @@ void inode_ref(inode_t *inode)
     inode->refcount++;
 }
 
-void inode_unref(inode_t *inode)
+bool inode_unref(inode_t *inode)
 {
     MOS_ASSERT(inode);
-    MOS_ASSERT(inode->superblock);
     MOS_ASSERT(inode->refcount > 0);
-
     inode->refcount--;
+    return inode_try_drop(inode);
+}
 
-    if (inode->refcount == 0 && inode->nlinks == 0)
-    {
-        // drop the inode
-        inode_cache_t *icache = &inode->cache;
-        hashmap_foreach(&icache->pages, do_flush_and_drop_cache_page, NULL);
-
-        bool dropped = false;
-        if (inode->superblock->ops && inode->superblock->ops->drop_inode)
-            dropped = inode->superblock->ops->drop_inode(inode);
-        else
-            dropped = vfs_generic_inode_drop(inode);
-
-        if (!dropped)
-            pr_warn("inode %p dropped without being dropped by the superblock", (void *) inode);
-    }
+bool inode_unlink(inode_t *dir, dentry_t *dentry)
+{
+    inode_t *inode = dentry->inode;
+    MOS_ASSERT(dir && inode);
+    MOS_ASSERT(inode->nlinks > 0);
+    inode->nlinks--;
+    if (dir->ops->unlink)
+        dir->ops->unlink(dir, dentry);
+    return inode_try_drop(dentry->inode);
 }

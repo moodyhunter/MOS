@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/filesystem/dentry.h"
 #define pr_fmt(fmt) "ipc: " fmt
-
-#include "mos/ipc/ipc.h"
 
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/filesystem/vfs_types.h"
+#include "mos/ipc/ipc.h"
 #include "mos/ipc/pipe.h"
 #include "mos/mm/slab.h"
 #include "mos/mm/slab_autoinit.h"
@@ -448,7 +448,7 @@ static bool ipc_sysfs_lookup_ipc(inode_t *parent_dir, dentry_t *dentry)
     if (ipc_server == NULL)
         return false;
 
-    dentry->inode = ipc_server->sysfs_ino;
+    dentry_attach(dentry, ipc_server->sysfs_ino);
     return dentry->inode != NULL;
 }
 
@@ -464,7 +464,7 @@ static bool ipc_sysfs_create_server(inode_t *dir, dentry_t *dentry, file_type_t 
     if (IS_ERR(ipc_server))
         return false;
 
-    dentry->inode = ipc_server->sysfs_ino;
+    dentry_attach(dentry, ipc_server->sysfs_ino);
     return true;
 }
 

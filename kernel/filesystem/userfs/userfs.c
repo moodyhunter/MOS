@@ -3,6 +3,7 @@
 
 #include "mos/filesystem/userfs/userfs.h"
 
+#include "mos/filesystem/dentry.h"
 #include "mos/filesystem/vfs_types.h"
 #include "mos/filesystem/vfs_utils.h"
 #include "mos/misc/profiling.h"
@@ -159,7 +160,7 @@ static bool userfs_iop_lookup(inode_t *dir, dentry_t *dentry)
     }
 
     inode_t *i = i_from_pbfull(&resp.i_info, dir->superblock, (void *) resp.i_ref.data);
-    dentry->inode = i;
+    dentry_attach(dentry, i);
     dentry->superblock = i->superblock = dir->superblock;
     i->ops = &userfs_iops;
     i->cache.ops = &userfs_inode_cache_ops;
@@ -385,7 +386,7 @@ dentry_t *userfs_fsop_mount(filesystem_t *fs, const char *device, const char *op
 
     sb->fs = fs;
     sb->root = dentry_create(sb, NULL, NULL);
-    sb->root->inode = i;
     sb->root->superblock = i->superblock = sb;
+    dentry_attach(sb->root, i);
     return sb->root;
 }

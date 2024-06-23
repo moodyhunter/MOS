@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/filesystem/inode.h"
 #include "mos/filesystem/mount.h"
 #include "mos/filesystem/page_cache.h"
 #include "mos/filesystem/sysfs/sysfs.h"
@@ -214,7 +215,7 @@ static bool vfs_io_ops_munmap(io_t *io, vmap_t *vmap, bool *unmapped)
     return true;
 }
 
-void vfs_io_ops_getname(io_t *io, char *buf, size_t size)
+static void vfs_io_ops_getname(io_t *io, char *buf, size_t size)
 {
     file_t *file = container_of(io, file_t, io);
     dentry_path(file->dentry, root_dentry, buf, size);
@@ -727,6 +728,27 @@ long vfs_fchmodat(fd_t fd, const char *path, int perm, int flags)
 
     // TODO: check if the underlying filesystem supports chmod, and is not read-only
     dentry->inode->perm = perm;
+    dentry_unref(dentry);
+    return 0;
+}
+
+long vfs_unlinkat(fd_t dirfd, const char *path)
+{
+    pr_dinfo2(vfs, "vfs_unlinkat(dirfd=%d, path='%s')", dirfd, path);
+    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(dirfd);
+    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_FILE);
+    if (IS_ERR(dentry))
+        return PTR_ERR(dentry);
+
+    dentry_t *parent_dir = dentry_parent(dentry);
+    if (parent_dir->inode == NULL || parent_dir->inode->ops == NULL || parent_dir->inode->ops->unlink == NULL)
+    {
+        dentry_unref(dentry);
+        return -ENOTSUP;
+    }
+
+    inode_unlink(parent_dir->inode, dentry);
+    dentry_detach(dentry);
     dentry_unref(dentry);
     return 0;
 }

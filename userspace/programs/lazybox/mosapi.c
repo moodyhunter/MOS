@@ -88,6 +88,11 @@ bool chdir(const char *path)
     return syscall_vfs_chdirat(FD_CWD, path) == 0;
 }
 
+bool unlink(const char *path)
+{
+    return syscall_vfs_unlinkat(FD_CWD, path) == 0;
+}
+
 int printf(const char *fmt, ...)
 {
     va_list ap;

@@ -301,7 +301,16 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
     return child_ref;
 }
 
-void dentry_detach_inode(dentry_t *d)
+void dentry_attach(dentry_t *d, inode_t *inode)
+{
+    MOS_ASSERT(d->inode == NULL);
+    MOS_ASSERT(inode != NULL);
+
+    inode_ref(inode);
+    d->inode = inode;
+}
+
+void dentry_detach(dentry_t *d)
 {
     MOS_ASSERT(d->inode != NULL);
 

@@ -121,8 +121,7 @@ static dentry_t *tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char 
     tmpfs_sb->sb.fs = fs;
     tmpfs_sb->sb.ops = &tmpfs_sb_op;
     tmpfs_sb->sb.root = dentry_create(&tmpfs_sb->sb, NULL, NULL);
-    tmpfs_sb->sb.root->inode = tmpfs_create_inode(tmpfs_sb, FILE_TYPE_DIRECTORY, tmpfs_default_mode);
-    tmpfs_sb->sb.root->inode->type = FILE_TYPE_DIRECTORY;
+    dentry_attach(tmpfs_sb->sb.root, tmpfs_create_inode(tmpfs_sb, FILE_TYPE_DIRECTORY, tmpfs_default_mode));
     return tmpfs_sb->sb.root;
 }
 
@@ -130,8 +129,8 @@ static dentry_t *tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char 
 static bool tmpfs_mknod_impl(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm, dev_t dev)
 {
     inode_t *inode = tmpfs_create_inode(TMPFS_SB(dir->superblock), type, perm);
-    dentry->inode = inode;
     TMPFS_INODE(inode)->dev = dev;
+    dentry_attach(dentry, inode);
     return true;
 }
 
@@ -140,12 +139,12 @@ static bool tmpfs_i_create(inode_t *dir, dentry_t *dentry, file_type_t type, fil
     return tmpfs_mknod_impl(dir, dentry, type, perm, 0);
 }
 
-static bool tmpfs_i_link(dentry_t *old_dentry, inode_t *dir, dentry_t *new_dentry)
+static bool tmpfs_i_hardlink(dentry_t *old_dentry, inode_t *dir, dentry_t *new_dentry)
 {
     MOS_UNUSED(dir);
     MOS_ASSERT_X(old_dentry->inode->type != FILE_TYPE_DIRECTORY, "hard links to directories are insane");
     old_dentry->inode->nlinks++;
-    new_dentry->inode = old_dentry->inode;
+    dentry_attach(new_dentry, old_dentry->inode);
     return true;
 }
 
@@ -164,7 +163,7 @@ static bool tmpfs_i_symlink(inode_t *dir, dentry_t *dentry, const char *symname)
 static bool tmpfs_i_unlink(inode_t *dir, dentry_t *dentry)
 {
     MOS_UNUSED(dir);
-    dentry->inode->nlinks--;
+    MOS_UNUSED(dentry);
     return true;
 }
 
@@ -180,10 +179,10 @@ static bool tmpfs_i_rmdir(inode_t *dir, dentry_t *subdir_to_remove)
     MOS_ASSERT(subdir_to_remove->inode->type == FILE_TYPE_DIRECTORY);
     MOS_ASSERT(subdir_to_remove->inode->nlinks == 1); // should be the only link to the directory
 
+    dentry_detach(subdir_to_remove);
+
     tmpfs_inode_t *inode = TMPFS_INODE(subdir_to_remove->inode);
     kfree(inode);
-
-    subdir_to_remove->inode = NULL;
     return true;
 }
 
@@ -196,15 +195,15 @@ static bool tmpfs_i_rename(inode_t *old_dir, dentry_t *old_dentry, inode_t *new_
 {
     MOS_UNUSED(old_dir);
     MOS_UNUSED(new_dir);
-    new_dentry->inode = old_dentry->inode;
-    old_dentry->inode = NULL;
+    dentry_attach(new_dentry, old_dentry->inode);
+    dentry_detach(old_dentry);
     return true;
 }
 
 static const inode_ops_t tmpfs_inode_dir_ops = {
     .lookup = NULL, // use kernel's default in-memory lookup
     .newfile = tmpfs_i_create,
-    .hardlink = tmpfs_i_link,
+    .hardlink = tmpfs_i_hardlink,
     .symlink = tmpfs_i_symlink,
     .unlink = tmpfs_i_unlink,
     .mkdir = tmpfs_i_mkdir,

@@ -235,6 +235,11 @@ DEFINE_SYSCALL(ssize_t, vfs_readlinkat)(fd_t dirfd, const char *path, char *buf,
     return vfs_readlinkat(dirfd, path, buf, buflen);
 }
 
+DEFINE_SYSCALL(long, vfs_unlinkat)(fd_t dirfd, const char *path)
+{
+    return vfs_unlinkat(dirfd, path);
+}
+
 DEFINE_SYSCALL(long, vfs_symlink)(const char *target, const char *linkpath)
 {
     return vfs_symlink(target, linkpath);

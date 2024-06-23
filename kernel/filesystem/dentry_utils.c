@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/filesystem/dentry.h"
+#include "mos/filesystem/inode.h"
 #include "mos/filesystem/mount.h"
 #include "mos/filesystem/vfs.h"
 #include "mos/filesystem/vfs_types.h"
@@ -15,6 +16,8 @@ dentry_t *dentry_ref(dentry_t *dentry)
     MOS_ASSERT(dentry);
     MOS_ASSERT(dentry->inode); // one cannot refcount a dentry without an inode
     dentry->refcount++;
+    if (dentry->inode)
+        inode_ref(dentry->inode);
     pr_dinfo2(dcache_ref, "dentry %p '%s' increased refcount to %zu", (void *) dentry, dentry_name(dentry), dentry->refcount);
     return dentry;
 }
@@ -56,6 +59,10 @@ __nodiscard bool dentry_unref_one_norelease(dentry_t *dentry)
     }
 
     dentry->refcount--;
+
+    if (dentry->inode)
+        inode_unref(dentry->inode);
+
     pr_dinfo2(dcache_ref, "dentry %p '%s' decreased refcount to %zu", (void *) dentry, dentry_name(dentry), dentry->refcount);
 
     if (dentry->name == NULL && dentry != root_dentry)

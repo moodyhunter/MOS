@@ -168,4 +168,13 @@ ssize_t vfs_getcwd(char *buf, size_t size);
  */
 long vfs_fchmodat(fd_t fd, const char *path, int perm, int flags);
 
+/**
+ * @brief Remove the name of a file, and possibly the file itself
+ *
+ * @param dirfd The file descriptor of the directory containing the file (or the file itself if AT_EMPTY_PATH is set)
+ * @param path The path to the file
+ * @return long 0 on success, or errno on failure
+ */
+long vfs_unlinkat(fd_t dirfd, const char *path);
+
 /** @} */

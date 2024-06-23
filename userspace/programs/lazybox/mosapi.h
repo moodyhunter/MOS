@@ -20,6 +20,8 @@ bool lstatat(int fd, const char *path, file_stat_t *buf);
 
 bool chdir(const char *path);
 
+bool unlink(const char *path);
+
 #ifndef __NO_START_FUNCTION
 void _start(size_t argc, char **argv, char **envp)
 {

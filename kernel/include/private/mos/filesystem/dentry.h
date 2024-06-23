@@ -103,11 +103,19 @@ __nodiscard bool dentry_unref_one_norelease(dentry_t *dentry);
 void dentry_try_release(dentry_t *dentry);
 
 /**
+ * @brief Attach an inode to a dentry
+ *
+ * @param d The dentry to attach the inode to
+ * @param inode The inode to attach
+ */
+void dentry_attach(dentry_t *d, inode_t *inode);
+
+/**
  * @brief Detach the inode from a dentry
  *
  * @param dentry The dentry to detach the inode from
  */
-void dentry_detach_inode(dentry_t *dentry);
+void dentry_detach(dentry_t *dentry);
 
 /**
  * @brief Get the dentry from a file descriptor

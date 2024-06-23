@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     // argv[1] may contain the path to list
     const char *path = argc > 1 ? argv[1] : ".";
 
-    if (chdir(path) != 0)
+    if (!chdir(path))
     {
         fprintf(stderr, "failed to chdir to '%s'\n", path);
         return 1;

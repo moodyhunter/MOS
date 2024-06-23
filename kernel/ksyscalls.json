@@ -184,6 +184,12 @@
             ]
         },
         {
+            "number": 26,
+            "name": "vfs_unlinkat",
+            "return": "long",
+            "arguments": [ { "type": "fd_t", "arg": "dirfd" }, { "type": "const char *", "arg": "path" } ]
+        },
+        {
             "number": 27,
             "name": "vfs_symlink",
             "return": "long",
