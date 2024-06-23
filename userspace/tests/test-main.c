@@ -17,6 +17,10 @@ struct
     { "libc", "/initrd/tests/libc-test" },     //
     { "c++", "/initrd/tests/libstdc++-test" }, //
     { "rust", "/initrd/tests/rust-test" },     //
+    { "pipe", "/initrd/tests/pipe-test" },     //
+    { "signal", "/initrd/tests/signal" },      //
+    { "syslog", "/initrd/tests/syslog-test" }, //
+    { "memfd", "/initrd/tests/memfd-test" },   //
     { 0 },
 };
 
