@@ -4,7 +4,6 @@ import "nanopb.proto";
 package mos_rpc;
 
 option (nanopb_fileopt).fallback_type = FT_POINTER;
-option (nanopb_fileopt).enum_to_string = true;
 option (nanopb_fileopt).proto3_singular_msgs = true;
 
 message result
