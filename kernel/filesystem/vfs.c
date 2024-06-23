@@ -386,6 +386,11 @@ file_t *vfs_do_open_dentry(dentry_t *entry, bool created, bool read, bool write,
 
 void vfs_register_filesystem(filesystem_t *fs)
 {
+    if (vfs_find_filesystem(fs->name))
+        mos_panic("filesystem '%s' already registered", fs->name);
+
+    MOS_ASSERT(list_is_empty(list_node(fs)));
+
     spinlock_acquire(&vfs_fs_list_lock);
     list_node_append(&vfs_fs_list, list_node(fs));
     spinlock_release(&vfs_fs_list_lock);
