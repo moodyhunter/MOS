@@ -104,11 +104,9 @@ typedef struct
 
 typedef struct _superblock
 {
-    bool dirty;
     dentry_t *root;
     filesystem_t *fs;
-    list_head mounts;
-    superblock_ops_t *ops;
+    const superblock_ops_t *ops;
 } superblock_t;
 
 typedef struct _dentry
@@ -118,9 +116,8 @@ typedef struct _dentry
     atomic_t refcount;
     inode_t *inode;
     const char *name;         // for a mounted root, this is NULL
-    superblock_t *superblock; // The root of the dentry tree
+    superblock_t *superblock; // The superblock of the dentry
     bool is_mountpoint;
-    void *private; // fs-specific data
 } dentry_t;
 
 extern dentry_t *root_dentry;

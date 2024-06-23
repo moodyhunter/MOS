@@ -68,6 +68,7 @@ static const inode_ops_t cpio_dir_inode_ops;
 static const inode_ops_t cpio_file_inode_ops;
 static const file_ops_t cpio_file_ops;
 static const inode_cache_ops_t cpio_icache_ops;
+static const superblock_ops_t cpio_sb_ops;
 
 static slab_t *cpio_inode_cache = NULL;
 SLAB_AUTOINIT("cpio_inode", cpio_inode_cache, cpio_inode_t);
@@ -216,6 +217,8 @@ static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *
         pr_warn("cpio: mount: dev_name is not supported");
 
     superblock_t *sb = kmalloc(superblock_cache);
+    sb->ops = &cpio_sb_ops;
+
     cpio_inode_t *i = cpio_inode_trycreate(".", sb);
     if (!i)
     {
@@ -314,6 +317,16 @@ static size_t cpio_i_readlink(dentry_t *dentry, char *buffer, size_t buflen)
     cpio_inode_t *inode = CPIO_INODE(dentry->inode);
     return initrd_read(buffer, MIN(buflen, inode->inode.size), inode->data_offset);
 }
+
+static bool cpio_sb_drop_inode(inode_t *inode)
+{
+    kfree(CPIO_INODE(inode));
+    return true;
+}
+
+static const superblock_ops_t cpio_sb_ops = {
+    .drop_inode = cpio_sb_drop_inode,
+};
 
 static const inode_ops_t cpio_dir_inode_ops = {
     .lookup = cpio_i_lookup,

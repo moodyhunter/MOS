@@ -32,10 +32,10 @@ typedef struct
 {
     superblock_t sb;
     atomic_t ino;
-} tmpfs_superblock_t;
+} tmpfs_sb_t;
 
 #define TMPFS_INODE(inode) container_of(inode, tmpfs_inode_t, real_inode)
-#define TMPFS_SB(var)      container_of(var, tmpfs_superblock_t, sb)
+#define TMPFS_SB(var)      container_of(var, tmpfs_sb_t, sb)
 
 static const inode_ops_t tmpfs_inode_dir_ops;
 static const inode_ops_t tmpfs_inode_symlink_ops;
@@ -44,16 +44,16 @@ static const file_ops_t tmpfs_file_ops;
 static const superblock_ops_t tmpfs_sb_op;
 
 static slab_t *tmpfs_inode_cache = NULL;
-SLAB_AUTOINIT("tmpfs_inode", tmpfs_inode_cache, tmpfs_inode_t);
+SLAB_AUTOINIT("tmpfs_i", tmpfs_inode_cache, tmpfs_inode_t);
 
 static slab_t *tmpfs_superblock_cache = NULL;
-SLAB_AUTOINIT("tmpfs_superblock", tmpfs_superblock_cache, tmpfs_superblock_t);
+SLAB_AUTOINIT("tmpfs_sb", tmpfs_superblock_cache, tmpfs_sb_t);
 
 static dentry_t *tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char *options); // forward declaration
 FILESYSTEM_DEFINE(fs_tmpfs, "tmpfs", tmpfs_fsop_mount, NULL);
 FILESYSTEM_AUTOREGISTER(fs_tmpfs);
 
-inode_t *tmpfs_create_inode(tmpfs_superblock_t *sb, file_type_t type, file_perm_t perm)
+inode_t *tmpfs_create_inode(tmpfs_sb_t *sb, file_type_t type, file_perm_t perm)
 {
     tmpfs_inode_t *inode = kmalloc(tmpfs_inode_cache);
 
@@ -117,8 +117,9 @@ static dentry_t *tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char 
         return NULL;
     }
 
-    tmpfs_superblock_t *tmpfs_sb = kmalloc(tmpfs_superblock_cache);
+    tmpfs_sb_t *tmpfs_sb = kmalloc(tmpfs_superblock_cache);
     tmpfs_sb->sb.fs = fs;
+    tmpfs_sb->sb.ops = &tmpfs_sb_op;
     tmpfs_sb->sb.root = dentry_create(&tmpfs_sb->sb, NULL, NULL);
     tmpfs_sb->sb.root->inode = tmpfs_create_inode(tmpfs_sb, FILE_TYPE_DIRECTORY, tmpfs_default_mode);
     tmpfs_sb->sb.root->inode->type = FILE_TYPE_DIRECTORY;
