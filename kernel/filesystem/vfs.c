@@ -333,6 +333,23 @@ static file_t *vfs_do_open(dentry_t *base, const char *path, open_flags flags)
         return ERR_PTR(-EACCES);
     }
 
+    file_t *file = vfs_do_open_dentry(entry, created, read, write, exec, truncate);
+    if (IS_ERR(file))
+    {
+        kfree(file);
+        dentry_unref(entry);
+        return ERR(file);
+    }
+
+    return file;
+}
+
+// public functions
+file_t *vfs_do_open_dentry(dentry_t *entry, bool created, bool read, bool write, bool exec, bool truncate)
+{
+    MOS_ASSERT(entry->inode);
+    MOS_UNUSED(truncate);
+
     file_t *file = kmalloc(file_cache);
     file->dentry = entry;
 
@@ -361,16 +378,11 @@ static file_t *vfs_do_open(dentry_t *base, const char *path, open_flags flags)
     {
         bool opened = ops->open(file->dentry->inode, file, created);
         if (!opened)
-        {
-            kfree(file);
             return ERR_PTR(-ENOTSUP);
-        }
     }
 
     return file;
 }
-
-// public functions
 
 void vfs_register_filesystem(filesystem_t *fs)
 {
