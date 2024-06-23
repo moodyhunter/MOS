@@ -2,6 +2,7 @@
 
 #include "mos/device/clocksource.h"
 #include "mos/ipc/ipc_io.h"
+#include "mos/ipc/memfd.h"
 #include "mos/ipc/pipe.h"
 #include "mos/misc/power.h"
 #include "mos/mm/dma.h"
@@ -570,5 +571,9 @@ DEFINE_SYSCALL(long, io_pread)(fd_t fd, void *buf, size_t count, off_t offset)
 
 DEFINE_SYSCALL(fd_t, memfd_create)(const char *name, u32 flags)
 {
-    return -ENOSYS;
+    io_t *io = memfd_create(name, flags);
+    if (IS_ERR(io))
+        return PTR_ERR(io);
+
+    return process_attach_ref_fd(current_process, io, flags);
 }
