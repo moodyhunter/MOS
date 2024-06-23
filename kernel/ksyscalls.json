@@ -239,9 +239,9 @@
         },
         {
             "number": 35,
-            "name": "vfs_chdir",
+            "name": "vfs_chdirat",
             "return": "long",
-            "arguments": [ { "type": "const char *", "arg": "path" } ]
+            "arguments": [ { "type": "fd_t", "arg": "dirfd" }, { "type": "const char *", "arg": "path" } ]
         },
         {
             "number": 36,

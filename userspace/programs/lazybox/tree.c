@@ -37,9 +37,9 @@ static void do_tree(void)
 
                 print_entry(dirent);
                 depth++;
-                syscall_vfs_chdir(dirent->d_name);
+                chdir(dirent->d_name);
                 do_tree();
-                syscall_vfs_chdir("..");
+                chdir("..");
                 depth--;
             }
             else
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     // argv[1] may contain the path to list
     const char *path = argc > 1 ? argv[1] : ".";
 
-    if (syscall_vfs_chdir(path) != 0)
+    if (chdir(path) != 0)
     {
         fprintf(stderr, "failed to chdir to '%s'\n", path);
         return 1;

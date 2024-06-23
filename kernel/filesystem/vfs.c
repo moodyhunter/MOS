@@ -692,10 +692,10 @@ size_t vfs_list_dir(io_t *io, void *user_buf, size_t user_size)
     return bytes_copied;
 }
 
-long vfs_chdir(const char *path)
+long vfs_chdirat(fd_t dirfd, const char *path)
 {
     pr_dinfo2(vfs, "vfs_chdir('%s')", path);
-    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(FD_CWD);
+    dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(dirfd);
     dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_DIR);
     if (IS_ERR(dentry))
         return PTR_ERR(dentry);

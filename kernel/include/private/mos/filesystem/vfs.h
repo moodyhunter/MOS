@@ -142,11 +142,11 @@ size_t vfs_list_dir(io_t *io, void *buf, size_t size);
 /**
  * @brief Change the current working directory
  *
- * @param path The path to the new working directory
- * @return true
- * @return false
+ * @param dirfd The file descriptor of the directory to change to
+ * @param path The path to the directory, relative to the dirfd
+ * @return long 0 on success, or errno on failure
  */
-long vfs_chdir(const char *path);
+long vfs_chdirat(fd_t dirfd, const char *path);
 
 /**
  * @brief Get the current working directory

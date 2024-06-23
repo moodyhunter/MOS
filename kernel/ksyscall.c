@@ -285,9 +285,9 @@ DEFINE_SYSCALL(bool, munmap)(void *addr, size_t size)
     return munmap((ptr_t) addr, size);
 }
 
-DEFINE_SYSCALL(long, vfs_chdir)(const char *path)
+DEFINE_SYSCALL(long, vfs_chdirat)(fd_t dirfd, const char *path)
 {
-    return vfs_chdir(path);
+    return vfs_chdirat(dirfd, path);
 }
 
 DEFINE_SYSCALL(ssize_t, vfs_getcwd)(char *buf, size_t size)

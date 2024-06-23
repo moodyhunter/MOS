@@ -83,6 +83,11 @@ bool lstatat(int fd, const char *path, file_stat_t *buf)
     return syscall_vfs_fstatat(fd, path, buf, FSTATAT_NOFOLLOW) == 0;
 }
 
+bool chdir(const char *path)
+{
+    return syscall_vfs_chdirat(FD_CWD, path) == 0;
+}
+
 int printf(const char *fmt, ...)
 {
     va_list ap;
