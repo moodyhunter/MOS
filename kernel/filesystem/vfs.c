@@ -328,7 +328,10 @@ static file_t *vfs_do_open(dentry_t *base, const char *path, open_flags flags)
     }
 
     if (!vfs_verify_permissions(entry, true, read, may_create, exec, write))
+    {
+        dentry_unref(entry);
         return ERR_PTR(-EACCES);
+    }
 
     file_t *file = kmalloc(file_cache);
     file->dentry = entry;
