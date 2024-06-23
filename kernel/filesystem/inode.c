@@ -66,7 +66,7 @@ void inode_unref(inode_t *inode)
 
     inode->refcount--;
 
-    if (inode->refcount == 0)
+    if (inode->refcount == 0 && inode->nlinks == 0)
     {
         // drop the inode
         inode_cache_t *icache = &inode->cache;
