@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "mos/mos_global.h"
-#include "mos/types.h"
+#include "mos/misc/panic.h"
+
+#include <mos/mos_global.h>
+#include <mos/types.h>
 
 #define MOS_UNIMPLEMENTED(content)  mos_panic("\nUNIMPLEMENTED: %s", content)
 #define MOS_UNREACHABLE()           mos_panic("\nUNREACHABLE line %d reached in file: %s", __LINE__, __FILE__)
@@ -14,12 +16,11 @@
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
         if (unlikely(!(cond)))                                                                                                                                           \
-            mos_kpanic(__FILE__, __LINE__, "Assertion failed: %s\n" msg, #cond, ##__VA_ARGS__);                                                                          \
+            mos_panic("Assertion failed: %s\n" msg, #cond, ##__VA_ARGS__);                                                                                               \
     } while (0)
 
 // these two also invokes a warning/panic handler
-#define mos_warn(fmt, ...)  mos_kwarn(__func__, __LINE__, "WARN: " fmt "\r\n", ##__VA_ARGS__)
-#define mos_panic(fmt, ...) mos_kpanic(__func__, __LINE__, "" fmt, ##__VA_ARGS__)
+#define mos_warn(fmt, ...) mos_kwarn(__func__, __LINE__, "WARN: " fmt "\r\n", ##__VA_ARGS__)
 
 #define mos_warn_once(...)                                                                                                                                               \
     do                                                                                                                                                                   \
@@ -31,6 +32,5 @@
 __BEGIN_DECLS
 
 __printf(3, 4) void mos_kwarn(const char *func, u32 line, const char *fmt, ...);
-noreturn __printf(3, 4) void mos_kpanic(const char *func, u32 line, const char *fmt, ...);
 
 __END_DECLS

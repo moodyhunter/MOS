@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/ksyscall_entry.h"
+#include "mos/misc/panic.h"
 #include "mos/misc/profiling.h"
 #include "mos/tasks/signal.h"
 
@@ -136,10 +137,21 @@ static void x86_handle_exception(platform_regs_t *regs)
 
             return;
         }
+        case EXCEPTION_INVALID_OPCODE:
+        {
+            intr_type = "fault";
+
+            if (MOS_IN_RANGE(regs->ip, (ptr_t) __MOS_KERNEL_CODE_START, (ptr_t) __MOS_KERNEL_CODE_END))
+            {
+                // kernel mode invalid opcode, search for a bug entry
+                try_handle_kernel_panics(regs->ip);
+                mos_panic("Invalid opcode in kernel mode");
+            }
+            break;
+        }
         case EXCEPTION_DIVIDE_ERROR:
         case EXCEPTION_OVERFLOW:
         case EXCEPTION_BOUND_RANGE_EXCEEDED:
-        case EXCEPTION_INVALID_OPCODE:
         case EXCEPTION_DEVICE_NOT_AVAILABLE:
         case EXCEPTION_COPROCESSOR_SEGMENT_OVERRUN:
         case EXCEPTION_INVALID_TSS:
@@ -254,7 +266,10 @@ void x86_interrupt_entry(ptr_t rsp)
     profile_leave(ev, "x86.int.%lu", frame->interrupt_number);
 
     if (unlikely(!current_thread))
-        x86_interrupt_return_impl(frame), MOS_UNREACHABLE();
+    {
+        x86_interrupt_return_impl(frame);
+        MOS_UNREACHABLE();
+    }
 
     // jump to signal handler if there is a pending signal, and if we are coming from userspace
     if (frame->cs & 0x3)

@@ -33,6 +33,16 @@
 
 #define MOS_ELF_PLATFORM EM_X86_64
 
+#define MOS_PLATFORM_PANIC_INSTR "ud2"
+
+// clang-format off
+#define MOS_PLATFORM_PANIC_POINT_ASM \
+    ".quad 1b\n\t"  \
+    ".quad %c0\n\t" \
+    ".quad %c1\n\t" \
+    ".quad %c2\n\t"
+// clang-format on
+
 // clang-format off
 #define MOS_PLATFORM_DEBUG_MODULES(X) \
     X(x86_cpu)      \

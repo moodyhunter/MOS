@@ -32,6 +32,16 @@
 
 #define MOS_ELF_PLATFORM EM_RISCV
 
+#define MOS_PLATFORM_PANIC_INSTR "ebreak"
+
+// clang-format off
+#define MOS_PLATFORM_PANIC_POINT_ASM \
+    ".quad 1b\n\t"  \
+    ".quad %0\n\t" \
+    ".quad %1\n\t" \
+    ".quad %2\n\t"
+// clang-format on
+
 typedef struct _platform_process_options
 {
     int __unused;

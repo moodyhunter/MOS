@@ -50,8 +50,38 @@ void kwarn_handler_remove(void)
     kwarn_handler = NULL;
 }
 
-noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
+typedef struct
 {
+    ptr_t ip;
+    const char *file, *func;
+    u64 line;
+} panic_point_t;
+
+extern const panic_point_t __MOS_PANIC_LIST_START[], __MOS_PANIC_LIST_END[];
+
+static const panic_point_t *find_panic_point(ptr_t ip)
+{
+    const panic_point_t *point = NULL;
+    for (const panic_point_t *p = __MOS_PANIC_LIST_START; p < __MOS_PANIC_LIST_END; p++)
+    {
+        if (p->ip == ip)
+        {
+            point = p;
+            break;
+        }
+    }
+    return point;
+}
+
+void try_handle_kernel_panics(ptr_t ip)
+{
+    const panic_point_t *point = find_panic_point(ip);
+    if (!point)
+    {
+        pr_warn("no panic point found for " PTR_FMT, ip);
+        return;
+    }
+
     platform_interrupt_disable();
 
     // unlock the consoles, in case we were in the middle of writing something
@@ -79,23 +109,19 @@ noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
     extern bool printk_quiet;
     if (printk_quiet)
     {
-        pr_info("quiet mode disabled, printing panic message...");
         printk_quiet = false; // make sure we print the panic message
+        pr_info("quiet mode disabled.");
     }
-
-    va_list args;
-    char message[PRINTK_BUFFER_SIZE];
-    va_start(args, fmt);
-    vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
-    va_end(args);
 
     pr_emerg("");
     pr_fatal("!!!!!!!!!!!!!!!!!!!!!!!!");
     pr_fatal("!!!!! KERNEL PANIC !!!!!");
     pr_fatal("!!!!!!!!!!!!!!!!!!!!!!!!");
     pr_emerg("");
-    pr_emerg("%s", message);
-    pr_emerg("  in function: %s (line %u)", func, line);
+    pr_emerg("file: %s:%llu", point->file, point->line);
+    pr_emerg("function: %s", point->func);
+    pr_emerg("instruction: %ps (" PTR_FMT ")", (void *) point->ip, point->ip);
+    pr_emerg("");
 
     pr_cont("\n");
     if (current_cpu->interrupt_regs)
@@ -111,6 +137,7 @@ noreturn void mos_kpanic(const char *func, u32 line, const char *fmt, ...)
     {
         pr_emph("No interrupt context available");
     }
+
     pr_emph("Current stack trace:");
     platform_dump_current_stack();
     pr_cont("\n");

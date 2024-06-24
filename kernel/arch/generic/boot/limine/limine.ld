@@ -43,6 +43,10 @@ SECTIONS
         *(.mos.init);
         __MOS_INIT_END = .;
 
+        __MOS_PANIC_LIST_START = .;
+        *(.mos.panic_list);
+        __MOS_PANIC_LIST_END = .;
+
         __MOS_KERNEL_MOS_INFO_END = .;
         __MOS_KERNEL_RODATA_END = .;
     }

@@ -25,5 +25,26 @@ void panic_hook_install(panic_hook_holder_t *hook);
 void kwarn_handler_set(kmsg_handler_t *handler);
 void kwarn_handler_remove(void);
 
+__BEGIN_DECLS
+
 __printf(3, 4) void mos_kwarn(const char *func, u32 line, const char *fmt, ...);
-noreturn __printf(3, 4) void mos_kpanic(const char *func, u32 line, const char *fmt, ...);
+
+void try_handle_kernel_panics(ptr_t ip);
+
+__END_DECLS
+
+#define MOS_MAKE_PANIC_POINT(panic_instruction, file, func, line)                                                                                                        \
+    __asm__ volatile("1: " panic_instruction "\n\t"                                                                                                                      \
+                     ".pushsection .mos.panic_list,\"aw\"\n\t" MOS_PLATFORM_PANIC_POINT_ASM ".popsection\n\t"                                                            \
+                     "\n\t"                                                                                                                                              \
+                     :                                                                                                                                                   \
+                     : "i"(file), "i"(func), "i"(line)                                                                                                                   \
+                     : "memory")
+
+#define mos_panic(fmt, ...)                                                                                                                                              \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        pr_emerg(fmt, ##__VA_ARGS__);                                                                                                                                    \
+        MOS_MAKE_PANIC_POINT(MOS_PLATFORM_PANIC_INSTR, __FILE__, __func__, __LINE__);                                                                                    \
+        __builtin_unreachable();                                                                                                                                         \
+    } while (0)
