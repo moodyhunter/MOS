@@ -16,9 +16,12 @@ typedef struct
     bool *enabled;
     void (*hook)(void);
     const char *const name;
+    long long __padding;
 } panic_hook_t;
 
-#define MOS_EMIT_PANIC_HOOK(e, f, n) MOS_PUT_IN_SECTION(".mos.panic_hooks", panic_hook_t, _hook##_hook, { .enabled = e, .hook = f, .name = n })
+MOS_STATIC_ASSERT(sizeof(panic_hook_t) == 32, "panic_hook_t size mismatch");
+
+#define MOS_EMIT_PANIC_HOOK(e, f, n) MOS_PUT_IN_SECTION(".mos.panic_hooks", panic_hook_t, f##_hook, { .enabled = e, .hook = f, .name = n })
 
 #define MOS_PANIC_HOOK_FEAT(_feat, _f, _n) MOS_EMIT_PANIC_HOOK(mos_debug_enabled_ptr(_feat), _f, _n)
 #define MOS_PANIC_HOOK(_f, _name)          MOS_EMIT_PANIC_HOOK(NULL, _f, _name)
