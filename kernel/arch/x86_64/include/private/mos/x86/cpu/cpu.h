@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "mos/assert.h"
-
 #include <cpuid.h>
 #include <mos/types.h>
 
@@ -24,7 +22,7 @@ should_inline void cpu_wrmsr(u32 msr, u64 val)
 should_inline noreturn void x86_cpu_halt(void)
 {
     __asm__ volatile("hlt");
-    mos_panic("halt failed");
+    __builtin_unreachable();
 }
 
 #define x86_cpuid(return_reg, leaf, subleaf)                                                                                                                             \
