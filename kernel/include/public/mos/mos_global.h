@@ -115,8 +115,6 @@
 #define MB * 1024 KB
 #define GB * (u64) 1024 MB
 #define TB * (u64) 1024 GB
-#define STUB_FUNCTION(func, ...) void func(__VA_ARGS__){}
-#define STUB_FUNCTION_UNREACHABLE(func, ...) void func(__VA_ARGS__){ MOS_UNREACHABLE(); }
 #define statement_expr(type, ...) __extension__({ type retval; __VA_ARGS__; retval; })
 // clang-format on
 
@@ -183,7 +181,7 @@ __attribute__((__deprecated__("reconsider if a NULL check is really required")))
     MOS_WARNING_DISABLE("-Wunused-parameter")                                                                                                                            \
     __VA_ARGS__                                                                                                                                                          \
     {                                                                                                                                                                    \
-        mos_panic("unimplemented: file %s, line %d", __FILE__, __LINE__);                                                                                                \
+        MOS_UNREACHABLE_X("unimplemented: file %s, line %d", __FILE__, __LINE__);                                                                                        \
     }                                                                                                                                                                    \
     MOS_WARNING_POP
 

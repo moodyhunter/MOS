@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/filesystem/dentry.h"
 #define pr_fmt(fmt) "ipc: " fmt
 
+#include "mos/ipc/ipc.h"
+
+#include "mos/filesystem/dentry.h"
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/filesystem/vfs_types.h"
-#include "mos/ipc/ipc.h"
 #include "mos/ipc/pipe.h"
 #include "mos/mm/slab.h"
 #include "mos/mm/slab_autoinit.h"
@@ -54,8 +55,7 @@ typedef struct _ipc_server
     inode_t *sysfs_ino; ///< inode for sysfs
     size_t pending_max, pending_n;
     size_t established_n;
-    list_head pending;     ///< list of ipc_t
-    list_head established; ///< list of ipc_t
+    list_head pending; ///< list of ipc_t
 
     waitlist_t server_waitlist; ///< wake up the server here when a client connects
 } ipc_server_t;
@@ -67,7 +67,7 @@ static slab_t *ipc_slab = NULL;
 SLAB_AUTOINIT("ipc", ipc_slab, ipc_t);
 
 static list_head ipc_servers = LIST_HEAD_INIT(ipc_servers);
-static hashmap_t name_waitlist;             // waitlist for an IPC server, key = name, value = waitlist_t *
+static hashmap_t name_waitlist;             ///< waitlist for an IPC server, key = name, value = waitlist_t *
 static spinlock_t ipc_lock = SPINLOCK_INIT; ///< protects ipc_servers and name_waitlist
 
 void ipc_server_close(ipc_server_t *server)
@@ -192,7 +192,6 @@ ipc_server_t *ipc_server_create(const char *name, size_t max_pending)
     // we don't need to acquire the lock here because the server is not yet announced
     linked_list_init(list_node(server));
     linked_list_init(&server->pending);
-    linked_list_init(&server->established);
     waitlist_init(&server->server_waitlist);
     server->name = strdup(name);
     server->pending_max = max_pending;

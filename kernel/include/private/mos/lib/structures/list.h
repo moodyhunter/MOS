@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <mos/moslib_global.h>
 #include <mos/types.h>
 
 /**

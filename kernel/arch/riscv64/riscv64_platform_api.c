@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/assert.h"
 #include "mos/platform/platform.h"
 
 MOS_STUB_IMPL(platform_regs_t *platform_thread_regs(const thread_t *thread))

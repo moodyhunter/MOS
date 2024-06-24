@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/x86/cpu/cpu.h"
+
 #include "mos/platform/platform.h"
 #include "mos/platform/platform_defs.h"
 #include "mos/syslog/printk.h"

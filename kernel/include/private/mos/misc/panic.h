@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "mos/platform/platform_defs.h"
+#include "mos/syslog/printk.h"
+
 #include <mos/lib/structures/list.h>
 #include <mos/types.h>
 #include <stdarg.h>

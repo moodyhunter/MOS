@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/assert.h"
+
 #include <mos/interrupt/ipi.h>
 #include <mos/platform/platform.h>
 #include <mos/syslog/printk.h>
@@ -73,6 +75,11 @@ void ipi_do_handle(ipi_type_t type)
     ipi_handlers[type].handle(type);
 }
 #else
+// clang-format off
+#define STUB_FUNCTION(func, ...) void func(__VA_ARGS__){}
+#define STUB_FUNCTION_UNREACHABLE(func, ...) void func(__VA_ARGS__){ MOS_UNREACHABLE(); }
+// clang-format on
+
 STUB_FUNCTION(ipi_send, u8 __maybe_unused target, ipi_type_t __maybe_unused type)
 STUB_FUNCTION(ipi_send_all, ipi_type_t __maybe_unused type)
 STUB_FUNCTION(ipi_init, )

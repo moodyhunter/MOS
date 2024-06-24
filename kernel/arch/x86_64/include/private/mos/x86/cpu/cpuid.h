@@ -2,12 +2,10 @@
 
 #pragma once
 
-#include "mos/x86/cpu/cpu.h"
-
 #include <mos/mos_global.h>
 #include <mos/types.h>
 
-//!! this feature list must start at line 11 for correct counting (see below...)
+//!! this feature list must start at line 9 for correct counting (see below...)
 #define CPU_FEATURE_FPU          1, 0, d, 0           // Floating-point unit on-chip
 #define CPU_FEATURE_VME          1, 0, d, 1           // Virtual 8086 mode extensions
 #define CPU_FEATURE_DE           1, 0, d, 2           // Debugging extensions
@@ -73,7 +71,7 @@
 // clang-format on
 
 #define _do_count(leaf) __COUNTER__,
-MOS_STATIC_ASSERT(sizeof((int[]){ FOR_ALL_CPU_FEATURES(_do_count) }) / sizeof(int) == __LINE__ - 23, "FOR_ALL_CPU_FEATURES is incomplete");
+MOS_STATIC_ASSERT(sizeof((int[]){ FOR_ALL_CPU_FEATURES(_do_count) }) / sizeof(int) == __LINE__ - 21, "FOR_ALL_CPU_FEATURES is incomplete");
 #undef _do_count
 
 #define x86_cpu_get_feature_impl(leaf, subleaf, reg, bit) (per_cpu(platform_info->cpu)->cpuinfo.cpuid[X86_CPUID_LEAF_ENUM(leaf, subleaf, reg, )] & (1 << bit))

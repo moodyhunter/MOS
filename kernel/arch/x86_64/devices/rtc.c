@@ -4,6 +4,7 @@
 
 #include "mos/x86/devices/rtc.h"
 
+#include "mos/assert.h"
 #include "mos/device/clocksource.h"
 #include "mos/x86/devices/port.h"
 #include "mos/x86/x86_interrupt.h"
