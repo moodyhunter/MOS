@@ -47,6 +47,10 @@ SECTIONS
         *(.mos.panic_list);
         __MOS_PANIC_LIST_END = .;
 
+        __MOS_PANIC_HOOKS_START = .;
+        *(.mos.panic_hooks);
+        __MOS_PANIC_HOOKS_END = .;
+
         __MOS_KERNEL_MOS_INFO_END = .;
         __MOS_KERNEL_RODATA_END = .;
     }

@@ -10,18 +10,19 @@
 #include <stdarg.h>
 
 typedef void(kmsg_handler_t)(const char *func, u32 line, const char *fmt, va_list args);
-typedef void(kpanic_hook_t)(void);
 
 typedef struct
 {
-    as_linked_list;
-    kpanic_hook_t *hook;
+    bool *enabled;
+    void (*hook)(void);
     const char *const name;
-} panic_hook_holder_t;
+} panic_hook_t;
 
-#define panic_hook_declare(fn, _name) static panic_hook_holder_t fn##_holder = { .list_node = LIST_NODE_INIT(fn##_holder), .hook = fn, .name = _name }
+#define MOS_EMIT_PANIC_HOOK(e, f, n) MOS_PUT_IN_SECTION(".mos.panic_hooks", panic_hook_t, _hook##_hook, { .enabled = e, .hook = f, .name = n })
 
-void panic_hook_install(panic_hook_holder_t *hook);
+#define MOS_PANIC_HOOK_FEAT(_feat, _f, _n) MOS_EMIT_PANIC_HOOK(mos_debug_enabled_ptr(_feat), _f, _n)
+#define MOS_PANIC_HOOK(_f, _name)          MOS_EMIT_PANIC_HOOK(NULL, _f, _name)
+
 void kwarn_handler_set(kmsg_handler_t *handler);
 void kwarn_handler_remove(void);
 

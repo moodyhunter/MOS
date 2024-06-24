@@ -76,3 +76,5 @@ void mm_dump_current_pagetable()
         mm_dump_pagetable(current_cpu->mm_context);
     }
 }
+
+MOS_PANIC_HOOK_FEAT(vmm, mm_dump_current_pagetable, "dump current pagetable");

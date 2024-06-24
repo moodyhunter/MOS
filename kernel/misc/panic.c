@@ -25,7 +25,6 @@ void __stack_chk_fail_local(void)
     __stack_chk_fail();
 }
 
-static list_head kpanic_hooks = LIST_HEAD_INIT(kpanic_hooks);
 static kmsg_handler_t *kwarn_handler = NULL;
 static bool poweroff_on_panic = false;
 
@@ -58,6 +57,7 @@ typedef struct
 } panic_point_t;
 
 extern const panic_point_t __MOS_PANIC_LIST_START[], __MOS_PANIC_LIST_END[];
+extern const panic_hook_t __MOS_PANIC_HOOKS_START[], __MOS_PANIC_HOOKS_END[];
 
 static const panic_point_t *find_panic_point(ptr_t ip)
 {
@@ -142,10 +142,13 @@ void try_handle_kernel_panics(ptr_t ip)
     platform_dump_current_stack();
     pr_cont("\n");
 
-    list_foreach(panic_hook_holder_t, holder, kpanic_hooks)
+    for (const panic_hook_t *hook = __MOS_PANIC_HOOKS_START; hook < __MOS_PANIC_HOOKS_END; hook++)
     {
-        pr_dinfo2(panic, "invoking panic hook '%s' at %ps", holder->name, (void *) holder);
-        holder->hook();
+        if (hook->enabled && !*hook->enabled)
+            continue;
+
+        pr_dinfo2(panic, "invoking panic hook '%s' at %ps", hook->name, (void *) hook);
+        hook->hook();
     }
 
     ipi_send_all(IPI_TYPE_HALT);
@@ -181,10 +184,4 @@ void mos_kwarn(const char *func, u32 line, const char *fmt, ...)
 
     lprintk(MOS_LOG_WARN, "\n%s", message);
     lprintk(MOS_LOG_WARN, "  in function: %s (line %u)\n", func, line);
-}
-
-void panic_hook_install(panic_hook_holder_t *hook)
-{
-    list_node_append(&kpanic_hooks, list_node(hook));
-    pr_dinfo2(panic, "installed panic hook '%s' at %ps", hook->name, (void *) (ptr_t) hook->hook);
 }

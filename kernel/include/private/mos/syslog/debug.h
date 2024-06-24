@@ -56,7 +56,9 @@ extern struct
 #undef _expand_field
 } mos_debug_info;
 
-#define mos_debug_enabled(name) (mos_debug_info.name)
+#define mos_debug_enabled(name)     (mos_debug_info.name)
+#define mos_debug_enabled_ptr(name) (&mos_debug_info.name)
 #else
-#define mos_debug_enabled(name) MOS_DEBUG_FEATURE(name)
+#define mos_debug_enabled(name)     MOS_DEBUG_FEATURE(name)
+#define mos_debug_enabled_ptr(name) NULL
 #endif

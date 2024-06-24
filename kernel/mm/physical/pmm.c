@@ -9,10 +9,6 @@
 
 #include <mos_stdlib.h>
 
-#if MOS_DEBUG_FEATURE(pmm)
-#include "mos/misc/panic.h" // for panic_hook_declare, panic_hook_install
-#endif
-
 phyframe_t *phyframes = NULL;
 size_t pmm_total_frames = 0; // system pfn <= pfn_max
 size_t pmm_allocated_frames = 0;
@@ -23,12 +19,6 @@ void pmm_init(size_t max_nframes)
     pr_dinfo(pmm, "the system has %zu frames in total", max_nframes);
     pmm_total_frames = max_nframes;
     buddy_init(max_nframes);
-
-#if MOS_DEBUG_FEATURE(pmm)
-    panic_hook_declare(pmm_dump_lists, "Dump PMM lists");
-    panic_hook_install(&pmm_dump_lists_holder);
-    pmm_dump_lists();
-#endif
 }
 
 void pmm_dump_lists(void)
@@ -36,6 +26,8 @@ void pmm_dump_lists(void)
     pr_info("Physical Memory Manager dump:");
     buddy_dump_all();
 }
+
+MOS_PANIC_HOOK_FEAT(pmm, pmm_dump_lists, "dump physical allocator lists");
 
 phyframe_t *pmm_allocate_frames(size_t n_frames, pmm_allocation_flags_t flags)
 {

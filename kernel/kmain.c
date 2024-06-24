@@ -22,11 +22,6 @@
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
-#if MOS_DEBUG_FEATURE(vmm)
-#include "mos/misc/panic.h" // for panic_hook_declare and panic_hook_install
-#include "mos/mm/paging/dump.h"
-#endif
-
 static void invoke_constructors(void)
 {
     typedef void (*init_function_t)(void);
@@ -122,10 +117,7 @@ void mos_start_kernel(void)
     }
 
     platform_startup_mm();
-#if MOS_DEBUG_FEATURE(vmm)
-    panic_hook_declare(mm_dump_current_pagetable, "dump current pagetable");
-    panic_hook_install(&mm_dump_current_pagetable_holder);
-#endif
+
     startup_invoke_autoinit(INIT_TARGET_POST_MM);
     startup_invoke_autoinit(INIT_TARGET_SLAB_AUTOINIT);
 
