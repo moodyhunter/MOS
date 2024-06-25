@@ -68,17 +68,11 @@ DEFINE_SYSCALL(fd_t, vfs_openat)(fd_t dirfd, const char *path, open_flags flags)
 
 DEFINE_SYSCALL(long, vfs_fstatat)(fd_t fd, const char *path, file_stat_t *stat_buf, fstatat_flags flags)
 {
-    if (fd < 0)
-        return false;
-
     return vfs_fstatat(fd, path, stat_buf, flags);
 }
 
 DEFINE_SYSCALL(size_t, io_read)(fd_t fd, void *buf, size_t count)
 {
-    if (fd < 0)
-        return -EBADF;
-
     if (buf == NULL)
         return -EFAULT;
 
@@ -91,25 +85,24 @@ DEFINE_SYSCALL(size_t, io_read)(fd_t fd, void *buf, size_t count)
 
 DEFINE_SYSCALL(size_t, io_write)(fd_t fd, const void *buf, size_t count)
 {
-    if (fd < 0 || buf == NULL)
+    if (buf == NULL)
     {
         pr_warn("io_write called with invalid arguments (fd=%d, buf=%p, count=%zd)", fd, buf, count);
-        return -1;
+        return -EFAULT;
     }
 
     io_t *io = process_get_fd(current_process, fd);
     if (!io)
     {
         pr_warn("io_write called with invalid fd %d", fd);
-        return -1;
+        return -EBADF;
     }
+
     return io_write(io, buf, count);
 }
 
 DEFINE_SYSCALL(bool, io_close)(fd_t fd)
 {
-    if (fd < 0)
-        return false;
     process_detach_fd(current_process, fd);
     return true;
 }
