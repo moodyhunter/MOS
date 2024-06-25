@@ -642,3 +642,36 @@ DEFINE_SYSCALL(fd_t, memfd_create)(const char *name, u32 flags)
 
     return process_attach_ref_fd(current_process, io, flags);
 }
+
+DEFINE_SYSCALL(long, signal_mask_op)(int how, const sigset_t *set, sigset_t *oldset)
+{
+    if (oldset)
+        *oldset = current_thread->signal_info.mask;
+
+    if (set)
+    {
+        switch (how)
+        {
+            case SIG_SETMASK: current_thread->signal_info.mask = *set; break;
+            case SIG_BLOCK:
+            {
+                char *ptr = (char *) set;
+                char *mask = (char *) &current_thread->signal_info.mask;
+                for (size_t i = 0; i < sizeof(sigset_t); i++)
+                    mask[i] |= ptr[i];
+                break;
+            }
+            case SIG_UNBLOCK:
+            {
+                char *ptr = (char *) set;
+                char *mask = (char *) &current_thread->signal_info.mask;
+                for (size_t i = 0; i < sizeof(sigset_t); i++)
+                    mask[i] &= ~ptr[i];
+                break;
+            }
+            default: return -EINVAL;
+        }
+    }
+
+    return 0;
+}

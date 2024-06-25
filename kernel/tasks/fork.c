@@ -82,7 +82,7 @@ process_t *process_do_fork(process_t *parent)
     pr_info2("fork: thread %d->%d", parent_thread->tid, child_t->tid);
 #endif
     spinlock_acquire(&parent_thread->signal_info.lock);
-    memcpy(child_t->signal_info.masks, parent_thread->signal_info.masks, sizeof(bool) * SIGNAL_MAX_N);
+    child_t->signal_info.mask = parent_thread->signal_info.mask;
     list_foreach(sigpending_t, sig, parent_thread->signal_info.pending)
     {
         sigpending_t *new_sig = kmalloc(sigpending_slab);

@@ -6,6 +6,7 @@
 #include "mos/platform/platform.h"
 #include "mos/tasks/wait.h"
 
+#include <abi-bits/signal.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/structures/stack.h>
 #include <mos/tasks/signal_types.h>
@@ -66,8 +67,8 @@ typedef struct _process
 typedef struct
 {
     spinlock_t lock;
-    list_head pending;        ///< list of pending signals
-    bool masks[SIGNAL_MAX_N]; ///< signal masks, true if the signal is masked
+    list_head pending; ///< list of pending signals
+    sigset_t mask;     ///< pending signals mask
 } thread_signal_info_t;
 
 typedef struct _thread

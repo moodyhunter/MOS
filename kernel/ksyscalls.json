@@ -493,6 +493,12 @@
             "name": "memfd_create",
             "return": "fd_t",
             "arguments": [ { "type": "const char *", "arg": "name" }, { "type": "u32", "arg": "flags" } ]
+        },
+        {
+            "number": 64,
+            "name": "signal_mask_op",
+            "return": "long",
+            "arguments": [ { "type": "int", "arg": "how" }, { "type": "const sigset_t *", "arg": "set" }, { "type": "sigset_t *", "arg": "oldset" } ]
         }
     ]
 }

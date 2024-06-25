@@ -10,10 +10,41 @@
 #include "mos/tasks/thread.h"
 
 #include <errno.h>
+#include <limits.h>
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/tasks/signal_types.h>
 #include <mos_stdlib.h>
+#include <mos_string.h>
+
+static int sigset_add(sigset_t *sigset, int sig)
+{
+    MOS_ASSERT(sig >= 1 && sig <= SIGNAL_MAX_N);
+
+    const int signo = sig - 1;
+    char *const ptr = (char *) sigset;
+    ptr[signo / CHAR_BIT] |= (1 << (signo % CHAR_BIT));
+    return 0;
+}
+
+static int sigset_del(sigset_t *sigset, int sig)
+{
+    MOS_ASSERT(sig >= 1 && sig <= SIGNAL_MAX_N);
+
+    const int signo = sig - 1;
+    char *const ptr = (char *) sigset;
+    ptr[signo / CHAR_BIT] &= ~(1 << (signo % CHAR_BIT));
+    return 0;
+}
+
+static int sigset_test(const sigset_t *sigset, int sig)
+{
+    MOS_ASSERT(sig >= 1 && sig <= SIGNAL_MAX_N);
+
+    const int signo = sig - 1;
+    const char *ptr = (const char *) sigset;
+    return (ptr[signo / CHAR_BIT] & (1 << (signo % CHAR_BIT))) != 0;
+}
 
 slab_t *sigpending_slab = NULL;
 SLAB_AUTOINIT("signal_pending", sigpending_slab, sigpending_t);
@@ -152,7 +183,7 @@ static signal_t signal_get_next_pending(void)
     MOS_ASSERT(spinlock_is_locked(&current_thread->signal_info.lock));
     list_foreach(sigpending_t, pending, current_thread->signal_info.pending)
     {
-        if (current_thread->signal_info.masks[pending->signal])
+        if (sigset_test(&current_thread->signal_info.mask, pending->signal))
         {
             // if a fatal signal is pending but also masked, kill the thread
             if (is_fatal_signal(pending->signal))
@@ -205,9 +236,9 @@ static void do_signal_exit_to_user_prepare(platform_regs_t *regs, signal_t next_
         return;
     }
 
-    const bool was_masked = current_thread->signal_info.masks[next_signal];
+    const bool was_masked = sigset_test(&current_thread->signal_info.mask, next_signal);
     if (!was_masked)
-        current_thread->signal_info.masks[next_signal] = true;
+        sigset_add(&current_thread->signal_info.mask, next_signal);
 
     const sigreturn_data_t data = {
         .signal = next_signal,
@@ -270,7 +301,7 @@ really_prepare:
 void signal_on_returned(sigreturn_data_t *data)
 {
     if (!data->was_masked)
-        current_thread->signal_info.masks[data->signal] = false;
+        sigset_del(&current_thread->signal_info.mask, data->signal);
 }
 
 bool signal_has_pending(void)
