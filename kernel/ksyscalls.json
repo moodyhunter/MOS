@@ -208,6 +208,16 @@
             "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "char *", "arg": "buffer" }, { "type": "size_t", "arg": "buffer_size" } ]
         },
         {
+            "number": 30,
+            "name": "fd_manipulate",
+            "return": "long",
+            "arguments": [
+                { "type": "fd_t", "arg": "fd" },
+                { "type": "u64", "arg": "cmd" },
+                { "type": "void *", "arg": "arg" }
+            ]
+        },
+        {
             "number": 31,
             "name": "mmap_anonymous",
             "return": "void *",

@@ -10,6 +10,7 @@
 
 #include <bits/posix/iovec.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.h>
 #include <mos/io/io.h>
@@ -256,6 +257,65 @@ DEFINE_SYSCALL(size_t, vfs_list_dir)(fd_t fd, char *buffer, size_t buffer_size)
     if (io == NULL)
         return false;
     return vfs_list_dir(io, buffer, buffer_size);
+}
+
+DEFINE_SYSCALL(long, fd_manipulate)(fd_t fd, u64 op, void *arg)
+{
+    fd_type *fdt = &current_process->files[fd];
+    if (fdt->io == NULL)
+        return -EBADF;
+
+    switch (op)
+    {
+        case F_DUPFD:
+        {
+            fd_t fd2 = process_attach_ref_fd(current_process, fdt->io, fdt->flags);
+            return fd2;
+        }
+        case F_DUPFD_CLOEXEC:
+        {
+            fd_t fd2 = process_attach_ref_fd(current_process, fdt->io, fdt->flags | FD_FLAGS_CLOEXEC);
+            return fd2;
+        }
+        case F_GETFD:
+        {
+            return fdt->flags;
+        }
+        case F_SETFD:
+        {
+            // test if arg is a valid flag
+            u64 flags = (u64) arg;
+            if (flags & ~FD_FLAGS_CLOEXEC)
+                return -EINVAL;
+            fdt->flags = flags;
+            return 0;
+        }
+        case F_GETFL:
+        case F_SETFL:
+        {
+            return -ENOSYS; // not implemented
+        }
+        case F_GETLK:
+        case F_SETLK:
+        case F_SETLKW:
+        {
+            return -ENOSYS; // not implemented
+        }
+        case F_GETOWN:
+        case F_SETOWN:
+        case F_GETOWN_EX:
+        case F_SETOWN_EX:
+        case F_GETSIG:
+        case F_SETSIG:
+        case F_GETOWNER_UIDS:
+        case F_ADD_SEALS:
+        case F_GET_SEALS:
+        {
+            return -ENOSYS; // not implemented
+        }
+    }
+
+    return -EINVAL;
 }
 
 DEFINE_SYSCALL(void *, mmap_anonymous)(ptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t flags)
