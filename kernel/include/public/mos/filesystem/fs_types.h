@@ -2,13 +2,13 @@
 
 #pragma once
 
+#include <abi-bits/fcntl.h>
 #include <mos/mm/mm_types.h>
 #include <mos/mos_global.h>
 #include <mos/types.h>
 
 #define PATH_DELIM     '/'
 #define PATH_DELIM_STR "/"
-#define FD_CWD         (MOS_PROCESS_MAX_OPEN_FILES + 100)
 
 typedef enum
 {

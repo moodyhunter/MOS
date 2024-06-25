@@ -64,7 +64,7 @@ fd_t open(const char *path, open_flags flags)
     if (path == NULL)
         return -1;
 
-    return openat(FD_CWD, path, flags);
+    return openat(AT_FDCWD, path, flags);
 }
 
 fd_t openat(fd_t fd, const char *path, open_flags flags)
@@ -85,12 +85,12 @@ bool lstatat(int fd, const char *path, file_stat_t *buf)
 
 bool chdir(const char *path)
 {
-    return syscall_vfs_chdirat(FD_CWD, path) == 0;
+    return syscall_vfs_chdirat(AT_FDCWD, path) == 0;
 }
 
 bool unlink(const char *path)
 {
-    return syscall_vfs_unlinkat(FD_CWD, path) == 0;
+    return syscall_vfs_unlinkat(AT_FDCWD, path) == 0;
 }
 
 int printf(const char *fmt, ...)

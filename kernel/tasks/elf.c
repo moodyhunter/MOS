@@ -189,7 +189,7 @@ static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, m
 
 static ptr_t elf_map_interpreter(const char *path, mm_context_t *mm)
 {
-    file_t *const interp_file = vfs_openat(FD_CWD, path, OPEN_READ | OPEN_EXECUTE);
+    file_t *const interp_file = vfs_openat(AT_FDCWD, path, OPEN_READ | OPEN_EXECUTE);
     if (IS_ERR(interp_file))
         return 0;
 
@@ -408,7 +408,7 @@ cleanup_close_file:
 process_t *elf_create_process(const char *path, process_t *parent, const char *const argv[], const char *const envp[], const stdio_t *ios)
 {
     process_t *proc = NULL;
-    file_t *file = vfs_openat(FD_CWD, path, OPEN_READ | OPEN_EXECUTE);
+    file_t *file = vfs_openat(AT_FDCWD, path, OPEN_READ | OPEN_EXECUTE);
     if (IS_ERR(file))
     {
         mos_warn("failed to open '%s'", path);

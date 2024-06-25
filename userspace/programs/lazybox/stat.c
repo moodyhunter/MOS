@@ -13,7 +13,7 @@ int main(int argc, char **argv)
     for (int i = 1; i < argc; i++)
     {
         file_stat_t statbuf;
-        if (!lstatat(FD_CWD, argv[i], &statbuf))
+        if (!lstatat(AT_FDCWD, argv[i], &statbuf))
         {
             fprintf(stderr, "%s: No such file or directory\n", argv[i]);
             return 1;
@@ -33,7 +33,7 @@ int main(int argc, char **argv)
             case FILE_TYPE_SYMLINK:
             {
                 puts("Type: Symbolic link");
-                const size_t size = syscall_vfs_readlinkat(FD_CWD, argv[i], link_target, sizeof(link_target));
+                const size_t size = syscall_vfs_readlinkat(AT_FDCWD, argv[i], link_target, sizeof(link_target));
                 if (size == (size_t) -1)
                 {
                     puts("readlink failed");

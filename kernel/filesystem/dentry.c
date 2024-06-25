@@ -23,7 +23,7 @@
 //
 // - begin with a slash, indicating that's an absolute path
 // - begin without a slash, indicating that's a relative path
-//   (relative to the current working directory (FD_CWD))
+//   (relative to the current working directory (AT_FDCWD))
 //
 // A path may end with a slash, indicating that the caller expects
 // the path to be a directory
@@ -323,7 +323,7 @@ void dentry_detach(dentry_t *d)
 
 dentry_t *dentry_from_fd(fd_t fd)
 {
-    if (fd == FD_CWD)
+    if (fd == AT_FDCWD)
     {
         if (current_thread)
             return current_process->working_directory;
@@ -331,7 +331,7 @@ dentry_t *dentry_from_fd(fd_t fd)
             return root_dentry; // no current process, so cwd is always root
     }
 
-    // sanity check: fd != FD_CWD, no current process
+    // sanity check: fd != AT_FDCWD, no current process
     MOS_ASSERT(current_thread);
 
     io_t *io = process_get_fd(current_process, fd);

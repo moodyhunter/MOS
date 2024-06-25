@@ -120,7 +120,7 @@ void dentry_detach(dentry_t *dentry);
 /**
  * @brief Get the dentry from a file descriptor
  *
- * @param fd The file descriptor, there's a special case for FD_CWD, which corresponds to the process's current working directory
+ * @param fd The file descriptor, there's a special case for AT_FDCWD, which corresponds to the process's current working directory
  *
  * @return The dentry associated with the file descriptor, or NULL if the file descriptor is invalid
  */

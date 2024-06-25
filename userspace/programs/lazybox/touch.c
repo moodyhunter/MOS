@@ -4,7 +4,7 @@
 
 void do_touch(const char *path)
 {
-    fd_t fd = syscall_vfs_openat(FD_CWD, path, OPEN_READ | OPEN_WRITE | OPEN_CREATE);
+    fd_t fd = syscall_vfs_openat(AT_FDCWD, path, OPEN_READ | OPEN_WRITE | OPEN_CREATE);
     if (IS_ERR_VALUE(fd))
         fprintf(stderr, "failed to touch file '%s'\n", path);
     syscall_io_close(fd);
