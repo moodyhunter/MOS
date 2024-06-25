@@ -176,8 +176,6 @@ bool register_blockdevfs()
     pb_release(mos_rpc_fs_register_request_fields, &req);
     pb_release(mos_rpc_fs_register_response_fields, &resp);
 
-    std::cout << "blockdevfs: registered with filesystem server" << std::endl;
-
     pthread_t worker;
     if (pthread_create(&worker, NULL, blockdevfs_worker, NULL) != 0)
     {

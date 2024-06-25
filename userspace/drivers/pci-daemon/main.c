@@ -16,6 +16,12 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#define DEBUG 0
+
+// clang-format off
+#define debug_printf(fmt, ...) do { if (DEBUG) printf(fmt __VA_OPT__(,) __VA_ARGS__); } while (0)
+// clang-format on
+
 ptr_t mmio_base;
 static rpc_server_stub_t *dm;
 
@@ -24,7 +30,7 @@ static rpc_server_stub_t *dm;
 static void scan_callback(u8 bus, u8 device, u8 function, u16 vendor_id, u16 device_id, u8 base_class, u8 sub_class, u8 prog_if)
 {
     const char *class_name = get_known_class_name(base_class, sub_class, prog_if);
-    printf("PCI: %02x:%02x.%01x: [%04x:%04x] %s (%02x:%02x:%02x)\n", bus, device, function, vendor_id, device_id, class_name, base_class, sub_class, prog_if);
+    debug_printf("PCI: %02x:%02x.%01x: [%04x:%04x] %s (%02x:%02x:%02x)\n", bus, device, function, vendor_id, device_id, class_name, base_class, sub_class, prog_if);
     free((void *) class_name);
 
     const u32 location = (bus << 16) | (device << 8) | function;
@@ -73,14 +79,15 @@ static bool read_mcfg_table(void)
     close(fd);
 
     n_base_addr_alloc = (mcfg_table->length - sizeof(acpi_mcfg_header_t)) / sizeof(acpi_mcfg_base_addr_alloc_t);
+
     for (size_t i = 0; i < n_base_addr_alloc; i++)
     {
         const acpi_mcfg_base_addr_alloc_t *alloc = &base_addr_alloc[i];
-        printf("pci-daemon: MCFG table: base_address=%llx\n", alloc->base_address);
-        printf("pci-daemon: MCFG table: segment_group_number=%x\n", alloc->segment_group_number);
-        printf("pci-daemon: MCFG table: start_pci_bus_number=%x\n", alloc->start_pci_bus_number);
-        printf("pci-daemon: MCFG table: end_pci_bus_number=%x\n", alloc->end_pci_bus_number);
-        printf("pci-daemon: MCFG table: reserved=%x\n", alloc->reserved);
+        debug_printf("pci-daemon: MCFG table: base_address=%llx\n", alloc->base_address);
+        debug_printf("pci-daemon: MCFG table: segment_group_number=%x\n", alloc->segment_group_number);
+        debug_printf("pci-daemon: MCFG table: start_pci_bus_number=%x\n", alloc->start_pci_bus_number);
+        debug_printf("pci-daemon: MCFG table: end_pci_bus_number=%x\n", alloc->end_pci_bus_number);
+        debug_printf("pci-daemon: MCFG table: reserved=%x\n", alloc->reserved);
     }
 
     if (n_base_addr_alloc > 1)
@@ -94,7 +101,7 @@ static bool read_mcfg_table(void)
     // memory range
     const ptr_t start = base_addr_alloc->base_address;
     const ptr_t end = start + ((u32) base_addr_alloc->end_pci_bus_number - base_addr_alloc->start_pci_bus_number + 1) * 4 KB;
-    printf("pci-daemon: PCI memory range: " PTR_FMT "-" PTR_FMT "\n", start, end);
+    debug_printf("pci-daemon: PCI memory range: " PTR_FMT "-" PTR_FMT "\n", start, end);
 
     // map the PCI memory range
     const u64 size = ALIGN_UP_TO_PAGE(end - start);

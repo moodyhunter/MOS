@@ -108,8 +108,10 @@ rpc_result_code_t BlockManager::register_device(rpc_context_t *, register_device
 
     devices.emplace(req->device_info.name, info);
 
-    std::cout << "Registered device " << req->device_info.name << " with " << req->device_info.n_blocks << " blocks of size " << req->device_info.block_size << " bytes"
+    std::cout << "block device '" << req->device_info.name << "' with " << req->device_info.n_blocks << " blocks of size " << req->device_info.block_size << " bytes"
               << std::endl;
+
+    resp->id = info.ino;
 
     resp->result.success = true;
     resp->result.error = NULL;

@@ -8,8 +8,6 @@
 #include <cassert>
 #include <iostream>
 #include <optional>
-
-#undef __unused // TODO: fixme
 #include <sys/stat.h>
 
 static std::optional<mos_rpc_blockdev_blockdev> open_blockdev(const std::string &name)

@@ -1,3 +1,5 @@
+sleep 1
+
 # setup some VERY USEFUL aliases
 alias l ls
 alias poweroff shutdown
@@ -9,3 +11,5 @@ alias ..... 'cd ../../../..'
 alias meminfo 'cat /sys/mmstat/stat'
 alias slabinfo 'cat /sys/slab/status'
 alias vmaps 'cat /sys/current/vmaps'
+
+cat /initrd/README.txt

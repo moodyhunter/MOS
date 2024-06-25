@@ -8,7 +8,4 @@
 |  |      |  |   '. \_/``".'    \       /
 '--'      '--'     '-----'       `-...-'
 
-Hello, world!
-
-This text is stored in /README.txt and is read by the
-init program.
+Welcome to the MOS operating system.

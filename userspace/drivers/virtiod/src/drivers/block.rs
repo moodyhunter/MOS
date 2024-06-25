@@ -61,7 +61,6 @@ impl BlockDevDriver {
             )));
         }
 
-        println!("registered with blockdev id {}", resp.id);
         Ok(())
     }
 

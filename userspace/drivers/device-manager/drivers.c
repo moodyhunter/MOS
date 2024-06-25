@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "dm.h"
-#include "dm/common.h"
 
 #include <libconfig/libconfig.h>
 #include <spawn.h>
@@ -78,7 +77,7 @@ bool try_start_driver(u16 vendor, u16 device, u32 location, u64 mmio_base)
         "--mmio-base", mmio_base_str, //
         NULL,
     };
-    printf("Starting driver: ");
+    printf("Starting driver:");
     for (size_t i = 0; argv[i]; i++)
         printf(" %s", argv[i]);
     putchar('\n');
