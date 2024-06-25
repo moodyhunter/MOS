@@ -444,7 +444,7 @@ long vfs_mount(const char *device, const char *path, const char *fs, const char 
         // we don't support overlaying filesystems yet
         mos_warn("mount point is already mounted");
         dentry_unref(mountpoint);
-        return -EBUSY;
+        return -ENOTSUP;
     }
 
     // when mounting:
@@ -454,7 +454,7 @@ long vfs_mount(const char *device, const char *path, const char *fs, const char 
     if (IS_ERR(mounted_root))
     {
         mos_warn("failed to mount filesystem");
-        return -EIO;
+        return PTR_ERR(mounted_root);
     }
 
     const bool mounted = dentry_mount(mountpoint, mounted_root, real_fs);
