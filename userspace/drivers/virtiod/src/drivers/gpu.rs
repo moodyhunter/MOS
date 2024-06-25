@@ -11,21 +11,29 @@ pub fn run_gpu<T: Transport>(transport: T) -> Result<(), Error> {
     let height = height as usize;
     println!("GPU resolution is {}x{}", width, height);
 
-    let fb = gpu.setup_framebuffer().expect("failed to get fb");
+    let fb = gpu.setup_framebuffer().expect("failed to get fb").as_ptr() as *mut u8;
 
-    for y in 0..height {
-        for x in 0..width {
-            let idx = (y * width + x) * 4;
-            fb[idx] = x as u8;
-            fb[idx + 1] = y as u8;
-            fb[idx + 2] = (x + y) as u8;
+    let mut n = 0;
+
+    loop {
+        for y in 0..height {
+            for x in 0..width {
+                let idx = ((y * width + x) * 4) as usize;
+
+                let b = fb.wrapping_add(idx);
+                let g = fb.wrapping_add(idx + 1);
+                let r = fb.wrapping_add(idx + 2);
+
+                unsafe {
+                    *b = (n + x + y) as u8;
+                    *g = (n + x + y) as u8;
+                    *r = (n + x + y) as u8;
+                }
+            }
         }
+
+        n = n.wrapping_add(50);
+        gpu.flush().expect("failed to flush");
+        sleep(std::time::Duration::from_secs(1));
     }
-
-    gpu.flush().expect("failed to flush");
-
-    println!("virtio-gpu show graphics...");
-    sleep(std::time::Duration::from_secs(10));
-    println!("virtio-gpu test finished");
-    Ok(())
 }
