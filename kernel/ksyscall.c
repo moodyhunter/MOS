@@ -487,17 +487,17 @@ DEFINE_SYSCALL(fd_t, io_dup)(fd_t fd)
 
 DEFINE_SYSCALL(fd_t, io_dup2)(fd_t oldfd, fd_t newfd)
 {
-    io_t *io = process_get_fd(current_process, oldfd);
-    if (io == NULL)
+    fd_type *old = &current_process->files[oldfd];
+    if (old->io == NULL)
         return -EBADF; // oldfd is not a valid file descriptor
 
     if (oldfd == newfd)
         return newfd;
 
     process_detach_fd(current_process, newfd);
-    fd_type *fdt = &current_process->files[newfd];
-    fdt->io = io_ref(io);
-    // TODO: fd flags
+
+    current_process->files[newfd].io = io_ref(old->io);
+    current_process->files[newfd].flags = old->flags;
     return newfd;
 }
 
