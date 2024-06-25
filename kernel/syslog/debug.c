@@ -2,6 +2,8 @@
 
 #include "mos/syslog/debug.h"
 
+#include "mos/misc/setup.h"
+
 #if MOS_CONFIG(MOS_DYNAMIC_DEBUG)
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
@@ -61,5 +63,15 @@ static sysfs_item_t sys_debug_items[] = {
 };
 
 SYSFS_AUTOREGISTER(debug, sys_debug_items);
+
+#define SETUP_DEBUG_MODULE(name)                                                                                                                                         \
+    static bool setup_debug_##name(const char *value)                                                                                                                    \
+    {                                                                                                                                                                    \
+        mos_debug_info.name = cmdline_string_truthiness(value, true);                                                                                                    \
+        return true;                                                                                                                                                     \
+    }                                                                                                                                                                    \
+    MOS_SETUP("debug." #name, setup_debug_##name);
+
+MOS_ALL_DEBUG_MODULES(SETUP_DEBUG_MODULE)
 
 #endif
