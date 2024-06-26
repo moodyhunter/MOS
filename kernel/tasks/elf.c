@@ -16,7 +16,6 @@
 
 MOS_STATIC_ASSERT(sizeof(elf_header_t) == 0x40, "elf_header has wrong size");
 MOS_STATIC_ASSERT(sizeof(elf_program_hdr_t) == 0x38, "elf_program_header has wrong size");
-MOS_STATIC_ASSERT(sizeof(elf_section_hdr_t) == 0x40, "elf_section_header has wrong size");
 
 static void add_auxv_entry(auxv_vec_t *var, unsigned long type, unsigned long val)
 {

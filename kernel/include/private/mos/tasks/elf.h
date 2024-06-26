@@ -95,57 +95,6 @@ typedef struct
     ptr_t required_alignment;
 } __packed elf_program_hdr_t;
 
-typedef enum
-{
-    ELF_ST_NULL = 0,           // Unused entry
-    ELF_ST_PROGBITS = 1,       // Program data
-    ELF_ST_SYMTAB = 2,         // Symbol table
-    ELF_ST_STRTAB = 3,         // String table
-    ELF_ST_RELA = 4,           // Relocation entries with addends
-    ELF_ST_HASH = 5,           // Symbol hash table
-    ELF_ST_DYNAMIC = 6,        // Dynamic linking information
-    ELF_ST_NOTE = 7,           // Auxiliary information
-    ELF_ST_NOBITS = 8,         // Data
-    ELF_ST_REL = 9,            // Relocation entries without addends`
-    ELF_ST_SHLIB = 10,         // Reserved
-    ELF_ST_DYNSYM = 11,        // Dynamic linker symbol table
-    ELF_ST_INIT_ARRAY = 14,    // Array of constructors
-    ELF_ST_FINI_ARRAY = 15,    // Array of destructors
-    ELF_ST_PREINIT_ARRAY = 16, // Array of pre-constructors
-    ELF_ST_GROUP = 17,         // Section group
-    ELF_ST_SYMTAB_SHNDX = 18,  // Extended section indices
-    ELF_ST_NUM = 19,           // Number of defined types
-    ELF_ST_LOOS = 0x60000000,  // Start of OS-specific
-} elf_section_header_type;
-
-typedef enum
-{
-    ELF_SF_WRITE = 1,                // Writable
-    ELF_SF_ALLOC = 2,                // Occupies memory during execution
-    ELF_SF_EXECINSTR = 4,            // Executable
-    ELF_SF_MERGE = 0x10,             // Might be merged
-    ELF_SF_STRINGS = 0x20,           // Contains nul-terminated strings
-    ELF_SF_INFO_LINK = 0x40,         // `sh_info' contains SHT index
-    ELF_SF_LINK_ORDER = 0x80,        // Preserve order after combining
-    ELF_SF_OS_NONCONFORMING = 0x100, // Non-standard OS specific
-    ELF_SF_GROUP = 0x200,            // Section is member of a group
-    ELF_SF_TLS = 0x400,              // Section hold thread-local data
-} elf_section_flags;
-
-typedef struct
-{
-    u32 name_index; // Section name (string table (.shstrtab) index)
-    elf_section_header_type header_type;
-    u64 attributes;  // sizeof(long)
-    ptr_t sh_addr;   // Virtual address of the section in memory, if loaded
-    ptr_t sh_offset; // Offset of the section in the file
-    size_t sh_size;  // Size of the section in bytes
-    u32 sh_link;
-    u32 sh_info;
-    ptr_t sh_addralign;
-    size_t sh_entsize;
-} __packed elf_section_hdr_t;
-
 #define AUXV_VEC_SIZE 16
 
 typedef struct
