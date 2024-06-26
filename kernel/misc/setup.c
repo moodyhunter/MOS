@@ -17,12 +17,9 @@ void startup_invoke_autoinit(init_target_t target)
     }
 }
 
-void startup_invoke_setup(void)
+static void do_invoke_setup(const mos_setup_t start[], const mos_setup_t end[])
 {
-    extern const mos_setup_t __MOS_SETUP_START[]; // defined in linker script
-    extern const mos_setup_t __MOS_SETUP_END[];
-
-    for (const mos_setup_t *func = __MOS_SETUP_START; func < __MOS_SETUP_END; func++)
+    for (const mos_setup_t *func = start; func < end; func++)
     {
         cmdline_option_t *option = cmdline_get_option(func->param);
 
@@ -49,25 +46,16 @@ void startup_invoke_setup(void)
     }
 }
 
+void startup_invoke_setup(void)
+{
+    extern const mos_setup_t __MOS_SETUP_START[]; // defined in linker script
+    extern const mos_setup_t __MOS_SETUP_END[];
+    do_invoke_setup(__MOS_SETUP_START, __MOS_SETUP_END);
+}
+
 void startup_invoke_earlysetup(void)
 {
     extern const mos_setup_t __MOS_EARLY_SETUP_START[]; // defined in linker script
     extern const mos_setup_t __MOS_EARLY_SETUP_END[];
-
-    for (const mos_setup_t *func = __MOS_EARLY_SETUP_START; func < __MOS_EARLY_SETUP_END; func++)
-    {
-        cmdline_option_t *option = cmdline_get_option(func->param);
-
-        if (unlikely(!option))
-        {
-            pr_dinfo2(setup, "no option given for '%s'", func->param);
-            continue;
-        }
-
-        pr_dinfo2(setup, "invoking early setup function for '%s'", func->param);
-        if (unlikely(!func->setup_fn(option->arg)))
-            pr_warn("early setup function for '%s' failed", func->param);
-
-        option->used = true;
-    }
+    do_invoke_setup(__MOS_EARLY_SETUP_START, __MOS_EARLY_SETUP_END);
 }
