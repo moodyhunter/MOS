@@ -17,7 +17,8 @@ You can install these tools using your favorite package manager.
 
 ## 2. Architecture Specific Dependencies
 
-**x86_64**: please refer to the [x86_64 dependencies](../arch/x86_64/dependencies.md) for the dependencies.
+- **Generic**: [Generic Architecture Dependencies](../arch/generic/dependencies.md) lists the dependencies for all architectures.
+- **x86_64**: please refer to the [x86_64 dependencies](../arch/x86_64/dependencies.md) for the dependencies.
 
 ## 3. MOS Toolchain
 

@@ -1,11 +1,10 @@
 ---
+title: Configuration Details
 icon: tools
 order: -200
 description: >-
   This section describes how to configure the kernel.
 ---
-
-# MOS Configuration
 
 MOS is highly configurable, and you can configure it both at compile time and runtime.
 
