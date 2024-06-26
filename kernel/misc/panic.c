@@ -106,12 +106,8 @@ void try_handle_kernel_panics(ptr_t ip)
     }
     in_panic = true;
 
-    extern bool printk_quiet;
-    if (printk_quiet)
-    {
-        printk_quiet = false; // make sure we print the panic message
-        pr_info("quiet mode disabled.");
-    }
+    if (printk_unquiet())
+        pr_info("quiet mode disabled"); // was quiet
 
     pr_emerg("");
     pr_fatal("!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -177,9 +173,9 @@ void mos_kwarn(const char *func, u32 line, const char *fmt, ...)
         return;
     }
 
-    char message[PRINTK_BUFFER_SIZE];
+    char message[MOS_PRINTK_BUFFER_SIZE];
     va_start(args, fmt);
-    vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
+    vsnprintf(message, MOS_PRINTK_BUFFER_SIZE, fmt, args);
     va_end(args);
 
     lprintk(MOS_LOG_WARN, "\n%s", message);

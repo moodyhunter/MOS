@@ -33,7 +33,7 @@ cmdline_option_t *cmdline_get_option(const char *option_name)
 void mos_cmdline_init(const char *cmdline)
 {
     // must be static so that it doesn't get freed
-    static char cmdline_buf[PRINTK_BUFFER_SIZE];
+    static char cmdline_buf[MOS_PRINTK_BUFFER_SIZE];
 
     // first we copy EXTRA_CMDLINE to cmdline_buf
     size_t cmdline_len = 0;

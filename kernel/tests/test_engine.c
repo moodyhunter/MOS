@@ -16,8 +16,8 @@ s32 test_engine_n_warning_expected = 0;
 
 static void test_engine_warning_handler(const char *func, u32 line, const char *fmt, va_list args)
 {
-    char message[PRINTK_BUFFER_SIZE];
-    vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
+    char message[MOS_PRINTK_BUFFER_SIZE];
+    vsnprintf(message, MOS_PRINTK_BUFFER_SIZE, fmt, args);
 
     if (test_engine_n_warning_expected == 0)
     {

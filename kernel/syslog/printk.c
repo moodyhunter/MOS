@@ -9,8 +9,8 @@
 #include <mos_stdio.h>
 #include <mos_string.h>
 
-static console_t *printk_console;
-bool printk_quiet;
+static console_t *printk_console = NULL;
+static bool printk_quiet = false;
 
 static bool printk_setup_console(const char *kcon_name)
 {
@@ -64,7 +64,7 @@ static inline void deduce_level_color(int loglevel, standard_color_t *fg, standa
     }
 }
 
-static void print_to_console(console_t *con, mos_loglevel loglevel, const char *message, size_t len)
+static void print_to_console(console_t *con, loglevel_t loglevel, const char *message, size_t len)
 {
     if (!con)
         return;
@@ -74,14 +74,14 @@ static void print_to_console(console_t *con, mos_loglevel loglevel, const char *
     console_write_color(con, message, len, fg, bg);
 }
 
-void lvprintk(mos_loglevel loglevel, const char *fmt, va_list args)
+static void lvprintk(loglevel_t loglevel, const char *fmt, va_list args)
 {
     // only print warnings and errors if quiet mode is enabled
     if (printk_quiet && loglevel < MOS_LOG_WARN)
         return;
 
-    char message[PRINTK_BUFFER_SIZE];
-    const int len = vsnprintf(message, PRINTK_BUFFER_SIZE, fmt, args);
+    char message[MOS_PRINTK_BUFFER_SIZE];
+    const int len = vsnprintf(message, MOS_PRINTK_BUFFER_SIZE, fmt, args);
 
     if (unlikely(!printk_console))
     {
@@ -107,7 +107,7 @@ void printk_set_quiet(bool quiet)
     printk_quiet = quiet;
 }
 
-void lprintk(mos_loglevel loglevel, const char *format, ...)
+void lprintk(loglevel_t loglevel, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -121,9 +121,4 @@ void printk(const char *format, ...)
     va_start(args, format);
     lvprintk(MOS_LOG_INFO, format, args);
     va_end(args);
-}
-
-void vprintk(const char *format, va_list args)
-{
-    lvprintk(MOS_LOG_INFO, format, args);
 }

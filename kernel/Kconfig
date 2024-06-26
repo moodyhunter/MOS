@@ -36,6 +36,15 @@ config DYNAMIC_DEBUG
     This option adds support for dynamic debug messages. This allows
     you to enable and disable debug messages at runtime.
 
+config PRINTK_BUFFER_SIZE
+    int "Size of the printk buffer"
+    default 1024
+    help
+    This is the size of the printk buffer. The printk buffer is used
+    to store messages that are printed to the console. A larger buffer
+    will allow longer messages to be printed, but will consume more
+    stack space. If the buffer is too small, messages may be truncated.
+
 config INODE_CACHE_HASHMAP_SIZE
     int "Inode cache hashmap size"
     default 256

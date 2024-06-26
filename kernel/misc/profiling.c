@@ -20,8 +20,8 @@
 
 static console_t *profile_console = NULL;
 static spinlock_t profile_lock = SPINLOCK_INIT;
-static char profile_buffer[PRINTK_BUFFER_SIZE] = { 0 };
-static char name_buffer[PRINTK_BUFFER_SIZE] = { 0 };
+static char profile_buffer[MOS_PRINTK_BUFFER_SIZE] = { 0 };
+static char name_buffer[MOS_PRINTK_BUFFER_SIZE] = { 0 };
 
 static bool profile_output_console(const char *console)
 {

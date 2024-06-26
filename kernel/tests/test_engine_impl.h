@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include "mos/syslog/printk.h"
-
 #include <mos/mos_global.h>
 #include <mos/types.h>
 #include <mos_stdio.h>
@@ -72,8 +70,8 @@ typedef struct
     }                                                                                                                                                                    \
     static void _MT_WRAP_PTEST_CALLER(_PTestName)(mos_test_result_t * result)                                                                                            \
     {                                                                                                                                                                    \
-        char __buf[PRINTK_BUFFER_SIZE] = { 0 };                                                                                                                          \
-        snprintf(__buf, PRINTK_BUFFER_SIZE, _MT_PTEST_ARG_FORMAT(_PTestName), __VA_ARGS__);                                                                              \
+        char __buf[MOS_PRINTK_BUFFER_SIZE] = { 0 };                                                                                                                      \
+        snprintf(__buf, MOS_PRINTK_BUFFER_SIZE, _MT_PTEST_ARG_FORMAT(_PTestName), __VA_ARGS__);                                                                          \
         mos_test_log(MOS_LOG_INFO, 'P', "Test %s with parameters: ", #_PTestName);                                                                                       \
         mos_test_log_cont(MOS_LOG_UNSET, "(%s)... ", __buf);                                                                                                             \
         _MT_RUN_TEST_AND_PRINT_RESULT(result, _MT_PTEST_CALLER(_PTestName));                                                                                             \
