@@ -100,7 +100,7 @@ static bool schedule_to_thread(uintn key, void *value, void *data)
     return true;
 }
 
-void __cold unblock_scheduler(void)
+void unblock_scheduler(void)
 {
     pr_dinfo2(scheduler, "unblocking scheduler");
     MOS_ASSERT_X(!scheduler_ready, "scheduler is already unblocked");

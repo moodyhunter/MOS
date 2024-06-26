@@ -16,6 +16,6 @@ typedef struct
 
 MOS_STATIC_ASSERT(sizeof(sigaction_t) == 24, "update sigaction_t struct size");
 
-MOS_ASSERT_OFFSET(struct sigaction, __sa_handler, sigaction_t, handler, "update sigaction_t struct layout");
-MOS_ASSERT_OFFSET(struct sigaction, sa_flags, sigaction_t, sa_flags, "update sigaction_t struct layout");
-MOS_ASSERT_OFFSET(struct sigaction, sa_restorer, sigaction_t, sa_restorer, "update sigaction_t struct layout");
+MOS_STATIC_ASSERT(offsetof(struct sigaction, __sa_handler) == offsetof(sigaction_t, handler), "update sigaction_t struct layout");
+MOS_STATIC_ASSERT(offsetof(struct sigaction, sa_flags) == offsetof(sigaction_t, sa_flags), "update sigaction_t struct layout");
+MOS_STATIC_ASSERT(offsetof(struct sigaction, sa_restorer) == offsetof(sigaction_t, sa_restorer), "update sigaction_t struct layout");

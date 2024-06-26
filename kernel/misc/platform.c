@@ -2,7 +2,7 @@
 
 #include "mos/platform/platform.h"
 
-#include "mos/assert.h"
+#include "mos/misc/panic.h"
 #include "mos/syslog/printk.h"
 
 #include <mos/mos_global.h>

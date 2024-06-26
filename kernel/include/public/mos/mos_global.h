@@ -19,17 +19,6 @@
 #define MOS_STATIC_ASSERT _Static_assert
 #endif
 
-/**
- * @brief Helper macro to make sure the offset of a field in a struct is the same as another struct.
- */
-#define MOS_ASSERT_OFFSET(src_t, src_f, dst_t, dst_f, msg) MOS_STATIC_ASSERT(offsetof(src_t, src_f) == offsetof(dst_t, dst_f), msg)
-
-#if MOS_COMPILER_GCC
-#define __mos_copy_attr(target) __attribute__((__copy__(target)))
-#else
-#define __mos_copy_attr(target)
-#endif
-
 // clang-format off
 #if defined(__MOS_KERNEL__) && defined(__cplusplus)
 #define __BEGIN_DECLS extern "C" {
@@ -40,21 +29,16 @@
 #endif
 // clang-format on
 
-#define __alias(target, func) extern __typeof__(target) func __attribute__((__alias__(#target))) __mos_copy_attr(target)
+#define __aligned(x)   __attribute__((__aligned__(x)))
+#define __malloc       __attribute__((__malloc__))
+#define __packed       __attribute__((__packed__))
+#define __printf(a, b) __attribute__((__format__(__printf__, a, b)))
+#define __pure         __attribute__((__pure__))
+#define __section(S)   __attribute__((__section__(S)))
+#define __maybe_unused __attribute__((__unused__))
+#define __used         __attribute__((__used__))
+#define __nodiscard    __attribute__((__warn_unused_result__))
 
-#define __aligned(x)    __attribute__((__aligned__(x)))
-#define __cold          __attribute__((__cold__))
-#define __malloc        __attribute__((__malloc__))
-#define __packed        __attribute__((__packed__))
-#define __printf(a, b)  __attribute__((__format__(__printf__, a, b)))
-#define __pure          __attribute__((__pure__))
-#define __section(S)    __attribute__((__section__(S)))
-#define __maybe_unused  __attribute__((__unused__))
-#define __used          __attribute__((__used__))
-#define __nodiscard     __attribute__((__warn_unused_result__))
-#define __no_instrument __attribute__((__no_instrument_function__))
-
-#define asmlinkage    __attribute__((sysv_abi))
 #define should_inline __maybe_unused static inline
 
 #define likely(x)   __builtin_expect(!!(x), 1)
@@ -96,8 +80,7 @@
 #define ALIGN_UP_TO_PAGE(addr)   ALIGN_UP(addr, MOS_PAGE_SIZE)
 #define ALIGN_DOWN_TO_PAGE(addr) ALIGN_DOWN(addr, MOS_PAGE_SIZE)
 
-#define MOS_IN_RANGE(addr, start, end)       ((addr) >= (start) && (addr) < (end))
-#define SUBSET_RANGE(addr, size, start, end) (MOS_IN_RANGE(addr, start, end) && MOS_IN_RANGE(addr + size, start, end))
+#define MOS_IN_RANGE(addr, start, end) ((addr) >= (start) && (addr) < (end))
 
 #define MOS_FOURCC(a, b, c, d) ((u32) (a) | ((u32) (b) << 8) | ((u32) (c) << 16) | ((u32) (d) << 24))
 #define MOS_ARRAY_SIZE(x)      (sizeof(x) / sizeof(x[0]))

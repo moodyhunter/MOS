@@ -64,7 +64,7 @@ static platform_regs_t *x86_setup_thread_common(thread_t *thread)
     return regs;
 }
 
-static void x86_setup_main_thread(thread_t *thread, ptr_t entry, ptr_t sp, int argc, ptr_t argv, ptr_t envp)
+void platform_context_setup_main_thread(thread_t *thread, ptr_t entry, ptr_t sp, int argc, ptr_t argv, ptr_t envp)
 {
     platform_regs_t *regs = x86_setup_thread_common(thread);
     regs->ip = entry;
@@ -73,7 +73,6 @@ static void x86_setup_main_thread(thread_t *thread, ptr_t entry, ptr_t sp, int a
     regs->dx = envp;
     regs->sp = sp;
 }
-__alias(x86_setup_main_thread, platform_context_setup_main_thread);
 
 void platform_context_cleanup(thread_t *thread)
 {
@@ -82,7 +81,7 @@ void platform_context_cleanup(thread_t *thread)
             kfree(thread->platform_options.xsaveptr), thread->platform_options.xsaveptr = NULL;
 }
 
-static void x86_setup_child_thread(thread_t *thread, thread_entry_t entry, void *arg)
+void platform_context_setup_child_thread(thread_t *thread, thread_entry_t entry, void *arg)
 {
     platform_regs_t *regs = x86_setup_thread_common(thread);
     regs->di = (ptr_t) arg;
@@ -97,9 +96,8 @@ static void x86_setup_child_thread(thread_t *thread, thread_entry_t entry, void 
     regs->di = (ptr_t) arg;          // argument
     regs->sp = thread->u_stack.head; // update the stack pointer
 }
-__alias(x86_setup_child_thread, platform_context_setup_child_thread);
 
-static void x86_clone_forked_context(const thread_t *from, thread_t *to)
+void platform_context_clone(const thread_t *from, thread_t *to)
 {
     platform_regs_t *to_regs = platform_thread_regs(to);
     *to_regs = *platform_thread_regs(from);
@@ -117,9 +115,8 @@ static void x86_clone_forked_context(const thread_t *from, thread_t *to)
     to->platform_options.gs_base = from->platform_options.gs_base;
     to->k_stack.head -= sizeof(platform_regs_t);
 }
-__alias(x86_clone_forked_context, platform_context_clone);
 
-static void x86_switch_to_thread(ptr_t *scheduler_stack, thread_t *new_thread, switch_flags_t switch_flags)
+void platform_switch_to_thread(ptr_t *scheduler_stack, thread_t *new_thread, switch_flags_t switch_flags)
 {
     thread_t *const old_thread = current_thread;
     const switch_func_t switch_func = switch_flags & SWITCH_TO_NEW_USER_THREAD   ? x86_start_user_thread :
@@ -135,13 +132,11 @@ static void x86_switch_to_thread(ptr_t *scheduler_stack, thread_t *new_thread, s
 
     x86_context_switch_impl(scheduler_stack, new_thread->k_stack.head, switch_func);
 }
-__alias(x86_switch_to_thread, platform_switch_to_thread);
 
-static void x86_switch_to_scheduler(ptr_t *old_stack, ptr_t scheduler_stack)
+void platform_switch_to_scheduler(ptr_t *old_stack, ptr_t scheduler_stack)
 {
     x86_context_switch_impl(old_stack, scheduler_stack, x86_normal_switch_impl);
 }
-__alias(x86_switch_to_scheduler, platform_switch_to_scheduler);
 
 void x86_set_fsbase(thread_t *thread)
 {

@@ -12,29 +12,29 @@
 
 #include <mos_stdlib.h>
 
+#define limine_request __section(".limine.requests") __used static volatile
+
 MOS_WARNING_PUSH
 MOS_WARNING_DISABLE("-Wextra-semi")
 MOS_WARNING_DISABLE("-Wpedantic")
 __used __section(".limine.markers.requests_start") static volatile LIMINE_REQUESTS_START_MARKER;
 __used __section(".limine.markers.requests_end") static volatile LIMINE_REQUESTS_END_MARKER;
-__used __section(".limine.requests") static volatile LIMINE_BASE_REVISION(2);
+limine_request LIMINE_BASE_REVISION(2);
 MOS_WARNING_POP
 
-#define limine_request __section(".limine.requests") __used static volatile struct
-
-limine_request limine_bootloader_info_request bootloader_info = { .id = LIMINE_BOOTLOADER_INFO_REQUEST, .revision = 0 };
-limine_request limine_dtb_request dtb = { .id = LIMINE_DTB_REQUEST, .revision = 0 };
-limine_request limine_efi_system_table_request efi_system_table = { .id = LIMINE_EFI_SYSTEM_TABLE_REQUEST, .revision = 0 };
-limine_request limine_framebuffer_request framebuffer = { .id = LIMINE_FRAMEBUFFER_REQUEST, .revision = 0 };
-limine_request limine_hhdm_request hhdm = { .id = LIMINE_HHDM_REQUEST, .revision = 0 };
-limine_request limine_kernel_address_request kernel_address = { .id = LIMINE_KERNEL_ADDRESS_REQUEST, .revision = 0 };
-limine_request limine_kernel_file_request kernel_file = { .id = LIMINE_KERNEL_FILE_REQUEST, .revision = 0 };
-limine_request limine_memmap_request memmap = { .id = LIMINE_MEMMAP_REQUEST, .revision = 0 };
-limine_request limine_module_request module = { .id = LIMINE_MODULE_REQUEST, .revision = 0 };
-limine_request limine_paging_mode_request paging_mode = { .id = LIMINE_PAGING_MODE_REQUEST, .revision = 0, .mode = LIMINE_PAGING_MODE_DEFAULT };
-limine_request limine_rsdp_request rsdp = { .id = LIMINE_RSDP_REQUEST, .revision = 0 };
-limine_request limine_smp_request smp = { .id = LIMINE_SMP_REQUEST, .revision = 0, .flags = 0 };
-limine_request limine_stack_size_request stack_size = { .id = LIMINE_STACK_SIZE_REQUEST, .revision = 0, .stack_size = 16 MB };
+limine_request struct limine_bootloader_info_request bootloader_info = { .id = LIMINE_BOOTLOADER_INFO_REQUEST, .revision = 0 };
+limine_request struct limine_dtb_request dtb = { .id = LIMINE_DTB_REQUEST, .revision = 0 };
+limine_request struct limine_efi_system_table_request efi_system_table = { .id = LIMINE_EFI_SYSTEM_TABLE_REQUEST, .revision = 0 };
+limine_request struct limine_framebuffer_request framebuffer = { .id = LIMINE_FRAMEBUFFER_REQUEST, .revision = 0 };
+limine_request struct limine_hhdm_request hhdm = { .id = LIMINE_HHDM_REQUEST, .revision = 0 };
+limine_request struct limine_kernel_address_request kernel_address = { .id = LIMINE_KERNEL_ADDRESS_REQUEST, .revision = 0 };
+limine_request struct limine_kernel_file_request kernel_file = { .id = LIMINE_KERNEL_FILE_REQUEST, .revision = 0 };
+limine_request struct limine_memmap_request memmap = { .id = LIMINE_MEMMAP_REQUEST, .revision = 0 };
+limine_request struct limine_module_request module = { .id = LIMINE_MODULE_REQUEST, .revision = 0 };
+limine_request struct limine_paging_mode_request paging_mode = { .id = LIMINE_PAGING_MODE_REQUEST, .revision = 0, .mode = LIMINE_PAGING_MODE_DEFAULT };
+limine_request struct limine_rsdp_request rsdp = { .id = LIMINE_RSDP_REQUEST, .revision = 0 };
+limine_request struct limine_smp_request smp = { .id = LIMINE_SMP_REQUEST, .revision = 0, .flags = 0 };
+limine_request struct limine_stack_size_request stack_size = { .id = LIMINE_STACK_SIZE_REQUEST, .revision = 0, .stack_size = 16 MB };
 
 static void add_to_memmap(pfn_t start, size_t npages, bool reserved, u32 type, const char *typestr)
 {

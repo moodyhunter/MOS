@@ -14,7 +14,7 @@ static idtr_t idtr;
 #define STS_IG32 0xE // 32-bit Interrupt Gate
 #define STS_TG32 0xF // 32-bit Trap Gate
 
-extern asmlinkage void idt_flush(idtr_t *idtr);
+__attribute__((sysv_abi)) void idt_flush(idtr_t *idtr);
 
 static void idt_set_descriptor(u8 vector, void *isr, bool usermode, bool is_trap)
 {
