@@ -25,8 +25,6 @@ SECTIONS
 
     .mos_info ALIGN(4K) :
     {
-        __MOS_KERNEL_MOS_INFO_START = .;
-
         __MOS_TEST_CASES_START = .;
         *(.mos.test_cases);
         __MOS_TEST_CASES_END = .;
@@ -51,7 +49,6 @@ SECTIONS
         *(.mos.panic_hooks);
         __MOS_PANIC_HOOKS_END = .;
 
-        __MOS_KERNEL_MOS_INFO_END = .;
         __MOS_KERNEL_RODATA_END = .;
     }
 
