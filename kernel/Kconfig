@@ -19,7 +19,7 @@ config EXTRA_CMDLINE
 
 config SMP
     bool "SMP support"
-    default n
+    default y
 
 config MM_DETAILED_UNHANDLED_FAULT
     bool "Print detailed information on unhandled #PF"

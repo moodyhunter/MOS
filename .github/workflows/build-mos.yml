@@ -16,19 +16,17 @@ jobs:
       matrix:
         config:
           - {
-              "name": "x86_64 limine (no SMP)",
+              "name": "x86_64 limine",
               "arch": "x86_64",
               "target": "mos_limine",
               "artifact": "mos_limine.elf",
-              "has_smp": "n",
               "compile_only": "ON",
             }
           - {
-              "name": "RISC-V limine (no SMP)",
+              "name": "RISC-V limine",
               "arch": "riscv64",
               "target": "mos_limine",
               "artifact": "mos_limine.elf",
-              "has_smp": "n",
               "compile_only": "ON",
             }
         build_type: [Debug, Release]
@@ -63,7 +61,6 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
             -DMOS_CONFIG=${{matrix.config.arch}}-debug \
             -DMOS_ARCH=${{matrix.config.arch}} \
-            -DMOS_SMP=${{matrix.config.has_smp}} \
             -B build \
             -G Ninja
 
