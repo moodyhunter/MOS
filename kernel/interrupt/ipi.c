@@ -52,7 +52,7 @@ void ipi_send(u8 target, ipi_type_t type)
 void ipi_send_all(ipi_type_t type)
 {
     pr_dinfo2(ipi, "Sending IPI to all of type %d", type);
-    ipi_send(TARGET_CPU_ALL, type);
+    platform_ipi_send(TARGET_CPU_ALL, type);
 }
 
 void ipi_do_handle(ipi_type_t type)
