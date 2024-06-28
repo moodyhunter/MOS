@@ -49,7 +49,7 @@ extern "C" int __cxa_atexit(void (*destructor)(void *), void *arg, void *dso)
 
 // static scoped variable constructor support
 
-extern "C" int __cxxabiv1::__cxa_guard_acquire(abi::__guard *g)
+extern "C" int abi::__cxa_guard_acquire(abi::__guard *g)
 {
     // TODO: stub functions, implement 64-bit mutexes/futex-word
     __atomic_thread_fence(__ATOMIC_ACQUIRE);
@@ -59,7 +59,7 @@ extern "C" int __cxxabiv1::__cxa_guard_acquire(abi::__guard *g)
 }
 
 // this function is called when a constructor finishes
-extern "C" void __cxxabiv1::__cxa_guard_release(abi::__guard *g)
+extern "C" void abi::__cxa_guard_release(abi::__guard *g)
 {
     long zero = 0;
     __atomic_store(g, &zero, __ATOMIC_RELEASE);
@@ -67,6 +67,6 @@ extern "C" void __cxxabiv1::__cxa_guard_release(abi::__guard *g)
 }
 
 // this function is called when a constructor throws an exception
-extern "C" void __cxxabiv1::__cxa_guard_abort(abi::__guard *)
+extern "C" void abi::__cxa_guard_abort(abi::__guard *)
 {
 }
