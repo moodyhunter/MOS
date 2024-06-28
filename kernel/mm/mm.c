@@ -375,12 +375,20 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     if (info->is_write && info->is_exec)
         mos_panic("Cannot write and execute at the same time");
 
+    size_t offset = 0;
+    vmap_t *fault_vmap = NULL;
+    vmap_t *ip_vmap = NULL;
+
+    if (!current_mm)
+    {
+        unhandled_reason = "no mm context";
+        goto unhandled_fault;
+    }
+
     mm_context_t *const mm = current_mm;
     mm_lock_ctx_pair(mm, NULL);
 
-    size_t offset;
-    vmap_t *fault_vmap = vmap_obtain(mm, fault_addr, &offset);
-    vmap_t *ip_vmap = NULL;
+    fault_vmap = vmap_obtain(mm, fault_addr, &offset);
     if (!fault_vmap)
     {
         ip_vmap = vmap_obtain(mm, info->ip, NULL);
