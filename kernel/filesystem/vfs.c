@@ -150,7 +150,10 @@ static vmfault_result_t vfs_fault_handler(vmap_t *vmap, ptr_t fault_addr, pagefa
     MOS_ASSERT(vmap->io);
     file_t *file = container_of(vmap->io, file_t, io);
     const size_t fault_pgoffset = (vmap->io_offset + ALIGN_DOWN_TO_PAGE(fault_addr) - vmap->vaddr) / MOS_PAGE_SIZE;
-    phyframe_t *pagecache_page = pagecache_get_page_for_read(&file->dentry->inode->cache, fault_pgoffset);
+
+    spinlock_acquire(&file->dentry->inode->cache.lock); // lock the inode cache
+    phyframe_t *const pagecache_page = pagecache_get_page_for_read(&file->dentry->inode->cache, fault_pgoffset);
+    spinlock_release(&file->dentry->inode->cache.lock);
 
     if (IS_ERR(pagecache_page))
         return VMFAULT_CANNOT_HANDLE;

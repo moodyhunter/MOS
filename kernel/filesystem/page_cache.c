@@ -2,6 +2,7 @@
 
 #include "mos/filesystem/page_cache.h"
 
+#include "mos/lib/sync/spinlock.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/mmstat.h"
 #include "mos/mm/physical/pmm.h"
@@ -12,6 +13,8 @@
 
 phyframe_t *pagecache_get_page_for_read(inode_cache_t *cache, off_t pgoff)
 {
+    MOS_ASSERT(spinlock_is_locked(&cache->lock));
+
     void *p = hashmap_get(&cache->pages, pgoff);
     if (p)
         return p;
@@ -32,6 +35,7 @@ phyframe_t *pagecache_get_page_for_write(inode_cache_t *cache, off_t pgoff)
 
 ssize_t vfs_read_pagecache(inode_cache_t *icache, void *buf, size_t size, off_t offset)
 {
+    spinlock_acquire(&icache->lock);
     size_t bytes_read = 0;
     size_t bytes_left = size;
     while (bytes_left > 0)
@@ -42,7 +46,10 @@ ssize_t vfs_read_pagecache(inode_cache_t *icache, void *buf, size_t size, off_t 
 
         phyframe_t *page = pagecache_get_page_for_read(icache, offset / MOS_PAGE_SIZE); // the initial page
         if (IS_ERR(page))
+        {
+            spinlock_release(&icache->lock);
             return PTR_ERR(page);
+        }
 
         memcpy((char *) buf + bytes_read, (void *) (phyframe_va(page) + inpage_offset), inpage_size);
 
@@ -51,6 +58,7 @@ ssize_t vfs_read_pagecache(inode_cache_t *icache, void *buf, size_t size, off_t 
         offset += inpage_size;
     }
 
+    spinlock_release(&icache->lock);
     return bytes_read;
 }
 
@@ -58,6 +66,8 @@ ssize_t vfs_write_pagecache(inode_cache_t *icache, const void *buf, size_t total
 {
     const inode_cache_ops_t *ops = icache->ops;
     MOS_ASSERT_X(ops, "no page cache ops for inode %p", (void *) icache->owner);
+
+    spinlock_acquire(&icache->lock);
 
     size_t bytes_written = 0;
     size_t bytes_left = total_size;
@@ -73,6 +83,7 @@ ssize_t vfs_write_pagecache(inode_cache_t *icache, const void *buf, size_t total
         if (!can_write)
         {
             pr_warn("page_write_begin failed");
+            spinlock_release(&icache->lock);
             return -EIO;
         }
 
@@ -84,5 +95,6 @@ ssize_t vfs_write_pagecache(inode_cache_t *icache, const void *buf, size_t total
         offset += inpage_size;
     }
 
+    spinlock_release(&icache->lock);
     return bytes_written;
 }

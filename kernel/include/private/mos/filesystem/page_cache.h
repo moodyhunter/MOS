@@ -11,6 +11,7 @@
  * @param cache The inode cache
  * @param pgoff The page offset
  * @return phyframe_t* The page, or NULL if it doesn't exist
+ * @note Caller must hold the cache's lock
  */
 phyframe_t *pagecache_get_page_for_read(inode_cache_t *cache, off_t pgoff);
 

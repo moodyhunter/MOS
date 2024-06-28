@@ -3,6 +3,7 @@
 #include "mos/filesystem/inode.h"
 
 #include "mos/filesystem/vfs_types.h"
+#include "mos/lib/sync/spinlock.h"
 #include "mos/mm/slab_autoinit.h"
 #include "mos/syslog/printk.h"
 
@@ -66,6 +67,7 @@ void inode_init(inode_t *inode, superblock_t *sb, u64 ino, file_type_t type)
 
     hashmap_init(&inode->cache.pages, MOS_INODE_CACHE_HASHMAP_SIZE, hashmap_identity_hash, hashmap_simple_key_compare);
     inode->cache.owner = inode;
+    inode->cache.lock.flag = 0;
 }
 
 inode_t *inode_create(superblock_t *sb, u64 ino, file_type_t type)

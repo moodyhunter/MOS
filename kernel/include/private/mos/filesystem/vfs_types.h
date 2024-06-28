@@ -142,6 +142,7 @@ typedef struct _inode_cache_ops
 
 typedef struct _inode_cache
 {
+    spinlock_t lock;
     inode_t *owner;
     hashmap_t pages; // page index -> phyframe_t *
     const inode_cache_ops_t *ops;
