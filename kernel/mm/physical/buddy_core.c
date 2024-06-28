@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/lib/sync/spinlock.h"
 #include "mos/mm/physical/buddy.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/syslog/printk.h"
@@ -22,8 +23,11 @@ static struct
     list_head freelists[MOS_ARRAY_SIZE(orders)];
 } buddy = { 0 };
 
+static spinlock_t buddy_lock = SPINLOCK_INIT;
+
 static void add_to_freelist(size_t order, phyframe_t *frame)
 {
+    MOS_ASSERT(spinlock_is_locked(&buddy_lock));
     MOS_ASSERT(frame->state == PHYFRAME_FREE);
     frame->order = order;
     list_node_t *frame_node = list_node(frame);
@@ -47,6 +51,7 @@ static pfn_t get_buddy_pfn(size_t page_pfn, size_t order)
 
 static void dump_list(size_t order)
 {
+    spinlock_acquire(&buddy_lock);
     const list_head *head = &buddy.freelists[order];
     pr_cont("\nlist of order %zu: ", order);
     list_foreach(phyframe_t, frame, *head)
@@ -56,6 +61,7 @@ static void dump_list(size_t order)
         else
             pr_cont(PFN_RANGE " ", phyframe_pfn(frame), phyframe_pfn(frame) + pow2(order) - 1);
     }
+    spinlock_release(&buddy_lock);
 }
 
 /**
@@ -67,6 +73,8 @@ static void dump_list(size_t order)
  */
 static void populate_freelist(const size_t start_pfn, const size_t nframes, const size_t order)
 {
+    MOS_ASSERT(spinlock_is_locked(&buddy_lock));
+
     const size_t step = pow2(order);
 
     pr_dinfo2(pmm_buddy, "  order: %zu, step: %zu", order, step);
@@ -93,6 +101,8 @@ static void populate_freelist(const size_t start_pfn, const size_t nframes, cons
 
 static void break_this_pfn(pfn_t this_pfn, size_t this_order)
 {
+    MOS_ASSERT(spinlock_is_locked(&buddy_lock));
+
     phyframe_t *const frame = pfn_phyframe(this_pfn);
     MOS_ASSERT(frame->state == PHYFRAME_FREE); // must be free
     list_remove(frame);
@@ -112,6 +122,8 @@ static void break_this_pfn(pfn_t this_pfn, size_t this_order)
 
 static void extract_exact_range(pfn_t start, size_t nframes, enum phyframe_state state)
 {
+    MOS_ASSERT(spinlock_is_locked(&buddy_lock));
+
     size_t last_nframes = 0;
 
     while (nframes)
@@ -296,6 +308,7 @@ void buddy_dump_all()
 
 void buddy_init(size_t max_nframes)
 {
+    spinlock_acquire(&buddy_lock);
     for (size_t i = 0; i < MOS_ARRAY_SIZE(buddy.freelists); i++)
     {
         pr_dinfo2(pmm_buddy, "init freelist[%zu], order: %zu", i, orders[i]);
@@ -304,16 +317,20 @@ void buddy_init(size_t max_nframes)
 
     const size_t order = MIN(log2(max_nframes), orders[MOS_ARRAY_SIZE(orders) - 1]);
     populate_freelist(0, max_nframes, order);
+    spinlock_release(&buddy_lock);
 }
 
 void buddy_reserve_n(pfn_t pfn, size_t nframes)
 {
+    spinlock_acquire(&buddy_lock);
     pr_dinfo2(pmm_buddy, "reserving " PFN_RANGE " (%zu frames)", pfn, pfn + nframes - 1, nframes);
     extract_exact_range(pfn, nframes, PHYFRAME_RESERVED);
+    spinlock_release(&buddy_lock);
 }
 
 phyframe_t *buddy_alloc_n_exact(size_t nframes)
 {
+    spinlock_acquire(&buddy_lock);
     const size_t order = log2_ceil(nframes);
 
     // check if this order is too large
@@ -328,6 +345,7 @@ phyframe_t *buddy_alloc_n_exact(size_t nframes)
 
     if (unlikely(list_is_empty(free)))
     {
+        spinlock_release(&buddy_lock);
         pr_emerg("no free frames of order %zu, can't break", order);
         pr_emerg("out of memory!");
         return NULL; // out of memory!
@@ -345,12 +363,14 @@ phyframe_t *buddy_alloc_n_exact(size_t nframes)
         f->order = 0; // so that they can be freed individually
     }
 
+    spinlock_release(&buddy_lock);
     return frame;
 }
 
 void buddy_free_n(pfn_t pfn, size_t nframes)
 {
     pr_dinfo2(pmm_buddy, "freeing " PFN_RANGE " (%zu frames)", pfn, pfn + nframes - 1, nframes);
+    spinlock_acquire(&buddy_lock);
 
     phyframe_t *const frame = pfn_phyframe(pfn);
     MOS_ASSERT_X(frame->state == PHYFRAME_ALLOCATED, "frame must be allocated");
@@ -360,4 +380,6 @@ void buddy_free_n(pfn_t pfn, size_t nframes)
     const size_t order = log2_ceil(nframes);
     if (!try_merge(pfn, order))
         add_to_freelist(order, frame);
+
+    spinlock_release(&buddy_lock);
 }
