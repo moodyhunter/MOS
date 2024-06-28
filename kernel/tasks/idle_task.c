@@ -4,6 +4,7 @@
 #include <mos/platform/platform.h>
 #include <mos/syslog/printk.h>
 #include <mos/tasks/kthread.h>
+#include <mos_stdio.h>
 
 static void idle_task(void *arg)
 {
@@ -19,8 +20,10 @@ static void create_idle_task()
 
     for (u32 i = 0; i < platform_info->num_cpus; i++)
     {
+        char namebuf[32];
+        snprintf(namebuf, sizeof(namebuf), "idle-%u", i);
         pr_dinfo(process, "creating the idle task for CPU %u", i);
-        thread_t *t = kthread_create(idle_task, NULL, "idle");
+        thread_t *t = kthread_create(idle_task, NULL, namebuf);
         // thread_set_cpu(t, i);
         MOS_UNUSED(t);
     }
