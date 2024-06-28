@@ -34,6 +34,6 @@ pub fn run_gpu<T: Transport>(transport: T) -> Result<(), Error> {
 
         n = n.wrapping_add(50);
         gpu.flush().expect("failed to flush");
-        sleep(std::time::Duration::from_secs(1));
+        sleep(std::time::Duration::from_millis(100));
     }
 }
