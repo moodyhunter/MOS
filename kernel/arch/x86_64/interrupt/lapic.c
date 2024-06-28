@@ -55,12 +55,14 @@ static ptr_t lapic_regs = 0;
 
 u32 lapic_read32(u32 offset)
 {
+    MOS_ASSERT(lapic_regs);
     pr_dinfo2(x86_lapic, "reading reg: %x, ptr: " PTR_FMT, offset, lapic_regs + offset);
     return *(volatile u32 *) (lapic_regs + offset);
 }
 
 u64 lapic_read64(u32 offset)
 {
+    MOS_ASSERT(lapic_regs);
     pr_dinfo2(x86_lapic, "reading reg: %x, ptr: " PTR_FMT, offset, lapic_regs + offset);
     const u32 high = *(volatile u32 *) (lapic_regs + offset + 0x10);
     const u32 low = *(volatile u32 *) (lapic_regs + offset);
@@ -69,12 +71,14 @@ u64 lapic_read64(u32 offset)
 
 void lapic_write32(u32 offset, u32 value)
 {
+    MOS_ASSERT(lapic_regs);
     pr_dinfo2(x86_lapic, "writing reg: %x, value: 0x%.8x, ptr: " PTR_FMT, offset, value, lapic_regs + offset);
     *(volatile u32 *) (lapic_regs + offset) = value;
 }
 
 void lapic_write64(u32 offset, u64 value)
 {
+    MOS_ASSERT(lapic_regs);
     pr_dinfo2(x86_lapic, "writing reg: %x, value: 0x%.16llx, ptr: " PTR_FMT, offset, value, lapic_regs + offset);
     *(volatile u32 *) (lapic_regs + offset + 0x10) = value >> 32;
     *(volatile u32 *) (lapic_regs + offset) = value;
@@ -131,7 +135,8 @@ static void lapic_memory_setup(void)
 
 void lapic_enable(void)
 {
-    lapic_memory_setup();
+    if (once())
+        lapic_memory_setup();
 
     // (https://wiki.osdev.org/APIC#Local_APIC_configuration)
     // To enable the Local APIC to receive interrupts it is necessary to configure the "Spurious Interrupt Vector Register".
@@ -141,6 +146,13 @@ void lapic_enable(void)
     // to actually enable the APIC
     const u32 spurious_intr_vec = lapic_read32(APIC_REG_SPURIOUS_INTR_VEC) | 0x100;
     lapic_write32(APIC_REG_SPURIOUS_INTR_VEC, spurious_intr_vec);
+}
+
+void lapic_set_timer(u32 initial_count)
+{
+    lapic_write32(APIC_REG_TIMER_DIVIDE_CONFIG, 0x3);           // divide by 16
+    lapic_write32(APIC_REG_LVT_TIMER, 0x20000 | 32);            // periodic timer mode
+    lapic_write32(APIC_REG_TIMER_INITIAL_COUNT, initial_count); // start the timer
 }
 
 void lapic_eoi(void)

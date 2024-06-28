@@ -4,5 +4,4 @@
 
 #include <mos/mos_global.h>
 
-noreturn void x86_ap_begin_exec(void);
-void x86_start_all_aps(void);
+void x86_unblock_aps(void);

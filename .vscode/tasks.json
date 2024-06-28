@@ -47,7 +47,7 @@
                 "-serial", "chardev:serial_log",
                 "-serial", "chardev:serial-com2",
                 "-drive", "format=raw,file=fat:rw:${workspaceFolder}/build/x86_64/uefi-files/",
-                "-smp", "1",
+                "-smp", "4",
                 "-cpu", "max",
                 "-device", "virtio-gpu-pci",
                 "-drive", "file=${workspaceFolder}/rootfs.img,format=raw,if=virtio",

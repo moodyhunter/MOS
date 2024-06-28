@@ -2,6 +2,8 @@
 
 #define pr_fmt(fmt) "ap_entry: " fmt
 
+#include "mos/x86/cpu/ap_entry.h"
+
 #include "mos/mm/paging/pml_types.h"
 #include "mos/platform/platform.h"
 #include "mos/syslog/printk.h"
@@ -9,17 +11,20 @@
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/descriptors/descriptors.h"
 #include "mos/x86/interrupt/apic.h"
+#include "mos/x86/x86_platform.h"
 
 static bool aps_blocked = true;
 
-void x86_start_all_aps(void)
+void x86_unblock_aps(void)
 {
     MOS_ASSERT(aps_blocked);
     aps_blocked = false;
 }
 
-noreturn void x86_ap_begin_exec(void)
+void platform_ap_entry(u64 arg)
 {
+    MOS_UNUSED(arg);
+
     while (aps_blocked)
         __asm__ volatile("pause");
 
@@ -43,5 +48,7 @@ noreturn void x86_ap_begin_exec(void)
 
     current_cpu->mm_context = platform_info->kernel_mm;
     current_cpu->id = lapic_id;
+
+    x86_setup_lapic_timer();
     scheduler();
 }

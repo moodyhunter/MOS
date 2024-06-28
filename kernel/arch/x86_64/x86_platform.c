@@ -6,9 +6,11 @@
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/syslog/printk.h"
+#include "mos/tasks/schedule.h"
 #include "mos/x86/acpi/acpi.h"
 #include "mos/x86/acpi/acpi_types.h"
 #include "mos/x86/acpi/madt.h"
+#include "mos/x86/cpu/ap_entry.h"
 #include "mos/x86/cpu/cpu.h"
 #include "mos/x86/descriptors/descriptors.h"
 #include "mos/x86/devices/port.h"
@@ -94,6 +96,17 @@ static void x86_com1_handler(u32 irq)
         serial_console_write(&com1_console.con, &c, 1);
         console_putc(&com1_console.con, c);
     }
+}
+
+static void x86_pit_timer_handler(u32 irq)
+{
+    MOS_ASSERT(irq == IRQ_PIT_TIMER);
+    reschedule();
+}
+
+void x86_setup_lapic_timer()
+{
+    lapic_set_timer(1000000);
 }
 
 typedef struct _frame
@@ -272,6 +285,7 @@ void platform_startup_late()
 
     rtc_init();
 
+    x86_install_interrupt_handler(IRQ_PIT_TIMER, x86_pit_timer_handler);
     x86_install_interrupt_handler(IRQ_CMOS_RTC, rtc_irq_handler);
     x86_install_interrupt_handler(IRQ_KEYBOARD, x86_keyboard_handler);
     x86_install_interrupt_handler(IRQ_COM1, x86_com1_handler);
@@ -280,7 +294,9 @@ void platform_startup_late()
     ioapic_enable_interrupt(IRQ_KEYBOARD, x86_platform.boot_cpu_id);
     ioapic_enable_interrupt(IRQ_COM1, x86_platform.boot_cpu_id);
 
+    x86_setup_lapic_timer();
+
 #if MOS_CONFIG(MOS_SMP)
-    x86_start_all_aps();
+    x86_unblock_aps();
 #endif
 }

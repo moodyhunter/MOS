@@ -257,7 +257,7 @@ void x86_interrupt_entry(ptr_t rsp)
     else if (frame->interrupt_number >= IRQ_BASE && frame->interrupt_number < IRQ_BASE + IRQ_MAX)
         x86_handle_irq(frame);
     else if (frame->interrupt_number >= IPI_BASE && frame->interrupt_number < IPI_BASE + IPI_TYPE_MAX)
-        ipi_do_handle((ipi_type_t) (frame->interrupt_number - IPI_BASE));
+        ipi_do_handle((ipi_type_t) (frame->interrupt_number - IPI_BASE)), lapic_eoi();
     else if (frame->interrupt_number == MOS_SYSCALL_INTR)
         syscall_nr = frame->ax, syscall_ret = ksyscall_enter(frame->ax, frame->bx, frame->cx, frame->dx, frame->si, frame->di, frame->r9);
     else

@@ -122,15 +122,15 @@ void ioapic_init(void)
         ioapic_disable(i);
 }
 
-void ioapic_enable_with_mode(u32 irq, u32 cpu, ioapic_trigger_mode_t trigger_mode, ioapic_polarity_t polarity)
+void ioapic_enable_with_mode(u32 irq, u32 lapic_id, ioapic_trigger_mode_t trigger_mode, ioapic_polarity_t polarity)
 {
-    pr_dinfo2(x86_ioapic, "enable irq %d, cpu %d, trigger_mode %d, polarity %d", irq, cpu, trigger_mode, polarity);
+    pr_dinfo2(x86_ioapic, "enable irq %d, cpu lapic-id: %d, trigger_mode %d, polarity %d", irq, lapic_id, trigger_mode, polarity);
 
     ioapic_redirection_entry_t entry = { 0 };
     entry.interrupt_vec = irq + ISR_MAX_COUNT; // the vector number received by the CPU
     entry.polarity = polarity;
     entry.trigger_mode = trigger_mode;
-    entry.destination.target_apic_id = cpu;
+    entry.destination.target_apic_id = lapic_id;
 
     const u32 irq_overridden = x86_ioapic_get_irq_override(irq); // the irq number received by the ioapic "pin"
     ioapic_write_redirection_entry(irq_overridden, entry);

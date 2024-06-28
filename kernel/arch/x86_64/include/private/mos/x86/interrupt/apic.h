@@ -66,7 +66,9 @@ void ioapic_init(void);
 void ioapic_enable_with_mode(u32 irq, u32 cpu, ioapic_trigger_mode_t trigger_mode, ioapic_polarity_t polarity);
 void ioapic_disable(u32 irq);
 
-should_inline void ioapic_enable_interrupt(u32 irq, u32 cpu)
+void lapic_set_timer(u32 initial_count);
+
+should_inline void ioapic_enable_interrupt(u32 irq, u32 lapic_id)
 {
-    ioapic_enable_with_mode(irq, cpu, IOAPIC_TRIGGER_MODE_EDGE, IOAPIC_POLARITY_ACTIVE_HIGH);
+    ioapic_enable_with_mode(irq, lapic_id, IOAPIC_TRIGGER_MODE_EDGE, IOAPIC_POLARITY_ACTIVE_HIGH);
 }

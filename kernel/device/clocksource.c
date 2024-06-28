@@ -20,8 +20,6 @@ void clocksource_register(clocksource_t *clocksource)
 void clocksource_tick(clocksource_t *clocksource)
 {
     clocksource->ticks++;
-    if (clocksource->ticks % (clocksource->frequency / 1000 * RESCHEDULE_INTERVAL_MS) == 0)
-        reschedule();
 }
 
 #define active_clocksource_ticks() READ_ONCE(active_clocksource->ticks)
