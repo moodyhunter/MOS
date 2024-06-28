@@ -9,7 +9,7 @@ libc = "0.2.153"
 librpc-rs = {path = "../../libs/librpc-rs", features = ["protobuf"]}
 log = "0.4.21"
 protobuf = "3.4.0"
-virtio-drivers = "0.7.3"
+virtio-drivers = "0.7.2"
 
 [patch.crates-io]
 libc = {git = "https://github.com/moodyhunter/mos-rust-libc.git"}
