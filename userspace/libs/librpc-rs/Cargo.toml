@@ -6,7 +6,7 @@ homepage = "https://mos.mooody.me"
 license = "GPL-3.0-or-later"
 name = "librpc-rs"
 repository = "https://github.com/moodyhunter/MOS"
-version = "0.1.0"
+version = "0.1.1"
 
 [dependencies]
 num-derive = "0.4"
