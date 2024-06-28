@@ -1,2 +1,8 @@
 [build]
 target = "x86_64-unknown-mos"
+
+[registries.mos]
+index = "sparse+https://registry.mos.mooody.me/api/v1/crates/"
+
+[registry]
+default = "mos"
