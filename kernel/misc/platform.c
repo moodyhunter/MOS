@@ -68,7 +68,6 @@ __weak__ void platform_invalidate_tlb(ptr_t vaddr)
 
 __weak__ u32 platform_current_cpu_id(void)
 {
-    pr_emerg("platform_current_cpu_id() not implemented");
     return 0;
 }
 
