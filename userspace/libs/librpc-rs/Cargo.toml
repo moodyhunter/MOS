@@ -1,6 +1,11 @@
 [package]
+authors = ["Moody Liu <mooodyhunter@outlook.com>"]
+description = "A simple RPC library for Rust on MOS"
 edition = "2021"
+homepage = "https://mos.mooody.me"
+license = "GPL-3.0-or-later"
 name = "librpc-rs"
+repository = "https://github.com/moodyhunter/MOS"
 version = "0.1.0"
 
 [dependencies]
