@@ -29,21 +29,31 @@ SECTIONS
         *(.mos.test_cases);
         __MOS_TEST_CASES_END = .;
 
+        . = ALIGN(64);
+
         __MOS_EARLY_SETUP_START = .;
         *(.mos.early_setup);
         __MOS_EARLY_SETUP_END = .;
+
+        . = ALIGN(64);
 
         __MOS_SETUP_START = .;
         *(.mos.setup);
         __MOS_SETUP_END = .;
 
+        . = ALIGN(64);
+
         __MOS_INIT_START = .;
         *(.mos.init);
         __MOS_INIT_END = .;
 
+        . = ALIGN(64);
+
         __MOS_PANIC_LIST_START = .;
         *(.mos.panic_list);
         __MOS_PANIC_LIST_END = .;
+
+        . = ALIGN(64);
 
         __MOS_PANIC_HOOKS_START = .;
         *(.mos.panic_hooks);
