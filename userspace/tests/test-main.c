@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/syscall/usermode.h>
 #include <pthread.h>
 #include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 
 struct
 {
@@ -31,6 +32,13 @@ int main(int argc, char **argv)
     for (int i = 0; i < argc; i++)
         printf("  %d: %s\n", i, argv[i]);
 
+    bool detached = false;
+    if (argc > 1 && strcmp(argv[1], "--detached") == 0)
+    {
+        detached = true;
+        printf("Detached mode enabled\n");
+    }
+
     printf("\n");
 
     for (int i = 0; tests[i].name; i++)
@@ -42,16 +50,20 @@ int main(int argc, char **argv)
                     NULL, // file_actions
                     NULL, // attrp
                     (char *const *) test_argv, NULL);
+
         if (ret < 0)
         {
             printf("FAILED: cannot spawn: %d\n", ret);
             continue;
         }
 
-        u32 status = 0;
-        syscall_wait_for_process(ret, &status, 0);
-        printf("Test %s exited with status %d\n", tests[i].name, status);
-        printf("OK\n");
+        if (!detached)
+        {
+            int status = 0;
+            waitpid(ret, &status, 0);
+            printf("Test %s exited with status %d\n", tests[i].name, status);
+            printf("OK\n");
+        }
     }
 
     return 0;
