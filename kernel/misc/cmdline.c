@@ -82,7 +82,7 @@ void mos_cmdline_init(const char *cmdline)
 
 bool cmdline_string_truthiness(const char *arg, bool default_value)
 {
-    const char *func = mos_caller;
+    const char *func = mos_caller();
     func = func ? func : "";
 
     if (unlikely(!arg))
