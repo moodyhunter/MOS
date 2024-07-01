@@ -79,6 +79,8 @@ typedef struct _vmap
 #define phyframe_va(frame) ((ptr_t) pfn_va(phyframe_pfn(frame)))
 #define pa_va(pa)          ((ptr_t) (pa) + platform_info->direct_map_base)
 
+__BEGIN_DECLS
+
 phyframe_t *mm_get_free_page(void);
 phyframe_t *mm_get_free_page_raw(void);
 phyframe_t *mm_get_free_pages(size_t npages);
@@ -185,5 +187,7 @@ void vmap_finalise_init(vmap_t *vmap, vmap_content_t content, vmap_type_t type);
  * @param info The page fault info
  */
 void mm_handle_fault(ptr_t fault_addr, pagefault_t *info);
+
+__END_DECLS
 
 /** @} */

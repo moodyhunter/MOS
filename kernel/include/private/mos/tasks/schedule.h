@@ -4,6 +4,8 @@
 
 #include <mos/tasks/task_types.h>
 
+__BEGIN_DECLS
+
 void tasks_init();
 void unblock_scheduler(void);
 noreturn void scheduler(void);
@@ -22,3 +24,5 @@ void reschedule(void);
  *
  */
 void blocked_reschedule(void);
+
+__END_DECLS

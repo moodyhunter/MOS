@@ -11,6 +11,7 @@
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mm/mm_types.h>
+#include <mos/mos_global.h>
 #include <mos/tasks/signal_types.h>
 
 // clang-format off
@@ -72,6 +73,8 @@ typedef enum
     SWITCH_TO_NEW_USER_THREAD = 1 << 1,
     SWITCH_TO_NEW_KERNEL_THREAD = 1 << 2,
 } switch_flags_t;
+
+MOS_ENUM_OPERATORS(switch_flags_t)
 
 typedef struct
 {

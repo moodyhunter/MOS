@@ -42,12 +42,15 @@ wait_condition_t *wc_wait_for(void *arg, wait_condition_verifier_t verify, wait_
 
 bool wc_condition_verify(wait_condition_t *condition);
 void wc_condition_cleanup(wait_condition_t *condition);
+__BEGIN_DECLS
 
 void waitlist_init(waitlist_t *list);
 __nodiscard bool waitlist_append(waitlist_t *list);
 size_t waitlist_wake(waitlist_t *list, size_t max_wakeups);
 void waitlist_close(waitlist_t *list);
 void waitlist_remove_me(waitlist_t *waitlist);
+
+__END_DECLS
 
 #define waitlist_wake_one(list) waitlist_wake(list, 1)
 #define waitlist_wake_all(list) waitlist_wake(list, SIZE_MAX)

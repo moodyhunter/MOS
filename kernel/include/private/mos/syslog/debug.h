@@ -49,7 +49,7 @@
 // clang-format on
 
 #if MOS_CONFIG(MOS_DYNAMIC_DEBUG)
-extern struct
+extern struct _mos_debug_info
 {
 #define _expand_field(name) bool name;
     MOS_ALL_DEBUG_MODULES(_expand_field)
