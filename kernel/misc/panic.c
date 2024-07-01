@@ -84,8 +84,7 @@ void try_handle_kernel_panics(ptr_t ip)
 
     platform_interrupt_disable();
 
-    static bool in_panic = false;
-    if (unlikely(in_panic))
+    if (!once())
     {
         pr_fatal("recursive panic detected, aborting...");
         pr_info("");
@@ -98,7 +97,6 @@ void try_handle_kernel_panics(ptr_t ip)
         while (true)
             ;
     }
-    in_panic = true;
 
     if (printk_unquiet())
         pr_info("quiet mode disabled"); // was quiet
