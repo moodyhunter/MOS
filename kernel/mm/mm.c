@@ -355,7 +355,7 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, vmap_t *
     }
     else
     {
-        mos_panic("unhandled page fault");
+        MOS_ASSERT(!"unhandled kernel page fault");
     }
 }
 
