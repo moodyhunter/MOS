@@ -84,12 +84,6 @@ void try_handle_kernel_panics(ptr_t ip)
 
     platform_interrupt_disable();
 
-    // unlock the consoles, in case we were in the middle of writing something
-    list_foreach(console_t, console, consoles)
-    {
-        spinlock_release(&console->write.lock);
-    }
-
     static bool in_panic = false;
     if (unlikely(in_panic))
     {
