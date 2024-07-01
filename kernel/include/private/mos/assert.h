@@ -16,7 +16,7 @@
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
         if (unlikely(!(cond)))                                                                                                                                           \
-            mos_panic("Assertion failed: %s\n" msg, #cond, ##__VA_ARGS__);                                                                                               \
+            mos_panic_inline("Assertion failed: %s\n" msg, #cond, ##__VA_ARGS__);                                                                                        \
     } while (0)
 
 // these two also invokes a warning/panic handler
