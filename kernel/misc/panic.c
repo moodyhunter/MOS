@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/device/console.h"
 #include "mos/misc/power.h"
 
 #include <mos/interrupt/ipi.h>
@@ -49,13 +48,6 @@ void kwarn_handler_remove(void)
     kwarn_handler = NULL;
 }
 
-typedef struct
-{
-    ptr_t ip;
-    const char *file, *func;
-    u64 line;
-} panic_point_t;
-
 extern const panic_point_t __MOS_PANIC_LIST_START[], __MOS_PANIC_LIST_END[];
 extern const panic_hook_t __MOS_PANIC_HOOKS_START[], __MOS_PANIC_HOOKS_END[];
 
@@ -77,11 +69,12 @@ void try_handle_kernel_panics(ptr_t ip)
 {
     const panic_point_t *point = find_panic_point(ip);
     if (!point)
-    {
         pr_warn("no panic point found for " PTR_FMT, ip);
-        return;
-    }
+    try_handle_kernel_panics_at(point);
+}
 
+void try_handle_kernel_panics_at(const panic_point_t *point)
+{
     platform_interrupt_disable();
 
     if (!once())

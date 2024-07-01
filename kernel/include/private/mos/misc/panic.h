@@ -21,6 +21,13 @@ typedef struct
 
 MOS_STATIC_ASSERT(sizeof(panic_hook_t) == 32, "panic_hook_t size mismatch");
 
+typedef struct
+{
+    ptr_t ip;
+    const char *file, *func;
+    u64 line;
+} panic_point_t;
+
 #define MOS_EMIT_PANIC_HOOK(e, f, n) MOS_PUT_IN_SECTION(".mos.panic_hooks", panic_hook_t, f##_hook, { .enabled = e, .hook = f, .name = n })
 
 #define MOS_PANIC_HOOK_FEAT(_feat, _f, _n) MOS_EMIT_PANIC_HOOK(mos_debug_enabled_ptr(_feat), _f, _n)
@@ -34,6 +41,7 @@ __BEGIN_DECLS
 __printf(3, 4) void mos_kwarn(const char *func, u32 line, const char *fmt, ...);
 
 void try_handle_kernel_panics(ptr_t ip);
+void try_handle_kernel_panics_at(const panic_point_t *point);
 
 __END_DECLS
 
@@ -51,4 +59,12 @@ __END_DECLS
         pr_emerg(fmt, ##__VA_ARGS__);                                                                                                                                    \
         MOS_MAKE_PANIC_POINT(MOS_PLATFORM_PANIC_INSTR, __FILE__, __func__, __LINE__);                                                                                    \
         __builtin_unreachable();                                                                                                                                         \
+    } while (0)
+
+#define mos_panic_inline(fmt, ...)                                                                                                                                       \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        pr_emerg(fmt, ##__VA_ARGS__);                                                                                                                                    \
+        static const panic_point_t point = { .ip = 0, .file = __FILE__, .line = __LINE__, .func = __func__ };                                                            \
+        try_handle_kernel_panics_at(&point);                                                                                                                             \
     } while (0)
