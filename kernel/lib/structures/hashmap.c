@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/lib/sync/spinlock.h"
+#include "mos/mm/slab.h"
+#include "mos/mm/slab_autoinit.h"
 
 #include <mos/lib/structures/hashmap.h>
 #include <mos/moslib_global.h>
@@ -15,6 +17,9 @@ typedef struct hashmap_entry
     void *value;
     hashmap_entry_t *next;
 } hashmap_entry_t;
+
+slab_t *hashmap_entry_slab = NULL;
+SLAB_AUTOINIT("hashmap_entry", hashmap_entry_slab, hashmap_entry_t);
 
 void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, hashmap_key_compare_t compare_func)
 {
@@ -77,7 +82,7 @@ void *hashmap_put(hashmap_t *map, uintn key, void *value)
         }
         entry = entry->next;
     }
-    entry = kmalloc(sizeof(hashmap_entry_t));
+    entry = kmalloc(hashmap_entry_slab);
     entry->key = key;
     entry->value = value;
     entry->next = map->entries[index];
