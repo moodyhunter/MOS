@@ -120,7 +120,7 @@ static bool sysfs_fops_open(inode_t *inode, file_t *file, bool created)
 {
     MOS_UNUSED(created);
     sysfs_file_t *sysfs_file = kmalloc(sizeof(sysfs_file_t));
-    sysfs_file->item = inode->private;
+    sysfs_file->item = inode->private_data;
 
     file->private_data = sysfs_file;
     return true;
@@ -250,7 +250,7 @@ static void sysfs_iops_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state,
         return;
     }
 
-    sysfs_dir_t *dir = dentry->inode->private;
+    sysfs_dir_t *dir = dentry->inode->private_data;
     MOS_ASSERT_X(dir, "invalid sysfs entry, possibly a VFS bug");
 
     // non-dynamic directory
@@ -282,7 +282,7 @@ static bool sysfs_iops_lookup(inode_t *dir, dentry_t *dentry)
     // if we get here, it means the expected dentry cannpt be found in the dentry cache
     // that means either it's a dynamic item, or the user is trying to access a file that doesn't exist
 
-    sysfs_dir_t *sysfs_dir = dir->private;
+    sysfs_dir_t *sysfs_dir = dir->private_data;
 
     // if it's NULL, it implies that the dir must be the root directory /sys
     MOS_ASSERT_X(sysfs_dir || dir == sysfs_sb->root->inode, "invalid sysfs entry, possibly a VFS bug");
@@ -305,7 +305,7 @@ static bool sysfs_iops_lookup(inode_t *dir, dentry_t *dentry)
 
 static bool sysfs_iops_create(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm)
 {
-    sysfs_dir_t *sysfs_dir = dir->private;
+    sysfs_dir_t *sysfs_dir = dir->private_data;
     MOS_ASSERT_X(sysfs_dir || dir == sysfs_sb->root->inode, "invalid sysfs entry, possibly a VFS bug");
 
     if (!sysfs_dir)
@@ -361,7 +361,7 @@ static void sysfs_do_register(sysfs_dir_t *sysfs_dir)
     inode_t *dir_i = inode_create(sysfs_sb, sysfs_get_ino(), FILE_TYPE_DIRECTORY);
     dir_i->perm = sysfs_dir_perm;
     dir_i->ops = &sysfs_dir_i_ops;
-    dir_i->private = sysfs_dir; ///< for convenience
+    dir_i->private_data = sysfs_dir; ///< for convenience
 
     dentry_t *vfs_dir = dentry_create(sysfs_sb, sysfs_sb->root, sysfs_dir->name);
     dentry_attach(vfs_dir, dir_i);
@@ -374,7 +374,7 @@ static void sysfs_do_register(sysfs_dir_t *sysfs_dir)
 inode_t *sysfs_create_inode(file_type_t type, void *data)
 {
     inode_t *inode = inode_create(sysfs_sb, sysfs_get_ino(), type);
-    inode->private = data;
+    inode->private_data = data;
     return inode;
 }
 
@@ -393,7 +393,7 @@ void sysfs_register_file(sysfs_dir_t *sysfs_dir, sysfs_item_t *item)
 
     inode_t *file_i = inode_create(sysfs_sb, sysfs_get_ino(), FILE_TYPE_REGULAR);
     file_i->file_ops = &sysfs_file_ops;
-    file_i->private = item;
+    file_i->private_data = item;
     item->ino = file_i->ino;
 
     switch (item->type)

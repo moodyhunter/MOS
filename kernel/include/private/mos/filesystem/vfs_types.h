@@ -136,8 +136,8 @@ typedef struct _inode_cache_ops
      */
     phyframe_t *(*fill_cache)(inode_cache_t *cache, off_t pgoff);
 
-    bool (*page_write_begin)(inode_cache_t *cache, off_t file_offset, size_t inpage_size, phyframe_t **page_out, void **private);
-    void (*page_write_end)(inode_cache_t *cache, off_t file_offset, size_t inpage_size, phyframe_t *page, void *private);
+    bool (*page_write_begin)(inode_cache_t *cache, off_t file_offset, size_t inpage_size, phyframe_t **page_out, void **data);
+    void (*page_write_end)(inode_cache_t *cache, off_t file_offset, size_t inpage_size, phyframe_t *page, void *data);
 } inode_cache_ops_t;
 
 typedef struct _inode_cache
@@ -167,7 +167,7 @@ typedef struct _inode
     superblock_t *superblock;   // superblock of this inode
     const inode_ops_t *ops;     // operations on this inode
     const file_ops_t *file_ops; // operations on files of this inode
-    void *private;              // private data
+    void *private_data;         // private data
     inode_cache_t cache;        // page cache for this inode
 
     atomic_t refcount; ///< number of references to this inode

@@ -44,7 +44,7 @@ inode_t *i_from_pbfull(const pb_inode_info *stat, superblock_t *sb, void *privat
     i->suid = stat->suid;
     i->sgid = stat->sgid;
     i->sticky = stat->sticky;
-    i->private = private;
+    i->private_data = private;
     i->ops = &userfs_iops;
     i->file_ops = &userfs_fops;
     return i;
@@ -71,7 +71,7 @@ pb_inode_info *i_to_pb_full(const inode_t *i, pb_inode_info *pbi)
 
 pb_inode_ref *i_to_pb_ref(const inode_t *i, pb_inode_ref *pbi)
 {
-    pbi->data = (ptr_t) i->private;
+    pbi->data = (ptr_t) i->private_data;
     return pbi;
 }
 

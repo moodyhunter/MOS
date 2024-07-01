@@ -62,7 +62,7 @@ void inode_init(inode_t *inode, superblock_t *sb, u64 ino, file_type_t type)
     inode->file_ops = NULL;
     inode->nlinks = 1;
     inode->perm = 0;
-    inode->private = NULL;
+    inode->private_data = NULL;
     inode->refcount = 0;
 
     hashmap_init(&inode->cache.pages, MOS_INODE_CACHE_HASHMAP_SIZE, hashmap_identity_hash, hashmap_simple_key_compare);
