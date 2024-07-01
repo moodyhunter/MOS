@@ -114,22 +114,30 @@ void try_handle_kernel_panics(ptr_t ip)
     pr_emerg("");
 
     pr_cont("\n");
-    if (current_cpu->interrupt_regs)
+
+    if (point->ip == 0)
     {
-        pr_emph("Register states before interrupt:");
-        platform_dump_regs(current_cpu->interrupt_regs);
-        pr_cont("\n");
-        pr_emph("Stack trace before interrupt");
-        platform_dump_stack(current_cpu->interrupt_regs);
-        pr_cont("\n");
+        // inline panic point
+        pr_emph("Current stack trace:");
+        platform_dump_current_stack();
     }
     else
     {
-        pr_emph("No interrupt context available");
+        if (current_cpu->interrupt_regs)
+        {
+            pr_emph("Register states before interrupt:");
+            platform_dump_regs(current_cpu->interrupt_regs);
+            pr_cont("\n");
+            pr_emph("Stack trace before interrupt");
+            platform_dump_stack(current_cpu->interrupt_regs);
+            pr_cont("\n");
+        }
+        else
+        {
+            pr_emph("No interrupt context available");
+        }
     }
 
-    pr_emph("Current stack trace:");
-    platform_dump_current_stack();
     pr_cont("\n");
 
     for (const panic_hook_t *hook = __MOS_PANIC_HOOKS_START; hook < __MOS_PANIC_HOOKS_END; hook++)
