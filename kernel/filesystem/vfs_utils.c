@@ -4,6 +4,7 @@
 
 #include "mos/filesystem/page_cache.h"
 #include "mos/filesystem/vfs_types.h"
+#include "mos/lib/sync/spinlock.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab.h"
 #include "mos/mm/slab_autoinit.h"
@@ -16,7 +17,7 @@
 slab_t *dentry_cache;
 SLAB_AUTOINIT("dentry", dentry_cache, dentry_t);
 
-dentry_t *dentry_create(superblock_t *sb, dentry_t *parent, const char *name)
+static dentry_t *dentry_create(superblock_t *sb, dentry_t *parent, const char *name)
 {
     dentry_t *dentry = kmalloc(dentry_cache);
     dentry->superblock = sb;
@@ -27,10 +28,36 @@ dentry_t *dentry_create(superblock_t *sb, dentry_t *parent, const char *name)
 
     if (parent)
     {
+        MOS_ASSERT(spinlock_is_locked(&parent->lock));
         tree_add_child(tree_node(parent), tree_node(dentry));
         dentry->superblock = parent->superblock;
     }
 
+    return dentry;
+}
+
+dentry_t *dentry_get_from_parent(superblock_t *sb, dentry_t *parent, const char *name)
+{
+    if (!parent)
+        return dentry_create(sb, NULL, name);
+
+    dentry_t *dentry = NULL;
+
+    spinlock_acquire(&parent->lock);
+    tree_foreach_child(dentry_t, child, parent)
+    {
+        if (strcmp(child->name, name) == 0)
+        {
+            dentry = child;
+            break;
+        }
+    }
+
+    // if not found, create a new one
+    if (!dentry)
+        dentry = dentry_create(sb, parent, name);
+
+    spinlock_release(&parent->lock);
     return dentry;
 }
 

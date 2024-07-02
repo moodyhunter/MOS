@@ -135,7 +135,7 @@ dentry_t *dentry_from_fd(fd_t fd);
  * @return The child dentry, always non-NULL, even if the child dentry does not exist in the filesystem
  * @note The returned dentry will have its reference count incremented, even if it does not exist.
  */
-dentry_t *dentry_get_child(dentry_t *parent, const char *name);
+dentry_t *dentry_lookup_child(dentry_t *parent, const char *name);
 
 /**
  * @brief Lookup a path in the filesystem
@@ -152,7 +152,7 @@ dentry_t *dentry_get_child(dentry_t *parent, const char *name);
  *         NULL if any intermediate directory in the path does not exist.
  *
  */
-dentry_t *dentry_get(dentry_t *starting_dir, dentry_t *root_dir, const char *path, lastseg_resolve_flags_t flags);
+dentry_t *dentry_resolve(dentry_t *starting_dir, dentry_t *root_dir, const char *path, lastseg_resolve_flags_t flags);
 
 /**
  * @brief Mount a filesystem at a mountpoint

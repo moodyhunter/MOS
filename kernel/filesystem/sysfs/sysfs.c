@@ -363,7 +363,7 @@ static void sysfs_do_register(sysfs_dir_t *sysfs_dir)
     dir_i->ops = &sysfs_dir_i_ops;
     dir_i->private_data = sysfs_dir; ///< for convenience
 
-    dentry_t *vfs_dir = dentry_create(sysfs_sb, sysfs_sb->root, sysfs_dir->name);
+    dentry_t *vfs_dir = dentry_get_from_parent(sysfs_sb, sysfs_sb->root, sysfs_dir->name);
     dentry_attach(vfs_dir, dir_i);
     sysfs_dir->_dentry = vfs_dir;
 
@@ -414,7 +414,7 @@ void sysfs_register_file(sysfs_dir_t *sysfs_dir, sysfs_item_t *item)
 
     dentry_t *const target_dentry = sysfs_dir ? sysfs_dir->_dentry : sysfs_sb->root;
     MOS_ASSERT_X(target_dentry, "registering sysfs entry '%s' failed", item->name);
-    dentry_t *d = dentry_create(sysfs_sb, target_dentry, item->name);
+    dentry_t *d = dentry_get_from_parent(sysfs_sb, target_dentry, item->name);
     dentry_attach(d, file_i);
 }
 
@@ -424,7 +424,7 @@ MOS_INIT(VFS, register_sysfs)
 
     sysfs_sb = kmalloc(superblock_cache);
     sysfs_sb->fs = &fs_sysfs;
-    sysfs_sb->root = dentry_create(sysfs_sb, NULL, NULL);
+    sysfs_sb->root = dentry_get_from_parent(sysfs_sb, NULL, NULL);
     dentry_attach(sysfs_sb->root, inode_create(sysfs_sb, sysfs_get_ino(), FILE_TYPE_DIRECTORY));
     sysfs_sb->root->inode->ops = &sysfs_dir_i_ops;
 }

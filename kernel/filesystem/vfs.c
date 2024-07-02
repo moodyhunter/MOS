@@ -309,7 +309,7 @@ static file_t *vfs_do_open(dentry_t *base, const char *path, open_flags flags)
                                             (no_follow ? RESOLVE_SYMLINK_NOFOLLOW : 0) |                     //
                                             (may_create ? RESOLVE_EXPECT_ANY_EXIST : RESOLVE_EXPECT_EXIST) | //
                                             (expect_dir ? RESOLVE_EXPECT_DIR : 0);
-    dentry_t *entry = dentry_get(base, root_dentry, path, resolve_flags);
+    dentry_t *entry = dentry_resolve(base, root_dentry, path, resolve_flags);
     if (IS_ERR(entry))
     {
         pr_dinfo2(vfs, "failed to resolve '%s': create=%d, r=%d, x=%d, nofollow=%d, dir=%d, truncate=%d", path, may_create, read, exec, no_follow, expect_dir, truncate);
@@ -438,7 +438,7 @@ long vfs_mount(const char *device, const char *path, const char *fs, const char 
     }
 
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(AT_FDCWD);
-    dentry_t *mountpoint = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST);
+    dentry_t *mountpoint = dentry_resolve(base, root_dentry, path, RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST);
     if (IS_ERR(mountpoint))
         return PTR_ERR(mountpoint);
 
@@ -474,7 +474,7 @@ long vfs_mount(const char *device, const char *path, const char *fs, const char 
 
 long vfs_unmount(const char *path)
 {
-    dentry_t *mounted_root = dentry_get(root_dentry, root_dentry, path, RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST);
+    dentry_t *mounted_root = dentry_resolve(root_dentry, root_dentry, path, RESOLVE_EXPECT_DIR | RESOLVE_EXPECT_EXIST);
     if (IS_ERR(mounted_root))
         return PTR_ERR(mounted_root);
 
@@ -549,7 +549,7 @@ long vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstat
     if (flags & FSTATAT_NOFOLLOW)
         resolve_flags |= RESOLVE_SYMLINK_NOFOLLOW;
 
-    dentry_t *dentry = dentry_get(basedir, root_dentry, path, resolve_flags);
+    dentry_t *dentry = dentry_resolve(basedir, root_dentry, path, resolve_flags);
     if (IS_ERR(dentry))
         return PTR_ERR(dentry);
 
@@ -562,7 +562,7 @@ long vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict statbuf, fstat
 size_t vfs_readlinkat(fd_t dirfd, const char *path, char *buf, size_t size)
 {
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(dirfd);
-    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_SYMLINK_NOFOLLOW | RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_FILE);
+    dentry_t *dentry = dentry_resolve(base, root_dentry, path, RESOLVE_SYMLINK_NOFOLLOW | RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_FILE);
     if (IS_ERR(dentry))
         return PTR_ERR(dentry);
 
@@ -586,7 +586,7 @@ long vfs_symlink(const char *path, const char *target)
 {
     pr_dinfo2(vfs, "vfs_symlink(path='%s', target='%s')", path, target);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(AT_FDCWD);
-    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_NONEXIST);
+    dentry_t *dentry = dentry_resolve(base, root_dentry, path, RESOLVE_EXPECT_NONEXIST);
     if (IS_ERR(dentry))
         return PTR_ERR(dentry);
 
@@ -604,7 +604,7 @@ long vfs_mkdir(const char *path)
 {
     pr_dinfo2(vfs, "vfs_mkdir('%s')", path);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(AT_FDCWD);
-    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_NONEXIST);
+    dentry_t *dentry = dentry_resolve(base, root_dentry, path, RESOLVE_EXPECT_NONEXIST);
     if (IS_ERR(dentry))
         return PTR_ERR(dentry);
 
@@ -629,7 +629,7 @@ long vfs_rmdir(const char *path)
 {
     pr_dinfo2(vfs, "vfs_rmdir('%s')", path);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(AT_FDCWD);
-    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_DIR);
+    dentry_t *dentry = dentry_resolve(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_DIR);
     if (IS_ERR(dentry))
         return PTR_ERR(dentry);
 
@@ -704,7 +704,7 @@ long vfs_chdirat(fd_t dirfd, const char *path)
 {
     pr_dinfo2(vfs, "vfs_chdir('%s')", path);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(dirfd);
-    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_DIR);
+    dentry_t *dentry = dentry_resolve(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_DIR);
     if (IS_ERR(dentry))
         return PTR_ERR(dentry);
 
@@ -729,7 +729,7 @@ long vfs_fchmodat(fd_t fd, const char *path, int perm, int flags)
 {
     pr_dinfo2(vfs, "vfs_fchmodat(fd=%d, path='%s', perm=%o, flags=%x)", fd, path, perm, flags);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);
-    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_ANY_TYPE);
+    dentry_t *dentry = dentry_resolve(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_ANY_TYPE);
     if (IS_ERR(dentry))
         return PTR_ERR(dentry);
 
@@ -743,7 +743,7 @@ long vfs_unlinkat(fd_t dirfd, const char *path)
 {
     pr_dinfo2(vfs, "vfs_unlinkat(dirfd=%d, path='%s')", dirfd, path);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(dirfd);
-    dentry_t *dentry = dentry_get(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_FILE);
+    dentry_t *dentry = dentry_resolve(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_FILE);
     if (IS_ERR(dentry))
         return PTR_ERR(dentry);
 

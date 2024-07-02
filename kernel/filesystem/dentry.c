@@ -9,6 +9,7 @@
 #include "mos/filesystem/vfs_types.h"
 #include "mos/filesystem/vfs_utils.h"
 #include "mos/io/io.h"
+#include "mos/lib/sync/spinlock.h"
 #include "mos/syslog/printk.h"
 #include "mos/tasks/process.h"
 #include "mos/tasks/task_types.h"
@@ -30,7 +31,7 @@
 
 // The two functions below have circular dependencies, so we need to forward declare them
 // Both of them return a referenced dentry, no need to refcount them again
-static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf, lastseg_resolve_flags_t flags, bool *symlink_resolved);
+static dentry_t *dentry_resolve_lastseg(dentry_t *parent, char *leaf, lastseg_resolve_flags_t flags, bool *symlink_resolved);
 static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve_flags_t flags);
 
 /**
@@ -42,7 +43,7 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve
  * @param last_seg_out The last segment of the path will be returned in this parameter, the caller is responsible for freeing it
  * @return dentry_t* The parent directory of the path, or NULL if the path is invalid, the dentry will be referenced
  */
-static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, const char *original_path, char **last_seg_out)
+static dentry_t *dentry_resolve_to_parent(dentry_t *base_dir, dentry_t *root_dir, const char *original_path, char **last_seg_out)
 {
     pr_dinfo2(dcache, "lookup parent of '%s'", original_path);
     MOS_ASSERT_X(base_dir && root_dir && original_path, "Invalid VFS lookup parameters");
@@ -50,11 +51,11 @@ static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, co
         *last_seg_out = NULL;
 
     dentry_t *parent_ref = statement_expr(dentry_t *, {
-        dentry_t *__parent = path_is_absolute(original_path) ? root_dir : base_dir;
-        if (__parent->is_mountpoint)
-            __parent = dentry_get_mount(__parent)->root; // if it's a mountpoint, jump to mounted filesystem
-        __parent = dentry_ref_up_to(__parent, root_dir);
-        retval = __parent;
+        dentry_t *tmp = path_is_absolute(original_path) ? root_dir : base_dir;
+        if (tmp->is_mountpoint)
+            tmp = dentry_get_mount(tmp)->root; // if it's a mountpoint, jump to mounted filesystem
+        tmp = dentry_ref_up_to(tmp, root_dir);
+        retval = tmp;
     });
 
     char *saveptr = NULL;
@@ -132,7 +133,7 @@ static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, co
             continue;
         }
 
-        dentry_t *const child_ref = dentry_get_child(parent_ref, current_seg);
+        dentry_t *const child_ref = dentry_lookup_child(parent_ref, current_seg);
         if (child_ref->inode == NULL)
         {
             *last_seg_out = NULL;
@@ -161,16 +162,16 @@ static dentry_t *dentry_lookup_parent(dentry_t *base_dir, dentry_t *root_dir, co
     MOS_UNREACHABLE();
 }
 
-static dentry_t *dentry_resolve_follow_symlink(dentry_t *symlink_dentry, lastseg_resolve_flags_t flags)
+static dentry_t *dentry_resolve_follow_symlink(dentry_t *d, lastseg_resolve_flags_t flags)
 {
-    MOS_ASSERT_X(symlink_dentry != NULL && symlink_dentry->inode != NULL, "check before calling this function!");
-    MOS_ASSERT_X(symlink_dentry->inode->type == FILE_TYPE_SYMLINK, "check before calling this function!");
+    MOS_ASSERT_X(d != NULL && d->inode != NULL, "check before calling this function!");
+    MOS_ASSERT_X(d->inode->type == FILE_TYPE_SYMLINK, "check before calling this function!");
 
-    if (!symlink_dentry->inode->ops || !symlink_dentry->inode->ops->readlink)
+    if (!d->inode->ops || !d->inode->ops->readlink)
         mos_panic("inode does not support readlink (symlink) operation, but it's a symlink!");
 
     char *const target = kmalloc(MOS_PATH_MAX_LENGTH);
-    const size_t read = symlink_dentry->inode->ops->readlink(symlink_dentry, target, MOS_PATH_MAX_LENGTH);
+    const size_t read = d->inode->ops->readlink(d, target, MOS_PATH_MAX_LENGTH);
     if (read == 0)
     {
         mos_warn("symlink is empty");
@@ -188,24 +189,24 @@ static dentry_t *dentry_resolve_follow_symlink(dentry_t *symlink_dentry, lastseg
     pr_dinfo2(dcache, "symlink target: %s", target);
 
     char *last_segment = NULL;
-    dentry_t *parent_ref = dentry_lookup_parent(dentry_parent(symlink_dentry), root_dentry, target, &last_segment);
+    dentry_t *const parent_ref = dentry_resolve_to_parent(dentry_parent(d), root_dentry, target, &last_segment);
     kfree(target);
     if (IS_ERR(parent_ref))
         return parent_ref; // the symlink target does not exist
 
     // it's possibly that the symlink target is also a symlink, this will be handled recursively
-    bool symlink = false;
-    dentry_t *child_ref = dentry_resolve_handle_last_segment(parent_ref, last_segment, flags, &symlink);
+    bool is_symlink = false;
+    dentry_t *const child_ref = dentry_resolve_lastseg(parent_ref, last_segment, flags, &is_symlink);
     kfree(last_segment);
 
     // if symlink is true, we need to unref the parent_ref dentry as it's irrelevant now
-    if (IS_ERR(child_ref) || symlink)
+    if (IS_ERR(child_ref) || is_symlink)
         dentry_unref(parent_ref);
 
     return child_ref; // the real dentry, or an error code
 }
 
-static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf, lastseg_resolve_flags_t flags, bool *is_symlink)
+static dentry_t *dentry_resolve_lastseg(dentry_t *parent, char *leaf, lastseg_resolve_flags_t flags, bool *is_symlink)
 {
     MOS_ASSERT(parent != NULL && leaf != NULL);
     *is_symlink = false;
@@ -223,21 +224,22 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
 
     if (strncmp(leaf, ".", 2) == 0 || strcmp(leaf, "./") == 0)
         return parent;
-
-    if (strncmp(leaf, "..", 3) == 0 || strcmp(leaf, "../") == 0)
+    else if (strncmp(leaf, "..", 3) == 0 || strcmp(leaf, "../") == 0)
     {
         if (parent == root_dentry)
             return parent;
 
-        dentry_t *parent_parent = dentry_parent(parent);
+        dentry_t *const parent_parent = dentry_parent(parent);
         MOS_ASSERT(dentry_unref_one_norelease(parent)); // don't recursively unref all the way to the root
 
+        // if the parent is a mountpoint, we need to jump to the mountpoint's parent
         if (parent_parent->is_mountpoint)
-            parent_parent = dentry_root_get_mountpoint(parent_parent);
+            return dentry_root_get_mountpoint(parent_parent);
+
         return parent_parent;
     }
 
-    dentry_t *child_ref = dentry_get_child(parent, leaf); // now we have a reference to the child
+    dentry_t *const child_ref = dentry_lookup_child(parent, leaf); // now we have a reference to the child
 
     if (unlikely(child_ref->inode == NULL))
     {
@@ -257,28 +259,25 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
 
     if (flags & RESOLVE_EXPECT_NONEXIST && !(flags & RESOLVE_EXPECT_EXIST))
     {
-        mos_warn("file already exists");
         dentry_unref(child_ref);
         return ERR_PTR(-EEXIST);
     }
 
     if (child_ref->inode->type == FILE_TYPE_SYMLINK)
     {
-        if (flags & RESOLVE_SYMLINK_NOFOLLOW)
+        if (!(flags & RESOLVE_SYMLINK_NOFOLLOW))
         {
-            pr_dinfo2(dcache, "not resolving symlink");
-            return child_ref;
+            pr_dinfo2(dcache, "resolving symlink for '%s'", leaf);
+            dentry_t *const symlink_target_ref = dentry_resolve_follow_symlink(child_ref, flags);
+            // we don't need the symlink node anymore
+            MOS_ASSERT(dentry_unref_one_norelease(child_ref));
+            *is_symlink = symlink_target_ref != NULL;
+            return symlink_target_ref;
         }
 
-        pr_dinfo2(dcache, "resolving symlink: %s", leaf);
-        dentry_t *const symlink_target_ref = dentry_resolve_follow_symlink(child_ref, flags);
-        // we don't need the symlink node anymore
-        MOS_ASSERT(dentry_unref_one_norelease(child_ref));
-        *is_symlink = symlink_target_ref != NULL;
-        return symlink_target_ref;
+        pr_dinfo2(dcache, "not following symlink");
     }
-
-    if (child_ref->inode->type == FILE_TYPE_DIRECTORY)
+    else if (child_ref->inode->type == FILE_TYPE_DIRECTORY)
     {
         if (!(flags & RESOLVE_EXPECT_DIR))
         {
@@ -286,8 +285,9 @@ static dentry_t *dentry_resolve_handle_last_segment(dentry_t *parent, char *leaf
             return ERR_PTR(-EISDIR);
         }
 
+        // if the child is a mountpoint, we need to jump to the mounted filesystem's root
         if (child_ref->is_mountpoint)
-            child_ref = dentry_ref(dentry_get_mount(child_ref)->root);
+            return dentry_ref(dentry_get_mount(child_ref)->root);
     }
     else
     {
@@ -345,48 +345,38 @@ dentry_t *dentry_from_fd(fd_t fd)
     return file->dentry;
 }
 
-dentry_t *dentry_get_child(dentry_t *parent, const char *name)
+dentry_t *dentry_lookup_child(dentry_t *parent, const char *name)
 {
     if (unlikely(parent == NULL))
         return NULL;
 
     pr_dinfo2(dcache, "looking for dentry '%s' in '%s'", name, dentry_name(parent));
 
-    dentry_t *dentry = NULL;
-
     // firstly check if it's in the cache
-    tree_foreach_child(dentry_t, c, parent)
-    {
-        if (strcmp(c->name, name) == 0)
-        {
-            if (c->inode != NULL)
-            {
-                pr_dinfo2(dcache, "found dentry '%s' in cache", name);
-                return dentry_ref(c);
-            }
-            else
-            {
-                pr_dinfo2(dcache, "found dentry '%s' in cache, but it's not backed by an inode, try looking up", name);
-                dentry = c;
-                break;
-            }
-        }
-    }
+    dentry_t *dentry = dentry_get_from_parent(parent->superblock, parent, name);
+    MOS_ASSERT(dentry);
 
-    if (dentry == NULL)
-        dentry = dentry_create(parent->superblock, parent, name);
+    spinlock_acquire(&dentry->lock);
 
     if (dentry->inode)
+    {
+        pr_dinfo2(dcache, "dentry '%s' found in the cache", name);
+        spinlock_release(&dentry->lock);
         return dentry_ref(dentry);
+    }
 
     // not in the cache, try to find it in the filesystem
     if (parent->inode == NULL || parent->inode->ops == NULL || parent->inode->ops->lookup == NULL)
     {
         pr_dinfo2(dcache, "filesystem doesn't support lookup");
+        spinlock_release(&dentry->lock);
         return dentry;
     }
 
-    if (parent->inode->ops->lookup(parent->inode, dentry))
+    const bool lookup_result = parent->inode->ops->lookup(parent->inode, dentry);
+    spinlock_release(&dentry->lock);
+
+    if (lookup_result)
     {
         pr_dinfo2(dcache, "dentry '%s' found in the filesystem", name);
         return dentry_ref(dentry);
@@ -398,14 +388,14 @@ dentry_t *dentry_get_child(dentry_t *parent, const char *name)
     }
 }
 
-dentry_t *dentry_get(dentry_t *starting_dir, dentry_t *root_dir, const char *path, lastseg_resolve_flags_t flags)
+dentry_t *dentry_resolve(dentry_t *starting_dir, dentry_t *root_dir, const char *path, lastseg_resolve_flags_t flags)
 {
     if (!root_dir)
         return ERR_PTR(-ENOENT); // no root directory
 
     char *last_segment;
     pr_dinfo2(dcache, "resolving path '%s'", path);
-    dentry_t *const parent_ref = dentry_lookup_parent(starting_dir, root_dir, path, &last_segment);
+    dentry_t *const parent_ref = dentry_resolve_to_parent(starting_dir, root_dir, path, &last_segment);
     if (IS_ERR(parent_ref))
     {
         pr_dinfo2(dcache, "failed to resolve parent of '%s', file not found", path);
@@ -427,7 +417,7 @@ dentry_t *dentry_get(dentry_t *starting_dir, dentry_t *root_dir, const char *pat
     }
 
     bool symlink = false;
-    dentry_t *child_ref = dentry_resolve_handle_last_segment(parent_ref, last_segment, flags, &symlink);
+    dentry_t *child_ref = dentry_resolve_lastseg(parent_ref, last_segment, flags, &symlink);
     kfree(last_segment);
     if (IS_ERR(child_ref) || symlink)
         dentry_unref(parent_ref); // the lookup failed, or child_ref is irrelevant with the parent_ref
@@ -435,7 +425,7 @@ dentry_t *dentry_get(dentry_t *starting_dir, dentry_t *root_dir, const char *pat
     return child_ref;
 }
 
-static void dentry_add_dir(vfs_listdir_state_t *state, u64 ino, const char *name, size_t name_len, file_type_t type)
+static void dirter_add(vfs_listdir_state_t *state, u64 ino, const char *name, size_t name_len, file_type_t type)
 {
     vfs_listdir_entry_t *entry = kmalloc(sizeof(vfs_listdir_entry_t));
     linked_list_init(list_node(entry));
@@ -457,14 +447,14 @@ void vfs_populate_listdir_buf(dentry_t *dir, vfs_listdir_state_t *state)
 
     MOS_ASSERT(d_parent->inode != NULL);
 
-    dentry_add_dir(state, d_inode->ino, ".", 1, FILE_TYPE_DIRECTORY);
-    dentry_add_dir(state, d_parent->inode->ino, "..", 2, FILE_TYPE_DIRECTORY);
+    dirter_add(state, d_inode->ino, ".", 1, FILE_TYPE_DIRECTORY);
+    dirter_add(state, d_parent->inode->ino, "..", 2, FILE_TYPE_DIRECTORY);
 
     MOS_ASSERT(dir->inode);
 
     // this call may not write all the entries, because the buffer may not be big enough
     if (dir->inode->ops && dir->inode->ops->iterate_dir)
-        dir->inode->ops->iterate_dir(dir, state, dentry_add_dir);
+        dir->inode->ops->iterate_dir(dir, state, dirter_add);
     else
-        vfs_generic_iterate_dir(dir, state, dentry_add_dir);
+        vfs_generic_iterate_dir(dir, state, dirter_add);
 }

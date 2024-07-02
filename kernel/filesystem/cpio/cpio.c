@@ -228,7 +228,7 @@ static dentry_t *cpio_mount(filesystem_t *fs, const char *dev_name, const char *
 
     pr_dinfo2(cpio, "cpio header: %.6s", i->header.magic);
     sb->fs = fs;
-    sb->root = dentry_create(sb, NULL, NULL);
+    sb->root = dentry_get_from_parent(sb, NULL, NULL);
     dentry_attach(sb->root, &i->inode);
     sb->root->superblock = i->inode.superblock = sb;
     return sb->root;

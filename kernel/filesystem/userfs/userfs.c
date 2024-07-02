@@ -385,7 +385,7 @@ dentry_t *userfs_fsop_mount(filesystem_t *fs, const char *device, const char *op
     inode_t *i = i_from_pbfull(&resp.root_info, sb, (void *) resp.root_ref.data);
 
     sb->fs = fs;
-    sb->root = dentry_create(sb, NULL, NULL);
+    sb->root = dentry_get_from_parent(sb, NULL, NULL);
     sb->root->superblock = i->superblock = sb;
     dentry_attach(sb->root, i);
     return sb->root;

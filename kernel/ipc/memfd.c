@@ -47,7 +47,7 @@ io_t *memfd_create(const char *name)
         return ERR_PTR(-ENOMEM);
     }
 
-    dentry_t *dentry = dentry_create(memfd_root_dentry->superblock, memfd_root_dentry, name);
+    dentry_t *dentry = dentry_get_from_parent(memfd_root_dentry->superblock, memfd_root_dentry, name);
 
     if (!memfd_root_dentry->inode->ops->newfile(memfd_root_dentry->inode, dentry, FILE_TYPE_REGULAR, (PERM_READ | PERM_WRITE) & PERM_OWNER))
     {

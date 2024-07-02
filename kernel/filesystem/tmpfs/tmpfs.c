@@ -120,7 +120,7 @@ static dentry_t *tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char 
     tmpfs_sb_t *tmpfs_sb = kmalloc(tmpfs_superblock_cache);
     tmpfs_sb->sb.fs = fs;
     tmpfs_sb->sb.ops = &tmpfs_sb_op;
-    tmpfs_sb->sb.root = dentry_create(&tmpfs_sb->sb, NULL, NULL);
+    tmpfs_sb->sb.root = dentry_get_from_parent(&tmpfs_sb->sb, NULL, NULL);
     dentry_attach(tmpfs_sb->sb.root, tmpfs_create_inode(tmpfs_sb, FILE_TYPE_DIRECTORY, tmpfs_default_mode));
     return tmpfs_sb->sb.root;
 }
