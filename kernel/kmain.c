@@ -34,7 +34,6 @@ static void invoke_constructors(void)
         (*func)();
     }
 }
-MOS_INIT(POST_MM, invoke_constructors);
 
 static struct
 {
@@ -130,25 +129,27 @@ void mos_start_kernel(void)
     startup_invoke_autoinit(INIT_TARGET_SYSFS);
 
     platform_startup_late();
+    invoke_constructors();
 
     init_args.argc = 1;
     init_args.argv = kcalloc(1, sizeof(char *)); // init_argv[0] is the init path
     init_args.argv[0] = strdup(MOS_DEFAULT_INIT_PATH);
-    startup_invoke_setup();
+    startup_invoke_cmdline_hooks();
     init_args.argv = krealloc(init_args.argv, (init_args.argc + 1) * sizeof(char *));
     init_args.argv[init_args.argc] = NULL;
 
     long ret = vfs_mount("none", "/", "tmpfs", NULL);
     if (IS_ERR_VALUE(ret))
-        mos_panic("failed to mount rootfs");
+        mos_panic("failed to mount rootfs, vfs_mount returns %ld", ret);
 
     vfs_mkdir("/initrd");
     ret = vfs_mount("none", "/initrd/", "cpiofs", NULL);
     if (IS_ERR_VALUE(ret))
-        mos_panic("failed to mount initrd");
+        mos_panic("failed to mount initrd, vfs_mount returns %ld", ret);
 
     ipc_init();
     tasks_init();
+    scheduler_init();
 
     console_t *const init_con = console_get("serial_com1");
     const stdio_t init_io = { .in = &init_con->io, .out = &init_con->io, .err = &init_con->io };
@@ -193,6 +194,6 @@ void mos_start_kernel(void)
     unblock_scheduler();
 
     pr_cont("\n");
-    scheduler();
+    enter_scheduler();
     MOS_UNREACHABLE();
 }

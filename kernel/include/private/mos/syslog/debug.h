@@ -28,6 +28,7 @@
     X(io)           \
     X(ipc)          \
     X(ipi)          \
+    X(naive_sched)  \
     X(panic)        \
     X(pagefault)    \
     X(pipe)         \

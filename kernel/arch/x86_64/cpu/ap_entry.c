@@ -50,5 +50,5 @@ void platform_ap_entry(u64 arg)
     current_cpu->id = lapic_id;
 
     x86_setup_lapic_timer();
-    scheduler();
+    enter_scheduler();
 }

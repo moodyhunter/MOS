@@ -94,6 +94,7 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
         {
             signal_send_to_thread(t, SIGKILL); // nice
             thread_wait_for_tid(t->tid);
+            spinlock_acquire(&t->state_lock);
             thread_destroy(t);
         }
     }
@@ -144,7 +145,7 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
     {
         pr_emerg("failed to fill process, execve failed");
         spinlock_release(&thread->state_lock);
-        process_handle_exit(proc, 0, SIGKILL);
+        process_exit(proc, 0, SIGKILL);
         MOS_UNREACHABLE();
     }
 

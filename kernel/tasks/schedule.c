@@ -1,103 +1,62 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <mos/lib/structures/hashmap.h>
-#include <mos/lib/sync/spinlock.h>
-#include <mos/platform/platform.h>
-#include <mos/syslog/printk.h>
-#include <mos/tasks/process.h>
-#include <mos/tasks/schedule.h>
-#include <mos/tasks/task_types.h>
-#include <mos/tasks/thread.h>
-#include <mos/tasks/wait.h>
+#include "mos/tasks/schedule.h"
 
-static const char thread_state_str[] = {
-    [THREAD_STATE_CREATED] = 'C', //
-    [THREAD_STATE_READY] = 'R',   //
-    [THREAD_STATE_RUNNING] = 'r', //
-    [THREAD_STATE_BLOCKED] = 'B', //
-    [THREAD_STATE_DEAD] = 'D',    //
-};
+#include "mos/assert.h"
+#include "mos/lib/sync/spinlock.h"
+#include "mos/misc/setup.h"
+#include "mos/platform/platform.h"
+#include "mos/tasks/scheduler.h"
+#include "mos/tasks/thread.h"
 
-static bool scheduler_ready = false;
+#include <mos_string.h>
 
-static bool should_schedule_to_thread(thread_t *thread)
+static char thread_state_str(thread_state_t state)
 {
-    switch (thread->state)
+    switch (state)
     {
-        case THREAD_STATE_READY:
-        case THREAD_STATE_CREATED:
-        {
-            return true;
-        }
-        case THREAD_STATE_BLOCKED:
-        {
-            // if the thread is blocked, check if the condition (if any) is met
-            if (!thread->waiting)
-                return false;
-
-            if (!wc_condition_verify(thread->waiting))
-                return false;
-            wc_condition_cleanup(thread->waiting);
-            thread->waiting = NULL;
-            pr_dinfo2(scheduler, "%pt's wait condition is resolved", (void *) thread);
-            return true;
-        }
-        case THREAD_STATE_NONINTERRUPTIBLE:
-        {
-            return false;
-        }
-        case THREAD_STATE_DEAD:
-        case THREAD_STATE_RUNNING:
-        {
-            return false;
-        }
-        default:
-        {
-            mos_panic("Unknown thread status %d", thread->state);
-        }
+        case THREAD_STATE_CREATED: return 'C';
+        case THREAD_STATE_READY: return 'R';
+        case THREAD_STATE_RUNNING: return 'r';
+        case THREAD_STATE_BLOCKED: return 'B';
+        case THREAD_STATE_NONINTERRUPTIBLE: return 'N';
+        case THREAD_STATE_DEAD: return 'D';
     }
+
+    MOS_UNREACHABLE();
 }
 
-static bool schedule_to_thread(uintn key, void *value, void *data)
+static bool scheduler_ready = false;
+static scheduler_t *active_scheduler = NULL;
+extern const scheduler_info_t __MOS_SCHEDULERS_START[], __MOS_SCHEDULERS_END[];
+
+static bool scheduler_cmdline_selector(const char *arg)
 {
-    MOS_UNUSED(data);
-    tid_t tid = key;
-    thread_t *thread = (thread_t *) value;
-
-    MOS_ASSERT_X(thread->tid == tid, "something is wrong with the thread table");
-
-    switch_flags_t switch_flags = 0;
-    spinlock_acquire(&thread->state_lock);
-    if (!should_schedule_to_thread(thread))
+    for (const scheduler_info_t *info = __MOS_SCHEDULERS_START; info < __MOS_SCHEDULERS_END; info++)
     {
-        spinlock_release(&thread->state_lock);
-        return true;
-    }
-    else
-    {
-        if (thread->state == THREAD_STATE_CREATED)
-            switch_flags |= thread->mode == THREAD_MODE_KERNEL ? SWITCH_TO_NEW_KERNEL_THREAD : SWITCH_TO_NEW_USER_THREAD;
-        thread->state = THREAD_STATE_RUNNING;
-        spinlock_release(&thread->state_lock);
+        if (strcmp(info->name, arg) == 0)
+        {
+            active_scheduler = info->scheduler;
+            active_scheduler->ops->init(active_scheduler);
+            pr_dinfo2(scheduler, "active scheduler: %s", info->name);
+            return true;
+        }
     }
 
-    cpu_t *cpu = current_cpu;
-    pr_dinfo2(scheduler, "switching %pt -> %pt, flags: %c%c",        //
-              (void *) current_thread,                               //
-              (void *) thread,                                       //
-              switch_flags & SWITCH_TO_NEW_USER_THREAD ? 'U' : '-',  //
-              switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? 'K' : '-' //
-    );
+    pr_dwarn(scheduler, "scheduler '%s' not found", arg);
+    return false;
+}
 
-    const bool should_switch_mm = cpu->mm_context != thread->owner->mm;
-    if (should_switch_mm)
+MOS_SETUP("scheduler", scheduler_cmdline_selector);
+
+void scheduler_init()
+{
+    if (!active_scheduler)
     {
-        mm_context_t *old = mm_switch_context(thread->owner->mm);
-        MOS_UNUSED(old);
+        pr_dwarn(scheduler, "no scheduler is selected, using the first scheduler");
+        active_scheduler = __MOS_SCHEDULERS_START[0].scheduler;
+        active_scheduler->ops->init(active_scheduler);
     }
-
-    platform_switch_to_thread(&cpu->scheduler_stack, thread, switch_flags);
-    return true;
 }
 
 void unblock_scheduler(void)
@@ -107,46 +66,41 @@ void unblock_scheduler(void)
     scheduler_ready = true;
 }
 
-noreturn void scheduler(void)
+noreturn void enter_scheduler(void)
 {
     while (likely(!scheduler_ready))
         ; // wait for the scheduler to be unblocked
 
-    pr_dinfo2(scheduler, "cpu %d: scheduler is ready", current_cpu->id);
-
-    while (1)
-        hashmap_foreach(&thread_table, schedule_to_thread, NULL);
+    pr_dinfo2(scheduler, "cpu %d: scheduler is ready", platform_current_cpu_id());
+    MOS_ASSERT(current_thread == NULL);
+    reschedule();
+    MOS_UNREACHABLE();
 }
 
-void reschedule_for_wait_condition(wait_condition_t *wait_condition)
+void scheduler_add_thread(thread_t *thread)
 {
-    thread_t *t = current_cpu->thread;
-    MOS_ASSERT_X(t->state != THREAD_STATE_BLOCKED, "thread %d is already blocked", t->tid);
-    MOS_ASSERT_X(t->waiting == NULL, "thread %d is already waiting for something else", t->tid);
-    spinlock_acquire(&t->state_lock);
-    t->state = THREAD_STATE_BLOCKED;
-    pr_dinfo2(scheduler, "%pt is now blocked for wait-condition", (void *) t);
-    spinlock_release(&t->state_lock);
-    t->waiting = wait_condition;
-    platform_switch_to_scheduler(&t->k_stack.head, current_cpu->scheduler_stack);
+    MOS_ASSERT(thread_is_valid(thread));
+    MOS_ASSERT_X(thread->state == THREAD_STATE_CREATED || thread->state == THREAD_STATE_READY, "thread %pt is not in a valid state", (void *) thread);
+    active_scheduler->ops->add_thread(active_scheduler, thread);
 }
 
-bool reschedule_for_waitlist(waitlist_t *waitlist)
+void scheduler_remove_thread(thread_t *thread)
 {
-    thread_t *t = current_cpu->thread;
-    MOS_ASSERT_X(t->state != THREAD_STATE_BLOCKED, "thread %d is already blocked", t->tid);
-    MOS_ASSERT_X(t->waiting == NULL, "thread %d is already waiting for something else", t->tid);
+    MOS_ASSERT(thread_is_valid(thread));
+    active_scheduler->ops->remove_thread(active_scheduler, thread);
+}
 
-    if (!waitlist_append(waitlist))
-        return false; // waitlist is closed, process is dead
+void scheduler_wake_thread(thread_t *thread)
+{
+    spinlock_acquire(&thread->state_lock);
+    if (thread->state == THREAD_STATE_READY || thread->state == THREAD_STATE_RUNNING)
+        return; // thread is already running or ready
 
-    spinlock_release(&t->state_lock);
-    t->state = THREAD_STATE_BLOCKED;
-    pr_dinfo2(scheduler, "%pt is now blocked for waitlist", (void *) t);
-    spinlock_release(&t->state_lock);
-    platform_switch_to_scheduler(&t->k_stack.head, current_cpu->scheduler_stack);
-
-    return true;
+    MOS_ASSERT_X(thread->state == THREAD_STATE_BLOCKED || thread->state == THREAD_STATE_NONINTERRUPTIBLE, "thread %pt is not blocked", (void *) thread);
+    thread->state = THREAD_STATE_READY;
+    spinlock_release(&thread->state_lock);
+    pr_dinfo2(scheduler, "waking up %pt", (void *) thread);
+    active_scheduler->ops->add_thread(active_scheduler, thread);
 }
 
 void reschedule(void)
@@ -159,33 +113,63 @@ void reschedule(void)
     // But it can't be:
     // - in READY state
     cpu_t *cpu = current_cpu;
+    thread_t *const current = cpu->thread;
 
-    spinlock_acquire(&cpu->thread->state_lock);
-    MOS_ASSERT_X(cpu->thread->state != THREAD_STATE_READY, "thread %pt must not be ready", (void *) cpu->thread);
-
-    if (cpu->thread->state == THREAD_STATE_RUNNING)
+    thread_t *const next = active_scheduler->ops->select_next(active_scheduler);
+    if (!next)
     {
-        cpu->thread->state = THREAD_STATE_READY;
-        pr_dinfo2(scheduler, "leaving %pt", (void *) cpu->thread);
+        MOS_ASSERT(current);
+        MOS_ASSERT_X(spinlock_is_locked(&current->state_lock), "thread state lock must be held");
+        if (current->state != THREAD_STATE_DEAD)
+            current->state = THREAD_STATE_RUNNING; // give the current thread a chance to run again, if it's not dead
+        pr_dinfo2(scheduler, "no thread to run, staying with %pt, state = %c", (void *) current, thread_state_str(current->state));
+        spinlock_release(&current->state_lock);
+        return;
     }
-    else
-    {
-        pr_dinfo2(scheduler, "leaving %pt, state: '%c'", (void *) cpu->thread, thread_state_str[cpu->thread->state]);
-    }
-    spinlock_release(&cpu->thread->state_lock);
 
-    // update k_stack because we are now running on the kernel stack
-    platform_switch_to_scheduler(&cpu->thread->k_stack.head, cpu->scheduler_stack);
+    const bool should_switch_mm = cpu->mm_context != next->owner->mm;
+    if (should_switch_mm)
+    {
+        mm_context_t *old = mm_switch_context(next->owner->mm);
+        MOS_UNUSED(old);
+    }
+
+    const switch_flags_t switch_flags = statement_expr(switch_flags_t, {
+        retval = SWITCH_REGULAR;
+        if (next->state == THREAD_STATE_CREATED)
+            retval |= next->mode == THREAD_MODE_KERNEL ? SWITCH_TO_NEW_KERNEL_THREAD : SWITCH_TO_NEW_USER_THREAD;
+    });
+
+    if (likely(current))
+    {
+        if (current->state == THREAD_STATE_RUNNING)
+            current->state = THREAD_STATE_READY, scheduler_add_thread(current);
+        pr_dinfo2(scheduler, "leaving %pt, state: '%c'", (void *) current, thread_state_str(current->state));
+    }
+    pr_dinfo2(scheduler, "switching to %pt, state: '%c'", (void *) next, thread_state_str(next->state));
+
+    next->state = THREAD_STATE_RUNNING;
+    spinlock_release(&next->state_lock);
+    platform_switch_to_thread(current, next, switch_flags);
 }
 
 void blocked_reschedule(void)
 {
-    cpu_t *cpu = current_cpu;
-    spinlock_acquire(&cpu->thread->state_lock);
-    current_thread->state = THREAD_STATE_BLOCKED;
-    pr_dinfo2(scheduler, "block-rescheduling %pt", (void *) cpu->thread);
-    spinlock_release(&cpu->thread->state_lock);
+    thread_t *t = current_cpu->thread;
+    spinlock_acquire(&t->state_lock);
+    t->state = THREAD_STATE_BLOCKED;
+    pr_dinfo2(scheduler, "%pt is now blocked", (void *) t);
+    reschedule();
+}
 
-    // update k_stack because we are now running on the kernel stack
-    platform_switch_to_scheduler(&cpu->thread->k_stack.head, cpu->scheduler_stack);
+bool reschedule_for_waitlist(waitlist_t *waitlist)
+{
+    thread_t *t = current_cpu->thread;
+    MOS_ASSERT_X(t->state != THREAD_STATE_BLOCKED, "thread %d is already blocked", t->tid);
+
+    if (!waitlist_append(waitlist))
+        return false; // waitlist is closed, process is dead
+
+    blocked_reschedule();
+    return true;
 }

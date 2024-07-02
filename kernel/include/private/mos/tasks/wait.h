@@ -8,15 +8,6 @@
 #include <mos/lib/sync/spinlock.h>
 #include <mos/mos_global.h>
 
-typedef struct _wait_condition wait_condition_t;
-
-typedef struct _wait_condition
-{
-    void *arg;
-    bool (*verify)(wait_condition_t *condition); // return true if condition is met
-    void (*cleanup)(wait_condition_t *condition);
-} wait_condition_t;
-
 /**
  * @brief The entry in the waiters list of a process, or a thread
  */
@@ -35,13 +26,6 @@ typedef struct
 
 extern slab_t *waitlist_slab;
 
-typedef bool (*wait_condition_verifier_t)(wait_condition_t *condition);
-typedef void (*wait_condition_cleanup_t)(wait_condition_t *condition);
-
-wait_condition_t *wc_wait_for(void *arg, wait_condition_verifier_t verify, wait_condition_cleanup_t cleanup);
-
-bool wc_condition_verify(wait_condition_t *condition);
-void wc_condition_cleanup(wait_condition_t *condition);
 __BEGIN_DECLS
 
 void waitlist_init(waitlist_t *list);

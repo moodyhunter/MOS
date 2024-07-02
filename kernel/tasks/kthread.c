@@ -21,7 +21,7 @@ static void kthread_entry(void *arg)
     kthread_arg_t *kthread_arg = arg;
     kthread_arg->entry(kthread_arg->arg);
     kfree(kthread_arg);
-    thread_handle_exit(current_thread);
+    thread_exit(current_thread);
 }
 
 void kthread_init(void)

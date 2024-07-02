@@ -18,6 +18,9 @@ static size_t console_io_read(io_t *io, void *data, size_t size)
 {
     console_t *con = container_of(io, console_t, io);
 
+retry_read:;
+    size_t read = 0;
+
     spinlock_acquire(&con->read.lock);
     if (ring_buffer_pos_is_empty(&con->read.pos))
     {
@@ -36,11 +39,16 @@ static size_t console_io_read(io_t *io, void *data, size_t size)
             return -ERESTARTSYS;
         }
     }
-
-    const size_t rd = ring_buffer_pos_pop_front(con->read.buf, &con->read.pos, data, size);
+    else
+    {
+        read = ring_buffer_pos_pop_front(con->read.buf, &con->read.pos, data, size);
+    }
     spinlock_release(&con->read.lock);
 
-    return rd;
+    if (read == 0)
+        goto retry_read;
+
+    return read;
 }
 
 static size_t console_io_write(io_t *io, const void *data, size_t size)

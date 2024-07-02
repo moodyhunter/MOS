@@ -13,7 +13,7 @@
 static void ipi_handler_halt(ipi_type_t type)
 {
     MOS_UNUSED(type);
-    pr_dinfo2(ipi, "Received halt IPI");
+    pr_info("halt IPI received");
     platform_halt_cpu();
 }
 
@@ -28,6 +28,7 @@ static void ipi_handler_reschedule(ipi_type_t type)
 {
     MOS_UNUSED(type);
     pr_dinfo2(ipi, "Received reschedule IPI");
+    spinlock_acquire(&current_thread->state_lock);
     reschedule();
 }
 

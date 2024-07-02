@@ -13,6 +13,7 @@ config DEBUG_ALL
     select DEBUG_io
     select DEBUG_ipc
     select DEBUG_ipi
+    select DEBUG_naive_sched
     select DEBUG_panic
     select DEBUG_pagefault
     select DEBUG_pipe
@@ -58,6 +59,9 @@ config DEBUG_ipc
 
 config DEBUG_ipi
     bool "Inter-processor interrupt debugging"
+
+config DEBUG_naive_sched
+    bool "Naive scheduler debugging log"
 
 config DEBUG_panic
     bool "Kernel panic debugging"

@@ -111,11 +111,12 @@ DEFINE_SYSCALL(noreturn void, exit)(u32 exit_code)
 {
     // only use the lower 8 bits
     exit_code &= 0xff;
-    process_handle_exit(current_process, exit_code, 0);
+    process_exit(current_process, exit_code, 0);
 }
 
 DEFINE_SYSCALL(void, yield_cpu)(void)
 {
+    spinlock_acquire(&current_thread->state_lock);
     reschedule();
 }
 
@@ -167,7 +168,7 @@ DEFINE_SYSCALL(tid_t, get_tid)(void)
 
 DEFINE_SYSCALL(noreturn void, thread_exit)(void)
 {
-    thread_handle_exit(current_thread);
+    thread_exit(current_thread);
 }
 
 DEFINE_SYSCALL(bool, wait_for_thread)(tid_t tid)

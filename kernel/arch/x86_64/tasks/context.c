@@ -24,7 +24,7 @@
 typedef void (*switch_func_t)();
 
 extern void x86_normal_switch_impl();
-extern void x86_context_switch_impl(ptr_t *old_stack, ptr_t new_kstack, switch_func_t switcher);
+extern void x86_context_switch_impl(ptr_t *old_stack, ptr_t new_kstack, switch_func_t switcher, bool *lock);
 
 static void x86_start_kernel_thread()
 {
@@ -116,26 +116,34 @@ void platform_context_clone(const thread_t *from, thread_t *to)
     to->k_stack.head -= sizeof(platform_regs_t);
 }
 
-void platform_switch_to_thread(ptr_t *scheduler_stack, thread_t *new_thread, switch_flags_t switch_flags)
+void platform_switch_to_thread(thread_t *current, thread_t *new_thread, switch_flags_t switch_flags)
 {
-    thread_t *const old_thread = current_thread;
-    const switch_func_t switch_func = switch_flags & SWITCH_TO_NEW_USER_THREAD   ? x86_start_user_thread :
-                                      switch_flags & SWITCH_TO_NEW_KERNEL_THREAD ? x86_start_kernel_thread :
-                                                                                   x86_normal_switch_impl;
+    const switch_func_t switch_func = statement_expr(switch_func_t, {
+        switch (switch_flags)
+        {
+            case SWITCH_TO_NEW_USER_THREAD: retval = x86_start_user_thread; break;
+            case SWITCH_TO_NEW_KERNEL_THREAD: retval = x86_start_kernel_thread; break;
+            default: retval = x86_normal_switch_impl; break;
+        }
+    });
 
-    x86_xsave_thread(old_thread);
+    if (current)
+        x86_xsave_thread(current);
+
     x86_xrstor_thread(new_thread);
     x86_set_fsbase(new_thread);
 
     __atomic_store_n(&current_cpu->thread, new_thread, __ATOMIC_SEQ_CST);
     __atomic_store_n(&per_cpu(x86_cpu_descriptor)->tss.rsp0, new_thread->k_stack.top, __ATOMIC_SEQ_CST);
 
-    x86_context_switch_impl(scheduler_stack, new_thread->k_stack.head, switch_func);
-}
+    ptr_t trash = 0;
+    ptr_t *const stack_ptr = current ? &current->k_stack.head : &trash;
 
-void platform_switch_to_scheduler(ptr_t *old_stack, ptr_t scheduler_stack)
-{
-    x86_context_switch_impl(old_stack, scheduler_stack, x86_normal_switch_impl);
+    bool trash_lock = false;
+    bool *const lock = current ? &current->state_lock.flag : &trash_lock;
+    x86_context_switch_impl(stack_ptr, new_thread->k_stack.head, switch_func, lock);
+
+    //
 }
 
 void x86_set_fsbase(thread_t *thread)

@@ -69,9 +69,9 @@ typedef enum
 
 typedef enum
 {
-    SWITCH_REGULAR = 0,
-    SWITCH_TO_NEW_USER_THREAD = 1 << 1,
-    SWITCH_TO_NEW_KERNEL_THREAD = 1 << 2,
+    SWITCH_REGULAR,
+    SWITCH_TO_NEW_USER_THREAD,
+    SWITCH_TO_NEW_KERNEL_THREAD,
 } switch_flags_t;
 
 MOS_ENUM_OPERATORS(switch_flags_t)
@@ -242,8 +242,7 @@ void platform_context_cleanup(thread_t *thread);
 // Platform Context Switching APIs
 // no default implementation, platform-specific implementations must be provided
 void platform_switch_mm(const mm_context_t *new_mm);
-void platform_switch_to_thread(ptr_t *old_stack, thread_t *new_thread, switch_flags_t switch_flags);
-void platform_switch_to_scheduler(ptr_t *old_stack, ptr_t new_stack);
+void platform_switch_to_thread(thread_t *current, thread_t *new_thread, switch_flags_t switch_flags);
 noreturn void platform_return_to_userspace(platform_regs_t *regs);
 
 // Platform-Specific syscall APIs

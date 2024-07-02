@@ -109,18 +109,19 @@ void process_destroy(process_t *process)
     if (!process_is_valid(process))
         return;
 
+    hashmap_remove(&process_table, process->pid);
+
     MOS_ASSERT(process != current_process);
     pr_dinfo2(process, "destroying process %pp", (void *) process);
 
+    MOS_ASSERT_X(process->main_thread != NULL, "main thread must be dead before destroying process");
+
+    spinlock_acquire(&process->main_thread->state_lock);
+    thread_destroy(process->main_thread);
+    process->main_thread = NULL;
+
     if (process->name != NULL)
         kfree(process->name);
-
-    if (process->main_thread != NULL)
-    {
-        hashmap_remove(&thread_table, process->main_thread->tid);
-        thread_destroy(process->main_thread);
-        process->main_thread = NULL;
-    }
 
     if (process->mm != NULL)
     {
@@ -272,21 +273,18 @@ child_dead:;
     pid = target_proc->pid;
     if (exit_code)
         *exit_code = target_proc->exit_status;
-    hashmap_remove(&process_table, pid);
     process_destroy(target_proc);
 
     return pid;
 }
 
-void process_handle_exit(process_t *process, u8 exit_code, signal_t signal)
+void process_exit(process_t *process, u8 exit_code, signal_t signal)
 {
     MOS_ASSERT(process_is_valid(process));
     pr_dinfo2(process, "process %pp exited with code %d, signal %d", (void *) process, exit_code, signal);
 
     if (unlikely(process->pid == 1))
         mos_panic("init process terminated with code %d, signal %d", exit_code, signal);
-
-    process->exit_status = W_EXITCODE(exit_code, signal);
 
     list_foreach(thread_t, thread, process->threads)
     {
@@ -296,6 +294,7 @@ void process_handle_exit(process_t *process, u8 exit_code, signal_t signal)
             pr_dinfo2(process, "cleanup thread %pp", (void *) thread);
             MOS_ASSERT(thread != current_thread);
             hashmap_remove(&thread_table, thread->tid);
+            list_remove(thread);
             thread_destroy(thread);
         }
         else
@@ -308,17 +307,16 @@ void process_handle_exit(process_t *process, u8 exit_code, signal_t signal)
                 spinlock_release(&thread->state_lock);
                 thread_wait_for_tid(thread->tid);
                 spinlock_acquire(&thread->state_lock);
-                pr_dinfo2(process, "thread %pp terminated", (void *) thread);
-                MOS_ASSERT(thread->state == THREAD_STATE_DEAD);
+                pr_dinfo2(process, "thread %pt terminated", (void *) thread);
+                MOS_ASSERT_X(thread->state == THREAD_STATE_DEAD, "thread %pt is not dead", (void *) thread);
                 hashmap_remove(&thread_table, thread->tid);
                 thread_destroy(thread);
             }
             else
             {
-                thread->state = THREAD_STATE_DEAD;
                 spinlock_release(&thread->state_lock);
                 process->main_thread = thread; // make sure we properly destroy the main thread at the end
-                pr_dinfo2(process, "thread %pp is current thread, replacing main thread", (void *) thread);
+                pr_dinfo2(process, "thread %pp is current thread, making it main thread", (void *) thread);
             }
         }
     }
@@ -346,16 +344,21 @@ void process_handle_exit(process_t *process, u8 exit_code, signal_t signal)
         list_node_append(&process->parent->children, list_node(child));
     }
 
+    dentry_unref(process->working_directory);
+
     pr_dinfo2(process, "closed %zu/%zu files owned by %pp", files_closed, files_total, (void *) process);
     process->exited = true;
+    process->exit_status = W_EXITCODE(exit_code, signal);
+
+    // let the parent wait for our exit
+    spinlock_acquire(&current_thread->state_lock);
 
     // wake up parent
     pr_dinfo2(process, "waking up parent %pp", (void *) process->parent);
     signal_send_to_process(process->parent, SIGCHLD);
     waitlist_wake(&process->parent->signal_info.sigchild_waitlist, INT_MAX);
 
-    dentry_unref(process->working_directory);
-    reschedule();
+    thread_exit_locked(current_thread);
     MOS_UNREACHABLE();
 }
 

@@ -7,6 +7,7 @@
 #include "mos/platform/platform.h"
 #include "mos/syslog/printk.h"
 #include "mos/tasks/process.h"
+#include "mos/tasks/schedule.h"
 #include "mos/tasks/thread.h"
 
 #include <errno.h>
@@ -52,18 +53,18 @@ SLAB_AUTOINIT("signal_pending", sigpending_slab, sigpending_t);
 noreturn static void signal_do_coredump(signal_t signal)
 {
     if (current_thread == current_process->main_thread)
-        process_handle_exit(current_process, 0, signal);
+        process_exit(current_process, 0, signal);
     else
-        thread_handle_exit(current_thread);
+        thread_exit(current_thread);
     MOS_UNREACHABLE();
 }
 
 noreturn static void signal_do_terminate(signal_t signal)
 {
     if (current_thread == current_process->main_thread)
-        process_handle_exit(current_process, 0, signal);
+        process_exit(current_process, 0, signal);
     else
-        thread_handle_exit(current_thread);
+        thread_exit(current_thread);
     MOS_UNREACHABLE();
 }
 
@@ -166,12 +167,7 @@ long signal_send_to_process(process_t *target, signal_t signal)
     signal_send_to_thread(target_thread, signal);
 
     if (target_thread != current_thread)
-    {
-        spinlock_acquire(&target_thread->state_lock);
-        if (target_thread->state == THREAD_STATE_BLOCKED)
-            target_thread->state = THREAD_STATE_READY;
-        spinlock_release(&target_thread->state_lock);
-    }
+        scheduler_wake_thread(target_thread);
 
     return 0;
 }

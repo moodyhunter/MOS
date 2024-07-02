@@ -2,6 +2,7 @@
 
 #include "mos/mm/slab.h"
 #include "mos/mm/slab_autoinit.h"
+#include "mos/tasks/schedule.h"
 
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
@@ -18,28 +19,6 @@ SLAB_AUTOINIT("waitlist", waitlist_slab, waitlist_t);
 
 static slab_t *waitlist_listentry_slab = NULL;
 SLAB_AUTOINIT("waitlist_entry", waitlist_listentry_slab, waitable_list_entry_t);
-
-wait_condition_t *wc_wait_for(void *arg, wait_condition_verifier_t verify, wait_condition_cleanup_t cleanup)
-{
-    wait_condition_t *condition = kmalloc(sizeof(wait_condition_t));
-    condition->arg = arg;
-    condition->verify = verify;
-    condition->cleanup = cleanup;
-    return condition;
-}
-
-bool wc_condition_verify(wait_condition_t *condition)
-{
-    MOS_ASSERT_X(condition->verify, "wait condition has no verify function");
-    return condition->verify(condition);
-}
-
-void wc_condition_cleanup(wait_condition_t *condition)
-{
-    if (condition->cleanup)
-        condition->cleanup(condition);
-    kfree(condition);
-}
 
 void waitlist_init(waitlist_t *list)
 {
@@ -81,12 +60,8 @@ size_t waitlist_wake(waitlist_t *list, size_t max_wakeups)
 
         thread_t *thread = thread_get(entry->waiter);
         MOS_ASSERT(thread);
-
-        spinlock_acquire(&thread->state_lock);
-        MOS_ASSERT(thread->state == THREAD_STATE_BLOCKED || thread->state == THREAD_STATE_READY);
-        thread->state = THREAD_STATE_READY;
-        spinlock_release(&thread->state_lock);
-
+        if (thread->state == THREAD_STATE_BLOCKED)
+            scheduler_wake_thread(thread);
         kfree(entry);
         wakeups++;
     }

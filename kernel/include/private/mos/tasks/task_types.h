@@ -86,8 +86,7 @@ typedef struct _thread
 
     platform_thread_options_t platform_options; ///< platform-specific thread options
 
-    wait_condition_t *waiting; ///< wait condition this thread is waiting on
-    waitlist_t waiters;        ///< list of threads waiting for this thread to exit
+    waitlist_t waiters; ///< list of threads waiting for this thread to exit
 
     thread_signal_info_t signal_info;
 } thread_t;

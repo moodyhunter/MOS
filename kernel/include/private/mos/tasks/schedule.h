@@ -7,11 +7,41 @@
 __BEGIN_DECLS
 
 void tasks_init();
-void unblock_scheduler(void);
-noreturn void scheduler(void);
 
-void reschedule_for_wait_condition(wait_condition_t *wait_condition);
-__nodiscard bool reschedule_for_waitlist(waitlist_t *waitlist);
+void scheduler_init();
+
+/**
+ * @brief Unblock the scheduler, so that APs can start scheduling.
+ *
+ */
+void unblock_scheduler(void);
+
+/**
+ * @brief Enter the scheduler and switch to the next thread.
+ *
+ */
+noreturn void enter_scheduler(void);
+
+/**
+ * @brief Add a thread to the scheduler, so that it can be scheduled.
+ *
+ * @param thread
+ */
+void scheduler_add_thread(thread_t *thread);
+
+/**
+ * @brief Remove a thread from the scheduler.
+ *
+ * @param thread
+ */
+void scheduler_remove_thread(thread_t *thread);
+
+/**
+ * @brief Wake a thread.
+ *
+ * @param thread
+ */
+void scheduler_wake_thread(thread_t *thread);
 
 /**
  * @brief reschedule.
@@ -24,5 +54,7 @@ void reschedule(void);
  *
  */
 void blocked_reschedule(void);
+
+__nodiscard bool reschedule_for_waitlist(waitlist_t *waitlist);
 
 __END_DECLS

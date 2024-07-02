@@ -428,7 +428,7 @@ process_t *elf_create_process(const char *path, process_t *parent, const char *c
     if (!filled)
     {
         // TODO how do we make sure that the process is cleaned up properly?
-        process_handle_exit(proc, 0, SIGKILL);
+        process_exit(proc, 0, SIGKILL);
         proc = NULL;
     }
 

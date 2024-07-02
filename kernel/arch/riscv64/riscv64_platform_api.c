@@ -75,6 +75,5 @@ MOS_STUB_IMPL(void platform_context_cleanup(thread_t *thread))
 
 // Platform Context Switching APIs
 MOS_STUB_IMPL(void platform_switch_mm(const mm_context_t *new_mm))
-MOS_STUB_IMPL(void platform_switch_to_thread(ptr_t *old_stack, thread_t *new_thread, switch_flags_t switch_flags))
-MOS_STUB_IMPL(void platform_switch_to_scheduler(ptr_t *old_stack, ptr_t new_stack))
+MOS_STUB_IMPL(void platform_switch_to_thread(thread_t *old_thread, thread_t *new_thread, switch_flags_t switch_flags))
 MOS_STUB_IMPL(noreturn void platform_return_to_userspace(platform_regs_t *regs))

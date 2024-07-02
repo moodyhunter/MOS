@@ -2,7 +2,7 @@
 
 %define REGSIZE 8
 
-; void x86_context_switch_impl(RDI: ptr_t *old_stack, RSI: ptr_t kernel_stack, RDX: ptr_t jump_addr)
+; void x86_context_switch_impl(RDI: ptr_t *old_stack, RSI: ptr_t kernel_stack, RDX: ptr_t jump_addr, RCX: bool *lock)
 global x86_context_switch_impl:function (x86_context_switch_impl.end - x86_context_switch_impl)
 x86_context_switch_impl:
     push    rbp
@@ -24,11 +24,15 @@ x86_context_switch_impl:
     ; rdi = old_stack *
     ; rsi = kernel_stack
     ; rdx = jump_addr
+    ; rcx = lock *
     ; set rsp to kernel_stack
     mov     [rdi], rsp      ; backup old stack pointer
     mov     rsp, rsi        ; switch to kernel stack
 
-    xor     rax, rax        ; clear rax, rbx, rdx, rdi, rbp
+    ; unlock the lock
+    mov     byte [rcx], 0
+
+    xor     rax, rax        ; clear rax, rbx, rsi, rdi, rbp
     xor     rbx, rbx
     xor     rsi, rsi
     xor     rdi, rdi

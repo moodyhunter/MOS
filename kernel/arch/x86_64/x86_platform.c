@@ -101,6 +101,7 @@ static void x86_com1_handler(u32 irq)
 static void x86_pit_timer_handler(u32 irq)
 {
     MOS_ASSERT(irq == IRQ_PIT_TIMER);
+    spinlock_acquire(&current_thread->state_lock);
     reschedule();
 }
 

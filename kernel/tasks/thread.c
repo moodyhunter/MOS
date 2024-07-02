@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/lib/sync/spinlock.h"
 #include "mos/mm/mm.h"
 
 #include <errno.h>
@@ -35,7 +36,6 @@ thread_t *thread_allocate(process_t *owner, thread_mode tflags)
     t->owner = owner;
     t->state = THREAD_STATE_CREATED;
     t->mode = tflags;
-    t->waiting = NULL;
     waitlist_init(&t->waiters);
     linked_list_init(&t->signal_info.pending);
     linked_list_init(list_node(t));
@@ -49,7 +49,12 @@ void thread_destroy(thread_t *thread)
     if (!thread_is_valid(thread))
         return;
 
+    hashmap_remove(&thread_table, thread->tid);
+
     pr_dinfo2(thread, "destroying thread %pt", (void *) thread);
+    MOS_ASSERT_X(spinlock_is_locked(&thread->state_lock), "thread state lock must be held");
+    MOS_ASSERT_X(thread->state == THREAD_STATE_DEAD, "thread must be dead for destroy");
+
     platform_context_cleanup(thread);
 
     if (thread->name)
@@ -143,6 +148,7 @@ thread_t *thread_new(process_t *owner, thread_mode tmode, const char *name, size
 done_efault:
     spinlock_release(&stack_vmap->lock);
     mm_unlock_ctx_pair(owner->mm, NULL);
+    spinlock_acquire(&t->state_lock);
     thread_destroy(t);
     return ERR_PTR(-EFAULT); // invalid stack pointer
 }
@@ -154,6 +160,7 @@ thread_t *thread_complete_init(thread_t *thread)
 
     thread_t *old = hashmap_put(&thread_table, thread->tid, thread);
     MOS_ASSERT(old == NULL);
+    scheduler_add_thread(thread);
     return thread;
 }
 
@@ -187,20 +194,27 @@ bool thread_wait_for_tid(tid_t tid)
     return true;
 }
 
-void thread_handle_exit(thread_t *t)
+void thread_exit(thread_t *t)
 {
-    if (!thread_is_valid(t))
-        mos_panic("thread_handle_exit() called on invalid thread");
-
-    pr_dinfo(thread, "thread %pt exited", (void *) t);
-
+    MOS_ASSERT_X(thread_is_valid(t), "thread_handle_exit() called on invalid thread");
     spinlock_acquire(&t->state_lock);
+    thread_exit_locked(t);
+}
+
+noreturn void thread_exit_locked(thread_t *t)
+{
+    MOS_ASSERT_X(thread_is_valid(t), "thread_exit_locked() called on invalid thread");
+
+    pr_dinfo(thread, "thread %pt is exiting", (void *) t);
+
+    MOS_ASSERT_X(spinlock_is_locked(&t->state_lock), "thread state lock must be held");
+
     t->state = THREAD_STATE_DEAD;
-    spinlock_release(&t->state_lock);
 
     waitlist_close(&t->waiters);
     waitlist_wake(&t->waiters, INT_MAX);
 
-    reschedule();
+    while (true)
+        reschedule();
     MOS_UNREACHABLE();
 }

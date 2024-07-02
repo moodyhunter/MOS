@@ -59,6 +59,12 @@ SECTIONS
         *(.mos.panic_hooks);
         __MOS_PANIC_HOOKS_END = .;
 
+        . = ALIGN(64);
+
+        __MOS_SCHEDULERS_START = .;
+        *(.mos.schedulers);
+        __MOS_SCHEDULERS_END = .;
+
         __MOS_KERNEL_RODATA_END = .;
     }
 

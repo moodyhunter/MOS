@@ -14,6 +14,12 @@ typedef struct
 #endif
 } spinlock_t;
 
+#define spinlock_init(lock)                                                                                                                                              \
+    do                                                                                                                                                                   \
+    {                                                                                                                                                                    \
+        (lock)->flag = 0;                                                                                                                                                \
+    } while (0)
+
 // clang-format off
 #define SPINLOCK_INIT { 0 }
 // clang-format on
