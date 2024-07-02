@@ -54,7 +54,7 @@ static void userfs_manager_server_exec(void *arg)
     pr_emerg("fs_rpc_execute_server exited");
 }
 
-void userfs_manager_rpc_init()
+static void userfs_manager_rpc_init()
 {
     kthread_create(userfs_manager_server_exec, NULL, "fs_rpc_server");
 }

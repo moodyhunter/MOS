@@ -74,7 +74,7 @@ io_t *memfd_create(const char *name)
     return &file->io;
 }
 
-void memfd_init()
+static void memfd_init()
 {
     memfd_root_dentry = fs_tmpfs.mount(&fs_tmpfs, "none", NULL);
     if (!memfd_root_dentry)
