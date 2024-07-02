@@ -101,7 +101,7 @@ void limine_entry(void)
         mos_panic("No kernel file found");
 
     mos_cmdline_init(kernel_file.response->kernel_file->cmdline);
-    startup_invoke_earlysetup();
+    startup_invoke_early_cmdline_hooks();
 
     if (hhdm.response == NULL)
         mos_panic("No HHDM found");

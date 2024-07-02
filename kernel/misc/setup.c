@@ -17,9 +17,9 @@ void startup_invoke_autoinit(init_target_t target)
     }
 }
 
-static void do_invoke_setup(const mos_setup_t start[], const mos_setup_t end[])
+static void do_invoke_setup(const mos_cmdline_hook_t start[], const mos_cmdline_hook_t end[])
 {
-    for (const mos_setup_t *func = start; func < end; func++)
+    for (const mos_cmdline_hook_t *func = start; func < end; func++)
     {
         cmdline_option_t *option = cmdline_get_option(func->param);
 
@@ -36,7 +36,7 @@ static void do_invoke_setup(const mos_setup_t start[], const mos_setup_t end[])
         }
 
         pr_dinfo2(setup, "invoking setup function for '%s'", func->param);
-        if (unlikely(!func->setup_fn(option->arg)))
+        if (unlikely(!func->hook(option->arg)))
         {
             pr_warn("setup function for '%s' failed", func->param);
             continue;
@@ -46,16 +46,16 @@ static void do_invoke_setup(const mos_setup_t start[], const mos_setup_t end[])
     }
 }
 
-void startup_invoke_setup(void)
+void startup_invoke_cmdline_hooks(void)
 {
-    extern const mos_setup_t __MOS_SETUP_START[]; // defined in linker script
-    extern const mos_setup_t __MOS_SETUP_END[];
+    extern const mos_cmdline_hook_t __MOS_SETUP_START[]; // defined in linker script
+    extern const mos_cmdline_hook_t __MOS_SETUP_END[];
     do_invoke_setup(__MOS_SETUP_START, __MOS_SETUP_END);
 }
 
-void startup_invoke_earlysetup(void)
+void startup_invoke_early_cmdline_hooks(void)
 {
-    extern const mos_setup_t __MOS_EARLY_SETUP_START[]; // defined in linker script
-    extern const mos_setup_t __MOS_EARLY_SETUP_END[];
+    extern const mos_cmdline_hook_t __MOS_EARLY_SETUP_START[]; // defined in linker script
+    extern const mos_cmdline_hook_t __MOS_EARLY_SETUP_END[];
     do_invoke_setup(__MOS_EARLY_SETUP_START, __MOS_EARLY_SETUP_END);
 }
