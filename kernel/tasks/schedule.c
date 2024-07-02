@@ -92,7 +92,10 @@ void scheduler_wake_thread(thread_t *thread)
 {
     spinlock_acquire(&thread->state_lock);
     if (thread->state == THREAD_STATE_READY || thread->state == THREAD_STATE_RUNNING)
+    {
+        spinlock_release(&thread->state_lock);
         return; // thread is already running or ready
+    }
 
     MOS_ASSERT_X(thread->state == THREAD_STATE_BLOCKED || thread->state == THREAD_STATE_NONINTERRUPTIBLE, "thread %pt is not blocked", (void *) thread);
     thread->state = THREAD_STATE_READY;
