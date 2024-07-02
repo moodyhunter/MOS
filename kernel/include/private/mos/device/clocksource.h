@@ -15,9 +15,8 @@ typedef struct clocksource
 
 extern list_head clocksources;
 extern clocksource_t *active_clocksource;
+#define active_clocksource_ticks() READ_ONCE(active_clocksource->ticks)
 
 void clocksource_register(clocksource_t *clocksource);
 
 void clocksource_tick(clocksource_t *clocksource); // called by the timer interrupt handler
-
-void clocksource_msleep(u64 ms);

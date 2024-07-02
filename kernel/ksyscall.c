@@ -467,7 +467,7 @@ DEFINE_SYSCALL(long, execveat)(fd_t dirfd, const char *path, const char *const a
 
 DEFINE_SYSCALL(void, clock_msleep)(u64 ms)
 {
-    clocksource_msleep(ms);
+    timer_msleep(ms);
 }
 
 DEFINE_SYSCALL(fd_t, io_dup)(fd_t fd)
