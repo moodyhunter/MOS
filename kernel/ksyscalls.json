@@ -354,7 +354,7 @@
         {
             "number": 48,
             "name": "clock_msleep",
-            "return": "void",
+            "return": "long",
             "arguments": [ { "type": "u64", "arg": "ms" } ]
         },
         {

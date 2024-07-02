@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/device/clocksource.h"
+#include "mos/device/timer.h"
 #include "mos/ipc/ipc_io.h"
 #include "mos/ipc/memfd.h"
 #include "mos/ipc/pipe.h"
@@ -465,9 +465,10 @@ DEFINE_SYSCALL(long, execveat)(fd_t dirfd, const char *path, const char *const a
     return process_do_execveat(current_process, dirfd, path, argv, envp, flags);
 }
 
-DEFINE_SYSCALL(void, clock_msleep)(u64 ms)
+DEFINE_SYSCALL(long, clock_msleep)(u64 ms)
 {
     timer_msleep(ms);
+    return 0;
 }
 
 DEFINE_SYSCALL(fd_t, io_dup)(fd_t fd)
