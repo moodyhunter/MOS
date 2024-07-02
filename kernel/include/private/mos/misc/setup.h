@@ -27,9 +27,20 @@ typedef struct
     void (*init_fn)(void);
 } mos_init_t;
 
-#define MOS_EARLY_SETUP(_param, _fn) MOS_PUT_IN_SECTION(".mos.early_setup", mos_cmdline_hook_t, __setup_##_fn, { .param = _param, .hook = _fn })
-#define MOS_SETUP(_param, _fn)       MOS_PUT_IN_SECTION(".mos.setup", mos_cmdline_hook_t, __setup_##_fn, { .param = _param, .hook = _fn })
-#define MOS_INIT(_comp, _fn)         MOS_PUT_IN_SECTION(".mos.init", mos_init_t, __init_##_fn, { .target = INIT_TARGET_##_comp, .init_fn = _fn })
+#define MOS_EARLY_SETUP(_param, _fn)                                                                                                                                     \
+    static bool _fn(const char *arg);                                                                                                                                    \
+    MOS_PUT_IN_SECTION(".mos.early_setup", mos_cmdline_hook_t, __setup_##_fn, { .param = _param, .hook = _fn });                                                         \
+    static bool _fn(const char *arg)
+
+#define MOS_SETUP(_param, _fn)                                                                                                                                           \
+    static bool _fn(const char *arg);                                                                                                                                    \
+    MOS_PUT_IN_SECTION(".mos.setup", mos_cmdline_hook_t, __setup_##_fn, { .param = _param, .hook = _fn });                                                               \
+    static bool _fn(const char *arg)
+
+#define MOS_INIT(_comp, _fn)                                                                                                                                             \
+    static void _fn(void);                                                                                                                                               \
+    MOS_PUT_IN_SECTION(".mos.init", mos_init_t, __init_##_fn, { .target = INIT_TARGET_##_comp, .init_fn = _fn });                                                        \
+    static void _fn(void)
 
 __BEGIN_DECLS
 

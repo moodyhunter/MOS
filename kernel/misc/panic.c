@@ -27,12 +27,11 @@ void __stack_chk_fail_local(void)
 static kmsg_handler_t *kwarn_handler = NULL;
 static bool poweroff_on_panic = false;
 
-static bool setup_poweroff_on_panic(const char *arg)
+MOS_EARLY_SETUP("poweroff_on_panic", setup_poweroff_on_panic)
 {
     poweroff_on_panic = cmdline_string_truthiness(arg, true);
     return true;
 }
-MOS_EARLY_SETUP("poweroff_on_panic", setup_poweroff_on_panic);
 
 void kwarn_handler_set(kmsg_handler_t *handler)
 {

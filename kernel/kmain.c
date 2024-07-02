@@ -70,7 +70,7 @@ static sysfs_item_t kernel_sysfs_items[] = {
 
 SYSFS_AUTOREGISTER(kernel, kernel_sysfs_items);
 
-static bool setup_init_path(const char *arg)
+MOS_SETUP("init", setup_init_path)
 {
     if (!arg)
     {
@@ -84,9 +84,8 @@ static bool setup_init_path(const char *arg)
     init_args.argv[0] = strdup(arg);
     return true;
 }
-MOS_SETUP("init", setup_init_path);
 
-static bool setup_init_args(const char *arg)
+MOS_SETUP("init_args", setup_init_args)
 {
     char *var_arg = strdup(arg);
     string_unquote(var_arg);
@@ -94,7 +93,6 @@ static bool setup_init_args(const char *arg)
     kfree(var_arg);
     return true;
 }
-MOS_SETUP("init_args", setup_init_args);
 
 void mos_start_kernel(void)
 {

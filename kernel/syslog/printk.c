@@ -12,8 +12,9 @@
 static console_t *printk_console = NULL;
 static bool printk_quiet = false;
 
-static bool printk_setup_console(const char *kcon_name)
+MOS_SETUP("printk_console", printk_setup_console)
 {
+    const char *kcon_name = arg;
     if (!kcon_name || !strlen(kcon_name))
     {
         pr_warn("No console name given for printk");
@@ -40,14 +41,12 @@ static bool printk_setup_console(const char *kcon_name)
     printk_console = NULL;
     return false;
 }
-MOS_SETUP("printk_console", printk_setup_console);
 
-static bool printk_setup_quiet(const char *arg)
+MOS_EARLY_SETUP("quiet", printk_setup_quiet)
 {
     printk_quiet = cmdline_string_truthiness(arg, true);
     return true;
 }
-MOS_EARLY_SETUP("quiet", printk_setup_quiet);
 
 static inline void deduce_level_color(int loglevel, standard_color_t *fg, standard_color_t *bg)
 {

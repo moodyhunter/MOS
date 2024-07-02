@@ -418,7 +418,7 @@ void sysfs_register_file(sysfs_dir_t *sysfs_dir, sysfs_item_t *item)
     dentry_attach(d, file_i);
 }
 
-static void register_sysfs(void)
+MOS_INIT(VFS, register_sysfs)
 {
     vfs_register_filesystem(&fs_sysfs);
 
@@ -428,5 +428,3 @@ static void register_sysfs(void)
     dentry_attach(sysfs_sb->root, inode_create(sysfs_sb, sysfs_get_ino(), FILE_TYPE_DIRECTORY));
     sysfs_sb->root->inode->ops = &sysfs_dir_i_ops;
 }
-
-MOS_INIT(VFS, register_sysfs);

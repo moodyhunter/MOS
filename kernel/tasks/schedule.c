@@ -30,7 +30,7 @@ static bool scheduler_ready = false;
 static scheduler_t *active_scheduler = NULL;
 extern const scheduler_info_t __MOS_SCHEDULERS_START[], __MOS_SCHEDULERS_END[];
 
-static bool scheduler_cmdline_selector(const char *arg)
+MOS_SETUP("scheduler", scheduler_cmdline_selector)
 {
     for (const scheduler_info_t *info = __MOS_SCHEDULERS_START; info < __MOS_SCHEDULERS_END; info++)
     {
@@ -46,8 +46,6 @@ static bool scheduler_cmdline_selector(const char *arg)
     pr_dwarn(scheduler, "scheduler '%s' not found", arg);
     return false;
 }
-
-MOS_SETUP("scheduler", scheduler_cmdline_selector);
 
 void scheduler_init()
 {
