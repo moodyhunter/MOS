@@ -220,8 +220,8 @@ void platform_startup_early()
     x86_init_percpu_idt();
     x86_init_percpu_tss();
 
+    // happens before setting up the kernel MM
     x86_cpu_initialise_caps();
-    x86_platform.arch_info.xsave_size = x86_cpu_setup_xsave_area();
 
 #if MOS_DEBUG_FEATURE(x86_startup)
     pr_info2("cpu features:");
@@ -243,6 +243,9 @@ void platform_startup_setup_kernel_mm()
 
 void platform_startup_late()
 {
+    pr_dinfo2(x86_startup, "setting up xsave area...");
+    x86_platform.arch_info.xsave_size = x86_cpu_setup_xsave_area();
+
     pr_dinfo2(x86_startup, "Parsing ACPI tables...");
 
     if (platform_info->arch_info.rsdp_addr)
