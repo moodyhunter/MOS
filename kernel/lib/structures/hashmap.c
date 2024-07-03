@@ -50,6 +50,7 @@ void hashmap_deinit(hashmap_t *map)
 {
     MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
     spinlock_acquire(&map->lock);
+    map->magic = 0;
     for (size_t i = 0; i < map->capacity; i++)
     {
         hashmap_entry_t *entry = map->entries[i];
