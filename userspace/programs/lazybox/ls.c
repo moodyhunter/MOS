@@ -5,8 +5,8 @@
 #define BUFSIZE 4096
 
 static const char *type_to_string[] = {
-    [FILE_TYPE_DIRECTORY] = "directory", [FILE_TYPE_REGULAR] = "regular", [FILE_TYPE_CHAR_DEVICE] = "chardev", [FILE_TYPE_BLOCK_DEVICE] = "blockdev",
-    [FILE_TYPE_SYMLINK] = "symlink",     [FILE_TYPE_SOCKET] = "socket",   [FILE_TYPE_NAMED_PIPE] = "pipe",     [FILE_TYPE_UNKNOWN] = "unknown",
+    [FILE_TYPE_DIRECTORY] = "dir",   [FILE_TYPE_REGULAR] = "file",  [FILE_TYPE_CHAR_DEVICE] = "char", [FILE_TYPE_BLOCK_DEVICE] = "block",
+    [FILE_TYPE_SYMLINK] = "symlink", [FILE_TYPE_SOCKET] = "socket", [FILE_TYPE_NAMED_PIPE] = "pipe",  [FILE_TYPE_UNKNOWN] = "unknown",
 };
 
 int main(int argc, char *argv[])
@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     }
 
     printf("Directory listing of '%s':\n\n", path);
-    printf("%-10s %-15s %-5s %-5s %-8s %-10s %-10s\n", "Inode", "Permission", "UID", "GID", "Size", "Type", "Name");
+    printf("%-10s %-15s %-5s %-5s %-15s %-10s %-10s\n", "Inode", "Permission", "UID", "GID", "Size", "Type", "Name");
 
     char buffer[BUFSIZE];
     do
@@ -50,8 +50,10 @@ int main(int argc, char *argv[])
 
             char perm[10] = "---------";
             file_format_perm(statbuf.perm, perm);
-            printf("%-10lu %-15s %-5u %-5u %-8zu %-10s %-10s", dirent->d_ino, perm, statbuf.uid, statbuf.gid, statbuf.size, type_to_string[dirent->d_type],
-                   dirent->d_name);
+            char namebuf[256] = { 0 };
+            snprintf(namebuf, sizeof(namebuf), "%s%s", dirent->d_name, dirent->d_type == FILE_TYPE_DIRECTORY ? "/" : "");
+
+            printf("%-10lu %-15s %-5u %-5u %-15zu %-10s %-10s", dirent->d_ino, perm, statbuf.uid, statbuf.gid, statbuf.size, type_to_string[dirent->d_type], namebuf);
 
             if (dirent->d_type == FILE_TYPE_SYMLINK)
             {
