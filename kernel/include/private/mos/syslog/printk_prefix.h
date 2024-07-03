@@ -46,7 +46,8 @@
 #define _lprintk_threadid_arg
 #endif
 
-#if MOS_CONFIG(MOS_PRINTK_HAS_SOME_PREFIX)
+// don't use MOS_CONFIG(MOS_PRINTK_HAS_SOME_PREFIX) here as it may not be defined
+#if MOS_PRINTK_HAS_SOME_PREFIX
 #define __add_comma(...) __VA_OPT__(, (__VA_ARGS__))
 // clang-format off
 #define _lprintk_prefix_fmt             \
