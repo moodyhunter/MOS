@@ -21,8 +21,8 @@ should_inline void cpu_wrmsr(u32 msr, u64 val)
 
 should_inline noreturn void x86_cpu_halt(void)
 {
-    __asm__ volatile("hlt");
-    __builtin_unreachable();
+    while (true)
+        __asm__ volatile("hlt");
 }
 
 #define x86_cpuid(return_reg, leaf, subleaf)                                                                                                                             \
