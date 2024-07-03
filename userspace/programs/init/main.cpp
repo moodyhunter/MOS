@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <algorithm>
 #include <argparse/libargparse.h>
+#include <ctime>
+#include <iostream>
 #include <libconfig/libconfig.h>
 #include <mos/syscall/usermode.h>
 #include <sched.h>
@@ -9,34 +12,30 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <vector>
 
 static const config_t *config;
 
-static char *string_trim(char *in)
+static std::string string_trim(const std::string &in)
 {
-    if (in == NULL)
-        return NULL;
-
-    char *end;
+    std::string str = in;
 
     // Trim leading space
-    while (*in == ' ')
-        in++;
+    while (str[0] == ' ')
+        str.erase(0, 1);
 
-    if (*in == 0) // All spaces?
-        return in;
+    if (str.empty()) // All spaces?
+        return str;
 
     // Trim trailing space
-    end = in + strlen(in) - 1;
-    while (end > in && *end == ' ')
-        end--;
+    while (str.back() == ' ')
+        str.pop_back();
 
-    // Write new null terminator
-    *(end + 1) = '\0';
-    return in;
+    return str;
 }
 
 bool start_services(void)
@@ -48,8 +47,8 @@ bool start_services(void)
 
     for (size_t i = 0; i < num_drivers; i++)
     {
-        const char *service = services[i];
-        pid_t driver_pid = fork();
+        const auto service = services[i];
+        const auto driver_pid = fork();
         if (driver_pid == 0)
         {
             // child
@@ -59,9 +58,6 @@ bool start_services(void)
 
         if (driver_pid <= 0)
             fprintf(stderr, "Failed to start service: %s\n", service);
-
-        // sleep for 500ms
-        usleep(500000);
     }
 
     free(services);
@@ -95,19 +91,16 @@ static bool create_symlinks(void)
     for (size_t i = 0; i < num_symlinks; i++)
     {
         // format: <Source> <Destination>
-        const char *symlink = symlinks[i];
+        const std::string line = symlinks[i];
 
-        char *dup = strdup(symlink);
-        char *source = strtok(dup, " ");
-        char *destination = strtok(NULL, " ");
+        // split the string
+        const auto source = string_trim(line.substr(0, line.find(' ')));
+        const auto destination = string_trim(line.substr(line.find(' ') + 1));
 
-        if (!source || !destination)
-            return false; // invalid options
+        if (source.empty() || destination.empty())
+            return false;
 
-        source = string_trim(source);
-        destination = string_trim(destination);
-
-        if (link(source, destination) != 0)
+        if (link(source.c_str(), destination.c_str()) != 0)
             return false;
     }
 
@@ -124,23 +117,30 @@ static bool mount_filesystems(void)
     for (size_t i = 0; i < num_mounts; i++)
     {
         // format: <Device> <MountPoint> <Filesystem> <Options>
-        const char *mount = mounts[i];
+        const std::string mount = mounts[i];
 
-        char *dup = strdup(mount);
-        char *device = strtok(dup, " ");
-        char *mount_point = strtok(NULL, " ");
-        char *filesystem = strtok(NULL, " ");
-        char *options = strtok(NULL, " ");
+        // split the string
+        std::vector<std::string> parts = { "", "", "", "" };
+        size_t part = 0;
+        for (const char c : mount)
+        {
+            if (c == ' ')
+                part++;
+            else
+                parts[part] += c;
+        }
 
-        if (!device || !mount_point || !filesystem || !options)
-            return false; // invalid options
+        if (parts.size() != 4)
+            std::cerr << "Invalid mount line: " << mount << std::endl;
 
-        device = string_trim(device);
-        mount_point = string_trim(mount_point);
-        filesystem = string_trim(filesystem);
-        options = string_trim(options);
+        std::ranges::for_each(parts, [](auto &part) { part = string_trim(part); });
 
-        if (syscall_vfs_mount(device, mount_point, filesystem, options) != 0)
+        if (std::ranges::any_of(parts, &std::string::empty))
+            return false;
+
+        const auto [device, mount_point, filesystem, options] = std::make_tuple(parts[0], parts[1], parts[2], parts[3]);
+
+        if (syscall_vfs_mount(device.c_str(), mount_point.c_str(), filesystem.c_str(), options.c_str()) != 0)
             return false;
     }
 
@@ -163,14 +163,21 @@ static const argparse_arg_t longopts[] = {
     { "help", 'h', ARGPARSE_NONE, "show this help" },
     { "config", 'C', ARGPARSE_REQUIRED, "configuration file, default: /initrd/config/init.conf" },
     { "shell", 'S', ARGPARSE_REQUIRED, "shell to start, default: /initrd/programs/mossh" },
-    { 0 },
+    {},
 };
 
 int main(int argc, const char *argv[])
 {
-    sigaction(SIGSEGV, &(struct sigaction){ .sa_handler = sigsegv_handler, .sa_flags = SA_RESTART }, NULL);
-    sigaction(SIGCHLD, &(struct sigaction){ .sa_handler = SIG_IGN, .sa_flags = SA_RESTART }, NULL);
-    sigaction(SIGTERM, &(struct sigaction){ .sa_handler = SIG_IGN, .sa_flags = SA_RESTART }, NULL);
+    struct sigaction sa;
+    sa.sa_handler = SIG_IGN;
+    sa.sa_flags = SA_RESTART;
+    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGQUIT, &sa, NULL);
+    sigaction(SIGCHLD, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
+
+    sa.sa_handler = sigsegv_handler;
+    sigaction(SIGSEGV, &sa, NULL);
 
     const char *config_file = "/initrd/config/init.conf";
     const char *shell = "/initrd/programs/mossh";
@@ -219,7 +226,7 @@ int main(int argc, const char *argv[])
         return DYN_ERROR_CODE;
 
     // start the shell
-    const char **shell_argv = malloc(sizeof(char *));
+    const char **shell_argv = (const char **) malloc(sizeof(char *));
     int shell_argc = 1;
     shell_argv[0] = shell;
 
@@ -228,10 +235,10 @@ int main(int argc, const char *argv[])
     while ((arg = argparse_arg(&state)))
     {
         shell_argc++;
-        shell_argv = realloc(shell_argv, shell_argc * sizeof(char *));
+        shell_argv = (const char **) realloc(shell_argv, shell_argc * sizeof(char *));
         shell_argv[shell_argc - 1] = arg;
     }
-    shell_argv = realloc(shell_argv, (shell_argc + 1) * sizeof(char *));
+    shell_argv = (const char **) realloc(shell_argv, (shell_argc + 1) * sizeof(char *));
     shell_argv[shell_argc] = NULL;
 
 start_shell:;

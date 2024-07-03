@@ -4,6 +4,6 @@
 
 #include <mos/types.h>
 
-void init_start_cpiofs_server(fd_t notifier);
+MOSAPI void init_start_cpiofs_server(fd_t notifier);
 
-s64 strntoll(const char *str, char **endptr, int base, size_t n);
+MOSAPI s64 strntoll(const char *str, char **endptr, int base, size_t n);

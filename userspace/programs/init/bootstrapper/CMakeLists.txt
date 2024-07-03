@@ -6,7 +6,7 @@ generate_nanopb_proto(PROTO_SRCS PROTO_HDRS
 )
 
 add_executable(bootstrapper
-    main.c
+    main.cpp
     cpiofs.c
     cpiofs_server.c
     ${PROTO_SRCS}

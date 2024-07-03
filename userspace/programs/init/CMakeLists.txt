@@ -2,7 +2,7 @@
 
 add_subdirectory(bootstrapper)
 
-add_executable(init main.c)
+add_executable(init main.cpp)
 target_link_libraries(init
     PRIVATE
         mos::argparse
