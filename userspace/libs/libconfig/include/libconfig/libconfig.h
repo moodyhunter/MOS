@@ -2,15 +2,40 @@
 
 #pragma once
 
-#include <mos/types.h>
+#include <optional>
+#include <ranges>
+#include <string>
+#include <vector>
 
-typedef struct struct_config config_t;
+class Config
+{
+  public:
+    static inline constexpr std::string DEFAULT_SECTION = "global";
 
-MOSAPI const config_t *config_parse_file(const char *file_path);
+    typedef std::string KeyType;
+    typedef std::string ValueType;
+    typedef std::pair<KeyType, ValueType> EntryType;
+    typedef std::vector<EntryType> SectionContentType;
+    typedef std::pair<std::string, SectionContentType> SectionType;
 
-// returns a pointer to the value of the key, or NULL if the key is not found
-// the returned pointer is valid until the config is freed
-MOSAPI const char *config_get(const config_t *config, const char *key);
+  public:
+    static std::optional<Config> from_file(const std::string &file_path);
 
-// returns a malloc'd array of pointers to the values of the key, or NULL if the key is not found
-MOSAPI const char **config_get_all(const config_t *config, const char *key, size_t *count);
+    Config() = default;
+    ~Config() = default;
+
+    template<typename Pred>
+    requires std::predicate<Pred, SectionType> std::vector<Config::SectionType> get_sections(Pred pred = [](auto) { return true; }) const
+    {
+        return sections | std::ranges::views::filter(pred) | std::ranges::to<std::vector<SectionType>>();
+    }
+
+    std::optional<SectionType> get_section(const std::string &section_name) const;
+
+    std::vector<EntryType> get_entry(const std::string &section_name, const std::string &key) const;
+
+    std::vector<EntryType> get_entries(const std::string &section_name) const;
+
+  public:
+    std::vector<SectionType> sections;
+};

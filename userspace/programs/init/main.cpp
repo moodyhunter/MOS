@@ -5,6 +5,7 @@
 #include <ctime>
 #include <iostream>
 #include <libconfig/libconfig.h>
+#include <map>
 #include <mos/syscall/usermode.h>
 #include <sched.h>
 #include <signal.h>
@@ -18,7 +19,10 @@
 #include <unistd.h>
 #include <vector>
 
-static const config_t *config;
+static const bool debug = false;
+
+static Config config;
+static std::map<std::string, pid_t> service_pid;
 
 static std::string string_trim(const std::string &in)
 {
@@ -40,41 +44,46 @@ static std::string string_trim(const std::string &in)
 
 bool start_services(void)
 {
-    size_t num_drivers;
-    const char **services = config_get_all(config, "service", &num_drivers);
-    if (!services)
-        return true;
+    const auto services = config.get_entries("services");
 
-    for (size_t i = 0; i < num_drivers; i++)
+    for (const auto &[service_name, executable] : services)
     {
-        const auto service = services[i];
+        if (debug)
+            std::cout << "Starting service: " << service_name << " -> " << executable << std::endl;
+
         const auto driver_pid = fork();
-        if (driver_pid == 0)
+
+        if (driver_pid == 0) // child
         {
-            // child
-            execl(service, service, NULL);
+            execl(executable.c_str(), executable.c_str(), NULL);
             exit(-1);
         }
-
-        if (driver_pid <= 0)
-            fprintf(stderr, "Failed to start service: %s\n", service);
+        else if (driver_pid < 0)
+        {
+            std::cerr << "Failed to start service: " << executable << std::endl;
+        }
+        else // parent
+        {
+            std::string name = service_name;
+            if (service_pid.contains(service_name))
+                std::cerr << "Duplicated service name: " << service_name << ", renaming as " << service_name << ".1" << std::endl, name += ".1";
+            service_pid[name] = driver_pid;
+        }
     }
 
-    free(services);
     return true;
 }
 
 static bool create_directories(void)
 {
-    size_t num_dirs;
-    const char **dirs = config_get_all(config, "mkdir", &num_dirs);
-    if (!dirs)
-        return false;
+    const auto mkdirs = config.get_entries("mkdir");
 
-    for (size_t i = 0; i < num_dirs; i++)
+    for (const auto &[_, dir] : mkdirs)
     {
-        const char *dir = dirs[i];
-        if (mkdir(dir, 0755) != 0)
+        if (debug)
+            std::cout << "Creating directory: " << dir << std::endl;
+
+        if (mkdir(dir.c_str(), 0755) != 0)
             return false;
     }
 
@@ -83,22 +92,20 @@ static bool create_directories(void)
 
 static bool create_symlinks(void)
 {
-    size_t num_symlinks;
-    const char **symlinks = config_get_all(config, "symlink", &num_symlinks);
-    if (!symlinks)
-        return false;
+    const auto symlinks = config.get_entries("symlink");
 
-    for (size_t i = 0; i < num_symlinks; i++)
+    for (const auto &[_, value] : symlinks)
     {
-        // format: <Source> <Destination>
-        const std::string line = symlinks[i];
-
-        // split the string
-        const auto source = string_trim(line.substr(0, line.find(' ')));
-        const auto destination = string_trim(line.substr(line.find(' ') + 1));
-
-        if (source.empty() || destination.empty())
+        // decompose the value (source destination)
+        const auto pos = value.find(' ');
+        if (pos == std::string::npos)
             return false;
+
+        const auto source = string_trim(value.substr(0, pos));
+        const auto destination = string_trim(value.substr(pos + 1));
+
+        if (debug)
+            std::cout << "Creating symlink: " << source << " -> " << destination << std::endl;
 
         if (link(source.c_str(), destination.c_str()) != 0)
             return false;
@@ -109,17 +116,11 @@ static bool create_symlinks(void)
 
 static bool mount_filesystems(void)
 {
-    size_t num_mounts;
-    const char **mounts = config_get_all(config, "mount", &num_mounts);
-    if (!mounts)
-        return false;
+    const auto mounts = config.get_entries("mount");
 
-    for (size_t i = 0; i < num_mounts; i++)
+    for (const auto &[_, mount] : mounts)
     {
         // format: <Device> <MountPoint> <Filesystem> <Options>
-        const std::string mount = mounts[i];
-
-        // split the string
         std::vector<std::string> parts = { "", "", "", "" };
         size_t part = 0;
         for (const char c : mount)
@@ -140,6 +141,9 @@ static bool mount_filesystems(void)
 
         const auto [device, mount_point, filesystem, options] = std::make_tuple(parts[0], parts[1], parts[2], parts[3]);
 
+        if (debug)
+            std::cout << "Mounting: " << device << " -> " << mount_point << " (" << filesystem << ") with options: " << options << std::endl;
+
         if (syscall_vfs_mount(device.c_str(), mount_point.c_str(), filesystem.c_str(), options.c_str()) != 0)
             return false;
     }
@@ -151,9 +155,28 @@ static void sigsegv_handler(int sig)
 {
     if (sig == SIGSEGV)
     {
-        puts("\033[1;31mSegmentation fault\033[0m");
+#define RED   "\033[1;31m"
+#define RESET "\033[0m"
+
+        std::cout << RED << "Segmentation fault" << RESET << std::endl;
         while (true)
             sched_yield();
+    }
+}
+
+static void sigchild_handler(int sig)
+{
+    if (sig == SIGCHLD)
+    {
+        int status;
+        const pid_t pid = waitpid(-1, &status, WNOHANG);
+        if (pid > 0)
+        {
+            if (WIFEXITED(status))
+                std::cout << "init: process " << pid << " exited with status " << WEXITSTATUS(status) << std::endl;
+            else if (WIFSIGNALED(status))
+                std::cout << "init: process " << pid << " killed by signal " << WTERMSIG(status) << std::endl;
+        }
     }
 }
 
@@ -173,8 +196,10 @@ int main(int argc, const char *argv[])
     sa.sa_flags = SA_RESTART;
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGQUIT, &sa, NULL);
-    sigaction(SIGCHLD, &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
+
+    sa.sa_handler = sigchild_handler;
+    sigaction(SIGCHLD, &sa, NULL);
 
     sa.sa_handler = sigsegv_handler;
     sigaction(SIGSEGV, &sa, NULL);
@@ -209,9 +234,13 @@ int main(int argc, const char *argv[])
         return DYN_ERROR_CODE;
     }
 
-    config = config_parse_file(config_file);
-    if (!config)
+    if (const auto result = Config::from_file(config_file); result)
+        config = result.value();
+    else
+    {
+        std::cerr << "Failed to parse config file: " << config_file << std::endl;
         return DYN_ERROR_CODE;
+    }
 
     if (!create_directories())
         return DYN_ERROR_CODE;

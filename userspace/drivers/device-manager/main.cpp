@@ -1,21 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "dm.h"
-#include "dm/common.h"
+#include "dm_common.hpp"
+#include "dm_server.hpp"
 
 #include <argparse/libargparse.h>
+#include <iostream>
 #include <libconfig/libconfig.h>
 #include <librpc/rpc_server.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-const config_t *dm_config = NULL;
-
 static const argparse_arg_t dm_args[] = {
     { "help", 'h', ARGPARSE_NONE, "show this help message and exit" },
     { "config", 'c', ARGPARSE_REQUIRED, "path to the config file" },
-    { 0 },
+    {},
 };
 
 int main(int argc, const char *argv[])
@@ -39,21 +38,23 @@ int main(int argc, const char *argv[])
         }
     }
 
-    dm_config = config_parse_file(config_path);
-    if (!dm_config)
+    if (const auto result = Config::from_file(config_path); result)
+        dm_config = *result;
+    else
     {
-        fprintf(stderr, "Failed to parse config file: %s\n", config_path);
+        std::cerr << "Failed to parse config file: " << config_path << std::endl;
         return 1;
     }
 
-    rpc_server_t *server = rpc_server_create(MOS_DEVICE_MANAGER_SERVICE_NAME, NULL);
+    DeviceManagerServer dm_server;
 
-    if (!start_load_drivers(dm_config))
+    if (!start_load_drivers())
     {
         fputs("Failed to start device drivers\n", stderr);
         return 2;
     }
+    dm_server.run();
+    fputs("device_manager: server exited\n", stderr);
 
-    dm_run_server(server);
     return 0;
 }

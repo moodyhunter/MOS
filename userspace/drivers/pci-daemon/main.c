@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "dm/client.h"
+#include "dm/dmrpc.h"
 #include "known_devices.h"
 #include "pci_scan.h"
 
@@ -26,6 +26,8 @@ ptr_t mmio_base;
 static rpc_server_stub_t *dm;
 
 #define PCI_RPC_SERVER_NAME "drivers.pci"
+
+RPC_CLIENT_DEFINE_SIMPLECALL(dm, DEVICE_MANAGER_RPCS_X)
 
 static void scan_callback(u8 bus, u8 device, u8 function, u16 vendor_id, u16 device_id, u8 base_class, u8 sub_class, u8 prog_if)
 {

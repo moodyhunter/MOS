@@ -3,7 +3,7 @@
 add_mos_library(
     NAME config
     SOURCES
-        libconfig.c
+        libconfig.cpp
     PUBLIC_INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_LIST_DIR}/include
     USERSPACE_ONLY
