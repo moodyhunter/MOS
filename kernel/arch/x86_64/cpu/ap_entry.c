@@ -4,7 +4,6 @@
 
 #include "mos/x86/cpu/ap_entry.h"
 
-#include "mos/mm/paging/pml_types.h"
 #include "mos/platform/platform.h"
 #include "mos/syslog/printk.h"
 #include "mos/tasks/schedule.h"
@@ -25,6 +24,11 @@ void platform_ap_entry(u64 arg)
 {
     MOS_UNUSED(arg);
 
+#if !MOS_CONFIG(MOS_SMP)
+    pr_info("SMP not enabled, halting AP");
+    platform_halt_cpu();
+#endif
+
     while (aps_blocked)
         __asm__ volatile("pause");
 
@@ -33,18 +37,18 @@ void platform_ap_entry(u64 arg)
     x86_init_percpu_idt();
 
     // enable paging
-    x86_cpu_set_cr3(pgd_pfn(platform_info->kernel_mm->pgd) * MOS_PAGE_SIZE);
+    platform_switch_mm(platform_info->kernel_mm);
 
     x86_cpu_initialise_caps();
     x86_cpu_setup_xsave_area();
     lapic_enable();
 
     const u8 processor_id = platform_current_cpu_id();
-    pr_info2("AP %u started", processor_id);
+    pr_dinfo2(x86_startup, "AP %u started", processor_id);
 
     const u8 lapic_id = lapic_get_id();
     if (lapic_id != processor_id)
-        mos_warn("LAPIC ID mismatch: LAPIC_ID: %u != PROCESSOR_ID: %u", lapic_id, processor_id);
+        pr_warn("LAPIC ID mismatch: LAPIC_ID: %u != PROCESSOR_ID: %u", lapic_id, processor_id);
 
     current_cpu->mm_context = platform_info->kernel_mm;
     current_cpu->id = lapic_id;
