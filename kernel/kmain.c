@@ -49,6 +49,12 @@ static bool init_sysfs_argv(sysfs_file_t *file)
     return true;
 }
 
+static bool initrd_sysfs_info(sysfs_file_t *f)
+{
+    sysfs_printf(f, "pfn: " PFN_FMT "\nnpages: %zu\n", platform_info->initrd_pfn, platform_info->initrd_npages);
+    return true;
+}
+
 SYSFS_ITEM_RO_STRING(kernel_sysfs_version, MOS_KERNEL_VERSION)
 SYSFS_ITEM_RO_STRING(kernel_sysfs_revision, MOS_KERNEL_REVISION)
 SYSFS_ITEM_RO_STRING(kernel_sysfs_build_date, __DATE__)
@@ -58,14 +64,15 @@ SYSFS_ITEM_RO_STRING(kernel_sysfs_arch, MOS_ARCH)
 SYSFS_ITEM_RO_STRING(init_sysfs_path, init_args.argv[0])
 
 static sysfs_item_t kernel_sysfs_items[] = {
-    SYSFS_RO_ITEM("version", kernel_sysfs_version),       //
-    SYSFS_RO_ITEM("revision", kernel_sysfs_revision),     //
+    SYSFS_RO_ITEM("arch", kernel_sysfs_arch),             //
     SYSFS_RO_ITEM("build_date", kernel_sysfs_build_date), //
     SYSFS_RO_ITEM("build_time", kernel_sysfs_build_time), //
     SYSFS_RO_ITEM("compiler", kernel_sysfs_compiler),     //
-    SYSFS_RO_ITEM("init_path", init_sysfs_path),          //
     SYSFS_RO_ITEM("init_argv", init_sysfs_argv),          //
-    SYSFS_RO_ITEM("arch", kernel_sysfs_arch),             //
+    SYSFS_RO_ITEM("init_path", init_sysfs_path),          //
+    SYSFS_RO_ITEM("initrd", initrd_sysfs_info),           //
+    SYSFS_RO_ITEM("revision", kernel_sysfs_revision),     //
+    SYSFS_RO_ITEM("version", kernel_sysfs_version),       //
 };
 
 SYSFS_AUTOREGISTER(kernel, kernel_sysfs_items);
