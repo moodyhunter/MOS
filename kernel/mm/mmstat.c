@@ -12,6 +12,7 @@
 #include "mos/tasks/task_types.h"
 
 #include <mos/mos_global.h>
+#include <mos/types.h>
 #include <mos_stdlib.h>
 
 typedef struct
@@ -113,9 +114,8 @@ static bool mmstat_sysfs_pagetable_show(sysfs_file_t *f)
         return false;
     }
 
-    sysfs_printf(f, "pid: %d\n", pid);
-
-    const mm_context_t *mmctx = proc->mm;
+    mm_context_t *mmctx = proc->mm;
+    spinlock_acquire(&mmctx->mm_lock);
 
     pagetable_iter_t iter;
     pagetable_iter_init(&iter, mmctx->pgd, 0, MOS_USER_END_VADDR);
@@ -131,6 +131,35 @@ static bool mmstat_sysfs_pagetable_show(sysfs_file_t *f)
         sysfs_printf(f, "\n");
     }
 
+    spinlock_release(&mmctx->mm_lock);
+
+    return true;
+}
+
+static bool mmstat_sysfs_vmaps_show(sysfs_file_t *f)
+{
+    const pid_t pid = (pid_t) (ptr_t) sysfs_file_get_data(f);
+    if (!pid)
+    {
+        pr_warn("mmstat: invalid pid %d", pid);
+        return false;
+    }
+
+    process_t *proc = process_get(pid);
+    if (!proc)
+    {
+        pr_warn("mmstat: invalid pid %d", pid);
+        return false;
+    }
+
+    int i = 0;
+    spinlock_acquire(&proc->mm->mm_lock);
+    list_foreach(vmap_t, vmap, proc->mm->mmaps)
+    {
+        sysfs_printf(f, "%3d: ", i++);
+        sysfs_printf(f, "%pvm\n", (void *) vmap);
+    }
+    spinlock_release(&proc->mm->mm_lock);
     return true;
 }
 
@@ -154,6 +183,7 @@ static sysfs_item_t mmstat_sysfs_items[] = {
     SYSFS_RO_ITEM("stat", mmstat_sysfs_stat),
     SYSFS_RW_ITEM("phyframe_stat", mmstat_sysfs_phyframe_stat_show, mmstat_sysfs_phyframe_stat_store),
     SYSFS_RW_ITEM("pagetable", mmstat_sysfs_pagetable_show, mmstat_sysfs_store_pid),
+    SYSFS_RW_ITEM("vmaps", mmstat_sysfs_vmaps_show, mmstat_sysfs_store_pid),
 };
 
 SYSFS_AUTOREGISTER(mmstat, mmstat_sysfs_items);
