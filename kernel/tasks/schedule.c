@@ -11,7 +11,7 @@
 
 #include <mos_string.h>
 
-static char thread_state_str(thread_state_t state)
+char thread_state_str(thread_state_t state)
 {
     switch (state)
     {

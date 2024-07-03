@@ -10,6 +10,8 @@ void tasks_init();
 
 void scheduler_init();
 
+char thread_state_str(thread_state_t state);
+
 /**
  * @brief Unblock the scheduler, so that APs can start scheduling.
  *

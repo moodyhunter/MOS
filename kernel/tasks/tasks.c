@@ -5,6 +5,7 @@
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/mm/slab_autoinit.h"
 #include "mos/syslog/printk.h"
+#include "mos/tasks/schedule.h"
 
 #include <mos/lib/structures/hashmap.h>
 #include <mos/lib/structures/hashmap_common.h>
@@ -55,7 +56,7 @@ bool _process_do_print(uintn key, void *val, void *data)
     MOS_UNUSED(key);
     sysfs_file_t *f = data;
     process_t *proc = val;
-    sysfs_printf(f, "%pp\n", (void *) proc);
+    sysfs_printf(f, "%pp, parent=%pp, main_thread=%pt, exit_status=%d\n", (void *) proc, (void *) proc->parent, (void *) proc->main_thread, proc->exit_status);
     return true;
 }
 
@@ -64,7 +65,8 @@ bool _thread_do_print(uintn key, void *val, void *data)
     MOS_UNUSED(key);
     sysfs_file_t *f = data;
     thread_t *thread = val;
-    sysfs_printf(f, "%pt\n", (void *) thread);
+    sysfs_printf(f, "%pt, state=%c, mode=%s, owner=%pt, stack=%p (%zu bytes)\n", (void *) thread, thread_state_str(thread->state),
+                 thread->mode == THREAD_MODE_KERNEL ? "kernel" : "user", (void *) thread->owner, (void *) thread->u_stack.top, thread->u_stack.capacity);
     return true;
 }
 
