@@ -106,8 +106,6 @@ void mos_start_kernel(void)
     pr_info("Welcome to MOS!");
     pr_emph("MOS %s on %s (%s, %s), compiler %s", MOS_KERNEL_VERSION, MOS_ARCH, MOS_KERNEL_REVISION, __DATE__, __VERSION__);
 
-    platform_startup_early();
-
     if (platform_info->n_cmdlines)
         pr_emph("MOS Kernel cmdline");
 
@@ -120,6 +118,7 @@ void mos_start_kernel(void)
             pr_info2("  %-2d: %s", i, opt->name);
     }
 
+    platform_startup_early();
     pmm_init();
     platform_startup_setup_kernel_mm();
 
