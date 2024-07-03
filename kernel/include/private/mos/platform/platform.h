@@ -133,6 +133,8 @@ typedef struct
     console_t *boot_console;
 } mos_platform_info_t;
 
+#define MOS_KERNEL_PFN(vaddr) ((ALIGN_DOWN_TO_PAGE((vaddr) - (platform_info->k_basevaddr)) / MOS_PAGE_SIZE) + (platform_info->k_basepfn))
+
 extern mos_platform_info_t *const platform_info;
 
 typedef struct _platform_process_options platform_process_options_t;
@@ -140,12 +142,18 @@ typedef struct _platform_thread_options platform_thread_options_t;
 
 __BEGIN_DECLS
 
+// should be defined in platform's linker script
+extern const char __MOS_KERNEL_CODE_START[], __MOS_KERNEL_CODE_END[];     // Kernel text
+extern const char __MOS_KERNEL_RODATA_START[], __MOS_KERNEL_RODATA_END[]; // Kernel rodata
+extern const char __MOS_KERNEL_RW_START[], __MOS_KERNEL_RW_END[];         // Kernel read-write data
+extern const char __MOS_KERNEL_END[];                                     // Kernel end
+
 extern void mos_start_kernel(void);
 
 // Platform Startup APIs
 void platform_ap_entry(u64 arg);
 void platform_startup_early();
-void platform_startup_mm();
+void platform_startup_setup_kernel_mm();
 void platform_startup_late();
 
 // Platform Machine APIs

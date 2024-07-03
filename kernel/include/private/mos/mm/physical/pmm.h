@@ -82,12 +82,7 @@ extern size_t pmm_total_frames, pmm_allocated_frames, pmm_reserved_frames;
  */
 void pmm_dump_lists(void);
 
-/**
- * @brief Initialize the physical memory manager.
- *
- * @param max_frames Maximum number of frames that are addressable on the system.
- */
-void pmm_init(size_t max_frames);
+void pmm_init();
 
 /**
  * @brief Allocate n_frames of contiguous physical memory.

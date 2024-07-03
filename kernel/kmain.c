@@ -120,7 +120,36 @@ void mos_start_kernel(void)
             pr_info2("  %-2d: %s", i, opt->name);
     }
 
-    platform_startup_mm();
+    pmm_init();
+    platform_startup_setup_kernel_mm();
+
+    pr_dinfo2(vmm, "mapping kernel space...");
+
+    mm_map_kernel_pages(                                                                                   //
+        platform_info->kernel_mm,                                                                          //
+        (ptr_t) __MOS_KERNEL_CODE_START,                                                                   //
+        MOS_KERNEL_PFN((ptr_t) __MOS_KERNEL_CODE_START),                                                   //
+        ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_CODE_END - (ptr_t) __MOS_KERNEL_CODE_START) / MOS_PAGE_SIZE, //
+        VM_READ | VM_EXEC | VM_GLOBAL                                                                      //
+    );
+
+    mm_map_kernel_pages(                                                                                       //
+        platform_info->kernel_mm,                                                                              //
+        (ptr_t) __MOS_KERNEL_RODATA_START,                                                                     //
+        MOS_KERNEL_PFN((ptr_t) __MOS_KERNEL_RODATA_START),                                                     //
+        ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_RODATA_END - (ptr_t) __MOS_KERNEL_RODATA_START) / MOS_PAGE_SIZE, //
+        VM_READ | VM_GLOBAL                                                                                    //
+    );
+
+    mm_map_kernel_pages(                                                                               //
+        platform_info->kernel_mm,                                                                      //
+        (ptr_t) __MOS_KERNEL_RW_START,                                                                 //
+        MOS_KERNEL_PFN((ptr_t) __MOS_KERNEL_RW_START),                                                 //
+        ALIGN_UP_TO_PAGE((ptr_t) __MOS_KERNEL_RW_END - (ptr_t) __MOS_KERNEL_RW_START) / MOS_PAGE_SIZE, //
+        VM_READ | VM_WRITE | VM_GLOBAL                                                                 //
+    );
+
+    platform_switch_mm(platform_info->kernel_mm);
 
     startup_invoke_autoinit(INIT_TARGET_POST_MM);
     startup_invoke_autoinit(INIT_TARGET_SLAB_AUTOINIT);

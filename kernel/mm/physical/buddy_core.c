@@ -84,7 +84,7 @@ static void populate_freelist(const size_t start_pfn, const size_t nframes, cons
 
     for (; current + step <= start_pfn + nframes; current += step)
     {
-        phyframe_t *frame = pfn_phyframe(current);
+        phyframe_t *const frame = pfn_phyframe(current);
         linked_list_init(list_node(frame));
         frame->state = PHYFRAME_FREE; // free or reserved
 

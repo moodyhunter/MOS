@@ -17,7 +17,6 @@ add_kernel_source(
     interrupt/idt.c
     interrupt/x86_interrupt.c
     interrupt/pic.c
-    mm/mm.c
     mm/paging.c
     tasks/context.c
     tasks/fpu_context.c

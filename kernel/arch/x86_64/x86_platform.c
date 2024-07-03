@@ -18,7 +18,6 @@
 #include "mos/x86/devices/serial.h"
 #include "mos/x86/devices/serial_console.h"
 #include "mos/x86/interrupt/apic.h"
-#include "mos/x86/mm/mm.h"
 #include "mos/x86/mm/paging_impl.h"
 #include "mos/x86/x86_interrupt.h"
 
@@ -237,16 +236,9 @@ void platform_startup_early()
 #endif
 }
 
-void platform_startup_mm()
+void platform_startup_setup_kernel_mm()
 {
-    x86_initialise_phyframes_array();
     x86_paging_setup();
-
-    // enable paging
-    x86_cpu_set_cr3(pgd_pfn(x86_platform.kernel_mm->pgd) * MOS_PAGE_SIZE);
-
-    pmm_reserve_frames(X86_BIOS_MEMREGION_PADDR / MOS_PAGE_SIZE, BIOS_MEMREGION_SIZE / MOS_PAGE_SIZE);
-    pmm_reserve_frames(X86_EBDA_MEMREGION_PADDR / MOS_PAGE_SIZE, EBDA_MEMREGION_SIZE / MOS_PAGE_SIZE);
 }
 
 void platform_startup_late()
@@ -297,7 +289,5 @@ void platform_startup_late()
 
     x86_setup_lapic_timer();
 
-#if MOS_CONFIG(MOS_SMP)
     x86_unblock_aps();
-#endif
 }

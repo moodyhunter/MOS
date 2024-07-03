@@ -3,22 +3,82 @@
 
 #include "mos/mm/physical/pmm.h"
 
+#include "mos/assert.h"
+#include "mos/mm/mm.h"
 #include "mos/mm/physical/buddy.h"
 #include "mos/platform/platform.h"
 #include "mos/syslog/printk.h"
 
 #include <mos_stdlib.h>
+#include <mos_string.h>
 
 phyframe_t *phyframes = NULL;
 size_t pmm_total_frames = 0; // system pfn <= pfn_max
 size_t pmm_allocated_frames = 0;
 size_t pmm_reserved_frames = 0;
 
-void pmm_init(size_t max_nframes)
+void pmm_init(void)
 {
-    pr_dinfo(pmm, "the system has %zu frames in total", max_nframes);
-    pmm_total_frames = max_nframes;
-    buddy_init(max_nframes);
+    pr_dinfo2(pmm, "setting up physical memory manager...");
+    MOS_ASSERT_ONCE("pmm_init should only be called once");
+
+    const size_t phyframes_npages = ALIGN_UP_TO_PAGE(platform_info->max_pfn * sizeof(phyframe_t)) / MOS_PAGE_SIZE;
+    pr_dinfo2(pmm, "%zu pages required for the phyframes array with %llu pages in total", phyframes_npages, platform_info->max_pfn);
+
+    const pmm_region_t *phyframes_region = NULL; // the region that will hold the phyframes array
+    pfn_t phyframes_pfn = 0;
+
+    // now we need to find contiguous memory for the phyframes array
+    for (u32 i = 0; i < platform_info->num_pmm_regions; i++)
+    {
+        const pmm_region_t *const r = &platform_info->pmm_regions[i];
+
+        if (r->reserved)
+        {
+            pr_dinfo2(pmm, "skipping reserved region " PFNADDR_RANGE, PFNADDR(r->pfn_start, r->pfn_start + r->nframes));
+            continue;
+        }
+
+        if (r->nframes < phyframes_npages)
+        {
+            pr_dinfo2(pmm, "skipping region " PFNADDR_RANGE " because it's too small", PFNADDR(r->pfn_start, r->pfn_start + r->nframes));
+            continue; // early out if this region is too small
+        }
+
+        phyframes_pfn = r->pfn_start;
+        phyframes_region = r;
+
+        pr_dinfo2(pmm, "using " PFNADDR_RANGE " for the phyframes array", PFNADDR(phyframes_pfn, phyframes_pfn + phyframes_npages));
+
+        // ! initialise phyframes array
+        phyframes = (void *) pfn_va(phyframes_pfn);
+        memzero(phyframes, phyframes_npages * MOS_PAGE_SIZE);
+        pmm_total_frames = platform_info->max_pfn;
+        buddy_init(pmm_total_frames);
+        pmm_reserve_frames(phyframes_pfn, phyframes_npages);
+        break;
+    }
+
+    MOS_ASSERT_X(phyframes && phyframes_region, "failed to find a region for the phyframes array");
+
+    // add all the other regions
+    for (u32 i = 0; i < platform_info->num_pmm_regions; i++)
+    {
+        pmm_region_t *r = &platform_info->pmm_regions[i];
+        if (r == phyframes_region)
+            continue;
+        if (r->nframes == 0) // ???
+            mos_warn_once("region " PFN_FMT " has 0 frames", r->pfn_start);
+        if (r->reserved)
+        {
+            if (r->pfn_start >= platform_info->max_pfn)
+                continue; // we ignore any reserved regions that are outside of the max_pfn
+            pmm_reserve_frames(r->pfn_start, r->nframes);
+        }
+    }
+
+    MOS_ASSERT_X(phyframes[0].state == PHYFRAME_RESERVED, "phyframe 0 isn't reserved, things have gone horribly wrong");
+    pr_dinfo2(pmm, "initialised");
 }
 
 void pmm_dump_lists(void)

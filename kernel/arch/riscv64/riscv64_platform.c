@@ -15,7 +15,7 @@ void platform_startup_early()
 {
 }
 
-void platform_startup_mm()
+void platform_startup_setup_kernel_mm()
 {
 }
 

@@ -25,12 +25,6 @@ typedef struct _platform_regs
 
 MOS_STATIC_ASSERT(sizeof(platform_regs_t) == 176, "platform_regs_t has incorrect size");
 
-// defined in the linker script
-extern const char __MOS_KERNEL_CODE_START[], __MOS_KERNEL_CODE_END[];     // Kernel text
-extern const char __MOS_KERNEL_RODATA_START[], __MOS_KERNEL_RODATA_END[]; // Kernel rodata
-extern const char __MOS_KERNEL_RW_START[], __MOS_KERNEL_RW_END[];         // Kernel read-write data
-extern const char __MOS_KERNEL_END[];                                     // Kernel end
-
 extern mos_platform_info_t x86_platform;
 void x86_dump_stack_at(ptr_t this_frame, bool can_access_vmaps);
 
