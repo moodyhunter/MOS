@@ -4,7 +4,6 @@
 #include "mos/mm/slab.h"
 
 #include "mos/filesystem/sysfs/sysfs.h"
-#include "mos/filesystem/sysfs/sysfs_autoinit.h"
 #include "mos/misc/setup.h"
 #include "mos/mm/mm.h"
 #include "mos/syslog/printk.h"
@@ -267,7 +266,7 @@ static void kmemcache_free(slab_t *slab, const void *addr)
 
 // ! sysfs support
 
-static bool slab_sysfs_status(sysfs_file_t *f)
+static bool slab_sysfs_slabinfo(sysfs_file_t *f)
 {
     list_foreach(slab_t, slab, slabs_list)
     {
@@ -277,8 +276,8 @@ static bool slab_sysfs_status(sysfs_file_t *f)
     return true;
 }
 
-static sysfs_item_t slab_sysfs_items[] = {
-    SYSFS_RO_ITEM("status", slab_sysfs_status),
-};
-
-SYSFS_AUTOREGISTER(slab, slab_sysfs_items);
+MOS_INIT(SYSFS, slab_sysfs_init)
+{
+    static sysfs_item_t slabinfo = SYSFS_RO_ITEM("slabinfo", slab_sysfs_slabinfo);
+    sysfs_register_root_file(&slabinfo);
+}
