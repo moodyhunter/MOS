@@ -91,7 +91,7 @@ void scheduler_remove_thread(thread_t *thread)
 void scheduler_wake_thread(thread_t *thread)
 {
     spinlock_acquire(&thread->state_lock);
-    if (thread->state == THREAD_STATE_READY || thread->state == THREAD_STATE_RUNNING)
+    if (thread->state == THREAD_STATE_READY || thread->state == THREAD_STATE_RUNNING || thread->state == THREAD_STATE_CREATED || thread->state == THREAD_STATE_DEAD)
     {
         spinlock_release(&thread->state_lock);
         return; // thread is already running or ready
