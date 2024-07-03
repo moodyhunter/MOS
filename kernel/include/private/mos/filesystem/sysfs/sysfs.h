@@ -22,7 +22,7 @@ typedef struct _sysfs_item
     const char *name;
     sysfs_item_type_t type;
     bool (*show)(sysfs_file_t *file);
-    bool (*store)(sysfs_file_t *file, const char *buf, size_t count, off_t offset);
+    size_t (*store)(sysfs_file_t *file, const char *buf, size_t count, off_t offset);
     ino_t ino;
 
     union

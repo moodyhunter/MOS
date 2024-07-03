@@ -40,16 +40,16 @@ void debug_print_action(const char *name, bool newstate)
     }
 
 #define debug_store_function(name)                                                                                                                                       \
-    bool debug_store_##name(sysfs_file_t *file, const char *buf, size_t count, off_t offset)                                                                             \
+    size_t debug_store_##name(sysfs_file_t *file, const char *buf, size_t count, off_t offset)                                                                           \
     {                                                                                                                                                                    \
         MOS_UNUSED(file);                                                                                                                                                \
         MOS_UNUSED(offset);                                                                                                                                              \
         if (count < 1)                                                                                                                                                   \
-            return false;                                                                                                                                                \
+            return -EINVAL;                                                                                                                                              \
         const bool on = buf[0] == '1';                                                                                                                                   \
         mos_debug_info.name = on;                                                                                                                                        \
         debug_print_action(#name, on);                                                                                                                                   \
-        return true;                                                                                                                                                     \
+        return count;                                                                                                                                                    \
     }
 
 #define X(name) debug_show_function(name) debug_store_function(name)

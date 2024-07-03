@@ -82,7 +82,7 @@ static bool mmstat_sysfs_phyframe_stat_show(sysfs_file_t *f)
     return true;
 }
 
-static bool mmstat_sysfs_phyframe_stat_store(sysfs_file_t *f, const char *buf, size_t count, off_t offset)
+static size_t mmstat_sysfs_phyframe_stat_store(sysfs_file_t *f, const char *buf, size_t count, off_t offset)
 {
     MOS_UNUSED(offset);
 
@@ -90,11 +90,11 @@ static bool mmstat_sysfs_phyframe_stat_store(sysfs_file_t *f, const char *buf, s
     if (pfn >= pmm_total_frames)
     {
         pr_warn("mmstat: invalid pfn %llu", pfn);
-        return false;
+        return -EINVAL;
     }
 
     sysfs_file_set_data(f, (void *) pfn);
-    return true;
+    return count;
 }
 
 static bool mmstat_sysfs_pagetable_show(sysfs_file_t *f)
@@ -134,7 +134,7 @@ static bool mmstat_sysfs_pagetable_show(sysfs_file_t *f)
     return true;
 }
 
-static bool mmstat_sysfs_pagetable_store(sysfs_file_t *f, const char *buf, size_t count, off_t offset)
+static size_t mmstat_sysfs_store_pid(sysfs_file_t *f, const char *buf, size_t count, off_t offset)
 {
     MOS_UNUSED(offset);
 
@@ -142,17 +142,18 @@ static bool mmstat_sysfs_pagetable_store(sysfs_file_t *f, const char *buf, size_
     if (!pid)
     {
         pr_warn("mmstat: invalid pid %d", pid);
-        return false;
+        sysfs_file_set_data(f, (void *) 0);
+        return -EINVAL;
     }
 
     sysfs_file_set_data(f, (void *) (ptr_t) pid);
-    return true;
+    return count;
 }
 
 static sysfs_item_t mmstat_sysfs_items[] = {
     SYSFS_RO_ITEM("stat", mmstat_sysfs_stat),
     SYSFS_RW_ITEM("phyframe_stat", mmstat_sysfs_phyframe_stat_show, mmstat_sysfs_phyframe_stat_store),
-    SYSFS_RW_ITEM("pagetable", mmstat_sysfs_pagetable_show, mmstat_sysfs_pagetable_store),
+    SYSFS_RW_ITEM("pagetable", mmstat_sysfs_pagetable_show, mmstat_sysfs_store_pid),
 };
 
 SYSFS_AUTOREGISTER(mmstat, mmstat_sysfs_items);
