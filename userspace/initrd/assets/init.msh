@@ -9,7 +9,12 @@ alias ..... 'cd ../../../..'
 
 # show system memory usage
 alias meminfo 'cat /sys/mmstat/stat'
-alias slabinfo 'cat /sys/slab/status'
+alias slabinfo 'cat /sys/slabinfo'
 alias vmaps 'cat /sys/current/vmaps'
+
+alias processes 'cat /sys/tasks/processes'
+alias threads 'cat /sys/tasks/threads'
+
+alias self-test 'mossh -c /initrd/assets/self-test.msh'
 
 cat /initrd/README.txt
