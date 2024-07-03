@@ -41,47 +41,29 @@ static void open_and_print_file(const char *path)
     print_file(f);
     fclose(f);
 }
-
-static void do_pstat(void)
+static void do_prompt_rw(const char *prompt, const char *filename)
 {
     while (true)
     {
-        char *line = readline("pfn: ");
+        char *line = readline(prompt);
         if (!line || strlen(line) == 0)
+        {
+            puts("leaving...");
+            if (line)
+                free(line);
             return;
+        }
 
-        FILE *f = fopen("/sys/mmstat/phyframe_stat", "rw");
+        FILE *f = fopen(filename, "r+");
+        setbuf(f, NULL);
         if (!f)
         {
-            fprintf(stderr, "failed to open 'phyframe_stat'\n");
+            fprintf(stderr, "failed to open '%s'\n", filename);
             free(line);
             return;
         }
 
-        fprintf(f, "%s\n", line);
-        print_file(f);
-        fclose(f);
-        free(line);
-    }
-}
-
-static void do_pagetable(void)
-{
-    while (true)
-    {
-        char *line = readline("pid: ");
-        if (!line || strlen(line) == 0)
-            return;
-
-        FILE *f = fopen("/sys/mmstat/pagetable", "rw");
-        if (!f)
-        {
-            fprintf(stderr, "failed to open 'pagetable'\n");
-            free(line);
-            return;
-        }
-
-        fprintf(f, "%s\n", line);
+        fprintf(f, "%s", line);
         print_file(f);
         fclose(f);
         free(line);
@@ -140,6 +122,21 @@ static bool set_debug_value(const char *module, bool value)
 
 static void do_help(void);
 
+static void do_pagetable()
+{
+    do_prompt_rw("pid: ", "/sys/mmstat/pagetable");
+}
+
+static void do_vmaps()
+{
+    do_prompt_rw("pid: ", "/sys/mmstat/vmaps");
+}
+
+static void do_pstat(void)
+{
+    do_prompt_rw("pfn: ", "/sys/mmstat/phyframe_stat");
+}
+
 const struct
 {
     const char *name;
@@ -150,7 +147,9 @@ const struct
     { "leave", do_leave },         //
     { "pstat", do_pstat },         //
     { "pagetable", do_pagetable }, //
+    { "vmaps", do_vmaps },         //
     { "help", do_help },           //
+    { "h", do_help },              //
     { NULL, NULL },                //
 };
 
