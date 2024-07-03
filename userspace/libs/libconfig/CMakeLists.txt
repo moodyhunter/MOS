@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 add_mos_library(
-    NAME libconfig
+    NAME config
     SOURCES
         libconfig.c
     PUBLIC_INCLUDE_DIRECTORIES
@@ -9,4 +9,4 @@ add_mos_library(
     USERSPACE_ONLY
 )
 
-add_to_initrd(TARGET libconfig /lib/)
+add_to_initrd(TARGET config /lib/)
