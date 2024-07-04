@@ -17,7 +17,7 @@ static void pml1e_do_unmap_callback(pml1_t pml1, pml1e_t *e, ptr_t vaddr, void *
     if (unmap_data->do_unref)
         pmm_unref_one(pfn);
 
-    platform_pml1e_set_present(e, false);
+    pmlxe_destroy(e);
     platform_invalidate_tlb(vaddr);
 }
 

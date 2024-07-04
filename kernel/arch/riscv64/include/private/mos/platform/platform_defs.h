@@ -8,19 +8,19 @@
 
 #define MOS_PLATFORM_HAS_FDT 1
 
-#define PML2_HUGE_CAPABLE -1
-#define PML3_HUGE_CAPABLE -1
-#define PML4_HUGE_CAPABLE -1
+#define PML2_HUGE_CAPABLE 1
+#define PML3_HUGE_CAPABLE 1
+#define PML4_HUGE_CAPABLE 1
 
 #define PML1_SHIFT 12
 #define PML2_SHIFT 21
 #define PML3_SHIFT 30
 #define PML4_SHIFT 39
 
-#define PML1_MASK 0x1FF
-#define PML2_MASK 0x1FF
-#define PML3_MASK 0x1FF
-#define PML4_MASK 0x1FF
+#define PML1_MASK 0x1FFULL
+#define PML2_MASK 0x1FFULL
+#define PML3_MASK 0x1FFULL
+#define PML4_MASK 0x1FFULL
 
 #define PML1_ENTRIES 512
 #define PML2_ENTRIES 512
@@ -41,6 +41,10 @@
     ".quad %1\n\t" \
     ".quad %2\n\t"
 // clang-format on
+
+#define MOS_PLATFORM_DEBUG_MODULES(X)                                                                                                                                    \
+    X(riscv64_startup)                                                                                                                                                   \
+    /**/
 
 typedef struct _platform_process_options
 {

@@ -22,16 +22,12 @@ static void pml1e_do_copy_callback(pml1_t pml1, pml1e_t *src_e, ptr_t vaddr, voi
 
     if (platform_pml1e_get_present(src_e))
     {
-        const pfn_t pfn = platform_pml1e_get_pfn(src_e);
-        pmm_ref_one(pfn);
-
-        platform_pml1e_set_present(copy_data->dest_pml1e, true);
-        platform_pml1e_set_flags(copy_data->dest_pml1e, platform_pml1e_get_flags(src_e));
-        platform_pml1e_set_pfn(copy_data->dest_pml1e, pfn);
+        pmm_ref_one(platform_pml1e_get_pfn(src_e));
+        copy_data->dest_pml1e->content = src_e->content;
     }
     else
     {
-        platform_pml1e_set_present(copy_data->dest_pml1e, false);
+        pmlxe_destroy(copy_data->dest_pml1e);
     }
 
     if (old_pfn)

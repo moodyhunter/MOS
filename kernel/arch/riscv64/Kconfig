@@ -4,3 +4,9 @@ config PAGE_SIZE
     int "Page size"
     default 4096
 
+config PLATFORM_DEBUG_ALL_riscv64
+    bool
+    select DEBUG_riscv64_startup
+
+config DEBUG_riscv64_startup
+    bool "RISC-V startup debug"

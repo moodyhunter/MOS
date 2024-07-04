@@ -16,11 +16,6 @@
 #include <mos/types.h>
 #include <mos_stdlib.h>
 
-static mm_context_t x86_kernel_mmctx = {
-    .mm_lock = SPINLOCK_INIT,
-    .mmaps = LIST_HEAD_INIT(x86_kernel_mmctx.mmaps),
-};
-
 static void x86_setup_direct_map(pml4_t pml4)
 {
     // map all memory to MOS_DIRECT_MAP_VADDR using 1 GiB, or 2 MiB pages
@@ -36,7 +31,7 @@ static void x86_setup_direct_map(pml4_t pml4)
     {
         const ptr_t vaddr = pfn_va(pfn);
         pml4e_t *pml4e = pml4_entry(pml4, vaddr);
-        platform_pml4e_set_flags(pml4e, VM_READ | VM_WRITE | VM_GLOBAL | VM_CACHE_DISABLED);
+        platform_pml4e_set_flags(pml4e, VM_READ | VM_WRITE | VM_GLOBAL);
 
         if (gbpages)
         {
@@ -44,18 +39,18 @@ static void x86_setup_direct_map(pml4_t pml4)
             const pml3_t pml3 = pml4e_get_or_create_pml3(pml4e);
             pml3e_t *pml3e = pml3_entry(pml3, vaddr);
             platform_pml3e_set_huge(pml3e, pfn);
-            platform_pml3e_set_flags(pml3e, VM_READ | VM_WRITE | VM_GLOBAL | VM_CACHE_DISABLED);
+            platform_pml3e_set_flags(pml3e, VM_READ | VM_WRITE | VM_GLOBAL);
         }
         else
         {
             // 2 MiB pages are at pml2e level
             pml3e_t *pml3e = pml3_entry(pml4e_get_or_create_pml3(pml4e), vaddr);
-            platform_pml3e_set_flags(pml3e, VM_READ | VM_WRITE | VM_GLOBAL | VM_CACHE_DISABLED);
+            platform_pml3e_set_flags(pml3e, VM_READ | VM_WRITE | VM_GLOBAL);
 
             const pml2_t pml2 = pml3e_get_or_create_pml2(pml3e);
             pml2e_t *pml2e = pml2_entry(pml2, vaddr);
             platform_pml2e_set_huge(pml2e, pfn);
-            platform_pml2e_set_flags(pml2e, VM_READ | VM_WRITE | VM_GLOBAL | VM_CACHE_DISABLED);
+            platform_pml2e_set_flags(pml2e, VM_READ | VM_WRITE | VM_GLOBAL);
         }
 
         pfn += STEP;
@@ -64,13 +59,7 @@ static void x86_setup_direct_map(pml4_t pml4)
 
 void x86_paging_setup()
 {
-    platform_info->kernel_mm = &x86_kernel_mmctx;
-    current_cpu->mm_context = &x86_kernel_mmctx;
-
-    const pml4_t pml4 = pml_create_table(pml4);
-    x86_kernel_mmctx.pgd = pgd_create(pml4);
-
-    x86_setup_direct_map(pml4);
+    x86_setup_direct_map(platform_info->kernel_mm->pgd.max.next);
 }
 
 pfn_t platform_pml1e_get_pfn(const pml1e_t *pml1e)
@@ -82,6 +71,7 @@ pfn_t platform_pml1e_get_pfn(const pml1e_t *pml1e)
 void platform_pml1e_set_pfn(pml1e_t *pml1e, pfn_t pfn)
 {
     x86_pte64_t *entry = cast_to(pml1e, pml1e_t *, x86_pte64_t *);
+    entry->present = true;
     entry->pfn = pfn;
 }
 
@@ -89,13 +79,6 @@ bool platform_pml1e_get_present(const pml1e_t *pml1e)
 {
     const x86_pte64_t *entry = cast_to(pml1e, pml1e_t *, x86_pte64_t *);
     return entry->present;
-}
-
-void platform_pml1e_set_present(pml1e_t *pml1e, bool present)
-{
-    pml1e->content = 0; // clear all flags
-    x86_pte64_t *entry = cast_to(pml1e, pml1e_t *, x86_pte64_t *);
-    entry->present = present;
 }
 
 void platform_pml1e_set_flags(pml1e_t *pml1e, vm_flags flags)
@@ -134,6 +117,7 @@ void platform_pml2e_set_pml1(pml2e_t *pml2e, pml1_t pml1, pfn_t pml1_pfn)
 {
     MOS_UNUSED(pml1);
     x86_pde64_t *entry = cast_to(pml2e, pml2e_t *, x86_pde64_t *);
+    entry->present = true;
     entry->page_table_paddr = pml1_pfn;
 }
 
@@ -141,13 +125,6 @@ bool platform_pml2e_get_present(const pml2e_t *pml2e)
 {
     const x86_pde64_t *entry = cast_to(pml2e, pml2e_t *, x86_pde64_t *);
     return entry->present;
-}
-
-void platform_pml2e_set_present(pml2e_t *pml2e, bool present)
-{
-    pml2e->content = 0; // clear all flags
-    x86_pde64_t *entry = cast_to(pml2e, pml2e_t *, x86_pde64_t *);
-    entry->present = present;
 }
 
 void platform_pml2e_set_flags(pml2e_t *pml2e, vm_flags flags)
@@ -219,6 +196,7 @@ void platform_pml3e_set_pml2(pml3e_t *pml3e, pml2_t pml2, pfn_t pml2_pfn)
 {
     MOS_UNUSED(pml2);
     x86_pmde64_t *entry = cast_to(pml3e, pml3e_t *, x86_pmde64_t *);
+    entry->present = true;
     entry->page_table_paddr = pml2_pfn;
 }
 
@@ -226,13 +204,6 @@ bool platform_pml3e_get_present(const pml3e_t *pml3e)
 {
     const x86_pmde64_t *entry = cast_to(pml3e, pml3e_t *, x86_pmde64_t *);
     return entry->present;
-}
-
-void platform_pml3e_set_present(pml3e_t *pml3e, bool present)
-{
-    pml3e->content = 0; // clear all flags
-    x86_pmde64_t *entry = cast_to(pml3e, pml3e_t *, x86_pmde64_t *);
-    entry->present = present;
 }
 
 void platform_pml3e_set_flags(pml3e_t *pml3e, vm_flags flags)
@@ -303,6 +274,7 @@ void platform_pml4e_set_pml3(pml4e_t *pml4e, pml3_t pml3, pfn_t pml3_pfn)
 {
     MOS_UNUSED(pml3);
     x86_pude64_t *entry = cast_to(pml4e, pml4e_t *, x86_pude64_t *);
+    entry->present = true;
     entry->page_table_paddr = pml3_pfn;
 }
 
@@ -310,13 +282,6 @@ bool platform_pml4e_get_present(const pml4e_t *pml4e)
 {
     const x86_pude64_t *entry = cast_to(pml4e, pml4e_t *, x86_pude64_t *);
     return entry->present;
-}
-
-void platform_pml4e_set_present(pml4e_t *pml4e, bool present)
-{
-    pml4e->content = 0;
-    x86_pude64_t *entry = cast_to(pml4e, pml4e_t *, x86_pude64_t *);
-    entry->present = present;
 }
 
 void platform_pml4e_set_flags(pml4e_t *pml4e, vm_flags flags)

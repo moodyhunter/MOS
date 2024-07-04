@@ -9,9 +9,8 @@ static void pml1e_do_map_callback(pml1_t pml1, pml1e_t *e, ptr_t vaddr, void *da
     MOS_UNUSED(pml1);
     MOS_UNUSED(vaddr);
     struct pagetable_do_map_data *map_data = data;
-    platform_pml1e_set_present(e, true);
-    platform_pml1e_set_flags(e, map_data->flags);
     platform_pml1e_set_pfn(e, map_data->pfn);
+    platform_pml1e_set_flags(e, map_data->flags);
     platform_invalidate_tlb(vaddr);
     if (map_data->do_refcount)
         pmm_ref_one(map_data->pfn);

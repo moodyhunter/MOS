@@ -79,6 +79,8 @@ new_named_opaque_type(pml4_t, next, pml5_t);
 typedef pml4e_t pml5e_t;
 #endif
 
+#define MOS_PMLTOP MOS_CONCAT(pml, MOS_PLATFORM_PAGING_LEVELS)
+
 typedef struct
 {
     MOS_CONCAT(MOS_CONCAT(pml, MOS_MAX_PAGE_LEVEL), _t) max;
@@ -102,5 +104,7 @@ typedef struct
 __nodiscard void *__create_page_table(void);
 void __destroy_page_table(void *table);
 
-#define pml_create_table(x)  ((x##_t){ .table = (x##e_t *) __create_page_table() })
+#define pml_create_table(x)  ((MOS_CONCAT(x, _t)){ .table = (MOS_CONCAT(x, e_t) *) __create_page_table() })
 #define pml_destroy_table(x) __destroy_page_table(x.table)
+
+#define pmlxe_destroy(pmlxe) (pmlxe)->content = 0

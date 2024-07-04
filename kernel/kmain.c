@@ -22,6 +22,12 @@
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
+static mm_context_t mos_kernel_mm = {
+    .mm_lock = SPINLOCK_INIT,
+    .mmaps = LIST_HEAD_INIT(mos_kernel_mm.mmaps),
+    .pgd = NULL,
+};
+
 static void invoke_constructors(void)
 {
     typedef void (*init_function_t)(void);
@@ -120,10 +126,15 @@ void mos_start_kernel(void)
 
     platform_startup_early();
     pmm_init();
+
+    pr_dinfo2(vmm, "initializing paging...");
+    mos_kernel_mm.pgd = pgd_create(pml_create_table(MOS_PMLTOP));
+    platform_info->kernel_mm = &mos_kernel_mm;
+    current_cpu->mm_context = platform_info->kernel_mm;
+
     platform_startup_setup_kernel_mm();
 
     pr_dinfo2(vmm, "mapping kernel space...");
-
     mm_map_kernel_pages(                                                                                   //
         platform_info->kernel_mm,                                                                          //
         (ptr_t) __MOS_KERNEL_CODE_START,                                                                   //
@@ -185,6 +196,9 @@ void mos_start_kernel(void)
     scheduler_init();
 
     console_t *const init_con = console_get("serial_com1");
+    if (unlikely(!init_con))
+        mos_panic("failed to get console");
+
     const stdio_t init_io = { .in = &init_con->io, .out = &init_con->io, .err = &init_con->io };
     const char *const init_envp[] = {
         "PATH=/initrd/programs:/initrd/bin:/bin",

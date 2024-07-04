@@ -32,7 +32,6 @@ void pml2_traverse(pml2_t pml2, ptr_t *vaddr, size_t *n_pages, pagetable_walk_op
             }
 
             pml1 = pml_create_table(pml1);
-            platform_pml2e_set_present(pml2e, true);
             platform_pml2e_set_pml1(pml2e, pml1, va_pfn(pml1.table));
         }
 
@@ -54,7 +53,7 @@ bool pml2_destroy_range(pml2_t pml2, ptr_t *vaddr, size_t *n_pages)
         {
             pml1_t pml1 = platform_pml2e_get_pml1(pml2e);
             if (pml1_destroy_range(pml1, vaddr, n_pages))
-                platform_pml2e_set_present(pml2e, false); // pml1 was destroyed
+                pmlxe_destroy(pml2e); // pml1 was destroyed
         }
         else
         {
@@ -87,7 +86,6 @@ pml1_t pml2e_get_or_create_pml1(pml2e_t *pml2e)
         return platform_pml2e_get_pml1(pml2e);
 
     pml1_t pml1 = pml_create_table(pml1);
-    platform_pml2e_set_present(pml2e, true);
     platform_pml2e_set_pml1(pml2e, pml1, va_pfn(pml1.table));
     return pml1;
 }

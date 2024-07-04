@@ -4,5 +4,6 @@ add_kernel_source(
     riscv64_platform.c
     riscv64_platform_api.c
     sbi/sbi-call.c
+    mm/mm.c
     devices/sbi_console.c
 )
