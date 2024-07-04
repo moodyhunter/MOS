@@ -234,6 +234,8 @@ void platform_startup_early()
 #undef do_print_cpu_feature
 
 #endif
+
+    x86_cpu_setup_xsave_area();
 }
 
 void platform_startup_setup_kernel_mm()
@@ -243,9 +245,6 @@ void platform_startup_setup_kernel_mm()
 
 void platform_startup_late()
 {
-    pr_dinfo2(x86_startup, "setting up xsave area...");
-    x86_platform.arch_info.xsave_size = x86_cpu_setup_xsave_area();
-
     pr_dinfo2(x86_startup, "Parsing ACPI tables...");
 
     if (platform_info->arch_info.rsdp_addr)

@@ -57,5 +57,4 @@ should_inline void x86_cpu_invlpg_all(void)
 }
 
 void x86_cpu_initialise_caps(void);
-
-size_t x86_cpu_setup_xsave_area(void);
+void x86_cpu_setup_xsave_area(void);

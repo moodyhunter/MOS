@@ -34,8 +34,10 @@ void x86_cpu_initialise_caps(void)
     x86_cpu_set_cr4(x86_cpu_get_cr4() | BIT(7) | BIT(11) | BIT(16)); // set CR4.PGE, CR4.FSGSBASE, CR4.UMIP
 }
 
-size_t x86_cpu_setup_xsave_area(void)
+void x86_cpu_setup_xsave_area(void)
 {
+    pr_dinfo2(x86_startup, "setting up xsave area...");
+
     reg_t cr0 = x86_cpu_get_cr0();
     cr0 &= ~BIT(2); // clear coprocessor emulation CR0.EM
     cr0 |= BIT(1);
@@ -89,5 +91,5 @@ size_t x86_cpu_setup_xsave_area(void)
     pr_dinfo2(x86_startup, "XSAVE area size: %zu", xsave_size);
 
     __asm__ volatile("xsetbv" : : "c"(0), "a"(xcr0), "d"(xcr0 >> 32));
-    return xsave_size;
+    platform_info->arch_info.xsave_size = xsave_size;
 }
