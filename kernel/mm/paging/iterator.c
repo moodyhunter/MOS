@@ -6,6 +6,7 @@
 #include "mos/mm/paging/pmlx/pml2.h"
 #include "mos/mm/paging/pmlx/pml3.h"
 #include "mos/mm/paging/pmlx/pml4.h"
+#include "mos/platform/platform.h"
 
 #include <mos_string.h>
 
@@ -19,6 +20,18 @@ static void pagetable_iterator_start_current_range(pagetable_iter_t *it, pml5_t 
     const pml4e_t *pml4e = pml4_entry(*pml4, it->vaddr);
     if (!pml4e_is_present(pml4e))
         return;
+
+#if MOS_CONFIG(PML4_HUGE_CAPABLE)
+    if (platform_pml4e_is_huge(pml4e))
+    {
+        it->range.present = true;
+        it->range.flags = platform_pml4e_get_flags(pml4e);
+        it->range.pfn = platform_pml4e_get_huge_pfn(pml4e);
+        it->vaddr += PML4E_NPAGES * MOS_PAGE_SIZE;
+        it->range.pfn_end = it->range.pfn + PML4E_NPAGES - 1;
+        return;
+    }
+#endif
 
     *pml3 = platform_pml4e_get_pml3(pml4e);
     const pml3e_t *pml3e = pml3_entry(*pml3, it->vaddr);
