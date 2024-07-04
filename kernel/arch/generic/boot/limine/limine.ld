@@ -20,11 +20,14 @@ SECTIONS
     {
         __MOS_KERNEL_RODATA_START = .;
         *(.rodata);
+        *(.srodata);
         *(.rodata.*);
+        __MOS_KERNEL_RODATA_END = .;
     }
 
     .mos_info ALIGN(4K) :
     {
+        __MOS_KERNEL_RW_START = .;
         __MOS_TEST_CASES_START = .;
         *(.mos.test_cases);
         __MOS_TEST_CASES_END = .;
@@ -64,14 +67,12 @@ SECTIONS
         __MOS_SCHEDULERS_START = .;
         *(.mos.schedulers);
         __MOS_SCHEDULERS_END = .;
-
-        __MOS_KERNEL_RODATA_END = .;
     }
 
     .data ALIGN(4K) :
     {
-        __MOS_KERNEL_RW_START = .;
         *(.data);
+        *(.sdata);
         /* limine bootloader data */
         KEEP(*(.limine.markers.requests_start))
         KEEP(*(.limine.requests))
@@ -97,6 +98,7 @@ SECTIONS
     .bss ALIGN(4K) :
     {
         *(.bss);
+        *(.sbss);
         *(.bss.*);
         __MOS_KERNEL_RW_END = .;
         __MOS_KERNEL_END = .;
