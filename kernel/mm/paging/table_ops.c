@@ -168,6 +168,33 @@ vm_flags mm_do_get_flags(pgd_t max, ptr_t vaddr)
     return flags;
 }
 
+bool mm_do_get_present(pgd_t max, ptr_t vaddr)
+{
+    vaddr = ALIGN_DOWN_TO_PAGE(vaddr);
+    pml5e_t *pml5e = pml5_entry(max.max, vaddr);
+    if (!pml5e_is_present(pml5e))
+        return false;
+
+    const pml4_t pml4 = pml5e_get_or_create_pml4(pml5e);
+    pml4e_t *pml4e = pml4_entry(pml4, vaddr);
+    if (!pml4e_is_present(pml4e))
+        return false;
+
+    const pml3_t pml3 = pml4e_get_or_create_pml3(pml4e);
+    pml3e_t *pml3e = pml3_entry(pml3, vaddr);
+    if (!pml3e_is_present(pml3e))
+        return false;
+
+    const pml2_t pml2 = pml3e_get_or_create_pml2(pml3e);
+    pml2e_t *pml2e = pml2_entry(pml2, vaddr);
+    if (!pml2e_is_present(pml2e))
+        return false;
+
+    const pml1_t pml1 = pml2e_get_or_create_pml1(pml2e);
+    const pml1e_t *pml1e = pml1_entry(pml1, vaddr);
+    return pml1e_is_present(pml1e);
+}
+
 void *__create_page_table(void)
 {
     mmstat_inc1(MEM_PAGETABLE);

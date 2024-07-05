@@ -12,3 +12,4 @@ void mm_do_mask_flags(pgd_t max, ptr_t vaddr, size_t n_pages, vm_flags to_remove
 void mm_do_copy(pgd_t src, pgd_t dst, ptr_t vaddr, size_t n_pages);
 pfn_t mm_do_get_pfn(pgd_t top, ptr_t vaddr);
 vm_flags mm_do_get_flags(pgd_t max, ptr_t vaddr);
+bool mm_do_get_present(pgd_t max, ptr_t vaddr);
