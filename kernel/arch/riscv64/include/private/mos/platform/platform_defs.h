@@ -32,7 +32,7 @@
 
 #define MOS_ELF_PLATFORM EM_RISCV
 
-#define MOS_PLATFORM_PANIC_INSTR "ebreak"
+#define MOS_PLATFORM_PANIC_INSTR "unimp"
 
 // clang-format off
 #define MOS_PLATFORM_PANIC_POINT_ASM \

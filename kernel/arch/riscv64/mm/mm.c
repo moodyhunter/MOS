@@ -11,6 +11,7 @@
 
 #define SATP_MODE_SV39 8
 #define SATP_MODE_SV48 9
+#define SATP_MODE_SV57 10
 
 typedef struct _sv48_pte
 {
@@ -22,10 +23,10 @@ typedef struct _sv48_pte
     bool w : 1; // Writable, also must be readable
     bool x : 1; // Executable
 
-    bool user : 1;     // User accessible
-    bool global : 1;   // Global, For non-leaf PTEs, the global setting implies that all mappings in the subsequent levels of the page table are global.
-    bool accessed : 1; // Accessed
-    bool dirty : 1;    // Dirty
+    bool user : 1;
+    bool global : 1; // Global, For non-leaf PTEs, the global setting implies that all mappings in the subsequent levels of the page table are global.
+    bool accessed : 1;
+    bool dirty : 1;
     u8 _1 : 2;
     u64 ppn : 44; // Physical page number
     u8 _2 : 7;
@@ -41,32 +42,30 @@ MOS_STATIC_ASSERT(sizeof(sv48_pte_t) == sizeof(pte_content_t));
 #define pte_set_ppn_stem(pte, _ppn) ((pte)->valid = 1, (pte)->ppn = _ppn, (pte)->r = 0, (pte)->w = 0, (pte)->x = 0)
 #define pte_set_ppn_huge(pte, _ppn) ((pte)->valid = 1, (pte)->ppn = _ppn, (pte)->r = 1, (pte)->w = 0, (pte)->x = 0)
 
-#define pmle_set_flags(level, pte, flags)                                                                                                                                \
-    do                                                                                                                                                                   \
-    {                                                                                                                                                                    \
-        if (!pte_is_stem(pte) || level == 1)                                                                                                                             \
-        {                                                                                                                                                                \
-            /* only set this for non-stem ptes, or for pml1e*/                                                                                                           \
-            pte->r = flags & VM_READ;                                                                                                                                    \
-            pte->w = flags & VM_WRITE;                                                                                                                                   \
-            pte->x = flags & VM_EXEC;                                                                                                                                    \
-        }                                                                                                                                                                \
-        pte->user |= flags & VM_USER;                                                                                                                                    \
-        pte->global = flags & VM_GLOBAL;                                                                                                                                 \
-        pte->pbmt = 0;                                                                                                                                                   \
-        pte->n = 0;                                                                                                                                                      \
-    } while (0)
+should_inline void pmle_set_flags(int level, sv48_pte_t *pte, vm_flags flags)
+{
+    if (!pte_is_stem(pte) || level == 1)
+    {
+        // only set these for leaf ptes, or for huge pages
+        pte->r = flags & VM_READ;
+        pte->w = flags & VM_WRITE;
+        pte->x = flags & VM_EXEC;
+        pte->user = flags & VM_USER;
+    }
 
-#define pte_get_flags(pte)                                                                                                                                               \
-    __extension__({                                                                                                                                                      \
-        vm_flags flags = 0;                                                                                                                                              \
-        flags |= (pte)->r ? VM_READ : 0;                                                                                                                                 \
-        flags |= (pte)->w ? VM_WRITE : 0;                                                                                                                                \
-        flags |= (pte)->x ? VM_EXEC : 0;                                                                                                                                 \
-        flags |= (pte)->user ? VM_USER : 0;                                                                                                                              \
-        flags |= (pte)->global ? VM_GLOBAL : 0;                                                                                                                          \
-        flags;                                                                                                                                                           \
-    })
+    pte->global = flags & VM_GLOBAL;
+}
+
+should_inline vm_flags pte_get_flags(const sv48_pte_t *pte)
+{
+    vm_flags flags = 0;
+    flags |= pte->r ? VM_READ : 0;
+    flags |= pte->w ? VM_WRITE : 0;
+    flags |= pte->x ? VM_EXEC : 0;
+    flags |= pte->user ? VM_USER : 0;
+    flags |= pte->global ? VM_GLOBAL : 0;
+    return flags;
+}
 
 // Platform CPU APIs
 noreturn void platform_halt_cpu(void)
