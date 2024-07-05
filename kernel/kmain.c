@@ -189,7 +189,7 @@ void mos_start_kernel(void)
     tasks_init();
     scheduler_init();
 
-    console_t *const init_con = console_get("serial_com1");
+    console_t *const init_con = platform_info->boot_console;
     if (unlikely(!init_con))
         mos_panic("failed to get console");
 
