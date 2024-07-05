@@ -2,6 +2,7 @@
 
 #include "mos/filesystem/sysfs/sysfs.h"
 #include "mos/filesystem/sysfs/sysfs_autoinit.h"
+#include "mos/lib/structures/list.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/mm/physical/pmm.h"
@@ -22,11 +23,7 @@
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
-static mm_context_t mos_kernel_mm = {
-    .mm_lock = SPINLOCK_INIT,
-    .mmaps = LIST_HEAD_INIT(mos_kernel_mm.mmaps),
-    .pgd = NULL,
-};
+static mm_context_t mos_kernel_mm;
 
 static void invoke_constructors(void)
 {
@@ -55,12 +52,6 @@ static bool init_sysfs_argv(sysfs_file_t *file)
     return true;
 }
 
-static bool initrd_sysfs_info(sysfs_file_t *f)
-{
-    sysfs_printf(f, "pfn: " PFN_FMT "\nnpages: %zu\n", platform_info->initrd_pfn, platform_info->initrd_npages);
-    return true;
-}
-
 SYSFS_ITEM_RO_STRING(kernel_sysfs_version, MOS_KERNEL_VERSION)
 SYSFS_ITEM_RO_STRING(kernel_sysfs_revision, MOS_KERNEL_REVISION)
 SYSFS_ITEM_RO_STRING(kernel_sysfs_build_date, __DATE__)
@@ -68,6 +59,7 @@ SYSFS_ITEM_RO_STRING(kernel_sysfs_build_time, __TIME__)
 SYSFS_ITEM_RO_STRING(kernel_sysfs_compiler, __VERSION__)
 SYSFS_ITEM_RO_STRING(kernel_sysfs_arch, MOS_ARCH)
 SYSFS_ITEM_RO_STRING(init_sysfs_path, init_args.argv[0])
+SYSFS_ITEM_RO_PRINTF(initrd_sysfs_info, "pfn: " PFN_FMT "\nnpages: %zu\n", platform_info->initrd_pfn, platform_info->initrd_npages)
 
 static sysfs_item_t kernel_sysfs_items[] = {
     SYSFS_RO_ITEM("arch", kernel_sysfs_arch),             //
@@ -128,6 +120,8 @@ void mos_start_kernel(void)
     pmm_init();
 
     pr_dinfo2(vmm, "initializing paging...");
+    spinlock_init(&mos_kernel_mm.mm_lock);
+    linked_list_init(&mos_kernel_mm.mmaps);
     mos_kernel_mm.pgd = pgd_create(pml_create_table(MOS_PMLTOP));
     platform_info->kernel_mm = &mos_kernel_mm;
     current_cpu->mm_context = platform_info->kernel_mm;

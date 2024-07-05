@@ -53,12 +53,14 @@ typedef struct _sysfs_item
 #define SYSFS_DYN_DIR(_name, _iterate_fn, _lookup_fn, _create_fn) { .type = SYSFS_DYN, .dyn.iterate = _iterate_fn, .dyn.lookup = _lookup_fn, .dyn.create = _create_fn }
 // clang-format on
 
-#define SYSFS_ITEM_RO_STRING(name, value)                                                                                                                                \
+#define SYSFS_ITEM_RO_PRINTF(name, fmt, ...)                                                                                                                             \
     static bool name(sysfs_file_t *file)                                                                                                                                 \
     {                                                                                                                                                                    \
-        sysfs_printf(file, "%s\n", value);                                                                                                                               \
+        sysfs_printf(file, fmt, ##__VA_ARGS__);                                                                                                                          \
         return true;                                                                                                                                                     \
     }
+
+#define SYSFS_ITEM_RO_STRING(name, value) SYSFS_ITEM_RO_PRINTF(name, "%s\n", value)
 
 #define SYSFS_DEFINE_DIR(sysfs_name, sysfs_items)                                                                                                                        \
     static sysfs_dir_t __sysfs_##sysfs_name = {                                                                                                                          \
