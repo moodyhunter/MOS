@@ -28,3 +28,21 @@ MOS_STUB_IMPL(void platform_context_cleanup(thread_t *thread))
 
 MOS_STUB_IMPL(void platform_switch_to_thread(thread_t *old_thread, thread_t *new_thread, switch_flags_t switch_flags))
 MOS_STUB_IMPL(noreturn void platform_return_to_userspace(platform_regs_t *regs))
+
+u64 platform_arch_syscall(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64 arg4)
+{
+    MOS_UNUSED(arg2);
+    MOS_UNUSED(arg3);
+    MOS_UNUSED(arg4);
+
+    switch (syscall)
+    {
+        case RISCV64_SYSCALL_SET_TP:
+        {
+            platform_thread_regs(current_thread)->tp = arg1;
+            current_cpu->interrupt_regs->tp = arg1;
+            return 0;
+        }
+    }
+    return 0;
+}

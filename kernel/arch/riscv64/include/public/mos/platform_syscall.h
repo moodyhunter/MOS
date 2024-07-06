@@ -5,6 +5,11 @@
 #include <mos/mos_global.h>
 #include <mos/types.h>
 
+enum
+{
+    RISCV64_SYSCALL_SET_TP = 0,
+};
+
 #define do_syscall(n, _a0, _a1, _a2, _a3, _a4, _a5)                                                                                                                      \
     register long a0 __asm__("a0") = _a0;                                                                                                                                \
     register long a1 __asm__("a1") = _a1;                                                                                                                                \
