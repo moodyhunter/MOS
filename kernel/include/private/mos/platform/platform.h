@@ -20,9 +20,9 @@
 #define PER_CPU_VAR_INIT { .percpu_value = { 0 } }
 #define per_cpu(var) (&(var.percpu_value[platform_current_cpu_id()]))
 #else
-#define PER_CPU_DECLARE(type, name) type name
-#define PER_CPU_VAR_INIT 0
-#define per_cpu(var) (&(var))
+#define PER_CPU_DECLARE(type, name) struct name { type percpu_value[1]; } name
+#define PER_CPU_VAR_INIT { .percpu_value = { 0 } }
+#define per_cpu(var) (&(var.percpu_value[0]))
 #endif
 // clang-format on
 
@@ -93,6 +93,7 @@ typedef struct
     mm_context_t *mm_context;
     platform_regs_t *interrupt_regs; ///< the registers of whatever interrupted this CPU
     platform_cpuinfo_t cpuinfo;
+    thread_t *idle_thread; ///< idle thread for this CPU
 } cpu_t;
 
 typedef struct
@@ -149,6 +150,8 @@ extern const char __MOS_KERNEL_RW_START[], __MOS_KERNEL_RW_END[];         // Ker
 extern const char __MOS_KERNEL_END[];                                     // Kernel end
 
 extern void mos_start_kernel(void);
+
+#define platform_alias(name) __attribute__((alias("platform_default_" #name)))
 
 // Platform Startup APIs
 void platform_ap_entry(u64 arg);

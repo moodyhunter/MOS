@@ -116,17 +116,10 @@ void reschedule(void)
     cpu_t *cpu = current_cpu;
     thread_t *const current = cpu->thread;
 
-    thread_t *const next = active_scheduler->ops->select_next(active_scheduler);
+    thread_t *next = active_scheduler->ops->select_next(active_scheduler);
+
     if (!next)
-    {
-        MOS_ASSERT(current);
-        MOS_ASSERT_X(spinlock_is_locked(&current->state_lock), "thread state lock must be held");
-        if (current->state != THREAD_STATE_DEAD)
-            current->state = THREAD_STATE_RUNNING; // give the current thread a chance to run again, if it's not dead
-        pr_dinfo2(scheduler, "no thread to run, staying with %pt, state = %c", (void *) current, thread_state_str(current->state));
-        spinlock_release(&current->state_lock);
-        return;
-    }
+        next = cpu->idle_thread;
 
     const bool should_switch_mm = cpu->mm_context != next->owner->mm;
     if (should_switch_mm)
@@ -144,7 +137,11 @@ void reschedule(void)
     if (likely(current))
     {
         if (current->state == THREAD_STATE_RUNNING)
-            current->state = THREAD_STATE_READY, scheduler_add_thread(current);
+        {
+            current->state = THREAD_STATE_READY;
+            if (current != cpu->idle_thread)
+                scheduler_add_thread(current);
+        }
         pr_dinfo2(scheduler, "leaving %pt, state: '%c'", (void *) current, thread_state_str(current->state));
     }
     pr_dinfo2(scheduler, "switching to %pt, state: '%c'", (void *) next, thread_state_str(next->state));

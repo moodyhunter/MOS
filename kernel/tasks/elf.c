@@ -7,6 +7,7 @@
 #include "mos/platform/platform.h"
 #include "mos/syslog/printk.h"
 #include "mos/tasks/process.h"
+#include "mos/tasks/schedule.h"
 #include "mos/tasks/task_types.h"
 #include "mos/tasks/thread.h"
 
@@ -424,6 +425,7 @@ process_t *elf_create_process(const char *path, process_t *parent, const char *c
 
     const bool filled = elf_fill_process(proc, file, path, argv, envp);
     thread_complete_init(proc->main_thread);
+    scheduler_add_thread(proc->main_thread);
 
     if (!filled)
     {

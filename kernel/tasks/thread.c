@@ -160,7 +160,6 @@ thread_t *thread_complete_init(thread_t *thread)
 
     thread_t *old = hashmap_put(&thread_table, thread->tid, thread);
     MOS_ASSERT(old == NULL);
-    scheduler_add_thread(thread);
     return thread;
 }
 

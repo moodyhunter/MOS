@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/tasks/schedule.h"
+
 #include <mos/lib/structures/hashmap.h>
 #include <mos/syslog/printk.h>
 #include <mos/tasks/kthread.h>
@@ -40,5 +42,6 @@ thread_t *kthread_create(thread_entry_t entry, void *arg, const char *name)
     thread_t *thread = thread_new(kthreadd, THREAD_MODE_KERNEL, name, 0, NULL);
     platform_context_setup_child_thread(thread, kthread_entry, kthread_arg);
     thread_complete_init(thread);
+    scheduler_add_thread(thread);
     return thread;
 }

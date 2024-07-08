@@ -3,6 +3,7 @@
 #include "mos/filesystem/dentry.h"
 #include "mos/filesystem/vfs.h"
 #include "mos/mm/mm.h"
+#include "mos/tasks/schedule.h"
 #include "mos/tasks/signal.h"
 
 #include <mos/lib/structures/hashmap.h>
@@ -90,5 +91,6 @@ process_t *process_do_fork(process_t *parent)
 
     hashmap_put(&process_table, child_p->pid, child_p);
     thread_complete_init(child_t);
+    scheduler_add_thread(child_t);
     return child_p;
 }

@@ -158,6 +158,7 @@ DEFINE_SYSCALL(tid_t, create_thread)(const char *name, thread_entry_t entry, voi
 
     platform_context_setup_child_thread(thread, entry, arg);
     thread_complete_init(thread);
+    scheduler_add_thread(thread);
     return thread->tid;
 }
 
