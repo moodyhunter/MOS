@@ -39,7 +39,7 @@ static void x86_start_user_thread()
 {
     platform_regs_t *regs = platform_thread_regs(current_thread);
     signal_exit_to_user_prepare(regs);
-    x86_interrupt_return_impl(regs);
+    platform_return_to_userspace(regs);
 }
 
 static platform_regs_t *x86_setup_thread_common(thread_t *thread)
