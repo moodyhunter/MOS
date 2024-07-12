@@ -284,9 +284,6 @@ static rpc_result_code_t cpiofs_getpage(rpc_context_t *, mos_rpc_fs_getpage_requ
 
 void init_start_cpiofs_server(fd_t notifier)
 {
-    pthread_t self = pthread_self();
-    pthread_setname_np(self, "cpiofs");
-
     cpiofs = rpc_server_create(CPIOFS_RPC_SERVER_NAME, NULL);
     if (!cpiofs)
     {

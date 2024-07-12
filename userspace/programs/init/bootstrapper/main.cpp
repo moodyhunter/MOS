@@ -10,6 +10,7 @@
 
 #include <librpc/rpc_server.h>
 #include <mos/mos_global.h>
+#include <mos/syscall/usermode.h>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -66,6 +67,7 @@ int main(int argc, char *argv[])
     if (cpiofs_server_pid == 0)
     {
         close(statusfd[0]);
+        syscall_thread_setname(syscall_get_tid(), "cpiofs");
         init_start_cpiofs_server(statusfd[1]);
         puts("bootstrapper: filesystem server exited unexpectedly");
         return 1;
