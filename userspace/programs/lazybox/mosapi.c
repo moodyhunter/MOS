@@ -16,9 +16,9 @@ struct _FILE
     int fd;
 };
 
-struct _FILE __stdin = { .fd = 0 };
-struct _FILE __stdout = { .fd = 1 };
-struct _FILE __stderr = { .fd = 2 };
+static struct _FILE __stdin = { .fd = 0 };
+static struct _FILE __stdout = { .fd = 1 };
+static struct _FILE __stderr = { .fd = 2 };
 
 FILE *stdin = &__stdin;
 FILE *stdout = &__stdout;
