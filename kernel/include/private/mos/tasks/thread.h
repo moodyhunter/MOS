@@ -10,7 +10,7 @@ typedef struct _hashmap hashmap_t;
 
 extern hashmap_t thread_table;
 
-should_inline bool thread_is_valid(thread_t *thread)
+should_inline bool thread_is_valid(const thread_t *thread)
 {
     return thread && thread->magic == THREAD_MAGIC_THRD;
 }

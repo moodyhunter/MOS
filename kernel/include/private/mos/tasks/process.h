@@ -20,7 +20,7 @@ typedef struct
 
 extern hashmap_t process_table;
 
-should_inline bool process_is_valid(process_t *process)
+should_inline bool process_is_valid(const process_t *process)
 {
     return process != NULL && process->magic == PROCESS_MAGIC_PROC;
 }
