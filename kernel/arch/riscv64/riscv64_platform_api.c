@@ -4,6 +4,8 @@
 #include "mos/platform/platform.h"
 #include "mos/riscv64/cpu/cpu.h"
 
+#include <mos/platform_syscall.h>
+
 MOS_STUB_IMPL(platform_regs_t *platform_thread_regs(const thread_t *thread))
 void platform_dump_regs(platform_regs_t *regs)
 {

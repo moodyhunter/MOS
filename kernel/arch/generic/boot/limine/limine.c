@@ -65,6 +65,9 @@ static void ap_entry(struct limine_smp_info *info)
 
 void limine_entry(void)
 {
+    if (hhdm.response->offset)
+        platform_info->direct_map_base = hhdm.response->offset; // early-populate direct_map_base
+
     if (platform_info->boot_console)
         console_register(platform_info->boot_console);
 
