@@ -65,7 +65,7 @@ bool _thread_do_print(uintn key, void *val, void *data)
     MOS_UNUSED(key);
     sysfs_file_t *f = data;
     thread_t *thread = val;
-    sysfs_printf(f, "%pt, state=%c, mode=%s, owner=%pt, stack=%p (%zu bytes)\n", (void *) thread, thread_state_str(thread->state),
+    sysfs_printf(f, "%pt, state=%c, mode=%s, owner=%pp, stack=%p (%zu bytes)\n", (void *) thread, thread_state_str(thread->state),
                  thread->mode == THREAD_MODE_KERNEL ? "kernel" : "user", (void *) thread->owner, (void *) thread->u_stack.top, thread->u_stack.capacity);
     return true;
 }
