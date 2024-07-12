@@ -119,7 +119,18 @@ void reschedule(void)
     thread_t *next = active_scheduler->ops->select_next(active_scheduler);
 
     if (!next)
+    {
+        if (current->state == THREAD_STATE_RUNNING)
+        {
+            // give the current thread another chance to run, if it's the only one and it's able to run
+            MOS_ASSERT_X(spinlock_is_locked(&current->state_lock), "thread state lock must be held");
+            pr_dinfo2(scheduler, "no thread to run, staying with %pt, state = %c", (void *) current, thread_state_str(current->state));
+            spinlock_release(&current->state_lock);
+            return;
+        }
+
         next = cpu->idle_thread;
+    }
 
     const bool should_switch_mm = cpu->mm_context != next->owner->mm;
     if (should_switch_mm)
