@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/assert.h"
 #include "mos/misc/kallsyms.h"
 #include "mos/platform/platform.h"
+#include "mos/tasks/process.h"
 #include "mos/tasks/task_types.h"
+#include "mos/tasks/thread.h"
 
 #include <mos/types.h>
 #include <mos_stdio.h>
@@ -93,6 +96,7 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
                 wrap_print("(null)");
                 goto done;
             }
+            MOS_ASSERT_X(thread_is_valid(thread), "thread is invalid");
             wrap_print("[t%d:%s]", thread->tid, thread->name ? thread->name : "<no name>");
             goto done;
         }
@@ -107,6 +111,7 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
                 wrap_print("(null)");
                 goto done;
             }
+            MOS_ASSERT_X(process_is_valid(process), "process is invalid");
             wrap_print("[p%d:%s]", process->pid, process->name ? process->name : "<no name>");
             goto done;
         }
