@@ -159,5 +159,6 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
     }
 
     spinlock_release(&thread->state_lock);
-    platform_return_to_userspace(platform_thread_regs(thread));
+    platform_regs_t *const regs = platform_thread_regs(thread);
+    platform_return_to_userspace(regs);
 }
