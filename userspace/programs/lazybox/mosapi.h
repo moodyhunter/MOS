@@ -32,6 +32,11 @@ void _start(size_t argc, char **argv, char **envp)
 #if defined(__x86_64__)
     __asm__ volatile("andq $-16, %rsp");
 #elif defined(__riscv)
+    __asm__ volatile("\
+        .option push\n\
+        .option norelax\n\
+        lla gp, __global_pointer$\n\
+        .option pop\n");
     __asm__ volatile("and sp, sp, -16");
 #else
 #error "unsupported architecture"
