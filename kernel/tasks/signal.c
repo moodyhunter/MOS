@@ -52,10 +52,7 @@ SLAB_AUTOINIT("signal_pending", sigpending_slab, sigpending_t);
 
 noreturn static void signal_do_coredump(signal_t signal)
 {
-    if (current_thread == current_process->main_thread)
-        process_exit(current_process, 0, signal);
-    else
-        thread_exit(current_thread);
+    process_exit(current_process, 0, signal);
     MOS_UNREACHABLE();
 }
 
