@@ -37,6 +37,8 @@ void timer_tick()
 
 long timer_msleep(u64 ms)
 {
+    if (!active_clocksource)
+        return 0;
     const u64 offset = ms * active_clocksource->frequency / 1000;
     const u64 target_val = active_clocksource_ticks() + offset;
 
