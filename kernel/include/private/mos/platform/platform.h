@@ -188,8 +188,6 @@ datetime_str_t *platform_get_datetime_str(void);
 // default implementation does nothing
 void platform_interrupt_enable(void);
 void platform_interrupt_disable(void);
-bool platform_irq_handler_install(u32 irq, irq_handler handler);
-void platform_irq_handler_remove(u32 irq, irq_handler handler);
 
 // Platform Page Table APIs
 // no default implementation, platform-specific implementations must be provided

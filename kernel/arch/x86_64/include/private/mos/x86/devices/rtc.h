@@ -7,5 +7,5 @@
 #include <mos/types.h>
 
 void rtc_init();
-void rtc_irq_handler(u32 irq);
+bool rtc_irq_handler(u32 irq, void *data);
 void rtc_read_time(timeval_t *time);

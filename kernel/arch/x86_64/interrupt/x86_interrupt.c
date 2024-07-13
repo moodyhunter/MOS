@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/interrupt/interrupt.h"
 #include "mos/ksyscall_entry.h"
 #include "mos/misc/panic.h"
 #include "mos/misc/profiling.h"
@@ -54,30 +55,6 @@ static const char *const x86_exception_names[EXCEPTION_COUNT] = {
     "Security Exception",
     "Reserved",
 };
-
-typedef struct
-{
-    as_linked_list;
-    void (*handler)(u32 irq);
-} x86_irq_handler_t;
-
-static list_head irq_handlers[IRQ_MAX_COUNT];
-
-void x86_init_irq_handlers(void)
-{
-    for (int i = 0; i < IRQ_MAX_COUNT; i++)
-        linked_list_init(&irq_handlers[i]);
-}
-
-bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq))
-{
-    MOS_ASSERT(irq < IRQ_MAX_COUNT);
-    x86_irq_handler_t *desc = kmalloc(sizeof(x86_irq_handler_t));
-    linked_list_init(list_node(desc));
-    desc->handler = handler;
-    list_node_append(&irq_handlers[irq], list_node(desc));
-    return true;
-}
 
 static void x86_handle_nmi(platform_regs_t *regs)
 {
@@ -228,19 +205,8 @@ done:
 static void x86_handle_irq(platform_regs_t *frame)
 {
     lapic_eoi();
-    int irq = frame->interrupt_number - IRQ_BASE;
-
-    bool irq_handled = false;
-    list_foreach(x86_irq_handler_t, handler, irq_handlers[irq])
-    {
-        irq_handled = true;
-        const pf_point_t ev = profile_enter();
-        handler->handler(irq);
-        profile_leave(ev, "x86.irq.handler.%d", irq);
-    }
-
-    if (unlikely(!irq_handled))
-        pr_warn("IRQ %d not handled!", irq);
+    const int irq = frame->interrupt_number - IRQ_BASE;
+    interrupt_entry(irq);
 }
 
 void x86_interrupt_entry(ptr_t rsp)

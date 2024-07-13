@@ -96,11 +96,13 @@ void rtc_read_time(timeval_t *time)
         time->year += 100;
 }
 
-void rtc_irq_handler(u32 irq)
+bool rtc_irq_handler(u32 irq, void *data)
 {
+    MOS_UNUSED(data);
     MOS_ASSERT(irq == IRQ_CMOS_RTC);
     rtc_read_reg(0x0C); // select register C and ack the interrupt
     clocksource_tick(&rtc_clocksource);
+    return true;
 }
 
 void rtc_init()

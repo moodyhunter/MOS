@@ -4,6 +4,7 @@
 
 #include "mos/device/console.h"
 #include "mos/device/serial_console.h"
+#include "mos/interrupt/interrupt.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/syslog/printk.h"
@@ -63,33 +64,23 @@ mos_platform_info_t *const platform_info = &x86_platform;
 mos_platform_info_t x86_platform = { .boot_console = &com1_console.con };
 const acpi_rsdp_t *acpi_rsdp = NULL;
 
-static void x86_keyboard_handler(u32 irq)
+static bool x86_keyboard_handler(u32 irq, void *data)
 {
+    MOS_UNUSED(data);
     MOS_ASSERT(irq == IRQ_KEYBOARD);
     int scancode = port_inb(0x60);
 
     pr_info("Keyboard scancode: %x", scancode);
+    return true;
 }
 
-static void x86_com1_handler(u32 irq)
+static bool x86_pit_timer_handler(u32 irq, void *data)
 {
-    MOS_ASSERT(irq == IRQ_COM1);
-    while (serial_dev_get_data_ready(&com1_console.device))
-    {
-        char c = '\0';
-        serial_device_read(&com1_console.device, &c, 1);
-        if (c == '\r')
-            c = '\n';
-        serial_console_write(&com1_console.con, &c, 1);
-        console_putc(&com1_console.con, c);
-    }
-}
-
-static void x86_pit_timer_handler(u32 irq)
-{
+    MOS_UNUSED(data);
     MOS_ASSERT(irq == IRQ_PIT_TIMER);
     spinlock_acquire(&current_thread->state_lock);
     reschedule();
+    return true;
 }
 
 void x86_setup_lapic_timer()
@@ -203,7 +194,6 @@ void platform_startup_early()
 {
     console_register(&com2_console.con);
     x86_idt_init();
-    x86_init_irq_handlers();
     x86_init_percpu_gdt();
     x86_init_percpu_idt();
     x86_init_percpu_tss();
@@ -268,10 +258,10 @@ void platform_startup_late()
 
     rtc_init();
 
-    x86_install_interrupt_handler(IRQ_PIT_TIMER, x86_pit_timer_handler);
-    x86_install_interrupt_handler(IRQ_CMOS_RTC, rtc_irq_handler);
-    x86_install_interrupt_handler(IRQ_KEYBOARD, x86_keyboard_handler);
-    x86_install_interrupt_handler(IRQ_COM1, x86_com1_handler);
+    interrupt_handler_register(IRQ_PIT_TIMER, x86_pit_timer_handler, NULL);
+    interrupt_handler_register(IRQ_CMOS_RTC, rtc_irq_handler, NULL);
+    interrupt_handler_register(IRQ_KEYBOARD, x86_keyboard_handler, NULL);
+    interrupt_handler_register(IRQ_COM1, serial_console_irq_handler, &com1_console.con);
 
     ioapic_enable_interrupt(IRQ_CMOS_RTC, x86_platform.boot_cpu_id);
     ioapic_enable_interrupt(IRQ_KEYBOARD, x86_platform.boot_cpu_id);

@@ -83,18 +83,6 @@ void platform_interrupt_disable(void)
     __asm__ volatile("cli");
 }
 
-bool platform_irq_handler_install(u32 irq, irq_handler handler)
-{
-    return x86_install_interrupt_handler(irq, handler);
-}
-
-void platform_irq_handler_remove(u32 irq, irq_handler handler)
-{
-    // TODO: implement
-    MOS_UNUSED(irq);
-    MOS_UNUSED(handler);
-}
-
 void platform_switch_mm(const mm_context_t *mm)
 {
     x86_cpu_set_cr3(pgd_pfn(mm->pgd) * MOS_PAGE_SIZE);

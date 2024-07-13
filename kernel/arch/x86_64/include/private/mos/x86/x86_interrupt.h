@@ -79,9 +79,6 @@ void pic_remap_irq(void);
 extern void *isr_stub_table[];
 extern void *irq_stub_table[];
 
-void x86_init_irq_handlers(void);
 void x86_interrupt_entry(ptr_t esp);
-
-bool x86_install_interrupt_handler(u32 irq, void (*handler)(u32 irq));
 
 extern noreturn void x86_interrupt_return_impl(const platform_regs_t *regs);

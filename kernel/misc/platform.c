@@ -99,21 +99,6 @@ __weak__ void platform_interrupt_disable(void)
     pr_emerg("platform_interrupt_disable() not implemented");
 }
 
-__weak__ bool platform_irq_handler_install(u32 irq, irq_handler handler)
-{
-    MOS_UNUSED(irq);
-    MOS_UNUSED(handler);
-    pr_emerg("platform_irq_handler_install() not implemented");
-    return false;
-}
-
-__weak__ void platform_irq_handler_remove(u32 irq, irq_handler handler)
-{
-    MOS_UNUSED(irq);
-    MOS_UNUSED(handler);
-    pr_emerg("platform_irq_handler_remove() not implemented");
-}
-
 // Platform-Specific syscall APIs, does nothing by default
 __weak__ u64 platform_arch_syscall(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64 arg4)
 {
