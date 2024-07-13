@@ -3,6 +3,7 @@
 #include "mos/x86/x86_platform.h"
 
 #include "mos/device/console.h"
+#include "mos/device/serial_console.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/paging/paging.h"
 #include "mos/syslog/printk.h"
@@ -15,8 +16,7 @@
 #include "mos/x86/descriptors/descriptors.h"
 #include "mos/x86/devices/port.h"
 #include "mos/x86/devices/rtc.h"
-#include "mos/x86/devices/serial.h"
-#include "mos/x86/devices/serial_console.h"
+#include "mos/x86/devices/serial_driver.h"
 #include "mos/x86/interrupt/apic.h"
 #include "mos/x86/mm/paging_impl.h"
 #include "mos/x86/x86_interrupt.h"
@@ -28,47 +28,35 @@ static u8 com1_buf[MOS_PAGE_SIZE] __aligned(MOS_PAGE_SIZE) = { 0 };
 static u8 com2_buf[MOS_PAGE_SIZE] __aligned(MOS_PAGE_SIZE) = { 0 };
 
 serial_console_t com1_console = {
-    .device = {
-            .port = COM1,
-            .baud_rate = BAUD_RATE_115200,
-            .char_length = CHAR_LENGTH_8,
-            .stop_bits = STOP_BITS_15_OR_2,
-            .parity = PARITY_EVEN,
-        },
-    .con = {
-        .ops =
-            &(console_ops_t){
-                .extra_setup = serial_console_setup,
-            },
-        .name = "serial_com1",
-        .caps = CONSOLE_CAP_EXTRA_SETUP | CONSOLE_CAP_READ,
-        .read.buf = com1_buf,
-        .read.size = MOS_PAGE_SIZE,
-        .default_fg = LightBlue,
-        .default_bg = Black,
-    },
+    .device = { .driver = &x86_serial_driver,
+                .driver_data = (void *) COM1,
+                .baudrate_divisor = BAUD_RATE_115200,
+                .char_length = CHAR_LENGTH_8,
+                .stop_bits = STOP_BITS_15_OR_2,
+                .parity = PARITY_EVEN },
+    .con = { .ops = &(console_ops_t){ .extra_setup = serial_console_setup },
+             .name = "serial_com1",
+             .caps = CONSOLE_CAP_EXTRA_SETUP | CONSOLE_CAP_READ,
+             .read.buf = com1_buf,
+             .read.size = MOS_PAGE_SIZE,
+             .default_fg = LightBlue,
+             .default_bg = Black },
 };
 
 serial_console_t com2_console = {
-    .device = {
-            .port = COM2,
-            .baud_rate = BAUD_RATE_115200,
-            .char_length = CHAR_LENGTH_8,
-            .stop_bits = STOP_BITS_15_OR_2,
-            .parity = PARITY_EVEN,
-        },
-    .con = {
-        .ops =
-            &(console_ops_t){
-                .extra_setup = serial_console_setup,
-            },
-        .name = "serial_com2",
-        .caps = CONSOLE_CAP_EXTRA_SETUP | CONSOLE_CAP_READ,
-        .read.buf = com2_buf,
-        .read.size = MOS_PAGE_SIZE,
-        .default_fg = LightBlue,
-        .default_bg = Black,
-    },
+    .device = { .driver = &x86_serial_driver,
+                .driver_data = (void *) COM2,
+                .baudrate_divisor = BAUD_RATE_115200,
+                .char_length = CHAR_LENGTH_8,
+                .stop_bits = STOP_BITS_15_OR_2,
+                .parity = PARITY_EVEN },
+    .con = { .ops = &(console_ops_t){ .extra_setup = serial_console_setup },
+             .name = "serial_com2",
+             .caps = CONSOLE_CAP_EXTRA_SETUP | CONSOLE_CAP_READ,
+             .read.buf = com2_buf,
+             .read.size = MOS_PAGE_SIZE,
+             .default_fg = LightBlue,
+             .default_bg = Black },
 };
 
 mos_platform_info_t *const platform_info = &x86_platform;
