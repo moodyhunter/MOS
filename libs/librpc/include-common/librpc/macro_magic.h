@@ -109,7 +109,7 @@
     class _class_name                                                                                                                                                    \
     {                                                                                                                                                                    \
       public:                                                                                                                                                            \
-        explicit _class_name(const std::string &servername) : server_stub(rpc_client_create(servername.c_str())){};                                                      \
+        explicit _class_name(const std::string &servername) : server_stub(rpc_client_create(servername.c_str())) {};                                                     \
         X_MACRO(X_GENERATE_FUNCTION_STUB_IMPL_CLASS_ARGS, X_GENERATE_FUNCTION_STUB_IMPL_CLASS_PB, );                                                                     \
         ~_class_name()                                                                                                                                                   \
         {                                                                                                                                                                \
@@ -261,6 +261,7 @@
         switch (funcid)                                                                                                                                                  \
         {                                                                                                                                                                \
             X_MACRO(X_GENERATE_SWITCH_CASE_CLASS_ARGS, X_GENERATE_SWITCH_CASE_CLASS_PB, )                                                                                \
+            default: __builtin_unreachable();                                                                                                                            \
         }                                                                                                                                                                \
     }
 
@@ -270,7 +271,8 @@
         constexpr const static rpc_function_info_t rpc_functions[] = { X_MACRO(X_GENERATE_NULL_FUNC_INFO_ARGS, X_GENERATE_NULL_FUNC_INFO_PB, _) };                       \
                                                                                                                                                                          \
       public:                                                                                                                                                            \
-        explicit classname(const std::string &rpcname) : RPCServer(rpcname, rpc_functions, MOS_ARRAY_SIZE(rpc_functions)){};                                             \
+        explicit classname(const std::string &rpcname) : RPCServer(rpcname, rpc_functions, MOS_ARRAY_SIZE(rpc_functions)) {};                                            \
+        virtual ~classname() {};                                                                                                                                         \
         __RPC_DEFINE_SERVER_CPP_CLASS_WRAPPER(X_MACRO)                                                                                                                   \
     }
 
