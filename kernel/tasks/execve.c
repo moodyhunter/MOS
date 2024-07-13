@@ -141,7 +141,7 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
     kfree(envp_copy);
     kfree(path_copy);
 
-    if (!filled)
+    if (unlikely(!filled))
     {
         pr_emerg("failed to fill process, execve failed");
         spinlock_release(&thread->state_lock);

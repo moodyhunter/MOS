@@ -69,7 +69,7 @@ void try_handle_kernel_panics(ptr_t ip)
     const panic_point_t *point = find_panic_point(ip);
     if (!point)
     {
-        pr_warn("no panic point found for " PTR_FMT, ip);
+        pr_dwarn(panic, "no panic point found for " PTR_FMT, ip);
         return;
     }
     try_handle_kernel_panics_at(point);
