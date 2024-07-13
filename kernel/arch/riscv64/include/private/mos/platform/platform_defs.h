@@ -36,7 +36,7 @@
 
 // clang-format off
 #define MOS_PLATFORM_PANIC_POINT_ASM \
-    ".quad 1b\n\t"  \
+    ".quad 1b\n\t" \
     ".quad %0\n\t" \
     ".quad %1\n\t" \
     ".quad %2\n\t"
@@ -53,7 +53,8 @@ typedef struct _platform_process_options
 
 typedef struct _platform_thread_options
 {
-    int __unused;
+    reg64_t f[32]; // f0-f31
+    reg32_t fcsr;  // fcsr
 } platform_thread_options_t;
 
 typedef struct _platform_cpuinfo

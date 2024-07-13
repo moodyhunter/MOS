@@ -7,12 +7,6 @@
 #include <mos/mos_global.h>
 #include <mos/types.h>
 
-#define make_satp(mode, asid, ppn) ((u64) (mode) << 60 | ((u64) (asid) << 44) | (ppn))
-
-#define SATP_MODE_SV39 8
-#define SATP_MODE_SV48 9
-#define SATP_MODE_SV57 10
-
 typedef struct _sv48_pte
 {
     bool valid : 1; // Valid
@@ -70,7 +64,8 @@ should_inline vm_flags pte_get_flags(const sv48_pte_t *pte)
 // Platform CPU APIs
 noreturn void platform_halt_cpu(void)
 {
-    __asm__ volatile("wfi"); // wait for interrupt
+    while (true)
+        __asm__ volatile("wfi"); // wait for interrupt
     __builtin_unreachable();
 }
 
@@ -258,9 +253,3 @@ pfn_t platform_pml4e_get_huge_pfn(const pml4e_t *pml4)
     return cast_to(pml4, pml4e_t *, sv48_pte_t *)->ppn;
 }
 #endif
-
-void platform_switch_mm(const mm_context_t *new_mm)
-{
-    __asm__ volatile("csrw satp, %0" : : "r"(make_satp(SATP_MODE_SV48, 0, pgd_pfn(new_mm->pgd))) : "memory");
-    __asm__ volatile("sfence.vma zero, zero");
-}
