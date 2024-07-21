@@ -332,6 +332,9 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, vmap_t *
     if (ip_vmap)
         spinlock_release(&ip_vmap->lock);
 
+    if (current_thread)
+        spinlock_release(&current_thread->owner->mm->mm_lock);
+
 #if MOS_CONFIG(MOS_MM_DETAILED_MMAPS_UNHANDLED_FAULT)
     if (current_thread)
         process_dump_mmaps(current_process);
