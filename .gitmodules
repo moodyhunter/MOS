@@ -1,9 +1,9 @@
-[submodule "userspace/drivers/acpi-daemon/lai"]
-	path = userspace/drivers/acpi-daemon/lai
-	url = https://github.com/managarm/lai
 [submodule "libs/nanopb/nanopb"]
 	path = libs/nanopb/nanopb
 	url = https://github.com/nanopb/nanopb
 [submodule "userspace/drivers/fs/ext4/lwext4"]
 	path = userspace/drivers/fs/ext4/lwext4
 	url = https://github.com/moodyhunter/lwext4
+[submodule "userspace/drivers/acpi-daemon/uACPI"]
+	path = userspace/drivers/acpi-daemon/uACPI
+	url = https://github.com/UltraOS/uACPI
