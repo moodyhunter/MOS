@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/tasks/signal.h"
+#include "mos/tasks/thread.h"
 
 #include <limits.h>
 #include <mos/device/console.h>
@@ -141,6 +142,18 @@ size_t console_write_color(console_t *con, const char *data, size_t size, standa
 
 void console_putc(console_t *con, u8 c)
 {
+    if (c == 0x3)
+    {
+        spinlock_acquire(&con->waitlist.lock);
+        list_foreach(waitable_list_entry_t, entry, con->waitlist.list)
+        {
+            thread_t *thread = thread_get(entry->waiter);
+            if (thread)
+                signal_send_to_thread(thread, SIGINT);
+        }
+        spinlock_release(&con->waitlist.lock);
+    }
+
     ring_buffer_pos_push_back_byte(con->read.buf, &con->read.pos, c);
     waitlist_wake(&con->waitlist, INT_MAX);
 }
