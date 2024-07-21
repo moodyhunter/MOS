@@ -96,11 +96,13 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
             thread_wait_for_tid(t->tid);
             spinlock_acquire(&t->state_lock);
             thread_destroy(t);
+            MOS_UNREACHABLE();
         }
     }
 
     proc->main_thread = thread; // make current thread the only thread
     platform_context_cleanup(thread);
+    spinlock_release(&thread->state_lock);
 
     // free old memory
     spinlock_acquire(&proc->mm->mm_lock);
@@ -144,7 +146,6 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
     if (unlikely(!filled))
     {
         pr_emerg("failed to fill process, execve failed");
-        spinlock_release(&thread->state_lock);
         process_exit(proc, 0, SIGKILL);
         MOS_UNREACHABLE();
     }
@@ -158,7 +159,6 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
             process_detach_fd(proc, i);
     }
 
-    spinlock_release(&thread->state_lock);
     platform_regs_t *const regs = platform_thread_regs(thread);
     platform_return_to_userspace(regs);
 }
