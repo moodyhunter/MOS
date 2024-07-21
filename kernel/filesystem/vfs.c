@@ -327,7 +327,12 @@ static file_t *vfs_do_open(dentry_t *base, const char *path, open_flags flags)
             return ERR_PTR(-EROFS);
         }
 
-        parent->inode->ops->newfile(parent->inode, entry, FILE_TYPE_REGULAR, 0666);
+        if (!parent->inode->ops->newfile(parent->inode, entry, FILE_TYPE_REGULAR, 0666))
+        {
+            dentry_unref(entry);
+            return ERR_PTR(-EIO); // failed to create file
+        }
+
         created = true;
     }
 

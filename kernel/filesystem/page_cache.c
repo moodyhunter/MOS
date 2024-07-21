@@ -19,6 +19,9 @@ phyframe_t *pagecache_get_page_for_read(inode_cache_t *cache, off_t pgoff)
     if (p)
         return p;
 
+    if (!cache->ops)
+        return ERR_PTR(-EIO);
+
     MOS_ASSERT_X(cache->ops && cache->ops->fill_cache, "no page cache ops for inode %p", (void *) cache->owner);
     phyframe_t *page = cache->ops->fill_cache(cache, pgoff);
     if (IS_ERR(page))
