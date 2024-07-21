@@ -59,6 +59,25 @@ static bool acpi_sysfs_munmap(sysfs_file_t *f, vmap_t *vmap, bool *unmapped)
     return true;
 }
 
+static void register_sysfs_acpi_rsdp(const acpi_rsdp_t *rsdp)
+{
+    acpi_sysfs_item_t *const item = kmalloc(sizeof(acpi_sysfs_item_t));
+    item->size = rsdp->length;
+    item->item.name = strndup("RSDP", 4);
+    item->item.mem.mmap = acpi_sysfs_mmap;
+    item->item.mem.munmap = acpi_sysfs_munmap;
+    item->item.mem.size = item->size;
+    item->item.type = SYSFS_MEM;
+    item->pages = mm_get_free_pages(ALIGN_UP_TO_PAGE(item->size) / MOS_PAGE_SIZE);
+    if (!item->pages)
+        mos_panic("failed to allocate pages for ACPI table");
+
+    memcpy((void *) phyframe_va(item->pages), rsdp, rsdp->length);
+    pmm_ref(item->pages, true); // don't free the pages when the item is freed
+
+    sysfs_register_file(&__sysfs_acpi, &item->item);
+}
+
 static void register_sysfs_acpi_node(const char table_name[4], const acpi_sdt_header_t *header)
 {
     acpi_sysfs_item_t *const item = kmalloc(sizeof(acpi_sysfs_item_t));
@@ -154,6 +173,7 @@ static void do_iterate_sdts(const acpi_rsdp_t *rsdp)
 void acpi_parse_rsdt(const acpi_rsdp_t *rsdp)
 {
     pr_dinfo2(x86_acpi, "initializing ACPI with RSDP at %p", (void *) rsdp);
+    register_sysfs_acpi_rsdp(rsdp);
     do_iterate_sdts(rsdp);
 }
 
