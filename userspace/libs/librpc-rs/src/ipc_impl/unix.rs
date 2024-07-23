@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use std::{
     fs::remove_file,
     io::{Error, Read, Write},

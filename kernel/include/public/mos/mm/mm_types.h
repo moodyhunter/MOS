@@ -1,4 +1,4 @@
-// SDPX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: GPL-3.0-or-later
 // This file defines the flags for mmap_anonymous and mmap_file system calls.
 
 #pragma once

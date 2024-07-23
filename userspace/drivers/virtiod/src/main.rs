@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use crate::{
     drivers::start_device,
     hal::{libdma_exit, libdma_init, libdma_map_physical_address},

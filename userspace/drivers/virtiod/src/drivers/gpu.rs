@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use std::{io::Error, thread::sleep};
 
 use virtio_drivers::{device::gpu::VirtIOGpu, transport::Transport};

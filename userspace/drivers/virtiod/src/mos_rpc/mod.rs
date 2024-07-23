@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 include!(concat!(env!("OUT_DIR"), "/protos/mod.rs"));
 
 #[macro_export]
