@@ -12,12 +12,12 @@ macro(add_summary_section SECTION_ID NAME)
     set(_MOS_SUMMARY_SECTION_CONTENT_${SECTION_ID} "" CACHE INTERNAL "" FORCE)
 endmacro()
 
-macro(add_summary_item SECTION_ID VARIABLE VALUE DESCRIPTION)
+macro(add_summary_item SECTION_ID VALUE DESCRIPTION)
     if(NOT DEFINED _MOS_SUMMARY_SECTION_${SECTION_ID})
         message(FATAL_ERROR "Unknown summary section '${SECTION_ID}'")
     endif()
 
-    string(LENGTH ${VARIABLE} NAME_LEN)
+    string(LENGTH ${VALUE} NAME_LEN)
     math(EXPR padding "${MOS_SUMMARY_NAME_LENGTH} - ${NAME_LEN} - 2")
 
     if(padding LESS 0)
@@ -34,13 +34,7 @@ macro(add_summary_item SECTION_ID VARIABLE VALUE DESCRIPTION)
     endif()
 
     string(REPEAT "." ${padding} PADDING_STRING_DESC)
-
-    if (NOT "${VALUE}" STREQUAL "")
-        set(PRETTY_VALUE " = ${VALUE}")
-    else()
-        set(PRETTY_VALUE "")
-    endif()
-    list(APPEND _MOS_SUMMARY_SECTION_CONTENT_${SECTION_ID} "${DESCRIPTION} ${PADDING_STRING_DESC}${PADDING_STRING_NAME} ${VARIABLE}${PRETTY_VALUE}")
+    list(APPEND _MOS_SUMMARY_SECTION_CONTENT_${SECTION_ID} "${DESCRIPTION} ${PADDING_STRING_DESC}${PADDING_STRING_NAME} ${VALUE}")
     set(_MOS_SUMMARY_SECTION_CONTENT_${SECTION_ID} "${_MOS_SUMMARY_SECTION_CONTENT_${SECTION_ID}}" CACHE INTERNAL "" FORCE)
 endmacro()
 
@@ -72,5 +66,16 @@ function(save_summary)
         endforeach()
 
         file(APPEND ${SUMMARY_FILE} "\n")
+    endforeach()
+
+    file(APPEND ${SUMMARY_FILE} "\n")
+    file(APPEND ${SUMMARY_FILE} "All CMake properties:\n")
+
+    get_cmake_property(ALL_PROPERTIES VARIABLES)
+    foreach(prop ${ALL_PROPERTIES})
+        # if in KCONFIG_EXTRA_OPTIONS_BLACKLIST, skip
+        if (prop MATCHES "^MOS_.*")
+            file(APPEND ${SUMMARY_FILE} "  ${prop} = ${${prop}}\n")
+        endif()
     endforeach()
 endfunction()

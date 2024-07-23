@@ -104,5 +104,5 @@ function(create_bootable_kernel_binary)
     # link mos::kernel explicitly to ensure that all symbols from the kernel are
     # included in the final binary (linker may strip unused symbols in ${TARGET_NAME}_loader)
     target_link_libraries(${ARGS_TARGET} PRIVATE ${ARGS_TARGET}_loader mos::kernel)
-    add_summary_item(BOOTABLE ${ARGS_TARGET} "" "${ARGS_COMMENT}")
+    add_summary_item(BOOTABLE ${ARGS_TARGET} "${ARGS_COMMENT}")
 endfunction()

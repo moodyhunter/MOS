@@ -104,7 +104,7 @@ install(
 )
 
 add_custom_target(mos_print_summary COMMAND ${CMAKE_COMMAND} -E cat ${CMAKE_BINARY_DIR}/summary.txt USES_TERMINAL)
-add_summary_item(UTILITY "mos_print_summary" "" "Print Configuration Summary")
+add_summary_item(UTILITY "mos_print_summary" "Print Configuration Summary")
 
 message("")
 message("MOS is now configured :)")

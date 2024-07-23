@@ -18,24 +18,19 @@ add_custom_target(mos_initrd
     COMMENT "Creating initrd at ${CMAKE_BINARY_DIR}/initrd.cpio"
     BYPRODUCTS ${CMAKE_BINARY_DIR}/initrd.cpio
 )
-add_summary_item(UTILITY mos_initrd "${CMAKE_BINARY_DIR}/initrd.cpio" "Create Initrd")
+add_summary_item(UTILITY mos_initrd "Create Initrd")
 
 add_custom_target(mos_cleanup_initrd
     COMMAND ${CMAKE_COMMAND} -E rm -rf ${INITRD_DIR} && ${CMAKE_COMMAND} -E make_directory ${INITRD_DIR}
     COMMENT "Cleaning up initrd"
 )
-add_summary_item(UTILITY mos_cleanup_initrd "" "Cleanup Initrd")
+add_summary_item(UTILITY mos_cleanup_initrd "Cleanup Initrd")
 
 macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
     set(OUTPUT_DIR "${INITRD_DIR}${PATH}/")
     make_directory(${OUTPUT_DIR})
 
-    # append a slash to the path if there's none
-    string(REGEX REPLACE "(.*[^\\/])$" "\\1/" OUTPUT_DIR_PRETTY "${PATH}")
-
     if("${ITEM_TYPE}" STREQUAL "TARGET")
-        set(SOURCE_ITEM_SUPPLIMENTARY_INFO "${SOURCE_ITEM}")
-        set(OUTPUT_DIR_PRETTY "${OUTPUT_DIR_PRETTY}${SOURCE_ITEM}")
 
         set(TARGET_NAME _mos_initrd_target_${SOURCE_ITEM})
         add_custom_target(${TARGET_NAME}
@@ -45,55 +40,39 @@ macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
             DEPENDS ${SOURCE_ITEM}
             BYPRODUCTS ${OUTPUT_DIR}/${SOURCE_ITEM}
         )
+    elseif("${ITEM_TYPE}" STREQUAL "FILE")
+        get_filename_component(FILE_NAME ${SOURCE_ITEM} NAME)
+        set(TARGET_NAME _mos_initrd_file_${SOURCE_ITEM})
+        string(REPLACE "/" "_" TARGET_NAME ${TARGET_NAME})
+        add_custom_target(${TARGET_NAME}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+            COMMAND cp --remove-destination --preserve=mode,timestamps -d -r ${SOURCE_ITEM} ${OUTPUT_DIR} || true
+            VERBATIM
+            COMMENT "Copying file ${SOURCE_ITEM} to initrd"
+            DEPENDS ${SOURCE_ITEM}
+            BYPRODUCTS ${OUTPUT_DIR}/${FILE_NAME}
+        )
+    elseif("${ITEM_TYPE}" STREQUAL "DIRECTORY")
+        set(SOURCE_DIR_FULL ${CMAKE_CURRENT_LIST_DIR}/${SOURCE_ITEM})
+        file(GLOB ALL_FILES RELATIVE ${SOURCE_DIR_FULL} "${SOURCE_DIR_FULL}/*")
+
+        # create a list of all files in the target directory
+        set(DEST_FILES "") # the files to be used by the BYPRODUCTS property
+        foreach(FILE ${ALL_FILES})
+            list(APPEND DEST_FILES "${OUTPUT_DIR}/${FILE}")
+        endforeach()
+
+        set(TARGET_NAME _mos_initrd_directory_${SOURCE_ITEM}_to_${PATH})
+        string(REPLACE "/" "_" TARGET_NAME ${TARGET_NAME})
+        add_custom_target(${TARGET_NAME}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+            COMMAND cp --remove-destination -rT ${SOURCE_ITEM} ${OUTPUT_DIR} # see https://gitlab.kitware.com/cmake/cmake/-/issues/14609
+            COMMENT "Copying directory ${SOURCE_ITEM} to initrd"
+            DEPENDS ${SOURCE_ITEM}
+            BYPRODUCTS ${DEST_FILES}
+        )
     else()
-        # replace files and directories with their full path, then replace with a pretty prefix
-        file(REAL_PATH ${SOURCE_ITEM} SOURCE_ITEM_FULL BASE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
-
-        string(REPLACE "${CMAKE_BINARY_DIR}/"           "@build/"   SOURCE_ITEM_PRETTY "${SOURCE_ITEM_FULL}")
-        string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/"   "@/"    SOURCE_ITEM_PRETTY "${SOURCE_ITEM_PRETTY}")
-        string(REPLACE "${CMAKE_SOURCE_DIR}/"           "#/"     SOURCE_ITEM_PRETTY "${SOURCE_ITEM_PRETTY}")
-        set(SOURCE_ITEM_SUPPLIMENTARY_INFO "${SOURCE_ITEM_PRETTY}")
-
-        if("${ITEM_TYPE}" STREQUAL "FILE")
-            get_filename_component(FILE_NAME ${SOURCE_ITEM} NAME)
-            set(OUTPUT_DIR_PRETTY "${OUTPUT_DIR_PRETTY}${FILE_NAME}")
-
-            set(TARGET_NAME _mos_initrd_file_${SOURCE_ITEM})
-            string(REPLACE "/" "_" TARGET_NAME ${TARGET_NAME})
-            add_custom_target(${TARGET_NAME}
-                WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-                COMMAND cp --remove-destination --preserve=mode,timestamps -d -r ${SOURCE_ITEM} ${OUTPUT_DIR} || true
-                VERBATIM
-                COMMENT "Copying file ${SOURCE_ITEM} to initrd"
-                DEPENDS ${SOURCE_ITEM}
-                BYPRODUCTS ${OUTPUT_DIR}/${FILE_NAME}
-            )
-        elseif("${ITEM_TYPE}" STREQUAL "DIRECTORY")
-            set(SOURCE_DIR_FULL ${CMAKE_CURRENT_LIST_DIR}/${SOURCE_ITEM})
-            file(GLOB ALL_FILES RELATIVE ${SOURCE_DIR_FULL} "${SOURCE_DIR_FULL}/*")
-
-            # create a list of all files in the target directory
-            set(DEST_FILES "") # the files to be used by the BYPRODUCTS property
-            set(FILES) # the files to be used by the configuration summary
-            foreach(FILE ${ALL_FILES})
-                list(APPEND DEST_FILES "${OUTPUT_DIR}/${FILE}")
-                list(APPEND FILES "${FILE}")
-            endforeach()
-            list(JOIN FILES ", " PRETTY_FILES)
-            set(SOURCE_ITEM_SUPPLIMENTARY_INFO "${SOURCE_ITEM_SUPPLIMENTARY_INFO}/{${PRETTY_FILES}}")
-
-            set(TARGET_NAME _mos_initrd_directory_${SOURCE_ITEM}_to_${PATH})
-            string(REPLACE "/" "_" TARGET_NAME ${TARGET_NAME})
-            add_custom_target(${TARGET_NAME}
-                WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-                COMMAND cp --remove-destination -rT ${SOURCE_ITEM} ${OUTPUT_DIR} # see https://gitlab.kitware.com/cmake/cmake/-/issues/14609
-                COMMENT "Copying directory ${SOURCE_ITEM} to initrd"
-                DEPENDS ${SOURCE_ITEM}
-                BYPRODUCTS ${DEST_FILES}
-            )
-        else()
-            message(FATAL_ERROR "Unknown initrd item type: ${ITEM_TYPE}")
-        endif()
+        message(FATAL_ERROR "Unknown initrd item type: ${ITEM_TYPE}")
     endif()
 
     add_dependencies(mos_initrd ${TARGET_NAME})
