@@ -238,7 +238,7 @@ void platform_switch_to_thread(thread_t *current, thread_t *new_thread, switch_f
     riscv64_do_context_switch(stack_ptr, new_thread->k_stack.head, switch_func, lock);
 }
 
-noreturn void platform_return_to_userspace(platform_regs_t *regs)
+[[noreturn]] void platform_return_to_userspace(platform_regs_t *regs)
 {
     reg_t sstatus = read_csr(sstatus);
     sstatus &= ~SSTATUS_SPP;

@@ -81,4 +81,4 @@ extern void *irq_stub_table[];
 
 void x86_interrupt_entry(ptr_t esp);
 
-extern noreturn void x86_interrupt_return_impl(const platform_regs_t *regs);
+[[noreturn]] extern void x86_interrupt_return_impl(const platform_regs_t *regs);

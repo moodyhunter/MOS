@@ -19,7 +19,7 @@ should_inline void cpu_wrmsr(u32 msr, u64 val)
     __asm__ volatile("wrmsr" : : "a"(lo), "d"(hi), "c"(msr));
 }
 
-should_inline noreturn void x86_cpu_halt(void)
+[[noreturn]] should_inline void x86_cpu_halt(void)
 {
     while (true)
         __asm__ volatile("hlt");

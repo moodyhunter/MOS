@@ -16,4 +16,4 @@ void power_register_shutdown_callback(power_callback_t callback, void *data);
 /**
  * @brief Shutdown the system.
  */
-noreturn void power_shutdown(void);
+[[noreturn]] void power_shutdown(void);

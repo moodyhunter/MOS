@@ -30,7 +30,7 @@ void power_register_shutdown_callback(power_callback_t callback, void *data)
     list_node_append(&pm_notifiers, list_node(entry));
 }
 
-noreturn void power_shutdown(void)
+[[noreturn]] void power_shutdown(void)
 {
     pr_info("system shutdown initiated");
     list_foreach(power_callback_entry_t, e, pm_notifiers)

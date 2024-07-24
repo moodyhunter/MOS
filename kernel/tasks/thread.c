@@ -200,7 +200,7 @@ void thread_exit(thread_t *t)
     thread_exit_locked(t);
 }
 
-noreturn void thread_exit_locked(thread_t *t)
+[[noreturn]] void thread_exit_locked(thread_t *t)
 {
     MOS_ASSERT_X(thread_is_valid(t), "thread_exit_locked() called on invalid thread");
 

@@ -22,7 +22,7 @@ void unblock_scheduler(void);
  * @brief Enter the scheduler and switch to the next thread.
  *
  */
-noreturn void enter_scheduler(void);
+[[noreturn]] void enter_scheduler(void);
 
 /**
  * @brief Add a thread to the scheduler, so that it can be scheduled.

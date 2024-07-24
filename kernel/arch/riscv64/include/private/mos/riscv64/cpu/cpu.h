@@ -43,7 +43,7 @@ MOS_STATIC_ASSERT(sizeof(platform_regs_t) == 264, "please also change cpu/interr
 #define SIE_STIE BIT(5)
 #define SIE_SSIE BIT(1)
 
-extern noreturn void riscv64_trap_exit(platform_regs_t *regs);
+[[noreturn]] extern void riscv64_trap_exit(platform_regs_t *regs);
 
 extern const char __riscv64_trap_entry[];
 extern const char __riscv64_usermode_trap_entry[];

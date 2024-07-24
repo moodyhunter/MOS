@@ -65,10 +65,10 @@ MOSAPI pid_t spawn(const char *path, const char *const argv[]);
 #endif
 
 #ifndef __MOS_KERNEL__
-MOSAPI noreturn void exit(int status);
+[[noreturn]] MOSAPI void exit(int status);
 MOSAPI int atexit(void (*func)(void));
 MOSAPI tid_t start_thread(const char *name, thread_entry_t entry, void *arg);
-MOSAPI noreturn void abort(void);
+[[noreturn]] MOSAPI void abort(void);
 #endif
 
 /** @} */

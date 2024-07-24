@@ -32,7 +32,7 @@ typedef struct thread_start_args
 
 u64 __stack_chk_guard = 0xdeadbeefdeadbeef;
 
-noreturn void __stack_chk_fail(void)
+[[noreturn]] void __stack_chk_fail(void)
 {
     puts("stack smashing detected...");
     syscall_exit(-1);
@@ -53,7 +53,7 @@ void __printf(1, 2) fatal_abort(const char *fmt, ...)
     abort();
 }
 
-noreturn void abort()
+[[noreturn]] void abort()
 {
     raise(SIGABRT);
     syscall_exit(-1);

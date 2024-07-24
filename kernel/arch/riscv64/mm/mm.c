@@ -62,7 +62,7 @@ should_inline vm_flags pte_get_flags(const sv48_pte_t *pte)
 }
 
 // Platform CPU APIs
-noreturn void platform_halt_cpu(void)
+[[noreturn]] void platform_halt_cpu(void)
 {
     while (true)
         __asm__ volatile("wfi"); // wait for interrupt

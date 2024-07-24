@@ -50,13 +50,13 @@ static int sigset_test(const sigset_t *sigset, int sig)
 slab_t *sigpending_slab = NULL;
 SLAB_AUTOINIT("signal_pending", sigpending_slab, sigpending_t);
 
-noreturn static void signal_do_coredump(signal_t signal)
+[[noreturn]] static void signal_do_coredump(signal_t signal)
 {
     process_exit(current_process, 0, signal);
     MOS_UNREACHABLE();
 }
 
-noreturn static void signal_do_terminate(signal_t signal)
+[[noreturn]] static void signal_do_terminate(signal_t signal)
 {
     if (current_thread == current_process->main_thread)
         process_exit(current_process, 0, signal);

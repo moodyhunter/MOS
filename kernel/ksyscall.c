@@ -107,7 +107,7 @@ DEFINE_SYSCALL(bool, io_close)(fd_t fd)
     return true;
 }
 
-DEFINE_SYSCALL(noreturn void, exit)(u32 exit_code)
+DEFINE_SYSCALL([[noreturn]] void, exit)(u32 exit_code)
 {
     // only use the lower 8 bits
     exit_code &= 0xff;
@@ -167,7 +167,7 @@ DEFINE_SYSCALL(tid_t, get_tid)(void)
     return current_thread->tid;
 }
 
-DEFINE_SYSCALL(noreturn void, thread_exit)(void)
+DEFINE_SYSCALL([[noreturn]] void, thread_exit)(void)
 {
     thread_exit(current_thread);
 }
@@ -392,7 +392,7 @@ DEFINE_SYSCALL(long, signal_thread)(tid_t tid, signal_t sig)
     return signal_send_to_thread(thread, sig);
 }
 
-DEFINE_SYSCALL(noreturn void, signal_return)(void *sp)
+DEFINE_SYSCALL([[noreturn]] void, signal_return)(void *sp)
 {
     platform_restore_from_signal_handler(sp);
 }

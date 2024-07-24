@@ -161,7 +161,7 @@ void platform_startup_late();
 
 // Platform Machine APIs
 // default implementation panics
-noreturn void platform_shutdown(void);
+[[noreturn]] void platform_shutdown(void);
 // default implementations do nothing for 4 functions below
 void platform_dump_regs(platform_regs_t *regs);
 void platform_dump_stack(platform_regs_t *regs);
@@ -174,7 +174,7 @@ void platform_get_time(timeval_t *val);
 
 // Platform CPU APIs
 // default implementation loops forever
-noreturn void platform_halt_cpu(void);
+[[noreturn]] void platform_halt_cpu(void);
 // default implementation does nothing for 4 functions below
 void platform_invalidate_tlb(ptr_t vaddr);
 u32 platform_current_cpu_id(void);
@@ -248,7 +248,7 @@ void platform_context_cleanup(thread_t *thread);
 // no default implementation, platform-specific implementations must be provided
 void platform_switch_mm(const mm_context_t *new_mm);
 void platform_switch_to_thread(thread_t *current, thread_t *new_thread, switch_flags_t switch_flags);
-noreturn void platform_return_to_userspace(platform_regs_t *regs);
+[[noreturn]] void platform_return_to_userspace(platform_regs_t *regs);
 
 // Platform-Specific syscall APIs
 // default implementation does nothing
@@ -261,8 +261,8 @@ void platform_ipi_send(u8 target_cpu, ipi_type_t type);
 // Signal Handler APIs
 // the 4 function below has default implementations that panic if not implemented
 typedef struct _sigreturn_data sigreturn_data_t;
-noreturn void platform_jump_to_signal_handler(const platform_regs_t *regs, const sigreturn_data_t *sigreturn_data, const sigaction_t *sa);
-noreturn void platform_restore_from_signal_handler(void *sp);
+[[noreturn]] void platform_jump_to_signal_handler(const platform_regs_t *regs, const sigreturn_data_t *sigreturn_data, const sigaction_t *sa);
+[[noreturn]] void platform_restore_from_signal_handler(void *sp);
 void platform_syscall_setup_restart_context(platform_regs_t *regs, reg_t syscall_nr);
 void platform_syscall_store_retval(platform_regs_t *regs, reg_t result);
 

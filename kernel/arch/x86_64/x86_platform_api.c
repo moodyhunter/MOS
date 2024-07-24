@@ -26,7 +26,7 @@
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
-noreturn void platform_shutdown(void)
+[[noreturn]] void platform_shutdown(void)
 {
     platform_interrupt_disable();
     port_outw(0x604, 0x2000);
@@ -112,7 +112,7 @@ void platform_dump_thread_kernel_stack(const thread_t *thread)
     x86_dump_stack_at(*rbp_ptr, false);
 }
 
-noreturn void platform_return_to_userspace(platform_regs_t *regs)
+[[noreturn]] void platform_return_to_userspace(platform_regs_t *regs)
 {
     x86_interrupt_return_impl(regs);
 }

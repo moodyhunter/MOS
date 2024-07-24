@@ -45,7 +45,7 @@ def syscall_name_with_prefix(e):
 
 def syscall_format_return_type(e) -> str:
     if syscall_is_noreturn(e):
-        return "noreturn void" + " "
+        return "__attribute__((__noreturn__)) void" + " "
     elif e["return"].endswith("*"):
         return e["return"]  # make * stick to the type
     else:

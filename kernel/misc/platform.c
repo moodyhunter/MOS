@@ -10,14 +10,14 @@
 
 #define __weak__ [[gnu::weak]]
 
-__weak__ noreturn void platform_ap_entry(u64 arg)
+__weak__ [[noreturn]] void platform_ap_entry(u64 arg)
 {
     MOS_UNUSED(arg);
     mos_panic("platform_ap_entry not implemented");
 }
 
 // Platform Machine APIs
-__weak__ noreturn void platform_shutdown(void)
+__weak__ [[noreturn]] void platform_shutdown(void)
 {
     mos_panic("platform_shutdown not implemented");
 }
@@ -53,7 +53,7 @@ __weak__ void platform_get_time(timeval_t *val)
 }
 
 // Platform CPU APIs
-__weak__ noreturn void platform_halt_cpu(void)
+__weak__ [[noreturn]] void platform_halt_cpu(void)
 {
     pr_emerg("platform_halt_cpu() not implemented");
     while (1)
@@ -121,7 +121,7 @@ __weak__ void platform_ipi_send(u8 target_cpu, ipi_type_t type)
 
 // Signal Handler APIs, panic if not implemented
 
-__weak__ noreturn void platform_jump_to_signal_handler(const platform_regs_t *regs, const sigreturn_data_t *sigreturn_data, const sigaction_t *sa)
+__weak__ [[noreturn]] void platform_jump_to_signal_handler(const platform_regs_t *regs, const sigreturn_data_t *sigreturn_data, const sigaction_t *sa)
 {
     MOS_UNUSED(regs);
     MOS_UNUSED(sigreturn_data);
@@ -129,7 +129,7 @@ __weak__ noreturn void platform_jump_to_signal_handler(const platform_regs_t *re
     mos_panic("platform_jump_to_signal_handler() not implemented");
 }
 
-__weak__ noreturn void platform_restore_from_signal_handler(void *sp)
+__weak__ [[noreturn]] void platform_restore_from_signal_handler(void *sp)
 {
     MOS_UNUSED(sp);
     mos_panic("platform_restore_from_signal_handler() not implemented");

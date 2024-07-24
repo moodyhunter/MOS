@@ -7,11 +7,6 @@
 #endif
 #include <mos/compiler.h>
 #include <stddef.h>
-#include <stdnoreturn.h>
-
-#if !defined(noreturn)
-#define noreturn __attribute__((noreturn))
-#endif
 
 #ifdef __cplusplus
 #define MOS_STATIC_ASSERT static_assert

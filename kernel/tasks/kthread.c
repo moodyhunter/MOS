@@ -35,6 +35,7 @@ void kthread_init(void)
 
 thread_t *kthread_create(thread_entry_t entry, void *arg, const char *name)
 {
+    MOS_ASSERT_X(kthreadd, "kthreadd not initialized");
     pr_dinfo2(thread, "creating kernel thread '%s'", name);
     kthread_arg_t *kthread_arg = kmalloc(sizeof(kthread_arg_t));
     kthread_arg->entry = entry;

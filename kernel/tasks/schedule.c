@@ -64,7 +64,7 @@ void unblock_scheduler(void)
     scheduler_ready = true;
 }
 
-noreturn void enter_scheduler(void)
+[[noreturn]] void enter_scheduler(void)
 {
     while (likely(!scheduler_ready))
         ; // wait for the scheduler to be unblocked
