@@ -218,9 +218,9 @@ static bool vfs_io_ops_munmap(io_t *io, vmap_t *vmap, bool *unmapped)
     return true;
 }
 
-static void vfs_io_ops_getname(io_t *io, char *buf, size_t size)
+static void vfs_io_ops_getname(const io_t *io, char *buf, size_t size)
 {
-    file_t *file = container_of(io, file_t, io);
+    const file_t *file = container_of(io, file_t, io);
     dentry_path(file->dentry, root_dentry, buf, size);
 }
 

@@ -124,7 +124,7 @@ io_t *io_unref(io_t *io)
     return io;
 }
 
-bool io_valid(io_t *io)
+bool io_valid(const io_t *io)
 {
     return io && !io->closed && io->refcount > 0 && io->ops;
 }
@@ -304,7 +304,7 @@ bool io_munmap(io_t *io, vmap_t *vmap, bool *unmapped)
     return true;
 }
 
-void io_get_name(io_t *io, char *buf, size_t size)
+void io_get_name(const io_t *io, char *buf, size_t size)
 {
     if (!io_valid(io))
     {

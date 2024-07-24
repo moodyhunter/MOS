@@ -30,6 +30,8 @@ static size_t do_print_vmflags(char *buf, size_t size, vm_flags flags)
  *              e.g.: "rwx" / "r--" / "rw-" / "--x"
  *  '%pvm'  prints a vmap_t object.
  *              e.g.: "{ 0x123000-0x123fff, rwx, on_fault=0x12345678 }"
+ *  '%pio'  prints an io_t object.
+ *              e.g.: "{ 'file.txt', offset=0x12345678 }"
  *
  * @returns true if the format specifier is handled, false otherwise, the
  *          caller should fallback to the default implementation. (i.e. %p)
@@ -67,6 +69,35 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
 
     switch (peek_next)
     {
+        case 'i':
+        {
+            shift_next;
+            switch (peek_next)
+            {
+                case 'o':
+                {
+                    shift_next;
+                    // io_t
+                    const io_t *io = (const io_t *) ptr;
+                    if (io == NULL)
+                    {
+                        wrap_print("(null)");
+                        goto done;
+                    }
+
+                    char filepath[MOS_PATH_MAX_LENGTH];
+                    io_get_name(io, filepath, sizeof(filepath));
+                    wrap_print("{ '%s'", filepath);
+                    if (io->closed)
+                        wrap_print(", closed");
+                    wrap_print(" }");
+                    goto done;
+                }
+                default: return false;
+            }
+
+            MOS_UNREACHABLE();
+        }
         case 's': // %ps
         {
             shift_next;
