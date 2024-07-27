@@ -439,19 +439,6 @@ static void dirter_add(vfs_listdir_state_t *state, u64 ino, const char *name, si
 
 void vfs_populate_listdir_buf(dentry_t *dir, vfs_listdir_state_t *state)
 {
-    inode_t *d_inode = dir->inode;
-
-    dentry_t *d_parent = dentry_parent(dir);
-    if (d_parent == NULL)
-        d_parent = root_dentry;
-
-    MOS_ASSERT(d_parent->inode != NULL);
-
-    dirter_add(state, d_inode->ino, ".", 1, FILE_TYPE_DIRECTORY);
-    dirter_add(state, d_parent->inode->ino, "..", 2, FILE_TYPE_DIRECTORY);
-
-    MOS_ASSERT(dir->inode);
-
     // this call may not write all the entries, because the buffer may not be big enough
     if (dir->inode->ops && dir->inode->ops->iterate_dir)
         dir->inode->ops->iterate_dir(dir, state, dirter_add);

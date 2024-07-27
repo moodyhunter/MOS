@@ -2,6 +2,7 @@
 
 #include "mos/filesystem/vfs_utils.h"
 
+#include "mos/filesystem/dentry.h"
 #include "mos/filesystem/page_cache.h"
 #include "mos/filesystem/vfs_types.h"
 #include "mos/lib/sync/spinlock.h"
@@ -110,6 +111,16 @@ bool vfs_simple_write_begin(inode_cache_t *icache, off_t offset, size_t size)
 
 void vfs_generic_iterate_dir(const dentry_t *dir, vfs_listdir_state_t *state, dentry_iterator_op add_record)
 {
+    dentry_t *d_parent = dentry_parent(dir);
+    if (d_parent == NULL)
+        d_parent = root_dentry;
+
+    MOS_ASSERT(d_parent->inode != NULL);
+    MOS_ASSERT(dir->inode);
+
+    add_record(state, dir->inode->ino, ".", 1, FILE_TYPE_DIRECTORY);
+    add_record(state, d_parent->inode->ino, "..", 2, FILE_TYPE_DIRECTORY);
+
     tree_foreach_child(dentry_t, child, dir)
     {
         if (child->inode)

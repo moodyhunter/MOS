@@ -251,6 +251,16 @@ static bool cpio_i_lookup(inode_t *parent_dir, dentry_t *dentry)
 
 static void cpio_i_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state, dentry_iterator_op add_record)
 {
+    dentry_t *d_parent = dentry_parent(dentry);
+    if (d_parent == NULL)
+        d_parent = root_dentry;
+
+    MOS_ASSERT(d_parent->inode != NULL);
+    MOS_ASSERT(dentry->inode);
+
+    add_record(state, dentry->inode->ino, ".", 1, FILE_TYPE_DIRECTORY);
+    add_record(state, d_parent->inode->ino, "..", 2, FILE_TYPE_DIRECTORY);
+
     cpio_inode_t *inode = CPIO_INODE(dentry->inode);
 
     char path_prefix[inode->name_length + 1]; // +1 for null terminator
@@ -304,11 +314,11 @@ static void cpio_i_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state, den
             break;
 
         offset += filename_len;
-        offset = ((offset + 3) & ~0x03); // align to 4 bytes
+        offset = ALIGN_UP(offset, 4); // align to 4 bytes
 
         const size_t data_len = strntoll(header.filesize, NULL, 16, sizeof(header.filesize) / sizeof(char));
         offset += data_len;
-        offset = ((offset + 3) & ~0x03); // align to 4 bytes (again)
+        offset = ALIGN_UP(offset, 4); // align to 4 bytes (again)
     }
 }
 
