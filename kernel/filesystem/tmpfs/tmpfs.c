@@ -37,6 +37,8 @@ typedef struct
 #define TMPFS_INODE(inode) container_of(inode, tmpfs_inode_t, real_inode)
 #define TMPFS_SB(var)      container_of(var, tmpfs_sb_t, sb)
 
+static const file_ops_t tmpfs_noop_file_ops = { 0 };
+
 static const inode_ops_t tmpfs_inode_dir_ops;
 static const inode_ops_t tmpfs_inode_symlink_ops;
 static const inode_cache_ops_t tmpfs_inode_cache_ops;
@@ -67,14 +69,14 @@ inode_t *tmpfs_create_inode(tmpfs_sb_t *sb, file_type_t type, file_perm_t perm)
             // directories
             pr_dinfo2(tmpfs, "tmpfs: creating a directory inode");
             inode->real_inode.ops = &tmpfs_inode_dir_ops;
-            inode->real_inode.file_ops = NULL;
+            inode->real_inode.file_ops = &tmpfs_noop_file_ops;
             break;
 
         case FILE_TYPE_SYMLINK:
             // symbolic links
             pr_dinfo2(tmpfs, "tmpfs: creating a symlink inode");
             inode->real_inode.ops = &tmpfs_inode_symlink_ops;
-            inode->real_inode.file_ops = NULL;
+            inode->real_inode.file_ops = &tmpfs_noop_file_ops;
             break;
 
         case FILE_TYPE_REGULAR:
