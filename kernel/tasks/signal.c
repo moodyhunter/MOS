@@ -299,8 +299,16 @@ void signal_on_returned(sigreturn_data_t *data)
 
 bool signal_has_pending(void)
 {
+    bool has_pending = false;
     spinlock_acquire(&current_thread->signal_info.lock);
-    const bool has_pending = !list_is_empty(&current_thread->signal_info.pending);
+    list_foreach(sigpending_t, pending, current_thread->signal_info.pending)
+    {
+        if (sigset_test(&current_thread->signal_info.mask, pending->signal))
+            continue; // signal is masked, skip it
+        has_pending = true;
+        break;
+    }
+
     spinlock_release(&current_thread->signal_info.lock);
     return has_pending;
 }
