@@ -75,9 +75,10 @@ message read_block_response
 // ! write
 message write_block_request
 {
-    bytes data = 1;
-    uint64 n_boffset = 2;
-    uint32 n_blocks = 3;
+    blockdev device = 1; // caller only
+    bytes data = 2;
+    uint64 n_boffset = 3;
+    uint32 n_blocks = 4;
 }
 
 message write_block_response
