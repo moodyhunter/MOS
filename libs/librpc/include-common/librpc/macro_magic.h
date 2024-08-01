@@ -168,7 +168,7 @@
 #define _RPC_GETARG_STRING string
 #define _RPC_GETARG_BUFFER buffer
 
-#define X_GENERATE_PROTOTYPE_ARG(type, name) , _RPC_ARGTYPE_##type name
+#define X_GENERATE_PROTOTYPE_ARG(type, name) , __maybe_unused _RPC_ARGTYPE_##type name
 #define RPC_GENERATE_PROTOTYPE(y)            X_GENERATE_PROTOTYPE_##y
 
 // ============ SERVER SIDE ============
@@ -249,10 +249,16 @@
     }
 
 #define __X_GENERATE_FUNCTION_FORWARDS_ARGS_CPP_CLASS(_prefix, _id, func, _FUNC, _spec, ...)                                                                             \
-    virtual rpc_result_code_t func(rpc_context_t *context __VA_OPT__(FOR_EACH(RPC_GENERATE_PROTOTYPE, __VA_ARGS__))) = 0;
+    virtual rpc_result_code_t func(__maybe_unused rpc_context_t *ctx __VA_OPT__(FOR_EACH(RPC_GENERATE_PROTOTYPE, __VA_ARGS__)))                                          \
+    {                                                                                                                                                                    \
+        return rpc_result_code_t::RPC_RESULT_NOT_IMPLEMENTED;                                                                                                            \
+    };
 
 #define __X_GENERATE_FUNCTION_FORWARDS_PB_CPP_CLASS(_prefix, _id, func, _FUNC, reqtype, resptype)                                                                        \
-    virtual rpc_result_code_t func(rpc_context_t *context, reqtype *req, resptype *resp) = 0;
+    virtual rpc_result_code_t func(rpc_context_t *, reqtype *, resptype *)                                                                                               \
+    {                                                                                                                                                                    \
+        return rpc_result_code_t::RPC_RESULT_NOT_IMPLEMENTED;                                                                                                            \
+    }
 
 #define __RPC_DEFINE_SERVER_CPP_CLASS_WRAPPER(X_MACRO)                                                                                                                   \
     X_MACRO(__X_GENERATE_FUNCTION_FORWARDS_ARGS_CPP_CLASS, __X_GENERATE_FUNCTION_FORWARDS_PB_CPP_CLASS, )                                                                \

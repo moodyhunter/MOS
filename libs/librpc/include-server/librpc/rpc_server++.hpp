@@ -47,7 +47,7 @@ class RPCServer
         rpc_server_register_functions(server, redirect_functions, count);
     }
 
-    ~RPCServer()
+    virtual ~RPCServer()
     {
         rpc_server_close(server);
     }
