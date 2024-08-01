@@ -89,6 +89,7 @@ impl BlockDevDriver {
 
     pub fn on_write(&mut self, ctx: &mut RpcCallContext) -> RpcResult<()> {
         let arg: Write_block_request = ctx.get_arg_pb(0)?;
+        assert!(arg.data.len() == 512 * arg.n_blocks as usize);
 
         let virtioblk = &mut self.blockdev.lock().unwrap().0;
 

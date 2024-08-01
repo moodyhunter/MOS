@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+mod block;
+mod gpu;
+
 use std::error::Error;
 
 use virtio_drivers::transport::{
@@ -8,9 +11,6 @@ use virtio_drivers::transport::{
 };
 
 use self::{block::run_blockdev, gpu::run_gpu};
-
-mod block;
-mod gpu;
 
 pub(crate) fn start_device(
     transport: PciTransport,
