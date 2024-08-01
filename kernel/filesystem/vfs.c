@@ -805,7 +805,7 @@ long vfs_unlinkat(fd_t dirfd, const char *path)
 {
     pr_dinfo2(vfs, "vfs_unlinkat(dirfd=%d, path='%s')", dirfd, path);
     dentry_t *base = path_is_absolute(path) ? root_dentry : dentry_from_fd(dirfd);
-    dentry_t *dentry = dentry_resolve(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_FILE);
+    dentry_t *dentry = dentry_resolve(base, root_dentry, path, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_FILE | RESOLVE_SYMLINK_NOFOLLOW);
     if (IS_ERR(dentry))
         return PTR_ERR(dentry);
 
