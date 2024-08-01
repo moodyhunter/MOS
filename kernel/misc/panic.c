@@ -103,7 +103,10 @@ void try_handle_kernel_panics_at(const panic_point_t *point)
     pr_emerg("");
     pr_emerg("file: %s:%llu", point->file, point->line);
     pr_emerg("function: %s", point->func);
-    pr_emerg("instruction: %ps (" PTR_FMT ")", (void *) point->ip, point->ip);
+    if (point->ip)
+        pr_emerg("instruction: %ps (" PTR_FMT ")", (void *) point->ip, point->ip);
+    else
+        pr_emerg("instruction: see backtrace");
     pr_emerg("");
 
     pr_cont("\n");
