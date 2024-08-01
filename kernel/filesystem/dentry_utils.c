@@ -16,8 +16,7 @@ dentry_t *dentry_ref(dentry_t *dentry)
     MOS_ASSERT(dentry);
     MOS_ASSERT(dentry->inode); // one cannot refcount a dentry without an inode
     dentry->refcount++;
-    if (dentry->inode)
-        inode_ref(dentry->inode);
+    inode_ref(dentry->inode);
     pr_dinfo2(dcache_ref, "dentry %p '%s' increased refcount to %zu", (void *) dentry, dentry_name(dentry), dentry->refcount);
     return dentry;
 }
@@ -61,7 +60,13 @@ __nodiscard bool dentry_unref_one_norelease(dentry_t *dentry)
     dentry->refcount--;
 
     if (dentry->inode)
-        inode_unref(dentry->inode);
+    {
+        if (inode_unref(dentry->inode))
+        {
+            pr_dinfo2(vfs, "inode %p has no more references, releasing", (void *) dentry->inode);
+            dentry->inode = NULL;
+        }
+    }
 
     pr_dinfo2(dcache_ref, "dentry %p '%s' decreased refcount to %zu", (void *) dentry, dentry_name(dentry), dentry->refcount);
 
@@ -187,12 +192,31 @@ ssize_t dentry_path(dentry_t *dentry, dentry_t *root, char *buf, size_t size)
         if (current->name == NULL)
             current = dentry_root_get_mountpoint(current);
 
-        char *newpath = kmalloc(strlen(current->name) + 1 + strlen(path) + 1);
-        strcpy(newpath, current->name);
-        strcat(newpath, "/");
-        strcat(newpath, path);
-        kfree(path);
-        path = newpath;
+        if (current == NULL)
+        {
+            // root for other fs trees
+            char *newpath = kmalloc(strlen(path) + 3);
+            strcpy(newpath, ":/");
+            strcat(newpath, path);
+            kfree(path);
+            path = newpath;
+
+            if (strlen(path) + 1 > size)
+                return -1;
+
+            const size_t real_size = snprintf(buf, size, "%s", path);
+            kfree(path);
+            return real_size;
+        }
+        else
+        {
+            char *newpath = kmalloc(strlen(current->name) + 1 + strlen(path) + 1);
+            strcpy(newpath, current->name);
+            strcat(newpath, "/");
+            strcat(newpath, path);
+            kfree(path);
+            path = newpath;
+        }
     }
 
     if (strlen(path) + 1 > size)

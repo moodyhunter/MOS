@@ -306,7 +306,7 @@ bool io_munmap(io_t *io, vmap_t *vmap, bool *unmapped)
 
 void io_get_name(const io_t *io, char *buf, size_t size)
 {
-    if (!io_valid(io))
+    if (io == NULL || io->ops == NULL || io->ops->get_name == NULL)
     {
         snprintf(buf, size, "<invalid io %p>", (void *) io);
         return;

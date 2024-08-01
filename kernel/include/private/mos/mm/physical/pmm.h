@@ -43,6 +43,12 @@ typedef struct phyframe
         {
             as_linked_list; // for use of freelist in the buddy allocator
         };
+
+        struct
+        {
+            // for page cache frames
+            bool dirty : 1; ///< 1 if the page is dirty
+        } pagecache;
         MOS_WARNING_POP
     };
 
@@ -51,7 +57,6 @@ typedef struct phyframe
         // number of times this frame is mapped, if this drops to 0, the frame is freed
         atomic_t allocated_refcount;
     };
-
 } phyframe_t;
 
 MOS_STATIC_ASSERT(sizeof(phyframe_t) == 32, "update phyframe_t struct size");
@@ -72,7 +77,7 @@ typedef enum
 
 extern phyframe_t *phyframes; // array of all physical frames
 
-#define phyframe_pfn(frame) ((pfn_t) ((frame) -phyframes))
+#define phyframe_pfn(frame) ((pfn_t) ((frame) - phyframes))
 #define pfn_phyframe(pfn)   (&phyframes[(pfn)])
 
 extern size_t pmm_total_frames, pmm_allocated_frames, pmm_reserved_frames;

@@ -17,4 +17,6 @@ alias threads 'cat /sys/tasks/threads'
 
 alias self-test 'mossh -c /initrd/assets/self-test.msh'
 
+alias setup 'source /initrd/assets/setup.msh'
+
 cat /initrd/README.txt

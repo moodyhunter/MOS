@@ -671,3 +671,15 @@ DEFINE_SYSCALL(long, signal_mask_op)(int how, const sigset_t *set, sigset_t *old
 
     return 0;
 }
+
+DEFINE_SYSCALL(long, vfs_fsync)(fd_t fd, bool data_only)
+{
+    io_t *io = process_get_fd(current_process, fd);
+    if (!io)
+        return -EBADF;
+
+    if (io->type != IO_FILE)
+        return -EBADF;
+
+    return vfs_fsync(io, data_only, 0, (off_t) -1);
+}

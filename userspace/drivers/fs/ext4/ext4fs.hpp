@@ -9,6 +9,7 @@
 #include "proto/filesystem.pb.h"
 
 #include <librpc/macro_magic.h>
+#include <librpc/rpc.h>
 #include <librpc/rpc_client.h>
 #include <librpc/rpc_server++.hpp>
 #include <memory>
@@ -88,7 +89,8 @@ class Ext4UserFS : public IExt4Server
         }
     };
 
-    void populate_pb_inode_info(pb_inode_info &info, ext4_sblock *sb, ext4_inode *inode, int ino);
+    static void populate_pb_inode_info(pb_inode_info &info, ext4_sblock *sb, ext4_inode *inode, int ino);
+    static void save_inode_info(ext4_sblock *sb, ext4_inode *inode, const pb_inode_info &info);
 
   private:
     virtual rpc_result_code_t mount(rpc_context_t *ctx, mos_rpc_fs_mount_request *req, mos_rpc_fs_mount_response *resp) override;
@@ -100,4 +102,12 @@ class Ext4UserFS : public IExt4Server
     virtual rpc_result_code_t readlink(rpc_context_t *ctx, mos_rpc_fs_readlink_request *req, mos_rpc_fs_readlink_response *resp) override;
 
     virtual rpc_result_code_t getpage(rpc_context_t *ctx, mos_rpc_fs_getpage_request *req, mos_rpc_fs_getpage_response *resp) override;
+
+    virtual rpc_result_code_t create_file(rpc_context_t *ctx, mos_rpc_fs_create_file_request *req, mos_rpc_fs_create_file_response *resp) override;
+
+    virtual rpc_result_code_t putpage(rpc_context_t *ctx, mos_rpc_fs_putpage_request *req, mos_rpc_fs_putpage_response *resp) override;
+
+    virtual rpc_result_code_t sync_inode(rpc_context_t *ctx, mos_rpc_fs_sync_inode_request *req, mos_rpc_fs_sync_inode_response *resp) override;
+
+    virtual rpc_result_code_t unlink(rpc_context_t *ctx, mos_rpc_fs_unlink_request *req, mos_rpc_fs_unlink_response *resp) override;
 };

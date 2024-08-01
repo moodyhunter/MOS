@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 set(LIB_ONLY ON)
+
+add_definitions(-DCONFIG_USE_DEFAULT_CFG=1)
 add_subdirectory(lwext4)
 
 generate_nanopb_proto(PROTO_SRCS PROTO_HDRS
@@ -18,7 +20,6 @@ add_executable(ext4fs
 
 target_link_libraries(ext4fs PRIVATE lwext4 blockdev-manager-lib)
 target_include_directories(ext4fs PRIVATE lwext4/include)
-target_compile_definitions(ext4fs PRIVATE -DCONFIG_USE_DEFAULT_CFG=1)
 target_compile_options(ext4fs PRIVATE -Wno-pedantic) # lwext4 is not pedantic clean
 
 target_link_libraries(ext4fs PRIVATE

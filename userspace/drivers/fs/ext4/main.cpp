@@ -4,6 +4,8 @@
 
 #include <iostream>
 
+#define DEBUG 1
+
 std::unique_ptr<UserFSManager> userfs_manager;
 std::unique_ptr<BlockdevManager> blockdev_manager;
 
@@ -18,6 +20,10 @@ int main(int argc, char **)
     userfs_manager = std::make_unique<UserFSManager>(USERFS_SERVER_RPC_NAME);
 
     const auto server_name = "fs.ext4"s;
+
+#if DEBUG
+    ext4_dmask_set(DEBUG_ALL);
+#endif
 
     mos_rpc_fs_register_request req{
         .fs = { .name = strdup("ext4") },

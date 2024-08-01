@@ -18,18 +18,22 @@
 should_inline const file_ops_t *file_get_ops(file_t *file)
 {
     if (!file)
-        return NULL;
+        goto error;
 
     if (!file->dentry)
-        return NULL;
+        goto error;
 
     if (!file->dentry->inode)
-        return NULL;
+        goto error;
 
     if (!file->dentry->inode->file_ops)
-        return NULL;
+        goto error;
 
     return file->dentry->inode->file_ops;
+
+error:
+    pr_warn("no file_ops for file %p", (void *) file);
+    return NULL;
 }
 
 extern dentry_t *root_dentry;
@@ -176,5 +180,16 @@ long vfs_fchmodat(fd_t fd, const char *path, int perm, int flags);
  * @return long 0 on success, or errno on failure
  */
 long vfs_unlinkat(fd_t dirfd, const char *path);
+
+/**
+ * @brief Synchronize a file with the filesystem
+ *
+ * @param io The io object of a file_t
+ * @param sync_metadata Whether to sync the metadata
+ * @param start The start of the range to sync
+ * @param end The end of the range to sync
+ * @return long 0 on success, or errno on failure
+ */
+long vfs_fsync(io_t *io, bool sync_metadata, off_t start, off_t end);
 
 /** @} */

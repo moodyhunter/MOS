@@ -133,20 +133,6 @@ rpc_result_code_t BlockdevFSServer::lookup(rpc_context_t *, mos_rpc_fs_lookup_re
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t BlockdevFSServer::readlink(rpc_context_t *, mos_rpc_fs_readlink_request *, mos_rpc_fs_readlink_response *resp)
-{
-    resp->result.success = false;
-    resp->result.error = strdup("blockdevfs: no symlinks expected in blockdevfs");
-    return RPC_RESULT_OK;
-}
-
-rpc_result_code_t BlockdevFSServer::getpage(rpc_context_t *, mos_rpc_fs_getpage_request *, mos_rpc_fs_getpage_response *resp)
-{
-    resp->result.success = false;
-    resp->result.error = strdup("blockdevfs doesn't support reading or writing pages");
-    return RPC_RESULT_OK;
-}
-
 static void *blockdevfs_worker(void *data)
 {
     MOS_UNUSED(data);

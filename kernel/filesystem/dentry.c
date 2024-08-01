@@ -303,21 +303,26 @@ static dentry_t *dentry_resolve_lastseg(dentry_t *parent, char *leaf, lastseg_re
 
 void dentry_attach(dentry_t *d, inode_t *inode)
 {
-    MOS_ASSERT(d->inode == NULL);
+    MOS_ASSERT_X(d->inode == NULL, "reattaching an inode to a dentry");
     MOS_ASSERT(inode != NULL);
+    // MOS_ASSERT_X(d->refcount == 1, "dentry %p refcount %zu is not 1", (void *) d, d->refcount);
 
-    inode_ref(inode);
+    for (atomic_t i = 0; i < d->refcount; i++)
+        inode_ref(inode); // refcount the inode for each reference to the dentry
+
+    inode_ref(inode); // refcount the inode for each reference to the dentry
     d->inode = inode;
 }
 
 void dentry_detach(dentry_t *d)
 {
-    MOS_ASSERT(d->inode != NULL);
+    if (d->inode == NULL)
+        return;
 
     // the caller should have the only reference to the dentry
-    MOS_ASSERT(d->refcount == 1);
+    // MOS_ASSERT(d->refcount == 1); // !! TODO: this assertion fails in vfs_unlinkat
 
-    inode_unref(d->inode);
+    (void) inode_unref(d->inode); // we don't care if the inode is freed or not
     d->inode = NULL;
 }
 

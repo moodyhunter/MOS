@@ -83,6 +83,14 @@ void simple_page_write_end(inode_cache_t *icache, off_t offset, size_t size, phy
         icache->owner->size = offset + size;
 }
 
+long simple_flush_page_discard_data(inode_cache_t *icache, off_t pgoff, phyframe_t *page)
+{
+    MOS_UNUSED(icache);
+    MOS_UNUSED(pgoff);
+    MOS_UNUSED(page);
+    return 0;
+}
+
 // read from the page cache, the size and offset are already validated to be in the file's bounds
 ssize_t vfs_generic_read(const file_t *file, void *buf, size_t size, off_t offset)
 {

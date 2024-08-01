@@ -188,8 +188,53 @@ rpc_result_code_t BlockManager::read_block(rpc_context_t *ctx, read_block::reque
 rpc_result_code_t BlockManager::write_block(rpc_context_t *ctx, write_block::request *req, write_block::response *resp)
 {
     auto fdtable = get_data<ClientFDTable>(ctx);
-    MOS_UNUSED(fdtable);
-    MOS_UNUSED(req);
-    MOS_UNUSED(resp);
+
+    if (!fdtable->fd_to_device.contains(req->device.devid))
+    {
+        std::cout << "Invalid device handle " << req->device.devid << std::endl;
+        resp->result.success = false;
+        resp->result.error = strdup("Invalid device handle");
+        return RPC_RESULT_OK;
+    }
+
+    auto &device = devices[fdtable->fd_to_device[req->device.devid]];
+    if (req->n_boffset >= device.n_blocks)
+    {
+        std::cout << "Block offset " << req->n_boffset << " out of range" << std::endl;
+        resp->result.success = false;
+        resp->result.error = strdup("Block offset out of range");
+        return RPC_RESULT_OK;
+    }
+
+    switch (device.type)
+    {
+        case BlockInfo::BLOCKDEV_LAYER:
+        {
+            const auto info = std::get<BlockLayerInfo>(device.info);
+            const auto server = get_layer_server(info.server_name);
+
+            std::cout << "Writing to layer " << info.partid << " block " << req->n_boffset << std::endl;
+
+            mos_rpc_blockdev_write_partition_block_request part_req = {
+                .device = { .devid = (u32) -1 },
+                .partition = { .partid = info.partid },
+                .data = req->data,
+                .n_boffset = req->n_boffset,
+                .n_blocks = req->n_blocks,
+            };
+
+            return server->write_partition_block(&part_req, resp);
+        }
+
+        case BlockInfo::BLOCKDEV_DEVICE:
+        {
+            const auto servername = std::get<BlockDeviceInfo>(device.info).server_name;
+            const auto server = get_device_server(servername);
+            return server->write_block(req, resp);
+        }
+
+        default: __builtin_unreachable();
+    };
+
     return RPC_RESULT_OK;
 }

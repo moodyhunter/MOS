@@ -86,20 +86,19 @@ typedef struct
 
 typedef struct
 {
-    bool (*open)(inode_t *inode, file_t *file, bool created);
-    ssize_t (*read)(const file_t *file, void *buf, size_t size, off_t offset);
-    ssize_t (*write)(const file_t *file, const void *buf, size_t size, off_t offset);
-    int (*flush)(file_t *file);
-    void (*release)(file_t *file);
-    off_t (*seek)(file_t *file, off_t offset, io_seek_whence_t whence);
-    bool (*mmap)(file_t *file, vmap_t *vmap, off_t offset);
-    bool (*munmap)(file_t *file, vmap_t *vmap, bool *unmapped);
+    bool (*open)(inode_t *inode, file_t *file, bool created);                         ///< called when a file is opened, or created
+    ssize_t (*read)(const file_t *file, void *buf, size_t size, off_t offset);        ///< read from the file
+    ssize_t (*write)(const file_t *file, const void *buf, size_t size, off_t offset); ///< write to the file
+    void (*release)(file_t *file);                                                    ///< called when the last reference to the file is dropped
+    off_t (*seek)(file_t *file, off_t offset, io_seek_whence_t whence);               ///< seek to a new position in the file
+    bool (*mmap)(file_t *file, vmap_t *vmap, off_t offset);                           ///< map the file into memory
+    bool (*munmap)(file_t *file, vmap_t *vmap, bool *unmapped);                       ///< unmap the file from memory
 } file_ops_t;
 
 typedef struct
 {
-    /// The inode has zero links and the last reference to the file has been dropped
-    bool (*drop_inode)(inode_t *inode);
+    bool (*drop_inode)(inode_t *inode); ///< The inode has zero links and the last reference to the file has been dropped
+    long (*sync_inode)(inode_t *inode); ///< flush the inode to disk
 } superblock_ops_t;
 
 typedef struct _superblock
@@ -132,12 +131,16 @@ typedef struct _inode_cache_ops
 {
     /**
      * @brief Read a page from the underlying storage, at file offset pgoff * MOS_PAGE_SIZE
-     *
      */
     phyframe_t *(*fill_cache)(inode_cache_t *cache, off_t pgoff);
 
     bool (*page_write_begin)(inode_cache_t *cache, off_t file_offset, size_t inpage_size, phyframe_t **page_out, void **data);
     void (*page_write_end)(inode_cache_t *cache, off_t file_offset, size_t inpage_size, phyframe_t *page, void *data);
+
+    /**
+     * @brief Flush a page to the underlying storage
+     */
+    long (*flush_page)(inode_cache_t *cache, off_t pgoff, phyframe_t *page);
 } inode_cache_ops_t;
 
 typedef struct _inode_cache

@@ -499,6 +499,16 @@
             "name": "signal_mask_op",
             "return": "long",
             "arguments": [ { "type": "int", "arg": "how" }, { "type": "const sigset_t *", "arg": "set" }, { "type": "sigset_t *", "arg": "oldset" } ]
+        },
+        {
+            "number": 65,
+            "name": "vfs_fsync",
+            "return": "long",
+            "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "bool", "arg": "data_only" } ],
+            "comments": [
+                "Synchronize the file to disk.",
+                "If data_only is true, only the file data is synchronized, otherwise both data and metadata are synchronized."
+            ]
         }
     ]
 }

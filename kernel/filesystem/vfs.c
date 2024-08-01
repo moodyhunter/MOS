@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/assert.h"
+#include "mos/device/timer.h"
 #include "mos/filesystem/inode.h"
 #include "mos/filesystem/mount.h"
 #include "mos/filesystem/page_cache.h"
@@ -9,6 +11,7 @@
 #include "mos/mm/mmstat.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab_autoinit.h"
+#include "mos/tasks/kthread.h"
 
 #include <dirent.h>
 #include <errno.h>
@@ -39,16 +42,52 @@ SLAB_AUTOINIT("superblock", superblock_cache, superblock_t);
 SLAB_AUTOINIT("mount", mount_cache, mount_t);
 SLAB_AUTOINIT("file", file_cache, file_t);
 
+static long do_pagecache_flush(file_t *file, off_t pgoff, size_t npages)
+{
+    pr_dinfo2(vfs, "vfs: flushing page cache for file %pio", (void *) &file->io);
+
+    spinlock_acquire(&file->dentry->inode->cache.lock);
+    long ret = 0;
+    if (pgoff == 0 && npages == (size_t) -1)
+        ret = pagecache_flush_or_drop_all(&file->dentry->inode->cache, false);
+    else
+        ret = pagecache_flush_or_drop(&file->dentry->inode->cache, pgoff, npages, false);
+
+    spinlock_release(&file->dentry->inode->cache.lock);
+    return ret;
+}
+
+static long do_sync_inode(file_t *file)
+{
+    const superblock_ops_t *ops = file->dentry->inode->superblock->ops;
+    if (ops && ops->sync_inode)
+        return ops->sync_inode(file->dentry->inode);
+
+    return 0;
+}
+
 // BEGIN: filesystem's io_t operations
 static void vfs_io_ops_close(io_t *io)
 {
     file_t *file = container_of(io, file_t, io);
-    const file_ops_t *file_ops = file_get_ops(file);
-    if (file_ops && file_ops->flush)
-        file_ops->flush(file);
-    if (file_ops && file_ops->release)
-        file_ops->release(file);
+    if (io->type == IO_FILE && io->flags & IO_WRITABLE) // only flush if the file is writable
+    {
+        do_pagecache_flush(file, 0, (off_t) -1);
+        do_sync_inode(file);
+    }
+
     dentry_unref(file->dentry);
+
+    if (io->type == IO_FILE)
+    {
+        const file_ops_t *file_ops = file_get_ops(file);
+        if (file_ops)
+        {
+            if (file_ops->release)
+                file_ops->release(file);
+        }
+    }
+
     kfree(file);
 }
 
@@ -158,6 +197,8 @@ static vmfault_result_t vfs_fault_handler(vmap_t *vmap, ptr_t fault_addr, pagefa
     if (IS_ERR(pagecache_page))
         return VMFAULT_CANNOT_HANDLE;
 
+    // ! mm subsystem has verified that this vmap can be written to, but in the page table it's marked as read-only
+    // * currently, only CoW pages have this property, we treat this as a CoW page
     if (info->is_present && info->is_write)
     {
         if (pagecache_page == info->faulting_page)
@@ -165,7 +206,7 @@ static vmfault_result_t vfs_fault_handler(vmap_t *vmap, ptr_t fault_addr, pagefa
         else
             vmap_stat_dec(vmap, cow); // the faulting page is a COW page
         vmap_stat_inc(vmap, regular);
-        return mm_resolve_cow_fault(vmap, fault_addr, info);
+        return mm_resolve_cow_fault(vmap, fault_addr, info); // resolve by copying data page into prevate page
     }
 
     info->backing_page = pagecache_page;
@@ -241,6 +282,22 @@ static const io_op_t dir_io_ops = {
 };
 
 // END: filesystem's io_t operations
+
+static void vfs_flusher_entry(void *arg)
+{
+    MOS_UNUSED(arg);
+    while (true)
+    {
+        timer_msleep(10 * 1000);
+        // pagecache_flush_all();
+    }
+}
+
+static void vfs_flusher_init(void)
+{
+    kthread_create(vfs_flusher_entry, NULL, "vfs_flusher");
+}
+MOS_INIT(KTHREAD, vfs_flusher_init);
 
 static void vfs_copy_stat(file_stat_t *statbuf, inode_t *inode)
 {
@@ -759,10 +816,39 @@ long vfs_unlinkat(fd_t dirfd, const char *path)
         return -ENOTSUP;
     }
 
-    inode_unlink(parent_dir->inode, dentry);
+    if (!inode_unlink(parent_dir->inode, dentry))
+    {
+        dentry_unref(dentry);
+        return -EIO;
+    }
+
+    dentry_unref(dentry); // it won't release dentry because dentry->inode is still valid
     dentry_detach(dentry);
-    dentry_unref(dentry);
+    dentry_try_release(dentry);
     return 0;
+}
+
+long vfs_fsync(io_t *io, bool sync_metadata, off_t start, off_t end)
+{
+    pr_dinfo2(vfs, "vfs_fsync(io=%p, sync_metadata=%d, start=%ld, end=%ld)", (void *) io, sync_metadata, start, end);
+    file_t *file = container_of(io, file_t, io);
+
+    const off_t nbytes = end - start;
+    const off_t npages = ALIGN_UP_TO_PAGE(nbytes) / MOS_PAGE_SIZE;
+    const off_t pgoffset = start / MOS_PAGE_SIZE;
+
+    long ret = do_pagecache_flush(file, pgoffset, npages);
+    if (ret < 0)
+        return ret;
+
+    if (sync_metadata)
+    {
+        ret = do_sync_inode(file);
+        if (ret < 0)
+            return ret;
+    }
+
+    return ret;
 }
 
 // ! sysfs support

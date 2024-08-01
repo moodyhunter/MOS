@@ -282,6 +282,34 @@ static rpc_result_code_t cpiofs_getpage(rpc_context_t *, mos_rpc_fs_getpage_requ
     return RPC_RESULT_OK;
 }
 
+static rpc_result_code_t cpiofs_create_file(rpc_context_t *, mos_rpc_fs_create_file_request *, mos_rpc_fs_create_file_response *resp)
+{
+    resp->result.success = false;
+    resp->result.error = strdup("cpiofs: cannot create files");
+    return RPC_RESULT_OK;
+}
+
+static rpc_result_code_t cpiofs_putpage(rpc_context_t *, mos_rpc_fs_putpage_request *, mos_rpc_fs_putpage_response *resp)
+{
+    resp->result.success = false;
+    resp->result.error = strdup("cpiofs: cannot write to cpiofs");
+    return RPC_RESULT_OK;
+}
+
+static rpc_result_code_t cpiofs_sync_inode(rpc_context_t *, mos_rpc_fs_sync_inode_request *, mos_rpc_fs_sync_inode_response *resp)
+{
+    resp->result.success = false;
+    resp->result.error = strdup("cpiofs: cannot sync cpiofs");
+    return RPC_RESULT_OK;
+}
+
+static rpc_result_code_t cpiofs_unlink(rpc_context_t *, mos_rpc_fs_unlink_request *, mos_rpc_fs_unlink_response *resp)
+{
+    resp->result.success = false;
+    resp->result.error = strdup("cpiofs: cannot unlink from cpiofs");
+    return RPC_RESULT_OK;
+}
+
 void init_start_cpiofs_server(fd_t notifier)
 {
     cpiofs = rpc_server_create(CPIOFS_RPC_SERVER_NAME, NULL);

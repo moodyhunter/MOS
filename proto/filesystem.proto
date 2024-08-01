@@ -119,3 +119,52 @@ message mos_rpc_fs_getpage_response
     // we could use a page manager to reference a page and only pass a page uuid here
     bytes data = 2;
 }
+
+message mos_rpc_fs_putpage_request
+{
+    pb_inode_ref i_ref = 1; // the inode of the file
+    uint64 pgoff = 2;       // the offset of the page, in number of pages
+    bytes data = 3;         // the data of the page
+}
+
+message mos_rpc_fs_putpage_response
+{
+    mos_rpc.result result = 1;
+}
+
+message mos_rpc_fs_create_file_request
+{
+    pb_inode_ref i_ref = 1; // the inode of the parent directory
+    string name = 2;        // the name of the file to create
+    int32 type = 3;         // the type of the file to create
+    uint32 perm = 4;        // the permissions of the file to create
+}
+
+message mos_rpc_fs_create_file_response
+{
+    mos_rpc.result result = 1;
+    pb_inode_ref i_ref = 2; // the inode of the created file
+    pb_inode_info i_info = 3;
+}
+
+message mos_rpc_fs_sync_inode_request
+{
+    pb_inode_ref i_ref = 1;   // the inode to sync
+    pb_inode_info i_info = 2; // the inode info
+}
+
+message mos_rpc_fs_sync_inode_response
+{
+    mos_rpc.result result = 1;
+}
+
+message mos_rpc_fs_unlink_request
+{
+    pb_inode_ref i_ref = 1; // the inode of the parent directory
+    pb_dentry dentry = 2;   // the dentry to unlink
+}
+
+message mos_rpc_fs_unlink_response
+{
+    mos_rpc.result result = 1;
+}

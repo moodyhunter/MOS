@@ -29,6 +29,8 @@
             mos_warn(__VA_ARGS__);                                                                                                                                       \
     } while (0)
 
+#define spinlock_assert_locked(lock) MOS_ASSERT(spinlock_is_locked(lock))
+
 __BEGIN_DECLS
 
 __printf(3, 4) void mos_kwarn(const char *func, u32 line, const char *fmt, ...);

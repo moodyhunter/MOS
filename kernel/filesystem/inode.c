@@ -2,6 +2,7 @@
 
 #include "mos/filesystem/inode.h"
 
+#include "mos/filesystem/page_cache.h"
 #include "mos/filesystem/vfs_types.h"
 #include "mos/lib/sync/spinlock.h"
 #include "mos/mm/slab_autoinit.h"
@@ -12,17 +13,6 @@
 
 slab_t *inode_cache;
 SLAB_AUTOINIT("inode", inode_cache, inode_t);
-
-static bool do_flush_and_drop_cache_page(const uintn key, void *value, void *data)
-{
-    MOS_UNUSED(key);
-    MOS_UNUSED(value);
-    MOS_UNUSED(data);
-    return true;
-    // phyframe_t *page = value;
-    // mmstat_dec1(MEM_PAGECACHE);
-    // pmm_free(page);
-}
 
 static bool vfs_generic_inode_drop(inode_t *inode)
 {
@@ -35,9 +25,12 @@ static bool inode_try_drop(inode_t *inode)
 {
     if (inode->refcount == 0 && inode->nlinks == 0)
     {
+        pr_dinfo2(vfs, "inode %p has 0 refcount and 0 nlinks, dropping", (void *) inode);
+
         // drop the inode
-        inode_cache_t *icache = &inode->cache;
-        hashmap_foreach(&icache->pages, do_flush_and_drop_cache_page, NULL);
+        spinlock_acquire(&inode->cache.lock);
+        pagecache_flush_or_drop_all(&inode->cache, true);
+        spinlock_release(&inode->cache.lock);
 
         bool dropped = false;
         if (inode->superblock->ops && inode->superblock->ops->drop_inode)
@@ -46,7 +39,7 @@ static bool inode_try_drop(inode_t *inode)
             dropped = vfs_generic_inode_drop(inode);
 
         if (!dropped)
-            pr_warn("inode %p has 0 refcount and 0 nlinks, but could not be dropped", (void *) inode);
+            pr_warn("inode %p has 0 refcount and 0 nlinks, but failed to be dropped", (void *) inode);
 
         return dropped;
     }
@@ -96,8 +89,20 @@ bool inode_unlink(inode_t *dir, dentry_t *dentry)
     inode_t *inode = dentry->inode;
     MOS_ASSERT(dir && inode);
     MOS_ASSERT(inode->nlinks > 0);
+
     inode->nlinks--;
+    bool ok = true;
     if (dir->ops->unlink)
-        dir->ops->unlink(dir, dentry);
-    return inode_try_drop(dentry->inode);
+        ok = dir->ops->unlink(dir, dentry);
+
+    if (!ok)
+    {
+        inode->nlinks++;
+        return false;
+    }
+
+    const bool dropped = inode_try_drop(dentry->inode);
+    MOS_ASSERT_X(!dropped, "inode %p was dropped accidentally, where dentry %p should be holding a reference", (void *) inode, (void *) dentry);
+
+    return true;
 }
