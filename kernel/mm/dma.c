@@ -17,6 +17,7 @@ static pfn_t dmabuf_do_allocate(size_t n_pages, bool do_ref)
     phyframe_t *frames = pmm_allocate_frames(n_pages, PMM_ALLOC_NORMAL);
     if (do_ref)
         pmm_ref(frames, n_pages);
+    memset((void *) phyframe_va(frames), 0, n_pages * MOS_PAGE_SIZE);
     return phyframe_pfn(frames);
 }
 
@@ -32,6 +33,7 @@ pfn_t dmabuf_allocate(size_t n_pages, ptr_t *vaddr)
 bool dmabuf_free(ptr_t vaddr, ptr_t paddr)
 {
     MOS_UNUSED(paddr);
+    pr_dinfo2(dma, "freeing DMA pages at " PTR_FMT, vaddr);
 
     bool ret = false;
 
@@ -52,6 +54,7 @@ pfn_t dmabuf_share(void *buf, size_t size)
 {
     const size_t n_pages = ALIGN_UP_TO_PAGE(size) / MOS_PAGE_SIZE;
     const pfn_t pfn = dmabuf_do_allocate(n_pages, false);
+    pr_dinfo2(dma, "sharing %zu bytes at " PFN_FMT, size, pfn);
 
     memcpy((void *) pfn_va(pfn), buf, size);
     return pfn;
@@ -60,6 +63,7 @@ pfn_t dmabuf_share(void *buf, size_t size)
 bool dmabuf_unshare(ptr_t phys, size_t size, void *buffer)
 {
     const pfn_t pfn = phys / MOS_PAGE_SIZE;
+    pr_dinfo2(dma, "unsharing %zu bytes at " PFN_FMT, size, pfn);
     memcpy(buffer, (void *) pfn_va(pfn), size);
     pmm_free_frames(pfn_phyframe(pfn), ALIGN_UP_TO_PAGE(size) / MOS_PAGE_SIZE);
     return true;
