@@ -78,13 +78,11 @@ __weak__ void platform_cpu_idle(void)
 
 __weak__ u64 platform_get_timestamp(void)
 {
-    pr_emerg("platform_get_timestamp() not implemented, returning 0");
     return 0;
 }
 
 __weak__ datetime_str_t *platform_get_datetime_str(void)
 {
-    pr_emerg("platform_get_datetime_str() not implemented");
     return nullptr;
 }
 
