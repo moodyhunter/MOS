@@ -1,0 +1,55 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+syntax = "proto3";
+import "nanopb.proto";
+
+option (nanopb_fileopt).fallback_type = FT_STATIC;
+option (nanopb_fileopt).proto3_singular_msgs = true;
+
+enum syslog_level
+{
+    UNSET = 0;
+    INFO2 = 1;
+    INFO = 2;
+    EMPH = 3;
+    WARN = 4;
+    EMERG = 5;
+    FATAL = 6;
+}
+
+message pb_thread
+{
+    uint32 tid = 1;
+    string name = 2 [ (nanopb).max_size = 32 ];
+}
+
+message pb_process
+{
+    uint32 pid = 1;
+    string name = 2 [ (nanopb).max_size = 32 ];
+}
+
+message pb_source_location
+{
+    string filename = 1 [ (nanopb).max_size = 32 ];
+    uint32 line = 2;
+    string function = 3 [ (nanopb).max_size = 32 ];
+}
+
+message pb_syslog_source_info
+{
+    syslog_level level = 1;
+    uint32 featid = 2;
+    pb_source_location source_location = 3;
+}
+
+message pb_syslog_message
+{
+    uint64 timestamp = 1;
+    pb_syslog_source_info info = 2;
+    string message = 3 [ (nanopb).max_size = 512 ];
+
+    pb_thread thread = 4;
+    pb_process process = 5;
+
+    uint32 cpu_id = 6;
+}

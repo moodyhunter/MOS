@@ -3,31 +3,23 @@
 #pragma once
 
 #include "mos/syslog/debug.h"
-#include "mos/syslog/printk_prefix.h"
+#include "mos/syslog/syslog.h"
 
 #include <mos/mos_global.h>
 #include <mos/types.h>
-
-typedef enum
-{
-    MOS_LOG_FATAL = 6,
-    MOS_LOG_EMERG = 5,
-    MOS_LOG_WARN = 4,
-    MOS_LOG_EMPH = 3,
-    MOS_LOG_INFO = 2,
-    MOS_LOG_INFO2 = 1,
-    MOS_LOG_UNSET = 0,
-} loglevel_t;
 
 #ifndef pr_fmt
 #define pr_fmt(fmt) fmt // default format string
 #endif
 
+#define emit_syslog(level, feat, fmt, ...)  do_syslog(level, current_thread, __FILE_NAME__, __func__, __LINE__, &mos_debug_info.feat, fmt, ##__VA_ARGS__)
+#define emit_syslog_nofeat(level, fmt, ...) do_syslog(level, current_thread, __FILE_NAME__, __func__, __LINE__, NULL, fmt, ##__VA_ARGS__)
+
 #define lprintk_debug_wrapper(feat, level, fmt, ...)                                                                                                                     \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
         if (mos_debug_enabled(feat))                                                                                                                                     \
-            lprintk_wrapper(level, "%-10s | " fmt, #feat, ##__VA_ARGS__);                                                                                                \
+            emit_syslog(level, feat, fmt, ##__VA_ARGS__);                                                                                                                \
     } while (0)
 
 // clang-format off
@@ -39,13 +31,13 @@ typedef enum
 #define pr_dfatal(feat, fmt, ...) lprintk_debug_wrapper(feat, MOS_LOG_FATAL, pr_fmt(fmt), ##__VA_ARGS__)
 #define pr_dcont(feat, fmt, ...)  do { if (mos_debug_enabled(feat)) pr_cont(fmt, ##__VA_ARGS__); } while (0)
 
-#define pr_info(fmt, ...)  lprintk_wrapper(MOS_LOG_INFO, pr_fmt(fmt), ##__VA_ARGS__)
-#define pr_info2(fmt, ...) lprintk_wrapper(MOS_LOG_INFO2, pr_fmt(fmt), ##__VA_ARGS__)
-#define pr_emph(fmt, ...)  lprintk_wrapper(MOS_LOG_EMPH, pr_fmt(fmt), ##__VA_ARGS__)
-#define pr_warn(fmt, ...)  lprintk_wrapper(MOS_LOG_WARN, pr_fmt(fmt), ##__VA_ARGS__)
-#define pr_emerg(fmt, ...) lprintk_wrapper(MOS_LOG_EMERG, pr_fmt(fmt), ##__VA_ARGS__)
-#define pr_fatal(fmt, ...) lprintk_wrapper(MOS_LOG_FATAL, pr_fmt(fmt), ##__VA_ARGS__)
-#define pr_cont(fmt, ...)  lprintk(MOS_LOG_UNSET, "" fmt, ##__VA_ARGS__)
+#define pr_info(fmt, ...)  emit_syslog_nofeat(MOS_LOG_INFO, pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_info2(fmt, ...) emit_syslog_nofeat(MOS_LOG_INFO2, pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_emph(fmt, ...)  emit_syslog_nofeat(MOS_LOG_EMPH, pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_warn(fmt, ...)  emit_syslog_nofeat(MOS_LOG_WARN, pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_emerg(fmt, ...) emit_syslog_nofeat(MOS_LOG_EMERG, pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_fatal(fmt, ...) emit_syslog_nofeat(MOS_LOG_FATAL, pr_fmt(fmt), ##__VA_ARGS__)
+#define pr_cont(fmt, ...)  emit_syslog_nofeat(MOS_LOG_UNSET, "" fmt, ##__VA_ARGS__)
 // clang-format off
 
 __BEGIN_DECLS

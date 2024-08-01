@@ -38,5 +38,5 @@ void hexdump(const char *data, const size_t len)
         }
     }
 
-    pr_info();
+    pr_info("");
 }

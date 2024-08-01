@@ -50,15 +50,23 @@
 // clang-format on
 
 #if MOS_CONFIG(MOS_DYNAMIC_DEBUG)
+
+typedef struct _debug_info_entry
+{
+    u32 id;
+    const char *name;
+    bool enabled;
+} debug_info_entry;
+
 extern struct _mos_debug_info
 {
-#define _expand_field(name) bool name;
+#define _expand_field(name) debug_info_entry name;
     MOS_ALL_DEBUG_MODULES(_expand_field)
 #undef _expand_field
 } mos_debug_info;
 
-#define mos_debug_enabled(name)     (mos_debug_info.name)
-#define mos_debug_enabled_ptr(name) (&mos_debug_info.name)
+#define mos_debug_enabled(name)     (mos_debug_info.name.enabled)
+#define mos_debug_enabled_ptr(name) (&mos_debug_info.name.enabled)
 #else
 #define mos_debug_enabled(name)     MOS_DEBUG_FEATURE(name)
 #define mos_debug_enabled_ptr(name) NULL
