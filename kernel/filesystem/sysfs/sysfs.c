@@ -35,6 +35,7 @@ typedef struct _sysfs_file
 static list_head sysfs_dirs = LIST_HEAD_INIT(sysfs_dirs);
 static filesystem_t fs_sysfs;
 static superblock_t *sysfs_sb = NULL;
+static const file_ops_t sysfs_dir_file_ops = { 0 };
 
 static void sysfs_do_register(sysfs_dir_t *sysfs_dir);
 
@@ -361,6 +362,7 @@ static void sysfs_do_register(sysfs_dir_t *sysfs_dir)
     inode_t *dir_i = inode_create(sysfs_sb, sysfs_get_ino(), FILE_TYPE_DIRECTORY);
     dir_i->perm = sysfs_dir_perm;
     dir_i->ops = &sysfs_dir_i_ops;
+    dir_i->file_ops = &sysfs_dir_file_ops;
     dir_i->private_data = sysfs_dir; ///< for convenience
 
     dentry_t *vfs_dir = dentry_get_from_parent(sysfs_sb, sysfs_sb->root, sysfs_dir->name);
@@ -425,6 +427,9 @@ MOS_INIT(VFS, register_sysfs)
     sysfs_sb = kmalloc(superblock_cache);
     sysfs_sb->fs = &fs_sysfs;
     sysfs_sb->root = dentry_get_from_parent(sysfs_sb, NULL, NULL);
-    dentry_attach(sysfs_sb->root, inode_create(sysfs_sb, sysfs_get_ino(), FILE_TYPE_DIRECTORY));
+    inode_t *sysfs_root_inode = inode_create(sysfs_sb, sysfs_get_ino(), FILE_TYPE_DIRECTORY);
+    sysfs_root_inode->perm = PERM_READ | PERM_EXEC;
+    sysfs_root_inode->file_ops = &sysfs_dir_file_ops;
+    dentry_attach(sysfs_sb->root, sysfs_root_inode);
     sysfs_sb->root->inode->ops = &sysfs_dir_i_ops;
 }
