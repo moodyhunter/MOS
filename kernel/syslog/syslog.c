@@ -43,6 +43,9 @@ long do_syslog(loglevel_t level, thread_t *thread, const char *file, const char 
 
     lprintk(level, "\r\n");
 
+    if (feat)
+        lprintk(MOS_LOG_UNSET, "%-10s | ", feat->name);
+
 #if MOS_CONFIG(MOS_PRINTK_WITH_TIMESTAMP)
     lprintk(MOS_LOG_UNSET, "%-16llu | ", platform_get_timestamp());
 #endif
