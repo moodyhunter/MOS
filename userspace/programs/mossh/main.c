@@ -24,6 +24,7 @@ const char *PATH[] = {
     "/initrd/drivers",  // builtin drivers
     "/initrd/games",    // games in the initrd
     "/initrd/tests",    // userspace tests
+    "/data/bin",        // programs in the data partition
     NULL,
 };
 
