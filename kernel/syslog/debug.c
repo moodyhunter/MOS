@@ -73,4 +73,21 @@ SYSFS_AUTOREGISTER(debug, sys_debug_items);
 
 MOS_ALL_DEBUG_MODULES(SETUP_DEBUG_MODULE)
 
+// ! expose debug info id to userspace
+#define debug_show_id_function(name)                                                                                                                                     \
+    bool debug_show_id_##name(sysfs_file_t *file)                                                                                                                        \
+    {                                                                                                                                                                    \
+        sysfs_printf(file, "%d\n", mos_debug_info.name.id);                                                                                                              \
+        return true;                                                                                                                                                     \
+    }
+
+MOS_ALL_DEBUG_MODULES(debug_show_id_function)
+
+static sysfs_item_t sys_debug_id_items[] = {
+#define X(name) SYSFS_RO_ITEM(#name, debug_show_id_##name),
+    MOS_ALL_DEBUG_MODULES(X)
+};
+
+SYSFS_AUTOREGISTER(debug_id, sys_debug_id_items);
+
 #endif
