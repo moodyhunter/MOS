@@ -15,5 +15,7 @@ add_subdirectory(pipe-test)
 add_subdirectory(librpc-rs-test)
 add_subdirectory(syslog-test)
 
+add_subdirectory(vfs-test)
+
 add_executable(test-launcher test-main.c)
 add_to_initrd(TARGET test-launcher /tests)
