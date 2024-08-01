@@ -3,6 +3,7 @@
 #include "mos/ipc/memfd.h"
 
 #include "mos/filesystem/dentry.h"
+#include "mos/filesystem/inode.h"
 #include "mos/filesystem/vfs.h"
 #include "mos/filesystem/vfs_types.h"
 #include "mos/filesystem/vfs_utils.h"
@@ -69,8 +70,7 @@ io_t *memfd_create(const char *name)
     dentry_ref(dentry), dentry_ref(memfd_root_dentry);
     file->private_data = memfd;
     file->dentry->inode->file_ops = &memfd_file_ops;
-    memfd_root_dentry->inode->ops->unlink(memfd_root_dentry->inode, file->dentry);
-
+    inode_unlink(memfd_root_dentry->inode, file->dentry);
     return &file->io;
 }
 
