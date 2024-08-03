@@ -47,7 +47,7 @@ void scheduler_wake_thread(thread_t *thread);
 
 /**
  * @brief reschedule.
- *
+ * @warning The caller must have the current thread's state_lock acquired.
  */
 void reschedule(void);
 

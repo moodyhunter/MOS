@@ -7,6 +7,7 @@
 
 #include <mos/mos_global.h>
 #include <mos/types.h>
+#include <stdarg.h>
 
 #ifndef pr_fmt
 #define pr_fmt(fmt) fmt // default format string
@@ -42,6 +43,7 @@
 
 __BEGIN_DECLS
 
+void lvprintk(loglevel_t loglevel, const char *fmt, va_list args);
 __printf(1, 2) void printk(const char *format, ...);
 __printf(2, 3) void lprintk(loglevel_t loglevel, const char *format, ...);
 

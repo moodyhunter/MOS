@@ -24,7 +24,7 @@ MOS_SETUP("printk_console", printk_setup_console)
     console_t *console = console_get(kcon_name);
     if (console)
     {
-        pr_emph("Selected console '%s' for future printk", kcon_name);
+        pr_emph("Selected console '%s' for future printk\n", kcon_name);
         printk_console = console;
         return true;
     }
@@ -32,7 +32,7 @@ MOS_SETUP("printk_console", printk_setup_console)
     console = console_get_by_prefix(kcon_name);
     if (console)
     {
-        pr_emph("Selected console '%s' for future printk (prefix-based)", console->name);
+        pr_emph("Selected console '%s' for future printk (prefix-based)\n", console->name);
         printk_console = console;
         return true;
     }
@@ -68,12 +68,14 @@ static void print_to_console(console_t *con, loglevel_t loglevel, const char *me
     if (!con)
         return;
 
-    static standard_color_t fg, bg;
+    static standard_color_t fg, bg; // declared static to use previous values
+    if (once())
+        con->ops->get_color(con, &fg, &bg); // only fill the colors once
     deduce_level_color(loglevel, &fg, &bg);
     console_write_color(con, message, len, fg, bg);
 }
 
-static void lvprintk(loglevel_t loglevel, const char *fmt, va_list args)
+void lvprintk(loglevel_t loglevel, const char *fmt, va_list args)
 {
     // only print warnings and errors if quiet mode is enabled
     if (printk_quiet && loglevel < MOS_LOG_WARN)
