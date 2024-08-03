@@ -6,9 +6,17 @@
 import argparse
 import asyncio
 import logging
+from multiprocessing import Process
 import os
 import signal
-from ptyprocess import PtyProcessUnicode
+import threading
+from time import sleep
+from typing import final
+from ptyprocess import PtyProcess
+
+
+class QemuDeadError(Exception):
+    pass
 
 
 class KernelCommandLine:
@@ -30,11 +38,6 @@ class KernelCommandLine:
         return ' '.join(items)
 
 
-class RuntimeConfig:
-    def __init__(self) -> None:
-        self.sleep_time = 10
-
-
 LIMINE_CFG_TEMPLATE = """
 TIMEOUT=0
 :MOS-{arch}
@@ -44,7 +47,6 @@ TIMEOUT=0
     CMDLINE={cmdline}
 """
 
-CONFIG = RuntimeConfig()
 CMDLINE = KernelCommandLine()
 
 QEMU_ARCH_ARGS = {
@@ -53,32 +55,58 @@ QEMU_ARCH_ARGS = {
         'cpu': 'max',
         'bios': '/usr/share/ovmf/x64/OVMF.4m.fd',
     },
-    'riscv64': {
-        'machine': 'virt',
-        'cpu': 'TODO',
-        'bios': 'TODO',
-    },
 }
 
 
-class QemuProcess(PtyProcessUnicode):
+class QemuProcess(PtyProcess):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.work = threading.Thread(target=self.discard_readbuf)
+        self.work.start()
+        self.error_killed = False
 
-    def kill(self):
-        print('Killing QEMU process')
-        super().kill(signal.SIGKILL)
-
-    def sleep(self):
-        return asyncio.sleep(CONFIG.sleep_time)
+    def _encode_command(self, command):
+        return command.encode('utf-8')
 
     def run_command(self, command):
+        if not self.isalive():
+            raise QemuDeadError('Process is terminated')
         logging.debug(f'Running command: {command}')
-        self.write(command + '\n')
-        return asyncio.sleep(2)
+        self.write(self._encode_command(command + '\n'))
 
     def graceful_shutdown(self):
-        self.write('shutdown\n')
+        if not self.isalive():
+            raise QemuDeadError('Process is terminated')
+        self.write(self._encode_command('shutdown\n'))
+
+    def discard_readbuf(self):
+        while self.isalive():
+            try:
+                self.read()
+            except EOFError:
+                break
+
+    def forcefully_terminate(self):
+        self.error_killed = True
+
+        if not self.isalive():
+            return
+
+        try:
+            if not self.terminate():
+                logging.warning("Process did not terminate, killing it")
+                if not self.terminate(force=True):
+                    logging.error("Failed to kill process")
+                else:
+                    logging.info("Process killed")
+            else:
+                logging.debug("Process terminated")
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"Error terminating process: {e}")
+        finally:
+            self.work.join()
 
 
 class QemuProcessBuilder:
@@ -124,19 +152,25 @@ class QemuProcessBuilder:
         return self.process
 
 
-async def main() -> int:
+def main():
     logging.basicConfig(level=logging.INFO, style='{', format='{asctime} - {levelname} - {message}')
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--arch', help='The architecture to run the test on', default=os.uname().machine)
     parser.add_argument('-m', '--memory-size', help='The memory size to use for the test', default='4G')
     parser.add_argument('-c', '--cpu-count', help='The number of CPUs to use for the test', default=1)
-    parser.add_argument('-t', '--timeout', help='The timeout for the test', default=60)
+    parser.add_argument('-t', '--timeout', help='The timeout for the test', default=60, type=int)
+    parser.add_argument('-w', '--wait', help='Wait for user input before starting the test', default=5, type=int)
     parser.add_argument('--gui', help='Display QEMU GUI', action='store_true', default=False)
     parser.add_argument('--serial-log-file', help='The file to log the serial output to', default="test-results/serial.log")
     parser.add_argument('--kernel-log-file', help='The file to log the kernel output to', default="test-results/kernel.log")
     parser.add_argument('--kvm', help='Enable KVM', action='store_true')
     parser.add_argument('--kernelspace-tests', help='Run the kernel space tests', action='store_true')
+    parser.add_argument('--gdbstub', help='Enable GDB stub', action='store_true')
     args = parser.parse_args()
+
+    if args.arch not in QEMU_ARCH_ARGS:
+        print('Unsupported architecture, skipping tests')
+        return 0
 
     # check if we are in the build directory
     if not os.path.exists('./uefi-files'):
@@ -166,10 +200,13 @@ async def main() -> int:
     if args.kvm:
         builder.accel('kvm')
         logging.info('KVM enabled')
-        CONFIG.sleep_time = 5  # KVM is faster
 
     if not args.gui:
         builder.add_raw_arg('-display', 'none')
+
+    if args.gdbstub:
+        builder.add_raw_arg('-s')
+        builder.add_raw_arg('-S')
 
     CMDLINE.printk_console = 'serial_com2'
     CMDLINE.mos_tests = args.kernelspace_tests
@@ -184,26 +221,41 @@ async def main() -> int:
 
     # open qemu in a subprocess with separate pty
     logging.info('QEMU arguments: ' + ' '.join(builder.args))
-    qemu_io = builder.start()
+    QEMU_IO = builder.start()
+
+    # Create a timer to terminate the process if it runs too long
+    timer = threading.Timer(args.timeout, QEMU_IO.forcefully_terminate)
 
     try:
-        async with asyncio.timeout(args.timeout):
-            wait_task = asyncio.to_thread(lambda: qemu_io.wait())
+        timer.start()
 
-            await qemu_io.sleep()  # wait for QEMU to boot
-            await qemu_io.run_command('test-launcher')
-            qemu_io.graceful_shutdown()
+        logging.info('Waiting for QEMU to boot...')
+        sleep(args.wait)  # wait for QEMU to boot
 
-            await wait_task
-            print('QEMU process finished')
-    except asyncio.TimeoutError:
-        print('Timeout reached, killing QEMU process')
-        qemu_io.kill()
-        return 1
+        logging.info('Starting tests...')
+        QEMU_IO.run_command('test-launcher')
+
+        sleep(2)
+        QEMU_IO.graceful_shutdown()
+
+        logging.info('Test completed, waiting for QEMU to shutdown...')
+        QEMU_IO.wait()
+
+        if QEMU_IO.error_killed:
+            logging.error(f'Timed out after {args.timeout} seconds')
+            return 1
+    finally:
+        timer.cancel()
+        QEMU_IO.forcefully_terminate()
+        QEMU_IO.wait()
 
     return 0
 
-if __name__ == '__main__':
-    loop = asyncio.new_event_loop()
-    ret = loop.run_until_complete(main())
-    exit(ret)
+
+try:
+    exit(main())
+except KeyboardInterrupt:
+    import traceback
+    traceback.print_exc()
+    print('Exiting...')
+    exit(1)

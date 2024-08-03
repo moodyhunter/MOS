@@ -15,24 +15,9 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {
-              "name": "x86_64 limine",
-              "arch": "x86_64",
-              "target": "mos_limine",
-              "artifact": "mos_limine.elf",
-              "compile_only": "ON",
-            }
-          - {
-              "name": "RISC-V limine",
-              "arch": "riscv64",
-              "target": "mos_limine",
-              "artifact": "mos_limine.elf",
-              "compile_only": "ON",
-            }
+          - { "name": "x86_64 limine", "arch": "x86_64" }
+          - { "name": "RISC-V limine", "arch": "riscv64" }
         build_type: [Debug, Release]
-
-    env:
-      MOS_TEST_SMP_COUNT: ${{matrix.config.smp}}
 
     steps:
       - name: Install packages
@@ -51,6 +36,7 @@ jobs:
           echo 'Server = https://repo.mooody.me/$repo/$arch' >> /etc/pacman.conf
 
           pacman -Sy --noconfirm rustup mos-sdk ${{matrix.config.arch}}-mos-gcc ${{matrix.config.arch}}-mos-binutils ${{matrix.config.arch}}-mos-mlibc mos-llvm mos-rust
+          pacman -Sy --noconfirm python-ptyprocess
 
           rustup toolchain link mosdev /opt/mos-rust/
           rustup default mosdev
@@ -59,7 +45,7 @@ jobs:
         run: |
           cmake \
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
-            -DMOS_CONFIG=${{matrix.config.arch}}-debug \
+            -DMOS_CONFIG=${{matrix.config.arch}}-default \
             -DMOS_ARCH=${{matrix.config.arch}} \
             -B build \
             -G Ninja
@@ -69,16 +55,28 @@ jobs:
       - name: Build
         run: |
           cd build
-          ninja ${{matrix.config.target}} mos_initrd
+          mkdir -p initrd/libs
+
+          # Copy the required libraries to the initrd
+          cp -rv /opt/${{matrix.config.arch}}-mos/lib/lib*.so* initrd/lib/
+          cp -rv /opt/${{matrix.config.arch}}-mos/lib/ld.so initrd/lib/
+
+          ninja mos_uefi_partition
 
       - name: Upload Bootable Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.3.5
         with:
-          name: MOS-${{matrix.config.target}}-${{matrix.build_type}}-${{matrix.config.arch}}
-          path: build/boot.dir/${{matrix.config.artifact}}
+          name: MOS-${{matrix.build_type}}-${{matrix.config.arch}}
+          path: build/uefi-files
 
-      - name: Upload initrd
-        uses: actions/upload-artifact@v4
+      - name: Test
+        run: |
+          cd build
+          ../scripts/run-tests.py --arch ${{matrix.config.arch}} --kernelspace-tests -t 600 -w 120
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4.3.5
         with:
-          name: MOS-${{matrix.config.target}}-${{matrix.build_type}}-${{matrix.config.arch}}-initrd
-          path: build/initrd.cpio
+          name: MOS-${{matrix.build_type}}-${{matrix.config.arch}}-test-results
+          path: build/test-results/
