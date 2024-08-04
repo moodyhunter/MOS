@@ -166,18 +166,7 @@ static void sigsegv_handler(int sig)
 
 static void sigchild_handler(int sig)
 {
-    if (sig == SIGCHLD)
-    {
-        int status;
-        const pid_t pid = waitpid(-1, &status, WNOHANG);
-        if (pid > 0)
-        {
-            if (WIFEXITED(status))
-                std::cout << "init: process " << pid << " exited with status " << WEXITSTATUS(status) << std::endl;
-            else if (WIFSIGNALED(status))
-                std::cout << "init: process " << pid << " killed by signal " << WTERMSIG(status) << std::endl;
-        }
-    }
+    MOS_UNUSED(sig);
 }
 
 #define DYN_ERROR_CODE (__COUNTER__ + 1)
@@ -225,12 +214,9 @@ int main(int argc, const char *argv[])
 
     if (getpid() != 1)
     {
-        puts("init: not running as PID 1");
-
         for (int i = 0; i < argc; i++)
             printf("argv[%d] = %s\n", i, argv[i]);
-
-        puts("Leaving init...");
+        puts("init: not running as PID 1, exiting...");
         return DYN_ERROR_CODE;
     }
 
@@ -278,15 +264,20 @@ start_shell:;
 
     while (true)
     {
-        pid_t pid = waitpid(-1, NULL, 0);
+        int status = 0;
+        const pid_t pid = waitpid(-1, &status, 0);
         if (pid == shell_pid)
         {
             puts("init: shell exited, restarting...");
             goto start_shell;
         }
-        else
+
+        if (pid > 0)
         {
-            printf("init: process %d exited\n", pid);
+            if (WIFEXITED(status))
+                std::cout << "init: process " << pid << " exited with status " << WEXITSTATUS(status) << std::endl;
+            else if (WIFSIGNALED(status))
+                std::cout << "init: process " << pid << " killed by signal " << WTERMSIG(status) << std::endl;
         }
     }
 
