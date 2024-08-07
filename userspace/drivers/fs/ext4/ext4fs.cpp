@@ -608,11 +608,43 @@ rpc_result_code_t Ext4UserFS::unlink(rpc_context_t *ctx, mos_rpc_fs_unlink_reque
         return RPC_RESULT_OK;
     }
 
+    /*Link count will be zero, the inode should be freed. */
+    if (ext4_inode_get_links_cnt(child.inode) == 1)
+    {
+        ext4_block_cache_write_back(state->fs->bdev, 1);
+        const auto r = ext4_fs_truncate_inode(&child, 0);
+        if (r != EOK)
+        {
+            ext4_fs_put_inode_ref(&dir);
+            ext4_fs_put_inode_ref(&child);
+
+            resp->result.success = false;
+            resp->result.error = strdup("Failed to truncate inode");
+            return RPC_RESULT_OK;
+        }
+
+        ext4_block_cache_write_back(state->fs->bdev, 0);
+    }
+
     if (ext4_unlink(state->mp, &dir, &child, req->dentry.name, strlen(req->dentry.name)) != EOK)
     {
         resp->result.success = false;
         resp->result.error = strdup("Failed to unlink child");
         return RPC_RESULT_OK;
+    }
+
+    // Link count is zero, the inode should be freed.
+    if (!ext4_inode_get_links_cnt(child.inode))
+    {
+        ext4_inode_set_del_time(child.inode, -1L);
+
+        const auto r = ext4_fs_free_inode(&child);
+        if (r != EOK)
+        {
+            resp->result.success = false;
+            resp->result.error = strdup("Failed to free inode");
+            return RPC_RESULT_OK;
+        }
     }
 
     ext4_fs_put_inode_ref(&child);
