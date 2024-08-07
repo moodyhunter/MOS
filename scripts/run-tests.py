@@ -38,13 +38,14 @@ class KernelCommandLine:
         return ' '.join(items)
 
 
-LIMINE_CFG_TEMPLATE = """
-TIMEOUT=0
-:MOS-{arch}
-    PROTOCOL=limine
-    KERNEL_PATH=boot:///boot/MOS/{arch}-kernel.elf
-    MODULE_PATH=boot:///boot/MOS/{arch}-initrd.cpio
-    CMDLINE={cmdline}
+LIMINE_CONF_TEMPLATE = """
+timeout: 0
+
+/limine MOS-{arch}
+    protocol: limine
+    kernel_path: boot():/boot/MOS/{arch}-kernel.elf
+    module_path: boot():/boot/MOS/{arch}-initrd.cpio
+    cmdline: {cmdline}
 """
 
 CMDLINE = KernelCommandLine()
@@ -211,12 +212,14 @@ def main():
     CMDLINE.printk_console = 'serial_com2'
     CMDLINE.mos_tests = args.kernelspace_tests
 
-    logging.info(f'Using cmdline: {CMDLINE.to_string()}')
+    commandline = CMDLINE.to_string()
 
-    with open('uefi-files/boot/limine/limine.cfg', 'w') as f:
+    logging.info(f'Using cmdline: {commandline}')
+
+    with open('uefi-files/boot/limine/limine.conf', 'w') as f:
         # Apply cmdline options
-        content = LIMINE_CFG_TEMPLATE.format(arch=args.arch, cmdline=CMDLINE.to_string())
-        logging.debug('Writing limine.cfg: ' + content)
+        content = LIMINE_CONF_TEMPLATE.format(arch=args.arch, cmdline=commandline)
+        logging.debug('Writing limine.conf: ' + content)
         f.write(content)
 
     # open qemu in a subprocess with separate pty

@@ -16,14 +16,15 @@ set(LIMINE_ROOT "/usr/share/limine" CACHE PATH "Path to limine root directory")
 set(EFI_PART_ROOT "${CMAKE_BINARY_DIR}/uefi-files")
 
 set(LIMINE_CONFIG "
-TIMEOUT=0
-:MOS-${MOS_ARCH}
-    PROTOCOL=limine
-    KERNEL_PATH=boot:///boot/MOS/${MOS_ARCH}-kernel.elf
-    MODULE_PATH=boot:///boot/MOS/${MOS_ARCH}-initrd.cpio
+timeout: 0
+
+/limine MOS-${MOS_ARCH}
+    protocol: limine
+    kernel_path: boot():/boot/MOS/${MOS_ARCH}-kernel.elf
+    module_path: boot():/boot/MOS/${MOS_ARCH}-initrd.cpio
 ")
 
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/limine.cfg ${LIMINE_CONFIG})
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/limine.conf ${LIMINE_CONFIG})
 
 # Make UEFI partition files structure
 add_custom_target(mos_uefi_partition
@@ -32,8 +33,8 @@ add_custom_target(mos_uefi_partition
     COMMAND ${CMAKE_COMMAND} -E make_directory ${EFI_PART_ROOT}/boot/limine
 
     # copy limine configuration and binaries
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/limine.cfg ${EFI_PART_ROOT}/boot/limine/limine.cfg
-    COMMAND ${CMAKE_COMMAND} -E copy ${LIMINE_ROOT}/limine-uefi-cd.bin      ${EFI_PART_ROOT}/boot/limine/limine-uefi-cd.bin
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/limine.conf ${EFI_PART_ROOT}/boot/limine/limine.conf
+    COMMAND ${CMAKE_COMMAND} -E copy ${LIMINE_ROOT}/limine-uefi-cd.bin       ${EFI_PART_ROOT}/boot/limine/limine-uefi-cd.bin
 
     # copy limine bootloader
     COMMAND ${CMAKE_COMMAND} -E copy ${LIMINE_ROOT}/BOOTX64.EFI     ${EFI_PART_ROOT}/EFI/BOOT/BOOTX64.EFI || true
