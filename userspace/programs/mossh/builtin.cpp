@@ -1,85 +1,68 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mossh.h"
+#include "mossh.hpp"
 
 #include <errno.h>
+#include <iostream>
+#include <map>
 #include <mos/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 #include <unistd.h>
 
-alias_t *alias_list;
-size_t alias_count;
+std::map<std::string, std::string> aliases = {};
 
 static void greet(void)
 {
     puts("MOS Shell Version 1");
 }
 
-void do_alias(int argc, const char *argv[])
+void do_alias(const std::vector<std::string> &argv)
 {
-    if (argc == 0)
+    if (argv.empty())
     {
-        for (size_t i = 0; i < alias_count; i++)
-            printf("alias: '%s' -> '%s'\n", alias_list[i].name, alias_list[i].command);
+        for (const auto &[name, value] : aliases)
+            printf("alias: '%s' -> '%s'\n", name.c_str(), value.c_str());
         return;
     }
 
-    if (argc != 2)
+    if (argv.size() != 2)
     {
         printf("alias: wrong number of arguments\n");
         printf("Usage: alias <name> <value>\n");
         return;
     }
 
-    const char *name = argv[0];
-    const char *value = argv[1];
-
-    if (strcmp(name, "-c") == 0)
+    const auto &[name, value] = std::tie(argv[0], argv[1]);
+    if (name == "-c")
     {
         // remove 'value' alias if it exists
-        for (size_t i = 0; i < alias_count; i++)
+        if (aliases.contains(value))
         {
-            if (strcmp(value, alias_list[i].name) == 0)
-            {
-                free(alias_list[i].name);
-                free(alias_list[i].command);
-                alias_count--;
-                for (size_t j = i; j < alias_count; j++)
-                    alias_list[j] = alias_list[j + 1];
-                return;
-            }
-        }
-
-        printf("alias: '%s' not found\n", value);
-        return;
-    }
-
-    for (size_t i = 0; i < alias_count; i++)
-    {
-        if (strcmp(name, alias_list[i].name) == 0)
-        {
-            if (strcmp(value, alias_list[i].command) == 0)
-                return; // no change
-            printf("replace alias '%s': '%s' -> '%s'\n", name, alias_list[i].command, value);
-            free(alias_list[i].command);
-            alias_list[i].command = strdup(value);
+            aliases.erase(value);
             return;
         }
     }
 
+    if (aliases.contains(name))
+    {
+        if (aliases[name] == value)
+            return; // no change
+        printf("replace alias '%s': '%s' -> '%s'\n", name.c_str(), aliases[name].c_str(), value.c_str());
+        aliases[name] = value;
+        return;
+    }
+
     if (verbose)
-        printf("alias: '%s' -> '%s'\n", argv[0], argv[1]);
-    alias_list = realloc(alias_list, sizeof(alias_t) * (alias_count + 1));
-    alias_list[alias_count].name = strdup(argv[0]);
-    alias_list[alias_count].command = strdup(argv[1]);
-    alias_count++;
+        std::cout << "alias: '" << name << "' -> '" << value << "'\n";
+    aliases[name] = value;
 }
 
-void do_cd(int argc, const char *argv[])
+void do_cd(const std::vector<std::string> &argv)
 {
-    switch (argc)
+    switch (argv.size())
     {
         case 0:
         {
@@ -89,8 +72,8 @@ void do_cd(int argc, const char *argv[])
         }
         case 1:
         {
-            if (chdir(argv[0]))
-                printf("cannot change directory to '%s': %s\n", argv[0], strerror(errno));
+            if (chdir(argv[0].c_str()))
+                printf("cannot change directory to '%s': %s\n", argv[0].c_str(), strerror(errno));
             break;
         }
         default:
@@ -101,34 +84,64 @@ void do_cd(int argc, const char *argv[])
     }
 }
 
-void do_clear(int argc, const char *argv[])
+void do_clear(const std::vector<std::string> &argv)
 {
-    MOS_UNUSED(argc);
     MOS_UNUSED(argv);
     printf("\033[2J\033[H");
 }
 
-void do_echo(int argc, const char *argv[])
+void do_echo(const std::vector<std::string> &argv)
 {
-    for (int i = 0; i < argc; i++)
-        printf("%s ", argv[i]);
+    for (size_t i = 0; i < argv.size(); i++)
+        printf("%s ", argv[i].c_str());
     printf("\n");
 }
 
-void do_exit(int argc, const char *argv[])
+void do_export(const std::vector<std::string> &argv)
 {
-    MOS_UNUSED(argc);
-    MOS_UNUSED(argv);
-    if (argc == 0)
+    if (argv.size() == 0)
+    {
+        printf("export: wrong number of arguments\n");
+        printf("Usage: export <name=value> ...\n");
+        return;
+    }
+
+    for (const auto &arg : argv)
+    {
+        const auto pos = arg.find('=');
+        if (pos == std::string::npos)
+        {
+            printf("export: invalid argument: '%s'\n", arg.c_str());
+            continue;
+        }
+
+        const auto name = arg.substr(0, pos);
+        auto value = arg.substr(pos + 1);
+
+        if ((value.starts_with('\'') && value.ends_with('\'')) || (value.starts_with('"') && value.ends_with('"')))
+            value = value.substr(1, value.size() - 2);
+
+        if (verbose)
+            printf("export: '%s' -> '%s'\n", name.c_str(), value.c_str());
+
+        setenv(name.c_str(), value.c_str(), 1);
+
+        if (name == "PATH")
+            get_paths(true); // clear the cache
+    }
+}
+
+void do_exit(const std::vector<std::string> &argv)
+{
+    if (argv.size() != 0)
         exit(0);
 
-    int exit_code = atoi(argv[0]);
+    const int exit_code = atoi(argv[0].c_str());
     exit(exit_code);
 }
 
-void do_help(int argc, const char *argv[])
+void do_help(const std::vector<std::string> &argv)
 {
-    MOS_UNUSED(argc);
     MOS_UNUSED(argv);
     greet();
     printf("Type 'help' to see this help\n");
@@ -140,44 +153,42 @@ void do_help(int argc, const char *argv[])
     printf("Happy hacking!\n");
 }
 
-void do_msleep(int argc, const char *argv[])
+void do_msleep(const std::vector<std::string> &argv)
 {
-    if (argc != 1)
+    if (argv.size() != 1)
     {
         printf("msleep: wrong number of arguments\n");
         printf("Usage: msleep <ms>\n");
         return;
     }
 
-    u64 ms = atoi(argv[0]);
+    u64 ms = atoi(argv[0].c_str());
     if (ms <= 0)
     {
-        printf("msleep: invalid argument: '%s'\n", argv[0]);
+        printf("msleep: invalid argument: '%s'\n", argv[0].c_str());
         return;
     }
 
     usleep(ms * 1000); // usleep takes microseconds, we take milliseconds
 }
 
-void do_pid(int argc, const char *argv[])
+void do_pid(const std::vector<std::string> &argv)
 {
-    MOS_UNUSED(argc);
     MOS_UNUSED(argv);
     printf("pid: %d\n", getpid());
 }
 
-void do_pwd(int argc, const char *argv[])
+void do_pwd(const std::vector<std::string> &argv)
 {
-    MOS_UNUSED(argc);
     MOS_UNUSED(argv);
     char buffer[4096];
     void *p = getcwd(buffer, sizeof(buffer));
     printf("%s\n", (char *) p);
 }
 
-void do_repeat(int argc, const char *argv[])
+void do_repeat(const std::vector<std::string> &argv)
 {
-    switch (argc)
+    switch (argv.size())
     {
         case 0:
         case 1:
@@ -187,62 +198,60 @@ void do_repeat(int argc, const char *argv[])
         }
         default:
         {
-            int count = atoi(argv[0]);
+            int count = atoi(argv[0].c_str());
             if (count <= 0)
             {
-                printf("repeat: invalid count: '%s'\n", argv[0]);
+                printf("repeat: invalid count: '%s'\n", argv[0].c_str());
                 break;
             }
 
             for (int i = 0; i < count; i++)
             {
-                const char *program = argv[1];
-                int new_argc = argc - 1;
-                const char **new_argv = &argv[1];
+                const auto program = argv[1];
+                const auto new_argv = std::vector<std::string>(argv.begin() + 1, argv.end());
 
-                if (do_builtin(program, new_argc, new_argv))
-                    continue;
-
-                if (!do_program(program, new_argc, new_argv, true))
-                    printf("repeat: %s: command not found\n", program);
+                if (!do_execute(program, new_argv, true))
+                {
+                    std::cerr << "repeat: failed to execute '" << program << "'" << std::endl;
+                    break;
+                }
             }
             break;
         }
     }
 }
 
-void do_show_path(int argc, const char *argv[])
+void do_show_path(const std::vector<std::string> &argv)
 {
-    MOS_UNUSED(argc);
     MOS_UNUSED(argv);
 
     puts("Program search path:");
-    for (int i = 0; PATH[i]; i++)
-        printf("%2d: %s\n", i, PATH[i]);
+    for (const auto &path : get_paths())
+        printf("  %s\n", path.c_str());
 }
 
-void do_sleep(int argc, const char *argv[])
+void do_sleep(const std::vector<std::string> &argv)
 {
-    if (argc != 1)
+    if (argv.size() != 1)
     {
         printf("sleep: wrong number of arguments\n");
         printf("Usage: sleep <seconds>\n");
         return;
     }
 
-    int seconds = atoi(argv[0]);
+    int seconds = atoi(argv[0].c_str());
     if (seconds <= 0)
     {
-        printf("sleep: invalid argument: '%s'\n", argv[0]);
+        printf("sleep: invalid argument: '%s'\n", argv[0].c_str());
         return;
     }
 
     sleep(seconds);
 }
 
-void do_source(int argc, const char *argv[])
+void do_source(const std::vector<std::string> &argv)
 {
-    if (argc != 1)
+    if (argv.size() != 1)
     {
         printf("source: wrong number of arguments\n");
         printf("Usage: source <file>\n");
@@ -252,16 +261,16 @@ void do_source(int argc, const char *argv[])
     do_interpret_script(argv[0]);
 }
 
-void do_version(int argc, const char *argv[])
+void do_version(const std::vector<std::string> &argv)
 {
-    MOS_UNUSED(argc);
+
     MOS_UNUSED(argv);
     greet();
 }
 
-void do_which(int argc, const char *argv[])
+void do_which(const std::vector<std::string> &argv)
 {
-    switch (argc)
+    switch (argv.size())
     {
         case 0:
         {
@@ -270,16 +279,11 @@ void do_which(int argc, const char *argv[])
         }
         case 1:
         {
-            const char *location = locate_program(argv[0]);
+            const auto location = locate_program(argv[0]);
             if (location)
-            {
-                printf("%s\n", location);
-                free((void *) location);
-            }
+                printf("%s\n", location->c_str());
             else
-            {
-                printf("which: %s: command not found\n", argv[0]);
-            }
+                printf("which: %s: command not found\n", argv[0].c_str());
             break;
         }
         default:
@@ -296,6 +300,7 @@ const command_t builtin_commands[] = {
     { .command = "clear", .action = do_clear, .description = "Clear the screen" },
     { .command = "exit", .action = do_exit, .description = "Exit the shell" },
     { .command = "echo", .action = do_echo, .description = "Echo arguments" },
+    { .command = "export", .action = do_export, .description = "Export a variable" },
     { .command = "help", .action = do_help, .description = "Show this help" },
     { .command = "msleep", .action = do_msleep, .description = "Sleep for a number of milliseconds" },
     { .command = "pid", .action = do_pid, .description = "Show the current process ID" },
