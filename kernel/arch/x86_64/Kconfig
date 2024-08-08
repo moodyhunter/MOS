@@ -4,10 +4,6 @@ config PAGE_SIZE
     int "Page size"
     default 4096
 
-config HWMEM_VADDR
-    hex "Hardware memory virtual address"
-    default 0xFFFFFFFFA0000000
-
 menu "x86-64 debugging options"
 
 config PLATFORM_DEBUG_ALL_x86_64

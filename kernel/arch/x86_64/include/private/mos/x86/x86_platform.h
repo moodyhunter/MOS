@@ -12,6 +12,8 @@
 
 #define X86_VIDEO_DEVICE_PADDR 0xb8000
 
+#define MOS_SYSCALL_INTR 0x88
+
 typedef struct _platform_regs
 {
     reg_t r15, r14, r13, r12, r11, r10, r9, r8;
