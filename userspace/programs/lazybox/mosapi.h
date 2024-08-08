@@ -8,6 +8,8 @@
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
+static char **environ = NULL;
+
 fd_t open(const char *path, open_flags flags);
 
 fd_t openat(fd_t fd, const char *path, open_flags flags);
@@ -25,7 +27,7 @@ bool unlink(const char *path);
 #ifndef __NO_START_FUNCTION
 void _start(size_t argc, char **argv, char **envp)
 {
-    MOS_UNUSED(envp);
+    environ = envp;
     extern int main(int argc, char **argv);
 
 // ensure that the stack is 16-byte aligned
