@@ -172,9 +172,6 @@ void do_execute_line(const std::string &in)
 
     // split the programs
     const auto argv = shlex(line);
-    for (const auto &arg : argv)
-        if (verbose)
-            printf("'%s' ", arg.c_str());
     do_execute(argv[0], argv, should_wait);
 }
 

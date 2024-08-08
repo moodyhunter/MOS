@@ -24,14 +24,14 @@ void do_alias(const std::vector<std::string> &argv)
     if (argv.empty())
     {
         for (const auto &[name, value] : aliases)
-            printf("alias: '%s' -> '%s'\n", name.c_str(), value.c_str());
+            std::cerr << "alias: '" << name << "' -> '" << value << "'" << std::endl;
         return;
     }
 
     if (argv.size() != 2)
     {
-        printf("alias: wrong number of arguments\n");
-        printf("Usage: alias <name> <value>\n");
+        std::cerr << "alias: wrong number of arguments" << std::endl;
+        std::cerr << "Usage: alias <name> <value>" << std::endl;
         return;
     }
 
@@ -50,7 +50,8 @@ void do_alias(const std::vector<std::string> &argv)
     {
         if (aliases[name] == value)
             return; // no change
-        printf("replace alias '%s': '%s' -> '%s'\n", name.c_str(), aliases[name].c_str(), value.c_str());
+
+        std::cout << "alias: replace alias '" << name << "': '" << aliases[name] << "' -> '" << value << "'" << std::endl;
         aliases[name] = value;
         return;
     }
@@ -67,13 +68,13 @@ void do_cd(const std::vector<std::string> &argv)
         case 0:
         {
             if (chdir("/"))
-                printf("cd: /: Unexpected error: %s\n", strerror(errno));
+                std::cerr << "cd: /: Unexpected error: " << strerror(errno) << std::endl;
             break;
         }
         case 1:
         {
             if (chdir(argv[0].c_str()))
-                printf("cannot change directory to '%s': %s\n", argv[0].c_str(), strerror(errno));
+                std::cerr << "cd: " << argv[0] << ": " << strerror(errno) << std::endl;
             break;
         }
         default:
@@ -93,16 +94,16 @@ void do_clear(const std::vector<std::string> &argv)
 void do_echo(const std::vector<std::string> &argv)
 {
     for (size_t i = 0; i < argv.size(); i++)
-        printf("%s ", argv[i].c_str());
-    printf("\n");
+        std::cout << argv[i] << (i + 1 == argv.size() ? "" : " ");
+    std::cout << std::endl;
 }
 
 void do_export(const std::vector<std::string> &argv)
 {
     if (argv.size() == 0)
     {
-        printf("export: wrong number of arguments\n");
-        printf("Usage: export <name=value> ...\n");
+        puts("export: wrong number of arguments\n");
+        puts("Usage: export <name=value> ...\n");
         return;
     }
 
@@ -111,7 +112,7 @@ void do_export(const std::vector<std::string> &argv)
         const auto pos = arg.find('=');
         if (pos == std::string::npos)
         {
-            printf("export: invalid argument: '%s'\n", arg.c_str());
+            std::cout << "export: invalid argument: '" << arg << "'" << std::endl;
             continue;
         }
 
@@ -122,7 +123,7 @@ void do_export(const std::vector<std::string> &argv)
             value = value.substr(1, value.size() - 2);
 
         if (verbose)
-            printf("export: '%s' -> '%s'\n", name.c_str(), value.c_str());
+            std::cout << "export: '" << name << "' -> '" << value << "'" << std::endl;
 
         setenv(name.c_str(), value.c_str(), 1);
 
@@ -144,13 +145,13 @@ void do_help(const std::vector<std::string> &argv)
 {
     MOS_UNUSED(argv);
     greet();
-    printf("Type 'help' to see this help\n");
-    printf("The following commands are built-in:\n");
-    printf("\n");
+    puts("Type 'help' to see this help\n");
+    puts("The following commands are built-in:\n");
+    puts("\n");
     for (int i = 0; builtin_commands[i].command; i++)
         printf("  %-10s  %s\n", builtin_commands[i].command, builtin_commands[i].description);
-    printf("\n");
-    printf("Happy hacking!\n");
+    puts("\n");
+    puts("Happy hacking!\n");
 }
 
 void do_msleep(const std::vector<std::string> &argv)
@@ -175,7 +176,7 @@ void do_msleep(const std::vector<std::string> &argv)
 void do_pid(const std::vector<std::string> &argv)
 {
     MOS_UNUSED(argv);
-    printf("pid: %d\n", getpid());
+    std::cout << "pid: " << getpid() << std::endl;
 }
 
 void do_pwd(const std::vector<std::string> &argv)
@@ -183,7 +184,7 @@ void do_pwd(const std::vector<std::string> &argv)
     MOS_UNUSED(argv);
     char buffer[4096];
     void *p = getcwd(buffer, sizeof(buffer));
-    printf("%s\n", (char *) p);
+    std::cout << p << std::endl;
 }
 
 void do_repeat(const std::vector<std::string> &argv)
@@ -193,7 +194,7 @@ void do_repeat(const std::vector<std::string> &argv)
         case 0:
         case 1:
         {
-            printf("usage: repeat <count> <command> [args...]\n");
+            puts("usage: repeat <count> <command> [args...]\n");
             break;
         }
         default:
@@ -201,7 +202,7 @@ void do_repeat(const std::vector<std::string> &argv)
             int count = atoi(argv[0].c_str());
             if (count <= 0)
             {
-                printf("repeat: invalid count: '%s'\n", argv[0].c_str());
+                std::cerr << "repeat: invalid count: '" << argv[0] << "'" << std::endl;
                 break;
             }
 
