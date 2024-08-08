@@ -8,7 +8,7 @@
 #include <mos_stdlib.h>
 #include <mos_string.h>
 
-static char **environ = NULL;
+static __maybe_unused char **environ = NULL;
 
 fd_t open(const char *path, open_flags flags);
 
