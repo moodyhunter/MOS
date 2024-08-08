@@ -81,7 +81,7 @@ static dentry_t *dentry_resolve_to_parent(dentry_t *base_dir, dentry_t *root_dir
             // this is the real interesting dir
             dentry_t *const parent_real_ref = dentry_resolve_follow_symlink(parent_ref, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_DIR);
             dentry_unref(parent_ref);
-            if (unlikely(parent_real_ref == NULL))
+            if (IS_ERR(parent_real_ref))
                 return ERR_PTR(-ENOENT); // the symlink target does not exist
             parent_ref = parent_real_ref;
         }
