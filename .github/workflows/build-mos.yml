@@ -35,7 +35,15 @@ jobs:
           echo 'SigLevel = Optional TrustAll' >> /etc/pacman.conf
           echo 'Server = https://repo.mooody.me/$repo/$arch' >> /etc/pacman.conf
 
-          pacman -Sy --noconfirm rustup mos-sdk ${{matrix.config.arch}}-mos-gcc ${{matrix.config.arch}}-mos-binutils ${{matrix.config.arch}}-mos-mlibc mos-llvm mos-rust
+          pacman -Sy --noconfirm rustup \
+            mos-sdk \
+            ${{matrix.config.arch}}-mos-gcc \
+            ${{matrix.config.arch}}-mos-binutils \
+            ${{matrix.config.arch}}-mos-mlibc \
+            ${{matrix.config.arch}}-mos-nlohmann-json \
+            mos-llvm \
+            mos-rust
+
           pacman -Sy --noconfirm python-ptyprocess
 
           rustup toolchain link mosdev /opt/mos-rust/
