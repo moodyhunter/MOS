@@ -38,7 +38,7 @@ class KernelCommandLine:
 
             if isinstance(v, bool):
                 if v:
-                    items.append(str(int(k)))
+                    items.append(str(k))
             elif isinstance(v, str):
                 items.append(f'{k}={v}')
             else:
