@@ -72,7 +72,7 @@ jobs:
       - name: Test
         run: |
           cd build
-          ../scripts/run-tests.py --arch ${{matrix.config.arch}} --kernelspace-tests -t 120 -w 15
+          ../tools/testing/main.py --arch ${{matrix.config.arch}} --kernel-tests -t 120 -w 15
 
       - name: Upload Test Results
         if: always()
