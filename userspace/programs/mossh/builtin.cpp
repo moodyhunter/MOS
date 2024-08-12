@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "LaunchContext.hpp"
 #include "mossh.hpp"
 
 #include <errno.h>
 #include <iostream>
 #include <map>
 #include <mos/types.h>
+#include <ranges>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,10 +15,9 @@
 #include <unistd.h>
 
 std::map<std::string, std::string> aliases = {};
-
 static void greet(void)
 {
-    puts("MOS Shell Version 1");
+    puts("MOS Shell Version 2");
 }
 
 void do_alias(const std::vector<std::string> &argv)
@@ -91,13 +92,6 @@ void do_clear(const std::vector<std::string> &argv)
     printf("\033[2J\033[H");
 }
 
-void do_echo(const std::vector<std::string> &argv)
-{
-    for (size_t i = 0; i < argv.size(); i++)
-        std::cout << argv[i] << (i + 1 == argv.size() ? "" : " ");
-    std::cout << std::endl;
-}
-
 void do_export(const std::vector<std::string> &argv)
 {
     if (argv.size() == 0)
@@ -134,7 +128,7 @@ void do_export(const std::vector<std::string> &argv)
 
 void do_exit(const std::vector<std::string> &argv)
 {
-    if (argv.size() != 0)
+    if (argv.size() == 0)
         exit(0);
 
     const int exit_code = atoi(argv[0].c_str());
@@ -147,10 +141,8 @@ void do_help(const std::vector<std::string> &argv)
     greet();
     puts("Type 'help' to see this help\n");
     puts("The following commands are built-in:\n");
-    puts("\n");
     for (int i = 0; builtin_commands[i].command; i++)
         printf("  %-10s  %s\n", builtin_commands[i].command, builtin_commands[i].description);
-    puts("\n");
     puts("Happy hacking!\n");
 }
 
@@ -179,14 +171,6 @@ void do_pid(const std::vector<std::string> &argv)
     std::cout << "pid: " << getpid() << std::endl;
 }
 
-void do_pwd(const std::vector<std::string> &argv)
-{
-    MOS_UNUSED(argv);
-    char buffer[4096];
-    void *p = getcwd(buffer, sizeof(buffer));
-    std::cout << p << std::endl;
-}
-
 void do_repeat(const std::vector<std::string> &argv)
 {
     switch (argv.size())
@@ -206,14 +190,18 @@ void do_repeat(const std::vector<std::string> &argv)
                 break;
             }
 
+            std::cout << "FIXME: repeat: " << argv[1] << std::endl;
+            return;
+
             for (int i = 0; i < count; i++)
             {
                 const auto program = argv[1];
-                const auto new_argv = std::vector<std::string>(argv.begin() + 1, argv.end());
+                const auto new_argv = argv | std::views::drop(2) | std::ranges::to<std::vector>();
 
-                if (!do_execute(program, new_argv, true))
+                LaunchContext context{ new_argv };
+                if (!context.start())
                 {
-                    std::cerr << "repeat: failed to execute '" << program << "'" << std::endl;
+                    std::cerr << "repeat: failed to start '" << program << "'" << std::endl;
                     break;
                 }
             }
@@ -264,7 +252,6 @@ void do_source(const std::vector<std::string> &argv)
 
 void do_version(const std::vector<std::string> &argv)
 {
-
     MOS_UNUSED(argv);
     greet();
 }
@@ -275,16 +262,19 @@ void do_which(const std::vector<std::string> &argv)
     {
         case 0:
         {
-            printf("which: missing argument\n");
+            puts("which: missing argument\n");
             break;
         }
         case 1:
         {
-            const auto location = locate_program(argv[0]);
-            if (location)
-                printf("%s\n", location->c_str());
-            else
+            LaunchContext context({ argv[0] });
+            if (!context.resolve_program_path())
+            {
                 printf("which: %s: command not found\n", argv[0].c_str());
+                break;
+            }
+
+            printf("%s\n", context.program_path().c_str());
             break;
         }
         default:
@@ -295,22 +285,19 @@ void do_which(const std::vector<std::string> &argv)
     }
 }
 
-const command_t builtin_commands[] = {
+const std::vector<command_t> builtin_commands = {
     { .command = "alias", .action = do_alias, .description = "Create an alias" },
     { .command = "cd", .action = do_cd, .description = "Change the current directory" },
     { .command = "clear", .action = do_clear, .description = "Clear the screen" },
     { .command = "exit", .action = do_exit, .description = "Exit the shell" },
-    { .command = "echo", .action = do_echo, .description = "Echo arguments" },
     { .command = "export", .action = do_export, .description = "Export a variable" },
     { .command = "help", .action = do_help, .description = "Show this help" },
     { .command = "msleep", .action = do_msleep, .description = "Sleep for a number of milliseconds" },
     { .command = "pid", .action = do_pid, .description = "Show the current process ID" },
-    { .command = "pwd", .action = do_pwd, .description = "Print the current directory" },
     { .command = "repeat", .action = do_repeat, .description = "Repeat a command a number of times" },
     { .command = "show-path", .action = do_show_path, .description = "Show the search path for programs" },
     { .command = "sleep", .action = do_sleep, .description = "Sleep for a number of seconds" },
     { .command = "source", .action = do_source, .description = "Execute a script" },
     { .command = "version", .action = do_version, .description = "Show version information" },
     { .command = "which", .action = do_which, .description = "Show the full path of a command" },
-    { .command = NULL, .action = NULL, .description = NULL },
 };

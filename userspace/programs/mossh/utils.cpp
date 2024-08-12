@@ -2,12 +2,11 @@
 #include "mossh.hpp"
 
 #include <filesystem>
-#include <iostream>
-#include <regex>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <vector>
 
 const std::vector<std::filesystem::path> &get_paths(bool force)
@@ -38,101 +37,6 @@ const std::vector<std::filesystem::path> &get_paths(bool force)
     return paths;
 }
 
-std::optional<std::filesystem::path> locate_program(const std::string &command)
-{
-    const auto try_resolve = [&](const std::filesystem::path &path) -> std::optional<std::filesystem::path>
-    {
-        struct stat statbuf;
-        if (stat(path.c_str(), &statbuf) == 0)
-            if (S_ISREG(statbuf.st_mode))
-                return path;
-        return std::nullopt;
-    };
-
-    // firstly try the command as is
-    if (const auto resolved = try_resolve(command); resolved)
-        return resolved;
-
-    for (const auto &path : get_paths())
-    {
-        const auto fullpath = path / command;
-        if (auto resolved = try_resolve(fullpath); resolved)
-            return resolved;
-    }
-
-    return std::nullopt;
-}
-
-std::vector<std::string> shlex(const std::string &command)
-{
-    std::vector<std::string> result;
-
-    const auto len = command.size();
-    bool in_double_quot = false, in_single_quot = false;
-
-    for (auto i = 0u; i < len; i++)
-    {
-        int start = i;
-        if (command[i] == '"')
-            in_double_quot = true;
-        else if (command[i] == '\'')
-            in_single_quot = true;
-
-        int arglen;
-        if (in_double_quot)
-        {
-            i++;
-            start++;
-            while (i < len && command[i] != '"')
-                i++; // skip until the next quote
-            if (i < len)
-                in_double_quot = false; // if we don't reach the end of the string, we found the closing quote
-            arglen = i - start;
-            i++;
-        }
-        else if (in_single_quot)
-        {
-            i++;
-            start++;
-            while (i < len && command[i] != '\'')
-                i++; // skip until the next quote
-            if (i < len)
-                in_single_quot = false; // if we don't reach the end of the string, we found the closing quote
-            arglen = i - start;
-            i++;
-        }
-        else
-        {
-            while (i < len && command[i] != ' ')
-                i++;
-            arglen = i - start;
-        }
-
-        std::string arg = command.substr(start, arglen);
-
-        // try expanding the variable
-        const auto regex = std::regex("(\\$[a-zA-Z0-9_]+)");
-        std::smatch match;
-        while (std::regex_search(arg, match, regex))
-        {
-            const auto varname = match[1].str();
-            const auto value = getenv(varname.c_str() + 1); // skip the $
-
-            std::cout << "varname: " << varname << ", value: " << value << std::endl;
-            if (value)
-                arg = std::regex_replace(arg, regex, value);
-            else
-                arg = std::regex_replace(arg, regex, "");
-
-            std::cout << "arg: " << arg << std::endl;
-        }
-
-        result.push_back(arg);
-    }
-
-    return result;
-}
-
 std::string string_trim(const std::string &in)
 {
     std::string out = in;
@@ -146,4 +50,22 @@ std::string string_trim(const std::string &in)
         out = out.substr(startpos);
 
     return out;
+}
+
+std::pair<int, int> wait_for_pid(pid_t pid, int flags)
+{
+    std::pair<int, int> exit_code_signal;
+
+    int status = 0;
+    waitpid(pid, &status, flags);
+    if (WIFEXITED(status))
+    {
+        exit_code_signal.first = WEXITSTATUS(status);
+    }
+    else if (WIFSIGNALED(status))
+    {
+        exit_code_signal.second = WTERMSIG(status);
+    }
+
+    return exit_code_signal;
 }

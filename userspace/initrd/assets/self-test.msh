@@ -2,7 +2,6 @@ cd /
 repeat 5 tree /
 ls /
 ls /initrd
-cat /initrd/README.txt
 cat /initrd/summary.txt
 repeat 5 ls /
 repeat 5 ls /initrd

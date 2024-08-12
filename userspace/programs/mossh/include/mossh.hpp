@@ -21,18 +21,17 @@ typedef struct
     const char *description;
 } command_t;
 
-extern const command_t builtin_commands[];
-extern const char *PATH[];
+extern const std::vector<command_t> builtin_commands;
 extern bool verbose;
 extern std::map<std::string, std::string> aliases;
 
-std::optional<std::filesystem::path> locate_program(const std::string &command);
+bool execute_line(const std::string &in);
+bool do_interpret_script(const std::filesystem::path &path);
 
-bool do_execute(const std::string &command, const std::vector<std::string> &argv, bool should_wait);
-
-int do_interpret_script(const std::filesystem::path &path);
+// jsonrpc.cpp
+int do_jsonrpc();
 
 // utils.cpp
 const std::vector<std::filesystem::path> &get_paths(bool force = false);
-std::vector<std::string> shlex(const std::string &command);
 std::string string_trim(const std::string &in);
+std::pair<int, int> wait_for_pid(pid_t pid, int flags = 0);
