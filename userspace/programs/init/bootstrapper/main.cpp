@@ -8,11 +8,24 @@
 
 #include "bootstrapper.h"
 
+#include <iostream>
 #include <librpc/rpc_server.h>
 #include <mos/mos_global.h>
 #include <mos/syscall/usermode.h>
 #include <stdio.h>
 #include <unistd.h>
+
+static constexpr auto MOS_ASCII_ART = R"(
+,---.    ,---.     ,-----.        .-'''-.
+|    \  /    |   .'  .-,  '.     / _     \
+|  ,  \/  ,  |  / ,-.|  \ _ \   (`' )/`--'
+|  |\_   /|  | ;  \  '_ /  | : (_ o _).
+|  _( )_/ |  | |  _`,/ \ _/  |  (_,_). '.
+| (_ o _) |  | : (  '\_/ \   ; .---.  \  :
+|  (_,_)  |  |  \ `"/  \  ) /  \    `-'  |
+|  |      |  |   '. \_/``".'    \       /
+'--'      '--'     '-----'       `-...-'
+)";
 
 s64 strntoll(const char *str, char **endptr, int base, size_t n)
 {
@@ -53,6 +66,9 @@ int main(int argc, char *argv[])
         puts("bootstrapper: not running as PID 1, exiting");
         return 1;
     }
+
+    std::cout << MOS_ASCII_ART << std::endl;
+    std::cout << "Welcome to the MOS operating system." << std::endl;
 
     int statusfd[2];
     pipe(statusfd);
