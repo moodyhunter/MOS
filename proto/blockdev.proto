@@ -1,11 +1,11 @@
 syntax = "proto3";
 import "nanopb.proto";
-import "mos_rpc.proto";
+import "mosrpc.proto";
 
 option (nanopb_fileopt).fallback_type = FT_POINTER;
 option (nanopb_fileopt).proto3_singular_msgs = true;
 
-package mos_rpc_blockdev;
+package mosrpc.blockdev;
 
 message blockdev
 {
@@ -42,7 +42,7 @@ message register_device_request
 
 message register_device_response
 {
-    mos_rpc.result result = 1;
+    mosrpc.result result = 1;
     uint32 id = 2;
 }
 
@@ -54,7 +54,7 @@ message register_layer_server_request
 
 message register_layer_server_response
 {
-    mos_rpc.result result = 1;
+    mosrpc.result result = 1;
     uint32 id = 2;
 }
 
@@ -68,7 +68,7 @@ message read_block_request
 
 message read_block_response
 {
-    mos_rpc.result result = 1;
+    mosrpc.result result = 1;
     bytes data = 2;
 }
 
@@ -83,7 +83,7 @@ message write_block_request
 
 message write_block_response
 {
-    mos_rpc.result result = 1;
+    mosrpc.result result = 1;
     uint32 n_blocks = 2;
 }
 
@@ -95,7 +95,7 @@ message open_device_request
 
 message open_device_response
 {
-    mos_rpc.result result = 1;
+    mosrpc.result result = 1;
     blockdev device = 2;
 }
 

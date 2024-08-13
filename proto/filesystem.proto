@@ -1,11 +1,13 @@
 syntax = "proto3";
 import "nanopb.proto";
-import "mos_rpc.proto";
+import "mosrpc.proto";
 
 option (nanopb_fileopt).fallback_type = FT_POINTER;
 option (nanopb_fileopt).proto3_singular_msgs = true;
 
-message pb_inode_info
+package mosrpc.fs;
+
+message inode_info
 {
     uint64 ino = 1;
     int32 type = 2;
@@ -22,12 +24,12 @@ message pb_inode_info
     uint64 modified = 13;
 }
 
-message pb_inode_ref
+message inode_ref
 {
     uint64 data = 2; // the private data of the inode, may be used by the filesystem
 }
 
-message pb_dentry
+message dentry
 {
     uint64 inode_id = 1;
     string name = 2;
@@ -38,29 +40,29 @@ message pb_fs
     string name = 1; // the name of the filesystem
 }
 
-message mos_rpc_fs_register_request
+message register_request
 {
     pb_fs fs = 1;
     string rpc_server_name = 2;
 }
 
-message mos_rpc_fs_register_response
+message register_response
 {
-    mos_rpc.result result = 1;
+    mosrpc.result result = 1;
 }
 
-message mos_rpc_fs_mount_request
+message mount_request
 {
     string fs_name = 1;
     string device = 2;
     string options = 3;
 }
 
-message mos_rpc_fs_mount_response
+message mount_response
 {
-    mos_rpc.result result = 1;
-    pb_inode_ref root_ref = 2; // the root inode of the mounted root
-    pb_inode_info root_info = 3;
+    mosrpc.result result = 1;
+    inode_ref root_ref = 2; // the root inode of the mounted root
+    inode_info root_info = 3;
 }
 
 message pb_dirent
@@ -70,101 +72,101 @@ message pb_dirent
     int32 type = 3;
 }
 
-message mos_rpc_fs_readdir_request
+message readdir_request
 {
-    pb_inode_ref i_ref = 1; // the inode to read
+    inode_ref i_ref = 1; // the inode to read
 }
 
-message mos_rpc_fs_readdir_response
+message readdir_response
 {
-    mos_rpc.result result = 1;
+    mosrpc.result result = 1;
     repeated pb_dirent entries = 2;
 }
 
-message mos_rpc_fs_lookup_request
+message lookup_request
 {
-    pb_inode_ref i_ref = 1; // the inode of parent directory
-    string name = 2;        // the name of the file to lookup
+    inode_ref i_ref = 1; // the inode of parent directory
+    string name = 2;     // the name of the file to lookup
 }
 
-message mos_rpc_fs_lookup_response
+message lookup_response
 {
-    mos_rpc.result result = 1;
-    pb_inode_ref i_ref = 2; // the inode of the file
-    pb_inode_info i_info = 3;
+    mosrpc.result result = 1;
+    inode_ref i_ref = 2; // the inode of the file
+    inode_info i_info = 3;
 }
 
-message mos_rpc_fs_readlink_request
+message readlink_request
 {
-    pb_inode_ref i_ref = 1; // the inode of the symlink
+    inode_ref i_ref = 1; // the inode of the symlink
 }
 
-message mos_rpc_fs_readlink_response
+message readlink_response
 {
-    mos_rpc.result result = 1;
+    mosrpc.result result = 1;
     string target = 2; // the target of the symlink
 }
 
-message mos_rpc_fs_getpage_request
+message getpage_request
 {
-    pb_inode_ref i_ref = 1; // the inode of the file
-    uint64 pgoff = 2;       // the offset of the page, in number of pages
+    inode_ref i_ref = 1; // the inode of the file
+    uint64 pgoff = 2;    // the offset of the page, in number of pages
 }
 
-message mos_rpc_fs_getpage_response
+message getpage_response
 {
-    mos_rpc.result result = 1;
+    mosrpc.result result = 1;
 
     // the data of the page, this is currently a raw byte array, which costs a lot of memory
     // we could use a page manager to reference a page and only pass a page uuid here
     bytes data = 2;
 }
 
-message mos_rpc_fs_putpage_request
+message putpage_request
 {
-    pb_inode_ref i_ref = 1; // the inode of the file
-    uint64 pgoff = 2;       // the offset of the page, in number of pages
-    bytes data = 3;         // the data of the page
+    inode_ref i_ref = 1; // the inode of the file
+    uint64 pgoff = 2;    // the offset of the page, in number of pages
+    bytes data = 3;      // the data of the page
 }
 
-message mos_rpc_fs_putpage_response
+message putpage_response
 {
-    mos_rpc.result result = 1;
+    mosrpc.result result = 1;
 }
 
-message mos_rpc_fs_create_file_request
+message create_file_request
 {
-    pb_inode_ref i_ref = 1; // the inode of the parent directory
-    string name = 2;        // the name of the file to create
-    int32 type = 3;         // the type of the file to create
-    uint32 perm = 4;        // the permissions of the file to create
+    inode_ref i_ref = 1; // the inode of the parent directory
+    string name = 2;     // the name of the file to create
+    int32 type = 3;      // the type of the file to create
+    uint32 perm = 4;     // the permissions of the file to create
 }
 
-message mos_rpc_fs_create_file_response
+message create_file_response
 {
-    mos_rpc.result result = 1;
-    pb_inode_ref i_ref = 2; // the inode of the created file
-    pb_inode_info i_info = 3;
+    mosrpc.result result = 1;
+    inode_ref i_ref = 2; // the inode of the created file
+    inode_info i_info = 3;
 }
 
-message mos_rpc_fs_sync_inode_request
+message sync_inode_request
 {
-    pb_inode_ref i_ref = 1;   // the inode to sync
-    pb_inode_info i_info = 2; // the inode info
+    inode_ref i_ref = 1;   // the inode to sync
+    inode_info i_info = 2; // the inode info
 }
 
-message mos_rpc_fs_sync_inode_response
+message sync_inode_response
 {
-    mos_rpc.result result = 1;
+    mosrpc.result result = 1;
 }
 
-message mos_rpc_fs_unlink_request
+message unlink_request
 {
-    pb_inode_ref i_ref = 1; // the inode of the parent directory
-    pb_dentry dentry = 2;   // the dentry to unlink
+    inode_ref i_ref = 1; // the inode of the parent directory
+    dentry dentry = 2;   // the dentry to unlink
 }
 
-message mos_rpc_fs_unlink_response
+message unlink_response
 {
-    mos_rpc.result result = 1;
+    mosrpc.result result = 1;
 }

@@ -29,7 +29,7 @@ void userfs_ensure_connected(userfs_t *userfs);
  * @param private The private data for the inode.
  * @return inode_t* An allocated kernel inode.
  */
-inode_t *i_from_pbfull(const pb_inode_info *pbi, superblock_t *sb, void *private);
+inode_t *i_from_pbfull(const mosrpc_fs_inode_info *pbi, superblock_t *sb, void *private);
 
 /**
  * @brief Convert a kernel inode to a protobuf inode.
@@ -38,6 +38,6 @@ inode_t *i_from_pbfull(const pb_inode_info *pbi, superblock_t *sb, void *private
  * @param pbi The protobuf inode, which must be allocated.
  * @return pb_inode* The protobuf inode, returned for convenience.
  */
-pb_inode_info *i_to_pb_full(const inode_t *i, pb_inode_info *pbi);
+mosrpc_fs_inode_info *i_to_pb_full(const inode_t *i, mosrpc_fs_inode_info *pbi);
 
 dentry_t *userfs_fsop_mount(filesystem_t *fs, const char *device, const char *options);

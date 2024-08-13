@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-using blockdev_handle = mos_rpc_blockdev_blockdev;
+using blockdev_handle = mosrpc_blockdev_blockdev;
 
 namespace GPT
 {

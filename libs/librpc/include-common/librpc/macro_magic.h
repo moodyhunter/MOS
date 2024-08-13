@@ -286,13 +286,13 @@
 #define __RPC_DO_DECL_CPP_TYPE_NAMESPACE_ALIAS_IMPL(subns, _id, action, ...)                                                                                             \
     namespace action                                                                                                                                                     \
     {                                                                                                                                                                    \
-        using request = mos_rpc##_##subns##_##action##_request;                                                                                                          \
-        using response = mos_rpc##_##subns##_##action##_response;                                                                                                        \
+        using request = mosrpc##_##subns##_##action##_request;                                                                                                           \
+        using response = mosrpc##_##subns##_##action##_response;                                                                                                         \
     }
 
 #ifdef __cplusplus
 #define RPC_DECL_CPP_TYPE_NAMESPACE(subns, X_MACRO)                                                                                                                      \
-    namespace mos_rpc::subns                                                                                                                                             \
+    namespace mosrpc::subns                                                                                                                                              \
     {                                                                                                                                                                    \
         X_MACRO(__NO_OP, __RPC_DO_DECL_CPP_TYPE_NAMESPACE_ALIAS_IMPL, subns)                                                                                             \
     }

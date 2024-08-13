@@ -33,7 +33,7 @@ struct blockdevfs_inode
 
 static blockdevfs_inode *root = NULL;
 
-rpc_result_code_t BlockdevFSServer::mount(rpc_context_t *, mos_rpc_fs_mount_request *req, mos_rpc_fs_mount_response *resp)
+rpc_result_code_t BlockdevFSServer::mount(rpc_context_t *, mosrpc_fs_mount_request *req, mosrpc_fs_mount_response *resp)
 {
     if (req->options && strlen(req->options) > 0 && strcmp(req->options, "defaults") != 0)
         printf("blockdevfs: mount option '%s' is not supported\n", req->options);
@@ -50,7 +50,7 @@ rpc_result_code_t BlockdevFSServer::mount(rpc_context_t *, mos_rpc_fs_mount_requ
 
     root = new blockdevfs_inode();
 
-    pb_inode_info *const i = &resp->root_info;
+    mosrpc_fs_inode_info *const i = &resp->root_info;
     i->ino = 1;
     i->type = FILE_TYPE_DIRECTORY;
     i->perm = 0755;
@@ -70,7 +70,7 @@ rpc_result_code_t BlockdevFSServer::mount(rpc_context_t *, mos_rpc_fs_mount_requ
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t BlockdevFSServer::readdir(rpc_context_t *, mos_rpc_fs_readdir_request *req, mos_rpc_fs_readdir_response *resp)
+rpc_result_code_t BlockdevFSServer::readdir(rpc_context_t *, mosrpc_fs_readdir_request *req, mosrpc_fs_readdir_response *resp)
 {
     if (req->i_ref.data != (ptr_t) root)
     {
@@ -81,12 +81,12 @@ rpc_result_code_t BlockdevFSServer::readdir(rpc_context_t *, mos_rpc_fs_readdir_
 
     const size_t count = devices.size();
     resp->entries_count = count;
-    resp->entries = (pb_dirent *) malloc(count * sizeof(pb_dirent));
+    resp->entries = (mosrpc_fs_pb_dirent *) malloc(count * sizeof(mosrpc_fs_pb_dirent));
 
     int i = 0;
     for (const auto &[name, info] : devices)
     {
-        pb_dirent *e = &resp->entries[i++];
+        mosrpc_fs_pb_dirent *e = &resp->entries[i++];
         e->name = strdup(name.c_str());
         e->ino = info.ino;
         e->type = FILE_TYPE_BLOCK_DEVICE;
@@ -97,7 +97,7 @@ rpc_result_code_t BlockdevFSServer::readdir(rpc_context_t *, mos_rpc_fs_readdir_
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t BlockdevFSServer::lookup(rpc_context_t *, mos_rpc_fs_lookup_request *req, mos_rpc_fs_lookup_response *resp)
+rpc_result_code_t BlockdevFSServer::lookup(rpc_context_t *, mosrpc_fs_lookup_request *req, mosrpc_fs_lookup_response *resp)
 {
     if (req->i_ref.data != (ptr_t) root)
     {
@@ -115,7 +115,7 @@ rpc_result_code_t BlockdevFSServer::lookup(rpc_context_t *, mos_rpc_fs_lookup_re
 
     const auto &info = devices[req->name];
 
-    pb_inode_info *i = &resp->i_info;
+    mosrpc_fs_inode_info *i = &resp->i_info;
     i->ino = info.ino;
     i->type = FILE_TYPE_BLOCK_DEVICE;
     i->perm = 0660;
@@ -148,8 +148,8 @@ bool register_blockdevfs()
     blockdevfs = std::make_unique<BlockdevFSServer>(BLOCKDEVFS_RPC_SERVER_NAME);
 
     UserfsManager userfs_manager{ USERFS_SERVER_RPC_NAME };
-    mos_rpc_fs_register_request req = { .fs = { .name = strdup(BLOCKDEVFS_NAME) }, .rpc_server_name = strdup(BLOCKDEVFS_RPC_SERVER_NAME) };
-    mos_rpc_fs_register_response resp;
+    mosrpc_fs_register_request req = { .fs = { .name = strdup(BLOCKDEVFS_NAME) }, .rpc_server_name = strdup(BLOCKDEVFS_RPC_SERVER_NAME) };
+    mosrpc_fs_register_response resp;
 
     const rpc_result_code_t result = userfs_manager.register_fs(&req, &resp);
     if (result != RPC_RESULT_OK || !resp.result.success)
@@ -159,8 +159,8 @@ bool register_blockdevfs()
         return false;
     }
 
-    pb_release(mos_rpc_fs_register_request_fields, &req);
-    pb_release(mos_rpc_fs_register_response_fields, &resp);
+    pb_release(mosrpc_fs_register_request_fields, &req);
+    pb_release(mosrpc_fs_register_response_fields, &resp);
 
     pthread_t worker;
     if (pthread_create(&worker, NULL, blockdevfs_worker, NULL) != 0)

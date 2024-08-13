@@ -48,7 +48,7 @@ fn main() {
         .include(build_dir!("nanopb_workdir/proto"))
         .input(project_dir!("proto/blockdev.proto"))
         .input(build_dir!("nanopb_workdir/proto/nanopb.proto"))
-        .input(project_dir!("proto/mos_rpc.proto"))
+        .input(project_dir!("proto/mosrpc.proto"))
         .cargo_out_dir("protos")
         .run_from_script();
 }

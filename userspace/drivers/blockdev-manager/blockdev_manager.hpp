@@ -18,7 +18,7 @@ RPC_CLIENT_DEFINE_STUB_CLASS(BlockLayerServer, BLOCKDEV_LAYER_RPC_X);
 RPC_CLIENT_DEFINE_STUB_CLASS(BlockDeviceServer, BLOCKDEV_DEVICE_RPC_X);
 RPC_DECL_SERVER_INTERFACE_CLASS(IBlockManager, BLOCKDEV_MANAGER_RPC_X);
 
-using namespace mos_rpc::blockdev;
+using namespace mosrpc::blockdev;
 
 struct BlockDeviceInfo
 {
@@ -53,7 +53,7 @@ class BlockManager : public IBlockManager
 {
 
   public:
-    explicit BlockManager() : IBlockManager(BLOCKDEV_MANAGER_RPC_SERVER_NAME){};
+    explicit BlockManager() : IBlockManager(BLOCKDEV_MANAGER_RPC_SERVER_NAME) {};
 
   private:
     virtual void on_connect(rpc_context_t *ctx) override;

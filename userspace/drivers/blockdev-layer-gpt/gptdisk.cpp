@@ -93,7 +93,7 @@ bool GPTDisk::disk_read_header()
     }
 
     const auto header = gpt_read_header(read_resp.data->bytes);
-    pb_release(mos_rpc_blockdev_read_block_response_fields, &read_resp);
+    pb_release(mosrpc_blockdev_read_block_response_fields, &read_resp);
 
     if (header)
         this->header = header.value();
@@ -141,7 +141,7 @@ bool GPTDisk::disk_read_partitions()
         partitions.push_back(*entry);
     }
 
-    pb_release(mos_rpc_blockdev_read_block_response_fields, &read_resp);
+    pb_release(mosrpc_blockdev_read_block_response_fields, &read_resp);
     return true;
 }
 
@@ -168,7 +168,7 @@ size_t GPTDisk::read_partition_block(size_t partition_index, u64 blockoffset, u8
 
     const auto datasize = read_resp.data->size;
     memcpy(buffer, read_resp.data->bytes, datasize);
-    pb_release(mos_rpc_blockdev_read_block_response_fields, &read_resp);
+    pb_release(mosrpc_blockdev_read_block_response_fields, &read_resp);
 
     return datasize;
 }

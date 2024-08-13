@@ -6,7 +6,7 @@ add_definitions(-DCONFIG_USE_DEFAULT_CFG=1)
 add_subdirectory(lwext4)
 
 generate_nanopb_proto(PROTO_SRCS PROTO_HDRS
-    ${CMAKE_SOURCE_DIR}/proto/mos_rpc.proto
+    ${CMAKE_SOURCE_DIR}/proto/mosrpc.proto
     ${CMAKE_SOURCE_DIR}/proto/filesystem.proto
     ${CMAKE_SOURCE_DIR}/proto/blockdev.proto
 )

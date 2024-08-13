@@ -17,7 +17,7 @@ GPTLayerServer::GPTLayerServer(std::shared_ptr<GPTDisk> disk, const std::string 
     const register_layer_server::request req = {
         .server_name = strdup(servername.c_str()),
         .partitions_count = disk->get_partition_count(),
-        .partitions = new mos_rpc_blockdev_partition_info[disk->get_partition_count()],
+        .partitions = new mosrpc_blockdev_partition_info[disk->get_partition_count()],
     };
 
     for (size_t i = 0; i < disk->get_partition_count(); i++)
@@ -40,7 +40,7 @@ GPTLayerServer::GPTLayerServer(std::shared_ptr<GPTDisk> disk, const std::string 
     delete[] req.partitions;
 }
 
-rpc_result_code_t GPTLayerServer::read_partition_block(rpc_context_t *context, mos_rpc_blockdev_read_partition_block_request *req, read_block::response *resp)
+rpc_result_code_t GPTLayerServer::read_partition_block(rpc_context_t *context, mosrpc_blockdev_read_partition_block_request *req, read_block::response *resp)
 {
     MOS_UNUSED(context);
     const auto datasize = req->n_blocks * disk->get_block_size();
@@ -53,7 +53,7 @@ rpc_result_code_t GPTLayerServer::read_partition_block(rpc_context_t *context, m
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t GPTLayerServer::write_partition_block(rpc_context_t *context, mos_rpc_blockdev_write_partition_block_request *req, write_block::response *resp)
+rpc_result_code_t GPTLayerServer::write_partition_block(rpc_context_t *context, mosrpc_blockdev_write_partition_block_request *req, write_block::response *resp)
 {
     MOS_UNUSED(context);
     MOS_UNUSED(resp);

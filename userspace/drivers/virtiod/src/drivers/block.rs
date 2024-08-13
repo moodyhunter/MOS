@@ -13,7 +13,7 @@ use virtio_drivers::{
 
 use crate::{
     hal::MOSHal,
-    mos_rpc::{
+    mosrpc::{
         self,
         blockdev::{
             Read_block_request, Read_block_response, Register_device_request,
@@ -40,7 +40,7 @@ impl BlockDevDriver {
 
         let request = Register_device_request {
             server_name: self.server_name.clone(),
-            device_info: Some(mos_rpc::blockdev::Blockdev_info {
+            device_info: Some(mosrpc::blockdev::Blockdev_info {
                 name: self.devname.clone(),
                 block_size: SECTOR_SIZE as _, // 512
                 n_blocks: dev.capacity(),

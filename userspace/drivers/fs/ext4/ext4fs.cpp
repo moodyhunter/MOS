@@ -18,14 +18,14 @@
 #include <sys/stat.h>
 
 // clang-format off
-u64 inode_index_from_data(pb_inode_ref &ref) { return ref.data; }
+u64 inode_index_from_data(mosrpc_fs_inode_ref &ref) { return ref.data; }
 
-pb_inode_ref make_inode_ref(ext4_inode_ref &ref) { return { .data = ref.index }; }
+mosrpc_fs_inode_ref make_inode_ref(ext4_inode_ref &ref) { return { .data = ref.index }; }
 
-pb_inode_ref make_inode_ref(u64 index) { return { .data = index }; }
+mosrpc_fs_inode_ref make_inode_ref(u64 index) { return { .data = index }; }
 // clang-format on
 
-static std::optional<mos_rpc_blockdev_blockdev> open_blockdev(const std::string &name)
+static std::optional<mosrpc_blockdev_blockdev> open_blockdev(const std::string &name)
 {
     open_device::request req{ .device_name = strdup(name.c_str()) };
     open_device::response resp;
@@ -40,8 +40,8 @@ static std::optional<mos_rpc_blockdev_blockdev> open_blockdev(const std::string 
     }
 
     auto dev = resp.device;
-    pb_release(&mos_rpc_blockdev_open_device_request_msg, &req);
-    pb_release(&mos_rpc_blockdev_open_device_response_msg, &resp);
+    pb_release(&mosrpc_blockdev_open_device_request_msg, &req);
+    pb_release(&mosrpc_blockdev_open_device_response_msg, &resp);
 
     std::cout << "Block Device '" << name << "' opened" << std::endl;
     return dev;
@@ -85,8 +85,8 @@ static int blockdev_bread(struct ext4_blockdev *bdev, void *buf, uint64_t blk_id
 
     memcpy(buf, resp.data->bytes, resp.data->size);
 
-    pb_release(&mos_rpc_blockdev_read_block_request_msg, &req);
-    pb_release(&mos_rpc_blockdev_read_block_response_msg, &resp);
+    pb_release(&mosrpc_blockdev_read_block_request_msg, &req);
+    pb_release(&mosrpc_blockdev_read_block_response_msg, &resp);
 
     return EOK;
 }
@@ -122,13 +122,13 @@ static int blockdev_bwrite(struct ext4_blockdev *bdev, const void *buf, uint64_t
         if (resp.result.error)
             std::cerr << "Error: " << resp.result.error << std::endl;
 
-        pb_release(&mos_rpc_blockdev_write_block_request_msg, &req);
-        pb_release(&mos_rpc_blockdev_write_block_response_msg, &resp);
+        pb_release(&mosrpc_blockdev_write_block_request_msg, &req);
+        pb_release(&mosrpc_blockdev_write_block_response_msg, &resp);
         return EIO;
     }
 
-    pb_release(&mos_rpc_blockdev_write_block_request_msg, &req);
-    pb_release(&mos_rpc_blockdev_write_block_response_msg, &resp);
+    pb_release(&mosrpc_blockdev_write_block_request_msg, &req);
+    pb_release(&mosrpc_blockdev_write_block_response_msg, &resp);
 
     // std::cout << "  ok" << std::endl;
     return EOK;
@@ -148,7 +148,7 @@ void Ext4UserFS::on_disconnect(rpc_context_t *ctx)
     delete get_data<ext4_context_state>(ctx);
 }
 
-void Ext4UserFS::populate_pb_inode_info(pb_inode_info &info, ext4_sblock *sb, ext4_inode *inode, int ino)
+void Ext4UserFS::populate_mosrpc_fs_inode_info(mosrpc_fs_inode_info &info, ext4_sblock *sb, ext4_inode *inode, int ino)
 {
     info.ino = ino;
     info.perm = ext4_inode_get_mode(sb, inode);
@@ -167,7 +167,7 @@ void Ext4UserFS::populate_pb_inode_info(pb_inode_info &info, ext4_sblock *sb, ex
     info.sgid = false;
 };
 
-void Ext4UserFS::save_inode_info(ext4_sblock *sb, ext4_inode *inode, const pb_inode_info &info)
+void Ext4UserFS::save_inode_info(ext4_sblock *sb, ext4_inode *inode, const mosrpc_fs_inode_info &info)
 {
     ext4_inode_set_size(inode, info.size);
     ext4_inode_set_mode(sb, inode, info.perm);
@@ -179,7 +179,7 @@ void Ext4UserFS::save_inode_info(ext4_sblock *sb, ext4_inode *inode, const pb_in
     ext4_inode_set_links_cnt(inode, info.nlinks);
 }
 
-rpc_result_code_t Ext4UserFS::mount(rpc_context_t *ctx, mos_rpc_fs_mount_request *req, mos_rpc_fs_mount_response *resp)
+rpc_result_code_t Ext4UserFS::mount(rpc_context_t *ctx, mosrpc_fs_mount_request *req, mosrpc_fs_mount_response *resp)
 {
     if (req->fs_name != "userfs.ext4"s)
     {
@@ -239,7 +239,7 @@ rpc_result_code_t Ext4UserFS::mount(rpc_context_t *ctx, mos_rpc_fs_mount_request
 
     ext4_inode_ref root;
     ext4_fs_get_inode_ref(state->fs, EXT4_ROOT_INO, &root);
-    populate_pb_inode_info(resp->root_info, &state->fs->sb, root.inode, EXT4_ROOT_INO);
+    populate_mosrpc_fs_inode_info(resp->root_info, &state->fs->sb, root.inode, EXT4_ROOT_INO);
     ext4_fs_put_inode_ref(&root);
     resp->root_ref = make_inode_ref(root);
 
@@ -248,7 +248,7 @@ rpc_result_code_t Ext4UserFS::mount(rpc_context_t *ctx, mos_rpc_fs_mount_request
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::readdir(rpc_context_t *ctx, mos_rpc_fs_readdir_request *req, mos_rpc_fs_readdir_response *resp)
+rpc_result_code_t Ext4UserFS::readdir(rpc_context_t *ctx, mosrpc_fs_readdir_request *req, mosrpc_fs_readdir_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
 
@@ -276,13 +276,13 @@ rpc_result_code_t Ext4UserFS::readdir(rpc_context_t *ctx, mos_rpc_fs_readdir_req
             // Found a non-empty directory entry
             const auto de = iter.curr;
 
-            pb_dirent dirent;
+            mosrpc_fs_pb_dirent dirent;
             dirent.ino = de->inode;
             dirent.name = strndup((char *) de->name, de->name_len);
             dirent.type = ext4_get_file_type(&state->fs->sb, de);
 
             resp->entries_count++;
-            resp->entries = (pb_dirent *) realloc(resp->entries, resp->entries_count * sizeof(pb_dirent));
+            resp->entries = (mosrpc_fs_pb_dirent *) realloc(resp->entries, resp->entries_count * sizeof(mosrpc_fs_pb_dirent));
             resp->entries[resp->entries_count - 1] = dirent;
         }
 
@@ -305,7 +305,7 @@ rpc_result_code_t Ext4UserFS::readdir(rpc_context_t *ctx, mos_rpc_fs_readdir_req
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::lookup(rpc_context_t *ctx, mos_rpc_fs_lookup_request *req, mos_rpc_fs_lookup_response *resp)
+rpc_result_code_t Ext4UserFS::lookup(rpc_context_t *ctx, mosrpc_fs_lookup_request *req, mosrpc_fs_lookup_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
 
@@ -335,7 +335,7 @@ rpc_result_code_t Ext4UserFS::lookup(rpc_context_t *ctx, mos_rpc_fs_lookup_reque
     }
 
     resp->i_ref = make_inode_ref(result.dentry->inode);
-    populate_pb_inode_info(resp->i_info, &state->fs->sb, sub_inode.inode, result.dentry->inode);
+    populate_mosrpc_fs_inode_info(resp->i_info, &state->fs->sb, sub_inode.inode, result.dentry->inode);
     ext4_dir_destroy_result(&parent_inode_ref, &result);
     ext4_fs_put_inode_ref(&sub_inode);
     ext4_fs_put_inode_ref(&parent_inode_ref);
@@ -345,7 +345,7 @@ rpc_result_code_t Ext4UserFS::lookup(rpc_context_t *ctx, mos_rpc_fs_lookup_reque
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::readlink(rpc_context_t *ctx, mos_rpc_fs_readlink_request *req, mos_rpc_fs_readlink_response *resp)
+rpc_result_code_t Ext4UserFS::readlink(rpc_context_t *ctx, mosrpc_fs_readlink_request *req, mosrpc_fs_readlink_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
 
@@ -393,7 +393,7 @@ rpc_result_code_t Ext4UserFS::readlink(rpc_context_t *ctx, mos_rpc_fs_readlink_r
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::getpage(rpc_context_t *ctx, mos_rpc_fs_getpage_request *req, mos_rpc_fs_getpage_response *resp)
+rpc_result_code_t Ext4UserFS::getpage(rpc_context_t *ctx, mosrpc_fs_getpage_request *req, mosrpc_fs_getpage_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
     ext4_inode_ref inode_ref;
@@ -436,7 +436,7 @@ rpc_result_code_t Ext4UserFS::getpage(rpc_context_t *ctx, mos_rpc_fs_getpage_req
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::create_file(rpc_context_t *ctx, mos_rpc_fs_create_file_request *req, mos_rpc_fs_create_file_response *resp)
+rpc_result_code_t Ext4UserFS::create_file(rpc_context_t *ctx, mosrpc_fs_create_file_request *req, mosrpc_fs_create_file_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
     ext4_inode_ref inode_ref;
@@ -490,7 +490,7 @@ rpc_result_code_t Ext4UserFS::create_file(rpc_context_t *ctx, mos_rpc_fs_create_
     }
 
     resp->i_ref = make_inode_ref(child_ref);
-    populate_pb_inode_info(resp->i_info, &state->fs->sb, child_ref.inode, child_ref.index);
+    populate_mosrpc_fs_inode_info(resp->i_info, &state->fs->sb, child_ref.inode, child_ref.index);
     ext4_fs_put_inode_ref(&child_ref);
     ext4_block_cache_flush(state->mp->bc.bdev);
     ext4_fs_put_inode_ref(&inode_ref);
@@ -500,7 +500,7 @@ rpc_result_code_t Ext4UserFS::create_file(rpc_context_t *ctx, mos_rpc_fs_create_
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::putpage(rpc_context_t *ctx, mos_rpc_fs_putpage_request *req, mos_rpc_fs_putpage_response *resp)
+rpc_result_code_t Ext4UserFS::putpage(rpc_context_t *ctx, mosrpc_fs_putpage_request *req, mosrpc_fs_putpage_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
     ext4_inode_ref inode_ref;
@@ -568,7 +568,7 @@ rpc_result_code_t Ext4UserFS::putpage(rpc_context_t *ctx, mos_rpc_fs_putpage_req
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::sync_inode(rpc_context_t *ctx, mos_rpc_fs_sync_inode_request *req, mos_rpc_fs_sync_inode_response *resp)
+rpc_result_code_t Ext4UserFS::sync_inode(rpc_context_t *ctx, mosrpc_fs_sync_inode_request *req, mosrpc_fs_sync_inode_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
 
@@ -588,7 +588,7 @@ rpc_result_code_t Ext4UserFS::sync_inode(rpc_context_t *ctx, mos_rpc_fs_sync_ino
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::unlink(rpc_context_t *ctx, mos_rpc_fs_unlink_request *req, mos_rpc_fs_unlink_response *resp)
+rpc_result_code_t Ext4UserFS::unlink(rpc_context_t *ctx, mosrpc_fs_unlink_request *req, mosrpc_fs_unlink_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
 

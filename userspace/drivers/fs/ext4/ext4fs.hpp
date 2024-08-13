@@ -5,6 +5,7 @@
 #include "blockdev.h"
 #include "ext4.h"
 #include "ext4_blockdev.h"
+#include "ext4_types.h"
 #include "proto/blockdev.pb.h"
 #include "proto/filesystem.pb.h"
 
@@ -22,14 +23,14 @@ RPC_CLIENT_DEFINE_STUB_CLASS(BlockdevManager, BLOCKDEV_MANAGER_RPC_X);
 RPC_CLIENT_DEFINE_STUB_CLASS(UserFSManager, USERFS_MANAGER_X);
 
 using namespace std::string_literals;
-using namespace mos_rpc::blockdev;
+using namespace mosrpc::blockdev;
 
 extern std::unique_ptr<UserFSManager> userfs_manager;
 extern std::unique_ptr<BlockdevManager> blockdev_manager;
 
 struct ext4_context_state
 {
-    mos_rpc_blockdev_blockdev blockdev;
+    mosrpc_blockdev_blockdev blockdev;
 
     uint8_t ext4_buf[512] = { 0 };
     ext4_blockdev_iface ext4_dev_iface;
@@ -89,25 +90,25 @@ class Ext4UserFS : public IExt4Server
         }
     };
 
-    static void populate_pb_inode_info(pb_inode_info &info, ext4_sblock *sb, ext4_inode *inode, int ino);
-    static void save_inode_info(ext4_sblock *sb, ext4_inode *inode, const pb_inode_info &info);
+    static void populate_mosrpc_fs_inode_info(mosrpc_fs_inode_info &info, ext4_sblock *sb, ext4_inode *inode, int ino);
+    static void save_inode_info(ext4_sblock *sb, ext4_inode *inode, const mosrpc_fs_inode_info &info);
 
   private:
-    virtual rpc_result_code_t mount(rpc_context_t *ctx, mos_rpc_fs_mount_request *req, mos_rpc_fs_mount_response *resp) override;
+    virtual rpc_result_code_t mount(rpc_context_t *ctx, mosrpc_fs_mount_request *req, mosrpc_fs_mount_response *resp) override;
 
-    virtual rpc_result_code_t readdir(rpc_context_t *ctx, mos_rpc_fs_readdir_request *req, mos_rpc_fs_readdir_response *resp) override;
+    virtual rpc_result_code_t readdir(rpc_context_t *ctx, mosrpc_fs_readdir_request *req, mosrpc_fs_readdir_response *resp) override;
 
-    virtual rpc_result_code_t lookup(rpc_context_t *ctx, mos_rpc_fs_lookup_request *req, mos_rpc_fs_lookup_response *resp) override;
+    virtual rpc_result_code_t lookup(rpc_context_t *ctx, mosrpc_fs_lookup_request *req, mosrpc_fs_lookup_response *resp) override;
 
-    virtual rpc_result_code_t readlink(rpc_context_t *ctx, mos_rpc_fs_readlink_request *req, mos_rpc_fs_readlink_response *resp) override;
+    virtual rpc_result_code_t readlink(rpc_context_t *ctx, mosrpc_fs_readlink_request *req, mosrpc_fs_readlink_response *resp) override;
 
-    virtual rpc_result_code_t getpage(rpc_context_t *ctx, mos_rpc_fs_getpage_request *req, mos_rpc_fs_getpage_response *resp) override;
+    virtual rpc_result_code_t getpage(rpc_context_t *ctx, mosrpc_fs_getpage_request *req, mosrpc_fs_getpage_response *resp) override;
 
-    virtual rpc_result_code_t create_file(rpc_context_t *ctx, mos_rpc_fs_create_file_request *req, mos_rpc_fs_create_file_response *resp) override;
+    virtual rpc_result_code_t create_file(rpc_context_t *ctx, mosrpc_fs_create_file_request *req, mosrpc_fs_create_file_response *resp) override;
 
-    virtual rpc_result_code_t putpage(rpc_context_t *ctx, mos_rpc_fs_putpage_request *req, mos_rpc_fs_putpage_response *resp) override;
+    virtual rpc_result_code_t putpage(rpc_context_t *ctx, mosrpc_fs_putpage_request *req, mosrpc_fs_putpage_response *resp) override;
 
-    virtual rpc_result_code_t sync_inode(rpc_context_t *ctx, mos_rpc_fs_sync_inode_request *req, mos_rpc_fs_sync_inode_response *resp) override;
+    virtual rpc_result_code_t sync_inode(rpc_context_t *ctx, mosrpc_fs_sync_inode_request *req, mosrpc_fs_sync_inode_response *resp) override;
 
-    virtual rpc_result_code_t unlink(rpc_context_t *ctx, mos_rpc_fs_unlink_request *req, mos_rpc_fs_unlink_response *resp) override;
+    virtual rpc_result_code_t unlink(rpc_context_t *ctx, mosrpc_fs_unlink_request *req, mosrpc_fs_unlink_response *resp) override;
 };

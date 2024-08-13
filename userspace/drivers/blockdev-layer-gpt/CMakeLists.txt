@@ -3,7 +3,7 @@
 generate_nanopb_proto(
     PROTO_SRCS
     PROTO_HEADERS
-    ${CMAKE_SOURCE_DIR}/proto/mos_rpc.proto
+    ${CMAKE_SOURCE_DIR}/proto/mosrpc.proto
     ${CMAKE_SOURCE_DIR}/proto/blockdev.proto
 )
 

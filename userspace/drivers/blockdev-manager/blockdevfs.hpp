@@ -25,7 +25,7 @@ class BlockdevFSServer : public IUserFSServer
     virtual ~BlockdevFSServer() = default;
 
   private:
-    rpc_result_code_t mount(rpc_context_t *, mos_rpc_fs_mount_request *req, mos_rpc_fs_mount_response *resp) override;
-    rpc_result_code_t readdir(rpc_context_t *, mos_rpc_fs_readdir_request *req, mos_rpc_fs_readdir_response *resp) override;
-    rpc_result_code_t lookup(rpc_context_t *, mos_rpc_fs_lookup_request *req, mos_rpc_fs_lookup_response *resp) override;
+    rpc_result_code_t mount(rpc_context_t *, mosrpc_fs_mount_request *req, mosrpc_fs_mount_response *resp) override;
+    rpc_result_code_t readdir(rpc_context_t *, mosrpc_fs_readdir_request *req, mosrpc_fs_readdir_response *resp) override;
+    rpc_result_code_t lookup(rpc_context_t *, mosrpc_fs_lookup_request *req, mosrpc_fs_lookup_response *resp) override;
 };

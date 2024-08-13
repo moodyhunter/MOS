@@ -14,7 +14,7 @@ use virtio_drivers::transport::pci::{
 
 mod drivers;
 mod hal;
-mod mos_rpc;
+mod mosrpc;
 mod utils;
 
 /// VirtIO Driver for MOS

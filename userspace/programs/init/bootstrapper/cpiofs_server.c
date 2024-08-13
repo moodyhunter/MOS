@@ -33,7 +33,7 @@ static rpc_server_stub_t *fs_manager = NULL;
 
 typedef struct
 {
-    pb_inode_info pb_i;
+    mosrpc_fs_inode_info pb_i;
     size_t header_offset;
     size_t name_offset, name_length;
     size_t data_offset;
@@ -77,7 +77,7 @@ static cpio_inode_t *cpio_trycreate_i(const char *path)
     const u64 ino = strntoll(cpio_inode->header.ino, NULL, 16, sizeof(cpio_inode->header.ino) / sizeof(char));
     const file_type_t file_type = cpio_modebits_to_filetype(modebits & CPIO_MODE_FILE_TYPE);
 
-    pb_inode_info *const i = &cpio_inode->pb_i;
+    mosrpc_fs_inode_info *const i = &cpio_inode->pb_i;
 
     i->type = file_type;
     i->ino = ino;
@@ -94,7 +94,7 @@ static cpio_inode_t *cpio_trycreate_i(const char *path)
     return cpio_inode;
 }
 
-static rpc_result_code_t cpiofs_mount(rpc_context_t *, mos_rpc_fs_mount_request *req, mos_rpc_fs_mount_response *resp)
+static rpc_result_code_t cpiofs_mount(rpc_context_t *, mosrpc_fs_mount_request *req, mosrpc_fs_mount_response *resp)
 {
     if (req->options && strlen(req->options) > 0 && strcmp(req->options, "defaults") != 0)
         printf("cpio: mount option '%s' is not supported\n", req->options);
@@ -117,7 +117,7 @@ static rpc_result_code_t cpiofs_mount(rpc_context_t *, mos_rpc_fs_mount_request 
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t cpiofs_readdir(rpc_context_t *, mos_rpc_fs_readdir_request *req, mos_rpc_fs_readdir_response *resp)
+static rpc_result_code_t cpiofs_readdir(rpc_context_t *, mosrpc_fs_readdir_request *req, mosrpc_fs_readdir_response *resp)
 {
     cpio_inode_t *inode = (cpio_inode_t *) req->i_ref.data;
 
@@ -135,7 +135,7 @@ static rpc_result_code_t cpiofs_readdir(rpc_context_t *, mos_rpc_fs_readdir_requ
 
     size_t n_written = 0;
     resp->entries_count = 1;
-    resp->entries = malloc(sizeof(pb_dirent) * resp->entries_count);
+    resp->entries = malloc(sizeof(mosrpc_fs_pb_dirent) * resp->entries_count);
 
     size_t offset = 0;
 
@@ -174,10 +174,10 @@ static rpc_result_code_t cpiofs_readdir(rpc_context_t *, mos_rpc_fs_readdir_requ
             if (n_written >= resp->entries_count)
             {
                 resp->entries_count *= 2;
-                resp->entries = realloc(resp->entries, sizeof(pb_dirent) * resp->entries_count);
+                resp->entries = realloc(resp->entries, sizeof(mosrpc_fs_pb_dirent) * resp->entries_count);
             }
 
-            pb_dirent *const de = &resp->entries[n_written++];
+            mosrpc_fs_pb_dirent *const de = &resp->entries[n_written++];
             de->ino = ino;
             de->name = strndup(fname, fname_len);
             de->type = type;
@@ -198,7 +198,7 @@ static rpc_result_code_t cpiofs_readdir(rpc_context_t *, mos_rpc_fs_readdir_requ
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t cpiofs_lookup(rpc_context_t *, mos_rpc_fs_lookup_request *req, mos_rpc_fs_lookup_response *resp)
+static rpc_result_code_t cpiofs_lookup(rpc_context_t *, mosrpc_fs_lookup_request *req, mosrpc_fs_lookup_response *resp)
 {
     char pathbuf[PATH_MAX] = { 0 };
     cpio_inode_t *parent_diri = (cpio_inode_t *) req->i_ref.data;
@@ -238,7 +238,7 @@ static rpc_result_code_t cpiofs_lookup(rpc_context_t *, mos_rpc_fs_lookup_reques
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t cpiofs_readlink(rpc_context_t *, mos_rpc_fs_readlink_request *req, mos_rpc_fs_readlink_response *resp)
+static rpc_result_code_t cpiofs_readlink(rpc_context_t *, mosrpc_fs_readlink_request *req, mosrpc_fs_readlink_response *resp)
 {
     cpio_inode_t *cpio_i = (cpio_inode_t *) req->i_ref.data;
     char path[cpio_i->data_offset + cpio_i->pb_i.size + 1];
@@ -250,7 +250,7 @@ static rpc_result_code_t cpiofs_readlink(rpc_context_t *, mos_rpc_fs_readlink_re
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t cpiofs_getpage(rpc_context_t *, mos_rpc_fs_getpage_request *req, mos_rpc_fs_getpage_response *resp)
+static rpc_result_code_t cpiofs_getpage(rpc_context_t *, mosrpc_fs_getpage_request *req, mosrpc_fs_getpage_response *resp)
 {
     cpio_inode_t *cpio_i = (cpio_inode_t *) req->i_ref.data;
 
@@ -282,28 +282,28 @@ static rpc_result_code_t cpiofs_getpage(rpc_context_t *, mos_rpc_fs_getpage_requ
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t cpiofs_create_file(rpc_context_t *, mos_rpc_fs_create_file_request *, mos_rpc_fs_create_file_response *resp)
+static rpc_result_code_t cpiofs_create_file(rpc_context_t *, mosrpc_fs_create_file_request *, mosrpc_fs_create_file_response *resp)
 {
     resp->result.success = false;
     resp->result.error = strdup("cpiofs: cannot create files");
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t cpiofs_putpage(rpc_context_t *, mos_rpc_fs_putpage_request *, mos_rpc_fs_putpage_response *resp)
+static rpc_result_code_t cpiofs_putpage(rpc_context_t *, mosrpc_fs_putpage_request *, mosrpc_fs_putpage_response *resp)
 {
     resp->result.success = false;
     resp->result.error = strdup("cpiofs: cannot write to cpiofs");
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t cpiofs_sync_inode(rpc_context_t *, mos_rpc_fs_sync_inode_request *, mos_rpc_fs_sync_inode_response *resp)
+static rpc_result_code_t cpiofs_sync_inode(rpc_context_t *, mosrpc_fs_sync_inode_request *, mosrpc_fs_sync_inode_response *resp)
 {
     resp->result.success = false;
     resp->result.error = strdup("cpiofs: cannot sync cpiofs");
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t cpiofs_unlink(rpc_context_t *, mos_rpc_fs_unlink_request *, mos_rpc_fs_unlink_response *resp)
+static rpc_result_code_t cpiofs_unlink(rpc_context_t *, mosrpc_fs_unlink_request *, mosrpc_fs_unlink_response *resp)
 {
     resp->result.success = false;
     resp->result.error = strdup("cpiofs: cannot unlink from cpiofs");
@@ -328,11 +328,11 @@ void init_start_cpiofs_server(fd_t notifier)
         goto bad;
     }
 
-    mos_rpc_fs_register_request req = mos_rpc_fs_register_request_init_zero;
+    mosrpc_fs_register_request req = mosrpc_fs_register_request_init_zero;
     req.fs.name = CPIOFS_NAME;
     req.rpc_server_name = CPIOFS_RPC_SERVER_NAME;
 
-    mos_rpc_fs_register_response resp = mos_rpc_fs_register_response_init_zero;
+    mosrpc_fs_register_response resp = mosrpc_fs_register_response_init_zero;
     const rpc_result_code_t result = fs_manager_register_fs(fs_manager, &req, &resp);
     if (result != RPC_RESULT_OK || !resp.result.success)
     {
@@ -340,7 +340,7 @@ void init_start_cpiofs_server(fd_t notifier)
         goto bad;
     }
 
-    pb_release(mos_rpc_fs_register_response_fields, &resp);
+    pb_release(mosrpc_fs_register_response_fields, &resp);
 
     if (write(notifier, "v", 1) != 1)
     {

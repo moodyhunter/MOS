@@ -25,7 +25,7 @@ class RAMDiskServer
     {
     }
 
-    rpc_result_code_t read_block(rpc_context_t *, mos_rpc_blockdev_read_block_request *req, mos_rpc_blockdev_read_block_response *resp) override
+    rpc_result_code_t read_block(rpc_context_t *, mosrpc_blockdev_read_block_request *req, mosrpc_blockdev_read_block_response *resp) override
     {
         if (req->n_boffset + req->n_blocks > nblocks())
         {
@@ -44,7 +44,7 @@ class RAMDiskServer
         return RPC_RESULT_OK;
     }
 
-    rpc_result_code_t write_block(rpc_context_t *, mos_rpc_blockdev_write_block_request *req, mos_rpc_blockdev_write_block_response *resp) override
+    rpc_result_code_t write_block(rpc_context_t *, mosrpc_blockdev_write_block_request *req, mosrpc_blockdev_write_block_response *resp) override
     {
         RAMDisk::write_block(req->n_boffset, req->n_blocks, req->data->bytes);
 
@@ -109,14 +109,14 @@ int main(int argc, char **argv)
 
     const auto blockdev_manager = std::make_unique<BlockManager>(BLOCKDEV_MANAGER_RPC_SERVER_NAME);
 
-    mos_rpc_blockdev_register_device_request req{ .server_name = strdup(ramdisk_server.get_name().c_str()),
-                                                  .device_info = {
-                                                      .name = strdup(blockdev_name.c_str()),
-                                                      .size = ramdisk_server.nblocks() * ramdisk_server.block_size(),
-                                                      .block_size = ramdisk_server.block_size(),
-                                                      .n_blocks = ramdisk_server.nblocks(),
-                                                  } };
-    mos_rpc_blockdev_register_device_response resp;
+    mosrpc_blockdev_register_device_request req{ .server_name = strdup(ramdisk_server.get_name().c_str()),
+                                                 .device_info = {
+                                                     .name = strdup(blockdev_name.c_str()),
+                                                     .size = ramdisk_server.nblocks() * ramdisk_server.block_size(),
+                                                     .block_size = ramdisk_server.block_size(),
+                                                     .n_blocks = ramdisk_server.nblocks(),
+                                                 } };
+    mosrpc_blockdev_register_device_response resp;
     blockdev_manager->register_device(&req, &resp);
     if (!resp.result.success)
     {

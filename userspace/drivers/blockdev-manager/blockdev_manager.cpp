@@ -165,7 +165,7 @@ rpc_result_code_t BlockManager::read_block(rpc_context_t *ctx, read_block::reque
             const auto info = std::get<BlockLayerInfo>(device.info);
             const auto server = get_layer_server(info.server_name);
 
-            mos_rpc_blockdev_read_partition_block_request part_req = {
+            mosrpc_blockdev_read_partition_block_request part_req = {
                 .device = { .devid = (u32) -1 },
                 .partition = { .partid = info.partid },
                 .n_boffset = req->n_boffset,
@@ -215,7 +215,7 @@ rpc_result_code_t BlockManager::write_block(rpc_context_t *ctx, write_block::req
 
             std::cout << "Writing to layer " << info.partid << " block " << req->n_boffset << std::endl;
 
-            mos_rpc_blockdev_write_partition_block_request part_req = {
+            mosrpc_blockdev_write_partition_block_request part_req = {
                 .device = { .devid = (u32) -1 },
                 .partition = { .partid = info.partid },
                 .data = req->data,

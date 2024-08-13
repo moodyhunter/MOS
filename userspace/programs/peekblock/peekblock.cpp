@@ -14,13 +14,13 @@
 #include <pb_decode.h>
 #include <string>
 
-using namespace mos_rpc::blockdev;
+using namespace mosrpc::blockdev;
 
 RPC_CLIENT_DEFINE_STUB_CLASS(BlockDevManagerServerStub, BLOCKDEV_MANAGER_RPC_X)
 
 std::unique_ptr<BlockDevManagerServerStub> manager = nullptr;
 
-static const std::optional<mos_rpc_blockdev_blockdev> do_open_device(const char *device_name)
+static const std::optional<mosrpc_blockdev_blockdev> do_open_device(const char *device_name)
 {
     open_device::request request{ .device_name = strdup(device_name) };
     open_device::response response;
@@ -34,12 +34,12 @@ static const std::optional<mos_rpc_blockdev_blockdev> do_open_device(const char 
     }
 
     const auto dev = response.device;
-    pb_release(mos_rpc_blockdev_open_device_request_fields, &request);
-    pb_release(mos_rpc_blockdev_open_device_response_fields, &response);
+    pb_release(mosrpc_blockdev_open_device_request_fields, &request);
+    pb_release(mosrpc_blockdev_open_device_response_fields, &response);
     return dev;
 }
 
-static void do_peek_blocks(const mos_rpc_blockdev_blockdev &device, size_t start, u32 n_blocks)
+static void do_peek_blocks(const mosrpc_blockdev_blockdev &device, size_t start, u32 n_blocks)
 {
     auto read_req = read_block::request{
         .device = device,
@@ -74,8 +74,8 @@ static void do_peek_blocks(const mos_rpc_blockdev_blockdev &device, size_t start
             std::cout << std::endl;
     }
 
-    pb_release(mos_rpc_blockdev_read_block_request_fields, &read_req);
-    pb_release(mos_rpc_blockdev_read_block_response_fields, &read_resp);
+    pb_release(mosrpc_blockdev_read_block_request_fields, &read_req);
+    pb_release(mosrpc_blockdev_read_block_response_fields, &read_resp);
 }
 
 int main(int argc, char **argv)

@@ -1,7 +1,7 @@
 syntax = "proto3";
 import "nanopb.proto";
 
-package mos_rpc;
+package mosrpc;
 
 option (nanopb_fileopt).fallback_type = FT_POINTER;
 option (nanopb_fileopt).proto3_singular_msgs = true;
