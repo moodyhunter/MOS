@@ -5,12 +5,6 @@ set(LIB_ONLY ON)
 add_definitions(-DCONFIG_USE_DEFAULT_CFG=1)
 add_subdirectory(lwext4)
 
-generate_nanopb_proto(PROTO_SRCS PROTO_HDRS
-    ${CMAKE_SOURCE_DIR}/proto/mosrpc.proto
-    ${CMAKE_SOURCE_DIR}/proto/filesystem.proto
-    ${CMAKE_SOURCE_DIR}/proto/blockdev.proto
-)
-
 add_executable(ext4fs
     main.cpp
     ext4fs.cpp
@@ -27,6 +21,7 @@ target_link_libraries(ext4fs PRIVATE
     mos::nanopb
     mos::librpc-server
     mos::librpc-client
+    mos::rpc-protocols
 )
 
 add_to_initrd(TARGET ext4fs /drivers/)

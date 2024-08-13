@@ -8,6 +8,7 @@
 #include "ext4_types.h"
 #include "proto/blockdev.pb.h"
 #include "proto/filesystem.pb.h"
+#include "proto/userfs-manager.services.h"
 
 #include <librpc/macro_magic.h>
 #include <librpc/rpc.h>
@@ -20,7 +21,7 @@
 
 RPC_DECL_SERVER_INTERFACE_CLASS(IExt4Server, USERFS_IMPL_X);
 RPC_CLIENT_DEFINE_STUB_CLASS(BlockdevManager, BLOCKDEV_MANAGER_RPC_X);
-RPC_CLIENT_DEFINE_STUB_CLASS(UserFSManager, USERFS_MANAGER_X);
+RPC_CLIENT_DEFINE_STUB_CLASS(UserFSManager, USERFSMANAGER_SERVICE_X);
 
 using namespace std::string_literals;
 using namespace mosrpc::blockdev;

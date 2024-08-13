@@ -3,6 +3,8 @@
 #include "bootstrapper.h"
 #include "cpiofs.h"
 #include "proto/filesystem.pb.h"
+#include "proto/userfs-manager.pb.h"
+#include "proto/userfs-manager.services.h"
 
 #include <bits/posix/pthread_t.h>
 #include <librpc/macro_magic.h>
@@ -24,7 +26,7 @@
 #define CPIOFS_NAME            "cpiofs"
 #define CPIOFS_RPC_SERVER_NAME "fs.cpiofs"
 
-RPC_CLIENT_DEFINE_SIMPLECALL(fs_manager, USERFS_MANAGER_X)
+RPC_CLIENT_DEFINE_SIMPLECALL(fs_manager, USERFSMANAGER_SERVICE_X)
 
 RPC_DECL_SERVER_PROTOTYPES(cpiofs, USERFS_IMPL_X)
 
@@ -328,19 +330,19 @@ void init_start_cpiofs_server(fd_t notifier)
         goto bad;
     }
 
-    mosrpc_fs_register_request req = mosrpc_fs_register_request_init_zero;
+    mosrpc_userfs_register_request req = mosrpc_userfs_register_request_init_zero;
     req.fs.name = CPIOFS_NAME;
     req.rpc_server_name = CPIOFS_RPC_SERVER_NAME;
 
-    mosrpc_fs_register_response resp = mosrpc_fs_register_response_init_zero;
-    const rpc_result_code_t result = fs_manager_register_fs(fs_manager, &req, &resp);
+    mosrpc_userfs_register_response resp = mosrpc_userfs_register_response_init_zero;
+    const rpc_result_code_t result = fs_manager_register_filesystem(fs_manager, &req, &resp);
     if (result != RPC_RESULT_OK || !resp.result.success)
     {
         puts("cpiofs: failed to register cpiofs with filesystem server");
         goto bad;
     }
 
-    pb_release(mosrpc_fs_register_response_fields, &resp);
+    pb_release(mosrpc_userfs_register_response_fields, &resp);
 
     if (write(notifier, "v", 1) != 1)
     {

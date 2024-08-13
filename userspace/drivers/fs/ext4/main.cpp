@@ -25,12 +25,12 @@ int main(int argc, char **)
     ext4_dmask_set(DEBUG_ALL);
 #endif
 
-    mosrpc_fs_register_request req{
+    mosrpc_userfs_register_request req{
         .fs = { .name = strdup("ext4") },
         .rpc_server_name = strdup(server_name.c_str()),
     };
-    mosrpc_fs_register_response resp;
-    const auto reg_result = userfs_manager->register_fs(&req, &resp);
+    mosrpc_userfs_register_response resp;
+    const auto reg_result = userfs_manager->register_filesystem(&req, &resp);
     if (reg_result != RPC_RESULT_OK || !resp.result.success)
     {
         std::cerr << "Failed to register filesystem" << std::endl;
@@ -39,8 +39,8 @@ int main(int argc, char **)
         return 1;
     }
 
-    pb_release(&mosrpc_fs_register_request_msg, &req);
-    pb_release(&mosrpc_fs_register_response_msg, &resp);
+    pb_release(&mosrpc_userfs_register_request_msg, &req);
+    pb_release(&mosrpc_userfs_register_response_msg, &resp);
 
     Ext4UserFS ext4_userfs(server_name);
     ext4_userfs.run();

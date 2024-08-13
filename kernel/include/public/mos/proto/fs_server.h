@@ -4,10 +4,6 @@
 
 #define USERFS_SERVER_RPC_NAME "mos.userfs-manager"
 
-#define USERFS_MANAGER_X(ARGS, PB, xarg)                                                                                                                                 \
-    /**/                                                                                                                                                                 \
-    PB(xarg, 0, register_fs, REGISTER_FS, mosrpc_fs_register_request, mosrpc_fs_register_response)
-
 #define USERFS_IMPL_X(ARGS, PB, xarg)                                                                                                                                    \
     PB(xarg, 0, mount, MOUNT, mosrpc_fs_mount_request, mosrpc_fs_mount_response)                                                                                         \
     PB(xarg, 1, readdir, READDIR, mosrpc_fs_readdir_request, mosrpc_fs_readdir_response)                                                                                 \

@@ -35,22 +35,6 @@ message dentry
     string name = 2;
 }
 
-message pb_fs
-{
-    string name = 1; // the name of the filesystem
-}
-
-message register_request
-{
-    pb_fs fs = 1;
-    string rpc_server_name = 2;
-}
-
-message register_response
-{
-    mosrpc.result result = 1;
-}
-
 message mount_request
 {
     string fs_name = 1;

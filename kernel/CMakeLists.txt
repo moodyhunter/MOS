@@ -97,11 +97,5 @@ add_kernel_submodule(tasks)
 
 add_kernel_source(kmain.c ksyscall_entry.c ksyscall.c)
 
-# nanopb
-generate_nanopb_proto(FILESYSTEM_PROTO_SRCS FILESYSTEM_PROTO_HEADERS ${CMAKE_SOURCE_DIR}/proto/mosrpc.proto ${CMAKE_SOURCE_DIR}/proto/filesystem.proto)
-add_kernel_source(${FILESYSTEM_PROTO_SRCS} ${FILESYSTEM_PROTO_HEADERS})
-
-generate_nanopb_proto(SYSLOG_PROTO_SRCS SYSLOG_PROTO_HEADERS ${CMAKE_SOURCE_DIR}/proto/syslog.proto)
-add_kernel_source(${SYSLOG_PROTO_SRCS} ${SYSLOG_PROTO_HEADERS})
-
+target_link_libraries(mos_kernel PRIVATE mos::rpc-protocols)
 add_subdirectory(tests)

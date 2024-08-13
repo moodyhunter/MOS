@@ -4,6 +4,7 @@
 
 #include "blockdev_manager.hpp"
 #include "proto/filesystem.pb.h"
+#include "proto/userfs-manager.pb.h"
 
 #include <assert.h>
 #include <chrono>
@@ -148,10 +149,10 @@ bool register_blockdevfs()
     blockdevfs = std::make_unique<BlockdevFSServer>(BLOCKDEVFS_RPC_SERVER_NAME);
 
     UserfsManager userfs_manager{ USERFS_SERVER_RPC_NAME };
-    mosrpc_fs_register_request req = { .fs = { .name = strdup(BLOCKDEVFS_NAME) }, .rpc_server_name = strdup(BLOCKDEVFS_RPC_SERVER_NAME) };
-    mosrpc_fs_register_response resp;
+    mosrpc_userfs_register_request req = { .fs = { .name = strdup(BLOCKDEVFS_NAME) }, .rpc_server_name = strdup(BLOCKDEVFS_RPC_SERVER_NAME) };
+    mosrpc_userfs_register_response resp;
 
-    const rpc_result_code_t result = userfs_manager.register_fs(&req, &resp);
+    const rpc_result_code_t result = userfs_manager.register_filesystem(&req, &resp);
     if (result != RPC_RESULT_OK || !resp.result.success)
     {
         std::cout << "blockdevfs: failed to register blockdevfs with filesystem server" << std::endl;
@@ -159,8 +160,8 @@ bool register_blockdevfs()
         return false;
     }
 
-    pb_release(mosrpc_fs_register_request_fields, &req);
-    pb_release(mosrpc_fs_register_response_fields, &resp);
+    pb_release(mosrpc_userfs_register_request_fields, &req);
+    pb_release(mosrpc_userfs_register_response_fields, &resp);
 
     pthread_t worker;
     if (pthread_create(&worker, NULL, blockdevfs_worker, NULL) != 0)

@@ -1,10 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-generate_nanopb_proto(PROTO_SRCS PROTO_HDRS
-    ${CMAKE_SOURCE_DIR}/proto/mosrpc.proto
-    ${CMAKE_SOURCE_DIR}/proto/filesystem.proto
-)
-
 add_executable(bootstrapper
     main.cpp
     cpiofs.c
@@ -18,6 +13,7 @@ target_link_libraries(bootstrapper PRIVATE
     mos::nanopb_static
     mos::librpc-server_static
     mos::librpc-client_static
+    mos::rpc-protocols
 )
 target_compile_options(bootstrapper PRIVATE -static)
 target_link_options(bootstrapper PRIVATE -static)

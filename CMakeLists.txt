@@ -67,6 +67,7 @@ include(nanopb)
 include(add_kernel_source)
 include(create_bootable_kernel_binary)
 
+add_subdirectory(proto)
 add_subdirectory(kernel)
 
 # Libraries
