@@ -3,6 +3,7 @@
 #include "bootstrapper.h"
 #include "cpiofs.h"
 #include "proto/filesystem.pb.h"
+#include "proto/filesystem.services.h"
 #include "proto/userfs-manager.pb.h"
 #include "proto/userfs-manager.services.h"
 
@@ -28,7 +29,7 @@
 
 RPC_CLIENT_DEFINE_SIMPLECALL(fs_manager, USERFSMANAGER_SERVICE_X)
 
-RPC_DECL_SERVER_PROTOTYPES(cpiofs, USERFS_IMPL_X)
+RPC_DECL_SERVER_PROTOTYPES(cpiofs, USERFS_SERVICE_X)
 
 static rpc_server_t *cpiofs = NULL;
 static rpc_server_stub_t *fs_manager = NULL;
@@ -252,7 +253,7 @@ static rpc_result_code_t cpiofs_readlink(rpc_context_t *, mosrpc_fs_readlink_req
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t cpiofs_getpage(rpc_context_t *, mosrpc_fs_getpage_request *req, mosrpc_fs_getpage_response *resp)
+static rpc_result_code_t cpiofs_get_page(rpc_context_t *, mosrpc_fs_getpage_request *req, mosrpc_fs_getpage_response *resp)
 {
     cpio_inode_t *cpio_i = (cpio_inode_t *) req->i_ref.data;
 
@@ -291,7 +292,7 @@ static rpc_result_code_t cpiofs_create_file(rpc_context_t *, mosrpc_fs_create_fi
     return RPC_RESULT_OK;
 }
 
-static rpc_result_code_t cpiofs_putpage(rpc_context_t *, mosrpc_fs_putpage_request *, mosrpc_fs_putpage_response *resp)
+static rpc_result_code_t cpiofs_put_page(rpc_context_t *, mosrpc_fs_putpage_request *, mosrpc_fs_putpage_response *resp)
 {
     resp->result.success = false;
     resp->result.error = strdup("cpiofs: cannot write to cpiofs");

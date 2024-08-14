@@ -4,6 +4,7 @@
 
 #include "blockdev.h"
 #include "gptdisk.hpp"
+#include "proto/blockdev.services.h"
 
 #include <librpc/rpc.h>
 #include <librpc/rpc_client.h>
@@ -11,7 +12,7 @@
 #include <memory>
 #include <pb_decode.h>
 
-RPC_CLIENT_DEFINE_STUB_CLASS(BlockDevManagerServerStub, BLOCKDEV_MANAGER_RPC_X);
+RPC_CLIENT_DEFINE_STUB_CLASS(BlockDevManagerServerStub, BLOCKDEVMANAGER_SERVICE_X);
 RPC_DECL_SERVER_INTERFACE_CLASS(IGPTLayerServer, BLOCKDEV_LAYER_RPC_X);
 
 using namespace mosrpc::blockdev;

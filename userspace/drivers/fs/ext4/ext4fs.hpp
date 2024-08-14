@@ -7,7 +7,9 @@
 #include "ext4_blockdev.h"
 #include "ext4_types.h"
 #include "proto/blockdev.pb.h"
+#include "proto/blockdev.services.h"
 #include "proto/filesystem.pb.h"
+#include "proto/filesystem.services.h"
 #include "proto/userfs-manager.services.h"
 
 #include <librpc/macro_magic.h>
@@ -19,8 +21,8 @@
 #include <mos/proto/fs_server.h>
 #include <pb_decode.h>
 
-RPC_DECL_SERVER_INTERFACE_CLASS(IExt4Server, USERFS_IMPL_X);
-RPC_CLIENT_DEFINE_STUB_CLASS(BlockdevManager, BLOCKDEV_MANAGER_RPC_X);
+RPC_DECL_SERVER_INTERFACE_CLASS(IExt4Server, USERFS_SERVICE_X);
+RPC_CLIENT_DEFINE_STUB_CLASS(BlockdevManager, BLOCKDEVMANAGER_SERVICE_X);
 RPC_CLIENT_DEFINE_STUB_CLASS(UserFSManager, USERFSMANAGER_SERVICE_X);
 
 using namespace std::string_literals;
@@ -103,11 +105,11 @@ class Ext4UserFS : public IExt4Server
 
     virtual rpc_result_code_t readlink(rpc_context_t *ctx, mosrpc_fs_readlink_request *req, mosrpc_fs_readlink_response *resp) override;
 
-    virtual rpc_result_code_t getpage(rpc_context_t *ctx, mosrpc_fs_getpage_request *req, mosrpc_fs_getpage_response *resp) override;
+    virtual rpc_result_code_t get_page(rpc_context_t *ctx, mosrpc_fs_getpage_request *req, mosrpc_fs_getpage_response *resp) override;
 
     virtual rpc_result_code_t create_file(rpc_context_t *ctx, mosrpc_fs_create_file_request *req, mosrpc_fs_create_file_response *resp) override;
 
-    virtual rpc_result_code_t putpage(rpc_context_t *ctx, mosrpc_fs_putpage_request *req, mosrpc_fs_putpage_response *resp) override;
+    virtual rpc_result_code_t put_page(rpc_context_t *ctx, mosrpc_fs_putpage_request *req, mosrpc_fs_putpage_response *resp) override;
 
     virtual rpc_result_code_t sync_inode(rpc_context_t *ctx, mosrpc_fs_sync_inode_request *req, mosrpc_fs_sync_inode_response *resp) override;
 

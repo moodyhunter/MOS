@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "blockdev.h"
+#include "proto/blockdev.services.h"
 #include "ramdisk.hpp"
 
 #include <iostream>
@@ -13,7 +14,7 @@
 #include <pb_decode.h>
 #include <pb_encode.h>
 
-RPC_CLIENT_DEFINE_STUB_CLASS(BlockManager, BLOCKDEV_MANAGER_RPC_X);
+RPC_CLIENT_DEFINE_STUB_CLASS(BlockManager, BLOCKDEVMANAGER_SERVICE_X);
 RPC_DECL_SERVER_INTERFACE_CLASS(IRamDiskServer, BLOCKDEV_DEVICE_RPC_X);
 
 class RAMDiskServer

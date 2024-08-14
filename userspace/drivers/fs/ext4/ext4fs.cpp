@@ -393,7 +393,7 @@ rpc_result_code_t Ext4UserFS::readlink(rpc_context_t *ctx, mosrpc_fs_readlink_re
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::getpage(rpc_context_t *ctx, mosrpc_fs_getpage_request *req, mosrpc_fs_getpage_response *resp)
+rpc_result_code_t Ext4UserFS::get_page(rpc_context_t *ctx, mosrpc_fs_getpage_request *req, mosrpc_fs_getpage_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
     ext4_inode_ref inode_ref;
@@ -500,7 +500,7 @@ rpc_result_code_t Ext4UserFS::create_file(rpc_context_t *ctx, mosrpc_fs_create_f
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::putpage(rpc_context_t *ctx, mosrpc_fs_putpage_request *req, mosrpc_fs_putpage_response *resp)
+rpc_result_code_t Ext4UserFS::put_page(rpc_context_t *ctx, mosrpc_fs_putpage_request *req, mosrpc_fs_putpage_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
     ext4_inode_ref inode_ref;

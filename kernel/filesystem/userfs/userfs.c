@@ -9,6 +9,7 @@
 #include "mos/misc/profiling.h"
 #include "mos/syslog/printk.h"
 #include "proto/filesystem.pb.h"
+#include "proto/filesystem.services.h"
 
 #include <librpc/macro_magic.h>
 #include <librpc/rpc.h>
@@ -23,7 +24,7 @@
 #include <pb_decode.h>
 #include <pb_encode.h>
 
-RPC_CLIENT_DEFINE_SIMPLECALL(fs_client, USERFS_IMPL_X)
+RPC_CLIENT_DEFINE_SIMPLECALL(fs_client, USERFS_SERVICE_X)
 
 static const inode_ops_t userfs_iops;
 static const file_ops_t userfs_fops;
@@ -371,7 +372,7 @@ static phyframe_t *userfs_inode_cache_fill_cache(inode_cache_t *cache, off_t pgo
     userfs_ensure_connected(userfs);
 
     const pf_point_t pp = profile_enter();
-    const int result = fs_client_getpage(userfs->rpc_server, &req, &resp);
+    const int result = fs_client_get_page(userfs->rpc_server, &req, &resp);
     profile_leave(pp, "userfs.'%s'.getpage", userfs->rpc_server_name);
 
     if (result != RPC_RESULT_OK)
@@ -418,7 +419,7 @@ long userfs_inode_cache_flush_page(inode_cache_t *cache, off_t pgoff, phyframe_t
     userfs_ensure_connected(userfs);
 
     const pf_point_t pp = profile_enter();
-    const int result = fs_client_putpage(userfs->rpc_server, &req, &resp);
+    const int result = fs_client_put_page(userfs->rpc_server, &req, &resp);
     profile_leave(pp, "userfs.'%s'.putpage", userfs->rpc_server_name);
 
     if (result != RPC_RESULT_OK)

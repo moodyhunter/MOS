@@ -3,6 +3,7 @@
 #pragma once
 
 #include "proto/filesystem.pb.h"
+#include "proto/filesystem.services.h"
 #include "proto/userfs-manager.services.h"
 
 #include <librpc/macro_magic.h>
@@ -14,7 +15,7 @@
 #include <string>
 
 RPC_CLIENT_DEFINE_STUB_CLASS(UserfsManager, USERFSMANAGER_SERVICE_X)
-RPC_DECL_SERVER_INTERFACE_CLASS(IUserFSServer, USERFS_IMPL_X);
+RPC_DECL_SERVER_INTERFACE_CLASS(IUserFSServer, USERFS_SERVICE_X);
 
 class BlockdevFSServer : public IUserFSServer
 {

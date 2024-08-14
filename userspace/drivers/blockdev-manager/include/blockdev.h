@@ -3,19 +3,13 @@
 #pragma once
 
 #include "proto/blockdev.pb.h"
+#include "proto/blockdev.services.h"
 
 #include <librpc/macro_magic.h>
 
 #define BLOCKDEV_MANAGER_RPC_SERVER_NAME "mos.blockdev-manager"
 
-#define BLOCKDEV_MANAGER_RPC_X(ARGS, PB, arg)                                                                                                                            \
-    PB(arg, 1, register_device, REGISTER_DEVICE, mosrpc_blockdev_register_device_request, mosrpc_blockdev_register_device_response)                                      \
-    PB(arg, 2, register_layer_server, REGISTER_LAYER_SERVER, mosrpc_blockdev_register_layer_server_request, mosrpc_blockdev_register_layer_server_response)              \
-    PB(arg, 3, read_block, READ_BLOCK, mosrpc_blockdev_read_block_request, mosrpc_blockdev_read_block_response)                                                          \
-    PB(arg, 4, write_block, WRITE_BLOCK, mosrpc_blockdev_write_block_request, mosrpc_blockdev_write_block_response)                                                      \
-    PB(arg, 5, open_device, OPEN_DEVICE, mosrpc_blockdev_open_device_request, mosrpc_blockdev_open_device_response)
-
-RPC_DECL_CPP_TYPE_NAMESPACE(blockdev, BLOCKDEV_MANAGER_RPC_X);
+RPC_DECL_CPP_TYPE_NAMESPACE(blockdev, BLOCKDEVMANAGER_SERVICE_X);
 
 // a device is a base layer
 #define BLOCKDEV_DEVICE_RPC_X(ARGS, PB, arg)                                                                                                                             \

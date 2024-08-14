@@ -35,6 +35,13 @@ message dentry
     string name = 2;
 }
 
+message pb_dirent
+{
+    uint64 ino = 1;
+    string name = 2;
+    int32 type = 3;
+}
+
 message mount_request
 {
     string fs_name = 1;
@@ -47,13 +54,6 @@ message mount_response
     mosrpc.result result = 1;
     inode_ref root_ref = 2; // the root inode of the mounted root
     inode_info root_info = 3;
-}
-
-message pb_dirent
-{
-    uint64 ino = 1;
-    string name = 2;
-    int32 type = 3;
 }
 
 message readdir_request
@@ -153,4 +153,17 @@ message unlink_request
 message unlink_response
 {
     mosrpc.result result = 1;
+}
+
+service UserFS
+{
+    rpc Mount(mount_request) returns (mount_response);
+    rpc Readdir(readdir_request) returns (readdir_response);
+    rpc Lookup(lookup_request) returns (lookup_response);
+    rpc Readlink(readlink_request) returns (readlink_response);
+    rpc GetPage(getpage_request) returns (getpage_response);
+    rpc PutPage(putpage_request) returns (putpage_response);
+    rpc CreateFile(create_file_request) returns (create_file_response);
+    rpc SyncInode(sync_inode_request) returns (sync_inode_response);
+    rpc Unlink(unlink_request) returns (unlink_response);
 }

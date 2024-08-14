@@ -99,6 +99,15 @@ message open_device_response
     blockdev device = 2;
 }
 
+service BlockdevManager
+{
+    rpc RegisterDevice(register_device_request) returns (register_device_response);
+    rpc RegisterLayerServer(register_layer_server_request) returns (register_layer_server_response);
+    rpc OpenDevice(open_device_request) returns (open_device_response);
+    rpc ReadBlock(read_block_request) returns (read_block_response);
+    rpc WriteBlock(write_block_request) returns (write_block_response);
+}
+
 message read_partition_block_request
 {
     blockdev device = 1;

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "blockdev.h"
+#include "proto/blockdev.services.h"
 
 #include <abi-bits/ino_t.h>
 #include <librpc/rpc_client.h>
@@ -16,7 +17,7 @@
 
 RPC_CLIENT_DEFINE_STUB_CLASS(BlockLayerServer, BLOCKDEV_LAYER_RPC_X);
 RPC_CLIENT_DEFINE_STUB_CLASS(BlockDeviceServer, BLOCKDEV_DEVICE_RPC_X);
-RPC_DECL_SERVER_INTERFACE_CLASS(IBlockManager, BLOCKDEV_MANAGER_RPC_X);
+RPC_DECL_SERVER_INTERFACE_CLASS(IBlockManager, BLOCKDEVMANAGER_SERVICE_X);
 
 using namespace mosrpc::blockdev;
 

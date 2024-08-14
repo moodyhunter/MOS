@@ -2,6 +2,7 @@
 
 #include "blockdev.h"
 #include "proto/blockdev.pb.h"
+#include "proto/blockdev.services.h"
 
 #include <iomanip>
 #include <iostream>
@@ -16,7 +17,7 @@
 
 using namespace mosrpc::blockdev;
 
-RPC_CLIENT_DEFINE_STUB_CLASS(BlockDevManagerServerStub, BLOCKDEV_MANAGER_RPC_X)
+RPC_CLIENT_DEFINE_STUB_CLASS(BlockDevManagerServerStub, BLOCKDEVMANAGER_SERVICE_X)
 
 std::unique_ptr<BlockDevManagerServerStub> manager = nullptr;
 
