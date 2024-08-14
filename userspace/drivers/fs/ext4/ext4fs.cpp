@@ -2,12 +2,14 @@
 
 #include "ext4fs.hpp"
 
+#include "blockdev.h"
 #include "ext4.h"
 #include "ext4_blockdev.h"
 #include "ext4_dir.h"
 #include "ext4_fs.h"
 #include "ext4_inode.h"
 #include "ext4_types.h"
+#include "proto/blockdev.pb.h"
 #include "proto/filesystem.pb.h"
 
 #include <cassert>
@@ -16,6 +18,8 @@
 #include <optional>
 #include <string>
 #include <sys/stat.h>
+
+using namespace mosrpc::blockdev;
 
 // clang-format off
 u64 inode_index_from_data(mosrpc_fs_inode_ref &ref) { return ref.data; }
@@ -134,7 +138,7 @@ static int blockdev_bwrite(struct ext4_blockdev *bdev, const void *buf, uint64_t
     return EOK;
 }
 
-Ext4UserFS::Ext4UserFS(const std::string &name) : IExt4Server(name)
+Ext4UserFS::Ext4UserFS(const std::string &name) : IUserFSService(name)
 {
 }
 

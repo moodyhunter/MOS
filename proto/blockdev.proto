@@ -108,6 +108,12 @@ service BlockdevManager
     rpc WriteBlock(write_block_request) returns (write_block_response);
 }
 
+service BlockdevDevice
+{
+    rpc ReadBlock(read_block_request) returns (read_block_response);
+    rpc WriteBlock(write_block_request) returns (write_block_response);
+}
+
 message read_partition_block_request
 {
     blockdev device = 1;
@@ -123,4 +129,10 @@ message write_partition_block_request
     bytes data = 3;
     uint64 n_boffset = 4;
     uint32 n_blocks = 5;
+}
+
+service BlockdevLayer
+{
+    rpc ReadPartitionBlock(read_partition_block_request) returns (read_block_response);
+    rpc WritePartitionBlock(write_partition_block_request) returns (write_block_response);
 }

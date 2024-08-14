@@ -3,6 +3,7 @@
 #include "blockdev_manager.hpp"
 
 #include "proto/blockdev.pb.h"
+#include "proto/blockdev.services.h"
 
 #include <atomic>
 #include <cstdlib>
@@ -22,26 +23,26 @@
 std::map<std::string, BlockInfo> devices;      // blockdev id -> blockdev info
 static std::atomic_ulong next_blockdev_id = 2; // 1 is reserved for the root directory
 
-static std::shared_ptr<BlockLayerServer> get_layer_server(const std::string &name)
+static std::shared_ptr<BlockdevLayerStub> get_layer_server(const std::string &name)
 {
-    static std::map<std::string, std::shared_ptr<BlockLayerServer>> layer_servers; // server name -> server
+    static std::map<std::string, std::shared_ptr<BlockdevLayerStub>> layer_servers; // server name -> server
     static std::mutex server_lock;
     std::lock_guard<std::mutex> lock(server_lock);
 
     if (!layer_servers.contains(name))
-        layer_servers[name] = std::make_shared<BlockLayerServer>(name);
+        layer_servers[name] = std::make_shared<BlockdevLayerStub>(name);
 
     return layer_servers[name];
 }
 
-static std::shared_ptr<BlockDeviceServer> get_device_server(const std::string &name)
+static std::shared_ptr<BlockdevDeviceStub> get_device_server(const std::string &name)
 {
-    static std::map<std::string, std::shared_ptr<BlockDeviceServer>> device_servers; // server name -> server
+    static std::map<std::string, std::shared_ptr<BlockdevDeviceStub>> device_servers; // server name -> server
     static std::mutex server_lock;
     std::lock_guard<std::mutex> lock(server_lock);
 
     if (!device_servers.contains(name))
-        device_servers[name] = std::make_shared<BlockDeviceServer>(name);
+        device_servers[name] = std::make_shared<BlockdevDeviceStub>(name);
 
     return device_servers[name];
 }

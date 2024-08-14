@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
         serve
     } mode;
 
-    manager = std::make_unique<BlockDevManagerServerStub>(BLOCKDEV_MANAGER_RPC_SERVER_NAME);
+    manager = std::make_unique<BlockdevManagerStub>(BLOCKDEV_MANAGER_RPC_SERVER_NAME);
     std::string disk_path;
 
     if (argc == 2 && std::string_view(argv[1]) == "--scan")

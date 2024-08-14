@@ -14,13 +14,10 @@
 #include <pb_decode.h>
 #include <string>
 
-RPC_CLIENT_DEFINE_STUB_CLASS(UserfsManager, USERFSMANAGER_SERVICE_X)
-RPC_DECL_SERVER_INTERFACE_CLASS(IUserFSServer, USERFS_SERVICE_X);
-
-class BlockdevFSServer : public IUserFSServer
+class BlockdevFSServer : public IUserFSService
 {
   public:
-    explicit BlockdevFSServer(const std::string &servername) : IUserFSServer(servername)
+    explicit BlockdevFSServer(const std::string &servername) : IUserFSService(servername)
     {
     }
 

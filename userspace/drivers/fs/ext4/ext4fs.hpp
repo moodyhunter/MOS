@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "blockdev.h"
 #include "ext4.h"
 #include "ext4_blockdev.h"
 #include "ext4_types.h"
@@ -21,15 +20,10 @@
 #include <mos/proto/fs_server.h>
 #include <pb_decode.h>
 
-RPC_DECL_SERVER_INTERFACE_CLASS(IExt4Server, USERFS_SERVICE_X);
-RPC_CLIENT_DEFINE_STUB_CLASS(BlockdevManager, BLOCKDEVMANAGER_SERVICE_X);
-RPC_CLIENT_DEFINE_STUB_CLASS(UserFSManager, USERFSMANAGER_SERVICE_X);
-
 using namespace std::string_literals;
-using namespace mosrpc::blockdev;
 
-extern std::unique_ptr<UserFSManager> userfs_manager;
-extern std::unique_ptr<BlockdevManager> blockdev_manager;
+extern std::unique_ptr<UserFSManagerStub> userfs_manager;
+extern std::unique_ptr<BlockdevManagerStub> blockdev_manager;
 
 struct ext4_context_state
 {
@@ -42,7 +36,7 @@ struct ext4_context_state
     ext4_mountpoint *mp;
 };
 
-class Ext4UserFS : public IExt4Server
+class Ext4UserFS : public IUserFSService
 {
   public:
     explicit Ext4UserFS(const std::string &name);

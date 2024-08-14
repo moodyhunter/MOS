@@ -15,10 +15,6 @@
 #include <string>
 #include <variant>
 
-RPC_CLIENT_DEFINE_STUB_CLASS(BlockLayerServer, BLOCKDEV_LAYER_RPC_X);
-RPC_CLIENT_DEFINE_STUB_CLASS(BlockDeviceServer, BLOCKDEV_DEVICE_RPC_X);
-RPC_DECL_SERVER_INTERFACE_CLASS(IBlockManager, BLOCKDEVMANAGER_SERVICE_X);
-
 using namespace mosrpc::blockdev;
 
 struct BlockDeviceInfo
@@ -50,11 +46,11 @@ struct BlockInfo
 
 extern std::map<std::string, BlockInfo> devices; // blockdev name -> blockdev info
 
-class BlockManager : public IBlockManager
+class BlockManager : public IBlockdevManagerService
 {
 
   public:
-    explicit BlockManager() : IBlockManager(BLOCKDEV_MANAGER_RPC_SERVER_NAME) {};
+    explicit BlockManager() : IBlockdevManagerService(BLOCKDEV_MANAGER_RPC_SERVER_NAME) {};
 
   private:
     virtual void on_connect(rpc_context_t *ctx) override;

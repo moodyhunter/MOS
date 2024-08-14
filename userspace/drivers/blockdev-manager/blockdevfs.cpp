@@ -18,6 +18,7 @@
 #include <mos/proto/fs_server.h>
 #include <mos/syscall/usermode.h>
 #include <ostream>
+#include <pb_decode.h>
 #include <sys/stat.h>
 
 using namespace std::chrono;
@@ -25,7 +26,7 @@ using namespace std::chrono;
 #define BLOCKDEVFS_NAME            "blockdevfs"
 #define BLOCKDEVFS_RPC_SERVER_NAME "fs.blockdevfs"
 
-std::unique_ptr<IUserFSServer> blockdevfs;
+std::unique_ptr<IUserFSService> blockdevfs;
 
 struct blockdevfs_inode
 {
@@ -148,7 +149,7 @@ bool register_blockdevfs()
 {
     blockdevfs = std::make_unique<BlockdevFSServer>(BLOCKDEVFS_RPC_SERVER_NAME);
 
-    UserfsManager userfs_manager{ USERFS_SERVER_RPC_NAME };
+    UserFSManagerStub userfs_manager{ USERFS_SERVER_RPC_NAME };
     mosrpc_userfs_register_request req = { .fs = { .name = strdup(BLOCKDEVFS_NAME) }, .rpc_server_name = strdup(BLOCKDEVFS_RPC_SERVER_NAME) };
     mosrpc_userfs_register_response resp;
 

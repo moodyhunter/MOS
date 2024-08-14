@@ -17,9 +17,7 @@
 
 using namespace mosrpc::blockdev;
 
-RPC_CLIENT_DEFINE_STUB_CLASS(BlockDevManagerServerStub, BLOCKDEVMANAGER_SERVICE_X)
-
-std::unique_ptr<BlockDevManagerServerStub> manager = nullptr;
+std::unique_ptr<BlockdevManagerStub> manager = nullptr;
 
 static const std::optional<mosrpc_blockdev_blockdev> do_open_device(const char *device_name)
 {
@@ -89,7 +87,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    manager = std::make_unique<BlockDevManagerServerStub>(BLOCKDEV_MANAGER_RPC_SERVER_NAME);
+    manager = std::make_unique<BlockdevManagerStub>(BLOCKDEV_MANAGER_RPC_SERVER_NAME);
 
     const auto device = do_open_device(argv[1]);
     if (!device)

@@ -14,15 +14,12 @@
 #include <pb_decode.h>
 #include <pb_encode.h>
 
-RPC_CLIENT_DEFINE_STUB_CLASS(BlockManager, BLOCKDEVMANAGER_SERVICE_X);
-RPC_DECL_SERVER_INTERFACE_CLASS(IRamDiskServer, BLOCKDEV_DEVICE_RPC_X);
-
 class RAMDiskServer
-    : public IRamDiskServer
+    : public IBlockdevDeviceService
     , public RAMDisk
 {
   public:
-    explicit RAMDiskServer(const std::string &servername, const size_t nbytes) : IRamDiskServer(servername), RAMDisk(nbytes)
+    explicit RAMDiskServer(const std::string &servername, const size_t nbytes) : IBlockdevDeviceService(servername), RAMDisk(nbytes)
     {
     }
 
@@ -108,7 +105,7 @@ int main(int argc, char **argv)
 
     RAMDiskServer ramdisk_server("ramdisk." + blockdev_name, size);
 
-    const auto blockdev_manager = std::make_unique<BlockManager>(BLOCKDEV_MANAGER_RPC_SERVER_NAME);
+    const auto blockdev_manager = std::make_unique<BlockdevManagerStub>(BLOCKDEV_MANAGER_RPC_SERVER_NAME);
 
     mosrpc_blockdev_register_device_request req{ .server_name = strdup(ramdisk_server.get_name().c_str()),
                                                  .device_info = {

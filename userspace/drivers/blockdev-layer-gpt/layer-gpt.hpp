@@ -12,14 +12,11 @@
 #include <memory>
 #include <pb_decode.h>
 
-RPC_CLIENT_DEFINE_STUB_CLASS(BlockDevManagerServerStub, BLOCKDEVMANAGER_SERVICE_X);
-RPC_DECL_SERVER_INTERFACE_CLASS(IGPTLayerServer, BLOCKDEV_LAYER_RPC_X);
-
 using namespace mosrpc::blockdev;
 
-extern std::unique_ptr<BlockDevManagerServerStub> manager;
+extern std::unique_ptr<BlockdevManagerStub> manager;
 
-class GPTLayerServer : public IGPTLayerServer
+class GPTLayerServer : public IBlockdevLayerService
 {
   public:
     explicit GPTLayerServer(std::shared_ptr<GPTDisk> disk, const std::string &servername);

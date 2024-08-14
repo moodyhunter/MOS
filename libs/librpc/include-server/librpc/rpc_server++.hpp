@@ -8,6 +8,7 @@
 
 #include "librpc/rpc_server.h"
 
+#include <pb_decode.h> // RPC_DECL_SERVER_INTERFACE_CLASS needs pb_decode.h
 #include <string>
 
 class RPCServer

@@ -10,9 +10,9 @@
 
 using namespace std::string_literals;
 
-std::unique_ptr<BlockDevManagerServerStub> manager = nullptr;
+std::unique_ptr<BlockdevManagerStub> manager = nullptr;
 
-GPTLayerServer::GPTLayerServer(std::shared_ptr<GPTDisk> disk, const std::string &servername) : IGPTLayerServer(servername), disk(disk)
+GPTLayerServer::GPTLayerServer(std::shared_ptr<GPTDisk> disk, const std::string &servername) : IBlockdevLayerService(servername), disk(disk)
 {
     const register_layer_server::request req = {
         .server_name = strdup(servername.c_str()),
