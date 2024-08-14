@@ -65,11 +65,10 @@ def process_file(proto_file: FileDescriptorProto, response: plugin.CodeGenerator
     for service in proto_file.service:
         write(f'// {service.name} service')
         write(f'#define {service.name.upper()}_SERVICE_X(ARGS, PB, xarg) \\')
-        mid = 0
-        for method in service.method:
+        for mid, method in enumerate(service.method):
             rpc_name = camelcase_to_underscore(method.name)
             rpc_upper = camelcase_to_full_uppercase(method.name)
-            write(f'    PB(xarg, {mid}, {rpc_name}, {rpc_upper}, {resolve_protobuf_typename(method.input_type)}, {resolve_protobuf_typename(method.output_type)}) \\')
+            write(f'    PB(xarg, {mid + 1}, {rpc_name}, {rpc_upper}, {resolve_protobuf_typename(method.input_type)}, {resolve_protobuf_typename(method.output_type)}) \\')
         write(f'    /**/')
 
     # check if clang-format is available
