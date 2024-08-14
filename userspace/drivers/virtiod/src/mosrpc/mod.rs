@@ -17,7 +17,7 @@ macro_rules! result_err {
     ($msg:expr) => {
         MessageField::from(Some(crate::mosrpc::mosrpc::Result {
             success: false,
-            error: Some($msg.to_string()),
+            error: $msg.to_string(),
             ..Default::default()
         }))
     };

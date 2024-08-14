@@ -56,10 +56,7 @@ impl BlockDevDriver {
         if !resp.result.success {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::AddrInUse,
-                resp.result
-                    .error
-                    .clone()
-                    .unwrap_or("unknown error".to_string()),
+                resp.result.error.clone(),
             )));
         }
 

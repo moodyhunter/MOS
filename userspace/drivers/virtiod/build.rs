@@ -38,17 +38,21 @@ fn main() {
     );
 
     println!("cargo:rustc-link-lib=dma");
-    println!(
-        "cargo:rerun-if-changed={}",
-        project_dir!("proto/blockdev.proto")
-    );
+
+    let proto_files = vec![
+        project_dir!("proto/blockdev.proto"),
+        project_dir!("proto/mosrpc.proto"),
+        build_dir!("nanopb_workdir/proto/nanopb.proto"),
+    ];
+
+    for proto_file in &proto_files {
+        println!("cargo:rerun-if-changed={}", proto_file);
+    }
 
     protobuf_codegen::Codegen::new()
         .include(project_dir!("proto"))
         .include(build_dir!("nanopb_workdir/proto"))
-        .input(project_dir!("proto/blockdev.proto"))
-        .input(build_dir!("nanopb_workdir/proto/nanopb.proto"))
-        .input(project_dir!("proto/mosrpc.proto"))
+        .inputs(&proto_files)
         .cargo_out_dir("protos")
         .run_from_script();
 }
