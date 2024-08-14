@@ -9,7 +9,7 @@ libc = {version = "0.2.153", registry = "mos"}
 librpc-rs = {version = "0.1.1", features = ["protobuf"], registry = "mos"}
 log = "0.4.21"
 protobuf = "3.4.0"
-virtio-drivers = "0.7.3"
+virtio-drivers = "0.7.5"
 
 [build-dependencies]
 protobuf-codegen = "3.4.0"
