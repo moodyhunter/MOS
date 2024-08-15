@@ -31,6 +31,13 @@ static void riscv64_start_kernel_thread()
 
 extern void riscv64_normal_switch_impl();
 
+void platform_shutdown()
+{
+    (*(volatile u32 *) pa_va(0x100000)) = 0x5555;
+    while (1)
+        platform_cpu_idle();
+}
+
 u32 platform_current_cpu_id()
 {
     return 0;
@@ -85,6 +92,10 @@ void platform_context_setup_child_thread(thread_t *thread, thread_entry_t entry,
 
     if (thread->mode == THREAD_MODE_KERNEL)
         return;
+
+    // for user threads, set up the global pointer
+    if (thread->owner == current_process)
+        regs->gp = platform_thread_regs(current_thread)->gp;
 
     MOS_ASSERT(thread->owner->mm == current_mm);
     MOS_ASSERT(thread != thread->owner->main_thread);
