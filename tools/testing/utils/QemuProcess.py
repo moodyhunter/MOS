@@ -21,6 +21,10 @@ QEMU_ARCH_ARGS = {
         'cpu': 'max',
         'bios': '/usr/share/ovmf/x64/OVMF.4m.fd',
     },
+    'riscv64': {
+        'machine': 'virt',
+        'cpu': 'rv64',
+    },
 }
 
 
@@ -95,6 +99,7 @@ class QemuProcessBuilder:
         'accel': '-accel',
         'serial': '-serial',
         'display': '-display',
+        'device': '-device',
     }
 
     def __init__(self, qemu_path: str):

@@ -101,13 +101,20 @@ def main():
     builder.memory(args.memory_size)
     builder.smp(args.smp)
     builder.machine(QEMU_ARCH_ARGS[args.arch]['machine'])
-    builder.cpu(QEMU_ARCH_ARGS[args.arch]['cpu'])
-    builder.bios(QEMU_ARCH_ARGS[args.arch]['bios'])
+
+    if "cpu" in QEMU_ARCH_ARGS[args.arch]:
+        builder.cpu(QEMU_ARCH_ARGS[args.arch]['cpu'])
+
+    if "bios" in QEMU_ARCH_ARGS[args.arch]:
+        builder.bios(QEMU_ARCH_ARGS[args.arch]['bios'])
+
     builder.chardev("stdio", id='serial0', logfile=args.serial_log_file)
-    builder.chardev('file', id='syslog', path=args.kernel_log_file)
     builder.serial('chardev:serial0')
+
+    builder.chardev('file', id='syslog', path=args.kernel_log_file)
     builder.serial('chardev:syslog')
-    builder.drive(format='raw', file='fat:rw:uefi-files/')
+
+    builder.drive(id='hd0', format='raw', file='fat:rw:uefi-files/')
 
     if args.kvm:
         builder.accel('kvm')
@@ -121,7 +128,20 @@ def main():
         builder.add_raw_arg('-S')
 
     CMDLINE = KernelCommandLine()
-    CMDLINE.printk_console = 'serial_com2'
+
+    if args.arch == "riscv64":
+        builder.device('qemu-xhci')
+        builder.device('usb-kbd')
+        builder.device('usb-mouse')
+        builder.device('ramfb')
+        builder.device('virtio-scsi-pci')
+        builder.device('scsi-hd,drive=hd0')
+        drive_kwargs = {'if': 'pflash', 'unit': '0', 'format': 'raw', 'file': '/opt/ovmf-riscv64.fd'}
+        builder.drive(**drive_kwargs)
+
+    if args.arch == 'x86_64':
+        CMDLINE.printk_console = 'serial_com2'
+
     CMDLINE.mos_tests = args.kernel_tests
     CMDLINE.init_args = '-j'
     CMDLINE.debug.extend(args.kernel_debug)
