@@ -295,7 +295,7 @@ static void vfs_flusher_entry(void *arg)
 
 static void vfs_flusher_init(void)
 {
-    kthread_create(vfs_flusher_entry, NULL, "vfs_flusher");
+    // kthread_create(vfs_flusher_entry, NULL, "vfs_flusher");
 }
 MOS_INIT(KTHREAD, vfs_flusher_init);
 
