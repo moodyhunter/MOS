@@ -15,7 +15,7 @@
 #endif
 
 #if MOS_CONFIG(MOS_PROFILING)
-#define PROFILER_HEADER "name,start_time,end_time,total_time\n"
+#define PROFILER_HEADER "\nname,start_time,end_time,total_time\n"
 #define PROFILER_LINE   "%s,%llu,%llu,%llu"
 
 static console_t *profile_console = NULL;

@@ -6,6 +6,7 @@
 #include "mos/tasks/signal.h"
 
 #include <mos/syscall/dispatcher.h>
+#include <mos/syscall/table.h>
 #include <mos/types.h>
 #include <mos_stdio.h>
 
@@ -13,7 +14,7 @@ reg_t ksyscall_enter(reg_t number, reg_t arg1, reg_t arg2, reg_t arg3, reg_t arg
 {
     const pf_point_t ev = profile_enter();
     const reg_t ret = dispatch_syscall(number, arg1, arg2, arg3, arg4, arg5, arg6);
-    profile_leave(ev, "syscall.%lu.%s", num, syscall_names[num]);
+    profile_leave(ev, "syscall.%lu.%s", number, syscall_names[number]);
 
     if (IS_ERR_VALUE(ret))
     {
