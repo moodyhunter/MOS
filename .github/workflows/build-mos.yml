@@ -15,18 +15,15 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { "name": "x86_64 limine", "arch": "x86_64" }
-          - { "name": "RISC-V limine", "arch": "riscv64" }
+          - { "name": "x86_64 limine", "arch": "x86_64", "bootwait": 20 }
+          - { "name": "RISC-V limine", "arch": "riscv64", "bootwait": 15 }
         build_type: [Debug, Release]
 
     steps:
-      - name: Install packages
+      - name: Install Packages
         run: |
-          pacman -Syu --noconfirm base-devel git nasm mtools jq ninja qemu-system-x86 gnu-efi cpio wget unzip cmake limine protobuf python-protobuf python-setuptools libisoburn
-
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
+          pacman -Syu --noconfirm base-devel git nasm jq ninja cpio wget unzip cmake limine protobuf python-protobuf python-setuptools
+          pacman -Syu --noconfirm qemu-system-x86 qemu-system-riscv
 
       - name: Install Toolchains
         run: |
@@ -48,6 +45,10 @@ jobs:
 
           rustup toolchain link mosdev /opt/mos-rust/
           rustup default mosdev
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Configure
         run: |
@@ -80,7 +81,11 @@ jobs:
       - name: Test
         run: |
           cd build
-          ../tools/testing/main.py --arch ${{matrix.config.arch}} --kernel-tests -t 120 -w 15
+          ../tools/testing/main.py \
+            --arch ${{matrix.config.arch}} \
+            --kernel-tests \
+            -t 120 \
+            -w ${{matrix.config.bootwait}}
 
       - name: Upload Test Results
         if: always()
