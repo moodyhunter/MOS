@@ -26,7 +26,7 @@ using namespace std::chrono;
 #define BLOCKDEVFS_NAME            "blockdevfs"
 #define BLOCKDEVFS_RPC_SERVER_NAME "fs.blockdevfs"
 
-std::unique_ptr<IUserFSService> blockdevfs;
+static std::unique_ptr<IUserFSService> blockdevfs;
 
 struct blockdevfs_inode
 {
