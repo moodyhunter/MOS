@@ -37,6 +37,11 @@ struct out_of_bounds_info
     // struct type_descriptor right_type;
 };
 
+struct unreachable_data
+{
+    struct source_location location;
+};
+
 static void log_location(struct source_location *location)
 {
     pr_emerg("  in file %s:%u, column %u", location->file, location->line, location->column);
@@ -137,4 +142,10 @@ void __ubsan_handle_vla_bound_not_positive(struct source_location *location, str
 {
     pr_emerg("VLA bound not positive, bound=%p of type %s", (void *) bound, type->name);
     log_location(location);
+}
+
+void __ubsan_handle_builtin_unreachable(struct unreachable_data *data)
+{
+    pr_emerg("builtin unreachable was reached");
+    log_location(&data->location);
 }
