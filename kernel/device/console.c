@@ -80,6 +80,8 @@ void console_register(console_t *con)
         }
     }
 
+    MOS_ASSERT_X(con->name != NULL, "console: %p's name is NULL", con);
+
     con->write.lock = (spinlock_t) SPINLOCK_INIT;
     io_flags_t flags = IO_WRITABLE;
 
@@ -98,6 +100,9 @@ void console_register(console_t *con)
 
 console_t *console_get(const char *name)
 {
+    if (list_is_empty(&consoles))
+        return NULL;
+
     list_foreach(console_t, con, consoles)
     {
         if (strcmp(con->name, name) == 0)
