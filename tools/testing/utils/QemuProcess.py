@@ -8,7 +8,7 @@ from time import sleep
 from ptyprocess import PtyProcess
 
 
-class QemuDeadError(Exception):
+class TestFailedError(Exception):
     pass
 
 
@@ -39,7 +39,7 @@ class QemuProcess(PtyProcess):
 
     def writeln(self, line):
         if not self.isalive():
-            raise QemuDeadError('Process is terminated')
+            raise TestFailedError('Process is terminated')
         logging.debug(f'sending line: {line}')
         self.write(self._encode_command(line + '\n'))
 
@@ -65,7 +65,7 @@ class QemuProcess(PtyProcess):
             except IndexError:
                 sleep(0.1)
 
-        raise QemuDeadError('Process is terminated')
+        raise TestFailedError('Process is terminated')
 
     def forcefully_terminate(self):
         self.error_killed = True

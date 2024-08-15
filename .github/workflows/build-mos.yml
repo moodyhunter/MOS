@@ -15,8 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { "name": "x86_64 limine", "arch": "x86_64", "bootwait": 20 }
-          - { "name": "RISC-V limine", "arch": "riscv64", "bootwait": 15 }
+          - { "name": "x86_64", "arch": "x86_64", "bootwait": 20 }
+          - { "name": "RISC-V", "arch": "riscv64", "bootwait": 15 }
         build_type: [Debug, Release]
 
     steps:
@@ -77,6 +77,15 @@ jobs:
         with:
           name: MOS-${{matrix.build_type}}-${{matrix.config.arch}}
           path: build/uefi-files
+
+      - name: Download OVMF UEFI Firmware
+        if: ${{matrix.config.arch}} == 'riscv64'
+        run: |
+          cd build
+          export OVMF_VERSION=edk2-stable202405-r1
+          wget "https://github.com/rust-osdev/ovmf-prebuilt/releases/download/$OVMF_VERSION/$OVMF_VERSION-bin.tar.xz"
+          tar -xvf $OVMF_VERSION-bin.tar.xz
+          mv $OVMF_VERSION-bin/riscv64/code.fd /opt/ovmf-riscv64.fd
 
       - name: Test
         run: |

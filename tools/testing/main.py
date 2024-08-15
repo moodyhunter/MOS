@@ -8,7 +8,7 @@ import argparse
 import logging
 import os
 from time import sleep
-from utils import ScopedTimer, QEMU_ARCH_ARGS, QemuDeadError, QemuProcessBuilder
+from utils import ScopedTimer, QEMU_ARCH_ARGS, TestFailedError, QemuProcessBuilder
 from models import *
 
 
@@ -164,6 +164,8 @@ def main():
         try:
             logging.info('Waiting for QEMU to boot...')
             sleep(args.boot_wait)  # wait for QEMU to boot
+            if not QEMU_IO.isalive():
+                raise TestFailedError('QEMU process terminated unexpectedly')
 
             logging.info('Starting tests...')
 
@@ -180,6 +182,7 @@ def main():
                     logging.info(f'Received response: {response}')
                 else:
                     logging.error(f'Test {test} failed')
+                    raise TestFailedError(f'Test {test} failed')
                 sleep(1)
 
             logging.info('Test completed, waiting for QEMU to shutdown...')
@@ -189,7 +192,7 @@ def main():
             if QEMU_IO.error_killed:
                 logging.error(f'Timed out after {args.timeout} seconds')
                 return 1
-        except QemuDeadError:
+        except TestFailedError:
             logging.error('QEMU process terminated unexpectedly')
         except KeyboardInterrupt:
             logging.error('Interrupted by user')

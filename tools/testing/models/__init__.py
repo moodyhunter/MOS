@@ -5,7 +5,7 @@ import json
 import logging
 from typing import Literal
 
-from utils import QemuProcess, QemuDeadError
+from utils import QemuProcess, TestFailedError
 
 
 _default_encoder = json.JSONEncoder().default
@@ -26,14 +26,14 @@ class AutoRepr:
         return self.__repr__()
 
 
-def do_call(qemu: QemuProcess, rpc_type: str, data: dict) -> dict:
+def do_call(qemu: QemuProcess, rpc_type: str, data: dict) -> dict | None:
     qemu.writeln(json.dumps({'type': rpc_type + '.request', 'object': data}))
     logging.debug(f'Sent request: {rpc_type}, {data}')
 
     while True:
         line = qemu.pop_output()
         if line is None:
-            return {}  # no more output
+            return None  # no more output
 
         if not (line.startswith('{') and line.endswith('}')):
             continue  # ignore non-json lines
@@ -60,11 +60,11 @@ class UnitTestCase(ABC):
         raise NotImplementedError
 
     def call(self, qemu: QemuProcess) -> Response | None:
-        try:
-            resp_dict = do_call(qemu, self.rpc_type, self.__dict__)
-            return self.Response(self, **resp_dict) if resp_dict else None
-        except QemuDeadError:
-            return None
+        resp_dict = do_call(qemu, self.rpc_type, self.__dict__)
+        if not resp_dict:
+            raise TestFailedError('Qemu process terminated')
+
+        return self.Response(self, **resp_dict)
 
 
 REDIRECT_TARGET_TYPE = Literal['file', 'fd']
