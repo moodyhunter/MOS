@@ -27,7 +27,6 @@ bool unlink(const char *path);
 #ifndef __NO_START_FUNCTION
 void _start(size_t argc, char **argv, char **envp)
 {
-    environ = envp;
     extern int main(int argc, char **argv);
 
 // ensure that the stack is 16-byte aligned
@@ -44,6 +43,7 @@ void _start(size_t argc, char **argv, char **envp)
 #error "unsupported architecture"
 #endif
 
+    environ = envp;
     int r = main(argc, argv);
     syscall_exit(r);
 }
