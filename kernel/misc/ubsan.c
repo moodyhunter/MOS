@@ -33,8 +33,8 @@ struct type_mismatch_info
 struct out_of_bounds_info
 {
     struct source_location location;
-    // struct type_descriptor left_type;
-    // struct type_descriptor right_type;
+    struct type_descriptor *array_type;
+    struct type_descriptor *index_type;
 };
 
 struct unreachable_data
@@ -50,20 +50,14 @@ static void log_location(struct source_location *location)
 void __ubsan_handle_type_mismatch(struct type_mismatch_info *type_mismatch, ptr_t pointer)
 {
     struct source_location *location = &type_mismatch->location;
+    pr_emerg();
     if (pointer == 0)
-    {
         pr_emerg("NULL pointer access");
-    }
     else if (type_mismatch->alignment != 0 && is_aligned(pointer, type_mismatch->alignment))
-    {
-        // Most useful on architectures with stricter memory alignment requirements, like ARM.
-        pr_emerg("unaligned memory access");
-    }
+        pr_emerg("unaligned memory access"); // Most useful on architectures with stricter memory alignment requirements, like ARM.
     else
-    {
         pr_emerg("insufficient size");
-        pr_emerg("kind=%d, address %p with insufficient space for object of type %s", type_mismatch->type_check_kind, (void *) pointer, type_mismatch->type->name);
-    }
+    pr_emerg("kind=%d, address %p, for object of type %s", type_mismatch->type_check_kind, (void *) pointer, type_mismatch->type->name);
     log_location(location);
 }
 
@@ -105,7 +99,7 @@ void __ubsan_handle_sub_overflow(struct source_location *location, struct type_d
 void __ubsan_handle_out_of_bounds(struct out_of_bounds_info *out_of_bounds)
 {
     struct source_location *location = &out_of_bounds->location;
-    pr_emerg("out of bounds");
+    pr_emerg("out of bounds, array type %s, index type %s", out_of_bounds->array_type->name, out_of_bounds->index_type->name);
     log_location(location);
 }
 
