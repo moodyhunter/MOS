@@ -77,17 +77,22 @@
                 "-D", "qemu_err.log",
                 "-s",
                 "-S",
+                "-cpu", "rv64",
+                "-smp", "1",
                 "-chardev", "stdio,id=serial_log,logfile=serial_log.log,signal=off",
                 "-chardev", "file,id=serial-com2,path=serial-com2.log",
                 "-serial", "chardev:serial_log",
                 "-serial", "chardev:serial-com2",
-                "-device", "ramfb", // framebuffer
-                "-device", "qemu-xhci", "-device", "usb-kbd", // usb controller and keyboard
+                // framebuffer, usb controller and keyboard
+                "-device", "ramfb",
+                "-device", "qemu-xhci",
+                "-device", "usb-kbd",
+                // UEFI firmware
                 "-drive", "if=pflash,unit=0,format=raw,file=/opt/ovmf-riscv64.fd", // OVMF UEFI firmware
-                "-device", "virtio-scsi-pci", // virtio-scsi
+                // virtio-scsi disk
+                "-device", "virtio-scsi-pci",
                 "-device", "scsi-hd,drive=hd0",
                 "-drive", "id=hd0,format=raw,file=fat:rw:uefi-files/", // UEFI files
-                "-smp", "1",
             ],
             "problemMatcher": [ ],
             "group": "none",
