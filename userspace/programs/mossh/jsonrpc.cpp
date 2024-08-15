@@ -202,7 +202,7 @@ int do_jsonrpc()
             std::cerr << "Unknown packet type: " << packet.type << std::endl;
         }
 
-        std::cout << static_cast<nlohmann::json>(resp).dump() << std::endl;
+        std::cout << std::endl << static_cast<nlohmann::json>(resp).dump() << std::endl;
     }
 
     return 0;
