@@ -51,10 +51,8 @@ static thread_t *naive_sched_select_next(scheduler_t *instance)
     thread_t *thread = node->thread;
     kfree(node);
 
-    if (thread == current_thread)
-        spinlock_assert_locked(&thread->state_lock);
-    else
-        spinlock_acquire(&thread->state_lock);
+    MOS_ASSERT_X(thread != current_thread, "current thread queued in scheduler");
+    spinlock_acquire(&thread->state_lock);
 
     pr_dinfo2(naive_sched, "naive scheduler selected thread %pt", (void *) thread);
     return thread;
