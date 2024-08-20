@@ -45,15 +45,17 @@ static thread_t *naive_sched_select_next(scheduler_t *instance)
     }
 
     naive_sched_node_t *node = list_entry(scheduler->threads.next, naive_sched_node_t);
+    list_remove(node);
+    spinlock_release(&scheduler->lock);
+
     thread_t *thread = node->thread;
+    kfree(node);
+
     if (thread == current_thread)
         spinlock_assert_locked(&thread->state_lock);
     else
         spinlock_acquire(&thread->state_lock);
-    list_remove(node);
-    spinlock_release(&scheduler->lock);
 
-    kfree(node);
     pr_dinfo2(naive_sched, "naive scheduler selected thread %pt", (void *) thread);
     return thread;
 }
