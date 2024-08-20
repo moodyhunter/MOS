@@ -46,6 +46,8 @@
     X(riscv64_startup)                                                                                                                                                   \
     /**/
 
+#define MOS_PLATFORM_MEMORY_BARRIER() __asm__ __volatile__("fence.i" ::: "memory")
+
 typedef struct _platform_process_options
 {
     int __unused;
