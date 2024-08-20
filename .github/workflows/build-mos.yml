@@ -87,7 +87,7 @@ jobs:
           tar -xvf $OVMF_VERSION-bin.tar.xz
           mv $OVMF_VERSION-bin/riscv64/code.fd /opt/ovmf-riscv64.fd
 
-      - name: Test
+      - name: Test with single CPU
         run: |
           cd build
           ../tools/testing/main.py \
@@ -100,5 +100,23 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4.3.6
         with:
-          name: MOS-${{matrix.build_type}}-${{matrix.config.arch}}-test-results
+          name: MOS-${{matrix.build_type}}-${{matrix.config.arch}}-test-results-single-cpu
+          path: build/test-results/
+
+      - name: Test with multiple CPUs
+        run: |
+          cd build
+          rm -vrf test-results/
+          ../tools/testing/main.py \
+            --arch ${{matrix.config.arch}} \
+            --kernel-tests \
+            --smp 8 \
+            -t 120 \
+            -w ${{matrix.config.bootwait}}
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4.3.6
+        with:
+          name: MOS-${{matrix.build_type}}-${{matrix.config.arch}}-test-results-multiple-cpus
           path: build/test-results/
