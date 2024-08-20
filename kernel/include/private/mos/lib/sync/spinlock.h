@@ -2,8 +2,12 @@
 
 #pragma once
 
+#include "mos/platform/platform_defs.h"
+
 #include <mos/mos_global.h>
 #include <mos/types.h>
+
+#define barrier() MOS_PLATFORM_MEMORY_BARRIER()
 
 typedef struct
 {
@@ -27,6 +31,7 @@ typedef struct
 #define _spinlock_real_acquire(lock)                                                                                                                                     \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
+        barrier();                                                                                                                                                       \
         while (__atomic_test_and_set(&(lock)->flag, __ATOMIC_ACQUIRE))                                                                                                   \
             ;                                                                                                                                                            \
     } while (0)

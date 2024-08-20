@@ -52,6 +52,8 @@
     X(x86_acpi)
 // clang-format on
 
+#define MOS_PLATFORM_MEMORY_BARRIER() __asm__ __volatile__("" ::: "memory")
+
 typedef struct _platform_process_options
 {
     bool iopl;

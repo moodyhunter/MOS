@@ -46,7 +46,10 @@ static thread_t *naive_sched_select_next(scheduler_t *instance)
 
     naive_sched_node_t *node = list_entry(scheduler->threads.next, naive_sched_node_t);
     thread_t *thread = node->thread;
-    spinlock_acquire(&thread->state_lock);
+    if (thread == current_thread)
+        spinlock_assert_locked(&thread->state_lock);
+    else
+        spinlock_acquire(&thread->state_lock);
     list_remove(node);
     spinlock_release(&scheduler->lock);
 

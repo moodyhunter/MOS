@@ -120,7 +120,7 @@ void reschedule(void)
 
     if (!next)
     {
-        if (current->state == THREAD_STATE_RUNNING)
+        if (current && current->state == THREAD_STATE_RUNNING)
         {
             // give the current thread another chance to run, if it's the only one and it's able to run
             MOS_ASSERT_X(spinlock_is_locked(&current->state_lock), "thread state lock must be held");

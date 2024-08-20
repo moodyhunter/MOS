@@ -35,6 +35,13 @@ void kthread_init(void)
 
 thread_t *kthread_create(thread_entry_t entry, void *arg, const char *name)
 {
+    thread_t *thread = kthread_create_no_sched(entry, arg, name);
+    scheduler_add_thread(thread);
+    return thread;
+}
+
+thread_t *kthread_create_no_sched(thread_entry_t entry, void *arg, const char *name)
+{
     MOS_ASSERT_X(kthreadd, "kthreadd not initialized");
     pr_dinfo2(thread, "creating kernel thread '%s'", name);
     kthread_arg_t *kthread_arg = kmalloc(sizeof(kthread_arg_t));
@@ -43,6 +50,5 @@ thread_t *kthread_create(thread_entry_t entry, void *arg, const char *name)
     thread_t *thread = thread_new(kthreadd, THREAD_MODE_KERNEL, name, 0, NULL);
     platform_context_setup_child_thread(thread, kthread_entry, kthread_arg);
     thread_complete_init(thread);
-    scheduler_add_thread(thread);
     return thread;
 }
