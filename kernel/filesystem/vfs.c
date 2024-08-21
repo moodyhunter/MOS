@@ -11,7 +11,6 @@
 #include "mos/mm/mmstat.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab_autoinit.h"
-#include "mos/tasks/kthread.h"
 
 #include <dirent.h>
 #include <errno.h>
@@ -46,14 +45,14 @@ static long do_pagecache_flush(file_t *file, off_t pgoff, size_t npages)
 {
     pr_dinfo2(vfs, "vfs: flushing page cache for file %pio", (void *) &file->io);
 
-    spinlock_acquire(&file->dentry->inode->cache.lock);
+    mutex_acquire(&file->dentry->inode->cache.lock);
     long ret = 0;
     if (pgoff == 0 && npages == (size_t) -1)
         ret = pagecache_flush_or_drop_all(&file->dentry->inode->cache, false);
     else
         ret = pagecache_flush_or_drop(&file->dentry->inode->cache, pgoff, npages, false);
 
-    spinlock_release(&file->dentry->inode->cache.lock);
+    mutex_release(&file->dentry->inode->cache.lock);
     return ret;
 }
 
@@ -190,9 +189,9 @@ static vmfault_result_t vfs_fault_handler(vmap_t *vmap, ptr_t fault_addr, pagefa
     file_t *file = container_of(vmap->io, file_t, io);
     const size_t fault_pgoffset = (vmap->io_offset + ALIGN_DOWN_TO_PAGE(fault_addr) - vmap->vaddr) / MOS_PAGE_SIZE;
 
-    spinlock_acquire(&file->dentry->inode->cache.lock); // lock the inode cache
+    mutex_acquire(&file->dentry->inode->cache.lock); // lock the inode cache
     phyframe_t *const pagecache_page = pagecache_get_page_for_read(&file->dentry->inode->cache, fault_pgoffset);
-    spinlock_release(&file->dentry->inode->cache.lock);
+    mutex_release(&file->dentry->inode->cache.lock);
 
     if (IS_ERR(pagecache_page))
         return VMFAULT_CANNOT_HANDLE;

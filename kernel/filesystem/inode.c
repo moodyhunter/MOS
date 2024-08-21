@@ -4,7 +4,6 @@
 
 #include "mos/filesystem/page_cache.h"
 #include "mos/filesystem/vfs_types.h"
-#include "mos/lib/sync/spinlock.h"
 #include "mos/mm/slab_autoinit.h"
 #include "mos/syslog/printk.h"
 
@@ -28,9 +27,9 @@ static bool inode_try_drop(inode_t *inode)
         pr_dinfo2(vfs, "inode %p has 0 refcount and 0 nlinks, dropping", (void *) inode);
 
         // drop the inode
-        spinlock_acquire(&inode->cache.lock);
+        mutex_acquire(&inode->cache.lock);
         pagecache_flush_or_drop_all(&inode->cache, true);
-        spinlock_release(&inode->cache.lock);
+        mutex_release(&inode->cache.lock);
 
         bool dropped = false;
         if (inode->superblock->ops && inode->superblock->ops->drop_inode)
@@ -60,7 +59,7 @@ void inode_init(inode_t *inode, superblock_t *sb, u64 ino, file_type_t type)
 
     hashmap_init(&inode->cache.pages, MOS_INODE_CACHE_HASHMAP_SIZE, hashmap_identity_hash, hashmap_simple_key_compare);
     inode->cache.owner = inode;
-    inode->cache.lock.flag = 0;
+    inode->cache.lock = 0;
 }
 
 inode_t *inode_create(superblock_t *sb, u64 ino, file_type_t type)

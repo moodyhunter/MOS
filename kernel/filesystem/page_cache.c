@@ -4,7 +4,6 @@
 
 #include "mos/filesystem/vfs_types.h"
 #include "mos/filesystem/vfs_utils.h"
-#include "mos/lib/sync/spinlock.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/mmstat.h"
 #include "mos/mm/physical/pmm.h"
@@ -36,8 +35,6 @@ static bool do_flush_and_drop_cached_page(const uintn key, void *value, void *da
     // !! this causes performance issues, but it's simple and works for now
     // if (!page->pagecache.dirty)
 
-    spinlock_assert_locked(&icache->lock);
-
     long ret = 0;
     if (icache->ops->flush_page)
         ret = icache->ops->flush_page(icache, pgoff, page);
@@ -59,7 +56,7 @@ static bool do_flush_and_drop_cached_page(const uintn key, void *value, void *da
 long pagecache_flush_or_drop(inode_cache_t *icache, off_t pgoff, size_t npages, bool drop_page)
 {
     struct _flush_and_drop_data data = { .icache = icache, .should_drop_page = drop_page };
-    spinlock_assert_locked(&icache->lock);
+
     long ret = 0;
     for (size_t i = 0; i < npages; i++)
     {
@@ -80,7 +77,6 @@ long pagecache_flush_or_drop(inode_cache_t *icache, off_t pgoff, size_t npages, 
 
 long pagecache_flush_or_drop_all(inode_cache_t *icache, bool drop_page)
 {
-    spinlock_assert_locked(&icache->lock);
     struct _flush_and_drop_data data = { .icache = icache, .should_drop_page = drop_page };
     hashmap_foreach(&icache->pages, do_flush_and_drop_cached_page, &data);
     return data.ret;
@@ -88,7 +84,6 @@ long pagecache_flush_or_drop_all(inode_cache_t *icache, bool drop_page)
 
 phyframe_t *pagecache_get_page_for_read(inode_cache_t *cache, off_t pgoff)
 {
-    spinlock_assert_locked(&cache->lock);
     phyframe_t *page = hashmap_get(&cache->pages, pgoff);
     if (page)
         return page; // fast path
@@ -112,7 +107,7 @@ phyframe_t *pagecache_get_page_for_write(inode_cache_t *cache, off_t pgoff)
 
 ssize_t vfs_read_pagecache(inode_cache_t *icache, void *buf, size_t size, off_t offset)
 {
-    spinlock_acquire(&icache->lock);
+    mutex_acquire(&icache->lock);
     size_t bytes_read = 0;
     size_t bytes_left = size;
     while (bytes_left > 0)
@@ -124,7 +119,7 @@ ssize_t vfs_read_pagecache(inode_cache_t *icache, void *buf, size_t size, off_t 
         phyframe_t *page = pagecache_get_page_for_read(icache, offset / MOS_PAGE_SIZE); // the initial page
         if (IS_ERR(page))
         {
-            spinlock_release(&icache->lock);
+            mutex_release(&icache->lock);
             return PTR_ERR(page);
         }
 
@@ -135,7 +130,7 @@ ssize_t vfs_read_pagecache(inode_cache_t *icache, void *buf, size_t size, off_t 
         offset += inpage_size;
     }
 
-    spinlock_release(&icache->lock);
+    mutex_release(&icache->lock);
     return bytes_read;
 }
 
@@ -144,7 +139,7 @@ ssize_t vfs_write_pagecache(inode_cache_t *icache, const void *buf, size_t total
     const inode_cache_ops_t *ops = icache->ops;
     MOS_ASSERT_X(ops, "no page cache ops for inode %p", (void *) icache->owner);
 
-    spinlock_acquire(&icache->lock);
+    mutex_acquire(&icache->lock);
 
     size_t bytes_written = 0;
     size_t bytes_left = total_size;
@@ -160,7 +155,7 @@ ssize_t vfs_write_pagecache(inode_cache_t *icache, const void *buf, size_t total
         if (!can_write)
         {
             pr_warn("page_write_begin failed");
-            spinlock_release(&icache->lock);
+            mutex_release(&icache->lock);
             return -EIO;
         }
 
@@ -172,6 +167,6 @@ ssize_t vfs_write_pagecache(inode_cache_t *icache, const void *buf, size_t total
         offset += inpage_size;
     }
 
-    spinlock_release(&icache->lock);
+    mutex_release(&icache->lock);
     return bytes_written;
 }

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/lib/sync/mutex.h"
 #include "mos/mm/mm.h"
 #include "mos/mm/physical/pmm.h"
 #include "mos/mm/slab.h"
@@ -145,7 +146,7 @@ typedef struct _inode_cache_ops
 
 typedef struct _inode_cache
 {
-    spinlock_t lock;
+    mutex_t lock;
     inode_t *owner;
     hashmap_t pages; // page index -> phyframe_t *
     const inode_cache_ops_t *ops;

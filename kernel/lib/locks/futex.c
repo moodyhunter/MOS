@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/platform/platform_defs.h"
+
 #include <mos/lib/structures/list.h>
 #include <mos/lib/sync/spinlock.h>
 #include <mos/locks/futex.h>
@@ -26,6 +28,8 @@ static spinlock_t futex_list_lock = SPINLOCK_INIT;
 static futex_key_t futex_get_key(const futex_word_t *futex)
 {
     const ptr_t vaddr = (ptr_t) futex;
+    if (vaddr >= MOS_KERNEL_START_VADDR)
+        return vaddr;
     return mm_get_phys_addr(current_process->mm, vaddr);
 }
 
