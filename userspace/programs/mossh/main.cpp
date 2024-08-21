@@ -26,16 +26,12 @@ bool execute_line(const std::string &in)
 {
     auto line = string_trim(in);
 
-    // check if the line ends with an '&' and if so, run it in the background
-    bool should_wait = true;
-
     // split the programs
     auto spec = parse_commandline(line);
     if (!spec)
         return false;
 
     LaunchContext ctx{ std::move(spec) };
-    ctx.should_wait = should_wait;
     return ctx.start();
 }
 

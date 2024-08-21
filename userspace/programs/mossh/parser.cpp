@@ -84,7 +84,12 @@ static std::vector<token> lex(const std::string &cmd)
                 while (++data < end)
                 {
                     if (*data == ' ' || *data == '\t' || *data == '\n' || *data == '\r' || *data == '\'' || *data == '"' || *data == '`')
+                    {
+                        // possibly end the double or single quote
+                        if (in_double_quotes && *data == '"')
+                            in_double_quotes = false;
                         break;
+                    }
                     var += *data;
                 }
 
