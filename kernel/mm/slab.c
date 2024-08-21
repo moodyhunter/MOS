@@ -236,12 +236,13 @@ void *kmemcache_alloc(slab_t *slab)
     }
 
     ptr_t *alloc = (ptr_t *) slab->first_free;
+    pr_dcont(slab, " -> %p", (void *) alloc);
+
+    // sanitize the memory
+    MOS_ASSERT_X((ptr_t) alloc >= MOS_KERNEL_START_VADDR, "slab: invalid memory address %p", (void *) alloc);
+
     slab->first_free = *alloc; // next free entry
     memset(alloc, 0, slab->ent_size);
-
-#if MOS_DEBUG_FEATURE(slab)
-    pr_cont(" -> %p", (void *) alloc);
-#endif
 
     slab->nobjs++;
     spinlock_release(&slab->lock);
