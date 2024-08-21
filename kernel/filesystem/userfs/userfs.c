@@ -31,6 +31,13 @@ static const file_ops_t userfs_fops;
 static const inode_cache_ops_t userfs_inode_cache_ops;
 static const superblock_ops_t userfs_sb_ops;
 
+#define userfs_get(_fs, _fmt, ...)                                                                                                                                       \
+    statement_expr(userfs_t *, {                                                                                                                                         \
+        retval = container_of(_fs, userfs_t, fs);                                                                                                                        \
+        userfs_ensure_connected(retval);                                                                                                                                 \
+        pr_dinfo2(userfs, "calling '%s' (rpc_server '%s'): " _fmt, _fs->name, retval->rpc_server_name __VA_OPT__(, __VA_ARGS__));                                        \
+    })
+
 inode_t *i_from_pbfull(const mosrpc_fs_inode_info *stat, superblock_t *sb, void *private)
 {
     // enum pb_file_type_t -> enum file_type_t is safe here because they have the same values
@@ -92,20 +99,22 @@ void userfs_ensure_connected(userfs_t *userfs)
 
 static bool userfs_iop_hardlink(dentry_t *d, inode_t *i, dentry_t *new_d)
 {
-    MOS_UNUSED(d);
     MOS_UNUSED(i);
     MOS_UNUSED(new_d);
+
+    userfs_t *userfs = userfs_get(d->superblock->fs, "hardlink: %s", dentry_name(d));
+    MOS_UNUSED(userfs);
+
     return false;
 }
 
 static void userfs_iop_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state, dentry_iterator_op add_record)
 {
-    userfs_t *userfs = container_of(dentry->superblock->fs, userfs_t, fs);
-    mosrpc_fs_readdir_request req = { 0 };
-    req.i_ref = i_to_pb_ref(dentry->inode);
+    userfs_t *userfs = userfs_get(dentry->superblock->fs, "iterate_dir: %s", dentry_name(dentry));
 
+    mosrpc_fs_readdir_request req = { 0 };
     mosrpc_fs_readdir_response resp = { 0 };
-    userfs_ensure_connected(userfs);
+    req.i_ref = i_to_pb_ref(dentry->inode);
 
     const pf_point_t ev = profile_enter();
     const int result = fs_client_readdir(userfs->rpc_server, &req, &resp);
@@ -136,15 +145,14 @@ bail_out:
 
 static bool userfs_iop_lookup(inode_t *dir, dentry_t *dentry)
 {
+    userfs_t *userfs = userfs_get(dir->superblock->fs, "lookup: %s", dentry_name(dentry));
+
     bool ret = false;
-    userfs_t *userfs = container_of(dir->superblock->fs, userfs_t, fs);
     mosrpc_fs_lookup_request req = { 0 };
     req.i_ref = i_to_pb_ref(dir);
     req.name = (char *) dentry_name(dentry);
 
     mosrpc_fs_lookup_response resp = { 0 };
-    userfs_ensure_connected(userfs);
-
     const pf_point_t ev = profile_enter();
     const int result = fs_client_lookup(userfs->rpc_server, &req, &resp);
     profile_leave(ev, "userfs.'%s'.lookup", userfs->rpc_server_name);
@@ -176,6 +184,10 @@ static bool userfs_iop_mkdir(inode_t *dir, dentry_t *dentry, file_perm_t perm)
     MOS_UNUSED(dir);
     MOS_UNUSED(dentry);
     MOS_UNUSED(perm);
+
+    userfs_t *userfs = userfs_get(dir->superblock->fs, "mkdir: %s", dentry_name(dentry));
+    MOS_UNUSED(userfs);
+
     return false;
 }
 
@@ -186,13 +198,18 @@ static bool userfs_iop_mknode(inode_t *dir, dentry_t *dentry, file_type_t type, 
     MOS_UNUSED(type);
     MOS_UNUSED(perm);
     MOS_UNUSED(dev);
+
+    userfs_t *userfs = userfs_get(dir->superblock->fs, "mknode: %s", dentry_name(dentry));
+    MOS_UNUSED(userfs);
+
     return false;
 }
 
 static bool userfs_iop_newfile(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm)
 {
-    bool ret = false;
+    userfs_t *userfs = userfs_get(dir->superblock->fs, "newfile: %s", dentry_name(dentry));
 
+    bool ret = false;
     mosrpc_fs_create_file_request req;
     req.i_ref = i_to_pb_ref(dir);
     req.name = (char *) dentry_name(dentry);
@@ -200,9 +217,6 @@ static bool userfs_iop_newfile(inode_t *dir, dentry_t *dentry, file_type_t type,
     req.perm = perm;
 
     mosrpc_fs_create_file_response resp = { 0 };
-
-    userfs_t *userfs = container_of(dir->superblock->fs, userfs_t, fs);
-    userfs_ensure_connected(userfs);
 
     const pf_point_t pp = profile_enter();
     const int result = fs_client_create_file(userfs->rpc_server, &req, &resp);
@@ -235,12 +249,11 @@ bail_out:
 
 static size_t userfs_iop_readlink(dentry_t *dentry, char *buffer, size_t buflen)
 {
-    mosrpc_fs_readlink_request req = { 0 };
-    req.i_ref = i_to_pb_ref(dentry->inode);
+    userfs_t *userfs = userfs_get(dentry->superblock->fs, "readlink: %s", dentry_name(dentry));
 
+    mosrpc_fs_readlink_request req = { 0 };
     mosrpc_fs_readlink_response resp = { 0 };
-    userfs_t *userfs = container_of(dentry->superblock->fs, userfs_t, fs);
-    userfs_ensure_connected(userfs);
+    req.i_ref = i_to_pb_ref(dentry->inode);
 
     const pf_point_t pp = profile_enter();
     const int result = fs_client_readlink(userfs->rpc_server, &req, &resp);
@@ -276,6 +289,10 @@ static bool userfs_iop_rename(inode_t *old_dir, dentry_t *old_dentry, inode_t *n
     MOS_UNUSED(old_dentry);
     MOS_UNUSED(new_dir);
     MOS_UNUSED(new_dentry);
+
+    userfs_t *userfs = userfs_get(old_dir->superblock->fs, "rename: %s -> %s", dentry_name(old_dentry), dentry_name(new_dentry));
+    MOS_UNUSED(userfs);
+
     return false;
 }
 
@@ -283,6 +300,10 @@ static bool userfs_iop_rmdir(inode_t *dir, dentry_t *dentry)
 {
     MOS_UNUSED(dir);
     MOS_UNUSED(dentry);
+
+    userfs_t *userfs = userfs_get(dir->superblock->fs, "rmdir: %s", dentry_name(dentry));
+    MOS_UNUSED(userfs);
+
     return false;
 }
 
@@ -291,19 +312,23 @@ static bool userfs_iop_symlink(inode_t *dir, dentry_t *dentry, const char *symna
     MOS_UNUSED(dir);
     MOS_UNUSED(dentry);
     MOS_UNUSED(symname);
+
+    userfs_t *userfs = userfs_get(dir->superblock->fs, "symlink: %s", dentry_name(dentry));
+    MOS_UNUSED(userfs);
+
     return false;
 }
 
 static bool userfs_iop_unlink(inode_t *dir, dentry_t *dentry)
 {
+    userfs_t *userfs = userfs_get(dir->superblock->fs, "unlink: %s", dentry_name(dentry));
+
     mosrpc_fs_unlink_request req;
+    mosrpc_fs_unlink_response resp = { 0 };
+
     req.i_ref = i_to_pb_ref(dir);
     req.dentry.inode_id = dentry->inode->ino;
     req.dentry.name = (char *) dentry_name(dentry);
-
-    mosrpc_fs_unlink_response resp = { 0 };
-    userfs_t *userfs = container_of(dir->superblock->fs, userfs_t, fs);
-    userfs_ensure_connected(userfs);
 
     const pf_point_t pp = profile_enter();
     const int result = fs_client_unlink(userfs->rpc_server, &req, &resp);
@@ -347,6 +372,7 @@ static bool userfs_fop_open(inode_t *inode, file_t *file, bool created)
     MOS_UNUSED(inode);
     MOS_UNUSED(file);
     MOS_UNUSED(created);
+
     return true;
 }
 
@@ -362,14 +388,13 @@ static const file_ops_t userfs_fops = {
 
 static phyframe_t *userfs_inode_cache_fill_cache(inode_cache_t *cache, off_t pgoff)
 {
-    // get a page from the server
-    userfs_t *userfs = container_of(cache->owner->superblock->fs, userfs_t, fs);
+    userfs_t *userfs = userfs_get(cache->owner->superblock->fs, "fill_cache", );
+
     mosrpc_fs_getpage_request req = { 0 };
     req.i_ref = i_to_pb_ref(cache->owner);
     req.pgoff = pgoff;
 
     mosrpc_fs_getpage_response resp = { 0 };
-    userfs_ensure_connected(userfs);
 
     const pf_point_t pp = profile_enter();
     const int result = fs_client_get_page(userfs->rpc_server, &req, &resp);
@@ -406,8 +431,9 @@ bail_out:
 
 long userfs_inode_cache_flush_page(inode_cache_t *cache, off_t pgoff, phyframe_t *page)
 {
+    userfs_t *userfs = userfs_get(cache->owner->superblock->fs, "flush_page", );
+
     long ret = 0;
-    userfs_t *userfs = container_of(cache->owner->superblock->fs, userfs_t, fs);
     mosrpc_fs_putpage_request req = { 0 };
     req.i_ref = i_to_pb_ref(cache->owner);
     req.pgoff = pgoff;
@@ -416,7 +442,6 @@ long userfs_inode_cache_flush_page(inode_cache_t *cache, off_t pgoff, phyframe_t
     memcpy(req.data->bytes, (void *) phyframe_va(page), MOS_PAGE_SIZE);
 
     mosrpc_fs_putpage_response resp = { 0 };
-    userfs_ensure_connected(userfs);
 
     const pf_point_t pp = profile_enter();
     const int result = fs_client_put_page(userfs->rpc_server, &req, &resp);
@@ -453,14 +478,13 @@ static const inode_cache_ops_t userfs_inode_cache_ops = {
 
 long userfs_sync_inode(inode_t *inode)
 {
-    userfs_t *userfs = container_of(inode->superblock->fs, userfs_t, fs);
+    userfs_t *userfs = userfs_get(inode->superblock->fs, "sync_inode: %llu", inode->ino);
+
     mosrpc_fs_sync_inode_request req = { 0 };
     req.i_ref = i_to_pb_ref(inode);
     req.i_info = *i_to_pb_full(inode, &req.i_info);
 
     mosrpc_fs_sync_inode_response resp = { 0 };
-    userfs_ensure_connected(userfs);
-
     const pf_point_t pp = profile_enter();
     const int result = fs_client_sync_inode(userfs->rpc_server, &req, &resp);
     profile_leave(pp, "userfs.'%s'.sync_inode", userfs->rpc_server_name);
@@ -487,8 +511,7 @@ static const superblock_ops_t userfs_sb_ops = {
 
 dentry_t *userfs_fsop_mount(filesystem_t *fs, const char *device, const char *options)
 {
-    userfs_t *userfs = container_of(fs, userfs_t, fs);
-    userfs_ensure_connected(userfs);
+    userfs_t *userfs = userfs_get(fs, "mount: %s", fs->name);
 
     const mosrpc_fs_mount_request req = {
         .fs_name = (char *) fs->name,
