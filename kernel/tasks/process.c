@@ -291,7 +291,7 @@ void process_exit(process_t *process, u8 exit_code, signal_t signal)
         spinlock_acquire(&thread->state_lock);
         if (thread->state == THREAD_STATE_DEAD)
         {
-            pr_dinfo2(process, "cleanup thread %pp", (void *) thread);
+            pr_dinfo2(process, "cleanup thread %pt", (void *) thread);
             MOS_ASSERT(thread != current_thread);
             hashmap_remove(&thread_table, thread->tid);
             list_remove(thread);
@@ -302,7 +302,7 @@ void process_exit(process_t *process, u8 exit_code, signal_t signal)
             // send termination signal to all threads, except the current one
             if (thread != current_thread)
             {
-                pr_dinfo2(signal, "sending SIGKILL to thread %pp", (void *) thread);
+                pr_dinfo2(signal, "sending SIGKILL to thread %pt", (void *) thread);
                 signal_send_to_thread(thread, SIGKILL);
                 spinlock_release(&thread->state_lock);
                 thread_wait_for_tid(thread->tid);
@@ -316,7 +316,7 @@ void process_exit(process_t *process, u8 exit_code, signal_t signal)
             {
                 spinlock_release(&thread->state_lock);
                 process->main_thread = thread; // make sure we properly destroy the main thread at the end
-                pr_dinfo2(process, "thread %pp is current thread, making it main thread", (void *) thread);
+                pr_dinfo2(process, "thread %pt is current thread, making it main thread", (void *) thread);
             }
         }
     }
