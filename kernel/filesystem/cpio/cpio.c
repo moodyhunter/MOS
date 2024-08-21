@@ -69,6 +69,7 @@ static const inode_ops_t cpio_file_inode_ops;
 static const file_ops_t cpio_file_ops;
 static const inode_cache_ops_t cpio_icache_ops;
 static const superblock_ops_t cpio_sb_ops;
+static const file_ops_t cpio_noop_file_ops = { 0 };
 
 static slab_t *cpio_inode_cache = NULL;
 SLAB_AUTOINIT("cpio_inode", cpio_inode_cache, cpio_inode_t);
@@ -198,7 +199,7 @@ static cpio_inode_t *cpio_inode_trycreate(const char *path, superblock_t *sb)
     inode->sgid = modebits & CPIO_MODE_SGID;
     inode->nlinks = strntoll(cpio_inode->header.nlink, NULL, 16, sizeof(cpio_inode->header.nlink) / sizeof(char));
     inode->ops = file_type == FILE_TYPE_DIRECTORY ? &cpio_dir_inode_ops : &cpio_file_inode_ops;
-    inode->file_ops = file_type == FILE_TYPE_DIRECTORY ? NULL : &cpio_file_ops;
+    inode->file_ops = file_type == FILE_TYPE_DIRECTORY ? &cpio_noop_file_ops : &cpio_file_ops;
     inode->cache.ops = &cpio_icache_ops;
 
     return cpio_inode;
