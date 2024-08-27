@@ -10,12 +10,19 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (!unlink(argv[1]))
+    bool has_error = false;
+
+    for (int i = 1; i < argc; i++)
     {
-        fprintf(stderr, "failed to remove file\n");
-        return 1;
+        if (unlink(argv[i]))
+        {
+            fprintf(stderr, "failed to remove %s\n", argv[i]);
+            has_error = true;
+            continue;
+        }
+
+        printf("removed %s\n", argv[i]);
     }
 
-    printf("removed %s\n", argv[1]);
-    return 0;
+    return has_error ? 1 : 0;
 }
