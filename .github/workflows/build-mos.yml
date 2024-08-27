@@ -38,6 +38,7 @@ jobs:
             ${{matrix.config.arch}}-mos-binutils \
             ${{matrix.config.arch}}-mos-mlibc \
             ${{matrix.config.arch}}-mos-nlohmann-json \
+            ${{matrix.config.arch}}-mos-tomlplusplus-headers \
             mos-llvm \
             mos-rust
 
