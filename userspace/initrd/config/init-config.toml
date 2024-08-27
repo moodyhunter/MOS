@@ -1,0 +1,21 @@
+# MOS Service Configuration
+
+# Include all files in bits/
+include = ["bits/*.toml"]
+
+# The default target to boot into
+default_target = "normal.target"
+
+[base.target]
+type = "target"
+description = "Base System"
+
+[normal.target]
+type = "target"
+description = "Normal System"
+depends_on = ["base.target"]
+
+[data-partition.target]
+type = "target"
+description = "Data Partition"
+depends_on = ["normal.target", "ext4fs.service"]

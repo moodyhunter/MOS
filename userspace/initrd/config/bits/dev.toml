@@ -1,0 +1,4 @@
+[dev.path]
+type = "path"
+description = "Create dev directory"
+path = "/dev"

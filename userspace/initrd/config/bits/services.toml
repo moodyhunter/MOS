@@ -1,0 +1,27 @@
+[device-manager.service]
+type = "service"
+description = "Device manager"
+depends_on = ["dev.path"]
+part_of = ["normal.target"]
+exec = "/initrd/drivers/device-manager"
+
+[blockdev-manager.service]
+type = "service"
+description = "Block device manager"
+depends_on = ["dev.path", "device-manager.service"]
+part_of = ["normal.target"]
+exec = "/initrd/drivers/blockdev-manager"
+
+[ext4fs.service]
+type = "service"
+description = "Ext4 file system driver"
+exec = "/initrd/drivers/ext4fs"
+depends_on = ["blockdev-manager.service"]
+part_of = ["normal.target"]
+
+[syslogd.service]
+type = "service"
+description = "System log daemon"
+depends_on = ["sys.mount"]
+part_of = ["normal.target"]
+exec = "/initrd/programs/syslogd"

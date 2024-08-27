@@ -1,151 +1,84 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#include "global.hpp"
+#include "unit/unit.hpp"
 
-#include <algorithm>
 #include <argparse/libargparse.h>
-#include <ctime>
+#include <filesystem>
+#include <functional>
+#include <glob.h>
 #include <iostream>
-#include <libconfig/libconfig.h>
 #include <map>
-#include <mos/syscall/usermode.h>
-#include <sched.h>
+#include <set>
 #include <signal.h>
 #include <spawn.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <string>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <toml++/toml.hpp>
 #include <unistd.h>
 #include <vector>
 
-static const bool debug = false;
+#define RED(text)   "\033[1;31m" text "\033[0m"
+#define GREEN(text) "\033[1;32m" text "\033[0m"
 
-static Config config;
-static std::map<std::string, pid_t> service_pid;
+#define FAILED()   RED("[FAILED]")
+#define OK()       GREEN("[  OK  ]")
+#define STARTING() "\033[0m         "
 
-static std::string string_trim(const std::string &in)
+std::map<std::string, pid_t> service_pid;
+bool debug = false;
+inline GlobalConfig global_config;
+inline std::map<std::string, std::shared_ptr<Unit>> units;
+
+static std::vector<std::string> startup_order_for_unit(const std::string &id)
 {
-    std::string str = in;
+    std::set<std::string> visited;
+    std::vector<std::string> order;
 
-    // Trim leading space
-    while (str[0] == ' ')
-        str.erase(0, 1);
+    std::function<void(const std::string &)> visit = [&](const std::string id)
+    {
+        if (visited.contains(id))
+            return;
 
-    if (str.empty()) // All spaces?
-        return str;
+        visited.insert(id);
+        const auto &unit = units[id];
+        if (!unit)
+        {
+            std::cerr << "unit " << id << " does not exist" << std::endl;
+            return;
+        }
 
-    // Trim trailing space
-    while (str.back() == ' ')
-        str.pop_back();
+        for (const auto &dep_id : unit->depends_on)
+            visit(dep_id);
+        order.push_back(id);
+    };
 
-    return str;
+    visit(id);
+    return order;
 }
 
-bool start_services(void)
+static bool start_unit_tree(const std::string &id)
 {
-    const auto services = config.get_entries("services");
-
-    for (const auto &[service_name, executable] : services)
+    const auto order = startup_order_for_unit(id);
+    for (const auto &unit_id : order)
     {
-        if (debug)
-            std::cout << "Starting service: " << service_name << " -> " << executable << std::endl;
-
-        const auto driver_pid = fork();
-
-        if (driver_pid == 0) // child
-        {
-            execl(executable.c_str(), executable.c_str(), NULL);
-            exit(-1);
-        }
-        else if (driver_pid < 0)
-        {
-            std::cerr << "Failed to start service: " << executable << std::endl;
-        }
-        else // parent
-        {
-            std::string name = service_name;
-            if (service_pid.contains(service_name))
-                std::cerr << "Duplicated service name: " << service_name << ", renaming as " << service_name << ".1" << std::endl, name += ".1";
-            service_pid[name] = driver_pid;
-        }
-    }
-
-    return true;
-}
-
-static bool create_directories(void)
-{
-    const auto mkdirs = config.get_entries("mkdir");
-
-    for (const auto &[_, dir] : mkdirs)
-    {
-        if (debug)
-            std::cout << "Creating directory: " << dir << std::endl;
-
-        if (mkdir(dir.c_str(), 0755) != 0)
-            return false;
-    }
-
-    return true;
-}
-
-static bool create_symlinks(void)
-{
-    const auto symlinks = config.get_entries("symlink");
-
-    for (const auto &[_, value] : symlinks)
-    {
-        // decompose the value (source destination)
-        const auto pos = value.find(' ');
-        if (pos == std::string::npos)
-            return false;
-
-        const auto source = string_trim(value.substr(0, pos));
-        const auto destination = string_trim(value.substr(pos + 1));
+        const auto unit = units[unit_id];
 
         if (debug)
-            std::cout << "Creating symlink: " << source << " -> " << destination << std::endl;
-
-        if (link(source.c_str(), destination.c_str()) != 0)
-            return false;
-    }
-
-    return true;
-}
-
-static bool mount_filesystems(void)
-{
-    const auto mounts = config.get_entries("mount");
-
-    for (const auto &[_, mount] : mounts)
-    {
-        // format: <Device> <MountPoint> <Filesystem> <Options>
-        std::vector<std::string> parts = { "", "", "", "" };
-        size_t part = 0;
-        for (const char c : mount)
+            std::cout << STARTING() << "Starting " << unit->description << " (" << unit->id << ")" << std::endl;
+        if (!unit->start())
         {
-            if (c == ' ')
-                part++;
+            std::cerr << FAILED() << " Failed to start " << unit->description << ": " << unit->error_reason() << std::endl;
+            return false;
+        }
+        else
+        {
+            if (unit->type == "target")
+                std::cout << OK() << " Reached target " << unit->description << std::endl;
             else
-                parts[part] += c;
+                std::cout << OK() << " Started " << unit->description << std::endl;
         }
-
-        if (parts.size() != 4)
-            std::cerr << "Invalid mount line: " << mount << std::endl;
-
-        std::ranges::for_each(parts, [](auto &part) { part = string_trim(part); });
-
-        if (std::ranges::any_of(parts, &std::string::empty))
-            return false;
-
-        const auto [device, mount_point, filesystem, options] = std::make_tuple(parts[0], parts[1], parts[2], parts[3]);
-
-        if (debug)
-            std::cout << "Mounting: " << device << " -> " << mount_point << " (" << filesystem << ") with options: " << options << std::endl;
-
-        if (syscall_vfs_mount(device.c_str(), mount_point.c_str(), filesystem.c_str(), options.c_str()) != 0)
-            return false;
     }
 
     return true;
@@ -155,10 +88,7 @@ static void sigsegv_handler(int sig)
 {
     if (sig == SIGSEGV)
     {
-#define RED   "\033[1;31m"
-#define RESET "\033[0m"
-
-        std::cout << RED << "Segmentation fault" << RESET << std::endl;
+        std::cout << RED("Segmentation fault") << std::endl;
         while (true)
             sched_yield();
     }
@@ -193,8 +123,8 @@ int main(int argc, const char *argv[])
     sa.sa_handler = sigsegv_handler;
     sigaction(SIGSEGV, &sa, NULL);
 
-    const char *config_file = "/initrd/config/init.conf";
-    const char *shell = "/initrd/programs/mossh";
+    std::filesystem::path config_file = "/initrd/config/init-config.toml";
+    std::string shell = "/initrd/programs/mossh";
     argparse_state_t state;
     argparse_init(&state, argv);
     while (true)
@@ -220,30 +150,27 @@ int main(int argc, const char *argv[])
         return DYN_ERROR_CODE;
     }
 
-    if (const auto result = Config::from_file(config_file); result)
-        config = result.value();
-    else
+    if (debug)
+        std::cout << "init: using config file " << config_file << std::endl;
+
+    if (!std::filesystem::exists(config_file))
     {
-        std::cerr << "Failed to parse config file: " << config_file << std::endl;
+        std::cerr << "init: config file " << config_file << " does not exist" << std::endl;
         return DYN_ERROR_CODE;
     }
 
-    if (!create_directories())
-        return DYN_ERROR_CODE;
+    load_configurations(config_file);
 
-    if (!create_symlinks())
+    if (!start_unit_tree(global_config.default_target))
+    {
+        std::cerr << RED("init: failed to start default target") << std::endl;
         return DYN_ERROR_CODE;
-
-    if (!mount_filesystems())
-        return DYN_ERROR_CODE;
-
-    if (!start_services())
-        return DYN_ERROR_CODE;
+    }
 
     // start the shell
     const char **shell_argv = (const char **) malloc(sizeof(char *));
     int shell_argc = 1;
-    shell_argv[0] = shell;
+    shell_argv[0] = shell.c_str();
 
     const char *arg;
     argparse_init(&state, argv); // reset the options
@@ -259,7 +186,7 @@ int main(int argc, const char *argv[])
 start_shell:;
     const pid_t shell_pid = fork();
     if (shell_pid == 0)
-        if (execv(shell, (char **) shell_argv) <= 0)
+        if (execv(shell.c_str(), (char **) shell_argv) <= 0)
             return DYN_ERROR_CODE;
 
     while (true)
@@ -278,6 +205,19 @@ start_shell:;
                 std::cout << "init: process " << pid << " exited with status " << WEXITSTATUS(status) << std::endl;
             else if (WIFSIGNALED(status))
                 std::cout << "init: process " << pid << " killed by signal " << WTERMSIG(status) << std::endl;
+        }
+
+        // check if any service has exited
+        for (const auto &[id, spid] : service_pid)
+        {
+            if (spid == -1)
+                continue;
+
+            if (pid == spid)
+            {
+                std::cout << "init: service " << id << " exited" << std::endl;
+                service_pid[id] = -1;
+            }
         }
     }
 
