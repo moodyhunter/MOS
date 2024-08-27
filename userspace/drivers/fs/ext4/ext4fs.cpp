@@ -658,3 +658,27 @@ rpc_result_code_t Ext4UserFS::unlink(rpc_context_t *ctx, mosrpc_fs_unlink_reques
     resp->result.error = nullptr;
     return RPC_RESULT_OK;
 }
+
+rpc_result_code_t Ext4UserFS::make_dir(rpc_context_t *ctx, mosrpc_fs_make_dir_request *req, mosrpc_fs_make_dir_response *resp)
+{
+    mosrpc_fs_create_file_request create_req{
+        .i_ref = req->i_ref,
+        .name = req->name,
+        .type = FILE_TYPE_DIRECTORY,
+        .perm = req->perm,
+    };
+
+    mosrpc_fs_create_file_response create_resp;
+    if (create_file(ctx, &create_req, &create_resp) != RPC_RESULT_OK)
+    {
+        resp->result.success = false;
+        resp->result.error = create_resp.result.error;
+        return RPC_RESULT_OK;
+    }
+
+    resp->result.success = true;
+    resp->result.error = nullptr;
+    resp->i_info = create_resp.i_info;
+    resp->i_ref = create_resp.i_ref;
+    return RPC_RESULT_OK;
+}

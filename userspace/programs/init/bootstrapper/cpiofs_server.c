@@ -27,9 +27,8 @@
 #define CPIOFS_NAME            "cpiofs"
 #define CPIOFS_RPC_SERVER_NAME "fs.cpiofs"
 
-RPC_CLIENT_DEFINE_SIMPLECALL(fs_manager, USERFSMANAGER_SERVICE_X)
-
-RPC_DECL_SERVER_PROTOTYPES(cpiofs, USERFS_SERVICE_X)
+MOS_RPC_USERFS_MANAGER_CLIENT(fs_manager)
+MOS_RPC_USERFS_SERVER(cpiofs)
 
 static rpc_server_t *cpiofs = NULL;
 static rpc_server_stub_t *fs_manager = NULL;
@@ -310,6 +309,13 @@ static rpc_result_code_t cpiofs_unlink(rpc_context_t *, mosrpc_fs_unlink_request
 {
     resp->result.success = false;
     resp->result.error = strdup("cpiofs: cannot unlink from cpiofs");
+    return RPC_RESULT_OK;
+}
+
+static rpc_result_code_t cpiofs_make_dir(rpc_context_t *, mosrpc_fs_make_dir_request *, mosrpc_fs_make_dir_response *resp)
+{
+    resp->result.success = false;
+    resp->result.error = strdup("cpiofs: cannot create directories");
     return RPC_RESULT_OK;
 }
 

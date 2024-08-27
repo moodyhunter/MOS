@@ -186,9 +186,39 @@ static bool userfs_iop_mkdir(inode_t *dir, dentry_t *dentry, file_perm_t perm)
     MOS_UNUSED(perm);
 
     userfs_t *userfs = userfs_get(dir->superblock->fs, "mkdir: %s", dentry_name(dentry));
-    MOS_UNUSED(userfs);
 
-    return false;
+    bool ret = false;
+
+    mosrpc_fs_make_dir_request req = { .name = (char *) dentry_name(dentry), .perm = perm, .i_ref = i_to_pb_ref(dir) };
+    mosrpc_fs_make_dir_response resp = { 0 };
+
+    const pf_point_t pp = profile_enter();
+    const int result = fs_client_make_dir(userfs->rpc_server, &req, &resp);
+    profile_leave(pp, "userfs.'%s'.make_dir", userfs->rpc_server_name);
+
+    if (result != RPC_RESULT_OK)
+    {
+        pr_warn("userfs_iop_mkdir: failed to mkdir %s: %d", dentry_name(dentry), result);
+        goto bail_out;
+    }
+
+    if (!resp.result.success)
+    {
+        pr_dwarn(userfs, "userfs_iop_mkdir: failed to mkdir %s: %s", dentry_name(dentry), resp.result.error);
+        goto bail_out;
+    }
+
+    inode_t *i = i_from_pbfull(&resp.i_info, dir->superblock, (void *) resp.i_ref.data);
+    dentry_attach(dentry, i);
+    dentry->superblock = i->superblock = dir->superblock;
+    i->ops = &userfs_iops;
+    i->cache.ops = &userfs_inode_cache_ops;
+    i->file_ops = &userfs_fops;
+    ret = true;
+
+bail_out:
+    pb_release(mosrpc_fs_make_dir_response_fields, &resp);
+    return ret;
 }
 
 static bool userfs_iop_mknode(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm, dev_t dev)

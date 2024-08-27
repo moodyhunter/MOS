@@ -133,6 +133,20 @@ message create_file_response
     inode_info i_info = 3;
 }
 
+message make_dir_request
+{
+    inode_ref i_ref = 1; // the inode of the parent directory
+    string name = 2;     // the name of the directory to create
+    uint32 perm = 3;     // the permissions of the directory to create
+}
+
+message make_dir_response
+{
+    mosrpc.result result = 1;
+    inode_ref i_ref = 2; // the inode of the created directory
+    inode_info i_info = 3;
+}
+
 message sync_inode_request
 {
     inode_ref i_ref = 1;   // the inode to sync
@@ -166,4 +180,5 @@ service UserFS
     rpc CreateFile(create_file_request) returns (create_file_response);
     rpc SyncInode(sync_inode_request) returns (sync_inode_response);
     rpc Unlink(unlink_request) returns (unlink_response);
+    rpc MakeDir(make_dir_request) returns (make_dir_response);
 }

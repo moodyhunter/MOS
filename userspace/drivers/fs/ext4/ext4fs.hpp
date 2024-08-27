@@ -108,4 +108,6 @@ class Ext4UserFS : public IUserFSService
     virtual rpc_result_code_t sync_inode(rpc_context_t *ctx, mosrpc_fs_sync_inode_request *req, mosrpc_fs_sync_inode_response *resp) override;
 
     virtual rpc_result_code_t unlink(rpc_context_t *ctx, mosrpc_fs_unlink_request *req, mosrpc_fs_unlink_response *resp) override;
+
+    virtual rpc_result_code_t make_dir(rpc_context_t *ctx, mosrpc_fs_make_dir_request *req, mosrpc_fs_make_dir_response *resp) override;
 };
