@@ -60,6 +60,11 @@ retry_write:;
         spinlock_release(&pipe->lock);
         waitlist_wake(&pipe->waitlist, INT_MAX);              // wake up any readers that are waiting for data
         MOS_ASSERT(reschedule_for_waitlist(&pipe->waitlist)); // wait for the reader to read some data
+        if (signal_has_pending())
+        {
+            pr_dinfo2(pipe, "signal pending, returning early");
+            return total_written;
+        }
         spinlock_acquire(&pipe->lock);
 
         // check if the pipe is still valid
@@ -117,6 +122,11 @@ retry_read:;
         spinlock_release(&pipe->lock);
         waitlist_wake(&pipe->waitlist, INT_MAX);              // wake up any writers that are waiting for space in the buffer
         MOS_ASSERT(reschedule_for_waitlist(&pipe->waitlist)); // wait for the writer to write some data
+        if (signal_has_pending())
+        {
+            pr_dinfo2(pipe, "signal pending, returning early");
+            return total_read;
+        }
         spinlock_acquire(&pipe->lock);
         goto retry_read;
     }

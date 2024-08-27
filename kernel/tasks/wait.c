@@ -59,9 +59,11 @@ size_t waitlist_wake(waitlist_t *list, size_t max_wakeups)
         waitable_list_entry_t *entry = list_entry(node, waitable_list_entry_t);
 
         thread_t *thread = thread_get(entry->waiter);
-        MOS_ASSERT(thread);
-        if (thread->state == THREAD_STATE_BLOCKED)
-            scheduler_wake_thread(thread);
+        if (thread) // if the thread is still there
+        {
+            if (thread->state == THREAD_STATE_BLOCKED)
+                scheduler_wake_thread(thread);
+        }
         kfree(entry);
         wakeups++;
     }

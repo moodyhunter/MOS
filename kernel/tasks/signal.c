@@ -116,6 +116,10 @@ long signal_send_to_thread(thread_t *target, signal_t signal)
     }
 
     spinlock_release(&target->signal_info.lock);
+
+    if (target != current_thread)
+        scheduler_wake_thread(target);
+
     return 0;
 }
 
@@ -162,9 +166,6 @@ long signal_send_to_process(process_t *target, signal_t signal)
     }
 
     signal_send_to_thread(target_thread, signal);
-
-    if (target_thread != current_thread)
-        scheduler_wake_thread(target_thread);
 
     return 0;
 }

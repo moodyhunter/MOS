@@ -303,8 +303,8 @@ void process_exit(process_t *process, u8 exit_code, signal_t signal)
             if (thread != current_thread)
             {
                 pr_dinfo2(signal, "sending SIGKILL to thread %pt", (void *) thread);
-                signal_send_to_thread(thread, SIGKILL);
                 spinlock_release(&thread->state_lock);
+                signal_send_to_thread(thread, SIGKILL);
                 thread_wait_for_tid(thread->tid);
                 spinlock_acquire(&thread->state_lock);
                 pr_dinfo2(process, "thread %pt terminated", (void *) thread);
