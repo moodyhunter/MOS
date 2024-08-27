@@ -4,9 +4,10 @@ import logging
 import subprocess
 import sys
 
+from generated import mosrpc_options_pb2
 from google.protobuf.compiler import plugin_pb2 as plugin
+from google.protobuf.descriptor import FieldDescriptor
 from google.protobuf.descriptor_pb2 import FileDescriptorProto
-
 
 logging.basicConfig(level=logging.WARN, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -18,23 +19,30 @@ FILE_PREAMBLE = f"""// SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
 #if !defined(__MOS_KERNEL__) && defined(__cplusplus) && defined(__MOS_RPC_SERVER__)
-#define __rpc_have_server__
+#define __rpc_have_cpp_server__
 #endif
 
 #if !defined(__MOS_KERNEL__) && defined(__cplusplus) && defined(__MOS_RPC_CLIENT__)
-#define __rpc_have_client__
+#define __rpc_have_cpp_client__
 #endif
 
 // don't expose this to the kernel
-#ifdef __rpc_have_server__
+#ifdef __rpc_have_cpp_server__
 #include <librpc/rpc_server++.hpp>
 #endif
 
-#ifdef __rpc_have_client__
+#ifdef __rpc_have_cpp_client__
 #include <string>  // HACK
 #include <librpc/rpc_client.h>
 #endif
 """
+
+
+FIELD_C_NAME: FieldDescriptor = mosrpc_options_pb2.c_name  # type: ignore
+FIELD_CPP_NAME: FieldDescriptor = mosrpc_options_pb2.cpp_class_name  # type: ignore
+
+FIELD_C_FUNC_NAME: FieldDescriptor = mosrpc_options_pb2.c_function_name  # type: ignore
+FIELD_CPP_FUNC_NAME: FieldDescriptor = mosrpc_options_pb2.cpp_function_name  # type: ignore
 
 
 def camelcase_to_underscore(name: str) -> str:
@@ -72,35 +80,58 @@ def process_file(proto_file: FileDescriptorProto, response: plugin.CodeGenerator
     write(f'')
 
     for service in proto_file.service:
-        write(f'// {service.name} service')
-        write(f'#define {service.name.upper()}_SERVICE_X(ARGS, PB, xarg) \\')
+        logging.info(f"Processing service: {service.name}")
+        service_c_name = service.name
+        service_cpp_class_name = service.name
+
+        if service.options.HasExtension(FIELD_C_NAME):  # type: ignore
+            service_c_name = service.options.Extensions[FIELD_C_NAME]  # type: ignore
+            logging.info(f"Service {service.name} has a custom C name: {service_c_name}")
+            write(f'// Service {service.name} has a custom C name: {service_c_name}')
+
+        if service.options.HasExtension(FIELD_CPP_NAME):  # type: ignore
+            service_cpp_class_name = service.options.Extensions[FIELD_CPP_NAME]  # type: ignore
+            logging.info(f"Service {service.name} has a custom C++ class name: {service_cpp_class_name}")
+            write(f'// Service {service.name} has a custom C++ class name: {service_cpp_class_name}')
+
+        x_macro_name = f'{service_c_name.upper()}_SERVICE_X'
+
+        write(f'// {service_c_name} service')
+        write(f'#define {x_macro_name}(ARGS, PB, xarg) \\')
         for mid, method in enumerate(service.method):
             rpc_name = camelcase_to_underscore(method.name)
             rpc_upper = camelcase_to_full_uppercase(method.name)
             input_type = resolve_protobuf_typename(method.input_type)
             output_type = resolve_protobuf_typename(method.output_type)
             write(f'    PB(xarg, {mid + 1}, {rpc_name}, {rpc_upper}, {input_type}, {output_type}) \\')
+
         write(f'    /**/')
         write(f'')
 
-    write(f"// Service stubs and interfaces for C++ clients and servers")
-    write(f'#ifdef __rpc_have_client__')
-    for service in proto_file.service:
-        x_macro_name = f'{service.name.upper()}_SERVICE_X'
-        write(f'RPC_CLIENT_DEFINE_STUB_CLASS({service.name}Stub, {x_macro_name});')
-    write(f'#endif')
+        write(f"// Service stubs and interfaces for C++ clients and servers")
+        write(f'#ifdef __rpc_have_cpp_client__')
+        write(f'RPC_CLIENT_DEFINE_STUB_CLASS({service_cpp_class_name}Stub, {x_macro_name});')
+        write(f'#endif')
 
-    write(f'')
+        write(f'')
 
-    write(f'#ifdef __rpc_have_server__')
-    for service in proto_file.service:
-        x_macro_name = f'{service.name.upper()}_SERVICE_X'
-        write(f'RPC_DECL_SERVER_INTERFACE_CLASS(I{service.name}Service, {x_macro_name});')
-    write(f'#endif')
-    write(f'')
+        write(f'#ifdef __rpc_have_cpp_server__')
+        write(f'RPC_DECL_SERVER_INTERFACE_CLASS(I{service_cpp_class_name}Service, {x_macro_name});')
+        write(f'#endif')
+        write(f'')
 
-    write(f'#undef __rpc_have_server__')
-    write(f'#undef __rpc_have_client__')
+        write(f'#ifdef __MOS_RPC_SERVER__')
+        write(f'#define MOS_RPC_{service_c_name.upper()}_SERVER(name) RPC_DECLARE_SERVER(name, {x_macro_name})')
+        write(f'#endif')
+        write(f'')
+
+        write(f'#ifdef __MOS_RPC_CLIENT__')
+        write(f'#define MOS_RPC_{service_c_name.upper()}_CLIENT(name) RPC_DECLARE_CLIENT(name, {x_macro_name})')
+        write(f'#endif')
+        write(f'')
+
+    write(f'#undef __rpc_have_cpp_server__')
+    write(f'#undef __rpc_have_cpp_client__')
 
     # check if clang-format is available
     if not subprocess.run(["which", "clang-format"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:

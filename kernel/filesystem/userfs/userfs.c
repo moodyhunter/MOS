@@ -24,7 +24,7 @@
 #include <pb_decode.h>
 #include <pb_encode.h>
 
-RPC_CLIENT_DEFINE_SIMPLECALL(fs_client, USERFS_SERVICE_X)
+MOS_RPC_USERFS_CLIENT(fs_client)
 
 static const inode_ops_t userfs_iops;
 static const file_ops_t userfs_fops;

@@ -5,7 +5,6 @@
 #include "mos/mm/slab_autoinit.h"
 #include "mos/syslog/printk.h"
 #include "mos/tasks/kthread.h"
-#include "proto/filesystem.pb.h"
 #include "proto/userfs-manager.services.h"
 
 #include <librpc/rpc.h>
@@ -18,7 +17,7 @@
 static slab_t *userfs_slab = NULL;
 SLAB_AUTOINIT("userfs", userfs_slab, userfs_t);
 
-RPC_DECL_SERVER_PROTOTYPES(userfs_manager, USERFSMANAGER_SERVICE_X)
+MOS_RPC_USERFS_MANAGER_SERVER(userfs_manager)
 
 static rpc_result_code_t userfs_manager_register_filesystem(rpc_context_t *, mosrpc_userfs_register_request *req, mosrpc_userfs_register_response *resp)
 {

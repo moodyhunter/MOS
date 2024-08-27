@@ -7,6 +7,7 @@ endif()
 set(RPC_INCLUDE_DIR "${CMAKE_BINARY_DIR}/mosrpc")
 set(RPC_OUTDIR "${CMAKE_BINARY_DIR}/mosrpc/proto")
 set(MOSRPC_GENERATOR_PLUGIN "${CMAKE_SOURCE_DIR}/tools/protoc-gen-mosrpc/main.py")
+set(MOSRPC_GENERATOR_PLUGIN_DIR "${CMAKE_SOURCE_DIR}/tools/protoc-gen-mosrpc")
 
 get_filename_component(RPC_PROTO_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR} ABSOLUTE)     # absolute path to source directory
 
@@ -89,6 +90,7 @@ macro(generate_rpc_definitions SRCS HDRS)
                 -I${CMAKE_SOURCE_DIR}
                 -I${GENERATOR_CORE_DIR}
                 -I${PROTO_FILE_DIR}
+                -I${MOSRPC_GENERATOR_PLUGIN_DIR}
 
                 # NanoPB Generator
                 --plugin=protoc-gen-nanopb=${NANOPB_GENERATOR_PLUGIN}
@@ -115,6 +117,7 @@ macro(generate_rpc_definitions SRCS HDRS)
 endmacro()
 
 file(GLOB PROTO_FILES "*.proto")
+# file(WRITE ${RPC_INCLUDE_DIR}/mosrpc-options.h "#pragma once\n\n// This file is intentionally left blank\n")
 
 generate_rpc_definitions(
     RPC_SRCS

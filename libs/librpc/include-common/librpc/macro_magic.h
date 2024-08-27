@@ -38,14 +38,14 @@
  * RPC_DEFINE_ENUMS(my_rpc, MY_RPC, MY_RPC_X) // optional
  *     this generates the enum values (MY_RPC_FOO = 0, MY_RPC_BAR = 1)
  *
- * RPC_CLIENT_DEFINE_SIMPLECALL(my_rpc, MY_RPC_X)
+ * RPC_DECLARE_CLIENT(my_rpc, MY_RPC_X)
  *     this generates the simplecall implementation, which is a function that takes the arguments
  *     and calls the RPC server with the function ID and the arguments
  *     i.e.
  *       rpc_result_code_t my_rpc_foo(rpc_server_stub_t *server_stub, int x);
  *       rpc_result_code_t my_rpc_bar(rpc_server_stub_t *server_stub, my_rpc_bar_request *request, my_rpc_bar_response *response);
  *
- * RPC_DECL_SERVER_PROTOTYPES(my_rpc, MY_RPC_X)
+ * RPC_DECLARE_SERVER(my_rpc, MY_RPC_X)
  *     this generates the function prototypes and the function info array
  *     i.e.
  *       static int my_rpc_foo(rpc_context_t *ctx, ...args...);
@@ -84,7 +84,7 @@
     }
 
 // generate the simplecall implementation
-#define RPC_CLIENT_DEFINE_SIMPLECALL(prefix, X_MACRO)                                                                                                                    \
+#define RPC_DECLARE_CLIENT(prefix, X_MACRO)                                                                                                                              \
     MOS_WARNING_PUSH                                                                                                                                                     \
     MOS_WARNING_DISABLE("-Wgnu-zero-variadic-macro-arguments")                                                                                                           \
     X_MACRO(X_GENERATE_FUNCTION_STUB_IMPL_ARGS, X_GENERATE_FUNCTION_STUB_IMPL_PB, prefix##_)                                                                             \
@@ -216,7 +216,7 @@
 #define X_GENERATE_FUNCTION_INFO_PB(prefix, fid, func, _1, _2, ...)   X_DO_GENERATE_FUNCTION_INFO_PB(fid, prefix##func##_pb_wrapper)
 
 // Generate the function prototypes and the function info array
-#define RPC_DECL_SERVER_PROTOTYPES(prefix, X_MACRO)                                                                                                                      \
+#define RPC_DECLARE_SERVER(prefix, X_MACRO)                                                                                                                              \
     MOS_WARNING_PUSH                                                                                                                                                     \
     MOS_WARNING_DISABLE("-Wgnu-zero-variadic-macro-arguments")                                                                                                           \
     X_MACRO(X_GENERATE_FUNCTION_FORWARDS_ARGS, X_GENERATE_FUNCTION_FORWARDS_PB, prefix##_)                                                                               \

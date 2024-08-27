@@ -13,7 +13,7 @@
 #include <librpc/rpc_client.h>
 #include <stdio.h>
 
-RPC_CLIENT_DEFINE_SIMPLECALL(syslogd, SYSLOGD_RPC_X)
+RPC_DECLARE_CLIENT(syslogd, SYSLOGD_RPC_X)
 
 should_inline void syslogd_logf(rpc_server_stub_t *logger, const char *fmt, ...)
 {

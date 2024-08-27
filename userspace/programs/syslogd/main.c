@@ -11,7 +11,7 @@
 #include <string.h>
 #include <unistd.h>
 
-RPC_DECL_SERVER_PROTOTYPES(syslogd, SYSLOGD_RPC_X)
+RPC_DECLARE_SERVER(syslogd, SYSLOGD_RPC_X)
 
 static void syslogd_on_connect(rpc_context_t *context)
 {

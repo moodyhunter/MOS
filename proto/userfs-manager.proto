@@ -1,6 +1,7 @@
 syntax = "proto3";
 import "nanopb.proto";
 import "mosrpc.proto";
+import "mosrpc-options.proto";
 
 option (nanopb_fileopt).fallback_type = FT_POINTER;
 option (nanopb_fileopt).proto3_singular_msgs = true;
@@ -25,5 +26,6 @@ message register_response
 
 service UserFSManager
 {
+    option (c_name) = "userfs_manager";
     rpc RegisterFilesystem(register_request) returns (register_response);
 }
