@@ -40,6 +40,7 @@ jobs:
             x86_64-mos-binutils \
             x86_64-mos-mlibc \
             x86_64-mos-nlohmann-json \
+            x86_64-mos-tomlplusplus-headers \
             mos-llvm \
             mos-rust
 
