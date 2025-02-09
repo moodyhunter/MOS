@@ -13,8 +13,46 @@
 
 static spinlock_t global_syslog_lock = SPINLOCK_INIT;
 
-long do_syslog(loglevel_t level, thread_t *thread, const char *file, const char *func, int line, debug_info_entry *feat, const char *fmt, ...)
+static void do_print_syslog(const pb_syslog_message *msg, const debug_info_entry *feat)
 {
+    const loglevel_t level = (loglevel_t) msg->info.level;
+    spinlock_acquire(&global_syslog_lock);
+
+    if (level != MOS_LOG_UNSET)
+    {
+        lprintk(level, "\r\n");
+        if (feat)
+            lprintk(level, "%-10s | ", feat->name);
+
+#if MOS_CONFIG(MOS_PRINTK_WITH_TIMESTAMP)
+        lprintk(level, "%-16lu | ", msg->timestamp);
+#endif
+
+#if MOS_CONFIG(MOS_PRINTK_WITH_DATETIME)
+        lprintk(level, "%s | ", (const char *) platform_get_datetime_str());
+#endif
+
+#if MOS_CONFIG(MOS_PRINTK_WITH_CPU_ID)
+        lprintk(level, "cpu %2d | ", msg->cpu_id);
+#endif
+
+#if MOS_CONFIG(MOS_PRINTK_WITH_FILENAME)
+        lprintk(level, "%-15s | ", msg->info.source_location.filename);
+#endif
+
+#if MOS_CONFIG(MOS_PRINTK_WITH_THREAD_ID)
+        lprintk(level, "tid:%d,%s\t| ", msg->thread.tid, msg->thread.name);
+#endif
+    }
+
+    lprintk(level, "%s", msg->message);
+
+    spinlock_release(&global_syslog_lock);
+}
+
+long do_syslog(loglevel_t level, const char *file, const char *func, int line, const debug_info_entry *feat, const char *fmt, ...)
+{
+    auto const thread = current_thread;
     pb_syslog_message msg = {
         .timestamp = platform_get_timestamp(),
         .cpu_id = platform_current_cpu_id(),
@@ -39,38 +77,6 @@ long do_syslog(loglevel_t level, thread_t *thread, const char *file, const char 
     vsnprintf(msg.message, sizeof(msg.message), fmt, args);
     va_end(args);
 
-    spinlock_acquire(&global_syslog_lock);
-
-    if (level != MOS_LOG_UNSET)
-    {
-        lprintk(level, "\r\n");
-        if (feat)
-            lprintk(level, "%-10s | ", feat->name);
-
-#if MOS_CONFIG(MOS_PRINTK_WITH_TIMESTAMP)
-        lprintk(level, "%-16llu | ", platform_get_timestamp());
-#endif
-
-#if MOS_CONFIG(MOS_PRINTK_WITH_DATETIME)
-        lprintk(level, "%s | ", (const char *) platform_get_datetime_str());
-#endif
-
-#if MOS_CONFIG(MOS_PRINTK_WITH_CPU_ID)
-        lprintk(level, "cpu %2d | ", msg.cpu_id);
-#endif
-
-#if MOS_CONFIG(MOS_PRINTK_WITH_FILENAME)
-        lprintk(level, "%-15s | ", msg.info.source_location.filename);
-#endif
-
-#if MOS_CONFIG(MOS_PRINTK_WITH_THREAD_ID)
-        lprintk(level, "%pt\t| ", ((void *) thread));
-#endif
-    }
-
-    lprintk(level, "%s", msg.message);
-
-    spinlock_release(&global_syslog_lock);
-
+    do_print_syslog(&msg, feat);
     return 0;
 }

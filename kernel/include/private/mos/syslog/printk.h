@@ -13,8 +13,8 @@
 #define pr_fmt(fmt) fmt // default format string
 #endif
 
-#define emit_syslog(level, feat, fmt, ...)  do_syslog(level, current_thread, __FILE_NAME__, __func__, __LINE__, &mos_debug_info.feat, fmt, ##__VA_ARGS__)
-#define emit_syslog_nofeat(level, fmt, ...) do_syslog(level, current_thread, __FILE_NAME__, __func__, __LINE__, NULL, fmt, ##__VA_ARGS__)
+#define emit_syslog(level, feat, fmt, ...)  do_syslog(level, __FILE_NAME__, __func__, __LINE__, &mos_debug_info.feat, fmt, ##__VA_ARGS__)
+#define emit_syslog_nofeat(level, fmt, ...) do_syslog(level, __FILE_NAME__, __func__, __LINE__, NULL, fmt, ##__VA_ARGS__)
 
 #define lprintk_debug_wrapper(feat, level, fmt, ...)                                                                                                                     \
     do                                                                                                                                                                   \

@@ -4,7 +4,6 @@
 
 #include "mos/io/io.h"
 #include "mos/ipc/ipc.h"
-#include "mos/platform/platform.h"
 
 typedef struct
 {

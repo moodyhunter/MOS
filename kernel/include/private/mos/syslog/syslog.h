@@ -16,4 +16,4 @@ typedef enum
     MOS_LOG_UNSET = 0,
 } loglevel_t;
 
-long do_syslog(loglevel_t level, thread_t *thread, const char *file, const char *func, int line, debug_info_entry *feat, const char *fmt, ...);
+long do_syslog(loglevel_t level, const char *file, const char *func, int line, const debug_info_entry *feat, const char *fmt, ...);

@@ -31,7 +31,7 @@ static io_t io_null_impl = {
     .type = IO_NULL,
     .flags = IO_READABLE | IO_WRITABLE,
     .ops =
-        &(io_op_t){
+        &(io_op_t) {
             .read = _null_read,
             .write = _null_write,
             .seek = NULL,

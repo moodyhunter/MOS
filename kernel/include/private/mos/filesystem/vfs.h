@@ -99,7 +99,7 @@ file_t *vfs_openat(int fd, const char *path, open_flags flags);
  *     If the path is relative, the fd will be used as the directory to resolve the path from.
  * If FSTATAT_NOFOLLOW is set, when the path is used, symlinks will not be followed.
  */
-long vfs_fstatat(fd_t fd, const char *path, file_stat_t *restrict stat, fstatat_flags flags);
+long vfs_fstatat(fd_t fd, const char *path, file_stat_t *stat, fstatat_flags flags);
 
 /**
  * @brief Read a symbolic link

@@ -6,7 +6,6 @@
 #include "mos/io/io.h"
 #include "mos/ipc/ipc.h"
 #include "mos/mm/slab_autoinit.h"
-#include "mos/platform/platform.h"
 
 #include <mos_stdlib.h>
 
