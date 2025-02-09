@@ -74,7 +74,11 @@ add_subdirectory(kernel)
 include(add_mos_library)
 add_subdirectory(libs)
 
-add_subdirectory(userspace)
+if (__MOS_HAS_NO_COMPILER)
+    message(WARNING "Skipping userspace build because __MOS_HAS_NO_COMPILER is set.")
+else()
+    add_subdirectory(userspace)
+endif()
 add_subdirectory(tools)
 
 # include custom configuration

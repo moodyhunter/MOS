@@ -10,7 +10,7 @@
 #include <mos/mm/physical/pmm.hpp>
 #include <mos/mos_global.h>
 #include <mos/platform/platform.hpp>
-#include <mos/platform_syscall.hpp>
+#include <mos/platform_syscall.h>
 #include <mos/syslog/printk.hpp>
 #include <mos/tasks/process.hpp>
 #include <mos/tasks/task_types.hpp>

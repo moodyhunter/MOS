@@ -2,7 +2,7 @@
 #pragma once
 
 #include <mos/mos_global.h>
-#include <mos/types.hpp>
+#include <mos/types.h>
 
 enum
 {

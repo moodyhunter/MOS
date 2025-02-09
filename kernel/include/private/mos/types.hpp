@@ -75,7 +75,7 @@ class PtrResult
 
     T *get() const
     {
-        return const_cast<T *>(value);
+        return value;
     }
 
     bool isErr() const

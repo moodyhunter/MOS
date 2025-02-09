@@ -17,7 +17,6 @@
 #include <librpc/rpc_client.h>
 #include <librpc/rpc_server.h>
 #include <mos/filesystem/fs_types.h>
-#include <mos/proto/fs_server.h>
 #include <mos_stdio.hpp>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>

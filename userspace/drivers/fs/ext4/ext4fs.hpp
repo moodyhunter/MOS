@@ -17,7 +17,6 @@
 #include <librpc/rpc_server++.hpp>
 #include <memory>
 #include <mos/filesystem/fs_types.h>
-#include <mos/proto/fs_server.h>
 #include <pb_decode.h>
 
 using namespace std::string_literals;
