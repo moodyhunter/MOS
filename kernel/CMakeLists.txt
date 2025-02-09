@@ -95,7 +95,7 @@ add_kernel_submodule(mm)
 add_kernel_submodule(syslog)
 add_kernel_submodule(tasks)
 
-add_kernel_source(kmain.c ksyscall_entry.c ksyscall.c)
+add_kernel_source(kmain.cpp ksyscall_entry.cpp ksyscall.cpp)
 
 target_link_libraries(mos_kernel PRIVATE mos::rpc-protocols)
 add_subdirectory(tests)

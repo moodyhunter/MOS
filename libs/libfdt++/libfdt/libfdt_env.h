@@ -10,8 +10,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
+#include <mos_stdlib.hpp>
+#include <mos_string.hpp>
 #include <limits.h>
 
 #ifdef __CHECKER__

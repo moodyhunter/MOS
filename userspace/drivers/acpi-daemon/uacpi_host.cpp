@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/lib/sync/spinlock.h"
-#include "mos/x86/devices/port.h"
+#include "mos/lib/sync/spinlock.hpp"
+#include "mos/x86/devices/port.hpp"
 #include "uacpi/kernel_api.h"
 #include "uacpi/platform/arch_helpers.h"
 #include "uacpi/status.h"

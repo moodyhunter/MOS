@@ -20,7 +20,8 @@ list(APPEND MOS_KERNEL_CFLAGS "-ffreestanding")
 list(APPEND MOS_KERNEL_CXXFLAGS "-ffreestanding;-fno-exceptions;-fno-rtti")
 
 # global compiler flags, which should be used for all targets
-set(MOS_GLOBAL_C_CXX_FLAGS "${MOS_GLOBAL_C_CXX_FLAGS} -Wall -Wextra -Wpedantic -pedantic -Werror=div-by-zero")
+# set(MOS_GLOBAL_C_CXX_FLAGS "${MOS_GLOBAL_C_CXX_FLAGS} -Wall -Wextra -Wpedantic -pedantic")
+set(MOS_GLOBAL_C_CXX_FLAGS "${MOS_GLOBAL_C_CXX_FLAGS} -Werror=div-by-zero")
 
 set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${MOS_GLOBAL_C_CXX_FLAGS} -Wstrict-prototypes -Wold-style-definition -Werror=implicit-function-declaration")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MOS_GLOBAL_C_CXX_FLAGS}")

@@ -5,8 +5,8 @@
 #include <stddef.h>
 
 #if defined(__MOS_MINIMAL_LIBC__) || defined(__MOS_KERNEL__)
-#include <mos_string.h>
-#include <mos_stdlib.h>
+#include <mos_string.hpp>
+#include <mos_stdlib.hpp>
 #else
 #include <string.h>
 #include <stdlib.h>

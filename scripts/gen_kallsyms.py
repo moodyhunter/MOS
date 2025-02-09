@@ -7,7 +7,7 @@ from sys import argv, stderr
 """
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/misc/kallsyms.h"
+#include "mos/misc/kallsyms.hpp"
 
 const kallsyms_t mos_kallsyms[] = {
     { .name = NULL, .address = 0 },
@@ -42,7 +42,7 @@ def main():
 
     gen("// SPDX-License-Identifier: GPL-3.0-or-later")
     gen("")
-    gen('#include "mos/misc/kallsyms.h"')
+    gen('#include "mos/misc/kallsyms.hpp"')
     gen("")
     gen("const kallsyms_t mos_kallsyms[] = {")
 

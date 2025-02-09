@@ -91,7 +91,6 @@
                 "-drive", "if=pflash,unit=0,format=raw,file=/opt/ovmf-riscv64.fd", // OVMF UEFI firmware
                 // virtio-scsi disk
                 "-device", "virtio-scsi-pci",
-                "-device", "scsi-hd,drive=hd0",
                 "-drive", "id=hd0,format=raw,file=fat:rw:uefi-files/", // UEFI files
             ],
             "problemMatcher": [ ],

@@ -1,7 +1,7 @@
 #include "argparse/libargparse.h"
 
 #if __MOS_MINIMAL_LIBC__
-#include <mos_stdio.h>
+#include <mos_stdio.hpp>
 #else
 #include <stdio.h>
 #endif

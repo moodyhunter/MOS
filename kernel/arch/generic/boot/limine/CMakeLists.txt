@@ -8,7 +8,7 @@ create_bootable_kernel_binary(
     FILENAME
         mos_limine.elf
     SOURCES
-        limine.c
+        limine.cpp
 )
 
 set(LIMINE_ROOT "/usr/share/limine" CACHE PATH "Path to limine root directory")

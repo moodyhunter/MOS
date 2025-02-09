@@ -4,9 +4,9 @@
 #pragma once
 
 #include <mos/mos_global.h>
-#include <mos/types.h>
-#include <mos_stdio.h>
-#include <mos_string.h>
+#include <mos/types.hpp>
+#include <mos_stdio.hpp>
+#include <mos_string.hpp>
 #include <stdbool.h>
 
 extern s32 test_engine_n_warning_expected;

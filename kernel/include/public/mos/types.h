@@ -6,10 +6,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#ifdef __cplusplus
-#include <atomic>
-#endif
-
 typedef signed char s8;
 typedef signed short s16;
 typedef signed int s32;
@@ -101,9 +97,4 @@ typedef s32 futex_word_t;
 #ifndef __cplusplus
 #define __atomic(type) _Atomic(type)
 typedef __atomic(size_t) atomic_t;
-#else
-// for C++, we need to use the atomic type directly
-typedef std::atomic<size_t> atomic_t;
 #endif
-
-typedef void (*thread_entry_t)(void *arg);

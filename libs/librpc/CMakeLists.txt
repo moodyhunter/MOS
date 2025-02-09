@@ -6,7 +6,7 @@ add_mos_library(
         ${CMAKE_CURRENT_LIST_DIR}/include-client
         ${CMAKE_CURRENT_LIST_DIR}/include-common
     SOURCES
-        rpc_client.c
+        rpc_client.cpp
     LINK_LIBRARIES
         mos::libipc
         mos::nanopb
@@ -22,7 +22,7 @@ add_mos_library(
         ${CMAKE_CURRENT_LIST_DIR}/include-server
         ${CMAKE_CURRENT_LIST_DIR}/include-common
     SOURCES
-        rpc_server.c
+        rpc_server.cpp
     LINK_LIBRARIES
         mos::libipc
         mos::nanopb

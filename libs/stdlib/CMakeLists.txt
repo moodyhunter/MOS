@@ -5,13 +5,13 @@ add_mos_library(
     PUBLIC_INCLUDE_DIRECTORIES
         ${CMAKE_CURRENT_LIST_DIR}/include
     SOURCES
-        mos_stdio.c
-        mos_stdio_impl.c
-        mos_stdlib.c
-        mos_string.c
+        mos_stdio.cpp
+        mos_stdio_impl.cpp
+        mos_stdlib.cpp
+        mos_string.cpp
 )
 
 # special kernel extensions for vsnprintf
-target_sources(stdlib_kernel PRIVATE stdio_kernel_ext.c)
+target_sources(stdlib_kernel PRIVATE stdio_kernel_ext.cpp)
 
 add_dependencies(stdlib_minimal mos_syscall_decl) # needs to be generated before we can compile

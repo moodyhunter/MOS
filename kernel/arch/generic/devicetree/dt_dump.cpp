@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "libfdt++.hpp"
-#include "mos/syslog/printk.h"
+#include "mos/syslog/printk.hpp"
 
-#include <mos_string.h>
+#include <mos_string.hpp>
 
 #define INDENT "    "
 

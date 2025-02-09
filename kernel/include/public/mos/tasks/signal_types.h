@@ -5,6 +5,8 @@
 #include <abi-bits/signal.h>
 #include <mos/mos_global.h>
 
+typedef void (*thread_entry_t)(void *arg);
+
 #define SIGNAL_MAX_N NSIG
 typedef int signal_t;
 typedef struct

@@ -253,7 +253,7 @@ class SyscallDispatcherGenerator(BaseAbstractGenerator):
         self.gen('#include <mos/syscall/number.h>')
         self.gen("")
         self.gen("// debugging support")
-        self.gen('#include "mos/syslog/printk.h"')
+        self.gen('#include "mos/syslog/printk.hpp"')
         self.gen("")
         self.gen("should_inline reg_t dispatch_syscall(const reg_t number, %s)" % (
             ", ".join(["reg_t arg%d" % (i + 1) for i in range(MAX_SYSCALL_NARGS)])))
@@ -317,14 +317,20 @@ class SyscallTableGenerator(BaseAbstractGenerator):
         self.gen('#include <mos/syscall/decl.h>')
         self.gen('#include <mos/syscall/number.h>')
         self.gen("")
-        self.gen("static const char *syscall_names[] = {")
+        self.gen("static const char *get_syscall_names(int nr) {")
+        with self.scope:
+            self.gen("switch (nr) {")
 
     def generate_single(self, e):
         with self.scope:
-            self.gen('[SYSCALL_%s] = "%s",' % (e["name"], e["name"]))
+            with self.scope:
+                self.gen('case SYSCALL_%s: return "%s";' % (e["name"], e["name"]))
 
     def generate_epilogue(self):
-        self.gen("};")
+        with self.scope:
+            self.gen("}")
+        self.gen('return "<unknown>";')
+        self.gen("}")
 
 
 generators: list[BaseAbstractGenerator] = [

@@ -4,21 +4,21 @@ add_kernel_source(
     interrupt/interrupt64.asm
     tasks/context_switch64.asm
     descriptors/flush64.asm
-    acpi/acpi.c
-    acpi/madt.c
-    cpu/ap_entry.c
-    cpu/cpu.c
-    devices/serial_driver.c
-    devices/rtc.c
-    descriptors/descriptors.c
-    interrupt/lapic.c
-    interrupt/ioapic.c
-    interrupt/idt.c
-    interrupt/x86_interrupt.c
-    interrupt/pic.c
-    mm/paging.c
-    tasks/context.c
-    tasks/fpu_context.c
-    x86_platform.c
-    x86_platform_api.c
+    acpi/acpi.cpp
+    acpi/madt.cpp
+    cpu/ap_entry.cpp
+    cpu/cpu.cpp
+    devices/serial_driver.cpp
+    devices/rtc.cpp
+    descriptors/descriptors.cpp
+    interrupt/lapic.cpp
+    interrupt/ioapic.cpp
+    interrupt/idt.cpp
+    interrupt/x86_interrupt.cpp
+    interrupt/pic.cpp
+    mm/paging.cpp
+    tasks/context.cpp
+    tasks/fpu_context.cpp
+    x86_platform.cpp
+    x86_platform_api.cpp
 )

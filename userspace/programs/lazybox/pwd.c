@@ -2,7 +2,7 @@
 
 #include "mosapi.h"
 
-#include <mos/moslib_global.h>
+#include <mos/moslib_global.hpp>
 
 int main(int, char **)
 {

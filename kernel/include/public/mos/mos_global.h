@@ -40,6 +40,8 @@
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
 #define __types_compatible(a, b) __builtin_types_compatible_p(__typeof(a), __typeof(b))
+
+#ifndef __cplusplus
 #define do_container_of(ptr, type, member)                                                                                                                               \
     __extension__({                                                                                                                                                      \
         void *real_ptr = (void *) (ptr);                                                                                                                                 \
@@ -49,8 +51,7 @@
 
 #define container_of(ptr, type, member)                                                                                                                                  \
     _Generic(ptr, const __typeof(*(ptr)) *: ((const type *) do_container_of(ptr, type, member)), default: ((type *) do_container_of(ptr, type, member)))
-
-#define cast_to(value, valtype, desttype) _Generic((value), valtype: (desttype) (value), const valtype: (const desttype)(value))
+#endif
 
 #define is_aligned(ptr, alignment) (((ptr_t) ptr & (alignment - 1)) == 0)
 
@@ -125,31 +126,6 @@
 #define MOS_PUT_IN_SECTION(_section, _struct, _var, ...) static const _struct _var __used __section(_section) = __VA_ARGS__
 #define IS_ERR_VALUE(x)                                  unlikely((unsigned long) (void *) (x) >= (unsigned long) -4095)
 
-__nodiscard should_inline void *ERR_PTR(long error)
-{
-    return (void *) error;
-}
-
-__nodiscard should_inline long PTR_ERR(const void *ptr)
-{
-    return (long) ptr;
-}
-
-__nodiscard should_inline void *ERR(const void *ptr)
-{
-    return (void *) ptr;
-}
-
-__nodiscard should_inline bool IS_ERR(const void *ptr)
-{
-    return IS_ERR_VALUE((unsigned long) ptr);
-}
-
-__attribute__((__deprecated__("reconsider if a NULL check is really required"))) __nodiscard should_inline bool IS_ERR_OR_NULL(const void *ptr)
-{
-    return unlikely(!ptr) || IS_ERR_VALUE((unsigned long) ptr);
-}
-
 #define MOS_STUB_IMPL(...)                                                                                                                                               \
     MOS_WARNING_PUSH                                                                                                                                                     \
     MOS_WARNING_DISABLE("-Wunused-parameter")                                                                                                                            \
@@ -158,17 +134,3 @@ __attribute__((__deprecated__("reconsider if a NULL check is really required")))
         MOS_UNREACHABLE_X("unimplemented: file %s, line %d", __FILE__, __LINE__);                                                                                        \
     }                                                                                                                                                                    \
     MOS_WARNING_POP
-
-#ifdef __cplusplus
-// enum operators are not supported in C++ implicitly
-// clang-format off
-#define MOS_ENUM_OPERATORS(_enum) \
-    constexpr inline _enum operator|(_enum a, _enum b) { return static_cast<_enum>(static_cast<int>(a) | static_cast<int>(b)); } \
-    constexpr inline _enum operator&(_enum a, _enum b) { return static_cast<_enum>(static_cast<int>(a) & static_cast<int>(b)); } \
-    constexpr inline _enum operator~(_enum a) { return static_cast<_enum>(~static_cast<int>(a)); } \
-    constexpr inline _enum &operator|=(_enum &a, _enum b) { return a = a | b; } \
-    constexpr inline _enum &operator&=(_enum &a, _enum b) { return a = a & b; }
-// clang-format on
-#else
-#define MOS_ENUM_OPERATORS(_enum)
-#endif

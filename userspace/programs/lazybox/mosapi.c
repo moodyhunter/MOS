@@ -6,9 +6,9 @@
 #include <fcntl.h>
 #include <mos/syscall/number.h>
 #include <mos/syscall/usermode.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
+#include <mos_stdio.hpp>
+#include <mos_stdlib.hpp>
+#include <mos_string.hpp>
 #include <stdarg.h>
 
 struct _FILE
@@ -53,7 +53,7 @@ void __printf(1, 2) fatal_abort(const char *fmt, ...)
     abort();
 }
 
-[[noreturn]] void abort()
+[[noreturn]] void abort(void)
 {
     raise(SIGABRT);
     syscall_exit(-1);

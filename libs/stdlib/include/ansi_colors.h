@@ -3,7 +3,7 @@
 #pragma once
 
 #include <mos/mos_global.h>
-#include <mos_string.h>
+#include <mos_string.hpp>
 
 /**
  * @defgroup libs_ansicolors libs.AnsiColors

@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/mm/slab.hpp"
+
 #include <cxxabi.h>
-#include <mos/lib/sync/mutex.h>
-#include <mos_stdlib.h>
+#include <mos/lib/sync/mutex.hpp>
+#include <mos_stdlib.hpp>
 #include <new>
 
 void *__dso_handle = (void *) 0xcdcdcdcdcdcdcdcd; // this pointer should never get dereferenced

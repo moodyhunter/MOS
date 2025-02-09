@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <mos/types.h>
+#include <mos/types.hpp>
 #include <utility>
 
 extern unsigned int dt_root_addr_cells;
@@ -49,7 +49,7 @@ class dt_reg
     class iterator
     {
       public:
-        explicit iterator(const dt_reg &reg, char *data) : reg(reg), data(data){};
+        explicit iterator(const dt_reg &reg, char *data) : reg(reg), data(data) {};
         std::pair<ptr_t, size_t> operator*() const;
         iterator &operator++();
 
@@ -63,7 +63,7 @@ class dt_reg
     };
 
   public:
-    dt_reg(const dt_property &prop) : prop(prop){};
+    dt_reg(const dt_property &prop) : prop(prop) {};
     bool verify_validity() const;
 
     // clang-format off
@@ -80,7 +80,7 @@ class dt_node
     class iterator
     {
       public:
-        explicit iterator(const dt_node &node, int offset) : node(node), iter_offset(offset){};
+        explicit iterator(const dt_node &node, int offset) : node(node), iter_offset(offset) {};
 
       public:
         iterator &operator++();
@@ -100,7 +100,7 @@ class dt_node
         class iterator
         {
           public:
-            explicit iterator(const dt_node &node, int offset) : node(node), poffset(offset){};
+            explicit iterator(const dt_node &node, int offset) : node(node), poffset(offset) {};
 
           public:
             iterator &operator++();
@@ -116,7 +116,7 @@ class dt_node
         };
 
       public:
-        explicit node_property_list(const dt_node &node) : node(node){};
+        explicit node_property_list(const dt_node &node) : node(node) {};
 
         iterator begin() const;
         iterator end() const;
@@ -126,7 +126,7 @@ class dt_node
     };
 
   public:
-    explicit dt_node(const dt_root &root, unsigned long offset) : m_root(root), m_offset(offset){};
+    explicit dt_node(const dt_root &root, unsigned long offset) : m_root(root), m_offset(offset) {};
     explicit dt_node(const dt_root &root, const char *path);
 
   public:
@@ -156,7 +156,7 @@ class dt_node
 class dt_root
 {
   public:
-    explicit dt_root(void *fdt) : _fdt(fdt), _root_node(*this, "/"){};
+    explicit dt_root(void *fdt) : _fdt(fdt), _root_node(*this, "/") {};
 
   public:
     // clang-format off

@@ -4,9 +4,9 @@
 #include <mos/filesystem/fs_types.h>
 #include <mos/tasks/signal_types.h>
 #include <mos/types.h>
-#include <mos_stdio.h>
-#include <mos_stdlib.h>
-#include <mos_string.h>
+#include <mos_stdio.hpp>
+#include <mos_stdlib.hpp>
+#include <mos_string.hpp>
 
 static __maybe_unused char **environ = NULL;
 

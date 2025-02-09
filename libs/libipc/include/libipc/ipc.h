@@ -27,14 +27,14 @@ typedef struct
  * @param size The size of the message.
  * @return ipc_msg_t* The message.
  */
-ipc_msg_t *ipc_msg_create(size_t size);
+MOSAPI ipc_msg_t *ipc_msg_create(size_t size);
 
 /**
  * @brief Destroy an IPC message.
  *
  * @param buffer The message.
  */
-void ipc_msg_destroy(ipc_msg_t *buffer);
+MOSAPI void ipc_msg_destroy(ipc_msg_t *buffer);
 
 /**
  * @brief Read an IPC message.
@@ -42,7 +42,7 @@ void ipc_msg_destroy(ipc_msg_t *buffer);
  * @param fd The file descriptor.
  * @return ipc_msg_t* The message.
  */
-ipc_msg_t *ipc_read_msg(ipcfd_t fd);
+MOSAPI ipc_msg_t *ipc_read_msg(ipcfd_t fd);
 
 /**
  * @brief Write an IPC message.
@@ -53,6 +53,6 @@ ipc_msg_t *ipc_read_msg(ipcfd_t fd);
  * @return false The message was not written.
  */
 
-bool ipc_write_msg(ipcfd_t fd, ipc_msg_t *buffer);
-size_t ipc_read_as_msg(ipcfd_t fd, char *buffer, size_t buffer_size);
-bool ipc_write_as_msg(ipcfd_t fd, const char *data, size_t size);
+MOSAPI bool ipc_write_msg(ipcfd_t fd, ipc_msg_t *buffer);
+MOSAPI size_t ipc_read_as_msg(ipcfd_t fd, char *buffer, size_t buffer_size);
+MOSAPI bool ipc_write_as_msg(ipcfd_t fd, const char *data, size_t size);
