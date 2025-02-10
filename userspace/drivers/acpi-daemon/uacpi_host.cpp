@@ -282,13 +282,13 @@ uacpi_thread_id uacpi_kernel_get_thread_id(void)
  * Try to acquire the mutex with a millisecond timeout.
  * A timeout value of 0xFFFF implies infinite wait.
  */
-uacpi_bool uacpi_kernel_acquire_mutex(uacpi_handle handle, uacpi_u16 timeout)
+uacpi_status uacpi_kernel_acquire_mutex(uacpi_handle handle, uacpi_u16 timeout)
 {
     auto mutex = reinterpret_cast<std::mutex *>(handle);
     if (timeout == 0xFFFF)
     {
         mutex->lock();
-        return UACPI_TRUE;
+        return UACPI_STATUS_OK;
     }
 
     auto start = std::chrono::steady_clock::now();
@@ -296,10 +296,10 @@ uacpi_bool uacpi_kernel_acquire_mutex(uacpi_handle handle, uacpi_u16 timeout)
     while (!mutex->try_lock())
     {
         if (std::chrono::steady_clock::now() > end)
-            return UACPI_FALSE;
+            return UACPI_STATUS_OK;
     }
 
-    return UACPI_TRUE;
+    return UACPI_STATUS_OK;
 }
 
 void uacpi_kernel_release_mutex(uacpi_handle handle)

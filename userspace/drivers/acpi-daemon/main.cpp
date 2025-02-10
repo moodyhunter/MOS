@@ -20,41 +20,12 @@ int main(int argc, const char *argv[])
 
     mem_fd = open("/sys/mem", O_RDWR);
 
-    uacpi_phys_addr rsdp_phys_addr = MOS_FOURCC('R', 'S', 'D', 'P');
-
     /*
-     * Set up the initialization parameters structure that configures uACPI
-     * behavior both at bring up and during runtime.
+     * Start with this as the first step of the initialization. This loads all
+     * tables, brings the event subsystem online, and enters ACPI mode. We pass
+     * in 0 as the flags as we don't want to override any default behavior for now.
      */
-    uacpi_init_params init_params = {
-        /*
-         * Physical address of the RSDP structure that we have either found
-         * ourselves manually by scanning memory or (ideally) provided to us by
-         * the bootloader.
-         */
-        .rsdp = rsdp_phys_addr,
-
-        /*
-         * Set the log level to TRACE, this is a bit verbose but perhaps
-         * okay for now since we're just getting started. We can change this
-         * to INFO later on, which is the recommended level for release
-         * builds. There's also the loudest UACPI_LOG_DEBUG log level, which
-         * is recommended to pin down lockups or hangs.
-         */
-        .log_level = UACPI_LOG_TRACE,
-
-        /*
-         * Don't set any behavior flags, the defaults should work on most
-         * hardware.
-         */
-        .flags = 0,
-    };
-
-    /*
-     * Proceed to the first step of the initialization. This loads all tables,
-     * brings the event subsystem online, and enters ACPI mode.
-     */
-    uacpi_status ret = uacpi_initialize(&init_params);
+    uacpi_status ret = uacpi_initialize(0);
     if (uacpi_unlikely_error(ret))
     {
         std::cerr << "uacpi_initialize error: " << uacpi_status_to_string(ret) << std::endl;
@@ -97,13 +68,7 @@ int main(int argc, const char *argv[])
         return -ENODEV;
     }
 
-    /*
-     * That's it, uACPI is now fully initialized and working! You can proceed to
-     * using any public API at your discretion. The next recommended step is namespace
-     * enumeration and device discovery so you can bind drivers to ACPI objects.
-     */
-
-    const auto acpi_init_one_device = [](void *user, uacpi_namespace_node *node) -> uacpi_ns_iteration_decision
+    const auto acpi_init_one_device = [](void *user, uacpi_namespace_node *node, uacpi_u32 node_depth) -> uacpi_iteration_decision
     {
         uacpi_namespace_node_info *info;
 
@@ -114,14 +79,14 @@ int main(int argc, const char *argv[])
             const char *path = uacpi_namespace_node_generate_absolute_path(node);
             std::cerr << "unable to retrieve node " << path << ", " << uacpi_status_to_string(ret) << std::endl;
             uacpi_free_absolute_path(path);
-            return UACPI_NS_ITERATION_DECISION_CONTINUE;
+            return UACPI_ITERATION_DECISION_CONTINUE;
         }
 
         if (info->type != UACPI_OBJECT_DEVICE)
         {
             // We probably don't care about anything but devices at this point
             uacpi_free_namespace_node_info(info);
-            return UACPI_NS_ITERATION_DECISION_CONTINUE;
+            return UACPI_ITERATION_DECISION_CONTINUE;
         }
 
         if (info->flags & UACPI_NS_NODE_INFO_HAS_HID)
@@ -141,10 +106,10 @@ int main(int argc, const char *argv[])
 
         uacpi_free_namespace_node_info(info);
 
-        return UACPI_NS_ITERATION_DECISION_CONTINUE;
+        return UACPI_ITERATION_DECISION_CONTINUE;
     };
 
-    uacpi_namespace_for_each_node_depth_first(uacpi_namespace_root(), acpi_init_one_device, UACPI_NULL);
+    uacpi_namespace_for_each_child(uacpi_namespace_root(), acpi_init_one_device, UACPI_NULL, UACPI_OBJECT_DEVICE_BIT, UACPI_MAX_DEPTH_ANY, UACPI_NULL);
 
     while (true)
         ;
