@@ -15,36 +15,54 @@
 
 list_head consoles = LIST_HEAD_INIT(consoles);
 
+void Console::putc(u8 c)
+{
+    if (c == 0x3)
+    {
+        spinlock_acquire(&waitlist.lock);
+        list_foreach(waitable_list_entry_t, entry, waitlist.list)
+        {
+            thread_t *thread = thread_get(entry->waiter);
+            if (thread)
+                signal_send_to_thread(thread, SIGINT);
+        }
+        spinlock_release(&waitlist.lock);
+    }
+
+    ring_buffer_pos_push_back_byte(reader.buf, &reader.pos, c);
+    waitlist_wake(&waitlist, INT_MAX);
+}
+
 static size_t console_io_read(io_t *io, void *data, size_t size)
 {
-    console_t *con = container_of(io, console_t, io);
+    Console *con = container_of(io, Console, io);
 
 retry_read:;
     size_t read = 0;
 
-    spinlock_acquire(&con->read.lock);
-    if (ring_buffer_pos_is_empty(&con->read.pos))
+    spinlock_acquire(&con->reader.lock);
+    if (ring_buffer_pos_is_empty(&con->reader.pos))
     {
-        spinlock_release(&con->read.lock);
+        spinlock_release(&con->reader.lock);
         bool ok = reschedule_for_waitlist(&con->waitlist);
         if (!ok)
         {
             pr_emerg("console: '%s' closed", con->name);
             return -EIO;
         }
-        spinlock_acquire(&con->read.lock);
+        spinlock_acquire(&con->reader.lock);
 
         if (signal_has_pending())
         {
-            spinlock_release(&con->read.lock);
+            spinlock_release(&con->reader.lock);
             return -ERESTARTSYS;
         }
     }
     else
     {
-        read = ring_buffer_pos_pop_front(con->read.buf, &con->read.pos, (u8 *) data, size);
+        read = ring_buffer_pos_pop_front(con->reader.buf, &con->reader.pos, (u8 *) data, size);
     }
-    spinlock_release(&con->read.lock);
+    spinlock_release(&con->reader.lock);
 
     if (read == 0)
         goto retry_read;
@@ -54,12 +72,12 @@ retry_read:;
 
 static size_t console_io_write(io_t *io, const void *data, size_t size)
 {
-    console_t *con = container_of(io, console_t, io);
-    spinlock_acquire(&con->write.lock);
+    Console *con = container_of(io, Console, io);
+    spinlock_acquire(&con->writer.lock);
     if ((con->caps & CONSOLE_CAP_COLOR))
-        con->ops->set_color(con, con->default_fg, con->default_bg);
-    size_t ret = con->ops->write(con, (const char *) data, size);
-    spinlock_release(&con->write.lock);
+        con->set_color(con->default_fg, con->default_bg);
+    size_t ret = con->do_write((const char *) data, size);
+    spinlock_release(&con->writer.lock);
     return ret;
 }
 
@@ -68,28 +86,25 @@ static const io_op_t console_io_ops = {
     .write = console_io_write,
 };
 
-void console_register(console_t *con)
+void console_register(Console *con)
 {
-    if (con->caps & CONSOLE_CAP_EXTRA_SETUP)
+    bool result = con->extra_setup();
+    if (!result)
     {
-        bool result = con->ops->extra_setup(con);
-        if (!result)
-        {
-            pr_emerg("console: failed to setup '%s'", con->name);
-            return;
-        }
+        pr_emerg("console: failed to setup '%s'", con->name);
+        return;
     }
 
     MOS_ASSERT_X(con->name != NULL, "console: %p's name is NULL", con);
 
-    con->write.lock = (spinlock_t) SPINLOCK_INIT;
+    con->writer.lock = (spinlock_t) SPINLOCK_INIT;
     io_flags_t flags = IO_WRITABLE;
 
     if (con->caps & CONSOLE_CAP_READ)
     {
-        MOS_ASSERT_X(con->read.buf, "console: '%s' has no read buffer", con->name);
-        con->read.lock = SPINLOCK_INIT;
-        ring_buffer_pos_init(&con->read.pos, con->read.size);
+        MOS_ASSERT_X(con->reader.buf, "console: '%s' has no read buffer", con->name);
+        con->reader.lock = SPINLOCK_INIT;
+        ring_buffer_pos_init(&con->reader.pos, con->reader.size);
         flags |= IO_READABLE;
     }
 
@@ -98,12 +113,12 @@ void console_register(console_t *con)
     waitlist_init(&con->waitlist);
 }
 
-console_t *console_get(const char *name)
+Console *console_get(const char *name)
 {
     if (list_is_empty(&consoles))
         return NULL;
 
-    list_foreach(console_t, con, consoles)
+    list_foreach(Console, con, consoles)
     {
         if (strcmp(con->name, name) == 0)
             return con;
@@ -111,54 +126,12 @@ console_t *console_get(const char *name)
     return NULL;
 }
 
-console_t *console_get_by_prefix(const char *prefix)
+Console *console_get_by_prefix(const char *prefix)
 {
-    list_foreach(console_t, con, consoles)
+    list_foreach(Console, con, consoles)
     {
         if (strncmp(con->name, prefix, strlen(prefix)) == 0)
             return con;
     }
     return NULL;
-}
-
-size_t console_write(console_t *con, const char *data, size_t size)
-{
-    spinlock_acquire(&con->write.lock);
-    size_t ret = con->ops->write(con, data, size);
-    spinlock_release(&con->write.lock);
-    return ret;
-}
-
-size_t console_write_color(console_t *con, const char *data, size_t size, standard_color_t fg, standard_color_t bg)
-{
-    standard_color_t prev_fg, prev_bg;
-    spinlock_acquire(&con->write.lock);
-    if (con->caps & CONSOLE_CAP_COLOR)
-    {
-        con->ops->get_color(con, &prev_fg, &prev_bg);
-        if (prev_fg != fg || prev_bg != bg)
-            con->ops->set_color(con, fg, bg);
-    }
-
-    size_t ret = con->ops->write(con, data, size);
-    spinlock_release(&con->write.lock);
-    return ret;
-}
-
-void console_putc(console_t *con, u8 c)
-{
-    if (c == 0x3)
-    {
-        spinlock_acquire(&con->waitlist.lock);
-        list_foreach(waitable_list_entry_t, entry, con->waitlist.list)
-        {
-            thread_t *thread = thread_get(entry->waiter);
-            if (thread)
-                signal_send_to_thread(thread, SIGINT);
-        }
-        spinlock_release(&con->waitlist.lock);
-    }
-
-    ring_buffer_pos_push_back_byte(con->read.buf, &con->read.pos, c);
-    waitlist_wake(&con->waitlist, INT_MAX);
 }

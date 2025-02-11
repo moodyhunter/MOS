@@ -18,7 +18,7 @@
 #define PROFILER_HEADER "\nname,start_time,end_time,total_time\n"
 #define PROFILER_LINE   "%s,%llu,%llu,%llu"
 
-static console_t *profile_console = NULL;
+static console *profile_console = NULL;
 static spinlock_t profile_lock = SPINLOCK_INIT;
 static char profile_buffer[MOS_PRINTK_BUFFER_SIZE] = { 0 };
 static char name_buffer[MOS_PRINTK_BUFFER_SIZE] = { 0 };

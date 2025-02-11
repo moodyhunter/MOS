@@ -4,7 +4,7 @@
 
 #include <mos/types.hpp>
 
-typedef enum
+typedef enum : u16
 {
     OFFSET_INTERRUPT_ENABLE = 1,  // Interrupt Enable Register
     OFFSET_INTERRUPT_ID_FIFO = 2, // Interrupt ID Register and FIFO Control Register
@@ -66,32 +66,75 @@ typedef enum
     BAUD_RATE_110 = 11,
 } serial_baudrate_t;
 
-typedef struct _serial_device serial_device_t;
+class ISerialDevice;
 
-typedef struct _serial_driver
+class ISerialDevice
 {
-    u8 (*read_data)(serial_device_t *dev);
-    void (*write_data)(serial_device_t *dev, u8 data);
+  public:
+    virtual ~ISerialDevice() = default;
 
-    u8 (*read_register)(serial_device_t *dev, serial_register_t offset);
-    void (*write_register)(serial_device_t *dev, serial_register_t offset, u8 value);
-} serial_driver_t;
+    virtual u8 read_byte() = 0;
+    virtual int write_byte(u8 byte) = 0;
+    virtual bool get_data_ready() = 0;
+    virtual u8 read_register(serial_register_t offset) = 0;
+    virtual void write_register(serial_register_t offset, u8 value) = 0;
 
-typedef struct _serial_device
-{
-    const serial_driver_t *driver;
-    void *driver_data;
+  public:
+    bool setup();
+    int read_data(char *data, size_t length);
+    int write_data(const char *data, size_t length);
 
+  protected:
     serial_baudrate_t baudrate_divisor;
     serial_charlength_t char_length;
     serial_stopbits_t stop_bits;
     serial_parity_t parity;
-} serial_device_t;
 
-bool serial_device_setup(serial_device_t *device);
+  private:
+    typedef enum
+    {
+        MODEM_DCTS = 1 << 0, // Clear To Send input has changed since last read.
+        MODEM_DDSR = 1 << 1, // Data Set Ready input has changed since last read.
+        MODEM_TERI = 1 << 2, // Ring Indicator input has changed since last read.
+        MODEM_DDCD = 1 << 3, // Data Carrier Detect input has changed since last read.
+        MODEM_CLEAR_TO_SEND = 1 << 4,
+        MODEM_DATA_SET_READY = 1 << 5,
+        MODEM_RING_INDICATOR = 1 << 6,
+        MODEM_DATA_CARRIER_DETECT = 1 << 7,
+    } serial_modem_status_t;
 
-int serial_device_read(serial_device_t *device, char *data, size_t length);
+    typedef enum
+    {
+        MODEM_DTR = 1 << 0,         // Data Terminal Ready
+        MODEM_RTS = 1 << 1,         // Request To Send
+        MODEM_UNUSED_PIN1 = 1 << 2, // Unused
+        MODEM_IRQ = 1 << 3,         // Interrupt Request
+        MODEM_LOOP = 1 << 4,        // Loopback
+    } serial_modem_control_t;
 
-int serial_device_write(serial_device_t *device, const char *data, size_t length);
+    typedef enum
+    {
+        LINE_DATA_READY = 1 << 0,          // Data ready to be read.
+        LINE_ERR_OVERRUN = 1 << 1,         // There has been data lost.
+        LINE_ERR_PARITY = 1 << 2,          // Parity error.
+        LINE_ERR_FRAMING = 1 << 3,         // Stop bit is missing.
+        LINE_ERR_BREAK = 1 << 4,           // Break detected.
+        LINE_TRANSMITR_BUF_EMPTY = 1 << 5, // (transmitter buffer is empty) Data can be sent.
+        LINE_TRANSMITR_EMPTY = 1 << 6,     // Transmitter is not doing anything.
+        LINE_ERR_IMPENDING = 1 << 7,       // There is an error with a word in the input buffer
+    } serial_line_status_t;
 
-bool serial_dev_get_data_ready(serial_device_t *device);
+    void SetBaudrateDivisor();
+    void SetDataBits();
+    void SetStopBits();
+    void SetParity();
+    void SetInterrupts(int interrupts);
+    void SetModemOptions(serial_modem_control_t control, bool enable);
+
+    char GetLineStatus();
+    __maybe_unused char GetModelStatus();
+    bool GetDataReady();
+
+    void WaitReadyToRead();
+    void WaitReadyToWrite();
+};

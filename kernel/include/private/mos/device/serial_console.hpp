@@ -8,15 +8,30 @@
 #include <ansi_colors.h>
 #include <stddef.h>
 
-typedef struct
+class SerialConsole : public Console
 {
-    console_t con;
-    serial_device_t device;
-    standard_color_t fg, bg;
-} serial_console_t;
+    ISerialDevice *device;
 
-MOS_STATIC_ASSERT(offsetof(serial_console_t, con) == 0, "console must be the first field in serial_console_t");
+  public:
+    template<size_t buf_size>
+    explicit SerialConsole(const char *name, console_caps caps, Buffer<buf_size> *buffer, ISerialDevice *device, standard_color_t fg, standard_color_t bg)
+        : Console(name, caps, buffer, fg, bg), device(device)
+    {
+    }
 
-bool serial_console_setup(console_t *console);
+  public:
+    void handle_irq();
+
+  public:
+    bool extra_setup() override;
+
+    size_t do_write(const char *data, size_t size) override;
+
+    bool set_color(standard_color_t fg, standard_color_t bg) override;
+
+    bool clear() override;
+
+    bool get_size(u32 *width, u32 *height) override;
+};
 
 bool serial_console_irq_handler(u32 irq, void *data);

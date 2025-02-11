@@ -9,7 +9,7 @@
 #include <mos_stdio.hpp>
 #include <mos_string.hpp>
 
-static console_t *printk_console = NULL;
+static Console *printk_console = NULL;
 static bool printk_quiet = false;
 
 MOS_SETUP("printk_console", printk_setup_console)
@@ -21,7 +21,7 @@ MOS_SETUP("printk_console", printk_setup_console)
         return false;
     }
 
-    console_t *console = console_get(kcon_name);
+    Console *console = console_get(kcon_name);
     if (console)
     {
         pr_emph("Selected console '%s' for future printk\n", kcon_name);
@@ -63,16 +63,14 @@ static inline void deduce_level_color(int loglevel, standard_color_t *fg, standa
     }
 }
 
-static void print_to_console(console_t *con, loglevel_t loglevel, const char *message, size_t len)
+static void print_to_console(Console *con, loglevel_t loglevel, const char *message, size_t len)
 {
     if (!con)
         return;
 
-    static standard_color_t fg, bg; // declared static to use previous values
-    if (once())
-        con->ops->get_color(con, &fg, &bg); // only fill the colors once
+    static standard_color_t fg = con->fg, bg = con->bg; // declared static to use previous values
     deduce_level_color(loglevel, &fg, &bg);
-    console_write_color(con, message, len, fg, bg);
+    con->write_color(message, len, fg, bg);
 }
 
 void lvprintk(loglevel_t loglevel, const char *fmt, va_list args)
@@ -86,7 +84,7 @@ void lvprintk(loglevel_t loglevel, const char *fmt, va_list args)
 
     if (unlikely(!printk_console))
     {
-        list_foreach(console_t, con, consoles)
+        list_foreach(Console, con, consoles)
         {
             printk_console = con; // set the first console as the default
             break;

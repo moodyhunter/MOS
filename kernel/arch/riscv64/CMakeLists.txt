@@ -10,5 +10,4 @@ add_kernel_source(
     cpu/interrupt.S
     cpu/context_switch.S
     devices/sbi_console.cpp
-    devices/uart_driver.cpp
 )

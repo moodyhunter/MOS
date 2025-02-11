@@ -6,7 +6,7 @@
 #include "mos/tasks/signal.hpp"
 #include "mos/tasks/task_types.hpp"
 
-#include <mos/platform_syscall.hpp>
+#include <mos/platform_syscall.h>
 #include <mos_stdlib.hpp>
 
 // Platform Context Switching APIs

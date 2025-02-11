@@ -8,7 +8,6 @@ add_kernel_source(
     acpi/madt.cpp
     cpu/ap_entry.cpp
     cpu/cpu.cpp
-    devices/serial_driver.cpp
     devices/rtc.cpp
     descriptors/descriptors.cpp
     interrupt/lapic.cpp

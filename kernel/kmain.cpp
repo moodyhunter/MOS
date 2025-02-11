@@ -24,19 +24,6 @@
 
 static mm_context_t mos_kernel_mm;
 
-static void invoke_constructors(void)
-{
-    typedef void (*init_function_t)(void);
-    extern const init_function_t __init_array_start[], __init_array_end;
-
-    pr_dinfo2(setup, "invoking constructors...");
-    for (const init_function_t *func = __init_array_start; func != &__init_array_end; func++)
-    {
-        pr_dinfo2(setup, "  %ps", (void *) (ptr_t) *func);
-        (*func)();
-    }
-}
-
 static struct
 {
     size_t argc = 0; // size of argv, does not include the terminating NULL
@@ -166,7 +153,6 @@ void mos_start_kernel(void)
     startup_invoke_autoinit(INIT_TARGET_SYSFS);
 
     platform_startup_late();
-    invoke_constructors();
 
     init_args.argc = 1;
     init_args.argv = (const char **) kcalloc(1, sizeof(char *)); // init_argv[0] is the init path
@@ -188,7 +174,7 @@ void mos_start_kernel(void)
     tasks_init();
     scheduler_init();
 
-    console_t *const init_con = platform_info->boot_console;
+    Console *const init_con = platform_info->boot_console;
     if (unlikely(!init_con))
         mos_panic("failed to get console");
 

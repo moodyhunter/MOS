@@ -4,4 +4,4 @@
 
 #include "mos/device/console.hpp"
 
-extern console_t sbi_console;
+// extern Console sbi_console;

@@ -393,14 +393,14 @@ void uacpi_kernel_free_spinlock(uacpi_handle handle)
  *
  * Note that lock is infalliable.
  */
-uacpi_cpu_flags uacpi_kernel_spinlock_lock(uacpi_handle handle)
+uacpi_cpu_flags uacpi_kernel_lock_spinlock(uacpi_handle handle)
 {
     uacpi_cpu_flags flags = 0;
     spinlock_acquire(reinterpret_cast<spinlock_t *>(handle));
     return flags;
 }
 
-void uacpi_kernel_spinlock_unlock(uacpi_handle handle, uacpi_cpu_flags flags)
+void uacpi_kernel_unlock_spinlock(uacpi_handle handle, uacpi_cpu_flags flags)
 {
     MOS_UNUSED(flags);
     spinlock_release(reinterpret_cast<spinlock_t *>(handle));
@@ -427,5 +427,44 @@ uacpi_status uacpi_kernel_wait_for_work_completion(void)
 {
     for (auto &t : work_threads)
         t.join();
+    return UACPI_STATUS_OK;
+}
+
+uacpi_status uacpi_kernel_pci_device_open(uacpi_pci_address address, uacpi_handle *out_handle)
+{
+    return UACPI_STATUS_OK;
+}
+
+void uacpi_kernel_pci_device_close(uacpi_handle)
+{
+}
+
+uacpi_status uacpi_kernel_pci_read8(uacpi_handle, uacpi_size, uacpi_u8 *)
+{
+    return UACPI_STATUS_OK;
+}
+
+uacpi_status uacpi_kernel_pci_read16(uacpi_handle, uacpi_size, uacpi_u16 *)
+{
+    return UACPI_STATUS_OK;
+}
+
+uacpi_status uacpi_kernel_pci_read32(uacpi_handle, uacpi_size, uacpi_u32 *)
+{
+    return UACPI_STATUS_OK;
+}
+
+uacpi_status uacpi_kernel_pci_write8(uacpi_handle, uacpi_size, uacpi_u8)
+{
+    return UACPI_STATUS_OK;
+}
+
+uacpi_status uacpi_kernel_pci_write16(uacpi_handle, uacpi_size, uacpi_u16)
+{
+    return UACPI_STATUS_OK;
+}
+
+uacpi_status uacpi_kernel_pci_write32(uacpi_handle, uacpi_size, uacpi_u32)
+{
     return UACPI_STATUS_OK;
 }

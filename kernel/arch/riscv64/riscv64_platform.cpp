@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // #include "mos/device/console.hpp"
+#include "mos/device/serial.hpp"
 #include "mos/device/serial_console.hpp"
 #include "mos/interrupt/interrupt.hpp"
 #include "mos/mm/mm.hpp"
@@ -9,39 +10,57 @@
 #include "mos/platform/platform.hpp"
 #include "mos/riscv64/cpu/cpu.hpp"
 #include "mos/riscv64/cpu/plic.hpp"
-#include "mos/riscv64/devices/uart_driver.hpp"
 
-static u8 uart_buf[MOS_PAGE_SIZE] __aligned(MOS_PAGE_SIZE) = { 0 };
+static Buffer<MOS_PAGE_SIZE> uart_buf;
 
-static bool riscv64_uart_setup(console_t *con)
+class RiscV64UartDevice : public ISerialDevice
 {
-    serial_console_t *const serial_con = container_of(con, serial_console_t, con);
-    serial_con->device.driver_data = (void *) pa_va(0x10000000);
-    serial_console_setup(con);
-    return true;
-}
+  public:
+    RiscV64UartDevice(void *mmio) : mmio(static_cast<volatile u8 *>(mmio))
+    {
+        baudrate_divisor = BAUD_RATE_115200;
+        char_length = CHAR_LENGTH_8;
+        stop_bits = STOP_BITS_1;
+        parity = PARITY_NONE;
+    }
 
-static console_ops_t uart_console_ops = {
-    .extra_setup = riscv64_uart_setup,
+  public:
+    u8 read_byte() override
+    {
+        return mmio[0];
+    }
+
+    int write_byte(u8 data) override
+    {
+        mmio[0] = data;
+        return 0;
+    }
+
+    u8 read_register(serial_register_t reg) override
+    {
+        return mmio[reg];
+    }
+
+    void write_register(serial_register_t reg, u8 data) override
+    {
+        mmio[reg] = data;
+    }
+
+    bool get_data_ready() override
+    {
+        return true;
+    }
+
+  private:
+    volatile u8 *mmio;
 };
 
-static serial_console_t uart_console = {
-    .con = { .ops = &uart_console_ops,
-             .name = "riscv_uart1",
-             .caps = CONSOLE_CAP_READ | CONSOLE_CAP_EXTRA_SETUP,
-             .read = { .buf = uart_buf, .size = MOS_PAGE_SIZE },
-             .default_fg = LightBlue,
-             .default_bg = Black },
-    .device = { .driver = &riscv64_uart_driver,
-                .driver_data = NULL,
-                .baudrate_divisor = BAUD_RATE_115200,
-                .char_length = CHAR_LENGTH_8,
-                .stop_bits = STOP_BITS_1,
-                .parity = PARITY_NONE },
-};
+static RiscV64UartDevice uart_serial_device{ (void *) pa_va(0x10000000) };
+
+SerialConsole uart_console{ "riscv_uart1", CONSOLE_CAP_READ, &uart_buf, &uart_serial_device, LightBlue, Black };
 
 static mos_platform_info_t riscv64_platform_info = {
-    .boot_console = &uart_console.con,
+    .boot_console = &uart_console,
 };
 mos_platform_info_t *const platform_info = &riscv64_platform_info;
 
@@ -81,5 +100,5 @@ void platform_startup_late()
 {
 #define UART0_IRQ 10
     plic_enable_irq(UART0_IRQ);
-    interrupt_handler_register(UART0_IRQ, serial_console_irq_handler, &uart_console.con);
+    interrupt_handler_register(UART0_IRQ, serial_console_irq_handler, &uart_console);
 }

@@ -66,8 +66,20 @@ static void ap_entry(struct limine_smp_info *info)
     platform_ap_entry(info->extra_argument);
 }
 
+static void invoke_constructors(void)
+{
+    typedef void (*init_function_t)(void);
+    extern const init_function_t __init_array_start[], __init_array_end;
+
+    for (const init_function_t *func = __init_array_start; func != &__init_array_end; func++)
+    {
+        (*func)();
+    }
+}
+
 extern "C" void limine_entry(void)
 {
+    invoke_constructors();
     if (hhdm.response->offset)
         platform_info->direct_map_base = hhdm.response->offset; // early-populate direct_map_base
 

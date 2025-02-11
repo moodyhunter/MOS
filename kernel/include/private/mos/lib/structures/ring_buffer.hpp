@@ -15,10 +15,10 @@
 // A position-only ring buffer specifier.
 typedef struct _ring_buffer_pos
 {
-    size_t count;
-    size_t capacity;
-    size_t head;     // index of the first element
-    size_t next_pos; // index of the next element to be inserted
+    size_t count = 0;
+    size_t capacity = 0;
+    size_t head = 0;     // index of the first element
+    size_t next_pos = 0; // index of the next element to be inserted
 } ring_buffer_pos_t;
 
 // A managed ring buffer.

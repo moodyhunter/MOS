@@ -3,6 +3,7 @@
 #include "mos/x86/x86_platform.hpp"
 
 #include "mos/device/console.hpp"
+#include "mos/device/serial.hpp"
 #include "mos/device/serial_console.hpp"
 #include "mos/interrupt/interrupt.hpp"
 #include "mos/mm/mm.hpp"
@@ -17,7 +18,6 @@
 #include "mos/x86/descriptors/descriptors.hpp"
 #include "mos/x86/devices/port.hpp"
 #include "mos/x86/devices/rtc.hpp"
-#include "mos/x86/devices/serial_driver.hpp"
 #include "mos/x86/interrupt/apic.hpp"
 #include "mos/x86/mm/paging_impl.hpp"
 #include "mos/x86/x86_interrupt.hpp"
@@ -25,45 +25,70 @@
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-static u8 com1_buf[MOS_PAGE_SIZE] __aligned(MOS_PAGE_SIZE) = { 0 };
-static u8 com2_buf[MOS_PAGE_SIZE] __aligned(MOS_PAGE_SIZE) = { 0 };
+typedef enum : u16
+{
+    COM1 = 0x3F8,
+    COM2 = 0x2F8,
+    COM3 = 0x3E8,
+    COM4 = 0x2E8,
+    COM5 = 0x5F8,
+    COM6 = 0x4F8,
+    COM7 = 0x5E8,
+    COM8 = 0x4E8
+} x86ComPort;
 
-console_ops_t com1_ops = { .extra_setup = serial_console_setup };
-console_ops_t com2_ops = { .extra_setup = serial_console_setup };
+class x86SerialDevice : public ISerialDevice
+{
+    x86ComPort port;
 
-serial_console_t com1_console = {
-    .con = { .ops = &com1_ops,
-             .name = "serial_com1",
-             .caps = CONSOLE_CAP_EXTRA_SETUP | CONSOLE_CAP_READ,
-             .read = { .buf = com1_buf, .size = MOS_PAGE_SIZE },
-             .default_fg = LightBlue,
-             .default_bg = Black },
-    .device = { .driver = &x86_serial_driver,
-                .driver_data = (void *) COM1,
-                .baudrate_divisor = BAUD_RATE_115200,
-                .char_length = CHAR_LENGTH_8,
-                .stop_bits = STOP_BITS_15_OR_2,
-                .parity = PARITY_EVEN },
+  public:
+    explicit x86SerialDevice(x86ComPort port) : port(port)
+    {
+        baudrate_divisor = BAUD_RATE_115200;
+        char_length = CHAR_LENGTH_8;
+        stop_bits = STOP_BITS_15_OR_2;
+        parity = PARITY_EVEN;
+    }
 
+  public:
+    u8 read_byte() override
+    {
+        return port_inb(port);
+    }
+
+    int write_byte(u8 data) override
+    {
+        port_outb(port, data);
+        return 0;
+    }
+
+    u8 read_register(serial_register_t reg) override
+    {
+        return port_inb((u16) port + reg);
+    }
+
+    void write_register(serial_register_t reg, u8 data) override
+    {
+        port_outb((u16) port + reg, data);
+    }
+
+    bool get_data_ready() override
+    {
+        return (port_inb(port + 5) & 1) != 0;
+    }
 };
 
-serial_console_t com2_console = {
-    .con = { .ops = &com2_ops,
-             .name = "serial_com2",
-             .caps = CONSOLE_CAP_EXTRA_SETUP | CONSOLE_CAP_READ,
-             .read = { .buf = com2_buf, .size = MOS_PAGE_SIZE },
-             .default_fg = LightBlue,
-             .default_bg = Black },
-    .device = { .driver = &x86_serial_driver,
-                .driver_data = (void *) COM2,
-                .baudrate_divisor = BAUD_RATE_115200,
-                .char_length = CHAR_LENGTH_8,
-                .stop_bits = STOP_BITS_15_OR_2,
-                .parity = PARITY_EVEN },
-};
+static Buffer<MOS_PAGE_SIZE> com1_buf;
+static Buffer<MOS_PAGE_SIZE> com2_buf;
+
+x86SerialDevice com1_device{ COM1 };
+x86SerialDevice com2_device{ COM2 };
+
+SerialConsole com1_console{ "com1_console", CONSOLE_CAP_READ, &com1_buf, &com1_device, LightBlue, Black };
+SerialConsole com2_console{ "com2_console", CONSOLE_CAP_READ, &com2_buf, &com2_device, LightBlue, Black };
 
 mos_platform_info_t *const platform_info = &x86_platform;
-mos_platform_info_t x86_platform = { .boot_console = &com1_console.con };
+mos_platform_info_t x86_platform = { .boot_console = &com1_console };
 const acpi_rsdp_t *acpi_rsdp = NULL;
 
 static bool x86_keyboard_handler(u32 irq, void *data)
@@ -194,7 +219,7 @@ void platform_dump_stack(platform_regs_t *regs)
 
 void platform_startup_early()
 {
-    console_register(&com2_console.con);
+    console_register(&com2_console);
     x86_idt_init();
     x86_init_percpu_gdt();
     x86_init_percpu_idt();
@@ -263,7 +288,7 @@ void platform_startup_late()
     interrupt_handler_register(IRQ_PIT_TIMER, x86_pit_timer_handler, NULL);
     interrupt_handler_register(IRQ_CMOS_RTC, rtc_irq_handler, NULL);
     interrupt_handler_register(IRQ_KEYBOARD, x86_keyboard_handler, NULL);
-    interrupt_handler_register(IRQ_COM1, serial_console_irq_handler, &com1_console.con);
+    interrupt_handler_register(IRQ_COM1, serial_console_irq_handler, &com1_console);
 
     ioapic_enable_interrupt(IRQ_CMOS_RTC, x86_platform.boot_cpu_id);
     ioapic_enable_interrupt(IRQ_KEYBOARD, x86_platform.boot_cpu_id);

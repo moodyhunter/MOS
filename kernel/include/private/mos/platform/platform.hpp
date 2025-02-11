@@ -34,7 +34,7 @@
 typedef void (*irq_handler)(u32 irq);
 
 typedef struct _thread thread_t;
-typedef struct _console console_t;
+struct Console;
 
 enum vm_flags : unsigned int
 {
@@ -134,7 +134,7 @@ typedef struct
 
     platform_arch_info_t arch_info;
 
-    console_t *boot_console;
+    Console *boot_console;
 } mos_platform_info_t;
 
 #define MOS_KERNEL_PFN(vaddr) ((ALIGN_DOWN_TO_PAGE((vaddr) - (platform_info->k_basevaddr)) / MOS_PAGE_SIZE) + (platform_info->k_basepfn))
