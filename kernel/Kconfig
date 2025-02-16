@@ -82,7 +82,7 @@ config PROCESS_MAX_OPEN_FILES
     default 64
     help
     This is the maximum number of files that a process can have open at
-    once. The larger this number is, the larger `process_t` will be.
+    once. The larger this number is, the larger `Process` will be.
     Please consider this tradeoff when setting the value.
 
 config PATH_MAX_LENGTH

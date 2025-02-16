@@ -2,8 +2,6 @@
 
 #include "mos/tasks/signal.hpp"
 
-#include "mos/mm/slab.hpp"
-#include "mos/mm/slab_autoinit.hpp"
 #include "mos/platform/platform.hpp"
 #include "mos/syslog/printk.hpp"
 #include "mos/tasks/process.hpp"
@@ -47,9 +45,6 @@ static int sigset_test(const sigset_t *sigset, int sig)
     return (ptr[signo / CHAR_BIT] & (1 << (signo % CHAR_BIT))) != 0;
 }
 
-slab_t *sigpending_slab = NULL;
-SLAB_AUTOINIT("signal_pending", sigpending_slab, sigpending_t);
-
 [[noreturn]] static void signal_do_coredump(signal_t signal)
 {
     process_exit(current_process, 0, signal);
@@ -89,7 +84,7 @@ static bool is_fatal_signal(signal_t signal)
     }
 }
 
-long signal_send_to_thread(thread_t *target, signal_t signal)
+long signal_send_to_thread(Thread *target, signal_t signal)
 {
     if (target->mode == THREAD_MODE_KERNEL && !is_fatal_signal(signal))
     {
@@ -109,7 +104,7 @@ long signal_send_to_thread(thread_t *target, signal_t signal)
 
     if (!has_pending)
     {
-        sigpending_t *sigdesc = (sigpending_t *) kmalloc(sigpending_slab);
+        sigpending_t *sigdesc = mos::create<sigpending_t>();
         linked_list_init(list_node(sigdesc));
         sigdesc->signal = signal;
         list_node_append(&target->signal_info.pending, list_node(sigdesc));
@@ -123,7 +118,7 @@ long signal_send_to_thread(thread_t *target, signal_t signal)
     return 0;
 }
 
-long signal_send_to_process(process_t *target, signal_t signal)
+long signal_send_to_process(Process *target, signal_t signal)
 {
     if (target->pid == 1 && signal == SIGKILL)
     {
@@ -137,8 +132,8 @@ long signal_send_to_process(process_t *target, signal_t signal)
         return -EINVAL;
     }
 
-    thread_t *target_thread = NULL;
-    list_foreach(thread_t, thread, target->threads)
+    Thread *target_thread = NULL;
+    list_foreach(Thread, thread, target->threads)
     {
         if (thread->state == THREAD_STATE_RUNNING || thread->state == THREAD_STATE_READY || thread->state == THREAD_STATE_CREATED)
         {
@@ -149,7 +144,7 @@ long signal_send_to_process(process_t *target, signal_t signal)
 
     if (!target_thread)
     {
-        list_foreach(thread_t, thread, target->threads)
+        list_foreach(Thread, thread, target->threads)
         {
             if (thread->state == THREAD_STATE_BLOCKED)
             {
@@ -190,7 +185,7 @@ static signal_t signal_get_next_pending(void)
 
         list_remove(pending);
         signal = pending->signal;
-        kfree(pending);
+        delete pending;
         break;
     }
 

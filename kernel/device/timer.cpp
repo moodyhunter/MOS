@@ -9,8 +9,8 @@
 #include "mos/tasks/schedule.hpp"
 #include "mos/tasks/signal.hpp"
 
-static list_head timer_queue = LIST_HEAD_INIT(timer_queue); ///< list of timers that are waiting to be executed
-static spinlock_t timer_queue_lock = SPINLOCK_INIT;
+static list_head timer_queue; ///< list of timers that are waiting to be executed
+static spinlock_t timer_queue_lock;
 
 static bool timer_do_wakeup(ktimer_t *timer, void *arg)
 {
@@ -49,7 +49,6 @@ long timer_msleep(u64 ms)
     const u64 target_val = active_clocksource_ticks() + offset;
 
     ktimer_t timer = {
-        .list_node = LIST_NODE_INIT(timer),
         .timeout = target_val,
         .thread = current_thread,
         .ticked = false,

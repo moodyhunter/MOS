@@ -17,7 +17,7 @@ inode_t *inode_create(superblock_t *sb, u64 ino, file_type_t type);
  * @return The new dentry, or NULL if the dentry could not be created
  * @note The returned dentry will have its reference count of 0.
  */
-dentry_t *dentry_get_from_parent(superblock_t *sb, dentry_t *parent, const char *name);
+dentry_t *dentry_get_from_parent(superblock_t *sb, dentry_t *parent, mos::string_view name = "");
 
 ssize_t vfs_generic_read(const file_t *file, void *buf, size_t size, off_t offset);
 ssize_t vfs_generic_write(const file_t *file, const void *buf, size_t size, off_t offset);

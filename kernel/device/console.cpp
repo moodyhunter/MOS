@@ -3,6 +3,7 @@
 #include "mos/tasks/signal.hpp"
 #include "mos/tasks/thread.hpp"
 
+#include <array>
 #include <limits.h>
 #include <mos/device/console.hpp>
 #include <mos/io/io.hpp>
@@ -13,7 +14,9 @@
 #include <mos/tasks/wait.hpp>
 #include <mos_string.hpp>
 
-list_head consoles = LIST_HEAD_INIT(consoles);
+list_head consoles;
+
+std::array<Console *, 128> console_list = {};
 
 void Console::putc(u8 c)
 {
@@ -22,7 +25,7 @@ void Console::putc(u8 c)
         spinlock_acquire(&waitlist.lock);
         list_foreach(waitable_list_entry_t, entry, waitlist.list)
         {
-            thread_t *thread = thread_get(entry->waiter);
+            Thread *thread = thread_get(entry->waiter);
             if (thread)
                 signal_send_to_thread(thread, SIGINT);
         }
@@ -97,13 +100,11 @@ void console_register(Console *con)
 
     MOS_ASSERT_X(con->name != NULL, "console: %p's name is NULL", con);
 
-    con->writer.lock = (spinlock_t) SPINLOCK_INIT;
     io_flags_t flags = IO_WRITABLE;
 
     if (con->caps & CONSOLE_CAP_READ)
     {
         MOS_ASSERT_X(con->reader.buf, "console: '%s' has no read buffer", con->name);
-        con->reader.lock = SPINLOCK_INIT;
         ring_buffer_pos_init(&con->reader.pos, con->reader.size);
         flags |= IO_READABLE;
     }

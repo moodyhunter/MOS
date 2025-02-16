@@ -26,7 +26,7 @@ function(do_kallsyms TARGET_NAME LINKER_SCRIPT KALLSYMS_C)
         RUNTIME_OUTPUT_DIRECTORY ${BOOT_DIR}/kallsyms/
         OUTPUT_NAME ${TARGET_NAME}
         EXCLUDE_FROM_ALL TRUE
-        LINKER_LANGUAGE C
+        LINKER_LANGUAGE CXX
         LINK_DEPENDS "${LINKER_SCRIPT}"
         LINK_OPTIONS "-T${LINKER_SCRIPT};-nostdlib;-Wl,--build-id=none")
 
@@ -97,7 +97,7 @@ function(create_bootable_kernel_binary)
         RUNTIME_OUTPUT_DIRECTORY ${BOOT_DIR}/
         OUTPUT_NAME ${ARGS_FILENAME}
         EXCLUDE_FROM_ALL TRUE
-        LINKER_LANGUAGE C
+        LINKER_LANGUAGE CXX
         LINK_DEPENDS "${ARGS_LINKER_SCRIPT}"
         LINK_OPTIONS "-T${ARGS_LINKER_SCRIPT};-nostdlib;-Wl,--build-id=none")
 

@@ -11,7 +11,7 @@
 #include <mos_stdio.hpp>
 #include <pb_encode.h>
 
-static spinlock_t global_syslog_lock = SPINLOCK_INIT;
+static spinlock_t global_syslog_lock;
 
 static void do_print_syslog(const pb_syslog_message *msg, const debug_info_entry *feat)
 {
@@ -68,8 +68,8 @@ long do_syslog(loglevel_t level, const char *file, const char *func, int line, c
     {
         msg.thread.tid = thread->tid;
         msg.process.pid = thread->owner->pid;
-        strncpy(msg.thread.name, thread->name, sizeof(msg.thread.name));
-        strncpy(msg.process.name, thread->owner->name, sizeof(msg.process.name));
+        strncpy(msg.thread.name, thread->name.c_str(), sizeof(msg.thread.name));
+        strncpy(msg.process.name, thread->owner->name.c_str(), sizeof(msg.process.name));
     }
 
     va_list args;

@@ -6,6 +6,11 @@
 #include <mos/types.h>
 #include <stddef.h>
 
+#if defined(__MOS_KERNEL__) && defined(__cplusplus)
+#include <mos/allocator.hpp>
+#include <type_traits>
+#endif
+
 /**
  * @defgroup libs_stdlib libs.Stdlib
  * @ingroup libs
@@ -33,27 +38,47 @@ MOSAPI char *string_trim(char *in);
 
 #ifdef __MOS_KERNEL__
 #ifdef __cplusplus
-typedef struct _slab slab_t;
-void *kmalloc(size_t size);
-void *kmalloc(slab_t *slab);
-__malloc void *kcalloc(size_t nmemb, size_t size);
-void *krealloc(void *ptr, size_t size);
-void kfree(const void *ptr);
+
+template<typename T>
+concept KMallocCapable = std::is_fundamental_v<std::remove_pointer_t<T>> || std::is_pointer_v<T>;
+
+template<typename T, typename... Args>
+requires(KMallocCapable<T>) T *kmalloc(Args &&...args)
+{
+    void *ptr = do_kmalloc(sizeof(T));
+    if (ptr == nullptr)
+        return nullptr;
+
+    return new (ptr) T(std::forward<Args>(args)...);
+}
+
+template<typename T>
+requires(KMallocCapable<T>) T *kcalloc(size_t n_members)
+{
+    return (T *) do_kcalloc(n_members, sizeof(T));
+}
+
+template<typename T>
+requires(KMallocCapable<T>) T *krealloc(T *ptr, size_t size)
+{
+    return (T *) do_krealloc((void *) ptr, size);
+}
+
+template<typename T>
+requires(KMallocCapable<T>) void kfree(T *ptr)
+{
+    do_kfree((const void *) ptr);
+}
+
 #endif
 
 #ifdef __IN_MOS_LIBS__
 MOSAPI void *malloc(size_t size);
-MOSAPI void *calloc(size_t nmemb, size_t *size);
+MOSAPI void *calloc(size_t nmemb, size_t size);
 MOSAPI void *realloc(void *ptr, size_t size);
 MOSAPI void free(void *ptr);
 #endif
-
-#else
-// malloc, free, calloc and realloc should be provided by libc
-MOSAPI pid_t spawn(const char *path, const char *const argv[]);
-#endif
-
-#ifndef __MOS_KERNEL__
+#else // userspace mini stdlib
 MOSAPI void exit(int status) __attribute__((noreturn));
 MOSAPI int atexit(void (*func)(void));
 MOSAPI tid_t start_thread(const char *name, thread_entry_t entry, void *arg);

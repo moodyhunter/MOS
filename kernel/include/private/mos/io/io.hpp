@@ -9,7 +9,7 @@
 #include <mos/types.hpp>
 
 typedef struct _io io_t;
-typedef struct _vmap vmap_t; // forward declaration
+struct vmap_t; // forward declaration
 
 typedef enum
 {

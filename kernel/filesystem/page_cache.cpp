@@ -21,13 +21,10 @@ struct _flush_and_drop_data
     long ret;
 };
 
-static bool do_flush_and_drop_cached_page(const uintn key, void *value, void *data)
+static bool do_flush_and_drop_cached_page(const size_t pgoff, phyframe_t *page, _flush_and_drop_data *fdd)
 {
     // key = page number, value = phyframe_t *, data = _flush_and_drop_data *
-    struct _flush_and_drop_data *const fdd = static_cast<struct _flush_and_drop_data *>(data);
     inode_cache_t *const icache = fdd->icache;
-    phyframe_t *const page = static_cast<phyframe_t *>(value);
-    off_t const pgoff = key;
     const bool drop_page = fdd->should_drop_page;
 
     // !! TODO
@@ -45,7 +42,7 @@ static bool do_flush_and_drop_cached_page(const uintn key, void *value, void *da
     if (!IS_ERR_VALUE(ret) && drop_page)
     {
         // only when the page was successfully flushed
-        hashmap_remove(&icache->pages, pgoff);
+        icache->pages.remove(pgoff);
         mmstat_dec1(MEM_PAGECACHE);
         pmm_unref_one(page);
     }
@@ -61,11 +58,13 @@ long pagecache_flush_or_drop(inode_cache_t *icache, off_t pgoff, size_t npages, 
     long ret = 0;
     for (size_t i = 0; i < npages; i++)
     {
-        phyframe_t *page = (phyframe_t *) hashmap_get(&icache->pages, pgoff + i);
-        if (!page)
+        auto ppage = icache->pages.get(pgoff + i);
+        if (!ppage.has_value())
+        {
             continue;
+        }
 
-        do_flush_and_drop_cached_page(pgoff + i, page, &data);
+        do_flush_and_drop_cached_page(pgoff + i, **ppage, &data);
 
         if (data.ret != 0)
         {
@@ -79,16 +78,18 @@ long pagecache_flush_or_drop(inode_cache_t *icache, off_t pgoff, size_t npages, 
 long pagecache_flush_or_drop_all(inode_cache_t *icache, bool drop_page)
 {
     struct _flush_and_drop_data data = { .icache = icache, .should_drop_page = drop_page, .ret = 0 };
-    hashmap_foreach(&icache->pages, do_flush_and_drop_cached_page, &data);
+    for (const auto &[pgoff, page] : icache->pages)
+        do_flush_and_drop_cached_page(pgoff, page, &data);
     return data.ret;
 }
 
 PtrResult<phyframe_t> pagecache_get_page_for_read(inode_cache_t *cache, off_t pgoff)
 {
+    // fast path
     {
-        const auto page = static_cast<phyframe_t *>(hashmap_get(&cache->pages, pgoff));
+        const auto page = cache->pages.get(pgoff);
         if (page)
-            return page; // fast path
+            return **page;
     }
 
     if (!cache->ops)
@@ -100,8 +101,7 @@ PtrResult<phyframe_t> pagecache_get_page_for_read(inode_cache_t *cache, off_t pg
         return newPage;
 
     mmstat_inc1(MEM_PAGECACHE);
-    const auto prev = hashmap_put(&cache->pages, pgoff, static_cast<void *>(newPage.get()));
-    MOS_ASSERT(prev == nullptr);
+    cache->pages.insert(pgoff, newPage.get());
     return newPage;
 }
 

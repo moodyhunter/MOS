@@ -4,19 +4,15 @@
 
 #include "mos/filesystem/page_cache.hpp"
 #include "mos/filesystem/vfs_types.hpp"
-#include "mos/mm/slab_autoinit.hpp"
 #include "mos/syslog/printk.hpp"
 
 #include <mos/lib/structures/hashmap_common.hpp>
 #include <mos_stdlib.hpp>
 
-slab_t *inode_cache;
-SLAB_AUTOINIT("inode", inode_cache, inode_t);
-
 static bool vfs_generic_inode_drop(inode_t *inode)
 {
     MOS_UNUSED(inode);
-    kfree(inode);
+    delete inode;
     return true;
 }
 
@@ -56,15 +52,13 @@ void inode_init(inode_t *inode, superblock_t *sb, u64 ino, file_type_t type)
     inode->perm = 0;
     inode->private_data = NULL;
     inode->refcount = 0;
-
-    hashmap_init(&inode->cache.pages, MOS_INODE_CACHE_HASHMAP_SIZE, hashmap_identity_hash, hashmap_simple_key_compare);
     inode->cache.owner = inode;
     inode->cache.lock = 0;
 }
 
 inode_t *inode_create(superblock_t *sb, u64 ino, file_type_t type)
 {
-    inode_t *inode = (inode_t *) kmalloc(inode_cache);
+    inode_t *inode = mos::create<inode_t>();
     inode_init(inode, sb, ino, type);
     return inode;
 }

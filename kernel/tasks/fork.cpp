@@ -21,11 +21,11 @@
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-process_t *process_do_fork(process_t *parent)
+Process *process_do_fork(Process *parent)
 {
     MOS_ASSERT(process_is_valid(parent));
 
-    process_t *child_p = process_allocate(parent, parent->name);
+    auto child_p = Process::New(parent, parent->name);
     if (unlikely(!child_p))
     {
         pr_emerg("failed to allocate process for fork");
@@ -76,18 +76,18 @@ process_t *process_do_fork(process_t *parent)
     waitlist_init(&child_p->signal_info.sigchild_waitlist);
 
     // copy the thread
-    thread_t *const parent_thread = current_thread;
-    thread_t *child_t = thread_allocate(child_p, parent_thread->mode);
+    Thread *const parent_thread = current_thread;
+    Thread *child_t = thread_allocate(child_p, parent_thread->mode);
     pr_dinfo2(process, "fork: thread %d->%d", parent_thread->tid, child_t->tid);
     child_t->u_stack = parent_thread->u_stack;
-    child_t->name = strdup(parent_thread->name);
+    child_t->name = parent_thread->name;
     const ptr_t kstack_blk = phyframe_va(mm_get_free_pages(MOS_STACK_PAGES_KERNEL));
     stack_init(&child_t->k_stack, (void *) kstack_blk, MOS_STACK_PAGES_KERNEL * MOS_PAGE_SIZE);
     spinlock_acquire(&parent_thread->signal_info.lock);
     child_t->signal_info.mask = parent_thread->signal_info.mask;
     list_foreach(sigpending_t, sig, parent_thread->signal_info.pending)
     {
-        sigpending_t *new_sig = (sigpending_t *) kmalloc(sigpending_slab);
+        sigpending_t *new_sig = mos::create<sigpending_t>();
         linked_list_init(list_node(new_sig));
         new_sig->signal = sig->signal;
         list_node_prepend(&child_t->signal_info.pending, list_node(new_sig));
@@ -96,7 +96,7 @@ process_t *process_do_fork(process_t *parent)
 
     platform_context_clone(parent_thread, child_t);
 
-    hashmap_put(&process_table, child_p->pid, child_p);
+    ProcessTable.insert(child_p->pid, child_p);
     thread_complete_init(child_t);
     scheduler_add_thread(child_t);
     return child_p;

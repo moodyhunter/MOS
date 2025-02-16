@@ -3,6 +3,7 @@
 #pragma once
 
 #include <mos/moslib_global.hpp>
+#include <mos/type_utils.hpp>
 #include <mos/types.hpp>
 
 /**
@@ -22,11 +23,11 @@ typedef struct _ring_buffer_pos
 } ring_buffer_pos_t;
 
 // A managed ring buffer.
-typedef struct _ring_buffer
+struct ring_buffer_t : mos::NamedType<"RingBuffer">
 {
     u8 *data;
     ring_buffer_pos_t pos;
-} ring_buffer_t;
+};
 
 MOSAPI ring_buffer_t *ring_buffer_create(size_t capacity);
 MOSAPI ring_buffer_t *ring_buffer_create_at(void *data, size_t capacity);

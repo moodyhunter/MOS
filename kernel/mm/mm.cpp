@@ -4,11 +4,11 @@
 
 #include "mos/filesystem/sysfs/sysfs.hpp"
 #include "mos/interrupt/ipi.hpp"
+#include "mos/misc/setup.hpp"
 #include "mos/mm/paging/paging.hpp"
 #include "mos/mm/paging/pmlx/pml5.hpp"
 #include "mos/mm/paging/table_ops.hpp"
 #include "mos/mm/physical/pmm.hpp"
-#include "mos/mm/slab_autoinit.hpp"
 #include "mos/platform/platform.hpp"
 #include "mos/platform/platform_defs.hpp"
 #include "mos/syslog/printk.hpp"
@@ -24,12 +24,6 @@
 #if MOS_CONFIG(MOS_MM_DETAILED_MMAPS_UNHANDLED_FAULT)
 #include "mos/tasks/process.hpp"
 #endif
-
-static slab_t *vmap_cache = NULL;
-SLAB_AUTOINIT("vmap", vmap_cache, vmap_t);
-
-static slab_t *mm_context_cache = NULL;
-SLAB_AUTOINIT("mm_context", mm_context_cache, mm_context_t);
 
 phyframe_t *mm_get_free_page_raw(void)
 {
@@ -64,9 +58,9 @@ phyframe_t *mm_get_free_pages(size_t npages)
     return frame;
 }
 
-mm_context_t *mm_create_context(void)
+MMContext *mm_create_context(void)
 {
-    mm_context_t *mmctx = (mm_context_t *) kmalloc(mm_context_cache);
+    MMContext *mmctx = mos::create<MMContext>();
     linked_list_init(&mmctx->mmaps);
 
     pml4_t pml4 = pml_create_table(pml4);
@@ -80,7 +74,7 @@ mm_context_t *mm_create_context(void)
     return mmctx;
 }
 
-void mm_destroy_context(mm_context_t *mmctx)
+void mm_destroy_context(MMContext *mmctx)
 {
     MOS_ASSERT(mmctx != platform_info->kernel_mm); // you can't destroy the kernel mmctx
     MOS_ASSERT(list_is_empty(&mmctx->mmaps));
@@ -89,10 +83,10 @@ void mm_destroy_context(mm_context_t *mmctx)
     size_t userspace_npages = (MOS_USER_END_VADDR + 1) / MOS_PAGE_SIZE;
     const bool freed = pml5_destroy_range(mmctx->pgd.max, &zero, &userspace_npages);
     MOS_ASSERT_X(freed, "failed to free the entire userspace");
-    kfree(mmctx);
+    delete mmctx;
 }
 
-void mm_lock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2)
+void mm_lock_ctx_pair(MMContext *ctx1, MMContext *ctx2)
 {
     if (ctx1 == ctx2 || ctx2 == NULL)
         spinlock_acquire(&ctx1->mm_lock);
@@ -108,7 +102,7 @@ void mm_lock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2)
     }
 }
 
-void mm_unlock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2)
+void mm_unlock_ctx_pair(MMContext *ctx1, MMContext *ctx2)
 {
     if (ctx1 == ctx2 || ctx2 == NULL)
         spinlock_release(&ctx1->mm_lock);
@@ -124,9 +118,9 @@ void mm_unlock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2)
     }
 }
 
-mm_context_t *mm_switch_context(mm_context_t *new_ctx)
+MMContext *mm_switch_context(MMContext *new_ctx)
 {
-    mm_context_t *old_ctx = current_cpu->mm_context;
+    MMContext *old_ctx = current_cpu->mm_context;
     if (old_ctx == new_ctx)
         return old_ctx;
 
@@ -135,7 +129,7 @@ mm_context_t *mm_switch_context(mm_context_t *new_ctx)
     return old_ctx;
 }
 
-static void do_attach_vmap(mm_context_t *mmctx, vmap_t *vmap)
+static void do_attach_vmap(MMContext *mmctx, vmap_t *vmap)
 {
     MOS_ASSERT(spinlock_is_locked(&mmctx->mm_lock));
     MOS_ASSERT_X(list_is_empty(list_node(vmap)), "vmap is already attached to something");
@@ -156,10 +150,10 @@ static void do_attach_vmap(mm_context_t *mmctx, vmap_t *vmap)
     list_node_append(&mmctx->mmaps, list_node(vmap)); // append at the end
 }
 
-vmap_t *vmap_create(mm_context_t *mmctx, ptr_t vaddr, size_t npages)
+vmap_t *vmap_create(MMContext *mmctx, ptr_t vaddr, size_t npages)
 {
     MOS_ASSERT_X(mmctx != platform_info->kernel_mm, "you can't create vmaps in the kernel mmctx");
-    vmap_t *map = (vmap_t *) kmalloc(vmap_cache);
+    vmap_t *map = mos::create<vmap_t>();
     linked_list_init(list_node(map));
     spinlock_acquire(&map->lock);
     map->vaddr = vaddr;
@@ -171,7 +165,7 @@ vmap_t *vmap_create(mm_context_t *mmctx, ptr_t vaddr, size_t npages)
 void vmap_destroy(vmap_t *vmap)
 {
     MOS_ASSERT(spinlock_is_locked(&vmap->lock));
-    mm_context_t *const mm = vmap->mmctx;
+    MMContext *const mm = vmap->mmctx;
     MOS_ASSERT(spinlock_is_locked(&mm->mm_lock));
     if (vmap->io)
     {
@@ -186,10 +180,10 @@ void vmap_destroy(vmap_t *vmap)
 
 unmapped:
     list_remove(vmap);
-    kfree(vmap);
+    delete vmap;
 }
 
-vmap_t *vmap_obtain(mm_context_t *mmctx, ptr_t vaddr, size_t *out_offset)
+vmap_t *vmap_obtain(MMContext *mmctx, ptr_t vaddr, size_t *out_offset)
 {
     MOS_ASSERT(spinlock_is_locked(&mmctx->mm_lock));
 
@@ -214,7 +208,7 @@ vmap_t *vmap_split(vmap_t *first, size_t split)
     MOS_ASSERT(spinlock_is_locked(&first->lock));
     MOS_ASSERT(split && split < first->npages);
 
-    vmap_t *second = (vmap_t *) kmalloc(vmap_cache);
+    vmap_t *second = mos::create<vmap_t>();
     *second = *first;                    // copy the whole structure
     linked_list_init(list_node(second)); // except for the list node
 
@@ -364,7 +358,7 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, vmap_t *
 
 void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
 {
-    thread_t *current = current_thread;
+    Thread *current = current_thread;
     const char *unhandled_reason = NULL;
 
     pr_demph(pagefault, "%s #PF: %pt, %pp, IP=" PTR_VLFMT ", ADDR=" PTR_VLFMT, //
@@ -396,7 +390,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         return;
     }
 
-    mm_context_t *const mm = current_mm;
+    MMContext *const mm = current_mm;
     mm_lock_ctx_pair(mm, NULL);
 
     fault_vmap = vmap_obtain(mm, fault_addr, &offset);

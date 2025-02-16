@@ -17,6 +17,8 @@
 #include <librpc/rpc.h>
 #include <optional>
 #include <string>
+
+#undef __unused
 #include <sys/stat.h>
 
 using namespace mosrpc::blockdev;

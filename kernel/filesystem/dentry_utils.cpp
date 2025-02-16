@@ -11,23 +11,25 @@
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
+using namespace mos::string_literals;
+
 dentry_t *dentry_ref(dentry_t *dentry)
 {
     MOS_ASSERT(dentry);
     MOS_ASSERT(dentry->inode); // one cannot refcount a dentry without an inode
     dentry->refcount++;
     inode_ref(dentry->inode);
-    pr_dinfo2(dcache_ref, "dentry %p '%s' increased refcount to %zu", (void *) dentry, dentry_name(dentry), dentry->refcount.load());
+    pr_dinfo2(dcache_ref, "dentry %p '%s' increased refcount to %zu", (void *) dentry, dentry_name(dentry).c_str(), dentry->refcount.load());
     return dentry;
 }
 
 dentry_t *dentry_ref_up_to(dentry_t *dentry, dentry_t *root)
 {
-    pr_dinfo2(dcache_ref, "dentry_ref_up_to(%p '%s', %p '%s')", (void *) dentry, dentry_name(dentry), (void *) root, dentry_name(root));
+    pr_dinfo2(dcache_ref, "dentry_ref_up_to(%p '%s', %p '%s')", (void *) dentry, dentry_name(dentry).c_str(), (void *) root, dentry_name(root).c_str());
     for (dentry_t *cur = dentry; cur != root; cur = dentry_parent(*cur))
     {
         dentry_ref(cur);
-        if (cur->name == NULL)
+        if (cur->name.empty())
         {
             cur = dentry_root_get_mountpoint(cur);
             dentry_ref(cur);
@@ -68,15 +70,16 @@ __nodiscard bool dentry_unref_one_norelease(dentry_t *dentry)
         }
     }
 
-    pr_dinfo2(dcache_ref, "dentry %p '%s' decreased refcount to %zu", (void *) dentry, dentry_name(dentry), dentry->refcount.load());
+    pr_dinfo2(dcache_ref, "dentry %p '%s' decreased refcount to %zu", (void *) dentry, dentry_name(dentry).c_str(), dentry->refcount.load());
 
-    if (dentry->name == NULL && dentry != root_dentry)
+    if (dentry->name.empty() && dentry != root_dentry)
     {
         dentry_t *mountpoint = dentry_root_get_mountpoint(dentry);
         if (!mountpoint)
             goto done;
         mountpoint->refcount--;
-        pr_dinfo2(dcache_ref, "  mountpoint %p '%s' decreased mountpoint refcount to %zu", (void *) mountpoint, dentry_name(mountpoint), mountpoint->refcount.load());
+        pr_dinfo2(dcache_ref, "  mountpoint %p '%s' decreased mountpoint refcount to %zu", (void *) mountpoint, dentry_name(mountpoint).c_str(),
+                  mountpoint->refcount.load());
     }
 done:
     return true;
@@ -113,7 +116,7 @@ void dentry_check_refstat(const dentry_t *dentry)
         if (dentry->is_mountpoint)
             expected_refcount++; // the mountpoint itself
 
-        if (dentry->name == NULL)
+        if (dentry->name.empty())
             expected_refcount++; // the mounted root dentry
     }
     else
@@ -131,13 +134,13 @@ void dentry_check_refstat(const dentry_t *dentry)
         mos_warn("dentry %p refcount %zu is less than expected refcount %zu", (void *) dentry, dentry->refcount.load(), expected_refcount);
         tree_foreach_child(dentry_t, child, dentry)
         {
-            pr_warn("  child %p '%s' has %zu references", (void *) child, dentry_name(child), child->refcount.load());
+            pr_warn("  child %p '%s' has %zu references", (void *) child, dentry_name(child).c_str(), child->refcount.load());
         }
         mos_panic("don't know how to handle this");
     }
     else if (dentry->refcount - expected_refcount)
     {
-        pr_dinfo2(dcache_ref, "  dentry %p '%s' has %zu direct references", (void *) dentry, dentry_name(dentry), dentry->refcount - expected_refcount);
+        pr_dinfo2(dcache_ref, "  dentry %p '%s' has %zu direct references", (void *) dentry, dentry_name(dentry).c_str(), dentry->refcount - expected_refcount);
     }
 }
 
@@ -149,9 +152,7 @@ void dentry_try_release(dentry_t *dentry)
     if (can_release)
     {
         list_remove(&dentry->tree_node);
-        if (dentry->name)
-            kfree(dentry->name);
-        kfree(dentry);
+        delete dentry;
     }
 }
 
@@ -182,48 +183,35 @@ ssize_t dentry_path(dentry_t *dentry, dentry_t *root, char *buf, size_t size)
         return 1;
     }
 
-    if (dentry->name == NULL)
+    if (dentry->name.empty())
         dentry = dentry_root_get_mountpoint(dentry);
 
-    char *path = strdup(dentry->name);
+    auto path = dentry->name;
 
     for (dentry_t *current = dentry_parent(*dentry); current != root; current = dentry_parent(*current))
     {
-        if (current->name == NULL)
+        if (current->name.empty())
             current = dentry_root_get_mountpoint(current);
 
         if (current == NULL)
         {
             // root for other fs trees
-            char *newpath = (char *) kmalloc(strlen(path) + 3);
-            strcpy(newpath, ":/");
-            strcat(newpath, path);
-            kfree(path);
-            path = newpath;
-
-            if (strlen(path) + 1 > size)
+            path = ":/" + path;
+            if (path.size() + 1 > size)
                 return -1;
 
-            const size_t real_size = snprintf(buf, size, "%s", path);
-            kfree(path);
+            const size_t real_size = snprintf(buf, size, "%s", path.c_str());
             return real_size;
         }
         else
         {
-            char *newpath = (char *) kmalloc(strlen(current->name) + 1 + strlen(path) + 1);
-            strcpy(newpath, current->name);
-            strcat(newpath, "/");
-            strcat(newpath, path);
-            kfree(path);
-            path = newpath;
+            path = current->name + "/" + path;
         }
     }
 
-    if (strlen(path) + 1 > size)
+    if (path.size() + 1 > size)
         return -1;
 
-    const size_t real_size = snprintf(buf, size, "/%s", path);
-    kfree(path);
-
+    const size_t real_size = snprintf(buf, size, "/%s", path.c_str());
     return real_size;
 }

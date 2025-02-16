@@ -6,29 +6,26 @@
 #include "mos/filesystem/vfs_types.hpp"
 #include "mos/ipc/ipc.hpp"
 #include "mos/ipc/ipc_io.hpp"
-#include "mos/mm/slab_autoinit.hpp"
 #include "mos/platform/platform.hpp"
 #include "mos/tasks/process.hpp"
 
+#include <mos/allocator.hpp>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-typedef struct
+struct ipc_vfs_private_t : mos::NamedType<"IPC_VFS_Private">
 {
     bool server_control_file;
-    ipc_server_t *server;
-    ipc_t *client_ipc;
-} ipc_vfs_private_t;
-
-slab_t *ipc_vfs_private_slab = NULL;
-SLAB_AUTOINIT("ipc_vfs_private", ipc_vfs_private_slab, ipc_vfs_private_t);
+    IPCServer *server;
+    IPCDescriptor *client_ipc;
+};
 
 static bool vfs_open_ipc(inode_t *ino, file_t *file, bool created)
 {
     MOS_UNUSED(ino);
 
-    ipc_t *ipc = NULL;
-    ipc_server_t *server = NULL;
+    IPCDescriptor *ipc = NULL;
+    IPCServer *server = NULL;
 
     if (created)
     {
@@ -47,7 +44,7 @@ static bool vfs_open_ipc(inode_t *ino, file_t *file, bool created)
         MOS_ASSERT(ipc);
     }
 
-    ipc_vfs_private_t *priv = (ipc_vfs_private_t *) kmalloc(ipc_vfs_private_slab);
+    ipc_vfs_private_t *priv = mos::create<ipc_vfs_private_t>();
     priv->server_control_file = created;
     priv->client_ipc = ipc;
     priv->server = server;
@@ -109,7 +106,7 @@ static void vfs_ipc_file_release(file_t *file)
     }
     else
         ipc_client_close_channel(priv->client_ipc);
-    kfree(priv);
+    delete priv;
 }
 
 const file_ops_t ipc_sysfs_file_ops = {

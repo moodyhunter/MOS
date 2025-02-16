@@ -10,20 +10,21 @@
 #include <mos/syslog/printk.hpp>
 #include <mos/tasks/schedule.hpp>
 #include <mos/tasks/wait.hpp>
+#include <mos/type_utils.hpp>
 #include <mos/types.hpp>
 #include <mos_stdlib.hpp>
 
 typedef ptr_t futex_key_t;
 
-typedef struct
+struct futex_private_t : mos::NamedType<"Futex.Private">
 {
     as_linked_list;
     futex_key_t key;
     waitlist_t waiters;
-} futex_private_t;
+};
 
-static list_head futex_list_head = LIST_HEAD_INIT(futex_list_head);
-static spinlock_t futex_list_lock = SPINLOCK_INIT;
+static list_head futex_list_head;
+static spinlock_t futex_list_lock;
 
 static futex_key_t futex_get_key(const futex_word_t *futex)
 {
@@ -81,7 +82,7 @@ bool futex_wait(futex_word_t *futex, futex_word_t expected)
 
     if (!fu)
     {
-        fu = (futex_private_t *) kmalloc(sizeof(futex_private_t));
+        fu = mos::create<futex_private_t>();
         fu->key = key;
         waitlist_init(&fu->waiters);
         list_node_append(&futex_list_head, list_node(fu));

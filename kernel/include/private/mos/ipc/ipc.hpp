@@ -7,27 +7,27 @@
 
 #include <stddef.h>
 
-typedef struct _ipc ipc_t;
-typedef struct _ipc_server ipc_server_t;
+struct IPCDescriptor;
+struct IPCServer;
 
 extern const file_ops_t ipc_sysfs_file_ops;
 
 void ipc_init(void);
 
-PtrResult<ipc_server_t> ipc_server_create(const char *name, size_t max_pending_connections);
+PtrResult<IPCServer> ipc_server_create(mos::string_view name, size_t max_pending_connections);
 
-PtrResult<ipc_server_t> ipc_get_server(const char *name);
+PtrResult<IPCServer> ipc_get_server(mos::string_view name);
 
-PtrResult<ipc_t> ipc_server_accept(ipc_server_t *server);
+PtrResult<IPCDescriptor> ipc_server_accept(IPCServer *server);
 
-void ipc_server_close(ipc_server_t *server);
+void ipc_server_close(IPCServer *server);
 
-PtrResult<ipc_t> ipc_connect_to_server(const char *name, size_t buffer_size);
+PtrResult<IPCDescriptor> ipc_connect_to_server(mos::string_view name, size_t buffer_size);
 
-size_t ipc_client_read(ipc_t *ipc, void *buffer, size_t size);
-size_t ipc_client_write(ipc_t *ipc, const void *buffer, size_t size);
-size_t ipc_server_read(ipc_t *ipc, void *buffer, size_t size);
-size_t ipc_server_write(ipc_t *ipc, const void *buffer, size_t size);
+size_t ipc_client_read(IPCDescriptor *ipc, void *buffer, size_t size);
+size_t ipc_client_write(IPCDescriptor *ipc, const void *buffer, size_t size);
+size_t ipc_server_read(IPCDescriptor *ipc, void *buffer, size_t size);
+size_t ipc_server_write(IPCDescriptor *ipc, const void *buffer, size_t size);
 
-void ipc_client_close_channel(ipc_t *ipc);
-void ipc_server_close_channel(ipc_t *ipc);
+void ipc_client_close_channel(IPCDescriptor *ipc);
+void ipc_server_close_channel(IPCDescriptor *ipc);

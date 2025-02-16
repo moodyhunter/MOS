@@ -41,7 +41,7 @@ static bool mos_test_engine_setup_skip_prefix_list(const char *arg)
         if (arg[i] == ',')
             argc++;
 
-    test_engine_skip_prefix_list = (const char **) kmalloc(sizeof(char *) * argc);
+    test_engine_skip_prefix_list = kcalloc<const char *>(argc);
 
     int i = 0;
     char *token = strtok((char *) arg, ",");

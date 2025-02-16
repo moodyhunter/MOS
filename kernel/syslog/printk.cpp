@@ -68,7 +68,7 @@ static void print_to_console(Console *con, loglevel_t loglevel, const char *mess
     if (!con)
         return;
 
-    static standard_color_t fg = con->fg, bg = con->bg; // declared static to use previous values
+    standard_color_t fg = con->fg, bg = con->bg;
     deduce_level_color(loglevel, &fg, &bg);
     con->write_color(message, len, fg, bg);
 }

@@ -4,7 +4,7 @@
 
 #include "mos/device/timer.hpp"
 
-list_head clocksources = LIST_HEAD_INIT(clocksources);
+list_head clocksources;
 clocksource_t *active_clocksource;
 
 void clocksource_register(clocksource_t *clocksource)

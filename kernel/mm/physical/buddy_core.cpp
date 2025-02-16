@@ -10,12 +10,12 @@
 #include <mos/lib/structures/list.hpp>
 #include <mos_stdlib.hpp>
 
-const size_t pow2(size_t x)
+constexpr size_t pow2(size_t x)
 {
     return 1 << x;
 }
 
-const size_t log2(size_t x)
+constexpr size_t log2(size_t x)
 {
     return x ? (sizeof(x) * 8 - 1 - __builtin_clzl(x)) : 0;
 }
@@ -28,16 +28,16 @@ static const size_t max_order = MOS_ARRAY_SIZE(orders) - 1;
 static struct
 {
     list_head freelists[MOS_ARRAY_SIZE(orders)];
-} buddy = { 0 };
+} buddy;
 
-static spinlock_t buddy_lock = SPINLOCK_INIT;
+static spinlock_t buddy_lock;
 
 static void add_to_freelist(size_t order, phyframe_t *frame)
 {
     MOS_ASSERT(spinlock_is_locked(&buddy_lock));
     MOS_ASSERT(frame->state == phyframe::PHYFRAME_FREE);
     frame->order = order;
-    list_node_t *frame_node = list_node(frame);
+    list_node_t *frame_node = list_node(&frame->info);
     MOS_ASSERT(list_is_empty(frame_node));
 
     list_head *const head = &buddy.freelists[order];
@@ -61,8 +61,10 @@ static void dump_list(size_t order)
     spinlock_acquire(&buddy_lock);
     const list_head *head = &buddy.freelists[order];
     pr_cont("\nlist of order %zu: ", order);
-    list_foreach(phyframe_t, frame, *head)
+    list_foreach(phyframe_t::additional_info, info, *head)
     {
+        const auto frame = container_of(info, phyframe_t, info);
+
         if (order == 0)
             pr_cont("[" PFN_FMT "] ", phyframe_pfn(frame));
         else
@@ -92,7 +94,7 @@ static void populate_freelist(const size_t start_pfn, const size_t nframes, cons
     for (; current + step <= start_pfn + nframes; current += step)
     {
         phyframe_t *const frame = pfn_phyframe(current);
-        linked_list_init(list_node(frame));
+        linked_list_init(list_node(&frame->info));
         frame->state = phyframe::PHYFRAME_FREE; // free or reserved
 
         pr_dinfo2(pmm_buddy, "    - " PFN_RANGE, current, current + step - 1);
@@ -112,7 +114,7 @@ static void break_this_pfn(pfn_t this_pfn, size_t this_order)
 
     phyframe_t *const frame = pfn_phyframe(this_pfn);
     MOS_ASSERT(frame->state == phyframe::PHYFRAME_FREE); // must be free
-    list_remove(frame);
+    list_remove(&frame->info);
 
     // split this frame into two frames of order-1
     const pfn_t frame2_pfn = this_pfn + pow2(this_order - 1); // pow2(order) / 2
@@ -120,8 +122,8 @@ static void break_this_pfn(pfn_t this_pfn, size_t this_order)
               frame2_pfn - 1, frame2_pfn, frame2_pfn + pow2(this_order - 1) - 1);
 
     phyframe_t *const frame2 = pfn_phyframe(frame2_pfn);
-    linked_list_init(list_node(frame2)); // this must not be in any list, so we init it
-    frame2->state = frame->state;        // which is PHYFRAME_FREE
+    linked_list_init(list_node(&frame2->info)); // this must not be in any list, so we init it
+    frame2->state = frame->state;               // which is PHYFRAME_FREE
 
     add_to_freelist(this_order - 1, frame);
     add_to_freelist(this_order - 1, frame2);
@@ -163,8 +165,9 @@ static void extract_exact_range(pfn_t start, size_t nframes, enum phyframe::phyf
             if (list_is_empty(freelist))
                 continue; // no, the frame must be at a lower order
 
-            list_foreach(phyframe_t, f, *freelist)
+            list_foreach(phyframe_t::additional_info, info, *freelist)
             {
+                const auto f = container_of(info, phyframe_t, info);
                 const pfn_t start_pfn = phyframe_pfn(f);
                 const pfn_t end_pfn = start_pfn + pow2(order) - 1;
 
@@ -179,7 +182,7 @@ static void extract_exact_range(pfn_t start, size_t nframes, enum phyframe::phyf
                     pr_dinfo2(pmm_buddy, "    found a frame that starts with " PFN_FMT "...", start);
                     if (pow2(order) <= nframes)
                     {
-                        list_remove(f);
+                        list_remove(&f->info);
                         f->state = state;
                         f->order = 0;
 
@@ -235,9 +238,10 @@ static void break_the_order(const size_t order)
         return; // out of memory!
     }
 
-    phyframe_t *const frame = list_entry(freelist->next, phyframe_t);
+    const auto info = list_entry(freelist->next, phyframe_t::additional_info);
+    const auto frame = container_of(info, phyframe_t, info);
     MOS_ASSERT(frame->state == phyframe::PHYFRAME_FREE);
-    list_remove(frame);
+    list_remove(info);
 
     const pfn_t frame_pfn = phyframe_pfn(frame);
     const pfn_t frame2_pfn = frame_pfn + pow2(order - 1); // pow2(order) / 2
@@ -246,7 +250,7 @@ static void break_the_order(const size_t order)
               frame2_pfn, frame2_pfn + pow2(order - 1) - 1);
 
     phyframe_t *const frame2 = pfn_phyframe(frame2_pfn);
-    linked_list_init(list_node(frame2));
+    linked_list_init(list_node(&frame2->info));
     frame2->state = phyframe::PHYFRAME_FREE;
 
     add_to_freelist(order - 1, frame);
@@ -288,7 +292,7 @@ static void break_the_order(const size_t order)
         return false;
     }
 
-    list_remove(buddy);
+    list_remove(&buddy->info);
     frame->state = phyframe::PHYFRAME_FREE;
 
     pr_dinfo2(pmm_buddy, "  merging order %hhu, " PFN_RANGE " and " PFN_RANGE, order, pfn, pfn + pow2(order) - 1, buddy_pfn, buddy_pfn + pow2(order) - 1);
@@ -298,7 +302,7 @@ static void break_the_order(const size_t order)
     if (!try_merge(high_order_pfn, order + 1))
     {
         phyframe_t *const high_order_frame = pfn_phyframe(high_order_pfn);
-        linked_list_init(list_node(high_order_frame));
+        linked_list_init(list_node(&high_order_frame->info));
         high_order_frame->state = phyframe::PHYFRAME_FREE;
         add_to_freelist(order + 1, high_order_frame); // use the lower pfn
     }
@@ -358,7 +362,7 @@ phyframe_t *buddy_alloc_n_exact(size_t nframes)
         return NULL; // out of memory!
     }
 
-    phyframe_t *const frame = list_entry(free->next, phyframe_t);
+    const auto frame = container_of(list_entry(free->next, phyframe_t::additional_info), phyframe_t, info);
     const pfn_t start = phyframe_pfn(frame);
 
     extract_exact_range(start, nframes, phyframe::PHYFRAME_ALLOCATED); // extract the exact range from the buddy.freelists
@@ -381,7 +385,7 @@ void buddy_free_n(pfn_t pfn, size_t nframes)
 
     phyframe_t *const frame = pfn_phyframe(pfn);
     MOS_ASSERT_X(frame->state == phyframe::PHYFRAME_ALLOCATED, "frame must be allocated");
-    MOS_ASSERT(list_is_empty(list_node(frame)));
+    MOS_ASSERT(list_is_empty(&frame->info.list_node));
     frame->state = phyframe::PHYFRAME_FREE;
 
     const size_t order = log2_ceil(nframes);

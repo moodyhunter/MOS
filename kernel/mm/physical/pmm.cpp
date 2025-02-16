@@ -99,7 +99,7 @@ phyframe_t *pmm_allocate_frames(size_t n_frames, pmm_allocation_flags_t flags)
     pr_dinfo2(pmm, "allocated " PFN_RANGE ", %zu pages", pfn, pfn + n_frames, n_frames);
 
     for (size_t i = 0; i < n_frames; i++)
-        pfn_phyframe(pfn + i)->allocated_refcount = 0;
+        pfn_phyframe(pfn + i)->alloc.refcount = 0;
 
     pmm_allocated_frames += n_frames;
     return frame;
@@ -112,7 +112,7 @@ void pmm_free_frames(phyframe_t *start_frame, size_t n_pages)
     for (pfn_t pfn = start; pfn < start + n_pages; pfn++)
     {
         phyframe_t *frame = pfn_phyframe(pfn);
-        linked_list_init(list_node(frame)); // sanitize the list node
+        linked_list_init(list_node(&frame->info)); // sanitize the list node
         buddy_free_n(phyframe_pfn(frame), 1);
     }
 
@@ -155,7 +155,7 @@ phyframe_t *_pmm_ref_phyframes(phyframe_t *frame, size_t n_pages)
     pr_dinfo2(pmm, "ref range: " PFN_RANGE ", %zu pages", start, start + n_pages, n_pages);
 
     for (size_t i = start; i < start + n_pages; i++)
-        pfn_phyframe(i)->allocated_refcount++;
+        pfn_phyframe(i)->alloc.refcount++;
     return frame;
 }
 
@@ -168,9 +168,9 @@ void _pmm_unref_phyframes(phyframe_t *frame, size_t n_pages)
     for (pfn_t pfn = start; pfn < start + n_pages; pfn++)
     {
         phyframe_t *frame = pfn_phyframe(pfn);
-        MOS_ASSERT(frame->allocated_refcount > 0);
+        MOS_ASSERT(frame->alloc.refcount > 0);
 
-        if (--frame->allocated_refcount == 0)
+        if (--frame->alloc.refcount == 0)
             pmm_free_frames(frame, 1);
     }
 }

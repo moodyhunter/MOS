@@ -16,13 +16,13 @@ ring_buffer_t *ring_buffer_create(size_t capacity)
     if (capacity == 0)
         return NULL; // forget about it
 
-    ring_buffer_t *rb = (ring_buffer_t *) kmalloc(sizeof(ring_buffer_t));
+    ring_buffer_t *rb = mos::create<ring_buffer_t>();
     if (!rb)
         return NULL;
-    rb->data = (u8 *) kmalloc(capacity);
+    rb->data = (u8 *) kcalloc<u8>(capacity);
     if (!rb->data)
     {
-        kfree(rb);
+        delete rb;
         return NULL;
     }
     ring_buffer_pos_init(&rb->pos, capacity);
@@ -34,7 +34,7 @@ ring_buffer_t *ring_buffer_create_at(void *data, size_t capacity)
     if (capacity == 0)
         return NULL; // forget about it
 
-    ring_buffer_t *rb = (ring_buffer_t *) kmalloc(sizeof(ring_buffer_t));
+    ring_buffer_t *rb = mos::create<ring_buffer_t>();
     if (!rb)
         return NULL;
     rb->data = (u8 *) data;
@@ -53,14 +53,14 @@ void ring_buffer_pos_init(ring_buffer_pos_t *pos, size_t capacity)
 void ring_buffer_destroy(ring_buffer_t *buffer)
 {
     kfree(buffer->data);
-    kfree(buffer);
+    delete buffer;
 }
 
 bool ring_buffer_resize(ring_buffer_t *buffer, size_t new_capacity)
 {
     if (new_capacity < buffer->pos.count)
         return false;
-    void *new_data = kmalloc(new_capacity);
+    void *new_data = kcalloc<char>(new_capacity);
     if (!new_data)
         return false;
     size_t i = 0;

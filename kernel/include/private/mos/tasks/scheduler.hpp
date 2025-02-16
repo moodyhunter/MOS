@@ -15,9 +15,9 @@ typedef struct _scheduler_ops
      * @brief Select the next thread to run, thread state lock should be locked
      *
      */
-    thread_t *(*select_next)(scheduler_t *instance);
-    void (*add_thread)(scheduler_t *instance, thread_t *thread);    ///< Add a thread to the scheduler
-    void (*remove_thread)(scheduler_t *instance, thread_t *thread); ///< Remove a thread from the scheduler
+    Thread *(*select_next)(scheduler_t *instance);
+    void (*add_thread)(scheduler_t *instance, Thread *thread);    ///< Add a thread to the scheduler
+    void (*remove_thread)(scheduler_t *instance, Thread *thread); ///< Remove a thread from the scheduler
 } scheduler_ops_t;
 
 typedef struct _scheduler

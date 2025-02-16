@@ -78,7 +78,7 @@ static bool mmstat_sysfs_phyframe_stat_show(sysfs_file_t *f)
     sysfs_printf(f, "type: %s\n", frame->state == phyframe::PHYFRAME_FREE ? "free" : frame->state == phyframe::PHYFRAME_ALLOCATED ? "allocated" : "reserved");
     sysfs_printf(f, "order: %u\n", frame->order);
     if (frame->state == phyframe::PHYFRAME_ALLOCATED)
-        sysfs_printf(f, "refcnt: %zu\n", frame->allocated_refcount.load());
+        sysfs_printf(f, "refcnt: %zu\n", frame->alloc.refcount.load());
 
     return true;
 }
@@ -107,14 +107,14 @@ static bool mmstat_sysfs_pagetable_show(sysfs_file_t *f)
         return false;
     }
 
-    const process_t *proc = process_get(pid);
+    const Process *proc = process_get(pid);
     if (!proc)
     {
         pr_warn("mmstat: invalid pid %d", pid);
         return false;
     }
 
-    mm_context_t *mmctx = proc->mm;
+    MMContext *mmctx = proc->mm;
     spinlock_acquire(&mmctx->mm_lock);
 
     pagetable_iter_t iter;
@@ -145,7 +145,7 @@ static bool mmstat_sysfs_vmaps_show(sysfs_file_t *f)
         return false;
     }
 
-    process_t *proc = process_get(pid);
+    Process *proc = process_get(pid);
     if (!proc)
     {
         pr_warn("mmstat: invalid pid %d", pid);

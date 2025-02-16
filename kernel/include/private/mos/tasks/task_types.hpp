@@ -7,9 +7,13 @@
 #include "mos/tasks/wait.hpp"
 
 #include <abi-bits/signal.h>
+#include <mos/allocator.hpp>
 #include <mos/lib/structures/list.hpp>
 #include <mos/lib/structures/stack.hpp>
+#include <mos/shared_ptr.hpp>
+#include <mos/string.hpp>
 #include <mos/tasks/signal_types.h>
+#include <mos/type_utils.hpp>
 
 /**
  * @defgroup tasks Process and thread management
@@ -22,8 +26,7 @@ typedef enum
     THREAD_MODE_USER,
 } thread_mode;
 
-typedef struct _thread thread_t;
-typedef struct _process process_t;
+struct Thread;
 
 typedef struct
 {
@@ -31,20 +34,28 @@ typedef struct
     waitlist_t sigchild_waitlist;       ///< the parent is waiting for a child to exit, if not empty
 } process_signal_info_t;
 
-typedef struct
+struct fd_type
 {
     io_t *io;
     fd_flags_t flags;
-} fd_type;
+};
 
 #define nullfd ((fd_type) { .io = NULL, .flags = (fd_flags_t) 0 })
 
-typedef struct _process
+#define PROCESS_MAGIC_PROC MOS_FOURCC('P', 'R', 'O', 'C')
+#define THREAD_MAGIC_THRD  MOS_FOURCC('T', 'H', 'R', 'D')
+
+struct Process : mos::NamedType<"Process">
 {
-    u32 magic;
+    PrivateTag;
+
+  public:
+    explicit Process(Private, Process *parent, mos::string_view name);
+
+    const u32 magic = PROCESS_MAGIC_PROC;
     pid_t pid;
-    const char *name;
-    process_t *parent;
+    mos::string name;
+    Process *parent;
     list_head children; ///< list of children processes
     as_linked_list;     ///< node in the parent's children list
 
@@ -53,16 +64,22 @@ typedef struct _process
 
     fd_type files[MOS_PROCESS_MAX_OPEN_FILES];
 
-    thread_t *main_thread;
+    Thread *main_thread;
     list_head threads;
 
-    mm_context_t *mm;
+    MMContext *mm;
     dentry_t *working_directory;
 
     platform_process_options_t platform_options; ///< platform per-process flags
 
     process_signal_info_t signal_info; ///< signal handling info
-} process_t;
+
+  public:
+    static inline Process *New(Process *parent, mos::string_view name)
+    {
+        return mos::create<Process>(Private(), parent, name);
+    }
+};
 
 typedef struct
 {
@@ -71,12 +88,12 @@ typedef struct
     sigset_t mask;     ///< pending signals mask
 } thread_signal_info_t;
 
-typedef struct _thread
+struct Thread : mos::NamedType<"Thread">
 {
     u32 magic;
     tid_t tid;
-    const char *name;
-    process_t *owner;
+    mos::string name;
+    Process *owner;
     as_linked_list;            ///< node in the process's thread list
     thread_mode mode;          ///< user-mode thread or kernel-mode
     spinlock_t state_lock;     ///< protects the thread state
@@ -89,8 +106,6 @@ typedef struct _thread
     waitlist_t waiters; ///< list of threads waiting for this thread to exit
 
     thread_signal_info_t signal_info;
-} thread_t;
-
-extern slab_t *process_cache, *thread_cache;
+};
 
 /** @} */

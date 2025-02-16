@@ -8,21 +8,24 @@
 #include "mos/mm/physical/pmm.hpp"
 #include "mos/tasks/elf.hpp"
 
+#include <mos/allocator.hpp>
 #include <mos/device/console.hpp>
 #include <mos/filesystem/vfs.hpp>
 #include <mos/interrupt/ipi.hpp>
 #include <mos/ipc/ipc.hpp>
 #include <mos/lib/cmdline.hpp>
+#include <mos/list.hpp>
 #include <mos/misc/cmdline.hpp>
 #include <mos/misc/setup.hpp>
 #include <mos/platform/platform.hpp>
+#include <mos/shared_ptr.hpp>
 #include <mos/syslog/printk.hpp>
 #include <mos/tasks/kthread.hpp>
 #include <mos/tasks/schedule.hpp>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-static mm_context_t mos_kernel_mm;
+static MMContext mos_kernel_mm;
 
 static struct
 {
@@ -140,9 +143,7 @@ void mos_start_kernel(void)
     );
 
     platform_switch_mm(platform_info->kernel_mm);
-
-    startup_invoke_autoinit(INIT_TARGET_POST_MM);
-    startup_invoke_autoinit(INIT_TARGET_SLAB_AUTOINIT);
+    slab_init(); // now mos::create<T>, kmalloc<T>, etc. are available
 
     // power management
     startup_invoke_autoinit(INIT_TARGET_POWER);
@@ -155,10 +156,10 @@ void mos_start_kernel(void)
     platform_startup_late();
 
     init_args.argc = 1;
-    init_args.argv = (const char **) kcalloc(1, sizeof(char *)); // init_argv[0] is the init path
+    init_args.argv = kcalloc<const char *>(1); // init_argv[0] is the init path
     init_args.argv[0] = strdup(MOS_DEFAULT_INIT_PATH);
     startup_invoke_cmdline_hooks();
-    init_args.argv = (const char **) krealloc(init_args.argv, (init_args.argc + 1) * sizeof(char *));
+    init_args.argv = krealloc(init_args.argv, (init_args.argc + 1) * sizeof(char *));
     init_args.argv[init_args.argc] = NULL;
 
     long ret = vfs_mount("none", "/", "tmpfs", NULL);
@@ -171,7 +172,6 @@ void mos_start_kernel(void)
         mos_panic("failed to mount initrd, vfs_mount returns %ld", ret);
 
     ipc_init();
-    tasks_init();
     scheduler_init();
 
     Console *const init_con = platform_info->boot_console;
@@ -194,7 +194,7 @@ void mos_start_kernel(void)
     for (u32 i = 0; init_envp[i]; i++)
         pr_info2("    %s", init_envp[i]);
 
-    process_t *init = elf_create_process(init_args.argv[0], NULL, init_args.argv, init_envp, &init_io);
+    Process *init = elf_create_process(init_args.argv[0], NULL, init_args.argv, init_envp, &init_io);
     if (unlikely(!init))
         mos_panic("failed to create init process");
 

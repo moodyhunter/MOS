@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/lib/sync/spinlock.hpp"
-#include "mos/mm/slab.hpp"
-#include "mos/mm/slab_autoinit.hpp"
 
+#include <mos/allocator.hpp>
 #include <mos/lib/structures/hashmap.hpp>
 #include <mos/moslib_global.hpp>
 #include <mos_stdlib.hpp>
@@ -11,15 +10,12 @@
 
 #define HASHMAP_MAGIC MOS_FOURCC('H', 'M', 'a', 'p')
 
-typedef struct hashmap_entry
+struct hashmap_entry_t : mos::NamedType<"Hashmap.Entry">
 {
     ptr_t key;
     void *value;
     hashmap_entry_t *next;
-} hashmap_entry_t;
-
-slab_t *hashmap_entry_slab = NULL;
-SLAB_AUTOINIT("hashmap_entry", hashmap_entry_slab, hashmap_entry_t);
+};
 
 void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, hashmap_key_compare_t compare_func)
 {
@@ -31,7 +27,7 @@ void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, has
     }
     memzero(map, sizeof(hashmap_t));
     map->magic = HASHMAP_MAGIC;
-    map->entries = (hashmap_entry_t **) kcalloc(capacity, sizeof(hashmap_entry_t *));
+    map->entries = kcalloc<hashmap_entry_t *>(capacity);
     map->capacity = capacity;
     map->size = 0;
     map->hash_func = hash_func;
@@ -57,7 +53,7 @@ void hashmap_deinit(hashmap_t *map)
         while (entry != NULL)
         {
             hashmap_entry_t *next = entry->next;
-            kfree(entry);
+            delete entry;
             entry = next;
         }
     }
@@ -83,7 +79,7 @@ void *hashmap_put(hashmap_t *map, uintn key, void *value)
         }
         entry = entry->next;
     }
-    entry = (hashmap_entry_t *) kmalloc(hashmap_entry_slab);
+    entry = mos::create<hashmap_entry_t>();
     entry->key = key;
     entry->value = value;
     entry->next = map->entries[index];
@@ -130,7 +126,7 @@ void *hashmap_remove(hashmap_t *map, uintn key)
             else
                 prev->next = entry->next;
             void *value = entry->value;
-            kfree(entry);
+            delete entry;
             map->size--;
             spinlock_release(&map->lock);
             return value;

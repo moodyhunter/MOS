@@ -25,6 +25,7 @@ typedef void (*switch_func_t)();
 
 extern "C" void x86_normal_switch_impl();
 extern "C" void x86_context_switch_impl(ptr_t *old_stack, ptr_t new_kstack, switch_func_t switcher, bool *lock);
+mos::Slab<u8> xsave_area_slab("x86.xsave", 0);
 
 static void x86_start_kernel_thread()
 {
@@ -42,10 +43,10 @@ static void x86_start_user_thread()
     platform_return_to_userspace(regs);
 }
 
-static platform_regs_t *x86_setup_thread_common(thread_t *thread)
+static platform_regs_t *x86_setup_thread_common(Thread *thread)
 {
     MOS_ASSERT_X(thread->platform_options.xsaveptr == NULL, "xsaveptr should be NULL");
-    thread->platform_options.xsaveptr = (u8 *) kmalloc(xsave_area_slab);
+    thread->platform_options.xsaveptr = xsave_area_slab.create();
     thread->k_stack.head -= sizeof(platform_regs_t);
     platform_regs_t *regs = platform_thread_regs(thread);
     *regs = (platform_regs_t) { 0 };
@@ -64,7 +65,7 @@ static platform_regs_t *x86_setup_thread_common(thread_t *thread)
     return regs;
 }
 
-void platform_context_setup_main_thread(thread_t *thread, ptr_t entry, ptr_t sp, int argc, ptr_t argv, ptr_t envp)
+void platform_context_setup_main_thread(Thread *thread, ptr_t entry, ptr_t sp, int argc, ptr_t argv, ptr_t envp)
 {
     platform_regs_t *regs = x86_setup_thread_common(thread);
     regs->ip = entry;
@@ -74,14 +75,14 @@ void platform_context_setup_main_thread(thread_t *thread, ptr_t entry, ptr_t sp,
     regs->sp = sp;
 }
 
-void platform_context_cleanup(thread_t *thread)
+void platform_context_cleanup(Thread *thread)
 {
     if (thread->mode == THREAD_MODE_USER)
         if (thread->platform_options.xsaveptr)
             kfree(thread->platform_options.xsaveptr), thread->platform_options.xsaveptr = NULL;
 }
 
-void platform_context_setup_child_thread(thread_t *thread, thread_entry_t entry, void *arg)
+void platform_context_setup_child_thread(Thread *thread, thread_entry_t entry, void *arg)
 {
     platform_regs_t *regs = x86_setup_thread_common(thread);
     regs->di = (ptr_t) arg;
@@ -97,7 +98,7 @@ void platform_context_setup_child_thread(thread_t *thread, thread_entry_t entry,
     regs->sp = thread->u_stack.head; // update the stack pointer
 }
 
-void platform_context_clone(const thread_t *from, thread_t *to)
+void platform_context_clone(const Thread *from, Thread *to)
 {
     platform_regs_t *to_regs = platform_thread_regs(to);
     *to_regs = *platform_thread_regs(from);
@@ -107,8 +108,8 @@ void platform_context_clone(const thread_t *from, thread_t *to)
     if (to->mode == THREAD_MODE_USER)
     {
         to->u_stack.head = to_regs->sp;
-        to->platform_options.xsaveptr = (u8 *) kmalloc(xsave_area_slab);
-        memcpy(to->platform_options.xsaveptr, from->platform_options.xsaveptr, platform_info->arch_info.xsave_size);
+        to->platform_options.xsaveptr = xsave_area_slab.create();
+        memcpy(to->platform_options.xsaveptr, from->platform_options.xsaveptr, xsave_area_slab.size());
     }
 
     to->platform_options.fs_base = from->platform_options.fs_base;
@@ -116,7 +117,7 @@ void platform_context_clone(const thread_t *from, thread_t *to)
     to->k_stack.head -= sizeof(platform_regs_t);
 }
 
-void platform_switch_to_thread(thread_t *current, thread_t *new_thread, switch_flags_t switch_flags)
+void platform_switch_to_thread(Thread *current, Thread *new_thread, switch_flags_t switch_flags)
 {
     const switch_func_t switch_func = statement_expr(switch_func_t, {
         switch (switch_flags)
@@ -144,7 +145,7 @@ void platform_switch_to_thread(thread_t *current, thread_t *new_thread, switch_f
     x86_context_switch_impl(stack_ptr, new_thread->k_stack.head, switch_func, lock);
 }
 
-void x86_set_fsbase(thread_t *thread)
+void x86_set_fsbase(Thread *thread)
 {
     __asm__ volatile("wrfsbase %0" ::"r"(thread->platform_options.fs_base) : "memory");
 }

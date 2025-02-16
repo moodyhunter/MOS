@@ -7,7 +7,7 @@
 bitmap_line_t *bitmap_create(size_t size)
 {
     size_t nlines = BITMAP_LINE_COUNT(size);
-    bitmap_line_t *bitmap = (bitmap_line_t *) kmalloc(nlines * sizeof(bitmap_line_t));
+    bitmap_line_t *bitmap = kcalloc<bitmap_line_t>(nlines);
     bitmap_zero(bitmap, nlines);
     return bitmap;
 }

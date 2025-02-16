@@ -3,23 +3,20 @@
 #include "mos/interrupt/interrupt.hpp"
 
 #include "mos/lib/structures/list.hpp"
-#include "mos/mm/slab_autoinit.hpp"
 
+#include <mos/allocator.hpp>
 #include <mos_stdlib.hpp>
 
-typedef struct
+struct interrupt_handler_t : mos::NamedType<"InterruptHandler">
 {
     as_linked_list;
     u32 irq;
     irq_serve_t handler;
     void *data;
-} interrupt_handler_t;
+};
 
-static spinlock_t irq_handlers_lock = SPINLOCK_INIT;
-static list_head irq_handlers = LIST_HEAD_INIT(irq_handlers);
-
-static slab_t *irq_handler_slab = NULL;
-SLAB_AUTOINIT("irq_handler", irq_handler_slab, interrupt_handler_t);
+static spinlock_t irq_handlers_lock;
+static list_head irq_handlers;
 
 void interrupt_entry(u32 irq)
 {
@@ -37,7 +34,7 @@ void interrupt_entry(u32 irq)
 
 void interrupt_handler_register(u32 irq, irq_serve_t handler, void *data)
 {
-    interrupt_handler_t *new_handler = (interrupt_handler_t *) kmalloc(irq_handler_slab);
+    interrupt_handler_t *new_handler = mos::create<interrupt_handler_t>();
     new_handler->irq = irq;
     new_handler->handler = handler;
     new_handler->data = data;

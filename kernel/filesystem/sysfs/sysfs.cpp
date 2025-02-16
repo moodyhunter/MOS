@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-#include <algorithm>
 #define pr_fmt(fmt) "sysfs: " fmt
+#include "mos/filesystem/sysfs/sysfs.hpp"
 
 #include "mos/filesystem/dentry.hpp"
-#include "mos/filesystem/sysfs/sysfs.hpp"
 #include "mos/filesystem/vfs.hpp"
 #include "mos/filesystem/vfs_types.hpp"
 #include "mos/filesystem/vfs_utils.hpp"
@@ -13,15 +12,17 @@
 #include "mos/mm/physical/pmm.hpp"
 #include "mos/syslog/printk.hpp"
 
+#include <algorithm>
 #include <mos/filesystem/fs_types.h>
 #include <mos/io/io_types.h>
 #include <mos/lib/structures/list.hpp>
+#include <mos/type_utils.hpp>
 #include <mos/types.hpp>
 #include <mos_stdio.hpp>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-typedef struct _sysfs_file
+struct sysfs_file_t : mos::NamedType<"SysFS.File">
 {
     sysfs_item_t *item;
 
@@ -30,9 +31,9 @@ typedef struct _sysfs_file
     ssize_t buf_npages;
 
     void *data;
-} sysfs_file_t;
+};
 
-static list_head sysfs_dirs = LIST_HEAD_INIT(sysfs_dirs);
+static list_head sysfs_dirs;
 extern filesystem_t fs_sysfs;
 static superblock_t *sysfs_sb = NULL;
 static const file_ops_t sysfs_dir_file_ops = { 0 };
@@ -49,7 +50,7 @@ void sysfs_register(sysfs_dir_t *dir)
 {
     linked_list_init(list_node(dir));
     list_node_append(&sysfs_dirs, list_node(dir));
-    pr_dinfo2(sysfs, "registering '%s'", dir->name);
+    pr_dinfo2(sysfs, "registering '%s'", dir->name.c_str());
     MOS_ASSERT(sysfs_sb);
     sysfs_do_register(dir);
 }
@@ -120,7 +121,7 @@ sysfs_item_t *sysfs_file_get_item(sysfs_file_t *file)
 static bool sysfs_fops_open(inode_t *inode, file_t *file, bool created)
 {
     MOS_UNUSED(created);
-    sysfs_file_t *sysfs_file = (sysfs_file_t *) kmalloc(sizeof(sysfs_file_t));
+    sysfs_file_t *sysfs_file = mos::create<sysfs_file_t>();
     sysfs_file->item = (sysfs_item_t *) inode->private_data;
 
     file->private_data = sysfs_file;
@@ -129,11 +130,11 @@ static bool sysfs_fops_open(inode_t *inode, file_t *file, bool created)
 
 static void sysfs_fops_release(file_t *file)
 {
-    pr_dinfo2(sysfs, "closing %s in %s", file->dentry->name, dentry_parent(*file->dentry)->name);
+    pr_dinfo2(sysfs, "closing %s in %s", file->dentry->name.c_str(), dentry_parent(*file->dentry)->name.c_str());
     sysfs_file_t *f = (sysfs_file_t *) file->private_data;
     if (f->buf_page)
         mm_free_pages(f->buf_page, f->buf_npages), f->buf_page = NULL, f->buf_npages = 0, f->buf_head_offset = 0;
-    kfree(f);
+    delete f;
 }
 
 __nodiscard static bool sysfs_file_ensure_ready(const file_t *file)
@@ -267,14 +268,14 @@ static void sysfs_iops_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state,
         if (item->type == _SYSFS_INVALID || item->type == SYSFS_DYN)
             continue;
 
-        add_record(state, item->ino, item->name, strlen(item->name), FILE_TYPE_REGULAR);
+        add_record(state, item->ino, item->name, FILE_TYPE_REGULAR);
     }
 
     // iterate the dynamic items
     list_node_foreach(item_node, &dir->_dynamic_items)
     {
         sysfs_item_t *const dynitem = container_of(item_node, sysfs_item_t, list_node);
-        dynitem->iterate(dynitem, dentry, state, add_record);
+        dynitem->dyn_iterate(dynitem, dentry, state, add_record);
     }
 }
 
@@ -297,7 +298,7 @@ static bool sysfs_iops_lookup(inode_t *dir, dentry_t *dentry)
     list_node_foreach(item_node, &sysfs_dir->_dynamic_items)
     {
         sysfs_item_t *const dynitem = container_of(item_node, sysfs_item_t, list_node);
-        if (dynitem->lookup(dir, dentry))
+        if (dynitem->dyn_lookup(dir, dentry))
             return true;
     }
 
@@ -318,7 +319,7 @@ static bool sysfs_iops_create(inode_t *dir, dentry_t *dentry, file_type_t type, 
     list_node_foreach(item_node, &sysfs_dir->_dynamic_items)
     {
         sysfs_item_t *const dynitem = container_of(item_node, sysfs_item_t, list_node);
-        if (dynitem->create(dir, dentry, type, perm))
+        if (dynitem->dyn_create(dir, dentry, type, perm))
             return true;
     }
 
@@ -350,7 +351,6 @@ static PtrResult<dentry_t> sysfs_fsop_mount(filesystem_t *fs, const char *dev, c
 }
 
 filesystem_t fs_sysfs = {
-    .list_node = LIST_HEAD_INIT(fs_sysfs.list_node),
     .name = "sysfs",
     .mount = sysfs_fsop_mount,
 };
@@ -387,7 +387,7 @@ void sysfs_register_file(sysfs_dir_t *sysfs_dir, sysfs_item_t *item)
 
     if (item->type == SYSFS_DYN)
     {
-        MOS_ASSERT(item->iterate);
+        MOS_ASSERT(item->dyn_iterate);
         linked_list_init(list_node(item));
         list_node_append(&sysfs_dir->_dynamic_items, list_node(item));
         return;
@@ -411,11 +411,11 @@ void sysfs_register_file(sysfs_dir_t *sysfs_dir, sysfs_item_t *item)
             break;
     }
 
-    if (unlikely(!item->name || strlen(item->name) == 0))
-        pr_warn("no name specified for sysfs entry '%s'", sysfs_dir ? sysfs_dir->name : "/");
+    if (unlikely(item->name.empty()))
+        pr_warn("no name specified for sysfs entry '%s'", sysfs_dir ? sysfs_dir->name.c_str() : "/");
 
     dentry_t *const target_dentry = sysfs_dir ? sysfs_dir->_dentry : sysfs_sb->root;
-    MOS_ASSERT_X(target_dentry, "registering sysfs entry '%s' failed", item->name);
+    MOS_ASSERT_X(target_dentry, "registering sysfs entry '%s' failed", item->name.c_str());
     dentry_t *d = dentry_get_from_parent(sysfs_sb, target_dentry, item->name);
     dentry_attach(d, file_i);
 }
@@ -424,9 +424,9 @@ MOS_INIT(VFS, register_sysfs)
 {
     vfs_register_filesystem(&fs_sysfs);
 
-    sysfs_sb = (superblock_t *) kmalloc(superblock_cache);
+    sysfs_sb = mos::create<superblock_t>();
     sysfs_sb->fs = &fs_sysfs;
-    sysfs_sb->root = dentry_get_from_parent(sysfs_sb, NULL, NULL);
+    sysfs_sb->root = dentry_get_from_parent(sysfs_sb, NULL, "");
     inode_t *sysfs_root_inode = inode_create(sysfs_sb, sysfs_get_ino(), FILE_TYPE_DIRECTORY);
     sysfs_root_inode->perm = PERM_READ | PERM_EXEC;
     sysfs_root_inode->file_ops = &sysfs_dir_file_ops;

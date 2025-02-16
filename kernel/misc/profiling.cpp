@@ -19,8 +19,7 @@
 #define PROFILER_LINE   "%s,%llu,%llu,%llu"
 
 static console *profile_console = NULL;
-static spinlock_t profile_lock = SPINLOCK_INIT;
-static char profile_buffer[MOS_PRINTK_BUFFER_SIZE] = { 0 };
+static spinlock_t profile_lock static char profile_buffer[MOS_PRINTK_BUFFER_SIZE] = { 0 };
 static char name_buffer[MOS_PRINTK_BUFFER_SIZE] = { 0 };
 
 static bool profile_output_console(const char *console)

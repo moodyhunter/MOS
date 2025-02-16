@@ -9,23 +9,20 @@
 #include "mos/filesystem/vfs_utils.hpp"
 #include "mos/io/io.hpp"
 #include "mos/misc/setup.hpp"
-#include "mos/mm/slab_autoinit.hpp"
 #include "mos/syslog/printk.hpp"
 #include "mos/types.hpp"
 
+#include <mos/allocator.hpp>
 #include <mos/filesystem/fs_types.h>
 #include <mos_stdlib.hpp>
 #include <stdio.h>
 
-typedef struct
+struct memfd_t : mos::NamedType<"memfd">
 {
     int unused;
-} memfd_t;
+};
 
 extern filesystem_t fs_tmpfs;
-
-static slab_t *memfd_slab = NULL;
-SLAB_AUTOINIT("memfd", memfd_slab, memfd_t);
 
 static dentry_t *memfd_root_dentry = NULL;
 
@@ -42,7 +39,7 @@ static const file_ops_t memfd_file_ops = {
 
 PtrResult<io_t> memfd_create(const char *name)
 {
-    memfd_t *memfd = (memfd_t *) kmalloc(memfd_slab);
+    memfd_t *memfd = mos::create<memfd_t>();
     if (!memfd)
     {
         pr_emerg("Failed to allocate memfd");
@@ -54,8 +51,8 @@ PtrResult<io_t> memfd_create(const char *name)
     if (!memfd_root_dentry->inode->ops->newfile(memfd_root_dentry->inode, dentry, FILE_TYPE_REGULAR, (PERM_READ | PERM_WRITE) & PERM_OWNER))
     {
         pr_emerg("Failed to create file for memfd");
-        kfree(memfd);
-        kfree(dentry);
+        delete memfd;
+        delete dentry;
         return -ENOMEM;
     }
 
@@ -63,8 +60,8 @@ PtrResult<io_t> memfd_create(const char *name)
     if (file.isErr())
     {
         pr_emerg("Failed to open file for memfd");
-        kfree(memfd);
-        kfree(dentry);
+        delete memfd;
+        delete dentry;
         return file.getErr();
     }
 

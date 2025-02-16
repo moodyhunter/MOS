@@ -115,6 +115,6 @@ typedef struct
 } elf_startup_info_t;
 
 __nodiscard bool elf_read_and_verify_executable(file_t *file, elf_header_t *header);
-__nodiscard bool elf_fill_process(process_t *proc, file_t *file, const char *path, const char *const argv[], const char *const envp[]);
-__nodiscard bool elf_do_fill_process(process_t *proc, file_t *file, elf_header_t elf, elf_startup_info_t *info);
-process_t *elf_create_process(const char *path, process_t *parent, const char *const argv[], const char *const envp[], const stdio_t *ios);
+__nodiscard bool elf_fill_process(Process *proc, file_t *file, const char *path, const char *const argv[], const char *const envp[]);
+__nodiscard bool elf_do_fill_process(Process *proc, file_t *file, elf_header_t elf, elf_startup_info_t *info);
+Process *elf_create_process(const char *path, Process *parent, const char *const argv[], const char *const envp[], const stdio_t *ios);

@@ -42,7 +42,7 @@ typedef enum
  * @warning Should call with mmctx->mm_lock held.
  */
 
-PtrResult<vmap_t> mm_get_free_vaddr_locked(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags);
+PtrResult<vmap_t> mm_get_free_vaddr_locked(MMContext *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags);
 
 /**
  * @brief Map a block of virtual memory to a block of physical memory.
@@ -58,8 +58,8 @@ PtrResult<vmap_t> mm_get_free_vaddr_locked(mm_context_t *mmctx, size_t n_pages, 
  * @note This function is rarely used directly, you don't always know the physical address of the
  * pages you want to map.
  */
-void mm_map_kernel_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
-PtrResult<vmap_t> mm_map_user_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags, valloc_flags vaflags, vmap_type_t type,
+void mm_map_kernel_pages(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
+PtrResult<vmap_t> mm_map_user_pages(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags, valloc_flags vaflags, vmap_type_t type,
                                     vmap_content_t content);
 
 /**
@@ -73,7 +73,7 @@ PtrResult<vmap_t> mm_map_user_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn,
  * @note The reference count of the physical frame will be incremented, and the reference count of the
  * old physical frame will be decremented.
  */
-void mm_replace_page_locked(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, vm_flags flags);
+void mm_replace_page_locked(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, vm_flags flags);
 
 /**
  * @brief Remap a block of virtual memory from one page table to another, i.e. copy the mappings.
@@ -88,7 +88,7 @@ void mm_replace_page_locked(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, vm_flag
  * @note If clear_dest is set to true, then the destination page table is cleared before copying, otherwise
  * the function assumes that there are no existing mappings in the destination page table.
  */
-PtrResult<vmap_t> mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx);
+PtrResult<vmap_t> mm_clone_vmap_locked(vmap_t *src_vmap, MMContext *dst_ctx);
 
 /**
  * @brief Get if a virtual address is mapped in a page table.
@@ -97,7 +97,7 @@ PtrResult<vmap_t> mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx);
  * @param vaddr The virtual address to get the physical address of.
  * @return bool True if the virtual address is mapped, false otherwise.
  */
-bool mm_get_is_mapped_locked(mm_context_t *mmctx, ptr_t vaddr);
+bool mm_get_is_mapped_locked(MMContext *mmctx, ptr_t vaddr);
 
 /**
  * @brief Update the flags of a block of virtual memory.
@@ -107,8 +107,8 @@ bool mm_get_is_mapped_locked(mm_context_t *mmctx, ptr_t vaddr);
  * @param npages The number of pages to update the flags of.
  * @param flags The flags to set on the pages, see @ref vm_flags.
  */
-void mm_flag_pages_locked(mm_context_t *mmctx, ptr_t vaddr, size_t npages, vm_flags flags);
+void mm_flag_pages_locked(MMContext *mmctx, ptr_t vaddr, size_t npages, vm_flags flags);
 
-ptr_t mm_get_phys_addr(mm_context_t *ctx, ptr_t vaddr);
+ptr_t mm_get_phys_addr(MMContext *ctx, ptr_t vaddr);
 
 /** @} */

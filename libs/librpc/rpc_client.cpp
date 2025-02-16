@@ -39,7 +39,6 @@
 // fixup for hosted libc
 #include <pthread.h>
 typedef pthread_mutex_t mutex_t;
-#define memzero(ptr, size)    memset(ptr, 0, size)
 #define mutex_acquire(mutex)  pthread_mutex_lock(mutex)
 #define mutex_release(mutex)  pthread_mutex_unlock(mutex)
 #define mos_warn(...)         fprintf(stderr, __VA_ARGS__)
@@ -66,8 +65,7 @@ typedef struct rpc_call
 
 rpc_server_stub_t *rpc_client_create(const char *server_name)
 {
-    rpc_server_stub_t *client = (rpc_server_stub_t *) malloc(sizeof(rpc_server_stub_t));
-    memzero(client, sizeof(rpc_server_stub_t));
+    rpc_server_stub_t *client = (rpc_server_stub_t *) calloc(1, sizeof(rpc_server_stub_t));
     client->server_name = server_name;
     client->fd = syscall_ipc_connect(server_name, RPC_CLIENT_SMH_SIZE);
 
@@ -89,11 +87,8 @@ void rpc_client_destroy(rpc_server_stub_t *server)
 
 rpc_call_t *rpc_call_create(rpc_server_stub_t *server, u32 function_id)
 {
-    rpc_call_t *call = (rpc_call_t *) malloc(sizeof(rpc_call_t));
-    memzero(call, sizeof(rpc_call_t));
-
-    call->request = (rpc_request_t *) malloc(sizeof(rpc_request_t));
-    memzero(call->request, sizeof(rpc_request_t));
+    rpc_call_t *call = (rpc_call_t *) calloc(1, sizeof(rpc_call_t));
+    call->request = (rpc_request_t *) calloc(1, sizeof(rpc_request_t));
     call->request->magic = RPC_REQUEST_MAGIC;
     call->request->function_id = function_id;
     call->size = sizeof(rpc_request_t);

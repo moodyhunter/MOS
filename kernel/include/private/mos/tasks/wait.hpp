@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "mos/mm/slab.hpp"
-
+#include <mos/allocator.hpp>
 #include <mos/lib/structures/list.hpp>
 #include <mos/lib/sync/spinlock.hpp>
 #include <mos/mos_global.h>
@@ -11,20 +10,19 @@
 /**
  * @brief The entry in the waiters list of a process, or a thread
  */
-typedef struct
+struct waitable_list_entry_t : mos::NamedType<"WaitlistEntry">
 {
     as_linked_list;
     tid_t waiter;
-} waitable_list_entry_t;
+};
 
-typedef struct
+struct waitlist_t : mos::NamedType<"Waitlist">
 {
     bool closed;     // if true, then the process is closed and should not be waited on
     spinlock_t lock; // protects the waiters list
     list_head list;  // list of threads waiting
-} waitlist_t;
-
-extern slab_t *waitlist_slab;
+    waitlist_t();
+};
 
 void waitlist_init(waitlist_t *list);
 __nodiscard bool waitlist_append(waitlist_t *list);

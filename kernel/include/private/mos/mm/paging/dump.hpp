@@ -4,5 +4,5 @@
 
 #include <mos/platform/platform.hpp>
 
-void mm_dump_pagetable(mm_context_t *ctx);
+void mm_dump_pagetable(MMContext *ctx);
 void mm_dump_current_pagetable(void);

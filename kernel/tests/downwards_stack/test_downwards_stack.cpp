@@ -22,7 +22,7 @@ MOS_TEST_CASE(stack_init_deinit)
 MOS_TEST_CASE(stack_push_pop_stack)
 {
     downwards_stack_t stack = { 0 };
-    void *addr = kmalloc(4096);
+    void *addr = kcalloc<char>(4096);
     stack_init(&stack, addr, 4096);
 
     ptr_t stack_bottom = (ptr_t) addr + 4096;

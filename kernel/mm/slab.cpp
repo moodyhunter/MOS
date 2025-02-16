@@ -3,29 +3,32 @@
 
 #include "mos/mm/slab.hpp"
 
+#include "mos/assert.hpp"
 #include "mos/filesystem/sysfs/sysfs.hpp"
 #include "mos/misc/setup.hpp"
 #include "mos/mm/mm.hpp"
 #include "mos/syslog/printk.hpp"
 
 #include <algorithm>
+#include <mos/allocator.hpp>
 #include <mos/lib/structures/list.hpp>
 #include <mos/lib/sync/spinlock.hpp>
 #include <mos/mos_global.h>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-typedef struct
+struct slab_header_t
 {
     slab_t *slab;
-} slab_header_t;
+};
 
-typedef struct
+struct slab_metadata_t
 {
     size_t pages;
     size_t size;
-} slab_metadata_t;
+};
 
+// larger slab sizes are not required, they can be allocated directly by allocating pages
 static const struct
 {
     size_t size;
@@ -35,14 +38,10 @@ static const struct
     { 32, "builtin-32" },     { 48, "builtin-48" },   { 64, "builtin-64" },   { 96, "builtin-96" },   //
     { 128, "builtin-128" },   { 256, "builtin-256" }, { 384, "builtin-384" }, { 512, "builtin-512" }, //
     { 1024, "builtin-1024" },
-    // larger slab sizes are not required
-    // they can be allocated directly by allocating pages
 };
 
-static slab_t slab_slab = { 0 };
-
-static slab_t slabs[MOS_ARRAY_SIZE(BUILTIN_SLAB_SIZES)] = { 0 };
-static list_head slabs_list = LIST_HEAD_INIT(slabs_list);
+static slab_t slabs[MOS_ARRAY_SIZE(BUILTIN_SLAB_SIZES)];
+static list_head slabs_list;
 
 static inline slab_t *slab_for(size_t size)
 {
@@ -66,19 +65,6 @@ static void slab_impl_free_page(ptr_t page, size_t n)
 {
     mmstat_dec(MEM_SLAB, n);
     mm_free_pages(va_phyframe(page), n);
-}
-
-static void slab_init_one(slab_t *slab, const char *name, size_t size)
-{
-    MOS_ASSERT_X(size < MOS_PAGE_SIZE, "current slab implementation does not support slabs larger than a page, %zu bytes requested", size);
-    pr_dinfo2(slab, "slab: registering slab for '%s' with %zu bytes", name, size);
-    linked_list_init(list_node(slab));
-    list_node_append(&slabs_list, list_node(slab));
-    slab->lock = (spinlock_t) SPINLOCK_INIT;
-    slab->first_free = 0;
-    slab->nobjs = 0;
-    slab->name = name;
-    slab->ent_size = size;
 }
 
 static void slab_allocate_mem(slab_t *slab)
@@ -110,13 +96,21 @@ static void slab_allocate_mem(slab_t *slab)
     arr[max_n * fact] = NULL;
 }
 
-static void slab_init(void)
+static void slab_init_one(slab_t *slab, const char *name, size_t size)
+{
+    MOS_ASSERT_X(size < MOS_PAGE_SIZE, "current slab implementation does not support slabs larger than a page, %zu bytes requested", size);
+    linked_list_init(list_node(slab));
+    list_node_append(&slabs_list, list_node(slab));
+    slab->lock = SPINLOCK_INIT;
+    slab->first_free = 0;
+    slab->nobjs = 0;
+    slab->name = name;
+    slab->ent_size = size;
+}
+
+void slab_init(void)
 {
     pr_dinfo2(slab, "initializing the slab allocator");
-
-    slab_init_one(&slab_slab, "slab_t", sizeof(slab_t));
-    slab_allocate_mem(&slab_slab);
-
     for (size_t i = 0; i < MOS_ARRAY_SIZE(BUILTIN_SLAB_SIZES); i++)
     {
         slab_init_one(&slabs[i], BUILTIN_SLAB_SIZES[i].name, BUILTIN_SLAB_SIZES[i].size);
@@ -124,9 +118,12 @@ static void slab_init(void)
     }
 }
 
-MOS_INIT(POST_MM, slab_init);
-
-static void kmemcache_free(slab_t *slab, const void *addr);
+void slab_register(slab_t *slab)
+{
+    pr_info2("slab: registering slab for '%s' with %zu bytes", slab->name, slab->ent_size);
+    linked_list_init(list_node(slab));
+    list_node_append(&slabs_list, list_node(slab));
+}
 
 void *slab_alloc(size_t size)
 {
@@ -200,6 +197,7 @@ void *slab_realloc(void *oldptr, size_t new_size)
 
 void slab_free(const void *ptr)
 {
+    pr_dinfo2(slab, "freeing memory at %p", ptr);
     if (!ptr)
         return;
 
@@ -217,16 +215,9 @@ void slab_free(const void *ptr)
 
 // ======================
 
-slab_t *kmemcache_create(const char *name, size_t ent_size)
-{
-    slab_t *slab = (slab_t *) kmemcache_alloc(&slab_slab);
-    slab_init_one(slab, name, ent_size);
-    slab_allocate_mem(slab);
-    return slab;
-}
-
 void *kmemcache_alloc(slab_t *slab)
 {
+    MOS_ASSERT_X(slab->ent_size > 0, "slab: invalid slab entry size %zu", slab->ent_size);
     pr_dinfo2(slab, "allocating from slab '%s'", slab->name);
     spinlock_acquire(&slab->lock);
 
@@ -250,7 +241,7 @@ void *kmemcache_alloc(slab_t *slab)
     return alloc;
 }
 
-static void kmemcache_free(slab_t *slab, const void *addr)
+void kmemcache_free(slab_t *slab, const void *addr)
 {
     pr_dinfo2(slab, "freeing from slab '%s'", slab->name);
     if (!addr)

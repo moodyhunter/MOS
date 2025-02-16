@@ -1,44 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/mm/slab.hpp"
-
 #include <cxxabi.h>
-#include <mos/lib/sync/mutex.hpp>
+#include <mos/assert.hpp>
+#include <mos/string.hpp>
 #include <mos_stdlib.hpp>
-#include <new>
 
 void *__dso_handle = (void *) 0xcdcdcdcdcdcdcdcd; // this pointer should never get dereferenced
 
-void *operator new(size_t size)
+void operator delete(void *)
 {
-    return slab_alloc(size);
+    mos_panic("unused operator delete called");
 }
 
-void *operator new[](size_t size)
+void operator delete(void *ptr, size_t) noexcept
 {
-    return slab_alloc(size);
-}
-
-void operator delete(void *p) noexcept
-{
-    kfree(p);
-}
-
-void operator delete(void *ptr, long unsigned int sz)
-{
-    MOS_UNUSED(sz);
-    kfree(ptr);
-}
-
-void operator delete[](void *ptr, long unsigned int sz)
-{
-    MOS_UNUSED(sz);
-    kfree(ptr);
-}
-
-void operator delete[](void *p) noexcept
-{
-    kfree(p);
+    do_kfree(ptr);
 }
 
 extern "C" int __cxa_atexit(void (*destructor)(void *), void *arg, void *dso)
@@ -47,6 +23,11 @@ extern "C" int __cxa_atexit(void (*destructor)(void *), void *arg, void *dso)
     MOS_UNUSED(arg);
     MOS_UNUSED(dso);
     return 0;
+}
+
+extern "C" void abort()
+{
+    mos_panic("Aborted");
 }
 
 // static scoped variable constructor support

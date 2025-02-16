@@ -26,7 +26,7 @@ static void pagetable_do_dump(ptr_t vaddr, ptr_t vaddr_end, vm_flags flags, pfn_
     *prev_end_vaddr = vaddr_end;
 }
 
-void mm_dump_pagetable(mm_context_t *mmctx)
+void mm_dump_pagetable(MMContext *mmctx)
 {
     pr_info("Page Table:");
     ptr_t tmp = 0;

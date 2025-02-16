@@ -10,6 +10,7 @@
 #include "proto/filesystem.pb.h"
 #include "proto/filesystem.services.h"
 #include "proto/userfs-manager.services.h"
+#undef __unused
 
 #include <librpc/macro_magic.h>
 #include <librpc/rpc.h>

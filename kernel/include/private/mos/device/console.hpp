@@ -40,20 +40,18 @@ struct Console // : public io_t
 
     template<size_t buf_size>
     Console(const char *name, console_caps caps, Buffer<buf_size> *read_buf, standard_color_t default_fg, standard_color_t default_bg)
-        : name(name), caps(caps), default_bg(default_bg), default_fg(default_fg), fg(default_fg), bg(default_bg)
+        : name(name), caps(caps), fg(default_fg), bg(default_bg), default_fg(default_fg), default_bg(default_bg)
     {
         reader.buf = read_buf->buf;
         reader.size = read_buf->size;
         waitlist_init(&waitlist);
     }
 
-    virtual ~Console()
-    {
-    }
+    virtual ~Console() = default;
 
     struct
     {
-        spinlock_t lock = SPINLOCK_INIT;
+        spinlock_t lock;
         ring_buffer_pos_t pos;
         u8 *buf = nullptr;
         size_t size = 0;
@@ -61,7 +59,7 @@ struct Console // : public io_t
 
     struct
     {
-        spinlock_t lock = SPINLOCK_INIT;
+        spinlock_t lock;
     } writer;
 
     standard_color_t fg, bg;

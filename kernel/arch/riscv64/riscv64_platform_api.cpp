@@ -60,18 +60,18 @@ void platform_dump_regs(platform_regs_t *regs)
     pr_info2("  t4/x29: " PTR_FMT "  t5/x30: " PTR_FMT "  t6/x31: " PTR_FMT, regs->t4, regs->t5, regs->t6);
 }
 
-platform_regs_t *platform_thread_regs(const thread_t *thread)
+platform_regs_t *platform_thread_regs(const Thread *thread)
 {
     return (platform_regs_t *) (thread->k_stack.top - sizeof(platform_regs_t));
 }
 
-static void thread_setup_common(thread_t *thread)
+static void thread_setup_common(Thread *thread)
 {
     thread->k_stack.head = thread->k_stack.top - sizeof(platform_regs_t);
 }
 
 // Platform Thread / Process APIs
-void platform_context_setup_main_thread(thread_t *thread, ptr_t entry, ptr_t sp, int argc, ptr_t argv, ptr_t envp)
+void platform_context_setup_main_thread(Thread *thread, ptr_t entry, ptr_t sp, int argc, ptr_t argv, ptr_t envp)
 {
     thread_setup_common(thread);
     platform_regs_t *regs = platform_thread_regs(thread);
@@ -82,7 +82,7 @@ void platform_context_setup_main_thread(thread_t *thread, ptr_t entry, ptr_t sp,
     regs->sp = sp;
 }
 
-void platform_context_setup_child_thread(thread_t *thread, thread_entry_t entry, void *arg)
+void platform_context_setup_child_thread(Thread *thread, thread_entry_t entry, void *arg)
 {
     thread_setup_common(thread);
     platform_regs_t *regs = platform_thread_regs(thread);
@@ -102,7 +102,7 @@ void platform_context_setup_child_thread(thread_t *thread, thread_entry_t entry,
     regs->sp = thread->u_stack.head; // update the stack pointer
 }
 
-void platform_context_clone(const thread_t *from, thread_t *to)
+void platform_context_clone(const Thread *from, Thread *to)
 {
     platform_regs_t *to_regs = platform_thread_regs(to);
     platform_regs_t *from_regs = platform_thread_regs(from);
@@ -115,7 +115,7 @@ void platform_context_clone(const thread_t *from, thread_t *to)
     to->k_stack.head -= sizeof(platform_regs_t);
 }
 
-void platform_context_cleanup(thread_t *thread)
+void platform_context_cleanup(Thread *thread)
 {
     MOS_UNUSED(thread);
     // nothing to cleanup
@@ -133,7 +133,7 @@ void platform_interrupt_enable()
     write_csr(sstatus, sstatus | SSTATUS_SIE);
 }
 
-void platform_switch_mm(const mm_context_t *new_mm)
+void platform_switch_mm(const MMContext *new_mm)
 {
     write_csr(satp, make_satp(SATP_MODE_SV48, 0, pgd_pfn(new_mm->pgd)));
     __asm__ volatile("sfence.vma zero, zero");
@@ -141,7 +141,7 @@ void platform_switch_mm(const mm_context_t *new_mm)
 
 #define FLEN 64 // D extension
 
-static void do_save_fp_context(thread_t *thread)
+static void do_save_fp_context(Thread *thread)
 {
     if (thread->mode == THREAD_MODE_KERNEL)
         return;
@@ -183,7 +183,7 @@ static void do_save_fp_context(thread_t *thread)
 #undef f_op
 }
 
-void do_restore_fp_context(thread_t *thread)
+void do_restore_fp_context(Thread *thread)
 {
     if (thread->mode == THREAD_MODE_KERNEL)
         return;
@@ -224,7 +224,7 @@ void do_restore_fp_context(thread_t *thread)
 #undef f_op
 }
 
-void platform_switch_to_thread(thread_t *current, thread_t *new_thread, switch_flags_t switch_flags)
+void platform_switch_to_thread(Thread *current, Thread *new_thread, switch_flags_t switch_flags)
 {
     const switch_func_t switch_func = statement_expr(switch_func_t, {
         switch (switch_flags)

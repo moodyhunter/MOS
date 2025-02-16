@@ -125,8 +125,8 @@ DEFINE_SYSCALL(void, yield_cpu)(void)
 
 DEFINE_SYSCALL(pid_t, fork)(void)
 {
-    process_t *parent = current_process;
-    process_t *child = process_do_fork(parent);
+    Process *parent = current_process;
+    Process *child = process_do_fork(parent);
     if (unlikely(child == NULL))
         return -1;
     return child->pid; // return 0 for child, pid for parent
@@ -145,7 +145,7 @@ DEFINE_SYSCALL(pid_t, get_parent_pid)(void)
 DEFINE_SYSCALL(pid_t, spawn)(const char *path, const char *const argv[], const char *const envp[])
 {
     const stdio_t stdio = current_stdio();
-    process_t *process = elf_create_process(path, current_process, argv, envp, &stdio);
+    Process *process = elf_create_process(path, current_process, argv, envp, &stdio);
 
     if (process == NULL)
         return -1;
@@ -381,7 +381,7 @@ DEFINE_SYSCALL(bool, signal_register)(signal_t sig, const sigaction_t *action)
 
 DEFINE_SYSCALL(long, signal_process)(pid_t pid, signal_t sig)
 {
-    process_t *process = process_get(pid);
+    Process *process = process_get(pid);
     if (!process)
         return -ESRCH;
     return signal_send_to_process(process, sig);
@@ -389,7 +389,7 @@ DEFINE_SYSCALL(long, signal_process)(pid_t pid, signal_t sig)
 
 DEFINE_SYSCALL(long, signal_thread)(tid_t tid, signal_t sig)
 {
-    thread_t *thread = thread_get(tid);
+    Thread *thread = thread_get(tid);
     if (thread == NULL)
         return -ESRCH;
     return signal_send_to_thread(thread, sig);
@@ -591,25 +591,22 @@ DEFINE_SYSCALL(long, clock_gettimeofday)(struct timespec *ts)
 
 DEFINE_SYSCALL(long, thread_setname)(tid_t tid, const char *name)
 {
-    thread_t *thread = thread_get(tid);
+    Thread *thread = thread_get(tid);
     if (thread == NULL)
         return -ESRCH;
 
-    if (thread->name)
-        kfree(thread->name);
-
-    thread->name = strdup(name);
+    thread->name = name;
     return true;
 }
 
 DEFINE_SYSCALL(ssize_t, thread_getname)(tid_t tid, char *buf, size_t buflen)
 {
-    thread_t *thread = thread_get(tid);
+    Thread *thread = thread_get(tid);
 
     if (thread == NULL)
         return -ESRCH;
 
-    char *end = strncpy(buf, thread->name, buflen);
+    char *end = strncpy(buf, thread->name.data(), buflen);
     return end - buf;
 }
 

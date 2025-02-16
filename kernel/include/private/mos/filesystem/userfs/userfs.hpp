@@ -6,13 +6,14 @@
 #include "proto/filesystem.pb.h"
 
 #include <librpc/rpc_client.h>
+#include <mos/allocator.hpp>
 
-typedef struct
+struct userfs_t : mos::NamedType<"UserFS">
 {
     filesystem_t fs;               ///< The filesystem, "userfs.<name>".
-    const char *rpc_server_name;   ///< The name of the RPC server.
+    mos::string rpc_server_name;   ///< The name of the RPC server.
     rpc_server_stub_t *rpc_server; ///< The RPC server stub, if connected.
-} userfs_t;
+};
 
 /**
  * @brief Ensure that the userfs is connected to the server.

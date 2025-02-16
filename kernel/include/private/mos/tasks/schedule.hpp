@@ -4,8 +4,6 @@
 
 #include <mos/tasks/task_types.hpp>
 
-void tasks_init();
-
 void scheduler_init();
 
 char thread_state_str(thread_state_t state);
@@ -27,21 +25,21 @@ void unblock_scheduler(void);
  *
  * @param thread
  */
-void scheduler_add_thread(thread_t *thread);
+void scheduler_add_thread(Thread *thread);
 
 /**
  * @brief Remove a thread from the scheduler.
  *
  * @param thread
  */
-void scheduler_remove_thread(thread_t *thread);
+void scheduler_remove_thread(Thread *thread);
 
 /**
  * @brief Wake a thread.
  *
  * @param thread
  */
-void scheduler_wake_thread(thread_t *thread);
+void scheduler_wake_thread(Thread *thread);
 
 /**
  * @brief reschedule.

@@ -7,7 +7,7 @@
 
 MOS_TEST_CASE(kmalloc_single)
 {
-    void *p = kmalloc(1024);
+    void *p = kcalloc<char>(1024);
     MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
     memset(p, 0, 1024);
     kfree(p);
@@ -19,7 +19,7 @@ MOS_TEST_CASE(kmalloc_stress)
     int i;
     for (i = 0; i < 100; i++)
     {
-        p = kmalloc(1024);
+        p = kcalloc<char>(1024);
         MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
         memset(p, 0, 1024);
         kfree(p);
@@ -29,12 +29,12 @@ MOS_TEST_CASE(kmalloc_stress)
 MOS_TEST_CASE(kmalloc_large)
 {
     char *p = 0;
-    p = (char *) kmalloc(1 MB);
+    p = kcalloc<char>(1 MB);
     MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
     memset(p, 0, 1 MB);
     kfree(p);
 
-    p = (char *) kmalloc(100 MB);
+    p = kcalloc<char>(100 MB);
     MOS_TEST_ASSERT(p != NULL, "kmalloc failed");
     memset(p, 0, 100 MB);
     kfree(p);
@@ -46,12 +46,12 @@ MOS_TEST_CASE(kmalloc_large)
 
 MOS_TEST_CASE(kmalloc_a_lot)
 {
-    void *pointers[100];
+    char *pointers[100];
     for (int t = 0; t < 20; t++)
     {
         for (int i = 0; i < 50; i++)
         {
-            pointers[i] = kmalloc(71);
+            pointers[i] = kcalloc<char>(71);
             MOS_TEST_ASSERT(pointers[i] != NULL, "failed to allocate memory");
             memset(pointers[i], 0, 71);
         }

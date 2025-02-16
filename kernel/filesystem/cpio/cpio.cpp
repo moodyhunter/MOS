@@ -4,11 +4,10 @@
 #include "mos/filesystem/vfs_utils.hpp"
 #include "mos/mm/mm.hpp"
 #include "mos/mm/physical/pmm.hpp"
-#include "mos/mm/slab.hpp"
-#include "mos/mm/slab_autoinit.hpp"
 #include "mos/platform/platform.hpp"
 
 #include <algorithm>
+#include <mos/allocator.hpp>
 #include <mos/filesystem/dentry.hpp>
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.hpp>
@@ -54,14 +53,14 @@ typedef struct
 
 MOS_STATIC_ASSERT(sizeof(cpio_newc_header_t) == 110, "cpio_newc_header has wrong size");
 
-typedef struct
+struct cpio_inode_t : mos::NamedType<"CPIO.Inode">
 {
     inode_t inode;
     size_t header_offset;
     size_t name_offset, name_length;
     size_t data_offset;
     cpio_newc_header_t header;
-} cpio_inode_t;
+};
 
 extern const inode_ops_t cpio_dir_inode_ops;
 extern const inode_ops_t cpio_file_inode_ops;
@@ -69,9 +68,6 @@ extern const file_ops_t cpio_file_ops;
 extern const inode_cache_ops_t cpio_icache_ops;
 extern const superblock_ops_t cpio_sb_ops;
 extern const file_ops_t cpio_noop_file_ops = { 0 };
-
-static slab_t *cpio_inode_cache = NULL;
-SLAB_AUTOINIT("cpio_inode", cpio_inode_cache, cpio_inode_t);
 
 static size_t initrd_read(void *buf, size_t size, size_t offset)
 {
@@ -174,7 +170,7 @@ static cpio_inode_t *cpio_inode_trycreate(const char *path, superblock_t *sb)
     if (!found)
         return NULL;
 
-    cpio_inode_t *cpio_inode = (cpio_inode_t *) kmalloc(cpio_inode_cache);
+    cpio_inode_t *cpio_inode = mos::create<cpio_inode_t>();
     cpio_inode->header = header;
     cpio_inode->header_offset = header_offset;
     cpio_inode->name_offset = name_offset;
@@ -214,19 +210,19 @@ static PtrResult<dentry_t> cpio_mount(filesystem_t *fs, const char *dev_name, co
     if (dev_name && strcmp(dev_name, "none") != 0)
         pr_warn("cpio: mount: dev_name is not supported");
 
-    superblock_t *sb = (superblock_t *) kmalloc(superblock_cache);
+    superblock_t *sb = mos::create<superblock_t>();
     sb->ops = &cpio_sb_ops;
 
     cpio_inode_t *i = cpio_inode_trycreate(".", sb);
     if (!i)
     {
-        kfree(sb);
+        delete sb;
         return -ENOENT; // not found
     }
 
     pr_dinfo2(cpio, "cpio header: %.6s", i->header.magic);
     sb->fs = fs;
-    sb->root = dentry_get_from_parent(sb, NULL, NULL);
+    sb->root = dentry_get_from_parent(sb, NULL);
     dentry_attach(sb->root, &i->inode);
     sb->root->superblock = i->inode.superblock = sb;
     return sb->root;
@@ -256,8 +252,8 @@ static void cpio_i_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state, den
     MOS_ASSERT(d_parent->inode != NULL);
     MOS_ASSERT(dentry->inode);
 
-    add_record(state, dentry->inode->ino, ".", 1, FILE_TYPE_DIRECTORY);
-    add_record(state, d_parent->inode->ino, "..", 2, FILE_TYPE_DIRECTORY);
+    add_record(state, dentry->inode->ino, ".", FILE_TYPE_DIRECTORY);
+    add_record(state, d_parent->inode->ino, "..", FILE_TYPE_DIRECTORY);
 
     cpio_inode_t *inode = CPIO_INODE(dentry->inode);
 
@@ -305,7 +301,7 @@ static void cpio_i_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state, den
             const char *name = filename + prefix_len + (prefix_len == 0 ? 0 : 1);          // +1 for the slash if it's not the root
             const size_t name_len = filename_len - prefix_len - (prefix_len == 0 ? 0 : 1); // -1 for the slash if it's not the root
 
-            add_record(state, ino, name, name_len, type);
+            add_record(state, ino, mos::string(name, name_len), type);
         }
 
         if (unlikely(is_TRAILER))
@@ -328,7 +324,7 @@ static size_t cpio_i_readlink(dentry_t *dentry, char *buffer, size_t buflen)
 
 static bool cpio_sb_drop_inode(inode_t *inode)
 {
-    kfree(CPIO_INODE(inode));
+    delete CPIO_INODE(inode);
     return true;
 }
 

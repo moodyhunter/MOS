@@ -4,9 +4,9 @@
 #include "mos/filesystem/vfs_utils.hpp"
 #include "mos/mm/mm.hpp"
 #include "mos/mm/physical/pmm.hpp"
-#include "mos/mm/slab_autoinit.hpp"
 
 #include <algorithm>
+#include <mos/allocator.hpp>
 #include <mos/filesystem/dentry.hpp>
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.hpp>
@@ -18,7 +18,7 @@
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-typedef struct
+struct tmpfs_inode_t : mos::NamedType<"TmpFS.Inode">
 {
     inode_t real_inode;
 
@@ -27,13 +27,13 @@ typedef struct
         char *symlink_target;
         dev_t dev;
     };
-} tmpfs_inode_t;
+};
 
-typedef struct
+struct tmpfs_sb_t : mos::NamedType<"TmpFS.Superblock">
 {
     superblock_t sb;
     atomic_t ino;
-} tmpfs_sb_t;
+};
 
 #define TMPFS_INODE(inode) container_of(inode, tmpfs_inode_t, real_inode)
 #define TMPFS_SB(var)      container_of(var, tmpfs_sb_t, sb)
@@ -46,19 +46,13 @@ extern const inode_cache_ops_t tmpfs_inode_cache_ops;
 extern const file_ops_t tmpfs_file_ops;
 extern const superblock_ops_t tmpfs_sb_op;
 
-static slab_t *tmpfs_inode_cache = NULL;
-SLAB_AUTOINIT("tmpfs_i", tmpfs_inode_cache, tmpfs_inode_t);
-
-static slab_t *tmpfs_superblock_cache = NULL;
-SLAB_AUTOINIT("tmpfs_sb", tmpfs_superblock_cache, tmpfs_sb_t);
-
 static PtrResult<dentry_t> tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char *options); // forward declaration
 FILESYSTEM_DEFINE(fs_tmpfs, "tmpfs", tmpfs_fsop_mount, NULL);
 FILESYSTEM_AUTOREGISTER(fs_tmpfs);
 
 inode_t *tmpfs_create_inode(tmpfs_sb_t *sb, file_type_t type, file_perm_t perm)
 {
-    tmpfs_inode_t *inode = (tmpfs_inode_t *) kmalloc(tmpfs_inode_cache);
+    tmpfs_inode_t *inode = mos::create<tmpfs_inode_t>();
 
     inode_init(&inode->real_inode, &sb->sb, ++sb->ino, type);
     inode->real_inode.perm = perm;
@@ -120,10 +114,10 @@ static PtrResult<dentry_t> tmpfs_fsop_mount(filesystem_t *fs, const char *dev, c
         return -EINVAL;
     }
 
-    tmpfs_sb_t *tmpfs_sb = (tmpfs_sb_t *) kmalloc(tmpfs_superblock_cache);
+    tmpfs_sb_t *tmpfs_sb = mos::create<tmpfs_sb_t>();
     tmpfs_sb->sb.fs = fs;
     tmpfs_sb->sb.ops = &tmpfs_sb_op;
-    tmpfs_sb->sb.root = dentry_get_from_parent(&tmpfs_sb->sb, NULL, NULL);
+    tmpfs_sb->sb.root = dentry_get_from_parent(&tmpfs_sb->sb, NULL, "");
     dentry_attach(tmpfs_sb->sb.root, tmpfs_create_inode(tmpfs_sb, FILE_TYPE_DIRECTORY, tmpfs_default_mode));
     return tmpfs_sb->sb.root;
 }
@@ -185,7 +179,7 @@ static bool tmpfs_i_rmdir(inode_t *dir, dentry_t *subdir_to_remove)
     dentry_detach(subdir_to_remove);
 
     tmpfs_inode_t *inode = TMPFS_INODE(subdir_to_remove->inode);
-    kfree(inode);
+    delete inode;
     return true;
 }
 
@@ -246,7 +240,7 @@ static bool tmpfs_sb_drop_inode(inode_t *inode)
         if (inode->type == FILE_TYPE_SYMLINK)
             if (tmpfs_inode->symlink_target != NULL)
                 kfree(tmpfs_inode->symlink_target);
-        kfree(tmpfs_inode);
+        delete tmpfs_inode;
     }
 
     return true;

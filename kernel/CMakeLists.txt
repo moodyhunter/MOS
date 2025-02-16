@@ -59,6 +59,10 @@ target_include_directories(kernel_private_include INTERFACE
     ${CMAKE_SOURCE_DIR}/kernel/arch/${MOS_ARCH}/include/private
 )
 
+target_include_directories(kernel_private_include SYSTEM INTERFACE
+    ${CMAKE_SOURCE_DIR}/kernel/include/libs
+)
+
 target_compile_options(kernel_cxflags INTERFACE $<$<COMPILE_LANGUAGE:C>:${MOS_KERNEL_CFLAGS}>)
 target_compile_options(kernel_cxflags INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${MOS_KERNEL_CXXFLAGS}>)
 target_compile_definitions(kernel_cxflags INTERFACE -D__MOS_KERNEL__ -D__MLIBC_ABI_ONLY)

@@ -6,7 +6,6 @@
 #define pr_fmt(fmt) "pipe: " fmt
 
 #include "mos/ipc/pipe.hpp"
-#include "mos/mm/slab_autoinit.hpp"
 #include "mos/platform/platform.hpp"
 #include "mos/syslog/printk.hpp"
 #include "mos/tasks/schedule.hpp"
@@ -17,12 +16,6 @@
 #include <mos_stdlib.hpp>
 
 #define PIPE_MAGIC MOS_FOURCC('P', 'I', 'P', 'E')
-
-static slab_t *pipe_slab = NULL;
-SLAB_AUTOINIT("pipe", pipe_slab, pipe_t);
-
-static slab_t *pipeio_slab = NULL;
-SLAB_AUTOINIT("pipeio", pipeio_slab, pipeio_t);
 
 #define advance_buffer(buffer, bytes) ((buffer) = (void *) ((char *) (buffer) + (bytes)))
 
@@ -164,7 +157,7 @@ bool pipe_close_one_end(pipe_t *pipe)
         spinlock_release(&pipe->lock);
 
         mm_free_pages(va_phyframe(pipe->buffers), pipe->buffer_pos.capacity / MOS_PAGE_SIZE);
-        kfree(pipe);
+        delete pipe;
         return true;
     }
 
@@ -175,7 +168,7 @@ PtrResult<pipe_t> pipe_create(size_t bufsize)
 {
     bufsize = ALIGN_UP_TO_PAGE(bufsize);
 
-    pipe_t *pipe = (pipe_t *) kmalloc(pipe_slab);
+    pipe_t *pipe = mos::create<pipe_t>();
     pipe->magic = PIPE_MAGIC;
     pipe->buffers = (void *) phyframe_va(mm_get_free_pages(bufsize / MOS_PAGE_SIZE));
     waitlist_init(&pipe->waitlist);
@@ -216,7 +209,7 @@ static void pipeio_io_close(io_t *io)
 
     const bool fully_closed = pipe_close_one_end(pipeio->pipe);
     if (fully_closed)
-        kfree(pipeio);
+        delete pipeio;
 }
 
 static const io_op_t pipe_io_ops = {
@@ -227,7 +220,7 @@ static const io_op_t pipe_io_ops = {
 
 pipeio_t *pipeio_create(pipe_t *pipe)
 {
-    pipeio_t *pipeio = (pipeio_t *) kmalloc(pipeio_slab);
+    pipeio_t *pipeio = mos::create<pipeio_t>();
     pipeio->pipe = pipe;
     io_init(&pipeio->io_r, IO_PIPE, IO_READABLE, &pipe_io_ops);
     io_init(&pipeio->io_w, IO_PIPE, IO_WRITABLE, &pipe_io_ops);

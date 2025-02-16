@@ -7,6 +7,7 @@
 #include "mos/mm/physical/pmm.hpp"
 #include "mos/platform/platform.hpp"
 
+#include <mos/allocator.hpp>
 #include <mos/lib/structures/list.hpp>
 #include <mos/lib/sync/spinlock.hpp>
 #include <mos/mm/mm_types.h>
@@ -50,11 +51,11 @@ typedef enum
     VMFAULT_CANNOT_HANDLE = 0xff, ///< the handler cannot handle this fault
 } vmfault_result_t;
 
-typedef struct _vmap vmap_t;
+struct vmap_t;
 
 typedef vmfault_result_t (*vmfault_handler_t)(vmap_t *vmap, ptr_t fault_addr, pagefault_t *info);
 
-typedef struct _vmap
+struct vmap_t : mos::NamedType<"VMap">
 {
     as_linked_list;
     spinlock_t lock;
@@ -62,7 +63,7 @@ typedef struct _vmap
     ptr_t vaddr; // virtual addresses
     size_t npages;
     vm_flags vmflags; // the expected flags for the region, regardless of the copy-on-write state
-    mm_context_t *mmctx;
+    MMContext *mmctx;
 
     io_t *io;        // the io object that (possibly) backs this vmap
     off_t io_offset; // the offset in the io object, page-aligned
@@ -71,7 +72,7 @@ typedef struct _vmap
     vmap_type_t type;
     vmap_stat_t stat;
     vmfault_handler_t on_fault;
-} vmap_t;
+};
 
 #define pfn_va(pfn)        ((ptr_t) (platform_info->direct_map_base + (pfn) * (MOS_PAGE_SIZE)))
 #define va_pfn(va)         ((((ptr_t) (va)) - platform_info->direct_map_base) / MOS_PAGE_SIZE)
@@ -88,28 +89,28 @@ phyframe_t *mm_get_free_pages(size_t npages);
 
 /**
  * @brief Create a user-mode platform-dependent page table.
- * @return mm_context_t The created page table.
+ * @return MMContext The created page table.
  * @note A platform-independent page-map is also created.
  */
-mm_context_t *mm_create_context(void);
+MMContext *mm_create_context(void);
 
 /**
  * @brief Destroy a user-mode platform-dependent page table.
  * @param table The page table to destroy.
  * @note The platform-independent page-map is also destroyed.
  */
-void mm_destroy_context(mm_context_t *table);
+void mm_destroy_context(MMContext *table);
 
 /**
- * @brief Lock and unlock a pair of mm_context_t objects.
+ * @brief Lock and unlock a pair of MMContext objects.
  *
  * @param ctx1 The first context
  * @param ctx2 The second context
  */
-void mm_lock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2);
-void mm_unlock_ctx_pair(mm_context_t *ctx1, mm_context_t *ctx2);
+void mm_lock_ctx_pair(MMContext *ctx1, MMContext *ctx2);
+void mm_unlock_ctx_pair(MMContext *ctx1, MMContext *ctx2);
 
-__nodiscard mm_context_t *mm_switch_context(mm_context_t *new_ctx);
+__nodiscard MMContext *mm_switch_context(MMContext *new_ctx);
 
 /**
  * @brief Create a vmap object and insert it into the address space.
@@ -119,7 +120,7 @@ __nodiscard mm_context_t *mm_switch_context(mm_context_t *new_ctx);
  * @param npages Number of pages in the region
  * @return vmap_t* The created vmap object, with its lock held for further initialization.
  */
-vmap_t *vmap_create(mm_context_t *mmctx, ptr_t vaddr, size_t npages);
+vmap_t *vmap_create(MMContext *mmctx, ptr_t vaddr, size_t npages);
 
 /**
  * @brief Destroy a vmap object, and unmmap the region.
@@ -137,7 +138,7 @@ void vmap_destroy(vmap_t *vmap);
  * @param out_offset An optional pointer to receive the offset of the address in the vmap
  * @return vmap_t* The vmap object, or NULL if not found, with its lock held.
  */
-vmap_t *vmap_obtain(mm_context_t *mmctx, ptr_t vaddr, size_t *out_offset);
+vmap_t *vmap_obtain(MMContext *mmctx, ptr_t vaddr, size_t *out_offset);
 
 /**
  * @brief Split a vmap object into two, at the specified offset.

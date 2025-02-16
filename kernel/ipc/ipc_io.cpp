@@ -6,21 +6,15 @@
 #include "mos/io/io.hpp"
 #include "mos/ipc/ipc.hpp"
 #include "mos/misc/panic.hpp"
-#include "mos/mm/slab_autoinit.hpp"
 
+#include <mos/allocator.hpp>
 #include <mos_stdlib.hpp>
 
-typedef struct _ipc_server_io
+struct ipc_server_io_t : mos::NamedType<"IPC.ServerIO">
 {
     io_t control_io;
-    ipc_server_t *server;
-} ipc_server_io_t;
-
-static slab_t *ipc_server_io_slab = NULL;
-SLAB_AUTOINIT("ipc_server_io", ipc_server_io_slab, ipc_server_io_t);
-
-static slab_t *ipc_conn_io_slab = NULL;
-SLAB_AUTOINIT("ipc_conn_io", ipc_conn_io_slab, ipc_conn_io_t);
+    IPCServer *server;
+};
 
 static void ipc_control_io_close(io_t *io)
 {
@@ -30,7 +24,7 @@ static void ipc_control_io_close(io_t *io)
     // we only deannounce the server, we don't free it
     ipc_server_io_t *server_io = container_of(io, ipc_server_io_t, control_io);
     ipc_server_close(server_io->server);
-    kfree(server_io);
+    delete server_io;
 }
 
 static const io_op_t ipc_control_io_op = {
@@ -56,7 +50,7 @@ static void ipc_client_io_close(io_t *io)
 
     ipc_conn_io_t *conn = container_of(io, ipc_conn_io_t, io);
     ipc_client_close_channel(conn->ipc);
-    kfree(conn);
+    delete conn;
 }
 
 static size_t ipc_server_io_write(io_t *io, const void *buf, size_t size)
@@ -78,7 +72,7 @@ static void ipc_server_io_close(io_t *io)
 
     ipc_conn_io_t *conn = container_of(io, ipc_conn_io_t, io);
     ipc_server_close_channel(conn->ipc);
-    kfree(conn);
+    delete conn;
 }
 
 static const io_op_t ipc_client_io_op = {
@@ -93,9 +87,9 @@ static const io_op_t ipc_server_io_op = {
     .close = ipc_server_io_close,
 };
 
-PtrResult<ipc_conn_io_t> ipc_conn_io_create(ipc_t *ipc, bool is_server_side)
+PtrResult<ipc_conn_io_t> ipc_conn_io_create(IPCDescriptor *ipc, bool is_server_side)
 {
-    ipc_conn_io_t *io = (ipc_conn_io_t *) kmalloc(ipc_conn_io_slab);
+    ipc_conn_io_t *io = mos::create<ipc_conn_io_t>();
     if (io == nullptr)
         return -ENOMEM;
 
@@ -110,7 +104,7 @@ PtrResult<io_t> ipc_create(const char *name, size_t max_pending_connections)
     if (server.isErr())
         return server.getErr();
 
-    ipc_server_io_t *io = (ipc_server_io_t *) kmalloc(ipc_server_io_slab);
+    ipc_server_io_t *io = mos::create<ipc_server_io_t>();
     if (io == nullptr)
     {
         ipc_server_close(server.get());

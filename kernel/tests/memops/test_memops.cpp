@@ -7,8 +7,8 @@
 
 MOS_TEST_CASE(test_lib_memcpy)
 {
-    char *src = (char *) kcalloc(500, sizeof(char));
-    char *dst = (char *) kcalloc(500, sizeof(char));
+    char *src = kcalloc<char>(500);
+    char *dst = kcalloc<char>(500);
 
     for (size_t i = 0; i < 500; i++)
         src[i] = i;
@@ -24,8 +24,8 @@ MOS_TEST_CASE(test_lib_memcpy)
 
 MOS_TEST_CASE(test_lib_memmove_simple)
 {
-    char *src = (char *) kcalloc(500, sizeof(char));
-    char *dst = (char *) kcalloc(500, sizeof(char));
+    char *src = kcalloc<char>(500);
+    char *dst = kcalloc<char>(500);
 
     for (size_t i = 0; i < 500; i++)
         src[i] = i;
@@ -40,7 +40,7 @@ MOS_TEST_CASE(test_lib_memmove_simple)
 
 MOS_TEST_CASE(test_memmove_overlapped)
 {
-    size_t *src = (size_t *) kcalloc(500, sizeof(size_t));
+    size_t *src = kcalloc<size_t>(500);
 
     for (size_t i = 0; i < 300; i++)
         src[i] = i;
@@ -55,7 +55,7 @@ MOS_TEST_CASE(test_memmove_overlapped)
 
 MOS_TEST_CASE(test_memmove_overlapped_backwards)
 {
-    size_t *src = (size_t *) kcalloc(500, sizeof(size_t));
+    size_t *src = kcalloc<size_t>(500);
 
     for (size_t i = 0; i < 500; i++)
         src[i] = i;

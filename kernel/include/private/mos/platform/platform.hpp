@@ -8,6 +8,7 @@
 #include "mos/mm/physical/pmm.hpp"
 #include "mos/platform/platform_defs.hpp"
 
+#include <mos/allocator.hpp>
 #include <mos/lib/structures/list.hpp>
 #include <mos/lib/sync/spinlock.hpp>
 #include <mos/mm/mm_types.h>
@@ -33,7 +34,7 @@
 
 typedef void (*irq_handler)(u32 irq);
 
-typedef struct _thread thread_t;
+struct Thread;
 struct Console;
 
 enum vm_flags : unsigned int
@@ -79,24 +80,24 @@ typedef enum
 
 MOS_ENUM_OPERATORS(switch_flags_t)
 
-typedef struct
+struct MMContext : mos::NamedType<"MMContext">
 {
     spinlock_t mm_lock; ///< protects [pgd] and the [mmaps] list (the list itself, not the vmap_t objects)
     pgd_t pgd;
     list_head mmaps;
-} mm_context_t;
+};
 
 typedef struct _platform_regs platform_regs_t;
 
 typedef struct
 {
     u32 id;
-    thread_t *thread;
+    Thread *thread;
     ptr_t scheduler_stack;
-    mm_context_t *mm_context;
+    MMContext *mm_context;
     platform_regs_t *interrupt_regs; ///< the registers of whatever interrupted this CPU
     platform_cpuinfo_t cpuinfo;
-    thread_t *idle_thread; ///< idle thread for this CPU
+    Thread *idle_thread; ///< idle thread for this CPU
 } cpu_t;
 
 typedef struct
@@ -118,7 +119,7 @@ typedef struct
     pfn_t k_basepfn;
     ptr_t k_basevaddr; // virtual address of the kernel base (i.e. the start of the kernel image)
 
-    mm_context_t *kernel_mm;
+    MMContext *kernel_mm;
 
     pfn_t initrd_pfn;
     size_t initrd_npages;
@@ -167,7 +168,7 @@ void platform_startup_late();
 void platform_dump_regs(platform_regs_t *regs);
 void platform_dump_stack(platform_regs_t *regs);
 void platform_dump_current_stack();
-void platform_dump_thread_kernel_stack(const thread_t *thread);
+void platform_dump_thread_kernel_stack(const Thread *thread);
 
 // Platform Timer/Clock APIs
 // default implementation does nothing
@@ -239,16 +240,16 @@ pfn_t platform_pml4e_get_huge_pfn(const pml4e_t *pml4);
 
 // Platform Thread / Process APIs
 // no default implementation, platform-specific implementations must be provided
-platform_regs_t *platform_thread_regs(const thread_t *thread);
-void platform_context_setup_main_thread(thread_t *thread, ptr_t entry, ptr_t sp, int argc, ptr_t argv, ptr_t envp);
-void platform_context_setup_child_thread(thread_t *thread, thread_entry_t entry, void *arg);
-void platform_context_clone(const thread_t *from, thread_t *to);
-void platform_context_cleanup(thread_t *thread);
+platform_regs_t *platform_thread_regs(const Thread *thread);
+void platform_context_setup_main_thread(Thread *thread, ptr_t entry, ptr_t sp, int argc, ptr_t argv, ptr_t envp);
+void platform_context_setup_child_thread(Thread *thread, thread_entry_t entry, void *arg);
+void platform_context_clone(const Thread *from, Thread *to);
+void platform_context_cleanup(Thread *thread);
 
 // Platform Context Switching APIs
 // no default implementation, platform-specific implementations must be provided
-void platform_switch_mm(const mm_context_t *new_mm);
-void platform_switch_to_thread(thread_t *current, thread_t *new_thread, switch_flags_t switch_flags);
+void platform_switch_mm(const MMContext *new_mm);
+void platform_switch_to_thread(Thread *current, Thread *new_thread, switch_flags_t switch_flags);
 [[noreturn]] void platform_return_to_userspace(platform_regs_t *regs);
 
 // Platform-Specific syscall APIs

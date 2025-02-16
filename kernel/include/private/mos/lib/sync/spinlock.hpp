@@ -9,14 +9,17 @@
 
 #define barrier() MOS_PLATFORM_MEMORY_BARRIER()
 
-typedef struct
+class SpinLocker;
+struct spinlock_t
 {
-    bool flag;
+    bool flag = false;
 #if MOS_DEBUG_FEATURE(spinlock)
-    const char *file;
-    int line;
+    const char *file = nullptr;
+    int line = 0;
 #endif
-} spinlock_t;
+
+    SpinLocker lock();
+};
 
 #define spinlock_init(lock)                                                                                                                                              \
     do                                                                                                                                                                   \
@@ -111,4 +114,47 @@ should_inline void recursive_spinlock_release(recursive_spinlock_t *lock, void *
 should_inline bool recursive_spinlock_is_locked(recursive_spinlock_t *lock)
 {
     return lock->lock.flag;
+}
+
+class [[nodiscard("don't discard")]] SpinLocker
+{
+  public:
+    SpinLocker(spinlock_t *lock) : m_lock(lock)
+    {
+        spinlock_acquire(m_lock);
+    }
+
+    SpinLocker(const SpinLocker &) = delete;
+    SpinLocker &operator=(const SpinLocker &) = delete;
+
+    // move constructor
+    SpinLocker(SpinLocker &&other) : m_lock(other.m_lock)
+    {
+        other.m_lock = nullptr;
+    }
+
+    // move assignment
+    SpinLocker &operator=(SpinLocker &&other)
+    {
+        if (this != &other)
+        {
+            m_lock = other.m_lock;
+            other.m_lock = nullptr;
+        }
+        return *this;
+    }
+
+    ~SpinLocker()
+    {
+        if (m_lock)
+            spinlock_release(m_lock);
+    }
+
+  private:
+    spinlock_t *m_lock;
+};
+
+inline SpinLocker spinlock_t::lock()
+{
+    return SpinLocker(this);
 }

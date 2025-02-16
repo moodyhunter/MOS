@@ -34,29 +34,26 @@ typedef struct phyframe
 
     u8 order;
 
-    union
+    union additional_info
     {
         MOS_WARNING_PUSH
         MOS_WARNING_DISABLE("-Wpedantic") // ISO C++ forbids anonymous structs
 
-        struct // free frame
-        {
-            as_linked_list; // for use of freelist in the buddy allocator
-        };
+        list_node_t list_node; // for use of freelist in the buddy allocator
 
-        struct
+        struct pagecache_frame_info // allocated frame
         {
             // for page cache frames
             bool dirty : 1; ///< 1 if the page is dirty
         } pagecache;
         MOS_WARNING_POP
-    };
+    } info;
 
-    union
+    union alloc_info
     {
         // number of times this frame is mapped, if this drops to 0, the frame is freed
-        atomic_t allocated_refcount;
-    };
+        atomic_t refcount;
+    } alloc;
 } phyframe_t;
 
 MOS_STATIC_ASSERT(sizeof(phyframe_t) == 32, "update phyframe_t struct size");

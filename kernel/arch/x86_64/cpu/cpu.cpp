@@ -7,6 +7,7 @@
 #include "mos/platform/platform_defs.hpp"
 #include "mos/syslog/printk.hpp"
 #include "mos/x86/cpu/cpuid.hpp"
+#include "mos/x86/tasks/fpu_context.hpp"
 
 #include <mos_string.hpp>
 
@@ -92,5 +93,5 @@ void x86_cpu_setup_xsave_area(void)
     pr_dinfo2(x86_startup, "XSAVE area size: %zu", xsave_size);
 
     __asm__ volatile("xsetbv" : : "c"(0), "a"(xcr0), "d"(xcr0 >> 32));
-    platform_info->arch_info.xsave_size = xsave_size;
+    xsave_area_slab.ent_size = xsave_size;
 }

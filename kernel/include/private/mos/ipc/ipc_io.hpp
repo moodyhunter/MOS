@@ -5,11 +5,13 @@
 #include "mos/io/io.hpp"
 #include "mos/ipc/ipc.hpp"
 
-typedef struct
+#include <mos/allocator.hpp>
+
+struct ipc_conn_io_t : mos::NamedType<"IPC.ConnectionIO">
 {
     io_t io;
-    ipc_t *ipc;
-} ipc_conn_io_t;
+    IPCDescriptor *ipc;
+};
 
 /**
  * @brief Create a new IPC server
@@ -43,4 +45,4 @@ PtrResult<io_t> ipc_connect(const char *name, size_t buffer_size);
  * @param is_server_side Whether this is the server side of the connection
  * @return ipc_conn_io_t* A new IPC connection io descriptor
  */
-PtrResult<ipc_conn_io_t> ipc_conn_io_create(ipc_t *ipc, bool is_server_side);
+PtrResult<ipc_conn_io_t> ipc_conn_io_create(IPCDescriptor *ipc, bool is_server_side);

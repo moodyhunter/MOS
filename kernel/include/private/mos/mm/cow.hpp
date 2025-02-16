@@ -12,7 +12,7 @@
  * @param source_vmap The vmap to copy from
  * @return vmap_t* The new vmap, with the lock held
  */
-PtrResult<vmap_t> cow_clone_vmap_locked(mm_context_t *target_mmctx, vmap_t *source_vmap);
+PtrResult<vmap_t> cow_clone_vmap_locked(MMContext *target_mmctx, vmap_t *source_vmap);
 
 /**
  * @brief Allocate zero-on-demand pages at a specific address
@@ -24,4 +24,4 @@ PtrResult<vmap_t> cow_clone_vmap_locked(mm_context_t *target_mmctx, vmap_t *sour
  * @param flags VM flags to use
  * @return vmblock_t The allocated block
  */
-PtrResult<vmap_t> cow_allocate_zeroed_pages(mm_context_t *handle, size_t npages, ptr_t vaddr, valloc_flags hints, vm_flags flags);
+PtrResult<vmap_t> cow_allocate_zeroed_pages(MMContext *handle, size_t npages, ptr_t vaddr, valloc_flags hints, vm_flags flags);

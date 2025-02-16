@@ -4,4 +4,4 @@
 
 #include "mos/platform/platform.hpp"
 
-void x86_set_fsbase(thread_t *thread);
+void x86_set_fsbase(Thread *thread);

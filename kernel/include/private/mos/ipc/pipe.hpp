@@ -5,9 +5,10 @@
 #include "mos/io/io.hpp"
 #include "mos/tasks/wait.hpp"
 
+#include <mos/allocator.hpp>
 #include <mos/lib/structures/ring_buffer.hpp>
 
-typedef struct
+struct pipe_t : mos::NamedType<"Pipe">
 {
     u32 magic;
     waitlist_t waitlist; ///< for both reader and writer, only one party can wait on the pipe at a time
@@ -15,7 +16,7 @@ typedef struct
     bool other_closed;   ///< true if the other end of the pipe has been closed
     void *buffers;
     ring_buffer_pos_t buffer_pos;
-} pipe_t;
+};
 
 PtrResult<pipe_t> pipe_create(size_t bufsize);
 size_t pipe_read(pipe_t *pipe, void *buf, size_t size);
@@ -30,10 +31,10 @@ size_t pipe_write(pipe_t *pipe, const void *buf, size_t size);
  */
 __nodiscard bool pipe_close_one_end(pipe_t *pipe);
 
-typedef struct
+struct pipeio_t : mos::NamedType<"PipeIO">
 {
     io_t io_r, io_w;
     pipe_t *pipe;
-} pipeio_t;
+};
 
 pipeio_t *pipeio_create(pipe_t *pipe);

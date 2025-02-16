@@ -12,7 +12,6 @@
 #include <mos/types.hpp>
 
 static clocksource_t rtc_clocksource = {
-    .list_node = LIST_NODE_INIT(rtc_clocksource),
     .name = "rtc",
     .ticks = 0,
     .frequency = 1000,

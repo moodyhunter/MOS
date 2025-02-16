@@ -93,7 +93,7 @@ static PtrResult<dentry_t> dentry_resolve_to_parent(dentry_t *base_dir, dentry_t
             if (last_seg_out != NULL)
             {
                 const bool ends_with_slash = original_path[strlen(original_path) - 1] == PATH_DELIM;
-                char *tmp = (char *) kmalloc(strlen(current_seg) + 2); // +2 for the null terminator and the slash
+                char *tmp = kcalloc<char>(strlen(current_seg) + 2); // +2 for the null terminator and the slash
                 strcpy(tmp, current_seg);
                 if (ends_with_slash)
                     strcat(tmp, PATH_DELIM_STR);
@@ -147,7 +147,7 @@ static PtrResult<dentry_t> dentry_resolve_to_parent(dentry_t *base_dir, dentry_t
 
         if (child_ref->is_mountpoint)
         {
-            pr_dinfo2(dcache, "jumping to mountpoint %s", child_ref->name);
+            pr_dinfo2(dcache, "jumping to mountpoint %s", child_ref->name.c_str());
             parent_ref = dentry_get_mount(child_ref.get())->root; // if it's a mountpoint, jump to the tree of mounted filesystem instead
 
             // refcount the mounted filesystem root
@@ -172,7 +172,7 @@ static PtrResult<dentry_t> dentry_resolve_follow_symlink(dentry_t *d, lastseg_re
     if (!d->inode->ops || !d->inode->ops->readlink)
         mos_panic("inode does not support readlink (symlink) operation, but it's a symlink!");
 
-    char *const target = (char *) kmalloc(MOS_PATH_MAX_LENGTH);
+    const auto target = (char *) kcalloc<char>(MOS_PATH_MAX_LENGTH);
     const size_t read = d->inode->ops->readlink(d, target, MOS_PATH_MAX_LENGTH);
     if (read == 0)
     {
@@ -357,7 +357,7 @@ PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, const char *name)
     if (unlikely(parent == nullptr))
         return nullptr;
 
-    pr_dinfo2(dcache, "looking for dentry '%s' in '%s'", name, dentry_name(parent));
+    pr_dinfo2(dcache, "looking for dentry '%s' in '%s'", name, dentry_name(parent).c_str());
 
     // firstly check if it's in the cache
     dentry_t *dentry = dentry_get_from_parent(parent->superblock, parent, name);
@@ -432,13 +432,12 @@ PtrResult<dentry_t> dentry_resolve(dentry_t *starting_dir, dentry_t *root_dir, c
     return child_ref;
 }
 
-static void dirter_add(vfs_listdir_state_t *state, u64 ino, const char *name, size_t name_len, file_type_t type)
+static void dirter_add(vfs_listdir_state_t *state, u64 ino, mos::string_view name, file_type_t type)
 {
-    vfs_listdir_entry_t *entry = (vfs_listdir_entry_t *) kmalloc(sizeof(vfs_listdir_entry_t));
+    vfs_listdir_entry_t *entry = mos::create<vfs_listdir_entry_t>();
     linked_list_init(list_node(entry));
     entry->ino = ino;
-    entry->name = strndup(name, name_len);
-    entry->name_len = name_len;
+    entry->name = name;
     entry->type = type;
     list_node_append(&state->entries, list_node(entry));
     state->n_count++;

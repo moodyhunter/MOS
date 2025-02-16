@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <algorithm>
 #define pr_fmt(fmt) "limine: " fmt
-
 #include "limine.hpp"
+
 #include "mos/device/console.hpp"
 #include "mos/misc/cmdline.hpp"
 #include "mos/misc/setup.hpp"
 #include "mos/mm/mm.hpp"
 #include "mos/syslog/printk.hpp"
 
+#include <algorithm>
+#include <mos/list.hpp>
 #include <mos_stdlib.hpp>
 
 #define limine_request __section(".limine.requests") __used static volatile
@@ -80,8 +81,9 @@ static void invoke_constructors(void)
 extern "C" void limine_entry(void)
 {
     invoke_constructors();
-    if (hhdm.response->offset)
-        platform_info->direct_map_base = hhdm.response->offset; // early-populate direct_map_base
+    const auto hhdm_response = hhdm.response;
+    if (hhdm_response && hhdm_response->offset)
+        platform_info->direct_map_base = hhdm_response->offset; // early-populate direct_map_base for pa_va
 
     if (platform_info->boot_console)
         console_register(platform_info->boot_console);
@@ -98,14 +100,14 @@ extern "C" void limine_entry(void)
     if (paging_mode.response == NULL)
         mos_panic("No paging mode found");
 
-    struct limine_paging_mode_response *paging_mode_response = paging_mode.response;
+    const auto paging_mode_response = paging_mode.response;
     if (paging_mode_response->mode != LIMINE_PAGING_MODE_DEFAULT)
         mos_panic("non-default paging mode not supported");
 
     if (smp.response == NULL)
         mos_panic("No SMP info found");
 
-    struct limine_smp_response *smp_response = smp.response;
+    const auto smp_response = smp.response;
     for (size_t i = 0; i < smp_response->cpu_count; i++)
     {
         struct limine_smp_info *info = smp_response->cpus[i];
@@ -115,16 +117,17 @@ extern "C" void limine_entry(void)
         __atomic_store_n(&info->goto_address, &ap_entry, __ATOMIC_SEQ_CST);
     }
 
-    if (kernel_file.response == NULL)
+    const auto kernel_file_response = kernel_file.response;
+    if (kernel_file_response == NULL)
         mos_panic("No kernel file found");
 
-    mos_cmdline_init(kernel_file.response->kernel_file->cmdline);
+    mos_cmdline_init(kernel_file_response->kernel_file->cmdline);
     startup_invoke_early_cmdline_hooks();
 
-    if (hhdm.response == NULL)
+    if (hhdm_response == NULL)
         mos_panic("No HHDM found");
 
-    platform_info->direct_map_base = hhdm.response->offset;
+    platform_info->direct_map_base = hhdm_response->offset;
     pr_dinfo2(limine, "Direct map base: " PTR_FMT, platform_info->direct_map_base);
 
     if (memmap.response == NULL)
@@ -132,7 +135,7 @@ extern "C" void limine_entry(void)
 
     pfn_t last_end_pfn = 0;
 
-    struct limine_memmap_response *memmap_response = memmap.response;
+    const auto memmap_response = memmap.response;
     for (size_t i = 0; i < memmap_response->entry_count; i++)
     {
         const struct limine_memmap_entry *entry = memmap_response->entries[i];
@@ -162,23 +165,23 @@ extern "C" void limine_entry(void)
         add_to_memmap(start_pfn, npages, entry->type != LIMINE_MEMMAP_USABLE, entry->type, typestr);
     }
 
-    if (module.response == NULL)
+    const auto module_response = module.response;
+    if (module_response == NULL)
         mos_panic("No modules found");
 
-    struct limine_module_response *module_response = module.response;
     if (module_response->module_count != 1)
         mos_panic("Expected exactly one module, got %zu", module_response->module_count);
 
-    struct limine_file *module = module_response->modules[0];
+    const auto module = module_response->modules[0];
     pr_dinfo2(limine, "initrd: %s, " PTR_RANGE, module->path, (ptr_t) module->address, (ptr_t) module->address + module->size);
     platform_info->initrd_pfn = va_pfn(module->address);
     platform_info->initrd_npages = ALIGN_UP_TO_PAGE(module->size) / MOS_PAGE_SIZE;
     pr_dinfo2(limine, "initrd at " PFN_FMT ", size %zu pages", platform_info->initrd_pfn, platform_info->initrd_npages);
 
+    const auto kernel_address_response = kernel_address.response;
     if (kernel_address.response == NULL)
         mos_panic("No kernel address found");
 
-    struct limine_kernel_address_response *kernel_address_response = kernel_address.response;
     platform_info->k_basepfn = kernel_address_response->physical_base / MOS_PAGE_SIZE;
     platform_info->k_basevaddr = kernel_address_response->virtual_base;
 

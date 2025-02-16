@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/lib/structures/list.hpp"
-#include "mos/mm/slab_autoinit.hpp"
 #include "mos/platform/platform.hpp"
 #include "mos/tasks/scheduler.hpp"
 #include "mos/tasks/task_types.hpp"
 
+#include <mos/allocator.hpp>
 #include <mos_stdlib.hpp>
 
 typedef struct
@@ -15,14 +15,11 @@ typedef struct
     spinlock_t lock;
 } naive_sched_t;
 
-typedef struct
+struct naive_sched_node_t : mos::NamedType<"NaiveSched.Node">
 {
     as_linked_list;
-    thread_t *thread;
-} naive_sched_node_t; ///< Node in the naive scheduler's list of threads
-
-static slab_t *naivesched_node_slab = NULL;
-SLAB_AUTOINIT("naivesched_node", naivesched_node_slab, naive_sched_node_t);
+    Thread *thread;
+}; ///< Node in the naive scheduler's list of threads
 
 static void naive_sched_init(scheduler_t *instance)
 {
@@ -32,7 +29,7 @@ static void naive_sched_init(scheduler_t *instance)
     pr_dinfo2(naive_sched, "naive scheduler initialized");
 }
 
-static thread_t *naive_sched_select_next(scheduler_t *instance)
+static Thread *naive_sched_select_next(scheduler_t *instance)
 {
     naive_sched_t *scheduler = container_of(instance, naive_sched_t, base);
 
@@ -48,8 +45,8 @@ static thread_t *naive_sched_select_next(scheduler_t *instance)
     list_remove(node);
     spinlock_release(&scheduler->lock);
 
-    thread_t *thread = node->thread;
-    kfree(node);
+    Thread *thread = node->thread;
+    delete node;
 
     MOS_ASSERT_X(thread != current_thread, "current thread queued in scheduler");
     spinlock_acquire(&thread->state_lock);
@@ -58,13 +55,13 @@ static thread_t *naive_sched_select_next(scheduler_t *instance)
     return thread;
 }
 
-static void naive_sched_add_thread(scheduler_t *instance, thread_t *thread)
+static void naive_sched_add_thread(scheduler_t *instance, Thread *thread)
 {
     naive_sched_t *scheduler = container_of(instance, naive_sched_t, base);
 
     pr_dinfo(naive_sched, "adding thread %pt to scheduler", (void *) thread);
 
-    naive_sched_node_t *node = (naive_sched_node_t *) kmalloc(naivesched_node_slab);
+    naive_sched_node_t *node = mos::create<naive_sched_node_t>();
     linked_list_init(list_node(node));
     node->thread = thread;
 
@@ -73,7 +70,7 @@ static void naive_sched_add_thread(scheduler_t *instance, thread_t *thread)
     spinlock_release(&scheduler->lock);
 }
 
-static void naive_sched_remove_thread(scheduler_t *instance, thread_t *thread)
+static void naive_sched_remove_thread(scheduler_t *instance, Thread *thread)
 {
     pr_dinfo2(naive_sched, "naive scheduler removed thread %pt", (void *) thread);
 
@@ -84,7 +81,7 @@ static void naive_sched_remove_thread(scheduler_t *instance, thread_t *thread)
         if (node->thread == thread)
         {
             list_remove(node);
-            kfree(node);
+            delete node;
             break;
         }
     }

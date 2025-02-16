@@ -25,8 +25,14 @@ typedef list_node_t list_head;
 /** @brief A node in a linked list. */
 struct list_node
 {
-    list_node_t *prev;
-    list_node_t *next;
+    list_node_t *prev = this;
+    list_node_t *next = this;
+
+    list_node()
+    {
+        prev = this;
+        next = this;
+    }
 };
 
 /**

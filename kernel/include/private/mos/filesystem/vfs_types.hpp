@@ -5,10 +5,12 @@
 #include "mos/lib/sync/mutex.hpp"
 #include "mos/mm/mm.hpp"
 #include "mos/mm/physical/pmm.hpp"
-#include "mos/mm/slab.hpp"
 
 #include <abi-bits/stat.h>
+#include <cstddef>
+#include <mos/allocator.hpp>
 #include <mos/filesystem/fs_types.h>
+#include <mos/hashmap.hpp>
 #include <mos/io/io.hpp>
 #include <mos/io/io_types.h>
 #include <mos/lib/structures/hashmap.hpp>
@@ -16,11 +18,11 @@
 #include <mos/lib/structures/tree.hpp>
 #include <mos/lib/sync/spinlock.hpp>
 #include <mos/platform/platform.hpp>
+#include <mos/string.hpp>
 #include <mos/types.hpp>
 
 #define FILESYSTEM_DEFINE(var, fsname, mountfn, unmountfn)                                                                                                               \
     filesystem_t var = {                                                                                                                                                 \
-        .list_node = LIST_HEAD_INIT(var.list_node),                                                                                                                      \
         .name = fsname,                                                                                                                                                  \
         .mount = mountfn,                                                                                                                                                \
         .unmount = unmountfn,                                                                                                                                            \
@@ -33,31 +35,30 @@
     }                                                                                                                                                                    \
     MOS_INIT(VFS, __register_##fs)
 
-typedef struct _dentry dentry_t;
+struct dentry_t;
 typedef struct _inode_cache inode_cache_t;
-typedef struct _inode inode_t;
-typedef struct _mount mount_t;
-typedef struct _superblock superblock_t;
-typedef struct _filesystem filesystem_t;
-typedef struct _file file_t;
+struct inode_t;
+struct mount_t;
+struct superblock_t;
+struct filesystem_t;
+struct file_t;
 
-typedef struct
+struct vfs_listdir_entry_t : mos::NamedType<"VFS.ListDir.Entry">
 {
     as_linked_list;
     ino_t ino;
-    const char *name;
-    size_t name_len;
+    mos::string name;
     file_type_t type;
-} vfs_listdir_entry_t;
+};
 
-typedef struct
+struct vfs_listdir_state_t : mos::NamedType<"VFS.ListDir.State">
 {
     list_head entries;
     size_t n_count;     ///< number of entries in the list
     size_t read_offset; ///< user has read up to this offset, start from this offset when reading more entries
-} vfs_listdir_state_t;
+};
 
-typedef void(dentry_iterator_op)(vfs_listdir_state_t *state, u64 ino, const char *name, size_t name_len, file_type_t type);
+typedef void(dentry_iterator_op)(vfs_listdir_state_t *state, u64 ino, mos::string_view name, file_type_t type);
 
 typedef struct
 {
@@ -102,31 +103,31 @@ typedef struct
     long (*sync_inode)(inode_t *inode); ///< flush the inode to disk
 } superblock_ops_t;
 
-typedef struct _superblock
+struct superblock_t final : mos::NamedType<"superblock">
 {
     dentry_t *root;
     filesystem_t *fs;
     const superblock_ops_t *ops;
-} superblock_t;
+};
 
-typedef struct _dentry
+struct dentry_t final : mos::NamedType<"dentry">
 {
     as_tree;
     spinlock_t lock;
     atomic_t refcount;
     inode_t *inode;
-    const char *name;         // for a mounted root, this is NULL
+    mos::string name;         // for a mounted root, this is EMPTY
     superblock_t *superblock; // The superblock of the dentry
     bool is_mountpoint;
-} dentry_t;
+};
 
 extern dentry_t *root_dentry;
 
-#define dentry_name(dentry)                                                                                                                                              \
-    __extension__({                                                                                                                                                      \
-        const char *__name = (dentry)->name;                                                                                                                             \
-        __name ? __name : (dentry == root_dentry ? "<root>" : "<NULL>");                                                                                                 \
-    })
+inline mos::string dentry_name(const dentry_t *dentry)
+{
+    const auto name = (dentry)->name;
+    return name.empty() ? (dentry == root_dentry ? "<root>" : "<NULL>") : name;
+}
 
 typedef struct _inode_cache_ops
 {
@@ -148,11 +149,11 @@ typedef struct _inode_cache
 {
     mutex_t lock;
     inode_t *owner;
-    hashmap_t pages; // page index -> phyframe_t *
+    mos::HashMap<size_t, phyframe_t *> pages; // page index -> phyframe_t *
     const inode_cache_ops_t *ops;
 } inode_cache_t;
 
-typedef struct _inode
+struct inode_t final : mos::NamedType<"inode">
 {
     u64 ino;
     file_type_t type;
@@ -175,32 +176,30 @@ typedef struct _inode
     inode_cache_t cache;        // page cache for this inode
 
     atomic_t refcount; ///< number of references to this inode
-} inode_t;
+};
 
-typedef struct _filesystem
+struct filesystem_t final : mos::NamedType<"filesystem">
 {
     as_linked_list;
-    const char *name;
+    mos::string name;
     PtrResult<dentry_t> (*mount)(filesystem_t *fs, const char *dev_name, const char *mount_options);
     void (*unmount)(filesystem_t *fs, dentry_t *mountpoint); // called when the mountpoint is unmounted
-} filesystem_t;
+};
 
-typedef struct _mount
+struct mount_t final : mos::NamedType<"mount">
 {
     as_linked_list;
     dentry_t *root;       // root of the mounted tree
     dentry_t *mountpoint; // where the tree is mounted
     superblock_t *superblock;
     filesystem_t *fs;
-} mount_t;
+};
 
-typedef struct _file
+struct file_t final : mos::NamedType<"file">
 {
     io_t io; // refcount is tracked by the io_t
     dentry_t *dentry;
     spinlock_t offset_lock; // protects the offset field
     size_t offset;          // tracks the current position in the file
     void *private_data;
-} file_t;
-
-extern slab_t *superblock_cache, *mount_cache, *file_cache;
+};

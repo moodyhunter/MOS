@@ -7,26 +7,22 @@
 #include "mos/filesystem/vfs_types.hpp"
 #include "mos/lib/sync/spinlock.hpp"
 #include "mos/mm/physical/pmm.hpp"
-#include "mos/mm/slab.hpp"
-#include "mos/mm/slab_autoinit.hpp"
 
 #include <algorithm>
+#include <memory>
 #include <mos/lib/structures/hashmap_common.hpp>
 #include <mos/types.hpp>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-slab_t *dentry_cache;
-SLAB_AUTOINIT("dentry", dentry_cache, dentry_t);
-
-static dentry_t *dentry_create(superblock_t *sb, dentry_t *parent, const char *name)
+static dentry_t *dentry_create(superblock_t *sb, dentry_t *parent, mos::string_view name)
 {
-    dentry_t *dentry = (dentry_t *) kmalloc(dentry_cache);
-    dentry->superblock = sb;
+    std::unique_ptr<int> a;
+    const auto dentry = mos::create<dentry_t>();
     tree_node_init(tree_node(dentry));
 
-    if (name)
-        dentry->name = strdup(name);
+    dentry->superblock = sb;
+    dentry->name = name;
 
     if (parent)
     {
@@ -38,7 +34,7 @@ static dentry_t *dentry_create(superblock_t *sb, dentry_t *parent, const char *n
     return dentry;
 }
 
-dentry_t *dentry_get_from_parent(superblock_t *sb, dentry_t *parent, const char *name)
+dentry_t *dentry_get_from_parent(superblock_t *sb, dentry_t *parent, mos::string_view name)
 {
     if (!parent)
         return dentry_create(sb, NULL, name);
@@ -48,7 +44,7 @@ dentry_t *dentry_get_from_parent(superblock_t *sb, dentry_t *parent, const char 
     spinlock_acquire(&parent->lock);
     tree_foreach_child(dentry_t, child, parent)
     {
-        if (strcmp(child->name, name) == 0)
+        if (child->name == name)
         {
             dentry = child;
             break;
@@ -128,12 +124,12 @@ void vfs_generic_iterate_dir(const dentry_t *dir, vfs_listdir_state_t *state, de
     MOS_ASSERT(d_parent->inode != NULL);
     MOS_ASSERT(dir->inode);
 
-    add_record(state, dir->inode->ino, ".", 1, FILE_TYPE_DIRECTORY);
-    add_record(state, d_parent->inode->ino, "..", 2, FILE_TYPE_DIRECTORY);
+    add_record(state, dir->inode->ino, ".", FILE_TYPE_DIRECTORY);
+    add_record(state, d_parent->inode->ino, "..", FILE_TYPE_DIRECTORY);
 
     tree_foreach_child(dentry_t, child, dir)
     {
         if (child->inode)
-            add_record(state, child->inode->ino, child->name, strlen(child->name), child->inode->type);
+            add_record(state, child->inode->ino, child->name, child->inode->type);
     }
 }

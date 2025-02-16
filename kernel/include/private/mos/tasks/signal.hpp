@@ -4,6 +4,7 @@
 #include "mos/platform/platform.hpp"
 #include "mos/tasks/task_types.hpp"
 
+#include <mos/allocator.hpp>
 #include <mos/lib/structures/list.hpp>
 #include <mos/tasks/signal_types.h>
 
@@ -20,12 +21,11 @@
  * @brief A pending signal.
  *
  */
-typedef struct
+struct sigpending_t : mos::NamedType<"SigPending">
 {
     as_linked_list;
     signal_t signal;
-} sigpending_t;
-extern slab_t *sigpending_slab;
+};
 
 /**
  * @brief Send a signal to a thread.
@@ -33,7 +33,7 @@ extern slab_t *sigpending_slab;
  * @param target
  * @param signal
  */
-long signal_send_to_thread(thread_t *target, signal_t signal);
+long signal_send_to_thread(Thread *target, signal_t signal);
 
 /**
  * @brief Send a signal to a process, an arbitrary thread will be chosen to receive the signal.
@@ -41,7 +41,7 @@ long signal_send_to_thread(thread_t *target, signal_t signal);
  * @param target
  * @param signal
  */
-long signal_send_to_process(process_t *target, signal_t signal);
+long signal_send_to_process(Process *target, signal_t signal);
 
 /**
  * @brief Prepare to exit to userspace.

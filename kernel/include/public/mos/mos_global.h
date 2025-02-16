@@ -79,7 +79,16 @@
 #define MOS_IN_RANGE(addr, start, end) ((addr) >= (start) && (addr) < (end))
 
 #define MOS_FOURCC(a, b, c, d) ((u32) (a) | ((u32) (b) << 8) | ((u32) (c) << 16) | ((u32) (d) << 24))
-#define MOS_ARRAY_SIZE(x)      (sizeof(x) / sizeof(x[0]))
+
+#ifndef __cplusplus
+#define MOS_ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+#else
+template<size_t N, typename T>
+constexpr size_t MOS_ARRAY_SIZE(const T (&)[N])
+{
+    return N;
+}
+#endif
 
 #define MOS_MAX_VADDR ((ptr_t) ~0)
 

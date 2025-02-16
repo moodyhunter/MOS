@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/mm/slab.hpp"
-#include "mos/mm/slab_autoinit.hpp"
 #include "mos/tasks/schedule.hpp"
 
 #include <mos/lib/structures/list.hpp>
@@ -13,12 +11,6 @@
 #include <mos/tasks/wait.hpp>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
-
-slab_t *waitlist_slab = NULL;
-SLAB_AUTOINIT("waitlist", waitlist_slab, waitlist_t);
-
-static slab_t *waitlist_listentry_slab = NULL;
-SLAB_AUTOINIT("waitlist_entry", waitlist_listentry_slab, waitable_list_entry_t);
 
 void waitlist_init(waitlist_t *list)
 {
@@ -35,7 +27,7 @@ bool waitlist_append(waitlist_t *list)
         return false;
     }
 
-    waitable_list_entry_t *entry = (waitable_list_entry_t *) kmalloc(waitlist_listentry_slab);
+    waitable_list_entry_t *entry = mos::create<waitable_list_entry_t>();
     entry->waiter = current_thread->tid;
     list_node_append(&list->list, list_node(entry));
     spinlock_release(&list->lock);
@@ -58,13 +50,13 @@ size_t waitlist_wake(waitlist_t *list, size_t max_wakeups)
         list_node_t *node = list_node_pop(&list->list);
         waitable_list_entry_t *entry = list_entry(node, waitable_list_entry_t);
 
-        thread_t *thread = thread_get(entry->waiter);
+        Thread *thread = thread_get(entry->waiter);
         if (thread) // if the thread is still there
         {
             if (thread->state == THREAD_STATE_BLOCKED)
                 scheduler_wake_thread(thread);
         }
-        kfree(entry);
+        delete entry;
         wakeups++;
     }
 
@@ -92,10 +84,15 @@ void waitlist_remove_me(waitlist_t *waitlist)
         if (entry->waiter == current_thread->tid)
         {
             list_remove(entry);
-            kfree(entry);
+            delete entry;
             break;
         }
     }
 
     spinlock_release(&waitlist->lock);
+}
+
+waitlist_t::waitlist_t()
+{
+    waitlist_init(this);
 }

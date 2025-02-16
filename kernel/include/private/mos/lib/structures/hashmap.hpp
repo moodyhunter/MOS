@@ -2,9 +2,11 @@
 
 #pragma once
 
+#include <mos/allocator.hpp>
 #include <mos/lib/sync/spinlock.hpp>
 #include <mos/moslib_global.hpp>
 #include <mos/types.hpp>
+#include <mos_stdlib.hpp>
 
 /**
  * @defgroup libs_hashmap libs.HashMap
@@ -17,7 +19,7 @@ typedef hash_t (*hashmap_hash_t)(const uintn key);                              
 typedef int (*hashmap_key_compare_t)(const uintn key1, const uintn key2);         /// A hashmap key comparison function prototype.
 typedef bool (*hashmap_foreach_func_t)(const uintn key, void *value, void *data); /// A hashmap foreach callback function prototype.
 
-typedef struct hashmap_entry hashmap_entry_t;
+struct hashmap_entry_t;
 
 typedef struct _hashmap
 {

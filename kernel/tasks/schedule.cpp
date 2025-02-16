@@ -75,20 +75,20 @@ void unblock_scheduler(void)
     MOS_UNREACHABLE();
 }
 
-void scheduler_add_thread(thread_t *thread)
+void scheduler_add_thread(Thread *thread)
 {
     MOS_ASSERT(thread_is_valid(thread));
     MOS_ASSERT_X(thread->state == THREAD_STATE_CREATED || thread->state == THREAD_STATE_READY, "thread %pt is not in a valid state", (void *) thread);
     active_scheduler->ops->add_thread(active_scheduler, thread);
 }
 
-void scheduler_remove_thread(thread_t *thread)
+void scheduler_remove_thread(Thread *thread)
 {
     MOS_ASSERT(thread_is_valid(thread));
     active_scheduler->ops->remove_thread(active_scheduler, thread);
 }
 
-void scheduler_wake_thread(thread_t *thread)
+void scheduler_wake_thread(Thread *thread)
 {
     spinlock_acquire(&thread->state_lock);
     if (thread->state == THREAD_STATE_READY || thread->state == THREAD_STATE_RUNNING || thread->state == THREAD_STATE_CREATED || thread->state == THREAD_STATE_DEAD)
@@ -114,9 +114,9 @@ void reschedule(void)
     // But it can't be:
     // - in READY state
     cpu_t *cpu = current_cpu;
-    thread_t *const current = cpu->thread;
+    Thread *const current = cpu->thread;
 
-    thread_t *next = active_scheduler->ops->select_next(active_scheduler);
+    Thread *next = active_scheduler->ops->select_next(active_scheduler);
 
     if (!next)
     {
@@ -135,7 +135,7 @@ void reschedule(void)
     const bool should_switch_mm = cpu->mm_context != next->owner->mm;
     if (should_switch_mm)
     {
-        mm_context_t *old = mm_switch_context(next->owner->mm);
+        MMContext *old = mm_switch_context(next->owner->mm);
         MOS_UNUSED(old);
     }
 
@@ -164,7 +164,7 @@ void reschedule(void)
 
 void blocked_reschedule(void)
 {
-    thread_t *t = current_cpu->thread;
+    Thread *t = current_cpu->thread;
     spinlock_acquire(&t->state_lock);
     t->state = THREAD_STATE_BLOCKED;
     pr_dinfo2(scheduler, "%pt is now blocked", (void *) t);
@@ -173,7 +173,7 @@ void blocked_reschedule(void)
 
 bool reschedule_for_waitlist(waitlist_t *waitlist)
 {
-    thread_t *t = current_cpu->thread;
+    Thread *t = current_cpu->thread;
     MOS_ASSERT_X(t->state != THREAD_STATE_BLOCKED, "thread %d is already blocked", t->tid);
 
     if (!waitlist_append(waitlist))

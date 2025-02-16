@@ -4,16 +4,18 @@
 
 #include <mos/lib/structures/list.hpp>
 
-typedef struct
+struct test_structure
 {
     int value_before;
     as_linked_list;
     int value_after;
-} test_structure;
+
+    test_structure(int value_before, int value_after) : value_before(value_before), value_after(value_after) {};
+};
 
 MOS_TEST_CASE(test_list_init)
 {
-    test_structure pp = { 0, LIST_NODE_INIT(pp), 1 };
+    test_structure pp = { 0, 1 };
 
     MOS_TEST_CHECK(pp.value_before, 0);
     MOS_TEST_CHECK(pp.value_after, 1);
@@ -21,7 +23,7 @@ MOS_TEST_CASE(test_list_init)
     MOS_TEST_CHECK(pp.list_node.prev, &pp.list_node);
     MOS_TEST_CHECK(pp.list_node.next, &pp.list_node);
 
-    list_node_t head = LIST_HEAD_INIT(head);
+    list_node_t head;
     MOS_TEST_CHECK(head.next, &head);
     MOS_TEST_CHECK(head.prev, &head);
 
@@ -30,7 +32,7 @@ MOS_TEST_CASE(test_list_init)
     MOS_TEST_CHECK(is_empty, true);
 
     // Check is_empty() on a non-empty list
-    test_structure p1 = { 0, LIST_NODE_INIT(p1), 1 };
+    test_structure p1 = { 0, 1 };
     list_node_append(&head, &p1.list_node);
     is_empty = list_is_empty(&head);
     MOS_TEST_CHECK(is_empty, false);
@@ -38,12 +40,12 @@ MOS_TEST_CASE(test_list_init)
 
 MOS_TEST_CASE(test_list_node_append)
 {
-    list_node_t list_head = LIST_HEAD_INIT(list_head);
-    test_structure s1 = { 1, LIST_NODE_INIT(s1), 2 };
-    test_structure s2 = { 3, LIST_NODE_INIT(s2), 4 };
-    test_structure s3 = { 5, LIST_NODE_INIT(s3), 6 };
-    test_structure s4 = { 7, LIST_NODE_INIT(s4), 8 };
-    test_structure s5 = { 9, LIST_NODE_INIT(s5), 10 };
+    list_node_t list_head;
+    test_structure s1 = { 1, 2 };
+    test_structure s2 = { 3, 4 };
+    test_structure s3 = { 5, 6 };
+    test_structure s4 = { 7, 8 };
+    test_structure s5 = { 9, 10 };
     list_node_append(&list_head, &s1.list_node); // list_head -> s1
     list_node_append(&list_head, &s2.list_node); // list_head -> s1 -> s2
     list_node_append(&list_head, &s3.list_node); // list_head -> s1 -> s2 -> s3
@@ -70,12 +72,12 @@ MOS_TEST_CASE(test_list_node_append)
 // prepending is really the same as appending to the head.
 MOS_TEST_CASE(test_list_node_prepend)
 {
-    list_node_t list_head = LIST_HEAD_INIT(list_head);
-    test_structure s1 = { 1, LIST_NODE_INIT(s1), 2 };
-    test_structure s2 = { 3, LIST_NODE_INIT(s2), 4 };
-    test_structure s3 = { 5, LIST_NODE_INIT(s3), 6 };
-    test_structure s4 = { 7, LIST_NODE_INIT(s4), 8 };
-    test_structure s5 = { 9, LIST_NODE_INIT(s5), 10 };
+    list_node_t list_head;
+    test_structure s1 = { 1, 2 };
+    test_structure s2 = { 3, 4 };
+    test_structure s3 = { 5, 6 };
+    test_structure s4 = { 7, 8 };
+    test_structure s5 = { 9, 10 };
     list_node_prepend(&list_head, &s5.list_node); // s5 -> list_head
     list_node_prepend(&list_head, &s4.list_node); // s4 -> s5 -> list_head
     list_node_prepend(&list_head, &s3.list_node); // s3 -> s4 -> s5 -> list_head
@@ -101,15 +103,15 @@ MOS_TEST_CASE(test_list_node_prepend)
 
 MOS_TEST_CASE(test_list_node_insert)
 {
-    list_node_t list_head = LIST_HEAD_INIT(list_head);
-    test_structure s1 = { 1, LIST_NODE_INIT(s1), 2 };
-    test_structure s2 = { 3, LIST_NODE_INIT(s2), 4 };
-    test_structure s3 = { 5, LIST_NODE_INIT(s3), 6 };
-    test_structure s4 = { 7, LIST_NODE_INIT(s4), 8 };
-    test_structure s5 = { 9, LIST_NODE_INIT(s5), 10 };
+    list_node_t list_head;
+    test_structure s1 = { 1, 2 };
+    test_structure s2 = { 3, 4 };
+    test_structure s3 = { 5, 6 };
+    test_structure s4 = { 7, 8 };
+    test_structure s5 = { 9, 10 };
 
-    test_structure new_s = { 11, LIST_NODE_INIT(new_s), 12 };
-    test_structure new_s2 = { 13, LIST_NODE_INIT(new_s2), 14 };
+    test_structure new_s = { 11, 12 };
+    test_structure new_s2 = { 13, 14 };
 
     // Connect the list.
     list_node_append(&list_head, &s1.list_node); // list_head -> s1
@@ -143,12 +145,12 @@ MOS_TEST_CASE(test_list_node_insert)
 
 MOS_TEST_CASE(test_list_remove)
 {
-    list_node_t list_head = LIST_HEAD_INIT(list_head);
-    test_structure s1 = { 1, LIST_NODE_INIT(s1), 2 };
-    test_structure s2 = { 3, LIST_NODE_INIT(s2), 4 };
-    test_structure s3 = { 5, LIST_NODE_INIT(s3), 6 };
-    test_structure s4 = { 7, LIST_NODE_INIT(s4), 8 };
-    test_structure s5 = { 9, LIST_NODE_INIT(s5), 10 };
+    list_node_t list_head;
+    test_structure s1 = { 1, 2 };
+    test_structure s2 = { 3, 4 };
+    test_structure s3 = { 5, 6 };
+    test_structure s4 = { 7, 8 };
+    test_structure s5 = { 9, 10 };
     list_node_append(&list_head, &s1.list_node); // list_head -> s1
     list_node_append(&list_head, &s2.list_node); // list_head -> s1 -> s2
     list_node_append(&list_head, &s3.list_node); // list_head -> s1 -> s2 -> s3
@@ -172,9 +174,9 @@ MOS_TEST_CASE(test_list_remove)
 
 MOS_TEST_CASE(test_list_macros)
 {
-    list_node_t list_head = LIST_HEAD_INIT(list_head);
-    test_structure s1 = { 1, LIST_NODE_INIT(s1), 2 };
-    test_structure s2 = { 3, LIST_NODE_INIT(s2), 4 };
+    list_node_t list_head;
+    test_structure s1 = { 1, 2 };
+    test_structure s2 = { 3, 4 };
 
     MOS_TEST_CHECK(list_entry(&s1.list_node, test_structure), &s1);
     MOS_TEST_CHECK(list_entry(&s2.list_node, test_structure)->value_before, s2.value_before);
@@ -185,12 +187,12 @@ MOS_TEST_CASE(test_list_macros)
 
 MOS_TEST_CASE(test_list_foreach)
 {
-    list_node_t list_head = LIST_HEAD_INIT(list_head);
-    test_structure s1 = { 1, LIST_NODE_INIT(s1), 2 };
-    test_structure s2 = { 3, LIST_NODE_INIT(s2), 4 };
-    test_structure s3 = { 5, LIST_NODE_INIT(s3), 6 };
-    test_structure s4 = { 7, LIST_NODE_INIT(s4), 8 };
-    test_structure s5 = { 9, LIST_NODE_INIT(s5), 10 };
+    list_node_t list_head;
+    test_structure s1 = { 1, 2 };
+    test_structure s2 = { 3, 4 };
+    test_structure s3 = { 5, 6 };
+    test_structure s4 = { 7, 8 };
+    test_structure s5 = { 9, 10 };
     list_node_append(&list_head, &s1.list_node); // list_head -> s1
     list_node_append(&list_head, &s2.list_node); // list_head -> s1 -> s2
     list_node_append(&list_head, &s3.list_node); // list_head -> s1 -> s2 -> s3
@@ -219,11 +221,11 @@ MOS_TEST_CASE(test_list_foreach)
 
 MOS_TEST_CASE(test_list_headless_foreach)
 {
-    test_structure s1 = { 1, LIST_NODE_INIT(s1), 2 };
-    test_structure s2 = { 3, LIST_NODE_INIT(s2), 4 };
-    test_structure s3 = { 5, LIST_NODE_INIT(s3), 6 };
-    test_structure s4 = { 7, LIST_NODE_INIT(s4), 8 };
-    test_structure s5 = { 9, LIST_NODE_INIT(s5), 10 };
+    test_structure s1 = { 1, 2 };
+    test_structure s2 = { 3, 4 };
+    test_structure s3 = { 5, 6 };
+    test_structure s4 = { 7, 8 };
+    test_structure s5 = { 9, 10 };
     list_append(&s1, &s2); // s1 -> s2
     list_append(&s1, &s3); // s1 -> s2 -> s3
     list_append(&s1, &s4); // s1 -> s2 -> s3 -> s4
@@ -295,12 +297,12 @@ MOS_TEST_CASE(test_list_headless_foreach)
 
 MOS_TEST_CASE(test_list_safe_foreach)
 {
-    list_node_t list_head = LIST_HEAD_INIT(list_head);
-    test_structure s1 = { 1, LIST_NODE_INIT(s1), 2 };
-    test_structure s2 = { 3, LIST_NODE_INIT(s2), 4 };
-    test_structure s3 = { 5, LIST_NODE_INIT(s3), 6 };
-    test_structure s4 = { 7, LIST_NODE_INIT(s4), 8 };
-    test_structure s5 = { 9, LIST_NODE_INIT(s5), 10 };
+    list_node_t list_head;
+    test_structure s1 = { 1, 2 };
+    test_structure s2 = { 3, 4 };
+    test_structure s3 = { 5, 6 };
+    test_structure s4 = { 7, 8 };
+    test_structure s5 = { 9, 10 };
     list_node_append(&list_head, &s1.list_node); // list_head -> s1
     list_node_append(&list_head, &s2.list_node); // list_head -> s1 -> s2
     list_node_append(&list_head, &s3.list_node); // list_head -> s1 -> s2 -> s3

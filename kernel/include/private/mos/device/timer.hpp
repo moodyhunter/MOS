@@ -13,7 +13,7 @@ typedef struct _ktimer
 {
     as_linked_list;
     u64 timeout;
-    thread_t *thread;
+    Thread *thread;
     bool ticked;
     timer_callback_t callback;
     void *arg;

@@ -39,7 +39,7 @@ __weak__ void platform_dump_current_stack()
     pr_emerg("platform_dump_current_stack() not implemented");
 }
 
-__weak__ void platform_dump_thread_kernel_stack(const thread_t *thread)
+__weak__ void platform_dump_thread_kernel_stack(const Thread *thread)
 {
     MOS_UNUSED(thread);
     pr_emerg("platform_dump_thread_kernel_stack() not implemented");

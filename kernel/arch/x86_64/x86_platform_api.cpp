@@ -83,17 +83,17 @@ void platform_interrupt_disable(void)
     __asm__ volatile("cli");
 }
 
-void platform_switch_mm(const mm_context_t *mm)
+void platform_switch_mm(const MMContext *mm)
 {
     x86_cpu_set_cr3(pgd_pfn(mm->pgd) * MOS_PAGE_SIZE);
 }
 
-platform_regs_t *platform_thread_regs(const thread_t *thread)
+platform_regs_t *platform_thread_regs(const Thread *thread)
 {
     return (platform_regs_t *) (thread->k_stack.top - sizeof(platform_regs_t));
 }
 
-void platform_dump_thread_kernel_stack(const thread_t *thread)
+void platform_dump_thread_kernel_stack(const Thread *thread)
 {
     if (!thread)
     {

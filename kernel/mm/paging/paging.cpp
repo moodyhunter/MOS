@@ -15,7 +15,7 @@
 #include <mos/syslog/printk.hpp>
 #include <mos_stdlib.hpp>
 
-PtrResult<vmap_t> mm_get_free_vaddr_locked(mm_context_t *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags)
+PtrResult<vmap_t> mm_get_free_vaddr_locked(MMContext *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags)
 {
     MOS_ASSERT_X(spinlock_is_locked(&mmctx->mm_lock), "insane mmctx->mm_lock state");
     MOS_ASSERT_X(base_vaddr < MOS_KERNEL_START_VADDR, "Use mm_get_free_pages instead");
@@ -79,7 +79,7 @@ PtrResult<vmap_t> mm_get_free_vaddr_locked(mm_context_t *mmctx, size_t n_pages, 
     }
 }
 
-void mm_map_kernel_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
+void mm_map_kernel_pages(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
 {
     MOS_ASSERT(vaddr >= MOS_KERNEL_START_VADDR);
     MOS_ASSERT(npages > 0);
@@ -89,7 +89,7 @@ void mm_map_kernel_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npa
     spinlock_release(&mmctx->mm_lock);
 }
 
-PtrResult<vmap_t> mm_map_user_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags, valloc_flags vaflags, vmap_type_t type,
+PtrResult<vmap_t> mm_map_user_pages(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags, valloc_flags vaflags, vmap_type_t type,
                                     vmap_content_t content)
 {
     spinlock_acquire(&mmctx->mm_lock);
@@ -110,7 +110,7 @@ PtrResult<vmap_t> mm_map_user_pages(mm_context_t *mmctx, ptr_t vaddr, pfn_t pfn,
     return vmap;
 }
 
-void mm_replace_page_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, vm_flags flags)
+void mm_replace_page_locked(MMContext *ctx, ptr_t vaddr, pfn_t pfn, vm_flags flags)
 {
     vaddr = ALIGN_DOWN_TO_PAGE(vaddr);
     pr_dinfo2(vmm, "filling page at " PTR_FMT " with " PFN_FMT, vaddr, pfn);
@@ -130,7 +130,7 @@ void mm_replace_page_locked(mm_context_t *ctx, ptr_t vaddr, pfn_t pfn, vm_flags 
     mm_do_map(ctx->pgd, vaddr, pfn, 1, flags, false);
 }
 
-PtrResult<vmap_t> mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx)
+PtrResult<vmap_t> mm_clone_vmap_locked(vmap_t *src_vmap, MMContext *dst_ctx)
 {
     auto dst_vmap = mm_get_free_vaddr_locked(dst_ctx, src_vmap->npages, src_vmap->vaddr, VALLOC_EXACT);
 
@@ -157,7 +157,7 @@ PtrResult<vmap_t> mm_clone_vmap_locked(vmap_t *src_vmap, mm_context_t *dst_ctx)
     return dst_vmap;
 }
 
-bool mm_get_is_mapped_locked(mm_context_t *mmctx, ptr_t vaddr)
+bool mm_get_is_mapped_locked(MMContext *mmctx, ptr_t vaddr)
 {
     MOS_ASSERT(spinlock_is_locked(&mmctx->mm_lock));
     list_foreach(vmap_t, vmap, mmctx->mmaps)
@@ -169,7 +169,7 @@ bool mm_get_is_mapped_locked(mm_context_t *mmctx, ptr_t vaddr)
     return false;
 }
 
-void mm_flag_pages_locked(mm_context_t *ctx, ptr_t vaddr, size_t npages, vm_flags flags)
+void mm_flag_pages_locked(MMContext *ctx, ptr_t vaddr, size_t npages, vm_flags flags)
 {
     MOS_ASSERT(npages > 0);
     MOS_ASSERT(spinlock_is_locked(&ctx->mm_lock));
@@ -177,7 +177,7 @@ void mm_flag_pages_locked(mm_context_t *ctx, ptr_t vaddr, size_t npages, vm_flag
     mm_do_flag(ctx->pgd, vaddr, npages, flags);
 }
 
-ptr_t mm_get_phys_addr(mm_context_t *ctx, ptr_t vaddr)
+ptr_t mm_get_phys_addr(MMContext *ctx, ptr_t vaddr)
 {
     pfn_t pfn = mm_do_get_pfn(ctx->pgd, vaddr);
     return pfn << PML1_SHIFT | (vaddr % MOS_PAGE_SIZE);

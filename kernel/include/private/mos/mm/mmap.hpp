@@ -18,7 +18,7 @@
  * @param n_pages Number of pages to map
  * @return ptr_t The address the page was mapped at, or 0 if the mapping failed
  */
-ptr_t mmap_anonymous(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages);
+ptr_t mmap_anonymous(MMContext *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages);
 
 /**
  * @brief Map a file into the current process's address space
@@ -32,7 +32,7 @@ ptr_t mmap_anonymous(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_
  * @param offset The offset into the file to map, must be page aligned
  * @return ptr_t The address the page was mapped at, or 0 if the mapping failed
  */
-ptr_t mmap_file(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages, io_t *io, off_t offset);
+ptr_t mmap_file(MMContext *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages, io_t *io, off_t offset);
 
 /**
  * @brief Unmap a page from the current process's address space
@@ -54,4 +54,4 @@ bool munmap(ptr_t addr, size_t size);
  * @param size The size of the mapping to change
  * @param perm The new permissions for the mapping
  */
-bool vm_protect(mm_context_t *mmctx, ptr_t addr, size_t size, vm_flags perm);
+bool vm_protect(MMContext *mmctx, ptr_t addr, size_t size, vm_flags perm);

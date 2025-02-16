@@ -9,8 +9,6 @@
 #include "mos/filesystem/sysfs/sysfs_autoinit.hpp"
 #include "mos/mm/mm.hpp"
 #include "mos/mm/mmstat.hpp"
-#include "mos/mm/physical/pmm.hpp"
-#include "mos/mm/slab_autoinit.hpp"
 
 #include <algorithm>
 #include <dirent.h>
@@ -31,16 +29,10 @@
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-static list_head vfs_fs_list = LIST_HEAD_INIT(vfs_fs_list); // filesystem_t
-static spinlock_t vfs_fs_list_lock = SPINLOCK_INIT;
+static list_head vfs_fs_list; // filesystem_t
+static spinlock_t vfs_fs_list_lock;
 
 dentry_t *root_dentry = NULL;
-
-slab_t *superblock_cache = NULL, *mount_cache = NULL, *file_cache = NULL;
-
-SLAB_AUTOINIT("superblock", superblock_cache, superblock_t);
-SLAB_AUTOINIT("mount", mount_cache, mount_t);
-SLAB_AUTOINIT("file", file_cache, file_t);
 
 static long do_pagecache_flush(file_t *file, off_t pgoff, size_t npages)
 {
@@ -88,7 +80,7 @@ static void vfs_io_ops_close(io_t *io)
         }
     }
 
-    kfree(file);
+    delete file;
 }
 
 static void vfs_io_ops_close_dir(io_t *io)
@@ -101,11 +93,10 @@ static void vfs_io_ops_close_dir(io_t *io)
         list_foreach(vfs_listdir_entry_t, entry, state->entries)
         {
             list_remove(entry);
-            kfree(entry->name);
-            kfree(entry);
+            delete entry;
         }
 
-        kfree(state);
+        delete state;
         file->private_data = NULL;
     }
 
@@ -283,7 +274,7 @@ static const io_op_t dir_io_ops = {
 
 // END: filesystem's io_t operations
 
-static void vfs_flusher_entry(void *arg)
+static __used void vfs_flusher_entry(void *arg)
 {
     MOS_UNUSED(arg);
     while (true)
@@ -316,20 +307,16 @@ static void vfs_copy_stat(file_stat_t *statbuf, inode_t *inode)
     statbuf->created = inode->created;
 }
 
-static filesystem_t *vfs_find_filesystem(const char *name)
+static filesystem_t *vfs_find_filesystem(mos::string_view name)
 {
-    filesystem_t *fs_found = NULL;
-    spinlock_acquire(&vfs_fs_list_lock);
+    SpinLocker lock(&vfs_fs_list_lock);
     list_foreach(filesystem_t, fs, vfs_fs_list)
     {
-        if (strcmp(fs->name, name) == 0)
-        {
-            fs_found = fs;
-            break;
-        }
+        if (fs->name == name)
+            return fs;
     }
-    spinlock_release(&vfs_fs_list_lock);
-    return fs_found;
+
+    return nullptr;
 }
 
 static bool vfs_verify_permissions(dentry_t &file_dentry, bool open, bool read, bool create, bool execute, bool write)
@@ -419,7 +406,7 @@ PtrResult<file_t> vfs_do_open_dentry(dentry_t *entry, bool created, bool read, b
     MOS_ASSERT(entry->inode);
     MOS_UNUSED(truncate);
 
-    file_t *file = (file_t *) kmalloc(file_cache);
+    file_t *file = mos::create<file_t>();
     file->dentry = entry;
 
     io_flags_t io_flags = IO_SEEKABLE;
@@ -448,7 +435,7 @@ PtrResult<file_t> vfs_do_open_dentry(dentry_t *entry, bool created, bool read, b
         bool opened = ops->open(file->dentry->inode, file, created);
         if (!opened)
         {
-            kfree(file);
+            delete file;
             return -ENOTSUP;
         }
     }
@@ -459,7 +446,7 @@ PtrResult<file_t> vfs_do_open_dentry(dentry_t *entry, bool created, bool read, b
 void vfs_register_filesystem(filesystem_t *fs)
 {
     if (vfs_find_filesystem(fs->name))
-        mos_panic("filesystem '%s' already registered", fs->name);
+        mos_panic("filesystem '%s' already registered", fs->name.c_str());
 
     MOS_ASSERT(list_is_empty(list_node(fs)));
 
@@ -467,7 +454,7 @@ void vfs_register_filesystem(filesystem_t *fs)
     list_node_append(&vfs_fs_list, list_node(fs));
     spinlock_release(&vfs_fs_list_lock);
 
-    pr_dinfo2(vfs, "filesystem '%s' registered", fs->name);
+    pr_dinfo2(vfs, "filesystem '%s' registered", fs->name.c_str());
 }
 
 long vfs_mount(const char *device, const char *path, const char *fs, const char *options)
@@ -479,7 +466,7 @@ long vfs_mount(const char *device, const char *path, const char *fs, const char 
         return -EINVAL;
     }
 
-    MOS_ASSERT_X(real_fs->mount, "filesystem '%s' does not support mounting", real_fs->name);
+    MOS_ASSERT_X(real_fs->mount, "filesystem '%s' does not support mounting", real_fs->name.c_str());
 
     if (unlikely(strcmp(path, "/") == 0))
     {
@@ -503,7 +490,7 @@ long vfs_mount(const char *device, const char *path, const char *fs, const char 
 
         pr_dinfo2(vfs, "root filesystem mounted, dentry=%p", (void *) root_dentry);
 
-        MOS_ASSERT(root_dentry->name == NULL);
+        MOS_ASSERT(root_dentry->name.empty());
         bool mounted = dentry_mount(root_dentry, root_dentry, real_fs);
         MOS_ASSERT(mounted);
 
@@ -752,7 +739,7 @@ size_t vfs_list_dir(io_t *io, void *user_buf, size_t user_size)
 
     if (file->private_data == NULL)
     {
-        vfs_listdir_state_t *const state = (vfs_listdir_state_t *) kmalloc(sizeof(vfs_listdir_state_t));
+        vfs_listdir_state_t *const state = mos::create<vfs_listdir_state_t>();
         file->private_data = state;
         linked_list_init(&state->entries);
         state->n_count = state->read_offset = 0;
@@ -774,7 +761,7 @@ size_t vfs_list_dir(io_t *io, void *user_buf, size_t user_size)
         if (state->read_offset >= state->n_count)
             break;
 
-        const size_t entry_size = sizeof(ino_t) + sizeof(off_t) + sizeof(short) + sizeof(char) + entry->name_len + 1; // +1 for the null terminator
+        const size_t entry_size = sizeof(ino_t) + sizeof(off_t) + sizeof(short) + sizeof(char) + entry->name.size() + 1; // +1 for the null terminator
         if (bytes_copied + entry_size > user_size)
             break;
 
@@ -783,8 +770,8 @@ size_t vfs_list_dir(io_t *io, void *user_buf, size_t user_size)
         dirent->d_type = entry->type;
         dirent->d_reclen = entry_size;
         dirent->d_off = entry_size - 1;
-        memcpy(dirent->d_name, entry->name, entry->name_len);
-        dirent->d_name[entry->name_len] = '\0';
+        memcpy(dirent->d_name, entry->name.data(), entry->name.size());
+        dirent->d_name[entry->name.size()] = '\0';
         bytes_copied += entry_size;
         state->read_offset++;
     }
@@ -896,7 +883,7 @@ static bool vfs_sysfs_filesystems(sysfs_file_t *f)
 {
     list_foreach(filesystem_t, fs, vfs_fs_list)
     {
-        sysfs_printf(f, "%s\n", fs->name);
+        sysfs_printf(f, "%s\n", fs->name.c_str());
     }
 
     return true;
@@ -908,7 +895,7 @@ static bool vfs_sysfs_mountpoints(sysfs_file_t *f)
     list_foreach(mount_t, mp, vfs_mountpoint_list)
     {
         dentry_path(mp->mountpoint, root_dentry, pathbuf, sizeof(pathbuf));
-        sysfs_printf(f, "%-20s %-10s\n", pathbuf, mp->fs->name);
+        sysfs_printf(f, "%-20s %-10s\n", pathbuf, mp->fs->name.c_str());
     }
 
     return true;
@@ -920,7 +907,7 @@ static void vfs_sysfs_dentry_stats_stat_receiver(int depth, const dentry_t *dent
     sysfs_printf(file, "%*s%s: refcount=%zu%s\n",                                             //
                  depth * 4,                                                                   //
                  "",                                                                          //
-                 dentry_name(dentry),                                                         //
+                 dentry_name(dentry).c_str(),                                                 //
                  dentry->refcount.load(),                                                     //
                  mountroot ? " (mount root)" : (dentry->is_mountpoint ? " (mountpoint)" : "") //
     );

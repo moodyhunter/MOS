@@ -51,7 +51,7 @@ static bool mmap_verify_arguments(ptr_t *hint_addr, mmap_flags_t mmap_flags)
     return true;
 }
 
-ptr_t mmap_anonymous(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages)
+ptr_t mmap_anonymous(MMContext *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages)
 {
     if (!mmap_verify_arguments(&hint_addr, flags))
         return 0;
@@ -70,7 +70,7 @@ ptr_t mmap_anonymous(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_
     return vmap->vaddr;
 }
 
-ptr_t mmap_file(mm_context_t *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages, io_t *io, off_t offset)
+ptr_t mmap_file(MMContext *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages, io_t *io, off_t offset)
 {
     if (!mmap_verify_arguments(&hint_addr, flags))
         return 0;
@@ -141,7 +141,7 @@ bool munmap(ptr_t addr, size_t size)
     return true;
 }
 
-bool vm_protect(mm_context_t *mmctx, ptr_t addr, size_t size, vm_flags perm)
+bool vm_protect(MMContext *mmctx, ptr_t addr, size_t size, vm_flags perm)
 {
     MOS_ASSERT(addr % MOS_PAGE_SIZE == 0);
     size = ALIGN_UP_TO_PAGE(size);

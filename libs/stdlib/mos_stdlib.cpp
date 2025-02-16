@@ -3,7 +3,7 @@
 #include "mos_stdlib.hpp"
 
 #ifdef __MOS_KERNEL__
-#include "mos/mm/slab.hpp"
+#include <mos/allocator.hpp>
 #endif
 
 #include <mos/types.h>
@@ -150,48 +150,43 @@ char *string_trim(char *in)
 }
 
 #ifdef __MOS_KERNEL__
-void *kmalloc(size_t size)
+void *do_kmalloc(size_t size)
 {
     return slab_alloc(size);
 }
 
-void *kmalloc(slab_t *slab)
-{
-    return kmemcache_alloc(slab);
-}
-
-void *kcalloc(size_t nmemb, size_t size)
+void *do_kcalloc(size_t nmemb, size_t size)
 {
     return slab_calloc(nmemb, size);
 }
 
-void *krealloc(void *ptr, size_t size)
+void *do_krealloc(void *ptr, size_t size)
 {
     return slab_realloc(ptr, size);
 }
 
-void kfree(const void *ptr)
+void do_kfree(const void *ptr)
 {
     slab_free(ptr);
 }
 
 void *malloc(size_t size)
 {
-    return kmalloc(size);
+    return do_kmalloc(size);
 }
 
 void *calloc(size_t nmemb, size_t size)
 {
-    return kcalloc(nmemb, size);
+    return do_kcalloc(nmemb, size);
 }
 
 void *realloc(void *ptr, size_t size)
 {
-    return krealloc(ptr, size);
+    return do_krealloc(ptr, size);
 }
 
 void free(void *ptr)
 {
-    return kfree(ptr);
+    return do_kfree(ptr);
 }
 #endif

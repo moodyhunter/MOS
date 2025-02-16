@@ -121,14 +121,14 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
             shift_next;
             // thread_t
             null_check();
-            const thread_t *thread = (const thread_t *) ptr;
+            const Thread *thread = (const Thread *) ptr;
             if (thread == NULL)
             {
                 wrap_print("(null)");
                 goto done;
             }
             MOS_ASSERT_X(thread_is_valid(thread), "thread is invalid");
-            wrap_print("[t%d:%s]", thread->tid, thread->name ? thread->name : "<no name>");
+            wrap_print("[t%d:%s]", thread->tid, thread->name.empty() ? "<no name>" : thread->name.data());
             goto done;
         }
         case 'p': // %pp
@@ -136,14 +136,14 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
             shift_next;
             // process_t
             null_check();
-            const process_t *process = (const process_t *) ptr;
+            const Process *process = (const Process *) ptr;
             if (process == NULL)
             {
                 wrap_print("(null)");
                 goto done;
             }
             MOS_ASSERT_X(process_is_valid(process), "process is invalid");
-            wrap_print("[p%d:%s]", process->pid, process->name ? process->name : "<no name>");
+            wrap_print("[p%d:%s]", process->pid, process->name.empty() ? "<no name>" : process->name.data());
             goto done;
         }
         case 'v': // %pv

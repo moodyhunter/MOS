@@ -34,12 +34,16 @@ SYSFS_AUTOREGISTER(acpi, acpi_sysfs_items);
     if (!verify_sdt_checksum(&(var)->sdt_header))                                                                                                                        \
         mos_panic(#type " checksum error");
 
-typedef struct
+struct acpi_sysfs_item_t : mos::NamedType<"X86.ACPI.SysfsItem">
 {
     sysfs_item_t item;
     size_t size;
     phyframe_t *pages;
-} acpi_sysfs_item_t;
+
+    acpi_sysfs_item_t(const char *name) : item(mos::string(name, 4))
+    {
+    }
+};
 
 static bool acpi_sysfs_mmap(sysfs_file_t *f, vmap_t *vmap, off_t offset)
 {
@@ -63,9 +67,8 @@ static bool acpi_sysfs_munmap(sysfs_file_t *f, vmap_t *vmap, bool *unmapped)
 
 static void register_sysfs_acpi_rsdp(const acpi_rsdp_t *rsdp)
 {
-    acpi_sysfs_item_t *const item = (acpi_sysfs_item_t *) kmalloc(sizeof(acpi_sysfs_item_t));
+    acpi_sysfs_item_t *const item = mos::create<acpi_sysfs_item_t>("RSDP");
     item->size = rsdp->length;
-    item->item.name = strndup("RSDP", 4);
     item->item.mem.mmap = acpi_sysfs_mmap;
     item->item.mem.munmap = acpi_sysfs_munmap;
     item->item.mem.size = item->size;
@@ -82,9 +85,8 @@ static void register_sysfs_acpi_rsdp(const acpi_rsdp_t *rsdp)
 
 static void register_sysfs_acpi_node(const char table_name[4], const acpi_sdt_header_t *header)
 {
-    acpi_sysfs_item_t *const item = (acpi_sysfs_item_t *) kmalloc(sizeof(acpi_sysfs_item_t));
+    acpi_sysfs_item_t *const item = mos::create<acpi_sysfs_item_t>(table_name);
     item->size = header->length;
-    item->item.name = strndup(table_name, 4);
     item->item.mem.mmap = acpi_sysfs_mmap;
     item->item.mem.munmap = acpi_sysfs_munmap;
     item->item.mem.size = item->size;

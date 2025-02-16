@@ -15,10 +15,10 @@
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const char *const argv[], const char *const envp[], int flags)
+long process_do_execveat(Process *process, fd_t dirfd, const char *path, const char *const argv[], const char *const envp[], int flags)
 {
-    thread_t *const thread = current_thread;
-    process_t *const proc = current_process;
+    Thread *const thread = current_thread;
+    Process *const proc = current_process;
 
     MOS_ASSERT(thread->owner == process); // why
 
@@ -45,13 +45,13 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
     while (argv && argv[argc])
     {
         argc++;
-        argv_copy = (const char **) krealloc(argv_copy, (argc + 1) * sizeof(char *));
+        argv_copy = krealloc(argv_copy, (argc + 1) * sizeof(char *));
         argv_copy[argc - 1] = strdup(argv[argc - 1]);
     }
 
     if (!argv_copy)
     {
-        argv_copy = (const char **) kmalloc(sizeof(char *) * 2);
+        argv_copy = kcalloc<const char *>(2);
         argv_copy[0] = strdup(path);
         argv_copy[1] = NULL;
         argc = 1;
@@ -63,13 +63,13 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
     while (envp && envp[envc])
     {
         envc++;
-        envp_copy = (const char **) krealloc(envp_copy, (envc + 1) * sizeof(char *));
+        envp_copy = krealloc(envp_copy, (envc + 1) * sizeof(char *));
         envp_copy[envc - 1] = strdup(envp[envc - 1]);
     }
 
     if (!envp_copy)
     {
-        envp_copy = (const char **) kmalloc(sizeof(char *) * 1);
+        envp_copy = kcalloc<const char *>(1);
         envp_copy[0] = NULL;
         envc = 0;
     }
@@ -78,17 +78,12 @@ long process_do_execveat(process_t *process, fd_t dirfd, const char *path, const
 
     // !! ====== point of no return ====== !! //
 
-    if (proc->name)
-        kfree(proc->name);
-    if (thread->name)
-        kfree(thread->name);
-
-    proc->name = strdup(f->dentry->name);   // set process name to the name of the executable
-    thread->name = strdup(f->dentry->name); // set thread name to the name of the executable
+    proc->name = f->dentry->name;   // set process name to the name of the executable
+    thread->name = f->dentry->name; // set thread name to the name of the executable
 
     spinlock_acquire(&thread->state_lock);
 
-    list_foreach(thread_t, t, process->threads)
+    list_foreach(Thread, t, process->threads)
     {
         if (t != thread)
         {

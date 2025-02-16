@@ -14,6 +14,7 @@
 #include <mos/filesystem/dentry.hpp>
 #include <mos/filesystem/fs_types.h>
 #include <mos/filesystem/vfs.hpp>
+#include <mos/hashmap.hpp>
 #include <mos/lib/structures/hashmap.hpp>
 #include <mos/lib/structures/hashmap_common.hpp>
 #include <mos/lib/structures/list.hpp>
@@ -27,11 +28,12 @@
 #include <mos/tasks/task_types.hpp>
 #include <mos/tasks/thread.hpp>
 #include <mos/tasks/wait.hpp>
+#include <mos/type_utils.hpp>
 #include <mos_stdio.hpp>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-hashmap_t process_table = { 0 }; // pid_t -> process_t
+mos::HashMap<pid_t, Process *> ProcessTable;
 
 const char *get_vmap_content_str(vmap_content_t content)
 {
@@ -58,68 +60,48 @@ const char *get_vmap_type_str(vmap_type_t type)
 
 static pid_t new_process_id(void)
 {
-    static pid_t next = 1;
-    return (pid_t) { next++ };
+    static std::atomic<pid_t> next = 1;
+    return next++;
 }
 
-process_t *process_allocate(process_t *parent, const char *name)
+Process::Process(Private, Process *const parent_, mos::string_view name_) : magic(PROCESS_MAGIC_PROC), pid(new_process_id()), parent(parent_)
 {
-    process_t *proc = (process_t *) kmalloc(process_cache);
+    linked_list_init(&threads);
+    linked_list_init(&children);
 
-    proc->magic = PROCESS_MAGIC_PROC;
-    proc->pid = new_process_id();
-    linked_list_init(&proc->threads);
-    linked_list_init(&proc->children);
+    waitlist_init(&signal_info.sigchild_waitlist);
 
-    waitlist_init(&proc->signal_info.sigchild_waitlist);
+    this->name = name_.empty() ? "<unknown>" : name_;
 
-    proc->name = strdup(name ? name : "<unknown>");
-
-    if (likely(parent))
+    if (unlikely(pid == 1) || unlikely(pid == 2))
     {
-        proc->parent = parent;
-    }
-    else if (unlikely(proc->pid == 1) || unlikely(proc->pid == 2))
-    {
-        proc->parent = proc;
-        pr_demph(process, "special process %pp created", (void *) proc);
-    }
-    else
-    {
-        pr_emerg("process %pp has no parent", (void *) proc);
-        kfree(proc->name);
-        kfree(proc);
-        return NULL;
+        this->parent = this;
+        pr_demph(process, "special process %pp created", (void *) this);
     }
 
-    list_node_append(&proc->parent->children, list_node(proc));
+    if (parent == nullptr)
+        mos_panic("process %pp has no parent", (void *) this);
 
-    if (unlikely(proc->pid == 2))
+    list_node_append(&parent->children, list_node(this));
+
+    if (unlikely(pid == 2))
     {
-        proc->mm = platform_info->kernel_mm; // ! Special case: PID 2 (kthreadd) uses the kernel page table
+        mm = platform_info->kernel_mm; // ! Special case: PID 2 (kthreadd) uses the kernel page table
     }
     else
     {
-        proc->mm = mm_create_context();
+        mm = mm_create_context();
     }
 
-    if (unlikely(!proc->mm))
-    {
-        pr_emerg("failed to create page table for process %pp", (void *) proc);
-        kfree(proc->name);
-        kfree(proc);
-        return NULL;
-    }
-
-    return proc;
+    MOS_ASSERT_X(mm != NULL, "failed to create page table for process");
 }
 
-void process_destroy(process_t *process)
+void process_destroy(Process *process)
 {
     if (!process_is_valid(process))
         return;
 
-    hashmap_remove(&process_table, process->pid);
+    ProcessTable.remove(process->pid);
 
     MOS_ASSERT(process != current_process);
     pr_dinfo2(process, "destroying process %pp", (void *) process);
@@ -129,9 +111,6 @@ void process_destroy(process_t *process)
     spinlock_acquire(&process->main_thread->state_lock);
     thread_destroy(process->main_thread);
     process->main_thread = NULL;
-
-    if (process->name != NULL)
-        kfree(process->name);
 
     if (process->mm != NULL)
     {
@@ -147,12 +126,12 @@ void process_destroy(process_t *process)
         mm_destroy_context(process->mm);
     }
 
-    kfree(process);
+    delete process;
 }
 
-process_t *process_new(process_t *parent, const char *name, const stdio_t *ios)
+Process *process_new(Process *parent, mos::string_view name, const stdio_t *ios)
 {
-    process_t *proc = process_allocate(parent, name);
+    const auto proc = Process::New(parent, name);
     if (unlikely(!proc))
         return NULL;
     pr_dinfo2(process, "creating process %pp", (void *) proc);
@@ -170,21 +149,26 @@ process_t *process_new(process_t *parent, const char *name, const stdio_t *ios)
     proc->main_thread = thread.get();
     proc->working_directory = dentry_ref_up_to(parent ? parent->working_directory : root_dentry, root_dentry);
 
-    void *old_proc = hashmap_put(&process_table, proc->pid, proc);
-    MOS_ASSERT_X(old_proc == NULL, "process already exists, go and buy yourself a lottery :)");
+    ProcessTable.insert(proc->pid, proc);
     return proc;
 }
 
-process_t *process_get(pid_t pid)
+Process *process_get(pid_t pid)
 {
-    process_t *p = (process_t *) hashmap_get(&process_table, pid);
-    if (process_is_valid(p))
-        return p;
+    const auto pproc = ProcessTable.get(pid);
+    if (!pproc)
+    {
+        pr_warn("process %d does not exist", pid);
+        return nullptr;
+    }
+
+    if (process_is_valid(**pproc))
+        return **pproc;
 
     return NULL;
 }
 
-fd_t process_attach_ref_fd(process_t *process, io_t *file, fd_flags_t flags)
+fd_t process_attach_ref_fd(Process *process, io_t *file, fd_flags_t flags)
 {
     MOS_ASSERT(process_is_valid(process));
 
@@ -205,7 +189,7 @@ fd_t process_attach_ref_fd(process_t *process, io_t *file, fd_flags_t flags)
     return fd;
 }
 
-io_t *process_get_fd(process_t *process, fd_t fd)
+io_t *process_get_fd(Process *process, fd_t fd)
 {
     MOS_ASSERT(process_is_valid(process));
     if (fd < 0 || fd >= MOS_PROCESS_MAX_OPEN_FILES)
@@ -213,7 +197,7 @@ io_t *process_get_fd(process_t *process, fd_t fd)
     return process->files[fd].io;
 }
 
-bool process_detach_fd(process_t *process, fd_t fd)
+bool process_detach_fd(Process *process, fd_t fd)
 {
     MOS_ASSERT(process_is_valid(process));
     if (fd < 0 || fd >= MOS_PROCESS_MAX_OPEN_FILES)
@@ -237,7 +221,7 @@ pid_t process_wait_for_pid(pid_t pid, u32 *exit_code, u32 flags)
 
     find_dead_child:;
         // first find if there are any dead children
-        list_foreach(process_t, child, current_process->children)
+        list_foreach(Process, child, current_process->children)
         {
             if (child->exited)
             {
@@ -267,7 +251,7 @@ pid_t process_wait_for_pid(pid_t pid, u32 *exit_code, u32 flags)
     }
 
 child_dead:;
-    process_t *target_proc = process_get(pid);
+    Process *target_proc = process_get(pid);
     if (target_proc == NULL)
     {
         pr_warn("process %d does not exist", pid);
@@ -294,7 +278,7 @@ child_dead:;
     return pid;
 }
 
-void process_exit(process_t *process, u8 exit_code, signal_t signal)
+void process_exit(Process *process, u8 exit_code, signal_t signal)
 {
     MOS_ASSERT(process_is_valid(process));
     pr_dinfo2(process, "process %pp exited with code %d, signal %d", (void *) process, exit_code, signal);
@@ -302,14 +286,14 @@ void process_exit(process_t *process, u8 exit_code, signal_t signal)
     if (unlikely(process->pid == 1))
         mos_panic("init process terminated with code %d, signal %d", exit_code, signal);
 
-    list_foreach(thread_t, thread, process->threads)
+    list_foreach(Thread, thread, process->threads)
     {
         spinlock_acquire(&thread->state_lock);
         if (thread->state == THREAD_STATE_DEAD)
         {
             pr_dinfo2(process, "cleanup thread %pt", (void *) thread);
             MOS_ASSERT(thread != current_thread);
-            hashmap_remove(&thread_table, thread->tid);
+            thread_table.remove(thread->tid);
             list_remove(thread);
             thread_destroy(thread);
         }
@@ -325,7 +309,7 @@ void process_exit(process_t *process, u8 exit_code, signal_t signal)
                 spinlock_acquire(&thread->state_lock);
                 pr_dinfo2(process, "thread %pt terminated", (void *) thread);
                 MOS_ASSERT_X(thread->state == THREAD_STATE_DEAD, "thread %pt is not dead", (void *) thread);
-                hashmap_remove(&thread_table, thread->tid);
+                thread_table.remove(thread->tid);
                 thread_destroy(thread);
             }
             else
@@ -353,7 +337,7 @@ void process_exit(process_t *process, u8 exit_code, signal_t signal)
     }
 
     // re-parent all children to parent of this process
-    list_foreach(process_t, child, process->children)
+    list_foreach(Process, child, process->children)
     {
         child->parent = process->parent;
         linked_list_init(list_node(child));
@@ -378,7 +362,7 @@ void process_exit(process_t *process, u8 exit_code, signal_t signal)
     MOS_UNREACHABLE();
 }
 
-void process_dump_mmaps(const process_t *process)
+void process_dump_mmaps(const Process *process)
 {
     pr_info("process %pp:", (void *) process);
     size_t i = 0;
@@ -393,7 +377,7 @@ void process_dump_mmaps(const process_t *process)
     pr_info("total: %zd memory regions", i);
 }
 
-bool process_register_signal_handler(process_t *process, signal_t sig, const sigaction_t *sigaction)
+bool process_register_signal_handler(Process *process, signal_t sig, const sigaction_t *sigaction)
 {
     pr_dinfo2(signal, "registering signal handler for process %pp, signal %d", (void *) process, sig);
     if (!sigaction)
@@ -412,11 +396,11 @@ bool process_register_signal_handler(process_t *process, signal_t sig, const sig
 static bool process_sysfs_process_stat(sysfs_file_t *f)
 {
     do_print("%d", "pid", current_process->pid);
-    do_print("%s", "name", current_process->name);
+    do_print("%s", "name", current_process->name.c_str());
 
     do_print("%d", "parent", current_process->parent->pid);
 
-    list_foreach(thread_t, thread, current_process->threads)
+    list_foreach(Thread, thread, current_process->threads)
     {
         do_print("%pt", "thread", (void *) thread);
     }
@@ -426,7 +410,7 @@ static bool process_sysfs_process_stat(sysfs_file_t *f)
 static bool process_sysfs_thread_stat(sysfs_file_t *f)
 {
     do_print("%d", "tid", current_thread->tid);
-    do_print("%s", "name", current_thread->name);
+    do_print("%s", "name", current_thread->name.c_str());
     return true;
 }
 

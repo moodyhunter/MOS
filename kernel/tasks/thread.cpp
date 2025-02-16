@@ -21,7 +21,7 @@
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-hashmap_t thread_table = { 0 }; // tid_t -> thread_t
+mos::HashMap<tid_t, Thread *> thread_table; // tid_t -> Thread
 
 static tid_t new_thread_id(void)
 {
@@ -29,9 +29,9 @@ static tid_t new_thread_id(void)
     return (tid_t) { next++ };
 }
 
-thread_t *thread_allocate(process_t *owner, thread_mode tflags)
+Thread *thread_allocate(Process *owner, thread_mode tflags)
 {
-    thread_t *t = (thread_t *) kmalloc(thread_cache);
+    Thread *t = mos::create<Thread>();
     t->magic = THREAD_MAGIC_THRD;
     t->tid = new_thread_id();
     t->owner = owner;
@@ -44,13 +44,13 @@ thread_t *thread_allocate(process_t *owner, thread_mode tflags)
     return t;
 }
 
-void thread_destroy(thread_t *thread)
+void thread_destroy(Thread *thread)
 {
     MOS_ASSERT_X(thread != current_thread, "you cannot just destroy yourself");
     if (!thread_is_valid(thread))
         return;
 
-    hashmap_remove(&thread_table, thread->tid);
+    thread_table.remove(thread->tid);
 
     pr_dinfo2(thread, "destroying thread %pt", (void *) thread);
     MOS_ASSERT_X(spinlock_is_locked(&thread->state_lock), "thread state lock must be held");
@@ -58,12 +58,9 @@ void thread_destroy(thread_t *thread)
 
     platform_context_cleanup(thread);
 
-    if (thread->name)
-        kfree(thread->name);
-
     if (thread->mode == THREAD_MODE_USER)
     {
-        process_t *const owner = thread->owner;
+        Process *const owner = thread->owner;
         spinlock_acquire(&owner->mm->mm_lock);
         vmap_t *const stack = vmap_obtain(owner->mm, (ptr_t) thread->u_stack.top - 1, NULL);
         vmap_destroy(stack);
@@ -72,14 +69,14 @@ void thread_destroy(thread_t *thread)
 
     mm_free_pages(va_phyframe((ptr_t) thread->k_stack.top) - MOS_STACK_PAGES_KERNEL, MOS_STACK_PAGES_KERNEL);
 
-    kfree(thread);
+    delete thread;
 }
 
-PtrResult<thread_t> thread_new(process_t *owner, thread_mode tmode, const char *name, size_t stack_size, void *explicit_stack_top)
+PtrResult<Thread> thread_new(Process *owner, thread_mode tmode, mos::string_view name, size_t stack_size, void *explicit_stack_top)
 {
-    thread_t *t = thread_allocate(owner, tmode);
+    Thread *t = thread_allocate(owner, tmode);
 
-    t->name = strdup(name);
+    t->name = name;
 
     pr_dinfo2(thread, "creating new thread %pt, owner=%pp", (void *) t, (void *) owner);
 
@@ -163,31 +160,36 @@ done_efault:
     return -EFAULT; // invalid stack pointer
 }
 
-thread_t *thread_complete_init(thread_t *thread)
+Thread *thread_complete_init(Thread *thread)
 {
     if (!thread_is_valid(thread))
         return NULL;
 
-    thread_t *old = (thread_t *) hashmap_put(&thread_table, thread->tid, thread);
-    MOS_ASSERT(old == NULL);
+    thread_table.insert(thread->tid, thread);
     return thread;
 }
 
-thread_t *thread_get(tid_t tid)
+Thread *thread_get(tid_t tid)
 {
-    thread_t *t = (thread_t *) hashmap_get(&thread_table, tid);
-    if (thread_is_valid(t))
-        return t;
+    const auto ppthread = thread_table.get(tid);
+    if (ppthread == nullptr)
+    {
+        pr_warn("thread_get(%d) from pid %d (%s) but thread does not exist", tid, current_process->pid, current_process->name.c_str());
+        return NULL;
+    }
+
+    if (thread_is_valid(**ppthread))
+        return **ppthread;
 
     return NULL;
 }
 
 bool thread_wait_for_tid(tid_t tid)
 {
-    thread_t *target = thread_get(tid);
+    Thread *target = thread_get(tid);
     if (target == NULL)
     {
-        pr_warn("wait_for_tid(%d) from pid %d (%s) but thread does not exist", tid, current_process->pid, current_process->name);
+        pr_warn("wait_for_tid(%d) from pid %d (%s) but thread does not exist", tid, current_process->pid, current_process->name.c_str());
         return false;
     }
 
@@ -203,14 +205,14 @@ bool thread_wait_for_tid(tid_t tid)
     return true;
 }
 
-void thread_exit(thread_t *t)
+void thread_exit(Thread *t)
 {
     MOS_ASSERT_X(thread_is_valid(t), "thread_handle_exit() called on invalid thread");
     spinlock_acquire(&t->state_lock);
     thread_exit_locked(t);
 }
 
-[[noreturn]] void thread_exit_locked(thread_t *t)
+[[noreturn]] void thread_exit_locked(Thread *t)
 {
     MOS_ASSERT_X(thread_is_valid(t), "thread_exit_locked() called on invalid thread");
 
