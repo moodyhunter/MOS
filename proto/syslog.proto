@@ -46,7 +46,7 @@ message pb_syslog_message
 {
     uint64 timestamp = 1;
     pb_syslog_source_info info = 2;
-    string message = 3 [ (nanopb).max_size = 512 ];
+    string message = 3 [ (nanopb).max_size = 1024 ];
 
     pb_thread thread = 4;
     pb_process process = 5;
