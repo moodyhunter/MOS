@@ -87,9 +87,9 @@ static ptr_t elf_determine_loadbias(elf_header_t *elf)
 
 static void elf_setup_main_thread(Thread *thread, elf_startup_info_t *const info, ptr_t *const out_pargv, ptr_t *const out_penvp)
 {
-    pr_dinfo2(elf, "cpu %d: setting up a new main thread %pt of process %pp", current_cpu->id, (void *) thread, (void *) thread->owner);
+    pr_dinfo2(elf, "cpu %d: setting up a new main thread %pt of process %pp", current_cpu->id, thread, thread->owner);
 
-    MOS_ASSERT_X(thread->u_stack.head == thread->u_stack.top, "thread %pt's user stack is not empty", (void *) thread);
+    MOS_ASSERT_X(thread->u_stack.head == thread->u_stack.top, "thread %pt's user stack is not empty", thread);
     stack_push_val(&thread->u_stack, (uintn) 0);
 
     const void *stack_envp[info->envc + 1]; // +1 for the null terminator
@@ -169,7 +169,18 @@ static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, M
     MOS_ASSERT(ph->data_offset % MOS_PAGE_SIZE == ph->vaddr % MOS_PAGE_SIZE); // offset ≡ vaddr (mod page size)
     MOS_ASSERT_X(ph->size_in_file <= ph->size_in_mem, "invalid ELF: size in file is larger than size in memory");
 
-    const vm_flags flags = vm_flags(VM_USER | (ph->p_flags & ELF_PF_R ? VM_READ : 0) | (ph->p_flags & ELF_PF_W ? VM_WRITE : 0) | (ph->p_flags & ELF_PF_X ? VM_EXEC : 0));
+    const vm_flags flags = [pflags = ph->p_flags]()
+    {
+        vm_flags f = VM_USER;
+        if (pflags & ELF_PF_R)
+            f |= VM_READ;
+        if (pflags & ELF_PF_W)
+            f |= VM_WRITE;
+        if (pflags & ELF_PF_X)
+            f |= VM_EXEC;
+        return f;
+    }();
+
     const ptr_t aligned_vaddr = ALIGN_DOWN_TO_PAGE(ph->vaddr);
     const size_t npages = (ALIGN_UP_TO_PAGE(ph->vaddr + ph->size_in_mem) - aligned_vaddr) / MOS_PAGE_SIZE;
     const size_t aligned_size = ALIGN_DOWN_TO_PAGE(ph->data_offset);
@@ -327,7 +338,7 @@ __nodiscard bool elf_do_fill_process(Process *proc, file_t *file, elf_header_t e
     add_auxv_entry(&info->auxv, AT_ENTRY, map_bias + elf.entry_point); // the entry point of the executable, not the interpreter
 
     ptr_t user_argv, user_envp;
-    Thread *const main_thread = proc->main_thread;
+    const auto main_thread = proc->main_thread;
     elf_setup_main_thread(main_thread, info, &user_argv, &user_envp);
     platform_context_setup_main_thread(main_thread, has_interpreter ? interp_entrypoint : elf.entry_point, main_thread->u_stack.head, info->argc, user_argv, user_envp);
 
@@ -408,7 +419,6 @@ bool elf_fill_process(Process *proc, file_t *file, const char *path, const char 
 
 Process *elf_create_process(const char *path, Process *parent, const char *const argv[], const char *const envp[], const stdio_t *ios)
 {
-    Process *proc = NULL;
     auto file = vfs_openat(AT_FDCWD, path, open_flags(OPEN_READ | OPEN_EXECUTE));
     if (file.isErr())
     {
@@ -417,7 +427,7 @@ Process *elf_create_process(const char *path, Process *parent, const char *const
     }
     io_ref(&file->io);
 
-    proc = process_new(parent, file->dentry->name, ios);
+    auto proc = process_new(parent, file->dentry->name, ios);
     if (!proc)
     {
         mos_warn("failed to create process for '%s'", dentry_name(file->dentry).c_str());
@@ -432,7 +442,7 @@ Process *elf_create_process(const char *path, Process *parent, const char *const
     if (!filled)
     {
         // TODO how do we make sure that the process is cleaned up properly?
-        process_exit(proc, 0, SIGKILL);
+        process_exit(std::move(proc), 0, SIGKILL);
         proc = NULL;
     }
 

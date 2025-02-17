@@ -22,10 +22,10 @@ static void dump_process(void)
 {
     if (current_thread)
     {
-        Process *proc = current_process;
-        pr_info("process %pp ", (void *) proc);
+        auto proc = current_process;
+        pr_info("process %pp ", proc);
         if (proc->parent)
-            pr_info2("parent %pp ", (void *) proc->parent);
+            pr_info2("parent %pp ", proc->parent);
         else
             pr_info2("parent <none> ");
         process_dump_mmaps(proc);
@@ -43,7 +43,7 @@ MOS_PANIC_HOOK(dump_process, "Dump current process");
 static bool tasks_sysfs_process_list(sysfs_file_t *f)
 {
     for (const auto &[pid, proc] : ProcessTable)
-        sysfs_printf(f, "%pp, parent=%pp, main_thread=%pt, exit_status=%d\n", (void *) proc, (void *) proc->parent, (void *) proc->main_thread, proc->exit_status);
+        sysfs_printf(f, "%pp, parent=%pp, main_thread=%pt, exit_status=%d\n", proc, proc->parent, proc->main_thread, proc->exit_status);
 
     return true;
 }
@@ -51,8 +51,8 @@ static bool tasks_sysfs_process_list(sysfs_file_t *f)
 static bool tasks_sysfs_thread_list(sysfs_file_t *f)
 {
     for (const auto &[tid, thread] : thread_table)
-        sysfs_printf(f, "%pt, state=%c, mode=%s, owner=%pp, stack=%p (%zu bytes)\n", (void *) thread, thread_state_str(thread->state),
-                     thread->mode == THREAD_MODE_KERNEL ? "kernel" : "user", (void *) thread->owner, (void *) thread->u_stack.top, thread->u_stack.capacity);
+        sysfs_printf(f, "%pt, state=%c, mode=%s, owner=%pp, stack=" PTR_FMT " (%zu bytes)\n", thread, thread_state_str(thread->state),
+                     thread->mode == THREAD_MODE_KERNEL ? "kernel" : "user", thread->owner, thread->u_stack.top, thread->u_stack.capacity);
     return true;
 }
 

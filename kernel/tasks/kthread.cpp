@@ -11,7 +11,7 @@
 #include <mos/type_utils.hpp>
 #include <mos_stdlib.hpp>
 
-static Process *kthreadd = NULL;
+static Process *kthreadd;
 
 struct kthread_arg_t : mos::NamedType<"KThread.Arg">
 {
@@ -24,7 +24,7 @@ static void kthread_entry(void *arg)
     kthread_arg_t *kthread_arg = static_cast<kthread_arg_t *>(arg);
     kthread_arg->entry(kthread_arg->arg);
     delete kthread_arg;
-    thread_exit(current_thread);
+    thread_exit(std::move(current_thread));
 }
 
 void kthread_init(void)
@@ -49,11 +49,11 @@ Thread *kthread_create_no_sched(thread_entry_t entry, void *arg, const char *nam
     kthread_arg->entry = entry;
     kthread_arg->arg = arg;
     auto thread = thread_new(kthreadd, THREAD_MODE_KERNEL, name, 0, NULL);
-    if (!thread)
+    if (thread.isErr())
     {
         delete kthread_arg;
         pr_fatal("failed to create kernel thread");
-        return NULL;
+        return nullptr;
     }
 
     platform_context_setup_child_thread(thread.get(), kthread_entry, kthread_arg);

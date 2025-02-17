@@ -89,12 +89,12 @@ bool futex_wait(futex_word_t *futex, futex_word_t expected)
     }
     spinlock_release(&futex_list_lock);
 
-    pr_dinfo2(futex, "tid %pt waiting on lock key=" PTR_FMT, (void *) current_thread, key);
+    pr_dinfo2(futex, "tid %pt waiting on lock key=" PTR_FMT, current_thread, key);
 
     bool ok = reschedule_for_waitlist(&fu->waiters);
     MOS_ASSERT(ok);
 
-    pr_dinfo2(futex, "tid %pt woke up", (void *) current_thread);
+    pr_dinfo2(futex, "tid %pt woke up", current_thread);
     return true;
 }
 

@@ -36,9 +36,6 @@ typedef struct phyframe
 
     union additional_info
     {
-        MOS_WARNING_PUSH
-        MOS_WARNING_DISABLE("-Wpedantic") // ISO C++ forbids anonymous structs
-
         list_node_t list_node; // for use of freelist in the buddy allocator
 
         struct pagecache_frame_info // allocated frame
@@ -46,7 +43,6 @@ typedef struct phyframe
             // for page cache frames
             bool dirty : 1; ///< 1 if the page is dirty
         } pagecache;
-        MOS_WARNING_POP
     } info;
 
     union alloc_info

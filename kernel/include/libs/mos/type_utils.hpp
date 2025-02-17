@@ -3,6 +3,7 @@
 #pragma once
 
 #include <algorithm>
+#include <mos/mos_global.h>
 #include <mos/string_view.hpp>
 
 namespace mos
@@ -21,13 +22,11 @@ namespace mos
     template<mos::string_literal name>
     struct NamedType
     {
-        // void *operator new(size_t size) = delete;
-        // void *operator new(size_t size, void *ptr)
-        // {
-        //     return ptr;
-        // }
         static constexpr mos::string_view type_name = name.value;
     };
+
+    template<typename T>
+    concept HasTypeName = std::is_same_v<std::remove_const_t<decltype(T::type_name)>, mos::string_view>;
 
     template<typename V, typename TSpecialisation = V>
     struct InitOnce
@@ -52,4 +51,16 @@ namespace mos
     {                                                                                                                                                                    \
     };
 
+    template<typename T>
+    consteval static string_view getTypeName()
+    {
+#if defined(MOS_COMPILER_CLANG) || defined(MOS_COMPILER_GCC)
+        constexpr string_view f = __PRETTY_FUNCTION__;
+        constexpr auto g = f.substring(f.find("with T = ") + 9);
+        constexpr auto k = g.substring(0, g.find(";"));
+        return k;
+#else
+#error "unknown compiler"
+#endif
+    }
 } // namespace mos

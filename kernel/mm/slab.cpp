@@ -69,7 +69,7 @@ static void slab_impl_free_page(ptr_t page, size_t n)
 
 static void slab_allocate_mem(slab_t *slab)
 {
-    pr_dinfo2(slab, "renew slab for '%s' with %zu bytes", slab->name, slab->ent_size);
+    pr_dinfo2(slab, "renew slab for '%.*s' with %zu bytes", slab->name.size(), slab->name.data(), slab->ent_size);
     slab->first_free = slab_impl_new_page(1);
     if (unlikely(!slab->first_free))
     {
@@ -105,6 +105,7 @@ static void slab_init_one(slab_t *slab, const char *name, size_t size)
     slab->first_free = 0;
     slab->nobjs = 0;
     slab->name = name;
+    slab->type_name = "<unsure>";
     slab->ent_size = size;
 }
 
@@ -120,7 +121,7 @@ void slab_init(void)
 
 void slab_register(slab_t *slab)
 {
-    pr_info2("slab: registering slab for '%s' with %zu bytes", slab->name, slab->ent_size);
+    pr_info2("slab: registering slab for '%s' with %zu bytes", slab->name.data(), slab->ent_size);
     linked_list_init(list_node(slab));
     list_node_append(&slabs_list, list_node(slab));
 }
@@ -218,7 +219,7 @@ void slab_free(const void *ptr)
 void *kmemcache_alloc(slab_t *slab)
 {
     MOS_ASSERT_X(slab->ent_size > 0, "slab: invalid slab entry size %zu", slab->ent_size);
-    pr_dinfo2(slab, "allocating from slab '%s'", slab->name);
+    pr_dinfo2(slab, "allocating from slab '%s'", slab->name.data());
     spinlock_acquire(&slab->lock);
 
     if (slab->first_free == 0)
@@ -243,7 +244,7 @@ void *kmemcache_alloc(slab_t *slab)
 
 void kmemcache_free(slab_t *slab, const void *addr)
 {
-    pr_dinfo2(slab, "freeing from slab '%s'", slab->name);
+    pr_dinfo2(slab, "freeing from slab '%s'", slab->name.data());
     if (!addr)
         return;
 
@@ -261,9 +262,17 @@ void kmemcache_free(slab_t *slab, const void *addr)
 
 static bool slab_sysfs_slabinfo(sysfs_file_t *f)
 {
+    sysfs_printf(f, "%20s \t%-10s %-18s \t%-8s    %s\n\n", "", "Size", "First Free", "Objects", "Type Name");
     list_foreach(slab_t, slab, slabs_list)
     {
-        sysfs_printf(f, "%15s, ent_size=%5zu, first_free=" PTR_FMT ", %5zu objects\n", slab->name, slab->ent_size, slab->first_free, slab->nobjs);
+        sysfs_printf(f, "%20s:\t%-10zu " PTR_FMT " \t%-8zu    %.*s\n", //
+                     slab->name.data(),                                //
+                     slab->ent_size,                                   //
+                     slab->first_free,                                 //
+                     slab->nobjs,                                      //
+                     (int) slab->type_name.size(),                     //
+                     slab->type_name.data()                            //
+        );
     }
 
     return true;

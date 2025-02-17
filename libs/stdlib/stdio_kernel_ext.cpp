@@ -121,7 +121,7 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
             shift_next;
             // thread_t
             null_check();
-            const Thread *thread = (const Thread *) ptr;
+            const auto thread = (Thread *) ptr;
             if (thread == NULL)
             {
                 wrap_print("(null)");

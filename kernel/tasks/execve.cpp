@@ -15,12 +15,10 @@
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-long process_do_execveat(Process *process, fd_t dirfd, const char *path, const char *const argv[], const char *const envp[], int flags)
+long process_do_execveat(fd_t dirfd, const char *path, const char *const argv[], const char *const envp[], int flags)
 {
-    Thread *const thread = current_thread;
-    Process *const proc = current_process;
-
-    MOS_ASSERT(thread->owner == process); // why
+    auto thread = current_thread;
+    auto proc = current_process;
 
     MOS_UNUSED(flags); // not implemented: AT_EMPTY_PATH, AT_SYMLINK_NOFOLLOW
     auto f = vfs_openat(dirfd, path, open_flags(OPEN_READ | OPEN_EXECUTE));
@@ -83,14 +81,14 @@ long process_do_execveat(Process *process, fd_t dirfd, const char *path, const c
 
     spinlock_acquire(&thread->state_lock);
 
-    list_foreach(Thread, t, process->threads)
+    for (const auto &t : proc->thread_list)
     {
         if (t != thread)
         {
             signal_send_to_thread(t, SIGKILL); // nice
             thread_wait_for_tid(t->tid);
             spinlock_acquire(&t->state_lock);
-            thread_destroy(t);
+            thread_destroy(std::move(t));
             MOS_UNREACHABLE();
         }
     }
@@ -116,7 +114,7 @@ long process_do_execveat(Process *process, fd_t dirfd, const char *path, const c
         if (stack_vmap.isErr())
         {
             pr_emerg("failed to allocate stack for new process");
-            process_exit(proc, 0, SIGKILL);
+            process_exit(std::move(proc), 0, SIGKILL);
             MOS_UNREACHABLE();
         }
 
@@ -148,7 +146,7 @@ long process_do_execveat(Process *process, fd_t dirfd, const char *path, const c
     if (unlikely(!filled))
     {
         pr_emerg("failed to fill process, execve failed");
-        process_exit(proc, 0, SIGKILL);
+        process_exit(std::move(proc), 0, SIGKILL);
         MOS_UNREACHABLE();
     }
 
@@ -161,6 +159,5 @@ long process_do_execveat(Process *process, fd_t dirfd, const char *path, const c
             process_detach_fd(proc, i);
     }
 
-    platform_regs_t *const regs = platform_thread_regs(thread);
-    platform_return_to_userspace(regs);
+    return 0;
 }

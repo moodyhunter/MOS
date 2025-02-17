@@ -8,10 +8,9 @@
 #include <mos/hashmap.hpp>
 #include <mos/shared_ptr.hpp>
 #include <mos_stdlib.hpp>
-#include <type_traits>
 
 #define VFS_MOUNTPOINT_MAP_SIZE 256
-static mos::HashMap<const dentry_t *, mos::shared_ptr<mount_t>> vfs_mountpoint_map; // dentry_t -> mount_t
+static mos::HashMap<const dentry_t *, ptr<mount_t>> vfs_mountpoint_map; // dentry_t -> mount_t
 list_head vfs_mountpoint_list;
 
 /**
@@ -48,7 +47,7 @@ dentry_t *dentry_root_get_mountpoint(dentry_t *dentry)
     return NULL; // not found, possibly just have been unmounted
 }
 
-mos::shared_ptr<mount_t> dentry_get_mount(const dentry_t *dentry)
+ptr<mount_t> dentry_get_mount(const dentry_t *dentry)
 {
     if (!dentry->is_mountpoint)
     {
@@ -63,11 +62,9 @@ mos::shared_ptr<mount_t> dentry_get_mount(const dentry_t *dentry)
         return NULL;
     }
 
-    auto mount = *pmount.value();
-
     // otherwise the mountpoint must match the dentry
-    MOS_ASSERT(mount->mountpoint == dentry);
-    return mount;
+    MOS_ASSERT((*pmount)->mountpoint == dentry);
+    return *pmount;
 }
 
 bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs)

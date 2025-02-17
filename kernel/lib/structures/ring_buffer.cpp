@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <algorithm>
+#include <mos/allocator.hpp>
 #include <mos/lib/structures/ring_buffer.hpp>
 #include <mos/moslib_global.hpp>
 #include <mos_stdlib.hpp>

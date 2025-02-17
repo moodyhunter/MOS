@@ -10,6 +10,7 @@
 #include <mos/allocator.hpp>
 #include <mos/lib/structures/list.hpp>
 #include <mos/lib/structures/stack.hpp>
+#include <mos/list.hpp>
 #include <mos/shared_ptr.hpp>
 #include <mos/string.hpp>
 #include <mos/tasks/signal_types.h>
@@ -51,6 +52,7 @@ struct Process : mos::NamedType<"Process">
 
   public:
     explicit Process(Private, Process *parent, mos::string_view name);
+    ~Process();
 
     const u32 magic = PROCESS_MAGIC_PROC;
     pid_t pid;
@@ -65,7 +67,7 @@ struct Process : mos::NamedType<"Process">
     fd_type files[MOS_PROCESS_MAX_OPEN_FILES];
 
     Thread *main_thread;
-    list_head threads;
+    mos::list<Thread *> thread_list;
 
     MMContext *mm;
     dentry_t *working_directory;
@@ -106,6 +108,8 @@ struct Thread : mos::NamedType<"Thread">
     waitlist_t waiters; ///< list of threads waiting for this thread to exit
 
     thread_signal_info_t signal_info;
+
+    ~Thread();
 };
 
 /** @} */

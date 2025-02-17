@@ -88,7 +88,7 @@ void platform_switch_mm(const MMContext *mm)
     x86_cpu_set_cr3(pgd_pfn(mm->pgd) * MOS_PAGE_SIZE);
 }
 
-platform_regs_t *platform_thread_regs(const Thread *thread)
+platform_regs_t *platform_thread_regs(Thread *thread)
 {
     return (platform_regs_t *) (thread->k_stack.top - sizeof(platform_regs_t));
 }
@@ -103,7 +103,7 @@ void platform_dump_thread_kernel_stack(const Thread *thread)
 
     if (thread->state != THREAD_STATE_BLOCKED)
     {
-        pr_emph("thread %pt is not blocked, cannot dump stack", (void *) thread);
+        pr_emph("thread %pt is not blocked, cannot dump stack", thread);
         return;
     }
 
@@ -123,14 +123,14 @@ u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unus
     {
         case X86_SYSCALL_IOPL_ENABLE:
         {
-            pr_dinfo2(syscall, "enabling IOPL for thread %pt", (void *) current_thread);
+            pr_dinfo2(syscall, "enabling IOPL for thread %pt", current_thread);
             current_process->platform_options.iopl = true;
             platform_thread_regs(current_thread)->eflags |= 0x3000;
             return 0;
         }
         case X86_SYSCALL_IOPL_DISABLE:
         {
-            pr_dinfo2(syscall, "disabling IOPL for thread %pt", (void *) current_thread);
+            pr_dinfo2(syscall, "disabling IOPL for thread %pt", current_thread);
             current_process->platform_options.iopl = false;
             platform_thread_regs(current_thread)->eflags &= ~0x3000;
             return 0;

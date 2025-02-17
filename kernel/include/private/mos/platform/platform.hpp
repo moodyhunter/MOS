@@ -13,6 +13,7 @@
 #include <mos/lib/sync/spinlock.hpp>
 #include <mos/mm/mm_types.h>
 #include <mos/mos_global.h>
+#include <mos/shared_ptr.hpp>
 #include <mos/tasks/signal_types.h>
 
 // clang-format off
@@ -240,10 +241,10 @@ pfn_t platform_pml4e_get_huge_pfn(const pml4e_t *pml4);
 
 // Platform Thread / Process APIs
 // no default implementation, platform-specific implementations must be provided
-platform_regs_t *platform_thread_regs(const Thread *thread);
+platform_regs_t *platform_thread_regs(Thread *thread);
 void platform_context_setup_main_thread(Thread *thread, ptr_t entry, ptr_t sp, int argc, ptr_t argv, ptr_t envp);
 void platform_context_setup_child_thread(Thread *thread, thread_entry_t entry, void *arg);
-void platform_context_clone(const Thread *from, Thread *to);
+void platform_context_clone(Thread *from, Thread *to);
 void platform_context_cleanup(Thread *thread);
 
 // Platform Context Switching APIs

@@ -119,7 +119,7 @@ void mm_replace_page_locked(MMContext *ctx, ptr_t vaddr, pfn_t pfn, vm_flags fla
 
     if (unlikely(old_pfn == pfn))
     {
-        mos_warn("trying to replace page at " PTR_FMT " with the same page " PFN_FMT, vaddr, pfn);
+        mos_panic("trying to replace page at " PTR_FMT " with the same page " PFN_FMT, vaddr, pfn);
         return;
     }
 

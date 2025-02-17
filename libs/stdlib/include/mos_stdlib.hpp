@@ -7,8 +7,9 @@
 #include <stddef.h>
 
 #if defined(__MOS_KERNEL__) && defined(__cplusplus)
-#include <mos/allocator.hpp>
+#include <mos/default_allocator.hpp>
 #include <type_traits>
+#include <utility>
 #endif
 
 /**

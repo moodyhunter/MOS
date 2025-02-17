@@ -16,7 +16,7 @@ static bool timer_do_wakeup(ktimer_t *timer, void *arg)
 {
     MOS_UNUSED(arg);
 
-    if (timer->thread != NULL)
+    if (timer->thread)
         scheduler_wake_thread(timer->thread);
 
     return true;

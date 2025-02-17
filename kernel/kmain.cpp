@@ -22,6 +22,7 @@
 #include <mos/syslog/printk.hpp>
 #include <mos/tasks/kthread.hpp>
 #include <mos/tasks/schedule.hpp>
+#include <mos/type_utils.hpp>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
@@ -194,7 +195,7 @@ void mos_start_kernel(void)
     for (u32 i = 0; init_envp[i]; i++)
         pr_info2("    %s", init_envp[i]);
 
-    Process *init = elf_create_process(init_args.argv[0], NULL, init_args.argv, init_envp, &init_io);
+    const auto init = elf_create_process(init_args.argv[0], NULL, init_args.argv, init_envp, &init_io);
     if (unlikely(!init))
         mos_panic("failed to create init process");
 

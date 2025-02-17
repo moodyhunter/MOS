@@ -76,8 +76,8 @@ Process *process_do_fork(Process *parent)
     waitlist_init(&child_p->signal_info.sigchild_waitlist);
 
     // copy the thread
-    Thread *const parent_thread = current_thread;
-    Thread *child_t = thread_allocate(child_p, parent_thread->mode);
+    const auto parent_thread = current_thread;
+    const auto child_t = thread_allocate(child_p, parent_thread->mode);
     pr_dinfo2(process, "fork: thread %d->%d", parent_thread->tid, child_t->tid);
     child_t->u_stack = parent_thread->u_stack;
     child_t->name = parent_thread->name;

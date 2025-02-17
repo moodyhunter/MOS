@@ -113,7 +113,7 @@ DEFINE_SYSCALL([[noreturn]] void, exit)(u32 exit_code)
 {
     // only use the lower 8 bits
     exit_code &= 0xff;
-    process_exit(current_process, exit_code, 0);
+    process_exit(std::move(current_process), exit_code, 0);
     __builtin_unreachable();
 }
 
@@ -125,9 +125,9 @@ DEFINE_SYSCALL(void, yield_cpu)(void)
 
 DEFINE_SYSCALL(pid_t, fork)(void)
 {
-    Process *parent = current_process;
-    Process *child = process_do_fork(parent);
-    if (unlikely(child == NULL))
+    const auto parent = current_process;
+    const auto child = process_do_fork(parent);
+    if (unlikely(!child))
         return -1;
     return child->pid; // return 0 for child, pid for parent
 }
@@ -145,9 +145,9 @@ DEFINE_SYSCALL(pid_t, get_parent_pid)(void)
 DEFINE_SYSCALL(pid_t, spawn)(const char *path, const char *const argv[], const char *const envp[])
 {
     const stdio_t stdio = current_stdio();
-    Process *process = elf_create_process(path, current_process, argv, envp, &stdio);
+    const auto process = elf_create_process(path, current_process, argv, envp, &stdio);
 
-    if (process == NULL)
+    if (!process)
         return -1;
 
     return process->pid;
@@ -155,13 +155,15 @@ DEFINE_SYSCALL(pid_t, spawn)(const char *path, const char *const argv[], const c
 
 DEFINE_SYSCALL(tid_t, create_thread)(const char *name, thread_entry_t entry, void *arg, size_t stack_size, void *stack)
 {
-    auto thread = thread_new(current_process, THREAD_MODE_USER, name, stack_size, stack);
-    if (thread.isErr())
+    const auto opt_thread = thread_new(current_process, THREAD_MODE_USER, name, stack_size, stack);
+    if (opt_thread.isErr())
         return -1;
 
-    platform_context_setup_child_thread(thread.get(), entry, arg);
-    thread_complete_init(thread.get());
-    scheduler_add_thread(thread.get());
+    const auto thread = opt_thread.get();
+
+    platform_context_setup_child_thread(thread, entry, arg);
+    thread_complete_init(thread);
+    scheduler_add_thread(thread);
     return thread->tid;
 }
 
@@ -172,7 +174,8 @@ DEFINE_SYSCALL(tid_t, get_tid)(void)
 
 DEFINE_SYSCALL([[noreturn]] void, thread_exit)(void)
 {
-    thread_exit(current_thread);
+    thread_exit(std::move(current_thread));
+    __builtin_unreachable();
 }
 
 DEFINE_SYSCALL(bool, wait_for_thread)(tid_t tid)
@@ -381,16 +384,16 @@ DEFINE_SYSCALL(bool, signal_register)(signal_t sig, const sigaction_t *action)
 
 DEFINE_SYSCALL(long, signal_process)(pid_t pid, signal_t sig)
 {
-    Process *process = process_get(pid);
+    const auto process = process_get(pid);
     if (!process)
         return -ESRCH;
-    return signal_send_to_process(process, sig);
+    return signal_send_to_process(*process, sig);
 }
 
 DEFINE_SYSCALL(long, signal_thread)(tid_t tid, signal_t sig)
 {
     Thread *thread = thread_get(tid);
-    if (thread == NULL)
+    if (!thread)
         return -ESRCH;
     return signal_send_to_thread(thread, sig);
 }
@@ -467,7 +470,7 @@ DEFINE_SYSCALL(int, io_pselect)(int nfds, fd_set *readfds, fd_set *writefds, fd_
 
 DEFINE_SYSCALL(long, execveat)(fd_t dirfd, const char *path, const char *const argv[], const char *const envp[], u32 flags)
 {
-    return process_do_execveat(current_process, dirfd, path, argv, envp, flags);
+    return process_do_execveat(dirfd, path, argv, envp, flags);
 }
 
 DEFINE_SYSCALL(long, clock_msleep)(u64 ms)
@@ -592,7 +595,7 @@ DEFINE_SYSCALL(long, clock_gettimeofday)(struct timespec *ts)
 DEFINE_SYSCALL(long, thread_setname)(tid_t tid, const char *name)
 {
     Thread *thread = thread_get(tid);
-    if (thread == NULL)
+    if (!thread)
         return -ESRCH;
 
     thread->name = name;
@@ -603,7 +606,7 @@ DEFINE_SYSCALL(ssize_t, thread_getname)(tid_t tid, char *buf, size_t buflen)
 {
     Thread *thread = thread_get(tid);
 
-    if (thread == NULL)
+    if (!thread)
         return -ESRCH;
 
     char *end = strncpy(buf, thread->name.data(), buflen);

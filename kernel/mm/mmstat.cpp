@@ -9,7 +9,6 @@
 #include "mos/platform/platform.hpp"
 #include "mos/syslog/printk.hpp"
 #include "mos/tasks/process.hpp"
-#include "mos/tasks/task_types.hpp"
 
 #include <mos/mos_global.h>
 #include <mos/types.hpp>
@@ -107,13 +106,14 @@ static bool mmstat_sysfs_pagetable_show(sysfs_file_t *f)
         return false;
     }
 
-    const Process *proc = process_get(pid);
-    if (!proc)
+    const auto pproc = process_get(pid);
+    if (!pproc)
     {
         pr_warn("mmstat: invalid pid %d", pid);
         return false;
     }
 
+    const auto proc = *pproc;
     MMContext *mmctx = proc->mm;
     spinlock_acquire(&mmctx->mm_lock);
 
@@ -145,12 +145,14 @@ static bool mmstat_sysfs_vmaps_show(sysfs_file_t *f)
         return false;
     }
 
-    Process *proc = process_get(pid);
-    if (!proc)
+    const auto pproc = process_get(pid);
+    if (!pproc)
     {
         pr_warn("mmstat: invalid pid %d", pid);
         return false;
     }
+
+    const auto proc = *pproc;
 
     int i = 0;
     spinlock_acquire(&proc->mm->mm_lock);

@@ -13,7 +13,6 @@
 #include "mos/platform/platform_defs.hpp"
 #include "mos/syslog/printk.hpp"
 #include "mos/tasks/signal.hpp"
-#include "mos/tasks/task_types.hpp"
 
 #include <mos/lib/structures/list.hpp>
 #include <mos/lib/sync/spinlock.hpp>
@@ -295,8 +294,8 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, vmap_t *
         pr_emerg("    offset: 0x%zx", info->ip - ip_vmap->vaddr + (ip_vmap->io ? ip_vmap->io_offset : 0));
     }
 
-    pr_emerg("    thread: %pt", (void *) current_thread);
-    pr_emerg("    process: %pp", current_thread ? (void *) current_process : NULL);
+    pr_emerg("    thread: %pt", current_thread);
+    pr_emerg("    process: %pp", current_thread ? current_process : nullptr);
 
     if (fault_addr < 1 KB)
     {
@@ -358,13 +357,12 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, vmap_t *
 
 void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
 {
-    Thread *current = current_thread;
     const char *unhandled_reason = NULL;
 
     pr_demph(pagefault, "%s #PF: %pt, %pp, IP=" PTR_VLFMT ", ADDR=" PTR_VLFMT, //
              info->is_user ? "user" : "kernel",                                //
-             current ? (void *) current : NULL,                                //
-             current ? (void *) current->owner : NULL,                         //
+             current_thread ? current_thread : NULL,                           //
+             current_thread ? current_thread->owner : NULL,                    //
              info->ip,                                                         //
              fault_addr                                                        //
     );

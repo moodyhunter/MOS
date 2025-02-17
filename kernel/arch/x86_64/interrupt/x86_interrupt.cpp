@@ -165,6 +165,7 @@ static void x86_handle_exception(platform_regs_t *regs)
                 .is_exec = (regs->error_code & 0x10) != 0,
                 .ip = regs->ip,
                 .regs = regs,
+                .backing_page = nullptr,
             };
 
             mm_handle_fault(x86_cpu_get_cr2(), &info);

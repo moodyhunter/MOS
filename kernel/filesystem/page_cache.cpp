@@ -60,11 +60,9 @@ long pagecache_flush_or_drop(inode_cache_t *icache, off_t pgoff, size_t npages, 
     {
         auto ppage = icache->pages.get(pgoff + i);
         if (!ppage.has_value())
-        {
             continue;
-        }
 
-        do_flush_and_drop_cached_page(pgoff + i, **ppage, &data);
+        do_flush_and_drop_cached_page(pgoff + i, *ppage, &data);
 
         if (data.ret != 0)
         {
@@ -89,7 +87,7 @@ PtrResult<phyframe_t> pagecache_get_page_for_read(inode_cache_t *cache, off_t pg
     {
         const auto page = cache->pages.get(pgoff);
         if (page)
-            return **page;
+            return *page;
     }
 
     if (!cache->ops)

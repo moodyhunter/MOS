@@ -54,7 +54,7 @@ void mm_dump_current_pagetable()
 
     if (current_thread)
     {
-        pr_emph("Current task: thread %pt, process %pp", (void *) current_thread, (void *) current_process);
+        pr_emph("Current task: thread %pt, process %pp", current_thread, current_process);
         pr_emph("Task Page Table:");
         mm_dump_pagetable(current_process->mm);
         if (current_cpu->mm_context == current_process->mm)

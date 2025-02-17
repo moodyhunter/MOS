@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 
 namespace mos
@@ -78,9 +79,35 @@ namespace mos
             return generic_strncmp(_pointer, other._pointer, _length) == 0;
         }
 
+        constexpr basic_string_view substring(size_t start, size_t end = -1) const
+        {
+            const auto len = std::min<size_t>(end, _length - start);
+            return basic_string_view(_pointer + start, len);
+        }
+
+        constexpr size_t find(CharT c) const
+        {
+            for (size_t i = 0; i < _length; i++)
+            {
+                if (_pointer[i] == c)
+                    return i;
+            }
+            return size_t(-1);
+        }
+
+        constexpr size_t find(basic_string_view str) const
+        {
+            for (size_t i = 0; i < _length; i++)
+            {
+                if (generic_strncmp(_pointer + i, str._pointer, str._length) == 0)
+                    return i;
+            }
+            return size_t(-1);
+        }
+
       private:
-        const CharT *const _pointer;
-        const size_t _length;
+        const CharT *_pointer;
+        size_t _length;
     };
 
     typedef basic_string_view<char> string_view;

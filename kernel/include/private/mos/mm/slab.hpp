@@ -4,8 +4,10 @@
 
 #include <mos/lib/structures/list.hpp>
 #include <mos/lib/sync/spinlock.hpp>
+#include <mos/string.hpp>
 #include <mos/string_view.hpp>
 #include <mos/syslog/printk.hpp>
+#include <mos/type_utils.hpp>
 #include <stddef.h>
 
 /**
@@ -53,8 +55,9 @@ struct slab_t
     spinlock_t lock = SPINLOCK_INIT;
     ptr_t first_free = 0;
     size_t ent_size = 0;
-    const char *name = "<unnamed>";
     size_t nobjs = 0;
+    mos::string_view name = "<unnamed>";
+    mos::string_view type_name = "<T>";
 };
 
 void slab_register(slab_t *slab);
@@ -66,15 +69,16 @@ namespace mos
     template<typename T>
     struct Slab : public slab_t
     {
-        constexpr Slab(mos::string_view name = T::type_name, size_t size = sizeof(T))
+        constexpr Slab(mos::string_view name = T::type_name, size_t size = sizeof(T), mos::string_view type_name = mos::getTypeName<T>())
         {
-            this->name = name.data();
+            this->name = name;
+            this->type_name = type_name;
             this->ent_size = size;
         }
 
         ~Slab()
         {
-            pr_emerg("slab: freeing slab for '%s'", this->name);
+            pr_emerg("slab: freeing slab for '%s'", this->type_name.data());
         }
 
         template<typename... Args>

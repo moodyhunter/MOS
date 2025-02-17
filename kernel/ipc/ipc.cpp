@@ -26,7 +26,7 @@
 
 #define IPC_SERVER_MAGIC MOS_FOURCC('I', 'P', 'C', 'S')
 
-struct IPCDescriptor final : mos::NamedType<"IPCDescriptor">
+struct IPCDescriptor final : mos::NamedType<"IPC.Descriptor">
 {
     as_linked_list; ///< attached to either pending or established list
     const mos::string server_name;

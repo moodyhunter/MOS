@@ -23,6 +23,6 @@ reg_t ksyscall_enter(reg_t number, reg_t arg1, reg_t arg2, reg_t arg3, reg_t arg
             signal_send_to_thread(current_thread, SIGSEGV);
     }
 
-    MOS_ASSERT_X(current_thread->state == THREAD_STATE_RUNNING, "thread %pt is not in 'running' state", (void *) current_thread);
+    MOS_ASSERT_X(current_thread->state == THREAD_STATE_RUNNING, "thread %pt is not in 'running' state", current_thread);
     return ret;
 }

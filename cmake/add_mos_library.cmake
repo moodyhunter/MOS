@@ -52,7 +52,7 @@ function(add_mos_library)
         target_compile_definitions(stdlib_minimal PRIVATE ${ARG_PRIVATE_DEFINES})
         add_mos_library_do_setup(stdlib_minimal "" "${ARG_PRIVATE_INCLUDE_DIRECTORIES}" "${ARG_PUBLIC_INCLUDE_DIRECTORIES}")
 
-        target_link_libraries(stdlib_minimal PUBLIC supc++ gcc mos::include)
+        target_link_libraries(stdlib_minimal PUBLIC gcc mos::include)
         target_compile_options(stdlib_minimal PUBLIC "-ffreestanding")
         target_compile_definitions(stdlib_minimal PUBLIC "__MLIBC_ABI_ONLY")
         target_compile_definitions(stdlib_minimal PUBLIC "__MOS_MINIMAL_LIBC__")

@@ -2,7 +2,7 @@
 #pragma once
 
 #include <cstddef>
-#include <mos/allocator.hpp>
+#include <mos/default_allocator.hpp>
 #include <mos/string_view.hpp>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
@@ -12,11 +12,9 @@ namespace mos
     constexpr size_t short_string_capacity = 16;
 
     template<typename Char, typename TAllocator>
-    class mos_basic_string
+    class basic_string
     {
         bool _is_long = false;
-        TAllocator _allocator;
-
         size_t _length; ///< string length excluding null terminator
 
         union
@@ -34,36 +32,37 @@ namespace mos
         } _data;
 
       public:
-        mos_basic_string(std::nullptr_t) = delete;
+        basic_string(std::nullptr_t) = delete;
 
-        mos_basic_string(TAllocator allocator = TAllocator()) : _allocator(std::move(allocator)), _length{ 0 }, _is_long(false) {};
+        basic_string() : _length{ 0 }, _is_long(false) {};
 
-        mos_basic_string(const Char *buffer, TAllocator allocator = TAllocator()) : _allocator(std::move(allocator))
+        basic_string(const Char *buffer)
         {
             _init(buffer, generic_strlen(buffer));
         }
 
-        explicit mos_basic_string(const Char *buffer, size_t size, TAllocator allocator = TAllocator()) : _allocator(std::move(allocator))
+        explicit basic_string(const Char *buffer, size_t size)
         {
             _init(buffer, size);
         }
 
-        explicit mos_basic_string(const basic_string_view<Char> &view, TAllocator allocator = TAllocator()) : _allocator(std::move(allocator))
+        template<class StringViewLike>
+        explicit basic_string(const StringViewLike &view)
         {
             _init(view.data(), view.size());
         }
 
-        mos_basic_string(size_t size, Char c = 0, TAllocator allocator = TAllocator()) : _allocator(std::move(allocator))
+        basic_string(size_t size, Char c = 0)
         {
             _init(&c, size);
         }
 
-        mos_basic_string(const mos_basic_string &other) : _allocator(other._allocator)
+        basic_string(const basic_string &other)
         {
             _init(other.data(), other.size());
         }
 
-        mos_basic_string(mos_basic_string &&other) : _allocator(std::move(other._allocator))
+        basic_string(basic_string &&other)
         {
             _length = other._length;
             _is_long = other._is_long;
@@ -80,22 +79,21 @@ namespace mos
             }
         }
 
-        ~mos_basic_string()
+        ~basic_string()
         {
             if (_is_long && _data._long._buffer)
-                _allocator.free(_data._long._buffer);
+                TAllocator::free(_data._long._buffer);
         }
 
-        mos_basic_string &operator=(const Char *buffer)
+        basic_string &operator=(const Char *buffer)
         {
-            this->~mos_basic_string();
-            this->_allocator = TAllocator();
+            this->~basic_string();
             this->_length = generic_strlen(buffer);
             this->_is_long = this->_length >= short_string_capacity;
             if (this->_is_long)
             {
                 this->_data._long._capacity = this->_length + 1;
-                this->_data._long._buffer = (Char *) _allocator.allocate(sizeof(Char) * this->_data._long._capacity);
+                this->_data._long._buffer = (Char *) TAllocator::allocate(sizeof(Char) * this->_data._long._capacity);
                 memcpy(this->_data._long._buffer, buffer, sizeof(Char) * this->_length);
                 this->_data._long._buffer[this->_length] = 0;
             }
@@ -107,16 +105,15 @@ namespace mos
             return *this;
         }
 
-        mos_basic_string &operator=(const mos::basic_string_view<Char> &view)
+        basic_string &operator=(const mos::basic_string_view<Char> &view)
         {
-            this->~mos_basic_string();
-            this->_allocator = TAllocator();
+            this->~basic_string();
             this->_length = view.size();
             this->_is_long = this->_length >= short_string_capacity;
             if (this->_is_long)
             {
                 this->_data._long._capacity = this->_length + 1;
-                this->_data._long._buffer = (Char *) _allocator.allocate(sizeof(Char) * this->_data._long._capacity);
+                this->_data._long._buffer = (Char *) TAllocator::allocate(sizeof(Char) * this->_data._long._capacity);
                 memcpy(this->_data._long._buffer, view.data(), sizeof(Char) * this->_length);
                 this->_data._long._buffer[this->_length] = 0;
             }
@@ -128,10 +125,9 @@ namespace mos
             return *this;
         }
 
-        mos_basic_string &operator=(mos_basic_string &&other)
+        basic_string &operator=(basic_string &&other)
         {
-            this->~mos_basic_string();
-            this->_allocator = std::move(other._allocator);
+            this->~basic_string();
             this->_length = other._length;
             this->_is_long = other._is_long;
             if (this->_is_long)
@@ -148,15 +144,15 @@ namespace mos
             return *this;
         }
 
-        mos_basic_string &operator=(const mos_basic_string &other)
+        basic_string &operator=(const basic_string &other)
         {
             _init(other.data(), other.size());
             return *this;
         }
 
-        friend mos_basic_string operator+(const basic_string_view<Char> &lhs, const mos_basic_string &rhs)
+        friend basic_string operator+(const basic_string_view<Char> &lhs, const basic_string &rhs)
         {
-            return mos_basic_string(lhs) + rhs;
+            return basic_string(lhs) + rhs;
         }
 
         void resize(size_t new_length)
@@ -170,13 +166,13 @@ namespace mos
             _length = new_length;
         }
 
-        mos_basic_string operator+(const mos_basic_string &other) const
+        basic_string operator+(const basic_string &other) const
         {
             auto copy = *this;
             return copy += other;
         }
 
-        mos_basic_string operator+(Char c) const
+        basic_string operator+(Char c) const
         {
             return operator+(basic_string_view(&c, 1));
         }
@@ -186,7 +182,7 @@ namespace mos
             operator+=(c);
         }
 
-        mos_basic_string &operator+=(const basic_string_view<Char> &other)
+        basic_string &operator+=(const basic_string_view<Char> &other)
         {
             const auto new_length = _length + other.size();
             if (new_length < short_string_capacity)
@@ -206,7 +202,7 @@ namespace mos
             return *this;
         }
 
-        mos_basic_string &operator+=(Char c)
+        basic_string &operator+=(Char c)
         {
             return operator+=(basic_string_view(&c, 1));
         }
@@ -261,7 +257,7 @@ namespace mos
             return _is_long ? &_data._long._buffer[_length] : &_data._short._buffer[_length];
         }
 
-        bool operator==(const mos_basic_string &other) const
+        bool operator==(const basic_string &other) const
         {
             return _do_compare(other.data(), other.size()) == 0;
         }
@@ -292,7 +288,7 @@ namespace mos
             else
             {
                 _data._long._capacity = sizeof(Char) * _length + 1;
-                _data._long._buffer = (Char *) _allocator.allocate(_data._long._capacity);
+                _data._long._buffer = (Char *) TAllocator::allocate(_data._long._capacity);
                 memcpy(_data._long._buffer, buffer, sizeof(Char) * size);
                 _data._long._buffer[size] = 0;
                 _is_long = true;
@@ -312,7 +308,7 @@ namespace mos
                 return;
 
             const auto new_capacity = sizeof(Char) * std::max(new_length, _length) + 1; //_length + 1 for null terminator
-            const auto new_buffer = (Char *) _allocator.allocate(new_capacity);
+            const auto new_buffer = (Char *) TAllocator::allocate(new_capacity);
             memcpy(new_buffer, _data._short._buffer, std::min(short_string_capacity, _length) * sizeof(Char));
             new_buffer[_length] = 0;
 
@@ -332,10 +328,10 @@ namespace mos
             memcpy(_data._short._buffer, buffer, std::min(short_string_capacity, _length) * sizeof(Char));
             _data._short._buffer[_length] = 0;
 
-            _allocator.free(buffer);
+            TAllocator::free(buffer);
             _is_long = false;
         }
     };
 
-    using string = mos::mos_basic_string<char, mos::default_allocator>;
+    using string = mos::basic_string<char, mos::default_allocator>;
 } // namespace mos

@@ -133,7 +133,8 @@ constexpr size_t MOS_ARRAY_SIZE(const T (&)[N])
     })
 
 #define MOS_PUT_IN_SECTION(_section, _struct, _var, ...) static const _struct _var __used __section(_section) = __VA_ARGS__
-#define IS_ERR_VALUE(x)                                  unlikely((unsigned long) (void *) (x) >= (unsigned long) -4095)
+
+#define IS_ERR_VALUE(x) unlikely((unsigned long) (void *) (x) >= (unsigned long) -4095)
 
 #define MOS_STUB_IMPL(...)                                                                                                                                               \
     MOS_WARNING_PUSH                                                                                                                                                     \

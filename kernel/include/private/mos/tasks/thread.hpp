@@ -12,7 +12,10 @@ extern mos::HashMap<tid_t, Thread *> thread_table;
 
 should_inline bool thread_is_valid(const Thread *thread)
 {
-    return thread && thread->magic == THREAD_MAGIC_THRD;
+    if (auto ptr = thread)
+        return ptr->magic == THREAD_MAGIC_THRD;
+    else
+        return false;
 }
 
 Thread *thread_allocate(Process *owner, thread_mode tflags);
@@ -23,5 +26,5 @@ Thread *thread_complete_init(Thread *thread);
 Thread *thread_get(tid_t id);
 bool thread_wait_for_tid(tid_t tid);
 
-[[noreturn]] void thread_exit(Thread *t);
-[[noreturn]] void thread_exit_locked(Thread *t);
+[[noreturn]] void thread_exit(Thread *&&t);
+[[noreturn]] void thread_exit_locked(Thread *&&t);

@@ -23,7 +23,7 @@ static void create_idle_task()
         char namebuf[32];
         snprintf(namebuf, sizeof(namebuf), "idle-%u", i);
         pr_dinfo(process, "creating the idle task for CPU %u", i);
-        Thread *t = kthread_create_no_sched(idle_task, NULL, namebuf);
+        const auto t = kthread_create_no_sched(idle_task, NULL, namebuf);
         platform_info->cpu.percpu_value[i].idle_thread = t;
         // ! scheduler will switch to this thread if no other threads are available, thus scheduler_add_thread isn't called
         // thread_set_cpu(t, i);

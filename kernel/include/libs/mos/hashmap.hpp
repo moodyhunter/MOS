@@ -136,11 +136,31 @@ namespace mos
             size_t bucket;
         };
 
-        constexpr HashMap(TAllocator allocator = TAllocator());
-        HashMap(std::initializer_list<entry_type> init, TAllocator allocator = TAllocator());
-        HashMap(const HashMap &) = delete;
+        constexpr HashMap() : _table(nullptr), _capacity(0), _size(0) {};
+        HashMap(std::initializer_list<entry_type> init) : _table(nullptr), _capacity(0), _size(0)
+        {
+            /* TODO: we know the size so we don't have to keep rehashing?? */
+            for (auto &[key, value] : init)
+                insert(key, value);
+        }
 
-        ~HashMap();
+        ~HashMap()
+        {
+            for (size_t i = 0; i < _capacity; i++)
+            {
+                chain *item = _table[i];
+                while (item != nullptr)
+                {
+                    chain *next = item->next;
+                    delete item;
+                    item = next;
+                }
+            }
+
+            TAllocator::free(_table, sizeof(chain *) * _capacity);
+        }
+
+        HashMap(const HashMap &) = delete;
 
         void insert(const Key &key, const Value &value);
         void insert(const Key &key, Value &&value);
@@ -206,7 +226,7 @@ namespace mos
             return end();
         }
 
-        std::optional<Value *> get(const Key &key);
+        std::optional<Value> get(const Key &key);
         std::optional<Value> remove(const Key &key);
 
         size_t size() const
@@ -217,43 +237,13 @@ namespace mos
       private:
         void rehash();
 
-        TAllocator _allocator;
         chain **_table;
         size_t _capacity;
         size_t _size;
     };
 
-    template<typename Key, typename Value, typename Allocator>
-    constexpr HashMap<Key, Value, Allocator>::HashMap(Allocator allocator) : _allocator(std::move(allocator)), _table(nullptr), _capacity(0), _size(0){};
-
-    template<typename Key, typename Value, typename Allocator>
-    HashMap<Key, Value, Allocator>::HashMap(std::initializer_list<entry_type> init, Allocator allocator)
-        : _allocator(std::move(allocator)), _table(nullptr), _capacity(0), _size(0)
-    {
-        /* TODO: we know the size so we don't have to keep rehashing?? */
-        for (auto &[key, value] : init)
-            insert(key, value);
-    }
-
-    template<typename Key, typename Value, typename Allocator>
-    HashMap<Key, Value, Allocator>::~HashMap()
-    {
-        for (size_t i = 0; i < _capacity; i++)
-        {
-            chain *item = _table[i];
-            while (item != nullptr)
-            {
-                chain *next = item->next;
-                delete item;
-                item = next;
-            }
-        }
-
-        _allocator.free(_table, sizeof(chain *) * _capacity);
-    }
-
-    template<typename Key, typename Value, typename Allocator>
-    void HashMap<Key, Value, Allocator>::insert(const Key &key, const Value &value)
+    template<typename Key, typename Value, typename TAllocator>
+    void HashMap<Key, Value, TAllocator>::insert(const Key &key, const Value &value)
     {
         if (_size >= _capacity)
             rehash();
@@ -267,8 +257,8 @@ namespace mos
         _size++;
     }
 
-    template<typename Key, typename Value, typename Allocator>
-    void HashMap<Key, Value, Allocator>::insert(const Key &key, Value &&value)
+    template<typename Key, typename Value, typename TAllocator>
+    void HashMap<Key, Value, TAllocator>::insert(const Key &key, Value &&value)
     {
         if (_size >= _capacity)
             rehash();
@@ -282,8 +272,8 @@ namespace mos
         _size++;
     }
 
-    template<typename Key, typename Value, typename Allocator>
-    Value &HashMap<Key, Value, Allocator>::operator[](const Key &key)
+    template<typename Key, typename Value, typename TAllocator>
+    Value &HashMap<Key, Value, TAllocator>::operator[](const Key &key)
     {
         /* empty map case */
         if (_size == 0)
@@ -313,8 +303,8 @@ namespace mos
         return std::get<1>(item->entry);
     }
 
-    template<typename Key, typename Value, typename Allocator>
-    std::optional<Value *> HashMap<Key, Value, Allocator>::get(const Key &key)
+    template<typename Key, typename Value, typename TAllocator>
+    std::optional<Value> HashMap<Key, Value, TAllocator>::get(const Key &key)
     {
         if (_size == 0)
             return std::nullopt;
@@ -324,14 +314,14 @@ namespace mos
         for (chain *item = _table[bucket]; item != nullptr; item = item->next)
         {
             if (std::get<0>(item->entry) == key)
-                return &std::get<1>(item->entry);
+                return std::get<1>(item->entry);
         }
 
         return std::nullopt;
     }
 
-    template<typename Key, typename Value, typename Allocator>
-    std::optional<Value> HashMap<Key, Value, Allocator>::remove(const Key &key)
+    template<typename Key, typename Value, typename TAllocator>
+    std::optional<Value> HashMap<Key, Value, TAllocator>::remove(const Key &key)
     {
         if (_size == 0)
             return std::nullopt;
@@ -360,8 +350,8 @@ namespace mos
         return std::nullopt;
     }
 
-    template<typename Key, typename Value, typename Allocator>
-    void HashMap<Key, Value, Allocator>::rehash()
+    template<typename Key, typename Value, typename TAllocator>
+    void HashMap<Key, Value, TAllocator>::rehash()
     {
         const size_t new_capacity = std::max(2 * _size, 10lu);
 
@@ -384,7 +374,7 @@ namespace mos
             }
         }
 
-        _allocator.free(_table, sizeof(chain *) * _capacity);
+        TAllocator::free(_table, sizeof(chain *) * _capacity);
         _table = new_table;
         _capacity = new_capacity;
     }

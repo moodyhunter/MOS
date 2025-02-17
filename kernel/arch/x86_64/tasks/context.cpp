@@ -98,7 +98,7 @@ void platform_context_setup_child_thread(Thread *thread, thread_entry_t entry, v
     regs->sp = thread->u_stack.head; // update the stack pointer
 }
 
-void platform_context_clone(const Thread *from, Thread *to)
+void platform_context_clone(Thread *from, Thread *to)
 {
     platform_regs_t *to_regs = platform_thread_regs(to);
     *to_regs = *platform_thread_regs(from);
@@ -119,14 +119,15 @@ void platform_context_clone(const Thread *from, Thread *to)
 
 void platform_switch_to_thread(Thread *current, Thread *new_thread, switch_flags_t switch_flags)
 {
-    const switch_func_t switch_func = statement_expr(switch_func_t, {
+    const switch_func_t switch_func = [=]() -> switch_func_t
+    {
         switch (switch_flags)
         {
-            case SWITCH_TO_NEW_USER_THREAD: retval = x86_start_user_thread; break;
-            case SWITCH_TO_NEW_KERNEL_THREAD: retval = x86_start_kernel_thread; break;
-            default: retval = x86_normal_switch_impl; break;
+            case SWITCH_TO_NEW_USER_THREAD: return x86_start_user_thread; break;
+            case SWITCH_TO_NEW_KERNEL_THREAD: return x86_start_kernel_thread; break;
+            default: return x86_normal_switch_impl; break;
         }
-    });
+    }();
 
     if (current)
         x86_xsave_thread(current);
@@ -134,7 +135,7 @@ void platform_switch_to_thread(Thread *current, Thread *new_thread, switch_flags
     x86_xrstor_thread(new_thread);
     x86_set_fsbase(new_thread);
 
-    __atomic_store_n(&current_cpu->thread, new_thread, __ATOMIC_SEQ_CST);
+    current_cpu->thread = new_thread;
     __atomic_store_n(&per_cpu(x86_cpu_descriptor)->tss.rsp0, new_thread->k_stack.top, __ATOMIC_SEQ_CST);
 
     ptr_t trash = 0;

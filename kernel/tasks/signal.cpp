@@ -47,22 +47,22 @@ static int sigset_test(const sigset_t *sigset, int sig)
 
 [[noreturn]] static void signal_do_coredump(signal_t signal)
 {
-    process_exit(current_process, 0, signal);
+    process_exit(std::move(current_process), 0, signal);
     MOS_UNREACHABLE();
 }
 
 [[noreturn]] static void signal_do_terminate(signal_t signal)
 {
     if (current_thread == current_process->main_thread)
-        process_exit(current_process, 0, signal);
+        process_exit(std::move(current_process), 0, signal);
     else
-        thread_exit(current_thread);
+        thread_exit(std::move(current_thread));
     MOS_UNREACHABLE();
 }
 
 static void signal_do_ignore(signal_t signal)
 {
-    pr_dinfo2(signal, "thread %pt ignoring signal %d", (void *) current_thread, signal);
+    pr_dinfo2(signal, "thread %pt ignoring signal %d", current_thread, signal);
 }
 
 static bool is_fatal_signal(signal_t signal)
@@ -88,7 +88,7 @@ long signal_send_to_thread(Thread *target, signal_t signal)
 {
     if (target->mode == THREAD_MODE_KERNEL && !is_fatal_signal(signal))
     {
-        pr_emerg("signal_send_to_thread(%pt, %d): cannot send non-fatal signal to kernel thread", (void *) target, signal);
+        pr_emerg("signal_send_to_thread(%pt, %d): cannot send non-fatal signal to kernel thread", target, signal);
         return -EINVAL;
     }
 
@@ -122,18 +122,18 @@ long signal_send_to_process(Process *target, signal_t signal)
 {
     if (target->pid == 1 && signal == SIGKILL)
     {
-        pr_emerg("signal_send_to_process(%pp, %d): cannot send SIGKILL to init", (void *) target, signal);
+        pr_emerg("signal_send_to_process(%pp, %d): cannot send SIGKILL to init", target, signal);
         return -EINVAL;
     }
 
     if (target->pid == 2)
     {
-        pr_emerg("signal_send_to_process(%pp, %d): cannot send signal to kthreadd", (void *) target, signal);
+        pr_emerg("signal_send_to_process(%pp, %d): cannot send signal to kthreadd", target, signal);
         return -EINVAL;
     }
 
     Thread *target_thread = NULL;
-    list_foreach(Thread, thread, target->threads)
+    for (const auto &thread : target->thread_list)
     {
         if (thread->state == THREAD_STATE_RUNNING || thread->state == THREAD_STATE_READY || thread->state == THREAD_STATE_CREATED)
         {
@@ -144,7 +144,7 @@ long signal_send_to_process(Process *target, signal_t signal)
 
     if (!target_thread)
     {
-        list_foreach(Thread, thread, target->threads)
+        for (const auto &thread : target->thread_list)
         {
             if (thread->state == THREAD_STATE_BLOCKED)
             {
@@ -156,7 +156,7 @@ long signal_send_to_process(Process *target, signal_t signal)
 
     if (!target_thread)
     {
-        pr_emerg("signal_send_to_process(%pp, %d): no thread to send signal to", (void *) target, signal);
+        pr_emerg("signal_send_to_process(%pp, %d): no thread to send signal to", target, signal);
         return -EINVAL;
     }
 
@@ -177,7 +177,7 @@ static signal_t signal_get_next_pending(void)
             // if a fatal signal is pending but also masked, kill the thread
             if (is_fatal_signal(pending->signal))
             {
-                pr_emerg("thread %pt received fatal signal %d but it was masked, terminating", (void *) current_thread, pending->signal);
+                pr_emerg("thread %pt received fatal signal %d but it was masked, terminating", current_thread, pending->signal);
                 signal_do_terminate(pending->signal);
             }
             continue; // signal is masked, skip it
@@ -271,7 +271,7 @@ void signal_exit_to_user_prepare_syscall(platform_regs_t *regs, reg_t syscall_nr
 
         if (action.sa_flags & SA_RESTART)
         {
-            pr_dinfo2(signal, "thread %pt will restart syscall %lu after signal %d", (void *) current_thread, syscall_nr, next_signal);
+            pr_dinfo2(signal, "thread %pt will restart syscall %lu after signal %d", current_thread, syscall_nr, next_signal);
             platform_syscall_setup_restart_context(regs, syscall_nr);
             goto really_prepare;
         }

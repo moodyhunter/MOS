@@ -64,9 +64,8 @@ static pid_t new_process_id(void)
     return next++;
 }
 
-Process::Process(Private, Process *const parent_, mos::string_view name_) : magic(PROCESS_MAGIC_PROC), pid(new_process_id()), parent(parent_)
+Process::Process(Private, Process *parent_, mos::string_view name_) : magic(PROCESS_MAGIC_PROC), pid(new_process_id()), parent(parent_)
 {
-    linked_list_init(&threads);
     linked_list_init(&children);
 
     waitlist_init(&signal_info.sigchild_waitlist);
@@ -75,14 +74,17 @@ Process::Process(Private, Process *const parent_, mos::string_view name_) : magi
 
     if (unlikely(pid == 1) || unlikely(pid == 2))
     {
-        this->parent = this;
+        this->parent = nullptr;
         pr_demph(process, "special process %pp created", (void *) this);
     }
-
-    if (parent == nullptr)
+    else if (parent == nullptr)
+    {
         mos_panic("process %pp has no parent", (void *) this);
-
-    list_node_append(&parent->children, list_node(this));
+    }
+    else
+    {
+        list_node_append(&parent->children, list_node(this));
+    }
 
     if (unlikely(pid == 2))
     {
@@ -96,6 +98,11 @@ Process::Process(Private, Process *const parent_, mos::string_view name_) : magi
     MOS_ASSERT_X(mm != NULL, "failed to create page table for process");
 }
 
+Process::~Process()
+{
+    pr_emerg("process %p destroyed", (void *) this);
+}
+
 void process_destroy(Process *process)
 {
     if (!process_is_valid(process))
@@ -104,13 +111,12 @@ void process_destroy(Process *process)
     ProcessTable.remove(process->pid);
 
     MOS_ASSERT(process != current_process);
-    pr_dinfo2(process, "destroying process %pp", (void *) process);
+    pr_dinfo2(process, "destroying process %pp", process);
 
-    MOS_ASSERT_X(process->main_thread != NULL, "main thread must be dead before destroying process");
+    MOS_ASSERT_X(process->main_thread != nullptr, "main thread must be dead before destroying process");
 
     spinlock_acquire(&process->main_thread->state_lock);
-    thread_destroy(process->main_thread);
-    process->main_thread = NULL;
+    thread_destroy(std::move(process->main_thread));
 
     if (process->mm != NULL)
     {
@@ -124,9 +130,8 @@ void process_destroy(Process *process)
         // free page table
         MOS_ASSERT(process->mm != current_mm);
         mm_destroy_context(process->mm);
+        process->mm = nullptr;
     }
-
-    delete process;
 }
 
 Process *process_new(Process *parent, mos::string_view name, const stdio_t *ios)
@@ -134,13 +139,13 @@ Process *process_new(Process *parent, mos::string_view name, const stdio_t *ios)
     const auto proc = Process::New(parent, name);
     if (unlikely(!proc))
         return NULL;
-    pr_dinfo2(process, "creating process %pp", (void *) proc);
+    pr_dinfo2(process, "creating process %pp", proc);
 
     process_attach_ref_fd(proc, ios && ios->in ? ios->in : io_null, FD_FLAGS_NONE);
     process_attach_ref_fd(proc, ios && ios->out ? ios->out : io_null, FD_FLAGS_NONE);
     process_attach_ref_fd(proc, ios && ios->err ? ios->err : io_null, FD_FLAGS_NONE);
 
-    auto thread = thread_new(proc, THREAD_MODE_USER, proc->name, 0, NULL);
+    const auto thread = thread_new(proc, THREAD_MODE_USER, proc->name, 0, NULL);
     if (thread.isErr())
     {
         process_destroy(proc);
@@ -153,19 +158,15 @@ Process *process_new(Process *parent, mos::string_view name, const stdio_t *ios)
     return proc;
 }
 
-Process *process_get(pid_t pid)
+std::optional<Process *> process_get(pid_t pid)
 {
-    const auto pproc = ProcessTable.get(pid);
-    if (!pproc)
+    if (auto pproc = ProcessTable.get(pid))
     {
-        pr_warn("process %d does not exist", pid);
-        return nullptr;
+        if (process_is_valid(*pproc))
+            return pproc;
     }
 
-    if (process_is_valid(**pproc))
-        return **pproc;
-
-    return NULL;
+    return std::nullopt;
 }
 
 fd_t process_attach_ref_fd(Process *process, io_t *file, fd_flags_t flags)
@@ -179,7 +180,7 @@ fd_t process_attach_ref_fd(Process *process, io_t *file, fd_flags_t flags)
         fd++;
         if (fd >= MOS_PROCESS_MAX_OPEN_FILES)
         {
-            mos_warn("process %pp has too many open files", (void *) process);
+            mos_warn("process %pp has too many open files", process);
             return -EMFILE;
         }
     }
@@ -251,12 +252,14 @@ pid_t process_wait_for_pid(pid_t pid, u32 *exit_code, u32 flags)
     }
 
 child_dead:;
-    Process *target_proc = process_get(pid);
-    if (target_proc == NULL)
+    auto target_proc_opt = process_get(pid);
+    if (!target_proc_opt)
     {
         pr_warn("process %d does not exist", pid);
         return -ECHILD;
     }
+
+    const auto target_proc = *target_proc_opt;
 
     while (true)
     {
@@ -278,45 +281,45 @@ child_dead:;
     return pid;
 }
 
-void process_exit(Process *process, u8 exit_code, signal_t signal)
+void process_exit(Process *&&process, u8 exit_code, signal_t signal)
 {
     MOS_ASSERT(process_is_valid(process));
-    pr_dinfo2(process, "process %pp exited with code %d, signal %d", (void *) process, exit_code, signal);
+    pr_dinfo2(process, "process %pp exited with code %d, signal %d", process, exit_code, signal);
 
     if (unlikely(process->pid == 1))
         mos_panic("init process terminated with code %d, signal %d", exit_code, signal);
 
-    list_foreach(Thread, thread, process->threads)
+    for (const auto &thread : process->thread_list)
     {
         spinlock_acquire(&thread->state_lock);
         if (thread->state == THREAD_STATE_DEAD)
         {
-            pr_dinfo2(process, "cleanup thread %pt", (void *) thread);
+            pr_dinfo2(process, "cleanup thread %pt", thread);
             MOS_ASSERT(thread != current_thread);
             thread_table.remove(thread->tid);
             list_remove(thread);
-            thread_destroy(thread);
+            thread_destroy(std::move(thread));
         }
         else
         {
             // send termination signal to all threads, except the current one
             if (thread != current_thread)
             {
-                pr_dinfo2(signal, "sending SIGKILL to thread %pt", (void *) thread);
+                pr_dinfo2(signal, "sending SIGKILL to thread %pt", thread);
                 spinlock_release(&thread->state_lock);
                 signal_send_to_thread(thread, SIGKILL);
                 thread_wait_for_tid(thread->tid);
                 spinlock_acquire(&thread->state_lock);
-                pr_dinfo2(process, "thread %pt terminated", (void *) thread);
-                MOS_ASSERT_X(thread->state == THREAD_STATE_DEAD, "thread %pt is not dead", (void *) thread);
+                pr_dinfo2(process, "thread %pt terminated", thread);
+                MOS_ASSERT_X(thread->state == THREAD_STATE_DEAD, "thread %pt is not dead", thread);
                 thread_table.remove(thread->tid);
-                thread_destroy(thread);
+                thread_destroy(std::move(thread));
             }
             else
             {
                 spinlock_release(&thread->state_lock);
                 process->main_thread = thread; // make sure we properly destroy the main thread at the end
-                pr_dinfo2(process, "thread %pt is current thread, making it main thread", (void *) thread);
+                pr_dinfo2(process, "thread %pt is current thread, making it main thread", thread);
             }
         }
     }
@@ -346,7 +349,7 @@ void process_exit(Process *process, u8 exit_code, signal_t signal)
 
     dentry_unref(process->working_directory);
 
-    pr_dinfo2(process, "closed %zu/%zu files owned by %pp", files_closed, files_total, (void *) process);
+    pr_dinfo2(process, "closed %zu/%zu files owned by %pp", files_closed, files_total, process);
     process->exited = true;
     process->exit_status = W_EXITCODE(exit_code, signal);
 
@@ -354,17 +357,17 @@ void process_exit(Process *process, u8 exit_code, signal_t signal)
     spinlock_acquire(&current_thread->state_lock);
 
     // wake up parent
-    pr_dinfo2(process, "waking up parent %pp", (void *) process->parent);
+    pr_dinfo2(process, "waking up parent %pp", process->parent);
     signal_send_to_process(process->parent, SIGCHLD);
     waitlist_wake(&process->parent->signal_info.sigchild_waitlist, INT_MAX);
 
-    thread_exit_locked(current_thread);
+    thread_exit_locked(std::move(current_thread));
     MOS_UNREACHABLE();
 }
 
 void process_dump_mmaps(const Process *process)
 {
-    pr_info("process %pp:", (void *) process);
+    pr_info("process %pp:", process);
     size_t i = 0;
     list_foreach(vmap_t, map, process->mm->mmaps)
     {
@@ -379,7 +382,7 @@ void process_dump_mmaps(const Process *process)
 
 bool process_register_signal_handler(Process *process, signal_t sig, const sigaction_t *sigaction)
 {
-    pr_dinfo2(signal, "registering signal handler for process %pp, signal %d", (void *) process, sig);
+    pr_dinfo2(signal, "registering signal handler for process %pp, signal %d", process, sig);
     if (!sigaction)
     {
         process->signal_info.handlers[sig] = (sigaction_t) { .handler = SIG_DFL };
@@ -400,9 +403,9 @@ static bool process_sysfs_process_stat(sysfs_file_t *f)
 
     do_print("%d", "parent", current_process->parent->pid);
 
-    list_foreach(Thread, thread, current_process->threads)
+    for (const auto &thread : current_process->thread_list)
     {
-        do_print("%pt", "thread", (void *) thread);
+        do_print("%pt", "thread", thread);
     }
     return true;
 }
