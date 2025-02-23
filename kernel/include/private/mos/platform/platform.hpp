@@ -7,6 +7,7 @@
 #include "mos/mm/paging/pml_types.hpp"
 #include "mos/mm/physical/pmm.hpp"
 #include "mos/platform/platform_defs.hpp"
+#include "mos/syslog/syslog.hpp"
 
 #include <mos/allocator.hpp>
 #include <mos/lib/structures/list.hpp>
@@ -62,6 +63,11 @@ enum vm_flags : unsigned int
 
 MOS_ENUM_OPERATORS(vm_flags)
 
+inline mos::SyslogStream &operator<<(mos::SyslogStream &stream, vm_flags flags)
+{
+    return stream << (flags & VM_READ ? 'r' : '-') << (flags & VM_WRITE ? 'w' : '-') << (flags & VM_EXEC ? 'x' : '-');
+}
+
 typedef enum
 {
     THREAD_STATE_CREATED,          ///< created or forked, but not ever started
@@ -88,7 +94,7 @@ struct MMContext : mos::NamedType<"MMContext">
     list_head mmaps;
 };
 
-typedef struct _platform_regs platform_regs_t;
+struct platform_regs_t;
 
 typedef struct
 {
@@ -166,8 +172,8 @@ void platform_startup_late();
 // default implementation panics
 [[noreturn]] void platform_shutdown(void);
 // default implementations do nothing for 4 functions below
-void platform_dump_regs(platform_regs_t *regs);
-void platform_dump_stack(platform_regs_t *regs);
+void platform_dump_regs(const platform_regs_t *regs);
+void platform_dump_stack(const platform_regs_t *regs);
 void platform_dump_current_stack();
 void platform_dump_thread_kernel_stack(const Thread *thread);
 
@@ -251,7 +257,6 @@ void platform_context_cleanup(Thread *thread);
 // no default implementation, platform-specific implementations must be provided
 void platform_switch_mm(const MMContext *new_mm);
 void platform_switch_to_thread(Thread *current, Thread *new_thread, switch_flags_t switch_flags);
-[[noreturn]] void platform_return_to_userspace(platform_regs_t *regs);
 
 // Platform-Specific syscall APIs
 // default implementation does nothing
@@ -264,7 +269,7 @@ void platform_ipi_send(u8 target_cpu, ipi_type_t type);
 // Signal Handler APIs
 // the 4 function below has default implementations that panic if not implemented
 typedef struct _sigreturn_data sigreturn_data_t;
-[[noreturn]] void platform_jump_to_signal_handler(const platform_regs_t *regs, const sigreturn_data_t *sigreturn_data, const sigaction_t *sa);
+ptr<platform_regs_t> platform_setup_signal_handler_regs(const platform_regs_t *regs, const sigreturn_data_t *sigreturn_data, const sigaction_t *sa);
 [[noreturn]] void platform_restore_from_signal_handler(void *sp);
 void platform_syscall_setup_restart_context(platform_regs_t *regs, reg_t syscall_nr);
 void platform_syscall_store_retval(platform_regs_t *regs, reg_t result);

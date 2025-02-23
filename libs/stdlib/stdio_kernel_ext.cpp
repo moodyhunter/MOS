@@ -142,7 +142,7 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
                 wrap_print("(null)");
                 goto done;
             }
-            MOS_ASSERT_X(process_is_valid(process), "process is invalid");
+            MOS_ASSERT_X(Process::IsValid(process), "process is invalid");
             wrap_print("[p%d:%s]", process->pid, process->name.empty() ? "<no name>" : process->name.data());
             goto done;
         }

@@ -56,7 +56,7 @@ static const char *const x86_exception_names[EXCEPTION_COUNT] = {
     "Reserved",
 };
 
-static void x86_handle_nmi(platform_regs_t *regs)
+static void x86_handle_nmi(const platform_regs_t *regs)
 {
     pr_emph("cpu %d: NMI received", lapic_get_id());
 
@@ -81,7 +81,7 @@ static void x86_handle_nmi(platform_regs_t *regs)
     mos_panic("NMI received");
 }
 
-static void x86_handle_exception(platform_regs_t *regs)
+static void x86_handle_exception(const platform_regs_t *regs)
 {
     MOS_ASSERT(regs->interrupt_number < EXCEPTION_COUNT);
 
@@ -210,7 +210,7 @@ static void x86_handle_irq(platform_regs_t *frame)
     interrupt_entry(irq);
 }
 
-extern "C" void x86_interrupt_entry(ptr_t rsp)
+extern "C" platform_regs_t *x86_interrupt_entry(ptr_t rsp)
 {
     platform_regs_t *frame = (platform_regs_t *) rsp;
     current_cpu->interrupt_regs = frame;
@@ -233,20 +233,22 @@ extern "C" void x86_interrupt_entry(ptr_t rsp)
     profile_leave(ev, "x86.int.%lu", frame->interrupt_number);
 
     if (unlikely(!current_thread))
-    {
-        x86_interrupt_return_impl(frame);
-        MOS_UNREACHABLE();
-    }
+        return frame;
 
     // jump to signal handler if there is a pending signal, and if we are coming from userspace
     if (frame->cs & 0x3)
     {
+        ptr<platform_regs_t> syscall_ret_regs;
         if (frame->interrupt_number == MOS_SYSCALL_INTR)
-            signal_exit_to_user_prepare_syscall(frame, syscall_nr, syscall_ret);
+            syscall_ret_regs = signal_exit_to_user_prepare(frame, syscall_nr, syscall_ret);
         else
-            signal_exit_to_user_prepare(frame);
+            syscall_ret_regs = signal_exit_to_user_prepare(frame);
+
+        if (syscall_ret_regs)
+            *frame = *syscall_ret_regs;
     }
 
-    x86_interrupt_return_impl(frame);
-    MOS_UNREACHABLE();
+    // x86_interrupt_return_impl(frame);
+    // MOS_UNREACHABLE();
+    return frame;
 }

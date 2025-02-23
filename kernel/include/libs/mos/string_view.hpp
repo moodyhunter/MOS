@@ -50,6 +50,7 @@ namespace mos
         constexpr basic_string_view() : _pointer(nullptr), _length(0) {};
         constexpr basic_string_view(const CharT *cs) : _pointer(cs), _length(generic_strlen(cs)) {};
         constexpr basic_string_view(const CharT *s, size_t length) : _pointer(s), _length(length) {};
+        constexpr basic_string_view(const CharT *begin, const CharT *end) : _pointer(begin), _length(end - begin) {};
 
         const CharT *data() const
         {
@@ -103,6 +104,11 @@ namespace mos
                     return i;
             }
             return size_t(-1);
+        }
+
+        constexpr bool starts_with(basic_string_view str) const
+        {
+            return generic_strncmp(_pointer, str._pointer, str._length) == 0;
         }
 
       private:

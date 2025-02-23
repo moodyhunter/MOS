@@ -4,6 +4,7 @@
 
 #include "mos/filesystem/vfs_types.hpp"
 #include "mos/platform/platform.hpp"
+#include "mos/syslog/syslog.hpp"
 #include "mos/tasks/wait.hpp"
 
 #include <abi-bits/signal.h>
@@ -77,9 +78,26 @@ struct Process : mos::NamedType<"Process">
     process_signal_info_t signal_info; ///< signal handling info
 
   public:
+    static inline bool IsValid(const Process *process)
+    {
+        if (const auto ptr = process)
+            return ptr->magic == PROCESS_MAGIC_PROC;
+        else
+            return false;
+    }
+
+  public:
     static inline Process *New(Process *parent, mos::string_view name)
     {
         return mos::create<Process>(Private(), parent, name);
+    }
+
+    friend mos::SyslogStream &operator<<(mos::SyslogStream &stream, const Process *process)
+    {
+        if (!Process::IsValid(process))
+            return stream << "[invalid]";
+
+        return stream << fmt("[p{}:{}]", process->pid, process->name.value_or("<no name>"));
     }
 };
 

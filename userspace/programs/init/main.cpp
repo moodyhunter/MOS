@@ -88,7 +88,11 @@ static void sigsegv_handler(int sig)
 {
     if (sig == SIGSEGV)
     {
-        std::cout << RED("Segmentation fault") << std::endl;
+        std::cout << RED("INIT process received SIGSEGV") << std::endl << std::endl;
+        std::cout << RED("!!!!!!!!!!!!!!!!!!!!!!!!!!") << std::endl;
+        std::cout << RED("!!! Segmentation fault !!!") << std::endl;
+        std::cout << RED("!!!!!!!!!!!!!!!!!!!!!!!!!!") << std::endl;
+        std::cout << RED("!!!") GREEN("  Good Bye~  ") RED("!!!") << std::endl;
         while (true)
             sched_yield();
     }

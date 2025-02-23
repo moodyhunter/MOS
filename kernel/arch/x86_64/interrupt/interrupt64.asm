@@ -141,12 +141,15 @@ do_handle_interrupt:
 
     mov     rdi, rsp
     call    x86_interrupt_entry    ; x86_interrupt_entry(ptr_t sp)
-    ud2                             ; if x86_interrupt_entry returns, it's a bug
+    ; ud2                             ; if x86_interrupt_entry returns, it's a bug
+    mov     rsp, rax                ; return value is the new stack pointer
+    jmp    x86_interrupt_return_impl2
 .end:
 
-global x86_interrupt_return_impl:function (x86_interrupt_return_impl.end - x86_interrupt_return_impl)
+global x86_interrupt_return_impl:function (x86_interrupt_return_impl2.end - x86_interrupt_return_impl)
 x86_interrupt_return_impl:
     mov     rsp, rdi
+x86_interrupt_return_impl2:
 
     pop     r15
     pop     r14

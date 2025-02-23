@@ -237,6 +237,11 @@ namespace mos
             return _length == 0;
         }
 
+        basic_string_view<Char> value_or(basic_string_view<Char> other) const
+        {
+            return empty() ? other : *this;
+        }
+
         Char *begin()
         {
             return _is_long ? &_data._long._buffer[0] : &_data._short._buffer[0];

@@ -34,7 +34,7 @@ MOS_SETUP("scheduler", scheduler_cmdline_selector)
 {
     for (const scheduler_info_t *info = __MOS_SCHEDULERS_START; info < __MOS_SCHEDULERS_END; info++)
     {
-        if (strcmp(info->name, arg) == 0)
+        if (info->name == arg)
         {
             active_scheduler = info->scheduler;
             active_scheduler->ops->init(active_scheduler);

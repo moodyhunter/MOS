@@ -137,7 +137,7 @@ PtrResult<dentry_t> dentry_from_fd(fd_t fd);
  * @return The child dentry, always non-NULL, even if the child dentry does not exist in the filesystem
  * @note The returned dentry will have its reference count incremented, even if it does not exist.
  */
-PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, const char *name);
+PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, mos::string_view name);
 
 /**
  * @brief Lookup a path in the filesystem

@@ -347,7 +347,6 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, vmap_t *
     if (current_thread)
     {
         signal_send_to_thread(current_thread, SIGSEGV);
-        signal_exit_to_user_prepare(info->regs);
     }
     else
     {
@@ -384,8 +383,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     if (!current_mm)
     {
         unhandled_reason = "no mm context";
-        DoUnhandledPageFault();
-        return;
+        return DoUnhandledPageFault();
     }
 
     MMContext *const mm = current_mm;
@@ -397,8 +395,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         ip_vmap = vmap_obtain(mm, info->ip, NULL);
         unhandled_reason = "page fault in unmapped area";
         mm_unlock_ctx_pair(mm, NULL);
-        DoUnhandledPageFault();
-        return;
+        return DoUnhandledPageFault();
     }
     ip_vmap = MOS_IN_RANGE(info->ip, fault_vmap->vaddr, fault_vmap->vaddr + fault_vmap->npages * MOS_PAGE_SIZE) ? fault_vmap : vmap_obtain(mm, info->ip, NULL);
 
@@ -409,8 +406,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     {
         unhandled_reason = "page fault in non-executable vmap";
         mm_unlock_ctx_pair(mm, NULL);
-        DoUnhandledPageFault();
-        return;
+        return DoUnhandledPageFault();
     }
     else if (info->is_present && info->is_exec && fault_vmap->vmflags & VM_EXEC && !(page_flags & VM_EXEC))
     {
@@ -428,8 +424,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     {
         unhandled_reason = "page fault in read-only vmap";
         mm_unlock_ctx_pair(mm, NULL);
-        DoUnhandledPageFault();
-        return;
+        return DoUnhandledPageFault();
     }
 
     if (info->is_present)
@@ -459,8 +454,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         case VMFAULT_CANNOT_HANDLE:
         {
             unhandled_reason = "vmap fault handler returned VMFAULT_CANNOT_HANDLE";
-            DoUnhandledPageFault();
-            return;
+            return DoUnhandledPageFault();
         }
         case VMFAULT_COPY_BACKING_PAGE:
         {
@@ -482,8 +476,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
             {
                 unhandled_reason = "out of memory";
                 mm_unlock_ctx_pair(mm, NULL);
-                DoUnhandledPageFault();
-                return;
+                return DoUnhandledPageFault();
             }
 
             pr_dcont(pagefault, " (backing page: " PFN_FMT ")", phyframe_pfn(info->backing_page));

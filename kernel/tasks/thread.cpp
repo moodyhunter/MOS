@@ -100,7 +100,7 @@ PtrResult<Thread> thread_new(Process *owner, thread_mode tmode, mos::string_view
         if (stack_vmap.isErr())
         {
             pr_emerg("failed to allocate stack for new thread");
-            thread_destroy(std::move(t));
+            thread_destroy(t);
             return stack_vmap.getErr();
         }
 
@@ -158,7 +158,7 @@ done_efault:
     spinlock_release(&stack_vmap->lock);
     mm_unlock_ctx_pair(owner->mm, NULL);
     spinlock_acquire(&t->state_lock);
-    thread_destroy(std::move(t));
+    thread_destroy(t);
     return -EFAULT; // invalid stack pointer
 }
 

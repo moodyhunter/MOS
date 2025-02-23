@@ -6,6 +6,7 @@
 #include "mos/mm/mmstat.hpp"
 #include "mos/mm/physical/pmm.hpp"
 #include "mos/platform/platform.hpp"
+#include "mos/syslog/syslog.hpp"
 
 #include <mos/allocator.hpp>
 #include <mos/lib/structures/list.hpp>
@@ -37,7 +38,7 @@ typedef struct
 {
     bool is_present, is_write, is_user, is_exec;
     ptr_t ip;                       ///< the instruction pointer which caused the fault
-    platform_regs_t *regs;          ///< the registers of the moment that caused the fault
+    const platform_regs_t *regs;    ///< the registers of the moment that caused the fault
     phyframe_t *faulting_page;      ///< the frame that contains the copy-on-write data (if any)
     const phyframe_t *backing_page; ///< the frame that contains the data for this page, the on_fault handler should set this
 } pagefault_t;
@@ -72,6 +73,11 @@ struct vmap_t : mos::NamedType<"VMap">
     vmap_type_t type;
     vmap_stat_t stat;
     vmfault_handler_t on_fault;
+
+    friend mos::SyslogStream &operator<<(mos::SyslogStream &stream, const vmap_t *vmap)
+    {
+        return stream << fmt("\\{ [{} - {}] }", vmap->vaddr, vmap->vaddr + vmap->npages * MOS_PAGE_SIZE - 1);
+    }
 };
 
 #define pfn_va(pfn)        ((ptr_t) (platform_info->direct_map_base + (pfn) * (MOS_PAGE_SIZE)))

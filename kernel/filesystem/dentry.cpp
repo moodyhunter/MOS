@@ -352,12 +352,12 @@ PtrResult<dentry_t> dentry_from_fd(fd_t fd)
     return file->dentry;
 }
 
-PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, const char *name)
+PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, mos::string_view name)
 {
     if (unlikely(parent == nullptr))
         return nullptr;
 
-    pr_dinfo2(dcache, "looking for dentry '%s' in '%s'", name, dentry_name(parent).c_str());
+    pr_dinfo2(dcache, "looking for dentry '%s' in '%s'", name.data(), dentry_name(parent).c_str());
 
     // firstly check if it's in the cache
     dentry_t *dentry = dentry_get_from_parent(parent->superblock, parent, name);
@@ -367,7 +367,7 @@ PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, const char *name)
 
     if (dentry->inode)
     {
-        pr_dinfo2(dcache, "dentry '%s' found in the cache", name);
+        pr_dinfo2(dcache, "dentry '%s' found in the cache", name.data());
         spinlock_release(&dentry->lock);
         return dentry_ref(dentry);
     }
@@ -385,12 +385,12 @@ PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, const char *name)
 
     if (lookup_result)
     {
-        pr_dinfo2(dcache, "dentry '%s' found in the filesystem", name);
+        pr_dinfo2(dcache, "dentry '%s' found in the filesystem", name.data());
         return dentry_ref(dentry);
     }
     else
     {
-        pr_dinfo2(dcache, "dentry '%s' not found in the filesystem", name);
+        pr_dinfo2(dcache, "dentry '%s' not found in the filesystem", name.data());
         return dentry; // do not reference a negative dentry
     }
 }

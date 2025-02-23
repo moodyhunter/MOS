@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <mos/string_view.hpp>
 #include <mos/types.hpp>
 
 typedef enum
@@ -16,7 +17,7 @@ typedef enum
 typedef struct
 {
     const char *param;
-    bool (*hook)(const char *arg);
+    bool (*hook)(mos::string_view arg);
 } mos_cmdline_hook_t;
 
 typedef struct
@@ -26,14 +27,14 @@ typedef struct
 } mos_init_t;
 
 #define MOS_EARLY_SETUP(_param, _fn)                                                                                                                                     \
-    static bool _fn(const char *arg);                                                                                                                                    \
+    static bool _fn(mos::string_view arg);                                                                                                                               \
     MOS_PUT_IN_SECTION(".mos.early_setup", mos_cmdline_hook_t, __setup_##_fn, { .param = _param, .hook = _fn });                                                         \
-    static bool _fn(const char *arg)
+    static bool _fn(mos::string_view arg)
 
 #define MOS_SETUP(_param, _fn)                                                                                                                                           \
-    static bool _fn(const char *arg);                                                                                                                                    \
+    static bool _fn(mos::string_view arg);                                                                                                                               \
     MOS_PUT_IN_SECTION(".mos.setup", mos_cmdline_hook_t, __setup_##_fn, { .param = _param, .hook = _fn });                                                               \
-    static bool _fn(const char *arg)
+    static bool _fn(mos::string_view arg)
 
 #define MOS_INIT(_comp, _fn)                                                                                                                                             \
     static void _fn(void);                                                                                                                                               \

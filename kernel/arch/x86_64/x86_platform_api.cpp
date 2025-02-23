@@ -5,6 +5,7 @@
 #include "mos/tasks/signal.hpp"
 #include "mos/x86/devices/rtc.hpp"
 
+#include <mos/allocator.hpp>
 #include <mos/lib/sync/spinlock.hpp>
 #include <mos/mm/paging/paging.hpp>
 #include <mos/mm/physical/pmm.hpp>
@@ -112,11 +113,6 @@ void platform_dump_thread_kernel_stack(const Thread *thread)
     x86_dump_stack_at(*rbp_ptr, false);
 }
 
-[[noreturn]] void platform_return_to_userspace(platform_regs_t *regs)
-{
-    x86_interrupt_return_impl(regs);
-}
-
 u64 platform_arch_syscall(u64 syscall, u64 __maybe_unused arg1, u64 __maybe_unused arg2, u64 __maybe_unused arg3, u64 __maybe_unused arg4)
 {
     switch (syscall)
@@ -164,7 +160,7 @@ void platform_ipi_send(u8 target, ipi_type_t type)
         lapic_interrupt(IPI_BASE + type, target, APIC_DELIVER_MODE_NORMAL, LAPIC_DEST_MODE_PHYSICAL, LAPIC_SHORTHAND_NONE);
 }
 
-void platform_jump_to_signal_handler(const platform_regs_t *regs, const sigreturn_data_t *sigreturn_data, const sigaction_t *sa)
+ptr<platform_regs_t> platform_setup_signal_handler_regs(const platform_regs_t *regs, const sigreturn_data_t *sigreturn_data, const sigaction_t *sa)
 {
     current_thread->u_stack.head = regs->sp - 128;
 
@@ -173,13 +169,16 @@ void platform_jump_to_signal_handler(const platform_regs_t *regs, const sigretur
     stack_push_val(&current_thread->u_stack, *sigreturn_data);
 
     // Set up the new context
-    platform_regs_t ret_regs = *regs;
-    ret_regs.ip = (ptr_t) sa->handler;
+    auto new_regs = mos::make_shared<platform_regs_t>(regs);
+    // *new_regs = *regs;
+
+    new_regs->ip = (ptr_t) sa->handler;
     stack_push_val(&current_thread->u_stack, (ptr_t) sa->sa_restorer); // the return address
 
-    ret_regs.di = sigreturn_data->signal; // arg1
-    ret_regs.sp = current_thread->u_stack.head;
-    x86_interrupt_return_impl(&ret_regs);
+    new_regs->di = sigreturn_data->signal; // arg1
+    new_regs->sp = current_thread->u_stack.head;
+
+    return new_regs;
 }
 
 void platform_restore_from_signal_handler(void *sp)
@@ -199,7 +198,7 @@ void platform_get_time(timeval_t *time)
     rtc_read_time(time);
 }
 
-void platform_dump_regs(platform_regs_t *frame)
+void platform_dump_regs(const platform_regs_t *frame)
 {
     pr_emph("General Purpose Registers:\n"
             "  RAX: " PTR_FMT " RBX: " PTR_FMT " RCX: " PTR_FMT " RDX: " PTR_FMT "\n"

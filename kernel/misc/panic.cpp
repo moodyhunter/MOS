@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/misc/power.hpp"
+#include "mos/syslog/syslog.hpp"
 
 #include <mos/interrupt/ipi.hpp>
 #include <mos/lib/structures/list.hpp>
@@ -176,6 +177,6 @@ void mos_kwarn(const char *func, u32 line, const char *fmt, ...)
     vsnprintf(message, MOS_PRINTK_BUFFER_SIZE, fmt, args);
     va_end(args);
 
-    lprintk(MOS_LOG_WARN, "\n%s", message);
-    lprintk(MOS_LOG_WARN, "  in function: %s (line %u)\n", func, line);
+    lprintk(LogLevel::WARN, "\n%s", message);
+    lprintk(LogLevel::WARN, "  in function: %s (line %u)\n", func, line);
 }

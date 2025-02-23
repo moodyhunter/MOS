@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/syslog/syslog.hpp"
+
 #include <mos/device/console.hpp>
 #include <mos/lib/structures/list.hpp>
 #include <mos/lib/sync/spinlock.hpp>
@@ -9,13 +11,13 @@
 #include <mos_stdio.hpp>
 #include <mos_string.hpp>
 
-static Console *printk_console = NULL;
+Console *printk_console = NULL;
 static bool printk_quiet = false;
 
 MOS_SETUP("printk_console", printk_setup_console)
 {
-    const char *kcon_name = arg;
-    if (!kcon_name || !strlen(kcon_name))
+    const auto kcon_name = arg;
+    if (kcon_name.empty())
     {
         pr_warn("No console name given for printk");
         return false;
@@ -37,7 +39,7 @@ MOS_SETUP("printk_console", printk_setup_console)
         return true;
     }
 
-    mos_warn("No console found for printk based on given name or prefix '%s'", kcon_name);
+    mos_warn("No console found for printk based on given name or prefix '%s'", kcon_name.data());
     printk_console = NULL;
     return false;
 }
@@ -48,49 +50,42 @@ MOS_EARLY_SETUP("quiet", printk_setup_quiet)
     return true;
 }
 
-static inline void deduce_level_color(int loglevel, standard_color_t *fg, standard_color_t *bg)
+static inline void deduce_level_color(LogLevel loglevel, standard_color_t *fg, standard_color_t *bg)
 {
     *bg = Black;
     switch (loglevel)
     {
-        case MOS_LOG_INFO2: *fg = DarkGray; break;
-        case MOS_LOG_INFO: *fg = Gray; break;
-        case MOS_LOG_EMPH: *fg = Cyan; break;
-        case MOS_LOG_WARN: *fg = Brown; break;
-        case MOS_LOG_EMERG: *fg = Red; break;
-        case MOS_LOG_FATAL: *fg = White, *bg = Red; break;
+        case LogLevel::INFO2: *fg = DarkGray; break;
+        case LogLevel::INFO: *fg = Gray; break;
+        case LogLevel::EMPH: *fg = Cyan; break;
+        case LogLevel::WARN: *fg = Brown; break;
+        case LogLevel::EMERG: *fg = Red; break;
+        case LogLevel::FATAL: *fg = White, *bg = Red; break;
         default: break; // do not change the color
     }
 }
 
-static void print_to_console(Console *con, loglevel_t loglevel, const char *message, size_t len)
+void print_to_console(Console *con, LogLevel loglevel, const char *message, size_t len)
 {
     if (!con)
         return;
 
     standard_color_t fg = con->fg, bg = con->bg;
     deduce_level_color(loglevel, &fg, &bg);
-    con->write_color(message, len, fg, bg);
+    con->WriteColored(message, len, fg, bg);
 }
 
-void lvprintk(loglevel_t loglevel, const char *fmt, va_list args)
+void lvprintk(LogLevel loglevel, const char *fmt, va_list args)
 {
     // only print warnings and errors if quiet mode is enabled
-    if (printk_quiet && loglevel < MOS_LOG_WARN)
+    if (printk_quiet && loglevel < LogLevel::WARN)
         return;
 
     char message[MOS_PRINTK_BUFFER_SIZE];
     const int len = vsnprintf(message, MOS_PRINTK_BUFFER_SIZE, fmt, args);
 
     if (unlikely(!printk_console))
-    {
-        list_foreach(Console, con, consoles)
-        {
-            printk_console = con; // set the first console as the default
-            break;
-        }
-    }
-
+        printk_console = consoles.front();
     print_to_console(printk_console, loglevel, message, len);
 }
 
@@ -106,7 +101,7 @@ void printk_set_quiet(bool quiet)
     printk_quiet = quiet;
 }
 
-void lprintk(loglevel_t loglevel, const char *format, ...)
+void lprintk(LogLevel loglevel, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -118,6 +113,6 @@ void printk(const char *format, ...)
 {
     va_list args;
     va_start(args, format);
-    lvprintk(MOS_LOG_INFO, format, args);
+    lvprintk(LogLevel::INFO, format, args);
     va_end(args);
 }

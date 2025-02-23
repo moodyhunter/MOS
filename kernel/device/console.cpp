@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/syslog/syslog.hpp"
 #include "mos/tasks/signal.hpp"
 #include "mos/tasks/thread.hpp"
 
@@ -14,9 +15,8 @@
 #include <mos/tasks/wait.hpp>
 #include <mos_string.hpp>
 
-list_head consoles;
-
-std::array<Console *, 128> console_list = {};
+std::array<Console *, 128> consoles;
+size_t console_list_size = 0;
 
 void Console::putc(u8 c)
 {
@@ -73,7 +73,7 @@ retry_read:;
     return read;
 }
 
-static size_t console_io_write(io_t *io, const void *data, size_t size)
+size_t console_io_write(io_t *io, const void *data, size_t size)
 {
     Console *con = container_of(io, Console, io);
     spinlock_acquire(&con->writer.lock);
@@ -98,8 +98,6 @@ void console_register(Console *con)
         return;
     }
 
-    MOS_ASSERT_X(con->name != NULL, "console: %p's name is NULL", con);
-
     io_flags_t flags = IO_WRITABLE;
 
     if (con->caps & CONSOLE_CAP_READ)
@@ -110,28 +108,29 @@ void console_register(Console *con)
     }
 
     io_init(&con->io, IO_CONSOLE, flags, &console_io_ops);
-    list_node_append(&consoles, list_node(con));
+    consoles[console_list_size++] = con;
     waitlist_init(&con->waitlist);
+
+    if (printk_console == nullptr)
+        printk_console = con;
 }
 
-Console *console_get(const char *name)
+Console *console_get(mos::string_view name)
 {
-    if (list_is_empty(&consoles))
-        return NULL;
-
-    list_foreach(Console, con, consoles)
+    for (const auto &console : consoles)
     {
-        if (strcmp(con->name, name) == 0)
-            return con;
+        if (console->name == name)
+            return console;
     }
+
     return NULL;
 }
 
-Console *console_get_by_prefix(const char *prefix)
+Console *console_get_by_prefix(mos::string_view prefix)
 {
-    list_foreach(Console, con, consoles)
+    for (const auto &con : consoles)
     {
-        if (strncmp(con->name, prefix, strlen(prefix)) == 0)
+        if (con->name.starts_with(prefix))
             return con;
     }
     return NULL;

@@ -63,7 +63,7 @@ void vfs_register_filesystem(filesystem_t *fs);
  * @return true if the filesystem was mounted successfully
  * @return false if the filesystem could not be mounted, see the kernel log for more information
  */
-long vfs_mount(const char *device, const char *path, const char *fs, const char *options);
+PtrResult<void> vfs_mount(const char *device, const char *path, const char *fs, const char *options);
 
 /**
  * @brief Unmount a filesystem at a given path
@@ -129,8 +129,8 @@ long vfs_symlink(const char *path, const char *target);
  * @return true
  * @return false
  */
-long vfs_mkdir(const char *path);
-long vfs_rmdir(const char *path);
+PtrResult<void> vfs_mkdir(const char *path);
+PtrResult<void> vfs_rmdir(const char *path);
 
 /**
  * @brief Get the content of a directory

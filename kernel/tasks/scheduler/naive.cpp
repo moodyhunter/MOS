@@ -95,8 +95,8 @@ static const scheduler_ops_t naive_sched_ops = {
     .remove_thread = naive_sched_remove_thread,
 };
 
-static naive_sched_t naive_sched = {
+static naive_sched_t naive_schedr = {
     .base = { .ops = &naive_sched_ops },
 };
 
-MOS_SCHEDULER(naive, naive_sched.base);
+MOS_SCHEDULER(naive, naive_schedr.base);

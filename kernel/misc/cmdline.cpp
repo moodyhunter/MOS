@@ -8,14 +8,14 @@
 #include <mos/syslog/printk.hpp>
 #include <mos_string.hpp>
 
-static bool cmdline_is_truthy(const char *arg)
+static bool cmdline_is_truthy(mos::string_view arg)
 {
-    return strcmp(arg, "true") == 0 || strcmp(arg, "1") == 0 || strcmp(arg, "yes") == 0 || strcmp(arg, "on") == 0;
+    return arg == "true" || arg == "1" || arg == "yes" || arg == "on";
 }
 
-static bool cmdline_is_falsy(const char *arg)
+static bool cmdline_is_falsy(mos::string_view arg)
 {
-    return strcmp(arg, "false") == 0 || strcmp(arg, "0") == 0 || strcmp(arg, "no") == 0 || strcmp(arg, "off") == 0;
+    return arg == "false" || arg == "0" || arg == "no" || arg == "off";
 }
 
 cmdline_option_t *cmdline_get_option(const char *option_name)
@@ -80,12 +80,12 @@ void mos_cmdline_init(const char *cmdline)
     }
 }
 
-bool cmdline_string_truthiness(const char *arg, bool default_value)
+bool cmdline_string_truthiness(mos::string_view arg, bool default_value)
 {
     const char *func = mos_caller();
     func = func ? func : "";
 
-    if (unlikely(!arg))
+    if (arg.empty())
         return default_value;
 
     if (cmdline_is_truthy(arg))

@@ -80,7 +80,7 @@ static bool is_fatal_signal(signal_t signal)
         case SIGCHLD:
         case SIGPIPE: return false;
 
-        default: MOS_UNREACHABLE_X("handle this signal %d", signal); break;
+        default: pr_emerg("is_fatal_signal(%d): returning true", signal); return true;
     }
 }
 
@@ -192,7 +192,7 @@ static signal_t signal_get_next_pending(void)
     return signal;
 }
 
-static void do_signal_exit_to_user_prepare(platform_regs_t *regs, signal_t next_signal, const sigaction_t *action)
+static ptr<platform_regs_t> do_signal_exit_to_user_prepare(platform_regs_t *regs, signal_t next_signal, const sigaction_t *action)
 {
     if (action->handler == SIG_DFL)
     {
@@ -207,22 +207,21 @@ static void do_signal_exit_to_user_prepare(platform_regs_t *regs, signal_t next_
             case SIGABRT: signal_do_coredump(next_signal); break;
             case SIGKILL: signal_do_terminate(next_signal); break;
             case SIGSEGV: signal_do_coredump(next_signal); break;
+            case SIGPIPE: signal_do_terminate(next_signal); break;
             case SIGTERM: signal_do_terminate(next_signal); break;
             case SIGCHLD: signal_do_ignore(next_signal); break;
-            case SIGPIPE: signal_do_terminate(next_signal); break;
-
-            default: MOS_UNREACHABLE_X("handle this signal %d", next_signal); break;
+            default: pr_emerg("unknown signal %d, skipping", next_signal); break;
         }
 
     // the default handler returns
     done:
-        return;
+        return nullptr;
     }
 
     if (action->handler == SIG_IGN)
     {
         signal_do_ignore(next_signal);
-        return;
+        return nullptr;
     }
 
     const bool was_masked = sigset_test(&current_thread->signal_info.mask, next_signal);
@@ -234,10 +233,10 @@ static void do_signal_exit_to_user_prepare(platform_regs_t *regs, signal_t next_
         .was_masked = was_masked,
     };
 
-    platform_jump_to_signal_handler(regs, &data, action); // save previous register states onto user stack
+    return platform_setup_signal_handler_regs(regs, &data, action); // save previous register states onto user stack
 }
 
-void signal_exit_to_user_prepare(platform_regs_t *regs)
+ptr<platform_regs_t> signal_exit_to_user_prepare(platform_regs_t *regs)
 {
     MOS_ASSERT(current_thread);
 
@@ -246,14 +245,15 @@ void signal_exit_to_user_prepare(platform_regs_t *regs)
     spinlock_release(&current_thread->signal_info.lock);
 
     if (!next_signal)
-        return; // no pending signal, leave asap
+        return nullptr; // no pending signal, leave asap
 
     const sigaction_t action = current_process->signal_info.handlers[next_signal];
 
-    do_signal_exit_to_user_prepare(regs, next_signal, &action);
+    pr_dinfo2(signal, "thread %pt will handle signal %d with handler %p", current_thread, next_signal, action.handler);
+    return do_signal_exit_to_user_prepare(regs, next_signal, &action);
 }
 
-void signal_exit_to_user_prepare_syscall(platform_regs_t *regs, reg_t syscall_nr, reg_t syscall_ret)
+ptr<platform_regs_t> signal_exit_to_user_prepare(platform_regs_t *regs, reg_t syscall_nr, reg_t syscall_ret)
 {
     MOS_ASSERT(current_thread);
 
@@ -263,34 +263,40 @@ void signal_exit_to_user_prepare_syscall(platform_regs_t *regs, reg_t syscall_nr
 
     const sigaction_t action = current_process->signal_info.handlers[next_signal];
 
-    reg_t real_ret = syscall_ret;
     if (syscall_ret == (reg_t) -ERESTARTSYS)
     {
         MOS_ASSERT(next_signal);
-        real_ret = -EINTR;
 
         if (action.sa_flags & SA_RESTART)
         {
             pr_dinfo2(signal, "thread %pt will restart syscall %lu after signal %d", current_thread, syscall_nr, next_signal);
             platform_syscall_setup_restart_context(regs, syscall_nr);
-            goto really_prepare;
+            goto real_prepare;
         }
-        // else: fall through, return -EINTR
+        else
+        {
+            platform_syscall_store_retval(regs, -EINTR);
+        }
+    }
+    else
+    {
+        platform_syscall_store_retval(regs, syscall_ret);
     }
 
-    platform_syscall_store_retval(regs, real_ret);
-
     if (!next_signal)
-        return; // no pending signal, leave asap
+        return nullptr; // no pending signal, leave asap
 
-really_prepare:
-    do_signal_exit_to_user_prepare(regs, next_signal, &action);
+real_prepare:
+    pr_dinfo2(signal, "thread %pt will handle signal %d with handler %p when returning from syscall", current_thread, next_signal, action.handler);
+    return do_signal_exit_to_user_prepare(regs, next_signal, &action);
 }
 
 void signal_on_returned(sigreturn_data_t *data)
 {
     if (!data->was_masked)
         sigset_del(&current_thread->signal_info.mask, data->signal);
+
+    pr_dinfo2(signal, "thread %pt returned from signal %d", current_thread, data->signal);
 }
 
 bool signal_has_pending(void)

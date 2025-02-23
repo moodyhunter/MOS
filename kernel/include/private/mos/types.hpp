@@ -42,15 +42,40 @@ template<typename TOut, typename TIn>
     return reinterpret_cast<const TOut *>(value);
 }
 
-template<typename T>
-class PtrResult
+struct PtrResultBase
 {
-    T *const value;
+  protected:
     const int errorCode;
 
+    PtrResultBase() : errorCode(0) {};
+    PtrResultBase(int errorCode) : errorCode(errorCode) {};
+
   public:
-    PtrResult(T *value) : value(value), errorCode(0) {};
-    PtrResult(int errorCode) : value(nullptr), errorCode(errorCode) {};
+    virtual bool isErr() const final
+    {
+        return errorCode != 0;
+    }
+
+    virtual long getErr() const final
+    {
+        return errorCode;
+    }
+
+    explicit operator bool() const
+    {
+        return !isErr();
+    }
+};
+
+template<typename T>
+struct PtrResult : public PtrResultBase
+{
+  private:
+    T *const value;
+
+  public:
+    PtrResult(T *value) : PtrResultBase(0), value(value) {};
+    PtrResult(int errorCode) : PtrResultBase(errorCode), value(nullptr) {};
 
   public:
     std::add_lvalue_reference<T>::type operator*()
@@ -78,16 +103,6 @@ class PtrResult
         return value;
     }
 
-    bool isErr() const
-    {
-        return errorCode != 0;
-    }
-
-    long getErr() const
-    {
-        return errorCode;
-    }
-
     bool operator==(const std::nullptr_t) const
     {
         return value == nullptr;
@@ -107,6 +122,14 @@ class PtrResult
     {
         return value != nullptr && !isErr();
     }
+};
+
+template<>
+struct PtrResult<void> : public PtrResultBase
+{
+  public:
+    PtrResult() : PtrResultBase(0) {};
+    PtrResult(int errorCode) : PtrResultBase(errorCode) {};
 };
 
 // enum operators are not supported in C++ implicitly

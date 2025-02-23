@@ -2,10 +2,12 @@
 
 #include "mos/syslog/syslog.hpp"
 
+#include "mos/device/console.hpp"
 #include "mos/platform/platform.hpp"
 #include "mos/tasks/task_types.hpp"
 #include "proto/syslog.pb.h"
 
+#include <ansi_colors.h>
 #include <mos/compiler.h>
 #include <mos/mos_global.h>
 #include <mos_stdio.hpp>
@@ -15,10 +17,10 @@ static spinlock_t global_syslog_lock;
 
 static void do_print_syslog(const pb_syslog_message *msg, const debug_info_entry *feat)
 {
-    const loglevel_t level = (loglevel_t) msg->info.level;
+    const LogLevel level = (LogLevel) msg->info.level;
     spinlock_acquire(&global_syslog_lock);
 
-    if (level != MOS_LOG_UNSET)
+    if (level != LogLevel::UNSET)
     {
         lprintk(level, "\r\n");
         if (feat)
@@ -50,7 +52,7 @@ static void do_print_syslog(const pb_syslog_message *msg, const debug_info_entry
     spinlock_release(&global_syslog_lock);
 }
 
-long do_syslog(loglevel_t level, const char *file, const char *func, int line, const debug_info_entry *feat, const char *fmt, ...)
+long do_syslog(LogLevel level, const char *file, const char *func, int line, const debug_info_entry *feat, const char *fmt, ...)
 {
     auto const thread = current_thread;
     pb_syslog_message msg = {
@@ -79,4 +81,30 @@ long do_syslog(loglevel_t level, const char *file, const char *func, int line, c
 
     do_print_syslog(&msg, feat);
     return 0;
+}
+
+mos::SyslogStream::SyslogStream(DebugFeature feature, LogLevel level)
+    : timestamp(platform_get_timestamp()), feature(feature), level(level), should_print(!mos_debug_info_map[feature] || mos_debug_info_map[feature]->enabled)
+{
+    if (level != LogLevel::UNSET)
+    {
+        pos++;
+        fmtbuffer[0] = '\n';
+        fmtbuffer[1] = '\0';
+    }
+    if (should_print && mos_debug_info_map[feature])
+        pos += snprintf(fmtbuffer + pos, MOS_PRINTK_BUFFER_SIZE - pos, "%-10s | ", mos_debug_info_map[feature]->name);
+}
+
+mos::SyslogStream::~SyslogStream()
+{
+    if (!should_print)
+        return;
+
+    if (unlikely(!printk_console))
+        printk_console = consoles.front();
+
+    print_to_console(printk_console, level, fmtbuffer, pos);
+    fmtbuffer[0] = '\0';
+    pos = -1;
 }

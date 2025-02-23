@@ -9,6 +9,7 @@ endmacro()
 
 lazybox_program(cat "Concatenate files and print on the standard output")
 lazybox_program(false "Do nothing, unsuccessfully")
+lazybox_program(kill "Send signal to process")
 lazybox_program(ls "List directory contents")
 lazybox_program(mkdir "Create directories")
 lazybox_program(shutdown "Shutdown the system")

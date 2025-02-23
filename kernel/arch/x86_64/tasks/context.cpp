@@ -3,7 +3,6 @@
 #include "mos/x86/tasks/context.hpp"
 
 #include "mos/platform/platform_defs.hpp"
-#include "mos/tasks/signal.hpp"
 #include "mos/x86/descriptors/descriptors.hpp"
 #include "mos/x86/tasks/fpu_context.hpp"
 
@@ -38,9 +37,7 @@ static void x86_start_kernel_thread()
 
 static void x86_start_user_thread()
 {
-    platform_regs_t *regs = platform_thread_regs(current_thread);
-    signal_exit_to_user_prepare(regs);
-    platform_return_to_userspace(regs);
+    x86_interrupt_return_impl(platform_thread_regs(current_thread));
 }
 
 static platform_regs_t *x86_setup_thread_common(Thread *thread)
@@ -49,7 +46,7 @@ static platform_regs_t *x86_setup_thread_common(Thread *thread)
     thread->platform_options.xsaveptr = xsave_area_slab.create();
     thread->k_stack.head -= sizeof(platform_regs_t);
     platform_regs_t *regs = platform_thread_regs(thread);
-    *regs = (platform_regs_t) { 0 };
+    *regs = (platform_regs_t) {};
 
     regs->cs = thread->mode == THREAD_MODE_KERNEL ? GDT_SEGMENT_KCODE : GDT_SEGMENT_USERCODE | 3;
     regs->ss = thread->mode == THREAD_MODE_KERNEL ? GDT_SEGMENT_KDATA : GDT_SEGMENT_USERDATA | 3;
@@ -136,7 +133,7 @@ void platform_switch_to_thread(Thread *current, Thread *new_thread, switch_flags
     x86_set_fsbase(new_thread);
 
     current_cpu->thread = new_thread;
-    __atomic_store_n(&per_cpu(x86_cpu_descriptor)->tss.rsp0, new_thread->k_stack.top, __ATOMIC_SEQ_CST);
+    __atomic_store_n(&per_cpu(x86_cpu_descriptor)->tss.rspN[0], new_thread->k_stack.top, __ATOMIC_SEQ_CST);
 
     ptr_t trash = 0;
     ptr_t *const stack_ptr = current ? &current->k_stack.head : &trash;

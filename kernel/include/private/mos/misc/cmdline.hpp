@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <mos/string_view.hpp>
 #include <mos/types.hpp>
 
 typedef struct
@@ -13,4 +14,4 @@ typedef struct
 
 void mos_cmdline_init(const char *bootloader_cmdline);
 cmdline_option_t *cmdline_get_option(const char *option_name);
-bool cmdline_string_truthiness(const char *arg, bool default_value);
+bool cmdline_string_truthiness(mos::string_view arg, bool default_value);

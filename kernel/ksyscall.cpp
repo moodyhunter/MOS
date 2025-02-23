@@ -229,7 +229,7 @@ DEFINE_SYSCALL(u64, arch_syscall)(u64 syscall, u64 arg1, u64 arg2, u64 arg3, u64
 
 DEFINE_SYSCALL(long, vfs_mount)(const char *device, const char *mountpoint, const char *fs_type, const char *options)
 {
-    return vfs_mount(device, mountpoint, fs_type, options);
+    return vfs_mount(device, mountpoint, fs_type, options).getErr();
 }
 
 DEFINE_SYSCALL(ssize_t, vfs_readlinkat)(fd_t dirfd, const char *path, char *buf, size_t buflen)
@@ -249,7 +249,7 @@ DEFINE_SYSCALL(long, vfs_symlink)(const char *target, const char *linkpath)
 
 DEFINE_SYSCALL(long, vfs_mkdir)(const char *path)
 {
-    return vfs_mkdir(path);
+    return vfs_mkdir(path).getErr();
 }
 
 DEFINE_SYSCALL(size_t, vfs_list_dir)(fd_t fd, char *buffer, size_t buffer_size)

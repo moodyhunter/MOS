@@ -21,9 +21,9 @@ static void test_engine_warning_handler(const char *func, u32 line, const char *
 
     if (test_engine_n_warning_expected == 0)
     {
-        lprintk(MOS_LOG_WARN, "\r\n");
-        lprintk(MOS_LOG_WARN, "warning: %s", message);
-        lprintk(MOS_LOG_WARN, "  in function: %s (line %u)", func, line);
+        lprintk(LogLevel::WARN, "\r\n");
+        lprintk(LogLevel::WARN, "warning: %s", message);
+        lprintk(LogLevel::WARN, "  in function: %s (line %u)", func, line);
         mos_panic("unexpected warning, test failed.");
     }
 
@@ -33,7 +33,7 @@ static void test_engine_warning_handler(const char *func, u32 line, const char *
 static const char **test_engine_skip_prefix_list = NULL;
 static bool mos_tests_halt_on_success = false;
 
-static bool mos_test_engine_setup_skip_prefix_list(const char *arg)
+static bool mos_test_engine_setup_skip_prefix_list(mos::string_view arg)
 {
     // split the argument into a list of strings
     int argc = 1;
@@ -44,7 +44,7 @@ static bool mos_test_engine_setup_skip_prefix_list(const char *arg)
     test_engine_skip_prefix_list = kcalloc<const char *>(argc);
 
     int i = 0;
-    char *token = strtok((char *) arg, ",");
+    char *token = strtok((char *) arg.data(), ",");
     while (token)
     {
         test_engine_skip_prefix_list[i] = token;
@@ -57,7 +57,7 @@ static bool mos_test_engine_setup_skip_prefix_list(const char *arg)
 
 MOS_SETUP("mos_tests_skip_prefix", mos_test_engine_setup_skip_prefix_list);
 
-static bool mos_tests_setup_halt_on_success(const char *arg)
+static bool mos_tests_setup_halt_on_success(mos::string_view arg)
 {
     mos_tests_halt_on_success = cmdline_string_truthiness(arg, true);
     return true;
@@ -79,7 +79,7 @@ static bool mos_test_engine_should_skip(const char *test_name)
     return false;
 }
 
-static bool mos_test_engine_run_tests(const char *arg)
+static bool mos_test_engine_run_tests(mos::string_view arg)
 {
     MOS_UNUSED(arg);
     kwarn_handler_set(test_engine_warning_handler);

@@ -23,7 +23,7 @@
 
 Process *process_do_fork(Process *parent)
 {
-    MOS_ASSERT(process_is_valid(parent));
+    MOS_ASSERT(Process::IsValid(parent));
 
     auto child_p = Process::New(parent, parent->name);
     if (unlikely(!child_p))

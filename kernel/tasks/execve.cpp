@@ -88,7 +88,7 @@ long process_do_execveat(fd_t dirfd, const char *path, const char *const argv[],
             signal_send_to_thread(t, SIGKILL); // nice
             thread_wait_for_tid(t->tid);
             spinlock_acquire(&t->state_lock);
-            thread_destroy(std::move(t));
+            thread_destroy(t);
             MOS_UNREACHABLE();
         }
     }

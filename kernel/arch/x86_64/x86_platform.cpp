@@ -212,7 +212,7 @@ void platform_dump_current_stack(void)
     x86_dump_stack_at(frame, true);
 }
 
-void platform_dump_stack(platform_regs_t *regs)
+void platform_dump_stack(const platform_regs_t *regs)
 {
     x86_dump_stack_at(regs->bp, true);
 }

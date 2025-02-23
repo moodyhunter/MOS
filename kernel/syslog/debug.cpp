@@ -19,7 +19,7 @@ MOS_ALL_DEBUG_MODULES(_check_debug_macro_defined_)
 #if MOS_CONFIG(MOS_DYNAMIC_DEBUG)
 
 // populate default debug settings
-struct _mos_debug_info mos_debug_info = {
+struct mos_debug_info_entry mos_debug_info = {
 #define X(_name) ._name = { .id = __COUNTER__ + 1, .name = #_name, .enabled = MOS_DEBUG_FEATURE(_name) },
     MOS_ALL_DEBUG_MODULES(X)
 #undef X
@@ -64,7 +64,7 @@ static sysfs_item_t sys_debug_items[] = {
 SYSFS_AUTOREGISTER(debug, sys_debug_items);
 
 #define SETUP_DEBUG_MODULE(name)                                                                                                                                         \
-    static bool setup_debug_##name(const char *value)                                                                                                                    \
+    static bool setup_debug_##name(mos::string_view value)                                                                                                               \
     {                                                                                                                                                                    \
         mos_debug_info.name.enabled = cmdline_string_truthiness(value, true);                                                                                            \
         return true;                                                                                                                                                     \

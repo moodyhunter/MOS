@@ -47,9 +47,10 @@ long signal_send_to_process(Process *target, signal_t signal);
  * @brief Prepare to exit to userspace.
  *
  * @param regs The registers of the thread.
+ * @returns register to use when returning to userspace
  *
  */
-void signal_exit_to_user_prepare(platform_regs_t *regs);
+ptr<platform_regs_t> signal_exit_to_user_prepare(platform_regs_t *regs);
 
 /**
  * @brief Prepare to exit to userspace after a syscall.
@@ -58,8 +59,9 @@ void signal_exit_to_user_prepare(platform_regs_t *regs);
  * @param syscall_nr The syscall number, used in case the syscall should be restarted.
  * @param syscall_ret The return value of the syscall, which may be -ERESTARTSYS,
  *                    in which case the syscall should be restarted.
+ * @returns register to use when returning to userspace
  */
-void signal_exit_to_user_prepare_syscall(platform_regs_t *regs, reg_t syscall_nr, reg_t syscall_ret);
+ptr<platform_regs_t> signal_exit_to_user_prepare(platform_regs_t *regs, reg_t syscall_nr, reg_t syscall_ret);
 
 typedef struct _sigreturn_data
 {

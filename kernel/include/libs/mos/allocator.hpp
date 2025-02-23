@@ -6,10 +6,10 @@
 
 namespace mos
 {
-    template<typename T, typename... Args>
-    requires HasTypeName<T> T *create(Args &&...args)
+    template<HasTypeName T, typename... Args>
+    T *create(Args &&...args)
     {
-        static InitOnce<Slab<T>> slab;
-        return slab->create(args...);
+        static InitOnce<Slab<T>> _slab;
+        return _slab->create(args...);
     }
 } // namespace mos

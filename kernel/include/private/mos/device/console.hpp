@@ -3,6 +3,7 @@
 #pragma once
 
 #include <ansi_colors.h>
+#include <array>
 #include <mos/io/io.hpp>
 #include <mos/lib/structures/list.hpp>
 #include <mos/lib/structures/ring_buffer.hpp>
@@ -32,14 +33,13 @@ struct Buffer
 
 struct Console // : public io_t
 {
-    as_linked_list;
     io_t io;
-    const char *name = "<unnamed>";
+    mos::string_view name = "<unnamed>";
     console_caps caps;
     waitlist_t waitlist; // waitlist for read
 
     template<size_t buf_size>
-    Console(const char *name, console_caps caps, Buffer<buf_size> *read_buf, standard_color_t default_fg, standard_color_t default_bg)
+    Console(mos::string_view name, console_caps caps, Buffer<buf_size> *read_buf, standard_color_t default_fg, standard_color_t default_bg)
         : name(name), caps(caps), fg(default_fg), bg(default_bg), default_fg(default_fg), default_bg(default_bg)
     {
         reader.buf = read_buf->buf;
@@ -66,7 +66,7 @@ struct Console // : public io_t
     standard_color_t default_fg = White, default_bg = Black;
 
   public:
-    size_t write(const char *data, size_t size)
+    size_t Write(const char *data, size_t size)
     {
         spinlock_acquire(&writer.lock);
         size_t ret = do_write(data, size);
@@ -74,7 +74,7 @@ struct Console // : public io_t
         return ret;
     }
 
-    size_t write_color(const char *data, size_t size, standard_color_t fg, standard_color_t bg)
+    size_t WriteColored(const char *data, size_t size, standard_color_t fg, standard_color_t bg)
     {
         spinlock_acquire(&writer.lock);
         if (caps & CONSOLE_CAP_COLOR)
@@ -104,12 +104,13 @@ struct Console // : public io_t
     virtual bool set_color(standard_color_t fg, standard_color_t bg) = 0;
     virtual bool clear() = 0;
 
-  public: // TODO: make protected
+  protected:
+    friend size_t console_io_write(io_t *io, const void *data, size_t size);
     virtual size_t do_write(const char *data, size_t size) = 0;
 };
 
-extern list_head consoles;
+extern std::array<Console *, 128> consoles;
 
 void console_register(Console *con);
-Console *console_get(const char *name);
-Console *console_get_by_prefix(const char *prefix);
+Console *console_get(mos::string_view name);
+Console *console_get_by_prefix(mos::string_view name);

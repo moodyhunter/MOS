@@ -51,6 +51,11 @@ typedef struct _io
     io_flags_t flags;
     io_type_t type;
     const io_op_t *ops;
+
+    friend mos::SyslogStream &operator<<(mos::SyslogStream &stream, const io_t *io)
+    {
+        return stream << fmt("\\{ 'TODO: IO.Name', {}}", io->closed ? "closed" : "active");
+    }
 } io_t;
 
 extern io_t *const io_null;

@@ -14,15 +14,15 @@ extern s32 test_engine_n_warning_expected;
 #define mos_test_log(level, symbol, format, ...)                                                                                                                         \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
-        lprintk(MOS_LOG_UNSET, "\r\n");                                                                                                                                  \
+        lprintk(LogLevel::UNSET, "\r\n");                                                                                                                                \
         if (symbol)                                                                                                                                                      \
-            lprintk(MOS_LOG_EMPH, "[%c] ", symbol);                                                                                                                      \
+            lprintk(LogLevel::EMPH, "[%c] ", symbol);                                                                                                                    \
         else                                                                                                                                                             \
-            lprintk(MOS_LOG_UNSET, "    ");                                                                                                                              \
-        lprintk(level, format, ##__VA_ARGS__);                                                                                                                           \
+            lprintk(LogLevel::UNSET, "    ");                                                                                                                            \
+        lprintk(LogLevel::level, format, ##__VA_ARGS__);                                                                                                                 \
     } while (0)
 
-#define mos_test_log_cont(level, format, ...) lprintk(level, format, ##__VA_ARGS__)
+#define mos_test_log_cont(level, format, ...) lprintk(LogLevel::level, format, ##__VA_ARGS__)
 
 typedef struct
 {
@@ -38,7 +38,7 @@ typedef struct
 #define MOS_TEST_CONDITIONAL(cond)                                                                                                                                       \
     for (MOS_TEST_CURRENT_TEST_SKIPPED = !(cond), (*_mt_loop_leave) = false, __extension__({                                                                             \
              if (MOS_TEST_CURRENT_TEST_SKIPPED)                                                                                                                          \
-                 mos_test_log(MOS_LOG_WARN, '\0', "Skipped '%s': condition '%s' not met.", _mt_test_cond_##cond##_message, #cond);                                       \
+                 mos_test_log(WARN, '\0', "Skipped '%s': condition '%s' not met.", _mt_test_cond_##cond##_message, #cond);                                               \
          });                                                                                                                                                             \
          !(*_mt_loop_leave); (*_mt_loop_leave) = true, MOS_TEST_CURRENT_TEST_SKIPPED = false)
 
@@ -53,7 +53,7 @@ typedef struct
     static void _TestName(mos_test_result_t *, bool *, bool *);                                                                                                          \
     static void _MT_WRAP_TEST_NAME(_TestName)(mos_test_result_t * result)                                                                                                \
     {                                                                                                                                                                    \
-        mos_test_log(MOS_LOG_INFO, 'T', "Testing '" #_TestName "'... ");                                                                                                 \
+        mos_test_log(INFO, 'T', "Testing '" #_TestName "'... ");                                                                                                         \
         _MT_RUN_TEST_AND_PRINT_RESULT(result, _TestName);                                                                                                                \
     }                                                                                                                                                                    \
     _MT_REGISTER_TEST_CASE(_TestName, _MT_WRAP_TEST_NAME(_TestName));                                                                                                    \
@@ -72,8 +72,8 @@ typedef struct
     {                                                                                                                                                                    \
         char __buf[MOS_PRINTK_BUFFER_SIZE] = { 0 };                                                                                                                      \
         snprintf(__buf, MOS_PRINTK_BUFFER_SIZE, _MT_PTEST_ARG_FORMAT(_PTestName), __VA_ARGS__);                                                                          \
-        mos_test_log(MOS_LOG_INFO, 'P', "Test %s with parameters: ", #_PTestName);                                                                                       \
-        mos_test_log_cont(MOS_LOG_UNSET, "(%s)... ", __buf);                                                                                                             \
+        mos_test_log(INFO, 'P', "Test %s with parameters: ", #_PTestName);                                                                                               \
+        mos_test_log_cont(UNSET, "(%s)... ", __buf);                                                                                                                     \
         _MT_RUN_TEST_AND_PRINT_RESULT(result, _MT_PTEST_CALLER(_PTestName));                                                                                             \
     }                                                                                                                                                                    \
     _MT_REGISTER_TEST_CASE(_TestName, _MT_WRAP_PTEST_CALLER(_PTestName))
@@ -104,7 +104,7 @@ typedef struct
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
         ++_MT_result->n_failed;                                                                                                                                          \
-        mos_test_log(MOS_LOG_EMERG, 'X', "line %d: " format, __LINE__, ##__VA_ARGS__);                                                                                   \
+        mos_test_log(EMERG, 'X', "line %d: " format, __LINE__, ##__VA_ARGS__);                                                                                           \
     } while (false)
 
 /*
@@ -279,11 +279,11 @@ typedef struct
         u32 passed = total - failed - skipped;                                                                                                                           \
         if (failed == 0)                                                                                                                                                 \
             if (skipped == 0)                                                                                                                                            \
-                mos_test_log_cont(MOS_LOG_INFO2, "passed (%u tests)", total);                                                                                            \
+                mos_test_log_cont(INFO2, "passed (%u tests)", total);                                                                                                    \
             else                                                                                                                                                         \
-                mos_test_log_cont(MOS_LOG_INFO2, "passed (%u tests, %u skipped)", total, skipped);                                                                       \
+                mos_test_log_cont(INFO2, "passed (%u tests, %u skipped)", total, skipped);                                                                               \
         else                                                                                                                                                             \
-            mos_test_log(MOS_LOG_EMERG, 'X', "%u failed, (%u tests, %u skipped, %u passed)", failed, total, skipped, passed);                                            \
+            mos_test_log(EMERG, 'X', "%u failed, (%u tests, %u skipped, %u passed)", failed, total, skipped, passed);                                                    \
     } while (0)
 
 #define _MT_FLOATABS(a) ((a) < 0 ? -(a) : (a))

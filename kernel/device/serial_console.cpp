@@ -13,7 +13,7 @@ bool serial_console_irq_handler(u32 irq, void *data)
 {
     MOS_UNUSED(irq);
 
-    Console *const console = (class Console *) data;
+    Console *const console = (Console *) data;
     SerialConsole *const serial_con = static_cast<SerialConsole *>(console);
     serial_con->handle_irq();
 
@@ -21,7 +21,6 @@ bool serial_console_irq_handler(u32 irq, void *data)
 }
 bool SerialConsole::extra_setup()
 {
-    linked_list_init(&this->list_node);
     this->caps |= CONSOLE_CAP_COLOR;
     this->caps |= CONSOLE_CAP_CLEAR;
     return device->setup();

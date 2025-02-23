@@ -3,9 +3,12 @@
 #include "mos/filesystem/sysfs/sysfs.hpp"
 #include "mos/filesystem/sysfs/sysfs_autoinit.hpp"
 #include "mos/lib/structures/list.hpp"
+#include "mos/lib/sync/spinlock.hpp"
 #include "mos/mm/mm.hpp"
 #include "mos/mm/paging/paging.hpp"
 #include "mos/mm/physical/pmm.hpp"
+#include "mos/syslog/debug.hpp"
+#include "mos/syslog/syslog.hpp"
 #include "mos/tasks/elf.hpp"
 
 #include <mos/allocator.hpp>
@@ -23,6 +26,7 @@
 #include <mos/tasks/kthread.hpp>
 #include <mos/tasks/schedule.hpp>
 #include <mos/type_utils.hpp>
+#include <mos_stdio.hpp>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
@@ -67,7 +71,7 @@ SYSFS_AUTOREGISTER(kernel, kernel_sysfs_items);
 
 MOS_SETUP("init", setup_init_path)
 {
-    if (!arg)
+    if (arg.empty())
     {
         pr_warn("init path not specified");
         return false;
@@ -76,13 +80,13 @@ MOS_SETUP("init", setup_init_path)
     if (init_args.argv)
         kfree(init_args.argv[0]); // free the old init path
 
-    init_args.argv[0] = strdup(arg);
+    init_args.argv[0] = strdup(arg.data());
     return true;
 }
 
 MOS_SETUP("init_args", setup_init_args)
 {
-    char *var_arg = strdup(arg);
+    char *var_arg = strdup(arg.data());
     string_unquote(var_arg);
     init_args.argv = cmdline_parse(init_args.argv, var_arg, strlen(var_arg), &init_args.argc);
     kfree(var_arg);
@@ -91,11 +95,11 @@ MOS_SETUP("init_args", setup_init_args)
 
 void mos_start_kernel(void)
 {
-    pr_info("Welcome to MOS!");
-    pr_emph("MOS %s on %s (%s, %s), compiler %s", MOS_KERNEL_VERSION, MOS_ARCH, MOS_KERNEL_REVISION, __DATE__, __VERSION__);
+    mInfo << "Welcome to MOS!";
+    mInfo << fmt("MOS {}-{} on ({}, {}), compiler {}", MOS_KERNEL_VERSION, MOS_ARCH, MOS_KERNEL_REVISION, __DATE__, __VERSION__);
 
     if (platform_info->n_cmdlines)
-        pr_emph("MOS Kernel cmdline");
+        mInfo << "MOS Kernel cmdline";
 
     for (u32 i = 0; i < platform_info->n_cmdlines; i++)
     {
@@ -109,7 +113,7 @@ void mos_start_kernel(void)
     platform_startup_early();
     pmm_init();
 
-    pr_dinfo2(vmm, "initializing paging...");
+    dInfo<vmm> << "initializing paging...";
     spinlock_init(&mos_kernel_mm.mm_lock);
     linked_list_init(&mos_kernel_mm.mmaps);
     mos_kernel_mm.pgd = pgd_create(pml_create_table(MOS_PMLTOP));
@@ -162,20 +166,25 @@ void mos_start_kernel(void)
     startup_invoke_cmdline_hooks();
     init_args.argv = krealloc(init_args.argv, (init_args.argc + 1) * sizeof(char *));
     init_args.argv[init_args.argc] = NULL;
-
-    long ret = vfs_mount("none", "/", "tmpfs", NULL);
-    if (IS_ERR_VALUE(ret))
-        mos_panic("failed to mount rootfs, vfs_mount returns %ld", ret);
-
-    vfs_mkdir("/initrd");
-    ret = vfs_mount("none", "/initrd/", "cpiofs", NULL);
-    if (IS_ERR_VALUE(ret))
-        mos_panic("failed to mount initrd, vfs_mount returns %ld", ret);
-
+    {
+        const auto ret = vfs_mount("none", "/", "tmpfs", NULL);
+        if (ret.isErr())
+            mos_panic("failed to mount rootfs, vfs_mount returns %ld", ret.getErr());
+    }
+    {
+        const auto ret = vfs_mkdir("/initrd");
+        if (ret.isErr())
+            mos_panic("failed to create /initrd, vfs_mkdir returns %ld", ret.getErr());
+    }
+    {
+        const auto ret = vfs_mount("none", "/initrd/", "cpiofs", NULL);
+        if (ret.isErr())
+            mos_panic("failed to mount initrd, vfs_mount returns %ld", ret.getErr());
+    }
     ipc_init();
     scheduler_init();
 
-    Console *const init_con = platform_info->boot_console;
+    const auto init_con = platform_info->boot_console;
     if (unlikely(!init_con))
         mos_panic("failed to get console");
 
@@ -187,13 +196,13 @@ void mos_start_kernel(void)
         NULL,
     };
 
-    pr_info("run '%s' as init process", init_args.argv[0]);
-    pr_info2("  with arguments:");
+    mInfo << "running '" << init_args.argv[0] << "' as init process.";
+    mInfo << "  with arguments:";
     for (u32 i = 0; i < init_args.argc; i++)
-        pr_info2("    argv[%d] = %s", i, init_args.argv[i]);
-    pr_info2("  with environment:");
+        mInfo << fmt("    argv[{}] = {}", i, init_args.argv[i]);
+    mInfo << "  with environment:";
     for (u32 i = 0; init_envp[i]; i++)
-        pr_info2("    %s", init_envp[i]);
+        mInfo << "    " << init_envp[i];
 
     const auto init = elf_create_process(init_args.argv[0], NULL, init_args.argv, init_envp, &init_io);
     if (unlikely(!init))
@@ -220,7 +229,7 @@ void mos_start_kernel(void)
 
     unblock_scheduler();
 
-    pr_cont("\n");
+    mInfo << "\n";
     enter_scheduler();
     MOS_UNREACHABLE();
 }

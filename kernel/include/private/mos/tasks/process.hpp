@@ -22,14 +22,6 @@ extern mos::HashMap<pid_t, Process *> ProcessTable;
 
 const char *get_vmap_type_str(vmap_type_t type);
 
-should_inline bool process_is_valid(const Process *process)
-{
-    if (const auto ptr = process)
-        return ptr->magic == PROCESS_MAGIC_PROC;
-    else
-        return false;
-}
-
 should_inline stdio_t current_stdio(void)
 {
     return {

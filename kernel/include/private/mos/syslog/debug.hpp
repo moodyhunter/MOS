@@ -58,12 +58,28 @@ typedef struct _debug_info_entry
     bool enabled;
 } debug_info_entry;
 
-extern struct _mos_debug_info
+extern struct mos_debug_info_entry
 {
 #define _expand_field(name) debug_info_entry name;
     MOS_ALL_DEBUG_MODULES(_expand_field)
 #undef _expand_field
 } mos_debug_info;
+
+#define _mos_debug_enum(name) name,
+enum DebugFeature
+{
+    MOS_ALL_DEBUG_MODULES(_mos_debug_enum) //
+    _none,
+};
+#undef _mos_debug_enum
+
+/// debug enum to mos_debug_info_entry mapping
+#define _mos_debug_info_entry(name) [name] = &mos_debug_info.name,
+static inline constexpr debug_info_entry *const mos_debug_info_map[] = {
+    MOS_ALL_DEBUG_MODULES(_mos_debug_info_entry) //
+        [_none] = nullptr,
+};
+#undef _mos_debug_info_entry
 
 #define mos_debug_enabled(name)     (mos_debug_info.name.enabled)
 #define mos_debug_enabled_ptr(name) (&mos_debug_info.name.enabled)

@@ -13,16 +13,27 @@ namespace mos
     {
         constexpr string_literal(const char (&str)[n])
         {
-            std::copy_n(str, n, value);
+            std::copy_n(str, n, __data);
         }
 
-        char value[n];
+        consteval char operator[](size_t i) const noexcept
+        {
+            return __data[i];
+        }
+
+        consteval const char *at(size_t i) const noexcept
+        {
+            return __data + i;
+        }
+
+        const size_t strlen = n;
+        char __data[n];
     };
 
     template<mos::string_literal name>
     struct NamedType
     {
-        static constexpr mos::string_view type_name = name.value;
+        static constexpr mos::string_view type_name = name.__data;
     };
 
     template<typename T>

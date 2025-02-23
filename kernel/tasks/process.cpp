@@ -6,6 +6,7 @@
 #include "mos/filesystem/sysfs/sysfs_autoinit.hpp"
 #include "mos/io/io.hpp"
 #include "mos/mm/mm.hpp"
+#include "mos/syslog/syslog.hpp"
 #include "mos/tasks/signal.hpp"
 
 #include <abi-bits/wait.h>
@@ -105,7 +106,7 @@ Process::~Process()
 
 void process_destroy(Process *process)
 {
-    if (!process_is_valid(process))
+    if (!Process::IsValid(process))
         return;
 
     ProcessTable.remove(process->pid);
@@ -116,7 +117,7 @@ void process_destroy(Process *process)
     MOS_ASSERT_X(process->main_thread != nullptr, "main thread must be dead before destroying process");
 
     spinlock_acquire(&process->main_thread->state_lock);
-    thread_destroy(std::move(process->main_thread));
+    thread_destroy(process->main_thread);
 
     if (process->mm != NULL)
     {
@@ -162,7 +163,7 @@ std::optional<Process *> process_get(pid_t pid)
 {
     if (auto pproc = ProcessTable.get(pid))
     {
-        if (process_is_valid(*pproc))
+        if (Process::IsValid(*pproc))
             return pproc;
     }
 
@@ -171,7 +172,7 @@ std::optional<Process *> process_get(pid_t pid)
 
 fd_t process_attach_ref_fd(Process *process, io_t *file, fd_flags_t flags)
 {
-    MOS_ASSERT(process_is_valid(process));
+    MOS_ASSERT(Process::IsValid(process));
 
     // find a free fd
     fd_t fd = 0;
@@ -192,7 +193,7 @@ fd_t process_attach_ref_fd(Process *process, io_t *file, fd_flags_t flags)
 
 io_t *process_get_fd(Process *process, fd_t fd)
 {
-    MOS_ASSERT(process_is_valid(process));
+    MOS_ASSERT(Process::IsValid(process));
     if (fd < 0 || fd >= MOS_PROCESS_MAX_OPEN_FILES)
         return NULL;
     return process->files[fd].io;
@@ -200,7 +201,7 @@ io_t *process_get_fd(Process *process, fd_t fd)
 
 bool process_detach_fd(Process *process, fd_t fd)
 {
-    MOS_ASSERT(process_is_valid(process));
+    MOS_ASSERT(Process::IsValid(process));
     if (fd < 0 || fd >= MOS_PROCESS_MAX_OPEN_FILES)
         return false;
     io_t *io = process->files[fd].io;
@@ -283,7 +284,7 @@ child_dead:;
 
 void process_exit(Process *&&process, u8 exit_code, signal_t signal)
 {
-    MOS_ASSERT(process_is_valid(process));
+    MOS_ASSERT(Process::IsValid(process));
     pr_dinfo2(process, "process %pp exited with code %d, signal %d", process, exit_code, signal);
 
     if (unlikely(process->pid == 1))
@@ -298,7 +299,7 @@ void process_exit(Process *&&process, u8 exit_code, signal_t signal)
             MOS_ASSERT(thread != current_thread);
             thread_table.remove(thread->tid);
             list_remove(thread);
-            thread_destroy(std::move(thread));
+            thread_destroy(thread);
         }
         else
         {
@@ -313,7 +314,7 @@ void process_exit(Process *&&process, u8 exit_code, signal_t signal)
                 pr_dinfo2(process, "thread %pt terminated", thread);
                 MOS_ASSERT_X(thread->state == THREAD_STATE_DEAD, "thread %pt is not dead", thread);
                 thread_table.remove(thread->tid);
-                thread_destroy(std::move(thread));
+                thread_destroy(thread);
             }
             else
             {
@@ -367,7 +368,7 @@ void process_exit(Process *&&process, u8 exit_code, signal_t signal)
 
 void process_dump_mmaps(const Process *process)
 {
-    pr_info("process %pp:", process);
+    mInfo << fmt("process: {}", process);
     size_t i = 0;
     list_foreach(vmap_t, map, process->mm->mmaps)
     {
@@ -375,6 +376,7 @@ void process_dump_mmaps(const Process *process)
         const char *typestr = get_vmap_content_str(map->content);
         const char *forkmode = get_vmap_type_str(map->type);
         pr_info2("  %3zd: %pvm, %s, %s", i, (void *) map, typestr, forkmode);
+        mInfo << map;
     }
 
     pr_info("total: %zd memory regions", i);

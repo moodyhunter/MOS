@@ -457,7 +457,7 @@ void vfs_register_filesystem(filesystem_t *fs)
     pr_dinfo2(vfs, "filesystem '%s' registered", fs->name.c_str());
 }
 
-long vfs_mount(const char *device, const char *path, const char *fs, const char *options)
+PtrResult<void> vfs_mount(const char *device, const char *path, const char *fs, const char *options)
 {
     filesystem_t *real_fs = vfs_find_filesystem(fs);
     if (unlikely(real_fs == NULL))
@@ -672,7 +672,7 @@ long vfs_symlink(const char *path, const char *target)
     return created ? 0 : -EIO;
 }
 
-long vfs_mkdir(const char *path)
+PtrResult<void> vfs_mkdir(const char *path)
 {
     pr_dinfo2(vfs, "vfs_mkdir('%s')", path);
     auto base = path_is_absolute(path) ? root_dentry : dentry_from_fd(AT_FDCWD);
@@ -686,8 +686,9 @@ long vfs_mkdir(const char *path)
     dentry_t *parent_dir = dentry_parent(*dentry);
     if (parent_dir->inode == NULL || parent_dir->inode->ops == NULL || parent_dir->inode->ops->mkdir == NULL)
     {
+        // dentry does not have a mkdir operation
         dentry_unref(dentry.get());
-        return false;
+        return -ENOTSUP;
     }
 
     // TODO: use umask or something else
@@ -700,7 +701,7 @@ long vfs_mkdir(const char *path)
     return created ? 0 : -EIO;
 }
 
-long vfs_rmdir(const char *path)
+PtrResult<void> vfs_rmdir(const char *path)
 {
     pr_dinfo2(vfs, "vfs_rmdir('%s')", path);
     auto base = path_is_absolute(path) ? root_dentry : dentry_from_fd(AT_FDCWD);

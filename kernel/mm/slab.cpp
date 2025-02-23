@@ -121,7 +121,7 @@ void slab_init(void)
 
 void slab_register(slab_t *slab)
 {
-    pr_info2("slab: registering slab for '%s' with %zu bytes", slab->name.data(), slab->ent_size);
+    pr_dinfo2(slab, "slab: registering slab for '%s' with %zu bytes", slab->name.data(), slab->ent_size);
     linked_list_init(list_node(slab));
     list_node_append(&slabs_list, list_node(slab));
 }
