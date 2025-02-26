@@ -90,7 +90,7 @@ long simple_flush_page_discard_data(inode_cache_t *icache, off_t pgoff, phyframe
 }
 
 // read from the page cache, the size and offset are already validated to be in the file's bounds
-ssize_t vfs_generic_read(const file_t *file, void *buf, size_t size, off_t offset)
+ssize_t vfs_generic_read(const BasicFile *file, void *buf, size_t size, off_t offset)
 {
     // cap the read size to the file's size
     size = std::min(size, file->dentry->inode->size - offset);
@@ -100,7 +100,7 @@ ssize_t vfs_generic_read(const file_t *file, void *buf, size_t size, off_t offse
 }
 
 // write to the page cache, the size and offset are already validated to be in the file's bounds
-ssize_t vfs_generic_write(const file_t *file, const void *buf, size_t size, off_t offset)
+ssize_t vfs_generic_write(const BasicFile *file, const void *buf, size_t size, off_t offset)
 {
     inode_cache_t *icache = &file->dentry->inode->cache;
     const ssize_t written = vfs_write_pagecache(icache, buf, size, offset);

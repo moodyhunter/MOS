@@ -5,6 +5,7 @@
 #include "mos/syslog/debug.hpp"
 #include "mos/syslog/formatter.hpp"
 
+#include <mos/refcount.hpp>
 #include <mos/string_view.hpp>
 #include <mos/type_utils.hpp>
 
@@ -25,34 +26,36 @@ extern "C" void lprintk(LogLevel loglevel, const char *format, ...);
 
 namespace mos
 {
-    struct SyslogStream
+    template<typename M, typename... Args>
+    struct Preformatted
     {
-        explicit SyslogStream(DebugFeature feature, LogLevel level);
+        const std::tuple<Args...> targs;
+        explicit Preformatted(M, Args... args) : targs(args...) {};
+    };
 
-        template<typename T>
-        explicit SyslogStream(DebugFeature feature, LogLevel level, const T &value) : SyslogStream(feature, level)
-        {
-            if (should_print)
-                *this << value;
-        }
-
-        // disable copy constructor
-        SyslogStream(const SyslogStream &) = delete;
-        SyslogStream &operator=(const SyslogStream &) = delete;
-
-        // also disable move constructor
-        SyslogStream(SyslogStream &&) = delete;
-        SyslogStream &operator=(SyslogStream &&) = delete;
+    struct SyslogStream : private mos::RefCounted
+    {
+        static SyslogStream NewStream(DebugFeature feature, LogLevel level);
 
         ~SyslogStream();
 
         template<typename T>
-        requires(std::is_integral_v<T>) inline SyslogStream &operator<<(T value)
+        requires std::is_integral_v<T> inline SyslogStream &operator<<(T value)
         {
             if (!should_print)
                 return *this;
 
             pos += snprintf(fmtbuffer + pos, MOS_PRINTK_BUFFER_SIZE, "%lld", (long long) value);
+            return *this;
+        }
+
+        template<typename T>
+        requires std::is_void_v<T> inline SyslogStream &operator<<(T *ptr)
+        {
+            if (!should_print)
+                return *this;
+
+            pos += snprintf(fmtbuffer + pos, MOS_PRINTK_BUFFER_SIZE, "%p", ptr);
             return *this;
         }
 
@@ -83,9 +86,21 @@ namespace mos
             return *this;
         }
 
+        template<typename M, typename... Args>
+        inline SyslogStream operator<<(const Preformatted<M, Args...> &fmt)
+        {
+            mos::FormatImpl::print_m<M>(*this, fmt.targs);
+            return *this;
+        }
+
+      private:
+        explicit SyslogStream(DebugFeature feature, LogLevel level);
+
       private:
         char fmtbuffer[MOS_PRINTK_BUFFER_SIZE] = { 0 };
         size_t pos = 0;
+
+        // std::unique_ptr<Core> core;
 
       private:
         const u64 timestamp;
@@ -104,24 +119,9 @@ namespace mos
         SyslogStream operator<<(const T &value) const
         {
             // copy-elision
-            return SyslogStream(feature, level, value);
+            return SyslogStream::NewStream(feature, level) << value;
         }
     };
-
-    template<typename M, typename... Args>
-    struct Preformatted
-    {
-        const std::tuple<Args...> targs;
-
-        explicit Preformatted(M, Args... args) : targs(args...) {};
-
-        friend SyslogStream &operator<<(SyslogStream &stream, Preformatted fmt)
-        {
-            mos::FormatImpl::print_m<M>(stream, fmt.targs);
-            return stream;
-        }
-    };
-
 } // namespace mos
 
 #define DefineLogStream(name, level)                                                                                                                                     \

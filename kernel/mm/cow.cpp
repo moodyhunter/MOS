@@ -62,7 +62,7 @@ static vmfault_result_t cow_zod_fault_handler(vmap_t *vmap, ptr_t fault_addr, pa
 PtrResult<vmap_t> cow_clone_vmap_locked(MMContext *target_mmctx, vmap_t *src_vmap)
 {
     // remove that VM_WRITE flag
-    mm_flag_pages_locked(src_vmap->mmctx, src_vmap->vaddr, src_vmap->npages, src_vmap->vmflags & ~VM_WRITE);
+    mm_flag_pages_locked(src_vmap->mmctx, src_vmap->vaddr, src_vmap->npages, src_vmap->vmflags.erased(VM_WRITE));
     src_vmap->stat.cow += src_vmap->stat.regular;
     src_vmap->stat.regular = 0; // no longer private
 
@@ -78,10 +78,10 @@ PtrResult<vmap_t> cow_clone_vmap_locked(MMContext *target_mmctx, vmap_t *src_vma
     return dst_vmap;
 }
 
-PtrResult<vmap_t> cow_allocate_zeroed_pages(MMContext *mmctx, size_t npages, ptr_t vaddr, valloc_flags allocflags, vm_flags flags)
+PtrResult<vmap_t> cow_allocate_zeroed_pages(MMContext *mmctx, size_t npages, ptr_t vaddr, VMFlags flags, bool exact)
 {
     spinlock_acquire(&mmctx->mm_lock);
-    auto vmap = mm_get_free_vaddr_locked(mmctx, npages, vaddr, allocflags);
+    auto vmap = mm_get_free_vaddr_locked(mmctx, npages, vaddr, exact);
     spinlock_release(&mmctx->mm_lock);
 
     if (vmap.isErr())

@@ -36,7 +36,7 @@ MOS_STATIC_ASSERT(sizeof(sv48_pte_t) == sizeof(pte_content_t));
 #define pte_set_ppn_stem(pte, _ppn) ((pte)->valid = 1, (pte)->ppn = _ppn, (pte)->r = 0, (pte)->w = 0, (pte)->x = 0)
 #define pte_set_ppn_huge(pte, _ppn) ((pte)->valid = 1, (pte)->ppn = _ppn, (pte)->r = 1, (pte)->w = 0, (pte)->x = 0)
 
-should_inline void pmle_set_flags(int level, sv48_pte_t *pte, vm_flags flags)
+should_inline void pmle_set_flags(int level, sv48_pte_t *pte, VMFlags flags)
 {
     if (!pte_is_stem(pte) || level == 1)
     {
@@ -50,9 +50,9 @@ should_inline void pmle_set_flags(int level, sv48_pte_t *pte, vm_flags flags)
     pte->global = flags & VM_GLOBAL;
 }
 
-should_inline vm_flags pte_get_flags(const sv48_pte_t *pte)
+should_inline VMFlags pte_get_flags(const sv48_pte_t *pte)
 {
-    vm_flags flags = (vm_flags) 0;
+    VMFlags flags = (VMFlags) 0;
     flags |= pte->r ? VM_READ : 0;
     flags |= pte->w ? VM_WRITE : 0;
     flags |= pte->x ? VM_EXEC : 0;
@@ -92,13 +92,13 @@ bool platform_pml1e_get_present(const pml1e_t *pml1e) // returns if an entry in 
     return cast<sv48_pte_t>(pml1e)->valid;
 }
 
-void platform_pml1e_set_flags(pml1e_t *pml1e, vm_flags flags) // set bits in the flags field of the pmlx entry
+void platform_pml1e_set_flags(pml1e_t *pml1e, VMFlags flags) // set bits in the flags field of the pmlx entry
 {
     sv48_pte_t *pte = cast<sv48_pte_t>(pml1e);
     pmle_set_flags(1, pte, flags);
 }
 
-vm_flags platform_pml1e_get_flags(const pml1e_t *pml1e) // get bits in the flags field of the pmlx entry
+VMFlags platform_pml1e_get_flags(const pml1e_t *pml1e) // get bits in the flags field of the pmlx entry
 {
     const sv48_pte_t *pte = cast<sv48_pte_t>(pml1e);
     return pte_get_flags(pte);
@@ -122,13 +122,13 @@ bool platform_pml2e_get_present(const pml2e_t *pml2e)
     return cast<sv48_pte_t>(pml2e)->valid;
 }
 
-void platform_pml2e_set_flags(pml2e_t *pml2e, vm_flags flags)
+void platform_pml2e_set_flags(pml2e_t *pml2e, VMFlags flags)
 {
     sv48_pte_t *pte = cast<sv48_pte_t>(pml2e);
     pmle_set_flags(2, pte, flags);
 }
 
-vm_flags platform_pml2e_get_flags(const pml2e_t *pml2e)
+VMFlags platform_pml2e_get_flags(const pml2e_t *pml2e)
 {
     const sv48_pte_t *pte = cast<sv48_pte_t>(pml2e);
     return pte_get_flags(pte);
@@ -172,13 +172,13 @@ bool platform_pml3e_get_present(const pml3e_t *pml3e)
     return cast<sv48_pte_t>(pml3e)->valid;
 }
 
-void platform_pml3e_set_flags(pml3e_t *pml3e, vm_flags flags)
+void platform_pml3e_set_flags(pml3e_t *pml3e, VMFlags flags)
 {
     sv48_pte_t *pte = cast<sv48_pte_t>(pml3e);
     pmle_set_flags(3, pte, flags);
 }
 
-vm_flags platform_pml3e_get_flags(const pml3e_t *pml3e)
+VMFlags platform_pml3e_get_flags(const pml3e_t *pml3e)
 {
     const sv48_pte_t *pte = cast<sv48_pte_t>(pml3e);
     return pte_get_flags(pte);
@@ -222,13 +222,13 @@ bool platform_pml4e_get_present(const pml4e_t *pml4e)
     return cast<sv48_pte_t>(pml4e)->valid;
 }
 
-void platform_pml4e_set_flags(pml4e_t *pml4e, vm_flags flags)
+void platform_pml4e_set_flags(pml4e_t *pml4e, VMFlags flags)
 {
     sv48_pte_t *pte = cast<sv48_pte_t>(pml4e);
     pmle_set_flags(4, pte, flags);
 }
 
-vm_flags platform_pml4e_get_flags(const pml4e_t *pml4e)
+VMFlags platform_pml4e_get_flags(const pml4e_t *pml4e)
 {
     const sv48_pte_t *pte = cast<sv48_pte_t>(pml4e);
     return pte_get_flags(pte);

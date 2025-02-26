@@ -18,9 +18,9 @@ struct waitable_list_entry_t : mos::NamedType<"WaitlistEntry">
 
 struct waitlist_t : mos::NamedType<"Waitlist">
 {
-    bool closed;     // if true, then the process is closed and should not be waited on
-    spinlock_t lock; // protects the waiters list
-    list_head list;  // list of threads waiting
+    bool closed = false;             // if true, then the process is closed and should not be waited on
+    spinlock_t lock = SPINLOCK_INIT; // protects the waiters list
+    list_head list;                  // list of threads waiting
     waitlist_t();
 };
 

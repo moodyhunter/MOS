@@ -166,6 +166,20 @@ namespace mos
             _length = new_length;
         }
 
+        bool starts_with(const basic_string_view<Char> &prefix) const
+        {
+            if (prefix.size() > _length)
+                return false;
+            return generic_strncmp(data(), prefix.data(), prefix.size()) == 0;
+        }
+
+        bool ends_with(const basic_string_view<Char> &suffix) const
+        {
+            if (suffix.size() > _length)
+                return false;
+            return generic_strncmp(data() + _length - suffix.size(), suffix.data(), suffix.size()) == 0;
+        }
+
         basic_string operator+(const basic_string &other) const
         {
             auto copy = *this;
@@ -211,7 +225,6 @@ namespace mos
         {
             return _is_long ? _data._long._buffer : _data._short._buffer;
         }
-
         const Char *c_str() const
         {
             return data();
@@ -246,7 +259,6 @@ namespace mos
         {
             return _is_long ? &_data._long._buffer[0] : &_data._short._buffer[0];
         }
-
         const Char *begin() const
         {
             return _is_long ? &_data._long._buffer[0] : &_data._short._buffer[0];
@@ -256,7 +268,6 @@ namespace mos
         {
             return _is_long ? &_data._long._buffer[_length] : &_data._short._buffer[_length];
         }
-
         const Char *end() const
         {
             return _is_long ? &_data._long._buffer[_length] : &_data._short._buffer[_length];
@@ -339,4 +350,7 @@ namespace mos
     };
 
     using string = mos::basic_string<char, mos::default_allocator>;
+
+    // convert a pointer to a string
+    mos::string to_string(const void *value);
 } // namespace mos

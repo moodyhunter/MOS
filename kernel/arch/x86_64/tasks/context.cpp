@@ -114,7 +114,7 @@ void platform_context_clone(Thread *from, Thread *to)
     to->k_stack.head -= sizeof(platform_regs_t);
 }
 
-void platform_switch_to_thread(Thread *current, Thread *new_thread, switch_flags_t switch_flags)
+void platform_switch_to_thread(Thread *current, Thread *new_thread, ContextSwitchBehaviorFlags switch_flags)
 {
     const switch_func_t switch_func = [=]() -> switch_func_t
     {

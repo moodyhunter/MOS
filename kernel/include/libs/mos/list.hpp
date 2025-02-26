@@ -172,12 +172,12 @@ namespace mos
             return iterator(nullptr);
         }
 
-        void erase(iterator it)
+        iterator erase(iterator it)
         {
             if (it.current == head)
             {
                 pop_front();
-                return;
+                return iterator(head);
             }
 
             node *current = head;
@@ -186,6 +186,7 @@ namespace mos
 
             current->next = it.current->next;
             delete it.current;
+            return iterator(current->next);
         }
 
         void insert(iterator it, const T &value)

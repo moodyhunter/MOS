@@ -26,7 +26,7 @@ extern filesystem_t fs_tmpfs;
 
 static dentry_t *memfd_root_dentry = NULL;
 
-static void memfd_file_release(file_t *file)
+static void memfd_file_release(BasicFile *file)
 {
     dentry_detach(file->dentry);
 }
@@ -37,7 +37,7 @@ static const file_ops_t memfd_file_ops = {
     .release = memfd_file_release,
 };
 
-PtrResult<io_t> memfd_create(const char *name)
+PtrResult<IO> memfd_create(const char *name)
 {
     memfd_t *memfd = mos::create<memfd_t>();
     if (!memfd)
@@ -69,7 +69,7 @@ PtrResult<io_t> memfd_create(const char *name)
     file->private_data = memfd;
     file->dentry->inode->file_ops = &memfd_file_ops;
     inode_unlink(memfd_root_dentry->inode, file->dentry);
-    return &file->io;
+    return file;
 }
 
 static void memfd_init()

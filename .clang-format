@@ -20,7 +20,7 @@ BinPackArguments: true
 BinPackParameters: true
 BreakBeforeBraces: Allman
 BreakBeforeTernaryOperators: false
-BreakInheritanceList: BeforeComma
+# BreakInheritanceList: false
 BreakStringLiterals: false
 ColumnLimit: 170
 CompactNamespaces: false

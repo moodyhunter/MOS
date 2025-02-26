@@ -33,8 +33,8 @@
 
 // The two functions below have circular dependencies, so we need to forward declare them
 // Both of them return a referenced dentry, no need to refcount them again
-static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, lastseg_resolve_flags_t flags, bool *symlink_resolved);
-static PtrResult<dentry_t> dentry_resolve_follow_symlink(dentry_t *dentry, lastseg_resolve_flags_t flags);
+static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, LastSegmentResolveFlags flags, bool *symlink_resolved);
+static PtrResult<dentry_t> dentry_resolve_follow_symlink(dentry_t *dentry, LastSegmentResolveFlags flags);
 
 /**
  * @brief Lookup the parent directory of a given path, and return the last segment of the path in last_seg_out
@@ -164,7 +164,7 @@ static PtrResult<dentry_t> dentry_resolve_to_parent(dentry_t *base_dir, dentry_t
     MOS_UNREACHABLE();
 }
 
-static PtrResult<dentry_t> dentry_resolve_follow_symlink(dentry_t *d, lastseg_resolve_flags_t flags)
+static PtrResult<dentry_t> dentry_resolve_follow_symlink(dentry_t *d, LastSegmentResolveFlags flags)
 {
     MOS_ASSERT_X(d != NULL && d->inode != NULL, "check before calling this function!");
     MOS_ASSERT_X(d->inode->type == FILE_TYPE_SYMLINK, "check before calling this function!");
@@ -208,7 +208,7 @@ static PtrResult<dentry_t> dentry_resolve_follow_symlink(dentry_t *d, lastseg_re
     return child_ref; // the real dentry, or an error code
 }
 
-static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, lastseg_resolve_flags_t flags, bool *is_symlink)
+static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, const LastSegmentResolveFlags flags, bool *is_symlink)
 {
     MOS_ASSERT(parent != NULL && leaf != NULL);
     *is_symlink = false;
@@ -218,7 +218,7 @@ static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, 
     if (ends_with_slash)
         leaf[strlen(leaf) - 1] = '\0'; // remove the trailing slash
 
-    if (unlikely(ends_with_slash && !(flags & RESOLVE_EXPECT_DIR)))
+    if (unlikely(ends_with_slash && !flags.test(RESOLVE_EXPECT_DIR)))
     {
         mos_warn("RESOLVE_EXPECT_DIR isn't set, but the provided path ends with a slash");
         return -EINVAL;
@@ -245,7 +245,7 @@ static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, 
 
     if (unlikely(child_ref->inode == NULL))
     {
-        if (flags & RESOLVE_EXPECT_NONEXIST)
+        if (flags.test(RESOLVE_EXPECT_NONEXIST))
         {
             // do not use dentry_ref, because it checks for an inode
             child_ref->refcount++;
@@ -259,7 +259,7 @@ static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, 
 
     MOS_ASSERT(child_ref->refcount > 0); // dentry_get_child may return a negative dentry, which is handled above, otherwise we should have a reference on it
 
-    if (flags & RESOLVE_EXPECT_NONEXIST && !(flags & RESOLVE_EXPECT_EXIST))
+    if (flags.test(RESOLVE_EXPECT_NONEXIST) && !flags.test(RESOLVE_EXPECT_EXIST))
     {
         dentry_unref(child_ref.get());
         return -EEXIST;
@@ -267,7 +267,7 @@ static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, 
 
     if (child_ref->inode->type == FILE_TYPE_SYMLINK)
     {
-        if (!(flags & RESOLVE_SYMLINK_NOFOLLOW))
+        if (!flags.test(RESOLVE_SYMLINK_NOFOLLOW))
         {
             pr_dinfo2(dcache, "resolving symlink for '%s'", leaf);
             const auto symlink_target_ref = dentry_resolve_follow_symlink(child_ref.get(), flags);
@@ -281,7 +281,7 @@ static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, 
     }
     else if (child_ref->inode->type == FILE_TYPE_DIRECTORY)
     {
-        if (!(flags & RESOLVE_EXPECT_DIR))
+        if (!flags.test(RESOLVE_EXPECT_DIR))
         {
             MOS_ASSERT(dentry_unref_one_norelease(child_ref.get())); // it's the caller's responsibility to unref the parent and grandparents
             return -EISDIR;
@@ -293,7 +293,7 @@ static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, 
     }
     else
     {
-        if (!(flags & RESOLVE_EXPECT_FILE))
+        if (!flags.test(RESOLVE_EXPECT_FILE))
         {
             MOS_ASSERT(dentry_unref_one_norelease(child_ref.get())); // it's the caller's responsibility to unref the parent and grandparents
             return -ENOTDIR;
@@ -341,14 +341,14 @@ PtrResult<dentry_t> dentry_from_fd(fd_t fd)
     // sanity check: fd != AT_FDCWD, no current process
     MOS_ASSERT(current_thread);
 
-    io_t *io = process_get_fd(current_process, fd);
+    IO *io = process_get_fd(current_process, fd);
     if (io == NULL)
         return -EBADF;
 
-    if (io->type != IO_FILE && io->type != IO_DIR)
+    if (io->io_type != IO_FILE && io->io_type != IO_DIR)
         return -EBADF;
 
-    file_t *file = container_of(io, file_t, io);
+    BasicFile *file = static_cast<BasicFile *>(io);
     return file->dentry;
 }
 
@@ -395,7 +395,7 @@ PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, mos::string_view name)
     }
 }
 
-PtrResult<dentry_t> dentry_resolve(dentry_t *starting_dir, dentry_t *root_dir, const char *path, lastseg_resolve_flags_t flags)
+PtrResult<dentry_t> dentry_resolve(dentry_t *starting_dir, dentry_t *root_dir, const char *path, LastSegmentResolveFlags flags)
 {
     if (!root_dir)
         return -ENOENT; // no root directory
@@ -414,7 +414,7 @@ PtrResult<dentry_t> dentry_resolve(dentry_t *starting_dir, dentry_t *root_dir, c
         // path is a single "/"
         pr_dinfo2(dcache, "path '%s' is a single '/' or is empty", path);
         MOS_ASSERT(parent_ref == starting_dir);
-        if (!(flags & RESOLVE_EXPECT_DIR))
+        if (!flags.test(RESOLVE_EXPECT_DIR))
         {
             dentry_unref(parent_ref.get());
             return -EISDIR;

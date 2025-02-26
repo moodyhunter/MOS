@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/mm/mm.hpp"
-#include "mos/platform/platform.hpp"
 
 #include <mos/io/io.hpp>
 #include <mos/io/io_types.h>
@@ -10,238 +9,156 @@
 #include <mos/syslog/printk.hpp>
 #include <mos_stdio.hpp>
 
-static size_t _null_read(io_t *io, void *buffer, size_t size)
+struct NullIO final : IO
 {
-    (void) io;
-    (void) buffer;
-    (void) size;
-    return 0;
-}
+    NullIO() : IO(IO_READABLE | IO_WRITABLE, IO_NULL) {};
+    virtual ~NullIO() {};
+    void on_closed() override
+    {
+        mos_panic("null io cannot be closed");
+    }
 
-static size_t _null_write(io_t *io, const void *buffer, size_t size)
-{
-    (void) io;
-    (void) buffer;
-    (void) size;
-    return 0;
-}
+    size_t on_read(void *, size_t) override
+    {
+        return 0;
+    }
 
-static const io_op_t ops{
-    .read = _null_read,
-    .write = _null_write,
-    .close = NULL,
-    .seek = NULL,
+    size_t on_write(const void *, size_t) override
+    {
+        return 0;
+    }
 };
 
-static io_t io_null_impl = {
-    .refcount = 1, // never gets closed
-    .flags = IO_READABLE | IO_WRITABLE,
-    .type = IO_NULL,
-    .ops = &ops,
-};
+static NullIO io_null_impl;
+IO *const io_null = &io_null_impl;
 
-io_t *const io_null = &io_null_impl;
-
-void io_init(io_t *io, io_type_t type, io_flags_t flags, const io_op_t *ops)
+IO::IO(IOFlags flags, io_type_t type) : io_flags(flags), io_type(type)
 {
-    pr_dinfo2(io, "io_init(%p, %d, %d, %p)", (void *) io, type, flags, (void *) ops);
-
-    if (unlikely(!io))
-        mos_warn("io is NULL");
-
-    if (unlikely(!ops))
-        mos_warn("io->ops is NULL");
-
-    if (flags & IO_READABLE)
-        if (unlikely(!ops->read))
-            mos_warn("ops->read is NULL for readable io");
-
-    if (flags & IO_WRITABLE)
-        if (unlikely(!ops->write))
-            mos_warn("ops->write is NULL for writable io");
-
-    if (flags & IO_SEEKABLE)
-        if (unlikely(!ops->seek))
-            mos_warn("io->ops->seek is NULL for seekable io");
-
-    io->flags = flags;
-    io->type = type;
-    io->ops = ops;
-    io->closed = false;
-    io->refcount = 0;
 }
 
-io_t *io_ref(io_t *io)
+IO::~IO()
 {
-    pr_dinfo2(io, "io_ref(%p)", (void *) io);
-    if (unlikely(!io))
-    {
-        mos_warn("io is NULL");
-        return NULL;
-    }
-
-    if (unlikely(io->closed))
-    {
-        mos_warn("%p is already closed", (void *) io);
-        return 0;
-    }
-
-    io->refcount++;
-    return io;
+    if (!io_closed)
+        mEmerg << "IO::~IO: " << (void *) (this) << " is not closed at destruction";
 }
 
-io_t *io_unref(io_t *io)
+mos::string IO::name() const
 {
-    pr_dinfo2(io, "io_unref(%p)", (void *) io);
-    if (unlikely(io->closed))
-    {
-        mos_warn("%p is already closed", (void *) io);
-        return NULL;
-    }
-
-    if (unlikely(io->refcount == 0))
-    {
-        mos_warn("%p has refcount 0", (void *) io);
-        return NULL;
-    }
-
-    io->refcount--;
-
-    if (io->refcount == 0)
-    {
-        if (io->ops->close)
-        {
-            pr_dinfo2(io, "closing %p", (void *) io);
-            io->closed = true;
-            io->ops->close(io);
-        }
-        else
-        {
-            pr_dinfo2(io, "%p is not closeable", (void *) io);
-        }
-        return NULL;
-    }
-
-    return io;
+    return "<unnamed io " + mos::to_string(this) + ">";
 }
 
-bool io_valid(const io_t *io)
+size_t IO::read(void *buf, size_t count)
 {
-    return io && !io->closed && io->refcount > 0 && io->ops;
+    pr_dinfo2(io, "io_read(%p, %p, %zu)", (void *) this, buf, count);
+
+    if (unlikely(io_closed))
+    {
+        mos_warn("%p is already closed", (void *) this);
+        return 0;
+    }
+
+    if (!io_flags.test(IO_READABLE))
+    {
+        pr_info2("%p is not readable\n", (void *) this);
+        return 0;
+    }
+
+    return on_read(buf, count);
 }
 
-size_t io_read(io_t *io, void *buf, size_t count)
+size_t IO::pread(void *buf, size_t count, off_t offset)
 {
-    pr_dinfo2(io, "io_read(%p, %p, %zu)", (void *) io, buf, count);
+    pr_dinfo2(io, "io_pread(%p, %p, %zu, %lu)", (void *) this, buf, count, offset);
 
-    if (unlikely(io->closed))
+    if (unlikely(io_closed))
     {
-        mos_warn("%p is already closed", (void *) io);
+        mos_warn("%p is already closed", (void *) this);
         return 0;
     }
 
-    if (!(io->flags & IO_READABLE))
+    if (!(io_flags.test(IO_READABLE)))
     {
-        pr_info2("%p is not readable\n", (void *) io);
+        pr_info2("%p is not readable\n", (void *) this);
         return 0;
     }
 
-    return io->ops->read(io, buf, count);
-}
-
-size_t io_pread(io_t *io, void *buf, size_t count, off_t offset)
-{
-    pr_dinfo2(io, "io_pread(%p, %p, %zu, %lu)", (void *) io, buf, count, offset);
-
-    if (unlikely(io->closed))
+    if (!(io_flags.test(IO_SEEKABLE)))
     {
-        mos_warn("%p is already closed", (void *) io);
+        pr_info2("%p is not seekable\n", (void *) this);
         return 0;
     }
 
-    if (!(io->flags & IO_READABLE))
-    {
-        pr_info2("%p is not readable\n", (void *) io);
-        return 0;
-    }
-
-    if (!(io->flags & IO_SEEKABLE))
-    {
-        pr_info2("%p is not seekable\n", (void *) io);
-        return 0;
-    }
-
-    const off_t old_offset = io_tell(io);
-    io_seek(io, offset, IO_SEEK_SET);
-    const size_t ret = io_read(io, buf, count);
-    io_seek(io, old_offset, IO_SEEK_SET);
+    const off_t old_offset = this->tell();
+    this->seek(offset, IO_SEEK_SET);
+    const size_t ret = read(buf, count);
+    this->seek(old_offset, IO_SEEK_SET);
     return ret;
 }
 
-size_t io_write(io_t *io, const void *buf, size_t count)
+size_t IO::write(const void *buf, size_t count)
 {
-    pr_dinfo2(io, "io_write(%p, %p, %zu)", (void *) io, buf, count);
+    pr_dinfo2(io, "io_write(%p, %p, %zu)", (void *) this, buf, count);
 
-    if (unlikely(io->closed))
+    if (unlikely(io_closed))
     {
-        mos_warn("%p is already closed", (void *) io);
+        mos_warn("%p is already closed", (void *) this);
         return 0;
     }
 
-    if (!(io->flags & IO_WRITABLE))
+    if (!(io_flags.test(IO_WRITABLE)))
     {
-        pr_info2("%p is not writable", (void *) io);
+        pr_info2("%p is not writable", (void *) this);
         return 0;
     }
 
-    return io->ops->write(io, buf, count);
+    return on_write(buf, count);
 }
 
-off_t io_seek(io_t *io, off_t offset, io_seek_whence_t whence)
+off_t IO::seek(off_t offset, io_seek_whence_t whence)
 {
-    pr_dinfo2(io, "io_seek(%p, %lu, %d)", (void *) io, offset, whence);
+    pr_dinfo2(io, "io_seek(%p, %lu, %d)", (void *) this, offset, whence);
 
-    if (unlikely(io->closed))
+    if (unlikely(io_closed))
     {
-        mos_warn("%p is already closed", (void *) io);
+        mos_warn("%p is already closed", (void *) this);
         return 0;
     }
 
-    if (!(io->flags & IO_SEEKABLE))
+    if (!io_flags.test(IO_SEEKABLE))
     {
-        pr_info2("%p is not seekable", (void *) io);
+        pr_info2("%p is not seekable", (void *) this);
         return 0;
     }
 
-    return io->ops->seek(io, offset, whence);
+    return on_seek(offset, whence);
 }
 
-off_t io_tell(io_t *io)
+off_t IO::tell()
 {
-    pr_dinfo2(io, "io_tell(%p)", (void *) io);
-    return io_seek(io, 0, IO_SEEK_CURRENT);
+    dInfo2<io> << fmt("io_tell({})", (void *) this);
+    return seek(0, IO_SEEK_CURRENT);
 }
 
-bool io_mmap_perm_check(io_t *io, vm_flags flags, bool is_private)
+bool IO::VerifyMMapPermissions(VMFlags flags, bool is_private)
 {
-    if (unlikely(io->closed))
+    if (unlikely(io_closed))
     {
         mos_warn("%p is already closed", (void *) io);
         return false;
     }
 
-    if (!(io->flags & IO_MMAPABLE))
+    if (!(io_flags.test(IO_MMAPABLE)))
     {
         pr_info2("%p is not mmapable", (void *) io);
         return false;
     }
 
-    if (!(io->flags & IO_READABLE))
+    if (!(io_flags.test(IO_READABLE)))
         return false; // can't mmap if io is not readable
 
     if (flags & VM_WRITE)
     {
-        const bool may_mmap_writeable = is_private || io->flags & IO_WRITABLE;
+        const bool may_mmap_writeable = is_private || io_flags.test(IO_WRITABLE);
         if (!may_mmap_writeable)
             return false; // can't mmap writable if io is not writable and not private
     }
@@ -252,31 +169,31 @@ bool io_mmap_perm_check(io_t *io, vm_flags flags, bool is_private)
     return true;
 }
 
-bool io_mmap(io_t *io, vmap_t *vmap, off_t offset)
+bool IO::map(vmap_t *vmap, off_t offset)
 {
-    pr_dinfo2(io, "io_mmap(%p, %p, %lu)", (void *) io, (void *) vmap, offset);
-    if (!io_mmap_perm_check(io, vmap->vmflags, vmap->type == VMAP_TYPE_PRIVATE))
+    pr_dinfo2(io, "io_mmap(%p, %p, %lu)", (void *) this, (void *) vmap, offset);
+    if (!VerifyMMapPermissions(vmap->vmflags, vmap->type == VMAP_TYPE_PRIVATE))
         return false;
 
-    vmap->io = io;
+    vmap->io = this;
     vmap->io_offset = offset;
 
-    if (!io->ops->mmap(io, vmap, offset))
+    if (!this->on_mmap(vmap, offset))
         return false;
 
     if (unlikely(!vmap->on_fault))
         mos_panic("vmap->on_fault is NULL, possibly buggy io->ops->mmap() implementation");
 
-    io_ref(io); // mmap increases refcount
+    this->ref(); // mmap increases refcount
     return true;
 }
 
-bool io_munmap(io_t *io, vmap_t *vmap, bool *unmapped)
+bool IO::unmap(vmap_t *vmap, bool *unmapped)
 {
-    pr_dinfo2(io, "io_unmap(%p, %p, %p)", (void *) io, (void *) vmap, (void *) unmapped);
-    if (unlikely(io->closed))
+    pr_dinfo2(io, "io_unmap(%p, %p, %p)", (void *) this, (void *) vmap, (void *) unmapped);
+    if (unlikely(io_closed))
     {
-        mos_warn("%p is already closed", (void *) io);
+        mos_warn("%p is already closed", (void *) this);
         return false;
     }
 
@@ -286,35 +203,46 @@ bool io_munmap(io_t *io, vmap_t *vmap, bool *unmapped)
         return false;
     }
 
-    if (unlikely(vmap->io != io))
+    if (unlikely(vmap->io != this))
     {
         mos_warn("vmap->io != io");
         return false;
     }
 
-    if (vmap->io->ops->munmap)
+    if (unlikely(!on_munmap(vmap, unmapped)))
     {
-        if (unlikely(!vmap->io->ops->munmap(vmap->io, vmap, unmapped)))
-        {
-            mos_warn("vmap->io->ops->unmap() failed");
-            return false;
-        }
+        mos_warn("vmap->io->ops->unmap() failed");
+        return false;
     }
 
-    io_unref(io); // unmap decreases refcount
+    this->unref(); // unmap decreases refcount
     return true;
 }
 
-void io_get_name(const io_t *io, char *buf, size_t size)
+size_t IO::on_read(void *, size_t)
 {
-    if (io == NULL || io->ops == NULL || io->ops->get_name == NULL)
-    {
-        snprintf(buf, size, "<invalid io %p>", (void *) io);
-        return;
-    }
+    MOS_UNREACHABLE_X("IO %p is readable but does not implement on_read", (void *) this);
+    return -ENOTSUP;
+}
 
-    if (io->ops->get_name)
-        io->ops->get_name(io, buf, size);
-    else
-        snprintf(buf, size, "<unnamed io %p>", (void *) io);
+size_t IO::on_write(const void *, size_t)
+{
+    MOS_UNREACHABLE_X("IO %p is writable but does not implement on_write", (void *) this);
+    return -ENOTSUP;
+}
+
+bool IO::on_mmap(vmap_t *, off_t)
+{
+    MOS_UNREACHABLE_X("IO %p is mappable but does not implement on_mmap", (void *) this);
+    return false;
+}
+
+bool IO::on_munmap(vmap_t *, bool *)
+{
+    return false;
+}
+
+off_t IO::on_seek(off_t, io_seek_whence_t)
+{
+    MOS_UNREACHABLE_X("IO %p is seekable but does not implement on_seek", (void *) this);
 }

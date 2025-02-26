@@ -19,19 +19,13 @@ bool serial_console_irq_handler(u32 irq, void *data)
 
     return true;
 }
-bool SerialConsole::extra_setup()
-{
-    this->caps |= CONSOLE_CAP_COLOR;
-    this->caps |= CONSOLE_CAP_CLEAR;
-    return device->setup();
-}
 
 size_t SerialConsole::do_write(const char *data, size_t size)
 {
     return device->write_data(data, size);
 }
 
-bool SerialConsole::set_color(standard_color_t fg, standard_color_t bg)
+bool SerialConsole::set_color(StandardColor fg, StandardColor bg)
 {
     this->fg = fg;
     this->bg = bg;
@@ -48,21 +42,14 @@ bool SerialConsole::clear()
     return true;
 }
 
-bool SerialConsole::get_size(u32 *width, u32 *height)
-{
-    *width = 80;
-    *height = 25;
-    return true;
-}
-
 void SerialConsole::handle_irq()
 {
     while (device->get_data_ready())
     {
-        char c = device->read_byte();
+        char c = device->ReadByte();
         if (c == '\r')
             c = '\n';
-        device->write_byte(c);
+        device->WriteByte(c);
         this->putc(c);
     }
 };

@@ -4,4 +4,4 @@
 
 #include "mos/io/io.hpp"
 
-PtrResult<io_t> memfd_create(const char *name);
+PtrResult<IO> memfd_create(const char *name);

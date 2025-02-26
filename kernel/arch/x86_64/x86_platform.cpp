@@ -51,12 +51,12 @@ class x86SerialDevice : public ISerialDevice
     }
 
   public:
-    u8 read_byte() override
+    u8 ReadByte() override
     {
         return port_inb(port);
     }
 
-    int write_byte(u8 data) override
+    int WriteByte(u8 data) override
     {
         port_outb(port, data);
         return 0;
@@ -84,11 +84,11 @@ static Buffer<MOS_PAGE_SIZE> com2_buf;
 x86SerialDevice com1_device{ COM1 };
 x86SerialDevice com2_device{ COM2 };
 
-SerialConsole com1_console{ "com1_console", CONSOLE_CAP_READ, &com1_buf, &com1_device, LightBlue, Black };
-SerialConsole com2_console{ "com2_console", CONSOLE_CAP_READ, &com2_buf, &com2_device, LightBlue, Black };
+SerialConsole COM1Console{ "com1_console", CONSOLE_CAP_READ, &com1_buf, &com1_device, LightBlue, Black };
+SerialConsole COM2Console{ "com2_console", CONSOLE_CAP_READ, &com2_buf, &com2_device, LightBlue, Black };
 
 mos_platform_info_t *const platform_info = &x86_platform;
-mos_platform_info_t x86_platform = { .boot_console = &com1_console };
+mos_platform_info_t x86_platform = { .boot_console = &COM1Console };
 const acpi_rsdp_t *acpi_rsdp = NULL;
 
 static bool x86_keyboard_handler(u32 irq, void *data)
@@ -176,13 +176,12 @@ void x86_dump_stack_at(ptr_t this_frame, bool can_access_vmaps)
         {
             if (!no_relock)
                 spinlock_acquire(&current_cpu->mm_context->mm_lock);
-            vmap_t *const vmap = vmap_obtain(current_cpu->mm_context, (ptr_t) frame->ip, NULL);
+            vmap_t *const vmap = vmap_obtain(current_cpu->mm_context, (ptr_t) frame->ip);
 
             if (vmap && vmap->io)
             {
-                char filepath[MOS_PATH_MAX_LENGTH];
-                io_get_name(vmap->io, filepath, sizeof(filepath));
-                pr_warn(TRACE_FMT "%s (+" PTR_VLFMT ")", i, frame->ip, filepath, frame->ip - vmap->vaddr + vmap->io_offset);
+                const auto name = vmap->io->name();
+                pr_warn(TRACE_FMT "%s (+" PTR_VLFMT ")", i, frame->ip, name.c_str(), frame->ip - vmap->vaddr + vmap->io_offset);
             }
             else
             {
@@ -219,7 +218,7 @@ void platform_dump_stack(const platform_regs_t *regs)
 
 void platform_startup_early()
 {
-    console_register(&com2_console);
+    COM2Console.Register();
     x86_idt_init();
     x86_init_percpu_gdt();
     x86_init_percpu_idt();
@@ -288,7 +287,7 @@ void platform_startup_late()
     interrupt_handler_register(IRQ_PIT_TIMER, x86_pit_timer_handler, NULL);
     interrupt_handler_register(IRQ_CMOS_RTC, rtc_irq_handler, NULL);
     interrupt_handler_register(IRQ_KEYBOARD, x86_keyboard_handler, NULL);
-    interrupt_handler_register(IRQ_COM1, serial_console_irq_handler, &com1_console);
+    interrupt_handler_register(IRQ_COM1, serial_console_irq_handler, &COM1Console);
 
     ioapic_enable_interrupt(IRQ_CMOS_RTC, x86_platform.boot_cpu_id);
     ioapic_enable_interrupt(IRQ_KEYBOARD, x86_platform.boot_cpu_id);

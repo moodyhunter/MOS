@@ -81,7 +81,7 @@ namespace mos
             static constexpr auto arg_tuple() -> std::tuple<TArg, size_t, size_t>;
 
             template<typename TArg, typename Stream>
-            Stream &Print(Stream &os, const decltype(arg_tuple<TArg>()) &args)
+            inline Stream &Print(Stream &os, const decltype(arg_tuple<TArg>()) &args)
             {
                 if constexpr (spec.n_dynamic_args() == 1)
                 {
@@ -104,7 +104,7 @@ namespace mos
 
       private:
         template<Specifier orig>
-        consteval static Specifier SetAlignment(Specifier::FormatAlignment alignment)
+        static consteval Specifier SetAlignment(Specifier::FormatAlignment alignment)
         {
             static_assert(orig.alignment == Specifier::FormatAlignment::_DEFAULT, "Alignment already set");
             Specifier config = orig;
@@ -113,7 +113,7 @@ namespace mos
         }
 
         template<Specifier orig>
-        consteval static Specifier SetWidth(size_t width)
+        static consteval Specifier SetWidth(size_t width)
         {
             Specifier config = orig;
             config.width = width;
@@ -123,7 +123,7 @@ namespace mos
         }
 
         template<Specifier orig>
-        consteval static Specifier SetPrecision(size_t precision)
+        static consteval Specifier SetPrecision(size_t precision)
         {
             Specifier config = orig;
             config.precision = precision;
@@ -133,7 +133,7 @@ namespace mos
         }
 
         template<Specifier orig>
-        consteval static Specifier SetSign(Specifier::FormatSign sign)
+        static consteval Specifier SetSign(Specifier::FormatSign sign)
         {
             static_assert(orig.sign == Specifier::FormatSign::_DEFAULT, "Sign already set");
             Specifier config = orig;
@@ -142,7 +142,7 @@ namespace mos
         }
 
         template<Specifier orig>
-        consteval static Specifier SetFiller(char fill)
+        static consteval Specifier SetFiller(char fill)
         {
             static_assert(orig.filler == '\0', "Fill already set");
             Specifier config = orig;
@@ -151,7 +151,7 @@ namespace mos
         }
 
         template<Specifier orig>
-        consteval static Specifier SetDebugFormat(bool debug_format)
+        static consteval Specifier SetDebugFormat(bool debug_format)
         {
             static_assert(orig.debug == false, "Debug format already set");
             Specifier config = orig;
@@ -160,7 +160,7 @@ namespace mos
         }
 
         template<Specifier orig>
-        consteval static Specifier SetAlternativeForm(bool alternative_form)
+        static consteval Specifier SetAlternativeForm(bool alternative_form)
         {
             static_assert(orig.alternative == false, "Alternative form already set");
             Specifier config = orig;
@@ -169,21 +169,21 @@ namespace mos
         }
 
       private:
-        static consteval auto tuple_prepend(auto a, auto b = std::tuple())
+        consteval static auto tuple_prepend(auto a, auto b = std::tuple())
         {
             return std::tuple_cat(std::make_tuple(a), b);
         }
 
         // clang-format off
-    template<typename T>    struct is_formatter : std::false_type {};
-    template<Specifier c>   struct is_formatter<Formatter<c>> : std::true_type {};
-    template<typename T>    static constexpr bool is_formatter_v = is_formatter<T>::value;
+        template<typename T>    struct is_formatter : std::false_type {};
+        template<Specifier c>   struct is_formatter<Formatter<c>> : std::true_type {};
+        template<typename T>    static consteval bool is_formatter_v() { return is_formatter<T>::value; };
         // clang-format on
 
         template<typename T>
         static consteval size_t n_dynamic_args()
         {
-            if constexpr (is_formatter_v<T>)
+            if constexpr (is_formatter_v<T>())
                 return T::spec.n_dynamic_args();
             else
                 return 0;
@@ -198,7 +198,7 @@ namespace mos
         template<typename... Type>
         static consteval size_t n_args_expected(std::tuple<Type...>)
         {
-            return ((is_formatter_v<Type> ? n_dynamic_args<Type>() : 0) + ...);
+            return ((is_formatter_v<Type>() ? n_dynamic_args<Type>() : 0) + ...);
         }
 
         template<string_literal view, size_t I, size_t End, size_t Result = 0>
@@ -283,7 +283,7 @@ namespace mos
 
       private:
         template<size_t StartI, size_t N, typename... Args>
-        static constexpr auto get_slice(const std::tuple<Args...> &args)
+        static inline constexpr auto get_slice(const std::tuple<Args...> &args)
         {
             if constexpr (StartI == N || StartI >= std::tuple_size_v<std::remove_cvref_t<decltype(args)>>)
                 return std::tuple();
@@ -292,31 +292,31 @@ namespace mos
         }
 
         template<typename... TArgs>
-        static constexpr auto first_arg(const std::tuple<TArgs...> &args)
+        static inline constexpr auto first_arg(const std::tuple<TArgs...> &args)
         {
             return std::get<0>(args);
         }
 
         template<size_t N, typename... TArgs>
-        static constexpr auto first_n_args(const std::tuple<TArgs...> &args)
+        static inline constexpr auto first_n_args(const std::tuple<TArgs...> &args)
         {
             return get_slice<0, N>(args);
         }
 
         template<typename... TArgs>
-        static constexpr auto rest_args(const std::tuple<TArgs...> &args)
+        static inline constexpr auto rest_args(const std::tuple<TArgs...> &args)
         {
             return get_slice<1, std::tuple_size_v<std::remove_cvref_t<decltype(args)>>>(args);
         }
 
         template<size_t N, typename... TArgs>
-        static constexpr auto rest_args_from(const std::tuple<TArgs...> &args)
+        static inline constexpr auto rest_args_from(const std::tuple<TArgs...> &args)
         {
             return get_slice<N, std::tuple_size_v<std::remove_cvref_t<decltype(args)>>>(args);
         }
 
         template<typename Stream, typename... TArgs>
-        static constexpr auto do_next_print(Stream &stream, std::tuple<TArgs...> str_format_tuple)
+        static inline constexpr auto do_next_print(Stream &stream, std::tuple<TArgs...> str_format_tuple)
         {
             constexpr auto rest_specifier_size = std::tuple_size_v<std::remove_cvref_t<decltype(str_format_tuple)>>;
             static_assert(rest_specifier_size == 0 || rest_specifier_size == 1, "Invalid format string");
@@ -325,20 +325,20 @@ namespace mos
                 stream << first_arg(str_format_tuple);
         }
 
-        template<typename Stream, typename... TSpecifiers, typename TSpecifier, typename TArg, typename... TArgs>
-        static constexpr auto do_next_print(Stream &stream, TSpecifier spec, const std::tuple<TSpecifiers...> &specs, const TArg &arg, const std::tuple<TArgs...> &args)
+        template<typename Stream, typename... TSpecs, typename TSpec, typename TArg, typename... TArgs>
+        static inline constexpr auto do_next_print(Stream &stream, TSpec spec, const std::tuple<TSpecs...> &specs, const TArg &arg, const std::tuple<TArgs...> &args)
         {
             constexpr auto rest_specifier_size = std::tuple_size_v<std::remove_cvref_t<decltype(specs)>>;
             constexpr auto rest_arg_size = std::tuple_size_v<std::remove_cvref_t<decltype(args)>>;
 
-            if constexpr (std::is_same_v<TSpecifier, mos::string_view>)
+            if constexpr (std::is_same_v<TSpec, mos::string_view>)
             {
                 stream << spec;
                 do_next_print(stream, first_arg(specs), rest_args(specs), arg, args); // print string, keeps args
             }
-            else if constexpr (is_formatter_v<TSpecifier>)
+            else if constexpr (is_formatter_v<TSpec>())
             {
-                using TArgTuple = decltype(TSpecifier::template arg_tuple<TArg>());
+                using TArgTuple = decltype(TSpec::template arg_tuple<TArg>());
                 constexpr auto TArgTupleSize = std::tuple_size_v<TArgTuple>;
                 static_assert(TArgTupleSize == 1 || TArgTupleSize == 2 || TArgTupleSize == 3, "Invalid number of arguments");
 
@@ -365,7 +365,7 @@ namespace mos
 
       public:
         template<string_literal view, size_t I = 0, size_t StartI = 0>
-        static consteval auto do_parse_format_string()
+        static inline consteval auto do_parse_format_string()
         {
             if constexpr (I == view.strlen)
             {
@@ -391,7 +391,7 @@ namespace mos
         }
 
         template<mos::string_literal view, typename Stream, typename... TArgs>
-        static constexpr Stream &print_literal(Stream &stream, TArgs... args)
+        static inline constexpr Stream &print_literal(Stream &stream, TArgs... args)
         {
             constexpr auto format = do_parse_format_string<view>();
             constexpr auto args_expected = n_args_expected(format);
@@ -410,7 +410,7 @@ namespace mos
         }
 
         template<typename M, typename Stream, typename... TArgs>
-        static constexpr Stream &print_m(Stream &stream, std::tuple<TArgs...> args)
+        static inline constexpr Stream &print_m(Stream &stream, std::tuple<TArgs...> args)
         {
             constexpr auto format = do_parse_format_string<M::string_value()>();
             constexpr auto args_expected = n_args_expected(format);
@@ -462,5 +462,3 @@ void testfunc()
     mos::FormatImpl::print_literal<"\\{ 'TODO: IO.Name', {}}">(FakeStream, 1 == 0 ? "A" : "B");
 }
 #endif
-
-using A = std::decay_t<decltype("ABCDE")>;

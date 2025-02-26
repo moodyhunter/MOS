@@ -168,7 +168,7 @@ void dentry_unref(dentry_t *dentry)
         dentry_try_release(dentry);
 }
 
-ssize_t dentry_path(dentry_t *dentry, dentry_t *root, char *buf, size_t size)
+ssize_t dentry_path(const dentry_t *dentry, dentry_t *root, char *buf, size_t size)
 {
     if (dentry == NULL)
         return 0;
@@ -200,8 +200,7 @@ ssize_t dentry_path(dentry_t *dentry, dentry_t *root, char *buf, size_t size)
             if (path.size() + 1 > size)
                 return -1;
 
-            const size_t real_size = snprintf(buf, size, "%s", path.c_str());
-            return real_size;
+            return snprintf(buf, size, "%s", path.c_str());
         }
         else
         {

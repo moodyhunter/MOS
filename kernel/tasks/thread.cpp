@@ -67,7 +67,7 @@ void thread_destroy(Thread *thread)
     {
         const auto owner = thread->owner;
         SpinLocker lock(&owner->mm->mm_lock);
-        vmap_t *const stack = vmap_obtain(owner->mm, (ptr_t) thread->u_stack.top - 1, NULL);
+        vmap_t *const stack = vmap_obtain(owner->mm, (ptr_t) thread->u_stack.top - 1);
         vmap_destroy(stack);
     }
 
@@ -96,7 +96,7 @@ PtrResult<Thread> thread_new(Process *owner, thread_mode tmode, mos::string_view
     const size_t user_stack_size = stack_size ? stack_size : MOS_STACK_PAGES_USER * MOS_PAGE_SIZE;
     if (!explicit_stack_top)
     {
-        auto stack_vmap = cow_allocate_zeroed_pages(owner->mm, user_stack_size / MOS_PAGE_SIZE, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, VM_USER_RW);
+        auto stack_vmap = cow_allocate_zeroed_pages(owner->mm, user_stack_size / MOS_PAGE_SIZE, MOS_ADDR_USER_STACK, VM_USER_RW);
         if (stack_vmap.isErr())
         {
             pr_emerg("failed to allocate stack for new thread");
@@ -110,8 +110,8 @@ PtrResult<Thread> thread_new(Process *owner, thread_mode tmode, mos::string_view
     }
 
     // check if the stack is valid
-    mm_lock_ctx_pair(owner->mm, NULL);
-    vmap_t *stack_vmap = vmap_obtain(owner->mm, (ptr_t) explicit_stack_top, NULL);
+    mm_lock_context_pair(owner->mm);
+    vmap_t *stack_vmap = vmap_obtain(owner->mm, (ptr_t) explicit_stack_top);
     if (!stack_vmap)
     {
         pr_warn("invalid stack pointer %pt", explicit_stack_top);
@@ -148,7 +148,7 @@ PtrResult<Thread> thread_new(Process *owner, thread_mode tmode, mos::string_view
         stack_vmap->content = VMAP_STACK;
         stack_vmap->type = VMAP_TYPE_PRIVATE;
         spinlock_release(&stack_vmap->lock);
-        mm_unlock_ctx_pair(owner->mm, NULL);
+        mm_unlock_context_pair(owner->mm, NULL);
         stack_init(&t->u_stack, (void *) stack_bottom, user_stack_size);
         t->u_stack.head = (ptr_t) explicit_stack_top;
         return t;
@@ -156,7 +156,7 @@ PtrResult<Thread> thread_new(Process *owner, thread_mode tmode, mos::string_view
 
 done_efault:
     spinlock_release(&stack_vmap->lock);
-    mm_unlock_ctx_pair(owner->mm, NULL);
+    mm_unlock_context_pair(owner->mm, NULL);
     spinlock_acquire(&t->state_lock);
     thread_destroy(t);
     return -EFAULT; // invalid stack pointer

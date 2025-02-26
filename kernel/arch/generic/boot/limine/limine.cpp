@@ -86,7 +86,7 @@ extern "C" void limine_entry(void)
         platform_info->direct_map_base = hhdm_response->offset; // early-populate direct_map_base for pa_va
 
     if (platform_info->boot_console)
-        console_register(platform_info->boot_console);
+        platform_info->boot_console->Register();
 
 #if MOS_DEBUG_FEATURE(limine)
     pr_cont("bootloader: %s, version %s", bootloader_info.response ? bootloader_info.response->name : "unknown",

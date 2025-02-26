@@ -12,8 +12,8 @@
 #include "mos/io/io.hpp"
 
 #include <mos_stdlib.hpp>
-#define do_read(fd, buffer, size)  io_read(fd, buffer, size)
-#define do_write(fd, buffer, size) io_write(fd, buffer, size)
+#define do_read(fd, buffer, size)  fd->read(buffer, size)
+#define do_write(fd, buffer, size) fd->write(buffer, size)
 #define do_warn(fmt, ...)          mos_warn(fmt, ##__VA_ARGS__)
 #else
 #include <unistd.h>

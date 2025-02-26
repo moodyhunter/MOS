@@ -101,7 +101,7 @@ Process::Process(Private, Process *parent_, mos::string_view name_) : magic(PROC
 
 Process::~Process()
 {
-    pr_emerg("process %p destroyed", (void *) this);
+    // mEmerg << "process " << *this << " destroyed";
 }
 
 void process_destroy(Process *process)
@@ -133,6 +133,9 @@ void process_destroy(Process *process)
         mm_destroy_context(process->mm);
         process->mm = nullptr;
     }
+
+    memset(process, 0, sizeof(Process));
+    delete process;
 }
 
 Process *process_new(Process *parent, mos::string_view name, const stdio_t *ios)
@@ -150,6 +153,7 @@ Process *process_new(Process *parent, mos::string_view name, const stdio_t *ios)
     if (thread.isErr())
     {
         process_destroy(proc);
+        mos_panic("failed to create main thread for process %pp", proc);
         return NULL; // TODO
     }
     proc->main_thread = thread.get();
@@ -170,7 +174,7 @@ std::optional<Process *> process_get(pid_t pid)
     return std::nullopt;
 }
 
-fd_t process_attach_ref_fd(Process *process, io_t *file, fd_flags_t flags)
+fd_t process_attach_ref_fd(Process *process, IO *file, FDFlags flags)
 {
     MOS_ASSERT(Process::IsValid(process));
 
@@ -186,12 +190,12 @@ fd_t process_attach_ref_fd(Process *process, io_t *file, fd_flags_t flags)
         }
     }
 
-    process->files[fd].io = io_ref(file);
+    process->files[fd].io = file->ref();
     process->files[fd].flags = flags;
     return fd;
 }
 
-io_t *process_get_fd(Process *process, fd_t fd)
+IO *process_get_fd(Process *process, fd_t fd)
 {
     MOS_ASSERT(Process::IsValid(process));
     if (fd < 0 || fd >= MOS_PROCESS_MAX_OPEN_FILES)
@@ -204,12 +208,12 @@ bool process_detach_fd(Process *process, fd_t fd)
     MOS_ASSERT(Process::IsValid(process));
     if (fd < 0 || fd >= MOS_PROCESS_MAX_OPEN_FILES)
         return false;
-    io_t *io = process->files[fd].io;
+    IO *io = process->files[fd].io;
 
-    if (unlikely(!io_valid(io)))
+    if (unlikely(!io->isValid()))
         return false;
 
-    io_unref(process->files[fd].io);
+    process->files[fd].io->unref();
     process->files[fd] = nullfd;
     return true;
 }
@@ -332,10 +336,10 @@ void process_exit(Process *&&process, u8 exit_code, signal_t signal)
         fd_type file = process->files[i];
         process->files[i] = nullfd;
 
-        if (io_valid(file.io))
+        if (file.io->isValid())
         {
             files_total++;
-            if (io_unref(file.io) == NULL)
+            if (file.io->unref() == NULL)
                 files_closed++;
         }
     }
@@ -434,9 +438,8 @@ static bool process_sysfs_vmap_stat(sysfs_file_t *f)
         sysfs_printf(f, stat_line("%s"), "Content", get_vmap_content_str(vmap->content));
         if (vmap->content == VMAP_FILE)
         {
-            char filepath[MOS_PATH_MAX_LENGTH];
-            io_get_name(vmap->io, filepath, sizeof(filepath));
-            sysfs_printf(f, stat_line("%s"), "  File", filepath);
+            const auto name = vmap->io->name();
+            sysfs_printf(f, stat_line("%s"), "  File", name.c_str());
             sysfs_printf(f, stat_line("%zu bytes"), "  Offset", vmap->io_offset);
         }
         sysfs_printf(f, stat_line("%zu pages"), "Total", vmap->npages);

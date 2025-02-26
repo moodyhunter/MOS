@@ -17,14 +17,14 @@ struct ipc_vfs_private_t : mos::NamedType<"IPC_VFS_Private">
 {
     bool server_control_file;
     IPCServer *server;
-    IPCDescriptor *client_ipc;
+    IpcDescriptor *client_ipc;
 };
 
-static bool vfs_open_ipc(inode_t *ino, file_t *file, bool created)
+static bool vfs_open_ipc(inode_t *ino, BasicFile *file, bool created)
 {
     MOS_UNUSED(ino);
 
-    IPCDescriptor *ipc = NULL;
+    IpcDescriptor *ipc = NULL;
     IPCServer *server = NULL;
 
     if (created)
@@ -53,7 +53,7 @@ static bool vfs_open_ipc(inode_t *ino, file_t *file, bool created)
     return true;
 }
 
-static ssize_t vfs_ipc_file_read(const file_t *file, void *buf, size_t size, off_t offset)
+static ssize_t vfs_ipc_file_read(const BasicFile *file, void *buf, size_t size, off_t offset)
 {
     MOS_UNUSED(offset);
 
@@ -64,15 +64,15 @@ static ssize_t vfs_ipc_file_read(const file_t *file, void *buf, size_t size, off
         if (size < sizeof(fd_t))
             return -EINVAL;
 
-        auto ipc = ipc_server_accept(priv->server);
+        const auto ipc = ipc_server_accept(priv->server);
         if (ipc.isErr())
             return ipc.getErr();
 
-        auto connio = ipc_conn_io_create(ipc.get(), true);
+        const auto connio = ipc_conn_io_create(ipc.get(), true);
         if (connio.isErr())
             return connio.getErr();
 
-        const fd_t fd = process_attach_ref_fd(current_process, &connio->io, FD_FLAGS_NONE);
+        const fd_t fd = process_attach_ref_fd(current_process, connio.get(), FD_FLAGS_NONE);
         if (IS_ERR_VALUE(fd))
             return fd;
 
@@ -86,7 +86,7 @@ static ssize_t vfs_ipc_file_read(const file_t *file, void *buf, size_t size, off
     }
 }
 
-static ssize_t vfs_ipc_file_write(const file_t *file, const void *buf, size_t size, off_t offset)
+static ssize_t vfs_ipc_file_write(const BasicFile *file, const void *buf, size_t size, off_t offset)
 {
     MOS_UNUSED(offset);
     ipc_vfs_private_t *priv = (ipc_vfs_private_t *) file->private_data;
@@ -96,7 +96,7 @@ static ssize_t vfs_ipc_file_write(const file_t *file, const void *buf, size_t si
     return ipc_client_write(priv->client_ipc, buf, size);
 }
 
-static void vfs_ipc_file_release(file_t *file)
+static void vfs_ipc_file_release(BasicFile *file)
 {
     ipc_vfs_private_t *priv = (ipc_vfs_private_t *) file->private_data;
     if (priv->server_control_file)

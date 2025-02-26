@@ -176,28 +176,28 @@ PtrResult<pipe_t> pipe_create(size_t bufsize)
     return pipe;
 }
 
-static size_t pipeio_io_read(io_t *io, void *buf, size_t size)
+size_t PipeIOImpl::on_read(void *buf, size_t size)
 {
-    MOS_ASSERT(io->flags & IO_READABLE);
-    pipeio_t *pipeio = container_of(io, pipeio_t, io_r);
+    MOS_ASSERT(io_flags.test(IO_READABLE));
+    pipeio_t *pipeio = container_of(this, pipeio_t, io_r);
     return pipe_read(pipeio->pipe, buf, size);
 }
 
-static size_t pipeio_io_write(io_t *io, const void *buf, size_t size)
+size_t PipeIOImpl::on_write(const void *buf, size_t size)
 {
-    MOS_ASSERT(io->flags & IO_WRITABLE);
-    pipeio_t *pipeio = container_of(io, pipeio_t, io_w);
+    MOS_ASSERT(io_flags.test(IO_WRITABLE));
+    pipeio_t *pipeio = container_of(this, pipeio_t, io_w);
     return pipe_write(pipeio->pipe, buf, size);
 }
 
-static void pipeio_io_close(io_t *io)
+void PipeIOImpl::on_closed()
 {
     const char *type = "<unknown>";
     const pipeio_t *const pipeio = statement_expr(const pipeio_t *, {
-        if (io->flags & IO_READABLE)
-            retval = container_of(io, pipeio_t, io_r), type = "reader"; // the reader is closing
-        else if (io->flags & IO_WRITABLE)
-            retval = container_of(io, pipeio_t, io_w), type = "writer"; // the writer is closing
+        if (io_flags.test(IO_READABLE))
+            retval = container_of(this, pipeio_t, io_r), type = "reader"; // the reader is closing
+        else if (io_flags.test(IO_WRITABLE))
+            retval = container_of(this, pipeio_t, io_w), type = "writer"; // the writer is closing
         else
             MOS_UNREACHABLE();
     });
@@ -212,17 +212,7 @@ static void pipeio_io_close(io_t *io)
         delete pipeio;
 }
 
-static const io_op_t pipe_io_ops = {
-    .read = pipeio_io_read,
-    .write = pipeio_io_write,
-    .close = pipeio_io_close,
-};
-
 pipeio_t *pipeio_create(pipe_t *pipe)
 {
-    pipeio_t *pipeio = mos::create<pipeio_t>();
-    pipeio->pipe = pipe;
-    io_init(&pipeio->io_r, IO_PIPE, IO_READABLE, &pipe_io_ops);
-    io_init(&pipeio->io_w, IO_PIPE, IO_WRITABLE, &pipe_io_ops);
-    return pipeio;
+    return mos::create<pipeio_t>(pipe);
 }

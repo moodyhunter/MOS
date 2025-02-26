@@ -15,27 +15,6 @@
  * @{
  */
 
-should_inline const file_ops_t *file_get_ops(file_t *file)
-{
-    if (!file)
-        goto error;
-
-    if (!file->dentry)
-        goto error;
-
-    if (!file->dentry->inode)
-        goto error;
-
-    if (!file->dentry->inode->file_ops)
-        goto error;
-
-    return file->dentry->inode->file_ops;
-
-error:
-    pr_warn("no file_ops for file %p", (void *) file);
-    return NULL;
-}
-
 extern dentry_t *root_dentry;
 
 /**
@@ -49,7 +28,7 @@ extern dentry_t *root_dentry;
  * @param truncate
  * @return file_t
  */
-PtrResult<file_t> vfs_do_open_dentry(dentry_t *entry, bool created, bool read, bool write, bool exec, bool truncate);
+PtrResult<BasicFile> vfs_do_open_dentry(dentry_t *entry, bool created, bool read, bool write, bool exec, bool truncate);
 
 void vfs_register_filesystem(filesystem_t *fs);
 
@@ -82,7 +61,7 @@ long vfs_unmount(const char *path);
  * @param flags open_flags flags
  * @return file_t* The file, or NULL if the file could not be opened
  */
-PtrResult<file_t> vfs_openat(int fd, const char *path, open_flags flags);
+PtrResult<BasicFile> vfs_openat(int fd, const char *path, OpenFlags flags);
 
 /**
  * @brief Stat a file
@@ -99,7 +78,7 @@ PtrResult<file_t> vfs_openat(int fd, const char *path, open_flags flags);
  *     If the path is relative, the fd will be used as the directory to resolve the path from.
  * If FSTATAT_NOFOLLOW is set, when the path is used, symlinks will not be followed.
  */
-long vfs_fstatat(fd_t fd, const char *path, file_stat_t *__restrict stat, fstatat_flags flags);
+long vfs_fstatat(fd_t fd, const char *path, file_stat_t *__restrict stat, FStatAtFlags flags);
 
 /**
  * @brief Read a symbolic link
@@ -141,7 +120,7 @@ PtrResult<void> vfs_rmdir(const char *path);
  *
  * @return size_t The number of bytes read, or 0 if the end of the directory was reached
  */
-size_t vfs_list_dir(io_t *io, void *buf, size_t size);
+size_t vfs_list_dir(IO *io, void *buf, size_t size);
 
 /**
  * @brief Change the current working directory
@@ -190,6 +169,6 @@ long vfs_unlinkat(fd_t dirfd, const char *path);
  * @param end The end of the range to sync
  * @return long 0 on success, or errno on failure
  */
-long vfs_fsync(io_t *io, bool sync_metadata, off_t start, off_t end);
+long vfs_fsync(IO *io, bool sync_metadata, off_t start, off_t end);
 
 /** @} */

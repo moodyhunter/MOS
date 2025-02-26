@@ -85,35 +85,40 @@ void mm_destroy_context(MMContext *mmctx)
     delete mmctx;
 }
 
-void mm_lock_ctx_pair(MMContext *ctx1, MMContext *ctx2)
+void mm_lock_context_pair(MMContext *ctx1_, MMContext *ctx2_)
 {
-    if (ctx1 == ctx2 || ctx2 == NULL)
-        spinlock_acquire(&ctx1->mm_lock);
-    else if (ctx1 < ctx2)
-    {
-        spinlock_acquire(&ctx1->mm_lock);
+    MMContext *ctx1 = ctx1_;
+    MMContext *ctx2 = ctx2_;
+
+    if (ctx1 > ctx2)
+        std::swap(ctx1, ctx2);
+
+    // ctx1 <= ctx2
+    if (ctx1 == NULL || ctx1 == ctx2)
         spinlock_acquire(&ctx2->mm_lock);
-    }
     else
     {
-        spinlock_acquire(&ctx2->mm_lock);
         spinlock_acquire(&ctx1->mm_lock);
+        spinlock_acquire(&ctx2->mm_lock);
     }
 }
 
-void mm_unlock_ctx_pair(MMContext *ctx1, MMContext *ctx2)
+void mm_unlock_context_pair(MMContext *ctx1_, MMContext *ctx2_)
 {
-    if (ctx1 == ctx2 || ctx2 == NULL)
-        spinlock_release(&ctx1->mm_lock);
-    else if (ctx1 < ctx2)
-    {
+    MMContext *ctx1 = ctx1_;
+    MMContext *ctx2 = ctx2_;
+
+    if (ctx1 > ctx2)
+        std::swap(ctx1, ctx2);
+
+    // ctx1 <= ctx2
+    if (ctx1 == NULL || ctx1 == ctx2)
         spinlock_release(&ctx2->mm_lock);
-        spinlock_release(&ctx1->mm_lock);
-    }
     else
     {
-        spinlock_release(&ctx1->mm_lock);
+        // note that we release in reverse order
         spinlock_release(&ctx2->mm_lock);
+        spinlock_release(&ctx1->mm_lock);
     }
 }
 
@@ -169,7 +174,7 @@ void vmap_destroy(vmap_t *vmap)
     if (vmap->io)
     {
         bool unmapped = false;
-        if (!io_munmap(vmap->io, vmap, &unmapped))
+        if (!vmap->io->unmap(vmap, &unmapped))
             pr_warn("munmap: could not unmap the file: io_munmap() failed");
 
         if (unmapped)
@@ -216,7 +221,7 @@ vmap_t *vmap_split(vmap_t *first, size_t split)
     second->vaddr += split * MOS_PAGE_SIZE;
     if (first->io)
     {
-        second->io = io_ref(first->io); // ref the io again
+        second->io = first->io->ref(); // ref the io again
         second->io_offset += split * MOS_PAGE_SIZE;
     }
 
@@ -387,25 +392,25 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     }
 
     MMContext *const mm = current_mm;
-    mm_lock_ctx_pair(mm, NULL);
+    mm_lock_context_pair(mm);
 
     fault_vmap = vmap_obtain(mm, fault_addr, &offset);
     if (!fault_vmap)
     {
-        ip_vmap = vmap_obtain(mm, info->ip, NULL);
+        ip_vmap = vmap_obtain(mm, info->ip);
         unhandled_reason = "page fault in unmapped area";
-        mm_unlock_ctx_pair(mm, NULL);
+        mm_unlock_context_pair(mm);
         return DoUnhandledPageFault();
     }
-    ip_vmap = MOS_IN_RANGE(info->ip, fault_vmap->vaddr, fault_vmap->vaddr + fault_vmap->npages * MOS_PAGE_SIZE) ? fault_vmap : vmap_obtain(mm, info->ip, NULL);
+    ip_vmap = MOS_IN_RANGE(info->ip, fault_vmap->vaddr, fault_vmap->vaddr + fault_vmap->npages * MOS_PAGE_SIZE) ? fault_vmap : vmap_obtain(mm, info->ip);
 
     MOS_ASSERT_X(fault_vmap->on_fault, "vmap %pvm has no fault handler", (void *) fault_vmap);
-    const vm_flags page_flags = mm_do_get_flags(fault_vmap->mmctx->pgd, fault_addr);
+    const VMFlags page_flags = mm_do_get_flags(fault_vmap->mmctx->pgd, fault_addr);
 
     if (info->is_exec && !(fault_vmap->vmflags & VM_EXEC))
     {
         unhandled_reason = "page fault in non-executable vmap";
-        mm_unlock_ctx_pair(mm, NULL);
+        mm_unlock_context_pair(mm);
         return DoUnhandledPageFault();
     }
     else if (info->is_present && info->is_exec && fault_vmap->vmflags & VM_EXEC && !(page_flags & VM_EXEC))
@@ -413,17 +418,17 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         // vmprotect has been called on this vmap to enable execution
         // we need to make sure that the page is executable
         mm_do_flag(fault_vmap->mmctx->pgd, fault_addr, 1, page_flags | VM_EXEC);
-        mm_unlock_ctx_pair(mm, NULL);
+        mm_unlock_context_pair(mm, NULL);
         spinlock_release(&fault_vmap->lock);
         if (ip_vmap)
             spinlock_release(&ip_vmap->lock);
         return;
     }
 
-    if (info->is_write && !(fault_vmap->vmflags & VM_WRITE))
+    if (info->is_write && !fault_vmap->vmflags.test(VM_WRITE))
     {
         unhandled_reason = "page fault in read-only vmap";
-        mm_unlock_ctx_pair(mm, NULL);
+        mm_unlock_context_pair(mm, NULL);
         return DoUnhandledPageFault();
     }
 
@@ -447,7 +452,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     vmfault_result_t fault_result = fault_vmap->on_fault(fault_vmap, fault_addr, info);
     pr_dcont(pagefault, " -> %s", get_fault_result(fault_result));
 
-    vm_flags map_flags = fault_vmap->vmflags;
+    VMFlags map_flags = fault_vmap->vmflags;
     switch (fault_result)
     {
         case VMFAULT_COMPLETE: break;
@@ -466,7 +471,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         }
         case VMFAULT_MAP_BACKING_PAGE_RO:
         {
-            map_flags &= ~VM_WRITE;
+            map_flags.erase(VM_WRITE);
             goto map_backing_page;
         }
         case VMFAULT_MAP_BACKING_PAGE:
@@ -475,7 +480,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
             if (!info->backing_page)
             {
                 unhandled_reason = "out of memory";
-                mm_unlock_ctx_pair(mm, NULL);
+                mm_unlock_context_pair(mm, NULL);
                 return DoUnhandledPageFault();
             }
 
@@ -489,7 +494,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     if (ip_vmap)
         spinlock_release(&ip_vmap->lock);
     spinlock_release(&fault_vmap->lock);
-    mm_unlock_ctx_pair(mm, NULL);
+    mm_unlock_context_pair(mm, NULL);
     ipi_send_all(IPI_TYPE_INVALIDATE_TLB);
     if (fault_result == VMFAULT_COMPLETE)
         return;

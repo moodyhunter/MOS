@@ -16,19 +16,13 @@
  * @{
  */
 
-typedef enum
-{
-    VALLOC_DEFAULT = 0,        ///< Default allocation flags.
-    VALLOC_EXACT = MMAP_EXACT, ///< Allocate pages at the exact address.
-} valloc_flags;
-
 /**
  * @brief Gets npages unmapped free pages from a page table.
  *
  * @param mmctx The memory management context to allocate from.
  * @param n_pages The number of pages to allocate.
  * @param base_vaddr The base virtual address to allocate at.
- * @param flags Flags to set on the pages, see @ref valloc_flags.
+ * @param exact If the address must be exact.
  * @return ptr_t The virtual address of the block of virtual memory.
  *
  * @note This function neither allocates nor maps the pages, it only
@@ -42,7 +36,7 @@ typedef enum
  * @warning Should call with mmctx->mm_lock held.
  */
 
-PtrResult<vmap_t> mm_get_free_vaddr_locked(MMContext *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags);
+PtrResult<vmap_t> mm_get_free_vaddr_locked(MMContext *mmctx, size_t n_pages, ptr_t base_vaddr, bool exact);
 
 /**
  * @brief Map a block of virtual memory to a block of physical memory.
@@ -51,16 +45,16 @@ PtrResult<vmap_t> mm_get_free_vaddr_locked(MMContext *mmctx, size_t n_pages, ptr
  * @param vaddr The virtual address to map to.
  * @param pfn The physical frame to map from.
  * @param npages The number of pages to map.
- * @param flags Flags to set on the pages, see @ref vm_flags.
+ * @param flags Flags to set on the pages, see @ref VMFlags.
+ * @param exact If the address must be exact.
  *
  * @details This function maps the pages in the block, their reference count will NOT be incremented.
  *
  * @note This function is rarely used directly, you don't always know the physical address of the
  * pages you want to map.
  */
-void mm_map_kernel_pages(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags);
-PtrResult<vmap_t> mm_map_user_pages(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags, valloc_flags vaflags, vmap_type_t type,
-                                    vmap_content_t content);
+void mm_map_kernel_pages(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, VMFlags flags);
+PtrResult<vmap_t> mm_map_user_pages(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, VMFlags flags, vmap_type_t type, vmap_content_t content, bool exact = false);
 
 /**
  * @brief Replace the mappings of a page with a new physical frame.
@@ -73,7 +67,7 @@ PtrResult<vmap_t> mm_map_user_pages(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, si
  * @note The reference count of the physical frame will be incremented, and the reference count of the
  * old physical frame will be decremented.
  */
-void mm_replace_page_locked(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, vm_flags flags);
+void mm_replace_page_locked(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, VMFlags flags);
 
 /**
  * @brief Remap a block of virtual memory from one page table to another, i.e. copy the mappings.
@@ -88,7 +82,7 @@ void mm_replace_page_locked(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, vm_flags f
  * @note If clear_dest is set to true, then the destination page table is cleared before copying, otherwise
  * the function assumes that there are no existing mappings in the destination page table.
  */
-PtrResult<vmap_t> mm_clone_vmap_locked(vmap_t *src_vmap, MMContext *dst_ctx);
+PtrResult<vmap_t> mm_clone_vmap_locked(const vmap_t *src_vmap, MMContext *dst_ctx);
 
 /**
  * @brief Get if a virtual address is mapped in a page table.
@@ -105,9 +99,9 @@ bool mm_get_is_mapped_locked(MMContext *mmctx, ptr_t vaddr);
  * @param mmctx The memory management context to update the flags in.
  * @param vaddr The virtual address to update the flags of.
  * @param npages The number of pages to update the flags of.
- * @param flags The flags to set on the pages, see @ref vm_flags.
+ * @param flags The flags to set on the pages, see @ref VMFlags.
  */
-void mm_flag_pages_locked(MMContext *mmctx, ptr_t vaddr, size_t npages, vm_flags flags);
+void mm_flag_pages_locked(MMContext *mmctx, ptr_t vaddr, size_t npages, VMFlags flags);
 
 ptr_t mm_get_phys_addr(MMContext *ctx, ptr_t vaddr);
 

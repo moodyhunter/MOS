@@ -82,6 +82,10 @@ long do_syslog(LogLevel level, const char *file, const char *func, int line, con
     do_print_syslog(&msg, feat);
     return 0;
 }
+mos::SyslogStream mos::SyslogStream::NewStream(DebugFeature feature, LogLevel level)
+{
+    return SyslogStream(feature, level);
+}
 
 mos::SyslogStream::SyslogStream(DebugFeature feature, LogLevel level)
     : timestamp(platform_get_timestamp()), feature(feature), level(level), should_print(!mos_debug_info_map[feature] || mos_debug_info_map[feature]->enabled)
@@ -98,13 +102,16 @@ mos::SyslogStream::SyslogStream(DebugFeature feature, LogLevel level)
 
 mos::SyslogStream::~SyslogStream()
 {
-    if (!should_print)
-        return;
+    if (GetRef() == 1)
+    {
+        if (!should_print)
+            return;
 
-    if (unlikely(!printk_console))
-        printk_console = consoles.front();
+        if (unlikely(!printk_console))
+            printk_console = consoles.front();
 
-    print_to_console(printk_console, level, fmtbuffer, pos);
-    fmtbuffer[0] = '\0';
-    pos = -1;
+        print_to_console(printk_console, level, fmtbuffer, pos);
+        fmtbuffer[0] = '\0';
+        pos = -1;
+    }
 }

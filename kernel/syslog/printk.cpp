@@ -23,19 +23,19 @@ MOS_SETUP("printk_console", printk_setup_console)
         return false;
     }
 
-    Console *console = console_get(kcon_name);
-    if (console)
+    auto maybe_console = console_get(kcon_name);
+    if (maybe_console)
     {
         pr_emph("Selected console '%s' for future printk\n", kcon_name);
-        printk_console = console;
+        printk_console = *maybe_console;
         return true;
     }
 
-    console = console_get_by_prefix(kcon_name);
-    if (console)
+    maybe_console = console_get_by_prefix(kcon_name);
+    if (maybe_console)
     {
-        pr_emph("Selected console '%s' for future printk (prefix-based)\n", console->name);
-        printk_console = console;
+        printk_console = *maybe_console;
+        pr_emph("Selected console '%s' for future printk (prefix-based)\n", printk_console->name().c_str());
         return true;
     }
 
@@ -50,7 +50,7 @@ MOS_EARLY_SETUP("quiet", printk_setup_quiet)
     return true;
 }
 
-static inline void deduce_level_color(LogLevel loglevel, standard_color_t *fg, standard_color_t *bg)
+static inline void deduce_level_color(LogLevel loglevel, StandardColor *fg, StandardColor *bg)
 {
     *bg = Black;
     switch (loglevel)
@@ -70,7 +70,7 @@ void print_to_console(Console *con, LogLevel loglevel, const char *message, size
     if (!con)
         return;
 
-    standard_color_t fg = con->fg, bg = con->bg;
+    StandardColor fg = con->fg, bg = con->bg;
     deduce_level_color(loglevel, &fg, &bg);
     con->WriteColored(message, len, fg, bg);
 }

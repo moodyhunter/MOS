@@ -5,7 +5,7 @@
 
 struct pagetable_do_flag_data
 {
-    vm_flags flags;
+    VMFlags flags;
 };
 
 extern const pagetable_walk_options_t pagetable_do_flag_callbacks;

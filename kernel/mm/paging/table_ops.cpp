@@ -20,13 +20,13 @@
 
 #include <mos/types.hpp>
 
-void mm_do_map(pgd_t pgd, ptr_t vaddr, pfn_t pfn, size_t n_pages, vm_flags flags, bool do_refcount)
+void mm_do_map(pgd_t pgd, ptr_t vaddr, pfn_t pfn, size_t n_pages, VMFlags flags, bool do_refcount)
 {
     struct pagetable_do_map_data data = { .pfn = pfn, .flags = flags, .do_refcount = do_refcount };
     pml5_traverse(pgd.max, &vaddr, &n_pages, pagetable_do_map_callbacks, &data);
 }
 
-void mm_do_flag(pgd_t max, ptr_t vaddr, size_t n_pages, vm_flags flags)
+void mm_do_flag(pgd_t max, ptr_t vaddr, size_t n_pages, VMFlags flags)
 {
     struct pagetable_do_flag_data data = { .flags = flags };
     pml5_traverse(max.max, &vaddr, &n_pages, pagetable_do_flag_callbacks, &data);
@@ -48,7 +48,7 @@ void mm_do_unmap(pgd_t max, ptr_t vaddr, size_t n_pages, bool do_unref)
         pr_warn("mm_do_unmap: pml5 destroyed: vaddr=" PTR_RANGE ", n_pages=%zu", vaddr2, vaddr2 + n_pages2 * MOS_PAGE_SIZE, n_pages2);
 }
 
-void mm_do_mask_flags(pgd_t max, ptr_t vaddr, size_t n_pages, vm_flags mask)
+void mm_do_mask_flags(pgd_t max, ptr_t vaddr, size_t n_pages, VMFlags mask)
 {
     struct pagetable_do_mask_data data = { .mask = mask };
     pml5_traverse(max.max, &vaddr, &n_pages, pagetable_do_mask_callbacks, &data);
@@ -109,9 +109,9 @@ pfn_t mm_do_get_pfn(pgd_t max, ptr_t vaddr)
     return pml1e_get_pfn(pml1e);
 }
 
-vm_flags mm_do_get_flags(pgd_t max, ptr_t vaddr)
+VMFlags mm_do_get_flags(pgd_t max, ptr_t vaddr)
 {
-    vm_flags flags = (vm_flags) ~0;
+    VMFlags flags = VMFlags::all();
     vaddr = ALIGN_DOWN_TO_PAGE(vaddr);
     pml5e_t *pml5e = pml5_entry(max.max, vaddr);
     if (!pml5e_is_present(pml5e))

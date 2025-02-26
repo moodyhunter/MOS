@@ -9,7 +9,7 @@ typedef struct
     bool present;
     ptr_t vaddr, vaddr_end;
     pfn_t pfn, pfn_end;
-    vm_flags flags;
+    VMFlags flags;
 } pagetable_iter_range_t;
 
 typedef struct

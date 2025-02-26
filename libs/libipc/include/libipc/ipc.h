@@ -5,8 +5,8 @@
 #include <mos/types.h>
 
 #ifdef __MOS_KERNEL__
-typedef struct _io io_t;
-typedef io_t *ipcfd_t;
+struct IO;
+typedef IO *ipcfd_t;
 #else
 typedef fd_t ipcfd_t;
 #endif

@@ -31,10 +31,21 @@ size_t pipe_write(pipe_t *pipe, const void *buf, size_t size);
  */
 __nodiscard bool pipe_close_one_end(pipe_t *pipe);
 
+struct PipeIOImpl : IO
+{
+    explicit PipeIOImpl(IOFlags flags) : IO(flags, IO_PIPE) {};
+
+    size_t on_read(void *buf, size_t size) override;
+    size_t on_write(const void *buf, size_t size) override;
+    void on_closed() override;
+};
+
 struct pipeio_t : mos::NamedType<"PipeIO">
 {
-    io_t io_r, io_w;
-    pipe_t *pipe;
+    explicit pipeio_t(pipe_t *pipe) : pipe(pipe), io_r(IO_READABLE), io_w(IO_WRITABLE) {};
+
+    pipe_t *const pipe;
+    PipeIOImpl io_r, io_w;
 };
 
 pipeio_t *pipeio_create(pipe_t *pipe);

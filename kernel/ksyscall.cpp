@@ -31,8 +31,6 @@
 #include <mos_string.hpp>
 #include <sys/poll.h>
 
-MOS_ENUM_OPERATORS(fd_flags_t);
-
 #define DEFINE_SYSCALL(ret, name)                                                                                                                                        \
     MOS_STATIC_ASSERT(SYSCALL_DEFINED(name));                                                                                                                            \
     ret define_syscall(name)
@@ -57,20 +55,20 @@ DEFINE_SYSCALL(void, poweroff)(bool reboot, u32 magic)
     }
 }
 
-DEFINE_SYSCALL(fd_t, vfs_openat)(fd_t dirfd, const char *path, open_flags flags)
+DEFINE_SYSCALL(fd_t, vfs_openat)(fd_t dirfd, const char *path, u64 flags)
 {
     if (path == NULL)
         return -1;
 
-    auto f = vfs_openat(dirfd, path, flags);
+    auto f = vfs_openat(dirfd, path, (open_flags) flags);
     if (f.isErr())
         return f.getErr();
-    return process_attach_ref_fd(current_process, &f->io, FD_FLAGS_NONE);
+    return process_attach_ref_fd(current_process, f.get(), FD_FLAGS_NONE);
 }
 
-DEFINE_SYSCALL(long, vfs_fstatat)(fd_t fd, const char *path, file_stat_t *stat_buf, fstatat_flags flags)
+DEFINE_SYSCALL(long, vfs_fstatat)(fd_t fd, const char *path, file_stat_t *stat_buf, u64 flags)
 {
-    return vfs_fstatat(fd, path, stat_buf, flags);
+    return vfs_fstatat(fd, path, stat_buf, (fstatat_flags) flags);
 }
 
 DEFINE_SYSCALL(size_t, io_read)(fd_t fd, void *buf, size_t count)
@@ -78,11 +76,11 @@ DEFINE_SYSCALL(size_t, io_read)(fd_t fd, void *buf, size_t count)
     if (buf == NULL)
         return -EFAULT;
 
-    io_t *io = process_get_fd(current_process, fd);
+    IO *io = process_get_fd(current_process, fd);
     if (!io)
         return -EBADF;
 
-    return io_read(io, buf, count);
+    return io->read(buf, count);
 }
 
 DEFINE_SYSCALL(size_t, io_write)(fd_t fd, const void *buf, size_t count)
@@ -93,14 +91,14 @@ DEFINE_SYSCALL(size_t, io_write)(fd_t fd, const void *buf, size_t count)
         return -EFAULT;
     }
 
-    io_t *io = process_get_fd(current_process, fd);
+    IO *io = process_get_fd(current_process, fd);
     if (!io)
     {
         pr_warn("io_write called with invalid fd %d", fd);
         return -EBADF;
     }
 
-    return io_write(io, buf, count);
+    return io->write(buf, count);
 }
 
 DEFINE_SYSCALL(bool, io_close)(fd_t fd)
@@ -203,7 +201,7 @@ DEFINE_SYSCALL(fd_t, ipc_create)(const char *name, size_t max_pending_connection
 
 DEFINE_SYSCALL(fd_t, ipc_accept)(fd_t listen_fd)
 {
-    io_t *server = process_get_fd(current_process, listen_fd);
+    IO *server = process_get_fd(current_process, listen_fd);
     if (server == NULL)
         return -1;
 
@@ -254,7 +252,7 @@ DEFINE_SYSCALL(long, vfs_mkdir)(const char *path)
 
 DEFINE_SYSCALL(size_t, vfs_list_dir)(fd_t fd, char *buffer, size_t buffer_size)
 {
-    io_t *io = process_get_fd(current_process, fd);
+    IO *io = process_get_fd(current_process, fd);
     if (io == NULL)
         return false;
     return vfs_list_dir(io, buffer, buffer_size);
@@ -285,8 +283,8 @@ DEFINE_SYSCALL(long, fd_manipulate)(fd_t fd, u64 op, void *arg)
         case F_SETFD:
         {
             // test if arg is a valid flag
-            const fd_flags_t flags = (fd_flags_t) (u64) arg;
-            if (flags & ~FD_FLAGS_CLOEXEC)
+            const FDFlags flags = (FDFlag) (u64) arg;
+            if (flags.test_inverse(FD_FLAGS_CLOEXEC))
                 return -EINVAL;
             fdt->flags = flags;
             return 0;
@@ -319,29 +317,29 @@ DEFINE_SYSCALL(long, fd_manipulate)(fd_t fd, u64 op, void *arg)
     return -EINVAL;
 }
 
-DEFINE_SYSCALL(void *, mmap_anonymous)(ptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t flags)
+DEFINE_SYSCALL(void *, mmap_anonymous)(ptr_t hint_addr, size_t size, mem_perm_t perm, u64 flags)
 {
-    const vm_flags vmflags = VM_USER | (vm_flags) perm; // vm_flags shares the same values as mem_perm_t
+    const VMFlags vmflags = VM_USER | (VMFlag) perm; // VMFlags shares the same values as mem_perm_t
     const size_t n_pages = ALIGN_UP_TO_PAGE(size) / MOS_PAGE_SIZE;
 
-    ptr_t result = mmap_anonymous(current_mm, hint_addr, flags, vmflags, n_pages);
+    ptr_t result = mmap_anonymous(current_mm, hint_addr, (mmap_flags_t) flags, vmflags, n_pages);
     return (void *) result;
 }
 
-DEFINE_SYSCALL(void *, mmap_file)(ptr_t hint_addr, size_t size, mem_perm_t perm, mmap_flags_t mmap_flags, fd_t fd, off_t offset)
+DEFINE_SYSCALL(void *, mmap_file)(ptr_t hint_addr, size_t size, mem_perm_t perm, u64 mmap_flags, fd_t fd, off_t offset)
 {
-    const vm_flags vmflags = VM_USER | (vm_flags) perm; // vm_flags shares the same values as mem_perm_t
+    const VMFlags vmflags = VM_USER | (VMFlag) perm; // VMFlags shares the same values as mem_perm_t
     const size_t n_pages = ALIGN_UP_TO_PAGE(size) / MOS_PAGE_SIZE;
 
-    io_t *io = process_get_fd(current_process, fd);
+    IO *io = process_get_fd(current_process, fd);
     if (io == NULL)
         return NULL;
 
-    ptr_t result = mmap_file(current_mm, hint_addr, mmap_flags, vmflags, n_pages, io, offset);
+    ptr_t result = mmap_file(current_mm, hint_addr, (mmap_flags_t) mmap_flags, vmflags, n_pages, io, offset);
     return (void *) result;
 }
 
-DEFINE_SYSCALL(pid_t, wait_for_process)(pid_t pid, u32 *exit_code, u32 flags)
+DEFINE_SYSCALL(pid_t, wait_for_process)(pid_t pid, u32 *exit_code, u64 flags)
 {
     return process_wait_for_pid(pid, exit_code, flags);
 }
@@ -363,18 +361,18 @@ DEFINE_SYSCALL(ssize_t, vfs_getcwd)(char *buf, size_t size)
 
 DEFINE_SYSCALL(off_t, io_seek)(fd_t fd, off_t offset, io_seek_whence_t whence)
 {
-    io_t *io = process_get_fd(current_process, fd);
+    IO *io = process_get_fd(current_process, fd);
     if (io == NULL)
         return -1;
-    return io_seek(io, offset, whence);
+    return io->seek(offset, whence);
 }
 
 DEFINE_SYSCALL(off_t, io_tell)(fd_t fd)
 {
-    io_t *io = process_get_fd(current_process, fd);
+    IO *io = process_get_fd(current_process, fd);
     if (io == NULL)
         return -1;
-    return io_tell(io);
+    return io->tell();
 }
 
 DEFINE_SYSCALL(bool, signal_register)(signal_t sig, const sigaction_t *action)
@@ -405,7 +403,7 @@ DEFINE_SYSCALL([[noreturn]] void, signal_return)(void *sp)
 
 DEFINE_SYSCALL(bool, vm_protect)(void *addr, size_t size, mem_perm_t perm)
 {
-    return vm_protect(current_mm, (ptr_t) addr, size, (vm_flags) perm);
+    return vm_protect(current_mm, (ptr_t) addr, size, (VMFlag) perm);
 }
 
 DEFINE_SYSCALL(int, io_poll)(struct pollfd *fds, nfds_t nfds, int timeout)
@@ -468,7 +466,7 @@ DEFINE_SYSCALL(int, io_pselect)(int nfds, fd_set *readfds, fd_set *writefds, fd_
     return 1; // stub
 }
 
-DEFINE_SYSCALL(long, execveat)(fd_t dirfd, const char *path, const char *const argv[], const char *const envp[], u32 flags)
+DEFINE_SYSCALL(long, execveat)(fd_t dirfd, const char *path, const char *const argv[], const char *const envp[], u64 flags)
 {
     return process_do_execveat(dirfd, path, argv, envp, flags);
 }
@@ -481,10 +479,10 @@ DEFINE_SYSCALL(long, clock_msleep)(u64 ms)
 
 DEFINE_SYSCALL(fd_t, io_dup)(fd_t fd)
 {
-    io_t *io = process_get_fd(current_process, fd);
+    IO *io = process_get_fd(current_process, fd);
     if (io == NULL)
         return -EBADF; // fd is not a valid file descriptor
-    return process_attach_ref_fd(current_process, io_ref(io), current_process->files[fd].flags);
+    return process_attach_ref_fd(current_process, io->ref(), current_process->files[fd].flags);
 }
 
 DEFINE_SYSCALL(fd_t, io_dup2)(fd_t oldfd, fd_t newfd)
@@ -498,7 +496,7 @@ DEFINE_SYSCALL(fd_t, io_dup2)(fd_t oldfd, fd_t newfd)
 
     process_detach_fd(current_process, newfd);
 
-    current_process->files[newfd].io = io_ref(old->io);
+    current_process->files[newfd].io = old->io->ref();
     current_process->files[newfd].flags = old->flags;
     return newfd;
 }
@@ -531,15 +529,15 @@ DEFINE_SYSCALL(bool, dmabuf_unshare)(ptr_t phys, size_t size, void *buf)
     return dmabuf_unshare(phys, size, buf);
 }
 
-DEFINE_SYSCALL(long, pipe)(fd_t *reader, fd_t *writer, fd_flags_t flags)
+DEFINE_SYSCALL(long, pipe)(fd_t *reader, fd_t *writer, u64 flags)
 {
     auto pipe = pipe_create(MOS_PAGE_SIZE * 4);
     if (pipe.isErr())
         return pipe.getErr();
 
     auto pipeio = pipeio_create(pipe.get());
-    *reader = process_attach_ref_fd(current_process, &pipeio->io_r, flags);
-    *writer = process_attach_ref_fd(current_process, &pipeio->io_w, flags);
+    *reader = process_attach_ref_fd(current_process, &pipeio->io_r, (FDFlag) flags);
+    *writer = process_attach_ref_fd(current_process, &pipeio->io_w, (FDFlag) flags);
     return 0;
 }
 
@@ -551,7 +549,7 @@ DEFINE_SYSCALL(ssize_t, io_readv)(fd_t fd, const struct iovec *iov, int iovcnt)
     if (iov == NULL)
         return -EFAULT;
 
-    io_t *io = process_get_fd(current_process, fd);
+    IO *io = process_get_fd(current_process, fd);
     if (!io)
         return -EBADF;
 
@@ -565,7 +563,7 @@ DEFINE_SYSCALL(ssize_t, io_readv)(fd_t fd, const struct iovec *iov, int iovcnt)
 
     for (int i = 0; i < iovcnt; i++)
     {
-        size_t ret = io_read(io, iov[i].iov_base, iov[i].iov_len);
+        size_t ret = io->read(iov[i].iov_base, iov[i].iov_len);
         if (IS_ERR_VALUE(ret))
             return ret;
 
@@ -613,7 +611,7 @@ DEFINE_SYSCALL(ssize_t, thread_getname)(tid_t tid, char *buf, size_t buflen)
     return end - buf;
 }
 
-DEFINE_SYSCALL(long, vfs_fchmodat)(fd_t dirfd, const char *path, int mode, int flags)
+DEFINE_SYSCALL(long, vfs_fchmodat)(fd_t dirfd, const char *path, int mode, u64 flags)
 {
     return vfs_fchmodat(dirfd, path, mode, flags);
 }
@@ -626,20 +624,20 @@ DEFINE_SYSCALL(long, io_pread)(fd_t fd, void *buf, size_t count, off_t offset)
     if (buf == NULL)
         return -EFAULT;
 
-    io_t *io = process_get_fd(current_process, fd);
+    IO *io = process_get_fd(current_process, fd);
     if (!io)
         return -EBADF;
 
-    return io_pread(io, buf, count, offset);
+    return io->pread(buf, count, offset);
 }
 
-DEFINE_SYSCALL(fd_t, memfd_create)(const char *name, u32 flags)
+DEFINE_SYSCALL(fd_t, memfd_create)(const char *name, u64 flags)
 {
     auto io = memfd_create(name);
     if (io.isErr())
         return io.getErr();
 
-    return process_attach_ref_fd(current_process, io.get(), (fd_flags_t) flags);
+    return process_attach_ref_fd(current_process, io.get(), (FDFlag) flags);
 }
 
 DEFINE_SYSCALL(long, signal_mask_op)(int how, const sigset_t *set, sigset_t *oldset)
@@ -677,11 +675,11 @@ DEFINE_SYSCALL(long, signal_mask_op)(int how, const sigset_t *set, sigset_t *old
 
 DEFINE_SYSCALL(long, vfs_fsync)(fd_t fd, bool data_only)
 {
-    io_t *io = process_get_fd(current_process, fd);
+    IO *io = process_get_fd(current_process, fd);
     if (!io)
         return -EBADF;
 
-    if (io->type != IO_FILE)
+    if (io->io_type != IO_FILE)
         return -EBADF;
 
     return vfs_fsync(io, data_only, 0, (off_t) -1);

@@ -6,7 +6,6 @@
 #include <mos/lib/sync/spinlock.hpp>
 #include <mos/string.hpp>
 #include <mos/string_view.hpp>
-#include <mos/syslog/printk.hpp>
 #include <mos/type_utils.hpp>
 #include <stddef.h>
 
@@ -76,10 +75,7 @@ namespace mos
             this->ent_size = size;
         }
 
-        ~Slab()
-        {
-            pr_emerg("slab: freeing slab for '%s'", this->type_name.data());
-        }
+        ~Slab() = default;
 
         template<typename... Args>
         T *create(Args &&...args)

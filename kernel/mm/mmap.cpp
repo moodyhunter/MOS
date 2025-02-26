@@ -20,7 +20,7 @@
  * @param hint_addr The hint address
  * @param mmap_flags The mmap flags
  */
-static bool mmap_verify_arguments(ptr_t *hint_addr, mmap_flags_t mmap_flags)
+static bool mmap_verify_arguments(ptr_t *hint_addr, MMapFlags mmap_flags)
 {
     if ((*hint_addr % MOS_PAGE_SIZE) != 0)
     {
@@ -33,7 +33,7 @@ static bool mmap_verify_arguments(ptr_t *hint_addr, mmap_flags_t mmap_flags)
     if (shared == map_private)
     {
         pr_warn("mmap_file: shared and private are mutually exclusive, and one of them must be specified");
-        return NULL;
+        return false;
     }
 
     if (mmap_flags & MMAP_EXACT)
@@ -51,14 +51,12 @@ static bool mmap_verify_arguments(ptr_t *hint_addr, mmap_flags_t mmap_flags)
     return true;
 }
 
-ptr_t mmap_anonymous(MMContext *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages)
+ptr_t mmap_anonymous(MMContext *ctx, ptr_t hint_addr, MMapFlags flags, VMFlags VMFlags, size_t n_pages)
 {
     if (!mmap_verify_arguments(&hint_addr, flags))
         return 0;
 
-    const valloc_flags valloc_flags = (flags & MMAP_EXACT) ? VALLOC_EXACT : VALLOC_DEFAULT;
-
-    auto vmap = cow_allocate_zeroed_pages(ctx, n_pages, hint_addr, valloc_flags, vm_flags);
+    auto vmap = cow_allocate_zeroed_pages(ctx, n_pages, hint_addr, VMFlags, flags & MMAP_EXACT);
 
     if (vmap.isErr())
         return vmap.getErr();
@@ -70,7 +68,7 @@ ptr_t mmap_anonymous(MMContext *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_fla
     return vmap->vaddr;
 }
 
-ptr_t mmap_file(MMContext *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm_flags, size_t n_pages, io_t *io, off_t offset)
+ptr_t mmap_file(MMContext *ctx, ptr_t hint_addr, MMapFlags flags, VMFlags VMFlags, size_t n_pages, IO *io, off_t offset)
 {
     if (!mmap_verify_arguments(&hint_addr, flags))
         return 0;
@@ -81,12 +79,11 @@ ptr_t mmap_file(MMContext *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm
         return 0;
     }
 
-    const valloc_flags valloc_flags = (flags & MMAP_EXACT) ? VALLOC_EXACT : VALLOC_DEFAULT;
     const vmap_type_t type = (flags & MMAP_SHARED) ? VMAP_TYPE_SHARED : VMAP_TYPE_PRIVATE;
 
-    mm_lock_ctx_pair(ctx, NULL);
-    auto vmap = mm_get_free_vaddr_locked(ctx, n_pages, hint_addr, valloc_flags);
-    mm_unlock_ctx_pair(ctx, NULL);
+    mm_lock_context_pair(ctx);
+    auto vmap = mm_get_free_vaddr_locked(ctx, n_pages, hint_addr, flags & MMAP_EXACT);
+    mm_unlock_context_pair(ctx);
 
     if (vmap.isErr())
     {
@@ -94,10 +91,10 @@ ptr_t mmap_file(MMContext *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm
         return 0;
     }
 
-    vmap->vmflags = vm_flags;
+    vmap->vmflags = VMFlags;
     vmap->type = type;
 
-    if (!io_mmap(io, vmap.get(), offset))
+    if (!io->map(vmap.get(), offset))
     {
         vmap_destroy(vmap.get());
         pr_warn("mmap_file: could not map the file: io_mmap() failed");
@@ -111,7 +108,7 @@ ptr_t mmap_file(MMContext *ctx, ptr_t hint_addr, mmap_flags_t flags, vm_flags vm
 bool munmap(ptr_t addr, size_t size)
 {
     spinlock_acquire(&current_process->mm->mm_lock);
-    vmap_t *const whole_map = vmap_obtain(current_process->mm, addr, NULL);
+    vmap_t *const whole_map = vmap_obtain(current_process->mm, addr);
     if (unlikely(!whole_map))
     {
         spinlock_release(&current_process->mm->mm_lock);
@@ -141,13 +138,13 @@ bool munmap(ptr_t addr, size_t size)
     return true;
 }
 
-bool vm_protect(MMContext *mmctx, ptr_t addr, size_t size, vm_flags perm)
+bool vm_protect(MMContext *mmctx, ptr_t addr, size_t size, VMFlags perm)
 {
     MOS_ASSERT(addr % MOS_PAGE_SIZE == 0);
     size = ALIGN_UP_TO_PAGE(size);
 
     spinlock_acquire(&mmctx->mm_lock);
-    vmap_t *const first_part = vmap_obtain(mmctx, addr, NULL);
+    vmap_t *const first_part = vmap_obtain(mmctx, addr);
     const size_t addr_pgoff = (addr - first_part->vaddr) / MOS_PAGE_SIZE;
 
     //
@@ -180,7 +177,7 @@ bool vm_protect(MMContext *mmctx, ptr_t addr, size_t size, vm_flags perm)
 
     if (to_protect->io)
     {
-        if (!io_mmap_perm_check(to_protect->io, perm, to_protect->type == VMAP_TYPE_PRIVATE))
+        if (!to_protect->io->VerifyMMapPermissions(perm, to_protect->type == VMAP_TYPE_PRIVATE))
         {
             spinlock_release(&to_protect->lock); // permission denied
             spinlock_release(&mmctx->mm_lock);
@@ -188,11 +185,11 @@ bool vm_protect(MMContext *mmctx, ptr_t addr, size_t size, vm_flags perm)
         }
     }
 
-    const bool read_lost = to_protect->vmflags & VM_READ && !(perm & VM_READ);    // if we lose read permission
-    const bool write_lost = to_protect->vmflags & VM_WRITE && !(perm & VM_WRITE); // if we lose write permission
-    const bool exec_lost = to_protect->vmflags & VM_EXEC && !(perm & VM_EXEC);    // if we lose exec permission
+    const bool read_lost = to_protect->vmflags.test(VM_READ) && !perm.test(VM_READ);    // if we lose read permission
+    const bool write_lost = to_protect->vmflags.test(VM_WRITE) && !perm.test(VM_WRITE); // if we lose write permission
+    const bool exec_lost = to_protect->vmflags.test(VM_EXEC) && !perm.test(VM_EXEC);    // if we lose exec permission
 
-    vm_flags mask = VM_NONE;
+    VMFlags mask = VM_NONE;
     if (read_lost)
     {
         mask |= VM_READ;

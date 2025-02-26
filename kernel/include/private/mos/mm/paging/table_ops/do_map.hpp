@@ -6,7 +6,7 @@
 struct pagetable_do_map_data
 {
     pfn_t pfn;
-    vm_flags flags;
+    VMFlags flags;
     bool do_refcount; // whether to increment the reference count of the frame
 };
 

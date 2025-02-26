@@ -116,38 +116,61 @@ should_inline bool recursive_spinlock_is_locked(recursive_spinlock_t *lock)
     return lock->lock.flag;
 }
 
+class [[nodiscard("don't discard")]] SpinUnlocker
+{
+  public:
+    explicit SpinUnlocker(spinlock_t *lock) : m_lock(lock)
+    {
+        spinlock_release(m_lock);
+    }
+
+    SpinUnlocker(const SpinUnlocker &) = delete;
+    SpinUnlocker &operator=(const SpinUnlocker &) = delete;
+    SpinUnlocker(SpinUnlocker &&) = delete;
+    SpinUnlocker &operator=(SpinUnlocker &&) = delete;
+
+    void discard()
+    {
+        m_lock = nullptr;
+    }
+
+    ~SpinUnlocker()
+    {
+        if (m_lock)
+            spinlock_acquire(m_lock);
+    }
+
+  private:
+    spinlock_t *m_lock;
+};
+
 class [[nodiscard("don't discard")]] SpinLocker
 {
   public:
-    SpinLocker(spinlock_t *lock) : m_lock(lock)
+    explicit SpinLocker(spinlock_t *lock) : m_lock(lock)
     {
         spinlock_acquire(m_lock);
     }
 
     SpinLocker(const SpinLocker &) = delete;
     SpinLocker &operator=(const SpinLocker &) = delete;
+    SpinLocker(SpinLocker &&) = delete;
+    SpinLocker &operator=(SpinLocker &&) = delete;
 
-    // move constructor
-    SpinLocker(SpinLocker &&other) : m_lock(other.m_lock)
+    void discard()
     {
-        other.m_lock = nullptr;
-    }
-
-    // move assignment
-    SpinLocker &operator=(SpinLocker &&other)
-    {
-        if (this != &other)
-        {
-            m_lock = other.m_lock;
-            other.m_lock = nullptr;
-        }
-        return *this;
+        m_lock = nullptr;
     }
 
     ~SpinLocker()
     {
         if (m_lock)
             spinlock_release(m_lock);
+    }
+
+    SpinUnlocker UnlockTemporarily()
+    {
+        return SpinUnlocker(m_lock);
     }
 
   private:

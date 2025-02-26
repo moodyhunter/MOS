@@ -18,7 +18,7 @@
             "arguments": [
                 { "type": "fd_t", "arg": "dirfd" },
                 { "type": "const char *", "arg": "file_path" },
-                { "type": "open_flags", "arg": "flags" }
+                { "type": "u64", "arg": "flags" }
             ]
         },
         {
@@ -29,20 +29,28 @@
                 { "type": "fd_t", "arg": "dirfd" },
                 { "type": "const char *", "arg": "file_path" },
                 { "type": "file_stat_t *", "arg": "stat_buf" },
-                { "type": "fstatat_flags", "arg": "flags" }
+                { "type": "u64", "arg": "flags" }
             ]
         },
         {
             "number": 3,
             "name": "io_read",
             "return": "size_t",
-            "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "void *", "arg": "buffer" }, { "type": "size_t", "arg": "size" } ]
+            "arguments": [
+                { "type": "fd_t", "arg": "fd" },
+                { "type": "void *", "arg": "buffer" },
+                { "type": "size_t", "arg": "size" }
+            ]
         },
         {
             "number": 4,
             "name": "io_write",
             "return": "size_t",
-            "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "const void *", "arg": "buffer" }, { "type": "size_t", "arg": "size" } ]
+            "arguments": [
+                { "type": "fd_t", "arg": "fd" },
+                { "type": "const void *", "arg": "buffer" },
+                { "type": "size_t", "arg": "size" }
+            ]
         },
         {
             "number": 5,
@@ -124,19 +132,28 @@
             "number": 18,
             "name": "futex_wait",
             "return": "bool",
-            "arguments": [ { "type": "futex_word_t *", "arg": "futex" }, { "type": "u32", "arg": "val" } ]
+            "arguments": [
+                { "type": "futex_word_t *", "arg": "futex" },
+                { "type": "u32", "arg": "val" }
+            ]
         },
         {
             "number": 19,
             "name": "futex_wake",
             "return": "bool",
-            "arguments": [ { "type": "futex_word_t *", "arg": "futex" }, { "type": "size_t", "arg": "count" } ]
+            "arguments": [
+                { "type": "futex_word_t *", "arg": "futex" },
+                { "type": "size_t", "arg": "count" }
+            ]
         },
         {
             "number": 20,
             "name": "ipc_create",
             "return": "fd_t",
-            "arguments": [ { "type": "const char *", "arg": "name" }, { "type": "size_t", "arg": "max_pending_connections" } ]
+            "arguments": [
+                { "type": "const char *", "arg": "name" },
+                { "type": "size_t", "arg": "max_pending_connections" }
+            ]
         },
         {
             "number": 21,
@@ -148,13 +165,22 @@
             "number": 22,
             "name": "ipc_connect",
             "return": "fd_t",
-            "arguments": [ { "type": "const char *", "arg": "name" }, { "type": "size_t", "arg": "buffer_size" } ]
+            "arguments": [
+                { "type": "const char *", "arg": "name" },
+                { "type": "size_t", "arg": "buffer_size" }
+            ]
         },
         {
             "number": 23,
             "name": "arch_syscall",
             "return": "u64",
-            "arguments": [ { "type": "u64", "arg": "nr" }, { "type": "u64", "arg": "arg1" }, { "type": "u64", "arg": "arg2" }, { "type": "u64", "arg": "arg3" }, { "type": "u64", "arg": "arg4" } ],
+            "arguments": [
+                { "type": "u64", "arg": "nr" },
+                { "type": "u64", "arg": "arg1" },
+                { "type": "u64", "arg": "arg2" },
+                { "type": "u64", "arg": "arg3" },
+                { "type": "u64", "arg": "arg4" }
+            ],
             "comments": [
                 "This syscall is used to implement architecture-specific syscalls.",
                 "The first argument is the syscall number, and the remaining arguments",
@@ -187,13 +213,19 @@
             "number": 26,
             "name": "vfs_unlinkat",
             "return": "long",
-            "arguments": [ { "type": "fd_t", "arg": "dirfd" }, { "type": "const char *", "arg": "path" } ]
+            "arguments": [
+                { "type": "fd_t", "arg": "dirfd" },
+                { "type": "const char *", "arg": "path" }
+            ]
         },
         {
             "number": 27,
             "name": "vfs_symlink",
             "return": "long",
-            "arguments": [ { "type": "const char *", "arg": "link_path" }, { "type": "const char *", "arg": "target" } ]
+            "arguments": [
+                { "type": "const char *", "arg": "link_path" },
+                { "type": "const char *", "arg": "target" }
+            ]
         },
         {
             "number": 28,
@@ -205,7 +237,11 @@
             "number": 29,
             "name": "vfs_list_dir",
             "return": "size_t",
-            "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "char *", "arg": "buffer" }, { "type": "size_t", "arg": "buffer_size" } ]
+            "arguments": [
+                { "type": "fd_t", "arg": "fd" },
+                { "type": "char *", "arg": "buffer" },
+                { "type": "size_t", "arg": "buffer_size" }
+            ]
         },
         {
             "number": 30,
@@ -225,7 +261,7 @@
                 { "type": "ptr_t", "arg": "hint_addr" },
                 { "type": "size_t", "arg": "size" },
                 { "type": "mem_perm_t", "arg": "perm" },
-                { "type": "mmap_flags_t", "arg": "flags" }
+                { "type": "u64", "arg": "flags" }
             ]
         },
         {
@@ -236,7 +272,7 @@
                 { "type": "ptr_t", "arg": "hint_addr" },
                 { "type": "size_t", "arg": "size" },
                 { "type": "mem_perm_t", "arg": "perm" },
-                { "type": "mmap_flags_t", "arg": "flags" },
+                { "type": "u64", "arg": "flags" },
                 { "type": "fd_t", "arg": "fd" },
                 { "type": "off_t", "arg": "offset" }
             ]
@@ -245,31 +281,48 @@
             "number": 33,
             "name": "wait_for_process",
             "return": "pid_t",
-            "arguments": [ { "type": "pid_t", "arg": "pid" }, { "type": "u32 *", "arg": "exit_code" }, { "type": "u32", "arg": "flags" } ]
+            "arguments": [
+                { "type": "pid_t", "arg": "pid" },
+                { "type": "u32 *", "arg": "exit_code" },
+                { "type": "u64", "arg": "flags" }
+            ]
         },
         {
             "number": 34,
             "name": "munmap",
             "return": "bool",
-            "arguments": [ { "type": "void *", "arg": "addr" }, { "type": "size_t", "arg": "size" } ]
+            "arguments": [
+                { "type": "void *", "arg": "addr" },
+                { "type": "size_t", "arg": "size" }
+            ]
         },
         {
             "number": 35,
             "name": "vfs_chdirat",
             "return": "long",
-            "arguments": [ { "type": "fd_t", "arg": "dirfd" }, { "type": "const char *", "arg": "path" } ]
+            "arguments": [
+                { "type": "fd_t", "arg": "dirfd" },
+                { "type": "const char *", "arg": "path" }
+            ]
         },
         {
             "number": 36,
             "name": "vfs_getcwd",
             "return": "ssize_t",
-            "arguments": [ { "type": "char *", "arg": "buf" }, { "type": "size_t", "arg": "buf_size" } ]
+            "arguments": [
+                { "type": "char *", "arg": "buf" },
+                { "type": "size_t", "arg": "buf_size" }
+            ]
         },
         {
             "number": 37,
             "name": "io_seek",
             "return": "off_t",
-            "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "off_t", "arg": "offset" }, { "type": "io_seek_whence_t", "arg": "whence" } ]
+            "arguments": [
+                { "type": "fd_t", "arg": "fd" },
+                { "type": "off_t", "arg": "offset" },
+                { "type": "io_seek_whence_t", "arg": "whence" }
+            ]
         },
         {
             "number": 38,
@@ -281,13 +334,19 @@
             "number": 39,
             "name": "signal_register",
             "return": "bool",
-            "arguments": [ { "type": "signal_t", "arg": "signum" }, { "type": "const sigaction_t *", "arg": "action" } ]
+            "arguments": [
+                { "type": "signal_t", "arg": "signum" },
+                { "type": "const sigaction_t *", "arg": "action" }
+            ]
         },
         {
             "number": 40,
             "name": "signal_process",
             "return": "long",
-            "arguments": [ { "type": "pid_t", "arg": "pid" }, { "type": "signal_t", "arg": "signum" } ],
+            "arguments": [
+                { "type": "pid_t", "arg": "pid" },
+                { "type": "signal_t", "arg": "signum" }
+            ],
             "comments": [
                 "Send a signal to a process, an arbitrary thread in the target process",
                 "will be selected to receive the signal."
@@ -297,16 +356,20 @@
             "number": 41,
             "name": "signal_thread",
             "return": "long",
-            "arguments": [ { "type": "tid_t", "arg": "tid" }, { "type": "signal_t", "arg": "signum" } ],
-            "comments": [
-                "Send a signal to a specific thread in a process."
-            ]
+            "arguments": [
+                { "type": "tid_t", "arg": "tid" },
+                { "type": "signal_t", "arg": "signum" }
+            ],
+            "comments": [ "Send a signal to a specific thread in a process." ]
         },
         {
             "number": 42,
             "name": "poweroff",
             "return": "void",
-            "arguments": [ { "type": "bool", "arg": "reboot" }, { "type": "u32", "arg": "magic" } ]
+            "arguments": [
+                { "type": "bool", "arg": "reboot" },
+                { "type": "u32", "arg": "magic" }
+            ]
         },
         {
             "number": 43,
@@ -318,13 +381,21 @@
             "number": 44,
             "name": "vm_protect",
             "return": "bool",
-            "arguments": [ { "type": "void *", "arg": "addr" }, { "type": "size_t", "arg": "size" }, { "type": "mem_perm_t", "arg": "perm" } ]
+            "arguments": [
+                { "type": "void *", "arg": "addr" },
+                { "type": "size_t", "arg": "size" },
+                { "type": "mem_perm_t", "arg": "perm" }
+            ]
         },
         {
             "number": 45,
             "name": "io_poll",
             "return": "int",
-            "arguments": [ { "type": "struct pollfd *", "arg": "fds" }, { "type": "nfds_t", "arg": "nfds" }, { "type": "int", "arg": "timeout" } ]
+            "arguments": [
+                { "type": "struct pollfd *", "arg": "fds" },
+                { "type": "nfds_t", "arg": "nfds" },
+                { "type": "int", "arg": "timeout" }
+            ]
         },
         {
             "number": 46,
@@ -348,7 +419,7 @@
                 { "type": "const char *", "arg": "file_path" },
                 { "type": "const char *const *", "arg": "argv" },
                 { "type": "const char *const *", "arg": "envp" },
-                { "type": "u32", "arg": "flags" }
+                { "type": "u64", "arg": "flags" }
             ]
         },
         {
@@ -367,7 +438,10 @@
             "number": 50,
             "name": "io_dup2",
             "return": "fd_t",
-            "arguments": [ { "type": "fd_t", "arg": "old_fd" }, { "type": "fd_t", "arg": "new_fd" } ]
+            "arguments": [
+                { "type": "fd_t", "arg": "old_fd" },
+                { "type": "fd_t", "arg": "new_fd" }
+            ]
         },
         {
             "number": 51,
@@ -433,14 +507,18 @@
             "arguments": [
                 { "type": "fd_t *", "arg": "out_read_fd" },
                 { "type": "fd_t *", "arg": "out_write_fd" },
-                { "type": "fd_flags_t", "arg": "flags" }
+                { "type": "u64", "arg": "flags" }
             ]
         },
         {
             "number": 56,
             "name": "io_readv",
             "return": "ssize_t",
-            "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "const struct iovec *", "arg": "iov" }, { "type": "int", "arg": "iov_count" } ]
+            "arguments": [
+                { "type": "fd_t", "arg": "fd" },
+                { "type": "const struct iovec *", "arg": "iov" },
+                { "type": "int", "arg": "iov_count" }
+            ]
         },
         {
             "number": 57,
@@ -458,13 +536,20 @@
             "number": 59,
             "name": "thread_setname",
             "return": "long",
-            "arguments": [ { "type": "tid_t", "arg": "tid" }, { "type": "const char *", "arg": "name" } ]
+            "arguments": [
+                { "type": "tid_t", "arg": "tid" },
+                { "type": "const char *", "arg": "name" }
+            ]
         },
         {
             "number": 60,
             "name": "thread_getname",
             "return": "ssize_t",
-            "arguments": [ { "type": "tid_t", "arg": "tid" }, { "type": "char *", "arg": "buf" }, { "type": "size_t", "arg": "buf_size" } ]
+            "arguments": [
+                { "type": "tid_t", "arg": "tid" },
+                { "type": "char *", "arg": "buf" },
+                { "type": "size_t", "arg": "buf_size" }
+            ]
         },
         {
             "number": 61,
@@ -474,7 +559,7 @@
                 { "type": "fd_t", "arg": "dirfd" },
                 { "type": "const char *", "arg": "path" },
                 { "type": "int", "arg": "mode" },
-                { "type": "int", "arg": "flags" }
+                { "type": "u64", "arg": "flags" }
             ]
         },
         {
@@ -492,19 +577,29 @@
             "number": 63,
             "name": "memfd_create",
             "return": "fd_t",
-            "arguments": [ { "type": "const char *", "arg": "name" }, { "type": "u32", "arg": "flags" } ]
+            "arguments": [
+                { "type": "const char *", "arg": "name" },
+                { "type": "u64", "arg": "flags" }
+            ]
         },
         {
             "number": 64,
             "name": "signal_mask_op",
             "return": "long",
-            "arguments": [ { "type": "int", "arg": "how" }, { "type": "const sigset_t *", "arg": "set" }, { "type": "sigset_t *", "arg": "oldset" } ]
+            "arguments": [
+                { "type": "int", "arg": "how" },
+                { "type": "const sigset_t *", "arg": "set" },
+                { "type": "sigset_t *", "arg": "oldset" }
+            ]
         },
         {
             "number": 65,
             "name": "vfs_fsync",
             "return": "long",
-            "arguments": [ { "type": "fd_t", "arg": "fd" }, { "type": "bool", "arg": "data_only" } ],
+            "arguments": [
+                { "type": "fd_t", "arg": "fd" },
+                { "type": "bool", "arg": "data_only" }
+            ],
             "comments": [
                 "Synchronize the file to disk.",
                 "If data_only is true, only the file data is synchronized, otherwise both data and metadata are synchronized."

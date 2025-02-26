@@ -4,10 +4,12 @@
 
 #include "mos/mm/slab.hpp"
 
+#include <mos/type_utils.hpp>
+
 namespace mos
 {
-    template<HasTypeName T, typename... Args>
-    T *create(Args &&...args)
+    template<typename T, typename... Args>
+    requires mos::HasTypeName<T> T *create(Args &&...args)
     {
         static InitOnce<Slab<T>> _slab;
         return _slab->create(args...);

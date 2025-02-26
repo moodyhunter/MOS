@@ -2,8 +2,6 @@
 
 #include "mos/filesystem/sysfs/sysfs.hpp"
 #include "mos/filesystem/sysfs/sysfs_autoinit.hpp"
-#include "mos/lib/structures/list.hpp"
-#include "mos/lib/sync/spinlock.hpp"
 #include "mos/mm/mm.hpp"
 #include "mos/mm/paging/paging.hpp"
 #include "mos/mm/physical/pmm.hpp"
@@ -30,7 +28,7 @@
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-static MMContext mos_kernel_mm;
+MMContext mos_kernel_mm;
 
 static struct
 {
@@ -93,36 +91,16 @@ MOS_SETUP("init_args", setup_init_args)
     return true;
 }
 
-void mos_start_kernel(void)
+static void setup_sane_environment()
 {
-    mInfo << "Welcome to MOS!";
-    mInfo << fmt("MOS {}-{} on ({}, {}), compiler {}", MOS_KERNEL_VERSION, MOS_ARCH, MOS_KERNEL_REVISION, __DATE__, __VERSION__);
-
-    if (platform_info->n_cmdlines)
-        mInfo << "MOS Kernel cmdline";
-
-    for (u32 i = 0; i < platform_info->n_cmdlines; i++)
-    {
-        const cmdline_option_t *opt = &platform_info->cmdlines[i];
-        if (opt->arg)
-            pr_info2("  %-2d: %-10s = %s", i, opt->name, opt->arg);
-        else
-            pr_info2("  %-2d: %s", i, opt->name);
-    }
-
     platform_startup_early();
     pmm_init();
 
-    dInfo<vmm> << "initializing paging...";
-    spinlock_init(&mos_kernel_mm.mm_lock);
-    linked_list_init(&mos_kernel_mm.mmaps);
+    pr_dinfo(vmm, "initializing paging...");
     mos_kernel_mm.pgd = pgd_create(pml_create_table(MOS_PMLTOP));
-    platform_info->kernel_mm = &mos_kernel_mm;
-    current_cpu->mm_context = platform_info->kernel_mm;
-
     platform_startup_setup_kernel_mm();
 
-    pr_dinfo2(vmm, "mapping kernel space...");
+    pr_dinfo(vmm, "mapping kernel space...");
     mm_map_kernel_pages(                                                                                   //
         platform_info->kernel_mm,                                                                          //
         (ptr_t) __MOS_KERNEL_CODE_START,                                                                   //
@@ -149,6 +127,25 @@ void mos_start_kernel(void)
 
     platform_switch_mm(platform_info->kernel_mm);
     slab_init(); // now mos::create<T>, kmalloc<T>, etc. are available
+}
+
+void mos_start_kernel(void)
+{
+    setup_sane_environment();
+    mInfo << "Welcome to MOS!";
+    mInfo << fmt("MOS {}-{} on ({}, {}), compiler {}", MOS_KERNEL_VERSION, MOS_ARCH, MOS_KERNEL_REVISION, __DATE__, __VERSION__);
+
+    if (platform_info->n_cmdlines)
+        mInfo << "MOS Kernel cmdline";
+
+    for (u32 i = 0; i < platform_info->n_cmdlines; i++)
+    {
+        const cmdline_option_t *opt = &platform_info->cmdlines[i];
+        if (opt->arg)
+            pr_info2("  %-2d: %-10s = %s", i, opt->name, opt->arg);
+        else
+            pr_info2("  %-2d: %s", i, opt->name);
+    }
 
     // power management
     startup_invoke_autoinit(INIT_TARGET_POWER);
@@ -188,7 +185,7 @@ void mos_start_kernel(void)
     if (unlikely(!init_con))
         mos_panic("failed to get console");
 
-    const stdio_t init_io = { .in = &init_con->io, .out = &init_con->io, .err = &init_con->io };
+    const stdio_t init_io = { .in = init_con, .out = init_con, .err = init_con };
     const char *const init_envp[] = {
         "PATH=/initrd/programs:/initrd/bin:/bin",
         "HOME=/",
@@ -208,21 +205,11 @@ void mos_start_kernel(void)
     if (unlikely(!init))
         mos_panic("failed to create init process");
 
-    auto initrd_map = mm_map_user_pages( //
-        init->mm,                        //
-        MOS_INITRD_BASE,                 //
-        platform_info->initrd_pfn,       //
-        platform_info->initrd_npages,    //
-        VM_USER_RO,                      //
-        VALLOC_EXACT,                    //
-        VMAP_TYPE_SHARED,                //
-        VMAP_FILE                        //
-    );
-
+    const auto m = mm_map_user_pages(init->mm, MOS_INITRD_BASE, platform_info->initrd_pfn, platform_info->initrd_npages, VM_USER_RO, VMAP_TYPE_SHARED, VMAP_FILE, true);
     pmm_ref(platform_info->initrd_pfn, platform_info->initrd_npages);
     pmm_ref(platform_info->initrd_pfn, platform_info->initrd_npages);
 
-    MOS_ASSERT_X(initrd_map, "failed to map initrd into init process");
+    MOS_ASSERT_X(m, "failed to map initrd into init process");
 
     kthread_init(); // must be called after creating the first init process
     startup_invoke_autoinit(INIT_TARGET_KTHREAD);

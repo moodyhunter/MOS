@@ -3,7 +3,6 @@
 #include "mos/tasks/elf.hpp"
 
 #include "mos/filesystem/vfs.hpp"
-#include "mos/io/io.hpp"
 #include "mos/mm/mm.hpp"
 #include "mos/mm/mmap.hpp"
 #include "mos/platform/platform.hpp"
@@ -55,9 +54,9 @@ static bool elf_verify_header(const elf_header_t *header)
     return true;
 }
 
-[[nodiscard]] static bool elf_read_file(file_t *file, void *buf, off_t offset, size_t size)
+[[nodiscard]] static bool elf_read_file(BasicFile *file, void *buf, off_t offset, size_t size)
 {
-    const size_t read = io_pread(&file->io, buf, size, offset);
+    const size_t read = file->pread(buf, size, offset);
     return read == size;
 }
 
@@ -155,13 +154,13 @@ no_argv:
     MOS_ASSERT(thread->u_stack.head % 16 == 0);
 }
 
-static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, MMContext *mm, file_t *file)
+static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, MMContext *mm, BasicFile *file)
 {
     MOS_ASSERT(ph->header_type == ELF_PT_LOAD);
     pr_dinfo2(elf, "program header %c%c%c, type '%d' at " PTR_FMT, //
-              ph->p_flags & ELF_PF_R ? 'r' : '-',                  //
-              ph->p_flags & ELF_PF_W ? 'w' : '-',                  //
-              ph->p_flags & ELF_PF_X ? 'x' : '-',                  //
+              ph->flags() & ELF_PF_R ? 'r' : '-',                  //
+              ph->flags() & ELF_PF_W ? 'w' : '-',                  //
+              ph->flags() & ELF_PF_X ? 'x' : '-',                  //
               ph->header_type,                                     //
               ph->vaddr                                            //
     );
@@ -169,9 +168,9 @@ static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, M
     MOS_ASSERT(ph->data_offset % MOS_PAGE_SIZE == ph->vaddr % MOS_PAGE_SIZE); // offset ≡ vaddr (mod page size)
     MOS_ASSERT_X(ph->size_in_file <= ph->size_in_mem, "invalid ELF: size in file is larger than size in memory");
 
-    const vm_flags flags = [pflags = ph->p_flags]()
+    const VMFlags flags = [pflags = ph->flags()]()
     {
-        vm_flags f = VM_USER;
+        VMFlags f = VM_USER;
         if (pflags & ELF_PF_R)
             f |= VM_READ;
         if (pflags & ELF_PF_W)
@@ -188,7 +187,7 @@ static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, M
     const ptr_t map_start = map_bias + aligned_vaddr;
     pr_dinfo2(elf, "  mapping %zu pages at " PTR_FMT " (bias at " PTR_FMT ") from offset %zu...", npages, map_start, map_bias, aligned_size);
 
-    const ptr_t vaddr = mmap_file(mm, map_start, mmap_flags_t(MMAP_PRIVATE | MMAP_EXACT), flags, npages, &file->io, aligned_size);
+    const ptr_t vaddr = mmap_file(mm, map_start, MMAP_PRIVATE | MMAP_EXACT, flags, npages, file, aligned_size);
     MOS_ASSERT_X(vaddr == map_start, "failed to map ELF segment at " PTR_FMT, aligned_vaddr);
 
     if (ph->size_in_file < ph->size_in_mem)
@@ -202,17 +201,17 @@ static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, M
 
 static ptr_t elf_map_interpreter(const char *path, MMContext *mm)
 {
-    auto interp_file = vfs_openat(AT_FDCWD, path, open_flags(OPEN_READ | OPEN_EXECUTE));
+    auto interp_file = vfs_openat(AT_FDCWD, path, OPEN_READ | OPEN_EXECUTE);
     if (interp_file.isErr())
         return 0;
 
-    io_ref(&interp_file->io);
+    interp_file->ref();
 
     elf_header_t elf;
     if (!elf_read_and_verify_executable(interp_file.get(), &elf))
     {
         pr_emerg("failed to verify ELF header for '%s'", dentry_name(interp_file->dentry).c_str());
-        io_unref(&interp_file->io);
+        interp_file->unref();
         return 0;
     }
 
@@ -224,7 +223,7 @@ static ptr_t elf_map_interpreter(const char *path, MMContext *mm)
         if (!elf_read_file(interp_file.get(), &ph, elf.ph_offset + i * elf.ph.entry_size, elf.ph.entry_size))
         {
             pr_emerg("failed to read program header %zu for '%s'", i, dentry_name(interp_file->dentry).c_str());
-            io_unref(&interp_file->io);
+            interp_file->unref();
             return 0;
         }
 
@@ -236,11 +235,11 @@ static ptr_t elf_map_interpreter(const char *path, MMContext *mm)
         }
     }
 
-    io_unref(&interp_file->io);
+    interp_file->unref();
     return MOS_ELF_INTERPRETER_BASE_OFFSET + entry;
 }
 
-__nodiscard bool elf_do_fill_process(Process *proc, file_t *file, elf_header_t elf, elf_startup_info_t *info)
+__nodiscard bool elf_do_fill_process(Process *proc, BasicFile *file, elf_header_t elf, elf_startup_info_t *info)
 {
     bool ret = true;
 
@@ -348,7 +347,7 @@ __nodiscard bool elf_do_fill_process(Process *proc, file_t *file, elf_header_t e
     return ret;
 }
 
-bool elf_read_and_verify_executable(file_t *file, elf_header_t *header)
+bool elf_read_and_verify_executable(BasicFile *file, elf_header_t *header)
 {
     if (!elf_read_file(file, header, 0, sizeof(elf_header_t)))
         return false;
@@ -363,17 +362,17 @@ bool elf_read_and_verify_executable(file_t *file, elf_header_t *header)
     return true;
 }
 
-bool elf_fill_process(Process *proc, file_t *file, const char *path, const char *const argv[], const char *const envp[])
+bool elf_fill_process(Process *proc, BasicFile *file, const char *path, const char *const argv[], const char *const envp[])
 {
     bool ret = false;
 
-    io_ref(&file->io);
+    file->ref();
 
     elf_header_t elf;
     if (!elf_read_and_verify_executable(file, &elf))
     {
         pr_emerg("failed to verify ELF header for '%s'", dentry_name(file->dentry).c_str());
-        io_unref(&file->io); // close the file, we should have the file's refcount == 0 here
+        file->unref(); // close the file, we should have the file's refcount == 0 here
         return ret;
     }
 
@@ -413,25 +412,25 @@ bool elf_fill_process(Process *proc, file_t *file, const char *path, const char 
     kfree(info.argv);
     kfree(info.envp);
 
-    io_unref(&file->io); // close the file, we should have the file's refcount == 0 here
+    file->unref(); // close the file, we should have the file's refcount == 0 here
     return ret;
 }
 
 Process *elf_create_process(const char *path, Process *parent, const char *const argv[], const char *const envp[], const stdio_t *ios)
 {
-    auto file = vfs_openat(AT_FDCWD, path, open_flags(OPEN_READ | OPEN_EXECUTE));
+    auto file = vfs_openat(AT_FDCWD, path, OPEN_READ | OPEN_EXECUTE);
     if (file.isErr())
     {
         mos_warn("failed to open '%s'", path);
         return NULL;
     }
-    io_ref(&file->io);
+    file->ref();
 
     auto proc = process_new(parent, file->dentry->name, ios);
     if (!proc)
     {
         mos_warn("failed to create process for '%s'", dentry_name(file->dentry).c_str());
-        io_unref(&file->io);
+        file->unref();
         return proc;
     }
 
@@ -446,6 +445,6 @@ Process *elf_create_process(const char *path, Process *parent, const char *const
         proc = NULL;
     }
 
-    io_unref(&file->io); // close the file, we should have the file's refcount == 0 here
+    file->unref(); // close the file, we should have the file's refcount == 0 here
     return proc;
 }

@@ -26,7 +26,7 @@
 
 #define IPC_SERVER_MAGIC MOS_FOURCC('I', 'P', 'C', 'S')
 
-struct IPCDescriptor final : mos::NamedType<"IPC.Descriptor">
+struct IpcDescriptor final : mos::NamedType<"IPC.Descriptor">
 {
     as_linked_list; ///< attached to either pending or established list
     const mos::string server_name;
@@ -46,7 +46,7 @@ struct IPCDescriptor final : mos::NamedType<"IPC.Descriptor">
         pipe_t *client_read_pipe;
     };
 
-    IPCDescriptor(mos::string_view name, size_t buffer_size) : server_name(name), buffer_size_npages(buffer_size / MOS_PAGE_SIZE)
+    IpcDescriptor(mos::string_view name, size_t buffer_size) : server_name(name), buffer_size_npages(buffer_size / MOS_PAGE_SIZE)
     {
     }
 };
@@ -106,7 +106,7 @@ void ipc_server_close(IPCServer *server)
     spinlock_release(&ipc_lock);
 
     // with the server lock held, we reject all pending connections
-    list_foreach(IPCDescriptor, ipc, server->pending)
+    list_foreach(IpcDescriptor, ipc, server->pending)
     {
         ipc->buffer_size_npages = 0; // mark the connection as closed
         // wake up the client
@@ -130,27 +130,27 @@ void ipc_server_close(IPCServer *server)
     }
 }
 
-size_t ipc_client_read(IPCDescriptor *ipc, void *buf, size_t size)
+size_t ipc_client_read(IpcDescriptor *ipc, void *buf, size_t size)
 {
     return pipe_read(ipc->client_read_pipe, buf, size);
 }
 
-size_t ipc_client_write(IPCDescriptor *ipc, const void *buf, size_t size)
+size_t ipc_client_write(IpcDescriptor *ipc, const void *buf, size_t size)
 {
     return pipe_write(ipc->client_write_pipe, buf, size);
 }
 
-size_t ipc_server_read(IPCDescriptor *ipc, void *buf, size_t size)
+size_t ipc_server_read(IpcDescriptor *ipc, void *buf, size_t size)
 {
     return pipe_read(ipc->server_read_pipe, buf, size);
 }
 
-size_t ipc_server_write(IPCDescriptor *ipc, const void *buf, size_t size)
+size_t ipc_server_write(IpcDescriptor *ipc, const void *buf, size_t size)
 {
     return pipe_write(ipc->server_write_pipe, buf, size);
 }
 
-void ipc_client_close_channel(IPCDescriptor *ipc)
+void ipc_client_close_channel(IpcDescriptor *ipc)
 {
     bool r_fullyclosed = pipe_close_one_end(ipc->client_read_pipe);
     bool w_fullyclosed = pipe_close_one_end(ipc->client_write_pipe);
@@ -164,7 +164,7 @@ void ipc_client_close_channel(IPCDescriptor *ipc)
     }
 }
 
-void ipc_server_close_channel(IPCDescriptor *ipc)
+void ipc_server_close_channel(IpcDescriptor *ipc)
 {
     bool r_fullyclosed = pipe_close_one_end(ipc->server_read_pipe);
     bool w_fullyclosed = pipe_close_one_end(ipc->server_write_pipe);
@@ -233,7 +233,7 @@ PtrResult<IPCServer> ipc_get_server(mos::string_view name)
     return -ENOENT;
 }
 
-PtrResult<IPCDescriptor> ipc_server_accept(IPCServer *ipc_server)
+PtrResult<IpcDescriptor> ipc_server_accept(IPCServer *ipc_server)
 {
     pr_dinfo(ipc, "accepting connection on ipc server '%s'...", ipc_server->name.c_str());
 
@@ -269,7 +269,7 @@ retry_accept:
 
     // get the first pending connection
     MOS_ASSERT(!list_is_empty(&ipc_server->pending));
-    IPCDescriptor *ipc = list_node_next_entry(&ipc_server->pending, IPCDescriptor);
+    IpcDescriptor *ipc = list_node_next_entry(&ipc_server->pending, IpcDescriptor);
     list_remove(ipc);
     ipc_server->pending_n--;
     spinlock_release(&ipc_server->lock);
@@ -302,7 +302,7 @@ retry_accept:
     return ipc;
 }
 
-PtrResult<IPCDescriptor> ipc_connect_to_server(mos::string_view name, size_t buffer_size)
+PtrResult<IpcDescriptor> ipc_connect_to_server(mos::string_view name, size_t buffer_size)
 {
     if (buffer_size == 0)
         return -EINVAL; // buffer size must be > 0
@@ -328,7 +328,7 @@ check_server:
     }
 
     // now we have a server, we can create the connection
-    const auto descriptor = mos::create<IPCDescriptor>(name, buffer_size);
+    const auto descriptor = mos::create<IpcDescriptor>(name, buffer_size);
 
     if (!ipc_server)
     {

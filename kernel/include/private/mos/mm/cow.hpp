@@ -3,7 +3,6 @@
 #pragma once
 
 #include "mos/mm/mm.hpp"
-#include "mos/mm/paging/paging.hpp"
 
 /**
  * @brief Copy-on-write a page range
@@ -20,8 +19,8 @@ PtrResult<vmap_t> cow_clone_vmap_locked(MMContext *target_mmctx, vmap_t *source_
  * @param handle The paging handle to use
  * @param npages The number of pages to allocate
  * @param vaddr The virtual address to allocate at
- * @param hints Allocation hints, see valloc_flags
  * @param flags VM flags to use
+ * @param exact Allocation at the exact address
  * @return vmblock_t The allocated block
  */
-PtrResult<vmap_t> cow_allocate_zeroed_pages(MMContext *handle, size_t npages, ptr_t vaddr, valloc_flags hints, vm_flags flags);
+PtrResult<vmap_t> cow_allocate_zeroed_pages(MMContext *handle, size_t npages, ptr_t vaddr, VMFlags flags, bool exact = false);

@@ -82,7 +82,7 @@ bool platform_pml1e_get_present(const pml1e_t *pml1e)
     return entry->present;
 }
 
-void platform_pml1e_set_flags(pml1e_t *pml1e, vm_flags flags)
+void platform_pml1e_set_flags(pml1e_t *pml1e, VMFlags flags)
 {
     x86_pte64_t *entry = cast<x86_pte64_t>(pml1e);
     entry->writable = flags & VM_WRITE;
@@ -93,10 +93,10 @@ void platform_pml1e_set_flags(pml1e_t *pml1e, vm_flags flags)
     entry->no_execute = !(flags & VM_EXEC);
 }
 
-vm_flags platform_pml1e_get_flags(const pml1e_t *pml1e)
+VMFlags platform_pml1e_get_flags(const pml1e_t *pml1e)
 {
     const x86_pte64_t *entry = cast<x86_pte64_t>(pml1e);
-    vm_flags flags = VM_READ;
+    VMFlags flags = VM_READ;
     flags |= entry->writable ? VM_WRITE : VM_NONE;
     flags |= entry->usermode ? VM_USER : VM_NONE;
     flags |= entry->write_through ? VM_WRITE_THROUGH : VM_NONE;
@@ -128,7 +128,7 @@ bool platform_pml2e_get_present(const pml2e_t *pml2e)
     return entry->present;
 }
 
-void platform_pml2e_set_flags(pml2e_t *pml2e, vm_flags flags)
+void platform_pml2e_set_flags(pml2e_t *pml2e, VMFlags flags)
 {
     x86_pde64_t *entry = cast<x86_pde64_t>(pml2e);
     entry->writable |= flags & VM_WRITE;
@@ -146,10 +146,10 @@ void platform_pml2e_set_flags(pml2e_t *pml2e, vm_flags flags)
     }
 }
 
-vm_flags platform_pml2e_get_flags(const pml2e_t *pml2e)
+VMFlags platform_pml2e_get_flags(const pml2e_t *pml2e)
 {
     const x86_pde64_t *entry = cast<x86_pde64_t>(pml2e);
-    vm_flags flags = VM_READ;
+    VMFlags flags = VM_READ;
     flags |= entry->writable ? VM_WRITE : VM_NONE;
     flags |= entry->usermode ? VM_USER : VM_NONE;
     flags |= entry->write_through ? VM_WRITE_THROUGH : VM_NONE;
@@ -207,7 +207,7 @@ bool platform_pml3e_get_present(const pml3e_t *pml3e)
     return entry->present;
 }
 
-void platform_pml3e_set_flags(pml3e_t *pml3e, vm_flags flags)
+void platform_pml3e_set_flags(pml3e_t *pml3e, VMFlags flags)
 {
     x86_pmde64_t *entry = cast<x86_pmde64_t>(pml3e);
     entry->writable |= flags & VM_WRITE;
@@ -225,10 +225,10 @@ void platform_pml3e_set_flags(pml3e_t *pml3e, vm_flags flags)
     }
 }
 
-vm_flags platform_pml3e_get_flags(const pml3e_t *pml3e)
+VMFlags platform_pml3e_get_flags(const pml3e_t *pml3e)
 {
     const x86_pmde64_t *entry = cast<x86_pmde64_t>(pml3e);
-    vm_flags flags = VM_READ;
+    VMFlags flags = VM_READ;
     flags |= entry->writable ? VM_WRITE : VM_NONE;
     flags |= entry->usermode ? VM_USER : VM_NONE;
     flags |= entry->write_through ? VM_WRITE_THROUGH : VM_NONE;
@@ -285,7 +285,7 @@ bool platform_pml4e_get_present(const pml4e_t *pml4e)
     return entry->present;
 }
 
-void platform_pml4e_set_flags(pml4e_t *pml4e, vm_flags flags)
+void platform_pml4e_set_flags(pml4e_t *pml4e, VMFlags flags)
 {
     x86_pude64_t *entry = cast<x86_pude64_t>(pml4e);
     entry->writable |= flags & VM_WRITE;
@@ -296,10 +296,10 @@ void platform_pml4e_set_flags(pml4e_t *pml4e, vm_flags flags)
         entry->no_execute = false;
 }
 
-vm_flags platform_pml4e_get_flags(const pml4e_t *pml4e)
+VMFlags platform_pml4e_get_flags(const pml4e_t *pml4e)
 {
     const x86_pude64_t *entry = cast<x86_pude64_t>(pml4e);
-    vm_flags flags = VM_READ;
+    VMFlags flags = VM_READ;
     if (entry->writable)
         flags |= VM_WRITE;
     flags |= entry->writable ? VM_WRITE : VM_NONE;

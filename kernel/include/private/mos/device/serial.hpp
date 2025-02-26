@@ -73,8 +73,8 @@ class ISerialDevice
   public:
     virtual ~ISerialDevice() = default;
 
-    virtual u8 read_byte() = 0;
-    virtual int write_byte(u8 byte) = 0;
+    virtual u8 ReadByte() = 0;
+    virtual int WriteByte(u8 byte) = 0;
     virtual bool get_data_ready() = 0;
     virtual u8 read_register(serial_register_t offset) = 0;
     virtual void write_register(serial_register_t offset, u8 value) = 0;

@@ -47,7 +47,7 @@ typedef enum
 {
     FD_FLAGS_NONE = 0,
     FD_FLAGS_CLOEXEC = 1 << 0,
-} fd_flags_t;
+} FDFlag;
 
 typedef u16 file_perm_t;
 

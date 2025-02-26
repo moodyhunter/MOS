@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/lib/sync/spinlock.hpp"
 #define pr_fmt(fmt) "dma: " fmt
 
 #include "mos/mm/dma.hpp"
-
 #include "mos/mm/mm.hpp"
 #include "mos/mm/paging/paging.hpp"
 #include "mos/mm/physical/pmm.hpp"
@@ -24,7 +24,7 @@ static pfn_t dmabuf_do_allocate(size_t n_pages, bool do_ref)
 pfn_t dmabuf_allocate(size_t n_pages, ptr_t *vaddr)
 {
     const pfn_t pfn = dmabuf_do_allocate(n_pages, true);
-    auto vmap = mm_map_user_pages(current_mm, MOS_ADDR_USER_MMAP, pfn, n_pages, vm_flags(VM_USER_RW | VM_CACHE_DISABLED), VALLOC_DEFAULT, VMAP_TYPE_SHARED, VMAP_DMA);
+    auto vmap = mm_map_user_pages(current_mm, MOS_ADDR_USER_MMAP, pfn, n_pages, VM_USER_RW | VM_CACHE_DISABLED, VMAP_TYPE_SHARED, VMAP_DMA);
     if (!vmap)
     {
         pmm_unref(pfn, n_pages);
@@ -40,19 +40,13 @@ bool dmabuf_free(ptr_t vaddr, ptr_t paddr)
     MOS_UNUSED(paddr);
     pr_dinfo2(dma, "freeing DMA pages at " PTR_FMT, vaddr);
 
-    bool ret = false;
-
-    spinlock_acquire(&current_mm->mm_lock);
-    vmap_t *vmap = vmap_obtain(current_mm, (ptr_t) vaddr, NULL);
+    SpinLocker lock(&current_mm->mm_lock);
+    vmap_t *vmap = vmap_obtain(current_mm, (ptr_t) vaddr);
     if (!vmap)
-        goto done;
+        return false;
 
-    ret = true;
     vmap_destroy(vmap);
-
-done:
-    spinlock_release(&current_mm->mm_lock);
-    return ret;
+    return true;
 }
 
 pfn_t dmabuf_share(void *buf, size_t size)

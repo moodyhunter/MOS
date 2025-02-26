@@ -33,10 +33,10 @@
 
 #include <mos/syscall/decl.h>
 #define syscall_ipc_create(server_name, max_pending) ipc_create(server_name, max_pending).get()
-#define syscall_ipc_accept(server_fd)                io_ref(ipc_accept(server_fd).get())
+#define syscall_ipc_accept(server_fd)                ipc_accept(server_fd)->ref()
 #define syscall_ipc_connect(server_name, smh_size)   ipc_connect(server_name, smh_size)
 #define start_thread(name, func, arg)                kthread_create(func, arg, name)
-#define syscall_io_close(fd)                         io_unref(fd)
+#define syscall_io_close(fd)                         fd->unref()
 #else
 #include <mos/syscall/usermode.h>
 #endif

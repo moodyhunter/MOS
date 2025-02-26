@@ -138,7 +138,7 @@ void reschedule(void)
         MOS_UNUSED(old);
     }
 
-    const switch_flags_t switch_flags = statement_expr(switch_flags_t, {
+    const ContextSwitchBehaviorFlags switch_flags = statement_expr(ContextSwitchBehaviorFlags, {
         retval = SWITCH_REGULAR;
         if (next->state == THREAD_STATE_CREATED)
             retval |= next->mode == THREAD_MODE_KERNEL ? SWITCH_TO_NEW_KERNEL_THREAD : SWITCH_TO_NEW_USER_THREAD;

@@ -34,7 +34,7 @@
  * @{
  */
 
-typedef enum
+enum LastSegmentResolveFlag
 {
     // bit 0, 1: the operation only succeeds if the inode is a...
     RESOLVE_EXPECT_FILE = 1 << 0,
@@ -49,9 +49,9 @@ typedef enum
     RESOLVE_EXPECT_EXIST = 1 << 3,
     RESOLVE_EXPECT_NONEXIST = 1 << 4,
     RESOLVE_EXPECT_ANY_EXIST = RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_NONEXIST,
-} lastseg_resolve_flags_t;
+};
 
-MOS_ENUM_OPERATORS(lastseg_resolve_flags_t)
+MOS_ENUM_FLAGS(LastSegmentResolveFlag, LastSegmentResolveFlags);
 
 /**
  * @brief Check if a path is absolute
@@ -154,7 +154,7 @@ PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, mos::string_view name)
  *         NULL if any intermediate directory in the path does not exist.
  *
  */
-PtrResult<dentry_t> dentry_resolve(dentry_t *starting_dir, dentry_t *root_dir, const char *path, lastseg_resolve_flags_t flags);
+PtrResult<dentry_t> dentry_resolve(dentry_t *starting_dir, dentry_t *root_dir, const char *path, LastSegmentResolveFlags flags);
 
 /**
  * @brief Mount a filesystem at a mountpoint
@@ -191,6 +191,6 @@ void vfs_populate_listdir_buf(dentry_t *dir, vfs_listdir_state_t *state);
  * @param size The size of the buffer
  * @return ssize_t
  */
-ssize_t dentry_path(dentry_t *dentry, dentry_t *root, char *buf, size_t size);
+ssize_t dentry_path(const dentry_t *dentry, dentry_t *root, char *buf, size_t size);
 
 /**@}*/

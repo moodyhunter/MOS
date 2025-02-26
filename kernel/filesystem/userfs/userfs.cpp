@@ -414,7 +414,7 @@ const inode_ops_t userfs_iops = {
     .unlink = userfs_iop_unlink,
 };
 
-static bool userfs_fop_open(inode_t *inode, file_t *file, bool created)
+static bool userfs_fop_open(inode_t *inode, BasicFile *file, bool created)
 {
     MOS_UNUSED(inode);
     MOS_UNUSED(file);

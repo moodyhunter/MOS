@@ -15,7 +15,7 @@ typedef struct _hashmap hashmap_t;
  */
 typedef struct
 {
-    io_t *in, *out, *err;
+    IO *in, *out, *err;
 } stdio_t;
 
 extern mos::HashMap<pid_t, Process *> ProcessTable;
@@ -33,11 +33,11 @@ should_inline stdio_t current_stdio(void)
 
 void process_destroy(Process *process);
 
-Process *process_new(Process *parent, mos::string_view name, const stdio_t *ios);
+Process *process_new(Process *parelagsnt, mos::string_view name, const stdio_t *ios);
 std::optional<Process *> process_get(pid_t pid);
 
-fd_t process_attach_ref_fd(Process *process, io_t *file, fd_flags_t flags);
-io_t *process_get_fd(Process *process, fd_t fd);
+fd_t process_attach_ref_fd(Process *process, IO *file, FDFlags flags);
+IO *process_get_fd(Process *process, fd_t fd);
 bool process_detach_fd(Process *process, fd_t fd);
 
 pid_t process_wait_for_pid(pid_t pid, u32 *exit_code, u32 flags);

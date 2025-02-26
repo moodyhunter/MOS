@@ -11,8 +11,8 @@ static void pml1e_do_mask_callback(pml1_t pml1, pml1e_t *e, ptr_t vaddr, void *d
     if (platform_pml1e_get_present(e))
     {
         struct pagetable_do_mask_data *mask_data = (pagetable_do_mask_data *) data;
-        vm_flags flags = platform_pml1e_get_flags(e);
-        flags &= ~mask_data->mask;
+        VMFlags flags = platform_pml1e_get_flags(e);
+        flags.erase(mask_data->mask);
         platform_pml1e_set_flags(e, flags);
         platform_invalidate_tlb(vaddr);
     }

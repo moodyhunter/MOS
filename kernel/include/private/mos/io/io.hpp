@@ -2,13 +2,15 @@
 
 #pragma once
 
-#include "mos/platform/platform.hpp"
+#include "mos/assert.hpp"
+#include "mos/mm/mm_types.hpp"
+#include "mos/syslog/syslog.hpp"
 
 #include <mos/io/io_types.h>
 #include <mos/mm/mm_types.h>
 #include <mos/types.hpp>
 
-typedef struct _io io_t;
+struct IO;
 struct vmap_t; // forward declaration
 
 typedef enum
@@ -30,48 +32,81 @@ typedef enum
     IO_SEEKABLE = 1 << 3,
     IO_MMAPABLE = 1 << 4,
 } io_flags_t;
+MOS_ENUM_FLAGS(io_flags_t, IOFlags);
 
-MOS_ENUM_OPERATORS(io_flags_t);
-
-typedef struct
+struct IO
 {
-    size_t (*read)(io_t *io, void *buf, size_t count);
-    size_t (*write)(io_t *io, const void *buf, size_t count);
-    void (*close)(io_t *io);
-    off_t (*seek)(io_t *io, off_t offset, io_seek_whence_t whence);
-    bool (*mmap)(io_t *io, vmap_t *vmap, off_t offset);
-    bool (*munmap)(io_t *io, vmap_t *vmap, bool *unmapped);
-    void (*get_name)(const io_t *io, char *buf, size_t size);
-} io_op_t;
+    const IOFlags io_flags = IO_NONE;
+    const io_type_t io_type = IO_NULL;
 
-typedef struct _io
-{
-    bool closed;
-    atomic_t refcount;
-    io_flags_t flags;
-    io_type_t type;
-    const io_op_t *ops;
+    explicit IO(IOFlags flags, io_type_t type);
+    virtual ~IO() = 0;
 
-    friend mos::SyslogStream &operator<<(mos::SyslogStream &stream, const io_t *io)
+    friend mos::SyslogStream &operator<<(mos::SyslogStream &stream, const IO *io)
     {
-        return stream << fmt("\\{ 'TODO: IO.Name', {}}", io->closed ? "closed" : "active");
+        stream << fmt("\\{ '{}', {}}", io->name(), io->io_closed ? "closed" : "active");
+        return stream;
     }
-} io_t;
 
-extern io_t *const io_null;
+    inline IO *ref()
+    {
+        if (unlikely(io_closed))
+        {
+            mos_warn("%p is already closed", (void *) this);
+            return 0;
+        }
 
-void io_init(io_t *io, io_type_t type, io_flags_t flags, const io_op_t *ops);
+        io_refcount++;
+        return this;
+    }
 
-io_t *io_ref(io_t *io);
-io_t *io_unref(io_t *io);
-__nodiscard bool io_valid(const io_t *io);
+    inline IO *unref()
+    {
+        if (unlikely(io_closed))
+        {
+            mos_warn("%p is already closed", (void *) this);
+            return nullptr;
+        }
 
-size_t io_read(io_t *io, void *buf, size_t count);
-size_t io_pread(io_t *io, void *buf, size_t count, off_t offset);
-size_t io_write(io_t *io, const void *buf, size_t count);
-off_t io_seek(io_t *io, off_t offset, io_seek_whence_t whence);
-off_t io_tell(io_t *io);
-bool io_mmap_perm_check(io_t *io, vm_flags flags, bool is_private);
-bool io_mmap(io_t *io, vmap_t *vmap, off_t offset);
-bool io_munmap(io_t *io, vmap_t *vmap, bool *unmapped);
-void io_get_name(const io_t *io, char *buf, size_t size);
+        if (--io_refcount == 0)
+        {
+            io_closed = true;
+            on_closed();
+            return nullptr;
+        }
+
+        return this;
+    }
+
+    inline bool isValid() const
+    {
+        return static_cast<bool>(this) && !io_closed && io_refcount > 0;
+    }
+
+    virtual mos::string name() const;
+    virtual off_t seek(off_t, io_seek_whence_t) final;
+    virtual off_t tell() final;
+
+    virtual size_t read(void *buf, size_t count) final;
+    virtual size_t pread(void *buf, size_t count, off_t offset) final;
+    virtual size_t write(const void *buf, size_t count) final;
+
+    virtual bool VerifyMMapPermissions(VMFlags flags, bool is_private) final;
+
+    bool map(vmap_t *vmap, off_t offset);
+    bool unmap(vmap_t *vmap, bool *unmapped);
+
+  private:
+    virtual void on_closed() = 0;
+    virtual size_t on_read(void *, size_t);
+    virtual size_t on_write(const void *, size_t);
+    virtual bool on_mmap(vmap_t *, off_t);
+    virtual bool on_munmap(vmap_t *, bool *);
+    virtual off_t on_seek(off_t, io_seek_whence_t);
+
+  private:
+    bool io_closed = false;
+    atomic_t io_refcount = 0;
+};
+
+extern IO *const io_null;

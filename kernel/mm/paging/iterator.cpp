@@ -140,7 +140,7 @@ iterate_pml1:
             continue;
         }
 
-        const vm_flags new_flags = platform_pml1e_get_flags(pml1e);
+        const VMFlags new_flags = platform_pml1e_get_flags(pml1e);
         const pfn_t new_pfn = platform_pml1e_get_pfn(pml1e);
 
         bool changed = false;
@@ -172,7 +172,7 @@ iterate_pml2:
 #if MOS_CONFIG(PML2_HUGE_CAPABLE)
         if (platform_pml2e_is_huge(pml2e))
         {
-            const vm_flags new_flags = platform_pml2e_get_flags(pml2e);
+            const VMFlags new_flags = platform_pml2e_get_flags(pml2e);
             const pfn_t new_pfn = platform_pml2e_get_huge_pfn(pml2e);
 
             bool changed = false;
@@ -211,7 +211,7 @@ iterate_pml3:
 #if MOS_CONFIG(PML3_HUGE_CAPABLE)
         if (platform_pml3e_is_huge(pml3e))
         {
-            const vm_flags new_flags = platform_pml3e_get_flags(pml3e);
+            const VMFlags new_flags = platform_pml3e_get_flags(pml3e);
             const pfn_t new_pfn = platform_pml3e_get_huge_pfn(pml3e);
 
             bool changed = false;

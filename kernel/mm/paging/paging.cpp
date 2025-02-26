@@ -15,12 +15,12 @@
 #include <mos/syslog/printk.hpp>
 #include <mos_stdlib.hpp>
 
-PtrResult<vmap_t> mm_get_free_vaddr_locked(MMContext *mmctx, size_t n_pages, ptr_t base_vaddr, valloc_flags flags)
+PtrResult<vmap_t> mm_get_free_vaddr_locked(MMContext *mmctx, size_t n_pages, ptr_t base_vaddr, bool exact)
 {
     MOS_ASSERT_X(spinlock_is_locked(&mmctx->mm_lock), "insane mmctx->mm_lock state");
     MOS_ASSERT_X(base_vaddr < MOS_KERNEL_START_VADDR, "Use mm_get_free_pages instead");
 
-    if (flags & VALLOC_EXACT)
+    if (exact)
     {
         const ptr_t end_vaddr = base_vaddr + n_pages * MOS_PAGE_SIZE;
         // we need to find a free area that starts at base_vaddr
@@ -79,7 +79,7 @@ PtrResult<vmap_t> mm_get_free_vaddr_locked(MMContext *mmctx, size_t n_pages, ptr
     }
 }
 
-void mm_map_kernel_pages(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags)
+void mm_map_kernel_pages(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, VMFlags flags)
 {
     MOS_ASSERT(vaddr >= MOS_KERNEL_START_VADDR);
     MOS_ASSERT(npages > 0);
@@ -89,11 +89,10 @@ void mm_map_kernel_pages(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages
     spinlock_release(&mmctx->mm_lock);
 }
 
-PtrResult<vmap_t> mm_map_user_pages(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, vm_flags flags, valloc_flags vaflags, vmap_type_t type,
-                                    vmap_content_t content)
+PtrResult<vmap_t> mm_map_user_pages(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, size_t npages, VMFlags flags, vmap_type_t type, vmap_content_t content, bool exact)
 {
     spinlock_acquire(&mmctx->mm_lock);
-    auto vmap = mm_get_free_vaddr_locked(mmctx, npages, vaddr, vaflags);
+    auto vmap = mm_get_free_vaddr_locked(mmctx, npages, vaddr, exact);
     if (unlikely(vmap.isErr()))
     {
         mos_warn("could not find %zd pages in the address space", npages);
@@ -110,7 +109,7 @@ PtrResult<vmap_t> mm_map_user_pages(MMContext *mmctx, ptr_t vaddr, pfn_t pfn, si
     return vmap;
 }
 
-void mm_replace_page_locked(MMContext *ctx, ptr_t vaddr, pfn_t pfn, vm_flags flags)
+void mm_replace_page_locked(MMContext *ctx, ptr_t vaddr, pfn_t pfn, VMFlags flags)
 {
     vaddr = ALIGN_DOWN_TO_PAGE(vaddr);
     pr_dinfo2(vmm, "filling page at " PTR_FMT " with " PFN_FMT, vaddr, pfn);
@@ -130,9 +129,9 @@ void mm_replace_page_locked(MMContext *ctx, ptr_t vaddr, pfn_t pfn, vm_flags fla
     mm_do_map(ctx->pgd, vaddr, pfn, 1, flags, false);
 }
 
-PtrResult<vmap_t> mm_clone_vmap_locked(vmap_t *src_vmap, MMContext *dst_ctx)
+PtrResult<vmap_t> mm_clone_vmap_locked(const vmap_t *src_vmap, MMContext *dst_ctx)
 {
-    auto dst_vmap = mm_get_free_vaddr_locked(dst_ctx, src_vmap->npages, src_vmap->vaddr, VALLOC_EXACT);
+    auto dst_vmap = mm_get_free_vaddr_locked(dst_ctx, src_vmap->npages, src_vmap->vaddr, true);
 
     if (unlikely(dst_vmap.isErr()))
     {
@@ -152,7 +151,7 @@ PtrResult<vmap_t> mm_clone_vmap_locked(vmap_t *src_vmap, MMContext *dst_ctx)
     dst_vmap->on_fault = src_vmap->on_fault;
 
     if (src_vmap->io)
-        io_ref(src_vmap->io);
+        src_vmap->io->ref();
 
     return dst_vmap;
 }
@@ -169,7 +168,7 @@ bool mm_get_is_mapped_locked(MMContext *mmctx, ptr_t vaddr)
     return false;
 }
 
-void mm_flag_pages_locked(MMContext *ctx, ptr_t vaddr, size_t npages, vm_flags flags)
+void mm_flag_pages_locked(MMContext *ctx, ptr_t vaddr, size_t npages, VMFlags flags)
 {
     MOS_ASSERT(npages > 0);
     MOS_ASSERT(spinlock_is_locked(&ctx->mm_lock));

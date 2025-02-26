@@ -118,7 +118,7 @@ sysfs_item_t *sysfs_file_get_item(sysfs_file_t *file)
     return file->item;
 }
 
-static bool sysfs_fops_open(inode_t *inode, file_t *file, bool created)
+static bool sysfs_fops_open(inode_t *inode, BasicFile *file, bool created)
 {
     MOS_UNUSED(created);
     sysfs_file_t *sysfs_file = mos::create<sysfs_file_t>();
@@ -128,7 +128,7 @@ static bool sysfs_fops_open(inode_t *inode, file_t *file, bool created)
     return true;
 }
 
-static void sysfs_fops_release(file_t *file)
+static void sysfs_fops_release(BasicFile *file)
 {
     pr_dinfo2(sysfs, "closing %s in %s", file->dentry->name.c_str(), dentry_parent(*file->dentry)->name.c_str());
     sysfs_file_t *f = (sysfs_file_t *) file->private_data;
@@ -137,7 +137,7 @@ static void sysfs_fops_release(file_t *file)
     delete f;
 }
 
-__nodiscard static bool sysfs_file_ensure_ready(const file_t *file)
+__nodiscard static bool sysfs_file_ensure_ready(const BasicFile *file)
 {
     sysfs_file_t *f = (sysfs_file_t *) file->private_data;
     if (f->buf_head_offset == 0)
@@ -149,7 +149,7 @@ __nodiscard static bool sysfs_file_ensure_ready(const file_t *file)
     return true;
 }
 
-static ssize_t sysfs_fops_read(const file_t *file, void *buf, size_t size, off_t offset)
+static ssize_t sysfs_fops_read(const BasicFile *file, void *buf, size_t size, off_t offset)
 {
     sysfs_file_t *f = (sysfs_file_t *) file->private_data;
     if (f->item->type != SYSFS_RO && f->item->type != SYSFS_RW)
@@ -169,7 +169,7 @@ static ssize_t sysfs_fops_read(const file_t *file, void *buf, size_t size, off_t
     return end - begin;
 }
 
-static ssize_t sysfs_fops_write(const file_t *file, const void *buf, size_t size, off_t offset)
+static ssize_t sysfs_fops_write(const BasicFile *file, const void *buf, size_t size, off_t offset)
 {
     sysfs_file_t *f = (sysfs_file_t *) file->private_data;
     if (f->item->type != SYSFS_WO && f->item->type != SYSFS_RW)
@@ -177,7 +177,7 @@ static ssize_t sysfs_fops_write(const file_t *file, const void *buf, size_t size
     return f->item->store(f, (const char *) buf, size, offset);
 }
 
-static off_t sysfs_fops_seek(file_t *file, off_t offset, io_seek_whence_t whence)
+static off_t sysfs_fops_seek(BasicFile *file, off_t offset, io_seek_whence_t whence)
 {
     if (offset != 0)
         return -1; // cannot change its internal buffer state
@@ -199,7 +199,7 @@ static off_t sysfs_fops_seek(file_t *file, off_t offset, io_seek_whence_t whence
     return f->buf_head_offset;
 }
 
-bool sysfs_fops_mmap(file_t *file, vmap_t *vmap, off_t offset)
+bool sysfs_fops_mmap(BasicFile *file, vmap_t *vmap, off_t offset)
 {
     MOS_UNUSED(vmap);
     MOS_UNUSED(offset);
@@ -221,7 +221,7 @@ bool sysfs_fops_mmap(file_t *file, vmap_t *vmap, off_t offset)
     return true;
 }
 
-bool sysfs_fops_munmap(file_t *file, vmap_t *vmap, bool *unmapped)
+bool sysfs_fops_munmap(BasicFile *file, vmap_t *vmap, bool *unmapped)
 {
     sysfs_file_t *f = (sysfs_file_t *) file->private_data;
     if (f->item->type == SYSFS_MEM)

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/lib/sync/spinlock.hpp"
 #include "mos/syslog/syslog.hpp"
 #include "mos/tasks/signal.hpp"
 #include "mos/tasks/thread.hpp"
@@ -10,6 +11,7 @@
 #include <mos/io/io.hpp>
 #include <mos/lib/structures/list.hpp>
 #include <mos/lib/structures/ring_buffer.hpp>
+#include <mos/string.hpp>
 #include <mos/syslog/printk.hpp>
 #include <mos/tasks/schedule.hpp>
 #include <mos/tasks/wait.hpp>
@@ -17,6 +19,110 @@
 
 std::array<Console *, 128> consoles;
 size_t console_list_size = 0;
+
+std::optional<Console *> console_get(mos::string_view name)
+{
+    for (const auto &console : consoles)
+    {
+        if (console->name() == name)
+            return console;
+    }
+
+    return std::nullopt;
+}
+std::optional<Console *> console_get_by_prefix(mos::string_view prefix)
+{
+    for (const auto &con : consoles)
+    {
+        if (con->name().starts_with(prefix))
+            return con;
+    }
+
+    return std::nullopt;
+}
+
+Console::Console(mos::string_view name, ConsoleCapFlags caps, StandardColor default_fg, StandardColor default_bg)
+    : IO(IO_READABLE | ((caps & CONSOLE_CAP_READ) ? IO_WRITABLE : IO_NONE), IO_CONSOLE), //
+      fg(default_fg), bg(default_bg),                                                    //
+      caps(caps),                                                                        //
+      default_fg(default_fg), default_bg(default_bg),                                    //
+      conName(name)                                                                      //
+{
+}
+
+void Console::Register()
+{
+    if (printk_console == nullptr)
+        printk_console = this;
+    consoles[console_list_size++] = this;
+}
+
+size_t Console::WriteColored(const char *data, size_t size, StandardColor fg, StandardColor bg)
+{
+    spinlock_acquire(&writer.lock);
+    if (caps.test(CONSOLE_CAP_COLOR))
+    {
+        if (this->fg != fg || this->bg != bg)
+        {
+            set_color(fg, bg);
+            this->fg = fg;
+            this->bg = bg;
+        }
+    }
+
+    size_t ret = do_write(data, size);
+    spinlock_release(&writer.lock);
+    return ret;
+}
+
+size_t Console::Write(const char *data, size_t size)
+{
+    spinlock_acquire(&writer.lock);
+    size_t ret = do_write(data, size);
+    spinlock_release(&writer.lock);
+    return ret;
+}
+size_t Console::on_read(void *data, size_t size)
+{
+    size_t read = 0;
+    while (read == 0)
+    {
+        SpinLocker locker(&reader.lock);
+
+        const bool buffer_empty = ring_buffer_pos_is_empty(&reader.pos);
+        if (!buffer_empty)
+        {
+            read = ring_buffer_pos_pop_front(reader.buf, &reader.pos, (u8 *) data, size);
+            continue;
+        }
+
+        {
+            auto unlocker = locker.UnlockTemporarily();
+            bool ok = reschedule_for_waitlist(&waitlist);
+            if (!ok)
+            {
+                unlocker.discard(), locker.discard();
+                pr_emerg("console: '%s' closed", conName);
+                return -EIO;
+            }
+        }
+
+        if (signal_has_pending())
+        {
+            return -ERESTARTSYS;
+        }
+    }
+
+    return read;
+}
+
+size_t Console::on_write(const void *data, size_t size)
+{
+    SpinLocker locker(&writer.lock);
+    if (caps.test(CONSOLE_CAP_COLOR))
+        set_color(default_fg, default_bg);
+    return do_write((const char *) data, size);
+}
 
 void Console::putc(u8 c)
 {
@@ -36,102 +142,12 @@ void Console::putc(u8 c)
     waitlist_wake(&waitlist, INT_MAX);
 }
 
-static size_t console_io_read(io_t *io, void *data, size_t size)
+mos::string Console::name() const
 {
-    Console *con = container_of(io, Console, io);
-
-retry_read:;
-    size_t read = 0;
-
-    spinlock_acquire(&con->reader.lock);
-    if (ring_buffer_pos_is_empty(&con->reader.pos))
-    {
-        spinlock_release(&con->reader.lock);
-        bool ok = reschedule_for_waitlist(&con->waitlist);
-        if (!ok)
-        {
-            pr_emerg("console: '%s' closed", con->name);
-            return -EIO;
-        }
-        spinlock_acquire(&con->reader.lock);
-
-        if (signal_has_pending())
-        {
-            spinlock_release(&con->reader.lock);
-            return -ERESTARTSYS;
-        }
-    }
-    else
-    {
-        read = ring_buffer_pos_pop_front(con->reader.buf, &con->reader.pos, (u8 *) data, size);
-    }
-    spinlock_release(&con->reader.lock);
-
-    if (read == 0)
-        goto retry_read;
-
-    return read;
+    return mos::string(conName);
 }
 
-size_t console_io_write(io_t *io, const void *data, size_t size)
+void Console::on_closed()
 {
-    Console *con = container_of(io, Console, io);
-    spinlock_acquire(&con->writer.lock);
-    if ((con->caps & CONSOLE_CAP_COLOR))
-        con->set_color(con->default_fg, con->default_bg);
-    size_t ret = con->do_write((const char *) data, size);
-    spinlock_release(&con->writer.lock);
-    return ret;
-}
-
-static const io_op_t console_io_ops = {
-    .read = console_io_read,
-    .write = console_io_write,
-};
-
-void console_register(Console *con)
-{
-    bool result = con->extra_setup();
-    if (!result)
-    {
-        pr_emerg("console: failed to setup '%s'", con->name);
-        return;
-    }
-
-    io_flags_t flags = IO_WRITABLE;
-
-    if (con->caps & CONSOLE_CAP_READ)
-    {
-        MOS_ASSERT_X(con->reader.buf, "console: '%s' has no read buffer", con->name);
-        ring_buffer_pos_init(&con->reader.pos, con->reader.size);
-        flags |= IO_READABLE;
-    }
-
-    io_init(&con->io, IO_CONSOLE, flags, &console_io_ops);
-    consoles[console_list_size++] = con;
-    waitlist_init(&con->waitlist);
-
-    if (printk_console == nullptr)
-        printk_console = con;
-}
-
-Console *console_get(mos::string_view name)
-{
-    for (const auto &console : consoles)
-    {
-        if (console->name == name)
-            return console;
-    }
-
-    return NULL;
-}
-
-Console *console_get_by_prefix(mos::string_view prefix)
-{
-    for (const auto &con : consoles)
-    {
-        if (con->name.starts_with(prefix))
-            return con;
-    }
-    return NULL;
+    mInfo << "Closing console " << conName;
 }

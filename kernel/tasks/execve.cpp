@@ -21,16 +21,18 @@ long process_do_execveat(fd_t dirfd, const char *path, const char *const argv[],
     auto proc = current_process;
 
     MOS_UNUSED(flags); // not implemented: AT_EMPTY_PATH, AT_SYMLINK_NOFOLLOW
-    auto f = vfs_openat(dirfd, path, open_flags(OPEN_READ | OPEN_EXECUTE));
+    auto f = vfs_openat(dirfd, path, OPEN_READ | OPEN_EXECUTE);
     if (f.isErr())
         return f.getErr();
 
-    io_ref(&f->io);
+    auto file = f.get();
+
+    file->ref();
     elf_header_t header;
     if (!elf_read_and_verify_executable(f.get(), &header))
     {
         pr_warn("failed to read elf header");
-        io_unref(&f->io);
+        file->unref();
         return -ENOEXEC;
     }
 
@@ -110,7 +112,7 @@ long process_do_execveat(fd_t dirfd, const char *path, const char *const argv[],
     if (thread->mode == THREAD_MODE_USER)
     {
         const size_t ustack_size = MOS_STACK_PAGES_USER * MOS_PAGE_SIZE;
-        auto stack_vmap = cow_allocate_zeroed_pages(proc->mm, ustack_size / MOS_PAGE_SIZE, MOS_ADDR_USER_STACK, VALLOC_DEFAULT, VM_USER_RW);
+        auto stack_vmap = cow_allocate_zeroed_pages(proc->mm, ustack_size / MOS_PAGE_SIZE, MOS_ADDR_USER_STACK, VM_USER_RW);
         if (stack_vmap.isErr())
         {
             pr_emerg("failed to allocate stack for new process");
@@ -131,8 +133,8 @@ long process_do_execveat(fd_t dirfd, const char *path, const char *const argv[],
         .envp = envp_copy,
     };
 
-    const bool filled = elf_do_fill_process(proc, f.get(), header, &startup_info);
-    io_unref(&f->io);
+    const bool filled = elf_do_fill_process(proc, file, header, &startup_info);
+    file->unref();
 
     // free old argv and envp
     for (int i = 0; i < argc; i++)
@@ -155,7 +157,8 @@ long process_do_execveat(fd_t dirfd, const char *path, const char *const argv[],
     // close any files that are FD_CLOEXEC
     for (int i = 0; i < MOS_PROCESS_MAX_OPEN_FILES; i++)
     {
-        if (io_valid(proc->files[i].io) && (proc->files[i].flags & FD_FLAGS_CLOEXEC))
+        const auto &fd = proc->files[i];
+        if (fd.io && proc->files[i].io->isValid() && (fd.flags & FD_FLAGS_CLOEXEC))
             process_detach_fd(proc, i);
     }
 

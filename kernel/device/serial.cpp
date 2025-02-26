@@ -21,8 +21,8 @@ bool ISerialDevice::setup()
     {
         const char challenge = 'H';
         SetModemOptions(MODEM_LOOP, true);
-        write_byte(challenge);
-        const auto response = read_byte();
+        WriteByte(challenge);
+        const auto response = ReadByte();
         SetModemOptions(MODEM_LOOP, false);
         if (response != 'H')
             return false;
@@ -38,7 +38,7 @@ int ISerialDevice::read_data(char *data, size_t length)
     for (size_t i = 0; i < length; i++)
     {
         WaitReadyToRead();
-        data[i] = read_byte();
+        data[i] = ReadByte();
     }
 
     return length;
@@ -49,7 +49,7 @@ int ISerialDevice::write_data(const char *data, size_t length)
     for (size_t i = 0; i < length; i++)
     {
         WaitReadyToWrite();
-        write_byte(data[i]);
+        WriteByte(data[i]);
     }
 
     return length;
@@ -73,30 +73,35 @@ void ISerialDevice::SetBaudrateDivisor()
     reg &= ~0x80;
     write_register(OFFSET_LINE_CONTROL, reg);
 }
+
 void ISerialDevice::SetDataBits()
 {
     u8 control = read_register(OFFSET_LINE_CONTROL);
     control &= char_length;
     write_register(OFFSET_LINE_CONTROL, control);
 }
+
 void ISerialDevice::SetStopBits()
 {
     byte_t control = { .byte = read_register(OFFSET_LINE_CONTROL) };
     control.bits.b1 = stop_bits == STOP_BITS_15_OR_2;
     write_register(OFFSET_LINE_CONTROL, control.byte);
 }
+
 void ISerialDevice::SetParity()
 {
     u8 byte = read_register(OFFSET_LINE_CONTROL);
     byte |= ((u8) parity) << 3;
     write_register(OFFSET_LINE_CONTROL, byte);
 }
+
 void ISerialDevice::SetInterrupts(int interrupts)
 {
     char control = read_register(OFFSET_INTERRUPT_ENABLE);
     control = interrupts;
     write_register(OFFSET_INTERRUPT_ENABLE, control);
 }
+
 void ISerialDevice::SetModemOptions(serial_modem_control_t control, bool enable)
 {
     byte_t byte = { .byte = read_register(OFFSET_MODEM_CONTROL) };
@@ -110,23 +115,28 @@ void ISerialDevice::SetModemOptions(serial_modem_control_t control, bool enable)
     }
     write_register(OFFSET_MODEM_CONTROL, byte.byte);
 }
+
 char ISerialDevice::GetLineStatus()
 {
     return read_register(OFFSET_LINE_STATUS);
 }
+
 __maybe_unused char ISerialDevice::GetModelStatus()
 {
     return read_register(OFFSET_MODEM_STATUS);
 }
+
 bool ISerialDevice::GetDataReady()
 {
     return GetLineStatus() & LINE_DATA_READY;
 }
+
 void ISerialDevice::WaitReadyToRead()
 {
     while (!GetDataReady())
         ;
 }
+
 void ISerialDevice::WaitReadyToWrite()
 {
     while (!(GetLineStatus() & LINE_TRANSMITR_BUF_EMPTY))

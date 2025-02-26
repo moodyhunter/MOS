@@ -83,21 +83,26 @@ typedef enum
     ELF_PF_R = 1 << 2, // Readable
 } elf_ph_flags;
 
-typedef struct
+typedef struct elf_program_hdr_t
 {
     elf_program_header_type header_type;
-    elf_ph_flags p_flags; // Segment independent flags (64-bit only)
-    ptr_t data_offset;    // Offset of the segment in the file
-    ptr_t vaddr;          // Virtual address of the segment
-    ptr_t _reserved;      // reserved
-    ptr_t size_in_file;   // Size of the segment in the file (may be 0)
-    ptr_t size_in_mem;    // Size of the segment in memory (may be 0)
+    elf_ph_flags __p_flags; // Segment independent flags (64-bit only)
+    ptr_t data_offset;      // Offset of the segment in the file
+    ptr_t vaddr;            // Virtual address of the segment
+    ptr_t _reserved;        // reserved
+    ptr_t size_in_file;     // Size of the segment in the file (may be 0)
+    ptr_t size_in_mem;      // Size of the segment in memory (may be 0)
     ptr_t required_alignment;
+
+    Flags<elf_ph_flags> flags() const
+    {
+        return __p_flags;
+    }
 } __packed elf_program_hdr_t;
 
 #define AUXV_VEC_SIZE 16
 
-typedef struct
+typedef struct auxv_vec_t
 {
     int count = 0;
     Elf64_auxv_t vector[AUXV_VEC_SIZE] = {};
@@ -114,7 +119,7 @@ typedef struct
     const char **envp;
 } elf_startup_info_t;
 
-__nodiscard bool elf_read_and_verify_executable(file_t *file, elf_header_t *header);
-__nodiscard bool elf_fill_process(Process *proc, file_t *file, const char *path, const char *const argv[], const char *const envp[]);
-__nodiscard bool elf_do_fill_process(Process *proc, file_t *file, elf_header_t elf, elf_startup_info_t *info);
+__nodiscard bool elf_read_and_verify_executable(BasicFile *file, elf_header_t *header);
+__nodiscard bool elf_fill_process(Process *proc, BasicFile *file, const char *path, const char *const argv[], const char *const envp[]);
+__nodiscard bool elf_do_fill_process(Process *proc, BasicFile *file, elf_header_t elf, elf_startup_info_t *info);
 Process *elf_create_process(const char *path, Process *parent, const char *const argv[], const char *const envp[], const stdio_t *ios);

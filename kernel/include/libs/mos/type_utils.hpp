@@ -37,7 +37,7 @@ namespace mos
     };
 
     template<typename T>
-    concept HasTypeName = std::is_same_v<std::remove_const_t<decltype(T::type_name)>, mos::string_view>;
+    constexpr auto HasTypeName = std::is_same_v<std::remove_const_t<decltype(T::type_name)>, mos::string_view>;
 
     template<typename V, typename TSpecialisation = V>
     struct InitOnce

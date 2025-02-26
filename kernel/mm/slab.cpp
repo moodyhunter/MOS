@@ -57,6 +57,8 @@ static inline slab_t *slab_for(size_t size)
 static ptr_t slab_impl_new_page(size_t n)
 {
     phyframe_t *pages = mm_get_free_pages(n);
+    if (pages == nullptr)
+        return 0;
     mmstat_inc(MEM_SLAB, n);
     return phyframe_va(pages);
 }

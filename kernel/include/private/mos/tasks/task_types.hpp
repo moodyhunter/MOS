@@ -17,6 +17,8 @@
 #include <mos/tasks/signal_types.h>
 #include <mos/type_utils.hpp>
 
+MOS_ENUM_FLAGS(FDFlag, FDFlags);
+
 /**
  * @defgroup tasks Process and thread management
  * @{
@@ -38,11 +40,11 @@ typedef struct
 
 struct fd_type
 {
-    io_t *io;
-    fd_flags_t flags;
+    IO *io;
+    FDFlags flags;
 };
 
-#define nullfd ((fd_type) { .io = NULL, .flags = (fd_flags_t) 0 })
+inline const fd_type nullfd{ nullptr, FD_FLAGS_NONE };
 
 #define PROCESS_MAGIC_PROC MOS_FOURCC('P', 'R', 'O', 'C')
 #define THREAD_MAGIC_THRD  MOS_FOURCC('T', 'H', 'R', 'D')
@@ -92,7 +94,7 @@ struct Process : mos::NamedType<"Process">
         return mos::create<Process>(Private(), parent, name);
     }
 
-    friend mos::SyslogStream &operator<<(mos::SyslogStream &stream, const Process *process)
+    friend mos::SyslogStream operator<<(mos::SyslogStream &stream, const Process *process)
     {
         if (!Process::IsValid(process))
             return stream << "[invalid]";

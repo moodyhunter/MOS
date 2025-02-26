@@ -3,16 +3,15 @@
 #include "mos/assert.hpp"
 #include "mos/misc/kallsyms.hpp"
 #include "mos/platform/platform.hpp"
-#include "mos/tasks/process.hpp"
 #include "mos/tasks/task_types.hpp"
 #include "mos/tasks/thread.hpp"
 
 #include <mos/types.hpp>
 #include <mos_stdio.hpp>
 
-static size_t do_print_vmflags(char *buf, size_t size, vm_flags flags)
+static size_t do_print_vmflags(char *buf, size_t size, VMFlags flags)
 {
-    return snprintf(buf, size, "%c%c%c", (flags & VM_READ) ? 'r' : '-', (flags & VM_WRITE) ? 'w' : '-', (flags & VM_EXEC) ? 'x' : '-');
+    return snprintf(buf, size, "%c%c%c", flags.test(VM_READ) ? 'r' : '-', flags.test(VM_WRITE) ? 'w' : '-', flags.test(VM_EXEC) ? 'x' : '-');
 }
 
 /**
@@ -26,11 +25,11 @@ static size_t do_print_vmflags(char *buf, size_t size, vm_flags flags)
  *              e.g.: "[p123:my_process]"
  *  '%pp'   prints a process_t object.
  *              e.g.: "[t123:my_thread]"
- *  '%pvf'  prints vm_flags_t flag, only the r/w/x bits are printed for general purpose.
+ *  '%pvf'  prints VMFlags_t flag, only the r/w/x bits are printed for general purpose.
  *              e.g.: "rwx" / "r--" / "rw-" / "--x"
  *  '%pvm'  prints a vmap_t object.
  *              e.g.: "{ 0x123000-0x123fff, rwx, on_fault=0x12345678 }"
- *  '%pio'  prints an io_t object.
+ *  '%pio'  prints an IO object.
  *              e.g.: "{ 'file.txt', offset=0x12345678 }"
  *
  * @returns true if the format specifier is handled, false otherwise, the
@@ -77,19 +76,18 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
                 case 'o':
                 {
                     shift_next;
-                    // io_t
-                    const io_t *io = (const io_t *) ptr;
+                    // IO
+                    const IO *io = (const IO *) ptr;
                     if (io == NULL)
                     {
                         wrap_print("(null)");
                         goto done;
                     }
 
-                    char filepath[MOS_PATH_MAX_LENGTH];
-                    io_get_name(io, filepath, sizeof(filepath));
-                    wrap_print("{ '%s'", filepath);
-                    if (io->closed)
-                        wrap_print(", closed");
+                    const auto name = io->name();
+                    wrap_print("{ '%s'", name.c_str());
+                    if (!io->isValid())
+                        wrap_print(", invalid");
                     wrap_print(" }");
                     goto done;
                 }
@@ -156,8 +154,8 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
                 case 'f': // %pvf
                 {
                     shift_next;
-                    // vm_flags, only r/w/x are supported
-                    const vm_flags flags = *(vm_flags *) ptr;
+                    // VMFlags, only r/w/x are supported
+                    const VMFlags flags = *(VMFlags *) ptr;
                     wrap_printed(do_print_vmflags(buf, *size, flags));
                     goto done;
                 }
@@ -178,9 +176,8 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
 
                     if (vmap->io)
                     {
-                        char filepath[MOS_PATH_MAX_LENGTH];
-                        io_get_name(vmap->io, filepath, sizeof(filepath));
-                        wrap_print(", io: '%s', offset: 0x%zx", filepath, vmap->io_offset);
+                        const auto name = vmap->io->name();
+                        wrap_print(", io: '%s', offset: 0x%zx", name.c_str(), vmap->io_offset);
                     }
 
                     wrap_print(" }");

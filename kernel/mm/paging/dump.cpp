@@ -6,7 +6,7 @@
 #include "mos/syslog/printk.hpp"
 #include "mos/tasks/task_types.hpp"
 
-static void pagetable_do_dump(ptr_t vaddr, ptr_t vaddr_end, vm_flags flags, pfn_t pfn, pfn_t pfn_end, ptr_t *prev_end_vaddr)
+static void pagetable_do_dump(ptr_t vaddr, ptr_t vaddr_end, VMFlags flags, pfn_t pfn, pfn_t pfn_end, ptr_t *prev_end_vaddr)
 {
     if (vaddr - *prev_end_vaddr > MOS_PAGE_SIZE)
         pr_info("  VGROUP: " PTR_FMT, vaddr);

@@ -30,7 +30,7 @@
 #include <mos/platform/platform.hpp>
 #include <mos/syscall/decl.h>
 #define syscall_ipc_connect(n, s) ipc_connect(n, s).get()
-#define syscall_io_close(fd)      io_unref(fd)
+#define syscall_io_close(fd)      fd->unref()
 #else
 #include <mos/syscall/usermode.h>
 #endif

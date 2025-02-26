@@ -19,13 +19,13 @@ list_head vfs_mountpoint_list;
  * @param dentry The mounted root dentry
  * @return dentry_t* The mountpoint dentry
  */
-dentry_t *dentry_root_get_mountpoint(dentry_t *dentry)
+dentry_t *dentry_root_get_mountpoint(const dentry_t *dentry)
 {
     MOS_ASSERT(dentry);
     MOS_ASSERT_X(dentry->name.empty(), "mounted root should not have a name");
 
     if (dentry == root_dentry)
-        return dentry; // the root dentry is its own mountpoint
+        return const_cast<dentry_t *>(dentry); // the root dentry is its own mountpoint
 
     dentry_t *parent = dentry_parent(*dentry);
     if (parent == NULL)

@@ -19,10 +19,10 @@ inode_t *inode_create(superblock_t *sb, u64 ino, file_type_t type);
  */
 dentry_t *dentry_get_from_parent(superblock_t *sb, dentry_t *parent, mos::string_view name = "");
 
-ssize_t vfs_generic_read(const file_t *file, void *buf, size_t size, off_t offset);
-ssize_t vfs_generic_write(const file_t *file, const void *buf, size_t size, off_t offset);
-ssize_t vfs_generic_lseek(const file_t *file, off_t offset, int whence);
-int vfs_generic_close(const file_t *file);
+ssize_t vfs_generic_read(const BasicFile *file, void *buf, size_t size, off_t offset);
+ssize_t vfs_generic_write(const BasicFile *file, const void *buf, size_t size, off_t offset);
+ssize_t vfs_generic_lseek(const BasicFile *file, off_t offset, int whence);
+int vfs_generic_close(const BasicFile *file);
 
 // ! simple page cache functions
 phyframe_t *simple_fill_cache(inode_cache_t *cache, off_t pgoff);

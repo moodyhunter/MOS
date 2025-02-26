@@ -39,8 +39,11 @@ def syscall_has_return_value(e):
     return (not syscall_is_noreturn(e)) and (e["return"] != "void")
 
 
+def syscall_name(e):
+    return e["name"]
+
 def syscall_name_with_prefix(e):
-    return "syscall_" + e["name"]
+    return "syscall_" + syscall_name(e)
 
 
 def syscall_format_return_type(e) -> str:
@@ -78,7 +81,7 @@ def select_format(type: str) -> str:
         "signal_t": "%d",
         "bool": "%d",
         "nfds_t": "%ld",
-        "fd_flags_t": "%d",
+        "FDFlags": "%d",
     }
     if type in select_formats:
         return select_formats[type]
@@ -111,7 +114,7 @@ class BaseAbstractGenerator(ABC):
     def finish(self):
         self.outfile.close()
 
-    def gen(self, s: str):
+    def gen(self, s: str = ""):
         for _ in range(self.scope.n):
             self.outfile.write("    ")
         self.outfile.write(s + "\n")
@@ -152,17 +155,21 @@ class KernelDeclGenerator(BaseAbstractGenerator):
 
     def generate_prologue(self):
         self.gen_includes(j["includes"])
+        self.gen("struct SyscallEntry")
+        self.gen("{")
 
     def generate_single(self, e):
-        line = ""
-        line += syscall_format_return_type(e)
-        line += "impl_" + syscall_name_with_prefix(e)
-        line += "(" + syscall_args(e) + ");"
-        self.gen(line)
-        self.gen("")
+        with self.scope:
+            line = "static "
+            line += syscall_format_return_type(e)
+            line += "do_sys_" + syscall_name(e)
+            line += "(" + syscall_args(e) + ");"
+            self.gen(line)
 
     def generate_epilogue(self):
-        self.gen("#define define_syscall(name) impl_syscall_##name")
+        self.gen("};")
+        self.gen()
+        self.gen("#define define_syscall(name) SyscallEntry::do_sys_##name")
 
 
 class UsermodeWrapperGenerator(BaseAbstractGenerator):
@@ -186,11 +193,9 @@ class UsermodeWrapperGenerator(BaseAbstractGenerator):
 
     def generate_single(self, e):
         syscall_nargs = len(e["arguments"])
-        syscall_conv_arg_to_reg_type = ", ".join(
-            ["SYSCALL_" + str(e["name"])] + ["(reg_t) %s" % arg["arg"] for arg in e["arguments"]])
+        syscall_conv_arg_to_reg_type = ", ".join(["SYSCALL_" + str(e["name"])] + ["(reg_t) %s" % arg["arg"] for arg in e["arguments"]])
         comments = e["comments"] if "comments" in e else []
-        return_stmt = "return (" + e["return"] + \
-            ") " if syscall_has_return_value(e) else ""
+        return_stmt = "return (" + e["return"] + ") " if syscall_has_return_value(e) else ""
 
         if len(comments) > 0:
             self.gen("/**")
@@ -290,8 +295,7 @@ class SyscallDispatcherGenerator(BaseAbstractGenerator):
                             e["arguments"][i]["type"]), i + 1) for i in range(nargs)])
                     fmt += ");"
                     self.gen(fmt)
-                    self.gen("%simpl_%s(%s);" % (retval_assign,
-                             syscall_name_with_prefix(e), syscall_arg_casted))
+                    self.gen(retval_assign + "SyscallEntry::do_sys_" + syscall_name(e) + "(%s);" % syscall_arg_casted)
                     self.gen("break;")
                 self.gen("}")
 

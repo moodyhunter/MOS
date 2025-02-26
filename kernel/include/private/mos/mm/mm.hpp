@@ -63,10 +63,10 @@ struct vmap_t : mos::NamedType<"VMap">
 
     ptr_t vaddr; // virtual addresses
     size_t npages;
-    vm_flags vmflags; // the expected flags for the region, regardless of the copy-on-write state
+    VMFlags vmflags; // the expected flags for the region, regardless of the copy-on-write state
     MMContext *mmctx;
 
-    io_t *io;        // the io object that (possibly) backs this vmap
+    IO *io;          // the io object that (possibly) backs this vmap
     off_t io_offset; // the offset in the io object, page-aligned
 
     vmap_content_t content;
@@ -74,7 +74,7 @@ struct vmap_t : mos::NamedType<"VMap">
     vmap_stat_t stat;
     vmfault_handler_t on_fault;
 
-    friend mos::SyslogStream &operator<<(mos::SyslogStream &stream, const vmap_t *vmap)
+    friend mos::SyslogStream operator<<(mos::SyslogStream stream, const vmap_t *vmap)
     {
         return stream << fmt("\\{ [{} - {}] }", vmap->vaddr, vmap->vaddr + vmap->npages * MOS_PAGE_SIZE - 1);
     }
@@ -113,8 +113,8 @@ void mm_destroy_context(MMContext *table);
  * @param ctx1 The first context
  * @param ctx2 The second context
  */
-void mm_lock_ctx_pair(MMContext *ctx1, MMContext *ctx2);
-void mm_unlock_ctx_pair(MMContext *ctx1, MMContext *ctx2);
+void mm_lock_context_pair(MMContext *ctx1, MMContext *ctx2 = nullptr);
+void mm_unlock_context_pair(MMContext *ctx1, MMContext *ctx2 = nullptr);
 
 __nodiscard MMContext *mm_switch_context(MMContext *new_ctx);
 
@@ -144,7 +144,7 @@ void vmap_destroy(vmap_t *vmap);
  * @param out_offset An optional pointer to receive the offset of the address in the vmap
  * @return vmap_t* The vmap object, or NULL if not found, with its lock held.
  */
-vmap_t *vmap_obtain(MMContext *mmctx, ptr_t vaddr, size_t *out_offset);
+vmap_t *vmap_obtain(MMContext *mmctx, ptr_t vaddr, size_t *out_offset = nullptr);
 
 /**
  * @brief Split a vmap object into two, at the specified offset.

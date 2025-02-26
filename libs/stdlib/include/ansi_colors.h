@@ -32,7 +32,7 @@ typedef enum
     LightMagenta = Magenta | STD_COLOR_LIGHT,
     Yellow = Brown | STD_COLOR_LIGHT,
     White = Gray | STD_COLOR_LIGHT,
-} standard_color_t;
+} StandardColor;
 
 /**
  * @brief ANSI color codes creator.
@@ -77,7 +77,7 @@ typedef enum
 #define _ANSI_COLOR_3(fg, style, bg)      _ANSI_STYLE_##style ";" _ANSI_FG _ANSI_COLOR_##fg ";" _ANSI_BG _ANSI_COLOR_##bg
 #define _ANSI_COLOR_N(_1, _2, _3, N, ...) N
 
-should_inline void get_ansi_color(char *buf, standard_color_t fg, standard_color_t bg)
+should_inline void get_ansi_color(char *buf, StandardColor fg, StandardColor bg)
 {
     MOS_UNUSED(bg);
     static const char *g_ansi_colors[] = {

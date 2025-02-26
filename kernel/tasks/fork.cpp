@@ -36,7 +36,7 @@ Process *process_do_fork(Process *parent)
 
     pr_demph(process, "process %d forked to %d", parent->pid, child_p->pid);
 
-    mm_lock_ctx_pair(parent->mm, child_p->mm);
+    mm_lock_context_pair(parent->mm, child_p->mm);
     list_foreach(vmap_t, vmap_p, parent->mm->mmaps)
     {
         PtrResult<vmap_t> child_vmap = [&]()
@@ -59,15 +59,15 @@ Process *process_do_fork(Process *parent)
         vmap_finalise_init(child_vmap.get(), vmap_p->content, vmap_p->type);
     }
 
-    mm_unlock_ctx_pair(parent->mm, child_p->mm);
+    mm_unlock_context_pair(parent->mm, child_p->mm);
 
     // copy the parent's files
     for (int i = 0; i < MOS_PROCESS_MAX_OPEN_FILES; i++)
     {
-        fd_type file = parent->files[i];
-        if (io_valid(file.io))
+        const auto &file = parent->files[i];
+        if (file.io && file.io->isValid())
         {
-            child_p->files[i].io = io_ref(file.io);
+            child_p->files[i].io = file.io->ref();
             child_p->files[i].flags = file.flags;
         }
     }
