@@ -34,9 +34,9 @@ static futex_key_t futex_get_key(const futex_word_t *futex)
     return mm_get_phys_addr(current_process->mm, vaddr);
 }
 
-bool futex_wait(futex_word_t *futex, futex_word_t expected)
+bool futex_wait(futex_word_t *fword, futex_word_t expected)
 {
-    const futex_word_t current_value = __atomic_load_n(futex, __ATOMIC_SEQ_CST);
+    const futex_word_t current_value = __atomic_load_n(fword, __ATOMIC_SEQ_CST);
 
     if (current_value != expected)
     {
@@ -66,7 +66,7 @@ bool futex_wait(futex_word_t *futex, futex_word_t expected)
     // firstly find the futex in the list
     // if it's not there, create a new one add the current thread to the waiters list
     // then reschedule
-    const futex_key_t key = futex_get_key(futex);
+    const futex_key_t key = futex_get_key(fword);
 
     futex_private_t *fu = NULL;
 
@@ -89,21 +89,21 @@ bool futex_wait(futex_word_t *futex, futex_word_t expected)
     }
     spinlock_release(&futex_list_lock);
 
-    pr_dinfo2(futex, "tid %pt waiting on lock key=" PTR_FMT, current_thread, key);
+    dInfo2<futex> << "tid " << current_thread << " waiting on lock key=" << key;
 
     bool ok = reschedule_for_waitlist(&fu->waiters);
     MOS_ASSERT(ok);
 
-    pr_dinfo2(futex, "tid %pt woke up", current_thread);
+    dInfo2<futex> << "tid " << current_thread << " woke up";
     return true;
 }
 
-bool futex_wake(futex_word_t *futex, size_t num_to_wake)
+bool futex_wake(futex_word_t *fword, size_t num_to_wake)
 {
     if (unlikely(num_to_wake == 0))
         mos_panic("insane number of threads to wake up (?): %zd", num_to_wake);
 
-    const futex_key_t key = futex_get_key(futex);
+    const futex_key_t key = futex_get_key(fword);
     futex_private_t *fu = NULL;
 
     spinlock_acquire(&futex_list_lock);
@@ -123,9 +123,9 @@ bool futex_wake(futex_word_t *futex, size_t num_to_wake)
         return true;
     }
 
-    pr_dinfo2(futex, "waking up %zd threads on lock key=" PTR_FMT, num_to_wake, key);
+    dInfo2<futex> << "waking up " << num_to_wake << " threads on lock key=" << key;
     const size_t real_wakeups = waitlist_wake(&fu->waiters, num_to_wake);
-    pr_dinfo2(futex, "actually woke up %zd threads", real_wakeups);
+    dInfo2<futex> << "actually woke up " << real_wakeups << " threads";
 
     return true;
 }

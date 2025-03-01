@@ -76,7 +76,7 @@ Process::Process(Private, Process *parent_, mos::string_view name_) : magic(PROC
     if (unlikely(pid == 1) || unlikely(pid == 2))
     {
         this->parent = nullptr;
-        pr_demph(process, "special process %pp created", (void *) this);
+        dEmph<process> << "special process " << (void *) this << " created";
     }
     else if (parent == nullptr)
     {
@@ -104,38 +104,38 @@ Process::~Process()
     // mEmerg << "process " << *this << " destroyed";
 }
 
-void process_destroy(Process *process)
+void process_destroy(Process *proc)
 {
-    if (!Process::IsValid(process))
+    if (!Process::IsValid(proc))
         return;
 
-    ProcessTable.remove(process->pid);
+    ProcessTable.remove(proc->pid);
 
-    MOS_ASSERT(process != current_process);
-    pr_dinfo2(process, "destroying process %pp", process);
+    MOS_ASSERT(proc != current_process);
+    dInfo2<process> << "destroying process " << proc;
 
-    MOS_ASSERT_X(process->main_thread != nullptr, "main thread must be dead before destroying process");
+    MOS_ASSERT_X(proc->main_thread != nullptr, "main thread must be dead before destroying process");
 
-    spinlock_acquire(&process->main_thread->state_lock);
-    thread_destroy(process->main_thread);
+    spinlock_acquire(&proc->main_thread->state_lock);
+    thread_destroy(proc->main_thread);
 
-    if (process->mm != NULL)
+    if (proc->mm != NULL)
     {
-        spinlock_acquire(&process->mm->mm_lock);
-        list_foreach(vmap_t, vmap, process->mm->mmaps)
+        spinlock_acquire(&proc->mm->mm_lock);
+        list_foreach(vmap_t, vmap, proc->mm->mmaps)
         {
             spinlock_acquire(&vmap->lock);
             vmap_destroy(vmap);
         }
 
         // free page table
-        MOS_ASSERT(process->mm != current_mm);
-        mm_destroy_context(process->mm);
-        process->mm = nullptr;
+        MOS_ASSERT(proc->mm != current_mm);
+        mm_destroy_context(proc->mm);
+        proc->mm = nullptr;
     }
 
-    memset(process, 0, sizeof(Process));
-    delete process;
+    memset(proc, 0, sizeof(Process));
+    delete proc;
 }
 
 Process *process_new(Process *parent, mos::string_view name, const stdio_t *ios)
@@ -143,7 +143,7 @@ Process *process_new(Process *parent, mos::string_view name, const stdio_t *ios)
     const auto proc = Process::New(parent, name);
     if (unlikely(!proc))
         return NULL;
-    pr_dinfo2(process, "creating process %pp", proc);
+    dInfo2<process> << "creating process " << proc;
 
     process_attach_ref_fd(proc, ios && ios->in ? ios->in : io_null, FD_FLAGS_NONE);
     process_attach_ref_fd(proc, ios && ios->out ? ios->out : io_null, FD_FLAGS_NONE);
@@ -210,7 +210,7 @@ bool process_detach_fd(Process *process, fd_t fd)
         return false;
     IO *io = process->files[fd].io;
 
-    if (unlikely(!io->isValid()))
+    if (unlikely(!IO::IsValid(io)))
         return false;
 
     process->files[fd].io->unref();
@@ -248,7 +248,7 @@ pid_t process_wait_for_pid(pid_t pid, u32 *exit_code, u32 flags)
         // we are woken up by a signal, or a child dying
         if (signal_has_pending())
         {
-            pr_dinfo2(process, "woken up by signal");
+            dInfo2<process> << "woken up by signal";
             waitlist_remove_me(&current_process->signal_info.sigchild_waitlist);
             return -ERESTARTSYS;
         }
@@ -286,45 +286,45 @@ child_dead:;
     return pid;
 }
 
-void process_exit(Process *&&process, u8 exit_code, signal_t signal)
+void process_exit(Process *&&proc, u8 exit_code, signal_t sig)
 {
-    MOS_ASSERT(Process::IsValid(process));
-    pr_dinfo2(process, "process %pp exited with code %d, signal %d", process, exit_code, signal);
+    MOS_ASSERT(Process::IsValid(proc));
+    dInfo2<process> << "process " << proc << " exited with code " << exit_code << ", signal " << sig;
 
-    if (unlikely(process->pid == 1))
-        mos_panic("init process terminated with code %d, signal %d", exit_code, signal);
+    if (unlikely(proc->pid == 1))
+        mos_panic("init process terminated with code %d, signal %d", exit_code, sig);
 
-    for (const auto &thread : process->thread_list)
+    for (const auto &t : proc->thread_list)
     {
-        spinlock_acquire(&thread->state_lock);
-        if (thread->state == THREAD_STATE_DEAD)
+        spinlock_acquire(&t->state_lock);
+        if (t->state == THREAD_STATE_DEAD)
         {
-            pr_dinfo2(process, "cleanup thread %pt", thread);
-            MOS_ASSERT(thread != current_thread);
-            thread_table.remove(thread->tid);
-            list_remove(thread);
-            thread_destroy(thread);
+            dInfo2<process> << "cleanup thread " << t;
+            MOS_ASSERT(t != current_thread);
+            thread_table.remove(t->tid);
+            list_remove(t);
+            thread_destroy(t);
         }
         else
         {
             // send termination signal to all threads, except the current one
-            if (thread != current_thread)
+            if (t != current_thread)
             {
-                pr_dinfo2(signal, "sending SIGKILL to thread %pt", thread);
-                spinlock_release(&thread->state_lock);
-                signal_send_to_thread(thread, SIGKILL);
-                thread_wait_for_tid(thread->tid);
-                spinlock_acquire(&thread->state_lock);
-                pr_dinfo2(process, "thread %pt terminated", thread);
-                MOS_ASSERT_X(thread->state == THREAD_STATE_DEAD, "thread %pt is not dead", thread);
-                thread_table.remove(thread->tid);
-                thread_destroy(thread);
+                dInfo2<signal> << "sending SIGKILL to thread " << thread;
+                spinlock_release(&t->state_lock);
+                signal_send_to_thread(t, SIGKILL);
+                thread_wait_for_tid(t->tid);
+                spinlock_acquire(&t->state_lock);
+                dInfo2<process> << "thread " << t << " terminated";
+                MOS_ASSERT_X(t->state == THREAD_STATE_DEAD, "thread %pt is not dead", t);
+                thread_table.remove(t->tid);
+                thread_destroy(t);
             }
             else
             {
-                spinlock_release(&thread->state_lock);
-                process->main_thread = thread; // make sure we properly destroy the main thread at the end
-                pr_dinfo2(process, "thread %pt is current thread, making it main thread", thread);
+                spinlock_release(&t->state_lock);
+                proc->main_thread = t; // make sure we properly destroy the main thread at the end
+                dInfo2<process> << "thread " << t << " is current thread, making it main thread";
             }
         }
     }
@@ -333,10 +333,10 @@ void process_exit(Process *&&process, u8 exit_code, signal_t signal)
     size_t files_closed = 0;
     for (int i = 0; i < MOS_PROCESS_MAX_OPEN_FILES; i++)
     {
-        fd_type file = process->files[i];
-        process->files[i] = nullfd;
+        fd_type file = proc->files[i];
+        proc->files[i] = nullfd;
 
-        if (file.io->isValid())
+        if (IO::IsValid(file.io))
         {
             files_total++;
             if (file.io->unref() == NULL)
@@ -345,36 +345,36 @@ void process_exit(Process *&&process, u8 exit_code, signal_t signal)
     }
 
     // re-parent all children to parent of this process
-    list_foreach(Process, child, process->children)
+    list_foreach(Process, child, proc->children)
     {
-        child->parent = process->parent;
+        child->parent = proc->parent;
         linked_list_init(list_node(child));
-        list_node_append(&process->parent->children, list_node(child));
+        list_node_append(&proc->parent->children, list_node(child));
     }
 
-    dentry_unref(process->working_directory);
+    dentry_unref(proc->working_directory);
 
-    pr_dinfo2(process, "closed %zu/%zu files owned by %pp", files_closed, files_total, process);
-    process->exited = true;
-    process->exit_status = W_EXITCODE(exit_code, signal);
+    dInfo2<process> << "closed " << files_closed << "/" << files_total << " files owned by " << proc;
+    proc->exited = true;
+    proc->exit_status = W_EXITCODE(exit_code, sig);
 
     // let the parent wait for our exit
     spinlock_acquire(&current_thread->state_lock);
 
     // wake up parent
-    pr_dinfo2(process, "waking up parent %pp", process->parent);
-    signal_send_to_process(process->parent, SIGCHLD);
-    waitlist_wake(&process->parent->signal_info.sigchild_waitlist, INT_MAX);
+    dInfo2<process> << "waking up parent " << proc->parent;
+    signal_send_to_process(proc->parent, SIGCHLD);
+    waitlist_wake(&proc->parent->signal_info.sigchild_waitlist, INT_MAX);
 
     thread_exit_locked(std::move(current_thread));
     MOS_UNREACHABLE();
 }
 
-void process_dump_mmaps(const Process *process)
+void process_dump_mmaps(const Process *proc)
 {
-    mInfo << fmt("process: {}", process);
+    mInfo << fmt("process: {}", proc);
     size_t i = 0;
-    list_foreach(vmap_t, map, process->mm->mmaps)
+    list_foreach(vmap_t, map, proc->mm->mmaps)
     {
         i++;
         const char *typestr = get_vmap_content_str(map->content);
@@ -383,12 +383,12 @@ void process_dump_mmaps(const Process *process)
         mInfo << map;
     }
 
-    pr_info("total: %zd memory regions", i);
+    mInfo << "total: " << i << " memory regions";
 }
 
 bool process_register_signal_handler(Process *process, signal_t sig, const sigaction_t *sigaction)
 {
-    pr_dinfo2(signal, "registering signal handler for process %pp, signal %d", process, sig);
+    dInfo2<signal> << "registering signal handler for process " << process << ", signal " << sig;
     if (!sigaction)
     {
         process->signal_info.handlers[sig] = (sigaction_t) { .handler = SIG_DFL };

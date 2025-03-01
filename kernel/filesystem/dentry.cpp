@@ -10,7 +10,6 @@
 #include "mos/filesystem/vfs_utils.hpp"
 #include "mos/io/io.hpp"
 #include "mos/lib/sync/spinlock.hpp"
-#include "mos/syslog/printk.hpp"
 #include "mos/tasks/process.hpp"
 #include "mos/tasks/task_types.hpp"
 
@@ -47,7 +46,7 @@ static PtrResult<dentry_t> dentry_resolve_follow_symlink(dentry_t *dentry, LastS
  */
 static PtrResult<dentry_t> dentry_resolve_to_parent(dentry_t *base_dir, dentry_t *root_dir, const char *original_path, char **last_seg_out)
 {
-    pr_dinfo2(dcache, "lookup parent of '%s'", original_path);
+    dInfo2<dcache> << "lookup parent of '" << original_path << "'";
     MOS_ASSERT_X(base_dir && root_dir && original_path, "Invalid VFS lookup parameters");
     if (last_seg_out != NULL)
         *last_seg_out = NULL;
@@ -75,7 +74,7 @@ static PtrResult<dentry_t> dentry_resolve_to_parent(dentry_t *base_dir, dentry_t
 
     while (true)
     {
-        pr_dinfo2(dcache, "lookup parent: current segment '%s'", current_seg);
+        dInfo2<dcache> << "lookup parent: current segment '" << current_seg << "'";
         const char *const next = strtok_r(NULL, PATH_DELIM_STR, &saveptr);
         if (parent_ref->inode->type == FILE_TYPE_SYMLINK)
         {
@@ -147,7 +146,7 @@ static PtrResult<dentry_t> dentry_resolve_to_parent(dentry_t *base_dir, dentry_t
 
         if (child_ref->is_mountpoint)
         {
-            pr_dinfo2(dcache, "jumping to mountpoint %s", child_ref->name.c_str());
+            dInfo2<dcache> << "jumping to mountpoint " << child_ref->name;
             parent_ref = dentry_get_mount(child_ref.get())->root; // if it's a mountpoint, jump to the tree of mounted filesystem instead
 
             // refcount the mounted filesystem root
@@ -188,7 +187,7 @@ static PtrResult<dentry_t> dentry_resolve_follow_symlink(dentry_t *d, LastSegmen
 
     target[read] = '\0'; // ensure null termination
 
-    pr_dinfo2(dcache, "symlink target: %s", target);
+    dInfo2<dcache> << "symlink target: " << target;
 
     char *last_segment = NULL;
     auto parent_ref = dentry_resolve_to_parent(dentry_parent(*d), root_dentry, target, &last_segment);
@@ -213,7 +212,7 @@ static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, 
     MOS_ASSERT(parent != NULL && leaf != NULL);
     *is_symlink = false;
 
-    pr_dinfo2(dcache, "resolving last segment: '%s'", leaf);
+    dInfo2<dcache> << "resolving last segment: '" << leaf << "'";
     const bool ends_with_slash = leaf[strlen(leaf) - 1] == PATH_DELIM;
     if (ends_with_slash)
         leaf[strlen(leaf) - 1] = '\0'; // remove the trailing slash
@@ -252,7 +251,7 @@ static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, 
             return child_ref;
         }
 
-        pr_dinfo2(dcache, "file does not exist");
+        dInfo2<dcache> << "file does not exist";
         dentry_try_release(child_ref.get()); // child has no ref, we should release it directly
         return -ENOENT;
     }
@@ -269,7 +268,7 @@ static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, 
     {
         if (!flags.test(RESOLVE_SYMLINK_NOFOLLOW))
         {
-            pr_dinfo2(dcache, "resolving symlink for '%s'", leaf);
+            dInfo2<dcache> << "resolving symlink for '" << leaf << "'";
             const auto symlink_target_ref = dentry_resolve_follow_symlink(child_ref.get(), flags);
             // we don't need the symlink node anymore
             MOS_ASSERT(dentry_unref_one_norelease(child_ref.get()));
@@ -277,7 +276,7 @@ static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, 
             return symlink_target_ref;
         }
 
-        pr_dinfo2(dcache, "not following symlink");
+        dInfo2<dcache> << "not following symlink";
     }
     else if (child_ref->inode->type == FILE_TYPE_DIRECTORY)
     {
@@ -357,7 +356,7 @@ PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, mos::string_view name)
     if (unlikely(parent == nullptr))
         return nullptr;
 
-    pr_dinfo2(dcache, "looking for dentry '%s' in '%s'", name.data(), dentry_name(parent).c_str());
+    dInfo2<dcache> << "looking for dentry '" << name.data() << "' in '" << dentry_name(parent) << "'";
 
     // firstly check if it's in the cache
     dentry_t *dentry = dentry_get_from_parent(parent->superblock, parent, name);
@@ -367,7 +366,7 @@ PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, mos::string_view name)
 
     if (dentry->inode)
     {
-        pr_dinfo2(dcache, "dentry '%s' found in the cache", name.data());
+        dInfo2<dcache> << "dentry '" << name.data() << "' found in the cache";
         spinlock_release(&dentry->lock);
         return dentry_ref(dentry);
     }
@@ -375,7 +374,7 @@ PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, mos::string_view name)
     // not in the cache, try to find it in the filesystem
     if (parent->inode == NULL || parent->inode->ops == NULL || parent->inode->ops->lookup == NULL)
     {
-        pr_dinfo2(dcache, "filesystem doesn't support lookup");
+        dInfo2<dcache> << "filesystem doesn't support lookup";
         spinlock_release(&dentry->lock);
         return dentry;
     }
@@ -385,12 +384,12 @@ PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, mos::string_view name)
 
     if (lookup_result)
     {
-        pr_dinfo2(dcache, "dentry '%s' found in the filesystem", name.data());
+        dInfo2<dcache> << "dentry '" << name.data() << "' found in the filesystem";
         return dentry_ref(dentry);
     }
     else
     {
-        pr_dinfo2(dcache, "dentry '%s' not found in the filesystem", name.data());
+        dInfo2<dcache> << "dentry '" << name.data() << "' not found in the filesystem";
         return dentry; // do not reference a negative dentry
     }
 }
@@ -401,18 +400,18 @@ PtrResult<dentry_t> dentry_resolve(dentry_t *starting_dir, dentry_t *root_dir, c
         return -ENOENT; // no root directory
 
     char *last_segment;
-    pr_dinfo2(dcache, "resolving path '%s'", path);
+    dInfo2<dcache> << "resolving path '" << path << "'";
     auto parent_ref = dentry_resolve_to_parent(starting_dir, root_dir, path, &last_segment);
     if (parent_ref.isErr())
     {
-        pr_dinfo2(dcache, "failed to resolve parent of '%s', file not found", path);
+        dInfo2<dcache> << "failed to resolve parent of '" << path << "', file not found";
         return parent_ref;
     }
 
     if (last_segment == NULL)
     {
         // path is a single "/"
-        pr_dinfo2(dcache, "path '%s' is a single '/' or is empty", path);
+        dInfo2<dcache> << "path '" << path << "' is a single '/' or is empty";
         MOS_ASSERT(parent_ref == starting_dir);
         if (!flags.test(RESOLVE_EXPECT_DIR))
         {

@@ -2,16 +2,14 @@
 // abstract pipe implementation
 // A pipe is a buffer that only has a single reader and a single writer
 
-#include <limits.h>
-#define pr_fmt(fmt) "pipe: " fmt
-
 #include "mos/ipc/pipe.hpp"
+
 #include "mos/platform/platform.hpp"
-#include "mos/syslog/printk.hpp"
 #include "mos/tasks/schedule.hpp"
 #include "mos/tasks/signal.hpp"
 #include "mos/tasks/wait.hpp"
 
+#include <climits>
 #include <mos/lib/sync/spinlock.hpp>
 #include <mos_stdlib.hpp>
 
@@ -19,117 +17,117 @@
 
 #define advance_buffer(buffer, bytes) ((buffer) = (void *) ((char *) (buffer) + (bytes)))
 
-size_t pipe_write(pipe_t *pipe, const void *buf, size_t size)
+size_t pipe_write(pipe_t *p, const void *buf, size_t size)
 {
-    if (pipe->magic != PIPE_MAGIC)
+    if (p->magic != PIPE_MAGIC)
     {
-        pr_warn("pipe_io_write: invalid magic");
+        mWarn << "pipe_io_write: invalid magic";
         return 0;
     }
 
-    pr_dinfo2(pipe, "writing %zu bytes", size);
+    dInfo2<pipe> << "writing " << size << " bytes";
 
     // write data to buffer
-    spinlock_acquire(&pipe->lock);
+    spinlock_acquire(&p->lock);
 
-    if (pipe->other_closed)
+    if (p->other_closed)
     {
-        pr_dinfo2(pipe, "pipe closed");
+        dInfo2<pipe> << "pipe closed";
         signal_send_to_thread(current_thread, SIGPIPE);
-        spinlock_release(&pipe->lock);
+        spinlock_release(&p->lock);
         return -EPIPE; // pipe closed
     }
 
     size_t total_written = 0;
 
 retry_write:;
-    const size_t written = ring_buffer_pos_push_back((u8 *) pipe->buffers, &pipe->buffer_pos, (u8 *) buf, size);
+    const size_t written = ring_buffer_pos_push_back((u8 *) p->buffers, &p->buffer_pos, (u8 *) buf, size);
     advance_buffer(buf, written), size -= written, total_written += written;
 
     if (size > 0)
     {
         // buffer is full, wait for the reader to read some data
-        pr_dinfo2(pipe, "pipe buffer full, waiting...");
-        spinlock_release(&pipe->lock);
-        waitlist_wake(&pipe->waitlist, INT_MAX);              // wake up any readers that are waiting for data
-        MOS_ASSERT(reschedule_for_waitlist(&pipe->waitlist)); // wait for the reader to read some data
+        dInfo2<pipe> << "pipe buffer full, waiting...";
+        spinlock_release(&p->lock);
+        waitlist_wake(&p->waitlist, INT_MAX);              // wake up any readers that are waiting for data
+        MOS_ASSERT(reschedule_for_waitlist(&p->waitlist)); // wait for the reader to read some data
         if (signal_has_pending())
         {
-            pr_dinfo2(pipe, "signal pending, returning early");
+            dInfo2<pipe> << "signal pending, returning early";
             return total_written;
         }
-        spinlock_acquire(&pipe->lock);
+        spinlock_acquire(&p->lock);
 
         // check if the pipe is still valid
-        if (pipe->other_closed)
+        if (p->other_closed)
         {
-            pr_dinfo2(pipe, "pipe closed");
+            dInfo2<pipe> << "pipe closed";
             signal_send_to_thread(current_thread, SIGPIPE);
-            spinlock_release(&pipe->lock);
+            spinlock_release(&p->lock);
             return -EPIPE; // pipe closed
         }
 
         goto retry_write;
     }
 
-    spinlock_release(&pipe->lock);
+    spinlock_release(&p->lock);
 
     // wake up any readers that are waiting for data
-    waitlist_wake(&pipe->waitlist, INT_MAX);
+    waitlist_wake(&p->waitlist, INT_MAX);
     return total_written;
 }
 
-size_t pipe_read(pipe_t *pipe, void *buf, size_t size)
+size_t pipe_read(pipe_t *p, void *buf, size_t size)
 {
-    if (pipe->magic != PIPE_MAGIC)
+    if (p->magic != PIPE_MAGIC)
     {
-        pr_warn("pipe_io_read: invalid magic");
+        mWarn << "pipe_io_read: invalid magic";
         return 0;
     }
 
-    pr_dinfo2(pipe, "reading %zu bytes", size);
+    dInfo2<pipe> << "reading " << size << " bytes";
 
     // read data from buffer
-    spinlock_acquire(&pipe->lock);
+    spinlock_acquire(&p->lock);
 
     size_t total_read = 0;
 
 retry_read:;
-    const size_t read = ring_buffer_pos_pop_front((u8 *) pipe->buffers, &pipe->buffer_pos, (u8 *) buf, size);
+    const size_t read = ring_buffer_pos_pop_front((u8 *) p->buffers, &p->buffer_pos, (u8 *) buf, size);
     advance_buffer(buf, read), size -= read, total_read += read;
 
     if (size > 0)
     {
         // check if the pipe is still valid
-        if (pipe->other_closed && ring_buffer_pos_is_empty(&pipe->buffer_pos))
+        if (p->other_closed && ring_buffer_pos_is_empty(&p->buffer_pos))
         {
-            pr_dinfo2(pipe, "pipe closed");
-            spinlock_release(&pipe->lock);
-            waitlist_wake(&pipe->waitlist, INT_MAX);
-            pr_dinfo2(pipe, "read %zu bytes", total_read);
+            dInfo2<pipe> << "pipe closed";
+            spinlock_release(&p->lock);
+            waitlist_wake(&p->waitlist, INT_MAX);
+            dInfo2<pipe> << "read " << total_read << " bytes";
             return total_read; // EOF
         }
 
         // buffer is empty, wait for the writer to write some data
-        pr_dinfo2(pipe, "pipe buffer empty, waiting...");
-        spinlock_release(&pipe->lock);
-        waitlist_wake(&pipe->waitlist, INT_MAX);              // wake up any writers that are waiting for space in the buffer
-        MOS_ASSERT(reschedule_for_waitlist(&pipe->waitlist)); // wait for the writer to write some data
+        dInfo2<pipe> << "pipe buffer empty, waiting...";
+        spinlock_release(&p->lock);
+        waitlist_wake(&p->waitlist, INT_MAX);              // wake up any writers that are waiting for space in the buffer
+        MOS_ASSERT(reschedule_for_waitlist(&p->waitlist)); // wait for the writer to write some data
         if (signal_has_pending())
         {
-            pr_dinfo2(pipe, "signal pending, returning early");
+            dInfo2<pipe> << "signal pending, returning early";
             return total_read;
         }
-        spinlock_acquire(&pipe->lock);
+        spinlock_acquire(&p->lock);
         goto retry_read;
     }
 
-    spinlock_release(&pipe->lock);
+    spinlock_release(&p->lock);
 
     // wake up any writers that are waiting for space in the buffer
-    waitlist_wake(&pipe->waitlist, INT_MAX);
+    waitlist_wake(&p->waitlist, INT_MAX);
 
-    pr_dinfo2(pipe, "read %zu bytes", total_read);
+    dInfo2<pipe> << "read " << total_read << " bytes";
     return total_read;
 }
 
@@ -137,7 +135,7 @@ bool pipe_close_one_end(pipe_t *pipe)
 {
     if (pipe->magic != PIPE_MAGIC)
     {
-        pr_warn("pipe_io_close: invalid magic");
+        mWarn << "pipe_io_close: invalid magic";
         return false;
     }
 
@@ -203,9 +201,9 @@ void PipeIOImpl::on_closed()
     });
 
     if (!pipeio->pipe->other_closed)
-        pr_dinfo2(pipe, "pipe %s closing", type);
+        dInfo2<pipe> << "pipe " << type << " closing";
     else
-        pr_dinfo2(pipe, "pipe is already closed by the other end, '%s' closing", type);
+        dInfo2<pipe> << "pipe is already closed by the other end, '" << type << "' closing";
 
     const bool fully_closed = pipe_close_one_end(pipeio->pipe);
     if (fully_closed)

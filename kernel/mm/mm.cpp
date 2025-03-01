@@ -11,7 +11,6 @@
 #include "mos/mm/physical/pmm.hpp"
 #include "mos/platform/platform.hpp"
 #include "mos/platform/platform_defs.hpp"
-#include "mos/syslog/printk.hpp"
 #include "mos/tasks/signal.hpp"
 
 #include <mos/lib/structures/list.hpp>
@@ -29,7 +28,7 @@ phyframe_t *mm_get_free_page_raw(void)
     phyframe_t *frame = pmm_allocate_frames(1, PMM_ALLOC_NORMAL);
     if (!frame)
     {
-        pr_emerg("failed to allocate a page");
+        mEmerg << "failed to allocate a page";
         return NULL;
     }
 
@@ -50,7 +49,7 @@ phyframe_t *mm_get_free_pages(size_t npages)
     phyframe_t *frame = pmm_allocate_frames(npages, PMM_ALLOC_NORMAL);
     if (!frame)
     {
-        pr_emerg("failed to allocate %zd pages", npages);
+        mEmerg << "failed to allocate " << npages << " pages";
         return NULL;
     }
 
@@ -175,7 +174,7 @@ void vmap_destroy(vmap_t *vmap)
     {
         bool unmapped = false;
         if (!vmap->io->unmap(vmap, &unmapped))
-            pr_warn("munmap: could not unmap the file: io_munmap() failed");
+            mWarn << "munmap: could not unmap the file: io_munmap() failed";
 
         if (unmapped)
             goto unmapped;
@@ -283,45 +282,43 @@ vmfault_result_t mm_resolve_cow_fault(vmap_t *vmap, ptr_t fault_addr, pagefault_
 
 static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, vmap_t *ip_vmap, pagefault_t *info, const char *unhandled_reason)
 {
-    pr_emerg("unhandled page fault: %s", unhandled_reason);
+    mEmerg << "unhandled page fault: " << unhandled_reason;
 #if MOS_CONFIG(MOS_MM_DETAILED_UNHANDLED_FAULT)
-    pr_emerg("  invalid %s mode %s %s page [" PTR_FMT "]",                               //
-             info->is_user ? "user" : "kernel",                                          //
-             info->is_write ? "write to" : (info->is_exec ? "execute in" : "read from"), //
-             info->is_present ? "present" : "non-present",                               //
-             fault_addr                                                                  //
-    );
+    mEmerg << "  invalid "                                                                 //
+           << (info->is_user ? "user" : "kernel") << " mode "                              //
+           << (info->is_write ? "write to" : (info->is_exec ? "execute in" : "read from")) //
+           << " " << (info->is_present ? "present" : "non-present") << " page [" << (void *) fault_addr << "]";
 
-    pr_emerg("  instruction: " PTR_FMT, info->ip);
+    mEmerg << "  instruction: " << (void *) info->ip;
     if (ip_vmap)
     {
-        pr_emerg("    vmap: %pvm", (void *) ip_vmap);
-        pr_emerg("    offset: 0x%zx", info->ip - ip_vmap->vaddr + (ip_vmap->io ? ip_vmap->io_offset : 0));
+        mEmerg << "    vmap: " << ip_vmap;
+        mEmerg << "    offset: 0x" << (info->ip - ip_vmap->vaddr + (ip_vmap->io ? ip_vmap->io_offset : 0));
     }
 
-    pr_emerg("    thread: %pt", current_thread);
-    pr_emerg("    process: %pp", current_thread ? current_process : nullptr);
+    mEmerg << "    thread: " << current_thread;
+    mEmerg << "    process: " << (current_thread ? current_process : nullptr);
 
     if (fault_addr < 1 KB)
     {
         if (info->is_write)
-            pr_emerg("  possible write to NULL pointer");
+            mEmerg << "  possible write to NULL pointer";
         else if (info->is_exec && fault_addr == 0)
-            pr_emerg("  attempted to execute NULL pointer");
+            mEmerg << "  attempted to execute NULL pointer";
         else
-            pr_emerg("  possible NULL pointer dereference");
+            mEmerg << "  possible NULL pointer dereference";
     }
 
     if (info->is_user && fault_addr > MOS_KERNEL_START_VADDR)
-        pr_emerg("    kernel address dereference");
+        mEmerg << "    kernel address dereference";
 
     if (info->ip > MOS_KERNEL_START_VADDR)
-        pr_emerg("    in kernel function %ps", (void *) info->ip);
+        mEmerg << "    in kernel function " << (void *) info->ip;
 
     if (faulting_vmap)
     {
-        pr_emerg("    in vmap: %pvm", (void *) faulting_vmap);
-        pr_emerg("       offset: 0x%zx", fault_addr - faulting_vmap->vaddr + (faulting_vmap->io ? faulting_vmap->io_offset : 0));
+        mEmerg << "    in vmap: " << faulting_vmap;
+        mEmerg << "       offset: 0x" << (fault_addr - faulting_vmap->vaddr + (faulting_vmap->io ? faulting_vmap->io_offset : 0));
     }
 
     if (faulting_vmap)
@@ -338,12 +335,12 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, vmap_t *
         process_dump_mmaps(current_process);
 #endif
 
-    pr_info("stack trace before fault (may be unreliable):");
+    mInfo << "stack trace before fault (may be unreliable):";
     platform_dump_stack(info->regs);
 
-    pr_info("register states before fault:");
+    mInfo << "register states before fault:";
     platform_dump_regs(info->regs);
-    pr_cont("\n");
+    mCont << "\n";
 #else
     MOS_UNUSED(fault_addr);
     MOS_UNUSED(info);
@@ -363,13 +360,11 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
 {
     const char *unhandled_reason = NULL;
 
-    pr_demph(pagefault, "%s #PF: %pt, %pp, IP=" PTR_VLFMT ", ADDR=" PTR_VLFMT, //
-             info->is_user ? "user" : "kernel",                                //
-             current_thread ? current_thread : NULL,                           //
-             current_thread ? current_thread->owner : NULL,                    //
-             info->ip,                                                         //
-             fault_addr                                                        //
-    );
+    dEmph<pagefault> << (info->is_user ? "user" : "kernel") << " #PF: "  //
+                     << (current_thread ? current_thread : NULL) << ", " //
+                     << (current_thread ? current_thread->owner : NULL)  //
+                     << ", IP=" << info->ip                              //
+                     << ", ADDR=" << fault_addr;
 
     if (info->is_write && info->is_exec)
         mos_panic("Cannot write and execute at the same time");
@@ -448,9 +443,9 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         };
     };
 
-    pr_dcont(pagefault, ", handler %ps", (void *) (ptr_t) fault_vmap->on_fault);
+    dCont<pagefault> << ", handler " << (void *) (ptr_t) fault_vmap->on_fault;
     vmfault_result_t fault_result = fault_vmap->on_fault(fault_vmap, fault_addr, info);
-    pr_dcont(pagefault, " -> %s", get_fault_result(fault_result));
+    dCont<pagefault> << " -> " << get_fault_result(fault_result);
 
     VMFlags map_flags = fault_vmap->vmflags;
     switch (fault_result)
@@ -484,7 +479,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
                 return DoUnhandledPageFault();
             }
 
-            pr_dcont(pagefault, " (backing page: " PFN_FMT ")", phyframe_pfn(info->backing_page));
+            dCont<pagefault> << " (backing page: " << phyframe_pfn(info->backing_page) << ")";
             mm_replace_page_locked(fault_vmap->mmctx, fault_addr, phyframe_pfn(info->backing_page), map_flags);
             fault_result = VMFAULT_COMPLETE;
         }
@@ -507,7 +502,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
 static bool sys_mem_mmap(sysfs_file_t *f, vmap_t *vmap, off_t offset)
 {
     MOS_UNUSED(f);
-    // pr_info("mem: mapping " PTR_VLFMT " to " PTR_VLFMT "\n", vmap->vaddr, offset);
+    // mInfo << "mem: mapping " << vmap->vaddr << " to " << offset << "\n";
     mm_do_map(vmap->mmctx->pgd, vmap->vaddr, offset / MOS_PAGE_SIZE, vmap->npages, vmap->vmflags, false);
     return true;
 }

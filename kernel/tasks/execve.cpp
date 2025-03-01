@@ -158,7 +158,7 @@ long process_do_execveat(fd_t dirfd, const char *path, const char *const argv[],
     for (int i = 0; i < MOS_PROCESS_MAX_OPEN_FILES; i++)
     {
         const auto &fd = proc->files[i];
-        if (fd.io && proc->files[i].io->isValid() && (fd.flags & FD_FLAGS_CLOEXEC))
+        if (IO::IsValid(fd.io) && (fd.flags & FD_FLAGS_CLOEXEC))
             process_detach_fd(proc, i);
     }
 

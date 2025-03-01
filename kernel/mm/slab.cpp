@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-License-Identifier: BSD-2-Clause
 
 #include "mos/mm/slab.hpp"
 
@@ -7,7 +6,6 @@
 #include "mos/filesystem/sysfs/sysfs.hpp"
 #include "mos/misc/setup.hpp"
 #include "mos/mm/mm.hpp"
-#include "mos/syslog/printk.hpp"
 
 #include <algorithm>
 #include <mos/allocator.hpp>
@@ -69,27 +67,27 @@ static void slab_impl_free_page(ptr_t page, size_t n)
     mm_free_pages(va_phyframe(page), n);
 }
 
-static void slab_allocate_mem(slab_t *slab)
+static void slab_allocate_mem(slab_t *s)
 {
-    pr_dinfo2(slab, "renew slab for '%.*s' with %zu bytes", slab->name.size(), slab->name.data(), slab->ent_size);
-    slab->first_free = slab_impl_new_page(1);
-    if (unlikely(!slab->first_free))
+    dInfo2<slab> << "renew slab for '" << s->name << "' with " << s->ent_size << " bytes";
+    s->first_free = slab_impl_new_page(1);
+    if (unlikely(!s->first_free))
     {
         mos_panic("slab: failed to allocate memory for slab");
         return;
     }
 
-    const size_t header_offset = ALIGN_UP(sizeof(slab_header_t), slab->ent_size);
+    const size_t header_offset = ALIGN_UP(sizeof(slab_header_t), s->ent_size);
     const size_t available_size = MOS_PAGE_SIZE - header_offset;
 
-    slab_header_t *const slab_ptr = (slab_header_t *) slab->first_free;
-    slab_ptr->slab = slab;
-    pr_dinfo2(slab, "slab header is at %p", (void *) slab_ptr);
-    slab->first_free = (ptr_t) slab->first_free + header_offset;
+    slab_header_t *const slab_ptr = (slab_header_t *) s->first_free;
+    slab_ptr->slab = s;
+    dInfo2<slab> << "slab header is at " << (void *) slab_ptr;
+    s->first_free = (ptr_t) s->first_free + header_offset;
 
-    void **arr = (void **) slab->first_free;
-    const size_t max_n = available_size / slab->ent_size - 1;
-    const size_t fact = slab->ent_size / sizeof(void *);
+    void **arr = (void **) s->first_free;
+    const size_t max_n = available_size / s->ent_size - 1;
+    const size_t fact = s->ent_size / sizeof(void *);
 
     for (size_t i = 0; i < max_n; i++)
     {
@@ -113,7 +111,7 @@ static void slab_init_one(slab_t *slab, const char *name, size_t size)
 
 void slab_init(void)
 {
-    pr_dinfo2(slab, "initializing the slab allocator");
+    dInfo2<slab> << "initializing the slab allocator";
     for (size_t i = 0; i < MOS_ARRAY_SIZE(BUILTIN_SLAB_SIZES); i++)
     {
         slab_init_one(&slabs[i], BUILTIN_SLAB_SIZES[i].name, BUILTIN_SLAB_SIZES[i].size);
@@ -121,11 +119,11 @@ void slab_init(void)
     }
 }
 
-void slab_register(slab_t *slab)
+void slab_register(slab_t *s)
 {
-    pr_dinfo2(slab, "slab: registering slab for '%s' with %zu bytes", slab->name.data(), slab->ent_size);
-    linked_list_init(list_node(slab));
-    list_node_append(&slabs_list, list_node(slab));
+    dInfo2<slab> << "slab: registering slab for '" << s->name << "' with " << s->ent_size << " bytes";
+    linked_list_init(list_node(s));
+    list_node_append(&slabs_list, list_node(s));
 }
 
 void *slab_alloc(size_t size)
@@ -200,7 +198,7 @@ void *slab_realloc(void *oldptr, size_t new_size)
 
 void slab_free(const void *ptr)
 {
-    pr_dinfo2(slab, "freeing memory at %p", ptr);
+    dInfo2<slab> << "freeing memory at " << ptr;
     if (!ptr)
         return;
 
@@ -218,46 +216,46 @@ void slab_free(const void *ptr)
 
 // ======================
 
-void *kmemcache_alloc(slab_t *slab)
+void *kmemcache_alloc(slab_t *s)
 {
-    MOS_ASSERT_X(slab->ent_size > 0, "slab: invalid slab entry size %zu", slab->ent_size);
-    pr_dinfo2(slab, "allocating from slab '%s'", slab->name.data());
-    spinlock_acquire(&slab->lock);
+    MOS_ASSERT_X(s->ent_size > 0, "slab: invalid slab entry size %zu", s->ent_size);
+    dInfo2<slab> << "allocating from slab '" << s->name << "'";
+    spinlock_acquire(&s->lock);
 
-    if (slab->first_free == 0)
+    if (s->first_free == 0)
     {
         // renew a slab
-        slab_allocate_mem(slab);
+        slab_allocate_mem(s);
     }
 
-    ptr_t *alloc = (ptr_t *) slab->first_free;
-    pr_dcont(slab, " -> %p", (void *) alloc);
+    ptr_t *alloc = (ptr_t *) s->first_free;
+    dCont<slab> << " -> " << (void *) alloc;
 
     // sanitize the memory
     MOS_ASSERT_X((ptr_t) alloc >= MOS_KERNEL_START_VADDR, "slab: invalid memory address %p", (void *) alloc);
 
-    slab->first_free = *alloc; // next free entry
-    memset(alloc, 0, slab->ent_size);
+    s->first_free = *alloc; // next free entry
+    memset(alloc, 0, s->ent_size);
 
-    slab->nobjs++;
-    spinlock_release(&slab->lock);
+    s->nobjs++;
+    spinlock_release(&s->lock);
     return alloc;
 }
 
-void kmemcache_free(slab_t *slab, const void *addr)
+void kmemcache_free(slab_t *s, const void *addr)
 {
-    pr_dinfo2(slab, "freeing from slab '%s'", slab->name.data());
+    dInfo2<slab> << "freeing from slab '" << s->name << "'";
     if (!addr)
         return;
 
-    spinlock_acquire(&slab->lock);
+    spinlock_acquire(&s->lock);
 
     ptr_t *new_head = (ptr_t *) addr;
-    *new_head = slab->first_free;
-    slab->first_free = (ptr_t) new_head;
-    slab->nobjs--;
+    *new_head = s->first_free;
+    s->first_free = (ptr_t) new_head;
+    s->nobjs--;
 
-    spinlock_release(&slab->lock);
+    spinlock_release(&s->lock);
 }
 
 // ! sysfs support

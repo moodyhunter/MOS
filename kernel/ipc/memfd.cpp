@@ -42,7 +42,7 @@ PtrResult<IO> memfd_create(const char *name)
     memfd_t *memfd = mos::create<memfd_t>();
     if (!memfd)
     {
-        pr_emerg("Failed to allocate memfd");
+        mEmerg << "Failed to allocate memfd";
         return -ENOMEM;
     }
 
@@ -50,7 +50,7 @@ PtrResult<IO> memfd_create(const char *name)
 
     if (!memfd_root_dentry->inode->ops->newfile(memfd_root_dentry->inode, dentry, FILE_TYPE_REGULAR, (PERM_READ | PERM_WRITE) & PERM_OWNER))
     {
-        pr_emerg("Failed to create file for memfd");
+        mEmerg << "Failed to create file for memfd";
         delete memfd;
         delete dentry;
         return -ENOMEM;
@@ -59,7 +59,7 @@ PtrResult<IO> memfd_create(const char *name)
     auto file = vfs_do_open_dentry(dentry, true, true, true, false, false);
     if (file.isErr())
     {
-        pr_emerg("Failed to open file for memfd");
+        mEmerg << "Failed to open file for memfd";
         delete memfd;
         delete dentry;
         return file.getErr();
@@ -77,14 +77,14 @@ static void memfd_init()
     const auto result = fs_tmpfs.mount(&fs_tmpfs, "none", NULL);
     if (result.isErr())
     {
-        pr_emerg("Failed to mount tmpfs for memfd");
+        mEmerg << "Failed to mount tmpfs for memfd";
         return;
     }
 
     memfd_root_dentry = result.get();
     if (!memfd_root_dentry)
     {
-        pr_emerg("Failed to mount memfd filesystem");
+        mEmerg << "Failed to mount memfd filesystem";
         return;
     }
 

@@ -10,14 +10,6 @@ typedef struct _hashmap hashmap_t;
 
 extern mos::HashMap<tid_t, Thread *> thread_table;
 
-should_inline bool thread_is_valid(const Thread *thread)
-{
-    if (auto ptr = thread)
-        return ptr->magic == THREAD_MAGIC_THRD;
-    else
-        return false;
-}
-
 Thread *thread_allocate(Process *owner, thread_mode tflags);
 void thread_destroy(Thread *thread);
 

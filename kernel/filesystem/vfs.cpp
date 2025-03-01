@@ -36,7 +36,7 @@ dentry_t *root_dentry = NULL;
 
 static long do_pagecache_flush(BasicFile *file, off_t pgoff, size_t npages)
 {
-    pr_dinfo2(vfs, "vfs: flushing page cache for file %pio", (void *) file);
+    dInfo2<vfs> << "vfs: flushing page cache for file " << (void *) file;
 
     mutex_acquire(&file->dentry->inode->cache.lock);
     long ret = 0;
@@ -176,8 +176,8 @@ off_t File::on_seek(off_t offset, io_seek_whence_t whence)
             this->offset = new_offset;
             break;
         }
-        case IO_SEEK_DATA: mos_warn("vfs: IO_SEEK_DATA is not supported"); break;
-        case IO_SEEK_HOLE: mos_warn("vfs: IO_SEEK_HOLE is not supported"); break;
+        case IO_SEEK_DATA: dInfo2<vfs> << "vfs: IO_SEEK_DATA is not supported"; break;
+        case IO_SEEK_HOLE: dInfo2<vfs> << "vfs: IO_SEEK_HOLE is not supported"; break;
     };
 
     spinlock_release(&offset_lock);
@@ -359,7 +359,8 @@ static PtrResult<BasicFile> vfs_do_open(dentry_t *base, const char *path, OpenFl
     auto entry = dentry_resolve(base, root_dentry, path, resolve_flags);
     if (entry.isErr())
     {
-        pr_dinfo2(vfs, "failed to resolve '%s': create=%d, r=%d, x=%d, nofollow=%d, dir=%d, truncate=%d", path, may_create, read, exec, no_follow, expect_dir, truncate);
+        dInfo2<vfs> << "failed to resolve '" << path << "': create=" << may_create << ", r=" << read << ", x=" << exec << ", nofollow=" << no_follow
+                    << ", dir=" << expect_dir << ", truncate=" << truncate;
         return entry.getErr();
     }
 
@@ -459,7 +460,7 @@ void vfs_register_filesystem(filesystem_t *fs)
     list_node_append(&vfs_fs_list, list_node(fs));
     spinlock_release(&vfs_fs_list_lock);
 
-    pr_dinfo2(vfs, "filesystem '%s' registered", fs->name.c_str());
+    dInfo2<vfs> << "filesystem '" << fs->name << "' registered";
 }
 
 PtrResult<void> vfs_mount(const char *device, const char *path, const char *fs, const char *options)
@@ -478,14 +479,14 @@ PtrResult<void> vfs_mount(const char *device, const char *path, const char *fs, 
         // special case: mount root filesystem
         if (root_dentry)
         {
-            pr_warn("root filesystem is already mounted");
+            mWarn << "root filesystem is already mounted";
             return -EBUSY;
         }
-        pr_dinfo2(vfs, "mounting root filesystem '%s'...", fs);
+        dInfo2<vfs> << "mounting root filesystem '" << fs << "'...";
         const auto mountResult = real_fs->mount(real_fs, device, options);
         if (mountResult.isErr())
         {
-            mos_warn("failed to mount root filesystem");
+            mWarn << "failed to mount root filesystem";
             return -EIO;
         }
         else
@@ -493,7 +494,7 @@ PtrResult<void> vfs_mount(const char *device, const char *path, const char *fs, 
             root_dentry = mountResult.get();
         }
 
-        pr_dinfo2(vfs, "root filesystem mounted, dentry=%p", (void *) root_dentry);
+        dInfo2<vfs> << "root filesystem mounted, dentry=" << (void *) root_dentry;
 
         MOS_ASSERT(root_dentry->name.empty());
         bool mounted = dentry_mount(root_dentry, root_dentry, real_fs);
@@ -513,7 +514,7 @@ PtrResult<void> vfs_mount(const char *device, const char *path, const char *fs, 
     if (mpRoot->is_mountpoint)
     {
         // we don't support overlaying filesystems yet
-        mos_warn("mount point is already mounted");
+        mWarn << "mount point is already mounted";
         dentry_unref(mpRoot.get());
         return -ENOTSUP;
     }
@@ -524,20 +525,20 @@ PtrResult<void> vfs_mount(const char *device, const char *path, const char *fs, 
     auto mounted_root = real_fs->mount(real_fs, device, options);
     if (mounted_root.isErr())
     {
-        mos_warn("failed to mount filesystem");
+        mWarn << "failed to mount filesystem";
         return mounted_root.getErr();
     }
 
     const bool mounted = dentry_mount(mpRoot.get(), mounted_root.get(), real_fs);
     if (unlikely(!mounted))
     {
-        mos_warn("failed to mount filesystem");
+        mWarn << "failed to mount filesystem";
         return -EIO;
     }
 
     MOS_ASSERT_X(mpRoot->refcount == mounted_root->refcount, "mountpoint refcount=%zu, mounted_root refcount=%zu", mpRoot->refcount.load(),
                  mounted_root->refcount.load());
-    pr_dinfo2(vfs, "mounted filesystem '%s' on '%s'", fs, path);
+    dInfo2<vfs> << "mounted filesystem '" << fs << "' on '" << path << "'";
     return 0;
 }
 
@@ -551,7 +552,7 @@ long vfs_unmount(const char *path)
     if (mounted_root->refcount != 2)
     {
         dentry_check_refstat(mounted_root.get());
-        mos_warn("refcount is not as expected");
+        mWarn << "refcount is not as expected";
         return -EBUSY;
     }
 
@@ -561,7 +562,7 @@ long vfs_unmount(const char *path)
     auto mountpoint = dentry_unmount(mounted_root.get());
     if (!mountpoint)
     {
-        mos_warn("failed to unmount filesystem");
+        mWarn << "failed to unmount filesystem";
         return -EIO;
     }
 
@@ -574,7 +575,7 @@ long vfs_unmount(const char *path)
 
     if (mounted_root == root_dentry)
     {
-        pr_info2("unmounted root filesystem");
+        dInfo2<vfs> << "unmounted root filesystem";
         root_dentry = NULL;
         return 0;
     }
@@ -585,7 +586,7 @@ long vfs_unmount(const char *path)
 
 PtrResult<BasicFile> vfs_openat(int fd, const char *path, OpenFlags flags)
 {
-    pr_dinfo2(vfs, "vfs_openat(fd=%d, path='%s', flags=%x)", fd, path, flags);
+    dInfo2<vfs> << "vfs_openat(fd=" << fd << ", path='" << path << "', flags=" << flags << ")";
     auto basedir = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);
     if (basedir.isErr())
         return basedir.getErr();
@@ -598,9 +599,9 @@ long vfs_fstatat(fd_t fd, const char *path, file_stat_t *__restrict statbuf, FSt
 {
     if (flags & FSTATAT_FILE)
     {
-        pr_dinfo2(vfs, "vfs_fstatat(fd=%d, path='%p', stat=%p, flags=%x)", fd, (void *) path, (void *) statbuf, flags);
+        dInfo2<vfs> << "vfs_fstatat(fd=" << fd << ", path=" << (void *) path << ", stat=" << (void *) statbuf << ", flags=" << flags << ")";
         IO *io = process_get_fd(current_process, fd);
-        if (!(io && io->isValid() && (io->io_type == IO_FILE || io->io_type == IO_DIR)))
+        if (!(IO::IsValid(io) && (io->io_type == IO_FILE || io->io_type == IO_DIR)))
             return -EBADF; // io is closed, or is not a file or directory
 
         BasicFile *file = static_cast<BasicFile *>(io);
@@ -611,7 +612,7 @@ long vfs_fstatat(fd_t fd, const char *path, file_stat_t *__restrict statbuf, FSt
         return 0;
     }
 
-    pr_dinfo2(vfs, "vfs_fstatat(fd=%d, path='%s', stat=%p, flags=%x)", fd, path, (void *) statbuf, flags);
+    dInfo2<vfs> << "vfs_fstatat(fd=" << fd << ", path='" << path << "', stat=" << (void *) statbuf << ", flags=" << flags << ")";
     auto basedir = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);
     if (basedir.isErr())
         return basedir.getErr();
@@ -658,7 +659,7 @@ size_t vfs_readlinkat(fd_t dirfd, const char *path, char *buf, size_t size)
 
 long vfs_symlink(const char *path, const char *target)
 {
-    pr_dinfo2(vfs, "vfs_symlink(path='%s', target='%s')", path, target);
+    dInfo2<vfs> << "vfs_symlink(path='" << path << "', target='" << target << "')";
     auto base = path_is_absolute(path) ? root_dentry : dentry_from_fd(AT_FDCWD);
     if (base.isErr())
         return base.getErr();
@@ -679,7 +680,7 @@ long vfs_symlink(const char *path, const char *target)
 
 PtrResult<void> vfs_mkdir(const char *path)
 {
-    pr_dinfo2(vfs, "vfs_mkdir('%s')", path);
+    dInfo2<vfs> << "vfs_mkdir('" << path << "')";
     auto base = path_is_absolute(path) ? root_dentry : dentry_from_fd(AT_FDCWD);
     if (base.isErr())
         return base.getErr();
@@ -708,7 +709,7 @@ PtrResult<void> vfs_mkdir(const char *path)
 
 PtrResult<void> vfs_rmdir(const char *path)
 {
-    pr_dinfo2(vfs, "vfs_rmdir('%s')", path);
+    dInfo2<vfs> << "vfs_rmdir('" << path << "')";
     auto base = path_is_absolute(path) ? root_dentry : dentry_from_fd(AT_FDCWD);
     if (base.isErr())
         return base.getErr();
@@ -735,7 +736,7 @@ PtrResult<void> vfs_rmdir(const char *path)
 
 size_t vfs_list_dir(IO *io, void *user_buf, size_t user_size)
 {
-    pr_dinfo2(vfs, "vfs_list_dir(io=%p, buf=%p, size=%zu)", (void *) io, (void *) user_buf, user_size);
+    dInfo2<vfs> << "vfs_list_dir(io=" << (void *) io << ", buf=" << (void *) user_buf << ", size=" << user_size << ")";
     BasicFile *file = static_cast<BasicFile *>(io);
     if (unlikely(file->dentry->inode->type != FILE_TYPE_DIRECTORY))
     {
@@ -787,7 +788,7 @@ size_t vfs_list_dir(IO *io, void *user_buf, size_t user_size)
 
 long vfs_chdirat(fd_t dirfd, const char *path)
 {
-    pr_dinfo2(vfs, "vfs_chdir('%s')", path);
+    dInfo2<vfs> << "vfs_chdir('" << path << "')";
     auto base = path_is_absolute(path) ? root_dentry : dentry_from_fd(dirfd);
     if (base.isErr())
         return base.getErr();
@@ -815,7 +816,7 @@ ssize_t vfs_getcwd(char *buf, size_t size)
 
 long vfs_fchmodat(fd_t fd, const char *path, int perm, int flags)
 {
-    pr_dinfo2(vfs, "vfs_fchmodat(fd=%d, path='%s', perm=%o, flags=%x)", fd, path, perm, flags);
+    dInfo2<vfs> << "vfs_fchmodat(fd=" << fd << ", path='" << path << "', perm=" << perm << ", flags=" << flags << ")";
     auto base = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);
     if (base.isErr())
         return base.getErr();
@@ -832,7 +833,7 @@ long vfs_fchmodat(fd_t fd, const char *path, int perm, int flags)
 
 long vfs_unlinkat(fd_t dirfd, const char *path)
 {
-    pr_dinfo2(vfs, "vfs_unlinkat(dirfd=%d, path='%s')", dirfd, path);
+    dInfo2<vfs> << "vfs_unlinkat(dirfd=" << dirfd << ", path='" << path << "')";
     auto base = path_is_absolute(path) ? root_dentry : dentry_from_fd(dirfd);
     if (base.isErr())
         return base.getErr();
@@ -862,7 +863,7 @@ long vfs_unlinkat(fd_t dirfd, const char *path)
 
 long vfs_fsync(IO *io, bool sync_metadata, off_t start, off_t end)
 {
-    pr_dinfo2(vfs, "vfs_fsync(io=%p, sync_metadata=%d, start=%ld, end=%ld)", (void *) io, sync_metadata, start, end);
+    dInfo2<vfs> << "vfs_fsync(io=" << (void *) io << ", sync_metadata=" << sync_metadata << ", start=" << start << ", end=" << end << ")";
     BasicFile *file = static_cast<BasicFile *>(io);
 
     const off_t nbytes = end - start;

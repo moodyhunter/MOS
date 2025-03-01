@@ -9,10 +9,24 @@
 
 namespace mos
 {
+    struct RCCore
+    {
+        std::atomic_size_t n = 0;
+        void Ref()
+        {
+            n++;
+        }
+
+        void Unref()
+        {
+            n--;
+        }
+    };
+
     struct RefCounted
     {
       protected:
-        RefCounted() : rc(mos::create<RC>())
+        explicit RefCounted(RCCore *rc_) : rc(rc_)
         {
             rc->Ref();
         }
@@ -32,8 +46,6 @@ namespace mos
             if (rc)
             {
                 rc->Unref();
-                if (rc->n == 0)
-                    delete rc;
             }
         }
 
@@ -47,20 +59,6 @@ namespace mos
         }
 
       private:
-        struct RC : mos::NamedType<"RC">
-        {
-            std::atomic_size_t n = 0;
-            void Ref()
-            {
-                n++;
-            }
-
-            void Unref()
-            {
-                n--;
-            }
-        };
-
-        RC *rc = nullptr;
+        RCCore *rc = nullptr;
     };
 } // namespace mos

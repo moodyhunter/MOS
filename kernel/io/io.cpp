@@ -49,7 +49,7 @@ mos::string IO::name() const
 
 size_t IO::read(void *buf, size_t count)
 {
-    pr_dinfo2(io, "io_read(%p, %p, %zu)", (void *) this, buf, count);
+    dInfo2<io> << "io_read(" << (void *) this << ", " << buf << ", " << count << ")";
 
     if (unlikely(io_closed))
     {
@@ -59,7 +59,7 @@ size_t IO::read(void *buf, size_t count)
 
     if (!io_flags.test(IO_READABLE))
     {
-        pr_info2("%p is not readable\n", (void *) this);
+        mInfo << (void *) this << " is not readable\n";
         return 0;
     }
 
@@ -68,7 +68,7 @@ size_t IO::read(void *buf, size_t count)
 
 size_t IO::pread(void *buf, size_t count, off_t offset)
 {
-    pr_dinfo2(io, "io_pread(%p, %p, %zu, %lu)", (void *) this, buf, count, offset);
+    dInfo2<io> << "io_pread(" << (void *) this << ", " << buf << ", " << count << ", " << offset << ")";
 
     if (unlikely(io_closed))
     {
@@ -78,13 +78,13 @@ size_t IO::pread(void *buf, size_t count, off_t offset)
 
     if (!(io_flags.test(IO_READABLE)))
     {
-        pr_info2("%p is not readable\n", (void *) this);
+        mInfo << (void *) this << " is not readable\n";
         return 0;
     }
 
     if (!(io_flags.test(IO_SEEKABLE)))
     {
-        pr_info2("%p is not seekable\n", (void *) this);
+        mInfo << (void *) this << " is not seekable\n";
         return 0;
     }
 
@@ -97,7 +97,7 @@ size_t IO::pread(void *buf, size_t count, off_t offset)
 
 size_t IO::write(const void *buf, size_t count)
 {
-    pr_dinfo2(io, "io_write(%p, %p, %zu)", (void *) this, buf, count);
+    dInfo2<io> << "io_write(" << (void *) this << ", " << buf << ", " << count << ")";
 
     if (unlikely(io_closed))
     {
@@ -107,7 +107,7 @@ size_t IO::write(const void *buf, size_t count)
 
     if (!(io_flags.test(IO_WRITABLE)))
     {
-        pr_info2("%p is not writable", (void *) this);
+        mInfo << (void *) this << " is not writable";
         return 0;
     }
 
@@ -116,7 +116,7 @@ size_t IO::write(const void *buf, size_t count)
 
 off_t IO::seek(off_t offset, io_seek_whence_t whence)
 {
-    pr_dinfo2(io, "io_seek(%p, %lu, %d)", (void *) this, offset, whence);
+    dInfo2<io> << "io_seek(" << (void *) this << ", " << offset << ", " << whence << ")";
 
     if (unlikely(io_closed))
     {
@@ -126,7 +126,7 @@ off_t IO::seek(off_t offset, io_seek_whence_t whence)
 
     if (!io_flags.test(IO_SEEKABLE))
     {
-        pr_info2("%p is not seekable", (void *) this);
+        mInfo << (void *) this << " is not seekable";
         return 0;
     }
 
@@ -149,7 +149,7 @@ bool IO::VerifyMMapPermissions(VMFlags flags, bool is_private)
 
     if (!(io_flags.test(IO_MMAPABLE)))
     {
-        pr_info2("%p is not mmapable", (void *) io);
+        mInfo << (void *) io << " is not mmapable";
         return false;
     }
 
@@ -171,7 +171,7 @@ bool IO::VerifyMMapPermissions(VMFlags flags, bool is_private)
 
 bool IO::map(vmap_t *vmap, off_t offset)
 {
-    pr_dinfo2(io, "io_mmap(%p, %p, %lu)", (void *) this, (void *) vmap, offset);
+    dInfo2<io> << "io_mmap(" << (void *) this << ", " << (void *) vmap << ", " << offset << ")";
     if (!VerifyMMapPermissions(vmap->vmflags, vmap->type == VMAP_TYPE_PRIVATE))
         return false;
 
@@ -190,7 +190,7 @@ bool IO::map(vmap_t *vmap, off_t offset)
 
 bool IO::unmap(vmap_t *vmap, bool *unmapped)
 {
-    pr_dinfo2(io, "io_unmap(%p, %p, %p)", (void *) this, (void *) vmap, (void *) unmapped);
+    dInfo2<io> << "io_unmap(" << (void *) this << ", " << (void *) vmap << ", " << (void *) unmapped << ")";
     if (unlikely(io_closed))
     {
         mos_warn("%p is already closed", (void *) this);

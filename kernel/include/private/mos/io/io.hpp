@@ -42,7 +42,12 @@ struct IO
     explicit IO(IOFlags flags, io_type_t type);
     virtual ~IO() = 0;
 
-    friend mos::SyslogStream &operator<<(mos::SyslogStream &stream, const IO *io)
+    static bool IsValid(const IO *io)
+    {
+        return io && !io->io_closed && io->io_refcount > 0;
+    }
+
+    friend mos::SyslogStreamWriter operator<<(mos::SyslogStreamWriter stream, const IO *io)
     {
         stream << fmt("\\{ '{}', {}}", io->name(), io->io_closed ? "closed" : "active");
         return stream;
@@ -76,11 +81,6 @@ struct IO
         }
 
         return this;
-    }
-
-    inline bool isValid() const
-    {
-        return static_cast<bool>(this) && !io_closed && io_refcount > 0;
     }
 
     virtual mos::string name() const;

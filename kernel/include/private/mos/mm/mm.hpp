@@ -74,9 +74,9 @@ struct vmap_t : mos::NamedType<"VMap">
     vmap_stat_t stat;
     vmfault_handler_t on_fault;
 
-    friend mos::SyslogStream operator<<(mos::SyslogStream stream, const vmap_t *vmap)
+    friend mos::SyslogStreamWriter operator<<(mos::SyslogStreamWriter stream, const vmap_t *vmap)
     {
-        return stream << fmt("\\{ [{} - {}] }", vmap->vaddr, vmap->vaddr + vmap->npages * MOS_PAGE_SIZE - 1);
+        return stream << fmt("\\{ [{} - {}] }", (void *) vmap->vaddr, (void *) (vmap->vaddr + vmap->npages * MOS_PAGE_SIZE - 1));
     }
 };
 

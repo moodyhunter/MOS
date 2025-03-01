@@ -128,8 +128,10 @@ extern dentry_t *root_dentry;
 
 inline mos::string dentry_name(const dentry_t *dentry)
 {
+    static const mos::string root_name = "<root>";
+    static const mos::string null_name = "<NULL>";
     const auto name = (dentry)->name;
-    return name.empty() ? (dentry == root_dentry ? "<root>" : "<NULL>") : name;
+    return mos::string(name.value_or(dentry == root_dentry ? root_name : null_name));
 }
 
 typedef struct _inode_cache_ops
@@ -227,7 +229,7 @@ struct BasicFile : IO
         return dentry->inode->file_ops;
 
     error:
-        pr_warn("no file_ops for file %p", (void *) this);
+        mWarn << "no file_ops for file " << this;
         return NULL;
     }
 };

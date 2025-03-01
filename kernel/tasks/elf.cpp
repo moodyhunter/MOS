@@ -6,7 +6,6 @@
 #include "mos/mm/mm.hpp"
 #include "mos/mm/mmap.hpp"
 #include "mos/platform/platform.hpp"
-#include "mos/syslog/printk.hpp"
 #include "mos/tasks/process.hpp"
 #include "mos/tasks/schedule.hpp"
 #include "mos/tasks/task_types.hpp"
@@ -86,7 +85,7 @@ static ptr_t elf_determine_loadbias(elf_header_t *elf)
 
 static void elf_setup_main_thread(Thread *thread, elf_startup_info_t *const info, ptr_t *const out_pargv, ptr_t *const out_penvp)
 {
-    pr_dinfo2(elf, "cpu %d: setting up a new main thread %pt of process %pp", current_cpu->id, thread, thread->owner);
+    dInfo2<elf> << "cpu " << current_cpu->id << ": setting up a new main thread " << thread << " of process " << thread->owner;
 
     MOS_ASSERT_X(thread->u_stack.head == thread->u_stack.top, "thread %pt's user stack is not empty", thread);
     stack_push_val(&thread->u_stack, (uintn) 0);
@@ -157,13 +156,11 @@ no_argv:
 static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, MMContext *mm, BasicFile *file)
 {
     MOS_ASSERT(ph->header_type == ELF_PT_LOAD);
-    pr_dinfo2(elf, "program header %c%c%c, type '%d' at " PTR_FMT, //
-              ph->flags() & ELF_PF_R ? 'r' : '-',                  //
-              ph->flags() & ELF_PF_W ? 'w' : '-',                  //
-              ph->flags() & ELF_PF_X ? 'x' : '-',                  //
-              ph->header_type,                                     //
-              ph->vaddr                                            //
-    );
+    dInfo2<elf> << "program header "                    //
+                << (ph->flags() & ELF_PF_R ? 'r' : '-') //
+                << (ph->flags() & ELF_PF_W ? 'w' : '-') //
+                << (ph->flags() & ELF_PF_X ? 'x' : '-') //
+                << ", type '" << ph->header_type << "' at " << ph->vaddr;
 
     MOS_ASSERT(ph->data_offset % MOS_PAGE_SIZE == ph->vaddr % MOS_PAGE_SIZE); // offset ≡ vaddr (mod page size)
     MOS_ASSERT_X(ph->size_in_file <= ph->size_in_mem, "invalid ELF: size in file is larger than size in memory");
@@ -185,18 +182,18 @@ static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, M
     const size_t aligned_size = ALIGN_DOWN_TO_PAGE(ph->data_offset);
 
     const ptr_t map_start = map_bias + aligned_vaddr;
-    pr_dinfo2(elf, "  mapping %zu pages at " PTR_FMT " (bias at " PTR_FMT ") from offset %zu...", npages, map_start, map_bias, aligned_size);
+    dInfo2<elf> << "  mapping " << npages << " pages at " << map_start << " (bias at " << map_bias << ") from offset " << aligned_size << "...";
 
     const ptr_t vaddr = mmap_file(mm, map_start, MMAP_PRIVATE | MMAP_EXACT, flags, npages, file, aligned_size);
     MOS_ASSERT_X(vaddr == map_start, "failed to map ELF segment at " PTR_FMT, aligned_vaddr);
 
     if (ph->size_in_file < ph->size_in_mem)
     {
-        pr_dinfo2(elf, "  ... and zeroing %zu bytes at " PTR_FMT, ph->size_in_mem - ph->size_in_file, map_bias + ph->vaddr + ph->size_in_file);
+        dInfo2<elf> << "  ... and zeroing " << (ph->size_in_mem - ph->size_in_file) << " bytes at " << (map_bias + ph->vaddr + ph->size_in_file);
         memzero((char *) map_bias + ph->vaddr + ph->size_in_file, ph->size_in_mem - ph->size_in_file);
     }
 
-    pr_dinfo2(elf, "  ... done");
+    dInfo2<elf> << "  ... done";
 }
 
 static ptr_t elf_map_interpreter(const char *path, MMContext *mm)
@@ -210,7 +207,7 @@ static ptr_t elf_map_interpreter(const char *path, MMContext *mm)
     elf_header_t elf;
     if (!elf_read_and_verify_executable(interp_file.get(), &elf))
     {
-        pr_emerg("failed to verify ELF header for '%s'", dentry_name(interp_file->dentry).c_str());
+        mEmerg << "failed to verify ELF header for '" << dentry_name(interp_file->dentry) << "'";
         interp_file->unref();
         return 0;
     }
@@ -222,7 +219,7 @@ static ptr_t elf_map_interpreter(const char *path, MMContext *mm)
         elf_program_hdr_t ph;
         if (!elf_read_file(interp_file.get(), &ph, elf.ph_offset + i * elf.ph.entry_size, elf.ph.entry_size))
         {
-            pr_emerg("failed to read program header %zu for '%s'", i, dentry_name(interp_file->dentry).c_str());
+            mEmerg << "failed to read program header " << i << " for '" << dentry_name(interp_file->dentry) << "'";
             interp_file->unref();
             return 0;
         }
@@ -239,7 +236,7 @@ static ptr_t elf_map_interpreter(const char *path, MMContext *mm)
     return MOS_ELF_INTERPRETER_BASE_OFFSET + entry;
 }
 
-__nodiscard bool elf_do_fill_process(Process *proc, BasicFile *file, elf_header_t elf, elf_startup_info_t *info)
+__nodiscard bool elf_do_fill_process(Process *proc, BasicFile *file, elf_header_t header, elf_startup_info_t *info)
 {
     bool ret = true;
 
@@ -253,19 +250,19 @@ __nodiscard bool elf_do_fill_process(Process *proc, BasicFile *file, elf_header_
     // !! after this point, we must make sure that we switch back to the previous address space before returning from this function !!
     MMContext *const prev_mm = mm_switch_context(proc->mm);
 
-    bool should_bias = elf.object_type == ET_DYN; // only ET_DYN (shared libraries) needs randomization
-    ptrdiff_t map_bias = 0;                       // ELF segments are loaded at vaddr + load_bias
+    bool should_bias = header.object_type == ET_DYN; // only ET_DYN (shared libraries) needs randomization
+    ptrdiff_t map_bias = 0;                          // ELF segments are loaded at vaddr + load_bias
 
     bool has_interpreter = false;
     ptr_t interp_entrypoint = 0;
     ptr_t auxv_phdr_vaddr = false; // whether we need to add AT_PHDR, AT_PHENT, AT_PHNUM to the auxv vector
 
-    for (size_t i = 0; i < elf.ph.count; i++)
+    for (size_t i = 0; i < header.ph.count; i++)
     {
         elf_program_hdr_t ph;
-        if (!elf_read_file(file, &ph, elf.ph_offset + i * elf.ph.entry_size, elf.ph.entry_size))
+        if (!elf_read_file(file, &ph, header.ph_offset + i * header.ph.entry_size, header.ph.entry_size))
         {
-            pr_emerg("failed to read program header %zu for '%s'", i, dentry_name(file->dentry).c_str());
+            mEmerg << "failed to read program header " << i << " for '" << dentry_name(file->dentry) << "'";
             const auto prev = mm_switch_context(prev_mm);
             (void) prev;
             return false;
@@ -279,24 +276,24 @@ __nodiscard bool elf_do_fill_process(Process *proc, BasicFile *file, elf_header_
                 char interp_name[ph.size_in_file];
                 if (!elf_read_file(file, interp_name, ph.data_offset, ph.size_in_file))
                 {
-                    pr_emerg("failed to read interpreter name for '%s'", dentry_name(file->dentry).c_str());
+                    mEmerg << "failed to read interpreter name for '" << dentry_name(file->dentry) << "'";
                     const auto prev = mm_switch_context(prev_mm);
                     (void) prev;
                     return false;
                 }
-                pr_dinfo2(elf, "elf interpreter: %s", interp_name);
+                dInfo2<elf> << "elf interpreter: " << interp_name;
                 has_interpreter = true;
                 interp_entrypoint = elf_map_interpreter(interp_name, proc->mm);
                 if (!interp_entrypoint)
                 {
-                    pr_dinfo2(elf, "failed to map interpreter '%s'", interp_name);
+                    dInfo2<elf> << "failed to map interpreter '" << interp_name << "'";
                     const auto prev = mm_switch_context(prev_mm);
                     (void) prev;
                     return false;
                 }
 
                 if (should_bias)
-                    map_bias = elf_determine_loadbias(&elf);
+                    map_bias = elf_determine_loadbias(&header);
 
                 break;
             }
@@ -317,11 +314,11 @@ __nodiscard bool elf_do_fill_process(Process *proc, BasicFile *file, elf_header_
             default:
             {
                 if (MOS_IN_RANGE(ph.header_type, ELF_PT_OS_LOW, ELF_PT_OS_HIGH))
-                    pr_dinfo2(elf, "ignoring OS-specific program header type 0x%x", ph.header_type);
+                    dInfo2<elf> << "ignoring OS-specific program header type 0x" << ph.header_type;
                 else if (MOS_IN_RANGE(ph.header_type, ELF_PT_PROCESSOR_LO, ELF_PT_PROCESSOR_HI))
-                    pr_dinfo2(elf, "ignoring processor-specific program header type 0x%x", ph.header_type);
+                    dInfo2<elf> << "ignoring processor-specific program header type 0x" << ph.header_type;
                 else
-                    pr_warn("unknown program header type 0x%x", ph.header_type);
+                    mWarn << "unknown program header type 0x" << ph.header_type;
                 break;
             }
         };
@@ -330,16 +327,17 @@ __nodiscard bool elf_do_fill_process(Process *proc, BasicFile *file, elf_header_
     if (auxv_phdr_vaddr)
     {
         add_auxv_entry(&info->auxv, AT_PHDR, map_bias + auxv_phdr_vaddr);
-        add_auxv_entry(&info->auxv, AT_PHENT, elf.ph.entry_size);
-        add_auxv_entry(&info->auxv, AT_PHNUM, elf.ph.count);
+        add_auxv_entry(&info->auxv, AT_PHENT, header.ph.entry_size);
+        add_auxv_entry(&info->auxv, AT_PHNUM, header.ph.count);
     }
 
-    add_auxv_entry(&info->auxv, AT_ENTRY, map_bias + elf.entry_point); // the entry point of the executable, not the interpreter
+    add_auxv_entry(&info->auxv, AT_ENTRY, map_bias + header.entry_point); // the entry point of the executable, not the interpreter
 
     ptr_t user_argv, user_envp;
     const auto main_thread = proc->main_thread;
     elf_setup_main_thread(main_thread, info, &user_argv, &user_envp);
-    platform_context_setup_main_thread(main_thread, has_interpreter ? interp_entrypoint : elf.entry_point, main_thread->u_stack.head, info->argc, user_argv, user_envp);
+    platform_context_setup_main_thread(main_thread, has_interpreter ? interp_entrypoint : header.entry_point, main_thread->u_stack.head, info->argc, user_argv,
+                                       user_envp);
 
     MMContext *prev = mm_switch_context(prev_mm);
     MOS_UNUSED(prev);
@@ -371,7 +369,7 @@ bool elf_fill_process(Process *proc, BasicFile *file, const char *path, const ch
     elf_header_t elf;
     if (!elf_read_and_verify_executable(file, &elf))
     {
-        pr_emerg("failed to verify ELF header for '%s'", dentry_name(file->dentry).c_str());
+        mEmerg << "failed to verify ELF header for '" << dentry_name(file->dentry) << "'";
         file->unref(); // close the file, we should have the file's refcount == 0 here
         return ret;
     }

@@ -77,14 +77,14 @@ void unblock_scheduler(void)
 
 void scheduler_add_thread(Thread *thread)
 {
-    MOS_ASSERT(thread_is_valid(thread));
+    MOS_ASSERT(Thread::IsValid(thread));
     MOS_ASSERT_X(thread->state == THREAD_STATE_CREATED || thread->state == THREAD_STATE_READY, "thread %pt is not in a valid state", thread);
     active_scheduler->ops->add_thread(active_scheduler, thread);
 }
 
 void scheduler_remove_thread(Thread *thread)
 {
-    MOS_ASSERT(thread_is_valid(thread));
+    MOS_ASSERT(Thread::IsValid(thread));
     active_scheduler->ops->remove_thread(active_scheduler, thread);
 }
 

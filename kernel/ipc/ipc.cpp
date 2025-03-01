@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#define pr_fmt(fmt) "ipc: " fmt
-
 #include "mos/ipc/ipc.hpp"
 
 #include "mos/filesystem/dentry.hpp"
@@ -11,7 +9,6 @@
 #include "mos/ipc/pipe.hpp"
 #include "mos/lib/sync/spinlock.hpp"
 #include "mos/platform/platform.hpp"
-#include "mos/syslog/printk.hpp"
 #include "mos/tasks/schedule.hpp"
 #include "mos/tasks/signal.hpp"
 #include "mos/tasks/wait.hpp"
@@ -187,13 +184,13 @@ static inode_t *ipc_sysfs_create_ino(IPCServer *ipc_server);
 
 PtrResult<IPCServer> ipc_server_create(mos::string_view name, size_t max_pending)
 {
-    pr_dinfo(ipc, "creating ipc server '%s' with max_pending=%zu", name.data(), max_pending);
+    dInfo<ipc> << "creating ipc server '" << name << "' with max_pending=" << max_pending;
     const auto guard = ipc_lock.lock();
     list_foreach(IPCServer, server, ipc_servers)
     {
         if (server->name == name)
         {
-            pr_dwarn(ipc, "ipc server '%s' already exists", name.data());
+            dWarn<ipc> << "ipc server '" << name << "' already exists";
             return -EEXIST;
         }
     }
@@ -210,12 +207,12 @@ PtrResult<IPCServer> ipc_server_create(mos::string_view name, size_t max_pending
     waitlist_t *waitlist = (waitlist_t *) hashmap_get(&name_waitlist, (ptr_t) server->key());
     if (waitlist)
     {
-        pr_dinfo2(ipc, "found waitlist for ipc server '%s'", name.data());
+        dInfo<ipc> << "found waitlist for ipc server '" << name << "'";
         // wake up all waiters
         waitlist_close(waitlist);
         const size_t n = waitlist_wake_all(waitlist);
         if (n)
-            pr_dinfo2(ipc, "woken up %zu waiters for ipc server '%s'", n, name.data());
+            dInfo<ipc> << "woken up " << n << " waiters for ipc server '" << name << "'";
     }
 
     return server;
@@ -235,7 +232,7 @@ PtrResult<IPCServer> ipc_get_server(mos::string_view name)
 
 PtrResult<IpcDescriptor> ipc_server_accept(IPCServer *ipc_server)
 {
-    pr_dinfo(ipc, "accepting connection on ipc server '%s'...", ipc_server->name.c_str());
+    dInfo<ipc> << "accepting connection on ipc server '" << ipc_server->name << "'...";
 
 retry_accept:
     spinlock_acquire(&ipc_server->lock);
@@ -244,7 +241,7 @@ retry_accept:
     if (ipc_server->pending_max == 0)
     {
         // now we can free the server
-        pr_dinfo2(ipc, "ipc server '%s' is closed, aborting accept()", ipc_server->name.c_str());
+        dInfo<ipc> << "ipc server '" << ipc_server->name << "' is closed, aborting accept()";
         delete ipc_server;
         return -ECONNABORTED;
     }
@@ -252,14 +249,14 @@ retry_accept:
     if (ipc_server->pending_n == 0)
     {
         // no pending connections, wait for a client to connect
-        pr_dinfo2(ipc, "no pending connections, waiting for a client to connect...");
+        dInfo<ipc> << "no pending connections, waiting for a client to connect...";
         MOS_ASSERT(waitlist_append(&ipc_server->server_waitlist));
         spinlock_release(&ipc_server->lock);
         blocked_reschedule();
 
         if (signal_has_pending())
         {
-            pr_dinfo2(ipc, "woken up by a signal, aborting accept()");
+            dInfo<ipc> << "woken up by a signal, aborting accept()";
             waitlist_remove_me(&ipc_server->server_waitlist);
             return -EINTR;
         }
@@ -269,37 +266,37 @@ retry_accept:
 
     // get the first pending connection
     MOS_ASSERT(!list_is_empty(&ipc_server->pending));
-    IpcDescriptor *ipc = list_node_next_entry(&ipc_server->pending, IpcDescriptor);
-    list_remove(ipc);
+    IpcDescriptor *desc = list_node_next_entry(&ipc_server->pending, IpcDescriptor);
+    list_remove(desc);
     ipc_server->pending_n--;
     spinlock_release(&ipc_server->lock);
 
-    MOS_ASSERT(ipc->buffer_size_npages > 0);
-    pr_dinfo(ipc, "accepted a connection on ipc server '%s' with buffer_size_npages=%zu", ipc_server->name.c_str(), ipc->buffer_size_npages);
+    MOS_ASSERT(desc->buffer_size_npages > 0);
+    dInfo<ipc> << "accepted a connection on ipc server '" << ipc_server->name << "' with buffer_size_npages=" << desc->buffer_size_npages;
 
     // setup the pipes
-    auto readPipe = pipe_create(ipc->buffer_size_npages);
+    auto readPipe = pipe_create(desc->buffer_size_npages);
     if (readPipe.isErr())
     {
-        pr_dwarn(ipc, "failed to create read pipe");
+        dWarn<ipc> << "failed to create read pipe";
         // TODO: cleanup
         return readPipe.getErr();
     }
-    ipc->server_read_pipe = readPipe.get();
+    desc->server_read_pipe = readPipe.get();
 
-    auto writePipe = pipe_create(ipc->buffer_size_npages);
+    auto writePipe = pipe_create(desc->buffer_size_npages);
     if (writePipe.isErr())
     {
-        pr_dwarn(ipc, "failed to create write pipe");
+        dWarn<ipc> << "failed to create write pipe";
         // TODO: cleanup
         return writePipe.getErr();
     }
-    ipc->server_write_pipe = writePipe.get();
+    desc->server_write_pipe = writePipe.get();
 
     // wake up the client
-    waitlist_wake_all(&ipc->client_waitlist);
+    waitlist_wake_all(&desc->client_waitlist);
 
-    return ipc;
+    return desc;
 }
 
 PtrResult<IpcDescriptor> ipc_connect_to_server(mos::string_view name, size_t buffer_size)
@@ -307,7 +304,7 @@ PtrResult<IpcDescriptor> ipc_connect_to_server(mos::string_view name, size_t buf
     if (buffer_size == 0)
         return -EINVAL; // buffer size must be > 0
 
-    pr_dinfo(ipc, "connecting to ipc server '%s' with buffer_size=%zu", name.data(), buffer_size);
+    dInfo<ipc> << "connecting to ipc server '" << name << "' with buffer_size=" << buffer_size;
     buffer_size = ALIGN_UP_TO_PAGE(buffer_size);
 
 check_server:
@@ -322,7 +319,7 @@ check_server:
             // we are holding the ipc_servers_lock, so that the server won't deannounce itself
             // while we are checking the server list, thus the server won't be freed
             spinlock_acquire(&ipc_server->lock);
-            pr_dinfo2(ipc, "found ipc server '%s'", ipc_server->name.c_str());
+            dInfo<ipc> << "found ipc server '" << ipc_server->name << "'";
             break;
         }
     }
@@ -349,17 +346,17 @@ check_server:
                     MOS_ASSERT(waitlist_append(waitlist));
                 }
             }
-            pr_dinfo2(ipc, "created waitlist for ipc server '%s'", name.data());
+            dInfo<ipc> << "created waitlist for ipc server '" << name << "'";
         }
 
-        pr_dinfo2(ipc, "no ipc server '%s' found, waiting for it to be created...", name.data());
+        dInfo<ipc> << "no ipc server '" << name << "' found, waiting for it to be created...";
         MOS_ASSERT(waitlist_append(waitlist));
         spinlock_release(&ipc_lock);
         blocked_reschedule();
 
         if (signal_has_pending())
         {
-            pr_dinfo2(ipc, "woken up by a signal, aborting connect()");
+            dInfo<ipc> << "woken up by a signal, aborting connect()";
             delete descriptor;
             return -EINTR;
         }
@@ -372,7 +369,7 @@ check_server:
     // add the connection to the pending list
     if (ipc_server->pending_n >= ipc_server->pending_max)
     {
-        pr_dwarn(ipc, "ipc server '%s' has reached its max pending connections, rejecting connection", ipc_server->name.c_str());
+        dWarn<ipc> << "ipc server '" << ipc_server->name << "' has reached its max pending connections, rejecting connection";
         spinlock_release(&ipc_server->lock);
         delete descriptor;
         return -ECONNREFUSED;
@@ -388,13 +385,13 @@ check_server:
 
     blocked_reschedule();
     // the server has woken us up and has accepted the connection, or it is closed
-    pr_dinfo2(ipc, "ipc server '%s' woke us up", ipc_server->name.c_str());
+    dInfo<ipc> << "ipc server '" << ipc_server->name << "' woke us up";
 
     // check if the server has closed
     if (descriptor->buffer_size_npages == 0)
     {
         // the server is closed, don't touch ipc_server pointer anymore
-        pr_dwarn(ipc, "ipc server '%s' has closed", ipc_server->name.c_str());
+        dWarn<ipc> << "ipc server '" << ipc_server->name << "' has closed";
         ipc_server = NULL;
         delete descriptor;
         return -ECONNREFUSED;
@@ -402,7 +399,7 @@ check_server:
 
     // now we have a connection, both the read and write pipes are ready, the io object is also ready
     // we just need to return the io object
-    pr_dinfo2(ipc, "ipc server '%s' has accepted the connection", ipc_server->name.c_str());
+    dInfo<ipc> << "ipc server '" << ipc_server->name << "' has accepted the connection";
     return descriptor;
 }
 

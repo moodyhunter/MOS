@@ -7,7 +7,6 @@
 #include "mos/filesystem/vfs_types.hpp"
 #include "mos/filesystem/vfs_utils.hpp"
 #include "mos/misc/profiling.hpp"
-#include "mos/syslog/printk.hpp"
 #include "proto/filesystem.pb.h"
 #include "proto/filesystem.services.h"
 
@@ -31,12 +30,15 @@ extern const file_ops_t userfs_fops;
 extern const inode_cache_ops_t userfs_inode_cache_ops;
 extern const superblock_ops_t userfs_sb_ops;
 
-#define userfs_get(_fs, _fmt, ...)                                                                                                                                       \
-    statement_expr(userfs_t *, {                                                                                                                                         \
-        retval = container_of(_fs, userfs_t, fs);                                                                                                                        \
-        userfs_ensure_connected(retval);                                                                                                                                 \
-        pr_dinfo2(userfs, "calling '%s' (rpc_server '%s'): " _fmt, _fs->name.c_str(), retval->rpc_server_name.c_str() __VA_OPT__(, __VA_ARGS__));                        \
-    })
+template<typename... TPrint>
+userfs_t *userfs_get(filesystem_t *fs, TPrint... print)
+{
+    const auto _userfs = container_of(fs, userfs_t, fs);
+    userfs_ensure_connected(_userfs);
+    auto stream = dInfo2<userfs> << "calling '" << fs->name << "' (rpc_server '" << _userfs->rpc_server_name << "'): ";
+    ((stream << print), ...);
+    return _userfs;
+}
 
 struct AutoCleanup
 {
@@ -110,7 +112,7 @@ void userfs_ensure_connected(userfs_t *userfs)
     userfs->rpc_server = rpc_client_create(userfs->rpc_server_name.c_str());
     if (unlikely(!userfs->rpc_server))
     {
-        pr_warn("userfs_ensure_connected: failed to connect to %s", userfs->rpc_server_name.c_str());
+        mWarn << "userfs_ensure_connected: failed to connect to " << userfs->rpc_server_name;
         return;
     }
 }
@@ -121,7 +123,7 @@ static bool userfs_iop_hardlink(dentry_t *d, inode_t *i, dentry_t *new_d)
     MOS_UNUSED(new_d);
 
     const auto name = dentry_name(d);
-    userfs_t *userfs = userfs_get(d->superblock->fs, "hardlink: %s", name.c_str());
+    userfs_t *userfs = userfs_get(d->superblock->fs, "hardlink", name);
     MOS_UNUSED(userfs);
 
     return false;
@@ -130,26 +132,26 @@ static bool userfs_iop_hardlink(dentry_t *d, inode_t *i, dentry_t *new_d)
 static void userfs_iop_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state, dentry_iterator_op add_record)
 {
     const auto name = dentry_name(dentry);
-    userfs_t *userfs = userfs_get(dentry->superblock->fs, "iterate_dir: %s", name.c_str());
+    userfs_t *ufs = userfs_get(dentry->superblock->fs, "iterate_dir", name);
 
     mosrpc_fs_readdir_request req = { .i_ref = i_to_pb_ref(dentry->inode) };
     mosrpc_fs_readdir_response resp = {};
 
     const pf_point_t ev = profile_enter();
-    const int result = fs_client_readdir(userfs->rpc_server, &req, &resp);
+    const int result = fs_client_readdir(ufs->rpc_server, &req, &resp);
     profile_leave(ev, "userfs.'%s'.readdir", userfs->rpc_server_name);
 
     AutoCleanup cleanup(mosrpc_fs_readdir_response_fields, &resp);
 
     if (result != RPC_RESULT_OK)
     {
-        pr_warn("userfs_iop_iterate_dir: failed to readdir %s: %d", name.c_str(), result);
+        mWarn << "userfs_iop_iterate_dir: failed to readdir " << name << ": " << result;
         return;
     }
 
     if (!resp.entries_count)
     {
-        pr_dwarn(userfs, "userfs_iop_iterate_dir: failed to readdir %s: %s", name.c_str(), resp.result.error);
+        dWarn<userfs> << "userfs_iop_iterate_dir: failed to readdir " << name << ": " << resp.result.error;
         return;
     }
 
@@ -164,7 +166,7 @@ static void userfs_iop_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state,
 static bool userfs_iop_lookup(inode_t *dir, dentry_t *dentry)
 {
     const auto name = dentry_name(dentry);
-    userfs_t *userfs = userfs_get(dir->superblock->fs, "lookup: %s", name.c_str());
+    userfs_t *fs = userfs_get(dir->superblock->fs, "lookup", name);
 
     mosrpc_fs_lookup_request req = {
         .i_ref = i_to_pb_ref(dir),
@@ -173,14 +175,14 @@ static bool userfs_iop_lookup(inode_t *dir, dentry_t *dentry)
 
     mosrpc_fs_lookup_response resp = {};
     const pf_point_t ev = profile_enter();
-    const int result = fs_client_lookup(userfs->rpc_server, &req, &resp);
-    profile_leave(ev, "userfs.'%s'.lookup", userfs->rpc_server_name);
+    const int result = fs_client_lookup(fs->rpc_server, &req, &resp);
+    profile_leave(ev, "userfs.'%s'.lookup", ufs->rpc_server_name);
 
     AutoCleanup cleanup(mosrpc_fs_lookup_response_fields, &resp);
 
     if (result != RPC_RESULT_OK)
     {
-        pr_warn("userfs_iop_lookup: failed to lookup %s: %d", name.c_str(), result);
+        mWarn << "userfs_iop_lookup: failed to lookup " << name << ": " << result;
         return false;
     }
 
@@ -201,7 +203,7 @@ static bool userfs_iop_lookup(inode_t *dir, dentry_t *dentry)
 static bool userfs_iop_mkdir(inode_t *dir, dentry_t *dentry, file_perm_t perm)
 {
     const auto name = dentry_name(dentry);
-    userfs_t *userfs = userfs_get(dir->superblock->fs, "mkdir: %s", name.c_str());
+    userfs_t *fs = userfs_get(dir->superblock->fs, "mkdir", name);
 
     mosrpc_fs_make_dir_request req = {
         .i_ref = i_to_pb_ref(dir),
@@ -211,20 +213,20 @@ static bool userfs_iop_mkdir(inode_t *dir, dentry_t *dentry, file_perm_t perm)
     mosrpc_fs_make_dir_response resp = {};
 
     const pf_point_t pp = profile_enter();
-    const int result = fs_client_make_dir(userfs->rpc_server, &req, &resp);
+    const int result = fs_client_make_dir(fs->rpc_server, &req, &resp);
     profile_leave(pp, "userfs.'%s'.make_dir", userfs->rpc_server_name);
 
     AutoCleanup cleanup(mosrpc_fs_make_dir_response_fields, &resp);
 
     if (result != RPC_RESULT_OK)
     {
-        pr_warn("userfs_iop_mkdir: failed to mkdir %s: %d", name.c_str(), result);
+        mWarn << "userfs_iop_mkdir: failed to mkdir " << name << ": " << result;
         return false;
     }
 
     if (!resp.result.success)
     {
-        pr_dwarn(userfs, "userfs_iop_mkdir: failed to mkdir %s: %s", name.c_str(), resp.result.error);
+        dWarn<userfs> << "userfs_iop_mkdir: failed to mkdir " << name << ": " << resp.result.error;
         return false;
     }
 
@@ -246,7 +248,7 @@ static bool userfs_iop_mknode(inode_t *dir, dentry_t *dentry, file_type_t type, 
     MOS_UNUSED(dev);
 
     const auto name = dentry_name(dentry);
-    userfs_t *userfs = userfs_get(dir->superblock->fs, "mknode: %s", name.c_str());
+    userfs_t *userfs = userfs_get(dir->superblock->fs, "mknode", name);
     MOS_UNUSED(userfs);
 
     return false;
@@ -255,7 +257,7 @@ static bool userfs_iop_mknode(inode_t *dir, dentry_t *dentry, file_type_t type, 
 static bool userfs_iop_newfile(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm)
 {
     const auto name = dentry_name(dentry);
-    userfs_t *userfs = userfs_get(dir->superblock->fs, "newfile: %s", name.c_str());
+    userfs_t *fs = userfs_get(dir->superblock->fs, "newfile", name);
 
     const mosrpc_fs_create_file_request req{
         .i_ref = i_to_pb_ref(dir),
@@ -266,20 +268,20 @@ static bool userfs_iop_newfile(inode_t *dir, dentry_t *dentry, file_type_t type,
     mosrpc_fs_create_file_response resp = {};
 
     const pf_point_t pp = profile_enter();
-    const int result = fs_client_create_file(userfs->rpc_server, &req, &resp);
+    const int result = fs_client_create_file(fs->rpc_server, &req, &resp);
     profile_leave(pp, "userfs.'%s'.create_file", userfs->rpc_server_name);
 
     AutoCleanup cleanup(mosrpc_fs_create_file_response_fields, &resp);
 
     if (result != RPC_RESULT_OK)
     {
-        pr_warn("userfs_iop_newfile: failed to create file %s: %d", name.c_str(), result);
+        mWarn << "userfs_iop_newfile: failed to create file " << name << ": " << result;
         return false;
     }
 
     if (!resp.result.success)
     {
-        pr_dwarn(userfs, "userfs_iop_newfile: failed to create file %s: %s", name.c_str(), resp.result.error);
+        dWarn<userfs> << "userfs_iop_newfile: failed to create file " << name << ": " << resp.result.error;
         return false;
     }
 
@@ -295,7 +297,7 @@ static bool userfs_iop_newfile(inode_t *dir, dentry_t *dentry, file_type_t type,
 static size_t userfs_iop_readlink(dentry_t *dentry, char *buffer, size_t buflen)
 {
     const auto name = dentry_name(dentry);
-    userfs_t *userfs = userfs_get(dentry->superblock->fs, "readlink: %s", name.c_str());
+    userfs_t *fs = userfs_get(dentry->superblock->fs, "readlink", name);
 
     const mosrpc_fs_readlink_request req = {
         .i_ref = i_to_pb_ref(dentry->inode),
@@ -303,20 +305,20 @@ static size_t userfs_iop_readlink(dentry_t *dentry, char *buffer, size_t buflen)
     mosrpc_fs_readlink_response resp = {};
 
     const pf_point_t pp = profile_enter();
-    const int result = fs_client_readlink(userfs->rpc_server, &req, &resp);
+    const int result = fs_client_readlink(fs->rpc_server, &req, &resp);
     profile_leave(pp, "userfs.'%s'.readlink", userfs->rpc_server_name);
 
     AutoCleanup cleanup(mosrpc_fs_readlink_response_fields, &resp);
 
     if (result != RPC_RESULT_OK)
     {
-        pr_warn("userfs_iop_readlink: failed to readlink %s: %d", name.c_str(), result);
+        mWarn << "userfs_iop_readlink: failed to readlink " << name << ": " << result;
         return -EIO;
     }
 
     if (!resp.result.success)
     {
-        pr_dwarn(userfs, "userfs_iop_readlink: failed to readlink %s: %s", name.c_str(), resp.result.error);
+        dWarn<userfs> << "userfs_iop_readlink: failed to readlink " << name << ": " << resp.result.error;
         return -EIO;
     }
 
@@ -337,7 +339,7 @@ static bool userfs_iop_rename(inode_t *old_dir, dentry_t *old_dentry, inode_t *n
 
     const auto old_name = dentry_name(old_dentry);
     const auto new_name = dentry_name(new_dentry);
-    userfs_t *userfs = userfs_get(old_dir->superblock->fs, "rename: %s -> %s", old_name.c_str(), new_name.c_str());
+    userfs_t *userfs = userfs_get(old_dir->superblock->fs, "rename", old_name, " to ", new_name);
     MOS_UNUSED(userfs);
 
     return false;
@@ -349,7 +351,7 @@ static bool userfs_iop_rmdir(inode_t *dir, dentry_t *dentry)
     MOS_UNUSED(dentry);
 
     const auto name = dentry_name(dentry);
-    userfs_t *userfs = userfs_get(dir->superblock->fs, "rmdir: %s", name.c_str());
+    userfs_t *userfs = userfs_get(dir->superblock->fs, "rmdir", name);
     MOS_UNUSED(userfs);
 
     return false;
@@ -362,7 +364,7 @@ static bool userfs_iop_symlink(inode_t *dir, dentry_t *dentry, const char *symna
     MOS_UNUSED(symname);
 
     const auto name = dentry_name(dentry);
-    userfs_t *userfs = userfs_get(dir->superblock->fs, "symlink: %s", name.c_str());
+    userfs_t *userfs = userfs_get(dir->superblock->fs, "symlink", name);
     MOS_UNUSED(userfs);
 
     return false;
@@ -371,7 +373,7 @@ static bool userfs_iop_symlink(inode_t *dir, dentry_t *dentry, const char *symna
 static bool userfs_iop_unlink(inode_t *dir, dentry_t *dentry)
 {
     const auto name = dentry_name(dentry);
-    userfs_t *userfs = userfs_get(dir->superblock->fs, "unlink: %s", name.c_str());
+    userfs_t *fs = userfs_get(dir->superblock->fs, "unlink", name);
 
     const mosrpc_fs_unlink_request req = {
         .i_ref = i_to_pb_ref(dir),
@@ -380,20 +382,20 @@ static bool userfs_iop_unlink(inode_t *dir, dentry_t *dentry)
     mosrpc_fs_unlink_response resp = {};
 
     const pf_point_t pp = profile_enter();
-    const int result = fs_client_unlink(userfs->rpc_server, &req, &resp);
+    const int result = fs_client_unlink(fs->rpc_server, &req, &resp);
     profile_leave(pp, "userfs.'%s'.unlink", userfs->rpc_server_name);
 
     AutoCleanup cleanup(mosrpc_fs_unlink_response_fields, &resp);
 
     if (result != RPC_RESULT_OK)
     {
-        pr_warn("userfs_iop_unlink: failed to unlink %s: %d", name.c_str(), result);
+        mWarn << "userfs_iop_unlink: failed to unlink " << name << ": " << result;
         return false;
     }
 
     if (!resp.result.success)
     {
-        pr_dwarn(userfs, "userfs_iop_unlink: failed to unlink %s: %s", name.c_str(), resp.result.error);
+        dWarn<userfs> << "userfs_iop_unlink: failed to unlink " << name << ": " << resp.result.error;
         return false;
     }
 
@@ -435,7 +437,7 @@ const file_ops_t userfs_fops = {
 
 static PtrResult<phyframe_t> userfs_inode_cache_fill_cache(inode_cache_t *cache, uint64_t pgoff)
 {
-    userfs_t *userfs = userfs_get(cache->owner->superblock->fs, "fill_cache", );
+    userfs_t *fs = userfs_get(cache->owner->superblock->fs, "fill_cache");
 
     const mosrpc_fs_getpage_request req = {
         .i_ref = i_to_pb_ref(cache->owner),
@@ -445,20 +447,20 @@ static PtrResult<phyframe_t> userfs_inode_cache_fill_cache(inode_cache_t *cache,
     mosrpc_fs_getpage_response resp = {};
 
     const pf_point_t pp = profile_enter();
-    const int result = fs_client_get_page(userfs->rpc_server, &req, &resp);
+    const int result = fs_client_get_page(fs->rpc_server, &req, &resp);
     profile_leave(pp, "userfs.'%s'.getpage", userfs->rpc_server_name);
 
     AutoCleanup cleanup(mosrpc_fs_getpage_response_fields, &resp);
 
     if (result != RPC_RESULT_OK)
     {
-        pr_warn("userfs_inode_cache_fill_cache: failed to getpage: %d", result);
+        mWarn << "userfs_inode_cache_fill_cache: failed to getpage: " << result;
         return -EIO;
     }
 
     if (!resp.result.success)
     {
-        pr_dwarn(userfs, "userfs_inode_cache_fill_cache: failed to getpage: %s", resp.result.error);
+        dWarn<userfs> << "userfs_inode_cache_fill_cache: failed to getpage: " << resp.result.error;
         return -EIO;
     }
 
@@ -466,7 +468,7 @@ static PtrResult<phyframe_t> userfs_inode_cache_fill_cache(inode_cache_t *cache,
     phyframe_t *page = pmm_ref_one(mm_get_free_page());
     if (!page)
     {
-        pr_warn("userfs_inode_cache_fill_cache: failed to allocate page");
+        mWarn << "userfs_inode_cache_fill_cache: failed to allocate page";
         return -ENOMEM;
     }
 
@@ -477,7 +479,7 @@ static PtrResult<phyframe_t> userfs_inode_cache_fill_cache(inode_cache_t *cache,
 
 long userfs_inode_cache_flush_page(inode_cache_t *cache, uint64_t pgoff, phyframe_t *page)
 {
-    userfs_t *userfs = userfs_get(cache->owner->superblock->fs, "flush_page", );
+    userfs_t *fs = userfs_get(cache->owner->superblock->fs, "flush_page");
 
     mosrpc_fs_putpage_request req = {
         .i_ref = i_to_pb_ref(cache->owner),
@@ -491,7 +493,7 @@ long userfs_inode_cache_flush_page(inode_cache_t *cache, uint64_t pgoff, phyfram
     mosrpc_fs_putpage_response resp = {};
 
     const pf_point_t pp = profile_enter();
-    const int result = fs_client_put_page(userfs->rpc_server, &req, &resp);
+    const int result = fs_client_put_page(fs->rpc_server, &req, &resp);
     profile_leave(pp, "userfs.'%s'.putpage", userfs->rpc_server_name);
 
     AutoCleanup cleanup(mosrpc_fs_putpage_request_fields, &req);
@@ -499,13 +501,13 @@ long userfs_inode_cache_flush_page(inode_cache_t *cache, uint64_t pgoff, phyfram
 
     if (result != RPC_RESULT_OK)
     {
-        pr_warn("userfs_inode_cache_flush_page: failed to putpage: %d", result);
+        mWarn << "userfs_inode_cache_flush_page: failed to putpage: " << result;
         return -EIO;
     }
 
     if (!resp.result.success)
     {
-        pr_dwarn(userfs, "userfs_inode_cache_flush_page: failed to putpage: %s", resp.result.error);
+        dWarn<userfs> << "userfs_inode_cache_flush_page: failed to putpage: " << resp.result.error;
         return -EIO;
     }
 
@@ -521,7 +523,7 @@ const inode_cache_ops_t userfs_inode_cache_ops = {
 
 long userfs_sync_inode(inode_t *inode)
 {
-    userfs_t *userfs = userfs_get(inode->superblock->fs, "sync_inode: %llu", inode->ino);
+    userfs_t *fs = userfs_get(inode->superblock->fs, "sync_inode: %llu", inode->ino);
 
     mosrpc_fs_sync_inode_request req = {};
     req.i_ref = i_to_pb_ref(inode);
@@ -529,18 +531,18 @@ long userfs_sync_inode(inode_t *inode)
 
     mosrpc_fs_sync_inode_response resp = {};
     const pf_point_t pp = profile_enter();
-    const int result = fs_client_sync_inode(userfs->rpc_server, &req, &resp);
+    const int result = fs_client_sync_inode(fs->rpc_server, &req, &resp);
     profile_leave(pp, "userfs.'%s'.sync_inode", userfs->rpc_server_name);
 
     if (result != RPC_RESULT_OK)
     {
-        pr_warn("userfs_sync_inode: failed to sync inode %llu: %d", inode->ino, result);
+        mWarn << "userfs_sync_inode: failed to sync inode " << inode->ino << ": " << result;
         return -EIO;
     }
 
     if (!resp.result.success)
     {
-        pr_dwarn(userfs, "userfs_sync_inode: failed to sync inode %llu: %s", inode->ino, resp.result.error);
+        dWarn<userfs> << "userfs_sync_inode: failed to sync inode " << inode->ino << ": " << resp.result.error;
         return -EIO;
     }
 
@@ -554,7 +556,7 @@ const superblock_ops_t userfs_sb_ops = {
 
 PtrResult<dentry_t> userfs_fsop_mount(filesystem_t *fs, const char *device, const char *options)
 {
-    userfs_t *userfs = userfs_get(fs, "mount: %s", fs->name.c_str());
+    userfs_t *userfs = userfs_get(fs, "mount", fs->name);
 
     const mosrpc_fs_mount_request req = {
         .fs_name = (char *) fs->name.c_str(),
@@ -572,13 +574,13 @@ PtrResult<dentry_t> userfs_fsop_mount(filesystem_t *fs, const char *device, cons
 
     if (result != RPC_RESULT_OK)
     {
-        pr_warn("userfs_fsop_mount: failed to mount %s: %d", fs->name.c_str(), result);
+        mWarn << "userfs_fsop_mount: failed to mount " << fs->name << ": " << result;
         return -EIO;
     }
 
     if (!resp.result.success)
     {
-        pr_warn("userfs_fsop_mount: failed to mount %s: %s", fs->name.c_str(), resp.result.error);
+        mWarn << "userfs_fsop_mount: failed to mount " << fs->name << ": " << resp.result.error;
         return -EIO;
     }
 

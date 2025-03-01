@@ -30,7 +30,7 @@ enum VMFlag : unsigned int
 };
 MOS_ENUM_FLAGS(VMFlag, VMFlags);
 
-inline mos::SyslogStream &operator<<(mos::SyslogStream &stream, VMFlags flags)
+inline mos::SyslogStreamWriter operator<<(mos::SyslogStreamWriter stream, VMFlags flags)
 {
     return stream << (flags.test(VM_READ) ? 'r' : '-') << (flags.test(VM_WRITE) ? 'w' : '-') << (flags.test(VM_EXEC) ? 'x' : '-');
 }

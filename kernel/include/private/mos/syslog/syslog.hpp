@@ -5,9 +5,11 @@
 #include "mos/syslog/debug.hpp"
 #include "mos/syslog/formatter.hpp"
 
+#include <array>
 #include <mos/refcount.hpp>
 #include <mos/string_view.hpp>
 #include <mos/type_utils.hpp>
+#include <type_traits>
 
 enum class LogLevel
 {
@@ -33,74 +35,87 @@ namespace mos
         explicit Preformatted(M, Args... args) : targs(args...) {};
     };
 
-    struct SyslogStream : private mos::RefCounted
+    using SyslogBuffer = std::array<char, MOS_PRINTK_BUFFER_SIZE>;
+
+    struct SyslogStreamWriter : private mos::RefCounted
     {
-        static SyslogStream NewStream(DebugFeature feature, LogLevel level);
+        static SyslogStreamWriter NewStream(DebugFeature feature, LogLevel level, RCCore *rcCore, SyslogBuffer &buf)
+        {
+            return SyslogStreamWriter(feature, level, rcCore, buf);
+        }
 
-        ~SyslogStream();
+        ~SyslogStreamWriter();
 
         template<typename T>
-        requires std::is_integral_v<T> inline SyslogStream &operator<<(T value)
+        requires std::is_integral_v<T> inline SyslogStreamWriter &operator<<(T value)
         {
             if (!should_print)
                 return *this;
 
-            pos += snprintf(fmtbuffer + pos, MOS_PRINTK_BUFFER_SIZE, "%lld", (long long) value);
+            pos += snprintf(&fmtbuffer[pos], MOS_PRINTK_BUFFER_SIZE, "%lld", (long long) value);
             return *this;
         }
 
         template<typename T>
-        requires std::is_void_v<T> inline SyslogStream &operator<<(T *ptr)
+        requires std::is_void_v<T> inline SyslogStreamWriter &operator<<(T *ptr)
         {
             if (!should_print)
                 return *this;
 
-            pos += snprintf(fmtbuffer + pos, MOS_PRINTK_BUFFER_SIZE, "%p", ptr);
+            pos += snprintf(&fmtbuffer[pos], MOS_PRINTK_BUFFER_SIZE, "%p", ptr);
             return *this;
         }
 
-        inline SyslogStream &operator<<(char c)
+        template<typename E>
+        requires(std::is_enum_v<E>) inline SyslogStreamWriter &operator<<(E value)
         {
             if (!should_print)
                 return *this;
 
-            pos += snprintf(fmtbuffer + pos, MOS_PRINTK_BUFFER_SIZE, "%c", c);
+            pos += snprintf(&fmtbuffer[pos], MOS_PRINTK_BUFFER_SIZE, "%d", (int) value);
             return *this;
         }
 
-        inline SyslogStream &operator<<(const char *str)
+        inline SyslogStreamWriter &operator<<(char c)
         {
             if (!should_print)
                 return *this;
 
-            pos += snprintf(fmtbuffer + pos, MOS_PRINTK_BUFFER_SIZE, "%s", str);
+            pos += snprintf(&fmtbuffer[pos], MOS_PRINTK_BUFFER_SIZE, "%c", c);
             return *this;
         }
 
-        inline SyslogStream &operator<<(mos::string_view sv)
+        inline SyslogStreamWriter &operator<<(const char *str)
         {
             if (!should_print)
                 return *this;
 
-            pos += snprintf(fmtbuffer + pos, MOS_PRINTK_BUFFER_SIZE, "%.*s", (int) sv.size(), sv.data());
+            pos += snprintf(&fmtbuffer[pos], MOS_PRINTK_BUFFER_SIZE, "%s", str);
+            return *this;
+        }
+
+        inline SyslogStreamWriter &operator<<(mos::string_view sv)
+        {
+            if (!should_print)
+                return *this;
+
+            pos += snprintf(&fmtbuffer[pos], MOS_PRINTK_BUFFER_SIZE, "%.*s", (int) sv.size(), sv.data());
             return *this;
         }
 
         template<typename M, typename... Args>
-        inline SyslogStream operator<<(const Preformatted<M, Args...> &fmt)
+        inline SyslogStreamWriter operator<<(const Preformatted<M, Args...> &fmt)
         {
             mos::FormatImpl::print_m<M>(*this, fmt.targs);
             return *this;
         }
 
       private:
-        explicit SyslogStream(DebugFeature feature, LogLevel level);
+        explicit SyslogStreamWriter(DebugFeature feature, LogLevel level, RCCore *rcCore, SyslogBuffer &fmtbuffer);
 
       private:
-        char fmtbuffer[MOS_PRINTK_BUFFER_SIZE] = { 0 };
+        SyslogBuffer &fmtbuffer;
         size_t pos = 0;
-
-        // std::unique_ptr<Core> core;
 
       private:
         const u64 timestamp;
@@ -116,11 +131,15 @@ namespace mos
         static constexpr auto level_value = level;
 
         template<typename T>
-        SyslogStream operator<<(const T &value) const
+        SyslogStreamWriter operator<<(const T &value) const
         {
             // copy-elision
-            return SyslogStream::NewStream(feature, level) << value;
+            return SyslogStreamWriter::NewStream(feature, level, &RefCounter, fmtBuffer) << value;
         }
+
+      private:
+        mutable SyslogBuffer fmtBuffer{};
+        mutable RCCore RefCounter{};
     };
 } // namespace mos
 

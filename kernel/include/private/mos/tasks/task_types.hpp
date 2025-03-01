@@ -94,7 +94,7 @@ struct Process : mos::NamedType<"Process">
         return mos::create<Process>(Private(), parent, name);
     }
 
-    friend mos::SyslogStream operator<<(mos::SyslogStream &stream, const Process *process)
+    friend mos::SyslogStreamWriter operator<<(mos::SyslogStreamWriter stream, const Process *process)
     {
         if (!Process::IsValid(process))
             return stream << "[invalid]";
@@ -130,6 +130,22 @@ struct Thread : mos::NamedType<"Thread">
     thread_signal_info_t signal_info;
 
     ~Thread();
+
+    static bool IsValid(const Thread *thread)
+    {
+        if (auto ptr = thread)
+            return ptr->magic == THREAD_MAGIC_THRD;
+        else
+            return false;
+    }
+
+    friend mos::SyslogStreamWriter operator<<(mos::SyslogStreamWriter stream, const Thread *thread)
+    {
+        if (!Thread::IsValid(thread))
+            return stream << "[invalid]";
+
+        return stream << fmt("[t{}:{}]", thread->tid, thread->name.value_or("<no name>"));
+    }
 };
 
 /** @} */

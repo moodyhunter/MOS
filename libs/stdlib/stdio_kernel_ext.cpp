@@ -4,7 +4,6 @@
 #include "mos/misc/kallsyms.hpp"
 #include "mos/platform/platform.hpp"
 #include "mos/tasks/task_types.hpp"
-#include "mos/tasks/thread.hpp"
 
 #include <mos/types.hpp>
 #include <mos_stdio.hpp>
@@ -86,7 +85,7 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
 
                     const auto name = io->name();
                     wrap_print("{ '%s'", name.c_str());
-                    if (!io->isValid())
+                    if (!IO::IsValid(io))
                         wrap_print(", invalid");
                     wrap_print(" }");
                     goto done;
@@ -125,7 +124,7 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
                 wrap_print("(null)");
                 goto done;
             }
-            MOS_ASSERT_X(thread_is_valid(thread), "thread is invalid");
+            MOS_ASSERT_X(Thread::IsValid(thread), "thread is invalid");
             wrap_print("[t%d:%s]", thread->tid, thread->name.empty() ? "<no name>" : thread->name.data());
             goto done;
         }

@@ -82,13 +82,14 @@ long do_syslog(LogLevel level, const char *file, const char *func, int line, con
     do_print_syslog(&msg, feat);
     return 0;
 }
-mos::SyslogStream mos::SyslogStream::NewStream(DebugFeature feature, LogLevel level)
-{
-    return SyslogStream(feature, level);
-}
 
-mos::SyslogStream::SyslogStream(DebugFeature feature, LogLevel level)
-    : timestamp(platform_get_timestamp()), feature(feature), level(level), should_print(!mos_debug_info_map[feature] || mos_debug_info_map[feature]->enabled)
+mos::SyslogStreamWriter::SyslogStreamWriter(DebugFeature feature, LogLevel level, RCCore *rcCore, SyslogBuffer &fmtbuffer)
+    : RefCounted(rcCore),                                                                //
+      fmtbuffer(fmtbuffer),                                                              //
+      timestamp(platform_get_timestamp()),                                               //
+      feature(feature),                                                                  //
+      level(level),                                                                      //
+      should_print(!mos_debug_info_map[feature] || mos_debug_info_map[feature]->enabled) //
 {
     if (level != LogLevel::UNSET)
     {
@@ -96,11 +97,12 @@ mos::SyslogStream::SyslogStream(DebugFeature feature, LogLevel level)
         fmtbuffer[0] = '\n';
         fmtbuffer[1] = '\0';
     }
+
     if (should_print && mos_debug_info_map[feature])
-        pos += snprintf(fmtbuffer + pos, MOS_PRINTK_BUFFER_SIZE - pos, "%-10s | ", mos_debug_info_map[feature]->name);
+        pos += snprintf(fmtbuffer.data() + pos, MOS_PRINTK_BUFFER_SIZE - pos, "%-10s | ", mos_debug_info_map[feature]->name);
 }
 
-mos::SyslogStream::~SyslogStream()
+mos::SyslogStreamWriter::~SyslogStreamWriter()
 {
     if (GetRef() == 1)
     {
@@ -110,7 +112,7 @@ mos::SyslogStream::~SyslogStream()
         if (unlikely(!printk_console))
             printk_console = consoles.front();
 
-        print_to_console(printk_console, level, fmtbuffer, pos);
+        print_to_console(printk_console, level, fmtbuffer.data(), pos);
         fmtbuffer[0] = '\0';
         pos = -1;
     }

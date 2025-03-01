@@ -52,7 +52,7 @@ Thread *thread_allocate(Process *owner, thread_mode tflags)
 void thread_destroy(Thread *thread)
 {
     MOS_ASSERT_X(thread != current_thread, "you cannot just destroy yourself");
-    if (!thread_is_valid(thread))
+    if (!Thread::IsValid(thread))
         return;
 
     thread_table.remove(thread->tid);
@@ -164,7 +164,7 @@ done_efault:
 
 Thread *thread_complete_init(Thread *thread)
 {
-    if (!thread_is_valid(thread))
+    if (!Thread::IsValid(thread))
         return NULL;
 
     thread_table.insert(thread->tid, thread);
@@ -180,7 +180,7 @@ Thread *thread_get(tid_t tid)
         return NULL;
     }
 
-    if (thread_is_valid(*ppthread))
+    if (Thread::IsValid(*ppthread))
         return *ppthread;
 
     return NULL;
@@ -209,14 +209,14 @@ bool thread_wait_for_tid(tid_t tid)
 
 void thread_exit(Thread *&&t)
 {
-    MOS_ASSERT_X(thread_is_valid(t), "thread_handle_exit() called on invalid thread");
+    MOS_ASSERT_X(Thread::IsValid(t), "thread_handle_exit() called on invalid thread");
     spinlock_acquire(&t->state_lock);
     thread_exit_locked(std::move(t));
 }
 
 [[noreturn]] void thread_exit_locked(Thread *&&t)
 {
-    MOS_ASSERT_X(thread_is_valid(t), "thread_exit_locked() called on invalid thread");
+    MOS_ASSERT_X(Thread::IsValid(t), "thread_exit_locked() called on invalid thread");
 
     pr_dinfo(thread, "thread %pt is exiting", t);
 

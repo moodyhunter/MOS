@@ -1,6 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-#define pr_fmt(fmt) "sysfs: " fmt
 #include "mos/filesystem/sysfs/sysfs.hpp"
 
 #include "mos/filesystem/dentry.hpp"
@@ -50,7 +49,7 @@ void sysfs_register(sysfs_dir_t *dir)
 {
     linked_list_init(list_node(dir));
     list_node_append(&sysfs_dirs, list_node(dir));
-    pr_dinfo2(sysfs, "registering '%s'", dir->name.c_str());
+    dInfo2<sysfs> << "registering '" << dir->name << "'";
     MOS_ASSERT(sysfs_sb);
     sysfs_do_register(dir);
 }
@@ -130,7 +129,7 @@ static bool sysfs_fops_open(inode_t *inode, BasicFile *file, bool created)
 
 static void sysfs_fops_release(BasicFile *file)
 {
-    pr_dinfo2(sysfs, "closing %s in %s", file->dentry->name.c_str(), dentry_parent(*file->dentry)->name.c_str());
+    dInfo2<sysfs> << "closing " << file->dentry->name << " in " << dentry_parent(*file->dentry)->name;
     sysfs_file_t *f = (sysfs_file_t *) file->private_data;
     if (f->buf_page)
         mm_free_pages(f->buf_page, f->buf_npages), f->buf_page = NULL, f->buf_npages = 0, f->buf_head_offset = 0;
