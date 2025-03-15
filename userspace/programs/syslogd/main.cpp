@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <thread>
 #include <unistd.h>
 
 RPC_DECLARE_SERVER(syslogd, SYSLOGD_RPC_X)
@@ -63,13 +64,11 @@ int main(int argc, char **argv)
     MOS_UNUSED(argv);
 
     puts("syslogd: starting");
-
     rpc_server_t *const server = rpc_server_create(SYSLOGD_SERVICE_NAME, NULL);
     rpc_server_set_on_connect(server, syslogd_on_connect);
     rpc_server_set_on_disconnect(server, syslogd_on_disconnect);
     rpc_server_register_functions(server, syslogd_functions, MOS_ARRAY_SIZE(syslogd_functions));
     rpc_server_exec(server);
-
     fputs("syslogd: server exited\n", stderr);
     return 0;
 }

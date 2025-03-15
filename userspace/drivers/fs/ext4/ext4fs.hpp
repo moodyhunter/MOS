@@ -6,10 +6,10 @@
 #include "ext4_blockdev.h"
 #include "ext4_types.h"
 #include "proto/blockdev.pb.h"
-#include "proto/blockdev.services.h"
+#include "proto/blockdev.service.h"
 #include "proto/filesystem.pb.h"
-#include "proto/filesystem.services.h"
-#include "proto/userfs-manager.services.h"
+#include "proto/filesystem.service.h"
+#include "proto/userfs-manager.service.h"
 #undef __unused
 
 #include <librpc/macro_magic.h>

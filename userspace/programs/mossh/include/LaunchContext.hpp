@@ -49,7 +49,6 @@ struct LaunchContext
     bool should_wait = true;
     int exit_code = 0;
     int exit_signal = 0;
-    bool success = false;
 
     std::map<int, std::unique_ptr<BaseRedirection>> redirections; // fd -> redirection
 
@@ -59,8 +58,8 @@ struct LaunchContext
     } launch_type = { true, true, true };
 
   private:
-    bool try_start_alias();
-    bool try_start_builtin();
+    bool try_start_alias() const;
+    bool try_start_builtin() const;
     bool try_start_program();
 
     bool spawn_in_child() const;

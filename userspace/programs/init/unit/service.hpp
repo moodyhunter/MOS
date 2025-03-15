@@ -8,12 +8,15 @@ struct Service : public Unit
     std::vector<std::string> exec;
 
   private:
-    bool do_start() override;
-    bool do_stop() override;
-    bool do_load(const toml::table &data) override;
-    void do_print(std::ostream &os) const override;
+    UnitType GetType() const override
+    {
+        return UnitType::Service;
+    }
+    bool Start() override;
+    bool Stop() override;
+    bool onLoad(const toml::table &data) override;
+    void onPrint(std::ostream &os) const override;
 
   private:
-    pid_t pid = -1;
     int status = -1;
 };

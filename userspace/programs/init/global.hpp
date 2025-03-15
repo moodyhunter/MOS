@@ -1,27 +1,15 @@
 #pragma once
 
-#include "unit/unit.hpp"
-
 #include <filesystem>
-#include <map>
-#include <memory>
-#include <string>
 #include <toml++/toml.hpp>
 
-struct GlobalConfig
-{
-    std::string default_target;
+using namespace std::string_literals;
 
-    void parse(toml::table &data)
-    {
-        this->default_target = data["default_target"].value_or("default.target");
-        data.erase("default_target");
-    }
-};
+#define RED(text)   "\033[1;31m" text "\033[0m"
+#define GREEN(text) "\033[1;32m" text "\033[0m"
 
-extern GlobalConfig global_config;
-extern bool debug;
-extern std::map<std::string, pid_t> service_pid;
-extern std::map<std::string, std::shared_ptr<Unit>> units;
+#define FAILED()   RED("[FAILED]")
+#define OK()       GREEN("[  OK  ]")
+#define STARTING() "\033[0m         "
 
-void load_configurations(const std::filesystem::path &config_path);
+std::vector<toml::table> ReadAllConfig(const std::filesystem::path &config_path);

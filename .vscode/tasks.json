@@ -52,6 +52,8 @@
                 "-device", "virtio-gpu-pci",
                 "-drive", "file=${workspaceFolder}/blockdev.img,format=raw,if=virtio",
                 "-vga", "none",
+                "-device", "virtio-net-pci,netdev=net0",
+                "-netdev", "user,id=net0",
             ],
             "problemMatcher": [ ],
             "group": "none",

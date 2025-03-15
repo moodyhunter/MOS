@@ -110,14 +110,10 @@ const FUNCTIONS: &[RpcCallFuncInfo<BlockDevDriver>] = &[
     rpc_server_function!(2, BlockDevDriver::on_write, Buffer),
 ];
 
-pub fn run_blockdev(transport: PciTransport, function: DeviceFunction) -> RpcResult<()> {
-    let devlocation = format!(
-        "{:02x}:{:02x}:{:02x}",
-        function.bus, function.device, function.function
-    );
+pub fn run_blockdev(transport: PciTransport, func: DeviceFunction) -> RpcResult<()> {
+    let devlocation = format!("{:02x}:{:02x}:{:02x}", func.bus, func.device, func.function);
 
     let devname = format!("virtblk.{}", devlocation);
-    let server_name = format!("blockdev.virtio.{}", devlocation);
 
     // check /dev/block if the device is already registered
     if std::fs::metadata(format!("/dev/block/{}", devname)).is_ok() {
@@ -128,7 +124,7 @@ pub fn run_blockdev(transport: PciTransport, function: DeviceFunction) -> RpcRes
     let mut driver = BlockDevDriver {
         blockdev_manager: RpcStub::new("mos.blockdev-manager")?,
         devname,
-        server_name,
+        server_name: format!("blockdev.virtio.{}", devlocation),
         blockdev: Arc::new(Mutex::new(SafeVirtIOBlk(
             VirtIOBlk::new(transport).expect("failed to create blockdev"),
         ))),

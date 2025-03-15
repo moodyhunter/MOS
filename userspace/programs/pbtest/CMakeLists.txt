@@ -20,9 +20,14 @@ target_link_libraries(pbtest protobuf::libprotobuf)
 
 # Generate the protobuf files
 add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/test.pb.cc ${CMAKE_CURRENT_BINARY_DIR}/test.pb.h
-    COMMAND ${PROTOC} ARGS -I ${CMAKE_CURRENT_SOURCE_DIR}
-     --cpp_out ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test.proto
+    OUTPUT
+        ${CMAKE_CURRENT_BINARY_DIR}/test.pb.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/test.pb.h
+    COMMAND ${PROTOC}
+    ARGS
+    -I ${CMAKE_CURRENT_SOURCE_DIR}
+     --cpp_out ${CMAKE_CURRENT_BINARY_DIR}
+     ${CMAKE_CURRENT_SOURCE_DIR}/test.proto
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test.proto
     COMMENT "Generating test.pb.cc and test.pb.h"
     VERBATIM
@@ -31,6 +36,8 @@ add_custom_command(
 target_include_directories(pbtest PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 # Add the generated files to the target
-target_sources(pbtest PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/test.pb.cc ${CMAKE_CURRENT_BINARY_DIR}/test.pb.h)
+target_sources(pbtest PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}/test.pb.cc
+    ${CMAKE_CURRENT_BINARY_DIR}/test.pb.h)
 
 add_to_initrd(TARGET pbtest /tests)

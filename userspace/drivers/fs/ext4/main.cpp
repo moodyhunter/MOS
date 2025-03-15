@@ -3,8 +3,8 @@
 #include "blockdev.h"
 #include "ext4fs.hpp"
 #include "mos/proto/fs_server.h"
-#include "proto/blockdev.services.h"
-#include "proto/userfs-manager.services.h"
+#include "proto/blockdev.service.h"
+#include "proto/userfs-manager.service.h"
 
 #include <iostream>
 

@@ -147,7 +147,7 @@ bool LaunchContext::resolve_program_path()
     return true;
 }
 
-bool LaunchContext::try_start_builtin()
+bool LaunchContext::try_start_builtin() const
 {
     if (const auto builtin = find_builtin(command()); builtin)
     {
@@ -171,7 +171,7 @@ bool LaunchContext::try_start_builtin()
     return false;
 }
 
-bool LaunchContext::try_start_alias()
+bool LaunchContext::try_start_alias() const
 {
     if (const auto alias = find_alias(command()); alias)
     {
@@ -253,6 +253,7 @@ bail:
 
 bool LaunchContext::start()
 {
+    bool success = false;
     if (!success && launch_type.builtin)
         success = try_start_builtin();
 

@@ -18,10 +18,3 @@ description = "Ext4 file system driver"
 exec = "/initrd/drivers/ext4fs"
 depends_on = ["blockdev-manager.service"]
 part_of = ["normal.target"]
-
-[syslogd.service]
-type = "service"
-description = "System log daemon"
-depends_on = ["sys.mount"]
-part_of = ["normal.target"]
-exec = "/initrd/programs/syslogd"

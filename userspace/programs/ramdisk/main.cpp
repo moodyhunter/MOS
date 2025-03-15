@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "blockdev.h"
-#include "proto/blockdev.services.h"
+#include "proto/blockdev.service.h"
 #include "ramdisk.hpp"
 
 #include <iostream>
@@ -14,9 +14,7 @@
 #include <pb_decode.h>
 #include <pb_encode.h>
 
-class RAMDiskServer
-    : public IBlockdevDeviceService
-    , public RAMDisk
+class RAMDiskServer : public IBlockdevDeviceService, public RAMDisk
 {
   public:
     explicit RAMDiskServer(const std::string &servername, const size_t nbytes) : IBlockdevDeviceService(servername), RAMDisk(nbytes)

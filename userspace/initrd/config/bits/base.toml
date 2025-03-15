@@ -11,10 +11,3 @@ description = "Symbolic link /etc to /initrd/etc"
 part_of = ["base.target"]
 link = "/etc"
 target = "/initrd/etc"
-
-[include.symlink]
-type = "symlink"
-description = "Symbolic link /include to /initrd/include"
-part_of = ["base.target"]
-link = "/include"
-target = "/initrd/include"

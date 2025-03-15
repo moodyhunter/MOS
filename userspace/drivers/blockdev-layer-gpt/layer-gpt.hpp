@@ -4,7 +4,7 @@
 
 #include "blockdev.h"
 #include "gptdisk.hpp"
-#include "proto/blockdev.services.h"
+#include "proto/blockdev.service.h"
 
 #include <librpc/rpc.h>
 #include <librpc/rpc_client.h>

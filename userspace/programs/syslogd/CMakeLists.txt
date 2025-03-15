@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 add_executable(syslogd
-    main.c
+    main.cpp
 )
 
 target_include_directories(syslogd

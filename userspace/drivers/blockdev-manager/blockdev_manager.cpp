@@ -3,7 +3,7 @@
 #include "blockdev_manager.hpp"
 
 #include "proto/blockdev.pb.h"
-#include "proto/blockdev.services.h"
+#include "proto/blockdev.service.h"
 
 #include <atomic>
 #include <cstdlib>

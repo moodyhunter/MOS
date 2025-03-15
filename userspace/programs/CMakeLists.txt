@@ -12,3 +12,5 @@ add_subdirectory(peekblock)
 
 add_subdirectory(ramdisk)
 add_subdirectory(syslogd)
+
+add_subdirectory(sc)

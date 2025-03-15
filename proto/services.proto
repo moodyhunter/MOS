@@ -1,0 +1,48 @@
+syntax = "proto3";
+import "nanopb.proto";
+import "mosrpc-options.proto";
+
+option (nanopb_fileopt).fallback_type = FT_POINTER;
+option (nanopb_fileopt).proto3_singular_msgs = true;
+
+enum RpcUnitStatus
+{
+    Stopped = 0;
+    Running = 1;
+    Finished = 2;
+    Failed = 3;
+}
+
+enum RpcUnitType
+{
+    Service = 0;
+    Target = 1;
+    Path = 2;
+    Mount = 3;
+    Symlink = 4;
+    Device = 5;
+    Timer = 6;
+}
+
+message RpcUnit
+{
+    RpcUnitType type = 1;
+    string name = 2;
+    string description = 3;
+    RpcUnitStatus status = 4;
+}
+
+message GetUnitsRequest
+{
+}
+
+message GetUnitsResponse
+{
+    repeated RpcUnit units = 1;
+}
+
+service ServiceManager
+{
+    option (c_name) = "service_manager";
+    rpc GetUnits(GetUnitsRequest) returns (GetUnitsResponse);
+}

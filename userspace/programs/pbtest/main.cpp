@@ -2,8 +2,6 @@
 
 #include "test.pb.h"
 
-#include <mutex>
-
 int main(int, const char *[])
 {
     tutorial::Person person;

@@ -3,8 +3,8 @@
 #pragma once
 
 #include "proto/filesystem.pb.h"
-#include "proto/filesystem.services.h"
-#include "proto/userfs-manager.services.h"
+#include "proto/filesystem.service.h"
+#include "proto/userfs-manager.service.h"
 
 #include <librpc/macro_magic.h>
 #include <librpc/rpc.h>

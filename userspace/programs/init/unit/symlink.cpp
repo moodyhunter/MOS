@@ -2,24 +2,37 @@
 
 #include <unistd.h>
 
-bool Symlink::do_start()
+bool Symlink::Start()
 {
+    if (GetStatus() == UnitStatus::Finished)
+        return true;
+
+    SetStatus(UnitStatus::Starting);
     if (symlink(target.c_str(), linkfile.c_str()) != 0)
     {
+        SetStatus(UnitStatus::Failed);
         m_error = strerror(errno);
         return false;
     }
+
+    SetStatus(UnitStatus::Finished);
     return true;
 }
 
-bool Symlink::do_stop()
+bool Symlink::Stop()
 {
     if (unlink(linkfile.c_str()) != 0)
+    {
+        SetStatus(UnitStatus::Failed);
+        m_error = strerror(errno);
         return false;
+    }
+
+    SetStatus(UnitStatus::Exited);
     return true;
 }
 
-bool Symlink::do_load(const toml::table &data)
+bool Symlink::onLoad(const toml::table &data)
 {
     const auto link = data["link"], target = data["target"];
 

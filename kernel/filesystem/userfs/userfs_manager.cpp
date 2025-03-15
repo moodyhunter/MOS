@@ -5,7 +5,7 @@
 #include "mos/misc/setup.hpp"
 #include "mos/syslog/printk.hpp"
 #include "mos/tasks/kthread.hpp"
-#include "proto/userfs-manager.services.h"
+#include "proto/userfs-manager.service.h"
 
 #include <librpc/rpc.h>
 #include <librpc/rpc_server.h>

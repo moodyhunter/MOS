@@ -49,7 +49,7 @@ macro(generate_rpc_definitions SRCS HDRS)
         foreach(line ${PROTO_FILE_CONTENTS})
             if(line MATCHES "^service [A-Za-z0-9_]+")
                 message(STATUS "Found service definition '${line}' in ${proto_file}")
-                set(GENERATED_SERVICE_FILE "${RPC_OUTDIR}/${PROTO_FILE_DIR_REL}/${PROTO_FILE_NAME}.services.h")
+                set(GENERATED_SERVICE_FILE "${RPC_OUTDIR}/${PROTO_FILE_DIR_REL}/${PROTO_FILE_NAME}.service.h")
                 list(APPEND ${HDRS} "${GENERATED_SERVICE_FILE}")
                 break() # only need to find one service definition
             endif()

@@ -1,0 +1,6 @@
+[syslogd.service]
+type = "service"
+description = "System log daemon"
+depends_on = ["sys.mount"]
+part_of = ["base.target"]
+exec = "/initrd/programs/syslogd"

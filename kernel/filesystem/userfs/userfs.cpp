@@ -8,7 +8,7 @@
 #include "mos/filesystem/vfs_utils.hpp"
 #include "mos/misc/profiling.hpp"
 #include "proto/filesystem.pb.h"
-#include "proto/filesystem.services.h"
+#include "proto/filesystem.service.h"
 
 #include <algorithm>
 #include <librpc/macro_magic.h>

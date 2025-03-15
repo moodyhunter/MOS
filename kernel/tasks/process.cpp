@@ -380,7 +380,6 @@ void process_dump_mmaps(const Process *proc)
         const char *typestr = get_vmap_content_str(map->content);
         const char *forkmode = get_vmap_type_str(map->type);
         pr_info2("  %3zd: %pvm, %s, %s", i, (void *) map, typestr, forkmode);
-        mInfo << map;
     }
 
     mInfo << "total: " << i << " memory regions";

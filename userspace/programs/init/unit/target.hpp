@@ -7,7 +7,11 @@ struct Target : public Unit
     using Unit::Unit;
 
   private:
-    bool do_start() override;
-    bool do_stop() override;
-    bool do_load(const toml::table &data) override;
+    UnitType GetType() const override
+    {
+        return UnitType::Target;
+    }
+    bool Start() override;
+    bool Stop() override;
+    bool onLoad(const toml::table &data) override;
 };

@@ -1,10 +1,10 @@
 [sys.path]
 type = "path"
-description = "Create sysfs directory"
+description = "Create SysFS directory"
 path = "/sys"
 
 [sys.mount]
 type = "mount"
-description = "Mount sysfs"
+description = "Mount SysFS"
 depends_on = ["sys.path"]
 mount = { mount_point = "/sys", fs_type = "sysfs", options = "defaults", device = "none" }

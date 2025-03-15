@@ -145,9 +145,9 @@ def process_file(proto_file: FileDescriptorProto, response: plugin.CodeGenerator
             stderr=subprocess.PIPE,
         ).stdout.decode("utf-8")
 
-    logging.info(f"Generated {module_name}.services.h")
+    logging.info(f"Generated {module_name}.service.h")
     file = response.file.add()
-    file.name = module_name + ".services.h"
+    file.name = module_name + ".service.h"
     file.content = file_content
 
 

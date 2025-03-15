@@ -1,88 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#include "ServiceManager.hpp"
 #include "global.hpp"
-#include "unit/unit.hpp"
+#include "logging.hpp"
+#include "rpc/rpc.hpp"
 
 #include <argparse/libargparse.h>
-#include <filesystem>
-#include <functional>
-#include <glob.h>
 #include <iostream>
-#include <map>
-#include <set>
-#include <signal.h>
-#include <spawn.h>
-#include <stdio.h>
-#include <string>
-#include <sys/stat.h>
 #include <sys/wait.h>
-#include <toml++/toml.hpp>
+#include <thread>
 #include <unistd.h>
-#include <vector>
-
-#define RED(text)   "\033[1;31m" text "\033[0m"
-#define GREEN(text) "\033[1;32m" text "\033[0m"
-
-#define FAILED()   RED("[FAILED]")
-#define OK()       GREEN("[  OK  ]")
-#define STARTING() "\033[0m         "
-
-std::map<std::string, pid_t> service_pid;
-bool debug = false;
-inline GlobalConfig global_config;
-inline std::map<std::string, std::shared_ptr<Unit>> units;
-
-static std::vector<std::string> startup_order_for_unit(const std::string &id)
-{
-    std::set<std::string> visited;
-    std::vector<std::string> order;
-
-    std::function<void(const std::string &)> visit = [&](const std::string id)
-    {
-        if (visited.contains(id))
-            return;
-
-        visited.insert(id);
-        const auto &unit = units[id];
-        if (!unit)
-        {
-            std::cerr << "unit " << id << " does not exist" << std::endl;
-            return;
-        }
-
-        for (const auto &dep_id : unit->depends_on)
-            visit(dep_id);
-        order.push_back(id);
-    };
-
-    visit(id);
-    return order;
-}
-
-static bool start_unit_tree(const std::string &id)
-{
-    const auto order = startup_order_for_unit(id);
-    for (const auto &unit_id : order)
-    {
-        const auto unit = units[unit_id];
-
-        if (debug)
-            std::cout << STARTING() << "Starting " << unit->description << " (" << unit->id << ")" << std::endl;
-        if (!unit->start())
-        {
-            std::cerr << FAILED() << " Failed to start " << unit->description << ": " << unit->error_reason() << std::endl;
-            return false;
-        }
-        else
-        {
-            if (unit->type == "target")
-                std::cout << OK() << " Reached target " << unit->description << std::endl;
-            else
-                std::cout << OK() << " Started " << unit->description << std::endl;
-        }
-    }
-
-    return true;
-}
 
 static void sigsegv_handler(int sig)
 {
@@ -100,7 +26,7 @@ static void sigsegv_handler(int sig)
 
 static void sigchild_handler(int sig)
 {
-    MOS_UNUSED(sig);
+    (void) sig;
 }
 
 #define DYN_ERROR_CODE (__COUNTER__ + 1)
@@ -127,8 +53,9 @@ int main(int argc, const char *argv[])
     sa.sa_handler = sigsegv_handler;
     sigaction(SIGSEGV, &sa, NULL);
 
-    std::filesystem::path config_file = "/initrd/config/init-config.toml";
+    std::filesystem::path configPath = "/initrd/config/init-config.toml";
     std::string shell = "/initrd/programs/mossh";
+
     argparse_state_t state;
     argparse_init(&state, argv);
     while (true)
@@ -139,7 +66,7 @@ int main(int argc, const char *argv[])
 
         switch (option)
         {
-            case 'C': config_file = state.optarg; break;
+            case 'C': configPath = state.optarg; break;
             case 'S': shell = state.optarg; break;
             case 'h': argparse_usage(&state, longopts, "the init program"); return 0;
             default: break;
@@ -154,18 +81,18 @@ int main(int argc, const char *argv[])
         return DYN_ERROR_CODE;
     }
 
-    if (debug)
-        std::cout << "init: using config file " << config_file << std::endl;
+    Logger << "init: using config file " << configPath << std::endl;
 
-    if (!std::filesystem::exists(config_file))
+    if (!std::filesystem::exists(configPath))
     {
-        std::cerr << "init: config file " << config_file << " does not exist" << std::endl;
+        std::cerr << "init: config file " << configPath << " does not exist" << std::endl;
         return DYN_ERROR_CODE;
     }
 
-    load_configurations(config_file);
+    ServiceManager->LoadConfiguration(ReadAllConfig(configPath));
+    std::thread([]() { RpcServer->run(); }).detach();
 
-    if (!start_unit_tree(global_config.default_target))
+    if (!ServiceManager->StartDefaultTarget())
     {
         std::cerr << RED("init: failed to start default target") << std::endl;
         return DYN_ERROR_CODE;
@@ -203,26 +130,7 @@ start_shell:;
             goto start_shell;
         }
 
-        if (pid > 0)
-        {
-            if (WIFEXITED(status))
-                std::cout << "init: process " << pid << " exited with status " << WEXITSTATUS(status) << std::endl;
-            else if (WIFSIGNALED(status))
-                std::cout << "init: process " << pid << " killed by signal " << WTERMSIG(status) << std::endl;
-        }
-
-        // check if any service has exited
-        for (const auto &[id, spid] : service_pid)
-        {
-            if (spid == -1)
-                continue;
-
-            if (pid == spid)
-            {
-                std::cout << "init: service " << id << " exited" << std::endl;
-                service_pid[id] = -1;
-            }
-        }
+        ServiceManager->OnProcessExit(pid, status);
     }
 
     return 0;

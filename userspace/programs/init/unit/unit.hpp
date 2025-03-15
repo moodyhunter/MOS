@@ -7,12 +7,24 @@
 
 enum class UnitStatus
 {
-    STOPPED = 0,
-    STARTING = 1,
-    RUNNING = 2,
-    STOPPING = 3,
-    EXITED = 4,
-    FAILED = 5,
+    Stopped = 0,
+    Starting = 1,
+    Running = 2,
+    Stopping = 3,
+    Exited = 4,
+    Failed = 5,
+    Finished = 6,
+};
+
+enum class UnitType
+{
+    Service, // 0
+    Target,  // 1
+    Path,    // 2
+    Mount,   // 3
+    Symlink, // 4
+    Device,  // 5
+    Timer,   // 6
 };
 
 struct Unit
@@ -22,33 +34,32 @@ struct Unit
 
     const std::string id;
 
-    std::string type;
     std::string description;
     std::vector<std::string> depends_on;
     std::vector<std::string> part_of;
 
   public:
-    UnitStatus status() const
+    virtual UnitType GetType() const = 0;
+
+    UnitStatus GetStatus() const
     {
         return m_status;
     }
 
-    std::string error_reason() const
+    std::optional<std::string> GetFailReason() const
     {
         return m_error;
     }
 
   public:
-    bool start();
-    void stop();
+    virtual bool Start() = 0;
+    virtual bool Stop() = 0;
 
   protected:
-    virtual bool do_start() = 0;
-    virtual bool do_stop() = 0;
-    virtual bool do_load(const toml::table &) = 0;
-    virtual void do_print(std::ostream &) const {};
+    virtual bool onLoad(const toml::table &) = 0;
+    virtual void onPrint(std::ostream &) const {};
 
-    static constexpr const auto array_append_visitor = [](std::vector<std::string> &dest_container)
+    static constexpr const auto VectorAppender = [](std::vector<std::string> &dest_container)
     {
         return [&](const toml::array &array) -> void
         {
@@ -63,10 +74,15 @@ struct Unit
     friend std::ostream &operator<<(std::ostream &, const Unit &);
 
   protected:
-    std::string m_error; ///< error message if failed to start
+    std::optional<std::string> m_error; ///< error message if failed to start
+
+    void SetStatus(UnitStatus status)
+    {
+        m_status = status;
+    }
 
   private:
-    UnitStatus m_status = UnitStatus::STOPPED;
+    UnitStatus m_status = UnitStatus::Stopped;
 };
 
 std::ostream &operator<<(std::ostream &os, const Unit &unit);

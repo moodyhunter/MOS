@@ -2,6 +2,7 @@
 
 mod block;
 mod gpu;
+mod netdev;
 
 use std::error::Error;
 
@@ -10,7 +11,7 @@ use virtio_drivers::transport::{
     DeviceType, Transport,
 };
 
-use self::{block::run_blockdev, gpu::run_gpu};
+use self::{block::run_blockdev, gpu::run_gpu, netdev::run_netdev};
 
 pub(crate) fn start_device(
     transport: PciTransport,
@@ -18,7 +19,8 @@ pub(crate) fn start_device(
 ) -> Result<(), Box<dyn Error>> {
     match transport.device_type() {
         DeviceType::Block => run_blockdev(transport, function),
-        DeviceType::GPU => Ok(run_gpu(transport)?),
+        DeviceType::GPU => run_gpu(transport),
+        DeviceType::Network => run_netdev(transport, function),
         t => unimplemented!("Unrecognized virtio device: {:?}", t),
     }
 }

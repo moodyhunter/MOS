@@ -7,9 +7,12 @@ use crate::{
 use clap::Parser;
 use hal::MOSHal;
 use utils::{parse_hex16, parse_hex32, parse_hex64};
-use virtio_drivers::transport::pci::{
-    bus::{Cam, Command, DeviceFunction, PciRoot},
-    PciTransport,
+use virtio_drivers::transport::{
+    pci::{
+        bus::{Cam, Command, DeviceFunction, MmioCam, PciRoot},
+        PciTransport,
+    },
+    Transport,
 };
 
 mod drivers;
@@ -57,6 +60,7 @@ fn main() -> () {
         function: (args.location & 0xff) as u8,
     };
 
+    #[cfg(feature = "debug")]
     println!(
         "Device Location: 0x{:x}, Device: 0x{:x}, Function: 0x{:x}",
         location.bus, location.device, location.function
@@ -64,10 +68,10 @@ fn main() -> () {
 
     let mut pci_root = unsafe {
         libdma_init();
-        PciRoot::new(
+        PciRoot::new(MmioCam::new(
             libdma_map_physical_address(args.mmio_base as _, 256, std::ptr::null_mut()) as _,
             Cam::Ecam,
-        )
+        ))
     };
 
     #[cfg(feature = "debug")]
@@ -79,7 +83,7 @@ fn main() -> () {
         );
     }
 
-    // Enable the device to use its BARs.
+    // Enable the device to use its BAR.
     pci_root.set_command(
         location,
         Command::IO_SPACE | Command::MEMORY_SPACE | Command::BUS_MASTER,
@@ -91,10 +95,9 @@ fn main() -> () {
         println!("BAR {}: {:#x?}", bar, bar_info);
     }
 
-    let transport = PciTransport::new::<MOSHal>(&mut pci_root, location).unwrap();
+    let transport = PciTransport::new::<MOSHal, MmioCam>(&mut pci_root, location).unwrap();
 
-    #[cfg(feature = "debug")]
-    println!("Detected virtio PCI device '{:?}'", transport.device_type());
+    println!("-> VirtIO PCI device '{:?}'", transport.device_type());
 
     start_device(transport, location).expect("Failed to start device");
 

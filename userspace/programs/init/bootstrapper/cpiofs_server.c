@@ -3,9 +3,9 @@
 #include "bootstrapper.h"
 #include "cpiofs.h"
 #include "proto/filesystem.pb.h"
-#include "proto/filesystem.services.h"
+#include "proto/filesystem.service.h"
 #include "proto/userfs-manager.pb.h"
-#include "proto/userfs-manager.services.h"
+#include "proto/userfs-manager.service.h"
 
 #include <bits/posix/pthread_t.h>
 #include <librpc/macro_magic.h>

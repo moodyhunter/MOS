@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::{io::Error, thread::sleep};
+use std::thread::sleep;
 
+use librpc_rs::RpcResult;
 use virtio_drivers::{device::gpu::VirtIOGpu, transport::Transport};
 
 use crate::hal::MOSHal;
 
-pub fn run_gpu<T: Transport>(transport: T) -> Result<(), Error> {
+pub fn run_gpu<T: Transport>(transport: T) -> RpcResult<()> {
     let mut gpu = VirtIOGpu::<MOSHal, T>::new(transport).expect("failed to create gpu driver");
     let (width, height) = gpu.resolution().expect("failed to get resolution");
     let width = width as usize;

@@ -1,0 +1,6 @@
+[include.symlink]
+type = "symlink"
+description = "Symbolic link /include to /initrd/include"
+part_of = ["normal.target"]
+link = "/include"
+target = "/initrd/include"

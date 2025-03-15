@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "proto/blockdev.services.h"
+#include "proto/blockdev.service.h"
 
 #include <librpc/macro_magic.h>
 

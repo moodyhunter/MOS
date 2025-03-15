@@ -190,14 +190,11 @@ void do_repeat(const std::vector<std::string> &argv)
                 break;
             }
 
-            std::cout << "FIXME: repeat: " << argv[1] << std::endl;
-            return;
+            const auto program = argv[1];
+            const auto new_argv = argv | std::views::drop(1) | std::ranges::to<std::vector>();
 
             for (int i = 0; i < count; i++)
             {
-                const auto program = argv[1];
-                const auto new_argv = argv | std::views::drop(2) | std::ranges::to<std::vector>();
-
                 LaunchContext context{ new_argv };
                 if (!context.start())
                 {

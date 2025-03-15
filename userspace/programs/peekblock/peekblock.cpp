@@ -2,7 +2,7 @@
 
 #include "blockdev.h"
 #include "proto/blockdev.pb.h"
-#include "proto/blockdev.services.h"
+#include "proto/blockdev.service.h"
 
 #include <iomanip>
 #include <iostream>

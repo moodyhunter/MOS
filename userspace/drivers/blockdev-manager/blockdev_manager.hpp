@@ -3,7 +3,7 @@
 #pragma once
 
 #include "blockdev.h"
-#include "proto/blockdev.services.h"
+#include "proto/blockdev.service.h"
 
 #include <abi-bits/ino_t.h>
 #include <librpc/rpc_client.h>

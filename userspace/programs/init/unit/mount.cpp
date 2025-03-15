@@ -2,24 +2,29 @@
 
 #include <mos/syscall/usermode.h>
 
-bool Mount::do_start()
+bool Mount::Start()
 {
+    SetStatus(UnitStatus::Starting);
     if (syscall_vfs_mount(device.c_str(), mount_point.c_str(), fs_type.c_str(), options.c_str()) != 0)
     {
+        SetStatus(UnitStatus::Failed);
         m_error = strerror(errno);
         return false;
     }
 
+    SetStatus(UnitStatus::Finished);
     return true;
 }
 
-bool Mount::do_stop()
+bool Mount::Stop()
 {
+    SetStatus(UnitStatus::Stopping);
     std::cout << "stopping mount " << id << std::endl;
+    SetStatus(UnitStatus::Stopped);
     return true;
 }
 
-bool Mount::do_load(const toml::table &data)
+bool Mount::onLoad(const toml::table &data)
 {
     const auto mount = data["mount"].as_table();
     if (!mount)
@@ -36,7 +41,7 @@ bool Mount::do_load(const toml::table &data)
     return true;
 }
 
-void Mount::do_print(std::ostream &os) const
+void Mount::onPrint(std::ostream &os) const
 {
     os << "  mount_point: " << this->mount_point << std::endl;
     os << "  fs_type: " << this->fs_type << std::endl;
