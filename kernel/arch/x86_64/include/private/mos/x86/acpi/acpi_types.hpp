@@ -46,7 +46,7 @@ typedef struct
 {
     acpi_sdt_header_t sdt_header;
     ptr32_t sdts[]; // 32-bit physical addresses of other SDTs
-} acpi_rsdt_t;
+} __packed acpi_rsdt_t;
 
 typedef struct
 {
@@ -63,7 +63,7 @@ typedef struct
     u8 bit_offset;
     u8 access_size;
     u64 paddr;
-} generic_addr_t;
+} __packed generic_addr_t;
 
 typedef struct
 {
@@ -131,7 +131,7 @@ typedef struct
     generic_addr_t X_PMTimerBlock;
     generic_addr_t X_GPE0Block;
     generic_addr_t X_GPE1Block;
-} acpi_fadt_t;
+} __packed acpi_fadt_t;
 
 #define ACPI_SIGNATURE_FADT "FACP" // Fixed ACPI Description Table
 
@@ -139,7 +139,7 @@ typedef struct
 {
     u8 type;
     u8 record_length;
-} acpi_madt_header_t;
+} __packed acpi_madt_header_t;
 
 // Type 0 - Processor Local APIC
 typedef struct
@@ -148,7 +148,7 @@ typedef struct
     u8 processor_id;
     u8 apic_id;
     u32 flags;
-} acpi_madt_et0_lapic_t;
+} __packed acpi_madt_et0_lapic_t;
 
 // Type 1 - I/O APIC
 typedef struct
@@ -158,7 +158,7 @@ typedef struct
     u8 reserved;
     u32 address;
     u32 global_intr_base;
-} acpi_madt_et1_ioapic_t;
+} __packed acpi_madt_et1_ioapic_t;
 
 // Type 2 - IO/APIC Interrupt Source Override
 typedef struct
@@ -168,7 +168,7 @@ typedef struct
     u8 irq_source;
     u32 global_intr;
     u16 flags;
-} acpi_madt_et2_ioapic_override_t;
+} __packed acpi_madt_et2_ioapic_override_t;
 
 // Type 3 - IO/APIC Non-maskable interrupt source
 typedef struct
@@ -178,7 +178,7 @@ typedef struct
     u8 reserved;
     u16 flags;
     u32 global_irq;
-} acpi_madt_et3_ioapic_nmi_t;
+} __packed acpi_madt_et3_ioapic_nmi_t;
 
 // Type 4 - Local APIC Non-maskable interrupts
 typedef struct
@@ -187,7 +187,7 @@ typedef struct
     u8 processor_id;
     u16 flags;
     u8 lint_number;
-} acpi_madt_et4_lapic_nmi_t;
+} __packed acpi_madt_et4_lapic_nmi_t;
 
 // Type 5 - Local APIC Address Override
 typedef struct
@@ -195,7 +195,7 @@ typedef struct
     acpi_madt_header_t header;
     u16 reserved;
     u64 lapic_paddr;
-} acpi_madt_et5_lapic_addr_t;
+} __packed acpi_madt_et5_lapic_addr_t;
 
 // Type 9 - Processor Local x2APIC
 typedef struct
@@ -205,14 +205,14 @@ typedef struct
     u32 processor_lx2apic_id;
     u32 flags;
     u32 acpi_id;
-} acpi_madt_et9_lx2apic_t;
+} __packed acpi_madt_et9_lx2apic_t;
 
 typedef struct
 {
     acpi_sdt_header_t sdt_header;
     u32 lapic_addr;
     u32 flags;
-} acpi_madt_t;
+} __packed acpi_madt_t;
 
 #define ACPI_SIGNATURE_MADT "APIC" // Multiple APIC Description Table
 
@@ -243,4 +243,4 @@ typedef struct
     acpi_sdt_header_t header;
     u8 *definition_block;
     bool valid;
-} s_dsdt;
+} __packed s_dsdt;

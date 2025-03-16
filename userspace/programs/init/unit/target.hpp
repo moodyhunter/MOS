@@ -4,7 +4,7 @@
 
 struct Target : public Unit
 {
-    using Unit::Unit;
+    explicit Target(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_ = nullptr, const ArgumentMap &args = {});
 
   private:
     UnitType GetType() const override
@@ -13,5 +13,4 @@ struct Target : public Unit
     }
     bool Start() override;
     bool Stop() override;
-    bool onLoad(const toml::table &data) override;
 };

@@ -1,45 +1,42 @@
 #include "symlink.hpp"
 
+#include "ServiceManager.hpp"
+
 #include <unistd.h>
+
+RegisterUnit(symlink, Symlink);
+
+Symlink::Symlink(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_, const ArgumentMap &args)
+    : Unit(id, table, template_, args),                  //
+      linkfile(ReplaceArgs(table["link"].value_or(""))), //
+      target(ReplaceArgs(table["target"].value_or("")))
+{
+}
 
 bool Symlink::Start()
 {
-    if (GetStatus() == UnitStatus::Finished)
-        return true;
-
-    SetStatus(UnitStatus::Starting);
+    status.Starting();
     if (symlink(target.c_str(), linkfile.c_str()) != 0)
     {
-        SetStatus(UnitStatus::Failed);
-        m_error = strerror(errno);
+        status.Failed(strerror(errno));
         return false;
     }
 
-    SetStatus(UnitStatus::Finished);
+    status.Started("created");
+    ServiceManager->OnUnitStarted(this);
     return true;
 }
 
 bool Symlink::Stop()
 {
+    status.Stopping();
     if (unlink(linkfile.c_str()) != 0)
     {
-        SetStatus(UnitStatus::Failed);
-        m_error = strerror(errno);
+        status.Failed(strerror(errno));
         return false;
     }
 
-    SetStatus(UnitStatus::Exited);
-    return true;
-}
-
-bool Symlink::onLoad(const toml::table &data)
-{
-    const auto link = data["link"], target = data["target"];
-
-    if (!link || !target || !link.is_string() || !target.is_string())
-        return false;
-
-    this->linkfile = link.as_string()->get();
-    this->target = target.as_string()->get();
+    status.Inactive();
+    ServiceManager->OnUnitStopped(this);
     return true;
 }

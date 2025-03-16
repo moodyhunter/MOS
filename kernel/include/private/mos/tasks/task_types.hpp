@@ -133,7 +133,7 @@ struct Thread : mos::NamedType<"Thread">
 
     static bool IsValid(const Thread *thread)
     {
-        if (auto ptr = thread)
+        if (auto ptr = thread; ptr)
             return ptr->magic == THREAD_MAGIC_THRD;
         else
             return false;

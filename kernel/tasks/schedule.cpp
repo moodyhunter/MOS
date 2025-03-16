@@ -7,7 +7,6 @@
 #include "mos/misc/setup.hpp"
 #include "mos/platform/platform.hpp"
 #include "mos/tasks/scheduler.hpp"
-#include "mos/tasks/thread.hpp"
 
 #include <mos_string.hpp>
 

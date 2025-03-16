@@ -7,12 +7,9 @@ use crate::{
 use clap::Parser;
 use hal::MOSHal;
 use utils::{parse_hex16, parse_hex32, parse_hex64};
-use virtio_drivers::transport::{
-    pci::{
-        bus::{Cam, Command, DeviceFunction, MmioCam, PciRoot},
-        PciTransport,
-    },
-    Transport,
+use virtio_drivers::transport::pci::{
+    bus::{Cam, Command, DeviceFunction, MmioCam, PciRoot},
+    PciTransport,
 };
 
 mod drivers;
@@ -96,8 +93,6 @@ fn main() -> () {
     }
 
     let transport = PciTransport::new::<MOSHal, MmioCam>(&mut pci_root, location).unwrap();
-
-    println!("-> VirtIO PCI device '{:?}'", transport.device_type());
 
     start_device(transport, location).expect("Failed to start device");
 

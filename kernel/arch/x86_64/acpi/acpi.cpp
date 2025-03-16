@@ -111,8 +111,8 @@ should_inline bool verify_sdt_checksum(const acpi_sdt_header_t *tableHeader)
 
 static void do_handle_sdt_header(const acpi_sdt_header_t *const header)
 {
-    register_sysfs_acpi_node(header->signature, header);
     pr_dinfo2(x86_acpi, "%.4s at %p, size %u", header->signature, (void *) header, header->length);
+    register_sysfs_acpi_node(header->signature, header);
 
     if (strncmp(header->signature, ACPI_SIGNATURE_FADT, 4) == 0)
     {
@@ -129,6 +129,25 @@ static void do_handle_sdt_header(const acpi_sdt_header_t *const header)
     else if (strncmp(header->signature, ACPI_SIGNATURE_MADT, 4) == 0)
     {
         do_verify_checksum(x86_acpi_madt, header, acpi_madt_t);
+    }
+    else if (strncmp(header->signature, ACPI_SIGNATURE_HPET, 4) == 0)
+    {
+        const acpi_hpet_t *hpet;
+        do_verify_checksum(hpet, header, acpi_hpet_t);
+        const auto va = pa_va(hpet->addr.paddr);
+        pr_dinfo2(x86_acpi, "HPET PCI vendor id: %x", hpet->pci_vendor_id);
+        pr_dinfo2(x86_acpi, "HPET registers at address space %d, bit width %d, bit offset %d, access size %d, paddr %p", hpet->addr.addr_space, hpet->addr.bit_width,
+                  hpet->addr.bit_offset, hpet->addr.access_size, (void *) va);
+
+        // set ENABLE_CNF to enable the HPET
+        *(volatile u32 *) (va + 0x010) |= 1 << 0;
+
+        for (int i = 0; i < 20; i++)
+        {
+            // read the HPET timer value
+            const u64 timer_value = *(volatile u64 *) (va + 0x0F0);
+            pr_dinfo2(x86_acpi, "HPET timer value: %llu", timer_value);
+        }
     }
 }
 

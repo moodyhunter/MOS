@@ -6,10 +6,6 @@ include = ["bits/*.toml"]
 # The default target to boot into
 default_target = "normal.target"
 
-[base.target]
-type = "target"
-description = "Base System"
-
 [normal.target]
 type = "target"
 description = "Normal System"

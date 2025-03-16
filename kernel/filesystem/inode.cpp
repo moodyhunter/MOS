@@ -85,7 +85,7 @@ bool inode_unlink(inode_t *dir, dentry_t *dentry)
 
     inode->nlinks--;
     bool ok = true;
-    if (dir->ops->unlink)
+    if (dir->ops && dir->ops->unlink)
         ok = dir->ops->unlink(dir, dentry);
 
     if (!ok)

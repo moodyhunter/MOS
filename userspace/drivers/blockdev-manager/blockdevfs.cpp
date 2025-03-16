@@ -145,8 +145,16 @@ static void *blockdevfs_worker(void *data)
     return NULL;
 }
 
+void signal_handler(int)
+{
+    syscall_vfs_unmount("/dev/block");
+    blockdevfs.reset();
+    exit(0);
+}
+
 bool register_blockdevfs()
 {
+    signal(SIGTERM, signal_handler);
     blockdevfs = std::make_unique<BlockdevFSServer>(BLOCKDEVFS_RPC_SERVER_NAME);
 
     UserFSManagerStub userfs_manager{ USERFS_SERVER_RPC_NAME };
@@ -171,7 +179,6 @@ bool register_blockdevfs()
         return false;
     }
 
-    mkdir("/dev/block", 0755);
     long ok = syscall_vfs_mount("none", "/dev/block", "userfs.blockdevfs", "defaults"); // a blocked syscall
     if (IS_ERR_VALUE(ok))
     {

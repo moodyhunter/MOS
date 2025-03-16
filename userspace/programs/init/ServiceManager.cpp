@@ -3,70 +3,18 @@
 #include "ServiceManager.hpp"
 
 #include "global.hpp"
-#include "unit/mount.hpp"
-#include "unit/path.hpp"
-#include "unit/service.hpp"
-#include "unit/symlink.hpp"
-#include "unit/target.hpp"
+#include "logging.hpp"
 #include "unit/unit.hpp"
 
-#include <abi-bits/wait.h>
 #include <functional>
 #include <set>
 
 using namespace std::string_literals;
 
-namespace
-{
-    std::shared_ptr<Unit> create_unit(const std::string &id, const toml::table *data)
-    {
-        if (!data || !data->is_table() || data->empty() || !data->contains("type"))
-        {
-            std::cerr << "bad unit, expect table with type" << std::endl;
-            return nullptr;
-        }
-
-        const auto type = (*data)["type"];
-        if (!type.is_string())
-        {
-            std::cerr << "bad type, expect string" << std::endl;
-            return nullptr;
-        }
-
-        const auto type_string = type.as_string()->get();
-
-        std::shared_ptr<Unit> unit;
-        if (type_string == "service")
-            unit = std::make_shared<Service>(id);
-        else if (type_string == "target")
-            unit = std::make_shared<Target>(id);
-        else if (type_string == "path")
-            unit = std::make_shared<Path>(id);
-        else if (type_string == "mount")
-            unit = std::make_shared<Mount>(id);
-        else if (type_string == "symlink")
-            unit = std::make_shared<Symlink>(id);
-        else
-            std::cerr << "unknown type " << type_string << std::endl;
-
-        if (!unit)
-        {
-            std::cerr << "failed to create unit" << std::endl;
-            return nullptr;
-        }
-
-        unit->load(*data);
-        return unit;
-    }
-} // namespace
-
-ServiceManagerImpl::ServiceManagerImpl()
-{
-}
+static constexpr std::string_view TEMPLATE_SUFFIX = "-template";
 
 void ServiceManagerImpl::LoadConfiguration(std::vector<toml::table> &&tables_)
 {
-    std::unique_lock lock(units_mutex);
     auto tables = tables_;
     {
         auto &main = tables.front();
@@ -78,53 +26,65 @@ void ServiceManagerImpl::LoadConfiguration(std::vector<toml::table> &&tables_)
     {
         for (const auto &[key, value] : table)
         {
-            const auto subtable = value.as_table();
-            if (!subtable)
+            if (!value.is_table())
             {
                 std::cerr << RED("bad table") << " " << key << std::endl;
                 continue;
             }
 
-            for (const auto &[subkey, subvalue] : *subtable)
+            for (const auto &[subkey, subvalue] : *value.as_table())
             {
-                const auto unit_id = key.data() + "."s + subkey.data();
-                if (units.contains(unit_id))
+                const auto id = key.data() + "."s + subkey.data();
+                if (FindUnitByName(id))
                 {
-                    std::cerr << "unit " << unit_id << " " RED("already exists") << std::endl;
+                    std::cerr << "unit " << id << " " RED("already exists") << std::endl;
                     continue;
                 }
 
-                if (auto unit = create_unit(unit_id, subvalue.as_table()); unit)
-                    units[unit_id] = std::move(unit);
+                const auto data = subvalue.as_table();
+
+                if (!data || !data->is_table() || data->empty() || !data->contains("type"))
+                {
+                    std::cerr << RED("bad unit, expect table with type") << std::endl;
+                    continue;
+                }
+
+                if (id.ends_with(TEMPLATE_SUFFIX))
+                {
+                    const auto [templates, lock] = this->templates.BeginWrite();
+                    templates[id] = std::make_shared<Template>(id, *data);
+                    Debug << "loaded template " << id << std::endl;
+                }
+                else if (const auto unit = Unit::CreateNew(id, data); unit)
+                {
+                    const auto [units, lock] = loaded_units.BeginWrite();
+                    units[id] = unit;
+                    Debug << "created unit " << id << std::endl;
+                }
                 else
-                    std::cerr << RED("Failed to create unit") << std::endl;
+                {
+                    std::cerr << RED("failed to create unit ") << id << std::endl;
+                }
             }
         }
     }
 
     // add unit to part_of unit's depends_on
+    const auto [units, lock] = loaded_units.BeginWrite();
     for (const auto &[id, unit] : units)
     {
-        for (const auto &part : unit->part_of)
+        for (const auto &part : unit->GetPartOf())
         {
             if (units.contains(part))
-                units[part]->depends_on.push_back(id);
+                units[part]->AddDependency(unit->id);
             else
-                std::cerr << "unit " << id << " is part of non-existent unit " << part << std::endl;
+                std::cerr << "unit " << unit->id << " is part of non-existent unit " << part << std::endl;
         }
     }
 }
 
 void ServiceManagerImpl::OnProcessExit(pid_t pid, int status)
 {
-    if (pid > 0)
-    {
-        if (WIFEXITED(status))
-            std::cout << "init: process " << pid << " exited with status " << WEXITSTATUS(status) << std::endl;
-        else if (WIFSIGNALED(status))
-            std::cout << "init: process " << pid << " killed by signal " << WTERMSIG(status) << std::endl;
-    }
-
     // check if any service has exited
     for (const auto &[id, spid] : service_pid)
     {
@@ -133,9 +93,19 @@ void ServiceManagerImpl::OnProcessExit(pid_t pid, int status)
 
         if (pid == spid)
         {
-            std::cout << "init: service " << id << " exited" << std::endl;
             service_pid[id] = -1;
+            const auto unit = std::static_pointer_cast<Service>(FindUnitByName(id));
+            unit->OnExited(status);
+            return;
         }
+    }
+
+    if (pid > 0)
+    {
+        if (WIFEXITED(status))
+            std::cout << "process " << pid << " exited with status " << WEXITSTATUS(status) << std::endl;
+        else if (WIFSIGNALED(status))
+            std::cout << "process " << pid << " killed by signal " << WTERMSIG(status) << std::endl;
     }
 }
 
@@ -150,8 +120,8 @@ std::vector<std::string> ServiceManagerImpl::GetStartupOrder(const std::string &
             return;
 
         visited.insert(id);
-        const auto &unit = units.at(id);
-        for (const auto &dep_id : unit->depends_on)
+        const auto unit = FindUnitByName(id);
+        for (const auto &dep_id : unit->GetDependencies())
             visit(dep_id);
         order.push_back(id);
     };
@@ -160,36 +130,129 @@ std::vector<std::string> ServiceManagerImpl::GetStartupOrder(const std::string &
     return order;
 }
 
+std::shared_ptr<Unit> ServiceManagerImpl::FindUnitByName(const std::string &name) const
+{
+    const auto [units, lock] = loaded_units.BeginRead();
+    if (units.contains(name))
+        return units.at(name);
+    return nullptr;
+}
+
 bool ServiceManagerImpl::StartUnit(const std::string &id) const
 {
+    if (!FindUnitByName(id))
+    {
+        if (!FindUnitByName(id + ".service"))
+        {
+            std::cerr << RED("unit not found") << " " << id << std::endl;
+            return false;
+        }
+
+        if (!StartUnit(id + ".service"))
+        {
+            std::cerr << RED("unit not found") << " " << id << std::endl;
+            return false;
+        }
+        return true;
+    }
+
     const auto order = GetStartupOrder(id);
     for (const auto &unit_id : order)
     {
-        const auto unit = units.at(unit_id);
+        const auto unit = FindUnitByName(unit_id);
 
-        if (debug)
-            std::cout << STARTING() << "Starting " << unit->description << " (" << unit->id << ")" << std::endl;
+        Debug << STARTING() << "Starting " << unit->description << " (" << unit->id << ")" << std::endl;
+        if (unit->GetStatus().status == UnitStatus::UnitStarted)
+            continue;
         if (!unit->Start())
         {
             std::cerr << FAILED() << " Failed to start " << unit->description << ": " << *unit->GetFailReason() << std::endl;
             return false;
         }
-        else
+
+        // timed wait for the unit to start
+        for (int i = 0; i < 10; i++)
         {
-            if (unit->GetType() == UnitType::Target)
-                std::cout << OK() << " Reached target " << unit->description << std::endl;
-            else
-                std::cout << OK() << " Started " << unit->description << std::endl;
+            if (unit->GetStatus().status == UnitStatus::UnitStarted)
+                break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        if (unit->GetStatus().status != UnitStatus::UnitStarted)
+        {
+            std::cerr << FAILED() << " Failed to start " << unit->description << ": " << *unit->GetFailReason() << std::endl;
+            return false;
         }
     }
-
     return true;
 }
-void ServiceManagerImpl::OnUnitStarted(Service *service, pid_t pid)
+
+bool ServiceManagerImpl::StopUnit(const std::string &id) const
 {
-    service_pid[service->id] = pid;
+    const auto unit = FindUnitByName(id);
+    if (!unit)
+    {
+        if (!FindUnitByName(id + ".service"))
+        {
+            std::cerr << RED("unit not found") << " " << id << std::endl;
+            return false;
+        }
+
+        if (!StopUnit(id + ".service"))
+        {
+            std::cerr << RED("unit not found") << " " << id << std::endl;
+            return false;
+        }
+        return true;
+    }
+
+    // first stop all dependent units that depends on this unit
+    const auto [units, lock] = loaded_units.BeginRead();
+    for (const auto &[_, u] : units)
+    {
+        const auto deps = u->GetDependencies();
+        if (std::find(deps.begin(), deps.end(), id) != deps.end())
+            StopUnit(u->id);
+    }
+
+    Debug << STOPPING() << "Stopping " << unit->description << " (" << unit->id << ")" << std::endl;
+    if (!unit->GetStatus().active)
+        return true;
+
+    if (!unit->Stop())
+    {
+        std::cerr << FAILED() << " Failed to stop " << unit->description << ": " << *unit->GetFailReason() << std::endl;
+        return false;
+    }
+    return true;
 }
-void ServiceManagerImpl::OnUnitStopped(Service *service)
+
+void ServiceManagerImpl::OnUnitStarted(Unit *unit, pid_t pid)
 {
-    service_pid[service->id] = -1;
+    if (unit->GetType() == UnitType::Target)
+        std::cout << OK() << " Reached target " << unit->description << std::endl;
+    else if (unit->GetType() == UnitType::Service)
+    {
+        std::cout << OK() << " Started " << unit->description << std::endl;
+        service_pid[unit->id] = pid;
+    }
+    else
+    {
+        std::cout << OK() << " Started " << unit->description << std::endl;
+    }
+}
+
+void ServiceManagerImpl::OnUnitStopped(Unit *unit)
+{
+    if (unit->GetType() == UnitType::Target)
+        std::cout << OK() << " Stopped target " << unit->description << std::endl;
+    else if (unit->GetType() == UnitType::Service)
+    {
+        service_pid[unit->id] = -1;
+        std::cout << OK() << " Stopped " << unit->description << std::endl;
+    }
+    else
+    {
+        std::cout << OK() << " Stopped " << unit->description << std::endl;
+    }
 }

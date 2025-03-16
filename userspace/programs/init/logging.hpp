@@ -6,31 +6,25 @@
 
 class DebugLogger
 {
-    static inline bool debug = false;
+    static constexpr auto INIT_DEBUG = false;
 
   public:
-    void SetDebug(bool value) const
+    template<typename TArg>
+    const DebugLogger &operator<<(TArg arg) const
     {
-        debug = value;
-    }
-
-  public:
-    template<typename... Args>
-    const DebugLogger &operator<<(Args... args) const
-    {
-        if (debug)
-            ((std::cout << args), ...) << std::endl;
+        if (INIT_DEBUG)
+            std::cout << arg;
         return *this;
     }
 
-    const DebugLogger &operator<<(std::ostream &(*__pf)(std::ostream &) ) const
+    using ostream_manipulator = std::ostream &(*) (std::ostream &);
+
+    const DebugLogger &operator<<(ostream_manipulator manip) const
     {
-        // _GLIBCXX_RESOLVE_LIB_DEFECTS
-        // DR 60. What is a formatted input function?
-        // The inserters for manipulators are *not* formatted output functions.
-        __pf(std::cout);
+        if (INIT_DEBUG)
+            manip(std::cout);
         return *this;
     }
 };
 
-inline const DebugLogger Logger;
+inline const DebugLogger Debug;

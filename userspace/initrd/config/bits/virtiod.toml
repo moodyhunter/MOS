@@ -1,6 +1,24 @@
-[syslogd.service]
+[virtio.device-template]
+type = "device"
+template_args = ["device_type"]
+description = "VirtIO $device_type Device"
+driver = "/initrd/drivers/virtiod"
+driver_args = ["--device_type", "$device_type"]
+
+
+[virtiod.service-template]
 type = "service"
-description = "System log daemon"
-depends_on = ["sys.mount"]
-part_of = ["base.target"]
-exec = "/initrd/programs/syslogd"
+template_args = ["vendor_id", "device_id", "location", "mmio_base"]
+description = "VirtIO Device Driver for $vendor_id:$device_id"
+depends_on = ["device-manager.service"]
+exec = [
+    "/initrd/drivers/virtiod",
+    "--vendor_id",
+    "$vendor_id",
+    "--device_id",
+    "$device_id",
+    "--location",
+    "$location",
+    "--mmio_base",
+    "$mmio_base",
+]

@@ -11,5 +11,6 @@ using namespace std::string_literals;
 #define FAILED()   RED("[FAILED]")
 #define OK()       GREEN("[  OK  ]")
 #define STARTING() "\033[0m         "
+#define STOPPING() "\033[0m         "
 
 std::vector<toml::table> ReadAllConfig(const std::filesystem::path &config_path);

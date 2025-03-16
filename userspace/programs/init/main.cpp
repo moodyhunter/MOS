@@ -81,7 +81,7 @@ int main(int argc, const char *argv[])
         return DYN_ERROR_CODE;
     }
 
-    Logger << "init: using config file " << configPath << std::endl;
+    Debug << "init: using config file " << configPath << std::endl;
 
     if (!std::filesystem::exists(configPath))
     {

@@ -4,6 +4,7 @@
 
 #include "proto/services.service.h"
 
+#include <librpc/rpc.h>
 #include <memory>
 
 constexpr auto SERVICE_MANAGER_RPC_NAME = "mos.service_manager";
@@ -15,6 +16,9 @@ class ServiceManagerServer : public IServiceManagerService
 
   private:
     virtual rpc_result_code_t get_units(rpc_context_t *ctx, GetUnitsRequest *req, GetUnitsResponse *resp) override;
+    virtual rpc_result_code_t get_templates(rpc_context_t *ctx, GetTemplatesRequest *req, GetTemplatesResponse *resp) override;
+    virtual rpc_result_code_t start_unit(rpc_context_t *ctx, StartUnitRequest *req, StartUnitResponse *resp) override;
+    virtual rpc_result_code_t stop_unit(rpc_context_t *ctx, StopUnitRequest *req, StopUnitResponse *resp) override;
 };
 
 inline const std::unique_ptr<ServiceManagerServer> RpcServer = std::make_unique<ServiceManagerServer>(SERVICE_MANAGER_RPC_NAME);

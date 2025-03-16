@@ -35,6 +35,17 @@
     MOS_STATIC_ASSERT(SYSCALL_DEFINED(name));                                                                                                                            \
     ret define_syscall(name)
 
+// taken from mlibc
+constexpr static int days_from_civil(int y, unsigned m, unsigned d) noexcept
+{
+    y -= m <= 2;
+    const int era = (y >= 0 ? y : y - 399) / 400;
+    const unsigned yoe = static_cast<unsigned>(y - era * 400);            // [0, 399]
+    const unsigned doy = (153 * (m > 2 ? m - 3 : m + 9) + 2) / 5 + d - 1; // [0, 365]
+    const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;           // [0, 146096]
+    return era * 146097 + static_cast<int>(doe) - 719468;
+}
+
 DEFINE_SYSCALL(void, poweroff)(bool reboot, u32 magic)
 {
 #define POWEROFF_MAGIC MOS_FOURCC('G', 'B', 'y', 'e')
@@ -585,7 +596,8 @@ DEFINE_SYSCALL(long, clock_gettimeofday)(struct timespec *ts)
 {
     timeval_t tv;
     platform_get_time(&tv);
-    ts->tv_sec = tv.hour * 3600 + tv.minute * 60 + tv.second;
+    const auto days = days_from_civil(tv.year, tv.month, tv.day);
+    ts->tv_sec = (days * 86400) + (tv.hour * 60 * 60) + (tv.minute * 60) + tv.second;
     ts->tv_nsec = 0;
     return 0;
 }
@@ -683,4 +695,9 @@ DEFINE_SYSCALL(long, vfs_fsync)(fd_t fd, bool data_only)
         return -EBADF;
 
     return vfs_fsync(io, data_only, 0, (off_t) -1);
+}
+
+DEFINE_SYSCALL(long, vfs_rmdir)(const char *path)
+{
+    return vfs_rmdir(path).getErr();
 }

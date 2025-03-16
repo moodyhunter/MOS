@@ -604,6 +604,12 @@
                 "Synchronize the file to disk.",
                 "If data_only is true, only the file data is synchronized, otherwise both data and metadata are synchronized."
             ]
+        },
+        {
+            "number": 66,
+            "name": "vfs_rmdir",
+            "return": "long",
+            "arguments": [ { "type": "const char *", "arg": "path" } ]
         }
     ]
 }

@@ -1,38 +1,45 @@
 #include "path.hpp"
 
+#include "ServiceManager.hpp"
+
 #include <sys/stat.h>
 #include <unistd.h>
 
+RegisterUnit(path, Path);
+
+Path::Path(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_, const ArgumentMap &args)
+    : Unit(id, table, template_, args), //
+      path(ReplaceArgs(table["path"].value_or("")))
+{
+    if (path.empty())
+        std::cerr << "path: missing path" << std::endl;
+}
+
 bool Path::Start()
 {
-    SetStatus(UnitStatus::Starting);
-    if (mkdir(path.c_str(), 0755) != 0)
+    status.Starting("creating...");
+    const auto err = mkdir(path.c_str(), 0755);
+    if (err != 0 && errno != EEXIST)
     {
-        SetStatus(UnitStatus::Failed);
-        m_error = strerror(errno);
+        status.Failed(strerror(errno));
         return false;
     }
 
-    SetStatus(UnitStatus::Running);
+    status.Started("created");
+    ServiceManager->OnUnitStarted(this);
     return true;
 }
 
 bool Path::Stop()
 {
-    SetStatus(UnitStatus::Stopping);
-    if (!unlink(path.c_str()))
+    status.Stopping("removing...");
+    if (rmdir(path.c_str()) != 0)
     {
-        SetStatus(UnitStatus::Failed);
-        m_error = strerror(errno);
+        status.Failed(strerror(errno));
         return false;
     }
-    SetStatus(UnitStatus::Stopped);
-    return true;
-}
-
-bool Path::onLoad(const toml::table &data)
-{
-    this->path = data["path"].value_or("unknown");
+    status.Inactive();
+    ServiceManager->OnUnitStopped(this);
     return true;
 }
 

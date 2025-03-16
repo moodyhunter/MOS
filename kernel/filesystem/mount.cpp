@@ -70,7 +70,12 @@ ptr<mount_t> dentry_get_mount(const dentry_t *dentry)
 bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs)
 {
     MOS_ASSERT_X(root->name.empty(), "mountpoint already has a name");
-    MOS_ASSERT_X(dentry_parent(*root) == NULL, "mountpoint already has a parent");
+
+    if (dentry_parent(*root))
+    {
+        mWarn << "dentry mount root already has a parent";
+        return false;
+    }
 
     dentry_ref(root);
 

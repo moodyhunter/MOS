@@ -3,9 +3,11 @@
 #include "mos/ipc/ipc.hpp"
 
 #include "mos/filesystem/dentry.hpp"
+#include "mos/filesystem/inode.hpp"
 #include "mos/filesystem/sysfs/sysfs.hpp"
 #include "mos/filesystem/sysfs/sysfs_autoinit.hpp"
 #include "mos/filesystem/vfs_types.hpp"
+#include "mos/filesystem/vfs_utils.hpp"
 #include "mos/ipc/pipe.hpp"
 #include "mos/lib/sync/spinlock.hpp"
 #include "mos/platform/platform.hpp"
@@ -122,7 +124,18 @@ void ipc_server_close(IPCServer *server)
     }
     else
     {
+        dentry_t *ipc_get_sysfs_dir(void);
         // now we can free the server
+        const auto dparent = ipc_get_sysfs_dir();
+
+        const auto dentry = dentry_get_from_parent(server->sysfs_ino->superblock, dparent, server->name);
+        if (dentry->inode == nullptr)
+            dentry_attach(dentry, server->sysfs_ino); // fixup, as lookup may not have been called
+        inode_unlink(server->sysfs_ino, dentry);
+        dentry_unref(dentry); // it won't release dentry because dentry->inode is still valid
+        dentry_detach(dentry);
+        dentry_try_release(dentry);
+        server->sysfs_ino = NULL;
         delete server;
     }
 }
@@ -505,3 +518,8 @@ static sysfs_item_t ipc_sysfs_items[] = {
 };
 
 SYSFS_AUTOREGISTER(ipc, ipc_sysfs_items);
+
+dentry_t *ipc_get_sysfs_dir()
+{
+    return __sysfs_ipc._dentry;
+}

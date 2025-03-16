@@ -1,19 +1,24 @@
 #include "target.hpp"
 
+#include "ServiceManager.hpp"
+
+RegisterUnit(target, Target);
+
+Target::Target(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_, const ArgumentMap &args) : Unit(id, table, template_, args)
+{
+}
+
 bool Target::Start()
 {
-    SetStatus(UnitStatus::Running);
+    status.Started("reached");
+    ServiceManager->OnUnitStarted(this);
     return true;
 }
 
 bool Target::Stop()
 {
-    SetStatus(UnitStatus::Stopped);
     std::cout << "TODO: Terminate all dependant units" << std::endl;
-    return true;
-}
-
-bool Target::onLoad(const toml::table &)
-{
+    status.Inactive();
+    ServiceManager->OnUnitStopped(this);
     return true;
 }

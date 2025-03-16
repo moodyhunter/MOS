@@ -174,7 +174,7 @@ Thread *thread_complete_init(Thread *thread)
 Thread *thread_get(tid_t tid)
 {
     const auto ppthread = thread_table.get(tid);
-    if (ppthread == nullptr)
+    if (!ppthread)
     {
         pr_warn("thread_get(%d) from pid %d (%s) but thread does not exist", tid, current_process->pid, current_process->name.c_str());
         return NULL;

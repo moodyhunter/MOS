@@ -5,12 +5,21 @@ import "mosrpc-options.proto";
 option (nanopb_fileopt).fallback_type = FT_POINTER;
 option (nanopb_fileopt).proto3_singular_msgs = true;
 
-enum RpcUnitStatus
+enum RpcUnitStatusEnum
 {
-    Stopped = 0;
-    Running = 1;
-    Finished = 2;
-    Failed = 3;
+    Starting = 0;
+    Started = 1;
+    Failed = 2;
+    Stopping = 3;
+    Stopped = 4;
+}
+
+message RpcUnitStatus
+{
+    bool isActive = 1;
+    RpcUnitStatusEnum status = 2;
+    string statusMessage = 3;
+    int64 timestamp = 4;
 }
 
 enum RpcUnitType
@@ -32,6 +41,13 @@ message RpcUnit
     RpcUnitStatus status = 4;
 }
 
+message RpcUnitTemplate
+{
+    string base_id = 1;
+    repeated string parameters = 2;
+    string description = 3;
+}
+
 message GetUnitsRequest
 {
 }
@@ -41,8 +57,40 @@ message GetUnitsResponse
     repeated RpcUnit units = 1;
 }
 
+message GetTemplatesRequest
+{
+}
+
+message GetTemplatesResponse
+{
+    repeated RpcUnitTemplate templates = 1;
+}
+
+message StartUnitRequest
+{
+    string unit_id = 1;
+}
+
+message StartUnitResponse
+{
+    bool success = 1;
+}
+
+message StopUnitRequest
+{
+    string unit_id = 1;
+}
+
+message StopUnitResponse
+{
+    bool success = 1;
+}
+
 service ServiceManager
 {
     option (c_name) = "service_manager";
     rpc GetUnits(GetUnitsRequest) returns (GetUnitsResponse);
+    rpc GetTemplates(GetTemplatesRequest) returns (GetTemplatesResponse);
+    rpc StartUnit(StartUnitRequest) returns (StartUnitResponse);
+    rpc StopUnit(StopUnitRequest) returns (StopUnitResponse);
 }

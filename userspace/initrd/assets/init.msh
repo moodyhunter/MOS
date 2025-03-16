@@ -1,5 +1,3 @@
-sleep 1
-
 # setup some VERY USEFUL aliases
 alias l ls
 alias poweroff shutdown

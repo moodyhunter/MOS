@@ -4,11 +4,12 @@
 
 struct Mount : public Unit
 {
-    using Unit::Unit;
-    std::string mount_point;
-    std::string fs_type;
-    std::string options;
-    std::string device;
+    explicit Mount(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_ = nullptr, const ArgumentMap &args = {});
+
+    const std::string mount_point;
+    const std::string fs_type;
+    const std::string options;
+    const std::string device;
 
   private:
     UnitType GetType() const override
@@ -17,6 +18,5 @@ struct Mount : public Unit
     }
     bool Start() override;
     bool Stop() override;
-    bool onLoad(const toml::table &data) override;
     void onPrint(std::ostream &os) const override;
 };

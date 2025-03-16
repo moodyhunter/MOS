@@ -6,10 +6,10 @@
 
 struct Symlink : public Unit
 {
-    using Unit::Unit;
+    explicit Symlink(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_ = nullptr, const ArgumentMap &args = {});
 
-    std::string linkfile;
-    std::string target;
+    const std::string linkfile;
+    const std::string target;
 
   private:
     UnitType GetType() const override
@@ -18,5 +18,4 @@ struct Symlink : public Unit
     }
     bool Start() override;
     bool Stop() override;
-    bool onLoad(const toml::table &data) override;
 };

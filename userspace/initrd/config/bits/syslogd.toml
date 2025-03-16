@@ -2,5 +2,5 @@
 type = "service"
 description = "System log daemon"
 depends_on = ["sys.mount"]
-part_of = ["base.target"]
+part_of = ["normal.target"]
 exec = "/initrd/programs/syslogd"

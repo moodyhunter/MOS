@@ -16,6 +16,8 @@ add_executable(init
     unit/service.cpp
     unit/target.cpp
     unit/symlink.cpp
+    unit/device.cpp
+    unit/template.cpp
     parser.cpp
     ServiceManager.cpp
     rpc/rpc.cpp

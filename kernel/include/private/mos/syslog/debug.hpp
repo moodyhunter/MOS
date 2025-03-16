@@ -53,7 +53,7 @@
 
 typedef struct _debug_info_entry
 {
-    u32 id;
+    const u32 id;
     const char *name;
     bool enabled;
 } debug_info_entry;

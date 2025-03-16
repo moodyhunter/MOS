@@ -4,8 +4,8 @@
 
 struct Path : public Unit
 {
-    using Unit::Unit;
-    std::string path;
+    explicit Path(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_ = nullptr, const ArgumentMap &args = {});
+    const std::string path;
 
   private:
     UnitType GetType() const override
@@ -14,6 +14,5 @@ struct Path : public Unit
     }
     bool Start() override;
     bool Stop() override;
-    bool onLoad(const toml::table &data) override;
     void onPrint(std::ostream &os) const override;
 };

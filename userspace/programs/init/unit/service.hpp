@@ -2,10 +2,14 @@
 
 #include "unit.hpp"
 
+#include <atomic>
+
 struct Service : public Unit
 {
-    using Unit::Unit;
+    explicit Service(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_ = nullptr, const ArgumentMap &args = {});
     std::vector<std::string> exec;
+
+    void OnExited(int status);
 
   private:
     UnitType GetType() const override
@@ -14,9 +18,9 @@ struct Service : public Unit
     }
     bool Start() override;
     bool Stop() override;
-    bool onLoad(const toml::table &data) override;
     void onPrint(std::ostream &os) const override;
 
   private:
-    int status = -1;
+    std::atomic<pid_t> main_pid = -1;
+    int exit_status = -1;
 };

@@ -1,43 +1,53 @@
 #include "mount.hpp"
 
+#include "ServiceManager.hpp"
+
 #include <mos/syscall/usermode.h>
+
+RegisterUnit(mount, Mount);
+
+Mount::Mount(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_, const ArgumentMap &args)
+    : Unit(id, table, template_, args),                                     //
+      mount_point(ReplaceArgs(table["mount"]["mount_point"].value_or(""))), //
+      fs_type(ReplaceArgs(table["mount"]["fs_type"].value_or(""))),         //
+      options(ReplaceArgs(table["mount"]["options"].value_or(""))),         //
+      device(ReplaceArgs(table["mount"]["device"].value_or("")))            //
+{
+    if (mount_point.empty())
+        std::cerr << "mount: missing mount_point" << std::endl;
+    if (fs_type.empty())
+        std::cerr << "mount: missing fs_type" << std::endl;
+    if (device.empty())
+        std::cerr << "mount: missing device" << std::endl;
+}
 
 bool Mount::Start()
 {
-    SetStatus(UnitStatus::Starting);
+    status.Starting();
     if (syscall_vfs_mount(device.c_str(), mount_point.c_str(), fs_type.c_str(), options.c_str()) != 0)
     {
-        SetStatus(UnitStatus::Failed);
-        m_error = strerror(errno);
+        status.Failed(strerror(errno));
         return false;
     }
 
-    SetStatus(UnitStatus::Finished);
+    status.Started();
+    ServiceManager->OnUnitStarted(this);
     return true;
 }
 
 bool Mount::Stop()
 {
-    SetStatus(UnitStatus::Stopping);
+    status.Stopping();
     std::cout << "stopping mount " << id << std::endl;
-    SetStatus(UnitStatus::Stopped);
-    return true;
-}
-
-bool Mount::onLoad(const toml::table &data)
-{
-    const auto mount = data["mount"].as_table();
-    if (!mount)
+    status.Inactive();
+    const auto err = syscall_vfs_unmount(mount_point.c_str());
+    if (err != 0)
     {
-        std::cerr << "bad mount table" << std::endl;
+        errno = -err;
+        status.Failed(strerror(errno));
         return false;
     }
-
-    this->mount_point = (*mount)["mount_point"].value_or("unknown");
-    this->fs_type = (*mount)["fs_type"].value_or("unknown");
-    this->options = (*mount)["options"].value_or("unknown");
-    this->device = (*mount)["device"].value_or("unknown");
-
+    ServiceManager->OnUnitStopped(this);
     return true;
 }
 
