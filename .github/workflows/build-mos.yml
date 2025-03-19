@@ -74,7 +74,7 @@ jobs:
           ninja mos_uefi_partition
 
       - name: Upload Bootable Artifact
-        uses: actions/upload-artifact@v4.3.6
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: MOS-${{matrix.build_type}}-${{matrix.config.arch}}
           path: build/uefi-files
@@ -99,7 +99,7 @@ jobs:
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v4.3.6
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: MOS-${{matrix.build_type}}-${{matrix.config.arch}}-test-results-single-cpu
           path: build/test-results/
@@ -117,7 +117,7 @@ jobs:
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v4.3.6
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: MOS-${{matrix.build_type}}-${{matrix.config.arch}}-test-results-multiple-cpus
           path: build/test-results/
