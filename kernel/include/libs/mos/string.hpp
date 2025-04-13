@@ -281,6 +281,16 @@ namespace mos
             return _length == 0;
         }
 
+        ssize_t copy(Char *buffer, size_t size, size_t pos = 0) const
+        {
+            if (pos > _length)
+                return -1;
+            if (pos + size > _length)
+                size = _length - pos;
+            memcpy(buffer, data() + pos, sizeof(Char) * size);
+            return size;
+        }
+
         basic_string_view<Char> value_or(basic_string_view<Char> other) const
         {
             return empty() ? other : *this;

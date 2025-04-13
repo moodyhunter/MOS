@@ -402,9 +402,7 @@ static PtrResult<FsBaseFile> vfs_do_open(dentry_t *base, mos::string_view path, 
 
 mos::string FsBaseFile::name() const
 {
-    char pathbuf[MOS_PATH_MAX_LENGTH];
-    dentry_path(dentry, root_dentry, pathbuf, sizeof(pathbuf));
-    return mos::string((const char *) pathbuf);
+    return dentry_path(dentry, root_dentry).value_or("<unknown>");
 }
 
 // public functions
@@ -811,7 +809,11 @@ ssize_t vfs_getcwd(char *buf, size_t size)
     if (cwd.isErr())
         return cwd.getErr();
 
-    return dentry_path(cwd.get(), root_dentry, buf, size);
+    const auto path = dentry_path(cwd.get(), root_dentry);
+    if (!path)
+        return -ENOMEM;
+
+    return path->copy(buf, size);
 }
 
 long vfs_fchmodat(fd_t fd, const char *path, int perm, int flags)
@@ -898,11 +900,13 @@ static bool vfs_sysfs_filesystems(sysfs_file_t *f)
 
 static bool vfs_sysfs_mountpoints(sysfs_file_t *f)
 {
-    char pathbuf[MOS_PATH_MAX_LENGTH];
     list_foreach(mount_t, mp, vfs_mountpoint_list)
     {
-        dentry_path(mp->mountpoint, root_dentry, pathbuf, sizeof(pathbuf));
-        sysfs_printf(f, "%-20s %-10s\n", pathbuf, mp->fs->name.c_str());
+        const auto str = dentry_path(mp->mountpoint, root_dentry);
+        if (str)
+            sysfs_printf(f, "%-20s %-10s\n", str->c_str(), mp->fs->name.c_str());
+        else
+            sysfs_printf(f, "%-20s %-10s\n", "<error>", mp->fs->name.c_str());
     }
 
     return true;

@@ -168,20 +168,13 @@ void dentry_unref(dentry_t *dentry)
         dentry_try_release(dentry);
 }
 
-ssize_t dentry_path(const dentry_t *dentry, dentry_t *root, char *buf, size_t size)
+std::optional<mos::string> dentry_path(const dentry_t *dentry, dentry_t *root)
 {
     if (dentry == NULL)
-        return 0;
-
-    if (size < 2)
-        return -1;
+        return std::nullopt;
 
     if (dentry == root)
-    {
-        buf[0] = '/';
-        buf[1] = '\0';
-        return 1;
-    }
+        return "/";
 
     if (dentry->name.empty())
         dentry = dentry_root_get_mountpoint(dentry);
@@ -193,24 +186,12 @@ ssize_t dentry_path(const dentry_t *dentry, dentry_t *root, char *buf, size_t si
         if (current->name.empty())
             current = dentry_root_get_mountpoint(current);
 
+        // root for other fs trees (memfd, etc.)
         if (current == NULL)
-        {
-            // root for other fs trees
-            path = ":/" + path;
-            if (path.size() + 1 > size)
-                return -1;
-
-            return snprintf(buf, size, "%s", path.c_str());
-        }
+            return ":/" + path;
         else
-        {
             path = current->name + "/" + path;
-        }
     }
 
-    if (path.size() + 1 > size)
-        return -1;
-
-    const size_t real_size = snprintf(buf, size, "/%s", path.c_str());
-    return real_size;
+    return "/" + path;
 }

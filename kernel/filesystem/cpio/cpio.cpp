@@ -31,25 +31,25 @@
 #define CPIO_MODE_SGID      0002000 // SGID bit.
 #define CPIO_MODE_STICKY    0001000 // Sticky bit.
 
-typedef struct
+struct cpio_newc_header_t
 {
-    char magic[6];
-    char ino[8];
-    char mode[8];
-    char uid[8];
-    char gid[8];
-    char nlink[8];
-    char mtime[8];
+    char magic[6] = { 0 };
+    char ino[8] = { 0 };
+    char mode[8] = { 0 };
+    char uid[8] = { 0 };
+    char gid[8] = { 0 };
+    char nlink[8] = { 0 };
+    char mtime[8] = { 0 };
 
-    char filesize[8];
-    char devmajor[8];
-    char devminor[8];
-    char rdevmajor[8];
-    char rdevminor[8];
+    char filesize[8] = { 0 };
+    char devmajor[8] = { 0 };
+    char devminor[8] = { 0 };
+    char rdevmajor[8] = { 0 };
+    char rdevminor[8] = { 0 };
 
-    char namesize[8];
-    char check[8];
-} cpio_newc_header_t;
+    char namesize[8] = { 0 };
+    char check[8] = { 0 };
+};
 
 MOS_STATIC_ASSERT(sizeof(cpio_newc_header_t) == 110, "cpio_newc_header has wrong size");
 
@@ -162,7 +162,7 @@ should_inline cpio_inode_t *CPIO_INODE(inode_t *inode)
 
 static cpio_inode_t *cpio_inode_trycreate(const char *path, superblock_t *sb)
 {
-    cpio_newc_header_t header = { 0 };
+    cpio_newc_header_t header = {};
     size_t header_offset = 0;
     size_t name_offset = 0, name_length = 0;
     size_t data_offset = 0, data_length = 0;
@@ -231,9 +231,8 @@ static PtrResult<dentry_t> cpio_mount(filesystem_t *fs, const char *dev_name, co
 static bool cpio_i_lookup(inode_t *parent_dir, dentry_t *dentry)
 {
     // keep prepending the path with the parent path, until we reach the root
-    char pathbuf[MOS_PATH_MAX_LENGTH] = { 0 };
-    dentry_path(dentry, parent_dir->superblock->root, pathbuf, sizeof(pathbuf));
-    const char *path = pathbuf + 1; // skip the first slash
+    const auto path_str = dentry_path(dentry, parent_dir->superblock->root);
+    const char *path = path_str->c_str() + 1; // skip the first slash
 
     cpio_inode_t *inode = cpio_inode_trycreate(path, parent_dir->superblock);
     if (!inode)

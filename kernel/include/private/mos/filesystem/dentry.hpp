@@ -187,10 +187,8 @@ void vfs_populate_listdir_buf(dentry_t *dir, vfs_listdir_state_t *state);
  *
  * @param dentry The dentry to get the path of
  * @param root The root directory, the path will not go above this directory
- * @param buf The buffer to write the path to
- * @param size The size of the buffer
- * @return ssize_t
+ * @return mos::string String representation of the path
  */
-ssize_t dentry_path(const dentry_t *dentry, dentry_t *root, char *buf, size_t size);
+std::optional<mos::string> dentry_path(const dentry_t *dentry, dentry_t *root);
 
 /**@}*/
