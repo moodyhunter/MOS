@@ -2,6 +2,7 @@
 
 #include <cxxabi.h>
 #include <mos/assert.hpp>
+#include <mos/cpp_support.hpp>
 #include <mos/string.hpp>
 #include <mos_stdlib.hpp>
 
@@ -28,6 +29,21 @@ extern "C" int __cxa_atexit(void (*destructor)(void *), void *arg, void *dso)
 extern "C" void abort()
 {
     mos_panic("Aborted");
+}
+
+void std::__glibcxx_assert_fail(const char *__file, int __line, const char *__function, const char *__condition) noexcept
+{
+    mos_panic_inline("assertion failed: %s:%u: %s: %s", __file, __line, __function, __condition);
+}
+
+void mos::__raise_bad_ptrresult_value(int errorCode)
+{
+    mos_panic_inline("PtrResultBase: bad value accessed: %d", errorCode);
+}
+
+void mos::__raise_null_pointer_exception()
+{
+    mos_panic_inline("mos::string: null pointer exception");
 }
 
 // static scoped variable constructor support

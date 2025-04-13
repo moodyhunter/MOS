@@ -71,8 +71,8 @@ namespace mos
     {
 #if defined(MOS_COMPILER_CLANG) || defined(MOS_COMPILER_GCC)
         constexpr string_view f = __PRETTY_FUNCTION__;
-        constexpr auto g = f.substring(f.find("with T = ") + 9);
-        constexpr auto k = g.substring(0, g.find(";"));
+        constexpr auto g = f.substr(f.find("with T = ") + 9);
+        constexpr auto k = g.substr(0, g.find(";"));
         return k;
 #else
 #error "unknown compiler"

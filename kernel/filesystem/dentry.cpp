@@ -10,6 +10,7 @@
 #include "mos/filesystem/vfs_utils.hpp"
 #include "mos/io/io.hpp"
 #include "mos/lib/sync/spinlock.hpp"
+#include "mos/misc/kutils.hpp"
 #include "mos/tasks/process.hpp"
 #include "mos/tasks/task_types.hpp"
 
@@ -32,7 +33,7 @@
 
 // The two functions below have circular dependencies, so we need to forward declare them
 // Both of them return a referenced dentry, no need to refcount them again
-static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, LastSegmentResolveFlags flags, bool *symlink_resolved);
+static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, mos::string leaf, const LastSegmentResolveFlags flags, bool *is_symlink);
 static PtrResult<dentry_t> dentry_resolve_follow_symlink(dentry_t *dentry, LastSegmentResolveFlags flags);
 
 /**
@@ -44,120 +45,95 @@ static PtrResult<dentry_t> dentry_resolve_follow_symlink(dentry_t *dentry, LastS
  * @param last_seg_out The last segment of the path will be returned in this parameter, the caller is responsible for freeing it
  * @return dentry_t* The parent directory of the path, or NULL if the path is invalid, the dentry will be referenced
  */
-static PtrResult<dentry_t> dentry_resolve_to_parent(dentry_t *base_dir, dentry_t *root_dir, const char *original_path, char **last_seg_out)
+static std::pair<PtrResult<dentry_t>, std::optional<mos::string>> dentry_resolve_to_parent(dentry_t *base_dir, dentry_t *root_dir, mos::string_view path)
 {
-    dInfo2<dcache> << "lookup parent of '" << original_path << "'";
-    MOS_ASSERT_X(base_dir && root_dir && original_path, "Invalid VFS lookup parameters");
-    if (last_seg_out != NULL)
-        *last_seg_out = NULL;
+    dInfo2<dcache> << "lookup parent of '" << path << "'";
+    MOS_ASSERT_X(base_dir && root_dir, "Invalid VFS lookup parameters");
 
     dentry_t *parent_ref = [&]()
     {
-        dentry_t *tmp = path_is_absolute(original_path) ? root_dir : base_dir;
+        dentry_t *tmp = path_is_absolute(path) ? root_dir : base_dir;
         if (tmp->is_mountpoint)
             tmp = dentry_get_mount(tmp)->root; // if it's a mountpoint, jump to mounted filesystem
         return dentry_ref_up_to(tmp, root_dir);
     }();
 
-    char *saveptr = NULL;
-    char *path = strdup(original_path);
-    const char *current_seg = strtok_r(path, PATH_DELIM_STR, &saveptr);
-    if (unlikely(current_seg == NULL))
+    const auto parts = split_string(path, PATH_DELIM);
+    if (unlikely(parts.empty()))
     {
         // this only happens if the path is empty, or contains only slashes
         // in which case we return the base directory
-        kfree(path);
-        if (last_seg_out != NULL)
-            *last_seg_out = NULL;
-        return parent_ref;
+        return { parent_ref, std::nullopt };
     }
 
-    while (true)
+    for (size_t i = 0; i < parts.size(); i++)
     {
-        dInfo2<dcache> << "lookup parent: current segment '" << current_seg << "'";
-        const char *const next = strtok_r(NULL, PATH_DELIM_STR, &saveptr);
-        if (parent_ref->inode->type == FILE_TYPE_SYMLINK)
+        const bool is_last = i == parts.size() - 1;
+        const auto current_seg = parts[i];
+
+        dInfo2<dcache> << "lookup parent: current segment '" << current_seg << "'" << (is_last ? " (last)" : "");
+
+        if (is_last)
         {
-            // this is the real interesting dir
-            auto parent_real_ref = dentry_resolve_follow_symlink(parent_ref, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_DIR);
-            dentry_unref(parent_ref);
-            if (parent_real_ref.isErr())
-                return -ENOENT; // the symlink target does not exist
-            parent_ref = parent_real_ref.get();
+            const bool ends_with_slash = path.ends_with(PATH_DELIM);
+            return { parent_ref, current_seg + (ends_with_slash ? PATH_DELIM_STR : "") };
         }
 
-        if (next == NULL)
-        {
-            // "current_seg" is the last segment of the path
-            if (last_seg_out != NULL)
-            {
-                const bool ends_with_slash = original_path[strlen(original_path) - 1] == PATH_DELIM;
-                char *tmp = kcalloc<char>(strlen(current_seg) + 2); // +2 for the null terminator and the slash
-                strcpy(tmp, current_seg);
-                if (ends_with_slash)
-                    strcat(tmp, PATH_DELIM_STR);
-                *last_seg_out = tmp;
-            }
-
-            kfree(path);
-            return parent_ref;
-        }
-
-        if (strncmp(current_seg, ".", 2) == 0 || strcmp(current_seg, "./") == 0)
-        {
-            current_seg = next;
+        if (current_seg == "." || current_seg == "./")
             continue;
-        }
 
-        if (strncmp(current_seg, "..", 3) == 0 || strcmp(current_seg, "../") == 0)
+        if (current_seg == ".." || current_seg == "../")
         {
-            if (parent_ref == root_dir)
+            // we can't go above the root directory
+            if (parent_ref != root_dir)
             {
-                // we can't go above the root directory
-                current_seg = next;
-                continue;
+                dentry_t *const parent = dentry_parent(*parent_ref);
+
+                // don't recurse up to the root
+                MOS_ASSERT(dentry_unref_one_norelease(parent_ref));
+                parent_ref = parent;
+
+                // if the parent is a mountpoint, we need to jump to the mountpoint's parent
+                // and then jump to the mountpoint's parent's parent
+                // already referenced when we jumped to the mountpoint
+                if (parent_ref->is_mountpoint)
+                    parent_ref = dentry_root_get_mountpoint(parent);
             }
-
-            dentry_t *parent = dentry_parent(*parent_ref);
-
-            // don't recurse up to the root
-            MOS_ASSERT(dentry_unref_one_norelease(parent_ref));
-            parent_ref = parent;
-
-            // if the parent is a mountpoint, we need to jump to the mountpoint's parent
-            // and then jump to the mountpoint's parent's parent
-            // already referenced when we jumped to the mountpoint
-            if (parent_ref->is_mountpoint)
-                parent_ref = dentry_root_get_mountpoint(parent);
-
-            current_seg = next;
-            continue;
-        }
-
-        auto child_ref = dentry_lookup_child(parent_ref, current_seg);
-        if (child_ref->inode == NULL)
-        {
-            *last_seg_out = NULL;
-            kfree(path);
-            dentry_try_release(child_ref.get());
-            dentry_unref(parent_ref);
-            return -ENOENT;
-        }
-
-        if (child_ref->is_mountpoint)
-        {
-            dInfo2<dcache> << "jumping to mountpoint " << child_ref->name;
-            parent_ref = dentry_get_mount(child_ref.get())->root; // if it's a mountpoint, jump to the tree of mounted filesystem instead
-
-            // refcount the mounted filesystem root
-            dentry_ref(parent_ref);
         }
         else
         {
-            parent_ref = child_ref.get();
+            auto child_ref = dentry_lookup_child(parent_ref, current_seg);
+            if (child_ref->inode == NULL)
+            {
+                // kfree(path);
+                dentry_try_release(child_ref.get());
+                dentry_unref(parent_ref);
+                return { -ENOENT, std::nullopt };
+            }
+
+            if (child_ref->is_mountpoint)
+            {
+                dInfo2<dcache> << "jumping to mountpoint " << child_ref->name;
+                parent_ref = dentry_get_mount(child_ref.get())->root; // if it's a mountpoint, jump to the tree of mounted filesystem instead
+
+                // refcount the mounted filesystem root
+                dentry_ref(parent_ref);
+            }
+            else
+            {
+                parent_ref = child_ref.get();
+            }
         }
 
-        current_seg = next;
+        if (parent_ref->inode->type == FILE_TYPE_SYMLINK)
+        {
+            // go to the real interesting dir (if it's a symlink)
+            auto parent_real_ref = dentry_resolve_follow_symlink(parent_ref, RESOLVE_EXPECT_EXIST | RESOLVE_EXPECT_DIR);
+            dentry_unref(parent_ref);
+            if (parent_real_ref.isErr())
+                return { -ENOENT, std::nullopt }; // the symlink target does not exist
+            parent_ref = parent_real_ref.get();
+        }
     }
 
     MOS_UNREACHABLE();
@@ -189,16 +165,14 @@ static PtrResult<dentry_t> dentry_resolve_follow_symlink(dentry_t *d, LastSegmen
 
     dInfo2<dcache> << "symlink target: " << target;
 
-    char *last_segment = NULL;
-    auto parent_ref = dentry_resolve_to_parent(dentry_parent(*d), root_dentry, target, &last_segment);
+    auto [parent_ref, last_segment] = dentry_resolve_to_parent(dentry_parent(*d), root_dentry, target);
     kfree(target);
     if (parent_ref.isErr())
         return parent_ref; // the symlink target does not exist
 
     // it's possibly that the symlink target is also a symlink, this will be handled recursively
     bool is_symlink = false;
-    const auto child_ref = dentry_resolve_lastseg(parent_ref.get(), last_segment, flags, &is_symlink);
-    kfree(last_segment);
+    const auto child_ref = dentry_resolve_lastseg(parent_ref.get(), *last_segment, flags, &is_symlink);
 
     // if symlink is true, we need to unref the parent_ref dentry as it's irrelevant now
     if (child_ref.isErr() || is_symlink)
@@ -207,15 +181,15 @@ static PtrResult<dentry_t> dentry_resolve_follow_symlink(dentry_t *d, LastSegmen
     return child_ref; // the real dentry, or an error code
 }
 
-static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, const LastSegmentResolveFlags flags, bool *is_symlink)
+static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, mos::string leaf, const LastSegmentResolveFlags flags, bool *is_symlink)
 {
-    MOS_ASSERT(parent != NULL && leaf != NULL);
+    MOS_ASSERT(parent != NULL);
     *is_symlink = false;
 
     dInfo2<dcache> << "resolving last segment: '" << leaf << "'";
-    const bool ends_with_slash = leaf[strlen(leaf) - 1] == PATH_DELIM;
+    const bool ends_with_slash = leaf.ends_with(PATH_DELIM);
     if (ends_with_slash)
-        leaf[strlen(leaf) - 1] = '\0'; // remove the trailing slash
+        leaf.resize(leaf.size() - 1); // remove the trailing slash
 
     if (unlikely(ends_with_slash && !flags.test(RESOLVE_EXPECT_DIR)))
     {
@@ -223,9 +197,9 @@ static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, char *leaf, 
         return -EINVAL;
     }
 
-    if (strncmp(leaf, ".", 2) == 0 || strcmp(leaf, "./") == 0)
+    if (leaf == "." || leaf == "./")
         return parent;
-    else if (strncmp(leaf, "..", 3) == 0 || strcmp(leaf, "../") == 0)
+    else if (leaf == ".." || leaf == "../")
     {
         if (parent == root_dentry)
             return parent;
@@ -394,23 +368,22 @@ PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, mos::string_view name)
     }
 }
 
-PtrResult<dentry_t> dentry_resolve(dentry_t *starting_dir, dentry_t *root_dir, const char *path, LastSegmentResolveFlags flags)
+PtrResult<dentry_t> dentry_resolve(dentry_t *starting_dir, dentry_t *root_dir, mos::string_view path, LastSegmentResolveFlags flags)
 {
     if (!root_dir)
         return -ENOENT; // no root directory
 
-    char *last_segment;
     dInfo2<dcache> << "resolving path '" << path << "'";
-    auto parent_ref = dentry_resolve_to_parent(starting_dir, root_dir, path, &last_segment);
+    const auto [parent_ref, last_segment] = dentry_resolve_to_parent(starting_dir, root_dir, path);
     if (parent_ref.isErr())
     {
         dInfo2<dcache> << "failed to resolve parent of '" << path << "', file not found";
         return parent_ref;
     }
 
-    if (last_segment == NULL)
+    if (!last_segment)
     {
-        // path is a single "/"
+        // path is a single "/", last_segment is empty
         dInfo2<dcache> << "path '" << path << "' is a single '/' or is empty";
         MOS_ASSERT(parent_ref == starting_dir);
         if (!flags.test(RESOLVE_EXPECT_DIR))
@@ -423,11 +396,9 @@ PtrResult<dentry_t> dentry_resolve(dentry_t *starting_dir, dentry_t *root_dir, c
     }
 
     bool symlink = false;
-    auto child_ref = dentry_resolve_lastseg(parent_ref.get(), last_segment, flags, &symlink);
-    kfree(last_segment);
+    auto child_ref = dentry_resolve_lastseg(parent_ref.get(), *last_segment, flags, &symlink);
     if (child_ref.isErr() || symlink)
         dentry_unref(parent_ref.get()); // the lookup failed, or child_ref is irrelevant with the parent_ref
-
     return child_ref;
 }
 

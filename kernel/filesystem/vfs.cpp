@@ -335,7 +335,7 @@ static bool vfs_verify_permissions(dentry_t &file_dentry, bool open, bool read, 
     return true;
 }
 
-static PtrResult<FsBaseFile> vfs_do_open(dentry_t *base, const char *path, OpenFlags flags)
+static PtrResult<FsBaseFile> vfs_do_open(dentry_t *base, mos::string_view path, OpenFlags flags)
 {
     if (base == NULL)
         return -EINVAL;
@@ -584,7 +584,7 @@ long vfs_unmount(const char *path)
     return 0;
 }
 
-PtrResult<FsBaseFile> vfs_openat(int fd, const char *path, OpenFlags flags)
+PtrResult<FsBaseFile> vfs_openat(int fd, mos::string_view path, OpenFlags flags)
 {
     dInfo2<vfs> << "vfs_openat(fd=" << fd << ", path='" << path << "', flags=" << flags << ")";
     auto basedir = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);

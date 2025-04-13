@@ -2,8 +2,10 @@
 
 #include "mos/misc/kutils.hpp"
 
-#include "mos/misc/panic.hpp"
 #include "mos/syslog/printk.hpp"
+
+#include <bits/c++config.h>
+#include <mos/string.hpp>
 
 static const int HEXDUMP_COLS = 16;
 
@@ -42,7 +44,24 @@ void hexdump(const char *data, const size_t len)
     pr_info("");
 }
 
-void PtrResultBase::__raise_bad_value() const
+mos::vector<mos::string> split_string(mos::string_view str, char delim)
 {
-    mos_panic_inline("PtrResultBase: bad value accessed: %d", errorCode);
+    mos::vector<mos::string> result;
+    size_t start = 0;
+    size_t end = str.find(delim);
+
+    const auto add_substr = [&](mos::string_view str, size_t start, size_t end)
+    {
+        if (const auto substr = str.substr(start, end - start); !substr.empty())
+            result.push_back(mos::string(substr));
+    };
+    while (end != mos::string::npos)
+    {
+        add_substr(str, start, end);
+        start = end + 1;
+        end = str.find(delim, start);
+    }
+
+    add_substr(str, start, end);
+    return result;
 }

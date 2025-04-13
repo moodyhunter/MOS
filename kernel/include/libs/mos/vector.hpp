@@ -76,7 +76,7 @@ namespace mos
         size_t m_capacity = 0;
 
       public:
-        auto &operator[](size_t index) noexcept
+        auto &operator[](size_t index) const noexcept
         {
             return at(index);
         }

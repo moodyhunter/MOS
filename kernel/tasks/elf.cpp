@@ -108,7 +108,7 @@ static void elf_setup_main_thread(Thread *thread, elf_startup_info_t *const info
 
     stack_push_val(&thread->u_stack, (uintn) 0);
 
-    void *invocation_ptr = stack_push(&thread->u_stack, info->invocation.c_str(), info->invocation.size() + 1); // +1 for the null terminator
+    void *invocation_ptr = stack_push(&thread->u_stack, info->invocation.data(), info->invocation.size() + 1); // +1 for the null terminator
 
     info->AddAuxvEntry(AT_EXECFN, (ptr_t) invocation_ptr);
     info->AddAuxvEntry(AT_NULL, 0);
@@ -359,7 +359,8 @@ bool elf_read_and_verify_executable(FsBaseFile *file, elf_header_t *header)
     return true;
 }
 
-[[nodiscard]] static bool elf_fill_process(Process *proc, FsBaseFile *file, const char *path, const char *const argv[], const char *const envp[])
+[[nodiscard]] static bool elf_fill_process(Process *proc, FsBaseFile *file, mos::string_view path, const mos::vector<mos::string> &argv,
+                                           const mos::vector<mos::string> &envp)
 {
     bool ret = false;
 
@@ -373,29 +374,19 @@ bool elf_read_and_verify_executable(FsBaseFile *file, elf_header_t *header)
         return ret;
     }
 
-    elf_startup_info_t info{ .invocation = path };
-
-    while (argv && argv[info.argv.size()])
-        info.argv.push_back(argv[info.argv.size()]);
-
-    if (info.argv.empty())
-        info.argv = { path };
-
-    while (envp && envp[info.envp.size()])
-        info.envp.push_back(envp[info.envp.size()]);
-
+    elf_startup_info_t info{ .invocation = path, .argv = argv, .envp = envp };
     ret = elf_do_fill_process(proc, file, elf, &info);
 
     file->unref(); // close the file, we should have the file's refcount == 0 here
     return ret;
 }
 
-Process *elf_create_process(const char *path, Process *parent, const char *const argv[], const char *const envp[], const stdio_t *ios)
+Process *elf_create_process(mos::string_view path, Process *parent, const mos::vector<mos::string> &argv, const mos::vector<mos::string> &envp, const stdio_t *ios)
 {
     auto file = vfs_openat(AT_FDCWD, path, OPEN_READ | OPEN_EXECUTE);
     if (file.isErr())
     {
-        mos_warn("failed to open '%s'", path);
+        mos_warn("failed to open '%s'", path.data());
         return NULL;
     }
     file->ref();

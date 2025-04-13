@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <mos/lib/cmdline.hpp>
+#include <mos/string.hpp>
+#include <mos/vector.hpp>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
@@ -26,7 +28,7 @@ static const char **cmdline_dynamic_array_insert(const char **argv, size_t resul
     return argv;
 }
 
-static bool cmdline_parse_generic(char *start, size_t length, size_t cmdline_max, size_t *out_count, const char ***argv_ptr, cmdline_insert_fn_t insert)
+static bool cmdline_parse_generic(char *start, size_t length, size_t cmdline_max, size_t *out_count, const char ***argv_ptr, cmdline_insert_fn_t inserter)
 {
     char *buf_start = start;
 
@@ -78,7 +80,7 @@ static bool cmdline_parse_generic(char *start, size_t length, size_t cmdline_max
         {
             if (strlen(start) > 0)
             {
-                *argv_ptr = insert(*argv_ptr, cmdline_max, start, out_count);
+                *argv_ptr = inserter(*argv_ptr, cmdline_max, start, out_count);
                 if (!*argv_ptr)
                     return false;
             }
@@ -95,13 +97,25 @@ bool cmdline_parse_inplace(char *inbuf, size_t length, size_t cmdline_max, size_
     return cmdline_parse_generic(inbuf, length, cmdline_max, out_count, &out_cmdlines, cmdline_static_array_insert);
 }
 
-const char **cmdline_parse(const char **inargv, char *inbuf, size_t length, size_t *out_count)
+const char **cmdline_parse(char *inbuf, size_t length, const char **outargv, size_t *out_count)
 {
-    if (!cmdline_parse_generic(inbuf, length, 0, out_count, &inargv, cmdline_dynamic_array_insert))
-    {
+    if (!cmdline_parse_generic(inbuf, length, 0, out_count, &outargv, cmdline_dynamic_array_insert))
         return NULL;
-    }
-    return inargv;
+    return outargv;
+}
+
+mos::vector<mos::string> cmdline_parse_vector(char *inbuf, size_t length)
+{
+    mos::vector<mos::string> result;
+    size_t count = 0;
+    const char **argv = cmdline_parse(inbuf, length, NULL, &count);
+    if (!argv)
+        return result;
+
+    for (size_t i = 0; i < count; i++)
+        result.push_back(argv[i]);
+
+    return result;
 }
 
 void string_unquote(char *str)

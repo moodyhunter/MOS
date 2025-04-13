@@ -154,7 +154,16 @@ DEFINE_SYSCALL(pid_t, get_parent_pid)(void)
 DEFINE_SYSCALL(pid_t, spawn)(const char *path, const char *const argv[], const char *const envp[])
 {
     const stdio_t stdio = current_stdio();
-    const auto process = elf_create_process(path, current_process, argv, envp, &stdio);
+
+    mos::vector<mos::string> argv_vec;
+    for (size_t i = 0; argv[i] != NULL; i++)
+        argv_vec.push_back(argv[i]);
+
+    mos::vector<mos::string> envp_vec;
+    for (size_t i = 0; envp[i] != NULL; i++)
+        envp_vec.push_back(envp[i]);
+
+    const auto process = elf_create_process(path, current_process, argv_vec, envp_vec, &stdio);
 
     if (!process)
         return -1;

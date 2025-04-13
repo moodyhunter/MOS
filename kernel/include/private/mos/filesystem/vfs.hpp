@@ -61,7 +61,7 @@ long vfs_unmount(const char *path);
  * @param flags open_flags flags
  * @return file_t* The file, or NULL if the file could not be opened
  */
-PtrResult<FsBaseFile> vfs_openat(int fd, const char *path, OpenFlags flags);
+PtrResult<FsBaseFile> vfs_openat(int fd, mos::string_view path, OpenFlags flags);
 
 /**
  * @brief Stat a file

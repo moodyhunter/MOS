@@ -59,7 +59,7 @@ MOS_ENUM_FLAGS(LastSegmentResolveFlag, LastSegmentResolveFlags);
  * @param path The path to check
  * @return true if the path is absolute (starts with a '/'), false otherwise
  */
-should_inline bool path_is_absolute(const char *path)
+should_inline bool path_is_absolute(mos::string_view path)
 {
     return path[0] == '/';
 }
@@ -154,7 +154,7 @@ PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, mos::string_view name)
  *         NULL if any intermediate directory in the path does not exist.
  *
  */
-PtrResult<dentry_t> dentry_resolve(dentry_t *starting_dir, dentry_t *root_dir, const char *path, LastSegmentResolveFlags flags);
+PtrResult<dentry_t> dentry_resolve(dentry_t *starting_dir, dentry_t *root_dir, mos::string_view path, LastSegmentResolveFlags flags);
 
 /**
  * @brief Mount a filesystem at a mountpoint

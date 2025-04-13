@@ -32,6 +32,9 @@ namespace mos
         } _data;
 
       public:
+        static constexpr auto npos = size_t(-1);
+
+      public:
         basic_string(std::nullptr_t) = delete;
 
         basic_string() : _length{ 0 }, _is_long(false) {};
@@ -87,6 +90,8 @@ namespace mos
 
         basic_string &operator=(const Char *buffer)
         {
+            if (buffer == nullptr)
+                mos::__raise_null_pointer_exception();
             this->~basic_string();
             this->_length = generic_strlen(buffer);
             this->_is_long = this->_length >= short_string_capacity;
@@ -162,15 +167,29 @@ namespace mos
             if (new_length < short_string_capacity)
                 _convert_to_short();
             else
-                _convert_to_long();
+                _convert_to_long(_length);
             _length = new_length;
         }
 
-        bool starts_with(const basic_string_view<Char> &prefix) const
+        bool begins_with(Char c) const
+        {
+            if (_length == 0)
+                return false;
+            return _data._short._buffer[0] == c;
+        }
+
+        bool begins_with(const basic_string_view<Char> &prefix) const
         {
             if (prefix.size() > _length)
                 return false;
             return generic_strncmp(data(), prefix.data(), prefix.size()) == 0;
+        }
+
+        bool ends_with(Char c) const
+        {
+            if (_length == 0)
+                return false;
+            return _data._short._buffer[_length - 1] == c;
         }
 
         bool ends_with(const basic_string_view<Char> &suffix) const
@@ -178,6 +197,17 @@ namespace mos
             if (suffix.size() > _length)
                 return false;
             return generic_strncmp(data() + _length - suffix.size(), suffix.data(), suffix.size()) == 0;
+        }
+
+        void clear()
+        {
+            if (_is_long)
+            {
+                TAllocator::free(_data._long._buffer);
+                _data._long._buffer = nullptr;
+                _is_long = false;
+            }
+            _length = 0;
         }
 
         basic_string operator+(const basic_string &other) const
@@ -225,6 +255,7 @@ namespace mos
         {
             return _is_long ? _data._long._buffer : _data._short._buffer;
         }
+
         const Char *c_str() const
         {
             return data();
@@ -293,6 +324,8 @@ namespace mos
       private:
         void _init(const Char *buffer, size_t size)
         {
+            if (buffer == nullptr)
+                mos::__raise_null_pointer_exception();
             _length = size;
             if (_length < short_string_capacity)
             {

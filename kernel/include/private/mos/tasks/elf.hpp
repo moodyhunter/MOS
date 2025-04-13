@@ -103,7 +103,7 @@ typedef struct elf_program_hdr_t
 
 struct elf_startup_info_t
 {
-    mos::string invocation;
+    mos::string_view invocation;
     mos::vector<Elf64_auxv_t> auxv;
     mos::vector<mos::string> argv;
     mos::vector<mos::string> envp;
@@ -116,4 +116,4 @@ struct elf_startup_info_t
 
 [[nodiscard]] bool elf_read_and_verify_executable(FsBaseFile *file, elf_header_t *header);
 [[nodiscard]] bool elf_do_fill_process(Process *proc, FsBaseFile *file, elf_header_t elf, elf_startup_info_t *info);
-Process *elf_create_process(const char *path, Process *parent, const char *const argv[], const char *const envp[], const stdio_t *ios);
+Process *elf_create_process(mos::string_view path, Process *parent, const mos::vector<mos::string> &argv, const mos::vector<mos::string> &envp, const stdio_t *ios);

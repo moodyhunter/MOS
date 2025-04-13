@@ -248,7 +248,5 @@ extern "C" platform_regs_t *x86_interrupt_entry(ptr_t rsp)
             *frame = *syscall_ret_regs;
     }
 
-    // x86_interrupt_return_impl(frame);
-    // MOS_UNREACHABLE();
     return frame;
 }

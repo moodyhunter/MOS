@@ -34,7 +34,7 @@ std::optional<Console *> console_get_by_prefix(mos::string_view prefix)
 {
     for (const auto &con : consoles)
     {
-        if (con->name().starts_with(prefix))
+        if (con->name().begins_with(prefix))
             return con;
     }
 

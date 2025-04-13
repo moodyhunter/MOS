@@ -79,7 +79,16 @@ add_library(mos_kernel OBJECT ${MOS_SYSCALL_FILES})
 target_link_libraries(mos_kernel PUBLIC mos::kernel_compile_options)
 add_dependencies(mos_kernel mos_syscall_decl)
 add_library(mos::kernel ALIAS mos_kernel)
-target_compile_definitions(mos_kernel PRIVATE MOS_KERNEL_VERSION="${CMAKE_PROJECT_VERSION}" MOS_KERNEL_REVISION="${REVISION}" MOS_ARCH="${MOS_ARCH}")
+target_compile_definitions(mos_kernel
+  PRIVATE
+    MOS_KERNEL_VERSION="${CMAKE_PROJECT_VERSION}"
+    MOS_KERNEL_REVISION="${REVISION}"
+    MOS_ARCH="${MOS_ARCH}"
+)
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(mos_kernel PRIVATE -D_GLIBCXX_ASSERTIONS)
+endif()
 
 add_subdirectory(arch)
 

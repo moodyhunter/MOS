@@ -30,16 +30,12 @@
 
 MMContext mos_kernel_mm;
 
-static struct
-{
-    size_t argc = 0; // size of argv, does not include the terminating NULL
-    const char **argv = nullptr;
-} init_args;
+mos::vector<mos::string> init_args;
 
 static bool init_sysfs_argv(sysfs_file_t *file)
 {
-    for (u32 i = 0; i < init_args.argc; i++)
-        sysfs_printf(file, "%s ", init_args.argv[i]);
+    for (u32 i = 0; i < init_args.size(); i++)
+        sysfs_printf(file, "%s ", init_args[i].c_str());
     sysfs_printf(file, "\n");
     return true;
 }
@@ -50,7 +46,7 @@ SYSFS_ITEM_RO_STRING(kernel_sysfs_build_date, __DATE__)
 SYSFS_ITEM_RO_STRING(kernel_sysfs_build_time, __TIME__)
 SYSFS_ITEM_RO_STRING(kernel_sysfs_compiler, __VERSION__)
 SYSFS_ITEM_RO_STRING(kernel_sysfs_arch, MOS_ARCH)
-SYSFS_ITEM_RO_STRING(init_sysfs_path, init_args.argv[0])
+SYSFS_ITEM_RO_STRING(init_sysfs_path, init_args[0].c_str())
 SYSFS_ITEM_RO_PRINTF(initrd_sysfs_info, "pfn: " PFN_FMT "\nnpages: %zu\n", platform_info->initrd_pfn, platform_info->initrd_npages)
 
 static sysfs_item_t kernel_sysfs_items[] = {
@@ -75,10 +71,11 @@ MOS_SETUP("init", setup_init_path)
         return false;
     }
 
-    if (init_args.argv)
-        kfree(init_args.argv[0]); // free the old init path
+    if (init_args.empty())
+        init_args.push_back(arg.data());
+    else
+        init_args[0] = arg;
 
-    init_args.argv[0] = strdup(arg.data());
     return true;
 }
 
@@ -86,7 +83,7 @@ MOS_SETUP("init_args", setup_init_args)
 {
     char *var_arg = strdup(arg.data());
     string_unquote(var_arg);
-    init_args.argv = cmdline_parse(init_args.argv, var_arg, strlen(var_arg), &init_args.argc);
+    init_args = cmdline_parse_vector(var_arg, strlen(var_arg));
     kfree(var_arg);
     return true;
 }
@@ -136,15 +133,16 @@ void mos_start_kernel(void)
     mInfo << fmt("MOS {}-{} on ({}, {}), compiler {}", MOS_KERNEL_VERSION, MOS_ARCH, MOS_KERNEL_REVISION, __DATE__, __VERSION__);
 
     if (platform_info->n_cmdlines)
-        mInfo << "MOS Kernel cmdline";
-
-    for (u32 i = 0; i < platform_info->n_cmdlines; i++)
     {
-        const cmdline_option_t *opt = &platform_info->cmdlines[i];
-        if (opt->arg)
-            pr_info2("  %-2d: %-10s = %s", i, opt->name, opt->arg);
-        else
-            pr_info2("  %-2d: %s", i, opt->name);
+        mInfo << "MOS Kernel cmdline";
+        for (u32 i = 0; i < platform_info->n_cmdlines; i++)
+        {
+            const cmdline_option_t *opt = &platform_info->cmdlines[i];
+            if (opt->arg)
+                pr_info2("  %-2d: %-10s = %s", i, opt->name, opt->arg);
+            else
+                pr_info2("  %-2d: %s", i, opt->name);
+        }
     }
 
     // power management
@@ -157,12 +155,8 @@ void mos_start_kernel(void)
 
     platform_startup_late();
 
-    init_args.argc = 1;
-    init_args.argv = kcalloc<const char *>(1); // init_argv[0] is the init path
-    init_args.argv[0] = strdup(MOS_DEFAULT_INIT_PATH);
+    init_args.push_back(MOS_DEFAULT_INIT_PATH);
     startup_invoke_cmdline_hooks();
-    init_args.argv = krealloc(init_args.argv, (init_args.argc + 1) * sizeof(char *));
-    init_args.argv[init_args.argc] = NULL;
     {
         const auto ret = vfs_mount("none", "/", "tmpfs", NULL);
         if (ret.isErr())
@@ -186,22 +180,21 @@ void mos_start_kernel(void)
         mos_panic("failed to get console");
 
     const stdio_t init_io = { .in = init_con, .out = init_con, .err = init_con };
-    const char *const init_envp[] = {
+    const mos::vector<mos::string> init_envp = {
         "PATH=/initrd/programs:/initrd/bin:/bin",
         "HOME=/",
         "TERM=linux",
-        NULL,
     };
 
-    mInfo << "running '" << init_args.argv[0] << "' as init process.";
+    mInfo << "running '" << init_args[0] << "' as init process.";
     mInfo << "  with arguments:";
-    for (u32 i = 0; i < init_args.argc; i++)
-        mInfo << fmt("    argv[{}] = {}", i, init_args.argv[i]);
+    for (u32 i = 0; i < init_args.size(); i++)
+        mInfo << fmt("    argv[{}] = {}", i, init_args[i].c_str());
     mInfo << "  with environment:";
-    for (u32 i = 0; init_envp[i]; i++)
-        mInfo << "    " << init_envp[i];
+    for (u32 i = 0; i < init_envp.size(); i++)
+        mInfo << "    " << init_envp[i].c_str();
 
-    const auto init = elf_create_process(init_args.argv[0], NULL, init_args.argv, init_envp, &init_io);
+    const auto init = elf_create_process(init_args[0], NULL, init_args, init_envp, &init_io);
     if (unlikely(!init))
         mos_panic("failed to create init process");
 

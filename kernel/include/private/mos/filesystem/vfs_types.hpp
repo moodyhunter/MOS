@@ -130,7 +130,7 @@ inline mos::string dentry_name(const dentry_t *dentry)
 {
     static const mos::string root_name = "<root>";
     static const mos::string null_name = "<NULL>";
-    const auto name = (dentry)->name;
+    const auto name = dentry->name;
     return mos::string(name.value_or(dentry == root_dentry ? root_name : null_name));
 }
 
