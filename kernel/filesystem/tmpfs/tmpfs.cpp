@@ -177,9 +177,6 @@ static bool tmpfs_i_rmdir(inode_t *dir, dentry_t *subdir_to_remove)
     MOS_ASSERT(subdir_to_remove->inode->nlinks == 1); // should be the only link to the directory
 
     dentry_detach(subdir_to_remove);
-
-    tmpfs_inode_t *inode = TMPFS_INODE(subdir_to_remove->inode);
-    delete inode;
     return true;
 }
 

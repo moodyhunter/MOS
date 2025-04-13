@@ -10,10 +10,6 @@ rpc_result_code_t UnitStateReceiverServiceImpl::notify(rpc_context_t *, UnitStat
 {
     const auto token = req->service_id;
     const auto state = req->status;
-    std::cout << "UnitStateReceiver: received state change for service " << token << " :" << std::endl;
-    std::cout << "   active: " << state.isActive << std::endl;
-    std::cout << "   status: " << state.status << std::endl;
-    std::cout << "  message: " << state.statusMessage << std::endl;
     res->success = false;
 
     for (const auto &unit : ServiceManager->GetAllUnits())

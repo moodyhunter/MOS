@@ -22,22 +22,20 @@ size_t console_list_size = 0;
 
 std::optional<Console *> console_get(mos::string_view name)
 {
-    for (const auto &console : consoles)
+    for (size_t i = 0; i < console_list_size; i++)
     {
-        if (console->name() == name)
-            return console;
+        if (consoles[i]->name() == name)
+            return consoles[i];
     }
-
     return std::nullopt;
 }
 std::optional<Console *> console_get_by_prefix(mos::string_view prefix)
 {
-    for (const auto &con : consoles)
+    for (size_t i = 0; i < console_list_size; i++)
     {
-        if (con->name().begins_with(prefix))
-            return con;
+        if (consoles[i]->name().begins_with(prefix))
+            return consoles[i];
     }
-
     return std::nullopt;
 }
 

@@ -140,7 +140,7 @@ def main():
         builder.drive(**drive_kwargs)
 
     if args.arch == 'x86_64':
-        CMDLINE.printk_console = 'serial_com2'
+        CMDLINE.printk_console = 'com2_console'
 
     CMDLINE.mos_tests = args.kernel_tests
     CMDLINE.init_args = '-j'

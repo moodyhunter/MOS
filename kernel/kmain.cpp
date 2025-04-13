@@ -83,7 +83,8 @@ MOS_SETUP("init_args", setup_init_args)
 {
     char *var_arg = strdup(arg.data());
     string_unquote(var_arg);
-    init_args = cmdline_parse_vector(var_arg, strlen(var_arg));
+    for (const auto &cmd : cmdline_parse_vector(var_arg, strlen(var_arg)))
+        init_args.push_back(cmd);
     kfree(var_arg);
     return true;
 }

@@ -786,7 +786,7 @@ size_t vfs_list_dir(IO *io, void *user_buf, size_t user_size)
 
 long vfs_chdirat(fd_t dirfd, const char *path)
 {
-    dInfo2<vfs> << "vfs_chdir('" << path << "')";
+    dInfo2<vfs> << "vfs_chdirat('" << dirfd << ", " << path << "')";
     auto base = path_is_absolute(path) ? root_dentry : dentry_from_fd(dirfd);
     if (base.isErr())
         return base.getErr();
@@ -805,6 +805,7 @@ long vfs_chdirat(fd_t dirfd, const char *path)
 
 ssize_t vfs_getcwd(char *buf, size_t size)
 {
+    dInfo2<vfs> << "vfs_getcwd(buf=" << (void *) buf << ", size=" << size << ")";
     auto cwd = dentry_from_fd(AT_FDCWD);
     if (cwd.isErr())
         return cwd.getErr();
@@ -813,7 +814,16 @@ ssize_t vfs_getcwd(char *buf, size_t size)
     if (!path)
         return -ENOMEM;
 
-    return path->copy(buf, size);
+    const size_t n = path->copy(buf, size);
+
+    if (n != path->size())
+        return -ERANGE; // buffer too small
+
+    if (n >= size)
+        return -ERANGE; // buffer too small
+
+    buf[n] = '\0'; // null-terminate the string
+    return n;
 }
 
 long vfs_fchmodat(fd_t fd, const char *path, int perm, int flags)

@@ -36,7 +36,7 @@ static void do_invoke_setup(const mos_cmdline_hook_t start[], const mos_cmdline_
         }
 
         pr_dinfo2(setup, "invoking setup function for '%s'", func->param);
-        if (unlikely(!func->hook(option->arg)))
+        if (unlikely(!func->hook(option->arg ?: "")))
         {
             pr_warn("setup function for '%s' failed", func->param);
             continue;
