@@ -26,7 +26,7 @@ extern filesystem_t fs_tmpfs;
 
 static dentry_t *memfd_root_dentry = NULL;
 
-static void memfd_file_release(BasicFile *file)
+static void memfd_file_release(FsBaseFile *file)
 {
     dentry_detach(file->dentry);
 }

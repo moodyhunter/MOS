@@ -347,7 +347,7 @@ PtrResult<dentry_t> dentry_from_fd(fd_t fd)
     if (io->io_type != IO_FILE && io->io_type != IO_DIR)
         return -EBADF;
 
-    BasicFile *file = static_cast<BasicFile *>(io);
+    FsBaseFile *file = static_cast<FsBaseFile *>(io);
     return file->dentry;
 }
 

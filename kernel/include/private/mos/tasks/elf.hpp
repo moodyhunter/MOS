@@ -114,6 +114,6 @@ struct elf_startup_info_t
     }
 };
 
-[[nodiscard]] bool elf_read_and_verify_executable(BasicFile *file, elf_header_t *header);
-[[nodiscard]] bool elf_do_fill_process(Process *proc, BasicFile *file, elf_header_t elf, elf_startup_info_t *info);
+[[nodiscard]] bool elf_read_and_verify_executable(FsBaseFile *file, elf_header_t *header);
+[[nodiscard]] bool elf_do_fill_process(Process *proc, FsBaseFile *file, elf_header_t elf, elf_startup_info_t *info);
 Process *elf_create_process(const char *path, Process *parent, const char *const argv[], const char *const envp[], const stdio_t *ios);

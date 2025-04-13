@@ -44,7 +44,7 @@ struct inode_t;
 struct mount_t;
 struct superblock_t;
 struct filesystem_t;
-struct BasicFile;
+struct FsBaseFile;
 
 struct vfs_listdir_entry_t : mos::NamedType<"VFS.ListDir.Entry">
 {
@@ -91,13 +91,13 @@ typedef struct
 
 typedef struct
 {
-    bool (*open)(inode_t *inode, BasicFile *file, bool created);                         ///< called when a file is opened, or created
-    ssize_t (*read)(const BasicFile *file, void *buf, size_t size, off_t offset);        ///< read from the file
-    ssize_t (*write)(const BasicFile *file, const void *buf, size_t size, off_t offset); ///< write to the file
-    void (*release)(BasicFile *file);                                                    ///< called when the last reference to the file is dropped
-    off_t (*seek)(BasicFile *file, off_t offset, io_seek_whence_t whence);               ///< seek to a new position in the file
-    bool (*mmap)(BasicFile *file, vmap_t *vmap, off_t offset);                           ///< map the file into memory
-    bool (*munmap)(BasicFile *file, vmap_t *vmap, bool *unmapped);                       ///< unmap the file from memory
+    bool (*open)(inode_t *inode, FsBaseFile *file, bool created);                         ///< called when a file is opened, or created
+    ssize_t (*read)(const FsBaseFile *file, void *buf, size_t size, off_t offset);        ///< read from the file
+    ssize_t (*write)(const FsBaseFile *file, const void *buf, size_t size, off_t offset); ///< write to the file
+    void (*release)(FsBaseFile *file);                                                    ///< called when the last reference to the file is dropped
+    off_t (*seek)(FsBaseFile *file, off_t offset, io_seek_whence_t whence);               ///< seek to a new position in the file
+    bool (*mmap)(FsBaseFile *file, vmap_t *vmap, off_t offset);                           ///< map the file into memory
+    bool (*munmap)(FsBaseFile *file, vmap_t *vmap, bool *unmapped);                       ///< unmap the file from memory
 } file_ops_t;
 
 typedef struct
@@ -200,16 +200,16 @@ struct mount_t final : mos::NamedType<"mount">
     filesystem_t *fs;
 };
 
-struct BasicFile : IO
+struct FsBaseFile : IO
 {
     dentry_t *const dentry;
     spinlock_t offset_lock; // protects the offset field
     size_t offset;          // tracks the current position in the file
     void *private_data;
 
-    ~BasicFile() = default;
+    ~FsBaseFile() = default;
 
-    BasicFile(IOFlags flags, io_type_t type, dentry_t *dentry) : IO(flags, type), dentry(dentry), offset(0), private_data(nullptr)
+    FsBaseFile(IOFlags flags, io_type_t type, dentry_t *dentry) : IO(flags, type), dentry(dentry), offset(0), private_data(nullptr)
     {
     }
 
@@ -234,10 +234,10 @@ struct BasicFile : IO
     }
 };
 
-struct File final : BasicFile, mos::NamedType<"File">
+struct FsFile final : FsBaseFile, mos::NamedType<"File">
 {
-    File(IOFlags flags, dentry_t *dentry) : BasicFile(flags, IO_FILE, dentry) {};
-    ~File() = default;
+    FsFile(IOFlags flags, dentry_t *dentry) : FsBaseFile(flags, IO_FILE, dentry) {};
+    ~FsFile() = default;
 
     size_t on_read(void *buf, size_t size) override;
     size_t on_write(const void *buf, size_t size) override;
@@ -247,10 +247,10 @@ struct File final : BasicFile, mos::NamedType<"File">
     bool on_munmap(vmap_t *vmap, bool *unmapped) override;
 };
 
-struct Directory final : BasicFile, mos::NamedType<"Directory">
+struct FsDir final : FsBaseFile, mos::NamedType<"Directory">
 {
-    Directory(IOFlags flags, dentry_t *dentry) : BasicFile(flags, IO_DIR, dentry) {};
-    ~Directory() = default;
+    FsDir(IOFlags flags, dentry_t *dentry) : FsBaseFile(flags, IO_DIR, dentry) {};
+    ~FsDir() = default;
 
     size_t on_read(void *buf, size_t size) override;
     void on_closed() override;

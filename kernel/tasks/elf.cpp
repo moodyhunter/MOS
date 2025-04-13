@@ -46,7 +46,7 @@ static bool elf_verify_header(const elf_header_t *header)
     return true;
 }
 
-[[nodiscard]] static bool elf_read_file(BasicFile *file, void *buf, off_t offset, size_t size)
+[[nodiscard]] static bool elf_read_file(FsBaseFile *file, void *buf, off_t offset, size_t size)
 {
     const size_t read = file->pread(buf, size, offset);
     return read == size;
@@ -146,7 +146,7 @@ no_argv:
     MOS_ASSERT(thread->u_stack.head % 16 == 0);
 }
 
-static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, MMContext *mm, BasicFile *file)
+static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, MMContext *mm, FsBaseFile *file)
 {
     MOS_ASSERT(ph->header_type == ELF_PT_LOAD);
     dInfo2<elf> << "program header "                    //
@@ -229,7 +229,7 @@ static ptr_t elf_map_interpreter(const char *path, MMContext *mm)
     return MOS_ELF_INTERPRETER_BASE_OFFSET + entry;
 }
 
-__nodiscard bool elf_do_fill_process(Process *proc, BasicFile *file, elf_header_t header, elf_startup_info_t *info)
+__nodiscard bool elf_do_fill_process(Process *proc, FsBaseFile *file, elf_header_t header, elf_startup_info_t *info)
 {
     bool ret = true;
 
@@ -344,7 +344,7 @@ __nodiscard bool elf_do_fill_process(Process *proc, BasicFile *file, elf_header_
     return ret;
 }
 
-bool elf_read_and_verify_executable(BasicFile *file, elf_header_t *header)
+bool elf_read_and_verify_executable(FsBaseFile *file, elf_header_t *header)
 {
     if (!elf_read_file(file, header, 0, sizeof(elf_header_t)))
         return false;
@@ -359,7 +359,7 @@ bool elf_read_and_verify_executable(BasicFile *file, elf_header_t *header)
     return true;
 }
 
-[[nodiscard]] static bool elf_fill_process(Process *proc, BasicFile *file, const char *path, const char *const argv[], const char *const envp[])
+[[nodiscard]] static bool elf_fill_process(Process *proc, FsBaseFile *file, const char *path, const char *const argv[], const char *const envp[])
 {
     bool ret = false;
 

@@ -20,7 +20,7 @@ struct ipc_vfs_private_t : mos::NamedType<"IPC_VFS_Private">
     IpcDescriptor *client_ipc;
 };
 
-static bool vfs_open_ipc(inode_t *ino, BasicFile *file, bool created)
+static bool vfs_open_ipc(inode_t *ino, FsBaseFile *file, bool created)
 {
     MOS_UNUSED(ino);
 
@@ -53,7 +53,7 @@ static bool vfs_open_ipc(inode_t *ino, BasicFile *file, bool created)
     return true;
 }
 
-static ssize_t vfs_ipc_file_read(const BasicFile *file, void *buf, size_t size, off_t offset)
+static ssize_t vfs_ipc_file_read(const FsBaseFile *file, void *buf, size_t size, off_t offset)
 {
     MOS_UNUSED(offset);
 
@@ -86,7 +86,7 @@ static ssize_t vfs_ipc_file_read(const BasicFile *file, void *buf, size_t size, 
     }
 }
 
-static ssize_t vfs_ipc_file_write(const BasicFile *file, const void *buf, size_t size, off_t offset)
+static ssize_t vfs_ipc_file_write(const FsBaseFile *file, const void *buf, size_t size, off_t offset)
 {
     MOS_UNUSED(offset);
     ipc_vfs_private_t *priv = (ipc_vfs_private_t *) file->private_data;
@@ -96,7 +96,7 @@ static ssize_t vfs_ipc_file_write(const BasicFile *file, const void *buf, size_t
     return ipc_client_write(priv->client_ipc, buf, size);
 }
 
-static void vfs_ipc_file_release(BasicFile *file)
+static void vfs_ipc_file_release(FsBaseFile *file)
 {
     ipc_vfs_private_t *priv = (ipc_vfs_private_t *) file->private_data;
     if (priv->server_control_file)

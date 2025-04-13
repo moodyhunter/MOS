@@ -28,7 +28,7 @@ extern dentry_t *root_dentry;
  * @param truncate
  * @return file_t
  */
-PtrResult<BasicFile> vfs_do_open_dentry(dentry_t *entry, bool created, bool read, bool write, bool exec, bool truncate);
+PtrResult<FsBaseFile> vfs_do_open_dentry(dentry_t *entry, bool created, bool read, bool write, bool exec, bool truncate);
 
 void vfs_register_filesystem(filesystem_t *fs);
 
@@ -61,7 +61,7 @@ long vfs_unmount(const char *path);
  * @param flags open_flags flags
  * @return file_t* The file, or NULL if the file could not be opened
  */
-PtrResult<BasicFile> vfs_openat(int fd, const char *path, OpenFlags flags);
+PtrResult<FsBaseFile> vfs_openat(int fd, const char *path, OpenFlags flags);
 
 /**
  * @brief Stat a file

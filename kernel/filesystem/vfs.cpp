@@ -34,7 +34,7 @@ static spinlock_t vfs_fs_list_lock;
 
 dentry_t *root_dentry = NULL;
 
-static long do_pagecache_flush(BasicFile *file, off_t pgoff, size_t npages)
+static long do_pagecache_flush(FsBaseFile *file, off_t pgoff, size_t npages)
 {
     dInfo2<vfs> << "vfs: flushing page cache for file " << (void *) file;
 
@@ -49,7 +49,7 @@ static long do_pagecache_flush(BasicFile *file, off_t pgoff, size_t npages)
     return ret;
 }
 
-static long do_sync_inode(BasicFile *file)
+static long do_sync_inode(FsBaseFile *file)
 {
     const superblock_ops_t *ops = file->dentry->inode->superblock->ops;
     if (ops && ops->sync_inode)
@@ -59,7 +59,7 @@ static long do_sync_inode(BasicFile *file)
 }
 
 // BEGIN: filesystem's IO operations
-void File::on_closed()
+void FsFile::on_closed()
 {
     if (io_type == IO_FILE && io_flags.test(IO_WRITABLE)) // only flush if the file is writable
     {
@@ -82,12 +82,12 @@ void File::on_closed()
     delete this;
 }
 
-size_t Directory::on_read(void *buf, size_t bufSize)
+size_t FsDir::on_read(void *buf, size_t bufSize)
 {
     return vfs_list_dir(this, buf, bufSize);
 }
 
-void Directory::on_closed()
+void FsDir::on_closed()
 {
     if (this->private_data)
     {
@@ -117,7 +117,7 @@ void Directory::on_closed()
     delete this;
 }
 
-size_t File::on_read(void *buf, size_t count)
+size_t FsFile::on_read(void *buf, size_t count)
 {
     const file_ops_t *const file_ops = get_ops();
     if (!file_ops || !file_ops->read)
@@ -133,7 +133,7 @@ size_t File::on_read(void *buf, size_t count)
     return ret;
 }
 
-size_t File::on_write(const void *buf, size_t count)
+size_t FsFile::on_write(const void *buf, size_t count)
 {
     const file_ops_t *const file_ops = get_ops();
     if (!file_ops || !file_ops->write)
@@ -147,7 +147,7 @@ size_t File::on_write(const void *buf, size_t count)
     return ret;
 }
 
-off_t File::on_seek(off_t offset, io_seek_whence_t whence)
+off_t FsFile::on_seek(off_t offset, io_seek_whence_t whence)
 {
     const file_ops_t *const ops = get_ops();
     if (ops->seek)
@@ -187,7 +187,7 @@ off_t File::on_seek(off_t offset, io_seek_whence_t whence)
 static vmfault_result_t vfs_fault_handler(vmap_t *vmap, ptr_t fault_addr, pagefault_t *info)
 {
     MOS_ASSERT(vmap->io);
-    BasicFile *file = static_cast<BasicFile *>(vmap->io);
+    FsBaseFile *file = static_cast<FsBaseFile *>(vmap->io);
     const size_t fault_pgoffset = (vmap->io_offset + ALIGN_DOWN_TO_PAGE(fault_addr) - vmap->vaddr) / MOS_PAGE_SIZE;
 
     mutex_acquire(&file->dentry->inode->cache.lock); // lock the inode cache
@@ -234,7 +234,7 @@ static vmfault_result_t vfs_fault_handler(vmap_t *vmap, ptr_t fault_addr, pagefa
     }
 }
 
-bool File::on_mmap(vmap_t *vmap, off_t offset)
+bool FsFile::on_mmap(vmap_t *vmap, off_t offset)
 {
     const file_ops_t *const file_ops = get_ops();
 
@@ -247,7 +247,7 @@ bool File::on_mmap(vmap_t *vmap, off_t offset)
     return true;
 }
 
-bool File::on_munmap(vmap_t *vmap, bool *unmapped)
+bool FsFile::on_munmap(vmap_t *vmap, bool *unmapped)
 {
     const file_ops_t *const file_ops = get_ops();
 
@@ -335,7 +335,7 @@ static bool vfs_verify_permissions(dentry_t &file_dentry, bool open, bool read, 
     return true;
 }
 
-static PtrResult<BasicFile> vfs_do_open(dentry_t *base, const char *path, OpenFlags flags)
+static PtrResult<FsBaseFile> vfs_do_open(dentry_t *base, const char *path, OpenFlags flags)
 {
     if (base == NULL)
         return -EINVAL;
@@ -400,7 +400,7 @@ static PtrResult<BasicFile> vfs_do_open(dentry_t *base, const char *path, OpenFl
     return file;
 }
 
-mos::string BasicFile::name() const
+mos::string FsBaseFile::name() const
 {
     char pathbuf[MOS_PATH_MAX_LENGTH];
     dentry_path(dentry, root_dentry, pathbuf, sizeof(pathbuf));
@@ -408,7 +408,7 @@ mos::string BasicFile::name() const
 }
 
 // public functions
-PtrResult<BasicFile> vfs_do_open_dentry(dentry_t *dentry, bool created, bool read, bool write, bool exec, bool truncate)
+PtrResult<FsBaseFile> vfs_do_open_dentry(dentry_t *dentry, bool created, bool read, bool write, bool exec, bool truncate)
 {
     MOS_ASSERT(dentry->inode);
     MOS_UNUSED(truncate);
@@ -428,12 +428,12 @@ PtrResult<BasicFile> vfs_do_open_dentry(dentry_t *dentry, bool created, bool rea
     if (dentry->inode->type == FILE_TYPE_REGULAR)
         io_flags |= IO_MMAPABLE;
 
-    BasicFile *file = nullptr;
+    FsBaseFile *file = nullptr;
 
     if (dentry->inode->type == FILE_TYPE_DIRECTORY)
-        file = mos::create<Directory>((io_flags | IO_READABLE).erase(IO_SEEKABLE), dentry);
+        file = mos::create<FsDir>((io_flags | IO_READABLE).erase(IO_SEEKABLE), dentry);
     else
-        file = mos::create<File>(io_flags, dentry);
+        file = mos::create<FsFile>(io_flags, dentry);
 
     const file_ops_t *ops = file->get_ops();
     if (ops && ops->open)
@@ -584,7 +584,7 @@ long vfs_unmount(const char *path)
     return 0;
 }
 
-PtrResult<BasicFile> vfs_openat(int fd, const char *path, OpenFlags flags)
+PtrResult<FsBaseFile> vfs_openat(int fd, const char *path, OpenFlags flags)
 {
     dInfo2<vfs> << "vfs_openat(fd=" << fd << ", path='" << path << "', flags=" << flags << ")";
     auto basedir = path_is_absolute(path) ? root_dentry : dentry_from_fd(fd);
@@ -604,7 +604,7 @@ long vfs_fstatat(fd_t fd, const char *path, file_stat_t *__restrict statbuf, FSt
         if (!(IO::IsValid(io) && (io->io_type == IO_FILE || io->io_type == IO_DIR)))
             return -EBADF; // io is closed, or is not a file or directory
 
-        BasicFile *file = static_cast<BasicFile *>(io);
+        FsBaseFile *file = static_cast<FsBaseFile *>(io);
         MOS_ASSERT(file);
         if (statbuf)
             vfs_copy_stat(statbuf, file->dentry->inode);
@@ -737,7 +737,7 @@ PtrResult<void> vfs_rmdir(const char *path)
 size_t vfs_list_dir(IO *io, void *user_buf, size_t user_size)
 {
     dInfo2<vfs> << "vfs_list_dir(io=" << (void *) io << ", buf=" << (void *) user_buf << ", size=" << user_size << ")";
-    BasicFile *file = static_cast<BasicFile *>(io);
+    FsBaseFile *file = static_cast<FsBaseFile *>(io);
     if (unlikely(file->dentry->inode->type != FILE_TYPE_DIRECTORY))
     {
         mos_warn("not a directory");
@@ -864,7 +864,7 @@ long vfs_unlinkat(fd_t dirfd, const char *path)
 long vfs_fsync(IO *io, bool sync_metadata, off_t start, off_t end)
 {
     dInfo2<vfs> << "vfs_fsync(io=" << (void *) io << ", sync_metadata=" << sync_metadata << ", start=" << start << ", end=" << end << ")";
-    BasicFile *file = static_cast<BasicFile *>(io);
+    FsBaseFile *file = static_cast<FsBaseFile *>(io);
 
     const off_t nbytes = end - start;
     const off_t npages = ALIGN_UP_TO_PAGE(nbytes) / MOS_PAGE_SIZE;
