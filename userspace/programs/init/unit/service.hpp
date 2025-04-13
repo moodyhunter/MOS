@@ -3,7 +3,6 @@
 #include "unit.hpp"
 
 #include <atomic>
-#include <google/protobuf/descriptor.h>
 
 enum class StateChangeNotifyType
 {
