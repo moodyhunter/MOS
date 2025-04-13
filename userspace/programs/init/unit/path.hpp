@@ -4,7 +4,7 @@
 
 struct Path : public Unit
 {
-    explicit Path(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_ = nullptr, const ArgumentMap &args = {});
+    explicit Path(const std::string &id, toml::table &table, std::shared_ptr<const Template> template_ = nullptr, const ArgumentMap &args = {});
     const std::string path;
 
   private:

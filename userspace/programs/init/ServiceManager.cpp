@@ -11,8 +11,6 @@
 
 using namespace std::string_literals;
 
-static constexpr std::string_view TEMPLATE_SUFFIX = "-template";
-
 void ServiceManagerImpl::LoadConfiguration(std::vector<toml::table> &&tables_)
 {
     auto tables = tables_;
@@ -138,6 +136,14 @@ std::shared_ptr<Unit> ServiceManagerImpl::FindUnitByName(const std::string &name
     return nullptr;
 }
 
+std::shared_ptr<Template> ServiceManagerImpl::FindTemplateByName(const std::string &name) const
+{
+    const auto [templates, lock] = this->templates.BeginRead();
+    if (templates.contains(name))
+        return templates.at(name);
+    return nullptr;
+}
+
 bool ServiceManagerImpl::StartUnit(const std::string &id) const
 {
     if (!FindUnitByName(id))
@@ -175,12 +181,13 @@ bool ServiceManagerImpl::StartUnit(const std::string &id) const
         {
             if (unit->GetStatus().status == UnitStatus::UnitStarted)
                 break;
+            std::cout << "Waiting for " << unit->description << " to start..." << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
         if (unit->GetStatus().status != UnitStatus::UnitStarted)
         {
-            std::cerr << FAILED() << " Failed to start " << unit->description << ": " << *unit->GetFailReason() << std::endl;
+            std::cerr << FAILED() << " Failed to start " << unit->description << ": Startup Timeout (status: " << unit->GetStatus().status << ")" << std::endl;
             return false;
         }
     }
@@ -225,6 +232,33 @@ bool ServiceManagerImpl::StopUnit(const std::string &id) const
         return false;
     }
     return true;
+}
+
+std::optional<std::string> ServiceManagerImpl::InstantiateUnit(const std::string &template_id, const ArgumentMap &parameters)
+{
+    const auto template_ = FindTemplateByName(template_id);
+    if (!template_)
+    {
+        std::cerr << RED("template not found") << " " << template_id << std::endl;
+        return std::nullopt;
+    }
+
+    const auto result = template_->Instantiate(parameters);
+    if (!result)
+    {
+        std::cerr << RED("failed to instantiate unit") << " " << template_id << std::endl;
+        return std::nullopt;
+    }
+
+    const auto [units, lock] = loaded_units.BeginWrite();
+    const auto [id, unit] = *result;
+    if (units.contains(id))
+    {
+        std::cerr << RED("unit already exists") << " " << id << std::endl;
+        return std::nullopt;
+    }
+    units[id] = unit;
+    return id;
 }
 
 void ServiceManagerImpl::OnUnitStarted(Unit *unit, pid_t pid)

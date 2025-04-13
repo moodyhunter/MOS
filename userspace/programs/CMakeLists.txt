@@ -5,8 +5,6 @@ add_subdirectory(kd)
 add_subdirectory(lazybox)
 add_subdirectory(mossh)
 
-add_subdirectory(2048)
-
 add_subdirectory(pbtest)
 add_subdirectory(peekblock)
 

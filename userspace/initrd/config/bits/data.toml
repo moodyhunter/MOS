@@ -1,0 +1,17 @@
+[data.path]
+type = "path"
+description = "Data Partition"
+part_of = ["data-partition.target"]
+options = { path = "/data" }
+
+[data.mount]
+type = "mount"
+description = "Mount ext4 partition on /data"
+part_of = ["data-partition.target"]
+depends_on = ["data.path", "ext4fs.service"]
+options = { mount_point = "/data", fs_type = "userfs.ext4", options = "defaults", device = "virtblk.00:03:00" }
+
+[data-partition.target]
+type = "target"
+description = "Data Partition"
+depends_on = ["normal.target"]

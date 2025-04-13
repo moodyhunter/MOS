@@ -17,4 +17,5 @@ alias self-test 'mossh -c /initrd/assets/self-test.msh'
 
 alias setup 'source /initrd/assets/setup.msh'
 
-export PATH=$PATH:/initrd/tests
+export PATH=$PATH:/initrd/tests:/data/bin:/initrd/games"
+

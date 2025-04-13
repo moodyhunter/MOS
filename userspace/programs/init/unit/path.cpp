@@ -7,9 +7,9 @@
 
 RegisterUnit(path, Path);
 
-Path::Path(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_, const ArgumentMap &args)
+Path::Path(const std::string &id, toml::table &table, std::shared_ptr<const Template> template_, const ArgumentMap &args)
     : Unit(id, table, template_, args), //
-      path(ReplaceArgs(table["path"].value_or("")))
+      path(GetArg(table, "path"))
 {
     if (path.empty())
         std::cerr << "path: missing path" << std::endl;

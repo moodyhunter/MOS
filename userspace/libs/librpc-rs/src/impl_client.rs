@@ -1,23 +1,33 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::io::{Error, ErrorKind, Read};
+use std::{
+    fmt::{self, Formatter},
+    io::{Error, ErrorKind, Read},
+    sync::{Arc, Mutex},
+};
 
 use crate::{
     IpcChannel, RpcCallArgStructs, RpcCallArgType, RpcCallResult, RPC_ARG_MAGIC, RPC_REQUEST_MAGIC,
     RPC_RESPONSE_MAGIC,
 };
 
-pub struct RpcStubCall<'a> {
+pub struct RpcStubCall {
     call_id: u32,
     function_id: u32,
     args: Vec<RpcCallArgStructs>,
-    channel: &'a mut IpcChannel,
+    channel: Arc<Mutex<IpcChannel>>,
 }
 
 #[derive(Clone)]
 pub struct RpcStub {
     channel: IpcChannel,
     call_id_seq: u32,
+}
+
+impl fmt::Debug for RpcStub {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "RpcStub")
+    }
 }
 
 impl RpcStub {
@@ -35,7 +45,7 @@ impl RpcStub {
             call_id: self.call_id_seq,
             function_id,
             args: Vec::new(),
-            channel: &mut self.channel,
+            channel: Arc::new(Mutex::new(self.channel.clone())),
         }
     }
 
@@ -66,7 +76,7 @@ impl RpcStub {
     }
 }
 
-impl RpcStubCall<'_> {
+impl RpcStubCall {
     pub fn add_arg(&mut self, arg: RpcCallArgStructs) -> &mut Self {
         self.args.push(arg);
         self
@@ -144,9 +154,13 @@ impl RpcStubCall<'_> {
             buf
         );
 
-        self.channel.send_message(&buf)?;
+        let result: Vec<u8>;
 
-        let result = self.channel.recv_message()?;
+        {
+            let mut channel = self.channel.lock().unwrap();
+            channel.send_message(&buf)?;
+            result = channel.recv_message()?;
+        }
 
         let mut result = result.as_slice();
         let mut magic = [0u8; 4];

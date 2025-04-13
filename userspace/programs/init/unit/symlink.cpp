@@ -6,10 +6,10 @@
 
 RegisterUnit(symlink, Symlink);
 
-Symlink::Symlink(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_, const ArgumentMap &args)
-    : Unit(id, table, template_, args),                  //
-      linkfile(ReplaceArgs(table["link"].value_or(""))), //
-      target(ReplaceArgs(table["target"].value_or("")))
+Symlink::Symlink(const std::string &id, toml::table &table, std::shared_ptr<const Template> template_, const ArgumentMap &args)
+    : Unit(id, table, template_, args), //
+      linkfile(GetArg(table, "link")),  //
+      target(GetArg(table, "target"))
 {
 }
 

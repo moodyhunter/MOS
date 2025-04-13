@@ -4,7 +4,7 @@
 
 struct Target : public Unit
 {
-    explicit Target(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_ = nullptr, const ArgumentMap &args = {});
+    explicit Target(const std::string &id, toml::table &table, std::shared_ptr<const Template> template_ = nullptr, const ArgumentMap &args = {});
 
   private:
     UnitType GetType() const override

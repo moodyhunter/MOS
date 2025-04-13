@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "libsm.h"
 #include "mos-syslog.h"
 
 #include <librpc/internal.h>
@@ -9,7 +10,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <thread>
 #include <unistd.h>
 
 RPC_DECLARE_SERVER(syslogd, SYSLOGD_RPC_X)
@@ -68,6 +68,8 @@ int main(int argc, char **argv)
     rpc_server_set_on_connect(server, syslogd_on_connect);
     rpc_server_set_on_disconnect(server, syslogd_on_disconnect);
     rpc_server_register_functions(server, syslogd_functions, MOS_ARRAY_SIZE(syslogd_functions));
+
+    ReportServiceState(UnitStatus::Started, "syslogd started");
     rpc_server_exec(server);
     fputs("syslogd: server exited\n", stderr);
     return 0;

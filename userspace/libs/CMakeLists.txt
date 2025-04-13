@@ -3,6 +3,7 @@
 add_subdirectory(argparse)
 add_subdirectory(libconfig)
 add_subdirectory(readline)
+add_subdirectory(libsm)
 
 add_to_initrd(TARGET libipc /lib)
 add_to_initrd(TARGET librpc-client /lib)

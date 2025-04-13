@@ -30,14 +30,18 @@ namespace mos
         char __data[n];
     };
 
+    struct _BaseNamedType
+    {
+    };
+
     template<mos::string_literal name>
-    struct NamedType
+    struct NamedType : public _BaseNamedType
     {
         static constexpr mos::string_view type_name = name.__data;
     };
 
     template<typename T>
-    constexpr auto HasTypeName = std::is_same_v<std::remove_const_t<decltype(T::type_name)>, mos::string_view>;
+    constexpr auto HasTypeName = std::is_base_of_v<_BaseNamedType, T>;
 
     template<typename V, typename TSpecialisation = V>
     struct InitOnce

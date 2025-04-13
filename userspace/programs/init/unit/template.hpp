@@ -8,31 +8,20 @@
 struct Unit;
 using ArgumentMap = std::map<std::string, std::string>;
 
-static inline constexpr auto VectorAppender(std::vector<std::string> &target)
-{
-    return [&](const toml::array &array)
-    {
-        for (const auto &dep : array)
-            target.push_back(**dep.as_string());
-    };
-};
+static constexpr std::string_view TEMPLATE_SUFFIX = "-template";
 
-bool VerifyArguments(const std::vector<std::string> &params, const ArgumentMap &args);
-
-struct Template : public std::enable_shared_from_this<Template>
+class Template : public std::enable_shared_from_this<Template>
 {
-    explicit Template(const std::string &id, const toml::table &table) : id(id), table(table)
-    {
-        if (const auto template_args = table["template_args"]; template_args)
-            template_args.visit(VectorAppender(parameters));
-        else
-            std::cerr << "template " << id << " missing template_args" << std::endl;
-    }
+  public:
+    explicit Template(const std::string &id, const toml::table &table);
 
     const std::string id;
     const toml::table table;
 
     std::vector<std::string> parameters;
 
-    std::shared_ptr<Unit> Instantiate(const ArgumentMap &args) const;
+    std::optional<std::pair<std::string, std::shared_ptr<Unit>>> Instantiate(const ArgumentMap &args) const;
+
+  private:
+    std::string GetID(const ArgumentMap &args) const;
 };

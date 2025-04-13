@@ -4,6 +4,7 @@
 
 #include "ServiceManager.hpp"
 #include "proto/services.pb.h"
+#include "unit/template.hpp"
 #include "unit/unit.hpp"
 
 #include <chrono>
@@ -20,7 +21,7 @@ static RpcUnitStatus GetUnitStatus(const Unit *unit)
         case UnitStatus::UnitStarted: statusEnum = RpcUnitStatusEnum_Started; break;
         case UnitStatus::UnitFailed: statusEnum = RpcUnitStatusEnum_Failed; break;
         case UnitStatus::UnitStopping: statusEnum = RpcUnitStatusEnum_Stopping; break;
-        case UnitStatus::Invalid: statusEnum = RpcUnitStatusEnum_Stopped; break;
+        case UnitStatus::UnitStopped: statusEnum = RpcUnitStatusEnum_Stopped; break;
     }
     RpcUnitStatus rpcStatus{
         .isActive = status.active,
@@ -97,5 +98,23 @@ rpc_result_code_t ServiceManagerServer::stop_unit(rpc_context_t *ctx, StopUnitRe
 {
     (void) ctx;
     resp->success = ServiceManager->StopUnit(req->unit_id);
+    return RPC_RESULT_OK;
+}
+
+rpc_result_code_t ServiceManagerServer::instantiate_unit(rpc_context_t *ctx, InstantiateUnitRequest *req, InstantiateUnitResponse *resp)
+{
+    (void) ctx;
+    ArgumentMap args;
+    for (size_t i = 0; i < req->parameters_count; i++)
+    {
+        const auto &param = req->parameters[i];
+        args[param.key] = param.value;
+    }
+
+    const auto unitid = ServiceManager->InstantiateUnit(req->template_id, args);
+    if (!unitid)
+        return RPC_RESULT_SERVER_INTERNAL_ERROR;
+
+    resp->unit_id = strdup(unitid->c_str());
     return RPC_RESULT_OK;
 }

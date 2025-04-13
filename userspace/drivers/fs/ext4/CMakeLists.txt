@@ -22,6 +22,7 @@ target_link_libraries(ext4fs PRIVATE
     mos::librpc-server
     mos::librpc-client
     mos::rpc-protocols
+    libsm::sm
 )
 
 add_to_initrd(TARGET ext4fs /drivers/)

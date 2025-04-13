@@ -6,7 +6,7 @@
 
 struct Symlink : public Unit
 {
-    explicit Symlink(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_ = nullptr, const ArgumentMap &args = {});
+    explicit Symlink(const std::string &id, toml::table &table, std::shared_ptr<const Template> template_ = nullptr, const ArgumentMap &args = {});
 
     const std::string linkfile;
     const std::string target;

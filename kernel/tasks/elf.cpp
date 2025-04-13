@@ -11,21 +11,14 @@
 #include "mos/tasks/task_types.hpp"
 #include "mos/tasks/thread.hpp"
 
+#include <elf.h>
 #include <mos/types.hpp>
+#include <mos/vector.hpp>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
 MOS_STATIC_ASSERT(sizeof(elf_header_t) == 0x40, "elf_header has wrong size");
 MOS_STATIC_ASSERT(sizeof(elf_program_hdr_t) == 0x38, "elf_program_header has wrong size");
-
-static void add_auxv_entry(auxv_vec_t *var, unsigned long type, unsigned long val)
-{
-    MOS_ASSERT_X(var->count < AUXV_VEC_SIZE, "auxv vector overflow, increase AUXV_VEC_SIZE");
-
-    var->vector[var->count].a_type = type;
-    var->vector[var->count].a_un.a_val = val;
-    var->count++;
-}
 
 static bool elf_verify_header(const elf_header_t *header)
 {
@@ -90,24 +83,24 @@ static void elf_setup_main_thread(Thread *thread, elf_startup_info_t *const info
     MOS_ASSERT_X(thread->u_stack.head == thread->u_stack.top, "thread %pt's user stack is not empty", thread);
     stack_push_val(&thread->u_stack, (uintn) 0);
 
-    const void *stack_envp[info->envc + 1]; // +1 for the null terminator
-    const void *stack_argv[info->argc + 1]; // +1 for the null terminator
+    const void *stack_envp[info->envp.size() + 1]; // +1 for the null terminator
+    const void *stack_argv[info->argv.size() + 1]; // +1 for the null terminator
 
     // calculate the size of entire stack usage
     size_t stack_size = 0;
-    stack_size += sizeof(uintn);                // the topmost zero
-    stack_size += strlen(info->invocation) + 1; // +1 for the null terminator
+    stack_size += sizeof(uintn);               // the topmost zero
+    stack_size += info->invocation.size() + 1; // +1 for the null terminator
 
-    for (int i = 0; i < info->envc; i++)
-        stack_size += strlen(info->envp[i]) + 1; // +1 for the null terminator
+    for (const auto &env : info->envp)
+        stack_size += env.size() + 1; // +1 for the null terminator
 
-    for (int i = 0; i < info->argc; i++)
-        stack_size += strlen(info->argv[i]) + 1; // +1 for the null terminator
+    for (const auto &arg : info->argv)
+        stack_size += arg.size() + 1; // +1 for the null terminator
 
-    stack_size += sizeof(Elf64_auxv_t) * (info->auxv.count + 2); // AT_EXECFN and AT_NULL
-    stack_size += sizeof(stack_envp);                            // envp
-    stack_size += sizeof(stack_argv);                            // argv
-    stack_size += sizeof(uintn);                                 // argc
+    stack_size += sizeof(Elf64_auxv_t) * (info->auxv.size() + 2); // AT_EXECFN and AT_NULL
+    stack_size += sizeof(stack_envp);                             // envp
+    stack_size += sizeof(stack_argv);                             // argv
+    stack_size += sizeof(uintn);                                  // argc
 
     // align to 16 bytes
     const size_t aligned_stack_size = ALIGN_UP(stack_size, 16);
@@ -115,41 +108,41 @@ static void elf_setup_main_thread(Thread *thread, elf_startup_info_t *const info
 
     stack_push_val(&thread->u_stack, (uintn) 0);
 
-    void *invocation_ptr = stack_push(&thread->u_stack, info->invocation, strlen(info->invocation) + 1); // +1 for the null terminator
+    void *invocation_ptr = stack_push(&thread->u_stack, info->invocation.c_str(), info->invocation.size() + 1); // +1 for the null terminator
 
-    add_auxv_entry(&info->auxv, AT_EXECFN, (ptr_t) invocation_ptr);
-    add_auxv_entry(&info->auxv, AT_NULL, 0);
+    info->AddAuxvEntry(AT_EXECFN, (ptr_t) invocation_ptr);
+    info->AddAuxvEntry(AT_NULL, 0);
 
     // ! copy the environment to the stack in reverse order !
-    if (info->envc == 0)
+    if (info->envp.empty())
         goto no_envp;
 
-    for (int i = info->envc - 1; i >= 0; i--)
+    for (int i = info->envp.size() - 1; i >= 0; i--)
     {
-        const size_t len = strlen(info->envp[i]) + 1; // +1 for the null terminator
-        stack_envp[i] = stack_push(&thread->u_stack, info->envp[i], len);
+        const size_t len = info->envp[i].size() + 1; // +1 for the null terminator
+        stack_envp[i] = stack_push(&thread->u_stack, info->envp[i].c_str(), len);
     }
 
 no_envp:
-    stack_envp[info->envc] = NULL;
+    stack_envp[info->envp.size()] = NULL;
 
     // ! copy the argv to the stack in reverse order !
-    if (info->argc == 0)
+    if (info->argv.empty())
         goto no_argv;
 
-    for (int i = info->argc - 1; i >= 0; i--)
+    for (int i = info->argv.size() - 1; i >= 0; i--)
     {
-        const size_t len = strlen(info->argv[i]) + 1; // +1 for the null terminator
-        stack_argv[i] = stack_push(&thread->u_stack, info->argv[i], len);
+        const size_t len = info->argv[i].size() + 1; // +1 for the null terminator
+        stack_argv[i] = stack_push(&thread->u_stack, info->argv[i].c_str(), len);
     }
 
 no_argv:
-    stack_argv[info->argc] = NULL;
+    stack_argv[info->argv.size()] = NULL;
 
-    stack_push(&thread->u_stack, info->auxv.vector, sizeof(Elf64_auxv_t) * info->auxv.count);          // auxv
-    *out_penvp = (ptr_t) stack_push(&thread->u_stack, &stack_envp, sizeof(char *) * (info->envc + 1)); // envp
-    *out_pargv = (ptr_t) stack_push(&thread->u_stack, &stack_argv, sizeof(char *) * (info->argc + 1)); // argv
-    stack_push_val(&thread->u_stack, (uintn) info->argc);                                              // argc
+    stack_push(&thread->u_stack, info->auxv.data(), sizeof(Elf64_auxv_t) * info->auxv.size());                // auxv
+    *out_penvp = (ptr_t) stack_push(&thread->u_stack, &stack_envp, sizeof(char *) * (info->envp.size() + 1)); // envp
+    *out_pargv = (ptr_t) stack_push(&thread->u_stack, &stack_argv, sizeof(char *) * (info->argv.size() + 1)); // argv
+    stack_push_val(&thread->u_stack, (uintn) info->argv.size());                                              // argc
     MOS_ASSERT(thread->u_stack.head % 16 == 0);
 }
 
@@ -240,12 +233,12 @@ __nodiscard bool elf_do_fill_process(Process *proc, BasicFile *file, elf_header_
 {
     bool ret = true;
 
-    add_auxv_entry(&info->auxv, AT_PAGESZ, MOS_PAGE_SIZE);
-    add_auxv_entry(&info->auxv, AT_UID, 0);
-    add_auxv_entry(&info->auxv, AT_EUID, 0);
-    add_auxv_entry(&info->auxv, AT_GID, 0);
-    add_auxv_entry(&info->auxv, AT_EGID, 0);
-    add_auxv_entry(&info->auxv, AT_BASE, MOS_ELF_INTERPRETER_BASE_OFFSET);
+    info->AddAuxvEntry(AT_PAGESZ, MOS_PAGE_SIZE);
+    info->AddAuxvEntry(AT_UID, 0);
+    info->AddAuxvEntry(AT_EUID, 0);
+    info->AddAuxvEntry(AT_GID, 0);
+    info->AddAuxvEntry(AT_EGID, 0);
+    info->AddAuxvEntry(AT_BASE, MOS_ELF_INTERPRETER_BASE_OFFSET);
 
     // !! after this point, we must make sure that we switch back to the previous address space before returning from this function !!
     MMContext *const prev_mm = mm_switch_context(proc->mm);
@@ -326,18 +319,24 @@ __nodiscard bool elf_do_fill_process(Process *proc, BasicFile *file, elf_header_
 
     if (auxv_phdr_vaddr)
     {
-        add_auxv_entry(&info->auxv, AT_PHDR, map_bias + auxv_phdr_vaddr);
-        add_auxv_entry(&info->auxv, AT_PHENT, header.ph.entry_size);
-        add_auxv_entry(&info->auxv, AT_PHNUM, header.ph.count);
+        info->AddAuxvEntry(AT_PHDR, map_bias + auxv_phdr_vaddr);
+        info->AddAuxvEntry(AT_PHENT, header.ph.entry_size);
+        info->AddAuxvEntry(AT_PHNUM, header.ph.count);
     }
 
-    add_auxv_entry(&info->auxv, AT_ENTRY, map_bias + header.entry_point); // the entry point of the executable, not the interpreter
+    info->AddAuxvEntry(AT_ENTRY, map_bias + header.entry_point); // the entry point of the executable, not the interpreter
 
     ptr_t user_argv, user_envp;
     const auto main_thread = proc->main_thread;
     elf_setup_main_thread(main_thread, info, &user_argv, &user_envp);
-    platform_context_setup_main_thread(main_thread, has_interpreter ? interp_entrypoint : header.entry_point, main_thread->u_stack.head, info->argc, user_argv,
-                                       user_envp);
+    platform_context_setup_main_thread(                           //
+        main_thread,                                              //
+        has_interpreter ? interp_entrypoint : header.entry_point, //
+        main_thread->u_stack.head,                                //
+        info->argv.size(),                                        //
+        user_argv,                                                //
+        user_envp                                                 //
+    );
 
     MMContext *prev = mm_switch_context(prev_mm);
     MOS_UNUSED(prev);
@@ -360,7 +359,7 @@ bool elf_read_and_verify_executable(BasicFile *file, elf_header_t *header)
     return true;
 }
 
-bool elf_fill_process(Process *proc, BasicFile *file, const char *path, const char *const argv[], const char *const envp[])
+[[nodiscard]] static bool elf_fill_process(Process *proc, BasicFile *file, const char *path, const char *const argv[], const char *const envp[])
 {
     bool ret = false;
 
@@ -374,41 +373,18 @@ bool elf_fill_process(Process *proc, BasicFile *file, const char *path, const ch
         return ret;
     }
 
-    int argc = 0;
-    while (argv && argv[argc] != NULL)
-        argc++;
+    elf_startup_info_t info{ .invocation = path };
 
-    int envc = 0;
-    while (envp && envp[envc] != NULL)
-        envc++;
+    while (argv && argv[info.argv.size()])
+        info.argv.push_back(argv[info.argv.size()]);
 
-    elf_startup_info_t info = {
-        .invocation = strdup(path),
-        .auxv = {},
-        .argc = argc,
-        .argv = kcalloc<const char *>(argc + 1),
-        .envc = envc,
-        .envp = kcalloc<const char *>(envc + 1),
-    };
+    if (info.argv.empty())
+        info.argv = { path };
 
-    for (int i = 0; i < argc; i++)
-        info.argv[i] = strdup(argv[i]); // copy the strings to kernel space, since we are switching to a new address space
-    info.argv[argc] = NULL;
-
-    for (int i = 0; i < envc; i++)
-        info.envp[i] = strdup(envp[i]); // copy the strings to kernel space, since we are switching to a new address space
-    info.envp[envc] = NULL;
+    while (envp && envp[info.envp.size()])
+        info.envp.push_back(envp[info.envp.size()]);
 
     ret = elf_do_fill_process(proc, file, elf, &info);
-
-    if (info.invocation)
-        kfree(info.invocation);
-    for (int i = 0; i < argc; i++)
-        kfree(info.argv[i]);
-    for (int i = 0; i < envc; i++)
-        kfree(info.envp[i]);
-    kfree(info.argv);
-    kfree(info.envp);
 
     file->unref(); // close the file, we should have the file's refcount == 0 here
     return ret;

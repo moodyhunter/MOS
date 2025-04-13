@@ -2,6 +2,7 @@
 
 #include "mos/misc/kutils.hpp"
 
+#include "mos/misc/panic.hpp"
 #include "mos/syslog/printk.hpp"
 
 static const int HEXDUMP_COLS = 16;
@@ -39,4 +40,9 @@ void hexdump(const char *data, const size_t len)
     }
 
     pr_info("");
+}
+
+void PtrResultBase::__raise_bad_value() const
+{
+    mos_panic_inline("PtrResultBase: bad value accessed: %d", errorCode);
 }

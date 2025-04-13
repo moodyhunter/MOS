@@ -124,7 +124,7 @@ function(add_simple_rust_project PROJECT_DIR NAME INITRD_SUBDIR)
 
     cmake_parse_arguments(ARGS "" "" "DEPENDS" ${ARGN})
 
-    set(OUTPUT_FILE "${PROJECT_DIR}/target/${MOS_RUST_TARGET}/debug/${NAME}")
+    set(OUTPUT_FILE "${CMAKE_SOURCE_DIR}/target/${MOS_RUST_TARGET}/debug/${NAME}")
     add_custom_target(
         ${NAME}_rust
         cargo build --quiet --target "${MOS_RUST_TARGET}"

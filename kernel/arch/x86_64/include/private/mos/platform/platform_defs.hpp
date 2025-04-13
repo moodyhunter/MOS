@@ -2,7 +2,7 @@
 
 #include "mos/x86/cpu/cpuid.hpp"
 
-#include <mos/types.hpp>
+#include <mos/types.h>
 
 #pragma once
 

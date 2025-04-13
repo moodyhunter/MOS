@@ -7,6 +7,7 @@
 
 #include <elf.h>
 #include <mos/types.hpp>
+#include <mos/vector.hpp>
 
 typedef enum
 {
@@ -100,26 +101,19 @@ typedef struct elf_program_hdr_t
     }
 } __packed elf_program_hdr_t;
 
-#define AUXV_VEC_SIZE 16
-
-typedef struct auxv_vec_t
+struct elf_startup_info_t
 {
-    int count = 0;
-    Elf64_auxv_t vector[AUXV_VEC_SIZE] = {};
-} auxv_vec_t;
+    mos::string invocation;
+    mos::vector<Elf64_auxv_t> auxv;
+    mos::vector<mos::string> argv;
+    mos::vector<mos::string> envp;
 
-typedef struct
-{
-    const char *invocation;
-    auxv_vec_t auxv;
-    int argc;
-    const char **argv;
+    void AddAuxvEntry(u64 type, u64 val)
+    {
+        auxv.push_back(Elf64_auxv_t{ .a_type = type, .a_un = { .a_val = val } });
+    }
+};
 
-    int envc;
-    const char **envp;
-} elf_startup_info_t;
-
-__nodiscard bool elf_read_and_verify_executable(BasicFile *file, elf_header_t *header);
-__nodiscard bool elf_fill_process(Process *proc, BasicFile *file, const char *path, const char *const argv[], const char *const envp[]);
-__nodiscard bool elf_do_fill_process(Process *proc, BasicFile *file, elf_header_t elf, elf_startup_info_t *info);
+[[nodiscard]] bool elf_read_and_verify_executable(BasicFile *file, elf_header_t *header);
+[[nodiscard]] bool elf_do_fill_process(Process *proc, BasicFile *file, elf_header_t elf, elf_startup_info_t *info);
 Process *elf_create_process(const char *path, Process *parent, const char *const argv[], const char *const envp[], const stdio_t *ios);

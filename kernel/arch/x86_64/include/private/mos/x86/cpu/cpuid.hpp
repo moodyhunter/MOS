@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <mos/mos_global.h>
-#include <mos/types.hpp>
+#include <mos/types.h>
 
-//!! this feature list must start at line 9 for correct counting (see below...)
+// consume counter once
+static constexpr auto __CPU_FEATURE_START_LINE_ = __COUNTER__ + __LINE__;
 #define CPU_FEATURE_FPU          1, 0, d, 0           // Floating-point unit on-chip
 #define CPU_FEATURE_VME          1, 0, d, 1           // Virtual 8086 mode extensions
 #define CPU_FEATURE_DE           1, 0, d, 2           // Debugging extensions
@@ -59,6 +59,7 @@
 #define CPU_FEATURE_XSAVES       0xd, 1, a, 3         // XSAVES, XSTORS, and IA32_XSS
 #define CPU_FEATURE_NX           0x80000001, 0, d, 20 // No-Execute Bit
 #define CPU_FEATURE_PDPE1GB      0x80000001, 0, d, 26 // GB pages
+static constexpr auto __CPU_FEATURE_END_LINE_ = __LINE__;
 
 // clang-format off
 #define FOR_ALL_CPU_FEATURES(M) \
@@ -70,10 +71,10 @@
     M(XSAVES)   M(NX)       M(PDPE1GB)
 // clang-format on
 
-#define _do_count(leaf) __COUNTER__,
+#define _do_count(leaf) , __COUNTER__
 MOS_WARNING_PUSH
-MOS_WARNING_DISABLE("-Wpedantic")
-MOS_STATIC_ASSERT(sizeof((int[]) { FOR_ALL_CPU_FEATURES(_do_count) }) / sizeof(int) == __LINE__ - 23, "FOR_ALL_CPU_FEATURES is incomplete");
+MOS_WARNING_DISABLE("-Wunused-value")
+MOS_STATIC_ASSERT((0 FOR_ALL_CPU_FEATURES(_do_count)) == __CPU_FEATURE_END_LINE_ - __CPU_FEATURE_START_LINE_ - 1, "FOR_ALL_CPU_FEATURES is incomplete");
 MOS_WARNING_POP
 #undef _do_count
 

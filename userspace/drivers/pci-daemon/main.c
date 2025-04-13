@@ -16,7 +16,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define DEBUG 0
+#define DEBUG 1
 
 // clang-format off
 #define debug_printf(fmt, ...) do { if (DEBUG) printf(fmt __VA_OPT__(,) __VA_ARGS__); } while (0)
@@ -128,7 +128,11 @@ int main(int argc, char **argv)
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
 
-    read_mcfg_table();
+    if (!read_mcfg_table())
+    {
+        puts("pci-daemon: failed to read MCFG table");
+        return 1;
+    }
 
     dm = rpc_client_create(MOS_DEVICE_MANAGER_SERVICE_NAME);
     if (!dm)

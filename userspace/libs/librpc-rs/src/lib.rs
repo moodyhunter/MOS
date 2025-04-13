@@ -15,16 +15,30 @@ pub(crate) const RPC_RESPONSE_MAGIC: u32 = make_4cc!('R', 'P', 'C', '<');
 pub(crate) const RPC_ARG_MAGIC: u32 = make_4cc!('R', 'P', 'C', 'A');
 
 // ! RPC Servers
+pub(crate) mod impl_pb_server;
 pub(crate) mod impl_server;
+mod server_macros;
+pub use impl_pb_server::{RpcPbReplyEnum, RpcPbServer, RpcPbServerTrait};
 pub use impl_server::{RpcCallContext, RpcCallFuncInfo, RpcResult, RpcServer};
 
 #[macro_export]
 macro_rules! rpc_server_function {
-    ($id:tt, $func:expr,  $($argtypes:tt),*) => {
+    ($id:tt, $func:expr, $($argtypes:tt),*) => {
         librpc_rs::RpcCallFuncInfo {
             id: $id,
             func: $func,
             argtypes: &[$(librpc_rs::RpcCallArgType::$argtypes),*],
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! rpc_server_function_pb {
+    ($id:tt, $func:expr) => {
+        librpc_rs::RpcCallFuncInfo {
+            id: $id,
+            func: $func,
+            argtypes: &[librpc_rs::RpcCallArgType::Buffer],
         }
     };
 }

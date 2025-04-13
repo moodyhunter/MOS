@@ -15,7 +15,7 @@
 
 namespace mos
 {
-    template<typename Key, typename Value, typename TAllocator = mos::default_allocator>
+    template<typename Key, typename Value>
     class HashMap
     {
       public:
@@ -29,6 +29,7 @@ namespace mos
             explicit chain(const Key &new_key, const Value &new_value) : entry(new_key, new_value), next(nullptr) {};
             explicit chain(const Key &new_key, Value &&new_value) : entry(new_key, std::move(new_value)), next(nullptr) {};
         };
+        using ChainAllocator = mos::default_allocator<chain *>;
 
       public:
         class iterator
@@ -157,7 +158,7 @@ namespace mos
                 }
             }
 
-            TAllocator::free(_table, sizeof(chain *) * _capacity);
+            ChainAllocator::free(_table, sizeof(chain *) * _capacity);
         }
 
         HashMap(const HashMap &) = delete;
@@ -242,8 +243,8 @@ namespace mos
         size_t _size;
     };
 
-    template<typename Key, typename Value, typename TAllocator>
-    void HashMap<Key, Value, TAllocator>::insert(const Key &key, const Value &value)
+    template<typename Key, typename Value>
+    void HashMap<Key, Value>::insert(const Key &key, const Value &value)
     {
         if (_size >= _capacity)
             rehash();
@@ -257,8 +258,8 @@ namespace mos
         _size++;
     }
 
-    template<typename Key, typename Value, typename TAllocator>
-    void HashMap<Key, Value, TAllocator>::insert(const Key &key, Value &&value)
+    template<typename Key, typename Value>
+    void HashMap<Key, Value>::insert(const Key &key, Value &&value)
     {
         if (_size >= _capacity)
             rehash();
@@ -272,8 +273,8 @@ namespace mos
         _size++;
     }
 
-    template<typename Key, typename Value, typename TAllocator>
-    Value &HashMap<Key, Value, TAllocator>::operator[](const Key &key)
+    template<typename Key, typename Value>
+    Value &HashMap<Key, Value>::operator[](const Key &key)
     {
         /* empty map case */
         if (_size == 0)
@@ -303,8 +304,8 @@ namespace mos
         return std::get<1>(item->entry);
     }
 
-    template<typename Key, typename Value, typename TAllocator>
-    std::optional<Value> HashMap<Key, Value, TAllocator>::get(const Key &key)
+    template<typename Key, typename Value>
+    std::optional<Value> HashMap<Key, Value>::get(const Key &key)
     {
         if (_size == 0)
             return std::nullopt;
@@ -320,8 +321,8 @@ namespace mos
         return std::nullopt;
     }
 
-    template<typename Key, typename Value, typename TAllocator>
-    std::optional<Value> HashMap<Key, Value, TAllocator>::remove(const Key &key)
+    template<typename Key, typename Value>
+    std::optional<Value> HashMap<Key, Value>::remove(const Key &key)
     {
         if (_size == 0)
             return std::nullopt;
@@ -350,8 +351,8 @@ namespace mos
         return std::nullopt;
     }
 
-    template<typename Key, typename Value, typename TAllocator>
-    void HashMap<Key, Value, TAllocator>::rehash()
+    template<typename Key, typename Value>
+    void HashMap<Key, Value>::rehash()
     {
         const size_t new_capacity = std::max(2 * _size, 10lu);
 
@@ -374,7 +375,7 @@ namespace mos
             }
         }
 
-        TAllocator::free(_table, sizeof(chain *) * _capacity);
+        ChainAllocator::free(_table, sizeof(chain *) * _capacity);
         _table = new_table;
         _capacity = new_capacity;
     }

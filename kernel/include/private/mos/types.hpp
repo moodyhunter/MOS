@@ -5,6 +5,7 @@
 #include <atomic>
 #include <cstddef>
 #include <mos/types.h>
+#include <stdnoreturn.h>
 #include <type_traits>
 
 // for C++, we need to use the atomic type directly
@@ -65,6 +66,9 @@ struct PtrResultBase
     {
         return !isErr();
     }
+
+  protected:
+    [[__noreturn__]] void __raise_bad_value() const;
 };
 
 template<typename T>
@@ -103,6 +107,8 @@ struct PtrResult : public PtrResultBase
 
     T *get() const
     {
+        if (isErr())
+            PtrResultBase::__raise_bad_value();
         return value;
     }
 

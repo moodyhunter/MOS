@@ -27,7 +27,7 @@ config MM_DETAILED_UNHANDLED_FAULT
 
 config MM_DETAILED_MMAPS_UNHANDLED_FAULT
     bool "Print process mmap information on unhandled #PF"
-    default n
+    default y
 
 config DYNAMIC_DEBUG
     bool "Runtime kernel debugging switches"

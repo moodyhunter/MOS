@@ -3,4 +3,5 @@ type = "service"
 description = "System log daemon"
 depends_on = ["sys.mount"]
 part_of = ["normal.target"]
-exec = "/initrd/programs/syslogd"
+options = { exec = "/initrd/programs/syslogd" }
+service = { state-change = "notify" }

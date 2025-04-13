@@ -3,17 +3,20 @@ type = "service"
 description = "Device manager"
 depends_on = ["dev.path"]
 part_of = ["normal.target"]
-exec = "/initrd/drivers/device-manager"
+options = { exec = "/initrd/drivers/device-manager" }
+service = { state-change = "notify" }
 
 [blockdev-manager.service]
 type = "service"
 description = "Block device manager"
 depends_on = ["dev-block.path", "device-manager.service"]
 part_of = ["normal.target"]
-exec = "/initrd/drivers/blockdev-manager"
+options = { exec = "/initrd/drivers/blockdev-manager" }
+service = { state-change = "notify" }
 
 [ext4fs.service]
 type = "service"
 description = "Ext4 file system driver"
-exec = "/initrd/drivers/ext4fs"
 depends_on = ["blockdev-manager.service"]
+options = { exec = "/initrd/drivers/ext4fs" }
+service = { state-change = "notify" }

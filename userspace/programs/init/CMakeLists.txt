@@ -21,6 +21,7 @@ add_executable(init
     parser.cpp
     ServiceManager.cpp
     rpc/rpc.cpp
+    rpc/UnitStateReceiver.cpp
 )
 
 target_link_libraries(init
@@ -30,6 +31,7 @@ target_link_libraries(init
         tomlplusplus::tomlplusplus
         mos::librpc-server
         mos::rpc-protocols
+        stdc++exp
 )
 
 target_include_directories(init PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

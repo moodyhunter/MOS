@@ -5,7 +5,10 @@
 
 struct Device : public Unit
 {
-    explicit Device(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_ = nullptr, const ArgumentMap &args = {});
+    explicit Device(const std::string &id, toml::table &table, std::shared_ptr<const Template> template_ = nullptr, const ArgumentMap &args = {});
+
+    const std::string driver;
+    const std::vector<std::string> driver_args;
 
   private:
     UnitType GetType() const override

@@ -2,9 +2,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use librpc_rs::{
-    rpc_server_function, RpcCallContext, RpcCallFuncInfo, RpcResult, RpcServer, RpcStub,
-};
+use librpc_rs::{RpcCallResult, RpcPbReplyEnum, RpcPbServer, RpcPbServerTrait, RpcResult, RpcStub};
 use protobuf::MessageField;
 use virtio_drivers::{
     device::blk::{VirtIOBlk, SECTOR_SIZE},
@@ -27,15 +25,21 @@ struct SafeVirtIOBlk(VirtIOBlk<MOSHal, PciTransport>);
 unsafe impl Send for SafeVirtIOBlk {}
 
 #[derive(Clone)]
-struct BlockDevDriver {
+struct BlockServer {
     blockdev_manager: RpcStub,
     devname: String,
     server_name: String,
     blockdev: Arc<Mutex<SafeVirtIOBlk>>,
 }
 
-impl BlockDevDriver {
-    pub fn register(&mut self) -> RpcResult<()> {
+RpcPbServer!(
+    BlockServer,
+    (1, on_read, (Read_block_request, Read_block_response)),
+    (2, on_write, (Write_block_request, Write_block_response))
+);
+
+impl BlockServer {
+    fn register(&mut self) -> RpcResult<()> {
         let dev = &self.blockdev.lock().unwrap().0;
 
         let request = Register_device_request {
@@ -55,21 +59,20 @@ impl BlockDevDriver {
 
         if !resp.result.success {
             return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::AddrInUse,
-                resp.result.error.clone(),
+                std::io::ErrorKind::Other,
+                format!("failed to register blockdev: {}", resp.result.error),
             )));
+        } else {
+            Ok(())
         }
-
-        Ok(())
     }
 
-    pub fn on_read(&mut self, ctx: &mut RpcCallContext) -> RpcResult<()> {
-        let arg: Read_block_request = ctx.get_arg_pb(0)?;
-        let mut buf = vec![0u8; 512 * arg.n_blocks as usize];
+    fn on_read(&mut self, req: &Read_block_request) -> Option<Read_block_response> {
+        let mut buf = vec![0u8; 512 * req.n_blocks as usize];
 
         let virtioblk = &mut self.blockdev.lock().unwrap().0;
 
-        let resp = match virtioblk.read_blocks(arg.n_boffset as _, &mut buf) {
+        let resp = match virtioblk.read_blocks(req.n_boffset as _, &mut buf) {
             Ok(()) => Read_block_response {
                 result: result_ok!(),
                 data: buf,
@@ -81,16 +84,15 @@ impl BlockDevDriver {
             },
         };
 
-        ctx.write_response_pb(&resp)
+        Some(resp)
     }
 
-    pub fn on_write(&mut self, ctx: &mut RpcCallContext) -> RpcResult<()> {
-        let arg: Write_block_request = ctx.get_arg_pb(0)?;
-        assert!(arg.data.len() == 512 * arg.n_blocks as usize);
+    fn on_write(&mut self, req: &Write_block_request) -> Option<Write_block_response> {
+        assert!(req.data.len() == 512 * req.n_blocks as usize);
 
         let virtioblk = &mut self.blockdev.lock().unwrap().0;
 
-        let resp = match virtioblk.write_blocks(arg.n_boffset as _, &arg.data) {
+        let resp = match virtioblk.write_blocks(req.n_boffset as _, &req.data) {
             Ok(()) => Write_block_response {
                 result: result_ok!(),
                 ..Default::default()
@@ -101,14 +103,9 @@ impl BlockDevDriver {
             },
         };
 
-        ctx.write_response_pb(&resp)
+        Some(resp)
     }
 }
-
-const FUNCTIONS: &[RpcCallFuncInfo<BlockDevDriver>] = &[
-    rpc_server_function!(1, BlockDevDriver::on_read, Buffer),
-    rpc_server_function!(2, BlockDevDriver::on_write, Buffer),
-];
 
 pub fn run_blockdev(transport: PciTransport, func: DeviceFunction) -> RpcResult<()> {
     let devlocation = format!("{:02x}:{:02x}:{:02x}", func.bus, func.device, func.function);
@@ -121,18 +118,19 @@ pub fn run_blockdev(transport: PciTransport, func: DeviceFunction) -> RpcResult<
         return Ok(());
     }
 
-    let mut driver = BlockDevDriver {
+    let server_name = format!("blockdev.virtio.{}", devlocation);
+    let mut driver = BlockServer {
         blockdev_manager: RpcStub::new("mos.blockdev-manager")?,
         devname,
-        server_name: format!("blockdev.virtio.{}", devlocation),
+        server_name: server_name.clone(),
         blockdev: Arc::new(Mutex::new(SafeVirtIOBlk(
             VirtIOBlk::new(transport).expect("failed to create blockdev"),
         ))),
     };
 
-    let mut rpc_server = RpcServer::create(&driver.server_name, FUNCTIONS)?;
-
     driver.register()?;
 
-    rpc_server.run(&mut driver)
+    let mut rpc_server = RpcPbServer::create(&server_name, Box::new(driver))?;
+
+    rpc_server.run()
 }

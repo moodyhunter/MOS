@@ -8,6 +8,7 @@
 
 #include <mos/io/io_types.h>
 #include <mos/mm/mm_types.h>
+#include <mos/string.hpp>
 #include <mos/types.hpp>
 
 struct IO;

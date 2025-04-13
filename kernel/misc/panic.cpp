@@ -73,10 +73,10 @@ void try_handle_kernel_panics(ptr_t ip)
         pr_dwarn(panic, "no panic point found for " PTR_FMT, ip);
         return;
     }
-    try_handle_kernel_panics_at(point);
+    handle_kernel_panic(point);
 }
 
-void try_handle_kernel_panics_at(const panic_point_t *point)
+void handle_kernel_panic(const panic_point_t *point)
 {
     platform_interrupt_disable();
 

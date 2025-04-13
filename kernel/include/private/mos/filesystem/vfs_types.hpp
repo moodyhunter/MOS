@@ -202,7 +202,7 @@ struct mount_t final : mos::NamedType<"mount">
 
 struct BasicFile : IO
 {
-    dentry_t *dentry;
+    dentry_t *const dentry;
     spinlock_t offset_lock; // protects the offset field
     size_t offset;          // tracks the current position in the file
     void *private_data;

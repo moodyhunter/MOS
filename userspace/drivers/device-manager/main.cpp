@@ -2,6 +2,7 @@
 
 #include "dm_common.hpp"
 #include "dm_server.hpp"
+#include "libsm.h"
 
 #include <argparse/libargparse.h>
 #include <iostream>
@@ -19,6 +20,7 @@ static const argparse_arg_t dm_args[] = {
 
 int main(int argc, const char *argv[])
 {
+    ReportServiceState(UnitStatus::Starting, "dm starting...");
     MOS_UNUSED(argc);
     argparse_state_t arg_state;
     argparse_init(&arg_state, argv);
@@ -47,12 +49,15 @@ int main(int argc, const char *argv[])
     }
 
     DeviceManagerServer dm_server;
+    ReportServiceState(UnitStatus::Started, "DM started");
 
     if (!start_load_drivers())
     {
         fputs("Failed to start device drivers\n", stderr);
+        ReportServiceState(UnitStatus::Failed, "Failed to start device drivers");
         return 2;
     }
+
     dm_server.run();
     fputs("device_manager: server exited\n", stderr);
 

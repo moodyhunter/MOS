@@ -17,6 +17,7 @@ target_link_libraries(blockdev-manager
         librpc::client
         librpc::server
         mos::rpc-protocols
+        libsm::sm
 )
 
 add_to_initrd(TARGET blockdev-manager /drivers)

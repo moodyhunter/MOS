@@ -86,6 +86,23 @@ message StopUnitResponse
     bool success = 1;
 }
 
+message KeyValuePair
+{
+    string key = 1;
+    string value = 2;
+}
+
+message InstantiateUnitRequest
+{
+    string template_id = 1;
+    repeated KeyValuePair parameters = 2;
+}
+
+message InstantiateUnitResponse
+{
+    string unit_id = 1;
+}
+
 service ServiceManager
 {
     option (c_name) = "service_manager";
@@ -93,4 +110,22 @@ service ServiceManager
     rpc GetTemplates(GetTemplatesRequest) returns (GetTemplatesResponse);
     rpc StartUnit(StartUnitRequest) returns (StartUnitResponse);
     rpc StopUnit(StopUnitRequest) returns (StopUnitResponse);
+    rpc InstantiateUnit(InstantiateUnitRequest) returns (InstantiateUnitResponse);
+}
+
+message UnitStateNotifyRequest
+{
+    string service_id = 1;
+    RpcUnitStatus status = 2;
+}
+
+message UnitStateNotifyResponse
+{
+    bool success = 1;
+}
+
+service UnitStateReceiver
+{
+    option (c_name) = "unit_state_receiver";
+    rpc Notify(UnitStateNotifyRequest) returns (UnitStateNotifyResponse);
 }

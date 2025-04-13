@@ -12,6 +12,7 @@
 
 #include <mos/filesystem/fs_types.h>
 #include <mos/types.hpp>
+#include <mos/vector.hpp>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
@@ -37,44 +38,26 @@ long process_do_execveat(fd_t dirfd, const char *path, const char *const argv[],
     }
 
     // backup argv and envp
-    const char **argv_copy = NULL;
-    const char **envp_copy = NULL;
-    const char *path_copy = strdup(path);
+    mos::vector<mos::string> argv_copy;
+    mos::vector<mos::string> envp_copy;
+    mos::string path_copy = path;
 
     int argc = 0;
     while (argv && argv[argc])
     {
         argc++;
-        argv_copy = krealloc(argv_copy, (argc + 1) * sizeof(char *));
-        argv_copy[argc - 1] = strdup(argv[argc - 1]);
+        argv_copy.push_back(argv[argc - 1]);
     }
 
-    if (!argv_copy)
-    {
-        argv_copy = kcalloc<const char *>(2);
-        argv_copy[0] = strdup(path);
-        argv_copy[1] = NULL;
-        argc = 1;
-    }
-
-    argv_copy[argc] = NULL;
+    if (argv_copy.empty())
+        argv_copy = { path };
 
     int envc = 0;
     while (envp && envp[envc])
     {
         envc++;
-        envp_copy = krealloc(envp_copy, (envc + 1) * sizeof(char *));
-        envp_copy[envc - 1] = strdup(envp[envc - 1]);
+        envp_copy.push_back(envp[envc - 1]);
     }
-
-    if (!envp_copy)
-    {
-        envp_copy = kcalloc<const char *>(1);
-        envp_copy[0] = NULL;
-        envc = 0;
-    }
-
-    envp_copy[envc] = NULL;
 
     // !! ====== point of no return ====== !! //
 
@@ -126,24 +109,13 @@ long process_do_execveat(fd_t dirfd, const char *path, const char *const argv[],
 
     elf_startup_info_t startup_info = {
         .invocation = path_copy,
-        .auxv = { 0 },
-        .argc = argc,
+        .auxv = {},
         .argv = argv_copy,
-        .envc = envc,
         .envp = envp_copy,
     };
 
     const bool filled = elf_do_fill_process(proc, file, header, &startup_info);
     file->unref();
-
-    // free old argv and envp
-    for (int i = 0; i < argc; i++)
-        kfree(argv_copy[i]);
-    kfree(argv_copy);
-    for (int i = 0; i < envc; i++)
-        kfree(envp_copy[i]);
-    kfree(envp_copy);
-    kfree(path_copy);
 
     if (unlikely(!filled))
     {

@@ -1,9 +1,9 @@
 [test-true.service]
 type = "service"
 description = "Test Service - True"
-exec = "/initrd/programs/true"
+options = { exec = "/initrd/programs/true" }
 
 [test-false.service]
 type = "service"
 description = "Test Service - False"
-exec = "/initrd/programs/false"
+options = { exec = "/initrd/programs/false" }

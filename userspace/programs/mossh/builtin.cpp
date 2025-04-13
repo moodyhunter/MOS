@@ -171,6 +171,12 @@ void do_pid(const std::vector<std::string> &argv)
     std::cout << "pid: " << getpid() << std::endl;
 }
 
+void do_rand(const std::vector<std::string> &argv)
+{
+    MOS_UNUSED(argv);
+    std::cout << rand() << std::endl;
+}
+
 void do_repeat(const std::vector<std::string> &argv)
 {
     switch (argv.size())
@@ -291,6 +297,7 @@ const std::vector<command_t> builtin_commands = {
     { .command = "help", .action = do_help, .description = "Show this help" },
     { .command = "msleep", .action = do_msleep, .description = "Sleep for a number of milliseconds" },
     { .command = "pid", .action = do_pid, .description = "Show the current process ID" },
+    { .command = "rand", .action = do_rand, .description = "Generate a random number" },
     { .command = "repeat", .action = do_repeat, .description = "Repeat a command a number of times" },
     { .command = "show-path", .action = do_show_path, .description = "Show the search path for programs" },
     { .command = "sleep", .action = do_sleep, .description = "Sleep for a number of seconds" },

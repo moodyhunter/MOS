@@ -46,6 +46,7 @@ namespace mos
     class basic_string_view
     {
       public:
+        static constexpr auto npos = size_t(-1);
         basic_string_view(std::nullptr_t) = delete;
         constexpr basic_string_view() : _pointer(nullptr), _length(0) {};
         constexpr basic_string_view(const CharT *cs) : _pointer(cs), _length(generic_strlen(cs)) {};

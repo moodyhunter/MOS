@@ -27,13 +27,7 @@
                     "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
                 }
-            ],
-            "sourceFileMap": {
-                "${workspaceFolder}": {
-                    "editorPath": "${workspaceFolder}",
-                    "useForBreakpoints": "true"
-                }
-            }
+            ]
         },
         {
             "name": "riscv64 limine kernel",

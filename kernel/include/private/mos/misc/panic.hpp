@@ -5,7 +5,7 @@
 #include "mos/platform/platform_defs.hpp"
 #include "mos/syslog/printk.hpp"
 
-#include <mos/types.hpp>
+#include <mos/types.h>
 #include <stdarg.h>
 
 typedef void(kmsg_handler_t)(const char *func, u32 line, const char *fmt, va_list args);
@@ -38,7 +38,7 @@ void kwarn_handler_remove(void);
 __printf(3, 4) void mos_kwarn(const char *func, u32 line, const char *fmt, ...);
 
 void try_handle_kernel_panics(ptr_t ip);
-void try_handle_kernel_panics_at(const panic_point_t *point);
+[[__noreturn__]] void handle_kernel_panic(const panic_point_t *point);
 
 #define MOS_MAKE_PANIC_POINT(panic_instruction, file, func, line)                                                                                                        \
     __asm__ volatile("1: " panic_instruction "\n\t"                                                                                                                      \
@@ -61,5 +61,5 @@ void try_handle_kernel_panics_at(const panic_point_t *point);
     {                                                                                                                                                                    \
         pr_emerg(fmt, ##__VA_ARGS__);                                                                                                                                    \
         static const panic_point_t point = { .ip = 0, .file = __FILE__, .func = __func__, .line = __LINE__ };                                                            \
-        try_handle_kernel_panics_at(&point);                                                                                                                             \
+        handle_kernel_panic(&point);                                                                                                                                     \
     } while (0)

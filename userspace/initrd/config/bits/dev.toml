@@ -1,10 +1,10 @@
 [dev.path]
 type = "path"
 description = "Create dev directory"
-path = "/dev"
+options = { path = "/dev" }
 
 [dev-block.path]
 type = "path"
 description = "Create /dev/block directory"
-path = "/dev/block"
-depends = ["dev.path"]
+depends_on = ["dev.path"]
+options = { path = "/dev/block" }

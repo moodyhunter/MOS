@@ -6,32 +6,30 @@ description = "Base System"
 type = "symlink"
 description = "Symbolic link /bin to /initrd/bin"
 part_of = ["base.target"]
-link = "/bin"
-target = "/initrd/bin"
+options = { link = "/bin", target = "/initrd/bin" }
 
 [etc.symlink]
 type = "symlink"
 description = "Symbolic link /etc to /initrd/etc"
 part_of = ["base.target"]
-link = "/etc"
-target = "/initrd/etc"
+options = { link = "/etc", target = "/initrd/etc" }
 
 [tmp.path]
 type = "path"
 description = "Make /tmp directory"
 part_of = ["base.target"]
-path = "/tmp"
+options = { path = "/tmp" }
 
 [tmp.mount]
 type = "mount"
 description = "Mount tmpfs on /tmp"
 part_of = ["base.target"]
 depends_on = ["tmp.path"]
-mount = { mount_point = "/tmp", fs_type = "tmpfs", options = "defaults", device = "none" }
+options = { mount_point = "/tmp", fs_type = "tmpfs", options = "defaults", device = "none" }
 
 [tmp-log.path]
 type = "path"
 description = "Make /tmp/log directory"
 part_of = ["base.target"]
-depends_on = ["tmp.path", "tmp.mount"]
-path = "/tmp/log"
+depends_on = ["tmp.mount"]
+options = { path = "/tmp/log" }

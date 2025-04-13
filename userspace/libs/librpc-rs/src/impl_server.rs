@@ -3,8 +3,8 @@
 use std::thread;
 
 use crate::{
-    IpcChannel, IpcServer, RpcCallArgType, RpcCallResult, RPC_ARG_MAGIC, RPC_REQUEST_MAGIC,
-    RPC_RESPONSE_MAGIC,
+    data_slice_and_shift, do_try_into, IpcChannel, IpcServer, RpcCallArgType, RpcCallResult,
+    RPC_ARG_MAGIC, RPC_REQUEST_MAGIC, RPC_RESPONSE_MAGIC,
 };
 
 use num_traits::FromPrimitive;
@@ -23,6 +23,7 @@ pub struct RpcCallContext<'a> {
     argtypes: &'a [RpcCallArgType],
     data: Vec<u8>,
     reply: Option<RpcReply>,
+    function_id: u32,
 }
 
 pub struct RpcServer<'a, T: Send + Sync + Clone> {
@@ -46,30 +47,6 @@ macro_rules! get_arg_ints {
     };
 }
 
-macro_rules! data_slice_and_shift {
-    ($data:ident, $newvar:ident, $size:expr) => {
-        if $data.len() < $size {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "invalid data in rpc arg",
-            )));
-        }
-        let $newvar = $data[..$size].to_vec();
-        $data = $data[$size..].to_vec();
-    };
-}
-
-macro_rules! do_try_into {
-    ($data:ident, $from:expr, $to:expr) => {
-        $data[$from..$to].try_into().or_else(|_| {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "invalid data in rpc arg",
-            ))
-        })?
-    };
-}
-
 macro_rules! new_ioerr {
     ($message:expr) => {
         Box::new(std::io::Error::new(
@@ -82,6 +59,10 @@ macro_rules! new_ioerr {
 struct RpcReply(Vec<u8>);
 
 impl<'a> RpcCallContext<'a> {
+    pub fn get_function_id(&self) -> u32 {
+        return self.function_id;
+    }
+
     fn get_narg(&self, index: u32) -> RpcResult<Vec<u8>> {
         let mut data = self.data.clone();
         for _ in 0..index {
@@ -279,6 +260,7 @@ impl<'a, T: Send + Sync + Clone> RpcServer<'a, T> {
             argtypes: funcinfo.argtypes,
             data: msg,
             reply: None,
+            function_id,
         };
 
         if let Err(_err) = (funcinfo.func)(t, &mut ctx) {

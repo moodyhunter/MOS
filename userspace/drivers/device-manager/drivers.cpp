@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 bool start_load_drivers()
 {
@@ -67,7 +68,7 @@ bool try_start_driver(u16 vendor, u16 device, u32 location, u64 mmio_base)
     putchar('\n');
 
     pid_t driver_pid;
-    posix_spawn(&driver_pid, driver_path.c_str(), NULL, NULL, (char *const *) argv, NULL);
+    posix_spawn(&driver_pid, driver_path.c_str(), NULL, NULL, (char *const *) argv, environ);
 
     return driver_pid > 0;
 }

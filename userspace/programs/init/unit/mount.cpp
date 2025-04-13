@@ -6,12 +6,12 @@
 
 RegisterUnit(mount, Mount);
 
-Mount::Mount(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_, const ArgumentMap &args)
-    : Unit(id, table, template_, args),                                     //
-      mount_point(ReplaceArgs(table["mount"]["mount_point"].value_or(""))), //
-      fs_type(ReplaceArgs(table["mount"]["fs_type"].value_or(""))),         //
-      options(ReplaceArgs(table["mount"]["options"].value_or(""))),         //
-      device(ReplaceArgs(table["mount"]["device"].value_or("")))            //
+Mount::Mount(const std::string &id, toml::table &table, std::shared_ptr<const Template> template_, const ArgumentMap &args)
+    : Unit(id, table, template_, args),          //
+      mount_point(GetArg(table, "mount_point")), //
+      fs_type(GetArg(table, "fs_type")),         //
+      options(GetArg(table, "options")),         //
+      device(GetArg(table, "device"))            //
 {
     if (mount_point.empty())
         std::cerr << "mount: missing mount_point" << std::endl;

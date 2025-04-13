@@ -11,11 +11,11 @@ namespace mos
 {
     constexpr size_t short_string_capacity = 16;
 
-    template<typename Char, typename TAllocator>
+    template<typename Char, typename TAllocator = mos::default_allocator<Char>>
     class basic_string
     {
         bool _is_long = false;
-        size_t _length; ///< string length excluding null terminator
+        size_t _length; ///< string length EXcluding null terminator
 
         union
         {
@@ -349,7 +349,7 @@ namespace mos
         }
     };
 
-    using string = mos::basic_string<char, mos::default_allocator>;
+    using string = mos::basic_string<char>;
 
     // convert a pointer to a string
     mos::string to_string(const void *value);

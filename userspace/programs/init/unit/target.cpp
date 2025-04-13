@@ -4,7 +4,8 @@
 
 RegisterUnit(target, Target);
 
-Target::Target(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_, const ArgumentMap &args) : Unit(id, table, template_, args)
+Target::Target(const std::string &id, toml::table &table, std::shared_ptr<const Template> template_, const ArgumentMap &args) //
+    : Unit(id, table, template_, args)
 {
 }
 

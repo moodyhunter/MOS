@@ -2,6 +2,7 @@
 
 #include "blockdev.h"
 #include "ext4fs.hpp"
+#include "libsm.h"
 #include "mos/proto/fs_server.h"
 #include "proto/blockdev.service.h"
 #include "proto/userfs-manager.service.h"
@@ -24,6 +25,7 @@ int main(int argc, char **)
     userfs_manager = std::make_unique<UserFSManagerStub>(USERFS_SERVER_RPC_NAME);
 
     const auto server_name = "fs.ext4"s;
+    ReportServiceState(UnitStatus::Starting, "ext4fs starting...");
 
 #if DEBUG
     ext4_dmask_set(DEBUG_ALL);
@@ -47,6 +49,8 @@ int main(int argc, char **)
     pb_release(&mosrpc_userfs_register_response_msg, &resp);
 
     Ext4UserFS ext4_userfs(server_name);
+
+    ReportServiceState(UnitStatus::Started, "ext4fs started");
     ext4_userfs.run();
     return 0;
 }

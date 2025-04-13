@@ -6,6 +6,7 @@
 #include <iostream>
 #include <librpc/rpc.h>
 #include <memory>
+#include <pb_decode.h>
 #include <vector>
 
 #define RED(text)    "\033[1;31m" text "\033[0m"
@@ -82,8 +83,10 @@ static const char *GetUnitType(const struct _RpcUnit &unit)
 
 int list(int, char **)
 {
-    printf(C_WHITE "  %-30s %-10s %-30s %-31s  %-30s\n" C_RESET, "Unit Name", "Type", "Status", "Since", "Description");
-    std::string line(2 + 30 + 1 + 10 + 1 + 30 + 1 + 31 + 2 + 30, '-');
+#define UnitNameLength 40
+
+    printf(C_WHITE "  %-" MOS_STRINGIFY(UnitNameLength) "s %-10s %-30s %-31s  %-30s\n" C_RESET, "Unit Name", "Type", "Status", "Since", "Description");
+    std::string line(2 + UnitNameLength + 1 + 10 + 1 + 30 + 1 + 31 + 2 + 30, '-');
     puts(line.c_str());
 
     GetUnitsRequest req;
@@ -100,17 +103,17 @@ int list(int, char **)
             statusmsg += std::string(" (") + unit.status.statusMessage + ")";
 
         const auto ctime = std::ctime(&unit.status.timestamp);
-        printf("%s●" C_RESET " %-30s " C_YELLOW "%-10s" C_RESET " %s%-30s%s %ssince: %.*s%s  %s\n", //
-               color,                                                                               //
-               unit.name,                                                                           //
-               GetUnitType(unit),                                                                   //
-               color,                                                                               //
-               statusmsg.c_str(),                                                                   //
-               C_RESET,                                                                             //
-               unit.status.isActive ? C_WHITE : C_GRAY, int(strlen(ctime) - 1),                     //
-               ctime,                                                                               //
-               C_RESET,                                                                             //
-               unit.description                                                                     //
+        printf("%s●" C_RESET " %-" MOS_STRINGIFY(UnitNameLength) "s " C_YELLOW "%-10s" C_RESET " %s%-30s%s %ssince: %.*s%s  %s\n", //
+               color,                                                                                                              //
+               unit.name,                                                                                                          //
+               GetUnitType(unit),                                                                                                  //
+               color,                                                                                                              //
+               statusmsg.c_str(),                                                                                                  //
+               C_RESET,                                                                                                            //
+               unit.status.isActive ? C_WHITE : C_GRAY, int(strlen(ctime) - 1),                                                    //
+               ctime,                                                                                                              //
+               C_RESET,                                                                                                            //
+               unit.description                                                                                                    //
         );
     }
 
@@ -176,6 +179,45 @@ int stop_unit(int argc, char **argv)
     return 0;
 }
 
+int instantiate(int argc, char **argv)
+{
+    if (argc < 1)
+    {
+        std::cerr << "Usage: sc instantiate <template_id> [param1=value1] [param2=value2] ..." << std::endl;
+        return 1;
+    }
+
+    InstantiateUnitRequest req;
+    req.template_id = argv[0];
+    req.parameters_count = argc - 1;
+    req.parameters = static_cast<KeyValuePair *>(malloc(argc * sizeof(KeyValuePair)));
+    for (int i = 1; i < argc; i++)
+    {
+        const auto &param = argv[i];
+        const auto eq = strchr(param, '=');
+        if (!eq)
+        {
+            std::cerr << "Invalid parameter: " << param << std::endl;
+            return 1;
+        }
+
+        req.parameters[i - 1].key = strndup(param, eq - param);
+        req.parameters[i - 1].value = strdup(eq + 1);
+    }
+
+    for (int i = 0; i < argc - 1; i++)
+        std::cout << "param " << req.parameters[i].key << " = " << req.parameters[i].value << std::endl;
+
+    InstantiateUnitResponse resp;
+    const auto err = ServiceManager->instantiate_unit(&req, &resp);
+
+    if (err != RPC_RESULT_OK)
+        std::cerr << "Failed to instantiate unit: error " << err << std::endl;
+    else
+        std::cout << "Unit instantiated: " << resp.unit_id << std::endl;
+    return err;
+}
+
 const std::vector<Command> commands = {
     { "list", "List all services", list },
     { "listt", "List all templates", list_templates },
@@ -188,6 +230,16 @@ const std::vector<Command> commands = {
       } },
     { "start", "Start unit", start_unit },
     { "stop", "Stop unit", stop_unit },
+    { "instantiate", "Instantiate unit from template", instantiate },
+    { "help", "Show help",
+      [](int, char *[])
+      {
+          std::cout << "Usage: sc <command> [args...]" << std::endl;
+          std::cout << "Commands:" << std::endl;
+          for (const auto &command : commands)
+              std::cout << "  " << command.name << " - " << command.description << std::endl;
+          return 0;
+      } },
 };
 
 int main(int argc, char **argv)

@@ -4,7 +4,7 @@
 
 struct Mount : public Unit
 {
-    explicit Mount(const std::string &id, const toml::table &table, std::shared_ptr<const Template> template_ = nullptr, const ArgumentMap &args = {});
+    explicit Mount(const std::string &id, toml::table &table, std::shared_ptr<const Template> template_ = nullptr, const ArgumentMap &args = {});
 
     const std::string mount_point;
     const std::string fs_type;

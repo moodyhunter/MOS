@@ -113,10 +113,7 @@ void slab_init(void)
 {
     dInfo2<slab> << "initializing the slab allocator";
     for (size_t i = 0; i < MOS_ARRAY_SIZE(BUILTIN_SLAB_SIZES); i++)
-    {
         slab_init_one(&slabs[i], BUILTIN_SLAB_SIZES[i].name, BUILTIN_SLAB_SIZES[i].size);
-        slab_allocate_mem(&slabs[i]);
-    }
 }
 
 void slab_register(slab_t *s)

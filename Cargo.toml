@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "userspace/drivers/virtiod",
+    "userspace/libs/librpc-rs",
+    "userspace/libs/libsm-rs",
+    "userspace/tests/librpc-rs-test",
+    "userspace/tests/rust-test",
+]
+
+[patch.mos]
+librpc-rs = { path = "userspace/libs/librpc-rs" }
+libsm-rs = { path = "userspace/libs/libsm-rs" }

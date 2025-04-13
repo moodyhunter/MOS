@@ -59,6 +59,8 @@ class ServiceManagerImpl final
     bool StartUnit(const std::string &id) const;
     bool StopUnit(const std::string &id) const;
 
+    std::optional<std::string> InstantiateUnit(const std::string &template_id, const ArgumentMap &parameters);
+
     bool StartDefaultTarget() const
     {
         return StartUnit(defaultTarget);
@@ -91,6 +93,10 @@ class ServiceManagerImpl final
   private:
     std::vector<std::string> GetStartupOrder(const std::string &id) const;
     std::shared_ptr<Unit> FindUnitByName(const std::string &name) const;
+    std::shared_ptr<Template> FindTemplateByName(const std::string &name) const;
+
+  private:
+    Locked<std::vector<std::thread>> startup_jobs;
 
   private:
     Locked<std::map<std::string, std::shared_ptr<Template>>> templates;

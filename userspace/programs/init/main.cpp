@@ -2,16 +2,19 @@
 #include "ServiceManager.hpp"
 #include "global.hpp"
 #include "logging.hpp"
+#include "rpc/UnitStateReceiver.hpp"
 #include "rpc/rpc.hpp"
 
 #include <argparse/libargparse.h>
 #include <iostream>
+#include <stacktrace>
 #include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
 
 static void sigsegv_handler(int sig)
 {
+    std::cout << std::stacktrace::current() << std::endl << std::flush;
     if (sig == SIGSEGV)
     {
         std::cout << RED("INIT process received SIGSEGV") << std::endl << std::endl;
@@ -19,6 +22,7 @@ static void sigsegv_handler(int sig)
         std::cout << RED("!!! Segmentation fault !!!") << std::endl;
         std::cout << RED("!!!!!!!!!!!!!!!!!!!!!!!!!!") << std::endl;
         std::cout << RED("!!!") GREEN("  Good Bye~  ") RED("!!!") << std::endl;
+        std::cout << RED("!!!!!!!!!!!!!!!!!!!!!!!!!!") << std::endl;
         while (true)
             sched_yield();
     }
@@ -91,6 +95,7 @@ int main(int argc, const char *argv[])
 
     ServiceManager->LoadConfiguration(ReadAllConfig(configPath));
     std::thread([]() { RpcServer->run(); }).detach();
+    std::thread([]() { UnitStateReceiverService->run(); }).detach();
 
     if (!ServiceManager->StartDefaultTarget())
     {
@@ -99,26 +104,29 @@ int main(int argc, const char *argv[])
     }
 
     // start the shell
-    const char **shell_argv = (const char **) malloc(sizeof(char *));
-    int shell_argc = 1;
-    shell_argv[0] = shell.c_str();
-
-    const char *arg;
     argparse_init(&state, argv); // reset the options
-    while ((arg = argparse_arg(&state)))
-    {
-        shell_argc++;
-        shell_argv = (const char **) realloc(shell_argv, shell_argc * sizeof(char *));
-        shell_argv[shell_argc - 1] = arg;
-    }
-    shell_argv = (const char **) realloc(shell_argv, (shell_argc + 1) * sizeof(char *));
-    shell_argv[shell_argc] = NULL;
 
-start_shell:;
-    const pid_t shell_pid = fork();
-    if (shell_pid == 0)
-        if (execv(shell.c_str(), (char **) shell_argv) <= 0)
-            return DYN_ERROR_CODE;
+    std::vector<const char *> args;
+    args.push_back(shell.c_str());
+    while (const auto arg = argparse_arg(&state))
+        args.push_back(arg);
+    args.push_back(nullptr);
+
+    const static auto StartShell = [&]()
+    {
+        const pid_t pid = fork();
+        if (pid == 0)
+        {
+            if (execv(shell.c_str(), (char **) args.data()) <= 0)
+            {
+                std::cout << "Failed to start shell" << std::endl;
+                exit(1);
+            }
+        }
+        return pid;
+    };
+
+    pid_t shell_pid = StartShell();
 
     while (true)
     {
@@ -127,7 +135,7 @@ start_shell:;
         if (pid == shell_pid)
         {
             puts("init: shell exited, restarting...");
-            goto start_shell;
+            shell_pid = StartShell();
         }
 
         ServiceManager->OnProcessExit(pid, status);

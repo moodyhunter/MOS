@@ -19,6 +19,7 @@ class ServiceManagerServer : public IServiceManagerService
     virtual rpc_result_code_t get_templates(rpc_context_t *ctx, GetTemplatesRequest *req, GetTemplatesResponse *resp) override;
     virtual rpc_result_code_t start_unit(rpc_context_t *ctx, StartUnitRequest *req, StartUnitResponse *resp) override;
     virtual rpc_result_code_t stop_unit(rpc_context_t *ctx, StopUnitRequest *req, StopUnitResponse *resp) override;
+    virtual rpc_result_code_t instantiate_unit(rpc_context_t *ctx, InstantiateUnitRequest *req, InstantiateUnitResponse *resp) override;
 };
 
 inline const std::unique_ptr<ServiceManagerServer> RpcServer = std::make_unique<ServiceManagerServer>(SERVICE_MANAGER_RPC_NAME);

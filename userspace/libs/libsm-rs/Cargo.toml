@@ -1,0 +1,16 @@
+[package]
+name = "libsm-rs"
+version = "0.1.2"
+edition = "2024"
+publish = ["mos"]
+description = "Rust bindings for Service Manager"
+license = "GPL-3.0"
+repository = "https://gitlab.com/moodyhunter/MOS"
+homepage = "https://mos.mooody.me"
+
+[dependencies]
+protobuf = "3.4.0"
+librpc-rs = { version = "0.1.1", registry = "mos", features = ["protobuf"] }
+
+[build-dependencies]
+protobuf-codegen = "3.4.0"

@@ -10,8 +10,3 @@ default_target = "normal.target"
 type = "target"
 description = "Normal System"
 depends_on = ["base.target"]
-
-[data-partition.target]
-type = "target"
-description = "Data Partition"
-depends_on = ["normal.target", "ext4fs.service"]
