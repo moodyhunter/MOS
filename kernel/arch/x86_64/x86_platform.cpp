@@ -22,6 +22,7 @@
 #include "mos/x86/mm/paging_impl.hpp"
 #include "mos/x86/x86_interrupt.hpp"
 
+#include <ansi_colors.h>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 

@@ -153,6 +153,7 @@ void platform_dump_thread_kernel_stack(const Thread *thread);
 // Platform Timer/Clock APIs
 // default implementation does nothing
 void platform_get_time(timeval_t *val);
+void platform_get_unix_timestamp(u64 *timestamp);
 
 // Platform CPU APIs
 // default implementation loops forever

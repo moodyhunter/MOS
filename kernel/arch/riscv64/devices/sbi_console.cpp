@@ -8,7 +8,7 @@
 #include <ansi_colors.h>
 #include <mos/types.hpp>
 
-static standard_color_t sbi_console_bg = Black, sbi_console_fg = White;
+static StandardColor sbi_console_bg = Black, sbi_console_fg = White;
 
 static size_t sbi_console_write(Console *con, const char *data, size_t size)
 {
@@ -17,7 +17,7 @@ static size_t sbi_console_write(Console *con, const char *data, size_t size)
     return sbi_putstring(data);
 }
 
-static bool sbi_console_set_color(Console *con, standard_color_t fg, standard_color_t bg)
+static bool sbi_console_set_color(Console *con, StandardColor fg, StandardColor bg)
 {
     MOS_UNUSED(con);
     sbi_console_fg = fg;
@@ -29,7 +29,7 @@ static bool sbi_console_set_color(Console *con, standard_color_t fg, standard_co
     return true;
 }
 
-static bool sbi_console_get_color(Console *con, standard_color_t *fg, standard_color_t *bg)
+static bool sbi_console_get_color(Console *con, StandardColor *fg, StandardColor *bg)
 {
     MOS_UNUSED(con);
     *fg = sbi_console_fg;

@@ -603,11 +603,22 @@ DEFINE_SYSCALL(long, vfs_unmount)(const char *path)
 
 DEFINE_SYSCALL(long, clock_gettimeofday)(struct timespec *ts)
 {
+#ifdef __x86_64__
     timeval_t tv;
     platform_get_time(&tv);
+    if (tv.day == 0)
+        return -ENOTSUP;
+
     const auto days = days_from_civil(tv.year, tv.month, tv.day);
     ts->tv_sec = (days * 86400) + (tv.hour * 60 * 60) + (tv.minute * 60) + tv.second;
     ts->tv_nsec = 0;
+#elifdef __riscv
+    constexpr auto NSEC_PER_SEC = 1'000'000'000;
+    u64 timestamp = 0;
+    platform_get_unix_timestamp(&timestamp);
+    ts->tv_sec = timestamp / NSEC_PER_SEC;
+    ts->tv_nsec = timestamp % NSEC_PER_SEC;
+#endif
     return 0;
 }
 

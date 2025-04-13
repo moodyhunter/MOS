@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // #include "mos/device/console.hpp"
+#include "mos/device/clocksource.hpp"
 #include "mos/device/serial.hpp"
 #include "mos/device/serial_console.hpp"
 #include "mos/interrupt/interrupt.hpp"
@@ -25,12 +26,12 @@ class RiscV64UartDevice : public ISerialDevice
     }
 
   public:
-    u8 read_byte() override
+    u8 ReadByte() override
     {
         return mmio[0];
     }
 
-    int write_byte(u8 data) override
+    int WriteByte(u8 data) override
     {
         mmio[0] = data;
         return 0;
@@ -96,9 +97,17 @@ void platform_startup_setup_kernel_mm()
     }
 }
 
+clocksource_t goldfish{
+    .name = "goldfish",
+    .ticks = 0,
+    .frequency = 500,
+};
+
 void platform_startup_late()
 {
 #define UART0_IRQ 10
     plic_enable_irq(UART0_IRQ);
     interrupt_handler_register(UART0_IRQ, serial_console_irq_handler, &uart_console);
+
+    clocksource_register(&goldfish);
 }

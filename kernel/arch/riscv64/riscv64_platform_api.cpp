@@ -2,11 +2,14 @@
 
 #include "mos/assert.hpp"
 #include "mos/platform/platform.hpp"
+#include "mos/platform/platform_defs.hpp"
 #include "mos/riscv64/cpu/cpu.hpp"
+#include "mos/syslog/syslog.hpp"
 #include "mos/tasks/signal.hpp"
 #include "mos/tasks/task_types.hpp"
 
 #include <mos/platform_syscall.h>
+#include <mos/shared_ptr.hpp>
 #include <mos_stdlib.hpp>
 
 // Platform Context Switching APIs
@@ -16,9 +19,17 @@ extern "C" void riscv64_normal_switch_impl();
 
 static void riscv64_start_user_thread()
 {
-    platform_regs_t *regs = platform_thread_regs(current_thread);
-    signal_exit_to_user_prepare(regs);
-    platform_return_to_userspace(regs);
+    auto regs = platform_thread_regs(current_thread);
+    reg_t sstatus = read_csr(sstatus);
+    sstatus &= ~SSTATUS_SPP;
+    sstatus |= SSTATUS_SPIE;
+    sstatus |= SSTATUS_SUM;
+
+    write_csr(sstatus, sstatus);
+    write_csr(sscratch, current_thread->k_stack.top);
+    write_csr(stvec, (ptr_t) __riscv64_usermode_trap_entry);
+    write_csr(sepc, regs->sepc);
+    riscv64_trap_exit(regs);
 }
 
 static void riscv64_start_kernel_thread()
@@ -47,7 +58,7 @@ void platform_cpu_idle()
     __asm__ volatile("wfi");
 }
 
-void platform_dump_regs(platform_regs_t *regs)
+void platform_dump_regs(const platform_regs_t *regs)
 {
     pr_info("General Purpose Registers:");
     pr_info2("   ra/x1: " PTR_FMT "   sp/x2: " PTR_FMT "   gp/x3: " PTR_FMT "  tp/x4: " PTR_FMT, regs->ra, regs->sp, regs->gp, regs->tp);
@@ -60,7 +71,7 @@ void platform_dump_regs(platform_regs_t *regs)
     pr_info2("  t4/x29: " PTR_FMT "  t5/x30: " PTR_FMT "  t6/x31: " PTR_FMT, regs->t4, regs->t5, regs->t6);
 }
 
-platform_regs_t *platform_thread_regs(const Thread *thread)
+platform_regs_t *platform_thread_regs(Thread *thread)
 {
     return (platform_regs_t *) (thread->k_stack.top - sizeof(platform_regs_t));
 }
@@ -75,6 +86,7 @@ void platform_context_setup_main_thread(Thread *thread, ptr_t entry, ptr_t sp, i
 {
     thread_setup_common(thread);
     platform_regs_t *regs = platform_thread_regs(thread);
+    *regs = platform_regs_t();
     regs->sepc = entry;
     regs->a0 = argc;
     regs->a1 = argv;
@@ -102,7 +114,7 @@ void platform_context_setup_child_thread(Thread *thread, thread_entry_t entry, v
     regs->sp = thread->u_stack.head; // update the stack pointer
 }
 
-void platform_context_clone(const Thread *from, Thread *to)
+void platform_context_clone(Thread *from, Thread *to)
 {
     platform_regs_t *to_regs = platform_thread_regs(to);
     platform_regs_t *from_regs = platform_thread_regs(from);
@@ -224,7 +236,7 @@ void do_restore_fp_context(Thread *thread)
 #undef f_op
 }
 
-void platform_switch_to_thread(Thread *current, Thread *new_thread, switch_flags_t switch_flags)
+void platform_switch_to_thread(Thread *current, Thread *new_thread, ContextSwitchBehaviorFlags switch_flags)
 {
     const switch_func_t switch_func = statement_expr(switch_func_t, {
         switch (switch_flags)
@@ -286,7 +298,7 @@ void platform_ipi_send(u8 target_cpu, ipi_type_t type)
     // pr_emerg("platform_ipi_send() not implemented");
 }
 
-void platform_dump_stack(platform_regs_t *regs)
+void platform_dump_stack(const platform_regs_t *regs)
 {
     ptr_t *caller_fp = (ptr_t *) regs->fp;
     pr_info("Stack dump:");
@@ -310,7 +322,7 @@ void platform_syscall_store_retval(platform_regs_t *regs, reg_t result)
     regs->a0 = result;
 }
 
-void platform_jump_to_signal_handler(const platform_regs_t *regs, const sigreturn_data_t *sigreturn_data, const sigaction_t *sa)
+ptr<platform_regs_t> platform_setup_signal_handler_regs(const platform_regs_t *regs, const sigreturn_data_t *sigreturn_data, const sigaction_t *sa)
 {
     current_thread->u_stack.head = regs->sp - 128;
 
@@ -319,12 +331,12 @@ void platform_jump_to_signal_handler(const platform_regs_t *regs, const sigretur
     stack_push_val(&current_thread->u_stack, *sigreturn_data);
 
     // Set up the new context
-    platform_regs_t ret_regs = *regs;
-    ret_regs.sepc = (ptr_t) sa->handler;
-    ret_regs.ra = (ptr_t) sa->sa_restorer; // the return address
-    ret_regs.a0 = sigreturn_data->signal;  // arg1
-    ret_regs.sp = current_thread->u_stack.head;
-    platform_return_to_userspace(&ret_regs);
+    auto ret_regs = mos::make_shared<platform_regs_t>(regs);
+    ret_regs->sepc = (ptr_t) sa->handler;
+    ret_regs->ra = (ptr_t) sa->sa_restorer; // the return address
+    ret_regs->a0 = sigreturn_data->signal;  // arg1
+    ret_regs->sp = current_thread->u_stack.head;
+    return ret_regs;
 }
 
 void platform_restore_from_signal_handler(void *sp)
@@ -337,4 +349,31 @@ void platform_restore_from_signal_handler(void *sp)
 
     signal_on_returned(&data);
     platform_return_to_userspace(&regs);
+}
+
+u64 platform_get_timestamp()
+{
+    return 0;
+}
+
+void platform_get_time(timeval_t *tv)
+{
+    tv->day = 0;
+    tv->hour = 0;
+    tv->minute = 0;
+    tv->second = 0;
+    tv->year = 0;
+    tv->month = 0;
+}
+
+void platform_get_unix_timestamp(u64 *timestamp)
+{
+    const auto val = (volatile u64 *) pa_va(0x101000);
+    constexpr auto RTC_TIME = 0x00;
+    *timestamp = *(val + RTC_TIME);
+}
+
+void platform_dump_current_stack()
+{
+    mWarn << "Stack dump not implemented";
 }

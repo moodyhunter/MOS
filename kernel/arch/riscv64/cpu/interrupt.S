@@ -71,7 +71,7 @@ invoke_trap_handler:
 
     // call do_trap
     call riscv64_trap_handler
-    unimp
+    // fallthrough
 
 .global riscv64_trap_exit
 riscv64_trap_exit:

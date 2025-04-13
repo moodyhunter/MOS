@@ -12,6 +12,7 @@
 #include <limits.h>
 #include <mos/lib/structures/list.hpp>
 #include <mos/lib/sync/spinlock.hpp>
+#include <mos/syscall/number.h>
 #include <mos/tasks/signal_types.h>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
@@ -262,6 +263,10 @@ ptr<platform_regs_t> signal_exit_to_user_prepare(platform_regs_t *regs, reg_t sy
     spinlock_release(&current_thread->signal_info.lock);
 
     const sigaction_t action = current_process->signal_info.handlers[next_signal];
+
+    // HACK: return if new thread (platform_setup_thread clears a7)
+    if (syscall_nr == 0 && syscall_ret == 0)
+        return nullptr;
 
     if (syscall_ret == (reg_t) -ERESTARTSYS)
     {

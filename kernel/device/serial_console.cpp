@@ -49,6 +49,8 @@ void SerialConsole::handle_irq()
         char c = device->ReadByte();
         if (c == '\r')
             c = '\n';
+        if (c == '\0')
+            break;
         device->WriteByte(c);
         this->putc(c);
     }

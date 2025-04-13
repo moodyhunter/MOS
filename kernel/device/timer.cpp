@@ -39,11 +39,7 @@ void timer_tick()
 long timer_msleep(u64 ms)
 {
     if (!active_clocksource)
-    {
-        spinlock_acquire(&current_thread->state_lock);
-        reschedule(); // simulate a reschedule if no clocksource is available
-        return 0;
-    }
+        return -ENOTSUP;
 
     const u64 offset = ms * active_clocksource->frequency / 1000;
     const u64 target_val = active_clocksource_ticks() + offset;

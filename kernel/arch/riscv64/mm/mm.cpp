@@ -2,6 +2,7 @@
 
 #include "mos/mm/mm.hpp"
 
+#include "mos/mm/mm_types.hpp"
 #include "mos/platform/platform.hpp"
 
 #include <mos/mos_global.h>
@@ -52,12 +53,12 @@ should_inline void pmle_set_flags(int level, sv48_pte_t *pte, VMFlags flags)
 
 should_inline VMFlags pte_get_flags(const sv48_pte_t *pte)
 {
-    VMFlags flags = (VMFlags) 0;
-    flags |= pte->r ? VM_READ : 0;
-    flags |= pte->w ? VM_WRITE : 0;
-    flags |= pte->x ? VM_EXEC : 0;
-    flags |= pte->user ? VM_USER : 0;
-    flags |= pte->global ? VM_GLOBAL : 0;
+    VMFlags flags;
+    flags |= pte->r ? VM_READ : VM_NONE;
+    flags |= pte->w ? VM_WRITE : VM_NONE;
+    flags |= pte->x ? VM_EXEC : VM_NONE;
+    flags |= pte->user ? VM_USER : VM_NONE;
+    flags |= pte->global ? VM_GLOBAL : VM_NONE;
     return flags;
 }
 

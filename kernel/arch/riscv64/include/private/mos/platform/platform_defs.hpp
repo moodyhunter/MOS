@@ -3,6 +3,7 @@
 #pragma once
 
 #include <mos/types.hpp>
+#include <mos_string.hpp>
 
 #define MOS_PLATFORM_PAGING_LEVELS 4
 
@@ -47,6 +48,29 @@
     /**/
 
 #define MOS_PLATFORM_MEMORY_BARRIER() __asm__ __volatile__("fence.i" ::: "memory")
+
+struct platform_regs_t : mos::NamedType<"Platform.Registers">
+{
+    platform_regs_t()
+    {
+        memzero(this, sizeof(*this));
+    }
+
+    platform_regs_t(const platform_regs_t *regs)
+    {
+        *this = *regs;
+    }
+
+    reg_t ra, sp, gp, tp;
+    reg_t t0, t1, t2;
+    reg_t fp, s1;
+    reg_t a0, a1, a2, a3, a4, a5, a6, a7;
+    reg_t s2, s3, s4, s5, s6, s7, s8, s9, s10, s11;
+    reg_t t3, t4, t5, t6;
+
+    // below are the CSR registers
+    reg_t sstatus, sepc;
+};
 
 typedef struct _platform_process_options
 {

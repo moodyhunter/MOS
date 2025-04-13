@@ -80,10 +80,10 @@ static void invoke_constructors(void)
 
 extern "C" void limine_entry(void)
 {
-    invoke_constructors();
     const auto hhdm_response = hhdm.response;
     if (hhdm_response && hhdm_response->offset)
         platform_info->direct_map_base = hhdm_response->offset; // early-populate direct_map_base for pa_va
+    invoke_constructors();
 
     if (platform_info->boot_console)
         platform_info->boot_console->Register();

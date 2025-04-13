@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/device/clocksource.hpp"
 #include "mos/interrupt/interrupt.hpp"
 #include "mos/ksyscall_entry.hpp"
 #include "mos/mm/paging/table_ops.hpp"
@@ -9,7 +10,9 @@
 #include "mos/tasks/schedule.hpp"
 #include "mos/tasks/signal.hpp"
 
-extern "C" void riscv64_trap_handler(platform_regs_t *regs, reg_t scause, reg_t stval, reg_t sepc)
+extern clocksource_t goldfish;
+
+extern "C" platform_regs_t *riscv64_trap_handler(platform_regs_t *regs, reg_t scause, reg_t stval, reg_t sepc)
 {
     write_csr(stvec, __riscv64_trap_entry);
     current_cpu->interrupt_regs = regs;
@@ -74,8 +77,9 @@ handle_bp:
 handle_timer:
 {
     const reg_t stime = read_csr(time);
-    write_csr(stimecmp, stime + 500 * 1000); // 0.5 ms
+    write_csr(stimecmp, stime + 1000 * 10); // 10ms
     spinlock_acquire(&current_thread->state_lock);
+    clocksource_tick(&goldfish);
     reschedule();
     goto leave;
 }
@@ -120,13 +124,25 @@ handle_pf:
 leave:
     if (is_userspace)
     {
+        ptr<platform_regs_t> syscall_ret_regs;
         if (!is_interrupt && exception == 8)
-            signal_exit_to_user_prepare_syscall(regs, regs->a7, ret);
+            syscall_ret_regs = signal_exit_to_user_prepare(regs, regs->a7, ret);
         else
-            signal_exit_to_user_prepare(regs);
-        platform_return_to_userspace(regs);
+            syscall_ret_regs = signal_exit_to_user_prepare(regs);
+
+        if (syscall_ret_regs)
+            *regs = *syscall_ret_regs;
+
+        reg_t sstatus = read_csr(sstatus);
+        sstatus &= ~SSTATUS_SPP;
+        sstatus |= SSTATUS_SPIE;
+        sstatus |= SSTATUS_SUM;
+
+        write_csr(sstatus, sstatus);
+        write_csr(sscratch, current_thread->k_stack.top);
+        write_csr(stvec, (ptr_t) __riscv64_usermode_trap_entry);
+        write_csr(sepc, regs->sepc);
     }
 
-    MOS_ASSERT_X(!is_userspace, "should not return to userspace here");
-    riscv64_trap_exit(regs);
+    return regs;
 }

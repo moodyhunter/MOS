@@ -5,6 +5,7 @@ add_kernel_source(
     riscv64_platform_api.cpp
     sbi/sbi-call.cpp
     mm/mm.cpp
+    cpu/ap.cpp
     cpu/trap.cpp
     cpu/plic.cpp
     cpu/interrupt.S

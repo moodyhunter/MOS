@@ -198,6 +198,11 @@ void platform_get_time(timeval_t *time)
     rtc_read_time(time);
 }
 
+void platform_get_unix_timestamp(u64 *timestamp)
+{
+    *timestamp = 0;
+}
+
 void platform_dump_regs(const platform_regs_t *frame)
 {
     pr_emph("General Purpose Registers:\n"
