@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "unit/unit.hpp"
+#include "units/unit.hpp"
 
 #include "global.hpp"
 #include "logging.hpp"
@@ -13,7 +13,7 @@ static bool is_optional_key(const std::string_view key)
     return key == "depends_on" || key == "part_of";
 }
 
-std::map<std::string, UnitCreatorType> &Unit::Creator(std::optional<std::pair<std::string, UnitCreatorType>> creator)
+const std::map<std::string, UnitCreatorType> &Unit::Creator(std::optional<std::pair<std::string, UnitCreatorType>> creator)
 {
     static std::map<std::string, UnitCreatorType> creators;
     if (creator)
@@ -21,7 +21,7 @@ std::map<std::string, UnitCreatorType> &Unit::Creator(std::optional<std::pair<st
     return creators;
 }
 
-std::map<std::string, UnitInstantiator> &Unit::Instantiator(std::optional<std::pair<std::string, UnitInstantiator>> instantiator)
+const std::map<std::string, UnitInstantiator> &Unit::Instantiator(std::optional<std::pair<std::string, UnitInstantiator>> instantiator)
 {
     static std::map<std::string, UnitInstantiator> instantiators;
     if (instantiator)
@@ -29,7 +29,7 @@ std::map<std::string, UnitInstantiator> &Unit::Instantiator(std::optional<std::p
     return instantiators;
 }
 
-void Unit::VerifyUnitArguments(const std::string &id, toml::table &table)
+void Unit::VerifyUnitArguments(const std::string &id, const toml::table &table)
 {
     if (table.empty())
         return;
@@ -54,64 +54,60 @@ void Unit::VerifyUnitArguments(const std::string &id, toml::table &table)
     }
 }
 
-std::shared_ptr<Unit> Unit::CreateNew(const std::string &id, const toml::table *data)
+std::shared_ptr<IUnit> Unit::Create(const std::string &id, const toml::table &data)
 {
+    // extract type from id, e.g. mos.service@abc -> service
+    const auto type_string = id.substr(id.find('.') + 1, id.find('@') - id.find('.') - 1);
+    if (type_string.empty())
+    {
+        std::cerr << "bad unit id" << std::endl;
+        return nullptr;
+    }
+
     const auto &creators = Unit::Creator();
-
-    const auto type = (*data)["type"];
-    if (!type.is_string())
+    if (const auto it = creators.find(type_string); it != creators.end())
     {
-        std::cerr << "bad type, expect string" << std::endl;
-        return nullptr;
-    }
+        Debug << "creating unit " << id << " of type " << type_string << std::endl;
+        auto data_copy = data;
+        if (const auto unit = it->second(id, data_copy); unit)
+        {
+            VerifyUnitArguments(id, data_copy);
+            return unit;
+        }
 
-    const auto type_string = type.as_string()->get();
-    if (!creators.contains(type_string))
-    {
-        std::cerr << RED("unknown type ") << type_string << std::endl;
-        return nullptr;
-    }
-
-    auto table = *data;
-    const auto unit = creators.at(type_string)(id, table);
-    if (!unit)
-    {
         std::cerr << "failed to create unit" << std::endl;
         return nullptr;
     }
-
-    VerifyUnitArguments(id, table);
-
-    return unit;
-}
-
-std::shared_ptr<Unit> Unit::CreateFromTemplate(const std::string &id, std::shared_ptr<const Template> template_, const ArgumentMap &args)
-{
-    const auto &instantiators = Unit::Instantiator();
-
-    const auto type = template_->table["type"];
-    if (!type.is_string())
-    {
-        std::cerr << "bad type, expect string" << std::endl;
-        return nullptr;
-    }
-
-    const auto type_string = type.as_string()->get();
-    if (!instantiators.contains(type_string))
+    else
     {
         std::cerr << RED("unknown type ") << type_string << std::endl;
         return nullptr;
     }
+}
 
-    Debug << "instantiating unit " << id << " of type " << type_string << std::endl;
-    const auto unit = instantiators.at(type_string)(id, template_, args);
-    if (!unit)
+std::shared_ptr<IUnit> Unit::Instantiate(const std::string &id, std::shared_ptr<const Template> template_, const ArgumentMap &args)
+{
+    const auto &instantiators = Unit::Instantiator();
+
+    const auto type_string = id.substr(id.find('.') + 1, id.find('@') - id.find('.') - 1);
+    if (type_string.empty())
     {
+        std::cerr << "bad unit id" << std::endl;
+        return nullptr;
+    }
+
+    if (const auto it = instantiators.find(type_string); it != instantiators.end())
+    {
+        Debug << "instantiating unit " << id << " of type " << type_string << std::endl;
+        if (const auto unit = it->second(id, template_, args); unit)
+            return unit;
+
         std::cerr << "failed to instantiate unit" << std::endl;
         return nullptr;
     }
 
-    return unit;
+    std::cerr << RED("unknown type ") << type_string << std::endl;
+    return nullptr;
 }
 
 std::ostream &operator<<(std::ostream &os, const Unit &unit)
@@ -134,27 +130,31 @@ std::ostream &operator<<(std::ostream &os, const Unit &unit)
 }
 
 Unit::Unit(const std::string &id, toml::table &table, std::shared_ptr<const Template> template_, const ArgumentMap &args)
-    : arguments(args),                                       //
-      id(id),                                                //
-      description(GetArg(table, "description", toplevel)),   //
+    : IUnit(id),                                             //
+      arguments(args),                                       //
+      description(PopArg(table, "description", toplevel)),   //
       dependsOn(GetArrayArg(table, "depends_on", toplevel)), //
       partOf(GetArrayArg(table, "part_of", toplevel)),       //
       template_(template_)
 {
-    table.erase("type");
+    Debug << "creating unit " << id << std::endl;
 }
 
-std::string Unit::GetArg(toml::table &table, std::string_view key)
+std::string Unit::PopArg(toml::table &table, std::string_view key)
 {
-    return GetArg(*table["options"].as_table(), key, toplevel);
+    if (!table["options"].is_table())
+        return INVALID_ARGUMENT;
+    return PopArg(*table["options"].as_table(), key, toplevel);
 }
 
 std::vector<std::string> Unit::GetArrayArg(toml::table &table, std::string_view key)
 {
+    if (!table["options"].is_table())
+        return {};
     return GetArrayArg(*table["options"].as_table(), key, toplevel);
 }
 
-std::string Unit::GetArg(toml::table &table, std::string_view key, toplevel_t)
+std::string Unit::PopArg(toml::table &table, std::string_view key, toplevel_t)
 {
     const auto tomlval = table[key];
     if (!tomlval || !tomlval.is_string())
@@ -184,4 +184,28 @@ std::vector<std::string> Unit::GetArrayArg(toml::table &table, std::string_view 
     const auto value = ReplaceArgs(tomlval.as_array());
     table.erase(key);
     return value;
+}
+
+std::string Unit::ReplaceArgs(const std::string &str) const
+{
+    // replace any $key with value in args
+    std::string result = str;
+    for (const auto &[key, value] : arguments)
+        result = replace_all(result, "[" + key + "]", value);
+    return result;
+}
+
+std::vector<std::string> Unit::ReplaceArgs(const toml::array *array)
+{
+    std::vector<std::string> result;
+    for (const auto &e : *array)
+    {
+        if (!e.is_string())
+        {
+            std::cerr << "Invalid array element" << std::endl;
+            continue;
+        }
+        result.push_back(ReplaceArgs(e.as_string()->get()));
+    }
+    return result;
 }

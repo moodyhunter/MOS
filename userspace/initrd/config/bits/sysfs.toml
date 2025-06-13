@@ -1,10 +1,10 @@
+#:schema ../config-schema.json
+
 [sys.path]
-type = "path"
 description = "Create SysFS directory"
 options = { path = "/sys" }
 
 [sys.mount]
-type = "mount"
 description = "Mount SysFS"
 depends_on = ["sys.path"]
 part_of = ["base.target"]

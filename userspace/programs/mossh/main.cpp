@@ -20,6 +20,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#define C_BLUE "\033[1;34m"
+
 bool verbose = false;
 
 bool execute_line(const std::string &in)
@@ -175,7 +177,7 @@ int main(int argc, const char **argv)
             cwdbuf[1] = '\0';
         }
 
-        const auto prompt = cwdbuf + " > "s;
+        const auto prompt = std::string{ C_BLUE } + cwdbuf + " > "s;
         char *const line = readline(prompt.c_str());
         const std::string line_str = line;
         free(line);

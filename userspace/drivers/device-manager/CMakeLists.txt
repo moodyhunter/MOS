@@ -10,7 +10,9 @@ target_include_directories(device-manager
 target_link_libraries(device-manager
     PRIVATE
     librpc::server
+    librpc::client
     mos::config
+    mos::rpc-protocols
     mos::argparse
     libsm::sm
 )

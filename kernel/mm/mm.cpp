@@ -320,6 +320,7 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, vmap_t *
         mEmerg << "    in vmap: " << faulting_vmap;
         mEmerg << "       offset: 0x" << (fault_addr - faulting_vmap->vaddr + (faulting_vmap->io ? faulting_vmap->io_offset : 0));
     }
+#endif
 
     if (faulting_vmap)
         spinlock_release(&faulting_vmap->lock);
@@ -330,6 +331,7 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, vmap_t *
     if (current_thread)
         spinlock_release(&current_thread->owner->mm->mm_lock);
 
+#if MOS_CONFIG(MOS_MM_DETAILED_UNHANDLED_FAULT)
 #if MOS_CONFIG(MOS_MM_DETAILED_MMAPS_UNHANDLED_FAULT)
     if (current_thread)
         process_dump_mmaps(current_process);
@@ -342,6 +344,8 @@ static void invalid_page_fault(ptr_t fault_addr, vmap_t *faulting_vmap, vmap_t *
     platform_dump_regs(info->regs);
     mCont << "\n";
 #else
+    MOS_UNUSED(faulting_vmap);
+    MOS_UNUSED(ip_vmap);
     MOS_UNUSED(fault_addr);
     MOS_UNUSED(info);
 #endif
@@ -415,7 +419,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         mm_do_flag(fault_vmap->mmctx->pgd, fault_addr, 1, page_flags | VM_EXEC);
         mm_unlock_context_pair(mm, NULL);
         spinlock_release(&fault_vmap->lock);
-        if (ip_vmap)
+        if (ip_vmap != fault_vmap && ip_vmap)
             spinlock_release(&ip_vmap->lock);
         return;
     }
@@ -482,13 +486,15 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
             dCont<pagefault> << " (backing page: " << phyframe_pfn(info->backing_page) << ")";
             mm_replace_page_locked(fault_vmap->mmctx, fault_addr, phyframe_pfn(info->backing_page), map_flags);
             fault_result = VMFAULT_COMPLETE;
+            break;
         }
     }
 
     MOS_ASSERT_X(fault_result == VMFAULT_COMPLETE || fault_result == VMFAULT_CANNOT_HANDLE, "invalid fault result %d", fault_result);
     if (ip_vmap)
         spinlock_release(&ip_vmap->lock);
-    spinlock_release(&fault_vmap->lock);
+    if (fault_vmap != ip_vmap)
+        spinlock_release(&fault_vmap->lock);
     mm_unlock_context_pair(mm, NULL);
     ipi_send_all(IPI_TYPE_INVALIDATE_TLB);
     if (fault_result == VMFAULT_COMPLETE)

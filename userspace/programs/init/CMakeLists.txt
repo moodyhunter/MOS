@@ -10,18 +10,21 @@ find_package(tomlplusplus REQUIRED)
 
 add_executable(init
     main.cpp
-    unit/unit.cpp
-    unit/mount.cpp
-    unit/path.cpp
-    unit/service.cpp
-    unit/target.cpp
-    unit/symlink.cpp
-    unit/device.cpp
-    unit/template.cpp
+    units/unit.cpp
+    units/mount.cpp
+    units/path.cpp
+    units/service.cpp
+    units/target.cpp
+    units/symlink.cpp
+    units/device.cpp
+    units/template.cpp
+    units/inherited.cpp
+    common/ConfigurationManager.cpp
     parser.cpp
     ServiceManager.cpp
     rpc/rpc.cpp
     rpc/UnitStateReceiver.cpp
+    utils/ExecUtils.cpp
 )
 
 target_link_libraries(init

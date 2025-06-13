@@ -6,7 +6,7 @@
 
 enum class UnitStatus
 {
-    Starting = 0,
+    // Starting = 0, // default initial state, do not report
     Started = 1,
     Failed = 2,
     Stopping = 3,

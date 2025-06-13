@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "pci_scan.h"
+#include "pci_scan.hpp"
 
 #include <mos/types.h>
 

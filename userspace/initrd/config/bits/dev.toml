@@ -1,10 +1,10 @@
+#:schema ../config-schema.json
+
 [dev.path]
-type = "path"
 description = "Create dev directory"
 options = { path = "/dev" }
 
 [dev-block.path]
-type = "path"
 description = "Create /dev/block directory"
 depends_on = ["dev.path"]
 options = { path = "/dev/block" }

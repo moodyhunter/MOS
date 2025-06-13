@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ServiceManager.hpp"
+#include "common/ConfigurationManager.hpp"
 #include "global.hpp"
 #include "logging.hpp"
 #include "rpc/UnitStateReceiver.hpp"
@@ -14,7 +15,6 @@
 
 static void sigsegv_handler(int sig)
 {
-    std::cout << std::stacktrace::current() << std::endl << std::flush;
     if (sig == SIGSEGV)
     {
         std::cout << RED("INIT process received SIGSEGV") << std::endl << std::endl;
@@ -23,6 +23,7 @@ static void sigsegv_handler(int sig)
         std::cout << RED("!!!!!!!!!!!!!!!!!!!!!!!!!!") << std::endl;
         std::cout << RED("!!!") GREEN("  Good Bye~  ") RED("!!!") << std::endl;
         std::cout << RED("!!!!!!!!!!!!!!!!!!!!!!!!!!") << std::endl;
+        std::cout << std::stacktrace::current() << std::endl << std::flush;
         while (true)
             sched_yield();
     }
@@ -93,7 +94,8 @@ int main(int argc, const char *argv[])
         return DYN_ERROR_CODE;
     }
 
-    ServiceManager->LoadConfiguration(ReadAllConfig(configPath));
+    ConfigurationManager->LoadConfiguration(ReadAllConfig(configPath));
+    ConfigurationManager->FinaliseConfiguration();
     std::thread([]() { RpcServer->run(); }).detach();
     std::thread([]() { UnitStateReceiverService->run(); }).detach();
 

@@ -1,0 +1,24 @@
+syntax = "proto3";
+import "nanopb.proto";
+import "mosrpc.proto";
+import "mosrpc-options.proto";
+
+option (nanopb_fileopt).fallback_type = FT_POINTER;
+option (nanopb_fileopt).proto3_singular_msgs = true;
+
+message RegisterNetworkDeviceRequest
+{
+    string device_name = 1;     // the name of the network device
+    string rpc_server_name = 2; // the name of the RPC server to register with
+}
+
+message RegisterNetworkDeviceResponse
+{
+    mosrpc.result result = 1; // the result of the registration
+}
+
+service NetworkManager
+{
+    option (c_name) = "network_manager";
+    rpc RegisterNetworkDevice(RegisterNetworkDeviceRequest) returns (RegisterNetworkDeviceResponse);
+}

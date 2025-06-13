@@ -10,8 +10,7 @@ int main(int argc, char **argv)
     MOS_UNUSED(argc);
     MOS_UNUSED(argv);
 
-    std::cerr << "Block Device Manager for MOS" << std::endl;
-    ReportServiceState(UnitStatus::Starting, "blockdev-manager starting...");
+    std::cout << "Block Device Manager for MOS" << std::endl;
     BlockManager manager;
 
     if (!register_blockdevfs())
@@ -21,9 +20,9 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    ReportServiceState(UnitStatus::Started, "blockdev-manager started");
+    ReportServiceState(UnitStatus::Started, "manager started");
     manager.run();
 
-    std::cerr << "Block Device Manager exiting" << std::endl;
+    std::cout << "Block Device Manager exiting" << std::endl;
     return 0;
 }

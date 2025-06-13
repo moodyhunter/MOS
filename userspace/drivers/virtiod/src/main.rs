@@ -6,7 +6,7 @@ use crate::{
 };
 use clap::Parser;
 use hal::MOSHal;
-use utils::{parse_hex16, parse_hex32, parse_hex64};
+use utils::parse_hex64;
 use virtio_drivers::transport::pci::{
     bus::{Cam, Command, DeviceFunction, MmioCam, PciRoot},
     PciTransport,
@@ -21,20 +21,20 @@ mod utils;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// PCI Vendor ID
-    #[arg(long, value_parser=parse_hex16, default_value_t = 0x1af4)]
-    vendor_id: u16,
+    /// PCIe Device Location - Bus
+    #[arg(long)]
+    bus: u32,
 
-    /// PCIe Device ID
-    #[arg(long, value_parser=parse_hex16)]
-    device_id: u16,
+    /// PCIe Device Location - Device
+    #[arg(long)]
+    dev: u32,
 
-    /// PCIe Device Location
-    #[arg(long, value_parser=parse_hex32)]
-    location: u32,
+    /// PCIe Device Location - Function
+    #[arg(long)]
+    func: u32,
 
     /// MMIO Base Address
-    #[arg(short, long, value_parser=parse_hex64, default_value_t = 0xb0000000)]
+    #[arg(short, long, value_parser=parse_hex64, default_value_t = 0xe0000000)]
     mmio_base: u64,
 }
 
@@ -43,18 +43,10 @@ fn main() -> () {
 
     let args = Args::parse();
 
-    #[cfg(feature = "debug")]
-    {
-        println!("  Device Info");
-        println!("    Vendor: 0x{:x}", args.vendor_id);
-        println!("    Device: 0x{:x}", args.device_id);
-        println!("    MMIO Base: 0x{:x}", args.mmio_base);
-    }
-
     let location = DeviceFunction {
-        bus: (args.location >> 16) as u8,
-        device: ((args.location >> 8) & 0xff) as u8,
-        function: (args.location & 0xff) as u8,
+        bus: args.bus as u8,
+        device: args.dev as u8,
+        function: args.func as u8,
     };
 
     #[cfg(feature = "debug")]
@@ -71,26 +63,11 @@ fn main() -> () {
         ))
     };
 
-    #[cfg(feature = "debug")]
-    {
-        let (status, command) = pci_root.get_status_command(device_function);
-        println!(
-            "Found {}, status {:?} command {:?}",
-            device_function, status, command
-        );
-    }
-
     // Enable the device to use its BAR.
     pci_root.set_command(
         location,
         Command::IO_SPACE | Command::MEMORY_SPACE | Command::BUS_MASTER,
     );
-
-    #[cfg(feature = "debug")]
-    for bar in 0..6 {
-        let bar_info = pci_root.bar_info(device_function, bar).unwrap();
-        println!("BAR {}: {:#x?}", bar, bar_info);
-    }
 
     let transport = PciTransport::new::<MOSHal, MmioCam>(&mut pci_root, location).unwrap();
 

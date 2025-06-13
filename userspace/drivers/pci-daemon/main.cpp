@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "dm/dmrpc.h"
-#include "known_devices.h"
-#include "pci_scan.h"
+#include "known_devices.hpp"
+#include "pci_scan.hpp"
 
 #include <fcntl.h>
 #include <librpc/rpc_client.h>
@@ -16,27 +16,24 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 // clang-format off
-#define debug_printf(fmt, ...) do { if (DEBUG) printf(fmt __VA_OPT__(,) __VA_ARGS__); } while (0)
+#define debug_printf(fmt, ...) do { if (DEBUG) fprintf(stderr, fmt __VA_OPT__(,) __VA_ARGS__); } while (0)
 // clang-format on
 
 ptr_t mmio_base;
 static rpc_server_stub_t *dm;
 
-#define PCI_RPC_SERVER_NAME "drivers.pci"
-
 RPC_DECLARE_CLIENT(dm, DEVICE_MANAGER_RPCS_X)
 
 static void scan_callback(u8 bus, u8 device, u8 function, u16 vendor_id, u16 device_id, u8 base_class, u8 sub_class, u8 prog_if)
 {
-    const char *class_name = get_known_class_name(base_class, sub_class, prog_if);
-    debug_printf("PCI: %02x:%02x.%01x: [%04x:%04x] %s (%02x:%02x:%02x)\n", bus, device, function, vendor_id, device_id, class_name, base_class, sub_class, prog_if);
-    free((void *) class_name);
+    const auto class_name = get_known_class_name(base_class, sub_class, prog_if);
+    debug_printf("PCI: %02x:%02x.%01x: [%04x:%04x] %s (%02x:%02x:%02x)\n", bus, device, function, vendor_id, device_id, class_name.c_str(), base_class, sub_class,
+                 prog_if);
 
-    const u32 location = (bus << 16) | (device << 8) | function;
-    dm_register_device(dm, vendor_id, device_id, location, mmio_base);
+    dm_register_device(dm, vendor_id, device_id, bus, device, function, mmio_base);
 }
 
 typedef struct

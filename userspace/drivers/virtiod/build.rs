@@ -40,8 +40,10 @@ fn main() {
     println!("cargo:rustc-link-lib=dma");
 
     let proto_files = vec![
+        project_dir!("proto/net-networkd.proto"),
         project_dir!("proto/blockdev.proto"),
         project_dir!("proto/mosrpc.proto"),
+        project_dir!("proto/mosrpc-options.proto"),
         build_dir!("nanopb_workdir/proto/nanopb.proto"),
     ];
 

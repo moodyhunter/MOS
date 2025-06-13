@@ -420,10 +420,10 @@ check_server:
 
 static bool ipc_sysfs_servers(sysfs_file_t *f)
 {
-    sysfs_printf(f, "%-20s\t%s\n", "Server Name", "Max Pending Connections");
+    sysfs_printf(f, "%-40s\t%s\n", "Server Name", "Max Pending Connections");
     list_foreach(IPCServer, ipc, ipc_servers)
     {
-        sysfs_printf(f, "%-20s\t%zu\n", ipc->name.c_str(), ipc->pending_max);
+        sysfs_printf(f, "%-40s\t%zu\n", ipc->name.c_str(), ipc->pending_max);
     }
 
     return true;

@@ -253,7 +253,7 @@ rpc_result_code_t rpc_simple_callv(rpc_server_stub_t *stub, u32 funcid, rpc_resu
             case 'c':
             {
                 u8 arg = va_arg(args, int);
-                rpc_call_arg(call, RPC_ARGTYPE_INT8, &arg, sizeof(arg));
+                rpc_call_arg(call, RPC_ARGTYPE_UINT8, &arg, sizeof(arg));
                 break;
             }
             case 'i':

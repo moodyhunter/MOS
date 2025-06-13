@@ -1,0 +1,139 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "MOS Service Configuration",
+    "description": "Schema for the configuration of the MOS service.",
+    "$definitions": {
+        "base-unit.def": {
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "description": "Description of the unit."
+                },
+                "depends_on": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "description": "Name of the unit this unit depends on."
+                    },
+                    "description": "List of units this unit depends on."
+                },
+                "part_of": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "description": "Name of the target this unit is part of."
+                    },
+                    "description": "List of targets this unit is part of."
+                },
+                "options": {
+                    "type": "object",
+                    "description": "Options for the unit."
+                }
+            },
+            "required": [ "description" ],
+            "additionalProperties": false,
+            "additionalItems": false
+        },
+        "base-unit-template.def": {
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "description": "Description of the unit."
+                },
+                "depends_on": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "description": "Name of the unit this unit depends on."
+                    },
+                    "description": "List of units this unit depends on."
+                },
+                "part_of": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "description": "Name of the target this unit is part of."
+                    },
+                    "description": "List of targets this unit is part of."
+                },
+                "options": {
+                    "type": "object",
+                    "description": "Options for the unit."
+                },
+                "inherits": {
+                    "type": "string",
+                    "description": "Indicates that this unit is an override for another unit."
+                },
+                "inherits_args": {
+                    "type": "object",
+                    "description": "Arguments for the overriden unit."
+                },
+                "template_params": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "description": "Argument required to instantiate the template."
+                    },
+                    "description": "List of arguments required to instantiate the template."
+                }
+            },
+            "required": [ "description", "template_params" ],
+            "additionalProperties": false,
+            "additionalItems": false
+        }
+    },
+    "type": "object",
+    "patternProperties": {
+        ".*": {
+            "type": "object",
+            "additionalItems": false,
+            "additionalProperties": false,
+            "properties": {
+                "target": {
+                    "type": "object",
+                    "$ref": "#/$definitions/base-unit.def",
+                    "additionalItems": false,
+                    "additionalProperties": false
+                },
+                "symlink": {
+                    "type": "object",
+                    "$ref": "#/$definitions/base-unit.def",
+                    "additionalItems": false,
+                    "additionalProperties": false
+                },
+                "mount": {
+                    "type": "object",
+                    "$ref": "#/$definitions/base-unit.def",
+                    "additionalItems": false,
+                    "additionalProperties": false
+                },
+                "path": {
+                    "type": "object",
+                    "$ref": "#/$definitions/base-unit.def",
+                    "additionalItems": false,
+                    "additionalProperties": false
+                },
+                "service": {
+                    "type": "object",
+                    "$ref": "#/$definitions/base-unit.def",
+                    "additionalItems": false,
+                    "additionalProperties": false
+                },
+                "device": {
+                    "type": "object",
+                    "$ref": "#/$definitions/base-unit.def",
+                    "additionalItems": false,
+                    "additionalProperties": false
+                },
+                "device-template": {
+                    "type": "object",
+                    "$ref": "#/$definitions/base-unit-template.def",
+                    "additionalItems": false,
+                    "additionalProperties": false
+                }
+            }
+        }
+    },
+    "additionalProperties": false,
+    "additionalItems": false
+}

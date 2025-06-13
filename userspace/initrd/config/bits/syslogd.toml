@@ -1,5 +1,6 @@
+#:schema ../config-schema.json
+
 [syslogd.service]
-type = "service"
 description = "System log daemon"
 depends_on = ["sys.mount"]
 part_of = ["normal.target"]

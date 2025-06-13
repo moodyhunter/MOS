@@ -14,6 +14,6 @@ class DeviceManagerServer : public IDeviceManager
 {
   public:
     DeviceManagerServer() : IDeviceManager(MOS_DEVICE_MANAGER_SERVICE_NAME) {};
-    virtual rpc_result_code_t register_device(rpc_context_t *context, s32 vendor, s32 devid, s32 location, s64 mmio_base) override;
+    virtual rpc_result_code_t register_device(rpc_context_t *context, s32 vendorid, s32 deviceid, u8 busid, u8 devid, u8 funcid, s64 mmio_base) override;
     virtual rpc_result_code_t register_driver(rpc_context_t *context) override;
 };

@@ -5,16 +5,16 @@
 #include "proto/services.pb.h"
 #include "proto/services.service.h"
 
-#include <cerrno>
 #include <cstdlib>
 #include <iostream>
+#include <librpc/rpc.h>
 #include <memory>
 
 static constexpr auto UNIT_STATE_RECEIVER_SERVICE_SERVERNAME = "mos.service_manager.unit_state_receiver";
 
 static_assert(static_cast<int>(UnitStatus::Failed) == static_cast<int>(RpcUnitStatusEnum_Failed));
 static_assert(static_cast<int>(UnitStatus::Started) == static_cast<int>(RpcUnitStatusEnum_Started));
-static_assert(static_cast<int>(UnitStatus::Starting) == static_cast<int>(RpcUnitStatusEnum_Starting));
+// static_assert(static_cast<int>(UnitStatus::Starting) == static_cast<int>(RpcUnitStatusEnum_Starting));
 static_assert(static_cast<int>(UnitStatus::Stopping) == static_cast<int>(RpcUnitStatusEnum_Stopping));
 static_assert(static_cast<int>(UnitStatus::Stopped) == static_cast<int>(RpcUnitStatusEnum_Stopped));
 
@@ -24,7 +24,7 @@ bool ReportServiceState(UnitStatus status, const char *message)
     static const char *ServiceToken = std::getenv("MOS_SERVICE_TOKEN");
     if (!ServiceToken)
     {
-        std::cerr << "MOS_SERVICE_TOKEN not set" << std::endl;
+        std::cerr << program_invocation_name << ".libsm: " << "MOS_SERVICE_TOKEN not set" << std::endl;
         return false;
     }
 
@@ -45,9 +45,9 @@ bool ReportServiceState(UnitStatus status, const char *message)
 
     UnitStateNotifyResponse resp;
     const auto ok = StateReceiver->notify(&req, &resp);
-    if (!ok)
+    if (ok != RPC_RESULT_OK || !resp.success)
     {
-        std::cerr << "Failed to notify service state for program: " << program_invocation_name << std::endl;
+        std::cerr << program_invocation_name << ".libsm: " << " Failed to notify service state" << std::endl;
         return false;
     }
 

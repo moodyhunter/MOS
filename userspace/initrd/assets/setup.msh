@@ -1,9 +1,0 @@
-echo "Setting up the data directory..."
-mkdir /data
-
-echo "Mounting virtblk as /data as userfs.ext4..."
-mount virtblk.00:03:00 /data userfs.ext4
-
-export PATH="$PATH:/data/bin"
-
-ls /data

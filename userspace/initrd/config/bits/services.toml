@@ -1,13 +1,20 @@
+#:schema ../config-schema.json
+
+[networkd.service]
+description = "Network device manager"
+part_of = ["normal.target"]
+options = { exec = "/initrd/drivers/networkd" }
+service = { state-change = "notify" }
+
 [device-manager.service]
-type = "service"
 description = "Device manager"
-depends_on = ["dev.path"]
+# todo: postprone device discovery to a later stage
+depends_on = ["dev.path", "networkd.service"]
 part_of = ["normal.target"]
 options = { exec = "/initrd/drivers/device-manager" }
 service = { state-change = "notify" }
 
 [blockdev-manager.service]
-type = "service"
 description = "Block device manager"
 depends_on = ["dev-block.path", "device-manager.service"]
 part_of = ["normal.target"]
@@ -15,7 +22,6 @@ options = { exec = "/initrd/drivers/blockdev-manager" }
 service = { state-change = "notify" }
 
 [ext4fs.service]
-type = "service"
 description = "Ext4 file system driver"
 depends_on = ["blockdev-manager.service"]
 options = { exec = "/initrd/drivers/ext4fs" }

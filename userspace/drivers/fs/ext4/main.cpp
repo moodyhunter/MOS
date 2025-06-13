@@ -25,7 +25,6 @@ int main(int argc, char **)
     userfs_manager = std::make_unique<UserFSManagerStub>(USERFS_SERVER_RPC_NAME);
 
     const auto server_name = "fs.ext4"s;
-    ReportServiceState(UnitStatus::Starting, "ext4fs starting...");
 
 #if DEBUG
     ext4_dmask_set(DEBUG_ALL);

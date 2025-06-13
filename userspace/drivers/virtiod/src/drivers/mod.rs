@@ -17,7 +17,11 @@ pub(crate) fn start_device(
     transport: PciTransport,
     function: DeviceFunction,
 ) -> Result<(), Box<dyn Error>> {
-    match transport.device_type() {
+    let device_type = transport.device_type();
+    println!("  Device Type: {:?}", device_type);
+    println!("  Device Function: {:?}", function);
+
+    match device_type {
         DeviceType::Block => run_blockdev(transport, function),
         DeviceType::GPU => run_gpu(transport),
         DeviceType::Network => run_netdev(transport, function),

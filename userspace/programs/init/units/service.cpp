@@ -1,40 +1,11 @@
 #include "service.hpp"
 
 #include "ServiceManager.hpp"
-#include "logging.hpp"
-
-#include <bits/posix/posix_stdlib.h>
-#include <fcntl.h>
-#include <sys/wait.h>
-#include <unistd.h>
+#include "global.hpp"
+#include "utils/ExecUtils.hpp"
 
 RegisterUnit(service, Service);
-
-static std::string GetRandomString(size_t length = 32)
-{
-    static const char alphanum[] = "0123456789"
-                                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                   "abcdefghijklmnopqrstuvwxyz";
-    std::string s;
-    s.reserve(length);
-    for (size_t i = 0; i < length; i++)
-        s.push_back(alphanum[rand() % (sizeof(alphanum) - 1)]);
-    return s;
-}
-
-static void RedirectLogFd(const std::string &id)
-{
-    const std::string log_path = "/tmp/log/" + id + ".log";
-    const int log_fd = open(log_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (log_fd == -1)
-    {
-        std::cerr << "failed to open log file " << log_path << std::endl;
-        exit(1);
-    }
-    dup2(log_fd, STDOUT_FILENO);
-    dup2(log_fd, STDERR_FILENO);
-    close(log_fd);
-}
+RegisterUnit(driver, Service);
 
 ServiceOptions::ServiceOptions(toml::node_view<toml::node> table_in)
 {
@@ -71,7 +42,7 @@ Service::Service(const std::string &id, toml::table &table, std::shared_ptr<cons
     table.erase("service");
 
     if (table["options"]["exec"].is_string())
-        exec.push_back(GetArg(table, "exec"));
+        exec.push_back(PopArg(table, "exec"));
     else if (table["options"]["exec"].is_array())
         exec = GetArrayArg(table, "exec");
     else
@@ -81,25 +52,9 @@ Service::Service(const std::string &id, toml::table &table, std::shared_ptr<cons
 bool Service::Start()
 {
     status.Starting("starting...");
-    token = GetRandomString();
-    const auto pid = fork();
-    if (pid == 0)
-    {
-        std::vector<const char *> args;
-        for (const auto &arg : exec)
-            args.push_back(arg.c_str());
-        args.push_back(nullptr);
-
-        // redirect stdout and stderr to /tmp/log/service-id.log
-        RedirectLogFd(id);
-        setenv("MOS_SERVICE_TOKEN", token.c_str(), true);
-
-        execve(this->exec[0].c_str(), (char **) args.data(), environ);
-        Debug << "unreachable code" << std::endl;
-        __builtin_unreachable();
-        return false;
-    }
-    else if (pid < 0)
+    token = ExecUtils::GetRandomString();
+    const auto pid = ExecUtils::DoFork(exec, token, GetBaseId());
+    if (pid < 0)
     {
         std::cerr << "failed to start service " << id << std::endl;
         status.Failed("failed");
@@ -110,7 +65,7 @@ bool Service::Start()
     if (service_options.stateChangeNotifyType == StateChangeNotifyType::Immediate)
     {
         status.Started("running");
-        ServiceManager->OnUnitStarted(this, pid);
+        ServiceManager->OnUnitStarted(this);
     }
 
     return true;
@@ -149,7 +104,6 @@ void Service::OnExited(int status)
     this->exit_status = status;
     if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
     {
-        std::cout << "service " << id << " exited normally" << std::endl;
         this->status.Inactive();
     }
     else if (WIFEXITED(status))
@@ -159,12 +113,10 @@ void Service::OnExited(int status)
     }
     else if (WIFSIGNALED(status))
     {
-        std::cout << "service " << id << " terminated by signal " << WTERMSIG(status) << std::endl;
         this->status.Failed("terminated by signal: " + std::to_string(WTERMSIG(status)));
     }
     else
     {
-        std::cout << "service " << id << " unknown exit status: " << status << std::endl;
         this->status.Failed("unknown exit status: " + std::to_string(status));
     }
     ServiceManager->OnUnitStopped(this);
@@ -182,5 +134,8 @@ void Service::ChangeState(const UnitStatus &status)
     this->status = status;
 
     // TODO: handle state change
-    std::cerr << "service " << id << " state change: " << prev_status.status << " -> " << status.status << std::endl;
+    std::cerr << C_YELLOW << "service " << id << " state change: " << prev_status.status << " -> " << status.status << C_RESET << std::endl;
+
+    if (status.status == UnitStatus::UnitStarted)
+        ServiceManager->OnUnitStarted(this);
 }

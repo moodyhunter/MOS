@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
-#include "unit/unit.hpp"
+#include "units/unit.hpp"
 
 struct Device : public Unit
 {
     explicit Device(const std::string &id, toml::table &table, std::shared_ptr<const Template> template_ = nullptr, const ArgumentMap &args = {});
 
-    const std::string driver;
+    const std::string driver_exec;
     const std::vector<std::string> driver_args;
 
   private:
@@ -18,4 +18,7 @@ struct Device : public Unit
     bool Start() override;
     bool Stop() override;
     void onPrint(std::ostream &os) const override;
+
+  private:
+    std::shared_ptr<IUnit> driver = nullptr;
 };

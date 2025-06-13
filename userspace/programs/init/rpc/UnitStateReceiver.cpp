@@ -2,7 +2,7 @@
 
 #include "rpc/UnitStateReceiver.hpp"
 
-#include "ServiceManager.hpp"
+#include "common/ConfigurationManager.hpp"
 
 #include <librpc/rpc.h>
 
@@ -12,7 +12,7 @@ rpc_result_code_t UnitStateReceiverServiceImpl::notify(rpc_context_t *, UnitStat
     const auto state = req->status;
     res->success = false;
 
-    for (const auto &unit : ServiceManager->GetAllUnits())
+    for (const auto &[unitid, unit] : ConfigurationManager->GetAllUnits())
     {
         if (unit->GetType() != UnitType::Service)
             continue;

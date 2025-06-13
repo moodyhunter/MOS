@@ -1,0 +1,5 @@
+#:schema ../config-schema.json
+
+[pci.device-template]
+template_params = ["vendor_id", "device_id", "bus", "dev", "func"]
+description = "PCI Device [vendor_id]:[device_id] at [bus]:[dev].[func]"

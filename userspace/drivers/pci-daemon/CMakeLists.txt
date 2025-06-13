@@ -6,9 +6,9 @@ if (NOT MOS_ARCH STREQUAL "x86_64")
 endif()
 
 add_executable(pci-daemon
-    main.c
-    pci_scan.c
-    known_devices.c
+    main.cpp
+    pci_scan.cpp
+    known_devices.cpp
 )
 
 target_link_libraries(pci-daemon PRIVATE librpc::client)

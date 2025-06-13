@@ -45,11 +45,12 @@ pub fn report_service_status_with_token(
 }
 
 pub fn report_service_status(status_enum: RpcUnitStatusEnum, message: &str) {
+    let pid = std::process::id();
     match std::env::var("MOS_SERVICE_TOKEN") {
         Ok(token) => match report_service_status_with_token(status_enum, message, &token) {
             Ok(_) => (),
-            Err(e) => eprintln!("Failed to report service status: {}", e),
+            Err(e) => eprintln!("libsm-rs@{}: Failed to report service status: {}", pid, e),
         },
-        Err(_) => eprintln!("MOS_SERVICE_TOKEN not set"),
+        Err(_) => eprintln!("libsm-rs@{}: MOS_SERVICE_TOKEN not set", pid),
     }
 }

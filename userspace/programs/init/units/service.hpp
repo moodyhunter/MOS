@@ -29,6 +29,11 @@ struct Service : public Unit
         return token;
     }
 
+    pid_t GetMainPid() const
+    {
+        return main_pid.load();
+    }
+
     void ChangeState(const UnitStatus &status);
 
   private:

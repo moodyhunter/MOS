@@ -20,7 +20,6 @@ static const argparse_arg_t dm_args[] = {
 
 int main(int argc, const char *argv[])
 {
-    ReportServiceState(UnitStatus::Starting, "dm starting...");
     MOS_UNUSED(argc);
     argparse_state_t arg_state;
     argparse_init(&arg_state, argv);

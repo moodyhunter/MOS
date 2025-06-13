@@ -1,5 +1,6 @@
+#:schema ../config-schema.json
+
 [include.symlink]
-type = "symlink"
 description = "Symbolic link /include to /initrd/include"
 part_of = ["normal.target"]
 options = { link = "/include", target = "/initrd/include" }

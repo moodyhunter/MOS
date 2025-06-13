@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <stdexcept>
 #if defined(__MOS_KERNEL__) || !defined(__cplusplus)
 #error "This file is only for use in C++ userspace code"
 #endif
@@ -43,6 +44,11 @@ class RPCServer
         }
 
         server = rpc_server_create(server_name.c_str(), this);
+        if (!server)
+        {
+            throw std::runtime_error("Failed to create RPC server: " + server_name + " (" + strerror(errno) + ")");
+        }
+
         rpc_server_set_on_connect(server, redirector_on_connect);
         rpc_server_set_on_disconnect(server, redirector_on_disconnect);
         rpc_server_register_functions(server, redirect_functions, count);

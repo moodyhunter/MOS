@@ -27,6 +27,9 @@ size_t SerialConsole::do_write(const char *data, size_t size)
 
 bool SerialConsole::set_color(StandardColor fg, StandardColor bg)
 {
+    if (this->fg == fg && this->bg == bg)
+        return true; // no change
+
     this->fg = fg;
     this->bg = bg;
     char buf[64] = { 0 };

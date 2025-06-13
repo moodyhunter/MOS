@@ -11,12 +11,9 @@ use virtio_drivers::{
 
 use crate::{
     hal::MOSHal,
-    mosrpc::{
-        self,
-        blockdev::{
-            Read_block_request, Read_block_response, Register_device_request,
-            Register_device_response, Write_block_request, Write_block_response,
-        },
+    mosrpc::blockdev::{
+        Blockdev_info, Read_block_request, Read_block_response, Register_device_request,
+        Register_device_response, Write_block_request, Write_block_response,
     },
     result_err, result_ok,
 };
@@ -44,7 +41,7 @@ impl BlockServer {
 
         let request = Register_device_request {
             server_name: self.server_name.clone(),
-            device_info: Some(mosrpc::blockdev::Blockdev_info {
+            device_info: Some(Blockdev_info {
                 name: self.devname.clone(),
                 block_size: SECTOR_SIZE as _, // 512
                 n_blocks: dev.capacity(),
@@ -131,6 +128,6 @@ pub fn run_blockdev(transport: PciTransport, func: DeviceFunction) -> RpcResult<
     driver.register()?;
 
     let mut rpc_server = RpcPbServer::create(&server_name, Box::new(driver))?;
-
+    libsm_rs::report_service_status(libsm_rs::RpcUnitStatusEnum::Started, "blockdev is online");
     rpc_server.run()
 }

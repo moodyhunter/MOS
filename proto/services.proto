@@ -33,12 +33,24 @@ enum RpcUnitType
     Timer = 6;
 }
 
+message RpcOverriddenUnit
+{
+    string base_unit_id = 1;
+}
+
 message RpcUnit
 {
     RpcUnitType type = 1;
     string name = 2;
     string description = 3;
     RpcUnitStatus status = 4;
+    repeated RpcOverriddenUnit overridden_units = 5;
+}
+
+message KeyValuePair
+{
+    string name = 1;
+    string value = 2;
 }
 
 message RpcUnitTemplate
@@ -46,6 +58,14 @@ message RpcUnitTemplate
     string base_id = 1;
     repeated string parameters = 2;
     string description = 3;
+    repeated KeyValuePair predefined_arguments = 4;
+}
+
+message RpcUnitOverride
+{
+    string base_unit_id = 1;
+    repeated KeyValuePair overrides = 2;
+    string overridden_unit_id = 3;
 }
 
 message GetUnitsRequest
@@ -64,6 +84,15 @@ message GetTemplatesRequest
 message GetTemplatesResponse
 {
     repeated RpcUnitTemplate templates = 1;
+}
+
+message GetUnitOverridesRequest
+{
+}
+
+message GetUnitOverridesResponse
+{
+    repeated RpcUnitOverride overrides = 1;
 }
 
 message StartUnitRequest
@@ -86,12 +115,6 @@ message StopUnitResponse
     bool success = 1;
 }
 
-message KeyValuePair
-{
-    string key = 1;
-    string value = 2;
-}
-
 message InstantiateUnitRequest
 {
     string template_id = 1;
@@ -108,6 +131,7 @@ service ServiceManager
     option (c_name) = "service_manager";
     rpc GetUnits(GetUnitsRequest) returns (GetUnitsResponse);
     rpc GetTemplates(GetTemplatesRequest) returns (GetTemplatesResponse);
+    rpc GetUnitOverrides(GetUnitOverridesRequest) returns (GetUnitOverridesResponse);
     rpc StartUnit(StartUnitRequest) returns (StartUnitResponse);
     rpc StopUnit(StopUnitRequest) returns (StopUnitResponse);
     rpc InstantiateUnit(InstantiateUnitRequest) returns (InstantiateUnitResponse);

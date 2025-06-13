@@ -8,10 +8,10 @@ RegisterUnit(mount, Mount);
 
 Mount::Mount(const std::string &id, toml::table &table, std::shared_ptr<const Template> template_, const ArgumentMap &args)
     : Unit(id, table, template_, args),          //
-      mount_point(GetArg(table, "mount_point")), //
-      fs_type(GetArg(table, "fs_type")),         //
-      options(GetArg(table, "options")),         //
-      device(GetArg(table, "device"))            //
+      mount_point(PopArg(table, "mount_point")), //
+      fs_type(PopArg(table, "fs_type")),         //
+      options(PopArg(table, "options")),         //
+      device(PopArg(table, "device"))            //
 {
     if (mount_point.empty())
         std::cerr << "mount: missing mount_point" << std::endl;

@@ -7,6 +7,5 @@ include = ["bits/*.toml"]
 default_target = "normal.target"
 
 [normal.target]
-type = "target"
 description = "Normal System"
 depends_on = ["base.target"]
