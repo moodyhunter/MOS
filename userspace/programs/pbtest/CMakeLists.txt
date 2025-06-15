@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+return()
+
 if (__MOS_HAS_NO_COMPILER)
     return()
 endif()

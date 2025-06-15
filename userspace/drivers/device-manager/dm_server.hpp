@@ -4,7 +4,6 @@
 
 #include "dm/dmrpc.h"
 
-#include <libconfig/libconfig.h>
 #include <librpc/rpc_server++.hpp>
 #include <librpc/rpc_server.h>
 

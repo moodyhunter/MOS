@@ -5,31 +5,14 @@
 #include "proto/services.service.h"
 
 #include <iostream>
-#include <libconfig/libconfig.h>
 #include <memory>
 #include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 constexpr auto SERVICE_MANAGER_RPC_NAME = "mos.service_manager";
 const auto ServiceManager = std::make_shared<ServiceManagerStub>(SERVICE_MANAGER_RPC_NAME);
-
-bool start_load_drivers()
-{
-    const auto loads = dm_config.get_entries("loads");
-
-    for (const auto &[_, driver] : loads)
-    {
-        pid_t driver_pid;
-        posix_spawn(&driver_pid, driver.c_str(), NULL, NULL, NULL, NULL);
-        if (driver_pid <= 0)
-            std::cerr << "Failed to start driver: " << driver << std::endl;
-    }
-
-    return true;
-}
 
 bool try_start_driver(u16 vendor, u16 device, u8 busid, u8 devid, u8 funcid, u64 mmio_base)
 {
@@ -75,41 +58,18 @@ bool try_start_driver(u16 vendor, u16 device, u8 busid, u8 devid, u8 funcid, u64
         return false;
     }
 
-    // first try to find a driver for the specific device
-    char vendor_device_str[16];
-    snprintf(vendor_device_str, sizeof(vendor_device_str), "%04x:%04x", vendor, device);
-    auto driver_paths = dm_config.get_entry("drivers", vendor_device_str);
-
-    // if that fails, try to find a driver for the vendor
-    if (driver_paths.empty())
-        driver_paths = dm_config.get_entry("drivers", vendor_str);
-
-    // if the driver is still not found, leave
-    if (driver_paths.empty())
-        return false;
-
-    if (driver_paths.size() > 1)
-        puts("Multiple drivers found for device, using the first one");
-
-    const auto driver_path = driver_paths[0].second;
-
-    char location_str[16];
-    char mmio_base_str[16];
-    snprintf(location_str, sizeof(location_str), "%04x", busid << 16 | devid << 8 | funcid);
-    snprintf(mmio_base_str, sizeof(mmio_base_str), "%llx", mmio_base);
-
-    const char *argv[] = {
-        driver_path.c_str(),                      //
-        "--location",        location_str,        //
-        "--mmio-base",       mmio_base_str, NULL, //
-    };
-    printf("Starting driver:");
-    for (size_t i = 0; argv[i]; i++)
-        printf(" %s", argv[i]);
-    putchar('\n');
-
-    pid_t driver_pid;
-    posix_spawn(&driver_pid, driver_path.c_str(), NULL, NULL, (char *const *) argv, environ);
-
-    return driver_pid > 0;
+    std::cout << "Successfully started unit: " << req.template_id << " with ID: " << resp.unit_id << std::endl;
+    free(req.parameters[0].name);
+    free(req.parameters[0].value);
+    free(req.parameters[1].name);
+    free(req.parameters[1].value);
+    free(req.parameters[2].name);
+    free(req.parameters[2].value);
+    free(req.parameters[3].name);
+    free(req.parameters[3].value);
+    free(req.parameters[4].name);
+    free(req.parameters[4].value);
+    free(req.parameters);
+    free(resp.unit_id);
+    return true;
 }
