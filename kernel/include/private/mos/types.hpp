@@ -233,6 +233,18 @@ requires std::is_enum_v<E> struct Flags
     }
 };
 
+namespace std
+{
+    template<typename E>
+    struct hash<Flags<E>>
+    {
+        size_t operator()(const Flags<E> &flags) const noexcept
+        {
+            return static_cast<size_t>(flags);
+        }
+    };
+} // namespace std
+
 #define MOS_ENUM_FLAGS(enum, flags) using flags = Flags<enum>
 
 template<typename E>

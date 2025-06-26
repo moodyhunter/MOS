@@ -28,7 +28,7 @@ extern "C" int __cxa_atexit(void (*destructor)(void *), void *arg, void *dso)
 
 extern "C" void abort()
 {
-    mos_panic("Aborted");
+    mos_panic_inline("Aborted");
 }
 
 void std::__glibcxx_assert_fail(const char *__file, int __line, const char *__function, const char *__condition) noexcept

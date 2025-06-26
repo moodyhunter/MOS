@@ -38,7 +38,7 @@ function(do_kallsyms TARGET_NAME LINKER_SCRIPT KALLSYMS_C)
         POST_BUILD
         VERBATIM
         BYPRODUCTS "${MAPS_DIR}/${TARGET_NAME}.map"
-        COMMAND nm -C -n $<TARGET_FILE:${TARGET_NAME}> > "${MAPS_DIR}/${TARGET_NAME}.map")
+        COMMAND nm -n $<TARGET_FILE:${TARGET_NAME}> > "${MAPS_DIR}/${TARGET_NAME}.map")
 endfunction()
 
 ### Create a bootable kernel binary: (TARGET <TARGET_NAME> LINKER_SCRIPT <LINKER_SCRIPT> FILENAME <OUTPUT_FILE> SOURCES [ADDITIONAL_SOURCES...])

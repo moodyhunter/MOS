@@ -32,3 +32,5 @@ long simple_flush_page_discard_data(inode_cache_t *icache, off_t pgoff, phyframe
 
 // ! simple in-memory directory iterator
 void vfs_generic_iterate_dir(const dentry_t *dir, vfs_listdir_state_t *state, dentry_iterator_op op);
+
+mos::string_view vfs_basename(mos::string_view path);

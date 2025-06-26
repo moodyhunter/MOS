@@ -309,6 +309,7 @@ namespace mos
         {
             return _is_long ? &_data._long._buffer[_length] : &_data._short._buffer[_length];
         }
+
         const Char *end() const
         {
             return _is_long ? &_data._long._buffer[_length] : &_data._short._buffer[_length];
@@ -397,3 +398,15 @@ namespace mos
     // convert a pointer to a string
     mos::string to_string(const void *value);
 } // namespace mos
+
+namespace std
+{
+    template<typename Char, typename TAllocator>
+    struct hash<mos::basic_string<Char, TAllocator>>
+    {
+        size_t operator()(const mos::basic_string<Char, TAllocator> &str) const
+        {
+            return std::hash<mos::basic_string_view<Char>>{}(mos::basic_string_view<Char>(str.data(), str.size()));
+        }
+    };
+} // namespace std

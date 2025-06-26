@@ -4,6 +4,7 @@
 #include "mos/ipc/ipc_io.hpp"
 #include "mos/ipc/memfd.hpp"
 #include "mos/ipc/pipe.hpp"
+#include "mos/kmod/kmod.hpp"
 #include "mos/misc/power.hpp"
 #include "mos/mm/dma.hpp"
 #include "mos/tasks/signal.hpp"
@@ -419,6 +420,7 @@ DEFINE_SYSCALL(long, signal_thread)(tid_t tid, signal_t sig)
 DEFINE_SYSCALL([[noreturn]] void, signal_return)(void *sp)
 {
     platform_restore_from_signal_handler(sp);
+    __builtin_unreachable(); // should never return
 }
 
 DEFINE_SYSCALL(bool, vm_protect)(void *addr, size_t size, mem_perm_t perm)
@@ -720,4 +722,12 @@ DEFINE_SYSCALL(long, vfs_fsync)(fd_t fd, bool data_only)
 DEFINE_SYSCALL(long, vfs_rmdir)(const char *path)
 {
     return vfs_rmdir(path).getErr();
+}
+
+DEFINE_SYSCALL(long, kmod_load)(const char *path)
+{
+    const auto ret = mos::kmods::load(path);
+    if (ret.isErr())
+        return ret.getErr();
+    return 0;
 }

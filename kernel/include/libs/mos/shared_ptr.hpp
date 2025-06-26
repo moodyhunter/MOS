@@ -371,4 +371,11 @@ struct PtrResult<mos::shared_ptr<T>> : public PtrResultBase
             mos::__raise_bad_ptrresult_value(errorCode);
         return value;
     }
+
+    T *operator->() const
+    {
+        if (isErr())
+            mos::__raise_bad_ptrresult_value(errorCode);
+        return value.get();
+    }
 };

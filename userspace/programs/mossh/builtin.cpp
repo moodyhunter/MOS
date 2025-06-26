@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "LaunchContext.hpp"
+#include "mos/syscall/usermode.h"
 #include "mossh.hpp"
 
 #include <errno.h>
@@ -141,8 +142,8 @@ void do_help(const std::vector<std::string> &argv)
     greet();
     puts("Type 'help' to see this help\n");
     puts("The following commands are built-in:\n");
-    for (int i = 0; builtin_commands[i].command; i++)
-        printf("  %-10s  %s\n", builtin_commands[i].command, builtin_commands[i].description);
+    for (const auto &command : builtin_commands)
+        printf("  %-10s  %s\n", command.command, command.description);
     puts("Happy hacking!\n");
 }
 
@@ -288,6 +289,11 @@ void do_which(const std::vector<std::string> &argv)
     }
 }
 
+void do_kmodload(const std::vector<std::string> &)
+{
+    syscall_kmod_load("/initrd/kmods/kmodtest.o");
+}
+
 const std::vector<command_t> builtin_commands = {
     { .command = "alias", .action = do_alias, .description = "Create an alias" },
     { .command = "cd", .action = do_cd, .description = "Change the current directory" },
@@ -303,5 +309,6 @@ const std::vector<command_t> builtin_commands = {
     { .command = "sleep", .action = do_sleep, .description = "Sleep for a number of seconds" },
     { .command = "source", .action = do_source, .description = "Execute a script" },
     { .command = "version", .action = do_version, .description = "Show version information" },
+    { .command = "kmod", .action = do_kmodload, .description = "Load a kernel module" },
     { .command = "which", .action = do_which, .description = "Show the full path of a command" },
 };

@@ -28,6 +28,7 @@
     X(io)           \
     X(ipc)          \
     X(ipi)          \
+    X(kmod)         \
     X(naive_sched)  \
     X(panic)        \
     X(pagefault)    \
@@ -58,12 +59,14 @@ typedef struct _debug_info_entry
     bool enabled;
 } debug_info_entry;
 
-extern struct mos_debug_info_entry
+struct mos_debug_info_entry
 {
 #define _expand_field(name) debug_info_entry name;
     MOS_ALL_DEBUG_MODULES(_expand_field)
 #undef _expand_field
-} mos_debug_info;
+};
+
+extern "C" mos_debug_info_entry mos_debug_info;
 
 #define _mos_debug_enum(name) name,
 enum DebugFeature

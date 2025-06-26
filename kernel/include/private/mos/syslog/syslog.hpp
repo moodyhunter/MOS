@@ -37,13 +37,8 @@ namespace mos
 
     using SyslogBuffer = std::array<char, MOS_PRINTK_BUFFER_SIZE>;
 
-    struct SyslogStreamWriter : private mos::RefCounted
+    struct SyslogStreamWriter : private mos::_RefCounted
     {
-        static SyslogStreamWriter NewStream(DebugFeature feature, LogLevel level, RCCore *rcCore, SyslogBuffer &buf)
-        {
-            return SyslogStreamWriter(feature, level, rcCore, buf);
-        }
-
         ~SyslogStreamWriter();
 
         template<typename T>
@@ -111,11 +106,14 @@ namespace mos
         }
 
       private:
-        explicit SyslogStreamWriter(DebugFeature feature, LogLevel level, RCCore *rcCore, SyslogBuffer &fmtbuffer);
+        explicit SyslogStreamWriter(DebugFeature feature, LogLevel level, _RCCore *rcCore, SyslogBuffer &fmtbuffer, size_t &pos);
+
+        template<DebugFeature feature, LogLevel level>
+        friend struct LoggingDescriptor;
 
       private:
         SyslogBuffer &fmtbuffer;
-        size_t pos = 0;
+        size_t &pos;
 
       private:
         const u64 timestamp;
@@ -134,17 +132,21 @@ namespace mos
         SyslogStreamWriter operator<<(const T &value) const
         {
             // copy-elision
-            return SyslogStreamWriter::NewStream(feature, level, &RefCounter, fmtBuffer) << value;
+            fmtBuffer[0] = '\n';
+            fmtBuffer[1] = '\0';
+            pos = 0;
+            return SyslogStreamWriter(feature, level, &RefCounter, fmtBuffer, pos) << value;
         }
 
       private:
         mutable SyslogBuffer fmtBuffer{};
-        mutable RCCore RefCounter{};
+        mutable size_t pos = 0;
+        mutable _RCCore RefCounter{};
     };
 } // namespace mos
 
 #define DefineLogStream(name, level)                                                                                                                                     \
-    constexpr auto inline m##name = mos::LoggingDescriptor<_none, LogLevel::level>();                                                                                    \
+    extern const mos::LoggingDescriptor<_none, LogLevel::level> m##name;                                                                                                 \
     template<DebugFeature feat>                                                                                                                                          \
     constexpr auto inline d##name = mos::LoggingDescriptor<feat, LogLevel::level>()
 

@@ -63,10 +63,35 @@ namespace mos
                 return (bucket == other.bucket) && (item == other.item);
             }
 
+            Key &key()
+            {
+                MOS_ASSERT(item);
+                return std::get<0>(item->entry);
+            }
+
+            const Key &key() const
+            {
+                MOS_ASSERT(item);
+                return std::get<0>(item->entry);
+            }
+
+            Value &value()
+            {
+                MOS_ASSERT(item);
+                return std::get<1>(item->entry);
+            }
+
+            const Value &value() const
+            {
+                MOS_ASSERT(item);
+                return std::get<1>(item->entry);
+            }
+
             entry_type &operator*()
             {
                 return item->entry;
             }
+
             entry_type *operator->()
             {
                 return &item->entry;
@@ -201,6 +226,21 @@ namespace mos
             {
                 if (_table[bucket])
                     return iterator(this, bucket, _table[bucket]);
+            }
+
+            MOS_ASSERT(!"hash_map corrupted");
+            MOS_UNREACHABLE();
+        }
+
+        const_iterator begin() const
+        {
+            if (!_size)
+                return const_iterator(this, _capacity, nullptr);
+
+            for (size_t bucket = 0; bucket < _capacity; bucket++)
+            {
+                if (_table[bucket])
+                    return const_iterator(this, bucket, _table[bucket]);
             }
 
             MOS_ASSERT(!"hash_map corrupted");

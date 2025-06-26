@@ -231,8 +231,6 @@ static ptr_t elf_map_interpreter(const char *path, MMContext *mm)
 
 __nodiscard bool elf_do_fill_process(Process *proc, FsBaseFile *file, elf_header_t header, elf_startup_info_t *info)
 {
-    bool ret = true;
-
     info->AddAuxvEntry(AT_PAGESZ, MOS_PAGE_SIZE);
     info->AddAuxvEntry(AT_UID, 0);
     info->AddAuxvEntry(AT_EUID, 0);
@@ -341,10 +339,10 @@ __nodiscard bool elf_do_fill_process(Process *proc, FsBaseFile *file, elf_header
     MMContext *prev = mm_switch_context(prev_mm);
     MOS_UNUSED(prev);
 
-    return ret;
+    return true;
 }
 
-bool elf_read_and_verify_executable(FsBaseFile *file, elf_header_t *header)
+bool elf_read_and_verify_executable(FsBaseFile *file, elf_header_t *header, bool expect_etrel)
 {
     if (!elf_read_file(file, header, 0, sizeof(elf_header_t)))
         return false;
@@ -353,8 +351,16 @@ bool elf_read_and_verify_executable(FsBaseFile *file, elf_header_t *header)
     if (!valid)
         return false;
 
-    if (header->object_type != ET_EXEC && header->object_type != ET_DYN)
-        return false;
+    if (expect_etrel)
+    {
+        if (header->object_type != ET_REL)
+            return false;
+    }
+    else
+    {
+        if (header->object_type != ET_EXEC && header->object_type != ET_DYN)
+            return false;
+    }
 
     return true;
 }

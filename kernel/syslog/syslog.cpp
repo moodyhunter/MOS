@@ -15,6 +15,16 @@
 
 static spinlock_t global_syslog_lock;
 
+#define DefineLogStream(name, level) const mos::LoggingDescriptor<_none, LogLevel::level> m##name;
+DefineLogStream(Info2, INFO2);
+DefineLogStream(Info, INFO);
+DefineLogStream(Emph, EMPH);
+DefineLogStream(Warn, WARN);
+DefineLogStream(Emerg, EMERG);
+DefineLogStream(Fatal, FATAL);
+DefineLogStream(Cont, UNSET);
+#undef DefineLogStream
+
 static void do_print_syslog(const pb_syslog_message *msg, const debug_info_entry *feat)
 {
     const LogLevel level = (LogLevel) msg->info.level;
@@ -83,9 +93,10 @@ long do_syslog(LogLevel level, const char *file, const char *func, int line, con
     return 0;
 }
 
-mos::SyslogStreamWriter::SyslogStreamWriter(DebugFeature feature, LogLevel level, RCCore *rcCore, SyslogBuffer &fmtbuffer)
-    : RefCounted(rcCore),                                                                //
+mos::SyslogStreamWriter::SyslogStreamWriter(DebugFeature feature, LogLevel level, _RCCore *rcCore, SyslogBuffer &fmtbuffer, size_t &pos)
+    : _RefCounted(rcCore),                                                               //
       fmtbuffer(fmtbuffer),                                                              //
+      pos(pos),                                                                          //
       timestamp(platform_get_timestamp()),                                               //
       feature(feature),                                                                  //
       level(level),                                                                      //
@@ -113,7 +124,5 @@ mos::SyslogStreamWriter::~SyslogStreamWriter()
             printk_console = consoles.front();
 
         print_to_console(printk_console, level, fmtbuffer.data(), pos);
-        fmtbuffer[0] = '\0';
-        pos = -1;
     }
 }

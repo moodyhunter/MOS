@@ -7,7 +7,32 @@
 
 namespace mos
 {
-    struct RCCore
+    struct RefCount
+    {
+        void Ref()
+        {
+            n++;
+        }
+
+        void Unref()
+        {
+            n--;
+        }
+
+        size_t GetRef() const
+        {
+            return n.load();
+        }
+
+        bool IsEmpty() const
+        {
+            return n.load() == 0;
+        }
+
+      private:
+        std::atomic_size_t n = 0;
+    };
+    struct _RCCore
     {
         std::atomic_size_t n = 0;
         void Ref()
@@ -21,25 +46,25 @@ namespace mos
         }
     };
 
-    struct RefCounted
+    struct _RefCounted
     {
       protected:
-        explicit RefCounted(RCCore *rc_) : rc(rc_)
+        explicit _RefCounted(_RCCore *rc_) : rc(rc_)
         {
             rc->Ref();
         }
 
-        RefCounted(const RefCounted &a) : rc(a.rc)
+        _RefCounted(const _RefCounted &a) : rc(a.rc)
         {
             rc->Ref();
         }
 
-        RefCounted(RefCounted &&a) : rc(a.rc)
+        _RefCounted(_RefCounted &&a) : rc(a.rc)
         {
             a.rc = nullptr;
         }
 
-        ~RefCounted()
+        ~_RefCounted()
         {
             if (rc)
             {
@@ -47,8 +72,8 @@ namespace mos
             }
         }
 
-        RefCounted operator=(const RefCounted &a) = delete;
-        RefCounted operator=(RefCounted &&a) = delete;
+        _RefCounted operator=(const _RefCounted &a) = delete;
+        _RefCounted operator=(_RefCounted &&a) = delete;
 
       protected:
         size_t GetRef() const
@@ -57,6 +82,6 @@ namespace mos
         }
 
       private:
-        RCCore *rc = nullptr;
+        _RCCore *rc = nullptr;
     };
 } // namespace mos

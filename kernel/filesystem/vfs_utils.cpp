@@ -133,3 +133,17 @@ void vfs_generic_iterate_dir(const dentry_t *dir, vfs_listdir_state_t *state, de
             add_record(state, child->inode->ino, child->name, child->inode->type);
     }
 }
+
+mos::string_view vfs_basename(mos::string_view path)
+{
+    if (path.empty())
+        return {};
+
+    // Find the last '/' character in the path
+    size_t last_slash = path.find_last_of('/');
+    if (last_slash == mos::string::npos)
+        return path; // No slashes, return the whole path
+
+    // Return the substring after the last slash
+    return path.substr(last_slash + 1);
+}

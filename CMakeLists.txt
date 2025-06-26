@@ -65,6 +65,7 @@ endif()
 
 include(nanopb)
 include(add_kernel_source)
+include(add_kernel_module)
 include(create_bootable_kernel_binary)
 
 add_subdirectory(proto)
@@ -73,6 +74,8 @@ add_subdirectory(kernel)
 # Libraries
 include(add_mos_library)
 add_subdirectory(libs)
+
+add_subdirectory(kmodtest)
 
 if (__MOS_HAS_NO_COMPILER)
     message(WARNING "Skipping userspace build because __MOS_HAS_NO_COMPILER is set.")

@@ -24,3 +24,15 @@ const char *kallsyms_get_symbol_name(ptr_t addr)
     const kallsyms_t *ks = kallsyms_get_symbol(addr);
     return ks ? ks->name : "<unknown>";
 }
+
+ptr_t kallsyms_get_symbol_address(mos::string_view name)
+{
+    const kallsyms_t *ks = mos_kallsyms;
+    while (ks->name)
+    {
+        if (name == ks->name)
+            return ks->address;
+        ks++;
+    }
+    return 0; // Not found
+}

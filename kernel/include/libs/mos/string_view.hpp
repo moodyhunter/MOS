@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <mos/cpp_support.hpp>
+#include <mos/mos_global.h>
 
 namespace mos
 {
@@ -151,9 +152,17 @@ namespace mos
             return npos;
         }
 
-        constexpr bool starts_with(basic_string_view str) const
+        size_t find_last_of(CharT c, size_t pos = npos) const
         {
-            return generic_strncmp(_pointer, str._pointer, str._length) == 0;
+            if (pos >= _length)
+                pos = _length - 1;
+
+            for (size_t i = pos; i < _length; i--)
+            {
+                if (_pointer[i] == c)
+                    return i;
+            }
+            return npos;
         }
 
       private:
@@ -165,9 +174,32 @@ namespace mos
 
     namespace string_literals
     {
-        constexpr string_view operator"" _sv(const char *str, size_t len)
+        constexpr string_view operator""_sv(const char *str, size_t len)
         {
             return string_view(str, len);
         }
     } // namespace string_literals
 } // namespace mos
+
+namespace std
+{
+    template<typename CharT>
+    struct hash<mos::basic_string_view<CharT>>
+    {
+        size_t operator()(const mos::basic_string_view<CharT> &str) const
+        {
+            const auto *s = str.data();
+            const auto n = str.size();
+
+            const int p = 31, m = 1e9 + 7;
+            size_t h = 0;
+            long p_pow = 1;
+            for (int i = 0; i < n; i++)
+            {
+                h = (h + (s[i] - 'a' + 1) * p_pow) % m;
+                p_pow = (p_pow * p) % m;
+            }
+            return h;
+        }
+    };
+} // namespace std

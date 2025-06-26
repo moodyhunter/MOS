@@ -610,6 +610,17 @@
             "name": "vfs_rmdir",
             "return": "long",
             "arguments": [ { "type": "const char *", "arg": "path" } ]
+        },
+        {
+            "number": 67,
+            "name": "kmod_load",
+            "return": "long",
+            "arguments": [
+                { "type": "const char *", "arg": "path" }
+            ],
+            "comments": [
+                "Load a kernel module from the specified path."
+            ]
         }
     ]
 }
