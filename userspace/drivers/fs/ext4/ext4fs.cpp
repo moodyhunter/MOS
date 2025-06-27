@@ -82,7 +82,7 @@ static int blockdev_bread(struct ext4_blockdev *bdev, void *buf, uint64_t blk_id
     if (result != RPC_RESULT_OK || !resp.result.success)
     {
         std::cerr << "Failed to read block" << std::endl;
-        if (resp.result.error)
+        if (result == RPC_RESULT_OK && resp.result.error)
             std::cerr << "Error: " << resp.result.error << std::endl;
         return EIO;
     }
