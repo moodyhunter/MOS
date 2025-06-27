@@ -152,6 +152,15 @@ impl<T: RpcPbServerTrait + Send> RpcPbServer<T> {
         );
 
         let result: RpcPbReplyEnum;
+        msg = msg
+            .get((3 * 4)..)
+            .ok_or_else(|| {
+                std::io::Error::new(
+                    std::io::ErrorKind::UnexpectedEof,
+                    "message too short after header",
+                )
+            })?
+            .to_vec();
 
         {
             let mut core_locked = core.lock().unwrap();
