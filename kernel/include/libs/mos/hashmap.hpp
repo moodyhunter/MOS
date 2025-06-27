@@ -163,6 +163,7 @@ namespace mos
         };
 
         constexpr HashMap() : _table(nullptr), _capacity(0), _size(0) {};
+
         HashMap(std::initializer_list<entry_type> init) : _table(nullptr), _capacity(0), _size(0)
         {
             /* TODO: we know the size so we don't have to keep rehashing?? */

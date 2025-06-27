@@ -10,12 +10,51 @@ namespace mos
     {
       public:
         list() = default;
-        list(const list &other) = default;
-        list(list &&other) noexcept = default;
-        list &operator=(const list &other) = default;
-        list &operator=(list &&other) noexcept = default;
-        ~list() = default;
 
+        list(const list &other)
+        {
+            do_copy_from(other);
+        }
+        list(list &&other) noexcept
+        {
+            do_move_from(std::move(other));
+        }
+        list &operator=(const list &other)
+        {
+            if (this != &other)
+                do_copy_from(other);
+            return *this;
+        }
+        list &operator=(list &&other) noexcept
+        {
+            if (this != &other)
+                do_move_from(std::move(other));
+            return *this;
+        }
+
+        ~list()
+        {
+            clear();
+        }
+
+      private:
+        void do_copy_from(const list &other)
+        {
+            clear();
+            for (const auto &item : other)
+                push_back(item);
+        }
+
+        void do_move_from(list &&other) noexcept
+        {
+            clear();
+            head = other.head;
+            tail = other.tail;
+            other.head = nullptr;
+            other.tail = nullptr;
+        }
+
+      public:
         void push_back(const T &value)
         {
             if (head == nullptr)
@@ -112,6 +151,8 @@ namespace mos
       public:
         class iterator
         {
+            friend class list;
+
           public:
             iterator(node *current) : current(current)
             {
@@ -128,6 +169,13 @@ namespace mos
                 return *this;
             }
 
+            iterator operator++(int)
+            {
+                iterator temp = *this;
+                current = current->next;
+                return temp;
+            }
+
             bool operator==(const iterator &other) const
             {
                 return current == other.current;
@@ -136,6 +184,11 @@ namespace mos
             bool operator!=(const iterator &other) const
             {
                 return current != other.current;
+            }
+
+            T operator*() const
+            {
+                return current->value;
             }
 
           private:
@@ -215,6 +268,9 @@ namespace mos
                 head = next;
             }
         }
+
+      private:
+        friend class iterator;
 
       private:
         node *head = nullptr;

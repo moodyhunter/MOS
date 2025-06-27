@@ -84,7 +84,6 @@ bool futex_wait(futex_word_t *fword, futex_word_t expected)
     {
         fu = mos::create<futex_private_t>();
         fu->key = key;
-        waitlist_init(&fu->waiters);
         list_node_append(&futex_list_head, list_node(fu));
     }
     spinlock_release(&futex_list_lock);

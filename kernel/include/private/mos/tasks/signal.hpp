@@ -18,16 +18,6 @@
  */
 
 /**
- * @brief A pending signal.
- *
- */
-struct sigpending_t : mos::NamedType<"SigPending">
-{
-    as_linked_list;
-    signal_t signal;
-};
-
-/**
  * @brief Send a signal to a thread.
  *
  * @param target

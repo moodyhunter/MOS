@@ -10,16 +10,18 @@
 #include "mos/filesystem/vfs_utils.hpp"
 #include "mos/ipc/pipe.hpp"
 #include "mos/lib/sync/spinlock.hpp"
-#include "mos/platform/platform.hpp"
 #include "mos/tasks/schedule.hpp"
 #include "mos/tasks/signal.hpp"
+#include "mos/tasks/thread.hpp"
 #include "mos/tasks/wait.hpp"
 
 #include <mos/allocator.hpp>
 #include <mos/filesystem/fs_types.h>
+#include <mos/hashmap.hpp>
 #include <mos/lib/structures/hashmap_common.hpp>
 #include <mos/lib/structures/list.hpp>
 #include <mos/mos_global.h>
+#include <mos/string.hpp>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
@@ -45,7 +47,9 @@ struct IpcDescriptor final : mos::NamedType<"IPC.Descriptor">
         pipe_t *client_read_pipe;
     };
 
-    IpcDescriptor(mos::string_view name, size_t buffer_size) : server_name(name), buffer_size_npages(buffer_size / MOS_PAGE_SIZE)
+    IpcDescriptor(mos::string_view name, size_t buffer_size) //
+        : server_name(name),                                 //
+          buffer_size_npages(buffer_size / MOS_PAGE_SIZE)    //
     {
     }
 };
@@ -62,16 +66,10 @@ struct IPCServer final : public mos::NamedType<"IPCServer">
 
     waitlist_t server_waitlist; ///< wake up the server here when a client connects
 
-    void *key() const
-    {
-        return (void *) name.c_str();
-    }
-
     IPCServer(mos::string_view name, size_t pending_max) : name(name), pending_max(pending_max)
     {
         linked_list_init(list_node(this));
         linked_list_init(&pending);
-        waitlist_init(&server_waitlist);
     }
 
     ~IPCServer()
@@ -80,9 +78,13 @@ struct IPCServer final : public mos::NamedType<"IPCServer">
     }
 };
 
+// protects ipc_servers and name_waitlist
+static spinlock_t ipc_lock;
+
 static list_head ipc_servers;
-static hashmap_t name_waitlist; ///< waitlist for an IPC server, key = name, value = waitlist_t *
-static spinlock_t ipc_lock;     ///< protects ipc_servers and name_waitlist
+
+// waitlist for an IPC server, key = name, value = waitlist_t *
+static mos::HashMap<mos::string, waitlist_t> name_waitlist;
 
 void ipc_server_close(IPCServer *server)
 {
@@ -91,16 +93,16 @@ void ipc_server_close(IPCServer *server)
     // remove the server from the list
     list_remove(server);
 
-    waitlist_t *waitlist = (waitlist_t *) hashmap_get(&name_waitlist, (ptr_t) server->key());
+    auto waitlist = name_waitlist.get(server->name);
     if (waitlist)
     {
         // the waitlist should have been closed when the server was created
         // and no one should be waiting on it
         spinlock_acquire(&waitlist->lock);
         MOS_ASSERT(waitlist->closed);
-        MOS_ASSERT(list_is_empty(&waitlist->list));
+        MOS_ASSERT(waitlist->waiters.empty());
         spinlock_release(&waitlist->lock);
-        waitlist_init(waitlist); // reuse the waitlist
+        waitlist->reset(); // reuse the waitlist
     }
     spinlock_release(&ipc_lock);
 
@@ -188,11 +190,6 @@ void ipc_server_close_channel(IpcDescriptor *ipc)
     }
 }
 
-void ipc_init(void)
-{
-    hashmap_init(&name_waitlist, 128, hashmap_hash_string, hashmap_compare_string);
-}
-
 static inode_t *ipc_sysfs_create_ino(IPCServer *ipc_server);
 
 PtrResult<IPCServer> ipc_server_create(mos::string_view name, size_t max_pending)
@@ -217,13 +214,13 @@ PtrResult<IPCServer> ipc_server_create(mos::string_view name, size_t max_pending
 
     // check and see if there is a waitlist for this name
     // if so, wake up all waiters
-    waitlist_t *waitlist = (waitlist_t *) hashmap_get(&name_waitlist, (ptr_t) server->key());
+    auto waitlist = name_waitlist.get(server->name);
     if (waitlist)
     {
         dInfo<ipc> << "found waitlist for ipc server '" << name << "'";
         // wake up all waiters
-        waitlist_close(waitlist);
-        const size_t n = waitlist_wake_all(waitlist);
+        waitlist_close(&*waitlist);
+        const size_t n = waitlist_wake_all(&*waitlist);
         if (n)
             dInfo<ipc> << "woken up " << n << " waiters for ipc server '" << name << "'";
     }
@@ -312,7 +309,7 @@ retry_accept:
     return desc;
 }
 
-PtrResult<IpcDescriptor> ipc_connect_to_server(mos::string_view name, size_t buffer_size)
+PtrResult<IpcDescriptor> ipc_connect_to_server(mos::string name, size_t buffer_size)
 {
     if (buffer_size == 0)
         return -EINVAL; // buffer size must be > 0
@@ -343,27 +340,17 @@ check_server:
     if (!ipc_server)
     {
         // no server found, wait for it to be created
-        waitlist_t *waitlist = (waitlist_t *) hashmap_get(&name_waitlist, (ptr_t) name.data());
+        auto waitlist = name_waitlist.get(name);
         if (!waitlist)
         {
-            waitlist = mos::create<waitlist_t>();
-            waitlist_init(waitlist);
+            waitlist = waitlist_t();
             // the key must be in kernel memory
-            const auto old = (waitlist_t *) hashmap_put(&name_waitlist, (ptr_t) descriptor->server_name.c_str(), waitlist);
-            if (old)
-            {
-                // someone else has created the waitlist, but now we have replaced it
-                // so we have to append the old waitlist to the new one
-                list_foreach(Thread, thread, old->list)
-                {
-                    MOS_ASSERT(waitlist_append(waitlist));
-                }
-            }
+            name_waitlist.insert(descriptor->server_name, *waitlist);
             dInfo<ipc> << "created waitlist for ipc server '" << name << "'";
         }
 
         dInfo<ipc> << "no ipc server '" << name << "' found, waiting for it to be created...";
-        MOS_ASSERT(waitlist_append(waitlist));
+        MOS_ASSERT(waitlist_append(&*waitlist));
         spinlock_release(&ipc_lock);
         blocked_reschedule();
 
@@ -487,27 +474,19 @@ static bool ipc_sysfs_create_server(inode_t *dir, dentry_t *dentry, file_type_t 
     return true;
 }
 
-static bool ipc_dump_name_waitlist(uintn key, void *value, void *data)
-{
-    MOS_UNUSED(key);
-    waitlist_t *waitlist = (waitlist_t *) value;
-    sysfs_file_t *f = (sysfs_file_t *) data;
-
-    const auto guard = waitlist->lock.lock();
-    sysfs_printf(f, "%s\t%s:\n", (const char *) key, waitlist->closed ? "closed" : "open");
-    list_foreach(Thread, thread, waitlist->list)
-    {
-        sysfs_printf(f, "\t%s\n", thread->name.c_str());
-    }
-
-    return true;
-}
-
 static bool ipc_sysfs_dump_name_waitlist(sysfs_file_t *f)
 {
     sysfs_printf(f, "%-20s\t%s\n", "IPC Name", "Status");
     const auto guard = ipc_lock.lock();
-    hashmap_foreach(&name_waitlist, ipc_dump_name_waitlist, f);
+    for (const auto &[name, waitlist] : name_waitlist)
+    {
+        sysfs_printf(f, "%-20s\t%s:\n", name.c_str(), waitlist.closed ? "closed" : "open");
+        for (const auto tid : waitlist.waiters)
+        {
+            const auto thread = thread_get(tid);
+            sysfs_printf(f, "\t%s\n", thread->name.c_str());
+        }
+    }
     return true;
 }
 

@@ -106,8 +106,8 @@ struct Process : mos::NamedType<"Process">
 typedef struct
 {
     spinlock_t lock;
-    list_head pending; ///< list of pending signals
-    sigset_t mask;     ///< pending signals mask
+    mos::list<signal_t> pending; ///< list of pending signals
+    sigset_t mask;               ///< pending signals mask
 } thread_signal_info_t;
 
 struct Thread : mos::NamedType<"Thread">
@@ -116,7 +116,6 @@ struct Thread : mos::NamedType<"Thread">
     tid_t tid;
     mos::string name;
     Process *owner;
-    as_linked_list;            ///< node in the process's thread list
     thread_mode mode;          ///< user-mode thread or kernel-mode
     spinlock_t state_lock;     ///< protects the thread state
     thread_state_t state;      ///< thread state

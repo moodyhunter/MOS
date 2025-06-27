@@ -42,9 +42,6 @@ Thread *thread_allocate(Process *owner, thread_mode tflags)
     t->owner = owner;
     t->state = THREAD_STATE_CREATED;
     t->mode = tflags;
-    waitlist_init(&t->waiters);
-    linked_list_init(&t->signal_info.pending);
-    linked_list_init(list_node(t));
     owner->thread_list.push_back(t);
     return t;
 }

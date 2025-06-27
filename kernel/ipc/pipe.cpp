@@ -169,7 +169,6 @@ PtrResult<pipe_t> pipe_create(size_t bufsize)
     pipe_t *pipe = mos::create<pipe_t>();
     pipe->magic = PIPE_MAGIC;
     pipe->buffers = (void *) phyframe_va(mm_get_free_pages(bufsize / MOS_PAGE_SIZE));
-    waitlist_init(&pipe->waitlist);
     ring_buffer_pos_init(&pipe->buffer_pos, bufsize);
     return pipe;
 }

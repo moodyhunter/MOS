@@ -2,8 +2,19 @@
 
 #include "mosapi.h"
 
+const auto ARG_N = "-n";
+
 int main(int argc, char **argv)
 {
+    bool newline = true;
+    if (argc > 1 && strcmp(argv[1], ARG_N) == 0)
+    {
+        // skip the first argument
+        argc--;
+        argv++;
+        newline = false;
+    }
+
     for (int i = 1; i < argc; i++)
     {
         fputs(argv[i], stdout);
@@ -11,6 +22,7 @@ int main(int argc, char **argv)
             fputs(" ", stdout);
     }
 
-    fputs("\n", stdout);
+    if (newline)
+        fputs("\n", stdout);
     return 0;
 }

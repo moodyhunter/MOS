@@ -96,20 +96,15 @@ long signal_send_to_thread(Thread *target, signal_t signal)
     spinlock_acquire(&target->signal_info.lock);
 
     bool has_pending = false; // true if the signal is already pending
-    list_foreach(sigpending_t, pending, target->signal_info.pending)
+    for (const auto pending : target->signal_info.pending)
     {
-        has_pending |= pending->signal == signal;
+        has_pending |= pending == signal;
         if (has_pending)
             break;
     }
 
     if (!has_pending)
-    {
-        sigpending_t *sigdesc = mos::create<sigpending_t>();
-        linked_list_init(list_node(sigdesc));
-        sigdesc->signal = signal;
-        list_node_append(&target->signal_info.pending, list_node(sigdesc));
-    }
+        target->signal_info.pending.push_back(signal);
 
     spinlock_release(&target->signal_info.lock);
 
@@ -171,23 +166,27 @@ static signal_t signal_get_next_pending(void)
     signal_t signal = 0;
 
     MOS_ASSERT(spinlock_is_locked(&current_thread->signal_info.lock));
-    list_foreach(sigpending_t, pending, current_thread->signal_info.pending)
+    for (auto it = current_thread->signal_info.pending.begin(); it != current_thread->signal_info.pending.end();)
     {
-        if (sigset_test(&current_thread->signal_info.mask, pending->signal))
+        signal_t pending = *it;
+        if (sigset_test(&current_thread->signal_info.mask, pending))
         {
             // if a fatal signal is pending but also masked, kill the thread
-            if (is_fatal_signal(pending->signal))
+            if (is_fatal_signal(pending))
             {
-                pr_emerg("thread %pt received fatal signal %d but it was masked, terminating", current_thread, pending->signal);
-                signal_do_terminate(pending->signal);
+                pr_emerg("thread %pt received fatal signal %d but it was masked, terminating", current_thread, pending);
+                signal_do_terminate(pending);
             }
-            continue; // signal is masked, skip it
+            it++;
         }
-
-        list_remove(pending);
-        signal = pending->signal;
-        delete pending;
-        break;
+        else
+        {
+            // signal is not masked, remove it from pending list
+            it = current_thread->signal_info.pending.erase(it);
+            pr_dinfo2(signal, "thread %pt will handle pending signal %d", current_thread, pending);
+            signal = pending;
+            break;
+        }
     }
 
     return signal;
@@ -308,9 +307,9 @@ bool signal_has_pending(void)
 {
     bool has_pending = false;
     spinlock_acquire(&current_thread->signal_info.lock);
-    list_foreach(sigpending_t, pending, current_thread->signal_info.pending)
+    for (const auto pending : current_thread->signal_info.pending)
     {
-        if (sigset_test(&current_thread->signal_info.mask, pending->signal))
+        if (sigset_test(&current_thread->signal_info.mask, pending))
             continue; // signal is masked, skip it
         has_pending = true;
         break;

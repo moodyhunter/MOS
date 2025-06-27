@@ -68,9 +68,6 @@ static pid_t new_process_id(void)
 Process::Process(Private, Process *parent_, mos::string_view name_) : magic(PROCESS_MAGIC_PROC), pid(new_process_id()), parent(parent_)
 {
     linked_list_init(&children);
-
-    waitlist_init(&signal_info.sigchild_waitlist);
-
     this->name = name_.empty() ? "<unknown>" : name_;
 
     if (unlikely(pid == 1) || unlikely(pid == 2))
@@ -294,39 +291,40 @@ void process_exit(Process *&&proc, u8 exit_code, signal_t sig)
     if (unlikely(proc->pid == 1))
         mos_panic("init process terminated with code %d, signal %d", exit_code, sig);
 
-    for (const auto &t : proc->thread_list)
+    for (auto it = proc->thread_list.begin(); it != proc->thread_list.end();)
     {
+        Thread *t = *it;
         spinlock_acquire(&t->state_lock);
         if (t->state == THREAD_STATE_DEAD)
         {
             dInfo2<process> << "cleanup thread " << t;
             MOS_ASSERT(t != current_thread);
             thread_table.remove(t->tid);
-            list_remove(t);
+            it = proc->thread_list.erase(it); // remove from thread list
             thread_destroy(t);
+            continue; // continue to next thread
         }
-        else
+
+        // send termination signal to all threads, except the current one
+        if (t != current_thread)
         {
-            // send termination signal to all threads, except the current one
-            if (t != current_thread)
-            {
-                dInfo2<signal> << "sending SIGKILL to thread " << thread;
-                spinlock_release(&t->state_lock);
-                signal_send_to_thread(t, SIGKILL);
-                thread_wait_for_tid(t->tid);
-                spinlock_acquire(&t->state_lock);
-                dInfo2<process> << "thread " << t << " terminated";
-                MOS_ASSERT_X(t->state == THREAD_STATE_DEAD, "thread %pt is not dead", t);
-                thread_table.remove(t->tid);
-                thread_destroy(t);
-            }
-            else
-            {
-                spinlock_release(&t->state_lock);
-                proc->main_thread = t; // make sure we properly destroy the main thread at the end
-                dInfo2<process> << "thread " << t << " is current thread, making it main thread";
-            }
+            dInfo2<signal> << "sending SIGKILL to thread " << thread;
+            spinlock_release(&t->state_lock);
+            signal_send_to_thread(t, SIGKILL);
+            thread_wait_for_tid(t->tid);
+            spinlock_acquire(&t->state_lock);
+            dInfo2<process> << "thread " << t << " terminated";
+            MOS_ASSERT_X(t->state == THREAD_STATE_DEAD, "thread %pt is not dead", t);
+            it = proc->thread_list.erase(it); // remove from thread list
+            thread_destroy(t);
+            continue;
         }
+
+        // make sure we properly destroy the main thread at the end
+        spinlock_release(&t->state_lock);
+        proc->main_thread = t;
+        dInfo2<process> << "thread " << t << " is current thread, making it main thread";
+        it++;
     }
 
     size_t files_total = 0;

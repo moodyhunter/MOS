@@ -4,7 +4,6 @@
 #include "mos/filesystem/vfs.hpp"
 #include "mos/mm/mm.hpp"
 #include "mos/tasks/schedule.hpp"
-#include "mos/tasks/signal.hpp"
 
 #include <mos/lib/structures/hashmap.hpp>
 #include <mos/lib/structures/list.hpp>
@@ -72,8 +71,9 @@ Process *process_do_fork(Process *parent)
         }
     }
 
-    child_p->signal_info = parent->signal_info;
-    waitlist_init(&child_p->signal_info.sigchild_waitlist);
+    for (int i = 0; i < SIGNAL_MAX_N; i++)
+        child_p->signal_info.handlers[i] = parent->signal_info.handlers[i];
+    child_p->signal_info.sigchild_waitlist.reset();
 
     // copy the thread
     const auto parent_thread = current_thread;
@@ -85,12 +85,9 @@ Process *process_do_fork(Process *parent)
     stack_init(&child_t->k_stack, (void *) kstack_blk, MOS_STACK_PAGES_KERNEL * MOS_PAGE_SIZE);
     spinlock_acquire(&parent_thread->signal_info.lock);
     child_t->signal_info.mask = parent_thread->signal_info.mask;
-    list_foreach(sigpending_t, sig, parent_thread->signal_info.pending)
+    for (const auto sig : parent_thread->signal_info.pending)
     {
-        sigpending_t *new_sig = mos::create<sigpending_t>();
-        linked_list_init(list_node(new_sig));
-        new_sig->signal = sig->signal;
-        list_node_prepend(&child_t->signal_info.pending, list_node(new_sig));
+        child_t->signal_info.pending.push_back(sig);
     }
     spinlock_release(&parent_thread->signal_info.lock);
 

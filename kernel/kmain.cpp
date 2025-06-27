@@ -173,7 +173,7 @@ void mos_start_kernel(void)
         if (ret.isErr())
             mos_panic("failed to mount initrd, vfs_mount returns %ld", ret.getErr());
     }
-    ipc_init();
+
     scheduler_init();
 
     const auto init_con = platform_info->boot_console;

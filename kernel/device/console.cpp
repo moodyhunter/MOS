@@ -127,9 +127,9 @@ void Console::putc(u8 c)
     if (c == 0x3)
     {
         spinlock_acquire(&waitlist.lock);
-        list_foreach(waitable_list_entry_t, entry, waitlist.list)
+        for (const auto tid : waitlist.waiters)
         {
-            Thread *thread = thread_get(entry->waiter);
+            Thread *thread = thread_get(tid);
             if (thread)
                 signal_send_to_thread(thread, SIGINT);
         }

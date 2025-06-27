@@ -12,12 +12,6 @@
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-void waitlist_init(waitlist_t *list)
-{
-    memzero(list, sizeof(waitlist_t));
-    linked_list_init(&list->list);
-}
-
 bool waitlist_append(waitlist_t *list)
 {
     spinlock_acquire(&list->lock);
@@ -27,9 +21,7 @@ bool waitlist_append(waitlist_t *list)
         return false;
     }
 
-    waitable_list_entry_t *entry = mos::create<waitable_list_entry_t>();
-    entry->waiter = current_thread->tid;
-    list_node_append(&list->list, list_node(entry));
+    list->waiters.push_back(current_thread->tid);
     spinlock_release(&list->lock);
     return true;
 }
@@ -38,25 +30,24 @@ size_t waitlist_wake(waitlist_t *list, size_t max_wakeups)
 {
     spinlock_acquire(&list->lock);
 
-    if (list_is_empty(&list->list))
+    if (list->waiters.empty())
     {
         spinlock_release(&list->lock);
         return 0;
     }
 
     size_t wakeups = 0;
-    while (wakeups < max_wakeups && !list_is_empty(&list->list))
+    while (wakeups < max_wakeups && !list->waiters.empty())
     {
-        list_node_t *node = list_node_pop(&list->list);
-        waitable_list_entry_t *entry = list_entry(node, waitable_list_entry_t);
+        const auto last = list->waiters.back();
+        list->waiters.pop_back();
 
-        Thread *thread = thread_get(entry->waiter);
+        Thread *thread = thread_get(last);
         if (thread) // if the thread is still there
         {
             if (thread->state == THREAD_STATE_BLOCKED)
                 scheduler_wake_thread(thread);
         }
-        delete entry;
         wakeups++;
     }
 
@@ -78,21 +69,15 @@ void waitlist_close(waitlist_t *list)
 void waitlist_remove_me(waitlist_t *waitlist)
 {
     spinlock_acquire(&waitlist->lock);
-
-    list_foreach(waitable_list_entry_t, entry, waitlist->list)
+    for (auto it = waitlist->waiters.begin(); it != waitlist->waiters.end();)
     {
-        if (entry->waiter == current_thread->tid)
+        tid_t entry = *it;
+        if (entry == current_thread->tid)
         {
-            list_remove(entry);
-            delete entry;
+            it = waitlist->waiters.erase(it);
             break;
         }
+        ++it;
     }
-
     spinlock_release(&waitlist->lock);
-}
-
-waitlist_t::waitlist_t()
-{
-    waitlist_init(this);
 }
