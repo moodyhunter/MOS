@@ -46,6 +46,11 @@ void mos::__raise_null_pointer_exception()
     mos_panic_inline("mos::string: null pointer exception");
 }
 
+void mos::__raise_invalid_argument_exception(const char *reason)
+{
+    mos_panic_inline("mos::string: invalid argument: %s", reason);
+}
+
 // static scoped variable constructor support
 
 extern "C" int abi::__cxa_guard_acquire(abi::__guard *g)

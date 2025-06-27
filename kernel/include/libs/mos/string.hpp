@@ -167,8 +167,10 @@ namespace mos
             if (new_length < short_string_capacity)
                 _convert_to_short();
             else
-                _convert_to_long(_length);
+                _convert_to_long(new_length);
+
             _length = new_length;
+            operator[](_length) = 0; // ensure null termination
         }
 
         bool begins_with(Char c) const
@@ -189,7 +191,7 @@ namespace mos
         {
             if (_length == 0)
                 return false;
-            return _data._short._buffer[_length - 1] == c;
+            return data()[_length - 1] == c;
         }
 
         bool ends_with(const basic_string_view<Char> &suffix) const
