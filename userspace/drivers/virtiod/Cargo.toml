@@ -4,16 +4,16 @@ name = "virtiod"
 version = "0.1.0"
 
 [dependencies]
-clap = { version = "4.5.38", features = ["derive"] }
+clap = { version = "4.5.40", features = ["derive"] }
 libc = { version = "0.2.153", registry = "mos" }
 librpc-rs = { version = "0.1.1", features = ["protobuf"], registry = "mos" }
 libsm-rs = { version = "0.1.2", registry = "mos" }
 log = "0.4.27"
-protobuf = "3.4.0"
+protobuf = "3.7.2"
 virtio-drivers = "0.11.0"
 
 [build-dependencies]
-protobuf-codegen = "3.4.0"
+protobuf-codegen = "3.7.2"
 
 [features]
 debug = []

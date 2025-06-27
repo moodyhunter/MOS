@@ -2,7 +2,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use librpc_rs::{RpcCallResult, RpcPbReplyEnum, RpcPbServer, RpcPbServerTrait, RpcResult, RpcStub};
+use librpc_rs::{RpcCallResult, RpcPbReply, RpcPbServer, RpcPbServerTrait, RpcResult, RpcStub};
 use protobuf::MessageField;
 use virtio_drivers::{
     device::blk::{VirtIOBlk, SECTOR_SIZE},

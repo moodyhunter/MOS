@@ -3,6 +3,8 @@ use std::{
     thread,
 };
 
+pub use std::result::Result;
+
 use crate::{
     data_slice_and_shift, do_try_into, IpcChannel, IpcServer, RpcCallResult, RpcResult,
     RPC_REQUEST_MAGIC, RPC_RESPONSE_MAGIC,
@@ -12,32 +14,30 @@ use crate::{
 macro_rules! RpcPbServer {
     ($name:tt, $(($id:tt, $func:ident, ($treq:ident, $tresp:ident))), *) => {
         impl RpcPbServerTrait for $name {
-            fn dispatch(&mut self, function_id: u32, data: &Vec<u8>) -> RpcPbReplyEnum {
+            fn dispatch(&mut self, function_id: u32, data: &Vec<u8>) -> RpcPbReply {
                 match function_id {
                     $(
                         $id => {
-                            let req: $treq = protobuf::Message::parse_from_bytes(data).unwrap();
+                            let req: $treq = protobuf::Message::parse_from_bytes(data)
+                                .map_err(|_| RpcCallResult::ServerInternalError)?;
                             let resp: Option<$tresp> = self.$func(&req);
                             match resp {
-                                Some(resp) => RpcPbReplyEnum::Buffer(protobuf::Message::write_to_bytes(&resp).unwrap()),
-                                None => RpcPbReplyEnum::Error(RpcCallResult::ServerInternalError),
+                                Some(resp) => Ok(protobuf::Message::write_to_bytes(&resp).unwrap()),
+                                None => Err(RpcCallResult::ServerInternalError),
                             }
                         },
                     )*
-                    _ => RpcPbReplyEnum::Error(RpcCallResult::ServerInvalidFunction),
+                    _ => Err(RpcCallResult::ServerInvalidFunction),
                 }
             }
         }
     };
 }
 
-pub enum RpcPbReplyEnum {
-    Buffer(Vec<u8>),
-    Error(RpcCallResult),
-}
+pub type RpcPbReply = Result<Vec<u8>, RpcCallResult>;
 
 pub trait RpcPbServerTrait {
-    fn dispatch(&mut self, function_id: u32, data: &Vec<u8>) -> RpcPbReplyEnum;
+    fn dispatch(&mut self, function_id: u32, data: &Vec<u8>) -> RpcPbReply;
 }
 
 pub struct RpcPbServer<T: RpcPbServerTrait + Send> {
@@ -146,12 +146,20 @@ impl<T: RpcPbServerTrait + Send> RpcPbServer<T> {
         }
 
         #[cfg(feature = "debug")]
-        println!(
-            "  --> received call for function {} with {} args",
-            function_id, args_count
-        );
+        {
+            println!(
+                "  --> received call for function {} with {} args",
+                function_id, args_count
+            );
+            println!(
+                "  --> call_id: {}, magic: {}, function_id: {}, args_count: {}",
+                call_id, magic, function_id, args_count
+            );
+            // dump packet data:
+            println!(" --> data: {:?}", msg);
+        }
 
-        let result: RpcPbReplyEnum;
+        // remove argument header
         msg = msg
             .get((3 * 4)..)
             .ok_or_else(|| {
@@ -162,19 +170,21 @@ impl<T: RpcPbServerTrait + Send> RpcPbServer<T> {
             })?
             .to_vec();
 
+        let result: RpcPbReply;
+
         {
             let mut core_locked = core.lock().unwrap();
             result = core_locked.dispatch(function_id, &msg);
         }
 
         match result {
-            RpcPbReplyEnum::Error(_err) => {
+            Err(_err) => {
                 #[cfg(feature = "debug")]
                 println!("function {} failed: {:?}", function_id, _err);
                 Self::send_rpc_response(ipc, call_id, _err, None)?;
                 return Ok(());
             }
-            RpcPbReplyEnum::Buffer(reply) => {
+            Ok(reply) => {
                 #[cfg(feature = "debug")]
                 println!(
                     "  <-- sending reply for function {} with {} bytes",

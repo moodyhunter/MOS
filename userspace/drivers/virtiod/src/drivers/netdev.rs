@@ -8,7 +8,7 @@ use crate::{
 };
 use librpc_rs::RpcCallResult;
 use librpc_rs::RpcPbServerTrait;
-use librpc_rs::{RpcPbReplyEnum, RpcPbServer, RpcResult, RpcStub};
+use librpc_rs::{RpcPbReply, RpcPbServer, RpcResult, RpcStub};
 use virtio_drivers::{
     device::net::VirtIONet,
     transport::pci::{bus::DeviceFunction, PciTransport},
