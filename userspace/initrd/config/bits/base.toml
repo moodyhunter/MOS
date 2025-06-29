@@ -11,7 +11,7 @@ options = { link = "/bin", target = "/initrd/bin" }
 [etc.symlink]
 description = "Symbolic link /etc to /initrd/etc"
 part_of = ["base.target"]
-options = { link = "/etc", target = "/initrd/etc"}
+options = { link = "/etc", target = "/initrd/etc" }
 
 [tmp.path]
 description = "Make /tmp directory"
@@ -23,9 +23,3 @@ description = "Mount tmpfs on /tmp"
 part_of = ["base.target"]
 depends_on = ["tmp.path"]
 options = { mount_point = "/tmp", fs_type = "tmpfs", options = "defaults", device = "none" }
-
-[tmp-log.path]
-description = "Make /tmp/log directory"
-part_of = ["base.target"]
-depends_on = ["tmp.mount"]
-options = { path = "/tmp/log" }

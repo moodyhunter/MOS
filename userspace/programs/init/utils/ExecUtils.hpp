@@ -23,5 +23,5 @@ namespace ExecUtils
      * @param baseId the base ID of the unit, used to create the log directory
      * @return pid_t the PID of the child process, or -1 on error
      */
-    pid_t DoFork(const std::vector<std::string> &exec, const std::string &token, const std::string &baseId);
+    pid_t DoFork(const std::vector<std::string> &exec, const std::string &token, const std::string &baseId, bool redirect = true);
 } // namespace ExecUtils

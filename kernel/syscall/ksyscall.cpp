@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/ksyscall_entry.hpp"
+#include "mos/syscall/ksyscall.hpp"
 
 #include "mos/misc/profiling.hpp"
 #include "mos/tasks/signal.hpp"

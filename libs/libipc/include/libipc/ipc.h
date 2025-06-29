@@ -54,5 +54,5 @@ MOSAPI ipc_msg_t *ipc_read_msg(ipcfd_t fd);
  */
 
 MOSAPI bool ipc_write_msg(ipcfd_t fd, ipc_msg_t *buffer);
-MOSAPI size_t ipc_read_as_msg(ipcfd_t fd, char *buffer, size_t buffer_size);
-MOSAPI bool ipc_write_as_msg(ipcfd_t fd, const char *data, size_t size);
+MOSAPI size_t ipc_read_as_msg(ipcfd_t fd, void *buffer, size_t buffer_size);
+MOSAPI bool ipc_write_as_msg(ipcfd_t fd, const void *data, size_t size);

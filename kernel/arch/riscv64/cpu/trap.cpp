@@ -2,11 +2,11 @@
 
 #include "mos/device/clocksource.hpp"
 #include "mos/interrupt/interrupt.hpp"
-#include "mos/ksyscall_entry.hpp"
 #include "mos/mm/paging/table_ops.hpp"
 #include "mos/platform/platform.hpp"
 #include "mos/riscv64/cpu/cpu.hpp"
 #include "mos/riscv64/cpu/plic.hpp"
+#include "mos/syscall/ksyscall.hpp"
 #include "mos/tasks/schedule.hpp"
 #include "mos/tasks/signal.hpp"
 

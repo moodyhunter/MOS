@@ -84,7 +84,7 @@ bool ipc_write_msg(ipcfd_t fd, ipc_msg_t *buffer)
     return true;
 }
 
-bool ipc_write_as_msg(ipcfd_t fd, const char *data, size_t size)
+bool ipc_write_as_msg(ipcfd_t fd, const void *data, size_t size)
 {
     size_t w = 0;
     w = do_write(fd, &size, sizeof(size));
@@ -103,7 +103,7 @@ bool ipc_write_as_msg(ipcfd_t fd, const char *data, size_t size)
     return true;
 }
 
-size_t ipc_read_as_msg(ipcfd_t fd, char *buffer, size_t buffer_size)
+size_t ipc_read_as_msg(ipcfd_t fd, void *buffer, size_t buffer_size)
 {
     size_t size = 0;
     size_t data_size = 0;

@@ -621,6 +621,22 @@
             "comments": [
                 "Load a kernel module from the specified path."
             ]
+        },
+        {
+            "number": 68,
+            "name": "kmod_call",
+            "return": "long",
+            "arguments": [
+                { "type": "const char *", "arg": "module_name" },
+                { "type": "const char *", "arg": "function_name" },
+                { "type": "void *", "arg": "arg" },
+                { "type": "size_t", "arg": "arg_size" }
+            ],
+            "comments": [
+                "Call a function in a loaded kernel module.",
+                "The module must be loaded with kmod_load() before calling this syscall.",
+                "The function must be exported by the module."
+            ]
         }
     ]
 }

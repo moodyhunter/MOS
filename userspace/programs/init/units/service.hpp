@@ -15,6 +15,7 @@ struct ServiceOptions
     explicit ServiceOptions(toml::node_view<toml::node> table);
 
     StateChangeNotifyType stateChangeNotifyType = StateChangeNotifyType::Immediate;
+    bool redirect = true; ///< Redirect stdout/stderr to /tmp/log/<unitBase>/<fileName>.log
 };
 
 struct Service : public Unit

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mos/interrupt/interrupt.hpp"
-#include "mos/ksyscall_entry.hpp"
 #include "mos/misc/panic.hpp"
 #include "mos/misc/profiling.hpp"
+#include "mos/syscall/ksyscall.hpp"
 #include "mos/tasks/signal.hpp"
 
 #include <mos/interrupt/ipi.hpp>

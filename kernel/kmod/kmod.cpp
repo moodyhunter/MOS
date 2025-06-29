@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "mos/filesystem/dentry.hpp"
 #include "mos/misc/kallsyms.hpp"
 #include "mos/mm/mm.hpp"
 #include "mos/mm/mm_types.hpp"
@@ -137,7 +138,8 @@ namespace mos::kmods
         uintptr_t load_address; // load address in memory
         off_t file_offset;      // offset in the file where this section starts
         size_t size;            // size of the section in bytes
-        VMFlags flags;          // memory flags for the section (e.g., readable, writable, executable)
+        VMFlags vmflags;        // memory flags for the section (e.g., readable, writable, executable)
+        ElfSectionType type;    // type of the section (e.g., PROGBITS, SYMTAB, etc.)
 
         mos::vector<mos::shared_ptr<Symbol>> symbols; // symbols in this section
     };
@@ -173,10 +175,10 @@ namespace mos::kmods
 
             switch (type)
             {
-                case R_X86_64_PLT32: value = *symbolAddress + addend - addr; break;
-                case R_X86_64_PC32: value = *symbolAddress + addend - offset; break;
-                case R_X86_64_32S: value = *symbolAddress + addend; break;
                 case R_X86_64_64: value = *symbolAddress + addend; break;
+                case R_X86_64_PC32: value = *symbolAddress + addend - addr; break;
+                case R_X86_64_PLT32: value = *symbolAddress + addend - addr; break;
+                case R_X86_64_32S: value = *symbolAddress + addend; break;
                 default: mEmerg << "Unhandled relocation type: " << type; break;
             }
 
@@ -195,6 +197,21 @@ namespace mos::kmods
         mos::vector<init_function_t> init_functions; // init functions to call after loading
 
         mos::HashMap<mos::string, mos::shared_ptr<Section>> sections;
+
+        mos::vector<KernelModuleInfo> module_info; // module info section
+
+        mos::string GetModuleName() const
+        {
+            for (const auto &info : module_info)
+            {
+                if (info.mod_info == KernelModuleInfo::MOD_NAME)
+                    return info.string;
+            }
+            mWarn << "No module name found in module info";
+            static mos::string empty_name;
+            return empty_name;
+        }
+
         mos::shared_ptr<Section> GetSectionByName(const mos::string &name) const
         {
             for (const auto &[section_name, section] : sections)
@@ -205,6 +222,7 @@ namespace mos::kmods
             mWarn << "Section with name '" << name << "' not found";
             return nullptr;
         }
+
         mos::shared_ptr<Section> GetSectionByIndex(size_t index) const
         {
             for (const auto &[_, section] : sections)
@@ -304,15 +322,13 @@ namespace mos::kmods
                 const auto *info = (KernelModuleInfo *) (section->load_address + i * sizeof(KernelModuleInfo));
                 switch (info->mod_info)
                 {
-                    case KernelModuleInfo::MOD_ENTRYPOINT:
-                        entrypoint = info->entrypoint;
-                        mInfo << "Module entrypoint: " << (void *) info->entrypoint;
-                        break;
-                    case KernelModuleInfo::MOD_NAME: mInfo << "Module name: " << info->string; break;
-                    case KernelModuleInfo::MOD_AUTHOR: mInfo << "Module author: " << info->string; break;
-                    case KernelModuleInfo::MOD_DESCRIPTION: mInfo << "Module description: " << info->string; break;
+                    case KernelModuleInfo::MOD_ENTRYPOINT: entrypoint = info->entrypoint; break;
+                    case KernelModuleInfo::MOD_NAME: break;
+                    case KernelModuleInfo::MOD_AUTHOR: break;
+                    case KernelModuleInfo::MOD_DESCRIPTION: break;
                     default: mWarn << "Unknown module info type: " << info->mod_info; break;
                 }
+                module_info.push_back(*info);
             }
         }
 
@@ -334,12 +350,12 @@ namespace mos::kmods
         mos::HashMap<VMFlags, mos::vector<mos::shared_ptr<Section>>> sections_by_flags;
         for (const auto &[_, section] : sections)
         {
-            if (section->flags == VMFlags() || section->size == 0)
+            if (section->vmflags == VMFlags() || section->size == 0)
             {
                 dInfo<kmod> << "Section '" << section->name << "' has no flags set or size is zero, skipping";
                 continue;
             }
-            sections_by_flags[section->flags].push_back(section);
+            sections_by_flags[section->vmflags].push_back(section);
         }
 
         const auto order = { VM_RX, VM_RW, VM_READ };
@@ -368,6 +384,14 @@ namespace mos::kmods
                     if (section->name == ".plt")
                         continue; // we don't load PLT into the memory
 
+                    if (section->type == ElfSectionType::NOBITS)
+                    {
+                        dInfo<kmod> << "  Section '" << section->name << "' is of type NOBITS, skipping loading into memory";
+                        memzero((void *) section->load_address, section->size);
+                        dInfo<kmod> << "  Initialized section '" << section->name << "' to zero at address " << (void *) section->load_address;
+                        continue;
+                    }
+
                     file->pread((void *) section->load_address, section->size, section->file_offset);
                     dInfo<kmod> << "  Loaded section '" << section->name << "' into memory at address " << (void *) section->load_address;
                 }
@@ -390,12 +414,16 @@ namespace mos::kmods
             const auto [addr, value] = *relocated;
             switch (rel.type)
             {
-                case R_X86_64_PLT32: *(reinterpret_cast<u32 *>(addr)) = static_cast<u32>(value); break;
-                case R_X86_64_32S: *(reinterpret_cast<s32 *>(addr)) = static_cast<s32>(value); break;
-                case R_X86_64_PC32: *(reinterpret_cast<s32 *>(addr)) = static_cast<s32>(value); break;
-                case R_X86_64_64: *(reinterpret_cast<u64 *>(addr)) = value; break;
+                case R_X86_64_64: *(reinterpret_cast<u64 *>(addr)) = value; break;                      // type 1
+                case R_X86_64_PC32: *(reinterpret_cast<s32 *>(addr)) = static_cast<s32>(value); break;  // type 2
+                case R_X86_64_PLT32: *(reinterpret_cast<s32 *>(addr)) = static_cast<s32>(value); break; // type 4
+                case R_X86_64_32S: *(reinterpret_cast<s32 *>(addr)) = static_cast<s32>(value); break;   // type 11
                 default: mWarn << "Unhandled relocation type: " << rel.type; break;
             }
+
+            dInfo2<kmod> << "Reloc " << rel.type << " at address " << (void *) addr << " with value " << value << " for symbol '"
+                         << (rel.symbol ? rel.symbol->name : "unknown") << "' in section '" << (rel.in_section ? rel.in_section->name : "unknown") << "'"
+                         << "(addend: " << rel.addend << ", offset: " << rel.offset << ")";
         }
 
         dInfo<kmod> << "Relocations applied successfully for module '" << dentry_name(file->dentry) << "'";
@@ -611,7 +639,7 @@ namespace mos::kmods
         return std::nullopt;
     }
 
-    static PtrResult<mos::shared_ptr<ModuleELFInfo>> do_load_kmod(FsBaseFile *file)
+    static PtrResult<mos::shared_ptr<ModuleELFInfo>> DoLoadKmodFromFile(FsBaseFile *file)
     {
         const auto mod = mos::make_shared<ModuleELFInfo>();
         mod->file = file;
@@ -645,7 +673,8 @@ namespace mos::kmods
             section->file_offset = sh.sh_offset;
             section->load_address = 0;
             section->size = sh.sh_size;
-            section->flags = flags;
+            section->vmflags = flags;
+            section->type = static_cast<ElfSectionType>(sh.sh_type);
             mod.sections[section->name] = section;
             return 0;
         };
@@ -796,7 +825,8 @@ namespace mos::kmods
             section->file_offset = sh.sh_offset;
             section->load_address = 0;
             section->size = sh.sh_size;
-            section->flags = flags;
+            section->vmflags = flags;
+            section->type = static_cast<ElfSectionType>(sh.sh_type);
             mod.sections[section->name] = section;
             return 0;
         };
@@ -828,7 +858,7 @@ namespace mos::kmods
             plt_section->file_offset = 0;
             plt_section->load_address = 0;
             plt_section->size = mod->pltEntries.size() * sizeof(Elf64_Rela);
-            plt_section->flags = VMFlags(VM_READ | VM_EXEC);
+            plt_section->vmflags = VMFlags(VM_READ | VM_EXEC);
             mod->sections[plt_section->name] = plt_section;
             dInfo<kmod> << "Added PLT section with " << mod->pltEntries.size() << " entries";
         }
@@ -838,11 +868,17 @@ namespace mos::kmods
         return mod;
     }
 
-    PtrResult<KernelModule> load(const mos::string &path)
+    PtrResult<ptr<Module>> LoadModule(const mos::string &path)
     {
         if (path.empty())
         {
             mWarn << "Kernel module path cannot be empty";
+            return -EINVAL;
+        }
+
+        if (!path_is_absolute(path))
+        {
+            mWarn << "Kernel module path must be absolute: " << path;
             return -EINVAL;
         }
 
@@ -861,7 +897,7 @@ namespace mos::kmods
             return file.getErr();
         }
 
-        const auto kmod = do_load_kmod(file.get());
+        const auto kmod = DoLoadKmodFromFile(file.get());
         if (kmod.isErr())
         {
             mWarn << "Failed to load kernel module '" << path << "': " << kmod.getErr();
@@ -874,14 +910,21 @@ namespace mos::kmods
         kmod->LoadModuleBasicInfo();
         for (const auto &init_func : kmod->init_functions)
             init_func(); // call all init functions
-        kmod->entrypoint();
 
-        const auto module = mos::create<KernelModule>(path, file->dentry->inode);
-        kmod_map[name] = module;
-        return kmod_map.get(name).value();
+        if (!kmod->entrypoint)
+        {
+            mWarn << "Kernel module '" << path << "' has no entrypoint defined";
+            return -EINVAL;
+        }
+
+        const auto module = mos::make_shared<Module>(path, file->dentry->inode);
+        module->module_info = kmod.get();
+        kmod_map[kmod->GetModuleName()] = module;
+        kmod->entrypoint(module);
+        return module;
     }
 
-    PtrResult<KernelModule> get(const mos::string &name)
+    PtrResult<ptr<Module>> GetModule(const mos::string &name)
     {
         auto opt_module = kmod_map.get(name);
         if (!opt_module)
@@ -889,8 +932,44 @@ namespace mos::kmods
         return opt_module.value();
     }
 
-    KernelModule::KernelModule(const mos::string &path, inode_t *)
+    Module::Module(const mos::string &path, inode_t *)
     {
         dInfo<kmod> << "Loading kernel module: " << path;
+    }
+
+    void Module::ExportFunction(const mos::string &name, ExportedFunction handler)
+    {
+        if (!handler)
+        {
+            mWarn << "Cannot export null handler for function '" << name << "'";
+            return;
+        }
+
+        if (exported_functions.contains(name))
+        {
+            mWarn << "Function '" << name << "' is already exported";
+            return;
+        }
+
+        exported_functions[name] = handler;
+        dInfo<kmod> << "Exported function '" << name << "' with handler: " << (void *) handler;
+    }
+
+    ValueResult<long> Module::TryCall(const mos::string &name, void *arg, size_t argSize)
+    {
+        if (!exported_functions.contains(name))
+        {
+            mWarn << "Module '" << this->name << "' does not export function '" << name << "'";
+            return Err(-ENOENT);
+        }
+
+        auto &handler = exported_functions[name];
+        if (!handler)
+        {
+            mWarn << "Module '" << this->name << "' has null handler for function '" << name << "'";
+            return Err(-EINVAL);
+        }
+
+        return Ok(handler(arg, argSize));
     }
 } // namespace mos::kmods

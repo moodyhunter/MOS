@@ -159,22 +159,11 @@ impl<T: RpcPbServerTrait + Send> RpcPbServer<T> {
             println!(" --> data: {:?}", msg);
         }
 
-        // remove argument header
-        msg = msg
-            .get((3 * 4)..)
-            .ok_or_else(|| {
-                std::io::Error::new(
-                    std::io::ErrorKind::UnexpectedEof,
-                    "message too short after header",
-                )
-            })?
-            .to_vec();
-
         let result: RpcPbReply;
 
         {
             let mut core_locked = core.lock().unwrap();
-            result = core_locked.dispatch(function_id, &msg);
+            result = core_locked.dispatch(function_id, &msg[12..].to_vec());
         }
 
         match result {

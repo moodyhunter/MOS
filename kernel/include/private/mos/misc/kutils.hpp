@@ -10,3 +10,6 @@
 void hexdump(const char *data, const size_t len);
 
 mos::vector<mos::string> split_string(mos::string_view str, char delim);
+
+// taken from mlibc
+int days_from_civil(int y, unsigned m, unsigned d) noexcept;

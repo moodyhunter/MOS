@@ -73,23 +73,39 @@ long do_syslog(LogLevel level, const char *file, const char *func, int line, con
     msg.info.level = (syslog_level) level;
     msg.info.featid = feat ? feat->id : 0;
     msg.info.source_location.line = line;
-    strncpy(msg.info.source_location.filename, file, sizeof(msg.info.source_location.filename));
-    strncpy(msg.info.source_location.function, func, sizeof(msg.info.source_location.function));
+    msg.info.source_location.filename = kmalloc<char>(strlen(file) + 1);
+    msg.info.source_location.function = kmalloc<char>(strlen(func) + 1);
+    strcpy(msg.info.source_location.filename, file);
+    strcpy(msg.info.source_location.function, func);
 
     if (thread)
     {
         msg.thread.tid = thread->tid;
         msg.process.pid = thread->owner->pid;
-        strncpy(msg.thread.name, thread->name.c_str(), sizeof(msg.thread.name));
-        strncpy(msg.process.name, thread->owner->name.c_str(), sizeof(msg.process.name));
+
+        msg.thread.name = kmalloc<char>(thread->name.size() + 1);
+        msg.process.name = kmalloc<char>(thread->owner->name.size() + 1);
+        strcpy(msg.thread.name, thread->name.c_str());
+        strcpy(msg.process.name, thread->owner->name.c_str());
     }
+
+    msg.message = kmalloc<char>(MOS_PRINTK_BUFFER_SIZE);
 
     va_list args;
     va_start(args, fmt);
-    vsnprintf(msg.message, sizeof(msg.message), fmt, args);
+    vsnprintf(msg.message, MOS_PRINTK_BUFFER_SIZE, fmt, args);
     va_end(args);
 
     do_print_syslog(&msg, feat);
+
+    kfree(msg.info.source_location.filename);
+    kfree(msg.info.source_location.function);
+    if (thread)
+    {
+        kfree(msg.thread.name);
+        kfree(msg.process.name);
+    }
+    kfree(msg.message);
     return 0;
 }
 

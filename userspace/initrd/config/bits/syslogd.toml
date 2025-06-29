@@ -1,8 +1,14 @@
 #:schema ../config-schema.json
 
+[tmp-log.path]
+description = "Make /tmp/log directory"
+part_of = ["base.target"]
+depends_on = ["tmp.mount"]
+options = { path = "/tmp/log" }
+
 [syslogd.service]
 description = "System log daemon"
-depends_on = ["sys.mount"]
-part_of = ["normal.target"]
+depends_on = ["sys.mount", "tmp-log.path"]
+part_of = ["base.target"]
 options = { exec = "/initrd/programs/syslogd" }
-service = { state-change = "notify" }
+service = { state-change = "notify", redirect = false }

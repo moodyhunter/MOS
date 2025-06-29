@@ -276,6 +276,21 @@ namespace mos
             return _size;
         }
 
+        bool contains(const Key &key) const
+        {
+            if (_size == 0)
+                return false;
+
+            const auto bucket = (std::hash<Key>{}(key)) % _capacity;
+            for (const chain *item = _table[bucket]; item != nullptr; item = item->next)
+            {
+                if (std::get<0>(item->entry) == key)
+                    return true;
+            }
+
+            return false;
+        }
+
       private:
         void rehash();
 

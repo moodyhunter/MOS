@@ -31,7 +31,6 @@ macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
     make_directory(${OUTPUT_DIR})
 
     if("${ITEM_TYPE}" STREQUAL "TARGET")
-
         set(TARGET_NAME _mos_initrd_target_${SOURCE_ITEM})
         add_custom_target(${TARGET_NAME}
             WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
@@ -70,6 +69,17 @@ macro(add_to_initrd ITEM_TYPE SOURCE_ITEM PATH)
             COMMENT "Copying directory ${SOURCE_ITEM} to initrd"
             DEPENDS ${SOURCE_ITEM}
             BYPRODUCTS ${DEST_FILES}
+        )
+    elseif("${ITEM_TYPE}" STREQUAL "MODULE")
+        set(TARGET_NAME _mos_initrd_module_${SOURCE_ITEM})
+        get_target_property(MODULE_OUTPUT_PATH ${SOURCE_ITEM} OUTPUT_KERNEL_MODULE_PATH)
+        get_target_property(MODULE_OUTPUT_NAME ${SOURCE_ITEM} OUTPUT_NAME)
+        add_custom_target(${TARGET_NAME}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+            COMMAND ${CMAKE_COMMAND} -E copy ${MODULE_OUTPUT_PATH} ${OUTPUT_DIR}/${MODULE_OUTPUT_NAME}.ko
+            COMMENT "Copying module ${MODULE_OUTPUT_NAME} to initrd"
+            DEPENDS ${SOURCE_ITEM}
+            BYPRODUCTS ${OUTPUT_DIR}/${MODULE_OUTPUT_NAME}.ko
         )
     else()
         message(FATAL_ERROR "Unknown initrd item type: ${ITEM_TYPE}")

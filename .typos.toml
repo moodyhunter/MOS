@@ -3,4 +3,7 @@ extend-ignore-identifiers-re = [
   # RISC-V CSR name
   "\\bSIE_[A-Z]+\\b",
   "\\bsie\\b",
+
+  # ELF relocation names
+  "[Rr][Ee][Ll][Aa]",
 ]

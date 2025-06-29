@@ -3,6 +3,7 @@
 #include "utils/ExecUtils.hpp"
 
 #include "global.hpp"
+#include "mos/syscall/usermode.h"
 
 #include <fcntl.h>
 #include <iostream>
@@ -13,6 +14,18 @@ namespace ExecUtils
 {
     void RedirectLogFd(const std::string &unitBase, const std::string &fileName)
     {
+        fd_t log_fd = 0;
+#if 1
+        MOS_UNUSED(unitBase);
+        MOS_UNUSED(fileName);
+        log_fd = syscall_kmod_call("syslogd", "open_syslogfd", NULL, 0);
+        if (log_fd < 0)
+        {
+            std::cerr << "RedirectLogFd: failed to open syslog file descriptor" << std::endl;
+            exit(1);
+        }
+
+#else
         if (unitBase.empty() || fileName.empty())
         {
             std::cerr << "RedirectLogFd: unitBase or fileName is empty" << std::endl;
@@ -27,12 +40,13 @@ namespace ExecUtils
         }
 
         const std::string log_path = "/tmp/log/" + unitBase + "/" + fileName + ".log";
-        const int log_fd = open(log_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        log_fd = open(log_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
         if (log_fd == -1)
         {
             std::cerr << "failed to open log file " << log_path << std::endl;
             exit(1);
         }
+#endif
 
         dup2(log_fd, STDOUT_FILENO);
         dup2(log_fd, STDERR_FILENO);
@@ -51,7 +65,7 @@ namespace ExecUtils
         return s;
     }
 
-    pid_t DoFork(const std::vector<std::string> &exec, const std::string &token, const std::string &baseId)
+    pid_t DoFork(const std::vector<std::string> &exec, const std::string &token, const std::string &baseId, bool redirect)
     {
         int fds[2];
         if (pipe(fds) == -1)
@@ -72,8 +86,12 @@ namespace ExecUtils
                 args.push_back(arg.c_str());
             args.push_back(nullptr);
 
-            // redirect stdout and stderr to /tmp/log/<baseid>/<pid>.log
-            ExecUtils::RedirectLogFd(baseId, std::to_string(getpid()));
+            if (redirect)
+            {
+                // redirect stdout and stderr to /tmp/log/<baseid>/<pid>.log
+                ExecUtils::RedirectLogFd(baseId, std::to_string(getpid()));
+            }
+
             setenv("MOS_SERVICE_TOKEN", token.c_str(), true);
 
             const auto err = execve(exec[0].c_str(), (char **) args.data(), environ);

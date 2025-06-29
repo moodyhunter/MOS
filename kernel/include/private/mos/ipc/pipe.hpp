@@ -11,9 +11,9 @@
 struct pipe_t : mos::NamedType<"Pipe">
 {
     u32 magic;
-    waitlist_t waitlist; ///< for both reader and writer, only one party can wait on the pipe at a time
-    spinlock_t lock;     ///< protects the buffer_pos (and thus the buffer)
-    bool other_closed;   ///< true if the other end of the pipe has been closed
+    waitlist_t waitlist;       ///< for both reader and writer, only one party can wait on the pipe at a time
+    spinlock_t lock;           ///< protects the buffer_pos (and thus the buffer)
+    bool other_closed = false; ///< true if the other end of the pipe has been closed
     void *buffers;
     ring_buffer_pos_t buffer_pos;
 };

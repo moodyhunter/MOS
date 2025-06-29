@@ -36,7 +36,7 @@ void std::__glibcxx_assert_fail(const char *__file, int __line, const char *__fu
     mos_panic_inline("assertion failed: %s:%u: %s: %s", __file, __line, __function, __condition);
 }
 
-void mos::__raise_bad_ptrresult_value(int errorCode)
+void mos::__raise_bad_result_value(int errorCode)
 {
     mos_panic_inline("PtrResultBase: bad value accessed: %d", errorCode);
 }

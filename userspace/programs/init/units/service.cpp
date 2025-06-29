@@ -19,16 +19,24 @@ ServiceOptions::ServiceOptions(toml::node_view<toml::node> table_in)
     }
 
     auto &table = *table_in.as_table();
-    const std::string state_change = table["state-change"].value_or("immediate");
-    table.erase("state-change");
-
     {
+        const std::string state_change = table["state-change"].value_or("immediate");
         if (state_change == "immediate")
             stateChangeNotifyType = StateChangeNotifyType::Immediate;
         else if (state_change == "notify")
             stateChangeNotifyType = StateChangeNotifyType::Notify;
         else
             std::cerr << "service: bad state-change" << std::endl;
+        table.erase("state-change");
+    }
+
+    if (table.contains("redirect"))
+    {
+        if (table["redirect"].is_boolean())
+            redirect = table["redirect"].as_boolean()->get();
+        else
+            std::cerr << "service: bad redirect" << std::endl;
+        table.erase("redirect");
     }
 
     // warn if table["service"] contains unknown keys
@@ -53,7 +61,7 @@ bool Service::Start()
 {
     status.Starting("starting...");
     token = ExecUtils::GetRandomString();
-    const auto pid = ExecUtils::DoFork(exec, token, GetBaseId());
+    const auto pid = ExecUtils::DoFork(exec, token, GetBaseId(), service_options.redirect);
     if (pid < 0)
     {
         std::cerr << "failed to start service " << id << std::endl;

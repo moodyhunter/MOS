@@ -2,7 +2,7 @@
 syntax = "proto3";
 import "nanopb.proto";
 
-option (nanopb_fileopt).fallback_type = FT_STATIC;
+option (nanopb_fileopt).fallback_type = FT_POINTER;
 option (nanopb_fileopt).proto3_singular_msgs = true;
 
 enum syslog_level
@@ -19,20 +19,20 @@ enum syslog_level
 message pb_thread
 {
     uint32 tid = 1;
-    string name = 2 [ (nanopb).max_size = 32 ];
+    string name = 2;
 }
 
 message pb_process
 {
     uint32 pid = 1;
-    string name = 2 [ (nanopb).max_size = 32 ];
+    string name = 2;
 }
 
 message pb_source_location
 {
-    string filename = 1 [ (nanopb).max_size = 32 ];
+    string filename = 1;
     uint32 line = 2;
-    string function = 3 [ (nanopb).max_size = 32 ];
+    string function = 3;
 }
 
 message pb_syslog_source_info
@@ -46,7 +46,7 @@ message pb_syslog_message
 {
     uint64 timestamp = 1;
     pb_syslog_source_info info = 2;
-    string message = 3 [ (nanopb).max_size = 1024 ];
+    string message = 3;
 
     pb_thread thread = 4;
     pb_process process = 5;

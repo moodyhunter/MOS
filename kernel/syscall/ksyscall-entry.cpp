@@ -5,6 +5,7 @@
 #include "mos/ipc/memfd.hpp"
 #include "mos/ipc/pipe.hpp"
 #include "mos/kmod/kmod.hpp"
+#include "mos/misc/kutils.hpp"
 #include "mos/misc/power.hpp"
 #include "mos/mm/dma.hpp"
 #include "mos/tasks/signal.hpp"
@@ -35,17 +36,6 @@
 #define DEFINE_SYSCALL(ret, name)                                                                                                                                        \
     MOS_STATIC_ASSERT(SYSCALL_DEFINED(name));                                                                                                                            \
     ret define_syscall(name)
-
-// taken from mlibc
-constexpr static int days_from_civil(int y, unsigned m, unsigned d) noexcept
-{
-    y -= m <= 2;
-    const int era = (y >= 0 ? y : y - 399) / 400;
-    const unsigned yoe = static_cast<unsigned>(y - era * 400);            // [0, 399]
-    const unsigned doy = (153 * (m > 2 ? m - 3 : m + 9) + 2) / 5 + d - 1; // [0, 365]
-    const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;           // [0, 146096]
-    return era * 146097 + static_cast<int>(doe) - 719468;
-}
 
 DEFINE_SYSCALL(void, poweroff)(bool reboot, u32 magic)
 {
@@ -726,8 +716,22 @@ DEFINE_SYSCALL(long, vfs_rmdir)(const char *path)
 
 DEFINE_SYSCALL(long, kmod_load)(const char *path)
 {
-    const auto ret = mos::kmods::load(path);
+    const auto ret = mos::kmods::LoadModule(path);
     if (ret.isErr())
         return ret.getErr();
     return 0;
+}
+
+DEFINE_SYSCALL(long, kmod_call)(const char *module_name, const char *function_name, void *arg, size_t arg_size)
+{
+    const auto module = mos::kmods::GetModule(module_name);
+    if (!module)
+    {
+        mWarn << "kmod_call: module '" << module_name << "' not found";
+        return -ENOENT;
+    }
+
+    const auto result = module->TryCall(function_name, arg, arg_size);
+
+    return result.match([](auto value) { return value; }, [&](auto error) { return error; });
 }

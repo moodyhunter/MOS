@@ -75,8 +75,6 @@ add_subdirectory(kernel)
 include(add_mos_library)
 add_subdirectory(libs)
 
-add_subdirectory(kmodtest)
-
 if (__MOS_HAS_NO_COMPILER)
     message(WARNING "Skipping userspace build because __MOS_HAS_NO_COMPILER is set.")
 else()

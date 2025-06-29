@@ -1,76 +1,116 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "libsm.h"
-#include "mos-syslog.h"
+#include "proto/syslog.pb.h"
+#include "syslogd.hpp"
 
+#include <chrono>
+#include <iostream>
+#include <libipc/ipc.h>
 #include <librpc/internal.h>
 #include <librpc/macro_magic.h>
 #include <librpc/rpc.h>
-#include <librpc/rpc_server.h>
+#include <mos/syscall/usermode.h>
+#include <pb.h>
+#include <pb_decode.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
-RPC_DECLARE_SERVER(syslogd, SYSLOGD_RPC_X)
+constexpr auto SYSLOG_MODULE_PATH = "/initrd/modules/syslogd.ko";
 
-static void syslogd_on_connect(rpc_context_t *context)
+void doReadOnFd(fd_t fd)
 {
-    const char *name = "<unknown>";
-    rpc_context_set_data(context, strdup(name));
+    while (true)
+    {
+        ipc_msg_t *msg = ipc_read_msg(fd);
+        if (!msg)
+        {
+            puts("EOF reached on syslog reader, exiting...");
+            break; // Exit the loop if EOF is reached
+        }
+
+        if (msg->size == 0)
+        {
+            puts("Received empty message, skipping...");
+            ipc_msg_destroy(msg);
+            continue; // Skip empty messages
+        }
+
+        pb_syslog_message val = {};
+        pb_istream_t stream = pb_istream_from_buffer(reinterpret_cast<pb_byte_t *>(msg->data), msg->size);
+        if (!pb_decode(&stream, pb_syslog_message_fields, &val))
+        {
+            puts("Failed to decode syslog message");
+            ipc_msg_destroy(msg);
+            continue; // Skip messages that cannot be decoded
+        }
+
+        std::string_view msg_view(val.message, val.message ? strlen(val.message) : 0);
+        if (msg_view.ends_with('\n'))
+            msg_view.remove_suffix(1); // Remove trailing newline if present
+
+        const auto timestamp = std::chrono::system_clock::time_point(std::chrono::seconds(val.timestamp));
+        std::time_t time_t = std::chrono::system_clock::to_time_t(timestamp);
+        std::tm *tm = std::localtime(&time_t);
+        char time_buffer[64];
+        std::strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", tm);
+
+        std::string_view process_name(val.process.name ? val.process.name : "unknown");
+        std::string_view thread_name(val.thread.name ? val.thread.name : "unknown");
+        std::string_view level_str;
+        switch (val.info.level)
+        {
+            case syslog_level::syslog_level_UNSET: level_str = "UNSET"; break;
+            case syslog_level::syslog_level_INFO2: level_str = "INFO2"; break;
+            case syslog_level::syslog_level_INFO: level_str = "INFO "; break;
+            case syslog_level::syslog_level_EMPH: level_str = "EMPH "; break;
+            case syslog_level::syslog_level_WARN: level_str = "WARN "; break;
+            case syslog_level::syslog_level_EMERG: level_str = "EMERG"; break;
+            case syslog_level::syslog_level_FATAL: level_str = "FATAL"; break;
+            default: level_str = "UNKNOWN"; break;
+        }
+
+        std::cout << "[" << time_buffer << "] "          //
+                  << "CPU: " << val.cpu_id               //
+                  << ", Process: " << process_name       //
+                  << " (PID: " << val.process.pid << ")" //
+                  << ", Thread: " << thread_name         //
+                  << " (TID: " << val.thread.tid << ")"  //
+                  << ", Level: " << level_str            //
+                  << ", Message: " << msg_view << std::endl;
+
+        ipc_msg_destroy(msg);                       // Clean up the message after processing
+        pb_release(pb_syslog_message_fields, &val); // Release the decoded message
+    }
+    close(fd);
 }
 
-static void syslogd_on_disconnect(rpc_context_t *context)
+int main(int, char **)
 {
-    void *data = rpc_context_get_data(context);
-    if (data != NULL)
-        free(data); // client name
-    MOS_UNUSED(context);
-}
+    if (syscall_kmod_load(SYSLOG_MODULE_PATH))
+    {
+        puts("Failed to load syslogd kernel module");
+        ReportServiceState(UnitStatus::Failed, "syslogd kernel module load failed");
+        return -1;
+    }
 
-static rpc_result_code_t syslogd_set_name(rpc_context_t *context, const char *name)
-{
-    MOS_UNUSED(context);
+    OpenReaderRequest request;
+    if (syscall_kmod_call(SYSLOGD_MODULE_NAME, "open_reader", &request, sizeof(request)) != 0)
+    {
+        puts("Failed to open syslog reader");
+        ReportServiceState(UnitStatus::Failed, "syslogd reader open failed");
+        return -1;
+    }
 
-    if (name == NULL)
-        return RPC_RESULT_INVALID_ARGUMENT;
-
-    printf("syslogd: setting name to '%s'\n", name);
-    void *old = rpc_context_set_data(context, strdup(name));
-    if (old != NULL)
-        free(old);
-    return RPC_RESULT_OK;
-}
-
-static rpc_result_code_t syslogd_log(rpc_context_t *context, const char *message)
-{
-    MOS_UNUSED(context);
-    void *data = rpc_context_get_data(context);
-    printf("[%s] %s\n", (char *) data, message);
-    return RPC_RESULT_OK;
-}
-
-static rpc_result_code_t syslogd_logc(rpc_context_t *context, const char *category, const char *message)
-{
-    MOS_UNUSED(context);
-    void *data = rpc_context_get_data(context);
-    printf("[%s] [%s] %s\n", (char *) data, category, message);
-    return RPC_RESULT_OK;
-}
-
-int main(int argc, char **argv)
-{
-    MOS_UNUSED(argc);
-    MOS_UNUSED(argv);
-
-    puts("syslogd: starting");
-    rpc_server_t *const server = rpc_server_create(SYSLOGD_SERVICE_NAME, NULL);
-    rpc_server_set_on_connect(server, syslogd_on_connect);
-    rpc_server_set_on_disconnect(server, syslogd_on_disconnect);
-    rpc_server_register_functions(server, syslogd_functions, MOS_ARRAY_SIZE(syslogd_functions));
+    if (request.fd < 0)
+    {
+        puts("Failed to open syslog reader");
+        ReportServiceState(UnitStatus::Failed, "syslogd reader open failed");
+        return -1;
+    }
 
     ReportServiceState(UnitStatus::Started, "syslogd started");
-    rpc_server_exec(server);
-    fputs("syslogd: server exited\n", stderr);
+    doReadOnFd(request.fd);
     return 0;
 }

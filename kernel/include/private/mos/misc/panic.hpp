@@ -60,6 +60,6 @@ void try_handle_kernel_panics(ptr_t ip);
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
         pr_emerg(fmt, ##__VA_ARGS__);                                                                                                                                    \
-        static const panic_point_t point = { .ip = 0, .file = __FILE__, .func = __func__, .line = __LINE__ };                                                            \
-        handle_kernel_panic(&point);                                                                                                                                     \
+        static const panic_point_t __panic_point = { .ip = 0, .file = __FILE__, .func = __func__, .line = __LINE__ };                                                    \
+        handle_kernel_panic(&__panic_point);                                                                                                                             \
     } while (0)

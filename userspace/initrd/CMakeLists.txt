@@ -4,6 +4,3 @@ add_to_initrd(DIRECTORY assets /assets)
 add_to_initrd(DIRECTORY config /config)
 add_to_initrd(DIRECTORY etc /etc)
 add_to_initrd(FILE "${CMAKE_BINARY_DIR}/summary.txt" /)
-
-
-add_to_initrd(FILE "${CMAKE_BINARY_DIR}/modules/kmodtest.o" /kmods/)

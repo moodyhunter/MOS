@@ -354,28 +354,28 @@ template<typename T>
 using ptr = mos::shared_ptr<T>;
 
 template<typename T>
-struct PtrResult<mos::shared_ptr<T>> : public PtrResultBase
+struct PtrResult<mos::shared_ptr<T>> : public ResultBase
 {
   private:
     const mos::shared_ptr<T> value;
 
   public:
-    PtrResult(const mos::shared_ptr<T> &value) : PtrResultBase(0), value(value) {};
-    PtrResult(mos::shared_ptr<T> &&value) : PtrResultBase(0), value(std::move(value)) {};
-    PtrResult(int errorCode) : PtrResultBase(errorCode), value(nullptr) {};
+    PtrResult(const mos::shared_ptr<T> &value) : ResultBase(0), value(value) {};
+    PtrResult(mos::shared_ptr<T> &&value) : ResultBase(0), value(std::move(value)) {};
+    PtrResult(long errorCode) : ResultBase(errorCode), value(nullptr) {};
 
   public:
     mos::shared_ptr<T> get() const
     {
         if (isErr())
-            mos::__raise_bad_ptrresult_value(errorCode);
+            mos::__raise_bad_result_value(errorCode);
         return value;
     }
 
     T *operator->() const
     {
         if (isErr())
-            mos::__raise_bad_ptrresult_value(errorCode);
+            mos::__raise_bad_result_value(errorCode);
         return value.get();
     }
 };

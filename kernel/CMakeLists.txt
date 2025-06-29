@@ -55,6 +55,7 @@ target_include_directories(kernel_public_include SYSTEM INTERFACE
 
 # private includes
 target_include_directories(kernel_private_include INTERFACE
+    ${CMAKE_BINARY_DIR}/mosrpc/
     ${CMAKE_SOURCE_DIR}/kernel/include/private
     ${CMAKE_SOURCE_DIR}/kernel/arch/${MOS_ARCH}/include/private
 )
@@ -107,9 +108,10 @@ add_kernel_submodule(lib)
 add_kernel_submodule(misc)
 add_kernel_submodule(mm)
 add_kernel_submodule(syslog)
+add_kernel_submodule(syscall)
 add_kernel_submodule(tasks)
 
-add_kernel_source(kmain.cpp ksyscall_entry.cpp ksyscall.cpp)
+add_kernel_source(kmain.cpp)
 
 target_link_libraries(mos_kernel PRIVATE mos::rpc-protocols)
 add_subdirectory(tests)
