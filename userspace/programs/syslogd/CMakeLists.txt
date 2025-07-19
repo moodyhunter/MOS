@@ -11,9 +11,10 @@ target_include_directories(syslogd PRIVATE include)
 add_to_initrd(TARGET syslogd /programs)
 
 # syslogd client library
-add_library(libsyslog INTERFACE)
-target_include_directories(libsyslog INTERFACE include)
-target_link_libraries(libsyslog INTERFACE mos::librpc-client)
+add_library(libsyslog SHARED libsyslogd.c)
+target_include_directories(libsyslog PUBLIC include)
+target_link_libraries(libsyslog PRIVATE mos::librpc-client)
+add_to_initrd(TARGET libsyslog /lib)
 
 # syslogd kernel module
 mos_add_kernel_module(syslogd-kmod NAME syslogd SOURCES kmod.cpp)

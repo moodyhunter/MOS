@@ -3,13 +3,14 @@
 #pragma once
 
 #include <mos/types.h>
-#ifndef __MOS_KERNEL__
-#include <mos/syscall/usermode.h>
+
+#ifdef __cplusplus
+#define ENUM_CLASS class
+#else
+#define ENUM_CLASS
 #endif
 
-static constexpr auto SYSLOGD_MODULE_NAME = "syslogd";
-
-enum class SyslogLevel
+enum ENUM_CLASS SyslogLevel
 {
     Debug,
     Info,
@@ -23,9 +24,9 @@ enum class SyslogLevel
 
 struct SyslogRequest
 {
-    SyslogLevel level;   // Log level of the message
-    const char *message; // The log message to be processed
-    size_t messageSize;  // Size of the log message
+    enum SyslogLevel level; // Log level of the message
+    const char *message;    // The log message to be processed
+    size_t messageSize;     // Size of the log message
 };
 
 struct OpenReaderRequest
@@ -33,15 +34,9 @@ struct OpenReaderRequest
     fd_t fd; // File descriptor to read from
 };
 
-#ifndef __MOS_KERNEL__
-inline bool do_syslog(SyslogLevel level, const char *message)
-{
-    SyslogRequest request{ level, message };
-    return syscall_kmod_call("syslogd", "log", &request, sizeof(request)) == 0;
-}
+__maybe_unused static const char *SYSLOGD_MODULE_NAME = "syslogd";
 
-inline fd_t do_open_syslog_fd()
-{
-    return syscall_kmod_call("syslogd", "open_syslogfd", NULL, 0);
-}
+#ifndef __MOS_KERNEL__
+MOSAPI bool do_syslog(enum SyslogLevel level, const char *message);
+MOSAPI fd_t do_open_syslog_fd();
 #endif

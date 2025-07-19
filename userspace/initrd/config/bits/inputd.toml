@@ -1,0 +1,8 @@
+#:schema ../config-schema.json
+
+[inputd.service]
+description = "Input Event Daemon"
+depends_on = ["syslogd.service"]
+part_of = ["base.target"]
+options = { exec = "/initrd/programs/inputd" }
+service = { state-change = "notify" }

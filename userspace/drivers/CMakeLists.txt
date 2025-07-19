@@ -10,6 +10,7 @@ add_subdirectory(fs)
 add_subdirectory(device-manager)
 add_subdirectory(pci-daemon)
 add_subdirectory(networkd)
+add_subdirectory(inputd)
 
 add_subdirectory(libdma)
 

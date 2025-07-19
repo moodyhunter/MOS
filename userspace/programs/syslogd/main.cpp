@@ -27,14 +27,14 @@ void doReadOnFd(fd_t fd)
         if (!msg)
         {
             puts("EOF reached on syslog reader, exiting...");
-            break; // Exit the loop if EOF is reached
+            break;
         }
 
         if (msg->size == 0)
         {
             puts("Received empty message, skipping...");
             ipc_msg_destroy(msg);
-            continue; // Skip empty messages
+            continue;
         }
 
         pb_syslog_message val = {};
@@ -71,14 +71,12 @@ void doReadOnFd(fd_t fd)
             default: level_str = "UNKNOWN"; break;
         }
 
-        std::cout << "[" << time_buffer << "] "          //
-                  << "CPU: " << val.cpu_id               //
-                  << ", Process: " << process_name       //
-                  << " (PID: " << val.process.pid << ")" //
-                  << ", Thread: " << thread_name         //
-                  << " (TID: " << val.thread.tid << ")"  //
-                  << ", Level: " << level_str            //
-                  << ", Message: " << msg_view << std::endl;
+        std::cout << "[" << time_buffer << "] "                            //
+                  << "CPU: " << val.cpu_id                                 //
+                  << "[" << val.process.pid << ":" << process_name << "] " //
+                  << "[" << val.thread.tid << ":" << thread_name << "] "   //
+                  << level_str                                             //
+                  << ": " << msg_view << std::endl;
 
         ipc_msg_destroy(msg);                       // Clean up the message after processing
         pb_release(pb_syslog_message_fields, &val); // Release the decoded message

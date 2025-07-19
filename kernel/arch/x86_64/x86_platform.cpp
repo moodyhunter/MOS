@@ -92,16 +92,6 @@ mos_platform_info_t *const platform_info = &x86_platform;
 mos_platform_info_t x86_platform = { .boot_console = &COM1Console };
 const acpi_rsdp_t *acpi_rsdp = NULL;
 
-static bool x86_keyboard_handler(u32 irq, void *data)
-{
-    MOS_UNUSED(data);
-    MOS_ASSERT(irq == IRQ_KEYBOARD);
-    int scancode = port_inb(0x60);
-
-    pr_info("Keyboard scancode: %x", scancode);
-    return true;
-}
-
 static bool x86_pit_timer_handler(u32 irq, void *data)
 {
     MOS_UNUSED(data);
@@ -287,11 +277,9 @@ void platform_startup_late()
 
     interrupt_handler_register(IRQ_PIT_TIMER, x86_pit_timer_handler, NULL);
     interrupt_handler_register(IRQ_CMOS_RTC, rtc_irq_handler, NULL);
-    interrupt_handler_register(IRQ_KEYBOARD, x86_keyboard_handler, NULL);
     interrupt_handler_register(IRQ_COM1, serial_console_irq_handler, &COM1Console);
 
     ioapic_enable_interrupt(IRQ_CMOS_RTC, x86_platform.boot_cpu_id);
-    ioapic_enable_interrupt(IRQ_KEYBOARD, x86_platform.boot_cpu_id);
     ioapic_enable_interrupt(IRQ_COM1, x86_platform.boot_cpu_id);
 
     x86_setup_lapic_timer();

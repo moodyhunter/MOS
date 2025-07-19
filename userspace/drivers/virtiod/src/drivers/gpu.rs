@@ -18,8 +18,12 @@ pub fn run_gpu<T: Transport>(transport: T) -> RpcResult<()> {
 
     let fb = gpu.setup_framebuffer().expect("failed to get fb").as_ptr() as *mut u8;
 
-    let mut n = 0;
+    let cursor_image: Vec<u8> = vec![128; 64 * 64 * 4]; // Assuming a 16x16 cursor with 4 bytes per pixel (RGBA)
 
+    gpu.setup_cursor(cursor_image.as_slice(), 64, 64, 64, 64)
+        .expect("failed to setup cursor image");
+
+    let mut n = 600;
     loop {
         for y in 0..height {
             for x in 0..width {
@@ -39,6 +43,6 @@ pub fn run_gpu<T: Transport>(transport: T) -> RpcResult<()> {
 
         n = n.wrapping_add(2);
         gpu.flush().expect("failed to flush");
-        sleep(std::time::Duration::from_millis(200));
+        sleep(std::time::Duration::from_millis(1000 / 60)); // 60 FPS
     }
 }
