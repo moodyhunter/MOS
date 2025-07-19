@@ -5,7 +5,7 @@ template_params = ["device_id", "bus", "dev", "func"]
 description = "Intel PCI Device [device_id] at [bus]:[dev].[func]"
 inherits = "pci.device-template"
 inherits_args = { "vendor_id" = "0x8086" }
-options = { driver = "/initrd/programs/true", driver_args = [] }
+options = { driver = "/initrd/programs/utils/true", driver_args = [] }
 
 # 29c0: Intel 82G33/G31/P35/P31 Express DRAM Controller
 [intel-dram-controller.device-template]

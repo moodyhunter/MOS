@@ -1,0 +1,9 @@
+#:schema ../config-schema.json
+
+[test-true.service]
+description = "Test Service - True"
+options = { exec = "/initrd/programs/utils/true" }
+
+[test-false.service]
+description = "Test Service - False"
+options = { exec = "/initrd/programs/utils/false" }

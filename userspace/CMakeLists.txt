@@ -5,6 +5,7 @@ include(cmake/userspace.cmake)
 add_subdirectory(libs)
 add_subdirectory(drivers)
 add_subdirectory(programs)
+add_subdirectory(services)
 add_subdirectory(tests)
 
 add_subdirectory(games)

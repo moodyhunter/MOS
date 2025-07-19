@@ -1,0 +1,5 @@
+[ramdisk.service]
+description = "RAM disk instance"
+depends_on = ["blockdev-manager.service"]
+part_of = ["normal.target"]
+options = { exec = "/initrd/drivers/ramdisk" }

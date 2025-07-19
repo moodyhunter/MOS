@@ -1,4 +1,7 @@
 # setup some VERY USEFUL aliases
+
+export PATH="$PATH:/initrd/programs/utils"
+
 alias l ls
 alias poweroff shutdown
 alias ... 'cd ../..'

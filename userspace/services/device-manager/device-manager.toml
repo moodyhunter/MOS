@@ -1,0 +1,7 @@
+[device-manager.service]
+description = "Device manager"
+# todo: postprone device discovery to a later stage
+depends_on = ["dev.path", "networkd.service"]
+part_of = ["normal.target"]
+options = { exec = "/initrd/services/device-manager" }
+service = { state-change = "notify" }

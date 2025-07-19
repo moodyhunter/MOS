@@ -1,0 +1,5 @@
+[networkd.service]
+description = "Network device manager"
+part_of = ["normal.target"]
+options = { exec = "/initrd/services/networkd" }
+service = { state-change = "notify" }

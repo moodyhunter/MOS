@@ -2,21 +2,7 @@
 
 add_subdirectory(acpi-daemon)
 
-add_subdirectory(blockdev-layer-gpt)
-add_subdirectory(blockdev-manager)
-
-add_subdirectory(fs)
-
-add_subdirectory(device-manager)
+add_subdirectory(ramdisk)
 add_subdirectory(pci-daemon)
-add_subdirectory(networkd)
-add_subdirectory(inputd)
 
-add_subdirectory(libdma)
-
-add_simple_rust_project(
-    "${CMAKE_CURRENT_LIST_DIR}/virtiod"
-    virtiod
-    "/drivers/"
-    DEPENDS dma
-)
+add_simple_rust_project("./virtiod" virtiod "/drivers/" DEPENDS dma)

@@ -8,14 +8,14 @@
 namespace ExecUtils
 {
     /**
-     * @brief Redirect stdout to /tmp/log/<unitbase>/<fileName>.log
+     * @brief Redirect stdout to syslog daemon
      */
     void RedirectLogFd(const std::string &unitBase, const std::string &fileName);
 
     std::string GetRandomString(size_t length = 32);
 
     /**
-     * @brief Do fork and execute the given command, with logging redirected to /tmp/log/<unitbase>/<fileName>.log
+     * @brief Do fork and execute the given command, with logging redirected to syslog daemon.
      * and the MOS_SERVICE_TOKEN environment variable set to the given token.
      *
      * @param exec the command to execute, as a vector of strings

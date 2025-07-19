@@ -1,0 +1,8 @@
+#:schema ../config-schema.json
+
+[syslogd.service]
+description = "System log daemon"
+depends_on = ["sys.mount"]
+part_of = ["base.target"]
+options = { exec = "/initrd/services/syslogd" }
+service = { state-change = "notify", redirect = false }

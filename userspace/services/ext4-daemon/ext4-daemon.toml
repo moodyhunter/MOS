@@ -1,0 +1,5 @@
+[ext4fs.service]
+description = "Ext4 file system driver"
+depends_on = ["blockdev-manager.service"]
+options = { exec = "/initrd/services/ext4-daemon" }
+service = { state-change = "notify" }

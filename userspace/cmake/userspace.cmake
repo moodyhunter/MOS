@@ -132,6 +132,8 @@ function(add_simple_rust_project PROJECT_DIR NAME INITRD_SUBDIR)
         return()
     endif()
 
+    cmake_path(ABSOLUTE_PATH PROJECT_DIR OUTPUT_VARIABLE PROJECT_DIR)
+
     cmake_parse_arguments(ARGS "" "" "DEPENDS" ${ARGN})
 
     set(OUTPUT_FILE "${CMAKE_SOURCE_DIR}/target/${MOS_RUST_TARGET}/debug/${NAME}")

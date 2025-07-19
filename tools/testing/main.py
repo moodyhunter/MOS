@@ -170,7 +170,7 @@ def main():
             logging.info('Starting tests...')
 
             TESTS: list[UnitTestCase] = [
-                RunCommand('export', ['PATH=/initrd/programs:/initrd/bin:/initrd/tests']),
+                RunCommand('export', ['PATH=/initrd/programs:/initrd/programs/utils:/initrd/bin:/initrd/tests']),
                 RunCommand('mkdir', ['/test-results']),
                 RunCommand('test-launcher').redirect(1, '/test-results/test-launcher.log', write=True),
                 ReadFile('/test-results/test-launcher.log', save_to=RESULTS_DIR + 'test-launcher.log'),

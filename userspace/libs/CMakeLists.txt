@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 add_subdirectory(argparse)
+add_subdirectory(libdma)
 add_subdirectory(libconfig)
 add_subdirectory(readline)
 add_subdirectory(libsm)

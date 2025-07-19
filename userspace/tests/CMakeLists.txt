@@ -10,6 +10,7 @@ add_subdirectory(libstdcxx)
 add_subdirectory(libc-test)
 add_simple_rust_project("${CMAKE_CURRENT_LIST_DIR}/rust-test" rust-test "/tests/")
 add_subdirectory(signal)
+add_subdirectory(pbtest)
 add_subdirectory(pipe-test)
 
 add_subdirectory(librpc-rs-test)

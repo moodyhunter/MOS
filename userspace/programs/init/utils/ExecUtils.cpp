@@ -14,39 +14,16 @@ namespace ExecUtils
 {
     void RedirectLogFd(const std::string &unitBase, const std::string &fileName)
     {
-        fd_t log_fd = 0;
-#if 1
         MOS_UNUSED(unitBase);
         MOS_UNUSED(fileName);
+
+        fd_t log_fd = 0;
         log_fd = syscall_kmod_call("syslogd", "open_syslogfd", NULL, 0);
         if (log_fd < 0)
         {
             std::cerr << "RedirectLogFd: failed to open syslog file descriptor" << std::endl;
             exit(1);
         }
-
-#else
-        if (unitBase.empty() || fileName.empty())
-        {
-            std::cerr << "RedirectLogFd: unitBase or fileName is empty" << std::endl;
-            exit(1);
-        }
-
-        const std::string log_dir = "/tmp/log/" + unitBase;
-        if (mkdir(log_dir.c_str(), 0755) == -1 && errno != EEXIST)
-        {
-            std::cerr << "failed to create log directory " << log_dir << std::endl;
-            exit(1);
-        }
-
-        const std::string log_path = "/tmp/log/" + unitBase + "/" + fileName + ".log";
-        log_fd = open(log_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-        if (log_fd == -1)
-        {
-            std::cerr << "failed to open log file " << log_path << std::endl;
-            exit(1);
-        }
-#endif
 
         dup2(log_fd, STDOUT_FILENO);
         dup2(log_fd, STDERR_FILENO);
@@ -87,10 +64,7 @@ namespace ExecUtils
             args.push_back(nullptr);
 
             if (redirect)
-            {
-                // redirect stdout and stderr to /tmp/log/<baseid>/<pid>.log
                 ExecUtils::RedirectLogFd(baseId, std::to_string(getpid()));
-            }
 
             setenv("MOS_SERVICE_TOKEN", token.c_str(), true);
 

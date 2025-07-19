@@ -1,12 +1,5 @@
 #:schema ../config-schema.json
 
-[ramdisk.service]
-description = "RAM disk instance"
-depends_on = ["blockdev-manager.service"]
-part_of = ["normal.target"]
-options = { exec = "/initrd/programs/ramdisk" }
-
-
 [pci-discoverer.service]
 description = "PCI device discoverer"
 depends_on = ["device-manager.service"]

@@ -1,0 +1,6 @@
+[blockdev-manager.service]
+description = "Block device manager"
+depends_on = ["dev-block.path", "device-manager.service"]
+part_of = ["normal.target"]
+options = { exec = "/initrd/services/blockdev-manager" }
+service = { state-change = "notify" }
