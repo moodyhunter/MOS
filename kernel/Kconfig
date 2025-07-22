@@ -95,7 +95,7 @@ config STACK_PAGES_KERNEL
 
 config STACK_PAGES_USER
     int "Number of pages for user stack"
-    default 32
+    default 8000
 
 endmenu
 
