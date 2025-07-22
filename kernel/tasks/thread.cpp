@@ -118,21 +118,21 @@ PtrResult<Thread> thread_new(Process *owner, thread_mode tmode, mos::string_view
     // check if the stack vmap is valid
     if (stack_vmap->content == VMAP_STACK) // has been claimed by another thread?
     {
-        pr_warn("stack %pt has been claimed by another thread", explicit_stack_top);
+        pr_warn("stack %p has been claimed by another thread", explicit_stack_top);
         goto done_efault;
     }
 
     // check if the stack is large enough
     if (stack_vmap->npages < user_stack_size / MOS_PAGE_SIZE)
     {
-        pr_warn("stack %pt is too small (size=%zu, required=%zu)", explicit_stack_top, stack_vmap->npages * MOS_PAGE_SIZE, user_stack_size);
+        pr_warn("stack %p is too small (size=%zu, required=%zu)", explicit_stack_top, stack_vmap->npages * MOS_PAGE_SIZE, user_stack_size);
         goto done_efault;
     }
 
     // check if the stack is writable
     if (!(stack_vmap->vmflags & VM_USER_RW))
     {
-        pr_warn("stack %pt is not writable", explicit_stack_top);
+        pr_warn("stack %p is not writable", explicit_stack_top);
         goto done_efault;
     }
 
