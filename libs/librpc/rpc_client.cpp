@@ -299,7 +299,7 @@ rpc_result_code_t rpc_do_pb_call(rpc_server_stub_t *stub, u32 funcid, const pb_m
     pb_byte_t buf[bufsize];
     pb_ostream_t wstream = pb_ostream_from_buffer(buf, bufsize);
     if (!pb_encode(&wstream, reqm, req))
-        return RPC_RESULT_CLIENT_WRITE_FAILED;
+        return RPC_RESULT_CLIENT_PB_WRITE_FAILED;
 
     rpc_call_t *call = rpc_call_create(stub, funcid);
     rpc_call_arg(call, RPC_ARGTYPE_BUFFER, buf, wstream.bytes_written);
