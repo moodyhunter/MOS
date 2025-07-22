@@ -138,9 +138,12 @@ PtrResult<Thread> thread_new(Process *owner, thread_mode tmode, mos::string_view
 
     {
         const ptr_t stack_bottom = ALIGN_UP_TO_PAGE((ptr_t) explicit_stack_top) - user_stack_size;
-        vmap_t *second = vmap_split(stack_vmap, (stack_bottom - stack_vmap->vaddr) / MOS_PAGE_SIZE);
-        spinlock_release(&stack_vmap->lock);
-        stack_vmap = second;
+        if (stack_bottom - stack_vmap->vaddr)
+        {
+            vmap_t *second = vmap_split(stack_vmap, (stack_bottom - stack_vmap->vaddr) / MOS_PAGE_SIZE);
+            spinlock_release(&stack_vmap->lock);
+            stack_vmap = second;
+        }
 
         stack_vmap->content = VMAP_STACK;
         stack_vmap->type = VMAP_TYPE_PRIVATE;
