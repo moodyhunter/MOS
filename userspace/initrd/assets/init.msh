@@ -20,5 +20,7 @@ alias self-test 'mossh -c /initrd/assets/self-test.msh'
 
 alias setup 'sc start data-partition.target'
 
+alias g 'sc start graphical.target'
+
 export PATH=$PATH:/initrd/tests:/data/bin:/initrd/games"
 

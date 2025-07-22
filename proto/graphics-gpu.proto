@@ -1,0 +1,53 @@
+syntax = "proto3";
+import "nanopb.proto";
+import "mosrpc.proto";
+import "graphics.proto";
+import "mosrpc-options.proto";
+
+option (nanopb_fileopt).fallback_type = FT_POINTER;
+option (nanopb_fileopt).proto3_singular_msgs = true;
+
+message QueryDisplayInfoRequest
+{
+    string display_name = 1; // the name of the display to query
+}
+
+message QueryDisplayInfoResponse
+{
+    string display_name = 1; // the name of the display
+    uint32 width = 2;        // the width of the display in pixels
+    uint32 height = 3;       // the height of the display in pixels
+}
+
+message PostBufferRequest
+{
+    string display_name = 1;       // the name of the display to post the buffer to
+    graphics.Rectangle region = 2; // the region of the display to post the buffer to
+    bytes buffer_data = 3;         // the data of the buffer to post
+}
+
+message PostBufferResponse
+{
+    mosrpc.result result = 1; // the result of the buffer posting
+}
+
+message MoveCursorRequest
+{
+    string display_name = 1; // the name of the display to move the cursor on
+    uint32 x = 2;            // x coordinate of the cursor
+    uint32 y = 3;            // y coordinate of the cursor
+}
+
+message MoveCursorResponse
+{
+    mosrpc.result result = 1; // the result of the cursor movement
+}
+
+service GraphicsManager
+{
+    option (c_name) = "graphics_manager";
+    rpc QueryDisplayInfo(QueryDisplayInfoRequest) returns (QueryDisplayInfoResponse);
+    rpc PostBuffer(PostBufferRequest) returns (PostBufferResponse);
+    // unused
+    // rpc MoveCursor(MoveCursorRequest) returns (MoveCursorResponse);
+}

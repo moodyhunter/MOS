@@ -1,0 +1,26 @@
+#:schema ../config-schema.json
+
+[graphical.target]
+description = "Graphical Target"
+depends_on = ["normal.target"]
+
+[display-manager.service]
+description = "Display Manager Service"
+depends_on = ["syslogd.service", "device-manager.service"]
+part_of = ["graphical.target"]
+options = { exec = "/initrd/services/display-manager" }
+service = { state-change = "notify", redirect = false }
+
+[clock.service]
+description = "Clock GUI Service"
+depends_on = ["display-manager.service"]
+part_of = ["graphical.target"]
+options = { exec = "/initrd/programs/clock" }
+service = { redirect = false }
+
+[clock2.service]
+description = "Clock2 GUI Service"
+depends_on = ["display-manager.service"]
+part_of = ["graphical.target"]
+options = { exec = "/initrd/programs/clock" }
+service = { redirect = false }

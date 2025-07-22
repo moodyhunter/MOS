@@ -23,7 +23,7 @@ pub(crate) fn start_device(
 
     match device_type {
         DeviceType::Block => run_blockdev(transport, function),
-        DeviceType::GPU => run_gpu(transport),
+        DeviceType::GPU => run_gpu(transport, function),
         DeviceType::Network => run_netdev(transport, function),
         t => unimplemented!("Unrecognized virtio device: {:?}", t),
     }

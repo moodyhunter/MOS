@@ -1,36 +1,36 @@
 #:schema ../config-schema.json
 
-[intel-pci.device-template]
-template_params = ["device_id", "bus", "dev", "func"]
-description = "Intel PCI Device [device_id] at [bus]:[dev].[func]"
-inherits = "pci.device-template"
-inherits_args = { "vendor_id" = "0x8086" }
-options = { driver = "/initrd/programs/utils/true", driver_args = [] }
+# [intel-pci.device-template]
+# template_params = ["device_id", "bus", "dev", "func"]
+# description = "Intel PCI Device [device_id] at [bus]:[dev].[func]"
+# inherits = "pci.device-template"
+# inherits_args = { "vendor_id" = "0x8086" }
+# options = { driver = "/initrd/programs/utils/true", driver_args = [] }
 
-# 29c0: Intel 82G33/G31/P35/P31 Express DRAM Controller
-[intel-dram-controller.device-template]
-template_params = ["bus", "dev", "func"]
-description = "Intel DRAM Controller [device_id] at [bus]:[dev].[func]"
-inherits = "intel-pci.device-template"
-inherits_args = { "device_id" = "0x29c0" }
+# # 29c0: Intel 82G33/G31/P35/P31 Express DRAM Controller
+# [intel-dram-controller.device-template]
+# template_params = ["bus", "dev", "func"]
+# description = "Intel DRAM Controller [device_id] at [bus]:[dev].[func]"
+# inherits = "intel-pci.device-template"
+# inherits_args = { "device_id" = "0x29c0" }
 
-# 2918: 82801IB (ICH9) LPC Interface Controller
-[intel-lpc.device-template]
-template_params = ["bus", "dev", "func"]
-description = "Intel LPC Interface Controller [device_id] at [bus]:[dev].[func]"
-inherits = "intel-pci.device-template"
-inherits_args = { "device_id" = "0x2918" }
+# # 2918: 82801IB (ICH9) LPC Interface Controller
+# [intel-lpc.device-template]
+# template_params = ["bus", "dev", "func"]
+# description = "Intel LPC Interface Controller [device_id] at [bus]:[dev].[func]"
+# inherits = "intel-pci.device-template"
+# inherits_args = { "device_id" = "0x2918" }
 
-# 2922: 82801IR/IO/IH (ICH9R/DO/DH) 6 port SATA Controller [AHCI mode]
-[intel-ahci.device-template]
-template_params = ["bus", "dev", "func"]
-description = "Intel AHCI Controller [device_id] at [bus]:[dev].[func]"
-inherits = "intel-pci.device-template"
-inherits_args = { "device_id" = "0x2922" }
+# # 2922: 82801IR/IO/IH (ICH9R/DO/DH) 6 port SATA Controller [AHCI mode]
+# [intel-ahci.device-template]
+# template_params = ["bus", "dev", "func"]
+# description = "Intel AHCI Controller [device_id] at [bus]:[dev].[func]"
+# inherits = "intel-pci.device-template"
+# inherits_args = { "device_id" = "0x2922" }
 
-# 2930: 82801I (ICH9 Family) SMBus Controller
-[intel-smbus.device-template]
-template_params = ["bus", "dev", "func"]
-description = "Intel SMBus Controller [device_id] at [bus]:[dev].[func]"
-inherits = "intel-pci.device-template"
-inherits_args = { "device_id" = "0x2930" }
+# # 2930: 82801I (ICH9 Family) SMBus Controller
+# [intel-smbus.device-template]
+# template_params = ["bus", "dev", "func"]
+# description = "Intel SMBus Controller [device_id] at [bus]:[dev].[func]"
+# inherits = "intel-pci.device-template"
+# inherits_args = { "device_id" = "0x2930" }

@@ -6,11 +6,9 @@ add_subdirectory(blockdev-manager)
 
 add_subdirectory(device-manager)
 
-add_subdirectory(display-daemon)
+add_subdirectory(display-manager)
 
 add_subdirectory(ext4-daemon)
-
-add_subdirectory(inputd)
 
 add_subdirectory(networkd)
 

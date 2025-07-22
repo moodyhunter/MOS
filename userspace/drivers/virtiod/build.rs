@@ -41,6 +41,8 @@ fn main() {
 
     let proto_files = vec![
         project_dir!("proto/net-networkd.proto"),
+        project_dir!("proto/graphics.proto"),
+        project_dir!("proto/graphics-gpu.proto"),
         project_dir!("proto/blockdev.proto"),
         project_dir!("proto/mosrpc.proto"),
         project_dir!("proto/mosrpc-options.proto"),

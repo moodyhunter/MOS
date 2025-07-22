@@ -1,0 +1,107 @@
+syntax = "proto3";
+import "nanopb.proto";
+import "mosrpc.proto";
+import "mosrpc-options.proto";
+import "graphics.proto";
+
+option (nanopb_fileopt).fallback_type = FT_POINTER;
+option (nanopb_fileopt).proto3_singular_msgs = true;
+
+message CreateWindowRequest
+{
+    string display_name = 1; // the name of the display to create the window on
+    string title = 2;        // the title of the window
+    uint32 width = 3;        // the width of the window in pixels
+    uint32 height = 4;       // the height of the window in pixels
+}
+
+message CreateWindowResponse
+{
+    mosrpc.result result = 1; // the result of the window creation
+    uint64 window_id = 2;     // the ID of the created window
+}
+
+message CloseWindowRequest
+{
+    uint64 window_id = 1; // the ID of the window to close
+}
+
+message CloseWindowResponse
+{
+    mosrpc.result result = 1; // the result of the window closing
+}
+
+message MoveWindowRequest
+{
+    uint64 window_id = 1; // the ID of the window to move
+    uint32 x = 2;         // new x coordinate of the window
+    uint32 y = 3;         // new y coordinate of the window
+}
+
+message MoveWindowResponse
+{
+    mosrpc.result result = 1; // the result of the window movement
+}
+
+message ResizeWindowRequest
+{
+    uint64 window_id = 1; // the ID of the window to resize
+    uint32 width = 2;     // new width of the window in pixels
+    uint32 height = 3;    // new height of the window in pixels
+}
+
+message ResizeWindowResponse
+{
+    mosrpc.result result = 1; // the result of the window resizing
+}
+
+/**
+ * Request to begin moving a window.
+ * The window will be moved by the mouse input.
+ */
+message BeginMoveWindowRequest
+{
+    uint64 window_id = 1; // the ID of the window to begin moving
+}
+
+message BeginMoveWindowResponse
+{
+    mosrpc.result result = 1; // the result of beginning to move the window
+}
+
+message EndMoveWindowRequest
+{
+    uint64 window_id = 1; // the ID of the window to end moving
+}
+
+message EndMoveWindowResponse
+{
+    mosrpc.result result = 1; // the result of ending the window movement
+}
+
+message UpdateWindowContentRequest
+{
+    uint64 window_id = 1;          // the ID of the window to update content for
+    graphics.Rectangle region = 2; // the region of the window to update
+    bytes content = 3;             // the content to update the window with
+}
+
+message UpdateWindowContentResponse
+{
+    mosrpc.result result = 1; // the result of the window content update
+}
+
+service WindowManager
+{
+    rpc CreateWindow(CreateWindowRequest) returns (CreateWindowResponse);
+    rpc CloseWindow(CloseWindowRequest) returns (CloseWindowResponse);
+    rpc MoveWindow(MoveWindowRequest) returns (MoveWindowResponse);
+    rpc ResizeWindow(ResizeWindowRequest) returns (ResizeWindowResponse);
+
+    // smooth window movement
+    rpc BeginMoveWindow(BeginMoveWindowRequest) returns (BeginMoveWindowResponse);
+    rpc EndMoveWindow(EndMoveWindowRequest) returns (EndMoveWindowResponse);
+
+    // window content management
+    rpc UpdateWindowContent(UpdateWindowContentRequest) returns (UpdateWindowContentResponse);
+}

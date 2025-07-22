@@ -58,13 +58,13 @@ static long do_write_keyboard_event(int scancode)
         return -ENOTCONN;
     }
 
-    if (writer->write(&EVENT_TYPE_KEYBOARD, sizeof(EVENT_TYPE_KEYBOARD)) < 0)
+    if ((long) writer->write(&EVENT_TYPE_KEYBOARD, sizeof(EVENT_TYPE_KEYBOARD)) < 0)
     {
         pr_warn("Failed to write keyboard event type");
         return -EIO;
     }
 
-    if (writer->write(&scancode, sizeof(scancode)) < 0)
+    if ((long) writer->write(&scancode, sizeof(scancode)) < 0)
     {
         pr_warn("Failed to write scancode %x", scancode);
         return -EIO;
@@ -81,13 +81,13 @@ static long do_write_mouse_event(const u8 data[3])
         return -ENOTCONN;
     }
 
-    if (writer->write(&EVENT_TYPE_MOUSE, sizeof(EVENT_TYPE_MOUSE)) < 0)
+    if ((long) writer->write(&EVENT_TYPE_MOUSE, sizeof(EVENT_TYPE_MOUSE)) < 0)
     {
         pr_warn("Failed to write mouse event type");
         return -EIO;
     }
 
-    if (writer->write(data, sizeof(u8) * 3) < 0)
+    if ((long) writer->write(data, sizeof(u8) * 3) < 0)
     {
         pr_warn("Failed to write mouse data");
         return -EIO;

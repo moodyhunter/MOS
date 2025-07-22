@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package graphics;
+
+message Rectangle
+{
+    uint32 x = 1; // x coordinate of the top-left corner
+    uint32 y = 2; // y coordinate of the top-left corner
+    uint32 w = 3; // width of the rectangle
+    uint32 h = 4; // height of the rectangle
+}
