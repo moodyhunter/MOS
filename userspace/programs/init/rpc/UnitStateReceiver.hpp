@@ -13,7 +13,7 @@ class UnitStateReceiverServiceImpl : public IUnitStateReceiverService
 {
   public:
     using IUnitStateReceiverService::IUnitStateReceiverService;
-    virtual rpc_result_code_t notify(rpc_context_t *, UnitStateNotifyRequest *req, UnitStateNotifyResponse *res) override;
+    virtual rpc_result_code_t notify(rpc_context_t *, const UnitStateNotifyRequest *req, UnitStateNotifyResponse *res) override;
 };
 
 inline const auto UnitStateReceiverService = std::make_unique<UnitStateReceiverServiceImpl>(UNIT_STATE_RECEIVER_SERVICE_SERVERNAME);

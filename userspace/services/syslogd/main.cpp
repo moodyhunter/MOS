@@ -73,7 +73,7 @@ void doReadOnFd(fd_t fd)
 
         do
         {
-            if (val.info.level <= syslog_level::syslog_level_WARN)
+            if (val.info.level <= syslog_level::syslog_level_INFO2)
                 break; // don't print debug messages
 
             std::cout << "[" << time_buffer << "] "                            //

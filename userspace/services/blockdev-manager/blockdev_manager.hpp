@@ -55,11 +55,11 @@ class BlockManager : public IBlockdevManagerService
   private:
     virtual void on_connect(rpc_context_t *ctx) override;
     virtual void on_disconnect(rpc_context_t *ctx) override;
-    virtual rpc_result_code_t register_layer_server(rpc_context_t *, register_layer_server::request *req, register_layer_server::response *resp) override;
-    virtual rpc_result_code_t register_device(rpc_context_t *, register_device::request *req, register_device::response *resp) override;
-    virtual rpc_result_code_t open_device(rpc_context_t *ctx, open_device::request *req, open_device::response *resp) override;
-    virtual rpc_result_code_t read_block(rpc_context_t *, read_block::request *req, read_block::response *resp) override;
-    virtual rpc_result_code_t write_block(rpc_context_t *, write_block::request *req, write_block::response *resp) override;
+    virtual rpc_result_code_t register_layer_server(rpc_context_t *, const register_layer_server::request *req, register_layer_server::response *resp) override;
+    virtual rpc_result_code_t register_device(rpc_context_t *, const register_device::request *req, register_device::response *resp) override;
+    virtual rpc_result_code_t open_device(rpc_context_t *ctx, const open_device::request *req, open_device::response *resp) override;
+    virtual rpc_result_code_t read_block(rpc_context_t *, const read_block::request *req, read_block::response *resp) override;
+    virtual rpc_result_code_t write_block(rpc_context_t *, const write_block::request *req, write_block::response *resp) override;
 };
 
 bool register_blockdevfs();

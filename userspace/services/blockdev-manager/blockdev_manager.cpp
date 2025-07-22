@@ -66,7 +66,7 @@ void BlockManager::on_disconnect(rpc_context_t *ctx)
     MOS_UNUSED(ctx);
 }
 
-rpc_result_code_t BlockManager::register_layer_server(rpc_context_t *, register_layer_server::request *req, register_layer_server::response *resp)
+rpc_result_code_t BlockManager::register_layer_server(rpc_context_t *, const register_layer_server::request *req, register_layer_server::response *resp)
 {
     for (size_t i = 0; i < req->partitions_count; i++)
     {
@@ -88,7 +88,7 @@ rpc_result_code_t BlockManager::register_layer_server(rpc_context_t *, register_
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t BlockManager::register_device(rpc_context_t *, register_device::request *req, register_device::response *resp)
+rpc_result_code_t BlockManager::register_device(rpc_context_t *, const register_device::request *req, register_device::response *resp)
 {
     if (devices.contains(req->device_info.name))
     {
@@ -119,7 +119,7 @@ rpc_result_code_t BlockManager::register_device(rpc_context_t *, register_device
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t BlockManager::open_device(rpc_context_t *ctx, open_device::request *req, open_device::response *resp)
+rpc_result_code_t BlockManager::open_device(rpc_context_t *ctx, const open_device::request *req, open_device::response *resp)
 {
     const auto name = req->device_name;
     if (!devices.contains(name))
@@ -139,7 +139,7 @@ rpc_result_code_t BlockManager::open_device(rpc_context_t *ctx, open_device::req
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t BlockManager::read_block(rpc_context_t *ctx, read_block::request *req, read_block::response *resp)
+rpc_result_code_t BlockManager::read_block(rpc_context_t *ctx, const read_block::request *req, read_block::response *resp)
 {
     auto fdtable = get_data<ClientFDTable>(ctx);
     if (!fdtable->fd_to_device.contains(req->device.devid))
@@ -186,7 +186,7 @@ rpc_result_code_t BlockManager::read_block(rpc_context_t *ctx, read_block::reque
     };
 }
 
-rpc_result_code_t BlockManager::write_block(rpc_context_t *ctx, write_block::request *req, write_block::response *resp)
+rpc_result_code_t BlockManager::write_block(rpc_context_t *ctx, const write_block::request *req, write_block::response *resp)
 {
     auto fdtable = get_data<ClientFDTable>(ctx);
 

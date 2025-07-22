@@ -21,7 +21,7 @@ class RAMDiskServer : public IBlockdevDeviceService, public RAMDisk
     {
     }
 
-    rpc_result_code_t read_block(rpc_context_t *, mosrpc_blockdev_read_block_request *req, mosrpc_blockdev_read_block_response *resp) override
+    rpc_result_code_t read_block(rpc_context_t *, const mosrpc_blockdev_read_block_request *req, mosrpc_blockdev_read_block_response *resp) override
     {
         if (req->n_boffset + req->n_blocks > nblocks())
         {
@@ -40,7 +40,7 @@ class RAMDiskServer : public IBlockdevDeviceService, public RAMDisk
         return RPC_RESULT_OK;
     }
 
-    rpc_result_code_t write_block(rpc_context_t *, mosrpc_blockdev_write_block_request *req, mosrpc_blockdev_write_block_response *resp) override
+    rpc_result_code_t write_block(rpc_context_t *, const mosrpc_blockdev_write_block_request *req, mosrpc_blockdev_write_block_response *resp) override
     {
         RAMDisk::write_block(req->n_boffset, req->n_blocks, req->data->bytes);
 

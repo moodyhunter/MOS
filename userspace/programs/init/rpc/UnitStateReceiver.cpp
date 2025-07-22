@@ -6,7 +6,7 @@
 
 #include <librpc/rpc.h>
 
-rpc_result_code_t UnitStateReceiverServiceImpl::notify(rpc_context_t *, UnitStateNotifyRequest *req, UnitStateNotifyResponse *res)
+rpc_result_code_t UnitStateReceiverServiceImpl::notify(rpc_context_t *, const UnitStateNotifyRequest *req, UnitStateNotifyResponse *res)
 {
     const auto token = req->service_id;
     const auto state = req->status;

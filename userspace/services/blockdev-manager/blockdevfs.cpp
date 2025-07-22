@@ -35,7 +35,7 @@ struct blockdevfs_inode
 
 static blockdevfs_inode *root = NULL;
 
-rpc_result_code_t BlockdevFSServer::mount(rpc_context_t *, mosrpc_fs_mount_request *req, mosrpc_fs_mount_response *resp)
+rpc_result_code_t BlockdevFSServer::mount(rpc_context_t *, const mosrpc_fs_mount_request *req, mosrpc_fs_mount_response *resp)
 {
     if (req->options && strlen(req->options) > 0 && strcmp(req->options, "defaults") != 0)
         printf("blockdevfs: mount option '%s' is not supported\n", req->options);
@@ -72,7 +72,7 @@ rpc_result_code_t BlockdevFSServer::mount(rpc_context_t *, mosrpc_fs_mount_reque
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t BlockdevFSServer::readdir(rpc_context_t *, mosrpc_fs_readdir_request *req, mosrpc_fs_readdir_response *resp)
+rpc_result_code_t BlockdevFSServer::readdir(rpc_context_t *, const mosrpc_fs_readdir_request *req, mosrpc_fs_readdir_response *resp)
 {
     if (req->i_ref.data != (ptr_t) root)
     {
@@ -99,7 +99,7 @@ rpc_result_code_t BlockdevFSServer::readdir(rpc_context_t *, mosrpc_fs_readdir_r
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t BlockdevFSServer::lookup(rpc_context_t *, mosrpc_fs_lookup_request *req, mosrpc_fs_lookup_response *resp)
+rpc_result_code_t BlockdevFSServer::lookup(rpc_context_t *, const mosrpc_fs_lookup_request *req, mosrpc_fs_lookup_response *resp)
 {
     if (req->i_ref.data != (ptr_t) root)
     {

@@ -35,7 +35,7 @@ static RpcUnitStatus GetUnitStatus(const IUnit *unit)
     return rpcStatus;
 };
 
-rpc_result_code_t ServiceManagerServer::get_units(rpc_context_t *ctx, GetUnitsRequest *req, GetUnitsResponse *resp)
+rpc_result_code_t ServiceManagerServer::get_units(rpc_context_t *ctx, const GetUnitsRequest *req, GetUnitsResponse *resp)
 {
     (void) ctx;
     (void) req;
@@ -107,7 +107,7 @@ rpc_result_code_t ServiceManagerServer::get_units(rpc_context_t *ctx, GetUnitsRe
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t ServiceManagerServer::get_templates(rpc_context_t *ctx, GetTemplatesRequest *req, GetTemplatesResponse *resp)
+rpc_result_code_t ServiceManagerServer::get_templates(rpc_context_t *ctx, const GetTemplatesRequest *req, GetTemplatesResponse *resp)
 {
     (void) ctx;
     (void) req;
@@ -155,21 +155,21 @@ rpc_result_code_t ServiceManagerServer::get_templates(rpc_context_t *ctx, GetTem
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t ServiceManagerServer::start_unit(rpc_context_t *ctx, StartUnitRequest *req, StartUnitResponse *resp)
+rpc_result_code_t ServiceManagerServer::start_unit(rpc_context_t *ctx, const StartUnitRequest *req, StartUnitResponse *resp)
 {
     (void) ctx;
     resp->success = ServiceManager->StartUnit(req->unit_id);
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t ServiceManagerServer::stop_unit(rpc_context_t *ctx, StopUnitRequest *req, StopUnitResponse *resp)
+rpc_result_code_t ServiceManagerServer::stop_unit(rpc_context_t *ctx, const StopUnitRequest *req, StopUnitResponse *resp)
 {
     (void) ctx;
     resp->success = ServiceManager->StopUnit(req->unit_id);
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t ServiceManagerServer::instantiate_unit(rpc_context_t *ctx, InstantiateUnitRequest *req, InstantiateUnitResponse *resp)
+rpc_result_code_t ServiceManagerServer::instantiate_unit(rpc_context_t *ctx, const InstantiateUnitRequest *req, InstantiateUnitResponse *resp)
 {
     (void) ctx;
     ArgumentMap args;
@@ -187,7 +187,7 @@ rpc_result_code_t ServiceManagerServer::instantiate_unit(rpc_context_t *ctx, Ins
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t ServiceManagerServer::get_unit_overrides(rpc_context_t *ctx, GetUnitOverridesRequest *req, GetUnitOverridesResponse *resp)
+rpc_result_code_t ServiceManagerServer::get_unit_overrides(rpc_context_t *ctx, const GetUnitOverridesRequest *req, GetUnitOverridesResponse *resp)
 {
     (void) ctx;
     (void) req;

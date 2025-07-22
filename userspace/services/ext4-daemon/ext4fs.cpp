@@ -24,7 +24,7 @@
 using namespace mosrpc::blockdev;
 
 // clang-format off
-u64 inode_index_from_data(mosrpc_fs_inode_ref &ref) { return ref.data; }
+u64 inode_index_from_data(const mosrpc_fs_inode_ref &ref) { return ref.data; }
 
 mosrpc_fs_inode_ref make_inode_ref(ext4_inode_ref &ref) { return { .data = ref.index }; }
 
@@ -185,7 +185,7 @@ void Ext4UserFS::save_inode_info(ext4_sblock *sb, ext4_inode *inode, const mosrp
     ext4_inode_set_links_cnt(inode, info.nlinks);
 }
 
-rpc_result_code_t Ext4UserFS::mount(rpc_context_t *ctx, mosrpc_fs_mount_request *req, mosrpc_fs_mount_response *resp)
+rpc_result_code_t Ext4UserFS::mount(rpc_context_t *ctx, const mosrpc_fs_mount_request *req, mosrpc_fs_mount_response *resp)
 {
     if (req->fs_name != "userfs.ext4"s)
     {
@@ -254,7 +254,7 @@ rpc_result_code_t Ext4UserFS::mount(rpc_context_t *ctx, mosrpc_fs_mount_request 
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::readdir(rpc_context_t *ctx, mosrpc_fs_readdir_request *req, mosrpc_fs_readdir_response *resp)
+rpc_result_code_t Ext4UserFS::readdir(rpc_context_t *ctx, const mosrpc_fs_readdir_request *req, mosrpc_fs_readdir_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
 
@@ -311,7 +311,7 @@ rpc_result_code_t Ext4UserFS::readdir(rpc_context_t *ctx, mosrpc_fs_readdir_requ
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::lookup(rpc_context_t *ctx, mosrpc_fs_lookup_request *req, mosrpc_fs_lookup_response *resp)
+rpc_result_code_t Ext4UserFS::lookup(rpc_context_t *ctx, const mosrpc_fs_lookup_request *req, mosrpc_fs_lookup_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
 
@@ -351,7 +351,7 @@ rpc_result_code_t Ext4UserFS::lookup(rpc_context_t *ctx, mosrpc_fs_lookup_reques
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::readlink(rpc_context_t *ctx, mosrpc_fs_readlink_request *req, mosrpc_fs_readlink_response *resp)
+rpc_result_code_t Ext4UserFS::readlink(rpc_context_t *ctx, const mosrpc_fs_readlink_request *req, mosrpc_fs_readlink_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
 
@@ -399,7 +399,7 @@ rpc_result_code_t Ext4UserFS::readlink(rpc_context_t *ctx, mosrpc_fs_readlink_re
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::get_page(rpc_context_t *ctx, mosrpc_fs_getpage_request *req, mosrpc_fs_getpage_response *resp)
+rpc_result_code_t Ext4UserFS::get_page(rpc_context_t *ctx, const mosrpc_fs_getpage_request *req, mosrpc_fs_getpage_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
     ext4_inode_ref inode_ref;
@@ -442,7 +442,7 @@ rpc_result_code_t Ext4UserFS::get_page(rpc_context_t *ctx, mosrpc_fs_getpage_req
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::create_file(rpc_context_t *ctx, mosrpc_fs_create_file_request *req, mosrpc_fs_create_file_response *resp)
+rpc_result_code_t Ext4UserFS::create_file(rpc_context_t *ctx, const mosrpc_fs_create_file_request *req, mosrpc_fs_create_file_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
     ext4_inode_ref inode_ref;
@@ -506,7 +506,7 @@ rpc_result_code_t Ext4UserFS::create_file(rpc_context_t *ctx, mosrpc_fs_create_f
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::put_page(rpc_context_t *ctx, mosrpc_fs_putpage_request *req, mosrpc_fs_putpage_response *resp)
+rpc_result_code_t Ext4UserFS::put_page(rpc_context_t *ctx, const mosrpc_fs_putpage_request *req, mosrpc_fs_putpage_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
     ext4_inode_ref inode_ref;
@@ -574,7 +574,7 @@ rpc_result_code_t Ext4UserFS::put_page(rpc_context_t *ctx, mosrpc_fs_putpage_req
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::sync_inode(rpc_context_t *ctx, mosrpc_fs_sync_inode_request *req, mosrpc_fs_sync_inode_response *resp)
+rpc_result_code_t Ext4UserFS::sync_inode(rpc_context_t *ctx, const mosrpc_fs_sync_inode_request *req, mosrpc_fs_sync_inode_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
 
@@ -594,7 +594,7 @@ rpc_result_code_t Ext4UserFS::sync_inode(rpc_context_t *ctx, mosrpc_fs_sync_inod
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::unlink(rpc_context_t *ctx, mosrpc_fs_unlink_request *req, mosrpc_fs_unlink_response *resp)
+rpc_result_code_t Ext4UserFS::unlink(rpc_context_t *ctx, const mosrpc_fs_unlink_request *req, mosrpc_fs_unlink_response *resp)
 {
     auto state = get_data<ext4_context_state>(ctx);
 
@@ -661,7 +661,7 @@ rpc_result_code_t Ext4UserFS::unlink(rpc_context_t *ctx, mosrpc_fs_unlink_reques
     return RPC_RESULT_OK;
 }
 
-rpc_result_code_t Ext4UserFS::make_dir(rpc_context_t *ctx, mosrpc_fs_make_dir_request *req, mosrpc_fs_make_dir_response *resp)
+rpc_result_code_t Ext4UserFS::make_dir(rpc_context_t *ctx, const mosrpc_fs_make_dir_request *req, mosrpc_fs_make_dir_response *resp)
 {
     mosrpc_fs_create_file_request create_req{
         .i_ref = req->i_ref,

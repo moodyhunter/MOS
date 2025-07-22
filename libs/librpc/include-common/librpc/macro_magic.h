@@ -255,7 +255,7 @@
     };
 
 #define __X_GENERATE_FUNCTION_FORWARDS_PB_CPP_CLASS(_prefix, _id, func, _FUNC, reqtype, resptype)                                                                        \
-    virtual rpc_result_code_t func(rpc_context_t *, reqtype *, resptype *)                                                                                               \
+    virtual rpc_result_code_t func(rpc_context_t *, const reqtype *, resptype *)                                                                                         \
     {                                                                                                                                                                    \
         return rpc_result_code_t::RPC_RESULT_NOT_IMPLEMENTED;                                                                                                            \
     }

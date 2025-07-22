@@ -18,7 +18,7 @@ class NetworkDaemonImpl : public INetworkManagerService
     }
 
   public:
-    rpc_result_code_t register_network_device(rpc_context_t *, RegisterNetworkDeviceRequest *request, RegisterNetworkDeviceResponse *response) override
+    rpc_result_code_t register_network_device(rpc_context_t *, const RegisterNetworkDeviceRequest *request, RegisterNetworkDeviceResponse *response) override
     {
         std::cerr << "Registering network device: " << request->device_name << " with server: " << request->rpc_server_name << std::endl;
         response->result.success = true;
