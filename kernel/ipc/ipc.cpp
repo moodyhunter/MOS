@@ -84,7 +84,7 @@ static spinlock_t ipc_lock;
 static list_head ipc_servers;
 
 // waitlist for an IPC server, key = name, value = waitlist_t *
-static mos::HashMap<mos::string, waitlist_t> name_waitlist;
+static mos::HashMap<mos::string, waitlist_t *> name_waitlist;
 
 void ipc_server_close(IPCServer *server)
 {
@@ -93,9 +93,9 @@ void ipc_server_close(IPCServer *server)
     // remove the server from the list
     list_remove(server);
 
-    auto waitlist = name_waitlist.get(server->name);
-    if (waitlist)
+    if (const auto &it = name_waitlist.find(server->name); it)
     {
+        const auto waitlist = it.value();
         // the waitlist should have been closed when the server was created
         // and no one should be waiting on it
         spinlock_acquire(&waitlist->lock);
@@ -214,12 +214,12 @@ PtrResult<IPCServer> ipc_server_create(mos::string_view name, size_t max_pending
 
     // check and see if there is a waitlist for this name
     // if so, wake up all waiters
-    auto waitlist = name_waitlist.get(server->name);
-    if (waitlist)
+    if (const auto it = name_waitlist.find(name); it)
     {
+        auto waitlist = it.value();
         dInfo<ipc> << "found waitlist for ipc server '" << name << "'";
         // wake up all waiters
-        waitlist_close(&*waitlist);
+        waitlist_close(waitlist);
         const size_t n = waitlist_wake_all(&*waitlist);
         if (n)
             dInfo<ipc> << "woken up " << n << " waiters for ipc server '" << name << "'";
@@ -340,17 +340,22 @@ check_server:
     if (!ipc_server)
     {
         // no server found, wait for it to be created
-        auto waitlist = name_waitlist.get(name);
-        if (!waitlist)
+        waitlist_t *waitlist;
+        if (const auto it = name_waitlist.find(name); it)
         {
-            waitlist = waitlist_t();
+            waitlist = it.value();
+            dInfo<ipc> << "found existing waitlist for ipc server '" << name << "'";
+        }
+        else
+        {
+            waitlist = mos::create<waitlist_t>();
             // the key must be in kernel memory
-            name_waitlist.insert(descriptor->server_name, *waitlist);
+            name_waitlist.insert(descriptor->server_name, waitlist);
             dInfo<ipc> << "created waitlist for ipc server '" << name << "'";
         }
 
         dInfo<ipc> << "no ipc server '" << name << "' found, waiting for it to be created...";
-        MOS_ASSERT(waitlist_append(&*waitlist));
+        MOS_ASSERT(waitlist_append(waitlist));
         spinlock_release(&ipc_lock);
         blocked_reschedule();
 
@@ -480,8 +485,8 @@ static bool ipc_sysfs_dump_name_waitlist(sysfs_file_t *f)
     const auto guard = ipc_lock.lock();
     for (const auto &[name, waitlist] : name_waitlist)
     {
-        sysfs_printf(f, "%-20s\t%s:\n", name.c_str(), waitlist.closed ? "closed" : "open");
-        for (const auto tid : waitlist.waiters)
+        sysfs_printf(f, "%-20s\t%s:\n", name.c_str(), waitlist->closed ? "closed" : "open");
+        for (const auto tid : waitlist->waiters)
         {
             const auto thread = thread_get(tid);
             sysfs_printf(f, "\t%s\n", thread->name.c_str());
