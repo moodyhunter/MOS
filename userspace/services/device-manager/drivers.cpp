@@ -26,7 +26,7 @@ bool try_start_driver(u16 vendor, u16 device, u8 busid, u8 devid, u8 funcid, u64
 
     req.template_id = strdup("pci.device-template");
     req.parameters_count = 5;
-    req.parameters = static_cast<KeyValuePair *>(malloc(5 * sizeof(KeyValuePair)));
+    req.parameters = static_cast<mosrpc_KeyValuePair *>(malloc(5 * sizeof(mosrpc_KeyValuePair)));
     req.parameters[0].name = strdup("vendor_id");
     req.parameters[0].value = strdup(vendor_str);
     req.parameters[1].name = strdup("device_id");

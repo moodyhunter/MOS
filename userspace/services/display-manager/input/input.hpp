@@ -2,7 +2,18 @@
 
 #pragma once
 
-namespace DisplayManager
+#include "utils/common.hpp"
+namespace DisplayManager::Input
 {
-    bool initialise_input();
-}
+    struct MouseEvent
+    {
+        bool leftButton;
+        bool rightButton;
+        bool middleButton;
+
+        Point cursorPosition;
+        Delta movement; // Movement delta from the last event
+    };
+
+    bool InitializeInputd();
+} // namespace DisplayManager::Input

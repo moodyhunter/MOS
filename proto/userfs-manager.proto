@@ -1,31 +1,24 @@
 syntax = "proto3";
-import "nanopb.proto";
-import "mosrpc.proto";
-import "mosrpc-options.proto";
-
-option (nanopb_fileopt).fallback_type = FT_POINTER;
-option (nanopb_fileopt).proto3_singular_msgs = true;
 
 package mosrpc.userfs;
 
-message pb_fs
-{
-    string name = 1; // the name of the filesystem
+import "proto/mosrpc-options.proto";
+import "proto/mosrpc.proto";
+
+message pb_fs {
+  string name = 1; // the name of the filesystem
 }
 
-message register_request
-{
-    pb_fs fs = 1;
-    string rpc_server_name = 2;
+message register_request {
+  pb_fs  fs              = 1;
+  string rpc_server_name = 2;
 }
 
-message register_response
-{
-    mosrpc.result result = 1;
+message register_response {
+  mosrpc.result result = 1;
 }
 
-service UserFSManager
-{
-    option (c_name) = "userfs_manager";
-    rpc RegisterFilesystem(register_request) returns (register_response);
+service UserFSManager {
+  option (c_name) = "userfs_manager";
+  rpc RegisterFilesystem(register_request) returns (register_response);
 }

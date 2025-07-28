@@ -288,7 +288,7 @@ static int do_instantiate(int argc, char **argv)
     InstantiateUnitRequest req;
     req.template_id = argv[0];
     req.parameters_count = argc - 1;
-    req.parameters = static_cast<KeyValuePair *>(malloc(argc * sizeof(KeyValuePair)));
+    req.parameters = static_cast<mosrpc_KeyValuePair *>(malloc(argc * sizeof(mosrpc_KeyValuePair)));
     for (int i = 1; i < argc; i++)
     {
         const auto &param = argv[i];

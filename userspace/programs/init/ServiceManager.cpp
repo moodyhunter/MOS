@@ -97,15 +97,15 @@ bool ServiceManagerImpl::StartUnit(const std::string &id) const
         }
 
         // timed wait for the unit to start
-        for (int i = 0; i < 50; i++)
+        for (int i = 0; i < 100; i++)
         {
             if (unit->GetStatus().status != UnitStatus::UnitStarting)
                 break;
-            Debug << "Waiting for " << unit->GetDescription() << " to start, n = " << i << std::endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            Debug << STARTING() << "Waiting for " << unit->GetDescription() << " to start, n = " << i << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
 
-        if (unit->GetStatus().status != UnitStatus::UnitStarted)
+        if (unit->GetStatus().status == UnitStatus::UnitFailed)
         {
             std::cerr << FAILED() << " Failed to start " << unit->GetDescription() << ": " << unit->GetStatus().status << std::endl;
             return false;

@@ -1,107 +1,124 @@
 syntax = "proto3";
-import "nanopb.proto";
-import "mosrpc.proto";
-import "mosrpc-options.proto";
-import "graphics.proto";
 
-option (nanopb_fileopt).fallback_type = FT_POINTER;
-option (nanopb_fileopt).proto3_singular_msgs = true;
+import "proto/graphics.proto";
+import "proto/mosrpc.proto";
 
-message CreateWindowRequest
-{
-    string display_name = 1; // the name of the display to create the window on
-    string title = 2;        // the title of the window
-    uint32 width = 3;        // the width of the window in pixels
-    uint32 height = 4;       // the height of the window in pixels
+message CreateWindowRequest {
+  string        title = 1; // the title of the window
+  graphics.Size size  = 2; // the size of the window in pixels
 }
 
-message CreateWindowResponse
-{
-    mosrpc.result result = 1; // the result of the window creation
-    uint64 window_id = 2;     // the ID of the created window
+message CreateWindowResponse {
+  mosrpc.result result    = 1; // the result of the window creation
+  uint64        window_id = 2; // the ID of the created window
 }
 
-message CloseWindowRequest
-{
-    uint64 window_id = 1; // the ID of the window to close
+message CloseWindowRequest {
+  uint64 window_id = 1; // the ID of the window to close
 }
 
-message CloseWindowResponse
-{
-    mosrpc.result result = 1; // the result of the window closing
+message CloseWindowResponse {
+  mosrpc.result result = 1; // the result of the window closing
 }
 
-message MoveWindowRequest
-{
-    uint64 window_id = 1; // the ID of the window to move
-    uint32 x = 2;         // new x coordinate of the window
-    uint32 y = 3;         // new y coordinate of the window
+message MoveWindowRequest {
+  uint64 window_id = 1; // the ID of the window to move
+  uint32 x         = 2; // new x coordinate of the window
+  uint32 y         = 3; // new y coordinate of the window
 }
 
-message MoveWindowResponse
-{
-    mosrpc.result result = 1; // the result of the window movement
+message MoveWindowResponse {
+  mosrpc.result result = 1; // the result of the window movement
 }
 
-message ResizeWindowRequest
-{
-    uint64 window_id = 1; // the ID of the window to resize
-    uint32 width = 2;     // new width of the window in pixels
-    uint32 height = 3;    // new height of the window in pixels
+message ResizeWindowRequest {
+  uint64 window_id = 1; // the ID of the window to resize
+  uint32 width     = 2; // new width of the window in pixels
+  uint32 height    = 3; // new height of the window in pixels
 }
 
-message ResizeWindowResponse
-{
-    mosrpc.result result = 1; // the result of the window resizing
+message ResizeWindowResponse {
+  mosrpc.result result = 1; // the result of the window resizing
 }
 
 /**
  * Request to begin moving a window.
  * The window will be moved by the mouse input.
  */
-message BeginMoveWindowRequest
-{
-    uint64 window_id = 1; // the ID of the window to begin moving
+message BeginMoveWindowRequest {
+  uint64 window_id = 1; // the ID of the window to begin moving
 }
 
-message BeginMoveWindowResponse
-{
-    mosrpc.result result = 1; // the result of beginning to move the window
+message BeginMoveWindowResponse {
+  mosrpc.result result = 1; // the result of beginning to move the window
 }
 
-message EndMoveWindowRequest
-{
-    uint64 window_id = 1; // the ID of the window to end moving
+message EndMoveWindowRequest {
+  uint64 window_id = 1; // the ID of the window to end moving
 }
 
-message EndMoveWindowResponse
-{
-    mosrpc.result result = 1; // the result of ending the window movement
+message EndMoveWindowResponse {
+  mosrpc.result result = 1; // the result of ending the window movement
 }
 
-message UpdateWindowContentRequest
-{
-    uint64 window_id = 1;          // the ID of the window to update content for
-    graphics.Rectangle region = 2; // the region of the window to update
-    bytes content = 3;             // the content to update the window with
+message UpdateWindowContentRequest {
+  uint64             window_id = 1; // the ID of the window to update content for
+  graphics.Rectangle region    = 2; // the region of the window to update
+  bytes              content   = 3; // the content to update the window with
 }
 
-message UpdateWindowContentResponse
-{
-    mosrpc.result result = 1; // the result of the window content update
+message UpdateWindowContentResponse {
+  mosrpc.result result = 1; // the result of the window content update
 }
 
-service WindowManager
-{
-    rpc CreateWindow(CreateWindowRequest) returns (CreateWindowResponse);
-    rpc CloseWindow(CloseWindowRequest) returns (CloseWindowResponse);
-    rpc MoveWindow(MoveWindowRequest) returns (MoveWindowResponse);
-    rpc ResizeWindow(ResizeWindowRequest) returns (ResizeWindowResponse);
+// message QueryDisplayInfoRequest {
+//   string display_name = 1; // the name of the display to query
+// }
 
-    // smooth window movement
-    rpc BeginMoveWindow(BeginMoveWindowRequest) returns (BeginMoveWindowResponse);
-    rpc EndMoveWindow(EndMoveWindowRequest) returns (EndMoveWindowResponse);
+// message QueryDisplayInfoResponse {
+//   mosrpc.result result = 1; // the result of the query
+//   graphics.Size size   = 2; // the size of the display in pixels
+//   uint32        dpi    = 3; // the DPI of the display
+// }
 
-    // window content management
-    rpc UpdateWindowContent(UpdateWindowContentRequest) returns (UpdateWindowContentResponse);
+message GetWindowListRequest {
+  // No fields needed for this request
+}
+
+message WindowInfo {
+  uint64             window_id = 1; // the ID of the window
+  string             title     = 2; // the title of the window
+  graphics.Rectangle bounds    = 3; // the bounds of the window in pixels
+}
+
+message GetWindowListResponse {
+  mosrpc.result       result  = 1; // the result of the request
+  repeated WindowInfo windows = 2; // the list of windows on the display
+}
+
+message HandleEventRequest {
+  uint64 window_id = 1; // the ID of the window to handle events for
+}
+
+message HandleEventResponse {
+  mosrpc.result result     = 1; // the result of handling the event
+  bytes         event_data = 2; // the data of the handled event
+}
+
+service WindowManager {
+  rpc CreateWindow(CreateWindowRequest) returns (CreateWindowResponse);
+  rpc CloseWindow(CloseWindowRequest) returns (CloseWindowResponse);
+  rpc MoveWindow(MoveWindowRequest) returns (MoveWindowResponse);
+  rpc ResizeWindow(ResizeWindowRequest) returns (ResizeWindowResponse);
+
+  // smooth window movement
+  rpc BeginMoveWindow(BeginMoveWindowRequest) returns (BeginMoveWindowResponse);
+  rpc EndMoveWindow(EndMoveWindowRequest) returns (EndMoveWindowResponse);
+
+  // window content management
+  rpc UpdateWindowContent(UpdateWindowContentRequest) returns (UpdateWindowContentResponse);
+  // rpc QueryDisplayInfo(QueryDisplayInfoRequest) returns (QueryDisplayInfoResponse);
+  rpc GetWindowList(GetWindowListRequest) returns (GetWindowListResponse);
+
+  // event management
 }

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "input/input.hpp"
 #include "utils/SubView.hpp"
 #include "utils/common.hpp"
 
@@ -11,13 +12,22 @@
 
 namespace DisplayManager::Windows
 {
+    enum class WindowType
+    {
+        Regular,    ///< Regular window type
+        Cursor,     ///< Window type for mouse cursor
+        Background, ///< Window type for background
+    };
+
     class Window
     {
+        friend class WindowManagerClass;
+
       public:
-        explicit Window(u64 wId, const std::string &title, Point pos, Size size);
+        explicit Window(u64 wId, const std::string &title, Point pos, Size size, WindowType = WindowType::Regular);
         ~Window();
 
-        bool UpdateContent(const Region &local, pb_bytes_array_t *content);
+        bool UpdateContent(const Region &local, const void *data, size_t size);
 
         bool GetRegionContent(const Region &local, Utils::SubView<uint32_t> &destination);
 
@@ -36,12 +46,16 @@ namespace DisplayManager::Windows
             return backingBuffer;
         }
 
+      public:
+        bool HandleMouseEvent(const Input::MouseEvent &event);
+
       private:
         Window(Window &other) = delete;
         Window &operator=(Window &other) = delete;
 
       public:
-        const u64 windowId; ///< Unique identifier for the window
+        const u64 windowId;          ///< Unique identifier for the window
+        const WindowType windowType; ///< Type of the window (Regular, Mouse, etc.)
 
       private:
         Point position;    ///< Position of the window on the screen

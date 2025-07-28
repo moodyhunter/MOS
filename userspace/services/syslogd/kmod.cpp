@@ -3,6 +3,7 @@
 #include "mos/io/io.hpp"
 #include "mos/ipc/ipc_io.hpp"
 #include "mos/kmod/kmod-decl.hpp"
+#include "mos/lib/sync/spinlock.hpp"
 #include "mos/misc/kutils.hpp"
 #include "mos/platform/platform.hpp"
 #include "mos/tasks/kthread.hpp"
@@ -16,8 +17,11 @@
 
 static IO *server = nullptr;
 
+spinlock_t syslog_lock;
+
 static long handle_log(void *arg, size_t argSize)
 {
+    SpinLocker locker(&syslog_lock);
     if (argSize < sizeof(SyslogRequest))
         return -EINVAL;
 

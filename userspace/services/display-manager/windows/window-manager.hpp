@@ -2,15 +2,14 @@
 
 #pragma once
 
+#include "input/input.hpp"
 #include "proto/graphics-dm.service.h"
 #include "windows/window.hpp"
 
 #include <atomic>
-#include <iostream>
 #include <list>
 #include <map>
 #include <memory>
-#include <vector>
 
 namespace DisplayManager::Windows
 {
@@ -19,7 +18,7 @@ namespace DisplayManager::Windows
     class WindowManagerClass : public IWindowManagerService
     {
       public:
-        WindowManagerClass();
+        explicit WindowManagerClass();
         ~WindowManagerClass();
 
       public:
@@ -31,28 +30,30 @@ namespace DisplayManager::Windows
             return nullptr;
         }
 
-      private:
-        void on_connect(rpc_context_t *context) override
-        {
-            std::cerr << "WindowManager: Client connected." << std::endl;
-        }
+        std::shared_ptr<Window> CreateWindow(const std::string &name, Point pos, Size size, WindowType type = WindowType::Regular);
 
-        void on_disconnect(rpc_context_t *context) override
-        {
-            std::cerr << "WindowManager: Client disconnected." << std::endl;
-        }
+        Delta MoveWindowTo(u64 wId, Point newPosition);
+
+        void BringWindowToFront(u64 wId);
+
+        void DispatchMouseEvent(const Input::MouseEvent &event);
+
+      private:
+        void on_connect(rpc_context_t *context) override;
+        void on_disconnect(rpc_context_t *context) override;
 
       private:
         rpc_result_code_t create_window(rpc_context_t *context, const CreateWindowRequest *req, CreateWindowResponse *resp) override;
         rpc_result_code_t update_window_content(rpc_context_t *context, const UpdateWindowContentRequest *req, UpdateWindowContentResponse *resp) override;
 
       private:
-        std::atomic<u64> nextWindowId = 1; ///< Next window ID to be assigned
+        std::atomic<u64> nextWindowId = 0x1000; ///< Next window ID to be assigned
 
       private:
         std::map<u64, std::shared_ptr<Window>> windows; ///< Map of window IDs to Window objects
     };
 
-    inline std::list<u64> ZOrder; ///< List of window IDs in Z-order (from topmost to bottommost)
-    inline std::unique_ptr<WindowManagerClass> WindowManager = std::make_unique<WindowManagerClass>();
+    inline std::list<u64> ZOrder;         ///< List of window IDs in Z-order (from topmost to bottommost)
+    inline std::list<u64> TopMostWindows; ///< List of topmost window IDs
+    inline const std::unique_ptr<WindowManagerClass> WindowManager = std::make_unique<WindowManagerClass>();
 } // namespace DisplayManager::Windows

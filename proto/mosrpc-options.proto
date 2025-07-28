@@ -2,14 +2,12 @@ syntax = "proto3";
 
 import "google/protobuf/descriptor.proto";
 
-extend google.protobuf.ServiceOptions
-{
-    optional string c_name = 5000;
-    optional string cpp_class_name = 5001;
+extend google.protobuf.ServiceOptions {
+  optional string c_name         = 5000;
+  optional string cpp_class_name = 5001;
 }
 
-extend google.protobuf.MethodOptions
-{
-    string c_function_name = 5000;
-    string cpp_function_name = 5001;
+extend google.protobuf.MethodOptions {
+  string c_function_name   = 5000;
+  string cpp_function_name = 5001;
 }

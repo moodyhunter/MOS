@@ -9,8 +9,7 @@ namespace DisplayManager::Render
 {
     struct DisplayInfo
     {
-        int width;
-        int height;
+        Size size;
     };
 
     class RendererClass
@@ -23,17 +22,19 @@ namespace DisplayManager::Render
 
         bool RenderFullScreen();
 
-        void SetCursorPosition(int x, int y);
+        Point SetCursorPosition(Point position);
 
         bool DamageGlobal(const Region &region);
 
-      private:
-        bool DoPostBuffer(const Region &region, pb_bytes_array_t *content);
+        Size GetDisplaySize() const
+        {
+            return display_info.size;
+        }
 
       private:
         std::unique_ptr<GraphicsManagerStub> graphics_manager;
         Render::DisplayInfo display_info;
-        pb_bytes_array_t *back_buffer = nullptr; ///< background buffer for the entire display
+        // pb_bytes_array_t *back_buffer = nullptr; ///< background buffer for the entire display
     };
 
     inline uint32_t AlphaBlend(uint32_t base, uint32_t overlay)

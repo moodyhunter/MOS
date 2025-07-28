@@ -32,13 +32,24 @@ struct Size {
     height: u32,
 }
 
+impl Size {
+    fn to_pb_size(&self) -> crate::mosrpc::graphics::Size {
+        crate::mosrpc::graphics::Size {
+            width: self.width,
+            height: self.height,
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(Clone)]
 struct GpuServer {
     devname: String,
     server_name: String,
     gpu: Arc<Mutex<SafeVirtIOGpu>>,
     framebuffer: *mut u8,
-    resolution: Size, // (width, height)
+    resolution: Size,     // (width, height)
+    dm_buffer: *const u8, // Pointer to the display manager buffer
 }
 
 unsafe impl Send for GpuServer {}
@@ -66,13 +77,14 @@ impl GpuServer {
 
         let server = GpuServer {
             devname,
-            server_name,
+            server_name: server_name.clone(),
             gpu: Arc::new(Mutex::new(SafeVirtIOGpu(gpu))),
             framebuffer,
             resolution: Size {
                 width: resolution.0,
                 height: resolution.1,
             },
+            dm_buffer: unsafe { do_create_fbmem(&server_name, resolution) },
         };
 
         log::info!(
@@ -108,28 +120,13 @@ impl GpuServer {
 
         Some(QueryDisplayInfoResponse {
             display_name: request.display_name.clone(),
-            width: self.resolution.width,
-            height: self.resolution.height,
+            size: MessageField::some(self.resolution.to_pb_size()),
             ..Default::default()
         })
     }
 
     fn on_post_buffer(&mut self, request: &PostBufferRequest) -> Option<PostBufferResponse> {
         let region = request.region.clone();
-
-        let expected_size = region.w as usize * region.h as usize * 4; // Assuming 4 bytes per pixel (RGBA)
-        if request.buffer_data.len() != expected_size {
-            let errinfo = format!(
-                "Buffer data size ({}) does not match expected size ({}) for region {:?}",
-                request.buffer_data.len(),
-                expected_size,
-                region.0.unwrap()
-            );
-            return Some(PostBufferResponse {
-                result: result_err!(errinfo),
-                ..Default::default()
-            });
-        }
 
         let screen_width = self.resolution.width;
         let screen_height = self.resolution.height;
@@ -146,13 +143,15 @@ impl GpuServer {
             });
         }
 
+        let dm_buffer = unsafe {
+            std::slice::from_raw_parts(self.dm_buffer, self.get_framebuffer_size() as usize)
+        };
         let fb = self.get_framebuffer();
+
         // write a subwindow of the framebuffer
         for y in 0..region.h {
-            let src_start = (y * region.w) * 4;
             let dst_start = ((region.y + y) * screen_width + region.x) * 4;
             let dst_end = dst_start + (region.w * 4);
-            let src_end = src_start + (region.w * 4);
 
             if dst_end as usize > fb.len() {
                 return Some(PostBufferResponse {
@@ -162,7 +161,7 @@ impl GpuServer {
             }
 
             fb[dst_start as usize..dst_end as usize]
-                .copy_from_slice(&request.buffer_data[src_start as usize..src_end as usize]);
+                .copy_from_slice(&dm_buffer[dst_start as usize..dst_end as usize]);
         }
 
         self.gpu.lock().unwrap().0.flush().expect("failed to flush");
@@ -189,6 +188,46 @@ impl GpuServer {
     }
 }
 
+unsafe fn do_create_fbmem(server_name: &String, resolution: (u32, u32)) -> *mut u8 {
+    let cstring = std::ffi::CString::new("/tmp/".to_owned() + server_name + &".memfd".to_owned())
+        .expect("Failed to create CString");
+
+    let fd = libc::open(
+        cstring.as_ptr(),
+        libc::O_RDWR | libc::O_CREAT | libc::O_EXCL,
+        0o600, // rw------- permissions
+    );
+
+    if fd < 0 {
+        panic!(
+            "Failed to create memfd for GPU server: {}",
+            std::io::Error::last_os_error()
+        );
+    }
+
+    // Set the size of the memfd to match the framebuffer size
+    if libc::lseek(
+        fd,
+        resolution.0 as i64 * resolution.1 as i64 * 4,
+        libc::SEEK_SET,
+    ) < 0
+    {
+        panic!(
+            "Failed to set size for memfd: {}",
+            std::io::Error::last_os_error()
+        );
+    }
+
+    libc::mmap(
+        std::ptr::null_mut(),
+        resolution.0 as usize * resolution.1 as usize * 4, // Assuming 4 bytes per pixel (RGBA)
+        libc::PROT_READ | libc::PROT_WRITE,
+        libc::MAP_SHARED,
+        fd,
+        0,
+    ) as *mut u8
+}
+
 pub fn run_gpu(transport: PciTransport, func: DeviceFunction) -> RpcResult<()> {
     let gpu =
         VirtIOGpu::<MOSHal, PciTransport>::new(transport).expect("failed to create gpu driver");
@@ -198,8 +237,8 @@ pub fn run_gpu(transport: PciTransport, func: DeviceFunction) -> RpcResult<()> {
 
     let server_name = format!("gpu.virtio");
     let driver = GpuServer::new(devname, server_name.clone(), gpu);
-
     let mut rpc_server = RpcPbServer::create(&server_name, Box::new(driver))?;
     libsm_rs::report_service_status(libsm_rs::RpcUnitStatusEnum::Started, "gpu-online");
+
     rpc_server.run()
 }

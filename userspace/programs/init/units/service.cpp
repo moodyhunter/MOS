@@ -1,7 +1,6 @@
 #include "service.hpp"
 
 #include "ServiceManager.hpp"
-#include "global.hpp"
 #include "utils/ExecUtils.hpp"
 
 RegisterUnit(service, Service);
@@ -59,6 +58,12 @@ Service::Service(const std::string &id, toml::table &table, std::shared_ptr<cons
 
 bool Service::Start()
 {
+    if (exec.empty() || exec[0] == "<invalid>")
+    {
+        status.Failed("unavailable");
+        return false;
+    }
+
     status.Starting("starting...");
     token = ExecUtils::GetRandomString();
     const auto pid = ExecUtils::DoFork(exec, token, GetBaseId(), service_options.redirect);
@@ -140,9 +145,6 @@ void Service::ChangeState(const UnitStatus &status)
 
     const auto prev_status = this->status;
     this->status = status;
-
-    // TODO: handle state change
-    std::cerr << C_YELLOW << "service " << id << " state change: " << prev_status.status << " -> " << status.status << C_RESET << std::endl;
 
     if (status.status == UnitStatus::UnitStarted)
         ServiceManager->OnUnitStarted(this);

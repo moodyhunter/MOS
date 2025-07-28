@@ -12,7 +12,7 @@ int main(int argc, char **argv)
     if (argc == 1)
     {
         // list mounts
-        auto fd = open(MOUNTS_FILE, O_RDONLY);
+        auto fd = open(MOUNTS_FILE, OPEN_READ);
         if (!fd)
         {
             printf("Failed to open " MOUNTS_FILE ", %s\n", strerror(-fd));

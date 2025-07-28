@@ -4,6 +4,7 @@
 
 #include "render/renderer.hpp"
 #include "utils/SubView.hpp"
+#include "windows/window-manager.hpp"
 
 #include <iostream>
 #include <stdexcept>
@@ -11,7 +12,8 @@
 using namespace DisplayManager;
 using namespace DisplayManager::Windows;
 
-Window::Window(u64 wId, const std::string &title, Point pos, Size size) : windowId(wId), position(pos), size(size), title(title)
+Window::Window(u64 wId, const std::string &title, Point pos, Size size, WindowType windowType)
+    : windowId(wId), windowType(windowType), position(pos), size(size), title(title)
 {
     // Allocate backing buffer for the window content
     const auto buffersize = size.width * size.height * sizeof(uint32_t);
@@ -33,7 +35,7 @@ Window::~Window()
     }
 }
 
-bool Window::UpdateContent(const Region &local, pb_bytes_array_t *content)
+bool Window::UpdateContent(const Region &local, const void *data, size_t datalen)
 {
     if (!backingBuffer)
         throw std::runtime_error("Backing buffer was not allocated");
@@ -44,19 +46,19 @@ bool Window::UpdateContent(const Region &local, pb_bytes_array_t *content)
         return false;
     }
 
-    if (content->size < local.size.width * local.size.height * sizeof(uint32_t))
+    if (datalen < local.size.width * local.size.height * sizeof(uint32_t))
     {
         std::cerr << "Content buffer is smaller than expected." << std::endl;
         return false;
     }
 
-    Utils::SubView<uint32_t> subView(backingBuffer, this->size, local);
+    Utils::SubView<uint32_t> subView(backingBuffer->bytes, backingBuffer->size, size, local);
     for (int y = 0; y < local.size.height; ++y)
     {
         for (int x = 0; x < local.size.width; ++x)
         {
             size_t index = (y * local.size.width + x);
-            subView[{ x, y }] = reinterpret_cast<uint32_t *>(content->bytes)[index];
+            subView[{ x, y }] = reinterpret_cast<const uint32_t *>(data)[index];
         }
     }
 
@@ -68,7 +70,7 @@ bool Window::GetRegionContent(const Region &local, Utils::SubView<uint32_t> &des
     if (!backingBuffer)
         throw std::runtime_error("Backing buffer was not allocated");
 
-    const Utils::SubView<uint32_t> subView(backingBuffer, this->size, local);
+    const Utils::SubView<uint32_t> subView(backingBuffer->bytes, backingBuffer->size, this->size, local);
     for (int y = 0; y < local.size.height; ++y)
     {
         for (int x = 0; x < local.size.width; ++x)
@@ -79,4 +81,41 @@ bool Window::GetRegionContent(const Region &local, Utils::SubView<uint32_t> &des
         }
     }
     return true;
+}
+
+bool Window::HandleMouseEvent(const Input::MouseEvent &event)
+{
+    static bool isLeftButtonPressed = false;
+    if (event.leftButton)
+    {
+        if (!isLeftButtonPressed)
+        {
+            isLeftButtonPressed = true;
+            std::cout << "Left button pressed on window: " << title << std::endl;
+            WindowManager->BringWindowToFront(windowId); // Bring this window to the front
+        }
+
+        if (isLeftButtonPressed)
+        {
+            if (event.movement)
+            {
+                // Move the window to the new position based on mouse movement
+                Point newPosition = position;
+                newPosition.x += event.movement.x;
+                newPosition.y += event.movement.y;
+                WindowManager->MoveWindowTo(windowId, newPosition);
+                position = newPosition;
+            }
+        }
+    }
+    else
+    {
+        if (isLeftButtonPressed)
+        {
+            isLeftButtonPressed = false;
+            std::cout << "Left button released on window: " << title << std::endl;
+        }
+    }
+
+    return true; // Indicate that the event was handled
 }

@@ -12,7 +12,7 @@
 
 #if defined(LIBDMA_DEBUG)
 #include <stdio.h>
-#define libdma_debug(fmt, ...) printf("libdma: " fmt "\n"__VA_OPT__(, ) __VA_ARGS__)
+#define libdma_debug(fmt, ...) printf("libdma: " fmt "\n" __VA_OPT__(, ) __VA_ARGS__)
 #else
 #define libdma_debug(...)
 #endif

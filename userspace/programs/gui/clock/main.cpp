@@ -6,6 +6,9 @@
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <thread>
+
+using namespace std::chrono_literals;
 
 static WindowManagerStub wm{ "mos.window-manager" };
 
@@ -50,9 +53,8 @@ void draw_line(u32 *buffer, size_t width, size_t height, size_t x1, size_t y1, s
 int main(int, char **)
 {
     CreateWindowRequest create_window_request;
-    create_window_request.display_name = (char *) "Clock Window";
-    create_window_request.width = CLOCK_SIZE;
-    create_window_request.height = CLOCK_SIZE;
+    create_window_request.title = strdup("Clock");
+    create_window_request.size = { .width = CLOCK_SIZE, .height = CLOCK_SIZE };
     CreateWindowResponse create_window_response;
     wm.create_window(&create_window_request, &create_window_response);
 
@@ -67,10 +69,7 @@ int main(int, char **)
     while (true)
     {
         if (time == std::chrono::system_clock::now())
-        {
-            syscall_yield_cpu();
-            continue; // Avoid busy-waiting
-        }
+            std::this_thread::sleep_for(1s);
 
         time = std::chrono::system_clock::now();
         auto time_t = std::chrono::system_clock::to_time_t(time);

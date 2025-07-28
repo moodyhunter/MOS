@@ -4,6 +4,7 @@
 
 #include "ServiceManager.hpp"
 #include "common/ConfigurationManager.hpp"
+#include "proto/mosrpc.pb.h"
 #include "proto/services.pb.h"
 #include "units/inherited.hpp"
 #include "units/template.hpp"
@@ -137,7 +138,7 @@ rpc_result_code_t ServiceManagerServer::get_templates(rpc_context_t *ctx, const 
         {
             const auto &predefined_args = template_->predefined_args;
             resp->templates[i].predefined_arguments_count = predefined_args.size();
-            resp->templates[i].predefined_arguments = static_cast<KeyValuePair *>(malloc(predefined_args.size() * sizeof(KeyValuePair)));
+            resp->templates[i].predefined_arguments = static_cast<mosrpc_KeyValuePair *>(malloc(predefined_args.size() * sizeof(mosrpc_KeyValuePair)));
             if (!resp->templates[i].predefined_arguments)
                 return RPC_RESULT_SERVER_INTERNAL_ERROR;
             int j = 0;
@@ -205,7 +206,7 @@ rpc_result_code_t ServiceManagerServer::get_unit_overrides(rpc_context_t *ctx, c
         const auto &[id, args] = pair;
         resp->overrides[i].base_unit_id = strdup(id.c_str());
         resp->overrides[i].overrides_count = args.size();
-        resp->overrides[i].overrides = static_cast<KeyValuePair *>(malloc(args.size() * sizeof(KeyValuePair)));
+        resp->overrides[i].overrides = static_cast<mosrpc_KeyValuePair *>(malloc(args.size() * sizeof(mosrpc_KeyValuePair)));
         if (!resp->overrides[i].overrides)
             return RPC_RESULT_SERVER_INTERNAL_ERROR;
         int j = 0;

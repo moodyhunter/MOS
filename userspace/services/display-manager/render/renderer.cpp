@@ -14,14 +14,41 @@
 #include <pb.h>
 #include <ranges>
 
+using namespace DisplayManager;
 using namespace DisplayManager::Render;
 
-static void FillBackgroundColor(pb_bytes_array_t *buffer, bool transparent = false)
+static std::shared_ptr<DisplayManager::Windows::Window> cursorWindow = nullptr;
+static std::shared_ptr<DisplayManager::Windows::Window> backgroundWindow = nullptr;
+
+static const u32 cursorImage[] = {
+    0xff000000, 0xff4f4f4f, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+    0x00000000, 0x00000000, 0x00000000, 0xff4f4f4f, 0xff000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0xffb3b3b3, 0xff000000, 0xff000000, 0x00000000, 0x00000000,
+    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0xffb3b3b3,
+    0xffb3b3b3, 0xff000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+    0x00000000, 0xff000000, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xff000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xff000000, 0xff000000,
+    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3,
+    0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xff000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0xffb3b3b3,
+    0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0x00000000, 0x00000000,
+    0x00000000, 0x00000000, 0xff000000, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xff000000, 0xffffffff, 0xff000000, 0x00000000,
+    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xff000000,
+    0xff000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3,
+    0xffb3b3b3, 0xff000000, 0xff000000, 0xffffffff, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000,
+    0xffb3b3b3, 0xffb3b3b3, 0xffb3b3b3, 0xff000000, 0xff000000, 0xffffffff, 0xff000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+    0x00000000, 0x00000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xffffffff, 0xffffffff, 0xff000000, 0xff000000, 0x00000000, 0x00000000,
+    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0xffffffff, 0xff000000, 0xffffffff, 0xff000000, 0xff000000, 0xff000000,
+    0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000,
+    0x00000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000,
+    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xff000000, 0xff000000, 0x00000000,
+};
+
+static void FillBackgroundColor(void *buffer, size_t bufSize, bool transparent = false)
 {
     // Initialize the back buffer with a solid color #8affdb
-    for (size_t i = 0; i < buffer->size / sizeof(uint32_t); ++i)
+    for (size_t i = 0; i < bufSize / sizeof(uint32_t); ++i)
     {
-        reinterpret_cast<uint32_t *>(buffer->bytes)[i] = transparent ? 0x00000000 : 0xff8affdb; // Transparent or solid color
+        reinterpret_cast<uint32_t *>(buffer)[i] = transparent ? 0x00000000 : 0xff8affdb; // Transparent or solid color
     }
 }
 
@@ -31,10 +58,10 @@ RendererClass::RendererClass()
 
 RendererClass::~RendererClass()
 {
-    if (back_buffer)
-    {
-        free(back_buffer);
-    }
+    // if (back_buffer)
+    // {
+    // free(back_buffer);
+    // }
 }
 
 bool RendererClass::Initialize()
@@ -56,99 +83,90 @@ bool RendererClass::Initialize()
     }
 
     std::cout << "Display Name: " << response.display_name << std::endl;
-    std::cout << "Resolution: " << response.width << "x" << response.height << std::endl;
+    std::cout << "Resolution: " << response.size.width << "x" << response.size.height << std::endl;
 
-    display_info.width = response.width;
-    display_info.height = response.height;
+    display_info.size = Size{ static_cast<int>(response.size.width), static_cast<int>(response.size.height) };
 
-    // Allocate the back buffer
-    const auto buffersize = response.width * response.height * sizeof(uint32_t);
-    back_buffer = static_cast<pb_bytes_array_t *>(malloc(PB_BYTES_ARRAY_T_ALLOCSIZE(buffersize)));
-    if (!back_buffer)
-    {
-        std::cerr << "Failed to allocate back buffer." << std::endl;
-        return false;
-    }
+    cursorWindow = Windows::WindowManager->CreateWindow("mouse", { 0, 0 }, { 16, 16 }, Windows::WindowType::Cursor);
+    cursorWindow->UpdateContent(cursorWindow->GetWindowRegion(), cursorImage, sizeof(cursorImage));
 
-    back_buffer->size = buffersize;
-
-    FillBackgroundColor(back_buffer);
+    backgroundWindow = Windows::WindowManager->CreateWindow("background", { 0, 0 }, display_info.size, Windows::WindowType::Background);
+    FillBackgroundColor(backgroundWindow->GetBackingBuffer()->bytes, backgroundWindow->GetBackingBuffer()->size, false);
     return true;
 }
 
 bool RendererClass::RenderFullScreen()
 {
-    return DamageGlobal(Region{ Point{ 0, 0 }, Size{ display_info.width, display_info.height } });
+    return DamageGlobal(Region{ Point{ 0, 0 }, display_info.size });
 }
 
-void RendererClass::SetCursorPosition(int, int)
+Point RendererClass::SetCursorPosition(Point position)
 {
+    const auto clamped = position.Clamped(display_info.size);
+    Windows::WindowManager->MoveWindowTo(cursorWindow->windowId, clamped);
+    return clamped;
 }
 
-bool RendererClass::DamageGlobal(const Region &region)
+extern void *renderBuffer;
+
+bool RendererClass::DamageGlobal(const Region &in)
 {
-    const auto contentSize = region.size.width * region.size.height * sizeof(uint32_t);
-    pb_bytes_array_t *content = static_cast<pb_bytes_array_t *>(malloc(PB_BYTES_ARRAY_T_ALLOCSIZE(contentSize)));
-    if (!content)
+    const auto region = in.GetIntersection(Region{ Point{ 0, 0 }, display_info.size });
+    if (!region)
+        return false;
+
+    if (renderBuffer == nullptr)
     {
-        std::cerr << "Failed to allocate content buffer." << std::endl;
+        std::cout << "!!!renderBuffer is null!!!" << std::endl;
         return false;
     }
-    content->size = contentSize;
 
-    FillBackgroundColor(content, false);
+    const auto displaySize = GetDisplaySize();
+    const auto renderBufferSize = displaySize.width * displaySize.height * sizeof(uint32_t);
 
     static std::mutex mutex;
     std::lock_guard lock{ mutex };
 
-    // from the bottom to the top
-    for (const auto wId : std::ranges::reverse_view(Windows::ZOrder))
+    const auto RenderOneWIdOnTop = [=](u64 wId)
     {
         const auto window = Windows::WindowManager->GetWindow(wId);
         if (!window)
         {
             std::cerr << "Window with ID " << wId << " not found." << std::endl;
-            continue;
+            return;
         }
 
-        const auto windowRegion = window->GetWindowRegion().GetIntersection(region);
+        const auto windowRegion = window->GetWindowRegion().GetIntersection(*region);
         if (!windowRegion)
-            continue;
+            return;
 
-        Utils::SubView<uint32_t> subView(content, region.size, Region{ windowRegion->origin - region.origin, windowRegion->size });
+        Utils::SubView<uint32_t> subView(renderBuffer, renderBufferSize, displaySize, *windowRegion);
 
         if (!window->GetRegionContent(windowRegion->ToLocal(window->GetPosition()), subView))
         {
-            std::cerr << "Failed to get content for window ID " << wId << " in region (" << windowRegion->origin.x << ", " << windowRegion->origin.y << ") Size: ("
-                      << windowRegion->size.width << "x" << windowRegion->size.height << ")" << std::endl;
-            continue;
+            std::cerr << "Failed to get content for window ID " << wId << " in region " << *windowRegion << " at position " << window->GetPosition() << std::endl;
+            return;
         }
-    }
+    };
 
-    if (!DoPostBuffer(region, content))
+    // from the bottom to the top
+    for (const auto wId : std::ranges::reverse_view(Windows::ZOrder))
     {
-        std::cerr << "Failed to post buffer for region (" << region.origin.x << ", " << region.origin.y << ") Size: (" << region.size.width << "x" << region.size.height
-                  << ")" << std::endl;
-        free(content);
-        return false;
+        RenderOneWIdOnTop(wId);
     }
 
-    free(content);
-    return true;
-}
-
-bool RendererClass::DoPostBuffer(const Region &region, pb_bytes_array_t *content)
-{
-    static std::mutex mutex;
-    std::lock_guard lock{ mutex };
+    // Render the topmost windows
+    for (const auto wId : Windows::TopMostWindows)
+    {
+        RenderOneWIdOnTop(wId);
+    }
 
     PostBufferRequest post_buffer_request;
     post_buffer_request.display_name = (char *) "default_display";
-    post_buffer_request.region.x = region.origin.x;
-    post_buffer_request.region.y = region.origin.y;
-    post_buffer_request.region.w = region.size.width;
-    post_buffer_request.region.h = region.size.height;
-    post_buffer_request.buffer_data = content;
+    post_buffer_request.region.x = region->origin.x;
+    post_buffer_request.region.y = region->origin.y;
+    post_buffer_request.region.w = region->size.width;
+    post_buffer_request.region.h = region->size.height;
 
     PostBufferResponse post_buffer_response;
     if (graphics_manager->post_buffer(&post_buffer_request, &post_buffer_response) != RPC_RESULT_OK)

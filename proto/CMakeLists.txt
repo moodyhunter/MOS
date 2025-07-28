@@ -72,7 +72,7 @@ macro(generate_rpc_definitions SRCS HDRS)
             list(REMOVE_DUPLICATES NANOPB_OPTIONS_DIRS)
         endif()
 
-        set(NANOPB_PLUGIN_OPTIONS)
+        set(NANOPB_PLUGIN_OPTIONS "-s fallback_type:FT_POINTER -s proto3_singular_msgs=true")
 
         foreach(options_path ${NANOPB_OPTIONS_DIRS})
             set(NANOPB_PLUGIN_OPTIONS "${NANOPB_PLUGIN_OPTIONS} -I${options_path}")
@@ -88,8 +88,6 @@ macro(generate_rpc_definitions SRCS HDRS)
             ARGS
                 -I${CMAKE_CURRENT_SOURCE_DIR}
                 -I${CMAKE_SOURCE_DIR}
-                -I${GENERATOR_CORE_DIR}
-                -I${PROTO_FILE_DIR}
                 -I${MOSRPC_GENERATOR_PLUGIN_DIR}
 
                 # NanoPB Generator

@@ -15,7 +15,7 @@ bool Target::Start()
     {
         if (!ServiceManager->StartUnit(partOf))
         {
-            std::cerr << "Failed to stop unit " << partOf << " while stopping target " << id << std::endl;
+            std::cerr << "Failed to start unit " << partOf << " while stopping target " << id << std::endl;
         }
     }
 

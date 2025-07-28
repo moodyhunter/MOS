@@ -1,0 +1,2 @@
+fallback_type: 4 // FT_POINTER
+proto3_singular_msgs: true

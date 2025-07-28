@@ -25,7 +25,7 @@ fn main() {
 
     macro_rules! project_dir {
         () => {
-            format!("{}/", project_root_dir.display());
+            format!("{}/", project_root_dir.display())
         };
         ($dir:expr) => {
             format!("{}/{}", project_root_dir.display(), $dir)
@@ -43,7 +43,6 @@ fn main() {
         project_dir!("proto/services.proto"),
         project_dir!("proto/mosrpc.proto"),
         project_dir!("proto/mosrpc-options.proto"),
-        build_dir!("nanopb_workdir/proto/nanopb.proto"),
     ];
 
     for proto_file in &proto_files {
@@ -51,8 +50,7 @@ fn main() {
     }
 
     protobuf_codegen::Codegen::new()
-        .include(project_dir!("proto"))
-        .include(build_dir!("nanopb_workdir/proto"))
+        .include(project_dir!())
         .inputs(&proto_files)
         .cargo_out_dir("protos")
         .run_from_script();

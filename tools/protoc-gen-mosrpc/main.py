@@ -76,7 +76,7 @@ def process_file(proto_file: FileDescriptorProto, response: plugin.CodeGenerator
     module_name = proto_file.name.replace(".proto", "")
 
     write(FILE_PREAMBLE)
-    write(f'#include "proto/{module_name}.pb.h"')
+    write(f'#include "{module_name}.pb.h"')
     write(f'')
 
     for service in proto_file.service:

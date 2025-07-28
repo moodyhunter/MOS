@@ -1,13 +1,18 @@
 syntax = "proto3";
-import "nanopb.proto";
 
 package mosrpc;
 
-option (nanopb_fileopt).fallback_type = FT_POINTER;
-option (nanopb_fileopt).proto3_singular_msgs = true;
+// import "proto/nanopb.proto";
 
-message result
-{
-    bool success = 1;
-    string error = 2;
+// option (nanopb_fileopt).fallback_type        = FT_POINTER;
+// option (nanopb_fileopt).proto3_singular_msgs = true;
+
+message result {
+  bool   success = 1;
+  string error   = 2;
+}
+
+message KeyValuePair {
+  string name  = 1;
+  string value = 2;
 }

@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+import "proto/graphics.proto";
+
+message Delta {
+  int32 x = 1; // Change in x coordinate
+  int32 y = 2; // Change in y coordinate
+}
+
+message MouseMoveEvent {
+  graphics.Point position = 1; // Current position of the mouse
+  Delta          movement = 2; // Movement delta from the last event
+}
+
+enum MouseButton {
+  LEFT   = 0; // Left mouse button
+  RIGHT  = 1; // Right mouse button
+  MIDDLE = 2; // Middle mouse button
+  FORTH  = 3; // Fourth mouse button
+  FIFTH  = 4; // Fifth mouse button
+}
+
+message MouseButtonEvent {
+  graphics.Point position = 1; // Position of the mouse when the button was pressed/released
+  MouseButton    button   = 2; // The mouse button that was pressed or released
+  bool           pressed  = 3; // True if the button was pressed, false if released
+}
+
+message KeyboardEvent {
+  int32 scancode = 1; // The scancode of the key
+  bool  pressed  = 2; // True if the key was pressed, false if released
+}
+
+enum InputEventType {
+  MOUSE_MOVE   = 0; // Mouse movement event
+  MOUSE_BUTTON = 1; // Mouse button event
+  KEYBOARD     = 2; // Keyboard event
+}
+
+message InputEvent {
+  InputEventType type = 1; // Type of the input event
+  oneof event_type {
+    MouseMoveEvent   mouse_move   = 2; // Mouse movement event
+    MouseButtonEvent mouse_button = 3; // Mouse button event
+    KeyboardEvent    keyboard     = 4; // Keyboard event
+  }
+}
