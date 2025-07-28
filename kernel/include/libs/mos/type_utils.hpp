@@ -67,7 +67,7 @@ namespace mos
     };
 
     template<typename T>
-    consteval static string_view getTypeName()
+    consteval static inline string_view getTypeName()
     {
 #if defined(MOS_COMPILER_CLANG) || defined(MOS_COMPILER_GCC)
         constexpr string_view f = __PRETTY_FUNCTION__;

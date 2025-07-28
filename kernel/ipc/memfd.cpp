@@ -9,8 +9,6 @@
 #include "mos/filesystem/vfs_utils.hpp"
 #include "mos/io/io.hpp"
 #include "mos/misc/setup.hpp"
-#include "mos/syslog/printk.hpp"
-#include "mos/types.hpp"
 
 #include <mos/allocator.hpp>
 #include <mos/filesystem/fs_types.h>

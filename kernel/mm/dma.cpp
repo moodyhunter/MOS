@@ -63,7 +63,8 @@ bool dmabuf_unshare(ptr_t phys, size_t size, void *buffer)
 {
     const pfn_t pfn = phys / MOS_PAGE_SIZE;
     pr_dinfo2(dma, "unsharing %zu bytes at " PFN_FMT, size, pfn);
-    memcpy(buffer, (void *) pfn_va(pfn), size);
+    if (buffer)
+        memcpy(buffer, (void *) pfn_va(pfn), size);
     pmm_free_frames(pfn_phyframe(pfn), ALIGN_UP_TO_PAGE(size) / MOS_PAGE_SIZE);
     return true;
 }

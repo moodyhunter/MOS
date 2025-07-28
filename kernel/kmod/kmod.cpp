@@ -453,7 +453,7 @@ namespace mos::kmods
         };
 #else
         mFatal << "PLT emission is not supported for this architecture";
-        return;
+        return false;
 #endif
 
         for (size_t i = 0; i < pltEntries.size(); i++)

@@ -97,7 +97,7 @@ namespace mos
                 return &item->entry;
             }
 
-            operator bool()
+            operator bool() const
             {
                 return item != nullptr;
             }
@@ -148,6 +148,18 @@ namespace mos
             const entry_type *operator->() const
             {
                 return &item->entry;
+            }
+
+            const Key &key() const
+            {
+                MOS_ASSERT(item);
+                return std::get<0>(item->entry);
+            }
+
+            const Value &value() const
+            {
+                MOS_ASSERT(item);
+                return std::get<1>(item->entry);
             }
 
             operator bool() const
@@ -218,6 +230,53 @@ namespace mos
             return end();
         }
 
+        const_iterator find(const Key &key) const
+        {
+            if (!_size)
+                return end();
+
+            const auto bucket = (std::hash<Key>{}(key) % _capacity);
+            for (const chain *item = _table[bucket]; item != nullptr; item = item->next)
+            {
+                if (std::get<0>(item->entry) == key)
+                    return const_iterator(this, bucket, item);
+            }
+
+            return end();
+        }
+
+        template<typename K>
+        iterator find(const K &key)
+        {
+            if (!_size)
+                return end();
+
+            const auto bucket = (std::hash<K>{}(key) % _capacity);
+            for (chain *item = _table[bucket]; item != nullptr; item = item->next)
+            {
+                if (std::get<0>(item->entry) == key)
+                    return iterator(this, bucket, item);
+            }
+
+            return end();
+        }
+
+        template<typename K>
+        const_iterator find(const K &key) const
+        {
+            if (!_size)
+                return end();
+
+            const auto bucket = (std::hash<K>{}(key) % _capacity);
+            for (const chain *item = _table[bucket]; item != nullptr; item = item->next)
+            {
+                if (std::get<0>(item->entry) == key)
+                    return const_iterator(this, bucket, item);
+            }
+
+            return end();
+        }
+
         iterator begin()
         {
             if (!_size)
@@ -251,21 +310,6 @@ namespace mos
         const_iterator end() const
         {
             return const_iterator(this, _capacity, nullptr);
-        }
-
-        const_iterator find(const Key &key) const
-        {
-            if (!_size)
-                return end();
-
-            const auto bucket = (std::hash<Key>{}(key)) % _capacity;
-            for (const chain *item = _table[bucket]; item != nullptr; item = item->next)
-            {
-                if (std::get<0>(item->entry) == key)
-                    return const_iterator(this, bucket, item);
-            }
-
-            return end();
         }
 
         std::optional<Value> get(const Key &key);
