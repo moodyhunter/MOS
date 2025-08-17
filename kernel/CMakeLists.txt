@@ -46,11 +46,17 @@ add_library(mos::kernel_compile_options ALIAS kernel_cxflags)
 
 # public includes
 target_include_directories(kernel_public_include SYSTEM INTERFACE
-    ${CMAKE_BINARY_DIR}/include                         # generated headers
-    ${CMAKE_BINARY_DIR}/kconfig/include                 # generated kconfig headers
-    ${CMAKE_SOURCE_DIR}/kernel/include/public           # public types
-    ${CMAKE_SOURCE_DIR}/kernel/arch/${MOS_ARCH}/include/public # public arch (e.g. syscall)
-    ${MOS_MLIBC_HEADER_DIR}/                            # mlibc headers
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>                         # generated headers
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/kconfig/include>                 # generated kconfig headers
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/kernel/include/public>           # public types
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/kernel/arch/${MOS_ARCH}/include/public> # public arch (e.g. syscall)
+    $<BUILD_INTERFACE:${MOS_MLIBC_HEADER_DIR}>                            # mlibc headers
+)
+
+install(TARGETS kernel_public_include
+    EXPORT MOSSDK
+    INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include/mos
+    COMPONENT mos-api-headers
 )
 
 # private includes

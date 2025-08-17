@@ -115,7 +115,6 @@ macro(generate_rpc_definitions SRCS HDRS)
 endmacro()
 
 file(GLOB PROTO_FILES "*.proto")
-# file(WRITE ${RPC_INCLUDE_DIR}/mosrpc-options.h "#pragma once\n\n// This file is intentionally left blank\n")
 
 generate_rpc_definitions(
     RPC_SRCS
@@ -134,5 +133,12 @@ add_library(mos_rpc_protocols_src INTERFACE)
 target_sources(mos_rpc_protocols_src INTERFACE ${RPC_SRCS} ${RPC_HDRS})
 add_dependencies(mos_rpc_protocols_src mos_generate_rpc_protocols)
 target_include_directories(mos_rpc_protocols_src INTERFACE ${RPC_INCLUDE_DIR})
+
+install(
+    FILES ${RPC_HDRS}
+    COMPONENT mosrpc-headers
+    EXCLUDE_FROM_ALL
+    DESTINATION include/mosrpc/proto
+)
 
 add_library(mos::rpc-protocols ALIAS mos_rpc_protocols_src)

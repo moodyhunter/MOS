@@ -1,4 +1,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
+include(CMakePackageConfigHelpers)
+configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/MOSSDKConfig.cmake.in
+  "${CMAKE_CURRENT_BINARY_DIR}/MOSSDKConfig.cmake"
+  INSTALL_DESTINATION cmake/MOSSDK
+)
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/MOSSDKConfigVersion.cmake"
+  VERSION "1.0"
+  COMPATIBILITY AnyNewerVersion
+)
+
 
 macro(add_mos_library_do_setup LIBNAME DEFINES PRIVATE_INCLUDE PUBLIC_INCLUDE)
     target_compile_definitions(${LIBNAME} PRIVATE ${DEFINES})
@@ -11,8 +22,8 @@ endmacro()
 
 function(add_mos_library)
     set(options USERSPACE_ONLY KERNEL_ONLY)
-    set(oneValueArgs NAME)
-    set(multiValueArgs SOURCES PUBLIC_INCLUDE_DIRECTORIES PRIVATE_INCLUDE_DIRECTORIES LINK_LIBRARIES DEFINES PRIVATE_DEFINES)
+    set(oneValueArgs NAME PUBLIC_HEADER_SET_BASE)
+    set(multiValueArgs SOURCES PUBLIC_INCLUDE_DIRECTORIES PRIVATE_INCLUDE_DIRECTORIES LINK_LIBRARIES DEFINES PRIVATE_DEFINES PUBLIC_HEADER_SET PUBLIC_HEADERS)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     if (NOT ARG_NAME)
@@ -66,10 +77,11 @@ function(add_mos_library)
     if (ARG_KERNEL_ONLY)
         return()
     endif()
-    # Create a hosted userspace library
+
+    # Create a hosted shared library
     add_library(${ARG_NAME} SHARED ${ARG_SOURCES})
     add_library(mos::${ARG_NAME} ALIAS ${ARG_NAME})
-
+    target_sources(${ARG_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS ${ARG_PUBLIC_HEADER_SET_BASE} FILES ${ARG_PUBLIC_HEADER_SET})
     add_mos_library_do_setup(${ARG_NAME} "" "${ARG_PRIVATE_INCLUDE_DIRECTORIES}" "${ARG_PUBLIC_INCLUDE_DIRECTORIES}")
     target_compile_definitions(${ARG_NAME} PUBLIC ${ARG_DEFINES})
     target_compile_definitions(${ARG_NAME} PRIVATE ${ARG_PRIVATE_DEFINES})
@@ -78,6 +90,23 @@ function(add_mos_library)
     foreach(lib ${ARG_LINK_LIBRARIES})
         target_link_libraries(${ARG_NAME} PUBLIC ${lib})
     endforeach()
+
+    install(TARGETS ${ARG_NAME}
+        EXPORT MOSSDK
+        COMPONENT sdk
+        EXCLUDE_FROM_ALL
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        INCLUDES DESTINATION include
+        FILE_SET HEADERS DESTINATION include/${ARG_NAME}
+    )
+
+    install(FILES ${ARG_PUBLIC_HEADERS}
+        DESTINATION include/${ARG_NAME}
+        COMPONENT sdk
+        EXCLUDE_FROM_ALL
+    )
 
     # create a hosted static library
     add_library(${ARG_NAME}_static STATIC ${ARG_SOURCES})
@@ -92,3 +121,19 @@ function(add_mos_library)
         target_link_libraries(${ARG_NAME}_static PUBLIC ${lib}_static)
     endforeach()
 endfunction()
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/MOSSDKConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/MOSSDKConfigVersion.cmake"
+    DESTINATION cmake/MOSSDK
+    COMPONENT sdk
+    EXCLUDE_FROM_ALL
+)
+
+install(EXPORT MOSSDK
+    COMPONENT sdk
+    EXCLUDE_FROM_ALL
+    NAMESPACE mos::
+    DESTINATION cmake/MOSSDK
+    FILE MOSSDKTargets.cmake
+)

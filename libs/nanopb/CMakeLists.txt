@@ -8,8 +8,16 @@ add_mos_library(NAME nanopb
         nanopb/pb_decode.h
         nanopb/pb_encode.c
     PUBLIC_INCLUDE_DIRECTORIES
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/nanopb
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/nanopb>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
+    PUBLIC_HEADERS
+        nanopb_mos.h
+    PUBLIC_HEADER_SET
+        nanopb/pb.h
+        nanopb/pb_decode.h
+        nanopb/pb_encode.h
+    PUBLIC_HEADER_SET_BASE
+        nanopb
     DEFINES
         "-DPB_SYSTEM_HEADER=\"nanopb_mos.h\""
 )
