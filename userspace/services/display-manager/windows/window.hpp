@@ -64,6 +64,7 @@ namespace DisplayManager::Windows
 
       private:
         std::mutex mutex;
+        std::condition_variable cv; ///< Condition variable for mouse events
         std::list<Input::MouseEvent> events;
         bool isLeftButtonPressed = false;
 

@@ -124,23 +124,22 @@ bool Window::HandleMouseEvent(const Input::MouseEvent &event)
         }
     }
 
-    mutex.lock();
-    events.push_back(event);
-    mutex.unlock();
+    {
+        std::unique_lock lock(mutex);
+        events.push_back(event);
+        cv.notify_all(); // Notify any waiting threads that a new event is available
+    }
 
     return true; // Indicate that the event was handled
 }
 
 Input::MouseEvent Window::WaitForMouseEvent()
 {
-    while (events.empty())
-        syscall_yield_cpu();
+    std::unique_lock lock(mutex);
+    cv.wait(lock, [this] { return !events.empty(); });
 
-    mutex.lock();
     auto event = events.front();
     event.cursorPosition = event.cursorPosition.ToLocal(this->position);
     events.pop_front();
-    mutex.unlock();
-
     return event;
 }
