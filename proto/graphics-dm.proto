@@ -1,11 +1,18 @@
 syntax = "proto3";
 
 import "proto/graphics.proto";
+import "proto/input-types.proto";
 import "proto/mosrpc.proto";
 
+enum SpecialWindowType {
+  Default = 0;
+  Desktop = 1;
+}
+
 message CreateWindowRequest {
-  string        title = 1; // the title of the window
-  graphics.Size size  = 2; // the size of the window in pixels
+  string            title       = 1; // the title of the window
+  graphics.Size     size        = 2; // the size of the window in pixels
+  SpecialWindowType specialType = 3;
 }
 
 message CreateWindowResponse {
@@ -71,15 +78,15 @@ message UpdateWindowContentResponse {
   mosrpc.result result = 1; // the result of the window content update
 }
 
-// message QueryDisplayInfoRequest {
-//   string display_name = 1; // the name of the display to query
-// }
+message QueryDisplayInfoRequest {
+  string display_name = 1; // the name of the display to query
+}
 
-// message QueryDisplayInfoResponse {
-//   mosrpc.result result = 1; // the result of the query
-//   graphics.Size size   = 2; // the size of the display in pixels
-//   uint32        dpi    = 3; // the DPI of the display
-// }
+message QueryDisplayInfoResponse {
+  mosrpc.result result = 1; // the result of the query
+  graphics.Size size   = 2; // the size of the display in pixels
+  uint32        dpi    = 3; // the DPI of the display
+}
 
 message GetWindowListRequest {
   // No fields needed for this request
@@ -101,8 +108,18 @@ message HandleEventRequest {
 }
 
 message HandleEventResponse {
-  mosrpc.result result     = 1; // the result of handling the event
-  bytes         event_data = 2; // the data of the handled event
+  mosrpc.result    result     = 1; // the result of handling the event
+  input.InputEvent event_data = 2; // the data of the handled event
+}
+
+message ScreenshotRequest {
+  uint64 window_id = 1; // the ID of the window to take a screenshot of, 0 for the entire screen
+}
+
+message ScreenshotResponse {
+  mosrpc.result result = 1; // the result of the screenshot request
+  graphics.Size size   = 2; // the size of the screenshot in pixels
+  bytes         image  = 3; // the screenshot image data in ARGB format
 }
 
 service WindowManager {
@@ -117,8 +134,12 @@ service WindowManager {
 
   // window content management
   rpc UpdateWindowContent(UpdateWindowContentRequest) returns (UpdateWindowContentResponse);
-  // rpc QueryDisplayInfo(QueryDisplayInfoRequest) returns (QueryDisplayInfoResponse);
+  rpc QueryDisplayInfo(QueryDisplayInfoRequest) returns (QueryDisplayInfoResponse);
   rpc GetWindowList(GetWindowListRequest) returns (GetWindowListResponse);
 
   // event management
+  rpc HandleEvent(HandleEventRequest) returns (HandleEventResponse);
+
+  // Screenshot
+  rpc DoScreenshot(ScreenshotRequest) returns (ScreenshotResponse);
 }

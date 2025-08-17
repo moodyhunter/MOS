@@ -6,6 +6,7 @@ add_executable(display-manager
     windows/window-manager.cpp
     windows/window.cpp
     render/renderer.cpp
+    utils/common.cpp
 )
 target_link_libraries(display-manager
   PRIVATE

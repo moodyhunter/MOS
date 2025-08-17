@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package input;
+
 import "proto/graphics.proto";
 
 message Delta {

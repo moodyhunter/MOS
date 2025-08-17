@@ -3,10 +3,12 @@
 #pragma once
 
 #include "input/input.hpp"
+#include "proto/graphics-dm.pb.h"
 #include "proto/graphics-dm.service.h"
 #include "windows/window.hpp"
 
 #include <atomic>
+#include <librpc/rpc.h>
 #include <list>
 #include <map>
 #include <memory>
@@ -22,9 +24,9 @@ namespace DisplayManager::Windows
         ~WindowManagerClass();
 
       public:
-        std::shared_ptr<Window> GetWindow(u64 windowId)
+        std::shared_ptr<Window> GetWindow(u64 windowId) const
         {
-            auto it = windows.find(windowId);
+            const auto it = windows.find(windowId);
             if (it != windows.end())
                 return it->second;
             return nullptr;
@@ -45,6 +47,13 @@ namespace DisplayManager::Windows
       private:
         rpc_result_code_t create_window(rpc_context_t *context, const CreateWindowRequest *req, CreateWindowResponse *resp) override;
         rpc_result_code_t update_window_content(rpc_context_t *context, const UpdateWindowContentRequest *req, UpdateWindowContentResponse *resp) override;
+        rpc_result_code_t move_window(rpc_context_t *context, const MoveWindowRequest *req, MoveWindowResponse *resp) override;
+        rpc_result_code_t get_window_list(rpc_context_t *context, const GetWindowListRequest *req, GetWindowListResponse *resp) override;
+        rpc_result_code_t do_screenshot(rpc_context_t *context, const ScreenshotRequest *req, ScreenshotResponse *resp) override;
+        rpc_result_code_t query_display_info(rpc_context_t *context, const QueryDisplayInfoRequest *req, QueryDisplayInfoResponse *resp) override;
+
+        // event management
+        rpc_result_code_t handle_event(rpc_context_t *context, const HandleEventRequest *req, HandleEventResponse *resp) override;
 
       private:
         std::atomic<u64> nextWindowId = 0x1000; ///< Next window ID to be assigned

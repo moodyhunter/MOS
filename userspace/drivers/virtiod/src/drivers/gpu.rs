@@ -18,7 +18,8 @@ use crate::mosrpc::graphics_gpu::MoveCursorResponse;
 use crate::{
     hal::MOSHal,
     mosrpc::graphics_gpu::{
-        PostBufferRequest, PostBufferResponse, QueryDisplayInfoRequest, QueryDisplayInfoResponse,
+        GpuPostBufferRequest, GpuPostBufferResponse, GpuQueryDisplayInfoRequest,
+        GpuQueryDisplayInfoResponse,
     },
     result_err,
 };
@@ -57,8 +58,8 @@ unsafe impl Send for GpuServer {}
 #[rustfmt::skip]
 RpcPbServer!(
     GpuServer,
-    (1, on_query_display_info, (QueryDisplayInfoRequest, QueryDisplayInfoResponse)),
-    (2, on_post_buffer, (PostBufferRequest, PostBufferResponse)),
+    (1, on_query_display_info, (GpuQueryDisplayInfoRequest, GpuQueryDisplayInfoResponse)),
+    (2, on_post_buffer, (GpuPostBufferRequest, GpuPostBufferResponse)),
     (3, on_move_cursor, (MoveCursorRequest, MoveCursorResponse))
 );
 
@@ -109,8 +110,8 @@ impl GpuServer {
 
     fn on_query_display_info(
         &self,
-        request: &QueryDisplayInfoRequest,
-    ) -> Option<QueryDisplayInfoResponse> {
+        request: &GpuQueryDisplayInfoRequest,
+    ) -> Option<GpuQueryDisplayInfoResponse> {
         log::info!(
             "QueryDisplayInfo: display_name={}, width={}, height={}",
             request.display_name,
@@ -118,14 +119,14 @@ impl GpuServer {
             self.resolution.height
         );
 
-        Some(QueryDisplayInfoResponse {
+        Some(GpuQueryDisplayInfoResponse {
             display_name: request.display_name.clone(),
             size: MessageField::some(self.resolution.to_pb_size()),
             ..Default::default()
         })
     }
 
-    fn on_post_buffer(&mut self, request: &PostBufferRequest) -> Option<PostBufferResponse> {
+    fn on_post_buffer(&mut self, request: &GpuPostBufferRequest) -> Option<GpuPostBufferResponse> {
         let region = request.region.clone();
 
         let screen_width = self.resolution.width;
@@ -137,7 +138,7 @@ impl GpuServer {
                 "Region {:?} is out of bounds for resolution {:?}",
                 region, self.resolution
             );
-            return Some(PostBufferResponse {
+            return Some(GpuPostBufferResponse {
                 result: result_err!(errinfo),
                 ..Default::default()
             });
@@ -154,7 +155,7 @@ impl GpuServer {
             let dst_end = dst_start + (region.w * 4);
 
             if dst_end as usize > fb.len() {
-                return Some(PostBufferResponse {
+                return Some(GpuPostBufferResponse {
                     result: result_err!("Buffer overflow detected"),
                     ..Default::default()
                 });
@@ -165,7 +166,7 @@ impl GpuServer {
         }
 
         self.gpu.lock().unwrap().0.flush().expect("failed to flush");
-        Some(PostBufferResponse {
+        Some(GpuPostBufferResponse {
             result: result_ok!(),
             ..Default::default()
         })

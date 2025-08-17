@@ -6,8 +6,10 @@
 #include "utils/SubView.hpp"
 #include "utils/common.hpp"
 
+#include <list>
 #include <mos/types.h>
 #include <pb.h>
+#include <shared_mutex>
 #include <string>
 
 namespace DisplayManager::Windows
@@ -17,6 +19,7 @@ namespace DisplayManager::Windows
         Regular,    ///< Regular window type
         Cursor,     ///< Window type for mouse cursor
         Background, ///< Window type for background
+        Desktop,    ///< Window type for desktop (taskbars, icons etc)
     };
 
     class Window
@@ -46,6 +49,8 @@ namespace DisplayManager::Windows
             return backingBuffer;
         }
 
+        Input::MouseEvent WaitForMouseEvent();
+
       public:
         bool HandleMouseEvent(const Input::MouseEvent &event);
 
@@ -56,6 +61,11 @@ namespace DisplayManager::Windows
       public:
         const u64 windowId;          ///< Unique identifier for the window
         const WindowType windowType; ///< Type of the window (Regular, Mouse, etc.)
+
+      private:
+        std::mutex mutex;
+        std::list<Input::MouseEvent> events;
+        bool isLeftButtonPressed = false;
 
       private:
         Point position;    ///< Position of the window on the screen

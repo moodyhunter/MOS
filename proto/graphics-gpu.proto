@@ -4,21 +4,21 @@ import "proto/graphics.proto";
 import "proto/mosrpc-options.proto";
 import "proto/mosrpc.proto";
 
-message QueryDisplayInfoRequest {
+message GpuQueryDisplayInfoRequest {
   string display_name = 1; // the name of the display to query
 }
 
-message QueryDisplayInfoResponse {
+message GpuQueryDisplayInfoResponse {
   string        display_name = 1; // the name of the display
   graphics.Size size         = 2; // the size of the display
 }
 
-message PostBufferRequest {
+message GpuPostBufferRequest {
   string             display_name = 1; // the name of the display to post the buffer to
   graphics.Rectangle region       = 2; // the region of the display to post the buffer to
 }
 
-message PostBufferResponse {
+message GpuPostBufferResponse {
   mosrpc.result result = 1; // the result of the buffer posting
 }
 
@@ -34,8 +34,8 @@ message MoveCursorResponse {
 
 service GraphicsManager {
   option (c_name) = "graphics_manager";
-  rpc QueryDisplayInfo(QueryDisplayInfoRequest) returns (QueryDisplayInfoResponse);
-  rpc PostBuffer(PostBufferRequest) returns (PostBufferResponse);
+  rpc QueryDisplayInfo(GpuQueryDisplayInfoRequest) returns (GpuQueryDisplayInfoResponse);
+  rpc PostBuffer(GpuPostBufferRequest) returns (GpuPostBufferResponse);
   // unused
   // rpc MoveCursor(MoveCursorRequest) returns (MoveCursorResponse);
 }

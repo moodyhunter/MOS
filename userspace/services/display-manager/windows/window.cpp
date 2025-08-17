@@ -2,15 +2,20 @@
 
 #include "windows/window.hpp"
 
+#include "mos/syscall/usermode.h"
 #include "render/renderer.hpp"
 #include "utils/SubView.hpp"
 #include "windows/window-manager.hpp"
 
 #include <iostream>
+#include <shared_mutex>
 #include <stdexcept>
+#include <thread>
 
 using namespace DisplayManager;
 using namespace DisplayManager::Windows;
+
+using namespace std::chrono_literals;
 
 Window::Window(u64 wId, const std::string &title, Point pos, Size size, WindowType windowType)
     : windowId(wId), windowType(windowType), position(pos), size(size), title(title)
@@ -85,37 +90,57 @@ bool Window::GetRegionContent(const Region &local, Utils::SubView<uint32_t> &des
 
 bool Window::HandleMouseEvent(const Input::MouseEvent &event)
 {
-    static bool isLeftButtonPressed = false;
-    if (event.leftButton)
+    if (windowType != WindowType::Desktop)
     {
-        if (!isLeftButtonPressed)
+        if (event.leftButton)
         {
-            isLeftButtonPressed = true;
-            std::cout << "Left button pressed on window: " << title << std::endl;
-            WindowManager->BringWindowToFront(windowId); // Bring this window to the front
-        }
-
-        if (isLeftButtonPressed)
-        {
-            if (event.movement)
+            if (!isLeftButtonPressed)
             {
-                // Move the window to the new position based on mouse movement
-                Point newPosition = position;
-                newPosition.x += event.movement.x;
-                newPosition.y += event.movement.y;
-                WindowManager->MoveWindowTo(windowId, newPosition);
-                position = newPosition;
+                isLeftButtonPressed = true;
+                std::cout << "Left button pressed on window: " << title << std::endl;
+                WindowManager->BringWindowToFront(windowId); // Bring this window to the front
+            }
+
+            if (isLeftButtonPressed)
+            {
+                if (event.movement)
+                {
+                    // Move the window to the new position based on mouse movement
+                    Point newPosition = position;
+                    newPosition.x += event.movement.x;
+                    newPosition.y += event.movement.y;
+                    WindowManager->MoveWindowTo(windowId, newPosition);
+                    position = newPosition;
+                }
+            }
+        }
+        else
+        {
+            if (isLeftButtonPressed)
+            {
+                isLeftButtonPressed = false;
+                std::cout << "Left button released on window: " << title << std::endl;
             }
         }
     }
-    else
-    {
-        if (isLeftButtonPressed)
-        {
-            isLeftButtonPressed = false;
-            std::cout << "Left button released on window: " << title << std::endl;
-        }
-    }
+
+    mutex.lock();
+    events.push_back(event);
+    mutex.unlock();
 
     return true; // Indicate that the event was handled
+}
+
+Input::MouseEvent Window::WaitForMouseEvent()
+{
+    while (events.empty())
+        syscall_yield_cpu();
+
+    mutex.lock();
+    auto event = events.front();
+    event.cursorPosition = event.cursorPosition.ToLocal(this->position);
+    events.pop_front();
+    mutex.unlock();
+
+    return event;
 }

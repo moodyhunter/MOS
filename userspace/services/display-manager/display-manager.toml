@@ -24,3 +24,10 @@ depends_on = ["display-manager.service"]
 part_of = ["graphical.target"]
 options = { exec = "/initrd/programs/clock" }
 service = { redirect = false }
+
+[desktop.service]
+description = "Desktop Service"
+depends_on = ["display-manager.service"]
+part_of = ["graphical.target"]
+options = { exec = "/initrd/programs/desktop" }
+service = { redirect = false }

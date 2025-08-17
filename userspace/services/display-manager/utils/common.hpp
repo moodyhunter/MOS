@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <algorithm>
 #include <ostream>
 namespace DisplayManager
 {
@@ -11,15 +10,9 @@ namespace DisplayManager
         int x = 0;
         int y = 0;
 
-        Delta operator+(const Delta &other) const
-        {
-            return { x + other.x, y + other.y };
-        }
+        Delta operator+(const Delta &other) const;
 
-        Delta operator-(const Delta &other) const
-        {
-            return { x - other.x, y - other.y };
-        }
+        Delta operator-(const Delta &other) const;
 
         operator bool() const
         {
@@ -40,29 +33,15 @@ namespace DisplayManager
         int x = 0;
         int y = 0;
 
-        Point ToGlobal(const Point &offset) const
-        {
-            return { x + offset.x, y + offset.y };
-        }
+        Point ToGlobal(const Point &offset) const;
 
-        Point ToLocal(const Point &offset) const
-        {
-            return { x - offset.x, y - offset.y };
-        }
+        Point ToLocal(const Point &offset) const;
 
-        Delta operator-(const Point &other) const
-        {
-            return { x - other.x, y - other.y };
-        }
+        Delta operator-(const Point &other) const;
 
         Point Clamped(const Region &region) const;
-        Point Clamped(const Size &size) const
-        {
-            return {
-                std::max(0, std::min(x, size.width - 1)),
-                std::max(0, std::min(y, size.height - 1)),
-            };
-        }
+
+        Point Clamped(const Size &size) const;
     };
 
     struct Region
@@ -71,63 +50,18 @@ namespace DisplayManager
         Point origin; ///< Top-left corner of the region
         Size size;    ///< Size of the region
 
-        Region ToGlobal(const Point &offset) const
-        {
-            return { origin.ToGlobal(offset), size };
-        }
+        Region ToGlobal(const Point &offset) const;
 
-        Region ToLocal(const Point &offset) const
-        {
-            return { origin.ToLocal(offset), size };
-        }
+        Region ToLocal(const Point &offset) const;
 
-        bool InRegion(const Point &point) const
-        {
-            return point.x >= origin.x && point.x < origin.x + size.width && point.y >= origin.y && point.y < origin.y + size.height;
-        }
+        bool Test(const Point &p) const;
 
-        std::optional<Region> GetIntersection(const Region &other) const
-        {
-            int x1 = std::max(origin.x, other.origin.x);
-            int y1 = std::max(origin.y, other.origin.y);
-            int x2 = std::min(origin.x + size.width, other.origin.x + other.size.width);
-            int y2 = std::min(origin.y + size.height, other.origin.y + other.size.height);
+        std::optional<Region> GetIntersection(const Region &other) const;
 
-            if (x1 < x2 && y1 < y2)
-                return Region(Point(x1, y1), Size(x2 - x1, y2 - y1));
-            return std::nullopt; ///< No intersection
-        }
+        void Clip(const Region &clipRegion);
 
-        void Clip(const Region &clipRegion)
-        {
-            auto intersection = GetIntersection(clipRegion);
-            if (intersection)
-            {
-                origin = intersection->origin;
-                size = intersection->size;
-            }
-            else
-            {
-                size = { 0, 0 }; // No intersection, effectively empty region
-            }
-        }
-
-        Region GetUnion(const Region &other) const
-        {
-            int x1 = std::min(origin.x, other.origin.x);
-            int y1 = std::min(origin.y, other.origin.y);
-            int x2 = std::max(origin.x + size.width, other.origin.x + other.size.width);
-            int y2 = std::max(origin.y + size.height, other.origin.y + other.size.height);
-
-            return Region(Point(x1, y1), Size(x2 - x1, y2 - y1));
-        }
+        Region GetUnion(const Region &other) const;
     };
-
-    inline Point Point::Clamped(const Region &region) const
-    {
-        return { std::max(region.origin.x, std::min(x, region.origin.x + region.size.width - 1)),
-                 std::max(region.origin.y, std::min(y, region.origin.y + region.size.height - 1)) };
-    }
 
 } // namespace DisplayManager
 

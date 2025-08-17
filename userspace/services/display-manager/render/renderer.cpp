@@ -58,10 +58,6 @@ RendererClass::RendererClass()
 
 RendererClass::~RendererClass()
 {
-    // if (back_buffer)
-    // {
-    // free(back_buffer);
-    // }
 }
 
 bool RendererClass::Initialize()
@@ -73,8 +69,8 @@ bool RendererClass::Initialize()
         return false;
     }
 
-    const QueryDisplayInfoRequest request{ .display_name = (char *) "default_display" };
-    QueryDisplayInfoResponse response;
+    const GpuQueryDisplayInfoRequest request{ .display_name = (char *) "default_display" };
+    GpuQueryDisplayInfoResponse response;
 
     if (graphics_manager->query_display_info(&request, &response) != RPC_RESULT_OK)
     {
@@ -161,14 +157,14 @@ bool RendererClass::DamageGlobal(const Region &in)
         RenderOneWIdOnTop(wId);
     }
 
-    PostBufferRequest post_buffer_request;
+    GpuPostBufferRequest post_buffer_request;
     post_buffer_request.display_name = (char *) "default_display";
     post_buffer_request.region.x = region->origin.x;
     post_buffer_request.region.y = region->origin.y;
     post_buffer_request.region.w = region->size.width;
     post_buffer_request.region.h = region->size.height;
 
-    PostBufferResponse post_buffer_response;
+    GpuPostBufferResponse post_buffer_response;
     if (graphics_manager->post_buffer(&post_buffer_request, &post_buffer_response) != RPC_RESULT_OK)
     {
         std::cerr << "Failed to post buffer: RPC error" << std::endl;
