@@ -2,7 +2,7 @@
 include(CMakePackageConfigHelpers)
 configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/MOSSDKConfig.cmake.in
   "${CMAKE_CURRENT_BINARY_DIR}/MOSSDKConfig.cmake"
-  INSTALL_DESTINATION cmake/MOSSDK
+  INSTALL_DESTINATION lib/cmake/MOSSDK
 )
 write_basic_package_version_file(
   "${CMAKE_CURRENT_BINARY_DIR}/MOSSDKConfigVersion.cmake"
@@ -125,7 +125,7 @@ endfunction()
 install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/MOSSDKConfig.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/MOSSDKConfigVersion.cmake"
-    DESTINATION cmake/MOSSDK
+    DESTINATION lib/cmake/MOSSDK
     COMPONENT sdk
     EXCLUDE_FROM_ALL
 )
@@ -134,6 +134,6 @@ install(EXPORT MOSSDK
     COMPONENT sdk
     EXCLUDE_FROM_ALL
     NAMESPACE mos::
-    DESTINATION cmake/MOSSDK
+    DESTINATION lib/cmake/MOSSDK
     FILE MOSSDKTargets.cmake
 )
