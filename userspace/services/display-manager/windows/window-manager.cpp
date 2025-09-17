@@ -283,10 +283,57 @@ rpc_result_code_t WindowManagerClass::handle_event(rpc_context_t *, const Handle
     }
 
     const auto event = window->WaitForMouseEvent();
-    resp->event_data.type = input_InputEventType_MOUSE_MOVE;
-    resp->event_data.which_event_type = input_InputEvent_mouse_move_tag;
-    resp->event_data.event_type.mouse_move.position.x = event.cursorPosition.x;
-    resp->event_data.event_type.mouse_move.position.y = event.cursorPosition.y;
+    resp->event_data.type = [](Input::MouseEventType type)
+    {
+        switch (type)
+        {
+            case Input::MouseEventType::MouseMove: return input_InputEventType_MOUSE_MOVE;
+            case Input::MouseEventType::MouseClick: return input_InputEventType_MOUSE_BUTTON;
+            case Input::MouseEventType::MouseRelease: return input_InputEventType_MOUSE_BUTTON;
+            case Input::MouseEventType::MouseScroll: return input_InputEventType_KEYBOARD; // Assuming scroll is handled as keyboard for now
+        }
+        return input_InputEventType_MOUSE_MOVE; // Default case
+    }(event.type);
+
+    switch (resp->event_data.type)
+    {
+        case input_InputEventType_MOUSE_MOVE:
+        {
+            resp->event_data.which_event_type = input_InputEvent_mouse_move_tag;
+            resp->event_data.event_type.mouse_move.position.x = event.cursorPosition.x;
+            resp->event_data.event_type.mouse_move.position.y = event.cursorPosition.y;
+            resp->event_data.event_type.mouse_move.movement.x = event.movement.x;
+            resp->event_data.event_type.mouse_move.movement.y = event.movement.y;
+            break;
+        }
+        case input_InputEventType_MOUSE_BUTTON:
+        {
+            resp->event_data.which_event_type = input_InputEvent_mouse_button_tag;
+            resp->event_data.event_type.mouse_button.position.x = event.cursorPosition.x;
+            resp->event_data.event_type.mouse_button.position.y = event.cursorPosition.y;
+            resp->event_data.event_type.mouse_button.button = [](bool left, bool right, bool middle)
+            {
+                if (left)
+                    return input_MouseButton_LEFT;
+                if (right)
+                    return input_MouseButton_RIGHT;
+                if (middle)
+                    return input_MouseButton_MIDDLE;
+                return input_MouseButton_LEFT; // No button pressed
+            }(event.leftButton, event.rightButton, event.middleButton);
+            resp->event_data.event_type.mouse_button.pressed = (event.type == Input::MouseEventType::MouseClick);
+            break;
+        }
+        case input_InputEventType_KEYBOARD:
+        {
+            resp->event_data.which_event_type = input_InputEvent_keyboard_tag;
+            // Assuming keyboard events are not handled in this case, but can be extended later
+            resp->event_data.event_type.keyboard.scancode = 0; // Placeholder for scancode
+            resp->event_data.event_type.keyboard.pressed = false;
+            break;
+        }
+    }
+
     resp->result.success = true;
     resp->result.error = nullptr;
     return RPC_RESULT_OK;

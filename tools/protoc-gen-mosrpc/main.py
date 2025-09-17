@@ -73,7 +73,7 @@ def process_file(proto_file: FileDescriptorProto, response: plugin.CodeGenerator
         nonlocal file_content
         file_content += content + "\n"
 
-    module_name = proto_file.name.replace(".proto", "")
+    module_name = proto_file.name.removesuffix(".proto")
 
     write(FILE_PREAMBLE)
     write(f'#include "{module_name}.pb.h"')

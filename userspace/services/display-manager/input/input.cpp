@@ -7,6 +7,7 @@
 #include "render/renderer.hpp"
 #include "windows/window-manager.hpp"
 
+#include <iostream>
 #include <librpc/rpc.h>
 #include <mos/mos_global.h>
 #include <stdio.h>
@@ -34,6 +35,7 @@ static void process_mouse_event(const u8 data[3])
     const auto y_movement = data[2] - ((state << 3) & 0x100);
 
     static Point cursor_position{ 0, 0 };
+    static bool left_button_pressed = false, right_button_pressed = false, middle_button_pressed = false;
 
     // Update cursor position
     cursor_position.x += x_movement;
@@ -41,6 +43,7 @@ static void process_mouse_event(const u8 data[3])
     const auto newPos = DisplayManager::Render::Renderer->SetCursorPosition(cursor_position);
 
     Input::MouseEvent mouseEvent{
+        .type = Input::MouseEventType::MouseMove,
         .leftButton = left_button,
         .rightButton = right_button,
         .middleButton = middle_button,
@@ -48,8 +51,24 @@ static void process_mouse_event(const u8 data[3])
         .movement = { x_movement, -y_movement },
     };
 
+    std::cout << newPos << std::endl;
+
     // Dispatch the mouse event to the window manager
     DisplayManager::Windows::WindowManager->DispatchMouseEvent(mouseEvent);
+    // if (left_button_pressed != left_button)
+    // {
+    //     left_button_pressed = left_button;
+
+    //     Input::MouseEvent clickEvent{
+    //         .type = left_button ? Input::MouseEventType::MouseClick : Input::MouseEventType::MouseRelease,
+    //         .leftButton = left_button,
+    //         .rightButton = false,
+    //         .middleButton = false,
+    //         .cursorPosition = newPos,
+    //         .movement = { 0, 0 },
+    //     };
+    //     DisplayManager::Windows::WindowManager->DispatchMouseEvent(clickEvent);
+    // }
     cursor_position = newPos; // Update the global cursor position
 }
 

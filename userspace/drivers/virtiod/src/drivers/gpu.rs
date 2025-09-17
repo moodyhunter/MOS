@@ -71,11 +71,6 @@ impl GpuServer {
             .expect("failed to setup framebuffer")
             .as_mut_ptr();
 
-        let cursor_image: Vec<u8> = vec![128; 64 * 64 * 4]; // Assuming a 16x16 cursor with 4 bytes per pixel (RGBA)
-
-        gpu.setup_cursor(cursor_image.as_slice(), 64, 64, 64, 64)
-            .expect("failed to setup cursor image");
-
         let server = GpuServer {
             devname,
             server_name: server_name.clone(),

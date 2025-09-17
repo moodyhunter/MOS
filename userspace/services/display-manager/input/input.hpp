@@ -5,8 +5,17 @@
 #include "utils/common.hpp"
 namespace DisplayManager::Input
 {
+    enum class MouseEventType
+    {
+        MouseMove,
+        MouseClick,
+        MouseRelease,
+        MouseScroll
+    };
+
     struct MouseEvent
     {
+        MouseEventType type; // Type of mouse event
         bool leftButton;
         bool rightButton;
         bool middleButton;

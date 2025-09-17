@@ -4,8 +4,8 @@ mod block;
 mod gpu;
 mod netdev;
 
-use std::error::Error;
-
+use os::unix::thread;
+use std::{error::Error, ffi::CString, os};
 use virtio_drivers::transport::{
     pci::{bus::DeviceFunction, PciTransport},
     DeviceType, Transport,
@@ -20,6 +20,19 @@ pub(crate) fn start_device(
     let device_type = transport.device_type();
     println!("  Device Type: {:?}", device_type);
     println!("  Device Function: {:?}", function);
+
+    // set thread name to device type
+    let thread_name = match device_type {
+        DeviceType::Block => "virtiod-block",
+        DeviceType::GPU => "virtiod-gpu",
+        DeviceType::Network => "virtiod-net",
+        _ => "virtiod-unknown",
+    };
+
+    {
+        let cstring = CString::new(thread_name).unwrap();
+        unsafe { libc::pthread_setname_np(libc::pthread_self(), cstring.as_ptr()) };
+    }
 
     match device_type {
         DeviceType::Block => run_blockdev(transport, function),
