@@ -23,7 +23,7 @@ jobs:
           pacman -S --noconfirm --needed base-devel git cmake ninja clang lld nasm cpio wget python jq llvm mtools unzip limine protobuf python-protobuf
           pacman -S --noconfirm --needed python-setuptools graphviz doxygen npm nodejs
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: true
 
