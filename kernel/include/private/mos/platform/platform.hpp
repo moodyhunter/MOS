@@ -8,7 +8,6 @@
 #include "mos/mm/paging/pml_types.hpp"
 #include "mos/mm/physical/pmm.hpp"
 #include "mos/platform/platform_defs.hpp"
-#include "mos/types.hpp"
 
 #include <mos/lib/structures/list.hpp>
 #include <mos/lib/sync/spinlock.hpp>
@@ -60,7 +59,7 @@ MOS_ENUM_FLAGS(ContextSwitchBehavior, ContextSwitchBehaviorFlags);
 
 struct MMContext : mos::NamedType<"MMContext">
 {
-    spinlock_t mm_lock = SPINLOCK_INIT; ///< protects [pgd] and the [mmaps] list (the list itself, not the vmap_t objects)
+    spinlock_t mm_lock; ///< protects [pgd] and the [mmaps] list (the list itself, not the vmap_t objects)
     pgd_t pgd = { 0 };
     list_head mmaps;
 };

@@ -393,7 +393,7 @@ namespace mos::kmods
                     }
 
                     file->pread((void *) section->load_address, section->size, section->file_offset);
-                    dInfo<kmod> << "  Loaded section '" << section->name << "' into memory at address " << (void *) section->load_address;
+                    dInfo2<kmod> << "  Loaded section '" << section->name << "' into memory at address " << (void *) section->load_address;
                 }
             }
         }
@@ -625,7 +625,7 @@ namespace mos::kmods
             const auto ptr = kallsyms_get_symbol_address(name);
             if (!ptr)
             {
-                mWarn << "GetRuntimeAddress called on undefined symbol: " << name;
+                mWarn << __func__ << " called on undefined symbol: " << name;
                 return std::nullopt;
             }
 
@@ -635,7 +635,7 @@ namespace mos::kmods
             return value;
         }
 
-        mWarn << "GetRuntimeAddress called on non-regular or non-absolute symbol: " << name;
+        mWarn << __func__ << " called on non-regular or non-absolute symbol: " << name;
         return std::nullopt;
     }
 
@@ -904,9 +904,21 @@ namespace mos::kmods
             return kmod.getErr();
         }
 
-        kmod->LoadIntoMemory();
-        kmod->EmitPLT();
-        kmod->PerformRelocation();
+        if (!kmod->LoadIntoMemory())
+        {
+            mWarn << "Failed to load module " << path << ".";
+            return -EINVAL;
+        }
+        if (!kmod->EmitPLT())
+        {
+            mWarn << "Failed to load module " << path << ".";
+            return -EINVAL;
+        }
+        if (!kmod->PerformRelocation())
+        {
+            mWarn << "Failed to load module " << path << ".";
+            return -EINVAL;
+        }
         kmod->LoadModuleBasicInfo();
         for (const auto &init_func : kmod->init_functions)
             init_func(); // call all init functions

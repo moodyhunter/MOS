@@ -37,6 +37,7 @@ typedef unsigned long uintn;
 typedef unsigned long long pfn_t;
 #define PFN_FMT       "%llu"
 #define PFN_RANGE     "[" PFN_FMT " - " PFN_FMT "]"
+#define PFN_RANGE_FMT "[{} - {}]"
 #define PFNADDR_RANGE "[" PTR_FMT " - " PTR_FMT "] (PFN " PFN_FMT " - " PFN_FMT ")"
 
 #define PFNADDR(pfn, end) (((ptr_t) (pfn)) * MOS_PAGE_SIZE), ((((ptr_t) end) * MOS_PAGE_SIZE) - 1), (pfn), (end)

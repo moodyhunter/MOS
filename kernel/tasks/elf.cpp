@@ -80,7 +80,7 @@ static void elf_setup_main_thread(Thread *thread, elf_startup_info_t *const info
 {
     dInfo2<elf> << "cpu " << current_cpu->id << ": setting up a new main thread " << thread << " of process " << thread->owner;
 
-    MOS_ASSERT_X(thread->u_stack.head == thread->u_stack.top, "thread %pt's user stack is not empty", thread);
+    MOS_ASSERT_X(thread->u_stack.head == thread->u_stack.top, "thread {}'s user stack is not empty", thread);
     stack_push_val(&thread->u_stack, (uintn) 0);
 
     const void *stack_envp[info->envp.size() + 1]; // +1 for the null terminator
@@ -178,7 +178,7 @@ static void elf_map_segment(const elf_program_hdr_t *const ph, ptr_t map_bias, M
     dInfo2<elf> << "  mapping " << npages << " pages at " << map_start << " (bias at " << map_bias << ") from offset " << aligned_size << "...";
 
     const ptr_t vaddr = mmap_file(mm, map_start, MMAP_PRIVATE | MMAP_EXACT, flags, npages, file, aligned_size);
-    MOS_ASSERT_X(vaddr == map_start, "failed to map ELF segment at " PTR_FMT, aligned_vaddr);
+    MOS_ASSERT_X(vaddr == map_start, "failed to map ELF segment at {}", (void *) aligned_vaddr);
 
     if (ph->size_in_file < ph->size_in_mem)
     {

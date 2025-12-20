@@ -4,8 +4,7 @@ mod block;
 mod gpu;
 mod netdev;
 
-use os::unix::thread;
-use std::{error::Error, ffi::CString, os};
+use std::{error::Error, ffi::CString};
 use virtio_drivers::transport::{
     pci::{bus::DeviceFunction, PciTransport},
     DeviceType, Transport,

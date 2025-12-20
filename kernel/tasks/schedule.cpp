@@ -77,7 +77,7 @@ void unblock_scheduler(void)
 void scheduler_add_thread(Thread *thread)
 {
     MOS_ASSERT(Thread::IsValid(thread));
-    MOS_ASSERT_X(thread->state == THREAD_STATE_CREATED || thread->state == THREAD_STATE_READY, "thread %pt is not in a valid state", thread);
+    MOS_ASSERT_X(thread->state == THREAD_STATE_CREATED || thread->state == THREAD_STATE_READY, "thread {} is not in a valid state", thread);
     active_scheduler->ops->add_thread(active_scheduler, thread);
 }
 
@@ -96,7 +96,7 @@ void scheduler_wake_thread(Thread *thread)
         return; // thread is already running or ready
     }
 
-    MOS_ASSERT_X(thread->state == THREAD_STATE_BLOCKED || thread->state == THREAD_STATE_NONINTERRUPTIBLE, "thread %pt is not blocked", thread);
+    MOS_ASSERT_X(thread->state == THREAD_STATE_BLOCKED || thread->state == THREAD_STATE_NONINTERRUPTIBLE, "thread {} is not blocked", thread);
     thread->state = THREAD_STATE_READY;
     spinlock_release(&thread->state_lock);
     pr_dinfo2(scheduler, "waking up %pt", thread);
@@ -170,7 +170,7 @@ void blocked_reschedule(void)
 
 bool reschedule_for_waitlist(waitlist_t *waitlist)
 {
-    MOS_ASSERT_X(current_thread->state != THREAD_STATE_BLOCKED, "thread %d is already blocked", current_thread->tid);
+    MOS_ASSERT_X(current_thread->state != THREAD_STATE_BLOCKED, "thread {} is already blocked", current_thread->tid);
 
     if (!waitlist_append(waitlist))
         return false; // waitlist is closed, process is dead

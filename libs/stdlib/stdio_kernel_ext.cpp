@@ -108,9 +108,9 @@ size_t vsnprintf_do_pointer_kernel(char *buf, size_t *size, const char **pformat
 
             const off_t off = ptr - sym->address;
             if (off)
-                wrap_print("%s (+0x%zx)", sym ? sym->name : "(unknown)", off);
+                wrap_print("%s (+0x%zx)", sym ? sym->pretty_name : "(unknown)", off);
             else
-                wrap_print("%s", sym ? sym->name : "(unknown)");
+                wrap_print("%s", sym ? sym->pretty_name : "(unknown)");
             goto done;
         }
         case 't': // %pt

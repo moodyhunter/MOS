@@ -414,7 +414,7 @@ void sysfs_register_file(sysfs_dir_t *sysfs_dir, sysfs_item_t *item)
         pr_warn("no name specified for sysfs entry '%s'", sysfs_dir ? sysfs_dir->name.c_str() : "/");
 
     dentry_t *const target_dentry = sysfs_dir ? sysfs_dir->_dentry : sysfs_sb->root;
-    MOS_ASSERT_X(target_dentry, "registering sysfs entry '%s' failed", item->name.c_str());
+    MOS_ASSERT_X(target_dentry, "registering sysfs entry '{}' failed", item->name);
     dentry_t *d = dentry_get_from_parent(sysfs_sb, target_dentry, item->name);
     dentry_attach(d, file_i);
 }

@@ -62,7 +62,7 @@ menu "Kernel Limits"
 
 config MAX_CPU_COUNT
     int "Maximum number of CPUs"
-    default 8
+    default 32
     help
     This is the maximum number of CPUs that the kernel will support.
 

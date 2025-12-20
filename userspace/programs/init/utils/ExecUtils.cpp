@@ -22,7 +22,9 @@ namespace ExecUtils
         if (log_fd < 0)
         {
             std::cerr << "RedirectLogFd: failed to open syslog file descriptor" << std::endl;
-            exit(1);
+            dup2(STDOUT_FILENO, STDERR_FILENO);
+            dup2(STDERR_FILENO, STDOUT_FILENO);
+            return;
         }
 
         dup2(log_fd, STDOUT_FILENO);

@@ -80,12 +80,12 @@ static void slab_allocate_mem(slab_t *s)
     const size_t header_offset = ALIGN_UP(sizeof(slab_header_t), s->ent_size);
     const size_t available_size = MOS_PAGE_SIZE - header_offset;
 
-    slab_header_t *const slab_ptr = (slab_header_t *) s->first_free;
+    slab_header_t *const slab_ptr = (slab_header_t *) s->first_free.load();
     slab_ptr->slab = s;
     dInfo2<slab> << "slab header is at " << (void *) slab_ptr;
     s->first_free = (ptr_t) s->first_free + header_offset;
 
-    void **arr = (void **) s->first_free;
+    void **arr = (void **) s->first_free.load();
     const size_t max_n = available_size / s->ent_size - 1;
     const size_t fact = s->ent_size / sizeof(void *);
 
@@ -98,10 +98,10 @@ static void slab_allocate_mem(slab_t *s)
 
 static void slab_init_one(slab_t *slab, const char *name, size_t size)
 {
-    MOS_ASSERT_X(size < MOS_PAGE_SIZE, "current slab implementation does not support slabs larger than a page, %zu bytes requested", size);
+    MOS_ASSERT_X(size < MOS_PAGE_SIZE, "current slab implementation does not support slabs larger than a page, {} bytes requested", size);
     linked_list_init(list_node(slab));
     list_node_append(&slabs_list, list_node(slab));
-    slab->lock = SPINLOCK_INIT;
+    slab->lock = spinlock_t();
     slab->first_free = 0;
     slab->nobjs = 0;
     slab->name = name;
@@ -215,7 +215,7 @@ void slab_free(const void *ptr)
 
 void *kmemcache_alloc(slab_t *s)
 {
-    MOS_ASSERT_X(s->ent_size > 0, "slab: invalid slab entry size %zu", s->ent_size);
+    MOS_ASSERT_X(s->ent_size > 0, "slab: invalid slab entry size {}", s->ent_size);
     dInfo2<slab> << "allocating from slab '" << s->name << "'";
     spinlock_acquire(&s->lock);
 
@@ -224,19 +224,16 @@ void *kmemcache_alloc(slab_t *s)
         // renew a slab
         slab_allocate_mem(s);
     }
-
-    ptr_t *alloc = (ptr_t *) s->first_free;
-    dCont<slab> << " -> " << (void *) alloc;
-
-    // sanitize the memory
-    MOS_ASSERT_X((ptr_t) alloc >= MOS_KERNEL_START_VADDR, "slab: invalid memory address %p", (void *) alloc);
-
-    s->first_free = *alloc; // next free entry
-    memset(alloc, 0, s->ent_size);
-
+    dInfo2<slab> << fmt("  first free: {}", (void *) s->first_free.load());
+    ptr_t *alloc = (ptr_t *) s->first_free.load();
     s->nobjs++;
+    s->first_free = *alloc; // next free entry
+    // sanitize the memory
+    memset((void *) alloc, 0, s->ent_size);
+    dInfo2<slab> << fmt("  allocated address: {}, next free: {}", (void *) alloc, (void *) s->first_free.load());
+    MOS_ASSERT_X(s->first_free != (ptr_t) alloc, "next free entry points to itself, corrupted slab?");
     spinlock_release(&s->lock);
-    return alloc;
+    return (void *) alloc;
 }
 
 void kmemcache_free(slab_t *s, const void *addr)
@@ -246,12 +243,13 @@ void kmemcache_free(slab_t *s, const void *addr)
         return;
 
     spinlock_acquire(&s->lock);
-
-    ptr_t *new_head = (ptr_t *) addr;
+    dInfo2<slab> << fmt("  address: {}, next space: {}", addr, (void *) s->first_free.load());
+    volatile ptr_t *new_head = (ptr_t *) addr;
+    MOS_ASSERT_X((ptr_t) new_head != s->first_free.load(), "double free detected in slab '{}'", s->name);
     *new_head = s->first_free;
     s->first_free = (ptr_t) new_head;
     s->nobjs--;
-
+    dInfo2<slab> << fmt("  new first free: {}", (void *) s->first_free.load());
     spinlock_release(&s->lock);
 }
 
@@ -265,8 +263,8 @@ static bool slab_sysfs_slabinfo(sysfs_file_t *f)
         sysfs_printf(f, "%20s:\t%-10zu " PTR_FMT " \t%-8zu    %.*s\n", //
                      slab->name.data(),                                //
                      slab->ent_size,                                   //
-                     slab->first_free,                                 //
-                     slab->nobjs,                                      //
+                     slab->first_free.load(),                          //
+                     slab->nobjs.load(),                               //
                      (int) slab->type_name.size(),                     //
                      slab->type_name.data()                            //
         );

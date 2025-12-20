@@ -403,7 +403,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
     }
     ip_vmap = MOS_IN_RANGE(info->ip, fault_vmap->vaddr, fault_vmap->vaddr + fault_vmap->npages * MOS_PAGE_SIZE) ? fault_vmap : vmap_obtain(mm, info->ip);
 
-    MOS_ASSERT_X(fault_vmap->on_fault, "vmap %pvm has no fault handler", (void *) fault_vmap);
+    MOS_ASSERT_X(fault_vmap->on_fault, "vmap {} has no fault handler", (void *) fault_vmap);
     const VMFlags page_flags = mm_do_get_flags(fault_vmap->mmctx->pgd, fault_addr);
 
     if (info->is_exec && !(fault_vmap->vmflags & VM_EXEC))
@@ -490,7 +490,7 @@ void mm_handle_fault(ptr_t fault_addr, pagefault_t *info)
         }
     }
 
-    MOS_ASSERT_X(fault_result == VMFAULT_COMPLETE || fault_result == VMFAULT_CANNOT_HANDLE, "invalid fault result %d", fault_result);
+    MOS_ASSERT_X(fault_result == VMFAULT_COMPLETE || fault_result == VMFAULT_CANNOT_HANDLE, "invalid fault result {}", fault_result);
     if (ip_vmap)
         spinlock_release(&ip_vmap->lock);
     if (fault_vmap != ip_vmap)

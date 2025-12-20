@@ -95,7 +95,7 @@ bool inode_unlink(inode_t *dir, dentry_t *dentry)
     }
 
     const bool dropped = inode_try_drop(dentry->inode);
-    MOS_ASSERT_X(!dropped, "inode %p was dropped accidentally, where dentry %p should be holding a reference", (void *) inode, (void *) dentry);
+    MOS_ASSERT_X(!dropped, "inode {} was dropped accidentally, where dentry {} should be holding a reference", (void *) inode, (void *) dentry);
 
     return true;
 }

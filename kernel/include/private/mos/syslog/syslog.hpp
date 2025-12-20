@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "mos/lib/sync/spinlock.hpp"
 #include "mos/syslog/debug.hpp"
 #include "mos/syslog/formatter.hpp"
 
@@ -32,14 +33,14 @@ namespace mos
     struct Preformatted
     {
         const std::tuple<Args...> targs;
-        explicit Preformatted(M, Args... args) : targs(args...) {};
+        explicit constexpr Preformatted(M, Args... args) : targs(args...) {};
     };
 
     using SyslogBuffer = std::array<char, MOS_PRINTK_BUFFER_SIZE>;
 
     struct SyslogStreamWriter : private mos::_RefCounted
     {
-        ~SyslogStreamWriter();
+        virtual ~SyslogStreamWriter();
 
         template<typename T>
         requires std::is_integral_v<T> inline SyslogStreamWriter &operator<<(T value)
@@ -62,7 +63,7 @@ namespace mos
         }
 
         template<typename E>
-        requires(std::is_enum_v<E>) inline SyslogStreamWriter &operator<<(E value)
+        requires std::is_enum_v<E> inline SyslogStreamWriter &operator<<(E value)
         {
             if (!should_print)
                 return *this;
@@ -106,17 +107,19 @@ namespace mos
         }
 
       private:
-        explicit SyslogStreamWriter(DebugFeature feature, LogLevel level, _RCCore *rcCore, SyslogBuffer &fmtbuffer, size_t &pos);
+        explicit SyslogStreamWriter(DebugFeature feature, LogLevel level, _RCCore *rcCore, SyslogBuffer &fmtbuffer, size_t &pos, spinlock_t &lock);
 
         template<DebugFeature feature, LogLevel level>
         friend struct LoggingDescriptor;
 
       private:
+        spinlock_t &lock;
         SyslogBuffer &fmtbuffer;
         size_t &pos;
 
       private:
         const u64 timestamp;
+        const u16 cpuid;
         const DebugFeature feature;
         const LogLevel level;
         const bool should_print;
@@ -131,14 +134,16 @@ namespace mos
         template<typename T>
         SyslogStreamWriter operator<<(const T &value) const
         {
+            spinlock_acquire(&lock);
             // copy-elision
             fmtBuffer[0] = '\n';
             fmtBuffer[1] = '\0';
             pos = 0;
-            return SyslogStreamWriter(feature, level, &RefCounter, fmtBuffer, pos) << value;
+            return SyslogStreamWriter(feature, level, &RefCounter, fmtBuffer, pos, lock) << value;
         }
 
       private:
+        mutable spinlock_t lock{};
         mutable SyslogBuffer fmtBuffer{};
         mutable size_t pos = 0;
         mutable _RCCore RefCounter{};

@@ -97,20 +97,18 @@ void handle_kernel_panic(const panic_point_t *point)
     if (printk_unquiet())
         pr_info("quiet mode disabled"); // was quiet
 
-    pr_emerg("");
-    pr_fatal("!!!!!!!!!!!!!!!!!!!!!!!!");
-    pr_fatal("!!!!! KERNEL PANIC !!!!!");
-    pr_fatal("!!!!!!!!!!!!!!!!!!!!!!!!");
-    pr_emerg("");
-    pr_emerg("file: %s:%llu", point->file, point->line);
-    pr_emerg("function: %s", point->func);
+    mEmerg << "";
+    mFatal << "!!!!!!!!!!!!!!!!!!!!!!!!";
+    mFatal << "!!!!! KERNEL PANIC !!!!!";
+    mFatal << "!!!!!!!!!!!!!!!!!!!!!!!!";
+    mEmerg << "";
+    mEmerg << fmt("file: {}:{}", point->file, point->line);
+    mEmerg << fmt("function: {}", point->func);
     if (point->ip)
         pr_emerg("instruction: %ps (" PTR_FMT ")", (void *) point->ip, point->ip);
     else
-        pr_emerg("instruction: see backtrace");
-    pr_emerg("");
-
-    pr_cont("\n");
+        mEmerg << "instruction: see backtrace";
+    mEmerg << "";
 
     if (point->ip == 0)
     {
@@ -135,11 +133,11 @@ void handle_kernel_panic(const panic_point_t *point)
         }
     }
 
-    pr_cont("\n");
+    mEmerg << "";
 
     for (const panic_hook_t *hook = __MOS_PANIC_HOOKS_START; hook < __MOS_PANIC_HOOKS_END; hook++)
     {
-        if (hook->enabled && !*hook->enabled)
+        if (hook->pEnabled == nullptr || *hook->pEnabled == false)
             continue;
 
         pr_dinfo2(panic, "invoking panic hook '%s' at %ps", hook->name, (void *) hook);

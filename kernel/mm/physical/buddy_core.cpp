@@ -384,7 +384,7 @@ void buddy_free_n(pfn_t pfn, size_t nframes)
     spinlock_acquire(&buddy_lock);
 
     phyframe_t *const frame = pfn_phyframe(pfn);
-    MOS_ASSERT_X(frame->state == phyframe::PHYFRAME_ALLOCATED, "frame must be allocated");
+    MOS_ASSERT_X(frame->state == phyframe::PHYFRAME_ALLOCATED, "frame must be allocated, which is {}", frame->state);
     MOS_ASSERT(list_is_empty(&frame->info.list_node));
     frame->state = phyframe::PHYFRAME_FREE;
 

@@ -163,7 +163,7 @@ static PtrResult<dentry_t> dentry_resolve_follow_symlink(dentry_t *d, LastSegmen
 
     target[read] = '\0'; // ensure null termination
 
-    dInfo2<dcache> << "symlink target: " << target;
+    dInfo2<dcache> << fmt("  symlink target: {}", target);
 
     auto [parent_ref, last_segment] = dentry_resolve_to_parent(dentry_parent(*d), root_dentry, target);
     kfree(target);
@@ -186,7 +186,7 @@ static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, mos::string 
     MOS_ASSERT(parent != NULL);
     *is_symlink = false;
 
-    dInfo2<dcache> << "resolving last segment: '" << leaf << "'";
+    dInfo2<dcache> << "  resolving last segment: '" << leaf << "'";
     const bool ends_with_slash = leaf.ends_with(PATH_DELIM);
     if (ends_with_slash)
         leaf.resize(leaf.size() - 1); // remove the trailing slash
@@ -225,7 +225,7 @@ static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, mos::string 
             return child_ref;
         }
 
-        dInfo2<dcache> << "file does not exist";
+        dInfo2<dcache> << "  file does not exist";
         dentry_try_release(child_ref.get()); // child has no ref, we should release it directly
         return -ENOENT;
     }
@@ -242,7 +242,7 @@ static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, mos::string 
     {
         if (!flags.test(RESOLVE_SYMLINK_NOFOLLOW))
         {
-            dInfo2<dcache> << "resolving symlink for '" << leaf << "'";
+            dInfo2<dcache> << "  resolving symlink for '" << leaf << "'";
             const auto symlink_target_ref = dentry_resolve_follow_symlink(child_ref.get(), flags);
             // we don't need the symlink node anymore
             MOS_ASSERT(dentry_unref_one_norelease(child_ref.get()));
@@ -250,7 +250,7 @@ static PtrResult<dentry_t> dentry_resolve_lastseg(dentry_t *parent, mos::string 
             return symlink_target_ref;
         }
 
-        dInfo2<dcache> << "not following symlink";
+        dInfo2<dcache> << "  not following symlink";
     }
     else if (child_ref->inode->type == FILE_TYPE_DIRECTORY)
     {
@@ -280,7 +280,7 @@ void dentry_attach(dentry_t *d, inode_t *inode)
 {
     MOS_ASSERT_X(d->inode == NULL, "reattaching an inode to a dentry");
     MOS_ASSERT(inode != NULL);
-    // MOS_ASSERT_X(d->refcount == 1, "dentry %p refcount %zu is not 1", (void *) d, d->refcount);
+    // MOS_ASSERT_X(d->refcount == 1, "dentry %p refcount %zu is not 1", (void *) d, d->refcount.load());
 
     for (std::atomic_size_t i = 0; i < d->refcount; i++)
         inode_ref(inode); // refcount the inode for each reference to the dentry
@@ -325,12 +325,12 @@ PtrResult<dentry_t> dentry_from_fd(fd_t fd)
     return file->dentry;
 }
 
-PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, mos::string_view name)
+PtrResult<dentry_t> dentry_lookup_child(dentry_t *const parent, mos::string_view name)
 {
     if (unlikely(parent == nullptr))
         return nullptr;
 
-    dInfo2<dcache> << "looking for dentry '" << name.data() << "' in '" << dentry_name(parent) << "'";
+    dInfo2<dcache> << "looking for dentry '" << name << "' in '" << dentry_name(parent) << "'";
 
     // firstly check if it's in the cache
     dentry_t *dentry = dentry_get_from_parent(parent->superblock, parent, name);
@@ -340,7 +340,7 @@ PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, mos::string_view name)
 
     if (dentry->inode)
     {
-        dInfo2<dcache> << "dentry '" << name.data() << "' found in the cache";
+        dInfo2<dcache> << "dentry '" << name << "' found in the cache";
         spinlock_release(&dentry->lock);
         return dentry_ref(dentry);
     }
@@ -358,12 +358,12 @@ PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, mos::string_view name)
 
     if (lookup_result)
     {
-        dInfo2<dcache> << "dentry '" << name.data() << "' found in the filesystem";
+        dInfo2<dcache> << "dentry '" << name << "' found in the filesystem";
         return dentry_ref(dentry);
     }
     else
     {
-        dInfo2<dcache> << "dentry '" << name.data() << "' not found in the filesystem";
+        dInfo2<dcache> << "dentry '" << name << "' not found in the filesystem";
         return dentry; // do not reference a negative dentry
     }
 }

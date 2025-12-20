@@ -470,7 +470,7 @@ PtrResult<void> vfs_mount(const char *device, const char *path, const char *fs, 
         return -EINVAL;
     }
 
-    MOS_ASSERT_X(real_fs->mount, "filesystem '%s' does not support mounting", real_fs->name.c_str());
+    MOS_ASSERT_X(real_fs->mount, "filesystem '{}' does not support mounting", real_fs->name.c_str());
 
     if (unlikely(strcmp(path, "/") == 0))
     {
@@ -534,8 +534,7 @@ PtrResult<void> vfs_mount(const char *device, const char *path, const char *fs, 
         return -EIO;
     }
 
-    MOS_ASSERT_X(mpRoot->refcount == mounted_root->refcount, "mountpoint refcount=%zu, mounted_root refcount=%zu", mpRoot->refcount.load(),
-                 mounted_root->refcount.load());
+    MOS_ASSERT_X(mpRoot->refcount == mounted_root->refcount, "mountpoint refcount={}, mounted_root refcount={}", mpRoot->refcount.load(), mounted_root->refcount.load());
     dInfo2<vfs> << "mounted filesystem '" << fs << "' on '" << path << "'";
     return 0;
 }
@@ -925,12 +924,12 @@ static bool vfs_sysfs_mountpoints(sysfs_file_t *f)
 static void vfs_sysfs_dentry_stats_stat_receiver(int depth, const dentry_t *dentry, bool mountroot, void *data)
 {
     sysfs_file_t *file = (sysfs_file_t *) data;
-    sysfs_printf(file, "%*s%s: refcount=%zu%s\n",                                             //
-                 depth * 4,                                                                   //
-                 "",                                                                          //
-                 dentry_name(dentry).c_str(),                                                 //
-                 dentry->refcount.load(),                                                     //
-                 mountroot ? " (mount root)" : (dentry->is_mountpoint ? " (mountpoint)" : "") //
+    sysfs_printf(file, "%*s%s: refcount=%zu%s\n", //
+                 depth * 4,                       //
+                 "",                              //
+                 dentry_name(dentry).c_str(),     //
+                 dentry->refcount.load(),         //
+                 mountroot ? " (mount root)" : "" //
     );
 }
 

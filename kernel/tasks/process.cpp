@@ -314,7 +314,7 @@ void process_exit(Process *&&proc, u8 exit_code, signal_t sig)
             thread_wait_for_tid(t->tid);
             spinlock_acquire(&t->state_lock);
             dInfo2<process> << "thread " << t << " terminated";
-            MOS_ASSERT_X(t->state == THREAD_STATE_DEAD, "thread %pt is not dead", t);
+            MOS_ASSERT_X(t->state == THREAD_STATE_DEAD, "thread {} is not dead", t);
             it = proc->thread_list.erase(it); // remove from thread list
             thread_destroy(t);
             continue;
@@ -388,7 +388,12 @@ bool process_register_signal_handler(Process *process, signal_t sig, const sigac
     dInfo2<signal> << "registering signal handler for process " << process << ", signal " << sig;
     if (!sigaction)
     {
-        process->signal_info.handlers[sig] = (sigaction_t) { .handler = SIG_DFL };
+        const sigaction_t action{
+            .handler = SIG_DFL,
+            .sa_flags = 0,
+            .sa_restorer = NULL,
+        };
+        process->signal_info.handlers[sig] = action;
         return true;
     }
     process->signal_info.handlers[sig] = *sigaction;

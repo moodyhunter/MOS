@@ -106,6 +106,9 @@ typedef struct
     long (*sync_inode)(inode_t *inode); ///< flush the inode to disk
 } superblock_ops_t;
 
+/**
+ * @brief A superblock represents a mounted filesystem
+ */
 struct superblock_t final : mos::NamedType<"superblock">
 {
     dentry_t *root;
@@ -118,10 +121,13 @@ struct dentry_t final : mos::NamedType<"dentry">
     as_tree;
     spinlock_t lock;
     atomic_t refcount;
+    mos::string name;         ///< for a mounted root, this field is EMPTY
+    superblock_t *superblock; ///< the mounted filesystem
+    bool is_mountpoint;       ///< if this dentry is a mountpoint
+
+    // the underlying inode object
+    // a dentry with no underlying inode is called a 'negative' dentry
     inode_t *inode;
-    mos::string name;         // for a mounted root, this is EMPTY
-    superblock_t *superblock; // The superblock of the dentry
-    bool is_mountpoint;
 };
 
 extern dentry_t *root_dentry;

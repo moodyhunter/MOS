@@ -79,16 +79,28 @@ function(create_bootable_kernel_binary)
 
     # Step 2: Generate kallsyms.c from the map file for step 2 kallsyms
     add_custom_command(OUTPUT "${STEP2_KALLSYMS_C}"
-        COMMAND ${CMAKE_SOURCE_DIR}/scripts/gen_kallsyms.py ${MAPS_DIR}/${ARGS_TARGET}.kallsyms.1.map "${STEP2_KALLSYMS_C}"
-        DEPENDS ${MAPS_DIR}/${ARGS_TARGET}.kallsyms.1.map
+        COMMAND
+            ${CMAKE_SOURCE_DIR}/scripts/gen_kallsyms.py
+            ${MAPS_DIR}/${ARGS_TARGET}.kallsyms.1.map
+            "${STEP2_KALLSYMS_C}"
+        DEPENDS
+            ${CMAKE_SOURCE_DIR}/scripts/gen_kallsyms.py
+            ${MAPS_DIR}/${ARGS_TARGET}.kallsyms.1.map
+            ${ARGS_LINKER_SCRIPT}
         VERBATIM)
 
     do_kallsyms(${ARGS_TARGET}.kallsyms.2 ${ARGS_LINKER_SCRIPT} ${STEP2_KALLSYMS_C})
 
     # Step 3: Generate kallsyms.c from the map file for step 3 kallsyms
     add_custom_command(OUTPUT "${STEP3_KALLSYMS_C}"
-        COMMAND ${CMAKE_SOURCE_DIR}/scripts/gen_kallsyms.py ${MAPS_DIR}/${ARGS_TARGET}.kallsyms.2.map "${STEP3_KALLSYMS_C}"
-        DEPENDS ${MAPS_DIR}/${ARGS_TARGET}.kallsyms.2.map ${ARGS_LINKER_SCRIPT}
+        COMMAND
+            ${CMAKE_SOURCE_DIR}/scripts/gen_kallsyms.py
+            ${MAPS_DIR}/${ARGS_TARGET}.kallsyms.2.map
+            "${STEP3_KALLSYMS_C}"
+        DEPENDS
+            ${CMAKE_SOURCE_DIR}/scripts/gen_kallsyms.py
+            ${MAPS_DIR}/${ARGS_TARGET}.kallsyms.2.map
+            ${ARGS_LINKER_SCRIPT}
         VERBATIM)
 
     # Step 4: Compile the kernel with the final kallsyms

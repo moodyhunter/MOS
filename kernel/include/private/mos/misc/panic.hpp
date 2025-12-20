@@ -12,7 +12,7 @@ typedef void(kmsg_handler_t)(const char *func, u32 line, const char *fmt, va_lis
 
 typedef struct
 {
-    bool *enabled;
+    bool *pEnabled;
     void (*hook)(void);
     const char *const name;
     long long __padding;
@@ -27,7 +27,7 @@ typedef struct
     u64 line;
 } panic_point_t;
 
-#define MOS_EMIT_PANIC_HOOK(e, f, n) MOS_PUT_IN_SECTION(".mos.panic_hooks", panic_hook_t, f##_hook, { .enabled = e, .hook = f, .name = n })
+#define MOS_EMIT_PANIC_HOOK(e, f, n) MOS_PUT_IN_SECTION(".mos.panic_hooks", panic_hook_t, f##_hook, { .pEnabled = e, .hook = f, .name = n })
 
 #define MOS_PANIC_HOOK_FEAT(_feat, _f, _n) MOS_EMIT_PANIC_HOOK(mos_debug_enabled_ptr(_feat), _f, _n)
 #define MOS_PANIC_HOOK(_f, _name)          MOS_EMIT_PANIC_HOOK(NULL, _f, _name)
@@ -56,10 +56,10 @@ void try_handle_kernel_panics(ptr_t ip);
         __builtin_unreachable();                                                                                                                                         \
     } while (0)
 
-#define mos_panic_inline(fmt, ...)                                                                                                                                       \
+#define mos_panic_inline(fmts, ...)                                                                                                                                      \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
-        pr_emerg(fmt, ##__VA_ARGS__);                                                                                                                                    \
+        mEmerg << fmt(fmts, ##__VA_ARGS__);                                                                                                                              \
         static const panic_point_t __panic_point = { .ip = 0, .file = __FILE__, .func = __func__, .line = __LINE__ };                                                    \
         handle_kernel_panic(&__panic_point);                                                                                                                             \
     } while (0)

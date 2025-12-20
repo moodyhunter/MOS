@@ -20,9 +20,9 @@ struct waitlist_t : mos::NamedType<"Waitlist">
         spinlock_release(&lock);
     }
 
-    spinlock_t lock = SPINLOCK_INIT; // protects the waiters list
-    mos::list<tid_t> waiters;        // list of threads waiting
-    bool closed = false;             // if true, then the process is closed and should not be waited on
+    spinlock_t lock;          // protects the waiters list
+    mos::list<tid_t> waiters; // list of threads waiting
+    bool closed = false;      // if true, then the process is closed and should not be waited on
 };
 
 __nodiscard bool waitlist_append(waitlist_t *list);

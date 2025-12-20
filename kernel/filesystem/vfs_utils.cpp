@@ -7,18 +7,25 @@
 #include "mos/filesystem/vfs_types.hpp"
 #include "mos/lib/sync/spinlock.hpp"
 #include "mos/mm/physical/pmm.hpp"
+#include "mos/syslog/debug.hpp"
 
 #include <algorithm>
-#include <memory>
-#include <mos/lib/structures/hashmap_common.hpp>
 #include <mos/types.hpp>
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
+/**
+ * @brief Create a new dentry, and link it to the given parent
+ *
+ * @param sb
+ * @param parent
+ * @param name
+ * @return dentry_t*
+ */
 static dentry_t *dentry_create(superblock_t *sb, dentry_t *parent, mos::string_view name)
 {
-    std::unique_ptr<int> a;
     const auto dentry = mos::create<dentry_t>();
+    dInfo2<dcache> << fmt("allocated new dentry '{}' at {}, parent '{}'", name, (void *) dentry, (void *) parent);
     tree_node_init(tree_node(dentry));
 
     dentry->superblock = sb;
@@ -26,6 +33,7 @@ static dentry_t *dentry_create(superblock_t *sb, dentry_t *parent, mos::string_v
 
     if (parent)
     {
+        dInfo2<dcache> << fmt("adding dentry '{}' to parent {}", name, (void *) parent);
         MOS_ASSERT(spinlock_is_locked(&parent->lock));
         tree_add_child(tree_node(parent), tree_node(dentry));
         dentry->superblock = parent->superblock;
@@ -34,18 +42,21 @@ static dentry_t *dentry_create(superblock_t *sb, dentry_t *parent, mos::string_v
     return dentry;
 }
 
-dentry_t *dentry_get_from_parent(superblock_t *sb, dentry_t *parent, mos::string_view name)
+dentry_t *dentry_get_from_parent(superblock_t *sb, dentry_t *const parent, mos::string_view name)
 {
     if (!parent)
         return dentry_create(sb, NULL, name);
 
     dentry_t *dentry = NULL;
+    dWarn<dcache> << fmt("looking up child '{}' in parent {}", name, (void *) parent);
 
     spinlock_acquire(&parent->lock);
+    MOS_ASSERT(spinlock_is_locked(&parent->lock));
     tree_foreach_child(dentry_t, child, parent)
     {
         if (child->name == name)
         {
+            dInfo<dcache> << fmt("found existing dentry '{}' at {}", name, (void *) child);
             dentry = child;
             break;
         }
@@ -53,7 +64,11 @@ dentry_t *dentry_get_from_parent(superblock_t *sb, dentry_t *parent, mos::string
 
     // if not found, create a new one
     if (!dentry)
+    {
+        dEmph<dcache> << fmt("dentry '{}' not found in parent {}, creating new one", name, (void *) parent);
         dentry = dentry_create(sb, parent, name);
+        dEmph<dcache> << fmt("created new dentry '{}' at {}", name, (void *) dentry);
+    }
 
     spinlock_release(&parent->lock);
     return dentry;

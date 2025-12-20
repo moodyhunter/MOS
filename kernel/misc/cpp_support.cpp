@@ -33,12 +33,12 @@ extern "C" void abort()
 
 void std::__glibcxx_assert_fail(const char *__file, int __line, const char *__function, const char *__condition) noexcept
 {
-    mos_panic_inline("assertion failed: %s:%u: %s: %s", __file, __line, __function, __condition);
+    mos_panic_inline("assertion failed: {}:{}: {}: {}", __file, __line, __function, __condition);
 }
 
 void mos::__raise_bad_result_value(int errorCode)
 {
-    mos_panic_inline("PtrResultBase: bad value accessed: %d", errorCode);
+    mos_panic_inline("PtrResultBase: bad value accessed: {}", errorCode);
 }
 
 void mos::__raise_null_pointer_exception()
@@ -48,7 +48,7 @@ void mos::__raise_null_pointer_exception()
 
 void mos::__raise_invalid_argument_exception(const char *reason)
 {
-    mos_panic_inline("mos::string: invalid argument: %s", reason);
+    mos_panic_inline("mos::string: invalid argument: {}", reason);
 }
 
 // static scoped variable constructor support

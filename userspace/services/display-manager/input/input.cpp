@@ -35,7 +35,7 @@ static void process_mouse_event(const u8 data[3])
     const auto y_movement = data[2] - ((state << 3) & 0x100);
 
     static Point cursor_position{ 0, 0 };
-    static bool left_button_pressed = false, right_button_pressed = false, middle_button_pressed = false;
+    // static bool left_button_pressed = false, right_button_pressed = false, middle_button_pressed = false;
 
     // Update cursor position
     cursor_position.x += x_movement;

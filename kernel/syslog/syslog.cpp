@@ -3,6 +3,7 @@
 #include "mos/syslog/syslog.hpp"
 
 #include "mos/device/console.hpp"
+#include "mos/lib/sync/spinlock.hpp"
 #include "mos/platform/platform.hpp"
 #include "mos/tasks/task_types.hpp"
 #include "proto/syslog.pb.h"
@@ -12,8 +13,6 @@
 #include <mos/mos_global.h>
 #include <mos_stdio.hpp>
 #include <pb_encode.h>
-
-static spinlock_t global_syslog_lock;
 
 #define DefineLogStream(name, level) const mos::LoggingDescriptor<_none, LogLevel::level> m##name;
 DefineLogStream(Info2, INFO2);
@@ -28,7 +27,6 @@ DefineLogStream(Cont, UNSET);
 static void do_print_syslog(const pb_syslog_message *msg, const debug_info_entry *feat)
 {
     const LogLevel level = (LogLevel) msg->info.level;
-    spinlock_acquire(&global_syslog_lock);
 
     if (level != LogLevel::UNSET)
     {
@@ -58,38 +56,34 @@ static void do_print_syslog(const pb_syslog_message *msg, const debug_info_entry
     }
 
     lprintk(level, "%s", msg->message);
-
-    spinlock_release(&global_syslog_lock);
 }
 
 long do_syslog(LogLevel level, const char *file, const char *func, int line, const debug_info_entry *feat, const char *fmt, ...)
 {
-    auto const thread = current_thread;
+    static spinlock_t criticalSection;
+    SpinLocker mutexLock(&criticalSection);
+    static char printk_buffer[MOS_PRINTK_BUFFER_SIZE] = { 0 };
+
+    const auto thread = current_thread;
     pb_syslog_message msg = {
         .timestamp = platform_get_timestamp(),
+        .message = printk_buffer,
         .cpu_id = platform_current_cpu_id(),
     };
 
     msg.info.level = (syslog_level) level;
     msg.info.featid = feat ? feat->id : 0;
     msg.info.source_location.line = line;
-    msg.info.source_location.filename = kmalloc<char>(strlen(file) + 1);
-    msg.info.source_location.function = kmalloc<char>(strlen(func) + 1);
-    strcpy(msg.info.source_location.filename, file);
-    strcpy(msg.info.source_location.function, func);
+    msg.info.source_location.filename = const_cast<char *>(file);
+    msg.info.source_location.function = const_cast<char *>(func);
 
     if (thread)
     {
         msg.thread.tid = thread->tid;
+        msg.thread.name = const_cast<char *>(thread->name.c_str());
         msg.process.pid = thread->owner->pid;
-
-        msg.thread.name = kmalloc<char>(thread->name.size() + 1);
-        msg.process.name = kmalloc<char>(thread->owner->name.size() + 1);
-        strcpy(msg.thread.name, thread->name.c_str());
-        strcpy(msg.process.name, thread->owner->name.c_str());
+        msg.process.name = const_cast<char *>(thread->owner->name.c_str());
     }
-
-    msg.message = kmalloc<char>(MOS_PRINTK_BUFFER_SIZE);
 
     va_list args;
     va_start(args, fmt);
@@ -97,23 +91,16 @@ long do_syslog(LogLevel level, const char *file, const char *func, int line, con
     va_end(args);
 
     do_print_syslog(&msg, feat);
-
-    kfree(msg.info.source_location.filename);
-    kfree(msg.info.source_location.function);
-    if (thread)
-    {
-        kfree(msg.thread.name);
-        kfree(msg.process.name);
-    }
-    kfree(msg.message);
     return 0;
 }
 
-mos::SyslogStreamWriter::SyslogStreamWriter(DebugFeature feature, LogLevel level, _RCCore *rcCore, SyslogBuffer &fmtbuffer, size_t &pos)
+mos::SyslogStreamWriter::SyslogStreamWriter(DebugFeature feature, LogLevel level, _RCCore *rcCore, SyslogBuffer &fmtbuffer, size_t &pos, spinlock_t &lock)
     : _RefCounted(rcCore),                                                               //
+      lock(lock),                                                                        //
       fmtbuffer(fmtbuffer),                                                              //
       pos(pos),                                                                          //
       timestamp(platform_get_timestamp()),                                               //
+      cpuid(platform_current_cpu_id()),                                                  //
       feature(feature),                                                                  //
       level(level),                                                                      //
       should_print(!mos_debug_info_map[feature] || mos_debug_info_map[feature]->enabled) //
@@ -125,20 +112,39 @@ mos::SyslogStreamWriter::SyslogStreamWriter(DebugFeature feature, LogLevel level
         fmtbuffer[1] = '\0';
     }
 
-    if (should_print && mos_debug_info_map[feature])
-        pos += snprintf(fmtbuffer.data() + pos, MOS_PRINTK_BUFFER_SIZE - pos, "%-10s | ", mos_debug_info_map[feature]->name);
+    if (!should_print)
+        return;
+
+    if (level != LogLevel::UNSET)
+    {
+        if (mos_debug_info_map[feature])
+            pos += snprintf(fmtbuffer.data() + pos, MOS_PRINTK_BUFFER_SIZE - pos, "%-10s | ", mos_debug_info_map[feature]->name);
+
+#if MOS_CONFIG(MOS_PRINTK_WITH_TIMESTAMP)
+        pos += snprintf(fmtbuffer.data() + pos, MOS_PRINTK_BUFFER_SIZE - pos, "%-16llu | ", timestamp);
+#endif
+
+#if MOS_CONFIG(MOS_PRINTK_WITH_CPU_ID)
+        pos += snprintf(fmtbuffer.data() + pos, MOS_PRINTK_BUFFER_SIZE - pos, "cpu %2d | ", cpuid);
+#endif
+
+#if MOS_CONFIG(MOS_PRINTK_WITH_THREAD_ID)
+        pos += snprintf(fmtbuffer.data() + pos, MOS_PRINTK_BUFFER_SIZE - pos, "%pt\t| ", current_thread);
+#endif
+    }
 }
 
 mos::SyslogStreamWriter::~SyslogStreamWriter()
 {
     if (GetRef() == 1)
     {
-        if (!should_print)
-            return;
+        if (should_print)
+        {
+            if (unlikely(!printk_console))
+                printk_console = consoles.front();
 
-        if (unlikely(!printk_console))
-            printk_console = consoles.front();
-
-        print_to_console(printk_console, level, fmtbuffer.data(), pos);
+            print_to_console(printk_console, level, fmtbuffer.data(), pos);
+        }
+        spinlock_release(&lock);
     }
 }

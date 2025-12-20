@@ -27,6 +27,8 @@ pb_bytes_array_t *windowContent;
 
 int main(int argc, char **argv)
 {
+    MOS_UNUSED(argc);
+    MOS_UNUSED(argv);
     const QueryDisplayInfoRequest request{ .display_name = (char *) "default" };
     QueryDisplayInfoResponse response{};
     wm.query_display_info(&request, &response);

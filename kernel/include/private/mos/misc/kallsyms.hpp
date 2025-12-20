@@ -8,6 +8,8 @@ typedef struct
 {
     ptr_t address;
     const char *name;
+    const char *demangled_name;
+    const char *pretty_name;
 } kallsyms_t;
 
 extern const kallsyms_t mos_kallsyms[];

@@ -7,7 +7,7 @@
 static void stat_receiver(int depth, const dentry_t *dentry, bool mountroot, void *data)
 {
     MOS_UNUSED(data);
-    pr_info2("%*s%s: %zu%s", depth * 4, "", dentry_name(dentry).c_str(), dentry->refcount.load(), mountroot ? " (mountroot)" : "");
+    pr_info2("%*s%s <%p>: %zu%s", depth * 4, "", dentry_name(dentry).c_str(), (void *) dentry, dentry->refcount.load(), mountroot ? " (mountroot)" : "");
 }
 
 MOS_TEST_DECL_PTEST(vfs_mount_test, "Mount %s in %s, with rootfs: %d", const char *fs, const char *mountpoint, bool rootfs)

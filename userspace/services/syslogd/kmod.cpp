@@ -17,7 +17,7 @@
 
 static IO *server = nullptr;
 
-spinlock_t syslog_lock;
+static spinlock_t syslog_lock;
 
 static long handle_log(void *arg, size_t argSize)
 {

@@ -66,7 +66,7 @@ struct mos_debug_info_entry
 #undef _expand_field
 };
 
-extern "C" mos_debug_info_entry mos_debug_info;
+extern mos_debug_info_entry mos_debug_info;
 
 #define _mos_debug_enum(name) name,
 enum DebugFeature
@@ -77,11 +77,16 @@ enum DebugFeature
 #undef _mos_debug_enum
 
 /// debug enum to mos_debug_info_entry mapping
+MOS_WARNING_PUSH
+MOS_WARNING_DISABLE("-Wc99-designator")
+MOS_WARNING_DISABLE("-Wpedantic")
 #define _mos_debug_info_entry(name) [name] = &mos_debug_info.name,
 static inline constexpr debug_info_entry *const mos_debug_info_map[] = {
     MOS_ALL_DEBUG_MODULES(_mos_debug_info_entry) //
         [_none] = nullptr,
 };
+MOS_WARNING_POP
+
 #undef _mos_debug_info_entry
 
 #define mos_debug_enabled(name)     (mos_debug_info.name.enabled)

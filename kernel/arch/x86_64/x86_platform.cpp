@@ -225,7 +225,6 @@ void platform_startup_early()
     if (cpu_has_feature(CPU_FEATURE_##feature))                                                                                                                          \
         pr_cont(" " #feature);
     FOR_ALL_CPU_FEATURES(do_print_cpu_feature)
-
 #undef do_print_cpu_feature
 
 #endif

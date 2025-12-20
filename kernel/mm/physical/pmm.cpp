@@ -121,7 +121,7 @@ void pmm_free_frames(phyframe_t *start_frame, size_t n_pages)
 
 pfn_t pmm_reserve_frames(pfn_t pfn_start, size_t npages)
 {
-    MOS_ASSERT_X(pfn_start + npages <= pmm_total_frames, "out of bounds: " PFN_RANGE ", %zu pages", pfn_start, pfn_start + npages - 1, npages);
+    MOS_ASSERT_X(pfn_start + npages <= pmm_total_frames, "out of bounds: " PFN_RANGE_FMT ", {} pages", pfn_start, pfn_start + npages - 1, npages);
     pr_dinfo2(pmm, "reserving " PFN_RANGE ", %zu pages", pfn_start, pfn_start + npages - 1, npages);
     buddy_reserve_n(pfn_start, npages);
     pmm_reserved_frames += npages;

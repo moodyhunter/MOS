@@ -7,15 +7,20 @@
 #include <mos/mos_global.h>
 #include <mos/types.hpp>
 
+#if MOS_DEBUG_FEATURE(spinlock)
+#include <source_location>
+#endif
+
 #define barrier() MOS_PLATFORM_MEMORY_BARRIER()
 
 class SpinLocker;
 struct spinlock_t
 {
+    constexpr spinlock_t() : flag(false) {};
     bool flag = false;
 #if MOS_DEBUG_FEATURE(spinlock)
-    const char *file = nullptr;
-    int line = 0;
+    std::source_location locker;
+    std::source_location unlocker;
 #endif
 
     SpinLocker lock();
@@ -26,10 +31,6 @@ struct spinlock_t
     {                                                                                                                                                                    \
         (lock)->flag = 0;                                                                                                                                                \
     } while (0)
-
-// clang-format off
-#define SPINLOCK_INIT { 0 }
-// clang-format on
 
 #define _spinlock_real_acquire(lock)                                                                                                                                     \
     do                                                                                                                                                                   \
@@ -50,15 +51,15 @@ struct spinlock_t
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
         _spinlock_real_acquire(lock);                                                                                                                                    \
-        (lock)->file = __FILE__;                                                                                                                                         \
-        (lock)->line = __LINE__;                                                                                                                                         \
+        (lock)->locker = std::source_location::current();                                                                                                                \
     } while (0)
+
 #define spinlock_release(lock)                                                                                                                                           \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
-        (lock)->file = NULL;                                                                                                                                             \
-        (lock)->line = 0;                                                                                                                                                \
+                                                                                                                                                                         \
         _spinlock_real_release(lock);                                                                                                                                    \
+        (lock)->unlocker = std::source_location::current();                                                                                                              \
     } while (0)
 #else
 #define spinlock_acquire(lock) _spinlock_real_acquire(lock)
@@ -81,7 +82,7 @@ typedef struct
 } recursive_spinlock_t;
 
 // clang-format off
-#define RECURSIVE_SPINLOCK_INIT { SPINLOCK_INIT, NULL, 0 }
+#define RECURSIVE_SPINLOCK_INIT { {}, NULL, 0 }
 // clang-format on
 
 should_inline void recursive_spinlock_acquire(recursive_spinlock_t *lock, void *owner)

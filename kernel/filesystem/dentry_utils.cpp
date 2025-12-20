@@ -140,7 +140,7 @@ void dentry_check_refstat(const dentry_t *dentry)
     }
     else if (dentry->refcount - expected_refcount)
     {
-        pr_dinfo2(dcache_ref, "  dentry %p '%s' has %zu direct references", (void *) dentry, dentry_name(dentry).c_str(), dentry->refcount - expected_refcount);
+        dInfo2<dcache_ref> << fmt("  dentry {} '{}' has {} direct references", (void *) dentry, dentry_name(dentry).c_str(), dentry->refcount - expected_refcount);
     }
 }
 
@@ -149,6 +149,7 @@ void dentry_try_release(dentry_t *dentry)
     MOS_ASSERT(dentry->refcount == 0);
 
     const bool can_release = dentry->inode == NULL && list_is_empty(&tree_node(dentry)->children);
+    dInfo<dcache> << fmt("releasing dentry {} '{}', can_release: {}", (void *) dentry, dentry_name(dentry), can_release);
     if (can_release)
     {
         list_remove(&dentry->tree_node);

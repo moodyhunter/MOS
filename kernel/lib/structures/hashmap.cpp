@@ -44,7 +44,6 @@ void hashmap_init(hashmap_t *map, size_t capacity, hashmap_hash_t hash_func, has
  */
 void hashmap_deinit(hashmap_t *map)
 {
-    MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
     spinlock_acquire(&map->lock);
     map->magic = 0;
     for (size_t i = 0; i < map->capacity; i++)
@@ -63,7 +62,6 @@ void hashmap_deinit(hashmap_t *map)
 
 void *hashmap_put(hashmap_t *map, uintn key, void *value)
 {
-    MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
     spinlock_acquire(&map->lock);
     size_t index = map->hash_func(key).hash % map->capacity;
     hashmap_entry_t *entry = map->entries[index];
@@ -91,7 +89,6 @@ void *hashmap_put(hashmap_t *map, uintn key, void *value)
 
 void *hashmap_get(hashmap_t *map, uintn key)
 {
-    MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
     spinlock_acquire(&map->lock);
     size_t index = map->hash_func(key).hash % map->capacity;
     hashmap_entry_t *entry = map->entries[index];
@@ -112,7 +109,6 @@ void *hashmap_get(hashmap_t *map, uintn key)
 
 void *hashmap_remove(hashmap_t *map, uintn key)
 {
-    MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
     spinlock_acquire(&map->lock);
     size_t index = map->hash_func(key).hash % map->capacity;
     hashmap_entry_t *entry = map->entries[index];
@@ -141,7 +137,6 @@ void *hashmap_remove(hashmap_t *map, uintn key)
 
 void hashmap_foreach(hashmap_t *map, hashmap_foreach_func_t func, void *data)
 {
-    MOS_LIB_ASSERT_X(map && map->magic == HASHMAP_MAGIC, "hashmap_put: hashmap %p is not initialized", (void *) map);
     for (size_t i = 0; i < map->capacity; i++)
     {
         hashmap_entry_t *entry = map->entries[i];

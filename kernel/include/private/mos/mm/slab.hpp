@@ -51,10 +51,10 @@ void slab_free(const void *addr);
 struct slab_t
 {
     as_linked_list;
-    spinlock_t lock = SPINLOCK_INIT;
-    ptr_t first_free = 0;
+    spinlock_t lock;
+    std::atomic<ptr_t> first_free = 0;
     size_t ent_size = 0;
-    size_t nobjs = 0;
+    std::atomic<size_t> nobjs = 0;
     mos::string_view name = "<unnamed>";
     mos::string_view type_name = "<T>";
 };
