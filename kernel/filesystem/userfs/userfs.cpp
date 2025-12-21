@@ -117,7 +117,7 @@ void userfs_ensure_connected(userfs_t *userfs)
     }
 }
 
-static bool userfs_iop_hardlink(dentry_t *d, inode_t *i, dentry_t *new_d)
+static bool userfs_iop_hardlink(ptr<dentry_t> d, inode_t *i, ptr<dentry_t> new_d)
 {
     MOS_UNUSED(i);
     MOS_UNUSED(new_d);
@@ -129,7 +129,7 @@ static bool userfs_iop_hardlink(dentry_t *d, inode_t *i, dentry_t *new_d)
     return false;
 }
 
-static void userfs_iop_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state, dentry_iterator_op add_record)
+static void userfs_iop_iterate_dir(ptr<dentry_t> dentry, vfs_listdir_state_t *state, dentry_iterator_op add_record)
 {
     const auto name = dentry_name(dentry);
     userfs_t *ufs = userfs_get(dentry->superblock->fs, "iterate_dir", name);
@@ -163,7 +163,7 @@ static void userfs_iop_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state,
     }
 }
 
-static bool userfs_iop_lookup(inode_t *dir, dentry_t *dentry)
+static bool userfs_iop_lookup(inode_t *dir, ptr<dentry_t> dentry)
 {
     const auto name = dentry_name(dentry);
     userfs_t *fs = userfs_get(dir->superblock->fs, "lookup", name);
@@ -200,7 +200,7 @@ static bool userfs_iop_lookup(inode_t *dir, dentry_t *dentry)
     return true;
 }
 
-static bool userfs_iop_mkdir(inode_t *dir, dentry_t *dentry, file_perm_t perm)
+static bool userfs_iop_mkdir(inode_t *dir, ptr<dentry_t> dentry, file_perm_t perm)
 {
     const auto name = dentry_name(dentry);
     userfs_t *fs = userfs_get(dir->superblock->fs, "mkdir", name);
@@ -239,7 +239,7 @@ static bool userfs_iop_mkdir(inode_t *dir, dentry_t *dentry, file_perm_t perm)
     return true;
 }
 
-static bool userfs_iop_mknode(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm, dev_t dev)
+static bool userfs_iop_mknode(inode_t *dir, ptr<dentry_t> dentry, file_type_t type, file_perm_t perm, dev_t dev)
 {
     MOS_UNUSED(dir);
     MOS_UNUSED(dentry);
@@ -254,7 +254,7 @@ static bool userfs_iop_mknode(inode_t *dir, dentry_t *dentry, file_type_t type, 
     return false;
 }
 
-static bool userfs_iop_newfile(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm)
+static bool userfs_iop_newfile(inode_t *dir, ptr<dentry_t> dentry, file_type_t type, file_perm_t perm)
 {
     const auto name = dentry_name(dentry);
     userfs_t *fs = userfs_get(dir->superblock->fs, "newfile", name);
@@ -294,7 +294,7 @@ static bool userfs_iop_newfile(inode_t *dir, dentry_t *dentry, file_type_t type,
     return true;
 }
 
-static size_t userfs_iop_readlink(dentry_t *dentry, char *buffer, size_t buflen)
+static size_t userfs_iop_readlink(ptr<dentry_t> dentry, char *buffer, size_t buflen)
 {
     const auto name = dentry_name(dentry);
     userfs_t *fs = userfs_get(dentry->superblock->fs, "readlink", name);
@@ -330,7 +330,7 @@ static size_t userfs_iop_readlink(dentry_t *dentry, char *buffer, size_t buflen)
     return len;
 }
 
-static bool userfs_iop_rename(inode_t *old_dir, dentry_t *old_dentry, inode_t *new_dir, dentry_t *new_dentry)
+static bool userfs_iop_rename(inode_t *old_dir, ptr<dentry_t> old_dentry, inode_t *new_dir, ptr<dentry_t> new_dentry)
 {
     MOS_UNUSED(old_dir);
     MOS_UNUSED(old_dentry);
@@ -345,7 +345,7 @@ static bool userfs_iop_rename(inode_t *old_dir, dentry_t *old_dentry, inode_t *n
     return false;
 }
 
-static bool userfs_iop_rmdir(inode_t *dir, dentry_t *dentry)
+static bool userfs_iop_rmdir(inode_t *dir, ptr<dentry_t> dentry)
 {
     MOS_UNUSED(dir);
     MOS_UNUSED(dentry);
@@ -357,7 +357,7 @@ static bool userfs_iop_rmdir(inode_t *dir, dentry_t *dentry)
     return false;
 }
 
-static bool userfs_iop_symlink(inode_t *dir, dentry_t *dentry, const char *symname)
+static bool userfs_iop_symlink(inode_t *dir, ptr<dentry_t> dentry, const char *symname)
 {
     MOS_UNUSED(dir);
     MOS_UNUSED(dentry);
@@ -370,7 +370,7 @@ static bool userfs_iop_symlink(inode_t *dir, dentry_t *dentry, const char *symna
     return false;
 }
 
-static bool userfs_iop_unlink(inode_t *dir, dentry_t *dentry)
+static bool userfs_iop_unlink(inode_t *dir, ptr<dentry_t> dentry)
 {
     const auto name = dentry_name(dentry);
     userfs_t *fs = userfs_get(dir->superblock->fs, "unlink", name);
@@ -554,7 +554,7 @@ const superblock_ops_t userfs_sb_ops = {
     .sync_inode = userfs_sync_inode,
 };
 
-PtrResult<dentry_t> userfs_fsop_mount(filesystem_t *fs, const char *device, const char *options)
+PtrResult<ptr<dentry_t>> userfs_fsop_mount(filesystem_t *fs, const char *device, const char *options)
 {
     userfs_t *userfs = userfs_get(fs, "mount", fs->name);
 
@@ -590,7 +590,7 @@ PtrResult<dentry_t> userfs_fsop_mount(filesystem_t *fs, const char *device, cons
     inode_t *i = i_from_pbfull(&resp.root_info, sb, (void *) resp.root_ref.data);
 
     sb->fs = fs;
-    sb->root = dentry_get_from_parent(sb, NULL);
+    sb->root = dentry_create_root(sb);
     sb->root->superblock = i->superblock = sb;
     dentry_attach(sb->root, i);
     return sb->root;

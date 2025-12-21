@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mos/filesystem/dentry.hpp"
-#include "mos/filesystem/vfs.hpp"
 #include "mos/mm/mm.hpp"
 #include "mos/tasks/schedule.hpp"
 
@@ -31,7 +29,7 @@ Process *process_do_fork(Process *parent)
         return NULL;
     }
 
-    child_p->working_directory = dentry_ref_up_to(parent->working_directory, root_dentry);
+    child_p->working_directory = parent->working_directory;
 
     dEmph<process> << "process " << parent->pid << " forked to " << child_p->pid;
 

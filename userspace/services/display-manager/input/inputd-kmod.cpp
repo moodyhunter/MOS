@@ -38,14 +38,14 @@ static void ps2_mouse_init()
     ps2_mouse_write(0xF6);
     if (u8 response = port_inb(0x60); response != 0xFA)
     {
-        pr_warn("Mouse initialization failed, response: %x", response);
+        mWarn << "Mouse initialization failed, response: " << (void *) (ptr_t) response;
         return;
     }
 
     ps2_mouse_write(0xF4); // Enable mouse interrupts
     if (u8 response = port_inb(0x60); response != 0xFA)
     {
-        pr_warn("Failed to enable mouse interrupts, response: %x", response);
+        mWarn << "Failed to enable mouse interrupts, response: " << (void *) (ptr_t) response;
         return;
     }
 }

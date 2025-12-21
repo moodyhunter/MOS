@@ -33,6 +33,7 @@ namespace mos
 
       public:
         static constexpr auto npos = size_t(-1);
+        using value_type = Char;
 
       public:
         basic_string(std::nullptr_t) = delete;

@@ -2,6 +2,8 @@
 #pragma once
 
 #include <mos/allocator.hpp>
+#include <mos/string_view.hpp>
+#include <mos/type_utils.hpp>
 
 namespace mos
 {
@@ -139,6 +141,35 @@ namespace mos
             return head == nullptr;
         }
 
+        template<typename TValue>
+        void remove(const TValue &value)
+        {
+            while (head != nullptr && head->value == value)
+            {
+                pop_front();
+            }
+
+            if (head == nullptr)
+                return;
+
+            node *current = head;
+            while (current->next != nullptr)
+            {
+                if (current->next->value == value)
+                {
+                    node *to_delete = current->next;
+                    current->next = to_delete->next;
+                    if (to_delete == tail)
+                        tail = current;
+                    delete to_delete;
+                }
+                else
+                {
+                    current = current->next;
+                }
+            }
+        }
+
       private:
         struct node : mos::NamedType<"List.Node">
         {
@@ -225,7 +256,7 @@ namespace mos
             return iterator(nullptr);
         }
 
-        iterator erase(iterator it)
+        iterator erase(iterator it, iterator end = iterator(nullptr))
         {
             if (it.current == head)
             {
@@ -234,11 +265,17 @@ namespace mos
             }
 
             node *current = head;
-            while (current->next != it.current)
+            while (current != nullptr && current->next != it.current)
                 current = current->next;
 
-            current->next = it.current->next;
-            delete it.current;
+            if (current == nullptr)
+                return end; // iterator not found
+
+            node *to_delete = current->next;
+            current->next = to_delete->next;
+            if (to_delete == tail)
+                tail = current;
+            delete to_delete;
             return iterator(current->next);
         }
 

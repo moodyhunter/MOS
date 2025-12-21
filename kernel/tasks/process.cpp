@@ -131,7 +131,7 @@ void process_destroy(Process *proc)
         proc->mm = nullptr;
     }
 
-    memset(proc, 0, sizeof(Process));
+    const_cast<typename std::remove_const_t<decltype(proc->magic)> &>(proc->magic) = 0;
     delete proc;
 }
 
@@ -154,7 +154,7 @@ Process *process_new(Process *parent, mos::string_view name, const stdio_t *ios)
         return NULL; // TODO
     }
     proc->main_thread = thread.get();
-    proc->working_directory = dentry_ref_up_to(parent ? parent->working_directory : root_dentry, root_dentry);
+    proc->working_directory = parent ? parent->working_directory : root_dentry;
 
     ProcessTable.insert(proc->pid, proc);
     return proc;
@@ -350,7 +350,7 @@ void process_exit(Process *&&proc, u8 exit_code, signal_t sig)
         list_node_append(&proc->parent->children, list_node(child));
     }
 
-    dentry_unref(proc->working_directory);
+    proc->working_directory = nullptr;
 
     dInfo2<process> << "closed " << files_closed << "/" << files_total << " files owned by " << proc;
     proc->exited = true;

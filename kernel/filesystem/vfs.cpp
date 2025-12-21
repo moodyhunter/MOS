@@ -32,7 +32,7 @@
 static list_head vfs_fs_list; // filesystem_t
 static spinlock_t vfs_fs_list_lock;
 
-dentry_t *root_dentry = NULL;
+ptr<dentry_t> root_dentry = NULL;
 
 static long do_pagecache_flush(FsBaseFile *file, off_t pgoff, size_t npages)
 {
@@ -67,8 +67,6 @@ void FsFile::on_closed()
         do_sync_inode(this);
     }
 
-    dentry_unref(this->dentry);
-
     if (io_type == IO_FILE)
     {
         const file_ops_t *file_ops = get_ops();
@@ -101,8 +99,6 @@ void FsDir::on_closed()
         delete state;
         this->private_data = NULL;
     }
-
-    dentry_unref(this->dentry);
 
     if (io_type == IO_FILE)
     {
@@ -335,9 +331,9 @@ static bool vfs_verify_permissions(dentry_t &file_dentry, bool open, bool read, 
     return true;
 }
 
-static PtrResult<FsBaseFile> vfs_do_open(dentry_t *base, mos::string_view path, OpenFlags flags)
+static PtrResult<FsBaseFile> vfs_do_open(ptr<dentry_t> base, mos::string_view path, OpenFlags flags)
 {
-    if (base == NULL)
+    if (base == nullptr)
         return -EINVAL;
 
     const bool may_create = flags & OPEN_CREATE;
@@ -368,32 +364,28 @@ static PtrResult<FsBaseFile> vfs_do_open(dentry_t *base, mos::string_view path, 
 
     if (may_create && entry->inode == NULL)
     {
-        auto parent = dentry_parent(*entry);
+        auto parent = entry.get()->parent;
         if (!parent->inode->ops->newfile)
         {
-            dentry_unref(entry.get());
             return -EROFS;
         }
 
         if (!parent->inode->ops->newfile(parent->inode, entry.get(), FILE_TYPE_REGULAR, 0666))
         {
-            dentry_unref(entry.get());
             return -EIO; // failed to create file
         }
 
         created = true;
     }
 
-    if (!vfs_verify_permissions(*entry, true, read, may_create, exec, write))
+    if (!vfs_verify_permissions(*entry.get(), true, read, may_create, exec, write))
     {
-        dentry_unref(entry.get());
         return -EACCES;
     }
 
     auto file = vfs_do_open_dentry(entry.get(), created, read, write, exec, truncate);
     if (file.isErr())
     {
-        dentry_unref(entry.get());
         return file.getErr();
     }
 
@@ -406,7 +398,7 @@ mos::string FsBaseFile::name() const
 }
 
 // public functions
-PtrResult<FsBaseFile> vfs_do_open_dentry(dentry_t *dentry, bool created, bool read, bool write, bool exec, bool truncate)
+PtrResult<FsBaseFile> vfs_do_open_dentry(ptr<dentry_t> dentry, bool created, bool read, bool write, bool exec, bool truncate)
 {
     MOS_ASSERT(dentry->inode);
     MOS_UNUSED(truncate);
@@ -492,7 +484,7 @@ PtrResult<void> vfs_mount(const char *device, const char *path, const char *fs, 
             root_dentry = mountResult.get();
         }
 
-        dInfo2<vfs> << "root filesystem mounted, dentry=" << (void *) root_dentry;
+        dInfo2<vfs> << "root filesystem mounted, dentry=" << (void *) root_dentry.get();
 
         MOS_ASSERT(root_dentry->name.empty());
         bool mounted = dentry_mount(root_dentry, root_dentry, real_fs);
@@ -513,7 +505,6 @@ PtrResult<void> vfs_mount(const char *device, const char *path, const char *fs, 
     {
         // we don't support overlaying filesystems yet
         mWarn << "mount point is already mounted";
-        dentry_unref(mpRoot.get());
         return -ENOTSUP;
     }
 
@@ -534,7 +525,6 @@ PtrResult<void> vfs_mount(const char *device, const char *path, const char *fs, 
         return -EIO;
     }
 
-    MOS_ASSERT_X(mpRoot->refcount == mounted_root->refcount, "mountpoint refcount={}, mounted_root refcount={}", mpRoot->refcount.load(), mounted_root->refcount.load());
     dInfo2<vfs> << "mounted filesystem '" << fs << "' on '" << path << "'";
     return 0;
 }
@@ -545,16 +535,6 @@ long vfs_unmount(const char *path)
     if (mounted_root.isErr())
         return mounted_root.getErr();
 
-    // the mounted root itself holds a ref, and the caller of this function
-    if (mounted_root->refcount != 2)
-    {
-        dentry_check_refstat(mounted_root.get());
-        mWarn << "refcount is not as expected";
-        return -EBUSY;
-    }
-
-    dentry_unref(mounted_root.get()); // release the reference held by this function
-
     // unmounting root filesystem
     auto mountpoint = dentry_unmount(mounted_root.get());
     if (!mountpoint)
@@ -563,21 +543,16 @@ long vfs_unmount(const char *path)
         return -EIO;
     }
 
-    MOS_ASSERT(mounted_root->refcount == mountpoint->refcount && mountpoint->refcount == 1);
     if (mounted_root->superblock->fs->unmount)
         mounted_root->superblock->fs->unmount(mounted_root->superblock->fs, mounted_root.get());
-    else
-        MOS_ASSERT(dentry_unref_one_norelease(mounted_root.get()));
-    MOS_ASSERT_X(mounted_root->refcount == 0, "fs->umount should release the last reference to the mounted root");
 
-    if (mounted_root == root_dentry)
+    if (mounted_root.get() == root_dentry)
     {
         dInfo2<vfs> << "unmounted root filesystem";
         root_dentry = NULL;
         return 0;
     }
 
-    dentry_unref(mountpoint);
     return 0;
 }
 
@@ -624,7 +599,6 @@ long vfs_fstatat(fd_t fd, const char *path, file_stat_t *__restrict statbuf, FSt
 
     if (statbuf)
         vfs_copy_stat(statbuf, dentry->inode);
-    dentry_unref(dentry.get());
     return 0;
 }
 
@@ -640,13 +614,10 @@ size_t vfs_readlinkat(fd_t dirfd, const char *path, char *buf, size_t size)
 
     if (dentry->inode->type != FILE_TYPE_SYMLINK)
     {
-        dentry_unref(dentry.get());
         return -EINVAL;
     }
 
     const size_t len = dentry->inode->ops->readlink(dentry.get(), buf, size);
-
-    dentry_unref(dentry.get());
 
     if (len >= size) // buffer too small
         return -ENAMETOOLONG;
@@ -665,13 +636,12 @@ long vfs_symlink(const char *path, const char *target)
     if (dentry.isErr())
         return dentry.getErr();
 
-    dentry_t *parent_dir = dentry_parent(*dentry);
+    ptr<dentry_t> parent_dir = dentry.get()->parent;
     const bool created = parent_dir->inode->ops->symlink(parent_dir->inode, dentry.get(), target);
 
     if (!created)
         mos_warn("failed to create symlink '%s'", path);
 
-    dentry_unref(dentry.get());
     return created ? 0 : -EIO;
 }
 
@@ -686,11 +656,9 @@ PtrResult<void> vfs_mkdir(const char *path)
     if (dentry.isErr())
         return dentry.getErr();
 
-    dentry_t *parent_dir = dentry_parent(*dentry);
+    ptr<dentry_t> parent_dir = dentry.get()->parent;
     if (parent_dir->inode == NULL || parent_dir->inode->ops == NULL || parent_dir->inode->ops->mkdir == NULL)
     {
-        // dentry does not have a mkdir operation
-        dentry_unref(dentry.get());
         return -ENOTSUP;
     }
 
@@ -700,7 +668,6 @@ PtrResult<void> vfs_mkdir(const char *path)
     if (!created)
         mos_warn("failed to create directory '%s'", path);
 
-    dentry_unref(dentry.get());
     return created ? 0 : -EIO;
 }
 
@@ -715,10 +682,9 @@ PtrResult<void> vfs_rmdir(const char *path)
     if (dentry.isErr())
         return dentry.getErr();
 
-    dentry_t *parent_dir = dentry_parent(*dentry);
+    ptr<dentry_t> parent_dir = dentry.get()->parent;
     if (parent_dir->inode == NULL || parent_dir->inode->ops == NULL || parent_dir->inode->ops->rmdir == NULL)
     {
-        dentry_unref(dentry.get());
         return -ENOTSUP;
     }
 
@@ -727,7 +693,6 @@ PtrResult<void> vfs_rmdir(const char *path)
     if (!removed)
         mos_warn("failed to remove directory '%s'", path);
 
-    dentry_unref(dentry.get());
     return removed ? 0 : -EIO;
 }
 
@@ -794,10 +759,6 @@ long vfs_chdirat(fd_t dirfd, const char *path)
     if (dentry.isErr())
         return dentry.getErr();
 
-    auto old_cwd = dentry_from_fd(AT_FDCWD);
-    if (old_cwd)
-        dentry_unref(old_cwd.get());
-
     current_process->working_directory = dentry.get();
     return 0;
 }
@@ -838,7 +799,6 @@ long vfs_fchmodat(fd_t fd, const char *path, int perm, int flags)
 
     // TODO: check if the underlying filesystem supports chmod, and is not read-only
     dentry->inode->perm = perm;
-    dentry_unref(dentry.get());
     return 0;
 }
 
@@ -853,22 +813,18 @@ long vfs_unlinkat(fd_t dirfd, const char *path)
     if (dentry.isErr())
         return dentry.getErr();
 
-    dentry_t *parent_dir = dentry_parent(*dentry);
+    ptr<dentry_t> parent_dir = dentry.get()->parent;
     if (parent_dir->inode == NULL || parent_dir->inode->ops == NULL || parent_dir->inode->ops->unlink == NULL)
     {
-        dentry_unref(dentry.get());
         return -ENOTSUP;
     }
 
     if (!inode_unlink(parent_dir->inode, dentry.get()))
     {
-        dentry_unref(dentry.get());
         return -EIO;
     }
-
-    dentry_unref(dentry.get()); // it won't release dentry because dentry->inode is still valid
+    // it won't release dentry because dentry->inode is still valid
     dentry_detach(dentry.get());
-    dentry_try_release(dentry.get());
     return 0;
 }
 
@@ -909,7 +865,7 @@ static bool vfs_sysfs_filesystems(sysfs_file_t *f)
 
 static bool vfs_sysfs_mountpoints(sysfs_file_t *f)
 {
-    list_foreach(mount_t, mp, vfs_mountpoint_list)
+    for (const auto &[root, mp] : vfs_mountpoint_map)
     {
         const auto str = dentry_path(mp->mountpoint, root_dentry);
         if (str)
@@ -921,28 +877,39 @@ static bool vfs_sysfs_mountpoints(sysfs_file_t *f)
     return true;
 }
 
-static void vfs_sysfs_dentry_stats_stat_receiver(int depth, const dentry_t *dentry, bool mountroot, void *data)
+static void vfs_dump_dtree_recursive(sysfs_file_t *f, ptr<dentry_t> dentry, int level)
 {
-    sysfs_file_t *file = (sysfs_file_t *) data;
-    sysfs_printf(file, "%*s%s: refcount=%zu%s\n", //
-                 depth * 4,                       //
-                 "",                              //
-                 dentry_name(dentry).c_str(),     //
-                 dentry->refcount.load(),         //
-                 mountroot ? " (mount root)" : "" //
-    );
+    for (int i = 0; i < level; i++)
+        sysfs_printf(f, "  ");
+
+    sysfs_printf(f, "%s (ino=%lu, type=%d)%s\n", dentry->name.empty() ? "/" : dentry->name.c_str(), dentry->inode ? dentry->inode->ino : 0,
+                 dentry->inode ? dentry->inode->type : -1, dentry->is_mountpoint ? " [mountpoint]" : "");
+
+    for (const auto &child : dentry->children)
+    {
+        vfs_dump_dtree_recursive(f, child, level + 1);
+    }
+    if (dentry->is_mountpoint && dentry != root_dentry)
+    {
+        dentry = dentry_get_mount(dentry)->root;
+        level += 1;
+        for (const auto &child : dentry->children)
+        {
+            vfs_dump_dtree_recursive(f, child, level + 1);
+        }
+    }
 }
 
-static bool vfs_sysfs_dentry_stats(sysfs_file_t *f)
+static bool vfs_sysfs_dump_dtree(sysfs_file_t *f)
 {
-    dentry_dump_refstat(root_dentry, vfs_sysfs_dentry_stats_stat_receiver, f);
+    vfs_dump_dtree_recursive(f, root_dentry, 0);
     return true;
 }
 
 static sysfs_item_t vfs_sysfs_items[] = {
     SYSFS_RO_ITEM("filesystems", vfs_sysfs_filesystems),
     SYSFS_RO_ITEM("mount", vfs_sysfs_mountpoints),
-    SYSFS_RO_ITEM("dentry_stats", vfs_sysfs_dentry_stats),
+    SYSFS_RO_ITEM("dtree", vfs_sysfs_dump_dtree),
 };
 
 SYSFS_AUTOREGISTER(vfs, vfs_sysfs_items);

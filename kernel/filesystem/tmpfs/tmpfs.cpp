@@ -46,7 +46,7 @@ extern const inode_cache_ops_t tmpfs_inode_cache_ops;
 extern const file_ops_t tmpfs_file_ops;
 extern const superblock_ops_t tmpfs_sb_op;
 
-static PtrResult<dentry_t> tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char *options); // forward declaration
+static PtrResult<ptr<dentry_t>> tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char *options); // forward declaration
 FILESYSTEM_DEFINE(fs_tmpfs, "tmpfs", tmpfs_fsop_mount, NULL);
 FILESYSTEM_AUTOREGISTER(fs_tmpfs);
 
@@ -99,7 +99,7 @@ inode_t *tmpfs_create_inode(tmpfs_sb_t *sb, file_type_t type, file_perm_t perm)
 
 static const file_perm_t tmpfs_default_mode = PERM_READ | PERM_WRITE | PERM_EXEC; // rwxrwxrwx
 
-static PtrResult<dentry_t> tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char *options)
+static PtrResult<ptr<dentry_t>> tmpfs_fsop_mount(filesystem_t *fs, const char *dev, const char *options)
 {
     MOS_ASSERT(fs == &fs_tmpfs);
     if (strcmp(dev, "none") != 0)
@@ -117,13 +117,13 @@ static PtrResult<dentry_t> tmpfs_fsop_mount(filesystem_t *fs, const char *dev, c
     tmpfs_sb_t *tmpfs_sb = mos::create<tmpfs_sb_t>();
     tmpfs_sb->sb.fs = fs;
     tmpfs_sb->sb.ops = &tmpfs_sb_op;
-    tmpfs_sb->sb.root = dentry_get_from_parent(&tmpfs_sb->sb, NULL, "");
+    tmpfs_sb->sb.root = dentry_create_root(&tmpfs_sb->sb);
     dentry_attach(tmpfs_sb->sb.root, tmpfs_create_inode(tmpfs_sb, FILE_TYPE_DIRECTORY, tmpfs_default_mode));
     return tmpfs_sb->sb.root;
 }
 
 // create a new node in the directory
-static bool tmpfs_mknod_impl(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm, dev_t dev)
+static bool tmpfs_mknod_impl(inode_t *dir, ptr<dentry_t> dentry, file_type_t type, file_perm_t perm, dev_t dev)
 {
     inode_t *inode = tmpfs_create_inode(TMPFS_SB(dir->superblock), type, perm);
     TMPFS_INODE(inode)->dev = dev;
@@ -131,12 +131,12 @@ static bool tmpfs_mknod_impl(inode_t *dir, dentry_t *dentry, file_type_t type, f
     return true;
 }
 
-static bool tmpfs_i_create(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm)
+static bool tmpfs_i_create(inode_t *dir, ptr<dentry_t> dentry, file_type_t type, file_perm_t perm)
 {
     return tmpfs_mknod_impl(dir, dentry, type, perm, 0);
 }
 
-static bool tmpfs_i_hardlink(dentry_t *old_dentry, inode_t *dir, dentry_t *new_dentry)
+static bool tmpfs_i_hardlink(ptr<dentry_t> old_dentry, inode_t *dir, ptr<dentry_t> new_dentry)
 {
     MOS_UNUSED(dir);
     MOS_ASSERT_X(old_dentry->inode->type != FILE_TYPE_DIRECTORY, "hard links to directories are insane");
@@ -145,7 +145,7 @@ static bool tmpfs_i_hardlink(dentry_t *old_dentry, inode_t *dir, dentry_t *new_d
     return true;
 }
 
-static bool tmpfs_i_symlink(inode_t *dir, dentry_t *dentry, const char *symname)
+static bool tmpfs_i_symlink(inode_t *dir, ptr<dentry_t> dentry, const char *symname)
 {
     bool created = tmpfs_mknod_impl(dir, dentry, FILE_TYPE_SYMLINK, tmpfs_default_mode, 0);
     if (created)
@@ -157,19 +157,19 @@ static bool tmpfs_i_symlink(inode_t *dir, dentry_t *dentry, const char *symname)
     return created;
 }
 
-static bool tmpfs_i_unlink(inode_t *dir, dentry_t *dentry)
+static bool tmpfs_i_unlink(inode_t *dir, ptr<dentry_t> dentry)
 {
     MOS_UNUSED(dir);
     MOS_UNUSED(dentry);
     return true;
 }
 
-static bool tmpfs_i_mkdir(inode_t *dir, dentry_t *dentry, file_perm_t perm)
+static bool tmpfs_i_mkdir(inode_t *dir, ptr<dentry_t> dentry, file_perm_t perm)
 {
     return tmpfs_mknod_impl(dir, dentry, FILE_TYPE_DIRECTORY, perm, 0);
 }
 
-static bool tmpfs_i_rmdir(inode_t *dir, dentry_t *subdir_to_remove)
+static bool tmpfs_i_rmdir(inode_t *dir, ptr<dentry_t> subdir_to_remove)
 {
     // VFS will ensure that the directory is empty
     MOS_UNUSED(dir);
@@ -180,12 +180,12 @@ static bool tmpfs_i_rmdir(inode_t *dir, dentry_t *subdir_to_remove)
     return true;
 }
 
-static bool tmpfs_i_mknod(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm, dev_t dev)
+static bool tmpfs_i_mknod(inode_t *dir, ptr<dentry_t> dentry, file_type_t type, file_perm_t perm, dev_t dev)
 {
     return tmpfs_mknod_impl(dir, dentry, type, perm, dev);
 }
 
-static bool tmpfs_i_rename(inode_t *old_dir, dentry_t *old_dentry, inode_t *new_dir, dentry_t *new_dentry)
+static bool tmpfs_i_rename(inode_t *old_dir, ptr<dentry_t> old_dentry, inode_t *new_dir, ptr<dentry_t> new_dentry)
 {
     MOS_UNUSED(old_dir);
     MOS_UNUSED(new_dir);
@@ -206,7 +206,7 @@ const inode_ops_t tmpfs_inode_dir_ops = {
     .unlink = tmpfs_i_unlink,
 };
 
-static size_t tmpfs_i_readlink(dentry_t *dentry, char *buffer, size_t buflen)
+static size_t tmpfs_i_readlink(ptr<dentry_t> dentry, char *buffer, size_t buflen)
 {
     tmpfs_inode_t *inode = TMPFS_INODE(dentry->inode);
     const size_t bytes_to_copy = std::min(buflen, strlen(inode->symlink_target));

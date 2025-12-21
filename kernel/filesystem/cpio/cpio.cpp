@@ -202,7 +202,7 @@ static cpio_inode_t *cpio_inode_trycreate(const char *path, superblock_t *sb)
 
 // ============================================================================================================
 
-static PtrResult<dentry_t> cpio_mount(filesystem_t *fs, const char *dev_name, const char *mount_options)
+static PtrResult<ptr<dentry_t>> cpio_mount(filesystem_t *fs, const char *dev_name, const char *mount_options)
 {
     if (unlikely(mount_options) && strlen(mount_options) > 0)
         mos_warn("cpio: mount options are not supported");
@@ -222,13 +222,13 @@ static PtrResult<dentry_t> cpio_mount(filesystem_t *fs, const char *dev_name, co
 
     pr_dinfo2(cpio, "cpio header: %.6s", i->header.magic);
     sb->fs = fs;
-    sb->root = dentry_get_from_parent(sb, NULL);
+    sb->root = dentry_create_root(sb);
     dentry_attach(sb->root, &i->inode);
     sb->root->superblock = i->inode.superblock = sb;
     return sb->root;
 }
 
-static bool cpio_i_lookup(inode_t *parent_dir, dentry_t *dentry)
+static bool cpio_i_lookup(inode_t *parent_dir, ptr<dentry_t> dentry)
 {
     // keep prepending the path with the parent path, until we reach the root
     const auto path_str = dentry_path(dentry, parent_dir->superblock->root);
@@ -242,10 +242,10 @@ static bool cpio_i_lookup(inode_t *parent_dir, dentry_t *dentry)
     return true;
 }
 
-static void cpio_i_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state, dentry_iterator_op add_record)
+static void cpio_i_iterate_dir(ptr<dentry_t> dentry, vfs_listdir_state_t *state, dentry_iterator_op add_record)
 {
-    dentry_t *d_parent = dentry_parent(*dentry);
-    if (d_parent == NULL)
+    ptr<dentry_t> d_parent = dentry->parent;
+    if (d_parent == nullptr)
         d_parent = root_dentry;
 
     MOS_ASSERT(d_parent->inode != NULL);
@@ -315,7 +315,7 @@ static void cpio_i_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state, den
     }
 }
 
-static size_t cpio_i_readlink(dentry_t *dentry, char *buffer, size_t buflen)
+static size_t cpio_i_readlink(ptr<dentry_t> dentry, char *buffer, size_t buflen)
 {
     cpio_inode_t *inode = CPIO_INODE(dentry->inode);
     return initrd_read(buffer, std::min(buflen, inode->inode.size), inode->data_offset);

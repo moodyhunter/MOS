@@ -2,7 +2,6 @@
 
 #include "mos/filesystem/vfs_utils.hpp"
 
-#include "mos/filesystem/dentry.hpp"
 #include "mos/filesystem/page_cache.hpp"
 #include "mos/filesystem/vfs_types.hpp"
 #include "mos/lib/sync/spinlock.hpp"
@@ -14,63 +13,50 @@
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-/**
- * @brief Create a new dentry, and link it to the given parent
- *
- * @param sb
- * @param parent
- * @param name
- * @return dentry_t*
- */
-static dentry_t *dentry_create(superblock_t *sb, dentry_t *parent, mos::string_view name)
+ptr<dentry_t> dentry_create(superblock_t *sb, ptr<dentry_t> parent, mos::string_view name)
 {
-    const auto dentry = mos::create<dentry_t>();
-    dInfo2<dcache> << fmt("allocated new dentry '{}' at {}, parent '{}'", name, (void *) dentry, (void *) parent);
-    tree_node_init(tree_node(dentry));
+    MOS_ASSERT_X(parent && !name.empty(), "Cannot create non-root dentry with NULL parent");
+    const auto child = mos::make_shared<dentry_t>();
+    dInfo2<dcache> << fmt("allocated new dentry '{}' at {}, parent '{}'", name, (void *) child.get(), (void *) parent.get());
 
-    dentry->superblock = sb;
-    dentry->name = name;
+    child->superblock = sb;
+    child->name = name;
 
-    if (parent)
-    {
-        dInfo2<dcache> << fmt("adding dentry '{}' to parent {}", name, (void *) parent);
-        MOS_ASSERT(spinlock_is_locked(&parent->lock));
-        tree_add_child(tree_node(parent), tree_node(dentry));
-        dentry->superblock = parent->superblock;
-    }
+    dInfo2<dcache> << fmt("adding dentry '{}' to parent {}", name, (void *) parent.get());
+    MOS_ASSERT(spinlock_is_locked(&parent->lock));
+    parent->children.push_back(child);
+    child->superblock = parent->superblock;
+    child->parent = parent;
 
-    return dentry;
+    return child;
 }
 
-dentry_t *dentry_get_from_parent(superblock_t *sb, dentry_t *const parent, mos::string_view name)
+ptr<dentry_t> dentry_create_root(superblock_t *sb)
 {
-    if (!parent)
-        return dentry_create(sb, NULL, name);
+    const auto child = mos::make_shared<dentry_t>();
+    dInfo2<dcache> << fmt("allocated new root dentry at {}", (void *) child.get());
+    child->superblock = sb;
+    return child;
+}
 
-    dentry_t *dentry = NULL;
-    dWarn<dcache> << fmt("looking up child '{}' in parent {}", name, (void *) parent);
+ptr<dentry_t> dentry_get_or_create_child(ptr<dentry_t> const parent, superblock_t *sb, mos::string_view name)
+{
+    MOS_ASSERT_X(parent != nullptr, "Parent dentry cannot be null");
+    dInfo<dcache> << fmt("looking up child '{}' in parent {}", name, (void *) parent.get());
 
-    spinlock_acquire(&parent->lock);
-    MOS_ASSERT(spinlock_is_locked(&parent->lock));
-    tree_foreach_child(dentry_t, child, parent)
+    SpinLocker locker(&parent->lock);
+    for (const auto &child : parent->children)
     {
         if (child->name == name)
         {
-            dInfo<dcache> << fmt("found existing dentry '{}' at {}", name, (void *) child);
-            dentry = child;
-            break;
+            dInfo2<dcache> << fmt("  found existing dentry '{}' at {}", name, (void *) child.get());
+            return child;
         }
     }
 
     // if not found, create a new one
-    if (!dentry)
-    {
-        dEmph<dcache> << fmt("dentry '{}' not found in parent {}, creating new one", name, (void *) parent);
-        dentry = dentry_create(sb, parent, name);
-        dEmph<dcache> << fmt("created new dentry '{}' at {}", name, (void *) dentry);
-    }
-
-    spinlock_release(&parent->lock);
+    ptr<dentry_t> const dentry = dentry_create(sb, parent, name);
+    dEmph<dcache> << fmt("  created new dentry '{}' at {}", name, (void *) dentry.get());
     return dentry;
 }
 
@@ -130,10 +116,10 @@ bool vfs_simple_write_begin(inode_cache_t *icache, off_t offset, size_t size)
     return true;
 }
 
-void vfs_generic_iterate_dir(const dentry_t *dir, vfs_listdir_state_t *state, dentry_iterator_op add_record)
+void vfs_generic_iterate_dir(const ptr<dentry_t> dir, vfs_listdir_state_t *state, dentry_iterator_op add_record)
 {
-    dentry_t *d_parent = dentry_parent(*dir);
-    if (d_parent == NULL)
+    ptr<dentry_t> d_parent = dir->parent;
+    if (d_parent == nullptr)
         d_parent = root_dentry;
 
     MOS_ASSERT(d_parent->inode != NULL);
@@ -142,7 +128,7 @@ void vfs_generic_iterate_dir(const dentry_t *dir, vfs_listdir_state_t *state, de
     add_record(state, dir->inode->ino, ".", FILE_TYPE_DIRECTORY);
     add_record(state, d_parent->inode->ino, "..", FILE_TYPE_DIRECTORY);
 
-    tree_foreach_child(dentry_t, child, dir)
+    for (const auto &child : dir->children)
     {
         if (child->inode)
             add_record(state, child->inode->ino, child->name, child->inode->type);

@@ -12,6 +12,7 @@ alias ..... 'cd ../../../..'
 alias meminfo 'cat /sys/mmstat/stat'
 alias slabinfo 'cat /sys/slabinfo'
 alias vmaps 'cat /sys/current/vmaps'
+alias dtree 'cat /sys/vfs/dtree'
 
 alias processes 'cat /sys/tasks/processes'
 alias threads 'cat /sys/tasks/threads'

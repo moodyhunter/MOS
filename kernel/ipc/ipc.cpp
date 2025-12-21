@@ -126,17 +126,15 @@ void ipc_server_close(IPCServer *server)
     }
     else
     {
-        dentry_t *ipc_get_sysfs_dir(void);
+        ptr<dentry_t> ipc_get_sysfs_dir(void);
         // now we can free the server
         const auto dparent = ipc_get_sysfs_dir();
 
-        const auto dentry = dentry_get_from_parent(server->sysfs_ino->superblock, dparent, server->name);
+        const auto dentry = dentry_get_or_create_child(dparent, server->sysfs_ino->superblock, server->name);
         if (dentry->inode == nullptr)
             dentry_attach(dentry, server->sysfs_ino); // fixup, as lookup may not have been called
         inode_unlink(server->sysfs_ino, dentry);
-        dentry_unref(dentry); // it won't release dentry because dentry->inode is still valid
         dentry_detach(dentry);
-        dentry_try_release(dentry);
         server->sysfs_ino = NULL;
         delete server;
     }
@@ -429,7 +427,7 @@ static inode_t *ipc_sysfs_create_ino(IPCServer *ipc_server)
     return ipc_server->sysfs_ino;
 }
 
-static void ipc_sysfs_list_ipcs(sysfs_item_t *item, dentry_t *d, vfs_listdir_state_t *state, dentry_iterator_op add_record)
+static void ipc_sysfs_list_ipcs(sysfs_item_t *item, ptr<dentry_t> d, vfs_listdir_state_t *state, dentry_iterator_op add_record)
 {
     MOS_UNUSED(item);
     MOS_UNUSED(d);
@@ -441,7 +439,7 @@ static void ipc_sysfs_list_ipcs(sysfs_item_t *item, dentry_t *d, vfs_listdir_sta
     }
 }
 
-static bool ipc_sysfs_lookup_ipc(inode_t *parent_dir, dentry_t *dentry)
+static bool ipc_sysfs_lookup_ipc(inode_t *parent_dir, ptr<dentry_t> dentry)
 {
     MOS_UNUSED(parent_dir);
 
@@ -463,7 +461,7 @@ static bool ipc_sysfs_lookup_ipc(inode_t *parent_dir, dentry_t *dentry)
     return dentry->inode != NULL;
 }
 
-static bool ipc_sysfs_create_server(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm)
+static bool ipc_sysfs_create_server(inode_t *dir, ptr<dentry_t> dentry, file_type_t type, file_perm_t perm)
 {
     MOS_UNUSED(dir);
     MOS_UNUSED(perm);
@@ -503,7 +501,7 @@ static sysfs_item_t ipc_sysfs_items[] = {
 
 SYSFS_AUTOREGISTER(ipc, ipc_sysfs_items);
 
-dentry_t *ipc_get_sysfs_dir()
+ptr<dentry_t> ipc_get_sysfs_dir()
 {
     return __sysfs_ipc._dentry;
 }

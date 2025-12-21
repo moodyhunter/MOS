@@ -41,4 +41,4 @@ inode_t *i_from_pbfull(const mosrpc_fs_inode_info *pbi, superblock_t *sb, void *
  */
 mosrpc_fs_inode_info *i_to_pb_full(const inode_t *i, mosrpc_fs_inode_info *pbi);
 
-PtrResult<dentry_t> userfs_fsop_mount(filesystem_t *fs, const char *device, const char *options);
+PtrResult<ptr<dentry_t>> userfs_fsop_mount(filesystem_t *fs, const char *device, const char *options);

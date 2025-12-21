@@ -26,6 +26,21 @@ namespace mos
             return __data + i;
         }
 
+        constexpr size_t size() const noexcept
+        {
+            return n - 1;
+        }
+
+        constexpr char const *begin() const noexcept
+        {
+            return __data;
+        }
+
+        constexpr char const *end() const noexcept
+        {
+            return __data + n - 1;
+        }
+
         const size_t strlen = n;
         char __data[n];
     };
@@ -77,5 +92,18 @@ namespace mos
 #else
 #error "unknown compiler"
 #endif
+    }
+
+    template<typename T>
+    consteval static inline string_view getTypeName2()
+    {
+        if constexpr (HasTypeName<T>)
+        {
+            return T::type_name;
+        }
+        else
+        {
+            return getTypeName<T>();
+        }
     }
 } // namespace mos

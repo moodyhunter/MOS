@@ -20,13 +20,12 @@ namespace mos
     template<typename T, typename... Args>
     T *create(Args &&...args);
 
-    template<typename T>
     struct __shared_ptr_core : mos::NamedType<"shared_ptr.core">
     {
-        explicit __shared_ptr_core(T *ptr, size_t own, size_t weak) : _ptr(ptr), _n_own(own), _n_weak(weak) {};
+        explicit __shared_ptr_core(void *ptr, size_t own, size_t weak) : _ptr(ptr), _n_own(own), _n_weak(weak) {};
         ~__shared_ptr_core()
         {
-            delete _ptr;
+            _ptr = nullptr;
         }
 
         // clang-format off
@@ -57,9 +56,7 @@ namespace mos
         }
 
       public:
-        T *_ptr;
-
-      private:
+        void *_ptr;
         size_t _n_own;  // number of shared_ptr instances owning the object
         size_t _n_weak; // number of weak_ptr instances owning the object
     };
@@ -128,11 +125,14 @@ namespace mos
         {
             _c->_dec_weak();
             if (_c->_can_delete())
+            {
+                delete static_cast<T *>(_c->_ptr);
                 delete _c;
+            }
         }
 
       private:
-        __shared_ptr_core<T> *_c;
+        __shared_ptr_core *_c;
     };
 
     template<typename T>
@@ -148,9 +148,9 @@ namespace mos
         constexpr shared_ptr(std::nullptr_t) noexcept : _c(nullptr) {};
 
         template<typename Y>
-        explicit shared_ptr(Y *ptr) : _c(mos::create<__shared_ptr_core<T>>(ptr, 1, 0)){};
+        explicit shared_ptr(Y *ptr) : _c(mos::create<__shared_ptr_core>(ptr, 1, 0)){};
 
-        explicit shared_ptr(__shared_ptr_core<T> *cb) : _c(cb)
+        explicit shared_ptr(__shared_ptr_core *cb) : _c(cb)
         {
             if (_c)
                 _c->_inc_use();
@@ -265,7 +265,10 @@ namespace mos
 
             _c->_dec_use();
             if (_c->_can_delete())
+            {
+                delete static_cast<T *>(_c->_ptr);
                 delete _c;
+            }
         }
 
       public:
@@ -303,19 +306,19 @@ namespace mos
         {
             if (_c == nullptr)
                 return nullptr;
-            return _c->_ptr;
+            return static_cast<T *>(_c->_ptr);
         }
 
         element_type &operator*() const
         {
-            return *_c->_ptr;
+            return *static_cast<T *>(_c->_ptr);
         }
 
         element_type *operator->() const
         {
             if (_c == nullptr)
                 return nullptr;
-            return _c->_ptr;
+            return static_cast<T *>(_c->_ptr);
         }
 
       public:
@@ -334,13 +337,18 @@ namespace mos
             return lhs._c == nullptr;
         }
 
+        friend bool operator==(const shared_ptr &rhs, T *ptr)
+        {
+            return rhs.get() == ptr;
+        }
+
         operator bool() const
         {
             return _c != nullptr;
         }
 
       private:
-        __shared_ptr_core<T> *_c;
+        __shared_ptr_core *_c;
     };
 
     template<typename T, typename... Args>
@@ -349,6 +357,18 @@ namespace mos
         return shared_ptr<T>(mos::create<T>(std::forward<Args>(args)...));
     }
 } // namespace mos
+
+namespace std
+{
+    template<typename _Tp>
+    struct hash<mos::shared_ptr<_Tp>>
+    {
+        size_t operator()(const mos::shared_ptr<_Tp> &__s) const noexcept
+        {
+            return std::hash<typename mos::shared_ptr<_Tp>::element_type *>()(__s.get());
+        }
+    };
+} // namespace std
 
 template<typename T>
 using ptr = mos::shared_ptr<T>;

@@ -26,6 +26,7 @@ static void process_keyboard_event(int scancode)
 
 static void process_mouse_event(const u8 data[3])
 {
+    std::cout << "Mouse event data: " << std::hex << (int) data[0] << " " << std::hex << (int) data[1] << " " << std::hex << (int) data[2] << std::dec << std::endl;
     bool left_button = data[0] & 0x01;   // Left button pressed
     bool right_button = data[0] & 0x02;  // Right button pressed
     bool middle_button = data[0] & 0x04; // Middle button pressed

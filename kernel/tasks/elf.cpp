@@ -272,12 +272,12 @@ __nodiscard bool elf_do_fill_process(Process *proc, FsBaseFile *file, elf_header
                     (void) prev;
                     return false;
                 }
-                dInfo2<elf> << "elf interpreter: " << interp_name;
+                dInfo2<elf> << "elf interpreter: " << (const char *) interp_name;
                 has_interpreter = true;
                 interp_entrypoint = elf_map_interpreter(interp_name, proc->mm);
                 if (!interp_entrypoint)
                 {
-                    dInfo2<elf> << "failed to map interpreter '" << interp_name << "'";
+                    dInfo2<elf> << "failed to map interpreter '" << (const char *) interp_name << "'";
                     const auto prev = mm_switch_context(prev_mm);
                     (void) prev;
                     return false;

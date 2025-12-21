@@ -148,12 +148,27 @@ namespace mos
         mutable size_t pos = 0;
         mutable _RCCore RefCounter{};
     };
+
+    struct NoOpLoggingDescriptor
+    {
+        template<typename T>
+        const NoOpLoggingDescriptor &operator<<(const T &) const
+        {
+            return *this;
+        }
+    };
 } // namespace mos
+
+#if 1
+#define DebugLogStream(name, level) mos::LoggingDescriptor<feat, LogLevel::level>()
+#else
+#define DebugLogStream(name, level) mos::NoOpLoggingDescriptor()
+#endif
 
 #define DefineLogStream(name, level)                                                                                                                                     \
     extern const mos::LoggingDescriptor<_none, LogLevel::level> m##name;                                                                                                 \
     template<DebugFeature feat>                                                                                                                                          \
-    constexpr auto inline d##name = mos::LoggingDescriptor<feat, LogLevel::level>()
+    constexpr auto inline d##name = DebugLogStream(feat, level)
 
 DefineLogStream(Info2, INFO2);
 DefineLogStream(Info, INFO);

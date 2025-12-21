@@ -22,7 +22,7 @@ struct memfd_t : mos::NamedType<"memfd">
 
 extern filesystem_t fs_tmpfs;
 
-static dentry_t *memfd_root_dentry = NULL;
+static ptr<dentry_t> memfd_root_dentry = NULL;
 
 static void memfd_file_release(FsBaseFile *file)
 {
@@ -44,13 +44,12 @@ PtrResult<IO> memfd_create(const char *name)
         return -ENOMEM;
     }
 
-    dentry_t *dentry = dentry_get_from_parent(memfd_root_dentry->superblock, memfd_root_dentry, name);
+    ptr<dentry_t> dentry = dentry_get_or_create_child(memfd_root_dentry, memfd_root_dentry->superblock, name);
 
     if (!memfd_root_dentry->inode->ops->newfile(memfd_root_dentry->inode, dentry, FILE_TYPE_REGULAR, (PERM_READ | PERM_WRITE) & PERM_OWNER))
     {
         mEmerg << "Failed to create file for memfd";
         delete memfd;
-        delete dentry;
         return -ENOMEM;
     }
 
@@ -59,11 +58,9 @@ PtrResult<IO> memfd_create(const char *name)
     {
         mEmerg << "Failed to open file for memfd";
         delete memfd;
-        delete dentry;
         return file.getErr();
     }
 
-    dentry_ref(dentry), dentry_ref(memfd_root_dentry);
     file->private_data = memfd;
     file->dentry->inode->file_ops = &memfd_file_ops;
     inode_unlink(memfd_root_dentry->inode, file->dentry);
@@ -87,8 +84,6 @@ static void memfd_init()
     }
 
     memfd_root_dentry->is_mountpoint = true;
-    dentry_ref(memfd_root_dentry);
-    dentry_ref(memfd_root_dentry);
 }
 
 MOS_INIT(VFS, memfd_init);

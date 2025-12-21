@@ -6,10 +6,7 @@
 
 #include <mos/mos_global.h>
 #include <mos/types.hpp>
-
-#if MOS_DEBUG_FEATURE(spinlock)
 #include <source_location>
-#endif
 
 #define barrier() MOS_PLATFORM_MEMORY_BARRIER()
 
@@ -18,10 +15,8 @@ struct spinlock_t
 {
     constexpr spinlock_t() : flag(false) {};
     bool flag = false;
-#if MOS_DEBUG_FEATURE(spinlock)
     std::source_location locker;
     std::source_location unlocker;
-#endif
 
     SpinLocker lock();
 };
@@ -52,14 +47,15 @@ struct spinlock_t
     {                                                                                                                                                                    \
         _spinlock_real_acquire(lock);                                                                                                                                    \
         (lock)->locker = std::source_location::current();                                                                                                                \
+        (lock)->unlocker = std::source_location();                                                                                                                       \
     } while (0)
 
 #define spinlock_release(lock)                                                                                                                                           \
     do                                                                                                                                                                   \
     {                                                                                                                                                                    \
-                                                                                                                                                                         \
-        _spinlock_real_release(lock);                                                                                                                                    \
+        (lock)->locker = std::source_location();                                                                                                                         \
         (lock)->unlocker = std::source_location::current();                                                                                                              \
+        _spinlock_real_release(lock);                                                                                                                                    \
     } while (0)
 #else
 #define spinlock_acquire(lock) _spinlock_real_acquire(lock)
@@ -120,9 +116,10 @@ should_inline bool recursive_spinlock_is_locked(recursive_spinlock_t *lock)
 class [[nodiscard("don't discard")]] SpinUnlocker
 {
   public:
-    explicit SpinUnlocker(spinlock_t *lock) : m_lock(lock)
+    explicit SpinUnlocker(spinlock_t *lock, const std::source_location &loc = std::source_location::current()) : m_lock(lock)
     {
-        spinlock_release(m_lock);
+        m_lock->unlocker = loc;
+        _spinlock_real_release(m_lock);
     }
 
     SpinUnlocker(const SpinUnlocker &) = delete;
@@ -138,7 +135,10 @@ class [[nodiscard("don't discard")]] SpinUnlocker
     ~SpinUnlocker()
     {
         if (m_lock)
-            spinlock_acquire(m_lock);
+        {
+            m_lock->locker = std::source_location::current();
+            _spinlock_real_acquire(m_lock);
+        }
     }
 
   private:
@@ -148,9 +148,10 @@ class [[nodiscard("don't discard")]] SpinUnlocker
 class [[nodiscard("don't discard")]] SpinLocker
 {
   public:
-    explicit SpinLocker(spinlock_t *lock) : m_lock(lock)
+    explicit SpinLocker(spinlock_t *lock, const std::source_location &loc = std::source_location::current()) : m_lock(lock)
     {
-        spinlock_acquire(m_lock);
+        _spinlock_real_acquire(m_lock);
+        m_lock->locker = loc;
     }
 
     SpinLocker(const SpinLocker &) = delete;
@@ -166,12 +167,15 @@ class [[nodiscard("don't discard")]] SpinLocker
     ~SpinLocker()
     {
         if (m_lock)
-            spinlock_release(m_lock);
+        {
+            m_lock->unlocker = std::source_location::current();
+            _spinlock_real_release(m_lock);
+        }
     }
 
-    SpinUnlocker UnlockTemporarily()
+    SpinUnlocker UnlockTemporarily(const std::source_location &loc = std::source_location::current())
     {
-        return SpinUnlocker(m_lock);
+        return SpinUnlocker(m_lock, loc);
     }
 
   private:

@@ -33,9 +33,9 @@ typedef struct _sysfs_item
     } mem;
 
     as_linked_list;
-    void (*dyn_iterate)(struct _sysfs_item *item, dentry_t *dentry, vfs_listdir_state_t *iterator_state, dentry_iterator_op op);
-    bool (*dyn_lookup)(inode_t *parent_dir, dentry_t *dentry);
-    bool (*dyn_create)(inode_t *parent_dir, dentry_t *dentry, file_type_t type, file_perm_t perm);
+    void (*dyn_iterate)(struct _sysfs_item *item, ptr<dentry_t> dentry, vfs_listdir_state_t *iterator_state, dentry_iterator_op op);
+    bool (*dyn_lookup)(inode_t *parent_dir, ptr<dentry_t> dentry);
+    bool (*dyn_create)(inode_t *parent_dir, ptr<dentry_t> dentry, file_type_t type, file_perm_t perm);
 } sysfs_item_t;
 
 // clang-format off
@@ -67,7 +67,7 @@ struct sysfs_dir_t
 
     sysfs_dir_t(mos::string_view name, sysfs_item_t *items, size_t num_items) : name(name), items(items), num_items(num_items) {};
 
-    dentry_t *_dentry;        ///< for internal use only
+    ptr<dentry_t> _dentry;    ///< for internal use only
     list_head _dynamic_items; ///< for internal use only
 };
 

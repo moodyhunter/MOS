@@ -73,7 +73,7 @@ struct Process : mos::NamedType<"Process">
     mos::list<Thread *> thread_list;
 
     MMContext *mm;
-    dentry_t *working_directory;
+    ptr<dentry_t> working_directory;
 
     platform_process_options_t platform_options; ///< platform per-process flags
 

@@ -15,7 +15,7 @@
  * @{
  */
 
-extern dentry_t *root_dentry;
+extern ptr<dentry_t> root_dentry;
 
 /**
  * @brief Open an directory dentry
@@ -28,7 +28,7 @@ extern dentry_t *root_dentry;
  * @param truncate
  * @return file_t
  */
-PtrResult<FsBaseFile> vfs_do_open_dentry(dentry_t *entry, bool created, bool read, bool write, bool exec, bool truncate);
+PtrResult<FsBaseFile> vfs_do_open_dentry(ptr<dentry_t> entry, bool created, bool read, bool write, bool exec, bool truncate);
 
 void vfs_register_filesystem(filesystem_t *fs);
 

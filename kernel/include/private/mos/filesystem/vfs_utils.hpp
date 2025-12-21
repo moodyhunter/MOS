@@ -17,7 +17,10 @@ inode_t *inode_create(superblock_t *sb, u64 ino, file_type_t type);
  * @return The new dentry, or NULL if the dentry could not be created
  * @note The returned dentry will have its reference count of 0.
  */
-dentry_t *dentry_get_from_parent(superblock_t *sb, dentry_t *parent, mos::string_view name = "");
+ptr<dentry_t> dentry_create(superblock_t *sb, ptr<dentry_t> parent, mos::string_view name);
+ptr<dentry_t> dentry_create_root(superblock_t *sb);
+
+ptr<dentry_t> dentry_get_or_create_child(ptr<dentry_t> parent, superblock_t *sb, mos::string_view name = "");
 
 ssize_t vfs_generic_read(const FsBaseFile *file, void *buf, size_t size, off_t offset);
 ssize_t vfs_generic_write(const FsBaseFile *file, const void *buf, size_t size, off_t offset);
@@ -31,6 +34,6 @@ void simple_page_write_end(inode_cache_t *icache, off_t offset, size_t size, phy
 long simple_flush_page_discard_data(inode_cache_t *icache, off_t pgoff, phyframe_t *page);
 
 // ! simple in-memory directory iterator
-void vfs_generic_iterate_dir(const dentry_t *dir, vfs_listdir_state_t *state, dentry_iterator_op op);
+void vfs_generic_iterate_dir(const ptr<dentry_t> dir, vfs_listdir_state_t *state, dentry_iterator_op op);
 
 mos::string_view vfs_basename(mos::string_view path);

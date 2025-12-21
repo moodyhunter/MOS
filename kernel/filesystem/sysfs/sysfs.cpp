@@ -129,7 +129,7 @@ static bool sysfs_fops_open(inode_t *inode, FsBaseFile *file, bool created)
 
 static void sysfs_fops_release(FsBaseFile *file)
 {
-    dInfo2<sysfs> << "closing " << file->dentry->name << " in " << dentry_parent(*file->dentry)->name;
+    dInfo2<sysfs> << "closing " << file->dentry->name << " in " << file->dentry->parent->name;
     sysfs_file_t *f = (sysfs_file_t *) file->private_data;
     if (f->buf_page)
         mm_free_pages(f->buf_page, f->buf_npages), f->buf_page = NULL, f->buf_npages = 0, f->buf_head_offset = 0;
@@ -241,7 +241,7 @@ static const file_ops_t sysfs_file_ops = {
     .munmap = sysfs_fops_munmap,
 };
 
-static void sysfs_iops_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state, dentry_iterator_op add_record)
+static void sysfs_iops_iterate_dir(ptr<dentry_t> dentry, vfs_listdir_state_t *state, dentry_iterator_op add_record)
 {
     // root directory
     if (dentry->inode == sysfs_sb->root->inode)
@@ -278,7 +278,7 @@ static void sysfs_iops_iterate_dir(dentry_t *dentry, vfs_listdir_state_t *state,
     }
 }
 
-static bool sysfs_iops_lookup(inode_t *dir, dentry_t *dentry)
+static bool sysfs_iops_lookup(inode_t *dir, ptr<dentry_t> dentry)
 {
     // if we get here, it means the expected dentry cannot be found in the dentry cache
     // that means either it's a dynamic item, or the user is trying to access a file that doesn't exist
@@ -304,7 +304,7 @@ static bool sysfs_iops_lookup(inode_t *dir, dentry_t *dentry)
     return false;
 }
 
-static bool sysfs_iops_create(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm)
+static bool sysfs_iops_create(inode_t *dir, ptr<dentry_t> dentry, file_type_t type, file_perm_t perm)
 {
     sysfs_dir_t *sysfs_dir = (sysfs_dir_t *) dir->private_data;
     MOS_ASSERT_X(sysfs_dir || dir == sysfs_sb->root->inode, "invalid sysfs entry, possibly a VFS bug");
@@ -331,7 +331,7 @@ static const inode_ops_t sysfs_dir_i_ops = {
     .newfile = sysfs_iops_create,
 };
 
-static PtrResult<dentry_t> sysfs_fsop_mount(filesystem_t *fs, const char *dev, const char *options)
+static PtrResult<ptr<dentry_t>> sysfs_fsop_mount(filesystem_t *fs, const char *dev, const char *options)
 {
     MOS_ASSERT(fs == &fs_sysfs);
     if (strcmp(dev, "none") != 0)
@@ -364,7 +364,7 @@ static void sysfs_do_register(sysfs_dir_t *sysfs_dir)
     dir_i->file_ops = &sysfs_dir_file_ops;
     dir_i->private_data = sysfs_dir; ///< for convenience
 
-    dentry_t *vfs_dir = dentry_get_from_parent(sysfs_sb, sysfs_sb->root, sysfs_dir->name);
+    ptr<dentry_t> vfs_dir = dentry_get_or_create_child(sysfs_sb->root, sysfs_sb, sysfs_dir->name);
     dentry_attach(vfs_dir, dir_i);
     sysfs_dir->_dentry = vfs_dir;
 
@@ -413,9 +413,9 @@ void sysfs_register_file(sysfs_dir_t *sysfs_dir, sysfs_item_t *item)
     if (unlikely(item->name.empty()))
         pr_warn("no name specified for sysfs entry '%s'", sysfs_dir ? sysfs_dir->name.c_str() : "/");
 
-    dentry_t *const target_dentry = sysfs_dir ? sysfs_dir->_dentry : sysfs_sb->root;
+    ptr<dentry_t> const target_dentry = sysfs_dir ? sysfs_dir->_dentry : sysfs_sb->root;
     MOS_ASSERT_X(target_dentry, "registering sysfs entry '{}' failed", item->name);
-    dentry_t *d = dentry_get_from_parent(sysfs_sb, target_dentry, item->name);
+    ptr<dentry_t> d = dentry_get_or_create_child(target_dentry, sysfs_sb, item->name);
     dentry_attach(d, file_i);
 }
 
@@ -425,7 +425,7 @@ MOS_INIT(VFS, register_sysfs)
 
     sysfs_sb = mos::create<superblock_t>();
     sysfs_sb->fs = &fs_sysfs;
-    sysfs_sb->root = dentry_get_from_parent(sysfs_sb, NULL, "");
+    sysfs_sb->root = dentry_create_root(sysfs_sb);
     inode_t *sysfs_root_inode = inode_create(sysfs_sb, sysfs_get_ino(), FILE_TYPE_DIRECTORY);
     sysfs_root_inode->perm = PERM_READ | PERM_EXEC;
     sysfs_root_inode->file_ops = &sysfs_dir_file_ops;

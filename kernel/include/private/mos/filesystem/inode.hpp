@@ -15,4 +15,4 @@ void inode_ref(inode_t *inode);
  * @param dentry The dentry to unlink
  * @return true if the inode was successfully unlinked, false otherwise (but the inode may still be there if other references exist)
  */
-bool inode_unlink(inode_t *dir, dentry_t *dentry);
+bool inode_unlink(inode_t *dir, ptr<dentry_t> dentry);

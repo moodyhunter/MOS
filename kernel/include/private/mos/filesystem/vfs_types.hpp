@@ -17,6 +17,7 @@
 #include <mos/lib/structures/list.hpp>
 #include <mos/lib/structures/tree.hpp>
 #include <mos/lib/sync/spinlock.hpp>
+#include <mos/list.hpp>
 #include <mos/platform/platform.hpp>
 #include <mos/string.hpp>
 #include <mos/types.hpp>
@@ -66,27 +67,27 @@ typedef void(dentry_iterator_op)(vfs_listdir_state_t *state, u64 ino, mos::strin
 typedef struct
 {
     /// create a hard link
-    bool (*hardlink)(dentry_t *old_dentry, inode_t *dir, dentry_t *new_dentry);
+    bool (*hardlink)(ptr<dentry_t> old_dentry, inode_t *dir, ptr<dentry_t> new_dentry);
     /// iterate over the contents of a directory
-    void (*iterate_dir)(dentry_t *dentry, vfs_listdir_state_t *iterator_state, dentry_iterator_op op);
+    void (*iterate_dir)(ptr<dentry_t> dentry, vfs_listdir_state_t *iterator_state, dentry_iterator_op op);
     /// lookup a file in a directory, if it's unset for a directory, the VFS will use the default lookup
-    bool (*lookup)(inode_t *dir, dentry_t *dentry);
+    bool (*lookup)(inode_t *dir, ptr<dentry_t> dentry);
     /// create a new directory
-    bool (*mkdir)(inode_t *dir, dentry_t *dentry, file_perm_t perm);
+    bool (*mkdir)(inode_t *dir, ptr<dentry_t> dentry, file_perm_t perm);
     /// create a new device file
-    bool (*mknode)(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm, dev_t dev);
+    bool (*mknode)(inode_t *dir, ptr<dentry_t> dentry, file_type_t type, file_perm_t perm, dev_t dev);
     /// create a new file
-    bool (*newfile)(inode_t *dir, dentry_t *dentry, file_type_t type, file_perm_t perm);
+    bool (*newfile)(inode_t *dir, ptr<dentry_t> dentry, file_type_t type, file_perm_t perm);
     /// read the contents of a symbolic link
-    size_t (*readlink)(dentry_t *dentry, char *buffer, size_t buflen);
+    size_t (*readlink)(ptr<dentry_t> dentry, char *buffer, size_t buflen);
     /// rename a file
-    bool (*rename)(inode_t *old_dir, dentry_t *old_dentry, inode_t *new_dir, dentry_t *new_dentry);
+    bool (*rename)(inode_t *old_dir, ptr<dentry_t> old_dentry, inode_t *new_dir, ptr<dentry_t> new_dentry);
     /// remove a directory
-    bool (*rmdir)(inode_t *dir, dentry_t *dentry);
+    bool (*rmdir)(inode_t *dir, ptr<dentry_t> dentry);
     /// create a symbolic link
-    bool (*symlink)(inode_t *dir, dentry_t *dentry, const char *symname);
+    bool (*symlink)(inode_t *dir, ptr<dentry_t> dentry, const char *symname);
     /// remove a file name, this is called after nlinks is decremented
-    bool (*unlink)(inode_t *dir, dentry_t *dentry);
+    bool (*unlink)(inode_t *dir, ptr<dentry_t> dentry);
 } inode_ops_t;
 
 typedef struct
@@ -111,28 +112,36 @@ typedef struct
  */
 struct superblock_t final : mos::NamedType<"superblock">
 {
-    dentry_t *root;
+    ptr<dentry_t> root;
     filesystem_t *fs;
     const superblock_ops_t *ops;
 };
 
 struct dentry_t final : mos::NamedType<"dentry">
 {
-    as_tree;
+  public:
+    dentry_t();
+    ~dentry_t();
+
+  public:
+    void detach_negative_from_parent();
+
+  public:
     spinlock_t lock;
-    atomic_t refcount;
-    mos::string name;         ///< for a mounted root, this field is EMPTY
-    superblock_t *superblock; ///< the mounted filesystem
-    bool is_mountpoint;       ///< if this dentry is a mountpoint
+    mos::string name;                  ///< for a mounted root, this field is EMPTY
+    superblock_t *superblock;          ///< the mounted filesystem
+    bool is_mountpoint;                ///< if this dentry is a mountpoint
+    ptr<dentry_t> parent;              ///< parent dentry, NULL for the root dentry
+    mos::list<ptr<dentry_t>> children; ///< list of child dentries
 
     // the underlying inode object
     // a dentry with no underlying inode is called a 'negative' dentry
     inode_t *inode;
 };
 
-extern dentry_t *root_dentry;
+extern ptr<dentry_t> root_dentry;
 
-inline mos::string dentry_name(const dentry_t *dentry)
+inline mos::string dentry_name(const ptr<dentry_t> dentry)
 {
     static const mos::string root_name = "<root>";
     static const mos::string null_name = "<NULL>";
@@ -193,29 +202,28 @@ struct filesystem_t final : mos::NamedType<"filesystem">
 {
     as_linked_list;
     mos::string name;
-    PtrResult<dentry_t> (*mount)(filesystem_t *fs, const char *dev_name, const char *mount_options);
-    void (*unmount)(filesystem_t *fs, dentry_t *mountpoint); // called when the mountpoint is unmounted
+    PtrResult<ptr<dentry_t>> (*mount)(filesystem_t *fs, const char *dev_name, const char *mount_options);
+    void (*unmount)(filesystem_t *fs, ptr<dentry_t> mountpoint); // called when the mountpoint is unmounted
 };
 
 struct mount_t final : mos::NamedType<"mount">
 {
-    as_linked_list;
-    dentry_t *root;       // root of the mounted tree
-    dentry_t *mountpoint; // where the tree is mounted
+    ptr<dentry_t> root;       // root of the mounted tree
+    ptr<dentry_t> mountpoint; // where the tree is mounted
     superblock_t *superblock;
     filesystem_t *fs;
 };
 
 struct FsBaseFile : IO
 {
-    dentry_t *const dentry;
+    ptr<dentry_t> dentry;
     spinlock_t offset_lock; // protects the offset field
     size_t offset;          // tracks the current position in the file
     void *private_data;
 
     ~FsBaseFile() = default;
 
-    FsBaseFile(IOFlags flags, io_type_t type, dentry_t *dentry) : IO(flags, type), dentry(dentry), offset(0), private_data(nullptr)
+    FsBaseFile(IOFlags flags, io_type_t type, ptr<dentry_t> dentry) : IO(flags, type), dentry(dentry), offset(0), private_data(nullptr)
     {
     }
 
@@ -242,7 +250,7 @@ struct FsBaseFile : IO
 
 struct FsFile final : FsBaseFile, mos::NamedType<"File">
 {
-    FsFile(IOFlags flags, dentry_t *dentry) : FsBaseFile(flags, IO_FILE, dentry) {};
+    FsFile(IOFlags flags, ptr<dentry_t> dentry) : FsBaseFile(flags, IO_FILE, dentry) {};
     ~FsFile() = default;
 
     size_t on_read(void *buf, size_t size) override;
@@ -255,7 +263,7 @@ struct FsFile final : FsBaseFile, mos::NamedType<"File">
 
 struct FsDir final : FsBaseFile, mos::NamedType<"Directory">
 {
-    FsDir(IOFlags flags, dentry_t *dentry) : FsBaseFile(flags, IO_DIR, dentry) {};
+    FsDir(IOFlags flags, ptr<dentry_t> dentry) : FsBaseFile(flags, IO_DIR, dentry) {};
     ~FsDir() = default;
 
     size_t on_read(void *buf, size_t size) override;

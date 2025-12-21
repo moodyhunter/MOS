@@ -64,60 +64,20 @@ should_inline bool path_is_absolute(mos::string_view path)
     return path[0] == '/';
 }
 
-should_inline dentry_t *dentry_parent(const dentry_t &dentry)
-{
-    return tree_parent(&dentry, dentry_t);
-}
-
-/**
- * @brief Check the reference count of a dentry
- *
- * @param dentry The dentry to check
- */
-void dentry_check_refstat(const dentry_t *dentry);
-typedef void(dump_refstat_receiver_t)(int depth, const dentry_t *dentry, bool mountroot, void *data);
-void dentry_dump_refstat(const dentry_t *dentry, dump_refstat_receiver_t receiver, void *data);
-
-/**
- * @brief Increment the reference count of a dentry
- *
- * @param dentry The dentry to increment the reference count of
- * @return the dentry itself
- */
-dentry_t *dentry_ref(dentry_t *dentry);
-
-/**
- * @brief Increment the reference count of a dentry up to a given dentry
- *
- * @param dentry The dentry to increment the reference count of
- * @param root The dentry to stop at
- * @return dentry_t* The dentry itself
- */
-dentry_t *dentry_ref_up_to(dentry_t *dentry, dentry_t *root);
-
-/**
- * @brief Decrement the reference count of a dentry
- *
- * @param dentry The dentry to decrement the reference count of
- */
-void dentry_unref(dentry_t *dentry);
-__nodiscard bool dentry_unref_one_norelease(dentry_t *dentry);
-void dentry_try_release(dentry_t *dentry);
-
 /**
  * @brief Attach an inode to a dentry
  *
  * @param d The dentry to attach the inode to
  * @param inode The inode to attach
  */
-void dentry_attach(dentry_t *d, inode_t *inode);
+void dentry_attach(ptr<dentry_t> d, inode_t *inode);
 
 /**
  * @brief Detach the inode from a dentry
  *
  * @param dentry The dentry to detach the inode from
  */
-void dentry_detach(dentry_t *dentry);
+void dentry_detach(ptr<dentry_t> dentry);
 
 /**
  * @brief Get the dentry from a file descriptor
@@ -126,7 +86,7 @@ void dentry_detach(dentry_t *dentry);
  *
  * @return The dentry associated with the file descriptor, or NULL if the file descriptor is invalid
  */
-PtrResult<dentry_t> dentry_from_fd(fd_t fd);
+PtrResult<ptr<dentry_t>> dentry_from_fd(fd_t fd);
 
 /**
  * @brief Get a child dentry from a parent dentry
@@ -137,7 +97,7 @@ PtrResult<dentry_t> dentry_from_fd(fd_t fd);
  * @return The child dentry, always non-NULL, even if the child dentry does not exist in the filesystem
  * @note The returned dentry will have its reference count incremented, even if it does not exist.
  */
-PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, mos::string_view name);
+PtrResult<ptr<dentry_t>> dentry_lookup_child(ptr<dentry_t> parent, mos::string_view name);
 
 /**
  * @brief Lookup a path in the filesystem
@@ -154,7 +114,7 @@ PtrResult<dentry_t> dentry_lookup_child(dentry_t *parent, mos::string_view name)
  *         NULL if any intermediate directory in the path does not exist.
  *
  */
-PtrResult<dentry_t> dentry_resolve(dentry_t *starting_dir, dentry_t *root_dir, mos::string_view path, LastSegmentResolveFlags flags);
+PtrResult<ptr<dentry_t>> dentry_resolve(ptr<dentry_t> starting_dir, ptr<dentry_t> root_dir, mos::string_view path, LastSegmentResolveFlags flags);
 
 /**
  * @brief Mount a filesystem at a mountpoint
@@ -165,14 +125,14 @@ PtrResult<dentry_t> dentry_resolve(dentry_t *starting_dir, dentry_t *root_dir, m
  *
  * @return true if the filesystem was mounted successfully, false otherwise
  */
-__nodiscard bool dentry_mount(dentry_t *mountpoint, dentry_t *root, filesystem_t *fs);
+__nodiscard bool dentry_mount(ptr<dentry_t> mountpoint, ptr<dentry_t> root, filesystem_t *fs);
 
 /**
  * @brief Unmount a filesystem at the mountpoint
  *
  * @return __nodiscard
  */
-__nodiscard dentry_t *dentry_unmount(dentry_t *root);
+__nodiscard ptr<dentry_t> dentry_unmount(ptr<dentry_t> root);
 
 /**
  * @brief List the contents of a directory
@@ -180,7 +140,7 @@ __nodiscard dentry_t *dentry_unmount(dentry_t *root);
  * @param dir The directory to list
  * @param state The state of the directory iterator
  */
-void vfs_populate_listdir_buf(dentry_t *dir, vfs_listdir_state_t *state);
+void vfs_populate_listdir_buf(ptr<dentry_t> dir, vfs_listdir_state_t *state);
 
 /**
  * @brief Get the path of a dentry
@@ -189,6 +149,6 @@ void vfs_populate_listdir_buf(dentry_t *dir, vfs_listdir_state_t *state);
  * @param root The root directory, the path will not go above this directory
  * @return mos::string String representation of the path
  */
-std::optional<mos::string> dentry_path(const dentry_t *dentry, dentry_t *root);
+std::optional<mos::string> dentry_path(const ptr<dentry_t> dentry, ptr<dentry_t> root);
 
 /**@}*/
