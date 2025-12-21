@@ -34,6 +34,7 @@
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
+spinlock_t ProcessTableLock;
 mos::HashMap<pid_t, Process *> ProcessTable;
 
 const char *get_vmap_content_str(vmap_content_t content)
@@ -106,7 +107,10 @@ void process_destroy(Process *proc)
     if (!Process::IsValid(proc))
         return;
 
-    ProcessTable.remove(proc->pid);
+    {
+        SpinLocker lock(&ProcessTableLock);
+        ProcessTable.remove(proc->pid);
+    }
 
     MOS_ASSERT(proc != current_process);
     dInfo2<process> << "destroying process " << proc;
@@ -156,12 +160,16 @@ Process *process_new(Process *parent, mos::string_view name, const stdio_t *ios)
     proc->main_thread = thread.get();
     proc->working_directory = parent ? parent->working_directory : root_dentry;
 
-    ProcessTable.insert(proc->pid, proc);
+    {
+        SpinLocker lock(&ProcessTableLock);
+        ProcessTable.insert(proc->pid, proc);
+    }
     return proc;
 }
 
 std::optional<Process *> process_get(pid_t pid)
 {
+    SpinLocker lock(&ProcessTableLock);
     if (auto pproc = ProcessTable.get(pid))
     {
         if (Process::IsValid(*pproc))
@@ -299,7 +307,10 @@ void process_exit(Process *&&proc, u8 exit_code, signal_t sig)
         {
             dInfo2<process> << "cleanup thread " << t;
             MOS_ASSERT(t != current_thread);
-            thread_table.remove(t->tid);
+            {
+                SpinLocker lock(&ThreadsTableLock);
+                ThreadsTable.remove(t->tid);
+            }
             it = proc->thread_list.erase(it); // remove from thread list
             thread_destroy(t);
             continue; // continue to next thread

@@ -8,7 +8,8 @@
 
 typedef struct _hashmap hashmap_t;
 
-extern mos::HashMap<tid_t, Thread *> thread_table;
+extern spinlock_t ThreadsTableLock;
+extern mos::HashMap<tid_t, Thread *> ThreadsTable;
 
 Thread *thread_allocate(Process *owner, thread_mode tflags);
 void thread_destroy(Thread *thread);

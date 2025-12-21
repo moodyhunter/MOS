@@ -45,7 +45,10 @@ static void add_to_freelist(size_t order, phyframe_t *frame)
 
     // performance hot spot, even a binary tree would always be faster
     while (node != head && node < frame_node)
+    {
+        MOS_ASSERT_X(node != node->next, "infinite loop detected");
         node = node->next;
+    }
 
     list_node_insert_before(node, frame_node);
 }

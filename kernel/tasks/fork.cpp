@@ -91,7 +91,10 @@ Process *process_do_fork(Process *parent)
 
     platform_context_clone(parent_thread, child_t);
 
-    ProcessTable.insert(child_p->pid, child_p);
+    {
+        SpinLocker lock(&ProcessTableLock);
+        ProcessTable.insert(child_p->pid, child_p);
+    }
     thread_complete_init(child_t);
     scheduler_add_thread(child_t);
     return child_p;

@@ -31,7 +31,10 @@ void kthread_init(void)
 {
     kthreadd = Process::New(NULL, "kthreadd");
     MOS_ASSERT_X(kthreadd->pid == 2, "kthreadd should have pid 2");
-    ProcessTable.insert(kthreadd->pid, kthreadd);
+    {
+        SpinLocker lock(&ProcessTableLock);
+        ProcessTable.insert(kthreadd->pid, kthreadd);
+    }
 }
 
 Thread *kthread_create(thread_entry_t entry, void *arg, const char *name)

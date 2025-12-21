@@ -4,8 +4,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#define WAITMSG "pid %d, fork returned %d\n"
-
 int main(void)
 {
     setbuf(stdout, NULL);
@@ -13,7 +11,10 @@ int main(void)
     {
         pid_t pid = fork();
         if (pid)
-            printf(WAITMSG, getpid(), pid);
+        {
+            printf("pid %d, fork returned %d\n", getpid(), pid);
+            fflush(stdout);
+        }
     }
     return 0;
 }

@@ -18,6 +18,7 @@ typedef struct
     IO *in, *out, *err;
 } stdio_t;
 
+extern spinlock_t ProcessTableLock;
 extern mos::HashMap<pid_t, Process *> ProcessTable;
 
 const char *get_vmap_type_str(vmap_type_t type);

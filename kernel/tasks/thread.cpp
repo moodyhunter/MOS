@@ -21,7 +21,8 @@
 #include <mos_stdlib.hpp>
 #include <mos_string.hpp>
 
-mos::HashMap<tid_t, Thread *> thread_table; // tid_t -> Thread
+spinlock_t ThreadsTableLock;
+mos::HashMap<tid_t, Thread *> ThreadsTable; // tid_t -> Thread
 
 static tid_t new_thread_id(void)
 {
@@ -52,7 +53,10 @@ void thread_destroy(Thread *thread)
     if (!Thread::IsValid(thread))
         return;
 
-    thread_table.remove(thread->tid);
+    {
+        SpinLocker lock(&ThreadsTableLock);
+        ThreadsTable.remove(thread->tid);
+    }
 
     pr_dinfo2(thread, "destroying thread %pt", thread);
     MOS_ASSERT_X(spinlock_is_locked(&thread->state_lock), "thread state lock must be held");
@@ -167,13 +171,20 @@ Thread *thread_complete_init(Thread *thread)
     if (!Thread::IsValid(thread))
         return NULL;
 
-    thread_table.insert(thread->tid, thread);
+    {
+        SpinLocker lock(&ThreadsTableLock);
+        ThreadsTable.insert(thread->tid, thread);
+    }
     return thread;
 }
 
 Thread *thread_get(tid_t tid)
 {
-    const auto ppthread = thread_table.get(tid);
+    std::optional<Thread *> ppthread;
+    {
+        SpinLocker lock(&ThreadsTableLock);
+        ppthread = ThreadsTable.get(tid);
+    }
     if (!ppthread)
     {
         pr_warn("thread_get(%d) from pid %d (%s) but thread does not exist", tid, current_process->pid, current_process->name.c_str());

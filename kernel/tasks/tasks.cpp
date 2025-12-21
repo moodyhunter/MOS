@@ -42,6 +42,7 @@ MOS_PANIC_HOOK(dump_process, "Dump current process");
 
 static bool tasks_sysfs_process_list(sysfs_file_t *f)
 {
+    SpinLocker lock(&ProcessTableLock);
     for (const auto &[pid, proc] : ProcessTable)
         sysfs_printf(f, "%pp, parent=%pp, main_thread=%pt, exit_status=%d\n", proc, proc->parent, proc->main_thread, proc->exit_status);
 
@@ -50,7 +51,8 @@ static bool tasks_sysfs_process_list(sysfs_file_t *f)
 
 static bool tasks_sysfs_thread_list(sysfs_file_t *f)
 {
-    for (const auto &[tid, thread] : thread_table)
+    SpinLocker lock(&ThreadsTableLock);
+    for (const auto &[tid, thread] : ThreadsTable)
         sysfs_printf(f, "%pt, state=%c, mode=%s, owner=%pp, stack=" PTR_FMT " (%zu bytes)\n", thread, thread_state_str(thread->state),
                      thread->mode == THREAD_MODE_KERNEL ? "kernel" : "user", thread->owner, thread->u_stack.top, thread->u_stack.capacity);
     return true;

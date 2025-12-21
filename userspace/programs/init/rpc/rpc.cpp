@@ -177,7 +177,7 @@ rpc_result_code_t ServiceManagerServer::instantiate_unit(rpc_context_t *ctx, con
     for (size_t i = 0; i < req->parameters_count; i++)
     {
         const auto &param = req->parameters[i];
-        args[param.name] = param.value;
+        args[param.name] = param.value ? param.value : "";
     }
 
     const auto unit = ConfigurationManager->InstantiateUnit(req->template_id, args);

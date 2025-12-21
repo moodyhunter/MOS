@@ -159,7 +159,7 @@ namespace mos
     };
 } // namespace mos
 
-#if 1
+#if 0
 #define DebugLogStream(name, level) mos::LoggingDescriptor<feat, LogLevel::level>()
 #else
 #define DebugLogStream(name, level) mos::NoOpLoggingDescriptor()

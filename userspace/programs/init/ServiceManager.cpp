@@ -102,7 +102,7 @@ bool ServiceManagerImpl::StartUnit(const std::string &id) const
             if (unit->GetStatus().status != UnitStatus::UnitStarting)
                 break;
             Debug << STARTING() << "Waiting for " << unit->GetDescription() << " to start, n = " << i << std::endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
 
         if (unit->GetStatus().status == UnitStatus::UnitFailed)
